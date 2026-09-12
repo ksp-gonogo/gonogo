@@ -82,7 +82,7 @@ describe("AlarmBanner safety margin", () => {
   function warpingSnapshot(owltSeconds?: number): AlarmSnapshot {
     return {
       ...snapshotOf([timeAlarm(8100)], 0),
-      warpTo: { alarmId: "a1", targetIndex: 4 },
+      warpTo: { alarmId: "a1", targetIndex: 4, targetRate: 100 },
       owltSeconds,
     };
   }

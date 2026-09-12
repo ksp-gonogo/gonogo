@@ -279,8 +279,17 @@ export interface AlarmSnapshot {
    * up/down each tick so that game-time-remaining never falls below
    * `warpSafetyMarginSeconds` of real-time, guaranteeing the alarm's
    * arming window is reachable. Null when no session is active.
+   *
+   * `targetRate` is what that rung runs at on THIS install, or null while
+   * nothing has said. It rides the snapshot so a station never looks a rung up
+   * in a ladder of its own: the rung numbers are shared, the rates behind them
+   * belong to whichever game the host is connected to.
    */
-  warpTo: { alarmId: string; targetIndex: number } | null;
+  warpTo: {
+    alarmId: string;
+    targetIndex: number;
+    targetRate: number | null;
+  } | null;
   /**
    * Real-time buffer (seconds) the warp-to controller leaves between the
    * current rate and the alarm's lead window. Higher = more pessimistic /

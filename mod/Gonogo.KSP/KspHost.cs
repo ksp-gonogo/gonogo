@@ -2793,6 +2793,7 @@ namespace Gonogo.KSP
             {
                 ["warpRate"] = (double)TimeWarp.CurrentRate,
                 ["warpRateIndex"] = TimeWarp.CurrentRateIndex,
+                ["warpRates"] = ReadWarpRates(),
                 ["warpMode"] = TimeWarp.WarpMode.ToString(),
                 ["paused"] = FlightDriver.Pause,
                 ["minuteSeconds"] = (double)calendar.Minute,
@@ -2805,6 +2806,35 @@ namespace Gonogo.KSP
                 ["epoch"] = CalendarEpoch.Read(calendar),
                 ["kerbinTime"] = GameSettings.KERBIN_TIME,
             };
+        }
+
+        /// <summary>
+        /// The install's own HIGH-warp rate table, widened to double, or null
+        /// where there is no warp controller to read one off.
+        ///
+        /// <para>The one read in <see cref="BuildTime"/> that needs its own
+        /// null guard: <c>TimeWarp.CurrentRate</c> and friends are statics that
+        /// answer for a missing <c>fetch</c> themselves, and
+        /// <c>fetch.warpRates</c> is an instance field with nothing standing in
+        /// front of it. Null rather than a stock table on absence: this value
+        /// exists to tell a client what the rungs mean on THIS install, and
+        /// answering with stock's guess would defeat it in exactly the case the
+        /// client cannot check.</para>
+        /// </summary>
+        private static double[]? ReadWarpRates()
+        {
+            var rates = TimeWarp.fetch?.warpRates;
+            if (rates == null || rates.Length == 0)
+            {
+                return null;
+            }
+
+            var widened = new double[rates.Length];
+            for (var i = 0; i < rates.Length; i++)
+            {
+                widened[i] = rates[i];
+            }
+            return widened;
         }
 
         /// <summary>

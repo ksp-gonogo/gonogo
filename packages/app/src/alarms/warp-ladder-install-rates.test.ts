@@ -65,7 +65,11 @@ function fakeStream(): { calls: string[]; set(key: string, v: unknown): void } {
   const calls: string[] = [];
   transport.setCommandHandler((command, args) => {
     if (command === "time.setWarpIndex") {
-      calls.push(String((args as { index?: number })?.index));
+      const index =
+        typeof args === "object" && args !== null && "index" in args
+          ? args.index
+          : undefined;
+      calls.push(String(index));
     }
     return null;
   });
@@ -99,10 +103,13 @@ function fakeStream(): { calls: string[]; set(key: string, v: unknown): void } {
         return;
       }
       if (key === "t.currentRateIndex") {
+        if (typeof v !== "number") {
+          throw new Error(`"t.currentRateIndex" needs a rung number`);
+        }
         warp = {
           ...warp,
-          warpRateIndex: v as number,
-          warpRate: INSTALL_WARP_RATES[v as number],
+          warpRateIndex: v,
+          warpRate: INSTALL_WARP_RATES[v],
         };
         publish("time.warp", warp);
         return;
@@ -151,9 +158,9 @@ describe("warp ladder against the install's own rate table", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    // 3500 seconds to run and ten seconds of margin: any rate at or under 350x
-    // leaves the operator the margin they asked for, and every rate above it
-    // spends the whole window inside one tick.
+    /* 3500 seconds to run and ten seconds of margin: any rate at or under 350x
+       leaves the operator the margin they asked for, and every rate above it
+       spends the whole window inside one tick. */
     const permitted = 3500 / 10;
     const commanded = telemetry.calls.map((index) => ({
       index: Number(index),

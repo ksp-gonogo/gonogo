@@ -12,11 +12,6 @@ import {
   MIN_WARP_SAFETY_MARGIN_SECONDS,
 } from "./types";
 
-/** KSP HIGH-warp ladder: index → rate. Mirrors AlarmHostService. */
-const HIGH_WARP_RATES: readonly number[] = [
-  1, 5, 10, 50, 100, 1000, 10000, 100000,
-];
-
 /**
  * Persistent banner on the main screen.
  *
@@ -58,10 +53,15 @@ export function AlarmBanner() {
     nextAlarm && nextAlarm.state === "pending" && isWarpToCandidate(nextAlarm)
       ? nextAlarm
       : null;
-  const warpToTargetRate =
-    snap.warpTo !== null
-      ? (HIGH_WARP_RATES[snap.warpTo.targetIndex] ?? 1)
-      : null;
+  /*
+   * The target rate comes off the snapshot, from the table the host actually
+   * planned against. This used to look the rung up in a copy of stock's ladder
+   * kept here, which drew "→ 100×" beside a game running at 10000×: the rung
+   * numbers are the same everywhere, the rates behind them are the install's.
+   * Null while the host is probing a rung nothing has said the rate of, and
+   * then the arrow is not drawn at all rather than filled with a guess.
+   */
+  const warpToTargetRate = snap.warpTo?.targetRate ?? null;
 
   // Beep on every transition into firing/fired so a telemetry-triggered
   // alarm never silently vanishes. Tracks ids so subsequent re-renders

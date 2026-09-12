@@ -1505,7 +1505,25 @@ namespace Sitrep.Contract
         /// resolves to derive <see cref="DeployedEntry.Power"/>. They are
         /// Breaking Ground's own integral power units rather than electric
         /// charge, so the label was wrong as well as the number.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 2 -&gt; 3: what the warp rungs mean on
+        /// THIS install.</b> One new nullable member on <see cref="WarpState"/>,
+        /// <see cref="WarpState.WarpRates"/>. Additive, nothing removed or
+        /// retyped, so an Uplink built against 16.2 is unaffected and the frozen
+        /// Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because <c>time.setWarpIndex</c> takes a RUNG and the
+        /// wire only ever said what the current one was running at, so a client
+        /// planning a warp had to predict the rest of the table, and the only
+        /// table it could predict was stock's. Kopernicus and RealSolarSystem
+        /// both republish it: measured on the deck's install, rung 4 is 10000x
+        /// where stock's is 100x. The alarm client asked for rung 4 believing it
+        /// had computed a safe 100x and the game stepped the clock 2080 seconds
+        /// inside one tick, spending a warp window that cannot be aborted from
+        /// inside. The mod has read the same table all along, in
+        /// <c>Gonogo.KSP.KspVesselActuator.SetWarp</c>, to bound the very command
+        /// the client was aiming blind.</para>
         /// </remarks>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

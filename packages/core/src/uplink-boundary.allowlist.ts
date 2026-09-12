@@ -153,6 +153,24 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * and the name is text.
        */
       "mod/Sitrep.Host.Tests/AtmospherePressureProfileTests.cs",
+      /*
+       * The contract layer, and the generated mirror of it. `WarpState.WarpRates`
+       * ships the install's own warp ladder BECAUSE a pack is free to replace
+       * it, and the pack that does is named as the worked example. The pack is
+       * prose in a doc comment on a first-party wire type; nothing here reaches
+       * for anything the pack ships.
+       */
+      "mod/Sitrep.Contract/WarpState.cs",
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
+      /*
+       * Prose, citing PROVENANCE: the test that pins the warp ladder to the
+       * install's own rates carries the table it was measured against, and names
+       * the pack that install runs. A test that says where its ground truth was
+       * taken from is doing the right thing, and the name is text. The
+       * client code it covers names no pack at all, only "a planet pack".
+       */
+      "packages/app/src/alarms/warp-ladder-install-rates.test.ts",
     ],
     domainDebt: [],
   },
