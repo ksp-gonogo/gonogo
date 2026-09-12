@@ -76,20 +76,20 @@ function useActiveCentres(): {
  * delayed data still has to know WHICH centre it is delayed from or they cannot
  * interpret any of it, so the answer stays on screen; only the lever goes.
  *
- * A PILOT keeps the picker, deliberately. The design's end state pins a pilot
- * to their own craft's vantage automatically, and once that lands the lever is
- * a control to change the one thing the seat depends on. Until then the picker
- * is the ONLY way a pilot reaches their craft's vantage at all, and removing it
- * would leave them permanently reading at the ground's light-time with no
- * recourse. Taking it away is the second half of that work, not this one.
+ * A PILOT reads it too, for a different reason. `PilotVantage` pins that seat
+ * to the craft the human is aboard, so the lever would be a control that
+ * fights its own binding: pick anything else and the next frame puts it back.
+ * The seat is defined by where the operator IS, and that is not theirs to
+ * choose. Nothing is lost that the mod would have allowed either, since a
+ * craft the pin cannot reach is one `set-vantage` refuses anyway.
  */
 export function VantageControl() {
-  return useScreen() === "station" ? <VantageReadout /> : <VantagePicker />;
+  return useScreen() === "main" ? <VantagePicker /> : <VantageReadout />;
 }
 
 /**
- * What the station sees: the command centre its frames were actually delayed
- * from, stated and nothing more.
+ * What a seat that does not choose sees: the command centre its frames were
+ * actually delayed from, stated and nothing more.
  *
  * Sourced from the frames rather than from `useSelectedVantage`, which on a
  * station answers a constructor default that can never move and so names the

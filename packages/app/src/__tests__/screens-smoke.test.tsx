@@ -83,6 +83,21 @@ describe("MainScreen smoke", () => {
     ).not.toBeNull();
   });
 
+  it("gives the pilot seat a vantage readout, never the picker", () => {
+    // `PilotVantage` pins that seat to the craft, so the lever would fight its
+    // own binding. Asserted through the whole provider tower rather than on
+    // `VantageControl` alone, because what decides it is the `screen` prop
+    // this file is the only test to thread all the way down.
+    renderScreen(<MainScreen screen="pilot" />);
+
+    expect(
+      screen.queryByRole("button", { name: /^Command centre vantage:/ }),
+    ).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Command centre vantage: Unknown",
+    );
+  });
+
   it("hides the dashboard behind the analytics consent gate until it is answered", () => {
     localStorage.removeItem(ANALYTICS_CONSENT_KEY);
     renderScreen(<MainScreen />);

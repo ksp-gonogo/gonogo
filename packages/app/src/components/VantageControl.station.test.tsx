@@ -117,3 +117,61 @@ describe("VantageControl on a station", () => {
     fixture.unmount();
   });
 });
+
+/**
+ * A pilot owns its session and CAN carry a selection, which is exactly why the
+ * transport is left alone here: the seat reads rather than picks because
+ * `PilotVantage` already decided the answer, not because the wire refuses one.
+ */
+function mountPilot() {
+  const fixture = setupStreamFixture({
+    carriedChannels: ["commandCentre.roster"],
+    pinnedUt: 10,
+  });
+  const view = render(
+    <fixture.Provider>
+      <ScreenProvider value="pilot">
+        <VantageControl />
+      </ScreenProvider>
+    </fixture.Provider>,
+  );
+  return {
+    ...fixture,
+    ...view,
+    emitRoster: (roster: unknown, vantage = "ksc") => {
+      act(() => {
+        fixture.emit("commandCentre.roster", roster, { vantage });
+        fixture.store.beginFrame();
+      });
+    },
+  };
+}
+
+describe("VantageControl on a pilot page", () => {
+  it("offers no lever: the seat is where the operator is, not a choice", () => {
+    const fixture = mountPilot();
+    fixture.emitRoster(ROSTER);
+
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    fixture.unmount();
+  });
+
+  it("names the craft its frames are delayed from once the vantage is pinned", () => {
+    const fixture = mountPilot();
+    fixture.emitRoster(
+      [
+        ...ROSTER,
+        { id: "vessel:abc-123", displayName: "Ares I", active: true },
+      ],
+      "vessel:abc-123",
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Ares I");
+    expect(screen.queryByText("KSC")).toBeNull();
+
+    fixture.unmount();
+  });
+});
