@@ -1,6 +1,5 @@
 import {
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -52,7 +51,6 @@ function fixture() {
   setActiveViewClockForTests({ viewUt: () => PINNED_UT });
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
-  setActiveCarriedChannelsForTests(new Set(["vessel.maneuver.add"]));
 
   const emit = (topic: string, payload: unknown) => {
     transport.emit(topic, payload);
@@ -109,7 +107,6 @@ describe("LocalManeuverTriggerService", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   it("plans a transfer around a body the stock table has never heard of", async () => {

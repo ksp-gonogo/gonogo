@@ -2,7 +2,6 @@ import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
   resolveValueTopic,
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -76,7 +75,6 @@ function fakeStream(): { calls: string[]; set(key: string, v: unknown): void } {
 
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
-  setActiveCarriedChannelsForTests(new Set(["time.setWarpIndex"]));
 
   const subscribed = new Set<string>();
   function publish(topic: string, value: unknown): void {
@@ -134,7 +132,6 @@ describe("warp ladder against the install's own rate table", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   it("never commands an index the install runs faster than the safety margin allows", async () => {

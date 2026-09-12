@@ -1,7 +1,6 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -181,9 +180,6 @@ function startSession(owlt: number): ModStandIn {
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
   setActiveViewClockForTests(clock);
-  setActiveCarriedChannelsForTests(
-    new Set(["time.setWarpIndex", "alarm.scet.arm", "alarm.scet.disarm"]),
-  );
   subscribe();
 
   function subscribe(): void {
@@ -364,7 +360,6 @@ describe("SCET alarms", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   async function run(session: ModStandIn, untilUt: number): Promise<void> {

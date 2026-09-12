@@ -2,7 +2,6 @@ import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
   getWarpState,
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -165,7 +164,6 @@ function startSession(shape: WireShape): WarpSession {
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
   setActiveViewClockForTests(clock);
-  setActiveCarriedChannelsForTests(new Set(["time.setWarpIndex"]));
   client.subscribe("time.warp", () => {});
   client.subscribe("vessel.identity", () => {});
 
@@ -229,7 +227,6 @@ describe("warp at a light-minute", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   for (const shape of Object.keys(WIRE_SHAPES) as WireShape[]) {

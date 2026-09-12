@@ -3,7 +3,6 @@ import {
   type EventOccurrence,
   resolveValueTopic,
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -19,13 +18,6 @@ interface FakeTelemetry {
   set(key: string, v: unknown): void;
   calls: string[];
 }
-
-/** Command names this file's fixtures dispatch through the stream. */
-const CARRIED_COMMANDS = [
-  "time.setWarpIndex",
-  "vessel.control.setActionGroup",
-  "vessel.control.stage",
-];
 
 /**
  * A dispatched `{command, args}` pair as one readable string, so an assertion
@@ -52,7 +44,7 @@ function formatCommand(command: string, args: unknown): string {
 /**
  * Real stream harness (`StubTransport` + `TelemetryClient` + `TimelineStore`,
  * registered via the non-hook `setActiveTimelineStoreForTests`/
- * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`:
+ * `setActiveTelemetryClientForTests`:
  * see `@ksp-gonogo/sitrep-client`'s `context.tsx`): `AlarmHostService`'s warp
  * reads (`getWarpState`), threshold `dataKey` reads (`getValue`), and
  * `contracts.active`/command dispatch (`dispatchActiveCommand`) all ride
@@ -87,7 +79,6 @@ function fakeTelemetry(): FakeTelemetry {
 
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
-  setActiveCarriedChannelsForTests(new Set(CARRIED_COMMANDS));
 
   const subscribed = new Set<string>();
   function ensureSubscribed(topic: string): void {
@@ -166,7 +157,6 @@ describe("AlarmHostService", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   function makeService(owltSeconds = 0): {

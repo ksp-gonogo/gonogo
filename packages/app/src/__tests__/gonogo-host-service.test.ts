@@ -2,7 +2,6 @@ import type { DataKey, DataSource, DataSourceStatus } from "@ksp-gonogo/core";
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import {
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   TelemetryClient,
@@ -193,9 +192,6 @@ describe("GoNoGoHostService", () => {
       return null;
     });
     setActiveTelemetryClientForTests(telemetryClient);
-    setActiveCarriedChannelsForTests(
-      new Set(["vessel.control.stage", "vessel.control.setAbort"]),
-    );
     // Sound on by default; the host fires the T-0 + abort tones internally.
     __resetSharedAudioContextForTests();
     oscillators = installFakeAudio();
@@ -209,7 +205,6 @@ describe("GoNoGoHostService", () => {
 
   afterEach(() => {
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     telemetryClient?.dispose();
     svc.dispose();
