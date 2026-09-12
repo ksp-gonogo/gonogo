@@ -69,18 +69,18 @@ export interface ScetAlarmBridgeContext {
  * ## Why this reads raw frames rather than `useTelemetry`
  *
  * The notice is `DelayRole.TrueNow` on the mod, so it reaches the wire on the
- * tick it was captured rather than a light-time later. That buys a client
- * nothing through the ordinary read path: `TimelineStore.sample` reads every
- * topic at the frame's frozen view time, and view time trails true time by the
- * whole one-way delay whatever a channel's role is
- * (`warp-delay.characterise.test.ts` pins exactly that, on both wire shapes).
- * A notice read that way would arrive one light-time after the warp stopped,
- * which is the failure the TrueNow classification exists to prevent.
+ * tick it was captured rather than a light-time later. That used to buy a
+ * client nothing through the ordinary read path, because `TimelineStore.sample`
+ * read every topic at the delayed view time whatever its role was, and a notice
+ * read that way arrived one light-time after the warp stopped, which is the
+ * failure the TrueNow classification exists to prevent.
  *
- * `TelemetryClient.subscribe` delivers on ARRIVAL instead, with no view clock in
- * the way, which is the right shape for a one-shot event anyway. So this arm
- * does not depend on the delay-role read gap being closed, and closing it later
- * changes nothing here.
+ * The store honours the role now (`warp-delay.characterise.test.ts` measures
+ * what it buys), so the ordinary path would work. This still reads raw frames,
+ * because `TelemetryClient.subscribe` delivers on ARRIVAL with no view clock in
+ * the way, which is the right shape for a one-shot event: a fire notice is an
+ * edge, and a view-time read of an edge can only ever miss one that fell
+ * between two frames.
  *
  * ## Reconciliation, not a handshake
  *

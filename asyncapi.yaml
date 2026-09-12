@@ -2539,7 +2539,7 @@ channels:
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
+    x-sitrep-delay-role: true-now
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:

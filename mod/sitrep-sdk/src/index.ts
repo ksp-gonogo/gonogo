@@ -112,6 +112,18 @@ export {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
 } from "./default-carried-topics";
+// Whether a Topic's value is entitled to be read as of TRUE NOW, or only as of
+// now minus the light-time to the craft. Published for the same reason
+// reckonability is: an Uplink declaring a ground-side channel of its own needs
+// the same answer core reads, and a widget that draws a career balance beside a
+// vessel reading has to be able to say which of the two is current.
+export {
+  type DelayLane,
+  delayLaneOf,
+  type GeneratedTrueNowTopic,
+  isTrueNowTopic,
+  type TrueNowTopic,
+} from "./delay-roles";
 // The atmospheric-descent maths a velocity-height plot is drawn from. Published
 // because it is the only input a contributor to that plot cannot rebuild from
 // the wire, and two independently written integrators on one plot disagree for

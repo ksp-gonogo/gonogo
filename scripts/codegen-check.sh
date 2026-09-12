@@ -64,6 +64,7 @@ fi
 BEFORE="$(snapshot)"
 bash mod/codegen.sh
 node scripts/gen-unit-kinds.mjs
+node scripts/gen-delay-roles.mjs
 node scripts/asyncapi-doc.mjs
 AFTER="$(snapshot)"
 
