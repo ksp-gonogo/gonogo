@@ -18,6 +18,7 @@ Elects RealAntennas as the comms backend when it is installed, so the comms read
 | `comms.dataRate` | `CommsDataRate` | lossy-latest | true-now |
 | `comms.linkMargin` | `CommsLinkMargin` | lossy-latest | true-now |
 | `comms.linkQuality` | `CommsLinkQuality` | lossy-latest | true-now |
+| `realantennas.antennaChains` | `RealAntennasAntennaChain[]` | lossy-latest | delayed |
 | `realantennas.antennas` | `RealAntennasAntennaState[]` | lossy-latest | delayed |
 | `realantennas.hopRates` | `RealAntennasHopRate[]` | lossy-latest | true-now |
 | `realantennas.available` | – | lossy-latest | true-now |
@@ -25,18 +26,22 @@ Elects RealAntennas as the comms backend when it is installed, so the comms read
 | Payload | Fields |
 | --- | --- |
 | `RealAntennasHopExt` | `band` text, `beamwidth` °, `codingRate` ratio, `encoder` text, `modulationBits` count, `powerDrawEc` units/s, `requiredEbN0` dB, `reverseBitsPerSec` bit/s, `techLevel` count |
+| `RealAntennasTargetStep` | `altitude` m, `azimuth` °, `bodyName` text, `elevation` °, `forward` °, `latitude` °, `longitude` °, `mode` text, `vesselId` id |
+| `RealAntennasTargetStepArgs` | `altitude` m, `azimuth` °, `bodyName` text, `elevation` °, `forward` °, `latitude` °, `longitude` °, `mode` text, `vesselId` id |
 
 ## Commands
 
 | Command | Args | Result |
 | --- | --- | --- |
 | `realantennas.antenna.target` | `RealAntennasTargetArgs` | `CommandResult` |
+| `realantennas.antenna.targetChain` | `RealAntennasTargetChainArgs` | `CommandResult` |
 | `realantennas.antenna.targetHome` | `RealAntennasAntennaArgs` | `CommandResult` |
 
 | Args | Fields |
 | --- | --- |
 | `RealAntennasAntennaArgs` | `antennaId` id |
 | `RealAntennasTargetArgs` | `altitude` m, `antennaId` id, `azimuth` °, `bodyName` text, `elevation` °, `forward` °, `latitude` °, `longitude` °, `mode` text, `vesselId` id |
+| `RealAntennasTargetChainArgs` | `antennaId` id, `settleSeconds` s, `steps` RealAntennasTargetStepArgs[] |
 
 ## Augments
 
@@ -44,7 +49,7 @@ Elects RealAntennas as the comms backend when it is installed, so the comms read
 | --- | --- | --- | --- | --- | --- |
 | `realantennas-comm-signal-badge` | `comm-signal.badges` | `comms.dataRate`, `comms.path` | only while `realantennas` | 0 |  |
 | `realantennas-comm-signal-section` | `comm-signal.sections` | `comms.linkMargin`, `comms.path` | only while `realantennas` | 3 |  |
-| `realantennas-comm-signal-antenna-targets` | `comm-signal.sections` | `realantennas.antennas`, `system.bodies`, `system.vessels` | only while `realantennas` | 1 |  |
+| `realantennas-comm-signal-antenna-targets` | `comm-signal.sections` | `realantennas.antennas`, `realantennas.antennaChains`, `system.bodies`, `system.vessels` | only while `realantennas` | 1 |  |
 
 ![RealAntennas installed but the link is dark: the budget section withholds itself entirely rather than showing a labelled blank](docs/assets/ra-installed-nothing-to-report--default.png)
 

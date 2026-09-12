@@ -3,9 +3,9 @@
   "engine": "chromium",
   "assets": {
     "ra-antenna-targets--default.png": {
-      "hash": "89ca0ae0105e3791",
-      "elements": 75,
-      "text": "1693dc68"
+      "hash": "611872e4388a2284",
+      "elements": 81,
+      "text": "dcbed57d"
     },
     "ra-hop-rates-bottleneck--default.png": {
       "hash": "fe81a07759ec04f4",
