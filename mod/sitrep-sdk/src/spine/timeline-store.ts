@@ -1,5 +1,6 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
+import { type DelayLane, delayLaneOf } from "../delay-roles";
 import { PerfBudget } from "../perf/PerfBudget";
 import { splitRawFieldSubtopic } from "../raw-field-split";
 import type {
@@ -55,6 +56,19 @@ export type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 export interface FrameToken {
   readonly viewUt: number;
   /**
+   * The same instant for a channel the mod declares `DelayRole.TrueNow`: the
+   * live estimate, with no light-time subtracted. Frozen at mint alongside
+   * `viewUt` and for the same reason, so a frame that reads both kinds of topic
+   * reads each of them at one instant rather than at whatever the clock had
+   * reached by that particular read.
+   *
+   * A whole light-time ahead of `viewUt` at a real delay and EQUAL to it at
+   * zero, which is why nothing in the tree could see the difference until the
+   * mod started classifying: with `delaySeconds()` at 0 the two edges are the
+   * same number.
+   */
+  readonly trueNowViewUt: number;
+  /**
    * Internal validity marker, bumped by every `beginFrame()` call. Not
    * meant to be read by callers, it's what lets `sample()` detect a token
    * a caller cached across a frame boundary and fall back to the current
@@ -71,6 +85,28 @@ export interface FrameToken {
    * `TimelineStore.sampleCertainty`.
    */
   readonly certainty: Certainty;
+  /** {@link certainty} for {@link trueNowViewUt}, against the true-now horizon. Classifying a true-now read against the DELAYED horizon would report `"predicted"` for every one of them, the reading being a light-time past it by construction. */
+  readonly trueNowCertainty: Certainty;
+}
+
+/**
+ * Freeze both view times and both certainties off one clock, in one place.
+ *
+ * One place because the two mint sites (the constructor and `beginFrame`) have
+ * to agree: a token minted with only one lane filled in would read every
+ * true-now topic at `undefined` view time, and a constructor that quietly
+ * disagreed with `beginFrame` would do it only on the first frame.
+ */
+function mintToken(clock: ViewClock, generation: number): FrameToken {
+  const viewUt = clock.viewUt("delayed");
+  const trueNowViewUt = clock.viewUt("true-now");
+  return {
+    viewUt,
+    trueNowViewUt,
+    generation,
+    certainty: clock.certaintyFor(viewUt, "delayed"),
+    trueNowCertainty: clock.certaintyFor(trueNowViewUt, "true-now"),
+  };
 }
 
 export interface TimelineStoreOptions {
@@ -116,6 +152,27 @@ function walkFieldPath(value: unknown, fieldPath: readonly string[]): unknown {
     cursor = (cursor as Record<string, unknown>)[segment];
   }
   return cursor;
+}
+
+/**
+ * Which lane a derived channel is read in: the most conservative of its
+ * declared inputs.
+ *
+ * A channel with NO declared inputs derives from constants and is as current as
+ * the frame either way, so it takes the delayed lane with everything else
+ * rather than being special-cased into the one that can run ahead.
+ *
+ * Reads `def.inputs` and not what `derive` actually consulted, because the lane
+ * has to be decided before `derive` runs. A channel that consults a subset of
+ * its declared inputs is therefore read no more current than the input it
+ * declared and skipped, which is the safe direction of that inaccuracy.
+ */
+function derivedLane(def: DerivedChannelDefinition<unknown>): DelayLane {
+  const inputs = def.inputs ?? [];
+  return inputs.length > 0 &&
+    inputs.every((topic) => delayLaneOf(topic) === "true-now")
+    ? "true-now"
+    : "delayed";
 }
 
 /** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (derived channels ultimately should propagate the worst input staleness) is not yet implemented, this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
@@ -605,12 +662,7 @@ export class TimelineStore {
     readonly clock: ViewClock,
     private readonly options: TimelineStoreOptions = {},
   ) {
-    const viewUt = clock.viewUt();
-    this.currentToken = {
-      viewUt,
-      generation: this.generation,
-      certainty: clock.certaintyFor(viewUt),
-    };
+    this.currentToken = mintToken(clock, this.generation);
     this.heartbeats = new HeartbeatTracker(options.heartbeatOptions);
   }
 
@@ -745,12 +797,7 @@ export class TimelineStore {
    */
   beginFrame(): FrameToken {
     this.generation++;
-    const viewUt = this.clock.viewUt();
-    this.currentToken = {
-      viewUt,
-      generation: this.generation,
-      certainty: this.clock.certaintyFor(viewUt),
-    };
+    this.currentToken = mintToken(this.clock, this.generation);
     for (const listener of this.frameListeners) listener();
     return this.currentToken;
   }
@@ -1402,8 +1449,27 @@ export class TimelineStore {
     topic: string,
     token: FrameToken = this.currentToken,
   ): TimelinePoint<T> | undefined {
+    return this.sampleInLane<T>(topic, token, undefined);
+  }
+
+  /**
+   * {@link sample}, with the delay lane pinned rather than taken from the
+   * topic's own declaration.
+   *
+   * Only a DERIVED channel pins one, and only to its own lane: a channel whose
+   * inputs are a mix reads all of them delayed, so its output is never stamped
+   * more current than its most delayed input and never blends two instants a
+   * light-time apart into one value. See {@link sampleDerived}.
+   */
+  private sampleInLane<T>(
+    topic: string,
+    token: FrameToken,
+    laneOverride: DelayLane | undefined,
+  ): TimelinePoint<T> | undefined {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
+    const lane = laneOverride ?? this.laneForTopic(topic);
+    const viewUt = this.viewUtFor(effectiveToken, lane);
 
     const resolved = this.resolveDerivedTopic(topic);
     if (resolved) {
@@ -1424,8 +1490,10 @@ export class TimelineStore {
       // `sampleDerived` and recomputes against the new epoch instead of
       // serving pre-reset output.
       const epoch = this.clock.getEpoch();
-      return this.memoize(effectiveToken, `${topic}\0epoch\0${epoch}`, () =>
-        this.sampleDerived<T>(resolved, effectiveToken, epoch),
+      return this.memoize(
+        effectiveToken,
+        `${topic}\0epoch\0${epoch}\0lane\0${lane}`,
+        () => this.sampleDerived<T>(resolved, effectiveToken, epoch),
       );
     }
 
@@ -1445,11 +1513,11 @@ export class TimelineStore {
     const epoch = this.clock.getEpoch();
     const literal = this.memoize(
       effectiveToken,
-      `${topic}\0epoch\0${epoch}`,
+      `${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () => {
         const timeline = this.timelineFor<T>(topic);
         if (timeline.epoch < epoch) return undefined;
-        return timeline.at(effectiveToken.viewUt);
+        return timeline.at(viewUt);
       },
     );
     if (literal !== undefined) return literal;
@@ -1475,9 +1543,33 @@ export class TimelineStore {
     if (!rawField) return literal;
     return this.memoize(
       effectiveToken,
-      `\0rawfield\0${topic}\0epoch\0${epoch}`,
-      () => this.sampleRawFieldSubtopic<T>(rawField, effectiveToken),
+      `\0rawfield\0${topic}\0epoch\0${epoch}\0lane\0${lane}`,
+      () =>
+        this.sampleRawFieldSubtopic<T>(rawField, effectiveToken, laneOverride),
     );
+  }
+
+  /** The frozen view time `token` exposes for `lane`. Both are minted together, so which one a read takes is the only thing a lane decides. */
+  private viewUtFor(token: FrameToken, lane: DelayLane): number {
+    return lane === "true-now" ? token.trueNowViewUt : token.viewUt;
+  }
+
+  /**
+   * Which lane `topic` is read in, for every shape of topic this store serves
+   * rather than only the declared ones.
+   *
+   * A DERIVED channel takes the most conservative of its inputs
+   * ({@link derivedLane}). A raw FIELD SUBTOPIC takes its parent record's lane,
+   * because `time.warp.warpRate` is the same wire frame as `time.warp` and
+   * reading the two at different instants would be the same record disagreeing
+   * with itself. Anything else is its own declaration, and an undeclared or
+   * dynamic topic is delayed.
+   */
+  private laneForTopic(topic: string): DelayLane {
+    const derived = this.resolveDerivedTopic(topic);
+    if (derived) return derivedLane(derived.def);
+    const rawField = this.resolveRawFieldSubtopic(topic);
+    return delayLaneOf(rawField ? rawField.rawTopic : topic);
   }
 
   /**
@@ -1516,12 +1608,14 @@ export class TimelineStore {
   sampleInterpolated<T>(
     topic: string,
     token: FrameToken = this.currentToken,
+    laneOverride?: DelayLane,
   ): TimelinePoint<T> | undefined {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
+    const lane = laneOverride ?? this.laneForTopic(topic);
 
     if (this.resolveDerivedTopic(topic)) {
-      return this.sample<T>(topic, effectiveToken);
+      return this.sampleInLane<T>(topic, effectiveToken, laneOverride);
     }
 
     // Same epoch-fold as `sample()`'s raw path above. A mid-token epoch bump
@@ -1530,11 +1624,11 @@ export class TimelineStore {
     const epoch = this.clock.getEpoch();
     return this.memoize(
       effectiveToken,
-      `\0interp\0${topic}\0epoch\0${epoch}`,
+      `\0interp\0${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () => {
         const timeline = this.timelineFor<T>(topic);
         if (timeline.epoch < epoch) return undefined;
-        return interpolatedRead(timeline, effectiveToken.viewUt);
+        return interpolatedRead(timeline, this.viewUtFor(effectiveToken, lane));
       },
     );
   }
@@ -2011,7 +2105,7 @@ export class TimelineStore {
       () => {
         const point = this.sample<T>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
-        const viewUt = effectiveToken.viewUt;
+        const viewUt = this.viewUtFor(effectiveToken, this.laneForTopic(topic));
         /*
          * The registered model is asked FIRST and its answer is final, decline
          * included. Falling through to a derived channel's label after a
@@ -2253,10 +2347,14 @@ export class TimelineStore {
     def: DerivedChannelDefinition<unknown>,
     token: FrameToken,
   ): StreamStatusValue {
-    const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
+    const lane = derivedLane(def);
+    const get: DerivedGet = (inputTopic) =>
+      this.sampleInLane(inputTopic, token, lane);
     const getStatus = (inputTopic: string) =>
       this.sampleStatus(inputTopic, token);
-    if (def.deriveStatus) return def.deriveStatus(getStatus, get, token.viewUt);
+    if (def.deriveStatus) {
+      return def.deriveStatus(getStatus, get, this.viewUtFor(token, lane));
+    }
     return worstStatus(def.inputs.map(getStatus));
   }
 
@@ -2350,10 +2448,12 @@ export class TimelineStore {
   private sampleRawFieldSubtopic<T>(
     parsed: { rawTopic: string; fieldPath: string[] },
     token: FrameToken,
+    laneOverride: DelayLane | undefined,
   ): TimelinePoint<T> | undefined {
-    const parentPoint = this.sample<Record<string, unknown>>(
+    const parentPoint = this.sampleInLane<Record<string, unknown>>(
       parsed.rawTopic,
       token,
+      laneOverride,
     );
     if (!parentPoint) return undefined; // not whole yet
     if (parentPoint.payload === null) {
@@ -2416,6 +2516,16 @@ export class TimelineStore {
     // calls `derive`, so it's the one that must recompute on a mid-frame
     // epoch bump; the outer memoize in `sample()` only needs a matching key
     // so it doesn't short-circuit before ever reaching this one.
+    // The channel's own lane: TRUE-NOW only when every declared input is, and
+    // DELAYED the moment one is not. Both halves matter. A derived record must
+    // not be stamped more current than the most delayed thing it read, and its
+    // inputs are pinned to the same lane so one value is never assembled from
+    // two instants a light-time apart. `vessel.state` is the case that makes
+    // this real: it reads seven delayed vessel channels and the true-now
+    // `system.bodies`, so it stays delayed and reads the body catalogue at the
+    // delayed instant, exactly as it did before any of this existed.
+    const lane = derivedLane(def);
+
     const { value, observedAt } = this.memoize(
       token,
       `\0derived\0${def.topic}\0epoch\0${epoch}`,
@@ -2440,17 +2550,18 @@ export class TimelineStore {
           if (point) oldest = Math.min(oldest, point.validAt);
           return point;
         };
+        const viewUt = this.viewUtFor(token, lane);
         const get: DerivedGet = (inputTopic) =>
-          note(this.sample(inputTopic, token));
+          note(this.sampleInLane(inputTopic, token, lane));
         const getInterpolated: DerivedGet = (inputTopic) =>
-          note(this.sampleInterpolated(inputTopic, token));
+          note(this.sampleInterpolated(inputTopic, token, lane));
         return {
-          value: def.derive(get, token.viewUt, getInterpolated),
+          value: def.derive(get, viewUt, getInterpolated),
           // Nothing read (a channel deriving from constants) is as current as
           // the frame; nothing can be older than the moment being asked about.
           observedAt: Number.isFinite(oldest)
-            ? Math.min(oldest, token.viewUt)
-            : token.viewUt,
+            ? Math.min(oldest, viewUt)
+            : viewUt,
         };
       },
     );

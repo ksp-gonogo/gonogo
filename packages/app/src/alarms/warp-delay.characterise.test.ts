@@ -17,12 +17,10 @@ import { AlarmHostService } from "./AlarmHostService";
  * What a warp STOP does to a command centre a light-minute away, measured
  * rather than reasoned about.
  *
- * Two facts are pinned here. The first is still a defect, written as
- * characterisation so the tree stays honest about what it does today: the day
- * it is fixed, this file goes red and is the place the fix is recorded. The
- * second WAS one and is now the assertion that it stays fixed.
+ * Two facts are pinned here. Both WERE defects; both are now the assertions
+ * that they stay fixed.
  *
- * ## 1. The channel's `DelayRole` does not decide when the client can READ it
+ * ## 1. The channel's `DelayRole` decides when the client may READ it (fixed)
  *
  * `time.warp` is `DelayRole.TrueNow` as of the 2026-09-11 ruling ("warp has to
  * be truenow, it's a meta state, effectively scene 'changing'"). On the mod that
@@ -30,20 +28,27 @@ import { AlarmHostService } from "./AlarmHostService";
  * topic rides `MetaVantage`, so the frame reaches the wire on the tick it was
  * captured instead of a light-time later.
  *
- * It buys the client nothing, because nothing on the client is delay-role
- * aware. `TimelineStore.sample` reads EVERY topic at the frame's frozen
- * `viewUt`, and `ViewClock.viewUt()` in confirmed mode is
+ * It used to buy the client nothing, because nothing on the client was
+ * delay-role aware. `TimelineStore.sample` read EVERY topic at the frame's
+ * frozen `viewUt`, and `ViewClock.viewUt()` in confirmed mode is
  * `min(utNowEstimate() - delaySeconds(), maxSampleUt)`. A frame stamped
- * `validAt = <true now>` is therefore unreadable until view time has crawled
+ * `validAt = <true now>` was therefore unreadable until view time had crawled
  * the whole one-way light time up to it, whether it arrived instantly or was
- * held back by the reveal gate for exactly that long. The two wire shapes are
- * run side by side below and produce the same number, which is the proof: the
- * classification is correct on the merits and inert at the read.
+ * held back by the reveal gate for exactly that long. The two paths cancelled,
+ * and both wire shapes below produced the same number.
  *
- * This is not specific to warp. Every TrueNow channel in the mod (career funds,
- * uplink health, the RP-1 ground state, `system.*`) is read a light-time late
- * for the same structural reason. It has never been visible because a craft in
- * Kerbin orbit has a light-time of milliseconds.
+ * They no longer do, and the difference between them is the fix. A frame token
+ * now freezes TWO view times, and a topic is read at the one its declared role
+ * entitles it to (`GENERATED_TRUENOW_TOPICS`, scanned off the mod's own
+ * `ChannelDeclaration`s). So the `truenow` wire shape surfaces the stop at the
+ * instant it happened, and the `delayed` shape still takes a light-time to
+ * deliver a frame describing it. The classification is what buys the light-time
+ * back, which is what it was always for.
+ *
+ * This was never specific to warp. Every TrueNow channel in the mod (career
+ * funds, uplink health, the RP-1 ground state, `system.*`) was read a
+ * light-time late for the same structural reason, and none of it was ever
+ * visible because a craft in Kerbin orbit has a light-time of milliseconds.
  *
  * ## 2. A warp-to session ENDS on a stop it did not ask for (fixed)
  *
@@ -74,17 +79,29 @@ const UT_END = UT_STOP + 2 * OWLT;
 const DT = 4;
 
 /**
- * The two wire shapes under test, as the mod produces them.
+ * The two wire shapes under test, as the mod produces them, each paired with
+ * the true UT at which a reader learns of a stop that happened at `UT_STOP`.
  *
  * Both stamp `deliveredAt` with the true UT at send (`ChannelEngine` uses
  * `_clock.Now()`), which is what anchors the client's UT/wall fit. They differ
  * only in the UT the payload was captured at, which is what a reveal gate
  * changes: a `Delayed` channel's newest frame is a light-time old on arrival, a
  * `TrueNow` channel's is current.
+ *
+ * `time.warp` really is TrueNow, so the `delayed` row is a counterfactual: it
+ * is what the same reader would see if the channel had never been reclassified,
+ * kept here so the light-time the classification buys is measured rather than
+ * asserted.
  */
 const WIRE_SHAPES = {
-  delayed: (trueUt: number) => trueUt - OWLT,
-  truenow: (trueUt: number) => trueUt,
+  delayed: {
+    capturedAt: (trueUt: number) => trueUt - OWLT,
+    stopSurfacesAt: UT_STOP + OWLT,
+  },
+  truenow: {
+    capturedAt: (trueUt: number) => trueUt,
+    stopSurfacesAt: UT_STOP,
+  },
 } as const;
 
 type WireShape = keyof typeof WIRE_SHAPES;
@@ -127,7 +144,7 @@ interface WarpSession {
  * something the fixture can be asked rather than inferred.
  */
 function startSession(shape: WireShape): WarpSession {
-  const capturedAtFor = WIRE_SHAPES[shape];
+  const capturedAtFor = WIRE_SHAPES[shape].capturedAt;
   let wall = 0;
   let trueUt = UT_START;
   let index = 0;
@@ -253,10 +270,10 @@ describe("warp at a light-minute", () => {
         }
       }
 
-      // The lag is the whole one-way light time, and it is the SAME lag under
-      // both wire shapes. Delivering the frame a light-time earlier changes
-      // nothing a reader can see.
-      expect(firstReadAsStopped).toBe(UT_STOP + OWLT);
+      // The lag is the whole one-way light time for a frame that arrives one,
+      // and ZERO for the TrueNow shape the channel actually rides. Delivering
+      // the frame a light-time earlier is now something a reader can see.
+      expect(firstReadAsStopped).toBe(WIRE_SHAPES[shape].stopSurfacesAt);
     });
 
     it(`ends the warp-to session on a stop it did not ask for (${shape} wire shape)`, async () => {

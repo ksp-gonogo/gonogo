@@ -83,6 +83,21 @@ const CHANNEL_FACTORY =
   /\bChannelDeclaration\s+(\w+)\s*\([^)]*\)\s*=>\s*new\s+ChannelDeclaration\s*\{/g;
 
 /**
+ * A declaration built by a factory and then AMENDED, `var d = Channel(topic);
+ * d.Delay = DelayRole.TrueNow;`, which neither the initialiser scan nor the
+ * factory scan can see: the factory's body says `Delay = DelayRole.Delayed` and
+ * that is the answer both of them read.
+ *
+ * `time.warp` is the case that proves it, and it was WRONG in the published
+ * document until this was added: the channel has been `DelayRole.TrueNow` since
+ * the 2026-09-11 warp ruling and `x-sitrep-delay-role` said `delayed`, which is
+ * the one fact about a channel an operator most needs the document to get right.
+ */
+const LOCAL_DECLARATION = /\bvar\s+(\w+)\s*=\s*(\w+)\s*\(([^()]*)\)\s*;/g;
+const PROPERTY_OVERRIDE =
+  /\b(\w+)\.(Delivery|Delay|AbsenceIsData)\s*=\s*([\w.]+|"[^"]*")\s*;/g;
+
+/**
  * Every `const string` in the scanned assemblies, resolvable by qualified name
  * and, where it is not ambiguous, by simple name.
  *
@@ -230,7 +245,7 @@ function channelDisposition(body, substitute) {
 function scanDeclarations(
   root,
   dirs,
-  { initialiser, factory, subjectProperty, read },
+  { initialiser, factory, subjectProperty, read, overrides },
 ) {
   const constants = readConstants(root, SOURCES.constants);
   const found = new Map();
@@ -265,6 +280,49 @@ function scanDeclarations(
         if (subject) found.set(subject, read(body, substitute));
       }
     }
+
+    if (!overrides) continue;
+
+    // LAST, because an override amends what the two passes above already
+    // recorded. The subject comes from the factory call that minted the local,
+    // found by walking back to the nearest `var <ident> = ...` before the
+    // assignment, so a second local in the same method amends its own channel.
+    const locals = [...source.matchAll(LOCAL_DECLARATION)];
+    for (const match of source.matchAll(PROPERTY_OVERRIDE)) {
+      const [, ident, property, raw] = match;
+      const apply = overrides[property];
+      if (!apply) continue;
+      const minted = locals
+        .filter((local) => local[1] === ident && local.index < match.index)
+        .pop();
+      if (!minted) continue;
+      const factoryName = minted[2];
+      const signature = factories.get(factoryName);
+      const subject = signature
+        ? resolve(
+            bindArguments(
+              signature.parameters,
+              minted[3],
+            )(signature.parameters[0] ?? ""),
+          )
+        : undefined;
+      if (!subject) {
+        throw new Error(
+          `asyncapi: ${path} amends ${ident}.${property} but the declaration ` +
+            `${ident} was minted from names no topic the scan can resolve. ` +
+            "An override whose subject is unknown silently publishes the " +
+            "un-amended disposition, which is how time.warp read `delayed`.",
+        );
+      }
+      const current = found.get(subject);
+      if (!current) {
+        throw new Error(
+          `asyncapi: ${path} amends ${property} on ${subject}, a topic the ` +
+            "scan never found a declaration for.",
+        );
+      }
+      found.set(subject, { ...current, ...apply(raw) });
+    }
   }
   return found;
 }
@@ -276,6 +334,11 @@ export function readChannelDispositions(root) {
     factory: CHANNEL_FACTORY,
     subjectProperty: "Topic",
     read: channelDisposition,
+    overrides: {
+      Delivery: (raw) => ({ delivery: kebabMember(raw) }),
+      Delay: (raw) => ({ delay: kebabMember(raw) }),
+      AbsenceIsData: (raw) => ({ absenceIsData: raw === "true" }),
+    },
   });
 }
 

@@ -1,3 +1,4 @@
+import type { DelayLane } from "../delay-roles";
 import {
   type ClockFormulaInputs,
   type ClockFormulaSnapshot,
@@ -5,6 +6,7 @@ import {
   computeUtNowEstimate,
 } from "../view-clock-formula";
 
+export type { DelayLane } from "../delay-roles";
 export type {
   ClockFormulaInputs,
   ClockFormulaSnapshot,
@@ -76,8 +78,20 @@ export class ViewClock {
   private anchorUt: number | undefined;
   private maxSampleUt = Number.NEGATIVE_INFINITY;
   private lastObservedWall: number | undefined;
-  /** Monotonic cursor for CONFIRMED mode only: deliberately not shared with predicted-mode reads, see `viewUt()`'s doc. */
-  private lastConfirmedViewUt = Number.NEGATIVE_INFINITY;
+  /**
+   * Monotonic cursor for CONFIRMED mode only: deliberately not shared with
+   * predicted-mode reads, see `viewUt()`'s doc.
+   *
+   * One PER LANE, because the two cursors run a whole light-time apart: a
+   * shared one would let the first true-now read of a frame pin the delayed
+   * cursor at true now, and every delayed topic would then be read a light-time
+   * into its own future, which is the failure the delay clock exists to
+   * prevent.
+   */
+  private readonly lastConfirmedViewUt: Record<DelayLane, number> = {
+    delayed: Number.NEGATIVE_INFINITY,
+    "true-now": Number.NEGATIVE_INFINITY,
+  };
   /** Manual history-scrub target, `null` = live. Set via `scrubTo`. */
   private scrubTarget: number | null = null;
 
@@ -116,7 +130,8 @@ export class ViewClock {
     if (epoch > this.epoch) {
       this.epoch = epoch;
       this.maxSampleUt = Number.NEGATIVE_INFINITY;
-      this.lastConfirmedViewUt = Number.NEGATIVE_INFINITY;
+      this.lastConfirmedViewUt.delayed = Number.NEGATIVE_INFINITY;
+      this.lastConfirmedViewUt["true-now"] = Number.NEGATIVE_INFINITY;
       this.anchorWall = undefined;
       this.anchorUt = undefined;
       // A scrub target from the dead pre-rewind timeline must not survive,
@@ -157,19 +172,26 @@ export class ViewClock {
    * confirmed yet: the "resynchronizing" state after a rewind). Delegates
    * to the shared pure formula: see `utNowEstimate()`'s doc.
    */
-  confirmedEdgeUt(): number {
-    return computeConfirmedEdgeUt(this.formulaInputs(), this.now());
+  confirmedEdgeUt(lane: DelayLane = "delayed"): number {
+    return computeConfirmedEdgeUt(this.formulaInputs(lane), this.now());
   }
 
   /** This clock's formula inputs, as of right now, the shared shape both
    *  `utNowEstimate`/`confirmedEdgeUt` (via `view-clock-formula.ts`) and
-   *  `snapshot()` (below) read from, so the two can never drift apart. */
-  private formulaInputs(): ClockFormulaInputs {
+   *  `snapshot()` (below) read from, so the two can never drift apart.
+   *
+   *  The LANE is the whole of the difference between the two horizons: a
+   *  true-now read is the same formula with no delay subtracted, so it stays
+   *  clamped to the max sample UT actually observed exactly like the delayed
+   *  one. That clamp is why this is safe before any true-now channel has
+   *  arrived: with nothing newer delivered, the lane is held at the delayed
+   *  edge rather than running ahead of the wire. */
+  private formulaInputs(lane: DelayLane = "delayed"): ClockFormulaInputs {
     return {
       anchorWall: this.anchorWall,
       anchorUt: this.anchorUt,
       maxSampleUt: this.maxSampleUt,
-      delaySeconds: this.delaySeconds(),
+      delaySeconds: lane === "true-now" ? 0 : this.delaySeconds(),
       warpRate: this.warpRate(),
       slackSeconds: this.options.slackSeconds ?? 0,
     };
@@ -199,13 +221,13 @@ export class ViewClock {
    * per-frame certainty classification) reason about it as a first-class
    * value, not as "confirmedEdgeUt renamed".
    */
-  certaintyHorizonUt(): number {
-    return this.confirmedEdgeUt();
+  certaintyHorizonUt(lane: DelayLane = "delayed"): number {
+    return this.confirmedEdgeUt(lane);
   }
 
-  /** Classify `ut` against the certainty horizon: `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly in confirmed mode (never falsely "predicted" while merely tracking live). */
-  certaintyFor(ut: number): Certainty {
-    return ut <= this.certaintyHorizonUt() ? "confirmed" : "predicted";
+  /** Classify `ut` against the certainty horizon: `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly in confirmed mode (never falsely "predicted" while merely tracking live). Classified against the SAME lane the `ut` was drawn from, or a true-now read lands a light-time past the delayed horizon and every one of them reports `"predicted"`. */
+  certaintyFor(ut: number, lane: DelayLane = "delayed"): Certainty {
+    return ut <= this.certaintyHorizonUt(lane) ? "confirmed" : "predicted";
   }
 
   /**
@@ -240,15 +262,21 @@ export class ViewClock {
    * - **Scrubbed** (either mode): `scrubTo`'s target wins outright, but the
    *   live cursor for whichever mode is active still advances underneath
    *   (see `scrubTo`'s doc).
+   *
+   * The LANE picks which of the two confirmed edges is tracked, and the store
+   * asks for whichever one the topic being read declared. It changes nothing in
+   * predicted mode, where the estimate carries no delay term to drop, and
+   * nothing while scrubbed, where a scrub target is a past instant both lanes
+   * agree on.
    */
-  viewUt(): number {
+  viewUt(lane: DelayLane = "delayed"): number {
     let live: number;
     if (this.modeValue === "predicted") {
       live = this.utNowEstimate();
     } else {
-      const edge = this.confirmedEdgeUt();
-      live = Math.max(this.lastConfirmedViewUt, edge);
-      this.lastConfirmedViewUt = live;
+      const edge = this.confirmedEdgeUt(lane);
+      live = Math.max(this.lastConfirmedViewUt[lane], edge);
+      this.lastConfirmedViewUt[lane] = live;
     }
     return this.scrubTarget !== null ? this.scrubTarget : live;
   }
