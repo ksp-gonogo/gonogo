@@ -16,6 +16,16 @@ import { AlarmHostService } from "./AlarmHostService";
 
 interface FakeTelemetry {
   set(key: string, v: unknown): void;
+  /**
+   * Publish a WHOLE Topic record, the only shape the wire has.
+   *
+   * `set` addresses a field subtopic directly, which no server ever does: it
+   * lands a bare literal on a timeline nothing publishes to, so a quantity
+   * field never meets the decode's unit wrap. A threshold read off a real
+   * Topic goes through the store's field walk into a wrapped payload instead,
+   * and that is a different read. This is how a test asks for that one.
+   */
+  publishTopic(topic: string, record: unknown): void;
   calls: string[];
 }
 
@@ -122,6 +132,7 @@ function fakeTelemetry(): FakeTelemetry {
 
   return {
     calls,
+    publishTopic: publish,
     set(key, v) {
       if (key === "t.universalTime" && typeof v === "number") {
         setActiveViewClockForTests({ viewUt: () => v });
@@ -488,6 +499,37 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().alarms[0].state).toBe("pending");
       // Cross the threshold: should immediately fire.
       telemetry.set("vessel.state.altitudeAsl", 70_500);
+      telemetry.set("t.universalTime", 1100);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+    });
+
+    /**
+     * The production shape, which every other test in this block goes around:
+     * the mod publishes `vessel.flight` as a record, the decode gives its
+     * declared quantities their units back, and the alarm's `dataKey` reads one
+     * field off that. Reading a threshold subject off a whole Topic is the only
+     * thing an operator can actually arm, and it went unexercised: a bare
+     * number landed directly on a field subtopic passes whether or not the read
+     * can see through a unit.
+     */
+    it("fires on a unit-carrying field of a published Topic record", async () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Falling fast",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.verticalSpeed",
+          op: "<=",
+          value: -50,
+          sustainSeconds: 0,
+        },
+      });
+      telemetry.publishTopic("vessel.flight", { verticalSpeed: -10 });
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      telemetry.publishTopic("vessel.flight", { verticalSpeed: -120 });
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");

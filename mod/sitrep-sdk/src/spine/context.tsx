@@ -16,11 +16,12 @@ import type {
   WarpState,
 } from "../__generated__/contract";
 import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "../default-carried-topics";
+import { magnitudeOf } from "../magnitude";
 import {
   getRuntimeRegisteredTopicIds,
   subscribeRuntimeTopicRegistry,
 } from "../runtime-topic-registry";
-import { value } from "../unit-system/value";
+import { isValue, value } from "../unit-system/value";
 import type { Value } from "../value";
 import type { TelemetryClient } from "./client";
 import {
@@ -910,9 +911,10 @@ export function getVesselState(): VesselState | undefined {
  * evaluation) that needs to read an OPERATOR-PICKED legacy key, not one of a
  * fixed set decided at call time. `key` is resolved through the same routing
  * `useTelemetry` consults, covering both a flat legacy key and a field path, and
- * the resulting Topic is sampled off the active `TimelineStore`. Narrowed to
- * `number`: the one type every threshold comparison needs, so a non-numeric or
- * not-yet-arrived read is a plain `undefined`.
+ * the resulting Topic is sampled off the active `TimelineStore`. Answers a
+ * MAGNITUDE: the one type every threshold comparison needs, taken off the
+ * `Value` a unit-carrying field arrives as, so a non-numeric or not-yet-arrived
+ * read is a plain `undefined`.
  *
  * Deliberately restricted to keys the routing actually resolves: the alarm and
  * trigger pickers (see `@ksp-gonogo/data`'s `useValueKeys`) only ever offer keys
@@ -927,10 +929,18 @@ export function getValue(
 ): number | undefined {
   const topic = resolveValueTopic(dataSourceId, key);
   if (topic === undefined) return undefined;
-  const value = sampleActiveTopic<unknown>(topic);
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : undefined;
+  const observed = sampleActiveTopic<unknown>(topic);
+  // Both shapes a picked key can arrive in. A field of a RAW Topic carries its
+  // unit by the time it reaches the store, because the decode wraps every
+  // declared quantity (`wrapTopicPayload`) and the store's field-subtopic walk
+  // hands back whatever the parent record holds; a field of a client-DERIVED
+  // channel is computed here and never met the wrap, so it is a plain number.
+  // `magnitudeOf` owns the finite check for both, which is the point of routing
+  // through it: a second spelling of "absent or non-finite" beside it is how
+  // one of them came to answer NaN.
+  const quantity =
+    isValue(observed) || typeof observed === "number" ? observed : null;
+  return magnitudeOf(quantity) ?? undefined;
 }
 
 /**
