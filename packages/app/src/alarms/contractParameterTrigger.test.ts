@@ -227,5 +227,70 @@ describe("contract-parameter alarm trigger", () => {
       expect(sm.tick(1004)).toBe("pending");
       expect(alarm.matchSinceUT).toBeNull();
     });
+
+    /**
+     * The same failed read one level down. The contract is in the active list
+     * and its objectives are not, so there is nothing to compare: answering
+     * `false` published "the objective is no longer complete" about a record
+     * nobody could read, and cleared the sustain latch on one truncated frame.
+     *
+     * Nested here rather than given its own block because it is the same
+     * defect and wants the same tick loop: the latch only tells a hold from a
+     * clear across ticks.
+     */
+    describe("a contract that arrived without its objectives", () => {
+      /*
+       * Untyped on purpose, and not for convenience: `CareerContract` says a
+       * record like this cannot exist, which is exactly the situation under
+       * test. The reader seam is `() => unknown` (see `machine`), so the shape
+       * the wire can actually deliver needs no cast to express, and asserting
+       * it into the type it violates would only hide what the fixture is.
+       */
+      const halfArrived = () => [
+        { id: "42", title: "Plant a flag on the Mun" },
+      ];
+
+      it("keeps the latch and slides it, the same as a dark list", () => {
+        const alarm = contractAlarm("Complete", 10);
+        let active: unknown = matching();
+        const sm = machine(alarm, () => active);
+
+        sm.tick(1000);
+        expect(alarm.matchSinceUT).toBe(1000);
+
+        // A half-arrived record. Nothing in it said the objective left the
+        // state, so the latch survives and the unwatched seconds slide it.
+        active = halfArrived();
+        expect(sm.tick(1004)).toBe("pending");
+        expect(alarm.matchSinceUT).toBe(1004);
+
+        // Whole again, still matching: the sustain resumes rather than
+        // restarting, and the four unreadable seconds bought nothing.
+        active = matching();
+        expect(sm.tick(1008)).toBe("pending");
+        expect(alarm.matchSinceUT).toBe(1004);
+
+        expect(sm.tick(1014)).toBe("firing");
+      });
+
+      /**
+       * The boundary that stops this swallowing a real answer, and the
+       * analogue of the empty active list one level down: objectives that
+       * ARRIVED and simply do not include the one the alarm watches are
+       * readable, and they say no.
+       */
+      it("still clears the latch when the objectives arrive without the armed one", () => {
+        const alarm = contractAlarm("Complete", 10);
+        let active: unknown = matching();
+        const sm = machine(alarm, () => active);
+
+        sm.tick(1000);
+        active = [
+          { id: "42", title: "Plant a flag on the Mun", parameters: [] },
+        ];
+        expect(sm.tick(1004)).toBe("pending");
+        expect(alarm.matchSinceUT).toBeNull();
+      });
+    });
   });
 });
