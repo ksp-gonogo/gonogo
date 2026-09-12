@@ -87,6 +87,7 @@ import {
 import { initSoundSettings } from "../sound";
 import { ScopedStationIdentity } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
+import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
@@ -328,6 +329,12 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
     <SitrepTelemetryProvider>
       <SitrepPeerRelay peerHost={peerHostService} />
       <AugmentAvailabilityFeeder />
+      {/*
+       * A pilot is aboard, so their session observes from the craft rather
+       * than from KSC. Only this seat: `selectedVantageId` is client-wide, and
+       * the main screen's own picker owns it there.
+       */}
+      {screen === "pilot" && <PilotVantage />}
       <ReplaySessionProvider>
         <ScreenProvider value={screen}>
           <SettingsProvider service={settingsService}>
