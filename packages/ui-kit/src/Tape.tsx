@@ -20,7 +20,7 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { type FormatsFor, formatQuantity, speakQuantity } from "./units";
+import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
 export interface TapeZone<U extends string = string> {
   /** Lower bound of the band. */
@@ -148,27 +148,15 @@ export function Tape<U extends string = string>({
     span > 0 ? Math.max(axisMin, Math.min(axisMax, safe)) : axisMin;
 
   /*
-   * The scale's own rung and symbol, settled ONCE from the top of the strip
-   * (or from the caller's pin) and then held, because a ruler whose marks
-   * change unit partway up is not a ruler.
-   *
-   * `formatQuantity` rather than `writeQuantity`, and this is the one place
-   * the strip needs the structured result rather than finished text: a moving
-   * scale puts the NUMBERS on a 52px gutter and the SYMBOL once at its head,
-   * so the two have to arrive apart. Joined text would put "km" on every tick
-   * and clip the numbers it exists to annotate. See `FORMATTER_REACH_DEBT` in
-   * `styleguide-unit-exclusive.test.ts` for the gap that would close it.
+   * One rung for the whole strip, settled from the top of it (or from the
+   * caller's pin). `quantityScale` owns that rule, so the marks below cannot
+   * drift onto rungs of their own and the symbol shown at the head is the one
+   * they are actually printed in.
    */
-  const scale = formatQuantity(axisMax, max.unit, { format });
-  const rung = scale.rung;
-  const scaleSymbol = scale.symbol;
-  /* The compact, symbol-less form drawn on the narrow scale, every mark of it
-     pinned to the rung settled above. */
-  const label = (v: number) =>
-    formatQuantity(v, value.unit, { format: rung }).value;
+  const scale = quantityScale(max, { format });
   const spoken = speakQuantity(
     { magnitude: safe, unit: value.unit },
-    { format: rung },
+    { format: scale.rung },
   );
 
   // Floored: a `fillHeight` rail measures whatever the surrounding layout
@@ -314,7 +302,7 @@ export function Tape<U extends string = string>({
                 fontSize={8}
                 fill="var(--color-text-faint)"
               >
-                {label(t)}
+                {scale.mark(t)}
               </text>
             </g>
           );
@@ -372,13 +360,13 @@ export function Tape<U extends string = string>({
           fontWeight="bold"
           fill="var(--color-accent-fg)"
         >
-          {label(safe)}
+          {scale.mark(safe)}
         </text>
 
         {/* The scale's own symbol, shown once, taken from the same rung every
             tick and the pointer flag are written at (those stay symbol-less to
             fit the narrow strip). Empty for a kind that displays none. */}
-        {scaleSymbol !== "" && (
+        {scale.symbol !== "" && (
           <text
             x={trackX + TRACK_W / 2}
             y={trackTop - 3}
@@ -386,7 +374,7 @@ export function Tape<U extends string = string>({
             fontSize={8}
             fill="var(--color-text-faint)"
           >
-            {scaleSymbol}
+            {scale.symbol}
           </text>
         )}
       </svg>

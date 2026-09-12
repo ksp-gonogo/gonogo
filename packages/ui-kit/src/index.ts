@@ -649,6 +649,13 @@ export {
   type FormatsFor,
   type KnownQuantityKind,
   type QuantityKind,
+  // A SCALE rather than a formatter: one rung settled once, every mark printed
+  // against it, and the symbol handed back APART so it can be shown at the head
+  // of the scale instead of on each mark. For a moving-scale instrument or a
+  // chart axis, the one shape `<Unit>`, `writeQuantity` and `speakQuantity` all
+  // miss, because each of those hands back a finished quantity. See its doc.
+  type QuantityScale,
+  quantityScale,
   type Rung,
   registerUnit,
   STANDARD_GRAVITY,

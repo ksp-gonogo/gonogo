@@ -77,18 +77,6 @@ const UNIT_IMPL = new Set([
  * Shrink-only: an entry may be deleted, never added or raised.
  */
 const FORMATTER_REACH_DEBT: Record<string, { count: number; why: string }> = {
-  // NOT a render, which is why a string escape cannot replace it: it searches
-  // for the smallest decimal count at which a band's two endpoints stop
-  // PRINTING identically, and to do that it needs the structured
-  // `{ value, rung }` result. `<Unit>` and `writeQuantity` both hand back
-  // finished text and so cannot answer "do these two come out the same".
-  // Removing this needs `formatQuantity`'s structured half exposed under a
-  // name that is about comparison rather than about formatting.
-  "packages/ui-kit/src/Band.tsx": {
-    count: 2,
-    why: "precision search over the structured result, not a render",
-  },
-
   // The DIMENSIONLESS branch, and the one case `<Unit>` cannot express by
   // construction: a bare `number` carries no unit, so there is no `Value` to
   // hand it. The line directly above already sends a real `Value` to `<Unit>`,
@@ -98,24 +86,6 @@ const FORMATTER_REACH_DEBT: Record<string, { count: number; why: string }> = {
   "packages/ui-kit/src/ReadOnlyField.tsx": {
     count: 2,
     why: "the unitless branch: a bare number has no Value for <Unit> to take",
-  },
-
-  // A moving scale needs the number and the symbol APART, which is what
-  // `formatQuantity` returns and why it returns parts. The strip draws its
-  // marks in a 52px gutter and its symbol once at the head: joined text would
-  // put "km" on every tick and clip the numbers the symbol exists to annotate.
-  // Three: the import, plus two calls. The first call settles the rung and the
-  // symbol together; the second is the per-mark label, pinned to that rung,
-  // which is what keeps one ruler from changing unit partway up.
-  //
-  // Closing it needs the same thing `Band.tsx` above needs: `formatQuantity`'s
-  // structured half under a name that is about a SCALE rather than about
-  // formatting one value. Seeded 2026-09-12, when the strip's axis became
-  // `Value<U>` and the caller-supplied `unit` string it used to print went
-  // away.
-  "packages/ui-kit/src/Tape.tsx": {
-    count: 3,
-    why: "a scale needs number and symbol apart: marks on the gutter, symbol at the head",
   },
 };
 
