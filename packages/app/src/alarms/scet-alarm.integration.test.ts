@@ -842,28 +842,25 @@ describe("SCET alarms", () => {
 
   it("arms and fires an Uplink's SCET threshold on a screen with no SCET clock", async () => {
     /*
-     * The asymmetry this pins, and why it is only apparent.
+     * A SCET request is armed at every delay including none, and this is the
+     * measurement of that.
      *
-     * `AlarmsModal` hides the "Fires on" radio and pins `effectiveVantage` to
-     * `"command"` whenever `useTimeContexts` reports no `scet` qualifier, which
-     * is any screen under a second of light time: a LAN session, no stream, or
-     * a craft close in. RP-1's `FundTarget` asks for `vantage: "scet"` with no
-     * such guard, so the operator cannot ask for what an Uplink asks for
-     * unconditionally, and the obvious reading is that the Uplink's request is
-     * either quietly demoted or armed somewhere it can never come due.
-     *
-     * It is neither. The modal's condition is about a LABEL: `useTimeContexts`
-     * drops both qualifiers when the two clocks print the same string, and the
-     * radio goes with them because its two options would then be the same
-     * alarm to read. Nothing on the arming path consults it. `ScetAlarmBridge`
-     * arms any pending SCET trigger, `AlarmStateMachine` declines to evaluate
-     * any SCET trigger locally whatever the delay, and the mod fires on its own
+     * Under a second of light time `useTimeContexts` reports no qualifier at
+     * all: the two clocks print the same string, so a label on an instant
+     * would say nothing an operator could check. That is a statement about a
+     * LABEL and nothing on the arming path consults it. `ScetAlarmBridge` arms
+     * any pending SCET trigger, `AlarmStateMachine` declines to evaluate any
+     * SCET trigger locally whatever the delay, and the mod fires on its own
      * clock, which at zero delay is the operator's clock too.
      *
-     * So the request survives intact, and this is the measurement of that.
+     * RP-1's `FundTarget` asks for `vantage: "scet"` unconditionally, and so
+     * can the operator: the modal's "Fires on" radio is always offered, since
+     * an alarm is armed for whenever it comes due and the craft may be much
+     * further out by then. See "AlarmsModal vantage choice" in
+     * `AlarmsModal.test.tsx` for the modal's half of this.
      */
     // The precondition, asserted rather than assumed: this really is the screen
-    // the modal would have offered no choice on.
+    // with no qualifier to put on either clock.
     expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
 
     const session = startSession(0);

@@ -1,5 +1,6 @@
 import {
   clearRegistry,
+  deriveTimeContexts,
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
@@ -14,6 +15,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { type ManeuverNode, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -834,5 +836,77 @@ describe("AlarmsModal provenance", () => {
 
     await screen.findByText("Launch pad upgrade complete");
     expect(screen.queryByText(/Requested by/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * An alarm is armed for the FUTURE, so a present-tense reading of the link
+ * cannot decide which clock the operator meant. A craft two light-seconds out
+ * today may be an hour out by the time the alarm comes due, and the operator
+ * setting it up now is exactly the one who needs to say so.
+ */
+describe("AlarmsModal vantage choice", () => {
+  beforeEach(registerStubDataSource);
+
+  function renderModal(onAdd: (draft: unknown) => void = () => {}) {
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      /* The screen the choice used to be withheld on: no light time at all, so
+         both clocks print the same string and `useTimeContexts` drops every
+         qualifier. */
+      0,
+    );
+    return screen.getByRole("radiogroup", { name: /fires on/i });
+  }
+
+  it("arms the chosen SCET vantage on a screen whose two clocks read alike", async () => {
+    // The precondition, asserted rather than assumed: this is the screen that
+    // has nothing to LABEL, which is what used to remove the choice
+    expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
+
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    const group = renderModal(onAdd);
+
+    await user.type(screen.getByLabelText(/^name$/i), "Reaches the far side");
+    await user.click(within(group).getByRole("radio", { name: /^scet$/i }));
+    await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
+
+    expect(onAdd).toHaveBeenCalledTimes(1);
+    expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
+      kind: "time",
+      vantage: "scet",
+    });
+  });
+
+  it("moves the vantage selection with arrow keys and keeps one tab stop", async () => {
+    const user = userEvent.setup();
+    const group = renderModal();
+    const [received, scet] = within(group).getAllByRole("radio");
+
+    expect(received).toHaveAttribute("aria-checked", "true");
+    expect(received).toHaveAttribute("tabindex", "0");
+    expect(scet).toHaveAttribute("tabindex", "-1");
+
+    received.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(scet).toHaveAttribute("aria-checked", "true");
+    expect(scet).toHaveAttribute("tabindex", "0");
+    expect(received).toHaveAttribute("tabindex", "-1");
+
+    // Wrapping, so the group is reachable from either end
+    await user.keyboard("{ArrowRight}");
+    expect(received).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("has no accessibility violations with the vantage radio always rendered", async () => {
+    const group = renderModal();
+    await expectNoA11yViolations(group.parentElement as HTMLElement);
   });
 });
