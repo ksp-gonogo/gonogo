@@ -471,6 +471,7 @@ export {
 export {
   Meter,
   type MeterFractionProps,
+  type MeterPayload,
   type MeterProps,
   type MeterQuantity,
   type MeterQuantityProps,

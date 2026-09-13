@@ -50,6 +50,11 @@ export interface WidgetMetersProps {
  * Renders NOTHING when nothing is contributed: no stack, no spacing, no empty
  * state. A host can therefore place it unconditionally, which is the whole
  * point of a universal seam.
+ *
+ * An entry whose `value` is a whole `Reading` goes over unopened. The band on
+ * it is found and drawn by `Meter`, never here and never by the contributor:
+ * one lookup, one treatment, and the same picture of doubt whichever Uplink
+ * sent the entry.
  */
 export function WidgetMeters({ row, size = "sm", style }: WidgetMetersProps) {
   const entries = useContributions("meters") as readonly MeterEntry[];
