@@ -2963,27 +2963,51 @@ namespace Sitrep.Host
         /// can register, resolve, and inspect the election without standing up
         /// the Courier thread/listener.
         ///
-        /// <para>Fail-soft: a throwing <see cref="Kernel.Resolve"/> (an
-        /// ambiguous/cyclic capability graph) is caught and logged rather than
-        /// aborting engine startup: a mis-declared capability must not take
-        /// down the whole telemetry spine. The bundled comms wiring cannot
-        /// produce such a graph, but a future third-party capability provider
-        /// might.</para>
+        /// <para>An ambiguous exclusive election no longer throws: the kernel
+        /// leaves that one capability unresolved and says so in its
+        /// "ambiguous" notices, and every other capability resolves. Those
+        /// notices, and any "selection-failed" one, are logged here through the
+        /// diagnostic sink, because an unresolved capability otherwise reads
+        /// exactly like one nobody claimed. The notices stay on
+        /// <see cref="Kernel.LastNotices"/> for a health check to read.</para>
+        ///
+        /// <para>Fail-soft: the kernel still throws for a spine-critical
+        /// capability nothing can serve and for a dependency cycle between
+        /// capabilities, and either would abort engine startup. Both are
+        /// graph-wide by nature, so there is no single capability to isolate
+        /// them to; they are caught, logged through the same sink, and leave the
+        /// whole kernel unresolved rather than taking down the telemetry
+        /// spine.</para>
         /// </summary>
         public ResolveResult ResolveCapabilities()
         {
+            ResolveResult result;
             try
             {
-                return _kernel.Resolve(new ResolveOptions
+                result = _kernel.Resolve(new ResolveOptions
                 {
                     KernelVersion = Sitrep.Contract.ContractVersion.Major + "." + Sitrep.Contract.ContractVersion.Minor + ".0",
                 });
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("[ChannelEngine] capability resolution threw: " + SafeExceptionMessage(ex));
+                LogHost("capability resolution threw, EVERY capability is unresolved: " + SafeExceptionMessage(ex));
                 return new ResolveResult();
             }
+
+            foreach (var ambiguous in result.Notices
+                .Where(n => n.Kind == "ambiguous")
+                .GroupBy(n => n.Capability))
+            {
+                LogHost("capability \"" + ambiguous.Key + "\" is AMBIGUOUS and left unresolved: providers ["
+                    + string.Join(", ", ambiguous.Select(n => n.ProviderId))
+                    + "] tie with no preference, sole default or unique highest priority to break it");
+            }
+            foreach (var failed in result.Notices.Where(n => n.Kind == "selection-failed"))
+            {
+                LogHost(failed.Detail);
+            }
+            return result;
         }
 
         public void SetAvailability(Availability availability)

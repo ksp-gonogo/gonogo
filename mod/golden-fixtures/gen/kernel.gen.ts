@@ -38,7 +38,8 @@
  *    strings), and `notices` (`{capability, kind}` only; `detail` is a
  *    human message, not part of the cross-language contract).
  *  - throw -> `expectedError` carries the thrown error's `name` (one of the
- *    three fail-loud kernel errors for every scenario below), and
+ *    two kernel errors that still escape `resolve()`, a spine-critical halt
+ *    or a dependency cycle; an ambiguity is a notice, not a throw), and
  *    `activeAfterThrow` snapshots `kernel.active(id)` for every registered
  *    capability post-throw; this is the atomicity assertion: a resolve()
  *    that throws must not have activated anything, anywhere, not just for
@@ -241,24 +242,96 @@ const scenarios: Scenario[] = [
     resolve: { kernelVersion: "1.0.0" },
   },
   {
-    name: "ambiguous-equal-priority-no-default-throws",
+    name: "ambiguous-equal-priority-no-default-left-unresolved",
     description:
-      "Two exclusive candidates tied on priority with no default: AmbiguousResolutionError.",
+      "Two exclusive candidates tied on priority with no default: an ambiguous notice per tied provider, and the capability left unresolved rather than falling back to vanilla.",
     ops: [
-      { op: "registerCapability", id: "comms", exclusive: true },
+      {
+        op: "registerCapability",
+        id: "comms",
+        exclusive: true,
+        hasVanilla: true,
+      },
       { op: "registerProvider", capability: "comms", id: "A", priority: 3 },
       { op: "registerProvider", capability: "comms", id: "B", priority: 3 },
     ],
     resolve: { kernelVersion: "1.0.0" },
   },
   {
-    name: "ambiguous-multiple-defaults-throws",
+    name: "ambiguous-multiple-defaults-left-unresolved",
     description:
-      "Two exclusive candidates both isDefault: AmbiguousResolutionError, even though priority would otherwise tie-break.",
+      "Two exclusive candidates both isDefault: ambiguous even though priority would otherwise tie-break, so an ambiguous notice per tied default and the capability left unresolved.",
     ops: [
       { op: "registerCapability", id: "comms", exclusive: true },
-      { op: "registerProvider", capability: "comms", id: "A", isDefault: true },
-      { op: "registerProvider", capability: "comms", id: "B", isDefault: true },
+      {
+        op: "registerProvider",
+        capability: "comms",
+        id: "A",
+        isDefault: true,
+        priority: 10,
+      },
+      {
+        op: "registerProvider",
+        capability: "comms",
+        id: "B",
+        isDefault: true,
+        priority: 1,
+      },
+    ],
+    resolve: { kernelVersion: "1.0.0" },
+  },
+  {
+    name: "ambiguity-does-not-block-unrelated-capability",
+    description:
+      "A tie on one exclusive capability leaves that capability unresolved and every other capability resolved as it would be without the tie.",
+    ops: [
+      { op: "registerCapability", id: "comms", exclusive: true },
+      { op: "registerProvider", capability: "comms", id: "real-provider" },
+      { op: "registerCapability", id: "conflict", exclusive: true },
+      { op: "registerProvider", capability: "conflict", id: "X", priority: 3 },
+      { op: "registerProvider", capability: "conflict", id: "Y", priority: 3 },
+      {
+        op: "registerCapability",
+        id: "science",
+        exclusive: true,
+        hasVanilla: true,
+      },
+      {
+        op: "registerProvider",
+        capability: "science",
+        id: "science-low",
+        priority: 1,
+      },
+      {
+        op: "registerProvider",
+        capability: "science",
+        id: "science-high",
+        priority: 2,
+      },
+    ],
+    resolve: { kernelVersion: "1.0.0" },
+  },
+  {
+    name: "dependent-of-ambiguous-capability-falls-back-to-its-vanilla",
+    description:
+      "A capability whose provider queries an ambiguous capability sees an unsatisfied dependency, records factory-failed and recovers through its own vanilla; the ambiguity goes no further.",
+    ops: [
+      { op: "registerCapability", id: "conflict", exclusive: true },
+      { op: "registerProvider", capability: "conflict", id: "X" },
+      { op: "registerProvider", capability: "conflict", id: "Y" },
+      {
+        op: "registerCapability",
+        id: "dependent",
+        exclusive: true,
+        hasVanilla: true,
+      },
+      {
+        op: "registerProvider",
+        capability: "dependent",
+        id: "dependent-provider",
+        deps: ["conflict"],
+        queryDeps: true,
+      },
     ],
     resolve: { kernelVersion: "1.0.0" },
   },
@@ -529,13 +602,16 @@ const scenarios: Scenario[] = [
   {
     name: "atomic-resolve-activates-nothing-on-throw",
     description:
-      "An unrelated capability that would otherwise resolve cleanly must NOT end up activated when a different capability's resolve() throws: resolve() is all-or-nothing.",
+      "An unrelated capability that would otherwise resolve cleanly must NOT end up activated when resolve() throws: a spine-critical halt is all-or-nothing. (An ambiguity no longer throws; see ambiguity-does-not-block-unrelated-capability.)",
     ops: [
       { op: "registerCapability", id: "comms", exclusive: true },
       { op: "registerProvider", capability: "comms", id: "real-provider" },
-      { op: "registerCapability", id: "conflict", exclusive: true },
-      { op: "registerProvider", capability: "conflict", id: "X", priority: 3 },
-      { op: "registerProvider", capability: "conflict", id: "Y", priority: 3 },
+      {
+        op: "registerCapability",
+        id: "life-support",
+        exclusive: true,
+        spineCritical: true,
+      },
     ],
     resolve: { kernelVersion: "1.0.0" },
   },

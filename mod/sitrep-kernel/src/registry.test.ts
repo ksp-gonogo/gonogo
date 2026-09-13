@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProviderContext } from "./capability";
 import {
-  AmbiguousResolutionError,
   DependencyCycleError,
   SpineCapabilityUnsatisfiedError,
 } from "./errors";
@@ -426,9 +425,18 @@ describe("Kernel", () => {
       );
     });
 
-    it("throws AmbiguousResolutionError when two providers tie on priority with no default", () => {
+    /*
+     * An ambiguity used to throw out of resolve() and abort every capability.
+     * It is now kept to the tied capability: unresolved, with one "ambiguous"
+     * notice per tied provider, and no vanilla fallback.
+     */
+    it("leaves a capability unresolved, with an ambiguous notice per tied provider, when two providers tie on priority with no default", () => {
       const kernel = new Kernel();
-      kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
+      kernel.registerCapability<Comms>({
+        id: "comms",
+        exclusive: true,
+        vanilla: () => ({ name: "vanilla" }),
+      });
       kernel.registerProvider<Comms>({
         capability: "comms",
         id: "A",
@@ -442,12 +450,24 @@ describe("Kernel", () => {
         factory: () => ({ name: "B" }),
       });
 
-      expect(() => kernel.resolve({ kernelVersion: "1.0.0" })).toThrow(
-        AmbiguousResolutionError,
-      );
+      const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+      expect(kernel.active("comms")).toEqual([]);
+      expect(notices).toEqual([
+        expect.objectContaining({
+          capability: "comms",
+          kind: "ambiguous",
+          detail: expect.stringContaining('Provider "A"'),
+        }),
+        expect.objectContaining({
+          capability: "comms",
+          kind: "ambiguous",
+          detail: expect.stringContaining('Provider "B"'),
+        }),
+      ]);
     });
 
-    it("throws AmbiguousResolutionError when multiple providers are isDefault", () => {
+    it("leaves a capability unresolved when multiple providers are isDefault", () => {
       const kernel = new Kernel();
       kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
       kernel.registerProvider<Comms>({
@@ -463,11 +483,70 @@ describe("Kernel", () => {
         factory: () => ({ name: "B" }),
       });
 
-      expect(() => kernel.resolve({ kernelVersion: "1.0.0" })).toThrow(
-        AmbiguousResolutionError,
-      );
+      const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+      expect(kernel.active("comms")).toEqual([]);
+      expect(notices.map((n) => n.kind)).toEqual(["ambiguous", "ambiguous"]);
     });
 
+    it("keeps an ambiguity to its own capability: an unrelated capability still resolves", () => {
+      const kernel = new Kernel();
+      kernel.registerCapability<Comms>({ id: "contested", exclusive: true });
+      kernel.registerProvider<Comms>({
+        capability: "contested",
+        id: "X",
+        priority: 3,
+        factory: () => ({ name: "X" }),
+      });
+      kernel.registerProvider<Comms>({
+        capability: "contested",
+        id: "Y",
+        priority: 3,
+        factory: () => ({ name: "Y" }),
+      });
+      kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
+      kernel.registerProvider<Comms>({
+        capability: "comms",
+        id: "real",
+        factory: () => ({ name: "real" }),
+      });
+
+      kernel.resolve({ kernelVersion: "1.0.0" });
+
+      expect(kernel.active("contested")).toEqual([]);
+      expect(kernel.query<Comms>("comms").name).toBe("real");
+    });
+
+    it("leaves a capability unresolved with a selection-failed notice when a provider's canServe throws", () => {
+      const kernel = new Kernel();
+      kernel.registerCapability<Comms>({ id: "contested", exclusive: true });
+      kernel.registerProvider<Comms>({
+        capability: "contested",
+        id: "broken",
+        canServe: () => {
+          throw new Error("settings not parsed");
+        },
+        factory: () => ({ name: "broken" }),
+      });
+      kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
+      kernel.registerProvider<Comms>({
+        capability: "comms",
+        id: "real",
+        factory: () => ({ name: "real" }),
+      });
+
+      const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+      expect(kernel.active("contested")).toEqual([]);
+      expect(kernel.query<Comms>("comms").name).toBe("real");
+      expect(notices).toEqual([
+        expect.objectContaining({
+          capability: "contested",
+          kind: "selection-failed",
+          detail: expect.stringContaining("settings not parsed"),
+        }),
+      ]);
+    });
     it("lets a user preference beat the isDefault provider", () => {
       const kernel = new Kernel();
       kernel.registerCapability<Comms>({ id: "comms", exclusive: true });

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host.CommandCentres;
 using Xunit;
@@ -149,13 +150,24 @@ namespace Sitrep.Host.Tests.CommandCentres
         }
 
         /// <summary>
-        /// Why the priorities must differ: a tie is not broken by registration order, it
-        /// throws out of resolution.
+        /// Why the priorities must differ: a tie is not broken by registration order.
+        /// The home command is left with no claimant at all, not even the stock vanilla,
+        /// and the kernel names both tied claimants. This used to throw out of
+        /// resolution and take every other capability down with it; the kernel now
+        /// keeps the failure to this capability.
         /// </summary>
         [Fact]
-        public void TwoClaimantsAtTheSamePriority_FailResolutionRatherThanPickOne()
+        public void TwoClaimantsAtTheSamePriority_LeaveHomeUnelectedRatherThanPickOne()
         {
-            Assert.Throws<AmbiguousResolutionError>(() => KernelWith(("comms-mod", 10.0), ("overhaul", 10.0)));
+            var kernel = KernelWith(("comms-mod", 10.0), ("overhaul", 10.0));
+
+            Assert.Null(HomeCommandElection.Elected(kernel));
+            Assert.Equal(
+                new[] { "comms-mod", "overhaul" },
+                kernel.LastNotices
+                    .Where(n => n.Capability == HomeCommandCapability.Id && n.Kind == "ambiguous")
+                    .Select(n => n.ProviderId)
+                    .ToArray());
         }
     }
 }
