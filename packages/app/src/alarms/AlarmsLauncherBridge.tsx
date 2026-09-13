@@ -48,14 +48,16 @@ export function AlarmsLauncherBridge({
     },
     [open, useSnapshot, onAdd, onUpdate, onDelete],
   );
-  // Direct-create path used by Mission Director's parameter bells. Skips
-  // the modal entirely: the click already encodes everything the alarm
-  // needs (contract id, parameter title, target state).
+  // Direct-create path used by Mission Director's parameter bells, and by an
+  // Uplink's own alarm request. Skips the modal entirely: the click already
+  // encodes everything the alarm needs (contract id, parameter title, target
+  // state; or the Uplink's trigger and its dedupe key).
   const creator: AlarmCreator<AlarmTrigger> = useCallback(
     (req) => {
       onAdd({
         name: req.name?.trim() || defaultNameForTrigger(req.trigger),
         trigger: req.trigger,
+        requestedBy: req.requestedBy,
       });
     },
     [onAdd],

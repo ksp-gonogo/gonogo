@@ -471,6 +471,7 @@ export class PeerClientService {
     name: string;
     notes?: string;
     trigger: import("../alarms/types").AlarmTrigger;
+    requestedBy?: import("../alarms/types").AlarmRequestedBy;
     onFire?: import("../alarms/types").AlarmFireAction[];
   }) {
     this.conn?.send({ type: "alarm-add", ...input } satisfies PeerMessage);

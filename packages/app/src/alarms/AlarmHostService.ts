@@ -282,13 +282,42 @@ export class AlarmHostService {
     return () => this.fireListeners.delete(cb);
   }
 
+  /**
+   * Create an alarm and own it.
+   *
+   * `requestedBy` marks one an Uplink asked for, and makes the call idempotent
+   * for that Uplink: `(uplinkId, key)` identifies one alarm, so a repeat
+   * request RETARGETS the existing row rather than adding a second. Without
+   * that a widget whose button fires the request twice, or one re-issuing it
+   * after a reconnect, would grow the operator a pile of near-identical rows
+   * they never asked for and would have to delete one at a time.
+   *
+   * The retarget keeps the alarm's id, so anything already holding it (a warp-to
+   * session, a SCET arm on the mod) follows the change instead of being orphaned
+   * by a delete-and-recreate.
+   */
   addAlarm(input: {
     name: string;
     notes?: string;
     trigger: AlarmTrigger;
     createdBy?: string;
+    requestedBy?: import("./types").AlarmRequestedBy;
     onFire?: import("./types").AlarmFireAction[];
   }): Alarm {
+    const existing = input.requestedBy
+      ? this.findRequested(input.requestedBy)
+      : undefined;
+    if (existing) {
+      // `onFire` is deliberately not in the patch. A request carries no side
+      // effects, so anything attached to this row was attached by the operator,
+      // and a retarget moves the condition without discarding their work.
+      this.updateAlarm(existing.id, {
+        name: input.name,
+        notes: input.notes,
+        trigger: input.trigger,
+      });
+      return this.alarms.find((a) => a.id === existing.id) ?? existing;
+    }
     const alarm: Alarm = {
       id: generateId(),
       name: input.name.trim() || "Alarm",
@@ -299,6 +328,7 @@ export class AlarmHostService {
       // driven from a single place.
       state: "pending",
       createdBy: input.createdBy ?? "main",
+      requestedBy: input.requestedBy,
       createdAt: this.opts.nowMs(),
       matchSinceUT: requiresMatchTracking(input.trigger) ? null : undefined,
       onFire:
@@ -308,6 +338,21 @@ export class AlarmHostService {
     this.persist();
     this.tick();
     return alarm;
+  }
+
+  /**
+   * The alarm this Uplink already has under this key, if any. The key is scoped
+   * to the Uplink, so two Uplinks may both call theirs `"burn"` without one
+   * retargeting the other's row.
+   */
+  private findRequested(
+    requestedBy: import("./types").AlarmRequestedBy,
+  ): Alarm | undefined {
+    return this.alarms.find(
+      (a) =>
+        a.requestedBy?.uplinkId === requestedBy.uplinkId &&
+        a.requestedBy?.key === requestedBy.key,
+    );
   }
 
   updateAlarm(

@@ -1,3 +1,7 @@
+import type { AlarmRequestedBy } from "@ksp-gonogo/components";
+
+export type { AlarmRequestedBy };
+
 export type AlarmState =
   /** Trigger condition not yet met. */
   | "pending"
@@ -219,6 +223,14 @@ export interface Alarm {
   state: AlarmState;
   /** Source of the alarm: "main" or a peer id. */
   createdBy: string;
+  /**
+   * The Uplink that asked for this alarm, when one did.
+   *
+   * Orthogonal to {@link createdBy}, which answers "which screen made it" and
+   * is a peer id for anything a station added. An Uplink widget on a station
+   * produces both: the station's peer id here, and the Uplink there.
+   */
+  requestedBy?: AlarmRequestedBy;
   /** Wall-clock `Date.now()` when created. */
   createdAt: number;
   /**
@@ -344,6 +356,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
   const matchSinceUT =
     typeof r.matchSinceUT === "number" ? r.matchSinceUT : null;
   const onFire = parseOnFire(r.onFire);
+  const requestedBy = parseRequestedBy(r.requestedBy);
 
   if (r.trigger && typeof r.trigger === "object") {
     const t = r.trigger as Record<string, unknown>;
@@ -367,6 +380,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         },
         state: state ?? "pending",
         createdBy,
+        requestedBy,
         createdAt,
         onFire,
       };
@@ -406,6 +420,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         },
         state: state ?? "pending",
         createdBy,
+        requestedBy,
         createdAt,
         matchSinceUT,
         onFire,
@@ -431,6 +446,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         },
         state: state ?? "pending",
         createdBy,
+        requestedBy,
         createdAt,
         matchSinceUT,
         onFire,
@@ -448,6 +464,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         },
         state: state ?? "pending",
         createdBy,
+        requestedBy,
         createdAt,
         matchSinceUT,
         eventUT: typeof r.eventUT === "number" ? r.eventUT : undefined,
@@ -473,9 +490,29 @@ export function migrateAlarm(raw: unknown): Alarm | null {
     },
     state: state ?? "pending",
     createdBy,
+    requestedBy,
     createdAt,
     onFire,
   };
+}
+
+/**
+ * The Uplink provenance off a persisted or wire record, or undefined for an
+ * alarm nobody asked for on the operator's behalf.
+ *
+ * Checked field by field rather than asserted, the same posture `readFiredNotice`
+ * takes in `ScetAlarmBridge`: what arrives here is localStorage or a peer
+ * message, neither of which this code wrote. A record missing any of the three
+ * is dropped whole rather than half-kept, because a row that says "requested by"
+ * and cannot say by whom is worse than one that says nothing.
+ */
+function parseRequestedBy(raw: unknown): AlarmRequestedBy | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.uplinkId !== "string" || r.uplinkId === "") return undefined;
+  if (typeof r.uplinkName !== "string" || r.uplinkName === "") return undefined;
+  if (typeof r.key !== "string" || r.key === "") return undefined;
+  return { uplinkId: r.uplinkId, uplinkName: r.uplinkName, key: r.key };
 }
 
 function parseOnFire(raw: unknown): AlarmFireAction[] | undefined {

@@ -101,6 +101,14 @@ export {
   MockDataSource,
   type MockDataSourceOptions,
 } from "./mock-data-source";
+// What `useAlarmRequest` was asked for under the real test host. The app owns
+// the alarm list, so a test below the app asserts on the REQUEST rather than on
+// an alarm that has nowhere to exist.
+export {
+  clearRequestedAlarms,
+  getRequestedAlarms,
+  type RecordedAlarmRequest,
+} from "./recorded-alarm-requests";
 export { probeText, render, renderHook } from "./render";
 // The stream fixture: a real `TelemetryProvider` over a real
 // `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored emissions.

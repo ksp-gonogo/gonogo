@@ -123,6 +123,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "refusalFromError",
   "unregisterUplinkHandle",
   "useActionInput",
+  "useAlarmRequest",
   "apsidesExist",
   "composeUt",
   "decomposeUt",

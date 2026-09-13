@@ -784,3 +784,55 @@ describe("AlarmsModal trigger-kind control", () => {
     expect(atUt).toHaveAttribute("tabindex", "-1");
   });
 });
+
+describe("AlarmsModal provenance", () => {
+  /**
+   * An alarm the operator did not create is indistinguishable from one they set
+   * and forgot unless the row says otherwise, and the difference is what tells
+   * them whether deleting it is safe.
+   */
+  function requestedAlarm(): Alarm {
+    return {
+      id: "a-uplink",
+      name: "Launch pad upgrade complete",
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      state: "pending",
+      createdBy: "main",
+      requestedBy: {
+        uplinkId: "rp1",
+        uplinkName: "RP-1",
+        key: "facility-upgrade:LaunchPad",
+      },
+      createdAt: 1_700_000_000_000,
+    };
+  }
+
+  it("names the Uplink that asked for an alarm", async () => {
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot([requestedAlarm()])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Launch pad upgrade complete");
+    expect(screen.getByText(/Requested by RP-1/)).toBeInTheDocument();
+  });
+
+  it("says nothing about provenance on an alarm the operator made", async () => {
+    const { requestedBy: _dropped, ...operatorAlarm } = requestedAlarm();
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot([operatorAlarm])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Launch pad upgrade complete");
+    expect(screen.queryByText(/Requested by/)).not.toBeInTheDocument();
+  });
+});
