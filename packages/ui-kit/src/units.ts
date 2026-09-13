@@ -1289,7 +1289,7 @@ export function formatQuantity(
  * question with a different answer. A scale has a reference: the top of the
  * strip is the axis and every mark on it is below that by construction. A band
  * has two ends and a table column has N cells, so there is nothing to nominate,
- * and `<UnitScale>` settles those from what its members report instead. Reach
+ * and `<UnitSharedFormat>` settles those from what its members report instead. Reach
  * for this one only where the caller genuinely knows the bound.
  */
 export interface QuantityScale {
@@ -1412,57 +1412,116 @@ export function unitScaleKey(unit: string | undefined): string | undefined {
   return family === undefined ? `kind:${kind}` : `family:${family}`;
 }
 
-/** How many digits it takes for two distinct ends to READ as distinct. */
+/**
+ * The group a reading settles its whole FORMAT with, as a key.
+ *
+ * Wider than {@link unitScaleKey} on purpose, and the two answer different
+ * questions. A rung can only be settled among readings that share a ladder; a
+ * digit count can be settled among any readings written alike, and most units
+ * have no ladder at all. An eccentricity band and an angle band both need
+ * their ends to read apart, and neither climbs anything.
+ *
+ * So a unit that climbs groups by its ladder, and a unit that does not groups
+ * by ITSELF. Grouping the second case by kind instead would put two units of
+ * one kind that are never interconverted here into one group, where a digit
+ * count chosen across them says nothing about either.
+ */
+export function formatGroupKey(unit: string | undefined): string | undefined {
+  if (unit === undefined) return undefined;
+  return unitScaleKey(unit) ?? `unit:${unit}`;
+}
+
+/** How many digits it takes for two distinct readings to READ as distinct. */
 const MAX_SEPARATING_DECIMALS = 6;
 
+/** One reading of a group, as the rules below compare them. */
+export interface FormatMember {
+  /** The reading, in the unit it arrived in. */
+  readonly reading: number;
+  /** The unit it arrived in, which need not be the one it is written at. */
+  readonly unit: string;
+}
+
 /**
- * The digit count at which two ends of an interval stop printing the same
- * thing, or undefined to leave the kind's own default alone.
+ * Where a reading sits on its own ladder in the ladder's base unit, signed.
  *
- * An interval rendered as two independent quantities can collapse into one
- * figure, silently, exactly where its width was the point: a semi-major axis
- * band of 6 700 km to 6 710 km lands on the megametre rung, where a length's
- * default one decimal prints both ends as `6.7 Mm`. This is the rule that
- * widens the digits until the two read differently, and it lives here rather
- * than beside the renderer because answering it means knowing what the ladder
- * and the kind's precision will actually do, which is this module's own
- * knowledge.
+ * {@link ladderPosition} answers the same question in absolute terms, because
+ * a group rung is chosen by which reading is SMALLEST and a sign has no
+ * bearing on that. Ordering a group does need the sign, which is why this is
+ * not that.
+ */
+function baseMeasure(reading: number, unit: string): number {
+  const kind = kindOfUnit(unit);
+  return toBase(
+    reading,
+    kind === undefined ? undefined : ladderForUnit(kind, unit),
+    unit,
+  );
+}
+
+/**
+ * The digit count at which the readings of a group stop printing the same
+ * thing as each other, or undefined to leave the kind's own default alone.
  *
- * The magnitudes are passed alongside the values rather than read off them: a
- * caller holding an interval has already had to reach them to decide whether it
- * has two ends at all.
+ * An interval rendered as independent quantities can collapse into one figure,
+ * silently, exactly where its width was the point: a semi-major axis band of
+ * 6 700 km to 6 710 km lands on the megametre rung, where a length's default
+ * one decimal prints both ends as `6.7 Mm`. This is the rule that widens the
+ * digits until the readings differ, and it lives here rather than beside a
+ * renderer because answering it means knowing what the ladder and the kind's
+ * precision will actually do, which is this module's own knowledge.
  *
- * <p><b>It only ever widens.</b> A COARSER digit count can separate two ends the
- * default prints identically, by rounding them away from each other across a
- * boundary the interval never reaches: a one-sigma band of 47.471 to 47.529
- * reads as `47.5 – 47.5` at the default single decimal and as `47 – 48` at none,
- * and the second is an interval seventeen times the width the producer offered.
- * Both are wrong and the second is worse, because it looks like an answer. So
- * the default is asked first and kept whenever it separates, and the search
- * below starts at the default's own precision rather than at zero.</p>
+ * <p><b>Adjacent readings are the whole comparison.</b> Rounding to a fixed
+ * count never reorders, so if any two distinct readings print alike then two
+ * ADJACENT ones do, and sorting first turns a quadratic sweep into a linear
+ * one. Ordering is by base measure rather than by raw number, so a group
+ * holding both `900 kg` and `5 t` is compared in one dimension.</p>
+ *
+ * <p><b>Readings that are equal are left alone.</b> There is nothing to
+ * separate, and widening a group whose members genuinely agree prints six
+ * decimals of noise in place of one honest figure.</p>
+ *
+ * <p><b>It only ever widens.</b> A COARSER digit count can separate two
+ * readings the default prints identically, by rounding them away from each
+ * other across a boundary the interval never reaches: a one-sigma band of
+ * 47.471 to 47.529 reads as `47.5 – 47.5` at the default single decimal and as
+ * `47 – 48` at none, and the second is an interval seventeen times the width
+ * the producer offered. Both are wrong and the second is worse, because it
+ * looks like an answer. So the default is asked first and kept whenever it
+ * separates, and the search below starts at the default's own precision rather
+ * than at zero.</p>
  */
 export function separatingDecimals(
-  min: { unit: string },
-  max: { unit: string },
-  low: number,
-  high: number,
+  members: readonly FormatMember[],
   opts: { format?: string; as?: string } = {},
 ): number | undefined {
-  if (low === high) {
+  if (members.length < 2) {
     return undefined;
   }
-  /** One end, under a given precision, or under the kind's own default. */
-  const show = (magnitude: number, unit: string, decimals?: number) =>
+  const ordered = [...members].sort(
+    (a, b) => baseMeasure(a.reading, a.unit) - baseMeasure(b.reading, b.unit),
+  );
+  /** One reading, under a given precision, or under the kind's own default. */
+  const show = (member: FormatMember, decimals?: number) =>
     formatQuantity(
-      magnitude,
-      unit,
+      member.reading,
+      member.unit,
       decimals === undefined ? opts : { ...opts, decimals },
     );
-  const separatesAt = (decimals?: number): boolean => {
-    const a = show(low, min.unit, decimals);
-    const b = show(high, max.unit, decimals);
-    return a.value !== b.value || a.rung !== b.rung;
-  };
+  const separatesAt = (decimals?: number): boolean =>
+    ordered.every((member, index) => {
+      if (index === 0) return true;
+      const previous = ordered[index - 1];
+      if (
+        baseMeasure(previous.reading, previous.unit) ===
+        baseMeasure(member.reading, member.unit)
+      ) {
+        return true;
+      }
+      const a = show(previous, decimals);
+      const b = show(member, decimals);
+      return a.value !== b.value || a.rung !== b.rung;
+    });
   if (separatesAt()) {
     return undefined;
   }
@@ -1476,10 +1535,11 @@ export function separatingDecimals(
    * locale. Zero when nothing reproduces it (a laddered or notated rendering),
    * which falls back to the whole range and is the behaviour this had before.
    */
-  const printedByDefault = show(low, min.unit).value;
+  const lowest = ordered[0];
+  const printedByDefault = show(lowest).value;
   let from = 0;
   for (let decimals = 0; decimals <= MAX_SEPARATING_DECIMALS; decimals++) {
-    if (show(low, min.unit, decimals).value === printedByDefault) {
+    if (show(lowest, decimals).value === printedByDefault) {
       from = decimals;
       break;
     }

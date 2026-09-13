@@ -4,9 +4,9 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { Unit } from "./Unit";
-import { UnitScale, useSharedRung } from "./UnitScale";
+import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 
-describe("UnitScale", () => {
+describe("UnitSharedFormat", () => {
   /**
    * The failure that started this: two readings either side of a rung boundary
    * print in two different units, and the reader has to convert one of them
@@ -14,10 +14,10 @@ describe("UnitScale", () => {
    */
   it("settles one rung across readings that straddle a boundary", () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 999)} />
         <Unit value={value("m", 1000)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     expect(container.textContent).toContain("999.0");
     expect(container.textContent).toContain("1000.0");
@@ -31,10 +31,10 @@ describe("UnitScale", () => {
    */
   it("takes the smallest member's rung rather than the largest", () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 500)} />
         <Unit value={value("m", 3400)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     expect(container.textContent).toContain("500.0");
     expect(container.textContent).toContain("3400.0");
@@ -47,10 +47,10 @@ describe("UnitScale", () => {
    */
   it("does not let a zero member drag the group to the base unit", () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 0)} />
         <Unit value={value("m", 3_400_000)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     expect(container.textContent).toContain("3.4");
     expect(container.textContent).toContain("Mm");
@@ -61,17 +61,91 @@ describe("UnitScale", () => {
    * one scope settles metres and kilograms separately with nobody separating
    * them at the call site.
    */
-  it("settles a rung per kind rather than one for the whole scope", () => {
+  it("settles a format per kind rather than one for the whole scope", () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 2_500_000)} />
         <Unit value={value("kg", 900)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     expect(container.textContent).toContain("2.5");
     expect(container.textContent).toContain("Mm");
     expect(container.textContent).toContain("900.00");
     expect(container.textContent).toContain("kg");
+  });
+
+  /**
+   * The group settles a FORMAT and not just a rung. Both readings land on the
+   * megametre rung, where a length's default single decimal prints each of them
+   * as `6.7 Mm`, and no member can see that on its own: how many digits it
+   * takes to tell two readings apart is a fact about the whole group.
+   *
+   * The caller here does what every caller does, which is wrap.
+   */
+  it("settles the digit count too, when the scope asks its members to read apart", () => {
+    const { container } = render(
+      <UnitSharedFormat separate>
+        <Unit value={value("m", 6_700_000)} />
+        <Unit value={value("m", 6_710_000)} />
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).toContain("6.70");
+    expect(container.textContent).toContain("6.71");
+    expect(container.textContent).toContain("Mm");
+  });
+
+  /**
+   * A column of thirty cells has no promise to keep about the two closest of
+   * them, and widening it until they read apart would print six decimals of
+   * noise in every row. So separating is asked for, never assumed.
+   */
+  it("leaves the digits alone in a group that did not ask to read apart", () => {
+    const { container } = render(
+      <UnitSharedFormat>
+        <Unit value={value("m", 6_700_000)} />
+        <Unit value={value("m", 6_710_000)} />
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).not.toContain("6.70");
+  });
+
+  /** Nothing to separate, and six decimals of noise is not an improvement. */
+  it("does not widen a group whose members agree", () => {
+    const { container } = render(
+      <UnitSharedFormat separate>
+        <Unit value={value("m", 6_700_000)} />
+        <Unit value={value("m", 6_700_000)} />
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).not.toContain("6.7000");
+  });
+
+  /**
+   * The escape the operator kept: a caller may still PIN what the group would
+   * otherwise settle. Stated once, on the scope, rather than at each member,
+   * which is the difference between pinning and threading an answer back down.
+   */
+  it("lets the scope pin the digits the group would have settled", () => {
+    const { container } = render(
+      <UnitSharedFormat separate decimals={4}>
+        <Unit value={value("m", 6_700_000)} />
+        <Unit value={value("m", 6_710_000)} />
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).toContain("6.7000");
+    expect(container.textContent).toContain("6.7100");
+  });
+
+  it("lets the scope pin the rung the group would have settled", () => {
+    // The group would have said metres, because 999 m is the smaller member.
+    render(
+      <UnitSharedFormat format="km">
+        <Unit value={value("m", 999)} />
+        <Unit value={value("m", 1000)} />
+      </UnitSharedFormat>,
+    );
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
+    expect(screen.queryAllByText("metres")).toHaveLength(0);
   });
 
   /**
@@ -83,13 +157,13 @@ describe("UnitScale", () => {
     function Pair() {
       const [showSmall, setShowSmall] = useState(true);
       return (
-        <UnitScale>
+        <UnitSharedFormat>
           {showSmall && <Unit value={value("m", 500)} />}
           <Unit value={value("m", 3400)} />
           <button type="button" onClick={() => setShowSmall(false)}>
             drop
           </button>
-        </UnitScale>
+        </UnitSharedFormat>
       );
     }
     const { container } = render(<Pair />);
@@ -115,15 +189,16 @@ describe("UnitScale", () => {
   });
 
   /**
-   * A caller who pinned the rung has already answered the question the group
-   * exists to answer, so the pin wins and the value is not in the group at all.
+   * A caller who pinned the rung on the MEMBER has already answered the question
+   * the group exists to answer, so the pin wins and the value is not in the
+   * group at all.
    */
   it("leaves a pinned rung alone", () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 3_400_000)} format="m" />
         <Unit value={value("m", 1000)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     // Held at metres, where the group would have put it on kilometres.
     expect(container.textContent).toContain("3,400,000.0");
@@ -140,10 +215,10 @@ describe("UnitScale", () => {
    */
   it("speaks the rung the group settled on", () => {
     render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 999)} />
         <Unit value={value("m", 1000)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     expect(screen.queryAllByText("kilometres")).toHaveLength(0);
     expect(screen.queryAllByText("metres")).toHaveLength(2);
@@ -151,12 +226,12 @@ describe("UnitScale", () => {
 
   /**
    * The whole engineering risk of a reporting context: a member cannot know the
-   * group rung until the group is assembled, so there is a second pass, and a
+   * group format until the group is assembled, so there is a second pass, and a
    * second pass that feeds itself never stops.
    *
    * What makes it stop is structural: a report is a function of the member's own
-   * props, never of the rung it was handed back, so the second pass reproduces
-   * the first pass's reports exactly and settles on the same rung. This counts
+   * props, never of the format it was handed back, so the second pass reproduces
+   * the first pass's reports exactly and settles on the same answer. This counts
    * the passes. A design that fed itself would not merely count higher here, it
    * would exceed React's update depth and throw.
    */
@@ -165,8 +240,8 @@ describe("UnitScale", () => {
     /** A member as `Unit` is one: it reports, and it reads the answer back. */
     function Counted({ magnitude }: { magnitude: number }) {
       renders += 1;
-      const rung = useSharedRung(value("m", magnitude));
-      return <span>{rung ?? "unsettled"}</span>;
+      const shared = useSharedFormat(value("m", magnitude));
+      return <span>{shared?.format ?? "unsettled"}</span>;
     }
     /*
      * Built fresh each time rather than held in a constant: React bails out of
@@ -174,11 +249,11 @@ describe("UnitScale", () => {
      * would prove nothing about the second render.
      */
     const members = () => (
-      <UnitScale>
+      <UnitSharedFormat separate>
         <Counted magnitude={500} />
         <Counted magnitude={3400} />
         <Counted magnitude={12_000} />
-      </UnitScale>
+      </UnitSharedFormat>
     );
     const { rerender } = render(members());
     // Three members, one pass to report and one to hear the answer.
@@ -199,27 +274,50 @@ describe("UnitScale", () => {
   });
 
   /**
-   * A band inside an aligned column wants the COLUMN's rung, not one of its
-   * own, so a scope inside a scope joins it instead of dividing it.
+   * A band inside an aligned column wants the COLUMN's rung, so a scope inside
+   * a scope inherits it instead of settling one of its own.
    */
-  it("joins an enclosing scope rather than starting a nested one", () => {
+  it("takes the rung from the outermost scope rather than starting a new one", () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={value("m", 999)} />
-        <UnitScale>
+        <UnitSharedFormat>
           <Unit value={value("m", 1000)} />
-        </UnitScale>
-      </UnitScale>,
+        </UnitSharedFormat>
+      </UnitSharedFormat>,
     );
     expect(container.textContent).not.toContain("km");
   });
 
+  /**
+   * And the other half of the same rule: the column decides the unit, the band
+   * inside it still decides how many digits its own two ends need. Both ends
+   * here would print `1.0 Mm` at the column's rung, and the inner scope widens
+   * them without dragging the column's other cell along.
+   */
+  it("keeps a nested scope's own digit count while inheriting the rung", () => {
+    const { container } = render(
+      <UnitSharedFormat>
+        <Unit value={value("m", 4_000_000)} />
+        <UnitSharedFormat separate>
+          <Unit value={value("m", 1_000_000)} />
+          <Unit value={value("m", 1_010_000)} />
+        </UnitSharedFormat>
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).toContain("1.00");
+    expect(container.textContent).toContain("1.01");
+    // The outer cell is not in the inner group and keeps the kind's default.
+    expect(container.textContent).toContain("4.0");
+    expect(container.textContent).not.toContain("4.00");
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat separate>
         <Unit value={value("m", 999)} />
         <Unit value={value("m", 1000)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     await expectNoA11yViolations(container);
   });

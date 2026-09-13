@@ -1041,30 +1041,52 @@ describe("ladderPosition", () => {
 });
 
 describe("separatingDecimals", () => {
-  it("leaves the default alone when the two ends already read apart", () => {
-    expect(
-      separatingDecimals(value("m", 0), value("m", 0), 10, 90),
-    ).toBeUndefined();
+  /** The group as this takes it: readings and the unit each arrived in. */
+  const metres = (...readings: number[]) =>
+    readings.map((reading) => ({ reading, unit: "m" }));
+
+  it("leaves the default alone when the readings already read apart", () => {
+    expect(separatingDecimals(metres(10, 90))).toBeUndefined();
   });
 
-  it("widens until two ends the default collapses read differently", () => {
+  it("widens until readings the default collapses read differently", () => {
     /*
      * 6 700 km and 6 710 km both print as "6.7 Mm" at a length's default one
      * decimal: an interval rendered as a scalar, exactly where its width was
      * the point.
      */
-    const decimals = separatingDecimals(
-      value("m", 0),
-      value("m", 0),
-      6_700_000,
-      6_710_000,
-    );
-    expect(decimals).toBeGreaterThan(1);
+    expect(separatingDecimals(metres(6_700_000, 6_710_000))).toBeGreaterThan(1);
   });
 
-  it("returns undefined for a zero-width band rather than six decimals of noise", () => {
+  it("returns undefined for readings that agree rather than six decimals of noise", () => {
+    expect(separatingDecimals(metres(42, 42))).toBeUndefined();
+  });
+
+  it("has nothing to separate in a group of one", () => {
+    expect(separatingDecimals(metres(6_700_000))).toBeUndefined();
+  });
+
+  /**
+   * The closest PAIR is what sets the count, and finding it means ordering the
+   * group first. Written out of order here so a version that only ever compared
+   * the members as given fails.
+   */
+  it("widens for the closest pair of a group, whatever order they arrive in", () => {
     expect(
-      separatingDecimals(value("m", 0), value("m", 0), 42, 42),
+      separatingDecimals(metres(6_710_000, 1_000_000, 6_700_000)),
+    ).toBeGreaterThan(1);
+  });
+
+  /**
+   * A group can hold two rungs of one ladder, and ordering it by the raw number
+   * would put 5 t below 900 kg. The comparison is in the ladder's base unit.
+   */
+  it("orders a mixed-rung group by what its readings measure", () => {
+    expect(
+      separatingDecimals([
+        { reading: 5, unit: "t" },
+        { reading: 900, unit: "kg" },
+      ]),
     ).toBeUndefined();
   });
 });
