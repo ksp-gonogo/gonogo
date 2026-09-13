@@ -5,6 +5,38 @@ import { formatKspDate } from "./formatKspDate";
 /** Every symbol the model declares. */
 type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
 
+/** What the model says `S` measures, or `never` for a symbol it has no unit for. */
+type KindOfSymbol<S extends string> = S extends GeneratedUnit
+  ? (typeof GENERATED_UNIT_KINDS)[S]["kind"]
+  : never;
+
+/** Every declared symbol that measures `K`. */
+type SymbolsOfKind<K> = {
+  [S in GeneratedUnit]: (typeof GENERATED_UNIT_KINDS)[S]["kind"] extends K
+    ? S
+    : never;
+}[GeneratedUnit];
+
+/**
+ * Every symbol of kind `K` that exists only as a conversion TARGET, which the
+ * table above does not declare and {@link kindOfConversion} still resolves.
+ *
+ * `°C` is the whole of it today: the contract has no Celsius token on purpose,
+ * so the only place the symbol is named is {@link CONVERSIONS}, and a type that
+ * read the model table alone would refuse the one conversion the kit ships a
+ * readout for. A pair whose source is itself undeclared is skipped, or `°C→K`
+ * would make every kind accept `K`.
+ */
+type ConversionTargetsOfKind<K> = {
+  [P in keyof typeof CONVERSIONS]: P extends `${infer From}→${infer To}`
+    ? [KindOfSymbol<From>] extends [never]
+      ? never
+      : [KindOfSymbol<From>] extends [K]
+        ? To
+        : never
+    : never;
+}[keyof typeof CONVERSIONS];
+
 /**
  * Every unit that measures the same thing as `U`, which is exactly the set a
  * value in `U` may be re-expressed in.
@@ -19,16 +51,28 @@ type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
  * refusing everything. Being unable to type-check a third party's unit is not
  * a reason to stop them asking for one.
  */
-export type FormatsFor<U extends string> = [
-  U extends GeneratedUnit ? (typeof GENERATED_UNIT_KINDS)[U]["kind"] : never,
-] extends [infer K]
+export type FormatsFor<U extends string> = [KindOfSymbol<U>] extends [infer K]
   ? [K] extends [never]
     ? string
-    : {
-        [S in GeneratedUnit]: (typeof GENERATED_UNIT_KINDS)[S]["kind"] extends K
-          ? S
-          : never;
-      }[GeneratedUnit]
+    : SymbolsOfKind<K>
+  : never;
+
+/**
+ * Every unit a value in `U` may be SHOWN as, which is every unit of its kind
+ * plus the presentation-only ones the conversion table reaches.
+ *
+ * Wider than {@link FormatsFor} by exactly the symbols that are not on the
+ * wire. `format` pins a rung, so its answers have to be units the model
+ * declares a ratio for; `as` re-expresses, so `°C` belongs to it and cannot
+ * belong to the other. Both refuse a cross-kind request, which is the check
+ * that matters: `as="kg"` on a length is still an error.
+ */
+export type PresentableAs<U extends string> = [KindOfSymbol<U>] extends [
+  infer K,
+]
+  ? [K] extends [never]
+    ? string
+    : SymbolsOfKind<K> | ConversionTargetsOfKind<K>
   : never;
 
 /**
@@ -378,15 +422,27 @@ import { STANDARD_GRAVITY } from "@ksp-gonogo/sitrep-sdk";
  *
  * Only within a kind. Converting a length to a mass is not a preference, it is a
  * bug, and `formatQuantity` refuses it rather than inventing a number.
+ *
+ * `as const` is load-bearing, the same way the generated table's is:
+ * {@link PresentableAs} reads the pair KEYS to learn that `°C` is a
+ * temperature, and an annotated `Record<string, ...>` would erase them and
+ * silently stop typing the one conversion with a readout behind it.
  */
-const CONVERSIONS: Record<string, { per: number; offset: number }> = {
+const CONVERSIONS = {
   "K→°C": { per: 1, offset: -273.15 },
   "°C→K": { per: 1, offset: 273.15 },
   "m/s²→g": { per: STANDARD_GRAVITY, offset: 0 },
   "g→m/s²": { per: 1 / STANDARD_GRAVITY, offset: 0 },
   "rad→°": { per: Math.PI / 180, offset: 0 },
   "°→rad": { per: 180 / Math.PI, offset: 0 },
-};
+} as const satisfies Record<string, { per: number; offset: number }>;
+
+/**
+ * The same table, reached by a key built at runtime, which an `as const` one
+ * cannot be indexed by.
+ */
+const CONVERSION_BY_PAIR: Record<string, { per: number; offset: number }> =
+  CONVERSIONS;
 
 /**
  * How much precision a kind is read at, as decimal places on the SCALED value.
@@ -1077,7 +1133,7 @@ export function formatQuantity(
   // being shown. Refused outright when the kinds differ: a wrong number under a
   // right-looking label is the failure this whole module exists to prevent.
   if (opts.as !== undefined && opts.as !== unit && unit !== undefined) {
-    const conversion = CONVERSIONS[`${unit}→${opts.as}`];
+    const conversion = CONVERSION_BY_PAIR[`${unit}→${opts.as}`];
     if (conversion && kindOfUnit(opts.as) === kindOfUnit(unit)) {
       const { as: _as, ...rest } = opts;
       return formatQuantity(
@@ -1426,6 +1482,8 @@ export function unitScaleKey(unit: string | undefined): string | undefined {
  * one kind that are never interconverted here into one group, where a digit
  * count chosen across them says nothing about either.
  */
+export function formatGroupKey(unit: string): string;
+export function formatGroupKey(unit: string | undefined): string | undefined;
 export function formatGroupKey(unit: string | undefined): string | undefined {
   if (unit === undefined) return undefined;
   return unitScaleKey(unit) ?? `unit:${unit}`;

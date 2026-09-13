@@ -1,6 +1,7 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   createContext,
+  type ReactElement,
   type ReactNode,
   useContext,
   useId,
@@ -11,9 +12,11 @@ import {
 import { magnitudeOf } from "./magnitude";
 import {
   type FormatQuantityOptions,
+  type FormatsFor,
   formatGroupKey,
   type LadderPosition,
   ladderPosition,
+  type PresentableAs,
   separatingDecimals,
   unitScaleKey,
 } from "./units";
@@ -78,13 +81,37 @@ import {
  * choice. Otherwise a single zero, which is a common reading rather than a rare
  * one, would drag every group it appeared in to the bottom of its ladder.
  *
- * ## One format per KIND
+ * ## One format per KIND, and a PIN is addressed to one of them
  *
  * Grouping is per kind, so a mixed scope works: metres settle with metres and
  * kilograms with kilograms, in the same group, with no caller separating them.
  * The key is a FAMILY where a unit declares one, because bits and bytes share
  * the data dimension and must not share rungs, and it falls back to the unit
  * itself where nothing climbs at all: see `formatGroupKey` in `units.ts`.
+ *
+ * What a scope PINS is per kind for the same reason. A scope told to read in
+ * kilometres is saying something about its lengths and nothing about its
+ * masses, so it names the unit it is talking about and the pin reaches that
+ * group alone. One kind names it with `of` and pins flat; several name each one
+ * in a map keyed by unit:
+ *
+ * ```tsx
+ * <UnitSharedFormat of="m" as="km">
+ * <UnitSharedFormat pins={{ m: { as: "km" }, kg: { as: "t" } }}>
+ * ```
+ *
+ * Naming the unit is also the whole of how a pin comes to be TYPED. `of="m"`
+ * makes `as` a length, and a key of `m` types its own entry, so `as="kg"` over
+ * lengths is a compile error rather than a request dropped on the floor.
+ *
+ * A scope that pins without naming a unit is the one case left over, and its
+ * pin reaches EVERY group, because an instruction that names no kind cannot be
+ * addressed to one. That is what every pin did before, and it was not merely
+ * ignored: a scope pinned to `format="km"` handed that rung to its KILOGRAMS
+ * too, where the formatter refused the cross-kind pin but had already displaced
+ * the rung the mass group settled for itself, and 500 kg beside 1 000 000 kg
+ * rendered as `500.00 kg` and `1.00 kt`. One group, two units, which is the
+ * failure this whole component exists to prevent.
  *
  * ## Nesting COMPOSES rather than divides
  *
@@ -169,15 +196,50 @@ interface Report {
   readonly position?: LadderPosition;
 }
 
+/**
+ * What a scope pins for ONE group, as against what that group settles for
+ * itself. The same three escapes a lone `<Unit>` has, stated once for every
+ * member of the group instead of at each one.
+ *
+ * Typed by the unit the pin is addressed to, so `as` and `format` check against
+ * that unit's kind: `of="m" as="km"` is a length re-expressed and `of="m"
+ * as="kg"` is a compile error rather than a request the formatter would drop on
+ * the floor.
+ */
+export interface UnitPins<U extends string = string> {
+  /** The rung every member of the group is written at. */
+  format?: FormatsFor<U>;
+  /** The unit every member of the group is shown in. */
+  as?: PresentableAs<U>;
+  /** The digit count every member of the group is written at. */
+  decimals?: number;
+}
+
+const NO_PINS: UnitPins = {};
+
 /** What a scope was ASKED for, as against what it settles. */
 interface Policy {
-  readonly format?: string;
-  readonly as?: string;
-  readonly decimals?: number;
+  /**
+   * What each NAMED group was pinned to, by its {@link formatGroupKey}. A key
+   * missing from this is a group the scope said nothing about, and it settles
+   * for itself.
+   */
+  readonly byKey: ReadonlyMap<string, UnitPins>;
+  /**
+   * A pin that named no unit, which reaches every group in the scope. See the
+   * module header: it is what a pin cannot avoid doing when it has no kind to
+   * be addressed to.
+   */
+  readonly unaddressed: UnitPins | undefined;
+  /** Widen digits until the members read apart. A property of the whole scope. */
   readonly separate: boolean;
 }
 
-const NO_POLICY: Policy = { separate: false };
+const NO_POLICY: Policy = {
+  byKey: new Map(),
+  unaddressed: undefined,
+  separate: false,
+};
 
 /** Where every scope of one tree keeps what the whole tree shares. */
 interface Root {
@@ -217,13 +279,55 @@ interface Scope {
   detach(): void;
 }
 
+function samePins(a: UnitPins | undefined, b: UnitPins | undefined): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  return a.format === b.format && a.as === b.as && a.decimals === b.decimals;
+}
+
 function samePolicy(a: Policy, b: Policy): boolean {
-  return (
-    a.format === b.format &&
-    a.as === b.as &&
-    a.decimals === b.decimals &&
-    a.separate === b.separate
-  );
+  if (a.separate !== b.separate) return false;
+  if (!samePins(a.unaddressed, b.unaddressed)) return false;
+  if (a.byKey.size !== b.byKey.size) return false;
+  for (const [key, pins] of a.byKey) {
+    if (!samePins(pins, b.byKey.get(key))) return false;
+  }
+  return true;
+}
+
+/**
+ * The policy a scope's props amount to.
+ *
+ * Built in the provider's layout effect rather than in render, so the map and
+ * the pin objects it holds are never compared by identity: {@link samePolicy}
+ * reads their fields, and a caller passing a fresh array literal every render
+ * settles nothing extra.
+ */
+function policyOf(
+  of: string | undefined,
+  pins: UnitPinsByUnit | undefined,
+  own: UnitPins,
+  separate: boolean,
+): Policy {
+  const byKey = new Map<string, UnitPins>();
+  if (of !== undefined) byKey.set(formatGroupKey(of), own);
+  for (const [unit, pin] of Object.entries(pins ?? {})) {
+    /*
+     * Two units that share a group get one entry and the later wins, which is
+     * the one part of "a group is pinned at most once" the types cannot reach.
+     * A distinct KEY is checked (an object literal refuses a repeated one) and
+     * a distinct GROUP is not, because a group is a family where a unit
+     * declares one and a bare symbol where nothing climbs, and both of those
+     * live in registries `registerUnit` can add to at runtime. Checking the
+     * kind instead would be unsound the other way: `s` and `min` are one kind
+     * and two groups, and refusing that pair would refuse a legitimate scope.
+     */
+    if (pin !== undefined) byKey.set(formatGroupKey(unit), pin);
+  }
+  return {
+    byKey,
+    unaddressed: of === undefined && pins === undefined ? own : undefined,
+    separate,
+  };
 }
 
 function sameFormat(
@@ -316,18 +420,24 @@ function createScope(parent: Scope | undefined): Scope {
     setPolicy(next) {
       if (samePolicy(policy, next)) return;
       policy = next;
-      // Every key, because a policy is not addressed to one of them: a scope
-      // told to separate its members separates the metres and the kilograms.
+      /*
+       * Every key, even though the PINS are addressed. `separate` is a property
+       * of the whole scope, and a pin moving off a key has to let that key go
+       * back to settling for itself.
+       */
       for (const key of held.keys()) root.sweep(key);
     },
 
     resettle(key) {
       const members = [...(held.get(key)?.values() ?? [])];
       const inherited = parent?.settled(key);
-      const format = policy.format ?? inherited?.format ?? ownRung(members);
-      const as = policy.as ?? inherited?.as;
+      // The pin for THIS group, and an unaddressed one only where no group was
+      // named at all. A scope that named `m` says nothing about its kilograms.
+      const pins = policy.byKey.get(key) ?? policy.unaddressed ?? NO_PINS;
+      const format = pins.format ?? inherited?.format ?? ownRung(members);
+      const as = pins.as ?? inherited?.as;
       const decimals =
-        policy.decimals ??
+        pins.decimals ??
         (policy.separate
           ? separatingDecimals(members, { format, as })
           : inherited?.decimals);
@@ -379,8 +489,8 @@ const NO_SCOPE: Scope = {
 
 const ScopeContext = createContext<Scope>(NO_SCOPE);
 
-export interface UnitSharedFormatProps
-  extends Pick<FormatQuantityOptions, "format" | "as" | "decimals"> {
+/** What every spelling of the props below shares. */
+interface UnitSharedFormatBaseProps {
   children?: ReactNode;
   /**
    * Widen the digit count until the members stop printing the same figure as
@@ -394,9 +504,69 @@ export interface UnitSharedFormatProps
    * apart would print six decimals of noise in every row.
    *
    * So the group separates when it is ASKED to, and the asking is the whole of
-   * what a caller with an opinion about digits does.
+   * what a caller with an opinion about digits does. A property of the whole
+   * scope rather than of one group: a scope told its members must read apart is
+   * saying so about all of them.
    */
   separate?: boolean;
+}
+
+/**
+ * A scope that pins ONE kind, which is every scope with an opinion except a
+ * deliberately mixed one.
+ *
+ * `of` names the unit the pins are addressed to and is the whole of how they
+ * come to be typed: `of="m"` makes `as` a length and `format` a rung on the
+ * length ladder. It is a value rather than a type argument because the scope
+ * needs it at runtime too, to know which of its groups the pin belongs to, and
+ * because a caller already holding a `Value<U>` can pass `of={v.unit}` and
+ * never annotate anything.
+ *
+ * Leaving `of` out is still allowed and still means what it always did: the
+ * pins are unaddressed, they reach every group, and nothing checks them. See
+ * the module header.
+ */
+export interface UnitSharedFormatProps<U extends string = string>
+  extends UnitSharedFormatBaseProps,
+    UnitPins<U> {
+  /** The unit the pins below are addressed to. */
+  of?: U;
+}
+
+/**
+ * A scope that pins SEVERAL kinds, each in its own unit.
+ *
+ * Keyed by the unit rather than positional, and the key is what enforces the
+ * three rules a mixed scope obeys. Any number of kinds, because the key set is
+ * open. A kind that needs nothing is simply absent, because every entry is
+ * optional. And a group is pinned at most once, because a repeated key is
+ * already an error in an object literal, where a repeated entry in a parallel
+ * pair of lists is not: `["m", "m"]` reads as two pins and quietly keeps one.
+ *
+ * ```tsx
+ * <UnitSharedFormat pins={{ m: { as: "km" }, kg: { as: "t" } }}>
+ * ```
+ *
+ * The value is typed by its own key, so `{ m: { as: "kg" } }` is a compile
+ * error at the entry that is wrong rather than at the scope.
+ *
+ * What the key CANNOT catch is two different units of one group: `{ m: ...,
+ * km: ... }` is one length group pinned twice and the later wins. See `policyOf`
+ * on why checking that soundly needs tables the type system does not have.
+ */
+export interface UnitSharedFormatMixedProps<U extends string>
+  extends UnitSharedFormatBaseProps {
+  /** What each named unit's group is pinned to, checked against that unit. */
+  pins: { [S in U]?: UnitPins<S> };
+}
+
+/** The pin map with its keys erased, as the runtime reads it. */
+type UnitPinsByUnit = Readonly<Record<string, UnitPins | undefined>>;
+
+/** Both spellings at once, as the component body actually reads them. */
+interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
+  of?: string;
+  pins?: UnitPinsByUnit;
 }
 
 /**
@@ -405,17 +575,23 @@ export interface UnitSharedFormatProps
  * It renders nothing of its own, so it can be dropped around a row, a cell, a
  * whole table or a widget body without touching the layout.
  *
- * `format`, `as` and `decimals` PIN what the group would otherwise settle, for
+ * `format`, `as` and `decimals` PIN what a group would otherwise settle, for
  * the cases where convention beats magnitude. They are the same escape a lone
- * `<Unit>` has and they are stated once, here, rather than at each member.
+ * `<Unit>` has, stated once here rather than at each member, and `of` says
+ * which of the scope's groups they are addressed to.
  */
+export function UnitSharedFormat<U extends string = string>(
+  props: UnitSharedFormatProps<U> | UnitSharedFormatMixedProps<U>,
+): ReactElement;
 export function UnitSharedFormat({
   children,
+  of,
+  pins,
   format,
   as,
   decimals,
   separate = false,
-}: UnitSharedFormatProps) {
+}: UnitSharedFormatAnyProps): ReactElement {
   const enclosing = useContext(ScopeContext);
   // The inert default is not a parent. Adopting it would put this scope in a
   // tree whose root never sweeps, so nothing it settled would ever be heard.
@@ -429,8 +605,8 @@ export function UnitSharedFormat({
   // After the members' own effects, which React runs child-first, so the
   // reports are in before the policy that reads them.
   useLayoutEffect(() => {
-    scope.setPolicy({ format, as, decimals, separate });
-  }, [scope, format, as, decimals, separate]);
+    scope.setPolicy(policyOf(of, pins, { format, as, decimals }, separate));
+  }, [scope, of, pins, format, as, decimals, separate]);
   return (
     <ScopeContext.Provider value={scope}>{children}</ScopeContext.Provider>
   );

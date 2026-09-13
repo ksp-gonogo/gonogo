@@ -171,7 +171,7 @@ export function Meter<U extends string = string>({
     // attribute sits on the track. See `MeterQuantityBar` on why it is a
     // component of its own.
     return (
-      <UnitSharedFormat format={format}>
+      <UnitSharedFormat of={pair.amount.unit} format={format}>
         <MeterQuantityBar
           {...bar}
           pair={pair}

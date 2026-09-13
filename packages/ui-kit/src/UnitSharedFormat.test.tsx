@@ -139,13 +139,84 @@ describe("UnitSharedFormat", () => {
   it("lets the scope pin the rung the group would have settled", () => {
     // The group would have said metres, because 999 m is the smaller member.
     render(
-      <UnitSharedFormat format="km">
+      <UnitSharedFormat of="m" format="km">
         <Unit value={value("m", 999)} />
         <Unit value={value("m", 1000)} />
       </UnitSharedFormat>,
     );
     expect(screen.queryAllByText("kilometres")).toHaveLength(2);
     expect(screen.queryAllByText("metres")).toHaveLength(0);
+  });
+
+  /**
+   * The defect `of` exists to close, and it broke the one promise this whole
+   * component makes. A flat pin reached every group, so a scope pinned to
+   * kilometres handed `format: "km"` to its KILOGRAMS as well; the formatter
+   * refused the cross-kind rung, but the pin had already displaced the rung the
+   * kilogram group settled for itself, and the two masses rendered as
+   * `500.00 kg` and `1.00 kt`. One group, two units, which is exactly what a
+   * shared format is for.
+   */
+  it("leaves a group the pin does not name settling for itself", () => {
+    const { container } = render(
+      <UnitSharedFormat of="m" format="km">
+        <Unit value={value("kg", 500)} />
+        <Unit value={value("kg", 1_000_000)} />
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).toContain("500.00");
+    expect(container.textContent).toContain("1,000,000.00");
+    expect(screen.queryAllByText("kilotonnes")).toHaveLength(0);
+  });
+
+  /**
+   * A mixed scope pins each kind under its own unit, which is the only honest
+   * way to pin two of them at once: one flat set of props cannot say two
+   * things.
+   */
+  it("pins each named kind in the unit it is keyed by", () => {
+    render(
+      <UnitSharedFormat pins={{ m: { format: "km" }, kg: { format: "t" } }}>
+        <Unit value={value("m", 999)} />
+        <Unit value={value("kg", 500)} />
+      </UnitSharedFormat>,
+    );
+    expect(screen.queryAllByText("kilometres")).toHaveLength(1);
+    expect(screen.queryAllByText("tonnes")).toHaveLength(1);
+  });
+
+  /**
+   * Entries are opt-in: a kind the map does not mention settles for itself,
+   * which is what makes the map the whole statement a mixed scope has to make.
+   */
+  it("leaves a kind the pin map omits settling for itself", () => {
+    const { container } = render(
+      <UnitSharedFormat pins={{ m: { format: "km" } }}>
+        <Unit value={value("m", 999)} />
+        <Unit value={value("kg", 500)} />
+        <Unit value={value("kg", 1_000_000)} />
+      </UnitSharedFormat>,
+    );
+    expect(screen.queryAllByText("kilometres")).toHaveLength(1);
+    expect(container.textContent).toContain("500.00");
+    expect(container.textContent).toContain("1,000,000.00");
+  });
+
+  /**
+   * A pin that names no unit cannot be addressed to one, so it still reaches
+   * every group, exactly as every pin did before `of` existed. Kept because the
+   * scope is also a plain grouping mechanism and a caller holding a
+   * `Value<string>` has no kind to name.
+   */
+  it("hands an unaddressed pin to every group in the scope", () => {
+    const { container } = render(
+      <UnitSharedFormat decimals={3}>
+        <Unit value={value("m", 999)} />
+        <Unit value={value("kg", 500)} />
+      </UnitSharedFormat>,
+    );
+    expect(container.textContent).toContain("999.000");
+    expect(container.textContent).toContain("500.000");
   });
 
   /**

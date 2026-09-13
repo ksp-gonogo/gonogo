@@ -16,6 +16,7 @@ import {
   type FormatsFor,
   formatQuantity,
   kindOfUnit,
+  type PresentableAs,
   wordForSymbol,
 } from "./units";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -345,7 +346,7 @@ function resolveCurrency<U extends string>(
 }
 
 export interface UnitProps<U extends string = string>
-  extends Omit<FormatQuantityOptions, "format"> {
+  extends Omit<FormatQuantityOptions, "format" | "as"> {
   /**
    * The quantity to show. It carries its own unit, so nothing else needs to be
    * passed and nothing else can disagree with it.
@@ -369,6 +370,16 @@ export interface UnitProps<U extends string = string>
    * type system at all.
    */
   format?: FormatsFor<U>;
+  /**
+   * Show the value in a different unit of the same kind: `as="°C"` on a kelvin
+   * field, `as="g"` on an m/s² one. The contract says what the field IS, this
+   * says what the operator wants to READ.
+   *
+   * Validated against the value's KIND, exactly as `format` is. A cross-kind
+   * request is refused by the formatter at runtime and the value renders in its
+   * own unit, so an untyped `as` was a prop that silently did nothing.
+   */
+  as?: PresentableAs<U>;
   /**
    * TRANSITIONAL: a bare unit token, rendered as a symbol with no number.
    *
