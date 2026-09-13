@@ -23,6 +23,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fixtureShapeProblems } from "./fixture-shape.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "../..");
@@ -126,14 +127,32 @@ execFileSync("ln", ["-sfn", modules, join(work, "node_modules")]);
 // relative imports resolve and the whole set compiles as one client would.
 const FILE_LABEL = /^\/\/\s*(client\/src\/[\w./-]+\.tsx?)\s*$/;
 
+/*
+ * The fixture is hand-written, so before the guide is compiled against it, it
+ * is held to the export shape of the real generator's committed output. A
+ * stale fixture otherwise surfaces as a guide error naming a missing symbol,
+ * which reads as the guide being wrong.
+ */
+const fixtureDir = join(here, "generated-fixture");
+const shapeProblems = fixtureShapeProblems(repo, fixtureDir);
+if (shapeProblems.length > 0) {
+  console.error(
+    `generated-fixture does not pass its shape check against the codegen it stands in for:\n\n${shapeProblems.join("\n")}`,
+  );
+  process.exit(1);
+}
+console.log(
+  "generated-fixture matches the export shape of the committed codegen output",
+);
+
 // Every fixture in the directory, rather than a list: a hand-listed set lets a
 // new fixture be added and silently ignored, which is how the guide came to
 // import a `command-map` that was never copied in.
-for (const f of readdirSync(join(here, "generated-fixture"))) {
+for (const f of readdirSync(fixtureDir)) {
   mkdirSync(join(work, "src/__generated__"), { recursive: true });
   writeFileSync(
     join(work, "src/__generated__", f),
-    readFileSync(join(here, "generated-fixture", f), "utf8"),
+    readFileSync(join(fixtureDir, f), "utf8"),
   );
 }
 
