@@ -1,3 +1,4 @@
+import { deriveTimeContexts } from "@ksp-gonogo/core";
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
   StubTransport,
@@ -67,8 +68,13 @@ interface ArmedAlarm {
  * than a copy of the real one: what is being exercised is what the client does
  * with a refusal, and a second full copy of the mod's table in a test fixture
  * is the thing the client is not allowed to keep either.
+ *
+ * `career.status` is here because it is the one an Uplink actually arms
+ * against, and the real table carries it: `ScetThresholdSources` lists
+ * `CareerViewProvider.Topic` alongside the vessel adapters, stamped `"game"`
+ * rather than at a craft.
  */
-const ADDRESSABLE = new Set(["vessel.flight", "time.warp"]);
+const ADDRESSABLE = new Set(["vessel.flight", "time.warp", "career.status"]);
 /** The craft's guid, as `meta.source` stamps it and `vessel.identity` names it. */
 const VESSEL_ID = "6f0a-probe";
 
@@ -91,8 +97,15 @@ interface ModStandIn {
   armForeign(id: string): void;
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
-  /** Drive the craft's TRUE altitude, which only the stand-in can see. */
-  setAltitude(metres: number): void;
+  /**
+   * Drive the TRUE value every armed threshold is compared against, which only
+   * the stand-in can see.
+   *
+   * One number for every threshold rather than one per Topic. What these tests
+   * ask is what the CLIENT does with the frames a match produces, and a fixture
+   * keyed by Topic would only be a second, poorer copy of the mod's field walk.
+   */
+  setReading(value: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
   attach(): void;
   /** The true UT at which the stand-in mod fired each alarm. */
@@ -114,7 +127,7 @@ function startSession(owlt: number): ModStandIn {
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
   const matchedSince = new Map<string, number>();
-  let altitude = 0;
+  let reading = 0;
   let lastRoster: unknown[] = [];
   let lastFired: { id: string; firedAtUt: number } | null = null;
   const firedAtTrueUt: { id: string; ut: number }[] = [];
@@ -243,8 +256,8 @@ function startSession(owlt: number): ModStandIn {
       });
     },
     armOf: (id) => conditions.get(id),
-    setAltitude(metres) {
-      altitude = metres;
+    setReading(value) {
+      reading = value;
     },
     reconnect() {
       /* What a client sees when it comes back: the reliable lane replays the
@@ -291,12 +304,12 @@ function startSession(owlt: number): ModStandIn {
           }
           if (ut < c.ut) continue;
         } else {
-          /* The reading is the craft's TRUE altitude, which is the whole claim:
+          /* The reading is the world's TRUE value, which is the whole claim:
              nothing the client can see is consulted. Warp stops at the first
              match and the sustain window is measured in the ticks that follow,
              the same order the roster uses, because a window measured across
              warped ticks would be satisfied by two samples. */
-          if (!matches(c, altitude)) {
+          if (!matches(c, reading)) {
             matchedSince.delete(id);
             continue;
           }
@@ -738,7 +751,7 @@ describe("SCET alarms", () => {
     expect(svc.snapshot().alarms[0]?.state).toBe("pending");
 
     const crossesAt = UT_START + 5 * DT;
-    session.setAltitude(101_000);
+    session.setReading(101_000);
     await step(crossesAt, crossesAt + 2 * DT);
     const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
     svc.dispose();
@@ -825,5 +838,98 @@ describe("SCET alarms", () => {
     // feature invented.
     expect(firedAt.get(scet.id)).toBe(target);
     expect(firedAt.get(command.id)).toBe(target);
+  });
+
+  it("arms and fires an Uplink's SCET threshold on a screen with no SCET clock", async () => {
+    /*
+     * The asymmetry this pins, and why it is only apparent.
+     *
+     * `AlarmsModal` hides the "Fires on" radio and pins `effectiveVantage` to
+     * `"command"` whenever `useTimeContexts` reports no `scet` qualifier, which
+     * is any screen under a second of light time: a LAN session, no stream, or
+     * a craft close in. RP-1's `FundTarget` asks for `vantage: "scet"` with no
+     * such guard, so the operator cannot ask for what an Uplink asks for
+     * unconditionally, and the obvious reading is that the Uplink's request is
+     * either quietly demoted or armed somewhere it can never come due.
+     *
+     * It is neither. The modal's condition is about a LABEL: `useTimeContexts`
+     * drops both qualifiers when the two clocks print the same string, and the
+     * radio goes with them because its two options would then be the same
+     * alarm to read. Nothing on the arming path consults it. `ScetAlarmBridge`
+     * arms any pending SCET trigger, `AlarmStateMachine` declines to evaluate
+     * any SCET trigger locally whatever the delay, and the mod fires on its own
+     * clock, which at zero delay is the operator's clock too.
+     *
+     * So the request survives intact, and this is the measurement of that.
+     */
+    // The precondition, asserted rather than assumed: this really is the screen
+    // the modal would have offered no choice on.
+    expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
+
+    const session = startSession(0);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => 0,
+    });
+
+    /* RP-1's `FundTarget` request as `useAlarmRequest` hands it on: the joined
+       `dataKey` derived from the address, the sustain defaulted, and the
+       vantage carried through untouched. */
+    const alarm = svc.addAlarm({
+      name: "Balance reaches 250,000 funds",
+      trigger: {
+        kind: "threshold",
+        dataKey: "career.status.economy.funds",
+        topic: "career.status",
+        fieldPath: "economy.funds",
+        op: ">=",
+        value: 250_000,
+        sustainSeconds: 0,
+        vantage: "scet",
+      },
+      requestedBy: { uplinkId: "rp1", uplinkName: "RP-1", key: "fund-target" },
+    });
+
+    const step = async (from: number, to: number) => {
+      for (let ut = from; ut <= to; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+    };
+    await step(UT_START + DT, UT_START + 4 * DT);
+
+    // Armed on the mod, not demoted to the command vantage and not left for
+    // this side to evaluate.
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(session.armOf(alarm.id)?.condition).toEqual({
+      kind: "threshold",
+      topic: "career.status",
+      fieldPath: "economy.funds",
+      op: 1,
+      threshold: 250_000,
+      sustainSeconds: 0,
+    });
+    /* And named at the game rather than at a craft: career bookkeeping belongs
+       to the save, which is the subject `ScetThresholdSources` stamps it with. */
+    expect(session.armOf(alarm.id)?.subject).toBe("game");
+    expect(svc.snapshot().alarms[0].state).toBe("pending");
+    expect(svc.snapshot().scetArmRefusals).toBeUndefined();
+
+    const crossesAt = UT_START + 5 * DT;
+    session.setReading(250_000);
+    await step(crossesAt, crossesAt + 2 * DT);
+    const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+    svc.dispose();
+
+    // It comes due, and the warp is stopped. A SCET trigger is never evaluated
+    // on this side, so an arm the mod had not taken would sit pending for ever
+    // and read exactly like a balance not yet reached.
+    expect(row?.state).not.toBe("pending");
+    expect(row?.eventUT).toBe(crossesAt);
+    expect(session.gameIndex()).toBe(0);
   });
 });
