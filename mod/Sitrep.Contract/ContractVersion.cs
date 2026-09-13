@@ -1613,7 +1613,22 @@ namespace Sitrep.Contract
         /// station is now <c>"ground:&lt;name&gt;"</c>, the home-command claimant's
         /// answer is published as this flag, and a roster with no flag set says
         /// in so many words that no home was identified.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 7 -&gt; 8: a body says where it is
+        /// pointing, not only how fast it turns.</b> One new member on one
+        /// existing type: <see cref="BodyEntry.InitialRotation"/>, the rotation
+        /// angle at UT 0. Nullable, so an Uplink built against 16.7 is
+        /// unaffected and the frozen Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because a rate without a phase places nothing. The
+        /// wire carried <see cref="BodyEntry.RotationPeriod"/> and no reference
+        /// angle at any epoch, so every body-fixed latitude and longitude on the
+        /// wire, a ground station's above all, could not be turned into a
+        /// position at a view time. That is the whole of a direct link's
+        /// geometry: one hop ending at a station IS the delay, and the one end
+        /// of it that moves between the light leaving and the operator reading
+        /// is the craft, whose position a client already propagates.</para>
         /// </remarks>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

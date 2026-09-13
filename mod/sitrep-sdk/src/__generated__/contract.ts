@@ -5309,6 +5309,23 @@ export interface BodyEntry
 	*/
 	rotationPeriod?: Value<"s">;
 	/**
+	* The body's rotation angle at UT 0, degrees
+	* (`CelestialBody.initialRotation`); null when absent.
+	*
+	* The PHASE that `BodyEntry.rotationPeriod`'s rate is measured from, and the
+	* pair is what makes a body-fixed coordinate into a place: the angle at any UT
+	* is `initialRotation + 360 · ut / rotationPeriod`, and turning a
+	* latitude/longitude by it gives a position in the same frame this payload's
+	* orbital elements are measured in. Without it a client knows how fast a body
+	* turns and not where it is pointing, which places nothing: the surface of
+	* every body was unreachable at a view time, and a ground station is where
+	* most of a signal delay ends.
+	*
+	* Zero is a real value, not a stand-in: a body whose prime meridian happens to
+	* face the reference direction at UT 0 reports it.
+	*/
+	initialRotation?: Value<"°">;
+	/**
 	* Whether the body is tidally locked to its parent
 	* (`CelestialBody.tidallyLocked`); null when absent.
 	*/

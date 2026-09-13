@@ -177,6 +177,11 @@ namespace Sitrep.Host
                 ["hillSphere"] = GetDouble(raw, "hillSphere"),
                 ["sphereOfInfluence"] = GetDouble(raw, "sphereOfInfluence"),
                 ["rotationPeriod"] = GetDouble(raw, "rotationPeriod"),
+                /* The phase the period's rate is measured from. The raw dict has
+                   carried it since G-2 and this mapping dropped it, which left a
+                   client able to say how fast a body turns and not where it is
+                   pointing: every surface coordinate on the wire was unplaceable. */
+                ["initialRotation"] = GetDouble(raw, "initialRotation"),
                 ["tidallyLocked"] = GetBool(raw, "tidallyLocked"),
                 ["hasOcean"] = GetBool(raw, "hasOcean"),
                 ["description"] = GetString(raw, "description"),

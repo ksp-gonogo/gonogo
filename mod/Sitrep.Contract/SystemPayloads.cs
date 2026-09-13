@@ -117,6 +117,40 @@ public class BodyEntry
     [SitrepUnit(Units.Seconds)]
     public double? RotationPeriod { get; set; }
 
+    /// <summary>
+    /// The body's rotation angle at UT 0, degrees
+    /// (<c>CelestialBody.initialRotation</c>); null when absent.
+    ///
+    /// <para>The PHASE that <see cref="RotationPeriod"/>'s rate is measured
+    /// from, and the pair is what makes a body-fixed coordinate into a place:
+    /// the angle at any UT is
+    /// <c>initialRotation + 360 · ut / rotationPeriod</c>, and turning a
+    /// latitude/longitude by it gives a position in the same frame this
+    /// payload's orbital elements are measured in. Without it a client knows
+    /// how fast a body turns and not where it is pointing, which places
+    /// nothing: the surface of every body was unreachable at a view time, and
+    /// a ground station is where most of a signal delay ends.</para>
+    ///
+    /// <para>Zero is a real value, not a stand-in: a body whose prime meridian
+    /// happens to face the reference direction at UT 0 reports it.</para>
+    /// <internal>
+    /// The raw snapshot has carried <c>initialRotation</c> since G-2
+    /// (<c>KspHost.BuildBodyEntry</c>) and <c>SystemViewProvider.BuildBody</c>
+    /// dropped it on the floor, so this field costs one mapped key rather than
+    /// a new read off the game.
+    ///
+    /// The turn is about +Z and nothing else, which is why a client needs no
+    /// spin axis beside this. <c>CelestialBody.updateBody</c> builds every
+    /// body's frame as <c>PlanetaryFrame(0, 90, directRotAngle)</c>, and that
+    /// reduces to a rotation about the reference pole; the global
+    /// <c>Planetarium.InverseRotAngle</c> in <c>directRotAngle</c> is the
+    /// floating world frame's own offset and cancels for anything expressed
+    /// against the elements rather than against Unity's world.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? InitialRotation { get; set; }
+
     /// <summary>Whether the body is tidally locked to its parent (<c>CelestialBody.tidallyLocked</c>); null when absent.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? TidallyLocked { get; set; }

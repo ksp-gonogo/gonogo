@@ -324,6 +324,57 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildSystemBodiesCarriesTheRotationPhaseBesideTheRate()
+        {
+            /* The raw snapshot has carried initialRotation since G-2 and this
+               mapping dropped it, which left every body-fixed coordinate on the
+               wire unplaceable: a client knew how fast a body turns and not
+               where it was pointing. The pair travels together or neither half
+               is any use, so both are asserted here. */
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kerbin",
+                            ["index"] = 0,
+                            ["parentIndex"] = null,
+                            ["radius"] = 600_000.0,
+                            ["rotationPeriod"] = 21_549.425,
+                            ["initialRotation"] = 90.0,
+                        },
+                        // A body the live game has not populated yet: absent
+                        // rather than a zero, because zero is a real phase.
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Mun",
+                            ["index"] = 1,
+                            ["parentIndex"] = 0,
+                            ["radius"] = 200_000.0,
+                            ["rotationPeriod"] = 138_984.38,
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemBodies(snapshot);
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var bodies = Assert.IsType<List<object?>>(root["bodies"]);
+
+            var kerbin = Assert.IsType<Dictionary<string, object?>>(bodies[0]);
+            Assert.Equal(21_549.425, kerbin["rotationPeriod"]);
+            Assert.Equal(90.0, kerbin["initialRotation"]);
+
+            var mun = Assert.IsType<Dictionary<string, object?>>(bodies[1]);
+            Assert.Equal(138_984.38, mun["rotationPeriod"]);
+            Assert.Null(mun["initialRotation"]);
+        }
+
+        [Fact]
         public void BuildSystemBodiesDropsAPressureProfileItCannotPairUp()
         {
             /* Half a profile is worse than none: a consumer pairing the two

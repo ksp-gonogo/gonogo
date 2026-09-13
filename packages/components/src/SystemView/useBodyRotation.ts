@@ -8,12 +8,13 @@ import { useCelestialBodies } from "./useCelestialBodies";
  *
  * `angleDeg = (360 · viewUt / rotationPeriod) mod 360`, the rate is exact
  * (one turn per `rotationPeriod` seconds; a NEGATIVE period spins the marker
- * the other way, matching retrograde rotation), and the PHASE is arbitrary:
- * the wire never carried a reference rotation at a reference epoch, so there
- * is no absolute phase to reconstruct. That's fine for the only consumer,
- * the OrbitDiagram's spinning limb marker, a rotation *indicator*, not a
- * surface-longitude reference (the widget draws the marker relative to the
- * body, not the sky).
+ * the other way, matching retrograde rotation), and the PHASE is deliberately
+ * dropped. The wire DOES carry one now, `BodyEntry.initialRotation`, and the
+ * SDK's `bodyRotationAngleDegAt` is the absolute angle built from the pair; it
+ * is what a surface position needs and not what this marker is. The only
+ * consumer here is the OrbitDiagram's spinning limb, a rotation *indicator*
+ * drawn relative to the body rather than the sky, so an absolute phase would
+ * move the marker without making it mean more.
  *
  * `rotates` is derived from `rotationPeriod` too: a body rotates iff its period
  * is finite and non-zero.
