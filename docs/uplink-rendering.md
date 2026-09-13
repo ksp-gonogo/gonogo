@@ -166,7 +166,8 @@ in a README on GitHub; `--frames` also keeps the numbered PNGs.
 
 A control whose behaviour is a HELD pointer needs two more steps. `hold` presses
 on a named control and drags it without letting go, `release` lets go, and
-`waitMs` lets real milliseconds pass, spread over the step's frames:
+`waitMs` runs the widget's own repeating timers for that many milliseconds,
+spread over the step's frames:
 
 ```jsonc
 "steps": [
@@ -176,9 +177,16 @@ on a named control and drags it without letting go, `release` lets go, and
 ```
 
 `waitMs` is not a substitute for `advanceUt`: that one steps the pinned clock,
-which is what keeps a countdown reproducible, and this one waits, which is the
-only thing a control ticking on its own `setInterval` responds to. Reach for it
+which is what keeps a countdown reproducible, and this one reaches a control
+ticking on its own `setInterval`, which the pinned clock does not. Reach for it
 only when the control genuinely runs on elapsed time.
+
+It is an AMOUNT of ticks, not a duration. The driver takes `setInterval` for the
+length of the scene and fires exactly what this many milliseconds are due, so the
+same fixture produces the same frames on a loaded machine as on an idle one. It
+was a real wait until 2026-09-13, and a real wait is a different number of ticks
+every run: the one scene using it hashed differently on each of five consecutive
+regenerations, each one writing down the last one's noise as if it were a fact.
 
 ## Naming text that has to be readable
 

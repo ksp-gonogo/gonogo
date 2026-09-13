@@ -859,8 +859,12 @@ async function captureMotion(
         await tab.mouse.up();
         holding = false;
       }
+      // `waitMs` is divided, not repeated: the probe fires that much of the
+      // widget's own repeating timers per frame, the way `advanceUt` is.
       const perFrame: SceneStep =
-        i === 0 ? { ...step, frames: 1 } : { frames: 1 };
+        i === 0
+          ? { ...step, frames: 1, waitMs: wait }
+          : { frames: 1, waitMs: wait };
       await tab.evaluate(
         ([key, s, d]) =>
           (globalThis as unknown as ProbeWindow)[
@@ -868,7 +872,6 @@ async function captureMotion(
           ].stepScene(s as SceneStep, d as number),
         [RENDER_PROBE_GLOBAL, perFrame, delta] as const,
       );
-      if (wait > 0) await tab.waitForTimeout(wait);
       frames.push(await shootFrame(tab, opts, framesDir, frames.length));
       captures.push(await captureShape(tab));
     }
