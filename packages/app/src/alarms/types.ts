@@ -121,6 +121,23 @@ export function scetThresholdAddress(
   trigger: AlarmTrigger,
 ): { topic: string; fieldPath: string } | null {
   if (trigger.kind !== "threshold" || trigger.vantage !== "scet") return null;
+  return thresholdAddress(trigger);
+}
+
+/**
+ * The same address for a threshold on EITHER clock, or null when it carries
+ * none.
+ *
+ * A command-vantage threshold does not need one to work: it is evaluated here,
+ * against the flat {@link ThresholdTrigger.dataKey} this client already reads.
+ * It carries one so the simulation can be asked the same question about what
+ * this vantage has been told, which is the only way to find out whether the two
+ * evaluators agree.
+ */
+export function thresholdAddress(
+  trigger: AlarmTrigger,
+): { topic: string; fieldPath: string } | null {
+  if (trigger.kind !== "threshold") return null;
   const { topic, fieldPath } = trigger;
   if (!topic || !fieldPath) return null;
   return { topic, fieldPath };

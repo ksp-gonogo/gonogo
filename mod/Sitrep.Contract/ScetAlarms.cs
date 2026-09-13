@@ -269,6 +269,40 @@ public class ScetAlarm
     public string ArmedBy { get; set; } = "";
 
     /// <summary>
+    /// Whose ledger the condition is read against, and therefore who the fire
+    /// notice is for. Empty is the simulation itself; anything else is a place,
+    /// spelled as a <c>commandCentre.roster</c> id (<c>"ksc"</c>,
+    /// <c>"vessel:&lt;guid&gt;"</c>).
+    ///
+    /// <para><b>Distinct from <see cref="ArmedBy"/>, which is provenance.</b>
+    /// That says where the arm command came from and nothing else. This says
+    /// which body of knowledge the condition is compared against: empty means
+    /// the craft's TRUE state, upstream of the reveal gate, and the warp stop
+    /// that follows is universal because warp belongs to the simulation. A
+    /// named place means what THAT place has been told, which is a light-time
+    /// old and different at every vantage, so the answer is that place's alone
+    /// and stops nothing.</para>
+    ///
+    /// <para>A place, never a connection. Two operators sharing a command
+    /// centre share its ledger and its answer, and a browser reconnecting is
+    /// the same place it was before, so the simulation never learns that
+    /// clients exist.</para>
+    /// <internal>
+    /// Taken from the arm ARGUMENTS rather than resolved from where the command
+    /// entered, which is the opposite of <see cref="ArmedBy"/> and deliberate:
+    /// an operator at one centre may legitimately ask what ANOTHER centre can
+    /// currently see, and the entering vantage cannot express that. It is not a
+    /// trust hole, because nothing an audience can decide leaves that audience:
+    /// see <c>Gonogo.KSP.ScetAlarmUplink</c>, where a non-empty audience routes
+    /// into its own <c>ScetAlarmRoster</c> whose <c>StopWarp</c> is discarded.
+    /// Readings for it come from <c>Sitrep.Host.Alarms.RevealedScetStateReader</c>,
+    /// which goes through <c>Archive.ReadAtVantage</c>.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Audience { get; set; } = "";
+
+    /// <summary>
     /// What the condition is about: <c>"vessel:&lt;guid&gt;"</c> for a craft, or
     /// <c>"game"</c> for something the whole simulation shares. The same
     /// vocabulary <c>meta.source</c> uses.
@@ -342,6 +376,21 @@ public class ScetAlarmFired
     /// <summary>The universal time it fired at, on the craft's clock.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double FiredAtUt { get; set; }
+
+    /// <summary>
+    /// Whose answer this is, echoing the <see cref="ScetAlarm.Audience"/> it was
+    /// armed under. Empty is the simulation's own verdict, and the one that
+    /// stopped the warp.
+    ///
+    /// <para>Carried rather than left to the client to look up, because the two
+    /// kinds of notice mean different things and a reader that has to consult
+    /// the roster first is a reader that will act on the wrong one. A
+    /// simulation notice is a fact about the craft and the warp is already
+    /// stopped; an audience notice is a statement about what one place has been
+    /// told, true only there, and nothing in the game moved because of it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Audience { get; set; } = "";
 }
 
 /// <summary>
@@ -368,6 +417,14 @@ public class ScetAlarmArmArgs
 
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
+
+    /// <summary>
+    /// See <see cref="ScetAlarm.Audience"/>. Empty arms against the simulation,
+    /// which is what every alarm did before this field existed, so an older
+    /// client's arm keeps the behaviour it had.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Audience { get; set; } = "";
 
     /// <summary>See <see cref="ScetAlarm.Subject"/>. Empty is read as <c>"game"</c>.</summary>
     [SitrepUnit(Units.Id)]

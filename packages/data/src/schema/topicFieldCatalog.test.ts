@@ -78,14 +78,15 @@ describe("getTopicFieldCatalog()", () => {
 
   it("offers the fields of a three-segment Topic, which is a Topic like any other", () => {
     // `alarm.scet.fired` is the case that paid for the longest-match split: the
-    // contract annotates both its fields, and while the split landed after the
-    // second segment every key under it resolved to a `fired.*` path into
-    // `alarm.scet`, which is an ARRAY and has no such field. So the picker
+    // contract annotates every one of its fields, and while the split landed
+    // after the second segment every key under it resolved to a `fired.*` path
+    // into `alarm.scet`, which is an ARRAY and has no such field. So the picker
     // could not offer an annotated instant that the wire genuinely carries.
     const fired = getTopicFieldCatalog().filter(
       (k) => k.topic === "alarm.scet.fired",
     );
     expect(fired.map((k) => k.key).sort()).toEqual([
+      "alarm.scet.fired.audience",
       "alarm.scet.fired.firedAtUt",
       "alarm.scet.fired.id",
     ]);

@@ -1218,6 +1218,46 @@ namespace Sitrep.Core
                 archive, topic, vantage, _network.DelayTo(vantage, node), nowUt, toState);
         }
 
+        /// <summary>
+        /// The payload <paramref name="vantage"/> has been told about
+        /// <paramref name="topic"/> on <paramref name="node"/>, exactly as it
+        /// was recorded, or null if nothing has reached it.
+        ///
+        /// <para>Here rather than on the archive for the same reason
+        /// <see cref="ObserveAtVantage"/> is: the DELAY is the Courier's, and a
+        /// caller that looked the archive up itself would be picking its own.
+        /// The difference from that method is only that nothing is converted, so
+        /// a reader interested in an arbitrary field of an arbitrary Topic can
+        /// ask. The instant the value was true is deliberately not returned:
+        /// this answers "what does it currently say there", which is the whole
+        /// of what a threshold armed at a vantage compares.</para>
+        ///
+        /// <para><b>This MOVES that vantage's cursor, and retention prunes to
+        /// the oldest cursor on a topic</b> (see
+        /// <see cref="Archive.PruneToVantageCursors"/>). Deliberate, and the
+        /// alternative is worse: <see cref="Archive.ReadAtInstant"/> moves the
+        /// cursor too, and a cursor-free read would have to recompute the scene
+        /// outside the freeze-on-recession clamp, which is exactly the split
+        /// <see cref="ObserveAtVantage"/>'s comment warns about. What bounds it
+        /// is that a caller reading every tick drags its cursor along with
+        /// <c>nowUt</c>, so the window retained tracks the delay rather than the
+        /// session; and that a vantage some client is already streaming at
+        /// shares the very same (topic, vantage) cursor, so reading there pins
+        /// nothing new at all. What it does NOT bound is a cursor left behind
+        /// after the last reader of a (topic, vantage) pair goes away: that one
+        /// freezes and holds that topic's history from its instant until
+        /// <see cref="ResetTimeline"/> clears every cursor on a quickload.</para>
+        /// </summary>
+        public object? ReadRawAtVantage(string node, string topic, string vantage, double nowUt)
+        {
+            if (!_archives.TryGetValue(node, out var archive))
+            {
+                return null;
+            }
+            var sample = archive.ReadAtVantage(topic, vantage, _network.DelayTo(vantage, node), nowUt);
+            return sample?.Value;
+        }
+
         private Archive ArchiveFor(string node)
         {
             if (!_archives.TryGetValue(node, out var archive))

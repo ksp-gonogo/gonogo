@@ -37,6 +37,25 @@ namespace Gonogo.KSP
     /// nothing is subscribed to, so a threshold read through it would fire or
     /// not depending on which widgets the operator happened to have open.</para>
     ///
+    /// <para><b>Two kinds of alarm, one roster class, run more than once.</b> An
+    /// alarm naming no audience is the SCET one described above: judged against
+    /// the simulation, and its stop is universal. An alarm naming a command
+    /// centre is judged against what THAT PLACE HAS BEEN TOLD, through
+    /// <see cref="RevealedScetStateReader"/> over the Courier's archive, and its
+    /// verdict stops nothing. The only difference between the two is the SOURCE
+    /// of the readings, which is why the same <see cref="ScetAlarmRoster"/> runs
+    /// both: per-audience latching, and per-audience
+    /// <see cref="ScetAlarmRoster.Clear"/> on a rewind, come out of holding one
+    /// roster each rather than out of any new code.</para>
+    ///
+    /// <para><b>The audience verdict is SHADOW.</b> It goes on the same two
+    /// channels as the simulation's, tagged with the audience it belongs to, and
+    /// nothing in the game or the client latches from it yet: the client still
+    /// evaluates its own command-vantage alarms and compares. Running both
+    /// evaluators live against one latch field is unsafe in the exact way the
+    /// client's own <c>AlarmStateMachine.updateThresholdTracking</c> comment
+    /// describes.</para>
+    ///
     /// <para>The decision-making is in <see cref="ScetAlarmRoster"/> (what is
     /// due) and <see cref="ScetRosterAudience"/> (when the roster goes on the
     /// wire), both KSP-free and clock-free and unit-tested headlessly. This
@@ -76,6 +95,54 @@ namespace Gonogo.KSP
         private readonly object _gate = new object();
 
         private readonly ScetAlarmRoster _roster = new ScetAlarmRoster();
+
+        /// <summary>
+        /// One roster per AUDIENCE that is not the simulation, keyed by the
+        /// vantage whose knowledge its alarms are judged against.
+        ///
+        /// <para>Separate rosters rather than one list with a field, because
+        /// everything a roster latches is per-audience: a step-down, a sustain
+        /// window, and above all <see cref="ScetAlarmRoster.Clear"/> on a
+        /// rewind. Two audiences reading the same craft cross the same
+        /// threshold at different instants, and a single roster would have to
+        /// remember that once per audience anyway, which is this dictionary
+        /// written out by hand.</para>
+        ///
+        /// <para>An entry is never removed once created, and that costs nothing:
+        /// a roster holding no alarms asks the archive nothing, so it moves no
+        /// cursor and pins no history. Removing one WOULD cost something, namely
+        /// the disarm that emptied it, which is a roster change nobody would
+        /// then publish.</para>
+        /// </summary>
+        private readonly Dictionary<string, ScetAlarmRoster> _commandRosters =
+            new Dictionary<string, ScetAlarmRoster>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// How to read what a vantage has been told, or null on an install where
+        /// nothing wired it (every headless test that builds this uplink
+        /// directly). Null is not an error: an audience roster with no reader
+        /// evaluates every threshold as unreadable, and an alarm that cannot be
+        /// read does not fire, which is the same posture the snapshot reader
+        /// takes for a tick with no snapshot.
+        ///
+        /// <para>Static for the same reason
+        /// <c>CommsCoreUplink.ConfigureSignalDelay</c> is: this uplink is found
+        /// by assembly-scan discovery and constructed by the engine, so nothing
+        /// outside holds the instance to configure. The read itself goes through
+        /// <c>ChannelEngine.ReadTopicAtVantage</c>, which is COURIER-THREAD
+        /// ONLY, which is why the audience evaluation lives in the handle and
+        /// not in the capture.</para>
+        /// </summary>
+        private static Func<string, string, double, object?>? _revealedRead;
+
+        /// <summary>
+        /// Point the audience evaluation at an engine's archive; pass null to
+        /// take it away again, which a test doing so must, because this outlives
+        /// any one engine.
+        /// </summary>
+        public static void ConfigureRevealedRead(Func<string, string, double, object?>? read) =>
+            _revealedRead = read;
+
         private readonly IVesselActuator _actuator;
 
         private IUplinkHost? _host;
@@ -252,9 +319,68 @@ namespace Gonogo.KSP
 
             lock (_gate)
             {
-                _roster.Arm(args, vantage ?? "");
+                var target = RosterFor(args.Audience ?? "");
+                // An id belongs to exactly ONE audience. Re-arming it under a
+                // different one MOVES it, so drop it from wherever it was before
+                // handing it over; a Disarm for an id a roster does not hold
+                // changes nothing and republishes nothing, so the ordinary
+                // idempotent re-arm still costs no channel traffic.
+                foreach (var roster in AllRosters())
+                {
+                    if (!ReferenceEquals(roster, target))
+                    {
+                        roster.Disarm(args.Id);
+                    }
+                }
+                target.Arm(args, vantage ?? "");
             }
             return new CommandResult { Success = true };
+        }
+
+        /// <summary>
+        /// The roster an alarm with this audience belongs to: the simulation's
+        /// for the empty audience, and one of its own for any named vantage,
+        /// created on first use.
+        /// </summary>
+        private ScetAlarmRoster RosterFor(string audience)
+        {
+            if (audience.Length == 0)
+            {
+                return _roster;
+            }
+            if (!_commandRosters.TryGetValue(audience, out var roster))
+            {
+                roster = new ScetAlarmRoster();
+                _commandRosters[audience] = roster;
+            }
+            return roster;
+        }
+
+        /// <summary>Every roster held, simulation first. Caller holds <see cref="_gate"/>.</summary>
+        private IEnumerable<ScetAlarmRoster> AllRosters()
+        {
+            yield return _roster;
+            foreach (var entry in _commandRosters)
+            {
+                yield return entry.Value;
+            }
+        }
+
+        /// <summary>
+        /// The roster as the channel publishes it: every audience's rows in one
+        /// list, because the client reconciles ONE list against it and a row
+        /// missing from the roster reads as an arm the host never received.
+        /// Which audience a row belongs to is on the row. Caller holds
+        /// <see cref="_gate"/>.
+        /// </summary>
+        private List<ScetAlarm> SnapshotAll()
+        {
+            var rows = _roster.Snapshot();
+            foreach (var entry in _commandRosters)
+            {
+                rows.AddRange(entry.Value.Snapshot());
+            }
+            return rows;
         }
 
         private CommandResult HandleDisarm(ScetAlarmDisarmArgs? args)
@@ -265,7 +391,13 @@ namespace Gonogo.KSP
             }
             lock (_gate)
             {
-                _roster.Disarm(args.Id);
+                // Every roster, because a disarm names an id and nothing else:
+                // the client that sent it need not know, and must not have to
+                // know, which audience the host filed it under.
+                foreach (var roster in AllRosters())
+                {
+                    roster.Disarm(args.Id);
+                }
             }
             // Succeeds for an id the host does not hold: a client reconciling its
             // list against the roster disarms what it does not recognise, and
@@ -291,24 +423,19 @@ namespace Gonogo.KSP
         /// </summary>
         private object? CaptureOnMain(KspSnapshot? snapshot)
         {
-            ScetAlarmTick tick;
-            List<ScetAlarm>? roster = null;
             try
             {
                 var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();
                 var state = new SnapshotScetStateReader(snapshot, _thresholds);
-                // Asked on the capture, not in the handle, so the snapshot goes
+                // Asked on the capture, not in the handle, so the answer goes
                 // across with the tick that decided it. The read is a walk of a
                 // thread-safe mirror and is callable from here; see
                 // IUplinkHost.IsAnyTopicSubscribed.
                 var hasAudience = _host?.IsAnyTopicSubscribed(RosterTopic) ?? false;
+                ScetAlarmTick tick;
                 lock (_gate)
                 {
                     tick = _roster.Evaluate(ut, state);
-                    if (_audience.ShouldPublish(hasAudience, tick.RosterChanged))
-                    {
-                        roster = _roster.Snapshot();
-                    }
                 }
 
                 if (tick.StopWarp)
@@ -317,14 +444,18 @@ namespace Gonogo.KSP
                     _actuator.SetWarp(0);
                 }
 
-                if (roster == null && tick.Fired.Count == 0)
-                {
-                    return null;
-                }
+                // ALWAYS returned, even with nothing to say. The handle owns
+                // ScetRosterAudience now, and that class has to be told about a
+                // tick where nobody is subscribed: it is how it learns to answer
+                // the NEXT subscriber. A capture that returned null on a quiet
+                // tick would skip the handle and leave a reconnecting client
+                // waiting on a roster frame that never comes, which is the exact
+                // failure that class was written for.
                 return new ScetAlarmPublish
                 {
                     Ut = ut,
-                    Roster = roster,
+                    HasAudience = hasAudience,
+                    RosterChanged = tick.RosterChanged,
                     Fired = tick.Fired,
                 };
             }
@@ -335,20 +466,68 @@ namespace Gonogo.KSP
             }
         }
 
-        /// <summary>COURIER-THREAD publish of what the capture decided. Touches no KSP API.</summary>
+        /// <summary>
+        /// COURIER-THREAD half: evaluate every AUDIENCE roster, then publish.
+        /// Touches no KSP API.
+        ///
+        /// <para>The audience evaluation is here rather than in the capture
+        /// because the archive it reads is the Courier's own state and nothing
+        /// guards it (see <c>ChannelEngine.ReadTopicAtVantage</c>). The
+        /// simulation roster stays in the capture for the opposite reason: it
+        /// reads the tick's snapshot and commands the warp, and both belong on
+        /// the main thread.</para>
+        ///
+        /// <para><b>An audience verdict stops nothing.</b> Its tick's
+        /// <see cref="ScetAlarmTick.StopWarp"/> is read and discarded, on
+        /// purpose and not by omission: warp is a property of the simulation,
+        /// and what one command centre has been told is not a fact about the
+        /// simulation. Halting the game because a light-time-old reading crossed
+        /// a number would stop it for an event that already happened, for
+        /// everybody, on one vantage's say-so.</para>
+        /// </summary>
         private void HandleOnCourier(object? captured)
         {
             if (captured is not ScetAlarmPublish publish)
             {
                 return;
             }
-            if (publish.Roster != null)
+            try
             {
-                _rosterPublisher?.Publish(publish.Roster, publish.Ut);
+                var changed = publish.RosterChanged;
+                var fired = publish.Fired;
+                List<ScetAlarm>? roster = null;
+                lock (_gate)
+                {
+                    var read = _revealedRead;
+                    foreach (var entry in _commandRosters)
+                    {
+                        var state = read == null
+                            ? null
+                            : new RevealedScetStateReader(read, entry.Key, publish.Ut);
+                        var tick = entry.Value.Evaluate(publish.Ut, state);
+                        // tick.StopWarp deliberately unread: see the doc comment.
+                        changed |= tick.RosterChanged;
+                        fired.AddRange(tick.Fired);
+                    }
+
+                    if (_audience.ShouldPublish(publish.HasAudience, changed))
+                    {
+                        roster = SnapshotAll();
+                    }
+                }
+
+                if (roster != null)
+                {
+                    _rosterPublisher?.Publish(roster, publish.Ut);
+                }
+                foreach (var notice in fired)
+                {
+                    _firedPublisher?.Publish(notice, publish.Ut);
+                }
             }
-            foreach (var fired in publish.Fired)
+            catch (Exception ex)
             {
-                _firedPublisher?.Publish(fired, publish.Ut);
+                Debug.LogError("[Gonogo] SCET alarm publish failed: " + ex);
             }
         }
 
@@ -356,7 +535,14 @@ namespace Gonogo.KSP
         private sealed class ScetAlarmPublish
         {
             public double Ut;
-            public List<ScetAlarm>? Roster;
+
+            /// <summary>Whether anything was subscribed to the roster topic when the capture ran.</summary>
+            public bool HasAudience;
+
+            /// <summary>Whether the SIMULATION roster moved. Each audience roster answers for itself in the handle.</summary>
+            public bool RosterChanged;
+
+            /// <summary>The simulation's notices. The handle appends each audience's to this same list.</summary>
             public List<ScetAlarmFired> Fired = new List<ScetAlarmFired>();
         }
     }

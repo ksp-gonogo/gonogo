@@ -893,6 +893,7 @@
     },
     "ScetAlarm": {
       "armedBy": "id",
+      "audience": "id",
       "firedAtUt": "ut",
       "id": "id",
       "name": "text",
@@ -900,6 +901,7 @@
       "subject": "id"
     },
     "ScetAlarmArmArgs": {
+      "audience": "id",
       "id": "id",
       "name": "text",
       "subject": "id"
@@ -918,6 +920,7 @@
       "id": "id"
     },
     "ScetAlarmFired": {
+      "audience": "id",
       "firedAtUt": "ut",
       "id": "id"
     },
@@ -1378,6 +1381,7 @@
   "topics": {
     "alarm.scet": {
       "armedBy": "id",
+      "audience": "id",
       "firedAtUt": "ut",
       "id": "id",
       "name": "text",
@@ -1385,6 +1389,7 @@
       "subject": "id"
     },
     "alarm.scet.fired": {
+      "audience": "id",
       "firedAtUt": "ut",
       "id": "id"
     },

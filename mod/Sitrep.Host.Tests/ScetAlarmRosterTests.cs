@@ -319,15 +319,19 @@ namespace Sitrep.Host.Tests
             // Well past the threshold, because one warp step is enough to carry a
             // craft a long way beyond it. The operator accepted seeing the alarm
             // fire while their readouts still show the craft minutes ago; they did
-            // not accept the reason travelling early. The notice has two fields and
-            // this is the test that keeps it at two.
+            // not accept the reason travelling early.
             var notice = Assert.Single(
                 roster.Evaluate(1000, new FakeReader { Next = ScetReading.Observed(412_345) }).Fired);
 
             Assert.Equal("a", notice.Id);
             Assert.Equal(1000, notice.FiredAtUt);
+            // Three fields now, and the third is admissible for the reason the
+            // other two are: NONE of them is a reading. Audience is the place the
+            // operator named when they armed it, so it tells a client something it
+            // wrote down itself. What must never appear here is the value that
+            // matched, or anything derived from it.
             Assert.Equal(
-                new[] { "FiredAtUt", "Id" },
+                new[] { "Audience", "FiredAtUt", "Id" },
                 typeof(ScetAlarmFired).GetProperties().Select(p => p.Name).OrderBy(n => n).ToArray());
         }
 
@@ -607,6 +611,81 @@ namespace Sitrep.Host.Tests
             roster.Disarm("a");
 
             Assert.True(roster.Evaluate(500).RosterChanged);
+        }
+
+        /// <summary>
+        /// The audience comes off the ARGUMENTS, unlike <c>ArmedBy</c>, which
+        /// the engine resolves from where the command entered. The two answer
+        /// different questions and an operator at one centre may legitimately
+        /// ask what another has been told, which the entering vantage cannot
+        /// express.
+        /// </summary>
+        [Fact]
+        public void ArmingRecordsTheAudienceTheArgumentsNamed()
+        {
+            var roster = new ScetAlarmRoster();
+            var args = TimeAlarm("a", 1000);
+            args.Audience = "vessel:abc";
+
+            roster.Arm(args, "ksc");
+
+            var row = Assert.Single(roster.Snapshot());
+            Assert.Equal("ksc", row.ArmedBy);
+            Assert.Equal("vessel:abc", row.Audience);
+        }
+
+        /// <summary>
+        /// An alarm with no audience is judged against the simulation, which is
+        /// what every alarm meant before the field existed, so an older client's
+        /// arm keeps the behaviour it had.
+        /// </summary>
+        [Fact]
+        public void AnArmThatNamesNoAudienceIsTheSimulations()
+        {
+            var roster = new ScetAlarmRoster();
+
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+
+            Assert.Equal("", Assert.Single(roster.Snapshot()).Audience);
+        }
+
+        /// <summary>
+        /// Re-arming the same id with a different audience is a real change, so
+        /// the roster republishes. It would otherwise compare equal on every
+        /// published field and the client's list and the host's would disagree
+        /// about whose ledger the alarm is judged against, silently.
+        /// </summary>
+        [Fact]
+        public void ChangingOnlyTheAudienceIsAChange()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+
+            var moved = TimeAlarm("a", 1000);
+            moved.Audience = "ksc";
+
+            Assert.True(roster.Arm(moved, "ksc"));
+            Assert.False(roster.Arm(moved, "ksc"));
+        }
+
+        /// <summary>
+        /// The notice carries the audience it was armed under, so a client can
+        /// tell the simulation's verdict (which already stopped the warp) from
+        /// one place's opinion (which stopped nothing) without consulting the
+        /// roster first.
+        /// </summary>
+        [Fact]
+        public void TheNoticeSaysWhoseVerdictItIs()
+        {
+            var roster = new ScetAlarmRoster();
+            var args = ThresholdAlarm("a", 100_000);
+            args.Audience = "ksc";
+            roster.Arm(args, "ksc");
+
+            var notice = Assert.Single(
+                roster.Evaluate(1000, new FakeReader { Next = ScetReading.Observed(101_000) }).Fired);
+
+            Assert.Equal("ksc", notice.Audience);
         }
     }
 }
