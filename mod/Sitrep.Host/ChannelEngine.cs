@@ -2019,6 +2019,30 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Whether a client-supplied vantage id names a place this connection may
+        /// observe or dispatch from. <see cref="DefaultVantage"/> is always allowed
+        /// (it resolves to Plan 2's node-default even before any home-node source is
+        /// live); any other id must name a currently-active command centre.
+        ///
+        /// <para>Both places a client can name a vantage answer to this one method:
+        /// the session-wide <c>set-vantage</c> message, and the per-command override
+        /// on <see cref="CommandRequest{TArgs}.Vantage"/>. The per-command path went
+        /// unvalidated for as long as the rule had only one spelling and one caller,
+        /// which let a client name any centre it liked on a single dispatch. That
+        /// override reaches an uplink handler as the <c>vantage</c> argument of
+        /// <c>AddVantageCommandHandler</c>, which is where a handler records who
+        /// asked for something (a SCET alarm's <c>ArmedBy</c>).</para>
+        ///
+        /// <para><see cref="MetaVantage"/> is deliberately NOT selectable here: it is
+        /// a delay exemption rather than a place, so a command may be dispatched from
+        /// it while a session may not sit at it. The command path adds that one
+        /// allowance itself.</para>
+        /// </summary>
+        private bool IsSelectableVantage(string centreId) =>
+            centreId == DefaultVantage
+            || _commandCentres.EnumerateActive().Any(c => c.Id == centreId);
+
+        /// <summary>
         /// Apply a client set-vantage request (Plan 3): switch the connection's
         /// SelectedVantage to a command centre. <see cref="DefaultVantage"/> is
         /// always selectable (it resolves to Plan 2's node-default even before any
@@ -2027,10 +2051,7 @@ namespace Sitrep.Host
         /// </summary>
         private void HandleSetVantage(ClientSession session, SetVantage sv)
         {
-            var valid = sv.CentreId == DefaultVantage
-                || _commandCentres.EnumerateActive().Any(c => c.Id == sv.CentreId);
-
-            if (!valid)
+            if (!IsSelectableVantage(sv.CentreId))
             {
                 var error = new ErrorMsg
                 {
@@ -5968,6 +5989,36 @@ namespace Sitrep.Host
                         // own dispatch vantage (e.g. "meta" for program-meta acts that
                         // must stay instant regardless of the selected centre); empty
                         // falls back to the connection's session vantage.
+                        //
+                        // An override is checked against the same rule the set-vantage
+                        // message answers to, plus MetaVantage, which is dispatch-only.
+                        // Only the override is checked: an empty field resolves to
+                        // SelectedVantage, which HandleSetVantage already validated, and
+                        // re-checking it here would start refusing ordinary commands the
+                        // moment the centre a session is sitting at went inactive.
+                        if (!string.IsNullOrEmpty(req.Vantage)
+                            && req.Vantage != MetaVantage
+                            && !IsSelectableVantage(req.Vantage!))
+                        {
+                            // Refused rather than quietly demoted to the session vantage.
+                            // A fallback would dispatch from somewhere the client did not
+                            // ask for, under a delay it did not expect, and say nothing,
+                            // so the client would read its own response as success. It is
+                            // the shape buildArmArgs already refuses for alarm subjects:
+                            // accepted, then not the thing that was asked for. An ErrorMsg
+                            // carrying the RequestId lands the dispatch in `failed` with a
+                            // code, the same as an unavailable command, so the operator
+                            // learns the command did not go.
+                            var vantageError = new ErrorMsg
+                            {
+                                RequestId = req.RequestId,
+                                Code = "unknown-vantage",
+                                Message = $"'{req.Vantage}' is not an active command centre",
+                            };
+                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(vantageError)));
+                            break;
+                        }
+
                         DispatchCommand(
                             req.Command,
                             req.Args,
