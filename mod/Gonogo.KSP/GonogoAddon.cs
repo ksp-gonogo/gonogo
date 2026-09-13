@@ -172,7 +172,10 @@ namespace Gonogo.KSP
                     new CommandCentres.StockHomeNodeSource(),
                     new CommandCentres.CrewedVesselSource(),
                 };
-                var ccRegistry = new Sitrep.Host.CommandCentres.CommandCentreRegistry();
+                // Only this registry announces an id collision. The engine's own copy
+                // enumerates the same sources, so a second sink would log each one twice.
+                var ccRegistry = new Sitrep.Host.CommandCentres.CommandCentreRegistry(
+                    msg => Debug.LogWarning("[Gonogo] " + msg));
                 foreach (var src in ccSources)
                 {
                     _engine.RegisterCommandCentreSource(src);

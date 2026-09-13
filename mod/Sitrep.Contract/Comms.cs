@@ -437,7 +437,7 @@ public class CommsLink
 [SitrepTopic("comms.commandCentre")]
 public class CommsCommandCentre
 {
-    /// <summary>Stable authority/vantage key, same scheme as <see cref="CommandCentreEntry.Id"/>: "ksc" | "ground:&lt;name&gt;" | "kk:&lt;site&gt;" | "vessel:&lt;guid&gt;". Null when no remote centre resolved.</summary>
+    /// <summary>Stable authority/vantage key, same scheme as <see cref="CommandCentreEntry.Id"/>: "ksc" | "ground:&lt;name&gt;" | "vessel:&lt;guid&gt;". Null when no remote centre resolved.</summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
     /// <summary>Human-facing name.</summary>

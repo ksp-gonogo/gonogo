@@ -59,7 +59,30 @@ namespace Gonogo.KSP.CommandCentres
 
         public CommandCentreDelayUplink(CommandCentreRegistry registry) => _registry = registry;
 
-        public UplinkHealth Health() => UplinkHealth.Healthy;
+        /// <summary>
+        /// Degraded while the registry is dropping a centre for an id another centre
+        /// already claimed, with one fact per collision naming the id and both
+        /// sources. Every roster entry and delay row this uplink builds comes off
+        /// that enumeration, so a dropped centre is a hole in both.
+        /// </summary>
+        public UplinkHealth Health()
+        {
+            var collisions = _registry.Collisions;
+            if (collisions.Count == 0)
+            {
+                return UplinkHealth.Healthy;
+            }
+
+            return UplinkHealth.Degraded(
+                collisions.Count == 1
+                    ? "1 command centre dropped: its id is already claimed"
+                    : collisions.Count + " command centres dropped: their ids are already claimed",
+                collisions
+                    .Select(c => new UplinkHealthFact(
+                        c.Id,
+                        "kept from " + c.KeptProviderId + ", dropped from " + c.DroppedProviderId))
+                    .ToList());
+        }
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {

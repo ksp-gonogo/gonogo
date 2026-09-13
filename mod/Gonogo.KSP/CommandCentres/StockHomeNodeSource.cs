@@ -15,6 +15,11 @@ namespace Gonogo.KSP.CommandCentres
     /// The enumerator is injectable so the source is unit-testable without a live
     /// scene. The node and body come through <see cref="CommNetHomeAccess"/> because
     /// stock keeps both protected.
+    ///
+    /// <para>Ids come from <see cref="HomeCentreIds"/>. A comms mod that
+    /// configures its own stations can set <c>isKSC</c> on every one of them, and
+    /// then none of them is minted <c>"ksc"</c>: which station is home on such a
+    /// save is not something this flag can say.</para>
     /// </summary>
     public sealed class StockHomeNodeSource : ICommandCentreSource
     {
@@ -29,8 +34,20 @@ namespace Gonogo.KSP.CommandCentres
 
         public string ProviderId => "stock-home";
 
+        /// <summary>
+        /// Every home with a readable node, under an id minted across ALL homes at
+        /// once by <see cref="HomeCentreIds.Mint"/>. A home whose node is not up yet
+        /// still counts towards the mint, because <c>isKSC</c> is a fact about the
+        /// home rather than its node: counting only the homes with a node would let
+        /// one flagged station briefly look like the sole KSC while its siblings
+        /// were still being built.
+        /// </summary>
         public IEnumerable<ICommandCentre> Enumerate()
         {
+            var homes = new List<CommNetHome>();
+            var nodes = new List<CommNode?>();
+            var bodies = new List<CelestialBody?>();
+            var facts = new List<HomeNodeFacts>();
             foreach (var home in _homes())
             {
                 if (home == null)
@@ -39,32 +56,48 @@ namespace Gonogo.KSP.CommandCentres
                 }
 
                 var comm = CommNetHomeAccess.Comm(home);
-                if (comm == null)
-                {
-                    continue;
-                }
-
-                var id = home.isKSC ? "ksc" : "ground:" + (home.nodeName ?? "unknown");
-                var name = home.displaynodeName ?? home.nodeName ?? id;
+                var body = CommNetHomeAccess.Body(home);
+                double? latitude = null;
+                double? longitude = null;
 
                 // A ground station is surface-anchored by definition, so its
                 // coordinates are always reported. They can only be absent when the
                 // body itself is unreadable, and then BodyIndex is null too: the
                 // entry says "I do not know what this sits on" rather than leaving a
                 // bare coordinate hole beside a known body.
-                var body = CommNetHomeAccess.Body(home);
-                var anchored = SurfaceCoordinates.TryFrom(body, comm.precisePosition, out var latitude, out var longitude);
+                if (comm != null
+                    && SurfaceCoordinates.TryFrom(body, comm.precisePosition, out var lat, out var lon))
+                {
+                    latitude = lat;
+                    longitude = lon;
+                }
 
+                homes.Add(home);
+                nodes.Add(comm);
+                bodies.Add(body);
+                facts.Add(new HomeNodeFacts(home.isKSC, home.nodeName, latitude, longitude));
+            }
+
+            var ids = HomeCentreIds.Mint(facts);
+            for (var i = 0; i < homes.Count; i++)
+            {
+                var comm = nodes[i];
+                if (comm == null)
+                {
+                    continue;
+                }
+
+                var home = homes[i];
                 yield return new KspCommandCentre(
-                    id,
-                    name,
+                    ids[i],
+                    home.displaynodeName ?? home.nodeName ?? ids[i],
                     CommandCentreKind.GroundStation,
-                    BodyIndexOf(body),
+                    BodyIndexOf(bodies[i]),
                     comm,
                     comm.precisePosition,
                     active: true,
-                    latitude: anchored ? latitude : (double?)null,
-                    longitude: anchored ? longitude : (double?)null);
+                    latitude: facts[i].Latitude,
+                    longitude: facts[i].Longitude);
             }
         }
 
