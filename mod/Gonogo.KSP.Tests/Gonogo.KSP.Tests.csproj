@@ -361,6 +361,14 @@
          directly rather than only through the mapper. -->
     <Compile Include="..\Gonogo.KSP\CommandCentres\SurfaceCoordinates.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
+    <!-- StockHomeNodeSource.cs reads the CommNet homes the stock home-command
+         claimant decides from, and CommsCoreUplink.DeclareCapabilities hands it to
+         that election, so it has to resolve here with its caller. It drags
+         CommNetHomeAccess.cs (reflection over CommNetHome's protected fields).
+         Both are CommNet-level types on the same headless reference-DLL contract
+         as KspCommandCentre above, and neither reads the scene until asked. -->
+    <Compile Include="..\Gonogo.KSP\CommandCentres\StockHomeNodeSource.cs" />
+    <Compile Include="..\Gonogo.KSP\CommandCentres\CommNetHomeAccess.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
     <!-- The career refusal RULES, carved out of KspCareerActuator so a headless
