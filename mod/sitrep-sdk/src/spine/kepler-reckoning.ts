@@ -175,6 +175,12 @@ export function propagateVesselOrbit(
  * `undefined` when nothing here resolves, and the caller treats that as "no
  * evidence" rather than as a reason to decline: see
  * {@link keplerAdmissibility}.
+ *
+ * `withinAtmosphere` asks this too, for the view-time end of its span, so that
+ * the selector and the conic's own floor test the identical comparison rather
+ * than two spellings of it. It reaches this only after {@link atmosphereDepthOf}
+ * has answered, which is what keeps the surface fallback below from reading as
+ * an atmosphere on an airless body.
  */
 export function entryInterfaceRadius(
   bodies: ConicBodiesInput | undefined,
@@ -201,10 +207,14 @@ export function entryInterfaceRadius(
  * models of an altitude are drawn against and a second reading of the same field
  * is how they would come to disagree about where the vacuum ends.
  * {@link entryInterfaceRadius} adds it to the body radius, because a conic works
- * in radii; `atmosphericAdmissibility` compares it against the observed
- * `altitudeAsl`, because a rate integration works in altitude ASL. Those are the
- * same line, since `altitudeAsl` is `radius - seaLevel` by definition, so the
- * two models hand over at one instant rather than overlapping or leaving a gap.
+ * in radii; `withinAtmosphere` compares it against the observed `altitudeAsl`,
+ * because a rate integration works in altitude ASL. Those are the same line,
+ * since `altitudeAsl` is `radius - seaLevel` by definition, but they are not the
+ * same INSTANT: the altitude is the craft's at the last packet and the radius is
+ * the conic's at the view time. `withinAtmosphere` therefore asks both ends, the
+ * far one through {@link entryInterfaceRadius} itself, so a descent that crosses
+ * the line during the gap is handed to the air rather than to a conic that will
+ * refuse on a floor the selector never consulted.
  *
  * `undefined` for an airless body rather than zero, and that is what makes the
  * atmospheric branch decline to claim one: there is no atmospheric regime

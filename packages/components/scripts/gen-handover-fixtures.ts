@@ -4,12 +4,14 @@
  * sampled either side of the atmosphere interface.
  *
  * The scene these exist for is the HANDOVER. `vessel.flight` carries TWO
- * forward models of one altitude, selected by `withinAtmosphere`: above the
- * interface a conic advances it, below it `atmospheric-reckoning.ts` integrates
- * the OBSERVED vertical acceleration, and a picture of either regime alone says
- * nothing about the boundary. So every frame here is the same craft on the same
- * trajectory with the same 6-second gap since its last packet, and the only
- * thing that changes down the set is how far it has fallen.
+ * forward models of one altitude, selected by `withinAtmosphere` over the span
+ * from the observation to the view time: clear of the interface across that
+ * whole span a conic advances it, and inside the air at either end
+ * `atmospheric-reckoning.ts` integrates the OBSERVED vertical acceleration. A
+ * picture of either regime alone says nothing about the boundary, so every frame
+ * here is the same craft on the same trajectory with the same 6-second gap since
+ * its last packet, and the only thing that changes down the set is how far it
+ * has fallen.
  *
  * ## Generated, and this file is why
  *
@@ -90,11 +92,11 @@ interface Frame {
   /**
    * For a `declined` frame, the `reason` and `input` the withdrawal must carry.
    *
-   * Required rather than optional because the set now holds TWO withdrawals and
-   * they are not the same event: one is this model's horizon closing under
-   * sensed deceleration, the other is the crossing band where neither model
-   * answers. A test asserting only "no model" would pass on either and so could
-   * not tell them apart.
+   * Required rather than optional because "no model" is the same sentence for
+   * every withdrawal in the tree, and the one this set holds is a specific
+   * event: the rate integration's horizon closing under sensed deceleration.
+   * A test asserting only the absence would pass on any other refusal, the
+   * crossing band's old conic floor included.
    */
   decline?: { reason: string; input: string };
   note: string;
@@ -135,9 +137,8 @@ const FRAMES: Frame[] = [
     gForce: 0.03,
     atmDensity: 0.000_01,
     mach: 1.2,
-    expect: "declined",
-    decline: { reason: "beyond-horizon", input: "@system.bodies" },
-    note: "THE CROSSING BAND, and it is a hole neither model fills. The selector asks withinAtmosphere of the OBSERVED altitude, which is 2 km above the interface, so the frame goes to the conic; the conic's floor asks about the radius it SOLVES for at the view time, which is already below the interface because the craft fell 2.4 km during the gap. So the conic withdraws and the rate integration is never asked, and what an operator is told during a reentry is the conic's own sentence about drag it does not model.",
+    expect: "rate-integration",
+    note: "THE CROSSING BAND, and it used to be a hole neither model filled. The observation is 2 km above the interface and the craft falls 2.4 km during the gap, so the conic's floor, which asks about the radius it SOLVES for at the view time, is already inside the air. The selector is handed that same radius, so the frame goes to the rate integration rather than to a conic that would immediately withdraw; before it was, an operator crossing the interface on any reentry was told about drag the conic does not model instead of being given an altitude.",
   },
   {
     slug: "04-just-inside-68km",
@@ -244,32 +245,34 @@ function assertConsistent(frame: Frame): void {
     if (frame.decline === undefined) {
       throw new Error(`${frame.slug}: a declined frame must state its reason`);
     }
-    /*
-     * Only the gForce withdrawal is checkable here. The crossing band is a
-     * property of what the CONIC solves for at the view time, which this file
-     * does not solve, so `handover-basis.test.tsx` is the only thing that can
-     * confirm it: hence the decline's `input` being asserted there rather than
-     * assumed here.
-     */
     if (frame.decline.input === "gForce" && insideHorizon) {
       throw new Error(
         `${frame.slug}: expects a horizon withdrawal but the gap ${GAP_SECONDS}s is inside the ${horizon.toFixed(1)}s horizon`,
       );
     }
-    return;
   }
   if (frame.expect === "rate-integration" && !insideHorizon) {
     throw new Error(
       `${frame.slug}: gap ${GAP_SECONDS}s is past the ${horizon.toFixed(1)}s horizon, so the model would withdraw`,
     );
   }
-  const inside = frame.altitudeAsl < KERBIN.atmosphereDepth;
+  /*
+   * The SPAN, not the observation: the selector asks whether either end of it is
+   * inside the air. The far end is really the radius the conic solves for, which
+   * this file does not solve, so the observed descent rate carried across the gap
+   * stands in for it here and `handover-basis.test.tsx` is what confirms the
+   * branch against the real store.
+   */
+  const touchesAir =
+    frame.altitudeAsl < KERBIN.atmosphereDepth ||
+    frame.altitudeAsl + frame.verticalSpeed * GAP_SECONDS <
+      KERBIN.atmosphereDepth;
   if (
-    inside !==
+    touchesAir !==
     (frame.expect === "rate-integration" || frame.expect === "declined")
   ) {
     throw new Error(
-      `${frame.slug}: altitude ${frame.altitudeAsl} m puts it ${inside ? "inside" : "outside"} the air, which is not the branch it expects`,
+      `${frame.slug}: a descent from ${frame.altitudeAsl} m at ${frame.verticalSpeed} m/s ${touchesAir ? "reaches" : "never reaches"} the air across the ${GAP_SECONDS}s gap, which is not the branch it expects`,
     );
   }
 }
@@ -401,7 +404,7 @@ function fixtureFor(frame: Frame): unknown {
        */
       expectedBasis: frame.expect,
       ...(frame.decline ? { expectedDecline: frame.decline } : {}),
-      notes: `SYNTHETIC, generated by scripts/gen-handover-fixtures.ts. ${frame.note} One Kerbin descent read ${GAP_SECONDS} s after its last packet (anchor UT ${ANCHOR_UT}, view UT ${viewUt}); ${frame.altitudeAsl} m ASL against a published atmosphere depth of ${KERBIN.atmosphereDepth} m, so withinAtmosphere is ${frame.altitudeAsl < KERBIN.atmosphereDepth}. Sensed ${frame.gForce} g closes the horizon to ${horizon.toFixed(1)} s. Four vessel.flight samples at irregular spacing whose least-squares slope is ${frame.verticalAcceleration} m/s². Expected model: ${frame.expect}.`,
+      notes: `SYNTHETIC, generated by scripts/gen-handover-fixtures.ts. ${frame.note} One Kerbin descent read ${GAP_SECONDS} s after its last packet (anchor UT ${ANCHOR_UT}, view UT ${viewUt}); ${frame.altitudeAsl} m ASL falling to about ${Math.round(frame.altitudeAsl + frame.verticalSpeed * GAP_SECONDS)} m by the view time, against a published atmosphere depth of ${KERBIN.atmosphereDepth} m. Sensed ${frame.gForce} g closes the horizon to ${horizon.toFixed(1)} s. Four vessel.flight samples at irregular spacing whose least-squares slope is ${frame.verticalAcceleration} m/s². Expected model: ${frame.expect}.`,
     },
     _stream: {
       carriedChannels: [

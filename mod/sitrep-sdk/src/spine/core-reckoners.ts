@@ -252,6 +252,15 @@ function registerDockReckoner(): void {
  * would hear "the craft is under physics" during a re-entry. Each branch then
  * declines in its own vocabulary, and neither is a fall-through from the other.
  *
+ * The selector is handed the radius the conic SOLVES for at the view time, and
+ * that is what makes it judge the same instant the conic's own floor does. Given
+ * only the observed altitude it answered about the last packet while the floor
+ * answered about the read, so a craft observed two kilometres above the
+ * interface and falling at 400 m/s went to the conic, the conic withdrew because
+ * six seconds later it was solving inside the air, and the descent was never
+ * asked. That band is `|verticalSpeed| x gap` wide in observed altitude, so it
+ * was crossed on every reentry.
+ *
  * ## The two branches move different field sets
  *
  * The conic advances both marked fields. The descent advances the ALTITUDE only
@@ -289,9 +298,24 @@ function registerFlightReckoner(): void {
         Number.NaN,
       );
       const observed = point.payload;
+      /*
+       * Solved ONCE, here, and handed to both halves of the handover and to the
+       * conic branch's own emptiness check below. The selector needs it before
+       * it can classify the frame, and a second solve for the same instant would
+       * be a second chance for the two halves to disagree about where the craft
+       * is.
+       */
+      const solvedAtView = propagateVesselOrbit(orbit, viewUt);
+      const conicRadiusAtView =
+        solvedAtView == null ? undefined : magnitude(solvedAtView.position);
       if (
         observed != null &&
-        withinAtmosphere(bodies, orbit.referenceBodyIndex, observed.altitudeAsl)
+        withinAtmosphere(
+          bodies,
+          orbit.referenceBodyIndex,
+          observed.altitudeAsl,
+          conicRadiusAtView,
+        )
       ) {
         const fit = atmosphericAdmissibility(
           point,
@@ -310,6 +334,7 @@ function registerFlightReckoner(): void {
           ),
           grade,
           viewUt,
+          conicRadiusAtView,
         );
         if ("declined" in fit) return fit;
         return {
@@ -335,8 +360,7 @@ function registerFlightReckoner(): void {
           },
         };
       }
-      const solved = propagateVesselOrbit(orbit, viewUt);
-      if (solved == null) {
+      if (solvedAtView == null) {
         return {
           declined: {
             reason: "model-inapplicable",

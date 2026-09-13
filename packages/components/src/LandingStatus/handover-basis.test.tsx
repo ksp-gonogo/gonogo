@@ -218,11 +218,12 @@ describe("the handover render set reaches the models it says it does", () => {
       const decline = fixture._meta.expectedDecline;
       it(`${scenario}: no model is offered, and it withdraws on ${decline?.input}`, () => {
         /*
-         * The REASON is asserted, not just the absence of a model, because the
-         * set holds two withdrawals that are not the same event: this model's
-         * horizon closing under sensed deceleration, and the crossing band
-         * where the conic is selected on the observed altitude and then refuses
-         * on the radius it solves for. "No model" is true of both.
+         * The REASON is asserted, not just the absence of a model, because "no
+         * model" is what every withdrawal in the tree looks like from here. The
+         * one this set holds is the rate integration's horizon closing under
+         * sensed deceleration; the crossing band used to produce a second,
+         * the conic refusing on a floor the selector had never asked about, and
+         * an assertion on absence alone would not have told the two apart.
          */
         const reading = readFlight(fixture);
         expect(reading.reckoning).toBe("none");
