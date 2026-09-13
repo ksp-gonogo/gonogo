@@ -1,4 +1,4 @@
-import type { DerivedChannelDefinition } from "@ksp-gonogo/sitrep-sdk";
+import type { DerivedChannelDefinition, Value } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import type { StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { makeMeta, setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -13,10 +13,10 @@ import {
  *
  * Written because the answer given in review was "it has no scalar field to
  * plot", and that is false: a projection is SEVEN scalars, and `projected` is
- * about as plottable a quantity as this contract owns. The true reasons are
- * two mechanical ones and one design one, none of which is a shortage of
- * numbers, and all three are worth pinning because the wrong reason makes the
- * gap sound permanent when two thirds of it is a path-resolution limit.
+ * about as plottable a quantity as this contract owns. The true reasons are one
+ * mechanical and one design, neither of which is a shortage of numbers, and
+ * both are worth pinning because the wrong reason makes the gap sound permanent
+ * when half of it is a path-resolution limit.
  *
  * 1. **The scalars live inside an ARRAY.** The payload root is
  *    `{resources: [...]}`, and `TimelineStore.resolveDerivedTopic` splits a
@@ -24,16 +24,19 @@ import {
  *    subtopic that exists is `kerbalism.resourceProjection.resources`, whose
  *    value is the array; there is no syntax that indexes an element, and
  *    keying by resource name instead would still need two segments
- * 2. **The scalars are `Value`, not `number`.** `sampleReckonedTail` emits
- *    only for a finite `number`, which is written against `vessel.state`'s
- *    bare-magnitude record. Every `Value`-typed derived channel is excluded by
- *    that test whatever its paths look like, and nothing says so
- * 3. **A dashed line would be the wrong render anyway.** This model carries
+ * 2. **A dashed line would be the wrong render anyway.** This model carries
  *    `lower`/`upper` that widen with the gap, and `Graph` already drops
  *    `reckoned` on a band series. A bare dashed `projected` would draw the
  *    point estimate as if it were the whole claim
  *
- * The first two are fixable and the third is the reason not to rush them.
+ * The first is fixable and the second is the reason not to rush it.
+ *
+ * A THIRD barrier stood here and is gone: `sampleReckonedTail` emitted only for
+ * a finite bare `number`, so every `Value`-typed channel was excluded whatever
+ * its paths looked like. The last case below used to pin that exclusion and now
+ * pins its removal, because a probe one wrapper apart is the same evidence read
+ * the other way round and losing it would leave nothing watching the barrier
+ * that actually moved.
  */
 
 const CARRIED = [
@@ -130,12 +133,14 @@ describe("why none of it reaches a chart", () => {
     ).toEqual([]);
   });
 
-  it("would still draw no tail on a reachable Value-typed scalar", () => {
+  it("would draw a tail on a reachable Value-typed scalar, unit and all", () => {
     /*
-     * The second barrier, isolated so it is not hidden behind the first. Two
-     * probe channels one wrapper apart: the bare magnitude grows a tail and
-     * the `Value` does not, which is the verdict that would bite the moment
-     * somebody flattened this payload and expected a chart.
+     * The barrier that is gone, isolated so it is not hidden behind the one
+     * that is not. Two probe channels one wrapper apart: both grow a tail, and
+     * the wrapped one arrives still carrying its unit, which is what flattening
+     * this payload would buy. Read the other way round this is also the guard
+     * on the wrapper surviving the walk, since a tail that quietly unwrapped
+     * would satisfy a length assertion just as well.
      */
     const wrapped: DerivedChannelDefinition<{ level: unknown }> = {
       topic: "probe.wrapped",
@@ -166,8 +171,12 @@ describe("why none of it reaches a chart", () => {
     expect(
       fixture.store.sampleReckonedTail("probe.bare.level", 1000, 1600).length,
     ).toBeGreaterThan(0);
-    expect(
-      fixture.store.sampleReckonedTail("probe.wrapped.level", 1000, 1600),
-    ).toEqual([]);
+    const wrappedTail = fixture.store.sampleReckonedTail<Value<"units">>(
+      "probe.wrapped.level",
+      1000,
+      1600,
+    );
+    expect(wrappedTail.length).toBeGreaterThan(0);
+    expect(wrappedTail.every((s) => s.value.unit === "units")).toBe(true);
   });
 });

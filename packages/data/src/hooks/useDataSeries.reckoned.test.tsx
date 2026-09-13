@@ -60,6 +60,31 @@ function readProbe(): string {
   return screen.getByTestId("range").textContent ?? "";
 }
 
+/**
+ * The tail's VALUES rather than its runs: what a chart axis is actually handed
+ * where the modelled quantity arrived wrapped.
+ */
+function ValueProbe({
+  dataKey,
+  windowSec,
+}: {
+  dataKey: string;
+  windowSec: number;
+}) {
+  const range = useDataSeries("data", dataKey, windowSec);
+  const last = range.v[range.v.length - 1];
+  return (
+    <div data-testid="values">
+      n:{range.t.length}|runs:{(range.reckoned ?? []).length}|last:
+      {typeof last}
+    </div>
+  );
+}
+
+function readValues(): string {
+  return screen.getByTestId("values").textContent ?? "";
+}
+
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",
   "vessel.flight",
@@ -94,6 +119,24 @@ const ECCENTRIC_KERBIN_ORBIT = {
    * constant the next reckoning test gets copied from.
    */
   horizon: { kind: 1, trajectoryKind: 1 },
+};
+
+/**
+ * Kerbin alone, which is all `vessel.flight`'s reckoner reads of the system:
+ * the reference body's radius for sea level, and the published atmosphere depth
+ * the handover selector compares an observed altitude against.
+ */
+const KERBIN_SYSTEM = {
+  bodies: [
+    {
+      name: "Kerbin",
+      index: 1,
+      parentIndex: 0,
+      radius: 600_000,
+      orbit: null,
+      atmosphere: { depth: 70_000 },
+    },
+  ],
 };
 
 function buildStreamFixture(opts: { pinnedUt: number }) {
@@ -266,6 +309,76 @@ describe("useDataSeries: the stretch nobody measured", () => {
       // past the transition. Two modelled points, not four.
       expect(readProbe()).toMatch(/^n:5\|reckoned:3-4:kepler-propagation$/);
     });
+  });
+});
+
+describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
+  it("plots the tail of a Value-typed topic, magnitudes and all", async () => {
+    /*
+     * `vessel.state` is a record of bare magnitudes and every case above reads
+     * one, which is why the tail could go a long time emitting only for a bare
+     * `number` without anything noticing. `vessel.flight.altitudeAsl` is the
+     * same quantity one wrapper out, and it is what the atmosphere-handover
+     * render set draws: a point read described a carried altitude in words
+     * while a plot of it stopped at the last packet.
+     *
+     * The assertion is a `typeof`, not a figure. What the arithmetic says is
+     * pinned next to the model in `@ksp-gonogo/sitrep-client`; what matters
+     * here is that the wrapper is taken off exactly once, at this boundary, so
+     * a chart axis is handed a number and not an object it would silently
+     * scale to nothing.
+     */
+    const fixture = buildStreamFixture({ pinnedUt: 600 });
+
+    render(
+      <fixture.Provider>
+        <ValueProbe dataKey="vessel.flight.altitudeAsl" windowSec={900} />
+      </fixture.Provider>,
+    );
+
+    /*
+     * The model's DECLARED inputs, held up by hand. A series read subscribes to
+     * the topic it plots and to a derived channel's inputs, and a raw topic's
+     * reckoner deps are neither: on a real dashboard they are up because
+     * something else is reading them, and `StubTransport` delivers nothing
+     * nobody asked for.
+     */
+    const releaseDeps = [
+      fixture.client.subscribe("vessel.orbit", () => {}),
+      fixture.client.subscribe("system.bodies", () => {}),
+    ];
+
+    act(() => {
+      fixture.transport.emit("system.bodies", KERBIN_SYSTEM, {
+        validAt: 0,
+        deliveredAt: 0,
+        quality: Quality.OnRails,
+      });
+      for (const ut of [0, 100, 200]) {
+        fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
+          validAt: ut,
+          deliveredAt: ut,
+          quality: Quality.OnRails,
+        });
+        fixture.transport.emit(
+          "vessel.flight",
+          { altitudeAsl: 300_000, orbitalSpeed: 2200, verticalSpeed: 0 },
+          { validAt: ut, deliveredAt: ut, quality: Quality.OnRails },
+        );
+      }
+      /*
+       * A RAW topic's tail fills a SILENCE, so the walk withdraws outright
+       * while the link is up: there is no gap for a model to have carried
+       * anything across. The `vessel.state` cases above are a derived channel
+       * and are not gated this way, which is the one setup difference here.
+       */
+      fixture.store.setTransportConnected(false);
+    });
+
+    await waitFor(() => {
+      expect(readValues()).toMatch(/^n:[1-9]\d*\|runs:[1-9]\d*\|last:number$/);
+    });
+    for (const release of releaseDeps) release();
   });
 });
 
