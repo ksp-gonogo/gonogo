@@ -72,7 +72,6 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.contracts.setPayload` | `Rp1ContractPayloadArgs` | `CommandResultOf<Record<string, unknown>>` |
 | `rp1.facility.upgrade` | `Rp1FacilityUpgradeArgs` | `CommandResultOf<Record<string, unknown>>` |
 | `rp1.fundTarget.cancel` | `Rp1TargetCancelArgs` | `CommandResult` |
-| `rp1.fundTarget.set` | `Rp1FundTargetSetArgs` | `CommandResult` |
 | `rp1.hireTarget.cancel` | `Rp1TargetCancelArgs` | `CommandResult` |
 | `rp1.hireTarget.set` | `Rp1HireTargetSetArgs` | `CommandResult` |
 | `rp1.pad.dismantle` | `Rp1PadDismantleArgs` | `CommandResult` |
@@ -90,7 +89,6 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.vehicle.rollout` | `Rp1RolloutArgs` | `CommandResult` |
 | `rp1.vehicle.scrap` | `Rp1VehicleArgs` | `CommandResult` |
 | `rp1.warp.toComplete` | `Rp1WarpArgs` | `CommandResult` |
-| `rp1.warp.toFundTarget` | `Rp1WarpArgs` | `CommandResult` |
 
 | Args | Fields |
 | --- | --- |
@@ -103,7 +101,6 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1ContractPayloadArgs` | `commsPayload` kg, `weatherPayload` kg |
 | `Rp1FacilityUpgradeArgs` | `facility` id |
-| `Rp1FundTargetSetArgs` | `targetFunds` funds |
 | `Rp1HireTargetSetArgs` | `lcId` id, `reserveFunds` funds, `targetCount` count |
 | `Rp1PadDismantleArgs` | `lcId` id, `padId` id |
 | `Rp1PadNewArgs` | `lcId` id, `name` id |
@@ -350,11 +347,11 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card](docs/assets/warehouse-three-places--default.png)
 
-![A fund target standing, so both presses are live and each names what it warps to. No ETA line: the operator ruled that funds needs less, so the reason a press is dark lives in its accessible name.](docs/assets/warp-fund-target-standing--default.png)
+![A fund target standing: its figure and RP-1's own ETA, the press that withdraws it, and the balance alarm that replaces warping toward it.](docs/assets/warp-fund-target-standing--default.png)
 
-![No fund target standing, so its press is dark and nothing on screen explains why: the reason is in the accessible name, where a screen reader gets it and the panel spends no space on it.](docs/assets/warp-no-fund-target--default.png)
+![No fund target standing, so there is nothing to cancel and the balance alarm is the only thing under the warp press.](docs/assets/warp-no-fund-target--default.png)
 
-![The fund-target form open: the balance the target is measured against, the field, and one press. No cost line anywhere, because a stop condition spends nothing.](docs/assets/warp-set-a-fund-target--default.png)
+![The balance-alarm form open: the balance the alarm is measured against, the field, and one press. No cost line anywhere, because a stop condition spends nothing.](docs/assets/warp-set-a-fund-target--default.png)
 
 ## Contributions
 

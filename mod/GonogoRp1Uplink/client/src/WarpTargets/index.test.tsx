@@ -1,6 +1,8 @@
 import {
   act,
+  clearRequestedAlarms,
   getAugmentsForSlot,
+  getRequestedAlarms,
   render,
   screen,
   setupStreamFixture,
@@ -8,25 +10,16 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
-import {
-  RP1_FUND_TARGET_CANCEL_COMMAND,
-  RP1_FUND_TARGET_SET_COMMAND,
-} from "./FundTarget";
-import {
-  RP1_WARP_TO_COMPLETE_COMMAND,
-  RP1_WARP_TO_FUND_TARGET_COMMAND,
-  WarpTargets,
-} from "./index";
+import { beforeEach, describe, expect, it } from "vitest";
+import { RP1_FUND_TARGET_CANCEL_COMMAND } from "./FundTarget";
+import { RP1_WARP_TO_COMPLETE_COMMAND, WarpTargets } from "./index";
 
 const TOPICS = [
   "career.status",
   "rp1.available",
   "rp1.fundTarget",
   RP1_FUND_TARGET_CANCEL_COMMAND,
-  RP1_FUND_TARGET_SET_COMMAND,
   RP1_WARP_TO_COMPLETE_COMMAND,
-  RP1_WARP_TO_FUND_TARGET_COMMAND,
 ];
 
 function mount(
@@ -51,7 +44,23 @@ function mount(
   return { fixture, view };
 }
 
+/** Open the balance-alarm panel and type a figure into it. */
+async function typeTarget(user: ReturnType<typeof userEvent.setup>, n: string) {
+  await user.click(
+    await screen.findByRole("button", {
+      name: "Set an alarm on the career balance",
+    }),
+  );
+  const field = await screen.findByLabelText("Target balance");
+  await user.clear(field);
+  await user.type(field, n);
+}
+
 describe("WarpTargets", () => {
+  beforeEach(() => {
+    clearRequestedAlarms();
+  });
+
   it("binds the slot the host widget already has for a mod's warp target", () => {
     /*
      * An augment rather than a widget, and the assertion is that it LANDS in the
@@ -98,44 +107,6 @@ describe("WarpTargets", () => {
     await expectNoA11yViolations(view.container);
   });
 
-  it("darkens the fund-target press when no target is standing, and says nothing else", async () => {
-    const { view } = mount({ active: false });
-
-    const button = await screen.findByRole("button", {
-      name: "No fund target is standing, so there is no balance to warp toward",
-    });
-    expect(button).toBeDisabled();
-    /*
-     * The subtitle is GONE and its absence is the assertion. The operator ruled
-     * that funds "needs LESS", so the reason a press is dark lives in its
-     * accessible name, where a screen reader still gets it and the panel spends
-     * no space on it.
-     */
-    expect(view.container.textContent).not.toContain("no fund target set");
-  });
-
-  it("warps to the fund target, and the press says what it warps to", async () => {
-    const user = userEvent.setup();
-    const { fixture, view } = mount({ active: true, timeLeft: 864000 });
-
-    // The label names the target, on the operator's ruling. "warp to funds" was
-    // the earlier wording and said less.
-    await user.click(
-      await screen.findByRole("button", {
-        name: "Warp until the balance reaches the fund target",
-      }),
-    );
-
-    expect(
-      fixture.transport.sentCommands.find(
-        (c) => c.command === RP1_WARP_TO_FUND_TARGET_COMMAND,
-      )?.args,
-    ).toEqual({});
-    expect(screen.getByText("fund target")).toBeInTheDocument();
-    // No ETA line: the operator asked for less here, not more.
-    expect(view.container.textContent).not.toContain("fund target in");
-  });
-
   it("offers no way to stop warping, because the host widget already does", async () => {
     mount({ active: true, timeLeft: 864000 });
 
@@ -153,43 +124,131 @@ describe("WarpTargets", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("sets the target the dark press exists to warp toward", async () => {
+  /*
+   * The whole of the operator's ruling, in one assertion: RP-1 asks the APP for
+   * an alarm and drives no warp of its own. The two commands that used to do this
+   * (rp1.fundTarget.set to aim it, rp1.warp.toFundTarget to go) were one
+   * controller wearing two names, and both are deleted.
+   */
+  it("asks the app for an alarm on the balance instead of driving a warp", async () => {
     const user = userEvent.setup();
     const { fixture, view } = mount({ active: false });
 
-    await user.click(
-      await screen.findByRole("button", { name: "Set a fund target" }),
-    );
-    const field = await screen.findByLabelText("Target balance");
-    await user.clear(field);
-    await user.type(field, "250000");
+    await typeTarget(user, "250000");
     await user.click(
       await screen.findByRole("button", {
-        name: "Warp toward a balance of 250,000 funds",
+        name: "Stop the warp when the balance reaches 250,000 funds",
+      }),
+    );
+
+    expect(getRequestedAlarms()).toEqual([
+      {
+        uplinkId: "rp1",
+        key: "fund-target",
+        name: "Balance reaches 250,000 funds",
+        trigger: {
+          kind: "threshold",
+          topic: "career.status",
+          fieldPath: "economy.funds",
+          op: ">=",
+          value: 250_000,
+          /*
+           * The craft's own clock: the simulation halts the warp on the tick the
+           * balance is reached, which is the stop the deleted command gave and
+           * the one a ground-side watch cannot.
+           */
+          vantage: "scet",
+        },
+      },
+    ]);
+    // Nothing went to RP-1. Not merely "no warp command": the press reaches no
+    // mod at all.
+    expect(fixture.transport.sentCommands).toEqual([]);
+    await expectNoA11yViolations(view.container);
+  });
+
+  it("retargets one alarm rather than piling them up when pressed twice", async () => {
+    const user = userEvent.setup();
+    mount({ active: false });
+
+    await typeTarget(user, "250000");
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Stop the warp when the balance reaches 250,000 funds",
+      }),
+    );
+    await user.clear(await screen.findByLabelText("Target balance"));
+    await user.type(await screen.findByLabelText("Target balance"), "400000");
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Stop the warp when the balance reaches 400,000 funds",
+      }),
+    );
+
+    /*
+     * Two requests under ONE key. The app retargets the alarm it already holds
+     * under that key rather than adding a second, so an operator revising a
+     * figure is left with one row.
+     */
+    expect(getRequestedAlarms().map((a) => a.key)).toEqual([
+      "fund-target",
+      "fund-target",
+    ]);
+  });
+
+  it("seeds the figure from a target RP-1 is already holding", async () => {
+    const user = userEvent.setup();
+    mount({ active: true, targetFunds: 250_000, timeLeft: 864_000 });
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Set an alarm on the career balance",
+      }),
+    );
+
+    /*
+     * That figure is literally the threshold RP-1 is working toward, so arming on
+     * it is a press rather than a retype. It can only get there through RP-1's
+     * own Maintenance screen now, which is exactly why the input is still there
+     * to be typed into.
+     */
+    await screen.findByRole("button", {
+      name: "Stop the warp when the balance reaches 250,000 funds",
+    });
+  });
+
+  it("darkens the press until there is a figure to arm on", async () => {
+    const user = userEvent.setup();
+    mount({ active: false });
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Set an alarm on the career balance",
       }),
     );
 
     expect(
-      fixture.transport.sentCommands.find(
-        (c) => c.command === RP1_FUND_TARGET_SET_COMMAND,
-      )?.args,
-    ).toEqual({ targetFunds: 250_000 });
-    await expectNoA11yViolations(view.container);
+      await screen.findByRole("button", {
+        name: "Stop the warp when the balance reaches 0 funds",
+      }),
+    ).toBeDisabled();
   });
 
   /*
-   * The whole of the spend statement for this command, and it is that there
-   * ISN'T one. A fund target is a stop condition on a warp: RP-1's
-   * FundTargetProject.Clear touches no currency and the project itself only ever
-   * ends a warp, so an affordability line here would invent a cost. What the
-   * operator needs instead is the balance the target is measured against.
+   * The whole of the spend statement for this control, and it is that there
+   * ISN'T one. A balance alarm is a stop condition: RP-1's FundTargetProject
+   * returns project type None, its IncrementProgress returns zero and its Clear
+   * touches no currency, so an affordability line here would invent a cost. What
+   * the operator needs instead is the balance the alarm is measured against.
    */
   it("names the balance rather than a price, because a stop condition spends nothing", async () => {
     const user = userEvent.setup();
     const { view } = mount({ active: false }, 120_000);
 
     await user.click(
-      await screen.findByRole("button", { name: "Set a fund target" }),
+      await screen.findByRole("button", {
+        name: "Set an alarm on the career balance",
+      }),
     );
 
     await waitFor(() => {
@@ -203,7 +262,9 @@ describe("WarpTargets", () => {
     const { view } = mount({ active: false }, null);
 
     await user.click(
-      await screen.findByRole("button", { name: "Set a fund target" }),
+      await screen.findByRole("button", {
+        name: "Set an alarm on the career balance",
+      }),
     );
     await screen.findByLabelText("Target balance");
     /*
@@ -225,6 +286,11 @@ describe("WarpTargets", () => {
       await screen.findByRole("button", { name: "Cancel the fund target" }),
     );
 
+    /*
+     * The cancel SURVIVED the two deletions, and it is not the other half of
+     * anything: RP-1's own Maintenance screen still stands targets up, and
+     * withdrawing one from the dashboard beats going back for that screen.
+     */
     expect(
       fixture.transport.sentCommands.find(
         (c) => c.command === RP1_FUND_TARGET_CANCEL_COMMAND,
@@ -235,7 +301,9 @@ describe("WarpTargets", () => {
   it("offers no cancel while nothing is standing, because RP-1 refuses one", async () => {
     mount({ active: false });
 
-    await screen.findByRole("button", { name: "Set a fund target" });
+    await screen.findByRole("button", {
+      name: "Set an alarm on the career balance",
+    });
     /*
      * RP-1's own cancel asks IsValid first and refuses when nothing stands, so a
      * press offered here could only ever report a failure.

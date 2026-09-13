@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "The fund target is a warp STOP CONDITION rather than a warp of its own, which is why these live in the host widget's own stepper slot instead of a panel of their own. RP-1's validity rule is not merely 'a number': a target equal to the balance it was set at is no instruction, and warping toward it would never stop. So the control is gated on the wire's own answer rather than on the figure being present."
+    "notes": "No target standing, which is every save until someone opens RP-1's own Maintenance screen: gonogo cannot set one any more and does not need to. The balance alarm is the affordance, and it is live either way, because it is the APP's alarm rather than a write into RP-1's career."
   },
   "_scene": {
     "augment": "rp1-warp-targets",
@@ -9,8 +9,8 @@
       "w": 6,
       "h": 10
     },
-    "caption": "No fund target standing, so its press is dark and nothing on screen explains why: the reason is in the accessible name, where a screen reader gets it and the panel spends no space on it.",
-    "paints": ["next completion", "fund target"]
+    "caption": "No fund target standing, so there is nothing to cancel and the balance alarm is the only thing under the warp press.",
+    "paints": ["next completion", "Balance alarm"]
   },
   "_stream": {
     "pinnedUt": 1000000,

@@ -16,10 +16,11 @@ namespace GonogoRp1Uplink
     /// threshold is evaluated inside the simulation and halts the warp on the tick
     /// the condition matches.</para>
     ///
-    /// <para><b>RP-1's own fund target does not cover this.</b>
-    /// <c>rp1.fundTarget.set</c> warps toward a FUNDS figure and is RP-1's own
-    /// mechanism; there is no equivalent for Confidence, and no way at all to ask
-    /// for one of the six comparisons a threshold offers.</para>
+    /// <para><b>The funds threshold does not cover this.</b> Core's own
+    /// <c>career.status</c> entry answers "funds reach X", which is what RP-1's
+    /// client arms for a balance; there is no equivalent reading for Confidence,
+    /// so without this source there is no way at all to ask for one of the six
+    /// comparisons a threshold offers against it.</para>
     ///
     /// <para><b>Read live, not from the last publish.</b> The builder runs on the
     /// capture, on the main thread, in the tick the alarm is decided in, so it

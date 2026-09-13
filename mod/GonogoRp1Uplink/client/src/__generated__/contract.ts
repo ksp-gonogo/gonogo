@@ -304,20 +304,6 @@ export interface Rp1HireTargetSetArgs
 	lcId?: string;
 }
 /**
-* Args for `rp1.fundTarget.set`: stop the next warp once the balance reaches a
-* figure.
-*/
-export interface Rp1FundTargetSetArgs
-{
-	/**
-	* The balance to warp toward. RP-1 refuses a figure equal to the current
-	* balance ("already at this funding"), and refuses one it cannot reach inside
-	* its own two-year search, which is a real answer about the career's income
-	* rather than a validation quibble.
-	*/
-	targetFunds?: number;
-}
-/**
 * Args for `rp1.training.enrol`: start a training course, which under RP-1 is
 * one act rather than two.
 *
@@ -700,12 +686,12 @@ export interface Rp1PadDismantleArgs
 	padId?: string;
 }
 /**
-* Args for `rp1.warp.toComplete` and `rp1.warp.toFundTarget`, which take none.
+* Args for `rp1.warp.toComplete`, which takes none.
 *
-* Neither names WHAT to warp to, because neither is a choice: RP-1 holds
-* exactly one next-thing-to-finish (whichever of the career's projects has the
-* least time left, across every centre) and exactly one fund target. A command
-* carrying an id would imply a roster that does not exist.
+* It does not name WHAT to warp to, because it is not a choice: RP-1 holds
+* exactly one next-thing-to-finish, whichever of the career's projects has the
+* least time left, across every centre. A command carrying an id would imply a
+* roster that does not exist.
 *
 * **There is no `rp1.warp.stop`, deliberately.** RP-1's warp controller
 * destroys itself the moment it observes a warp rate of zero
@@ -716,24 +702,28 @@ export interface Rp1PadDismantleArgs
 * controls doing one thing, and the operator would have to know which of them
 * RP-1 respects. It respects both.
 *
-* One type for both commands, as `Rp1TargetCancelArgs` is for its two: they
-* take the same nothing, and a second empty class would only invite the two to
-* drift.
+* **There is no `rp1.warp.toFundTarget` either.** Warping until the balance
+* reaches a figure is not a command: it is a SCET threshold on `career.status`
+* / `economy.funds`, which halts the warp inside the simulation on the tick
+* the balance is reached. Warping to the next completion has no such spelling,
+* because nothing publishes the next project to finish as an instant a
+* threshold could address: the candidates live across four array Topics, and a
+* dotted path cannot index a list.
 *
-* **INSTANT, and the only two `rp1.*` commands that are.** Every other command
-* in this Uplink is an order a second command centre can issue, so it crosses
-* the gap like any other order. These two are not orders, they are CLOCK
-* CHANGES: warp is sim-meta, and light-time fiction does not apply to a
-* ground-side simulation control, which is the same principle core states on
+* **INSTANT, and the only `rp1.*` command that is.** Every other command in
+* this Uplink is an order a second command centre can issue, so it crosses the
+* gap like any other order. This one is not an order, it is a CLOCK CHANGE:
+* warp is sim-meta, and light-time fiction does not apply to a ground-side
+* simulation control, which is the same principle core states on
 * `time.setWarpIndex`. Delayed, an operator selecting a warp with a craft
 * thirty light-minutes out would wait thirty minutes for their own clock to
 * move.
 *
 * The paragraph above settles it independently: core's `time.setWarpIndex`
 * already ends an RP-1 warp, and the WarpControl widget's "1x" button already
-* sends it. Two commands that one instant control already terminates cannot be
-* in different delay classes, so this is the class that is consistent rather
-* than an exemption carved for convenience.
+* sends it. A command that one instant control already terminates cannot be in
+* a different delay class from it, so this is the class that is consistent
+* rather than an exemption carved for convenience.
 */
 export interface Rp1WarpArgs
 {

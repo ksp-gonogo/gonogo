@@ -436,27 +436,6 @@ public class Rp1HireTargetSetArgs
 }
 
 /// <summary>
-/// Args for <c>rp1.fundTarget.set</c>: stop the next warp once the balance
-/// reaches a figure.
-/// </summary>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-[SitrepCommand("rp1.fundTarget.set")]
-public class Rp1FundTargetSetArgs
-{
-    /// <summary>
-    /// The balance to warp toward. RP-1 refuses a figure equal to the current
-    /// balance ("already at this funding"), and refuses one it cannot reach
-    /// inside its own two-year search, which is a real answer about the career's
-    /// income rather than a validation quibble.
-    /// </summary>
-    [SitrepUnit(Units.Funds)]
-    public double? TargetFunds { get; set; }
-}
-
-/// <summary>
 /// Args for <c>rp1.training.enrol</c>: start a training course, which under RP-1
 /// is one act rather than two.
 ///
@@ -948,13 +927,12 @@ public class Rp1PadDismantleArgs
 }
 
 /// <summary>
-/// Args for <c>rp1.warp.toComplete</c> and <c>rp1.warp.toFundTarget</c>, which
-/// take none.
+/// Args for <c>rp1.warp.toComplete</c>, which takes none.
 ///
-/// <para>Neither names WHAT to warp to, because neither is a choice: RP-1 holds
-/// exactly one next-thing-to-finish (whichever of the career's projects has the
-/// least time left, across every centre) and exactly one fund target. A command
-/// carrying an id would imply a roster that does not exist.</para>
+/// <para>It does not name WHAT to warp to, because it is not a choice: RP-1
+/// holds exactly one next-thing-to-finish, whichever of the career's projects
+/// has the least time left, across every centre. A command carrying an id would
+/// imply a roster that does not exist.</para>
 ///
 /// <para><b>There is no <c>rp1.warp.stop</c>, deliberately.</b> RP-1's warp
 /// controller destroys itself the moment it observes a warp rate of zero
@@ -965,31 +943,44 @@ public class Rp1PadDismantleArgs
 /// be two controls doing one thing, and the operator would have to know which of
 /// them RP-1 respects. It respects both.</para>
 ///
-/// <para>One type for both commands, as <see cref="Rp1TargetCancelArgs"/> is for
-/// its two: they take the same nothing, and a second empty class would only
-/// invite the two to drift.</para>
+/// <para><b>There is no <c>rp1.warp.toFundTarget</c> either.</b> Warping until
+/// the balance reaches a figure is not a command: it is a SCET threshold on
+/// <c>career.status</c> / <c>economy.funds</c>, which halts the warp inside the
+/// simulation on the tick the balance is reached. Warping to the next completion
+/// has no such spelling, because nothing publishes the next project to finish as
+/// an instant a threshold could address: the candidates live across four array
+/// Topics, and a dotted path cannot index a list.
+/// <internal>
+/// Both <c>rp1.warp.toFundTarget</c> and <c>rp1.fundTarget.set</c> existed until
+/// 2026-09-13 and were removed together, on the ruling that RP-1 must not manage
+/// warp on the app's behalf. They were one controller wearing two names:
+/// FundTargetProject returns project type None, spends nothing and builds
+/// nothing, so the setter was only ever a way to aim the warp. Nothing was
+/// stranded; RP-1's own Maintenance screen still carries the whole feature
+/// (MaintenanceGUI.RenderSummaryTab's "Warp to Fund Target").
+/// </internal></para>
 ///
-/// <para><b>INSTANT, and the only two <c>rp1.*</c> commands that are.</b> Every
-/// other command in this Uplink is an order a second command centre can issue,
-/// so it crosses the gap like any other order. These two are not orders, they
-/// are CLOCK CHANGES: warp is sim-meta, and light-time fiction does not apply to
-/// a ground-side simulation control, which is the same principle core states on
+/// <para><b>INSTANT, and the only <c>rp1.*</c> command that is.</b> Every other
+/// command in this Uplink is an order a second command centre can issue, so it
+/// crosses the gap like any other order. This one is not an order, it is a CLOCK
+/// CHANGE: warp is sim-meta, and light-time fiction does not apply to a
+/// ground-side simulation control, which is the same principle core states on
 /// <c>time.setWarpIndex</c>. Delayed, an operator selecting a warp with a craft
 /// thirty light-minutes out would wait thirty minutes for their own clock to
 /// move.</para>
 ///
 /// <para>The paragraph above settles it independently: core's
 /// <c>time.setWarpIndex</c> already ends an RP-1 warp, and the WarpControl
-/// widget's "1x" button already sends it. Two commands that one instant control
-/// already terminates cannot be in different delay classes, so this is the class
-/// that is consistent rather than an exemption carved for convenience.</para>
+/// widget's "1x" button already sends it. A command that one instant control
+/// already terminates cannot be in a different delay class from it, so this is
+/// the class that is consistent rather than an exemption carved for
+/// convenience.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepCommand("rp1.warp.toComplete", Delay = DelayRole.TrueNow)]
-[SitrepCommand("rp1.warp.toFundTarget", Delay = DelayRole.TrueNow)]
 public class Rp1WarpArgs
 {
 }

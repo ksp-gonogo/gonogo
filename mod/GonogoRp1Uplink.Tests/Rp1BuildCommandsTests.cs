@@ -377,7 +377,6 @@ namespace GonogoRp1Uplink.Tests
                     Rp1TargetCommands.CancelHireCommand,
                     Rp1TargetCommands.CancelFundCommand,
                     Rp1TargetCommands.SetHireCommand,
-                    Rp1TargetCommands.SetFundCommand,
                     Rp1TrainingCommands.EnrolCommand,
                     Rp1TrainingCommands.CancelCommand,
                     Rp1TrainingCommands.RemoveCommand,
@@ -389,7 +388,6 @@ namespace GonogoRp1Uplink.Tests
                     Rp1ComplexConstructionCommands.ModifyComplexCommand,
                     Rp1ComplexConstructionCommands.NewPadCommand,
                     Rp1WarpCommands.ToCompleteCommand,
-                    Rp1WarpCommands.ToFundTargetCommand,
                     Rp1ToolingCommands.ToolAllCommand,
                     Rp1ToolingCommands.RefitCommand,
                     Rp1ContractCommands.SetPayloadCommand,
@@ -471,7 +469,7 @@ namespace GonogoRp1Uplink.Tests
             Assert.Empty(declared.Where(id => !tagged.ContainsKey(id)));
 
             Assert.Equal(
-                new[] { Rp1WarpCommands.ToCompleteCommand, Rp1WarpCommands.ToFundTargetCommand },
+                new[] { Rp1WarpCommands.ToCompleteCommand },
                 declared.Where(id => tagged[id] == DelayRole.TrueNow).OrderBy(id => id, StringComparer.Ordinal).ToArray());
         }
 

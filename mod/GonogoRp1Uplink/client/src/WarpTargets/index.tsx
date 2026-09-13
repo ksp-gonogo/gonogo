@@ -19,25 +19,35 @@ import "../topics";
 import {
   FundTargetControl,
   RP1_FUND_TARGET_CANCEL_COMMAND,
-  RP1_FUND_TARGET_SET_COMMAND,
 } from "./FundTarget";
 
 /** Warp until the career's next project finishes. Must match `Rp1WarpCommands.ToCompleteCommand`. */
 export const RP1_WARP_TO_COMPLETE_COMMAND = "rp1.warp.toComplete";
 
-/** Warp until the balance reaches the fund target. Must match `Rp1WarpCommands.ToFundTargetCommand`. */
-export const RP1_WARP_TO_FUND_TARGET_COMMAND = "rp1.warp.toFundTarget";
-
 /**
- * RP-1's warp targets, beside the warp ladder that already exists.
+ * RP-1's warp target, beside the warp ladder that already exists.
  *
  * <para><b>Why this is an augment rather than a widget.</b> Warping is one act
  * with one piece of state, and the dashboard already has a control for it. RP-1
- * does not add a second kind of warp; it adds two things worth warping TO, which
+ * does not add a second kind of warp; it adds something worth warping TO, which
  * is a stop condition rather than a new concept. So this binds
  * <c>warp-control.stepper</c>, the slot that exists for exactly this, and an
  * operator reads one warp control rather than hunting for whichever panel owns
  * the mod's version.</para>
+ *
+ * <para><b>RP-1 drives warp for ONE thing now, and asks for an alarm for the
+ * other.</b> <c>rp1.warp.toFundTarget</c> and <c>rp1.fundTarget.set</c> are
+ * gone: they were one controller wearing two names, and what they achieved is
+ * what a SCET threshold on the career balance achieves, in the operator's own
+ * alarm list rather than under a mod's control. See
+ * <c>FundTarget.tsx</c>.</para>
+ *
+ * <para><b>Warp-to-complete stays, and its replacement does not exist.</b>
+ * Nothing publishes "the next project to finish" as an instant a threshold could
+ * be armed against: the candidates live across <c>rp1.buildQueue</c>,
+ * <c>rp1.constructions</c>, <c>rp1.research</c> and <c>rp1.training</c>, and a
+ * dotted path cannot index a list. Deleting it would remove the capability
+ * rather than relocate it.</para>
  *
  * <para><b>Nothing here stops warp.</b> RP-1's own controller destroys itself the
  * moment it sees a warp rate of zero, so the host widget's existing "1x" button
@@ -45,26 +55,22 @@ export const RP1_WARP_TO_FUND_TARGET_COMMAND = "rp1.warp.toFundTarget";
  * thing. That is a decision recorded in <c>Rp1WarpCommands</c> with the IL that
  * settles it, not an omission.</para>
  *
- * <para>Both presses are single, not armed: warping is reversible by the button
- * next door, and an arm-then-confirm on a reversible act trains an operator to
+ * <para>The press is single, not armed: warping is reversible by the button next
+ * door, and an arm-then-confirm on a reversible act trains an operator to
  * double-press everything.</para>
  */
 export function WarpTargets() {
   const available = current(useTelemetry("rp1.available"));
   const fundTarget = current(useTelemetry("rp1.fundTarget"));
-  // Read for the one figure the target is measured against. Absent on a save
+  // Read for the one figure the alarm is measured against. Absent on a save
   // with no funding, which is what keeps the balance row off a sandbox career.
   const career = current(useTelemetry("career.status"));
 
   // Unconditional and above the early return on purpose: a hook after it would
   // change count on the first frame RP-1 answers.
   const toComplete = useCommand(RP1_WARP_TO_COMPLETE_COMMAND);
-  const toFundTarget = useCommand(RP1_WARP_TO_FUND_TARGET_COMMAND);
-  const setFundTarget = useCommand(RP1_FUND_TARGET_SET_COMMAND);
   const cancelFundTarget = useCommand(RP1_FUND_TARGET_CANCEL_COMMAND);
   usePanelDelay(toComplete);
-  usePanelDelay(toFundTarget);
-  usePanelDelay(setFundTarget);
   usePanelDelay(cancelFundTarget);
 
   // Invisible on every install without RP-1, which is most of them. An augment
@@ -72,13 +78,6 @@ export function WarpTargets() {
   if (available !== true) {
     return null;
   }
-
-  /*
-   * RP-1's own validity rule, which is not merely "a number": a target equal to
-   * the balance it was set at is no instruction, and the wire carries the answer
-   * rather than leaving this to re-derive it.
-   */
-  const targetStanding = fundTarget?.active === true;
 
   return (
     <Stack gap="xs">
@@ -91,10 +90,10 @@ export function WarpTargets() {
         reading four topics to label one button is a trade worth asking about
         rather than assuming.
 
-        The "warp to" prefix came off both labels because the section is already
+        The "warp to" prefix came off the label because the section is already
         headed WARP, so every control was repeating it, and the render gate found
-        both of them cut off at 38px. The full sentence stays in the accessible
-        name, which costs no width.
+        it cut off at 38px. The full sentence stays in the accessible name, which
+        costs no width.
       */}
         <CommandButton
           args={{}}
@@ -104,36 +103,17 @@ export function WarpTargets() {
           label="next completion"
           size="sm"
         />
-        {/*
-        No subtitle. The ETA and the "no fund target set" line both went on the
-        operator's ruling that funds "needs LESS": the reason a press is dark
-        stays in its accessible name, where it costs no space.
-      */}
-        <CommandButton
-          args={{}}
-          aria-label={
-            targetStanding
-              ? "Warp until the balance reaches the fund target"
-              : "No fund target is standing, so there is no balance to warp toward"
-          }
-          commandLabel="Warp to fund target"
-          disabled={!targetStanding}
-          handle={toFundTarget}
-          label="fund target"
-          size="sm"
-        />
       </Inline>
 
       {/*
-        Under the presses rather than beside them, because it DECIDES one of
-        them: the fund-target press is dark until a target stands, and this is
-        what stands one up. RP-1 keeps one target per career, so this draws
-        whichever of set and cancel is the legal move.
+        Under the press rather than beside it. RP-1 keeps one fund target per
+        career and only its own Maintenance screen stands one up now, so this
+        draws whichever of the standing row and the alarm control the save has
+        earned.
       */}
       <FundTargetControl
         cancel={cancelFundTarget}
         funds={magnitudeOf(career?.economy?.funds)}
-        set={setFundTarget}
         target={fundTarget}
       />
     </Stack>

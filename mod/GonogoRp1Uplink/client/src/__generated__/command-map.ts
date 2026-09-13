@@ -60,7 +60,6 @@ import type {
   Rp1ComplexRushArgs,
   Rp1ContractPayloadArgs,
   Rp1FacilityUpgradeArgs,
-  Rp1FundTargetSetArgs,
   Rp1HireTargetSetArgs,
   Rp1PadDismantleArgs,
   Rp1PadNewArgs,
@@ -93,7 +92,6 @@ export interface GeneratedCommandArgsMap {
   "rp1.contracts.setPayload": Rp1ContractPayloadArgs;
   "rp1.facility.upgrade": Rp1FacilityUpgradeArgs;
   "rp1.fundTarget.cancel": Rp1TargetCancelArgs;
-  "rp1.fundTarget.set": Rp1FundTargetSetArgs;
   "rp1.hireTarget.cancel": Rp1TargetCancelArgs;
   "rp1.hireTarget.set": Rp1HireTargetSetArgs;
   "rp1.pad.dismantle": Rp1PadDismantleArgs;
@@ -111,7 +109,6 @@ export interface GeneratedCommandArgsMap {
   "rp1.vehicle.rollout": Rp1RolloutArgs;
   "rp1.vehicle.scrap": Rp1VehicleArgs;
   "rp1.warp.toComplete": Rp1WarpArgs;
-  "rp1.warp.toFundTarget": Rp1WarpArgs;
 }
 
 export interface GeneratedCommandReplyMap {
@@ -125,7 +122,6 @@ export interface GeneratedCommandReplyMap {
   "rp1.contracts.setPayload": CommandResultOf<Record<string, unknown>>;
   "rp1.facility.upgrade": CommandResultOf<Record<string, unknown>>;
   "rp1.fundTarget.cancel": CommandResult;
-  "rp1.fundTarget.set": CommandResult;
   "rp1.hireTarget.cancel": CommandResult;
   "rp1.hireTarget.set": CommandResult;
   "rp1.pad.dismantle": CommandResult;
@@ -143,7 +139,6 @@ export interface GeneratedCommandReplyMap {
   "rp1.vehicle.rollout": CommandResult;
   "rp1.vehicle.scrap": CommandResult;
   "rp1.warp.toComplete": CommandResult;
-  "rp1.warp.toFundTarget": CommandResult;
 }
 
 /**
@@ -188,7 +183,6 @@ export const GENERATED_COMMAND_RAIL = {
   "rp1.contracts.setPayload": { replies: true, delayed: true },
   "rp1.facility.upgrade": { replies: true, delayed: true },
   "rp1.fundTarget.cancel": { replies: true, delayed: true },
-  "rp1.fundTarget.set": { replies: true, delayed: true },
   "rp1.hireTarget.cancel": { replies: true, delayed: true },
   "rp1.hireTarget.set": { replies: true, delayed: true },
   "rp1.pad.dismantle": { replies: true, delayed: true },
@@ -206,7 +200,6 @@ export const GENERATED_COMMAND_RAIL = {
   "rp1.vehicle.rollout": { replies: true, delayed: true },
   "rp1.vehicle.scrap": { replies: true, delayed: true },
   "rp1.warp.toComplete": { replies: true, delayed: false },
-  "rp1.warp.toFundTarget": { replies: true, delayed: false },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [
@@ -220,7 +213,6 @@ export const GENERATED_COMMAND_IDS = [
   "rp1.contracts.setPayload",
   "rp1.facility.upgrade",
   "rp1.fundTarget.cancel",
-  "rp1.fundTarget.set",
   "rp1.hireTarget.cancel",
   "rp1.hireTarget.set",
   "rp1.pad.dismantle",
@@ -238,5 +230,4 @@ export const GENERATED_COMMAND_IDS = [
   "rp1.vehicle.rollout",
   "rp1.vehicle.scrap",
   "rp1.warp.toComplete",
-  "rp1.warp.toFundTarget",
 ] as const;
