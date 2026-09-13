@@ -7,6 +7,7 @@ import {
   type Reading,
   type ReckonerFor,
   readingFrom,
+  readingOf,
   type UnmodelledReading,
   withoutReckoning,
 } from "./reading";
@@ -269,6 +270,59 @@ describe("withoutReckoning", () => {
       // reading must not pay a new identity for it.
       expect(withoutReckoning(reading)).toBe(reading);
     }
+  });
+});
+
+describe("readingOf", () => {
+  it("narrows an observed reading to one part, keeping the instant", () => {
+    const reading = readingFrom(point(10, 5), "live", VIEW_UT);
+    expect(readingOf(reading, (n) => n * 2)).toEqual({
+      state: "observed",
+      reckoning: "none",
+      value: 10,
+      atUt: value("ut", 10),
+    });
+  });
+
+  /**
+   * The arm the whole exercise is for. A primitive drawing one field has to
+   * know the field is not current, and a selector that lost the grade would
+   * hand it a number with nothing said about it.
+   */
+  it("carries the staleness across, grade and all", () => {
+    const reading = readingFrom(point(10, 5), "held-stale", VIEW_UT);
+    expect(readingOf(reading, (n) => n * 2)).toEqual({
+      state: "stale",
+      reckoning: "none",
+      value: 10,
+      asOfUt: value("ut", 10),
+      grade: "held-stale",
+    });
+  });
+
+  it("drops the model rather than claiming it for the part", () => {
+    // A reckoning is a projection of the DECLARED fields, keyed by their own
+    // paths. A selector is an arbitrary function, so there is no general way to
+    // carry one through it, and carrying it unchanged would claim a model for a
+    // quantity the model never spoke about.
+    const reading = readingFrom(point(10, 5), "live", VIEW_UT, alwaysReckons);
+    expect(reading.reckoning).toBe("available");
+    expect(readingOf(reading, (n) => n * 2).reckoning).toBe("none");
+  });
+
+  it("does not run the selector on an arm with no payload", () => {
+    let calls = 0;
+    const seen = (n: number) => {
+      calls++;
+      return n;
+    };
+    expect(
+      readingOf(readingFrom<number>(undefined, "resyncing", VIEW_UT), seen),
+    ).toEqual({ state: "pending", reckoning: "none" });
+    expect(
+      readingOf(readingFrom(point(10, null), "absent", VIEW_UT), seen),
+    ).toEqual({ state: "absent", reckoning: "none", atUt: value("ut", 10) });
+    expect(calls).toBe(0);
   });
 });
 

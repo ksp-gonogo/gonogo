@@ -119,6 +119,28 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     ).toBe(true);
   });
 
+  it("marks the NUMBER itself, and says the grade beside it", async () => {
+    // The widget's own caption says the observation is old; this says the
+    // number on screen is not a reading of now, on the number, where an
+    // operator scanning a wall of tiles is actually looking. It reaches a
+    // screen reader as the same word the panel badge uses.
+    const fixture = newFixture();
+    const container = mount(fixture, "sma-stale-marked");
+    emitOrbit(fixture);
+    await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
+    expect(container.querySelector("[data-not-current]")).toBeNull();
+
+    goStale(fixture);
+
+    await waitFor(() =>
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+    );
+    expect(container.textContent).toContain("OFFLINE");
+    // And it costs the sighted readout nothing: the caption is spoken only.
+    expect(visibleText(container)).toContain("675.0 km");
+    expect(visibleText(container)).not.toContain("OFFLINE");
+  });
+
   it("says nothing about last contact before an orbit has ever arrived", async () => {
     // A cold start is not a held reading. Conflating the two would have the tile
     // accusing the link on first paint, every paint.

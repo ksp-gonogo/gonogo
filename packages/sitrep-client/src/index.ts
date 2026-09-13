@@ -392,6 +392,7 @@ export {
   observedAt,
   observedValue,
   readingFrom,
+  readingOf,
   withoutReckoning,
 } from "./reading";
 export type { ReckonerConflict } from "./reckoners";

@@ -1012,7 +1012,7 @@ function measure(host: HTMLElement): {
   // its own stylesheet INTO the widget, so `textContent` otherwise opens with a
   // page of CSS selectors and the signature is mostly stylesheet.
   for (const hidden of clone.querySelectorAll(
-    "[data-unit-word], style, script",
+    "[data-unit-word], [data-unit-currency], style, script",
   )) {
     hidden.remove();
   }
