@@ -13,7 +13,9 @@
  */
 
 import { registerUnit, type Vec3Of, value } from "@ksp-gonogo/sitrep-sdk";
+import { Band } from "./Band";
 import { Unit } from "./Unit";
+import { UnitSharedFormat } from "./UnitSharedFormat";
 
 // Stand-ins for what `useTelemetry` hands a widget once the wrap is wired.
 // Post-flip these are the real field types, not constructions.
@@ -41,6 +43,90 @@ export const _wrongKind = <Unit value={surfaceSpeed} format="s" />;
 
 // @ts-expect-error: not a unit of any kind
 export const _notAUnit = <Unit value={altitude} format="furlongs" />;
+
+// `as` is checked the same way, and was not until 2026-09-13. A cross-kind
+// conversion is refused by the formatter and the value renders in its own unit,
+// so an open `as` was a prop that could be spelled wrong and do nothing.
+// @ts-expect-error: a length is not a mass
+export const _wrongAsKind = <Unit value={altitude} as="kg" />;
+
+// A ratio and a percent are different kinds, which is the single most common
+// unit bug in a dashboard. A ratio already renders as a percentage.
+// @ts-expect-error: a ratio is not a percent
+export const _ratioAsPercent = <Unit value={value("ratio", 0.42)} as="%" />;
+
+// ── 2b. A group settles one format, and its pins name a kind ────────────────
+// `of` is the unit the pins are addressed to, and the whole of how they come to
+// be checked. A `Band` passes its own unit down, so its callers annotate
+// nothing.
+export const _band = (
+  <Band min={value("m", 6_700_000)} max={value("m", 6_710_000)} format="km" />
+);
+
+export const _bandWrongKind = (
+  <Band
+    min={altitude}
+    max={value("m", 13_000)}
+    // @ts-expect-error: seconds are not a length
+    format="s"
+  />
+);
+
+export const _scopePinned = (
+  <UnitSharedFormat of="m" format="km">
+    <Unit value={altitude} />
+  </UnitSharedFormat>
+);
+
+// The directive sits on the ELEMENT rather than on the attribute: the scope
+// resolves an overload, and a failed overload is reported at the call.
+export const _scopeWrongKind = (
+  // @ts-expect-error: a scope over lengths cannot be read in kilograms
+  <UnitSharedFormat of="m" as="kg">
+    <Unit value={altitude} />
+  </UnitSharedFormat>
+);
+
+/*
+ * A mixed scope keys its pins BY UNIT, so each is checked against the unit it
+ * is filed under, a kind needing nothing is simply absent, and one group cannot
+ * be pinned twice: a repeated key is already an error in an object literal.
+ */
+export const _mixedScope = (
+  <UnitSharedFormat pins={{ m: { format: "km" }, kg: { format: "t" } }}>
+    <Unit value={altitude} />
+    <Unit value={dryMass} />
+  </UnitSharedFormat>
+);
+
+// The entry that is wrong is the one that errors, rather than the scope.
+export const _mixedScopeSwapped = (
+  <UnitSharedFormat
+    pins={{
+      // @ts-expect-error: a mass rung is not a length's
+      m: { format: "t" },
+      kg: { format: "kg" },
+    }}
+  >
+    <Unit value={altitude} />
+    <Unit value={dryMass} />
+  </UnitSharedFormat>
+);
+
+// A group may be pinned at most once, and there is no example below because the
+// mistake cannot be WRITTEN: `pins={{ m: ..., m: ... }}` is TS1117 from `tsc` and
+// `noDuplicateObjectKeys` from the linter, independently, and neither can be
+// suppressed without suppressing the other. A positional list could say none of
+// this: `["m", "m"]` reads as two pins and quietly keeps one.
+
+// An entry may be left out entirely, and the kind it would have pinned settles
+// for itself.
+export const _mixedScopePartial = (
+  <UnitSharedFormat pins={{ m: { format: "km" } }}>
+    <Unit value={altitude} />
+    <Unit value={dryMass} />
+  </UnitSharedFormat>
+);
 
 // ── 3. Arithmetic and ordering carry the unit through ───────────────────────
 // Same dimension adds, converting as it goes: 42s + 2min is one duration.

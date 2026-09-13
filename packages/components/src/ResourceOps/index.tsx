@@ -313,11 +313,16 @@ function DrillCard({
         <Inline gap="xs">
           <ReadoutCaption>abundance</ReadoutCaption>
           {/* Ore abundance is a property of where the drill is standing, and the
-              drill can be driven somewhere else while the link is down. */}
+              drill can be driven somewhere else while the link is down.
+
+              No `as="%"` on the readout: a ratio and a percent are different
+              kinds, so the conversion was refused and the prop did nothing. A
+              ratio already renders as a percentage, which is why nothing here
+              ever read wrong. */}
           {drillNotCurrent ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : drill.abundance !== null && drill.abundance !== undefined ? (
-            <Unit value={drill.abundance} as="%" decimals={2} />
+            <Unit value={drill.abundance} decimals={2} />
           ) : (
             <Text tone="faint">unknown</Text>
           )}

@@ -60,7 +60,7 @@ export function Band<U extends string = string>({
   max,
   wrapsAt,
   className,
-  ...unit
+  ...pins
 }: BandProps<U>) {
   const low = magnitudeOf(min);
   const high = magnitudeOf(max);
@@ -79,9 +79,11 @@ export function Band<U extends string = string>({
   // `separate` is the whole of what this renderer says about digits: an
   // interval promises a width, so its ends may not print the same figure. The
   // three pins below are the caller's own, stated once for the group instead of
-  // at each end.
+  // at each end, and `of` addresses them to the kind the band is drawn in. Both
+  // ends carry `U`, so that unit is the band's own and a caller annotates
+  // nothing to get its pins checked.
   return (
-    <UnitSharedFormat separate {...unit}>
+    <UnitSharedFormat of={min.unit} separate {...pins}>
       <Band__Body className={className}>
         <Unit value={min} />
         <Band__Dash aria-hidden="true">–</Band__Dash>

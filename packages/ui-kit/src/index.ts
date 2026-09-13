@@ -651,7 +651,9 @@ export {
 // names nothing. See its module header.
 export {
   type SharedFormat,
+  type UnitPins,
   UnitSharedFormat,
+  type UnitSharedFormatMixedProps,
   type UnitSharedFormatProps,
   useSharedFormat,
 } from "./UnitSharedFormat";
@@ -664,6 +666,10 @@ export {
 export {
   type FormatsFor,
   type KnownQuantityKind,
+  // The `as` twin of `FormatsFor`: every unit of the same kind PLUS the
+  // presentation-only ones the conversion table reaches, which is where `°C`
+  // lives. The contract has no Celsius token on purpose.
+  type PresentableAs,
   type QuantityKind,
   // A SCALE rather than a formatter: one rung settled once, every mark printed
   // against it, and the symbol handed back APART so it can be shown at the head
