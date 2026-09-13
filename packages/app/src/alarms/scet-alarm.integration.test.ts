@@ -83,6 +83,12 @@ interface ModStandIn {
   warpDispatchedAt: readonly number[];
   /** Ids the stand-in mod currently holds armed. */
   armed(): readonly string[];
+  /**
+   * Arm one directly on the mod, as an Uplink contributing a warp-stop button
+   * would: the command reaches the host, and this client's own alarm list never
+   * hears about it.
+   */
+  armForeign(id: string): void;
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
   /** Drive the craft's TRUE altitude, which only the stand-in can see. */
@@ -223,6 +229,19 @@ function startSession(owlt: number): ModStandIn {
     attach: () => setActiveTelemetryClientForTests(client),
     gameIndex: () => warpIndex,
     armed: () => [...conditions.keys()],
+    armForeign(id) {
+      conditions.set(id, {
+        subject: "game",
+        condition: {
+          kind: "threshold",
+          topic: "career.status",
+          fieldPath: "economy.funds",
+          op: 1,
+          threshold: 250_000,
+          sustainSeconds: 0,
+        },
+      });
+    },
     armOf: (id) => conditions.get(id),
     setAltitude(metres) {
       altitude = metres;
@@ -391,6 +410,28 @@ describe("SCET alarms", () => {
     // roster row it no longer recognises: the same disarm, from the same diff.
     svc.deleteAlarm(alarm.id);
     await run(session, UT_START + 8 * DT);
+    expect(session.armed()).toEqual([]);
+    svc.dispose();
+  });
+
+  it("disarms one an Uplink armed for itself, because no alarm of ours accounts for it", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+
+    /* What a contributed warp-stop button does: send `alarm.scet.arm` itself.
+       The Uplink has no way into this client's alarm list, which lives in the
+       app and is not on any published surface. */
+    session.armForeign("rp1-fund-target");
+    expect(session.armed()).toEqual(["rp1-fund-target"]);
+
+    await run(session, UT_START + 4 * DT);
+
     expect(session.armed()).toEqual([]);
     svc.dispose();
   });
