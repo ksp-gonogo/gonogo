@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "The form that stands a fund target up, which the dark press next to it exists to warp toward. It spends nothing: RP-1's FundTargetProject ends a warp and touches no currency, and its Clear() is a pure field reset, so the figure in the form is the BALANCE the target is measured against rather than a price. Two refusals RP-1 can give are not checked here and come back in RP-1's words instead: a target equal to the balance is 'already at this funding', and one the career's income cannot reach inside RP-1's own two-year search is refused as unreachable. Both are real statements about the save."
+    "notes": "The form that asks the app for an alarm on the career balance, which is what replaced driving RP-1's warp. It spends nothing: RP-1's FundTargetProject returns project type None, its IncrementProgress returns zero and its Clear() is a pure field reset, so the figure in the form is the BALANCE the alarm is measured against rather than a price. The alarm is armed on the craft's own clock, so the simulation halts the warp on the tick the balance is reached rather than a light-time and a poll later."
   },
   "_scene": {
     "augment": "rp1-warp-targets",
@@ -9,11 +9,11 @@
       "w": 6,
       "h": 14
     },
-    "caption": "The fund-target form open: the balance the target is measured against, the field, and one press. No cost line anywhere, because a stop condition spends nothing.",
+    "caption": "The balance-alarm form open: the balance the alarm is measured against, the field, and one press. No cost line anywhere, because a stop condition spends nothing.",
     "paints": ["Balance now", "Target balance", "Set"],
     "before": [
       {
-        "press": "Set a fund target"
+        "press": "Set an alarm on the career balance"
       }
     ]
   },

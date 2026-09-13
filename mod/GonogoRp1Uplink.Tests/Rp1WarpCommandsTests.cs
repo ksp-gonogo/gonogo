@@ -6,8 +6,7 @@ using Xunit;
 namespace GonogoRp1Uplink.Tests
 {
     /// <summary>
-    /// Warping to the next project or to the fund target, against the stand-in RP-1
-    /// object graph.
+    /// Warping to the next project, against the stand-in RP-1 object graph.
     ///
     /// <para>The case that decides whether this surface is safe is
     /// <see cref="Refuses_a_warp_to_complete_when_nothing_is_in_progress"/>, and it
@@ -53,8 +52,6 @@ namespace GonogoRp1Uplink.Tests
         }
 
         private CommandResult ToComplete() => _commands.ToComplete(new Rp1WarpArgs());
-
-        private CommandResult ToFundTarget() => _commands.ToFundTarget(new Rp1WarpArgs());
 
         // ── Warping to the next project ───────────────────────────────────────
 
@@ -135,51 +132,6 @@ namespace GonogoRp1Uplink.Tests
             Assert.Contains("check the warp rate", result.Detail);
         }
 
-        // ── Warping to the fund target ────────────────────────────────────────
-
-        [Fact]
-        public void Hands_RP1_the_fund_target_itself()
-        {
-            var scm = Career();
-            scm.fundTarget = new FundTargetProject(50_000.0, origFunds: 10_000.0);
-
-            Assert.True(ToFundTarget().Success);
-
-            // The fund target IS a project as far as RP-1 is concerned, which is why
-            // warping to it is the same call rather than a separate mechanism: RP-1
-            // puts it in its own project list alongside the rockets.
-            Assert.Same(scm.fundTarget, Assert.Single(KCTWarpController.Created));
-        }
-
-        [Fact]
-        public void Refuses_a_warp_to_a_fund_target_nobody_has_set()
-        {
-            var scm = Career();
-            scm.fundTarget = new FundTargetProject();
-
-            var result = ToFundTarget();
-
-            Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
-            // And it says which command sets one, because "no fund target" is a
-            // state the operator can fix rather than a fault.
-            Assert.Contains("rp1.fundTarget.set", result.Detail);
-            Assert.Empty(KCTWarpController.Created);
-        }
-
-        [Fact]
-        public void Refuses_a_fund_target_equal_to_the_balance_it_was_set_at()
-        {
-            var scm = Career();
-            // RP-1's own validity rule, and it is not merely "non-zero": a target
-            // equal to the balance it was set at is no instruction at all, and
-            // warping toward it would never stop.
-            scm.fundTarget = new FundTargetProject(10_000.0, origFunds: 10_000.0);
-
-            Assert.False(ToFundTarget().Success);
-            Assert.Empty(KCTWarpController.Created);
-        }
-
         // ── The scene ─────────────────────────────────────────────────────────
 
         [Fact]
@@ -253,28 +205,23 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(GateOutcome.Unknown, verdict.Outcome);
         }
 
-        // ── The refusals both share ───────────────────────────────────────────
-
         [Fact]
-        public void Both_refuse_a_save_RP1_is_not_managing()
+        public void Refuses_a_save_RP1_is_not_managing()
         {
             var scm = Career();
             scm.enabledForSave = false;
             KCTUtilities.NextThing = new FakeProject();
-            scm.fundTarget = new FundTargetProject(50_000.0, origFunds: 10_000.0);
 
             Assert.Equal(CommandErrorCode.ModeUnavailable, ToComplete().ErrorCode);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, ToFundTarget().ErrorCode);
             Assert.Empty(KCTWarpController.Created);
         }
 
         [Fact]
-        public void Both_refuse_when_RP1s_space_centre_is_not_loaded()
+        public void Refuses_when_RP1s_space_centre_is_not_loaded()
         {
             KCTUtilities.NextThing = new FakeProject();
 
             Assert.Equal(CommandErrorCode.ModeUnavailable, ToComplete().ErrorCode);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, ToFundTarget().ErrorCode);
             Assert.Empty(KCTWarpController.Created);
         }
 

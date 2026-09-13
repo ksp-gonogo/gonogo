@@ -1,5 +1,5 @@
-// Standing up and withdrawing the two standing targets: a hire instruction and a
-// warp's fund stop-condition.
+// Standing up and withdrawing RP-1's standing targets: a hire instruction, and
+// the cancel half of a warp's fund stop-condition.
 //
 // THE TWO HALVES ARE NOT EQUALLY SAFE, and the difference is where the care went
 // rather than a reason to omit one. Cancelling is a Clear() that spends nothing
@@ -13,6 +13,20 @@
 // (This header said "WHY CANCEL AND NOT SET" until 2026-09-02, describing a file
 // that had grown both setters. The reasoning was not wrong, it was answered: the
 // reserve is asked for rather than computed.)
+//
+// THERE IS NO rp1.fundTarget.set, and it is the one setter that was BUILT and
+// then removed rather than never written. A fund target is a warp stop-condition
+// and nothing else: FundTargetProject returns project type None, its
+// IncrementProgress returns zero and it spends no currency, so writing one was
+// only ever a way to aim rp1.warp.toFundTarget, which went at the same time.
+// RP-1 should not be controlling warp on the app's behalf, and the stop itself
+// is a thing the app already owns: a SCET threshold on career.status /
+// economy.funds halts the warp inside the simulation on the tick the balance is
+// reached. RP-1's client asks for that alarm now. The CANCEL survives because it
+// is not the other half of anything: RP-1's own Maintenance screen still stands
+// targets up ("Warp to Fund Target" on MaintenanceGUI.RenderSummaryTab), and
+// withdrawing one from the dashboard beats going back for the screen that set
+// it.
 //
 // WHAT MAKES CANCELLING SAFE. Both Clear() implementations are pure field
 // resets, read on the shipped RP-1 v4.6.0.0 RP0.dll:
@@ -37,8 +51,9 @@ using Sitrep.Contract;
 namespace GonogoRp1Uplink
 {
     /// <summary>
-    /// <c>rp1.hireTarget.cancel</c> and <c>rp1.fundTarget.cancel</c>: withdraw a
-    /// standing instruction without opening the screen that set it.
+    /// <c>rp1.hireTarget.set</c>, and the two cancels
+    /// (<c>rp1.hireTarget.cancel</c>, <c>rp1.fundTarget.cancel</c>) that withdraw
+    /// a standing instruction without opening the screen that set it.
     /// </summary>
     public sealed class Rp1TargetCommands
     {
@@ -48,15 +63,9 @@ namespace GonogoRp1Uplink
 
         public const string SetHireCommand = "rp1.hireTarget.set";
 
-        public const string SetFundCommand = "rp1.fundTarget.set";
-
         private const string HireProjectTypeName = "RP0.HireStaffProject";
 
-        private const string FundProjectTypeName = "RP0.FundTargetProject";
-
         private const string LaunchComplexTypeName = "RP0.LaunchComplex";
-
-        private const string FundingTypeName = "Funding";
 
         private const string ScmTypeName = "RP0.SpaceCenterManagement";
 
@@ -166,76 +175,6 @@ namespace GonogoRp1Uplink
             catch (Exception e)
             {
                 return CommandResult.Fail(CommandErrorCode.WrongState, "Setting the hire target failed: " + e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Stand up a fund stop-condition.
-        ///
-        /// <para>The second arm is the interesting one and is NOT a validation
-        /// quibble: RP-1 builds the project, asks it how long the wait would be,
-        /// and refuses when the answer is negative, which means the balance is not
-        /// reachable inside its own two-year search. That is a real statement
-        /// about the career's income, so it is surfaced rather than swallowed.</para>
-        /// </summary>
-        public CommandResult SetFund(Rp1FundTargetSetArgs? args)
-        {
-            try
-            {
-                if (args?.TargetFunds == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.Range, "A target balance is required.");
-                }
-
-                var instance = _scm == null ? null : Rp1Types.StaticValue(_scm, "Instance");
-                if (instance == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, "RP-1's space centre is not loaded.");
-                }
-
-                var funding = Rp1Types.Find(FundingTypeName);
-                var fundingInstance = funding == null ? null : Rp1Types.StaticValue(funding, "Instance");
-                var funds = Rp1Types.ReadDouble(fundingInstance, "Funds");
-                if (funds == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.Unreadable, "The career's balance could not be read.");
-                }
-
-                if (args.TargetFunds.Value == funds.Value)
-                {
-                    return CommandResult.Fail(CommandErrorCode.WrongState, "Already at this funding!");
-                }
-
-                var type = Rp1Types.Find(FundProjectTypeName);
-                var ctor = type == null ? null : Rp1Types.Constructor(type, 1);
-                if (ctor == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, "RP-1's fund target could not be constructed.");
-                }
-
-                var project = ctor.Invoke(new object?[] { args.TargetFunds.Value });
-
-                // Asked BEFORE the write, exactly as RP-1 asks it: a target it
-                // cannot reach is refused rather than stored, so the operator is
-                // told now instead of watching a warp that never stops.
-                var timeLeft = Rp1Types.InstanceMethod(project, "GetTimeLeft", 0);
-                var wait = timeLeft == null ? null : Rp1Types.ToDouble(timeLeft.Invoke(project, null));
-                if (wait != null && wait < 0.0)
-                {
-                    return CommandResult.Fail(
-                        CommandErrorCode.Range,
-                        "No time to warp to was found: RP-1 searches two years ahead, and this balance is not reachable in that window.");
-                }
-
-                if (!Rp1Types.WriteMember(instance, "fundTarget", project))
-                {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, "RP-1's fund target could not be written.");
-                }
-                return CommandResult.Ok();
-            }
-            catch (Exception e)
-            {
-                return CommandResult.Fail(CommandErrorCode.WrongState, "Setting the fund target failed: " + e.Message);
             }
         }
 

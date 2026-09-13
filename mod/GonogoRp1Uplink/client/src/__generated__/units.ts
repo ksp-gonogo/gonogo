@@ -301,9 +301,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     targetFunds: "funds",
     timeLeft: "s",
   },
-  "Rp1FundTargetSetArgs": {
-    targetFunds: "funds",
-  },
   "Rp1FundingCurveEntry": {
     isDefault: "flag",
     name: "id",

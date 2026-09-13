@@ -1,23 +1,39 @@
-// Warping to something RP-1 is waiting for: the next project to finish, or the
-// balance a fund target is aiming at.
+// Warping to the next thing RP-1 is waiting for.
 //
 // WHAT WAS WRONG WITHOUT IT. RP-1's whole career loop is waiting: a vehicle
-// integrates for weeks, a tech node researches for months, a complex renovates,
-// a fund target accumulates. An operator could read every one of those and its
-// ETA from this Uplink, and then had to step the warp ladder by hand and watch
-// for the moment to stop. RP-1 does it properly and stops on the exact frame; a
-// human stepping a ladder does not.
+// integrates for weeks, a tech node researches for months, a complex renovates.
+// An operator could read every one of those and its ETA from this Uplink, and
+// then had to step the warp ladder by hand and watch for the moment to stop.
+// RP-1 does it properly and stops on the exact frame; a human stepping a ladder
+// does not.
 //
-// TWO COMMANDS, NOT THREE, and dropping the third is the decision worth reading.
-// FJ's G5 asks for "warp to fund target, warp to complete, stop warp". There is
-// no rp1.warp.stop here, because RP-1's controller stops ITSELF: its FixedUpdate
-// reads TimeWarp.CurrentRateIndex and a zero branches straight to
+// ONE COMMAND, NOT THREE, and both omissions are decisions worth reading.
+//
+// There is no rp1.warp.stop, because RP-1's controller stops ITSELF: its
+// FixedUpdate reads TimeWarp.CurrentRateIndex and a zero branches straight to
 // DestroyGameObject (IL_002c `brtrue.s IL_003f`, else IL_002f-IL_003e). So
 // core's own time.setWarpIndex(0) already ends an RP-1 warp, the WarpControl
 // widget's existing "1x" button already sends it, and a second command would be
 // two controls doing one thing with the operator left to guess which one RP-1
 // respects. It respects both. Checked at IL rather than in the decompiler
 // precisely because it is being used to REMOVE scope.
+//
+// There is no rp1.warp.toFundTarget either, and that one was BUILT and then
+// removed. RP-1 should not be controlling warp on the app's behalf: the thing
+// the command achieved is a stop at a balance, and a SCET threshold on
+// career.status/economy.funds is that same stop, decided inside the simulation
+// on the tick the balance is reached, in the operator's own alarm list rather
+// than under a mod's control. RP-1's client asks for that alarm now (see
+// client/src/WarpTargets/FundTarget.tsx), and rp1.fundTarget.set went with it:
+// the two were one controller wearing two names. Nothing was stranded. RP-1's
+// own Maintenance screen still carries the whole feature, a "Warp to Fund
+// Target" button on MaintenanceGUI.RenderSummaryTab whose dialog offers both
+// "Yes, Warp" and "Add Warp Target".
+//
+// WARP-TO-COMPLETE STAYS, and its replacement does not exist: nothing publishes
+// "the next project to finish" as an instant a threshold could be armed against.
+// The candidates live across rp1.buildQueue, rp1.constructions, rp1.research and
+// rp1.training, and a dotted path cannot index a list.
 //
 // WHAT IS INVOKED:
 //
@@ -71,17 +87,11 @@ using Sitrep.Contract;
 
 namespace GonogoRp1Uplink
 {
-    /// <summary>
-    /// The handlers for <c>rp1.warp.toComplete</c> and
-    /// <c>rp1.warp.toFundTarget</c>.
-    /// </summary>
+    /// <summary>The handler for <c>rp1.warp.toComplete</c>.</summary>
     public sealed class Rp1WarpCommands : ICommandGateEvaluator
     {
         /// <summary>Warp until the career's next project finishes.</summary>
         public const string ToCompleteCommand = "rp1.warp.toComplete";
-
-        /// <summary>Warp until the balance reaches the standing fund target.</summary>
-        public const string ToFundTargetCommand = "rp1.warp.toFundTarget";
 
         /// <summary>
         /// The scenes RP-1's warp controller actually ticks in, as a gate kind a
@@ -96,7 +106,7 @@ namespace GonogoRp1Uplink
             "RP-1 only steps warp down at the space centre, the tracking station or in flight";
 
         /// <summary>
-        /// The requirement to declare on both commands, so the control is drawn
+        /// The requirement to declare on the command, so the control is drawn
         /// dark with its reason in the editor rather than only answering the press.
         /// </summary>
         /// <remarks>
@@ -150,7 +160,7 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
-        /// Both commands can run: RP-1's space centre, its warp controller and its
+        /// The command can run: RP-1's space centre, its warp controller and its
         /// static helpers resolved.
         ///
         /// <para>TYPES ONLY, for the reason
@@ -168,7 +178,7 @@ namespace GonogoRp1Uplink
         public bool IsAvailable => _scm != null && _warpController != null && _utilities != null;
 
         /// <summary>
-        /// Whether the members these commands invoke resolved, as a sentence for a
+        /// Whether the members this command invokes resolved, as a sentence for a
         /// health fact. The same reasoning as
         /// <see cref="Rp1VehicleCommands.MethodDiagnosis"/>.
         /// </summary>
@@ -275,48 +285,7 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
-        /// Warps until the balance reaches the standing fund target.
-        ///
-        /// <para>The target itself is set and cancelled elsewhere
-        /// (<c>rp1.fundTarget.set</c>, <c>rp1.fundTarget.cancel</c>) and published
-        /// on <c>rp1.fundTarget</c>. This is the warp half only, which is why it
-        /// takes no figure: warping toward a balance nobody has committed to would
-        /// be a different act with a different consequence.</para>
-        /// </summary>
-        public CommandResult ToFundTarget(Rp1WarpArgs? args)
-        {
-            if (!TryReady(out var refusal))
-            {
-                return refusal!;
-            }
-
-            var scm = Rp1Types.StaticValue(_scm!, "Instance");
-            var target = Rp1Types.Member(scm, "fundTarget");
-            if (target == null)
-            {
-                return CommandResult.Fail(
-                    CommandErrorCode.Unreadable,
-                    "RP-1 would not say whether a fund target is standing, so nothing was warped");
-            }
-
-            // RP-1's own validity test, and it is not merely "non-zero": a figure
-            // equal to the balance it was set at is no target at all, and one at or
-            // below zero is not either.
-            if (Rp1Types.ReadBool(target, "IsValid") != true)
-            {
-                return CommandResult.Fail(
-                    CommandErrorCode.NotFound,
-                    "no fund target is standing, so there is no balance to warp toward. "
-                    + "Set one first with rp1.fundTarget.set");
-            }
-
-            return Warp(target, "warp to the fund target");
-        }
-
-        // ── Shared resolution ─────────────────────────────────────────────────
-
-        /// <summary>
-        /// The four refusals both commands share: this Uplink's own resolution,
+        /// The four refusals the command makes: this Uplink's own resolution,
         /// RP-1's scenario module, the save, and the scene.
         /// </summary>
         private bool TryReady(out CommandResult? refusal)

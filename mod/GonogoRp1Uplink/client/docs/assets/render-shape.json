@@ -178,17 +178,17 @@
       "text": "942b1ca1"
     },
     "avionics-controls-locked--default.png": {
-      "hash": "dfbe85a0b94de04d",
+      "hash": "31359c31fea26825",
       "elements": 260,
       "text": "948c7e34"
     },
     "avionics-not-installed--default.png": {
-      "hash": "dc2c25b721f2c7c1",
+      "hash": "e8d834b26ccc0946",
       "elements": 254,
       "text": "3c936ea3"
     },
     "avionics-roll-only--default.png": {
-      "hash": "ea7dc2141d309e39",
+      "hash": "eef01504859995c5",
       "elements": 260,
       "text": "589de221"
     },
@@ -253,32 +253,32 @@
       "text": "1ecaf521"
     },
     "complexes-add-pad--default.png": {
-      "hash": "ba1b47393318b80c",
+      "hash": "c7e9ab7cdd91766f",
       "elements": 265,
       "text": "34a60c07"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "d68349425550e54d",
+      "hash": "3851c67ed1c6fa30",
       "elements": 209,
       "text": "510a6444"
     },
     "complexes-last-pad--default.png": {
-      "hash": "8a61dc4158987ac1",
+      "hash": "e90e14f9ffaab031",
       "elements": 248,
       "text": "2c4db57f"
     },
     "complexes-new--default.png": {
-      "hash": "adc359780fe7208d",
+      "hash": "77d578d7f505b2de",
       "elements": 236,
       "text": "7331e7db"
     },
     "complexes-rename--default.png": {
-      "hash": "5eef0c152baca623",
+      "hash": "1489ced61fd36e13",
       "elements": 266,
       "text": "46a7048d"
     },
     "complexes-renovate--default.png": {
-      "hash": "e98d52a10e54f77a",
+      "hash": "294fad5a2a62ce09",
       "elements": 244,
       "text": "24b7797f"
     },
@@ -323,12 +323,12 @@
       "text": "8348fe0e"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "c9335d093062ed71",
+      "hash": "ebab391fe5213e8d",
       "elements": 34,
       "text": "206699b0"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "befd6c8104f09ae4",
+      "hash": "ef245f7e5a824f95",
       "elements": 33,
       "text": "a8239cff"
     },
@@ -388,7 +388,7 @@
       "text": "6d930dce"
     },
     "hire-target-standing-order--default.png": {
-      "hash": "0ab86871b63eae2b",
+      "hash": "7fb792d7d227b3b2",
       "elements": 176,
       "text": "3fad0c42"
     },
@@ -428,7 +428,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "8ce85e422e0ec172",
+      "hash": "792850167cb47843",
       "elements": 138,
       "text": "0dc12c0e"
     },
@@ -478,32 +478,32 @@
       "text": "a779cc0f"
     },
     "tooling-refit-instead--default.png": {
-      "hash": "0b734243a3f0f28b",
+      "hash": "b41be7668039abec",
       "elements": 90,
       "text": "e91f2657"
     },
     "tooling-refit-instead--landscape-18x5.png": {
-      "hash": "70e9bbb059001efe",
+      "hash": "e3e151275167eee3",
       "elements": 90,
       "text": "e91f2657"
     },
     "tooling-refit-instead--min.png": {
-      "hash": "c968f3aae1b19f87",
+      "hash": "7028cae760584a26",
       "elements": 90,
       "text": "17f84f3f"
     },
     "tooling-refit-instead--mobile-9x8.png": {
-      "hash": "78701652e5c3d68f",
+      "hash": "96dfb7c19331587b",
       "elements": 90,
       "text": "e91f2657"
     },
     "tooling-refit-instead--portrait-5x18.png": {
-      "hash": "817cbf3c21ba4647",
+      "hash": "fb0e9253bad34d82",
       "elements": 90,
       "text": "e91f2657"
     },
     "two-centres-unstaffed--default.png": {
-      "hash": "b0c0e6bff6c23b96",
+      "hash": "4d9a152159b11c56",
       "elements": 202,
       "text": "21d9408b"
     },
@@ -513,19 +513,19 @@
       "text": "000c1a89"
     },
     "warp-fund-target-standing--default.png": {
-      "hash": "3458cd26ce2fbd79",
-      "elements": 38,
-      "text": "9dc7fdf1"
+      "hash": "45135e30101f18d5",
+      "elements": 40,
+      "text": "9103bb06"
     },
     "warp-no-fund-target--default.png": {
-      "hash": "643376a3bde06aaa",
+      "hash": "10fb929b2a748a56",
       "elements": 33,
-      "text": "7d626bcb"
+      "text": "23733d97"
     },
     "warp-set-a-fund-target--default.png": {
-      "hash": "830138e836feaf64",
+      "hash": "38b9528e6268cd24",
       "elements": 47,
-      "text": "2b960120"
+      "text": "991c2c04"
     }
   }
 }

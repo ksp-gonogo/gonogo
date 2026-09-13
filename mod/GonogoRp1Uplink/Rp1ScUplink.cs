@@ -685,7 +685,6 @@ namespace GonogoRp1Uplink
                 commands.Add(Declare(Rp1TargetCommands.CancelHireCommand));
                 commands.Add(Declare(Rp1TargetCommands.CancelFundCommand));
                 commands.Add(Declare(Rp1TargetCommands.SetHireCommand));
-                commands.Add(Declare(Rp1TargetCommands.SetFundCommand));
             }
             // Its own flag, on RP-1's crew handler and its course type, which no
             // other command here reaches: every one of the three is about a course
@@ -729,24 +728,21 @@ namespace GonogoRp1Uplink
             // started anywhere else would set a rate and never step it down, which
             // overshoots the thing it was aimed at.
             //
-            // These two are also the only INSTANT commands this Uplink serves, and
-            // that is not an oversight: warp is a change to the operator's own
-            // clock rather than an order to anything, so light-time does not apply
-            // to it. Declared on Rp1WarpArgs, which carries the full reasoning.
+            // This is also the only INSTANT command this Uplink serves, and that is
+            // not an oversight: warp is a change to the operator's own clock rather
+            // than an order to anything, so light-time does not apply to it.
+            // Declared on Rp1WarpArgs, which carries the full reasoning.
             if (warpModelResolved)
             {
-                foreach (var command in new[] { Rp1WarpCommands.ToCompleteCommand, Rp1WarpCommands.ToFundTargetCommand })
+                commands.Add(new CommandDeclaration
                 {
-                    commands.Add(new CommandDeclaration
+                    Command = Rp1WarpCommands.ToCompleteCommand,
+                    Requires = new[]
                     {
-                        Command = command,
-                        Requires = new[]
-                        {
-                            Rp1BuildCommands.Requirements()[0],
-                            Rp1WarpCommands.SceneRequirement(),
-                        },
-                    });
-                }
+                        Rp1BuildCommands.Requirements()[0],
+                        Rp1WarpCommands.SceneRequirement(),
+                    },
+                });
             }
             // Its own flag again, on RP-1's tooling model, which nothing else here
             // touches. Both commands act on the editor ship rather than the space
@@ -778,10 +774,10 @@ namespace GonogoRp1Uplink
         /// command's args type in this Uplink's contract slice now, which is the
         /// same declaration the SDK codegen hands the client.</para>
         ///
-        /// <para>Every command this factory mints delays. The two that do not are
-        /// <c>rp1.warp.toComplete</c> and <c>rp1.warp.toFundTarget</c>, which are
-        /// declared separately above for their scene requirement and are clock
-        /// changes rather than orders: see <c>Rp1WarpArgs</c>.</para>
+        /// <para>Every command this factory mints delays. The one that does not is
+        /// <c>rp1.warp.toComplete</c>, which is declared separately above for its
+        /// scene requirement and is a clock change rather than an order: see
+        /// <c>Rp1WarpArgs</c>.</para>
         /// </summary>
         private static CommandDeclaration Declare(string command) => new CommandDeclaration
         {
@@ -992,8 +988,6 @@ namespace GonogoRp1Uplink
                         Rp1TargetCommands.CancelFundCommand, _targets.CancelFund);
                     host.AddCommandHandler<Rp1HireTargetSetArgs, CommandResult>(
                         Rp1TargetCommands.SetHireCommand, _targets.SetHire);
-                    host.AddCommandHandler<Rp1FundTargetSetArgs, CommandResult>(
-                        Rp1TargetCommands.SetFundCommand, _targets.SetFund);
                 }
             });
             Register(() =>
@@ -1050,8 +1044,6 @@ namespace GonogoRp1Uplink
                     host.AddGateEvaluator(_warp);
                     host.AddCommandHandler<Rp1WarpArgs, CommandResult>(
                         Rp1WarpCommands.ToCompleteCommand, _warp.ToComplete);
-                    host.AddCommandHandler<Rp1WarpArgs, CommandResult>(
-                        Rp1WarpCommands.ToFundTargetCommand, _warp.ToFundTarget);
                 }
             });
             Register(() =>
@@ -1723,10 +1715,10 @@ namespace GonogoRp1Uplink
                         ? "not registered: RP-1 contract types not found"
                         : "rp1.contracts.setPayload registered (" + _contracts.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
-                    "warp commands",
+                    "warp command",
                     !_warp.IsAvailable
                         ? "not registered: RP-1 warp types not found"
-                        : "rp1.warp.toComplete and rp1.warp.toFundTarget registered ("
+                        : "rp1.warp.toComplete registered ("
                           + _warp.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",

@@ -267,9 +267,6 @@
       "targetFunds": "funds",
       "timeLeft": "s"
     },
-    "Rp1FundTargetSetArgs": {
-      "targetFunds": "funds"
-    },
     "Rp1FundingCurveEntry": {
       "isDefault": "flag",
       "name": "id"

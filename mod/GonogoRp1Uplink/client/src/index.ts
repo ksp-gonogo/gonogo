@@ -109,8 +109,4 @@ export {
   RP1_SCRAP_COMMAND,
 } from "./VehicleAssembly/VehicleSection";
 export { WarehouseSection } from "./VehicleAssembly/Warehouse";
-export {
-  RP1_WARP_TO_COMPLETE_COMMAND,
-  RP1_WARP_TO_FUND_TARGET_COMMAND,
-  WarpTargets,
-} from "./WarpTargets";
+export { RP1_WARP_TO_COMPLETE_COMMAND, WarpTargets } from "./WarpTargets";

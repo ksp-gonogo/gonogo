@@ -69,7 +69,6 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1CareerEventEntry),
                 nameof(Rp1Avionics),
                 nameof(Rp1HireTargetSetArgs),
-                nameof(Rp1FundTargetSetArgs),
                 // The shapes here that are not Topic payloads: the command
                 // args. They are held to the same rule because they cross the
                 // same wire, and an id with no declared unit reads to a client as

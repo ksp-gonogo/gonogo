@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "The ETA is RP-1's own projection off its budget model rather than a promise, and it is worth showing beside a press that will advance the career by that much. Nothing here stops warp: RP-1's controller destroys itself the moment it sees a rate of zero, so the host widget's existing 1x button already ends an RP-1 warp and a second control would be two buttons doing one thing."
+    "notes": "A target RP-1 is holding, which only its own Maintenance screen can stand up now: rp1.fundTarget.set and rp1.warp.toFundTarget are both deleted, on the ruling that RP-1 must not manage warp. What survives is the readout, the cancel, and a request for an ALARM on the balance. Nothing here stops warp either: RP-1's controller destroys itself the moment it sees a rate of zero, so the host widget's existing 1x button already ends an RP-1 warp and a second control would be two buttons doing one thing."
   },
   "_scene": {
     "augment": "rp1-warp-targets",
@@ -9,8 +9,8 @@
       "w": 6,
       "h": 10
     },
-    "caption": "A fund target standing, so both presses are live and each names what it warps to. No ETA line: the operator ruled that funds needs less, so the reason a press is dark lives in its accessible name.",
-    "paints": ["next completion", "fund target"]
+    "caption": "A fund target standing: its figure and RP-1's own ETA, the press that withdraws it, and the balance alarm that replaces warping toward it.",
+    "paints": ["next completion", "Cancel", "Balance alarm"]
   },
   "_stream": {
     "pinnedUt": 1000000,
