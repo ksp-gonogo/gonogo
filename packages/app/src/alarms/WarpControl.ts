@@ -1,6 +1,6 @@
 import { logger } from "@ksp-gonogo/logger";
 import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
-import type { AlarmStateMachine } from "./AlarmStateMachine";
+import type { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import type { Alarm, AlarmWarpState } from "./types";
 import type { WarpRateTable } from "./WarpRateTable";
 
@@ -57,7 +57,7 @@ export interface WarpToTarget {
 
 /**
  * Owns the "warp to next alarm" controller and the on-arming step-down.
- * Reads alarm/UT state through `AlarmStateMachine`; mutates only its own
+ * Reads alarm/UT state through `AlarmWarpPlanner`; mutates only its own
  * session fields and forwards intent stamps to the host.
  */
 export class WarpControl {
@@ -72,7 +72,7 @@ export class WarpControl {
   private observedAtCommand: number | null = null;
 
   constructor(
-    private readonly stateMachine: AlarmStateMachine,
+    private readonly planner: AlarmWarpPlanner,
     private readonly ctx: WarpControlContext,
     private readonly nowMs: () => number,
     initialMarginSeconds: number,
@@ -117,7 +117,7 @@ export class WarpControl {
 
   /** Begin a warp-to session. Returns true if a session actually started. */
   begin(): boolean {
-    if (this.stateMachine.findEligiblePendingAlarm() === null) return false;
+    if (this.planner.findEligiblePendingAlarm() === null) return false;
     this.endSession();
     this.warpToActive = true;
     this.ctx.registerOwnWarpIntent();
@@ -188,9 +188,9 @@ export class WarpControl {
       ? (this.commandedIndex as number)
       : observedIndex;
 
-    const target = this.stateMachine.findClosestPendingTrackableAlarm();
+    const target = this.planner.findClosestPendingTrackableAlarm();
     if (target === null) {
-      const eligible = this.stateMachine.findEligiblePendingAlarm();
+      const eligible = this.planner.findEligiblePendingAlarm();
       if (eligible === null) {
         this.endSession();
         return;
@@ -286,7 +286,7 @@ export class WarpControl {
   ): number {
     if (remainingGameSeconds <= 0) return 0;
     const marginRate = remainingGameSeconds / this.effectiveMarginSeconds();
-    const maxRate = this.stateMachine.hasUnmodelableThresholdOther(target)
+    const maxRate = this.planner.hasUnmodelableThresholdOther(target)
       ? Math.min(marginRate, UNPLANNABLE_MAX_RATE)
       : marginRate;
     return this.ctx.getRateTable().chooseIndex(maxRate);

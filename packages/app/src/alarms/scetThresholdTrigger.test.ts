@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { AlarmStateMachine } from "./AlarmStateMachine";
+import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import type { Alarm, ThresholdTrigger } from "./types";
 import { isScetTrigger, migrateAlarm, scetThresholdAddress } from "./types";
 
@@ -45,11 +46,13 @@ describe("SCET threshold trigger", () => {
   let now: number;
   let alarms: Alarm[];
   let sm: AlarmStateMachine;
+  let planner: AlarmWarpPlanner;
 
   beforeEach(() => {
     now = 1000;
     alarms = [];
-    sm = new AlarmStateMachine(
+    sm = new AlarmStateMachine(() => now);
+    planner = new AlarmWarpPlanner(
       () => alarms,
       () => now,
     );
@@ -97,13 +100,13 @@ describe("SCET threshold trigger", () => {
     const ordinary = thresholdAlarm();
     ordinary.id = "a2";
     alarms.push(scet);
-    expect(sm.findEligiblePendingAlarm()).toBeNull();
+    expect(planner.findEligiblePendingAlarm()).toBeNull();
     // And it never caps the ladder as an unmodelable one would: there is
     // nothing for extra ticks to buy.
-    expect(sm.hasUnmodelableThresholdOther(ordinary)).toBe(false);
+    expect(planner.hasUnmodelableThresholdOther(ordinary)).toBe(false);
 
     alarms.push(ordinary);
-    expect(sm.findEligiblePendingAlarm()?.id).toBe("a2");
+    expect(planner.findEligiblePendingAlarm()?.id).toBe("a2");
   });
 
   it("keeps the command-vantage threshold evaluating exactly as before", () => {

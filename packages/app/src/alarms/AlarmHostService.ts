@@ -21,6 +21,7 @@ import {
   AlarmStateMachine,
   type RevealedEventsReader,
 } from "./AlarmStateMachine";
+import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import { ScetAlarmBridge } from "./ScetAlarmBridge";
 import {
   type Alarm,
@@ -69,8 +70,9 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
  *   - Accept add / update / delete from peers via the host service.
  *
  * The stateful pieces are extracted into collaborating modules:
- *   - `AlarmStateMachine`: `deriveState`, threshold-match tracking,
- *     slope-fit ETA, and the closest/eligible-alarm queries.
+ *   - `AlarmStateMachine`: `deriveState` and the match tracking behind it.
+ *   - `AlarmWarpPlanner`: the slope-fit sample buffers, the ETA, and the
+ *     closest/eligible-alarm queries `WarpControl` asks of them.
  *   - `WarpControl`: the warp-to controller and `stepWarpDown`.
  *   - `WarpObserver`: warp telemetry + unscheduled-warp detection.
  *   - `AlarmPeerBridge`: peer event wiring and broadcasts.
@@ -164,6 +166,7 @@ export class AlarmHostService {
   private storage: Storage;
   private alarmStore: LocalStorageStore<Alarm[]>;
   private stateMachine: AlarmStateMachine;
+  private warpPlanner: AlarmWarpPlanner;
   private warp: WarpControl;
   private warpObserver: WarpObserver;
   private peerBridge: AlarmPeerBridge;
@@ -192,10 +195,12 @@ export class AlarmHostService {
     });
 
     this.stateMachine = new AlarmStateMachine(
-      () => this.alarms,
       () => this.observedUT,
       opts.getRevealedEvents,
-      undefined,
+    );
+    this.warpPlanner = new AlarmWarpPlanner(
+      () => this.alarms,
+      () => this.observedUT,
       () => this.opts.getOwltSeconds(),
     );
 
@@ -210,7 +215,7 @@ export class AlarmHostService {
     );
 
     this.warp = new WarpControl(
-      this.stateMachine,
+      this.warpPlanner,
       {
         getObservedIndex: () => this.warpObserver.getWarp().index,
         getRateTable: () => this.warpObserver.getRateTable(),
@@ -388,7 +393,10 @@ export class AlarmHostService {
     } else {
       next.state = this.stateMachine.deriveState(next);
     }
-    if (patch.trigger) this.stateMachine.forget(id);
+    if (patch.trigger) {
+      this.stateMachine.forget(id);
+      this.warpPlanner.forget(id);
+    }
     this.alarms[idx] = next;
     if (patch.trigger) {
       // A refusal describes the condition that was replaced.
@@ -410,6 +418,7 @@ export class AlarmHostService {
     this.alarms = this.alarms.filter((a) => a.id !== id);
     if (this.alarms.length !== before) {
       this.stateMachine.forget(id);
+      this.warpPlanner.forget(id);
       this.scetArmRefusals.delete(id);
       this.persist();
       this.emit();
@@ -531,9 +540,10 @@ export class AlarmHostService {
     if (ut !== null) {
       let changed = false;
       for (const alarm of this.alarms) {
-        // Threshold tracking must run *before* deriveState, it reads
-        // last-tick's `alarm.state` to decide whether to keep the rolling
-        // sample buffer. Don't reorder.
+        /* Don't reorder these three. Match tracking writes the latch, the
+           warp-to sample reads that latch plus last-tick's `alarm.state` to
+           decide whether to keep the rolling buffer, and `deriveState` below
+           commits the new state the sample must not have seen yet. */
         if (alarm.trigger.kind === "threshold") {
           if (
             this.stateMachine.updateThresholdTracking(
@@ -544,6 +554,7 @@ export class AlarmHostService {
           ) {
             changed = true;
           }
+          this.warpPlanner.recordThresholdSample(alarm, ut);
         }
         // Contract-parameter tracking has the same shape (matchSinceUT
         // + sustain) but no rolling sample buffer, the underlying

@@ -1,6 +1,7 @@
 import type { EventOccurrence } from "@ksp-gonogo/sitrep-client";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AlarmStateMachine } from "./AlarmStateMachine";
+import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import type { Alarm, EventTrigger } from "./types";
 import { migrateAlarm } from "./types";
 
@@ -25,15 +26,19 @@ describe("event alarm trigger", () => {
   let revealed: EventOccurrence[];
   let alarms: Alarm[];
   let sm: AlarmStateMachine;
+  let planner: AlarmWarpPlanner;
 
   beforeEach(() => {
     now = 100;
     revealed = [];
     alarms = [];
     sm = new AlarmStateMachine(
-      () => alarms,
       () => now,
       () => revealed,
+    );
+    planner = new AlarmWarpPlanner(
+      () => alarms,
+      () => now,
     );
   });
 
@@ -142,16 +147,13 @@ describe("event alarm trigger", () => {
     const alarm = eventAlarm();
     alarms.push(alarm);
     tick(alarm);
-    expect(sm.findEligiblePendingAlarm()).toBeNull();
+    expect(planner.findEligiblePendingAlarm()).toBeNull();
   });
 
   it("defaults to never firing when no revealed-events reader is wired", () => {
     // The host constructs the state machine without a reader today, an event
     // alarm must sit pending, not throw.
-    const bare = new AlarmStateMachine(
-      () => alarms,
-      () => now,
-    );
+    const bare = new AlarmStateMachine(() => now);
     const alarm = eventAlarm();
     alarms.push(alarm);
     bare.updateEventTracking(alarm, now);

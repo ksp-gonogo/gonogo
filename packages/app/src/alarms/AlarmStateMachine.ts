@@ -1,11 +1,10 @@
-import { slopeFit } from "@ksp-gonogo/core";
 import {
   type EventOccurrence,
   getContractsActive,
-  getValue,
 } from "@ksp-gonogo/sitrep-client";
 import type { CareerContract } from "@ksp-gonogo/sitrep-sdk";
 import { KspParameterState } from "@ksp-gonogo/sitrep-sdk";
+import { readThresholdTelemetryNumber } from "./AlarmWarpPlanner";
 import {
   type Alarm,
   type ContractParameterTargetState,
@@ -17,15 +16,6 @@ import {
 } from "./types";
 
 /**
- * A one-way light time fit to be subtracted: a non-finite or negative reading
- * is no light time rather than a negative one, which would push a SCET instant
- * further away instead of closer.
- */
-function safeOwltSeconds(seconds: number): number {
-  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
-}
-
-/**
  * Reader for the revealed occurrences on an event topic, the seam the
  * `event` trigger consumes. Returns occurrences already past the reveal gate
  * (delay + connectivity), newest-last; see `EventTimeline.revealed`. Defaults
@@ -34,11 +24,6 @@ function safeOwltSeconds(seconds: number): number {
 export type RevealedEventsReader = (
   topic: string,
 ) => readonly EventOccurrence[];
-
-interface ThresholdSample {
-  ut: number;
-  value: number;
-}
 
 /**
  * A contract-parameter trigger's persisted target word → KSP's own ordinal.
@@ -55,27 +40,30 @@ const TARGET_STATE_ORDINAL: Record<
   Failed: KspParameterState.Failed,
 };
 
-const THRESHOLD_SAMPLE_COUNT = 16;
-const MIN_SAMPLES_FOR_SLOPE = 4;
-const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
-
 /**
  * Owns the per-tick alarm state derivation: contiguous-match tracking for
- * threshold triggers, the rolling sample buffers used by the warp-to ETA
- * estimator, and the helpers (`findClosestPendingTrackableAlarm`,
- * `findEligiblePendingAlarm`, `hasUnmodelableThresholdOther`) that the warp
- * controller queries.
+ * threshold, contract-parameter and event triggers, and the `deriveState`
+ * transition that reads the latches they write.
  *
- * The host owns the alarm array and `observedUT`; this module reads them
- * through getter callbacks so it never holds stale copies. Threshold
+ * The warp-to ladder's ETA planner is NOT here, it is `AlarmWarpPlanner`. The
+ * two were one class and have different futures: deciding whether a condition
+ * holds belongs to the simulation, which reads it undelayed, while deciding how
+ * far to warp is fitted to the delayed samples this screen has and stays
+ * client-side. The planner's sampling is driven from the host tick rather than
+ * from here, so it survives this class being deleted.
+ *
+ * Every method here takes the one alarm it works on, so the alarm ARRAY is no
+ * longer a dependency: the planner took the last reader of it out with the
+ * queries. `observedUT` stays a getter callback, owned by the host, so this
+ * never holds a stale copy. Threshold
  * `dataKey` reads and the contract-parameter trigger's `contracts.active`
- * read both come off the stream now (`getValue`/`getContractsActive`,
- * `@ksp-gonogo/sitrep-client`) rather than the legacy `"data"` `DataSource`,
+ * read both come off the stream now (`readThresholdTelemetryNumber` over
+ * `getValue`, and `getContractsActive`) rather than the legacy `"data"`
+ * `DataSource`,
  * `DataKeyPicker`'s Value restriction (`useValueKeys`) guarantees a
  * `ThresholdTrigger.dataKey` always has a stream home.
  */
 export class AlarmStateMachine {
-  private thresholdSamples = new Map<string, ThresholdSample[]>();
   /**
    * Per-event-alarm watch baseline: the observed UT at which the alarm first
    * ticked. Only occurrences revealed after this fire, so an alarm never
@@ -86,7 +74,6 @@ export class AlarmStateMachine {
   private eventWatchFrom = new Map<string, number>();
 
   constructor(
-    private readonly getAlarms: () => readonly Alarm[],
     private readonly getObservedUT: () => number | null,
     private readonly getRevealedEvents: RevealedEventsReader = () => [],
     /**
@@ -104,21 +91,10 @@ export class AlarmStateMachine {
     private readonly getContracts: () =>
       | readonly CareerContract[]
       | undefined = getContractsActive,
-    /**
-     * One-way light time to the craft, seconds, or 0 where there is none.
-     *
-     * Only the SCET arm needs it, and it needs it for one thing: a SCET alarm's
-     * instant is on the craft's clock while every countdown drawn here is on the
-     * view clock, so the two are a light-time apart and a warp-to ladder that
-     * did not close the gap would plan against an instant that is not the one
-     * the mod will stop it at. Defaulted so no existing caller changes.
-     */
-    private readonly getOwltSeconds: () => number = () => 0,
   ) {}
 
   /**
-   * Update threshold-match state for one alarm and append a slope-fit
-   * sample if the alarm is still in the pending pre-match phase. Mutates
+   * Update threshold-match state for one alarm. Mutates
    * `alarm.matchSinceUT`. Returns true if `matchSinceUT` changed.
    *
    * `previously` is the UT of the last tick, and it is what lets an
@@ -126,9 +102,9 @@ export class AlarmStateMachine {
    * `evalThreshold`. Pass `null` where there is no previous tick, and an
    * unreadable read simply leaves the latch untouched.
    *
-   * IMPORTANT: must run *before* `deriveState` for the same tick, it
-   * inspects `alarm.state` from the previous tick to decide whether to
-   * keep the rolling buffer.
+   * IMPORTANT: must run *before* `deriveState` for the same tick, and before
+   * `AlarmWarpPlanner.recordThresholdSample`, which reads the latch written
+   * here.
    */
   updateThresholdTracking(
     alarm: Alarm,
@@ -175,15 +151,14 @@ export class AlarmStateMachine {
       alarm.matchSinceUT = null;
       changed = true;
     }
-    this.recordThresholdSample(alarm, ut);
     return changed;
   }
 
   /**
    * Update contract-parameter match state. Same shape as
-   * `updateThresholdTracking` minus the slope-fit sample buffer (no
-   * numeric value to model). Mutates `alarm.matchSinceUT`; returns true
-   * iff it changed.
+   * `updateThresholdTracking`, over a discrete state match rather than a
+   * numeric one, so nothing here feeds the warp-to ETA planner (there is no
+   * scalar to fit). Mutates `alarm.matchSinceUT`; returns true iff it changed.
    *
    * `previously` is the UT of the last tick, and it does the same job here as
    * it does there: an UNREADABLE contract list leaves the latch alone and
@@ -256,9 +231,11 @@ export class AlarmStateMachine {
     return false;
   }
 
-  /** Drop sample buffer for an alarm: used on delete or trigger change. */
+  /**
+   * Drop per-alarm tracking state: used on delete or trigger change. The
+   * warp-to sample buffer is `AlarmWarpPlanner.forget`, and the host calls both.
+   */
   forget(alarmId: string): void {
-    this.thresholdSamples.delete(alarmId);
     this.eventWatchFrom.delete(alarmId);
   }
 
@@ -357,88 +334,6 @@ export class AlarmStateMachine {
   }
 
   /**
-   * Pick the closest pending alarm we can plan against, earliest time
-   * alarm or smallest-ETA threshold alarm.
-   */
-  findClosestPendingTrackableAlarm(): {
-    alarm: Alarm;
-    remainingGameSeconds: number;
-  } | null {
-    const ut = this.getObservedUT();
-    if (ut === null) return null;
-    let best: { alarm: Alarm; remaining: number } | null = null;
-    for (const a of this.getAlarms()) {
-      if (a.state !== "pending") continue;
-      let remaining: number;
-      if (a.trigger.kind === "time") {
-        /* A SCET instant is on the craft's clock and `ut` is on the view
-           clock, so the light-time comes off it: the mod will stop the warp
-           when the GAME reaches `ut - lead`, which the operator's screen
-           reaches one light-time earlier. */
-        const vantageOffset = isScetTrigger(a.trigger)
-          ? safeOwltSeconds(this.getOwltSeconds())
-          : 0;
-        remaining = a.trigger.ut - vantageOffset - a.trigger.leadSeconds - ut;
-      } else {
-        const eta = this.estimateThresholdEta(a);
-        if (eta === null) continue;
-        remaining = eta;
-      }
-      if (remaining <= 0) continue;
-      if (!best || remaining < best.remaining) {
-        best = { alarm: a, remaining };
-      }
-    }
-    return best
-      ? { alarm: best.alarm, remainingGameSeconds: best.remaining }
-      : null;
-  }
-
-  /** Any pending alarm we could plausibly target (for warp-to hold). */
-  findEligiblePendingAlarm(): Alarm | null {
-    for (const a of this.getAlarms()) {
-      if (a.state !== "pending") continue;
-      if (a.trigger.kind === "time") return a;
-      // Contract-parameter and event triggers are discrete transitions;
-      // there's no scalar to warp toward, so they're not warp-targetable.
-      if (a.trigger.kind === "contract-parameter") continue;
-      if (a.trigger.kind === "event") continue;
-      /* A SCET threshold is not warp-targetable either, for a different
-         reason: there IS a scalar, but the mod is watching it and will stop the
-         warp on its own. A ladder aimed at it would be planning against
-         readings a light-time behind the comparison that decides it. */
-      if (isScetTrigger(a.trigger)) continue;
-      const t = a.trigger;
-      if (t.op === "==" || t.op === "!=") continue;
-      if (a.matchSinceUT != null) continue;
-      return a;
-    }
-    return null;
-  }
-
-  /**
-   * True iff a *different* pending threshold alarm exists whose ETA
-   * cannot currently be modelled: the warp controller uses this to cap
-   * the rate so the unmodelable target gets a chance to register.
-   */
-  hasUnmodelableThresholdOther(target: Alarm): boolean {
-    return this.getAlarms().some((a) => {
-      if (a.id === target.id) return false;
-      if (a.state !== "pending") return false;
-      if (a.trigger.kind !== "threshold") return false;
-      /* Never a SCET threshold. This caps the warp so an unmodelable alarm has
-         ticks to register in, and a mod-owned one needs none: the stop happens
-         upstream of everything this side can see, at whatever rate the game is
-         running. */
-      if (isScetTrigger(a.trigger)) return false;
-      if (a.matchSinceUT != null) return false;
-      const t = a.trigger;
-      if (t.op === "==" || t.op === "!=") return true;
-      return this.estimateThresholdEta(a) === null;
-    });
-  }
-
-  /**
    * Three answers, not two: the condition holds, the condition does not hold,
    * or `null` for a read we could not make at all.
    *
@@ -451,7 +346,7 @@ export class AlarmStateMachine {
    * dropout clear a sustain latch.
    */
   private evalThreshold(t: ThresholdTrigger): boolean | null {
-    const observed = this.readTelemetryNumber(t.dataKey);
+    const observed = readThresholdTelemetryNumber(t.dataKey);
     if (observed === null) return null;
     return compare(observed, t.op, t.value);
   }
@@ -534,61 +429,6 @@ export class AlarmStateMachine {
       return o;
     }
     return null;
-  }
-
-  private recordThresholdSample(alarm: Alarm, ut: number): void {
-    if (alarm.trigger.kind !== "threshold") return;
-    /* Samples exist to fit an ETA for the warp-to ladder, and a SCET threshold
-       has no use for one: the mod stops the warp itself, in the frame it
-       decides to, so a ladder planned from delayed samples would only be a
-       second authority arriving late. */
-    if (isScetTrigger(alarm.trigger)) return;
-    if (alarm.state !== "pending" || alarm.matchSinceUT != null) {
-      this.thresholdSamples.delete(alarm.id);
-      return;
-    }
-    const v = this.readTelemetryNumber(alarm.trigger.dataKey);
-    if (v === null) return;
-    const buf = this.thresholdSamples.get(alarm.id) ?? [];
-    const last = buf[buf.length - 1];
-    if (last && last.ut === ut) {
-      last.value = v;
-      return;
-    }
-    buf.push({ ut, value: v });
-    while (buf.length > THRESHOLD_SAMPLE_COUNT) buf.shift();
-    this.thresholdSamples.set(alarm.id, buf);
-  }
-
-  private estimateThresholdEta(alarm: Alarm): number | null {
-    if (alarm.trigger.kind !== "threshold") return null;
-    /* See `recordThresholdSample`: no samples are kept for a SCET threshold, so
-       this would answer null anyway. Said here as well, because a reader
-       deciding whether a warp-to can target one should not have to trace it
-       through an empty buffer. */
-    if (isScetTrigger(alarm.trigger)) return null;
-    const t = alarm.trigger;
-    if (t.op === "==" || t.op === "!=") return null;
-    if (alarm.matchSinceUT != null) return null;
-    const buf = this.thresholdSamples.get(alarm.id);
-    if (!buf || buf.length < MIN_SAMPLES_FOR_SLOPE) return null;
-    const span = buf[buf.length - 1].ut - buf[0].ut;
-    if (span < MIN_SAMPLE_SPAN_GAME_SECONDS) return null;
-    const fit = slopeFit(buf.map((s) => ({ x: s.ut, y: s.value })));
-    if (fit === null) return null;
-    const approachingUp = t.op === ">" || t.op === ">=";
-    const distance = approachingUp
-      ? t.value - fit.latestY
-      : fit.latestY - t.value;
-    if (distance <= 0) return null;
-    const approachRate = approachingUp ? fit.slope : -fit.slope;
-    if (approachRate <= 0) return null;
-    return distance / approachRate;
-  }
-
-  private readTelemetryNumber(key: string): number | null {
-    const v = getValue("data", key);
-    return v === undefined ? null : v;
   }
 }
 
