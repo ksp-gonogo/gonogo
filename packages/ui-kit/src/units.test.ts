@@ -5,9 +5,11 @@ import { setKspCalendar, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import {
+  formatGroupKey,
   formatQuantity,
   kindOfUnit,
   ladderPosition,
+  pinGroupKey,
   quantityScale,
   registerUnit,
   separatingDecimals,
@@ -1009,6 +1011,39 @@ describe("unitScaleKey", () => {
     expect(unitScaleKey("%")).toBeUndefined();
     expect(unitScaleKey(undefined)).toBeUndefined();
     expect(unitScaleKey("not a unit")).toBeUndefined();
+  });
+});
+
+describe("pinGroupKey", () => {
+  /**
+   * The whole reason a pin is keyed by the kind rather than by a unit: one
+   * length group has one key, where `m`, `km` and `Mm` were three names for it
+   * and only the last one written survived.
+   */
+  it("gives a laddered kind the key every unit of it reports under", () => {
+    expect(pinGroupKey("length")).toBe(formatGroupKey("m"));
+    expect(pinGroupKey("length")).toBe(formatGroupKey("Mm"));
+    expect(pinGroupKey("mass")).toBe(formatGroupKey("t"));
+    expect(pinGroupKey("length")).not.toBe(pinGroupKey("mass"));
+  });
+
+  /**
+   * A unit that climbs nothing groups alone, so it keys itself. `s` and `min`
+   * are one kind and two groups, and a record keyed by kind throughout could
+   * not address either without addressing both.
+   */
+  it("gives a unit that never climbs a key of its own", () => {
+    expect(pinGroupKey("s")).toBe(formatGroupKey("s"));
+    expect(pinGroupKey("s")).not.toBe(pinGroupKey("min"));
+    expect(pinGroupKey("%")).toBe(formatGroupKey("%"));
+  });
+
+  /**
+   * A token this build has never heard of is a third party's unit, not a
+   * mistake, and it resolves the way any unladdered unit does.
+   */
+  it("resolves a token it has no ladder for", () => {
+    expect(pinGroupKey("zorp")).toBe(formatGroupKey("zorp"));
   });
 });
 

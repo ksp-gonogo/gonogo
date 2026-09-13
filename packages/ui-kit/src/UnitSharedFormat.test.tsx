@@ -170,13 +170,15 @@ describe("UnitSharedFormat", () => {
   });
 
   /**
-   * A mixed scope pins each kind under its own unit, which is the only honest
+   * A mixed scope pins each group under its own name, which is the only honest
    * way to pin two of them at once: one flat set of props cannot say two
    * things.
    */
-  it("pins each named kind in the unit it is keyed by", () => {
+  it("pins each named group in the unit it is keyed to", () => {
     render(
-      <UnitSharedFormat pins={{ m: { format: "km" }, kg: { format: "t" } }}>
+      <UnitSharedFormat
+        pins={{ length: { format: "km" }, mass: { format: "t" } }}
+      >
         <Unit value={value("m", 999)} />
         <Unit value={value("kg", 500)} />
       </UnitSharedFormat>,
@@ -186,12 +188,12 @@ describe("UnitSharedFormat", () => {
   });
 
   /**
-   * Entries are opt-in: a kind the map does not mention settles for itself,
+   * Entries are opt-in: a group the map does not mention settles for itself,
    * which is what makes the map the whole statement a mixed scope has to make.
    */
-  it("leaves a kind the pin map omits settling for itself", () => {
+  it("leaves a group the pin map omits settling for itself", () => {
     const { container } = render(
-      <UnitSharedFormat pins={{ m: { format: "km" } }}>
+      <UnitSharedFormat pins={{ length: { format: "km" } }}>
         <Unit value={value("m", 999)} />
         <Unit value={value("kg", 500)} />
         <Unit value={value("kg", 1_000_000)} />
@@ -200,6 +202,22 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilometres")).toHaveLength(1);
     expect(container.textContent).toContain("500.00");
     expect(container.textContent).toContain("1,000,000.00");
+  });
+
+  /**
+   * The key names the GROUP, so one pin reaches every unit that settles with
+   * it. A unit-keyed record made this ambiguous rather than wrong: `{ m: ... }`
+   * and `{ km: ... }` addressed one length group by two names, and whichever
+   * was written last silently won.
+   */
+  it("reaches every unit of the laddered kind it names", () => {
+    render(
+      <UnitSharedFormat pins={{ length: { format: "km" } }}>
+        <Unit value={value("m", 4000)} />
+        <Unit value={value("Mm", 3)} />
+      </UnitSharedFormat>,
+    );
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
   });
 
   /**

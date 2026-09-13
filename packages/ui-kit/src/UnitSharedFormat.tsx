@@ -13,11 +13,16 @@ import { magnitudeOf } from "./magnitude";
 import {
   type FormatQuantityOptions,
   type FormatsFor,
+  type FormatsForKind,
   formatGroupKey,
+  type KindOfGroup,
   type LadderPosition,
   ladderPosition,
   type PresentableAs,
+  type PresentableAsKind,
+  pinGroupKey,
   separatingDecimals,
+  type UnitGroupKey,
   unitScaleKey,
 } from "./units";
 
@@ -89,20 +94,20 @@ import {
  * the data dimension and must not share rungs, and it falls back to the unit
  * itself where nothing climbs at all: see `formatGroupKey` in `units.ts`.
  *
- * What a scope PINS is per kind for the same reason. A scope told to read in
+ * What a scope PINS is per group for the same reason. A scope told to read in
  * kilometres is saying something about its lengths and nothing about its
- * masses, so it names the unit it is talking about and the pin reaches that
- * group alone. One kind names it with `of` and pins flat; several name each one
- * in a map keyed by unit:
+ * masses, so it names the group it is talking about and the pin reaches that
+ * group alone. One group names it with `of`, in any unit of the group, and pins
+ * flat; several name each group in a map keyed by the group:
  *
  * ```tsx
  * <UnitSharedFormat of="m" as="km">
- * <UnitSharedFormat pins={{ m: { as: "km" }, kg: { as: "t" } }}>
+ * <UnitSharedFormat pins={{ length: { as: "km" }, mass: { as: "t" } }}>
  * ```
  *
- * Naming the unit is also the whole of how a pin comes to be TYPED. `of="m"`
- * makes `as` a length, and a key of `m` types its own entry, so `as="kg"` over
- * lengths is a compile error rather than a request dropped on the floor.
+ * Naming the group is also the whole of how a pin comes to be TYPED. `of="m"`
+ * makes `as` a length, and a key of `length` types its own entry, so `as="kg"`
+ * over lengths is a compile error rather than a request dropped on the floor.
  *
  * A scope that pins without naming a unit is the one case left over, and its
  * pin reaches EVERY group, because an instruction that names no kind cannot be
@@ -215,6 +220,35 @@ export interface UnitPins<U extends string = string> {
   decimals?: number;
 }
 
+/**
+ * {@link UnitPins} addressed to a whole GROUP, checked against what that group
+ * measures.
+ *
+ * The group is the thing with a format, so a group is what a pin names. There is
+ * no metre-sized version of "the length ladder reads in kilometres".
+ */
+export interface UnitGroupPins<G extends UnitGroupKey> {
+  /** The rung every member of the group is written at. */
+  format?: FormatsForKind<KindOfGroup<G>>;
+  /** The unit every member of the group is shown in. */
+  as?: PresentableAsKind<KindOfGroup<G>>;
+  /** The digit count every member of the group is written at. */
+  decimals?: number;
+}
+
+/**
+ * What each named group of a mixed scope is pinned to.
+ *
+ * Every entry optional, so a group that needs nothing is simply absent, and the
+ * key set closed, so a key that is not a group is a compile error rather than a
+ * pin that reaches nothing. A unit an Uplink declares reaches this type the way
+ * it reaches every other one here, by widening the generated table on its own
+ * side.
+ */
+export type UnitPinsByGroup = {
+  [G in UnitGroupKey]?: UnitGroupPins<G>;
+};
+
 const NO_PINS: UnitPins = {};
 
 /** What a scope was ASKED for, as against what it settles. */
@@ -304,24 +338,21 @@ function samePolicy(a: Policy, b: Policy): boolean {
  */
 function policyOf(
   of: string | undefined,
-  pins: UnitPinsByUnit | undefined,
+  pins: UnitPinsByToken | undefined,
   own: UnitPins,
   separate: boolean,
 ): Policy {
   const byKey = new Map<string, UnitPins>();
   if (of !== undefined) byKey.set(formatGroupKey(of), own);
-  for (const [unit, pin] of Object.entries(pins ?? {})) {
+  for (const [token, pin] of Object.entries(pins ?? {})) {
     /*
-     * Two units that share a group get one entry and the later wins, which is
-     * the one part of "a group is pinned at most once" the types cannot reach.
-     * A distinct KEY is checked (an object literal refuses a repeated one) and
-     * a distinct GROUP is not, because a group is a family where a unit
-     * declares one and a bare symbol where nothing climbs, and both of those
-     * live in registries `registerUnit` can add to at runtime. Checking the
-     * kind instead would be unsound the other way: `s` and `min` are one kind
-     * and two groups, and refusing that pair would refuse a legitimate scope.
+     * One entry per group, which the keys already guarantee: a repeated key is
+     * an error in an object literal, and two keys can no longer name one group
+     * now that a laddered kind is keyed by the kind. What is left over is a
+     * ladder `registerUnit` adds at runtime, which moves a unit into a kind's
+     * group after these keys were fixed.
      */
-    if (pin !== undefined) byKey.set(formatGroupKey(unit), pin);
+    if (pin !== undefined) byKey.set(pinGroupKey(token), pin);
   }
   return {
     byKey,
@@ -534,39 +565,39 @@ export interface UnitSharedFormatProps<U extends string = string>
 }
 
 /**
- * A scope that pins SEVERAL kinds, each in its own unit.
+ * A scope that pins SEVERAL groups, each addressed by name.
  *
- * Keyed by the unit rather than positional, and the key is what enforces the
- * three rules a mixed scope obeys. Any number of kinds, because the key set is
- * open. A kind that needs nothing is simply absent, because every entry is
+ * Keyed by the group rather than positional, and the key is what enforces the
+ * three rules a mixed scope obeys. Any number of groups, because every group has
+ * a key. A group that needs nothing is simply absent, because every entry is
  * optional. And a group is pinned at most once, because a repeated key is
  * already an error in an object literal, where a repeated entry in a parallel
  * pair of lists is not: `["m", "m"]` reads as two pins and quietly keeps one.
  *
  * ```tsx
- * <UnitSharedFormat pins={{ m: { as: "km" }, kg: { as: "t" } }}>
+ * <UnitSharedFormat pins={{ length: { as: "km" }, mass: { as: "t" } }}>
  * ```
  *
- * The value is typed by its own key, so `{ m: { as: "kg" } }` is a compile
+ * The value is typed by its own key, so `{ length: { as: "kg" } }` is a compile
  * error at the entry that is wrong rather than at the scope.
  *
- * What the key CANNOT catch is two different units of one group: `{ m: ...,
- * km: ... }` is one length group pinned twice and the later wins. See `policyOf`
- * on why checking that soundly needs tables the type system does not have.
+ * A laddered kind is keyed by the KIND because its whole kind settles together:
+ * `{ m: ..., km: ... }` was one length group pinned twice with the later winning
+ * silently, and it is now unwritable. A unit that climbs nothing keys itself, so
+ * `s` and `min` stay the two separate groups they are. See {@link UnitGroupKey}.
  */
-export interface UnitSharedFormatMixedProps<U extends string>
-  extends UnitSharedFormatBaseProps {
-  /** What each named unit's group is pinned to, checked against that unit. */
-  pins: { [S in U]?: UnitPins<S> };
+export interface UnitSharedFormatMixedProps extends UnitSharedFormatBaseProps {
+  /** What each named group is pinned to, checked against what it measures. */
+  pins: UnitPinsByGroup;
 }
 
 /** The pin map with its keys erased, as the runtime reads it. */
-type UnitPinsByUnit = Readonly<Record<string, UnitPins | undefined>>;
+type UnitPinsByToken = Readonly<Record<string, UnitPins | undefined>>;
 
 /** Both spellings at once, as the component body actually reads them. */
 interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
   of?: string;
-  pins?: UnitPinsByUnit;
+  pins?: UnitPinsByToken;
 }
 
 /**
@@ -581,7 +612,7 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
  * which of the scope's groups they are addressed to.
  */
 export function UnitSharedFormat<U extends string = string>(
-  props: UnitSharedFormatProps<U> | UnitSharedFormatMixedProps<U>,
+  props: UnitSharedFormatProps<U> | UnitSharedFormatMixedProps,
 ): ReactElement;
 export function UnitSharedFormat({
   children,
