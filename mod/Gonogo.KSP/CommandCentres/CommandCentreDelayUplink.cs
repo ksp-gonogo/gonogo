@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sitrep.Contract;
@@ -41,9 +42,9 @@ namespace Gonogo.KSP.CommandCentres
             "CommandCentreDelayUplink separation pairs", threshold: 4000, windowSec: 1.0, unit: "pairs");
 
         /// <summary>
-        /// Soft cap on graph SOLVES per pass. Every non-KSC row and every
+        /// Soft cap on graph SOLVES per pass. Every row but home's and every
         /// centre-to-centre row runs a Dijkstra over the whole node list, in the
-        /// elected backend's own router, unlike the KSC rows, which only read a
+        /// elected backend's own router, unlike the home rows, which only read a
         /// path the game has already solved. The count is centres x
         /// (vessels + centres), so it grows with the fleet as well as with the
         /// number of authorities: this is the number worth watching if the
@@ -53,11 +54,21 @@ namespace Gonogo.KSP.CommandCentres
             "CommandCentreDelayUplink routed path solves", threshold: 2000, windowSec: 1.0, unit: "solves");
 
         private readonly CommandCentreRegistry _registry;
+        private readonly Func<HomeCommand> _home;
         private IUplinkHost? _host;
         private IChannelPublisher? _rosterPublisher;
         private IChannelPublisher? _separationPublisher;
 
-        public CommandCentreDelayUplink(CommandCentreRegistry registry) => _registry = registry;
+        /// <param name="registry">The same registry the engine enumerates for set-vantage validation.</param>
+        /// <param name="home">
+        /// The elected home-command claimant's answer as the engine captured it this tick.
+        /// Null answers not identified, which is what a test that models no claimant wants.
+        /// </param>
+        public CommandCentreDelayUplink(CommandCentreRegistry registry, Func<HomeCommand>? home = null)
+        {
+            _registry = registry;
+            _home = home ?? (() => HomeCommand.NotIdentified);
+        }
 
         /// <summary>
         /// Degraded while the registry is dropping a centre for an id another centre
@@ -181,6 +192,7 @@ namespace Gonogo.KSP.CommandCentres
             var kernel = _host?.Kernel;
             var backend = kernel != null ? CommsElection.Elected(kernel) : null;
 
+            var homeId = _home().CentreId;
             var rows = new List<AuthorityRow>();
             var solves = new SolveCounter();
             void Row(string vantage, string node, double seconds) =>
@@ -190,7 +202,7 @@ namespace Gonogo.KSP.CommandCentres
             pass.Populate(
                 centres,
                 vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                (centre, guid) => RouteDelay(backend, centre, guid, config, vessels, solves),
+                (centre, guid) => RouteDelay(backend, centre, homeId, guid, config, vessels, solves),
                 Row);
             pass.PopulateCentrePairs(
                 centres,
@@ -281,7 +293,7 @@ namespace Gonogo.KSP.CommandCentres
         internal object? CaptureRosterOnMain(KspSnapshot? snapshot) =>
             new RosterCapture
             {
-                Roster = _registry.EnumerateActive().Select(ToRosterEntry).ToList(),
+                Roster = ToRoster(_registry.EnumerateActive(), _home()),
                 Ut = snapshot != null ? snapshot.Ut : 0.0,
             };
 
@@ -297,11 +309,12 @@ namespace Gonogo.KSP.CommandCentres
         }
 
         /// <summary>
-        /// One-way seconds from a centre to a subject vessel. KSC reuses the
-        /// subject's OWN routed (vessel↔KSC) light-time via <see cref="FleetCommsReader.ReadVessel"/>,
-        /// so the explicit (ksc, fleet.&lt;guid&gt;) row equals Plan 2's node-default
-        /// (KSC parity, T13) -- the vessel's solved path home IS the path to KSC, and
-        /// re-solving it here could only introduce a discrepancy. Any other centre
+        /// One-way seconds from a centre to a subject vessel. The home command, as the
+        /// elected claimant names it, reuses the subject's OWN routed light-time via
+        /// <see cref="FleetCommsReader.ReadVessel"/>, so the explicit (home, fleet.&lt;guid&gt;)
+        /// row equals Plan 2's node-default (home parity, T13): the vessel's solved path
+        /// home IS the path to that centre, and re-solving it here could only introduce a
+        /// discrepancy. Any other centre, and every centre when no home is identified,
         /// solves the graph between its own node and the subject's.
         ///
         /// <para>Still null-not-zero when nothing routes. The straight-line
@@ -316,6 +329,7 @@ namespace Gonogo.KSP.CommandCentres
         private static double? RouteDelay(
             ICommsBackend? backend,
             ICommandCentre centre,
+            string? homeId,
             string guid,
             SignalDelayConfig? config,
             IList<Vessel> vessels,
@@ -327,7 +341,7 @@ namespace Gonogo.KSP.CommandCentres
                 return null;
             }
 
-            if (centre.Id == "ksc")
+            if (homeId != null && centre.Id == homeId)
             {
                 var (oneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
                 return oneWay;
@@ -368,7 +382,14 @@ namespace Gonogo.KSP.CommandCentres
             return FleetCommsReader.ReadNodePath(backend, fromNode, toNode, config);
         }
 
-        private static CommandCentreEntry ToRosterEntry(ICommandCentre centre)
+        /// <summary>
+        /// The active centres as roster entries, with <see cref="CommandCentreEntry.IsHome"/>
+        /// set on the one the claimant named and on none when it named nobody.
+        /// </summary>
+        internal static List<CommandCentreEntry> ToRoster(IEnumerable<ICommandCentre> centres, HomeCommand home) =>
+            centres.Select(c => ToRosterEntry(c, home)).ToList();
+
+        private static CommandCentreEntry ToRosterEntry(ICommandCentre centre, HomeCommand home)
         {
             var ksp = centre as KspCommandCentre;
             return new CommandCentreEntry
@@ -378,6 +399,7 @@ namespace Gonogo.KSP.CommandCentres
                 Kind = centre.Kind.ToString(),
                 BodyIndex = centre.BodyIndex,
                 Active = centre.IsActiveNow(),
+                IsHome = home.IsIdentified && centre.Id == home.CentreId,
                 // Copied, never derived here. Whether a centre is surface-anchored is
                 // known only to the source that produced it, and a null is the
                 // contract's "not applicable" rather than "not computed": see

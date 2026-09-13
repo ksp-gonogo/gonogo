@@ -76,7 +76,7 @@ public class CommandRequest<TArgs>
     /// Per-call vantage override (Plan 3 / delay-UX): the command centre this
     /// specific command dispatches from, governing its delay via
     /// <c>DelayTo(vantage, node)</c>. Empty ⇒ the server uses the connection's
-    /// session <c>SelectedVantage</c> (the default). A program-meta command
+    /// own vantage (see <see cref="SetVantage"/>). A program-meta command
     /// (tech/strategy/contract) sends <c>"meta"</c> so it stays instant
     /// (<c>DelayTo("meta", *) = 0</c>) regardless of which centre the operator
     /// has selected. Nullable/optional: a pre-Vantage client omits it (codegen
@@ -179,8 +179,16 @@ public class Unsubscribe
 /// <summary>
 /// Client-to-server: select the command centre this connection commands from and
 /// observes at (Plan 3 vantage selection). Governs both the downlink cursor read
-/// and the command-dispatch vantage. <c>"ksc"</c> (the default) is always
-/// selectable; any other id must name a currently-active command centre.
+/// and the command-dispatch vantage. The id must name a currently-active command
+/// centre, or the request is refused with an <c>unknown-vantage</c> error and the
+/// connection keeps the vantage it had.
+///
+/// <para>A connection that has never sent one observes at the home command (the
+/// roster entry whose <c>isHome</c> is true), and follows it if home moves. When
+/// no home is identified it observes at the first ground station in ordinal id
+/// order, and while no command centre is active at all (the main menu) at none,
+/// stamping its frames with an empty <c>vantage</c>. Every frame's
+/// <c>meta.vantage</c> says which of these is in force.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

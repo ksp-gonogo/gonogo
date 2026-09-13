@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.6.0
+  version: 16.7.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
     channels a client subscribes to, and 53 commands it dispatches, with the payload
@@ -9053,6 +9053,7 @@ components:
         `CommandCentreEntry.id`.
       required:
         - active
+        - isHome
       properties:
         id:
           type:
@@ -9060,12 +9061,10 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Stable authority/vantage key: `"ksc"` | `"ground:<name>"` |
-            `"vessel:<guid>"`. `"ksc"` exists only when exactly one ground station is
-            flagged as the space centre, as in stock. Where a comms mod flags every
-            station it configures, no station is `"ksc"` and each is `"ground:<name>"`.
-            Ground stations that share a name are told apart as `"ground:<name>#2"`,
-            `"#3"` and so on.
+            Stable authority/vantage key: `"ground:<name>"` | `"vessel:<guid>"`. Every
+            ground station is `"ground:<name>"`, the home one included: which centre is
+            home is `CommandCentreEntry.isHome`, never a special id. Ground stations
+            that share a name are told apart as `"ground:<name>#2"`, `"#3"` and so on.
         displayName:
           type:
             - string
@@ -9122,6 +9121,21 @@ components:
           type: boolean
           x-sitrep-unit: flag
           description: Whether this centre is a valid command source right now.
+        isHome:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether this centre is the home command: the one centre that holds the
+            career ledger, as the mod's home-command claimant identifies it.
+
+            At most one entry carries it. When the claimant cannot say which centre is
+            home, as on an install whose ground stations all look alike to it, NO entry
+            carries it, and that is an answer rather than missing data: a roster that
+            lists ground stations and marks none of them home says the home was not
+            identified.
+
+            Not the same fact as `CommsHop.fromIsHome`, which is true of every ground
+            station and so cannot say which one is home.
         delayQuality:
           type:
             - string
@@ -9497,8 +9511,8 @@ components:
           description: |-
             Per-call vantage override (Plan 3 / delay-UX): the command centre this
             specific command dispatches from, governing its delay via `DelayTo(vantage,
-            node)`. Empty ⇒ the server uses the connection's session `SelectedVantage`
-            (the default). A program-meta command (tech/strategy/contract) sends
+            node)`. Empty ⇒ the server uses the connection's own vantage (see
+            `SetVantage`). A program-meta command (tech/strategy/contract) sends
             `"meta"` so it stays instant (`DelayTo("meta", *) = 0`) regardless of which
             centre the operator has selected. Nullable/optional: a pre-Vantage client
             omits it (codegen emits vantage?: string), and the server treats null/empty
@@ -9527,7 +9541,7 @@ components:
           command: vessel.control.setThrottle
           label: Throttle 40%
           topic: vessel.control
-          vantage: ksc
+          vantage: ground:Kerbal Space Center
           args:
             value: 0.4
           sentAt: 0
@@ -9571,7 +9585,7 @@ components:
             validAt: 1842006.5
             seq: 918
             deliveredAt: 1842006.5
-            vantage: ksc
+            vantage: ground:Kerbal Space Center
             quality: 1
             active: true
             staleness: 0
@@ -9669,8 +9683,8 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Stable authority/vantage key, same scheme as `CommandCentreEntry.id`: "ksc"
-            | "ground:<name>" | "vessel:<guid>". Null when no remote centre resolved.
+            Stable authority/vantage key, same scheme as `CommandCentreEntry.id`:
+            "ground:<name>" | "vessel:<guid>". Null when no remote centre resolved.
         displayName:
           type:
             - string
@@ -13247,6 +13261,10 @@ components:
         vantage:
           type: string
           x-sitrep-unit: id
+          description: |-
+            The place the payload was observed from: a `commandCentre.roster` id,
+            `"meta"` for an instant-class topic no distance applies to, or empty when
+            the connection is at no command centre because none is active.
         quality:
           $ref: "#/components/schemas/Quality"
           x-sitrep-unit: enum
@@ -14820,7 +14838,8 @@ components:
           description: |-
             Whose ledger the condition is read against, and therefore who the fire
             notice is for. Empty is the simulation itself; anything else is a place,
-            spelled as a `commandCentre.roster` id (`"ksc"`, `"vessel:<guid>"`).
+            spelled as a `commandCentre.roster` id (`"ground:<name>"`,
+            `"vessel:<guid>"`).
 
             **Distinct from `ScetAlarm.armedBy`, which is provenance.** That says where
             the arm command came from and nothing else. This says which body of
@@ -15723,8 +15742,16 @@ components:
       description: |-
         Client-to-server: select the command centre this connection commands from
         and observes at (Plan 3 vantage selection). Governs both the downlink cursor
-        read and the command-dispatch vantage. `"ksc"` (the default) is always
-        selectable; any other id must name a currently-active command centre.
+        read and the command-dispatch vantage. The id must name a currently-active
+        command centre, or the request is refused with an `unknown-vantage` error
+        and the connection keeps the vantage it had.
+
+        A connection that has never sent one observes at the home command (the
+        roster entry whose `isHome` is true), and follows it if home moves. When no
+        home is identified it observes at the first ground station in ordinal id
+        order, and while no command centre is active at all (the main menu) at none,
+        stamping its frames with an empty `vantage`. Every frame's `meta.vantage`
+        says which of these is in force.
       required:
         - type
         - centreId

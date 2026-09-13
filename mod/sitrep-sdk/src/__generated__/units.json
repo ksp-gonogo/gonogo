@@ -231,6 +231,7 @@
       "delayQuality": "text",
       "displayName": "text",
       "id": "id",
+      "isHome": "flag",
       "kind": "text",
       "latitude": "°",
       "longitude": "°"
@@ -1402,6 +1403,7 @@
       "delayQuality": "text",
       "displayName": "text",
       "id": "id",
+      "isHome": "flag",
       "kind": "text",
       "latitude": "°",
       "longitude": "°"

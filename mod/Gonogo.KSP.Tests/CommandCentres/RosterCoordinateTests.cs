@@ -34,10 +34,10 @@ namespace Gonogo.KSP.Tests.CommandCentres
         public void AnAnchoredCentreReportsCoordinatesAndAMovingOneReportsNull()
         {
             var roster = PublishRoster(
-                Centre("ksc", CommandCentreKind.GroundStation, latitude: -0.0972, longitude: -74.5577),
+                Centre("ground:Kerbal Space Center", CommandCentreKind.GroundStation, latitude: -0.0972, longitude: -74.5577),
                 Centre("vessel:abc", CommandCentreKind.CrewedVessel, latitude: null, longitude: null));
 
-            var ksc = Assert.Single(roster, e => e.Id == "ksc");
+            var ksc = Assert.Single(roster, e => e.Id == "ground:Kerbal Space Center");
             Assert.NotNull(ksc.Latitude);
             Assert.NotNull(ksc.Longitude);
             Assert.Equal(-0.0972, ksc.Latitude!.Value, 6);

@@ -26,7 +26,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
         public void TheRosterIsStampedWithTheCaptureUt()
         {
             var host = new PublishRecordingHost();
-            var uplink = Uplink(host, "ksc", "ground:woomerang", "vessel:abc");
+            var uplink = Uplink(host, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
 
             uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 1_050_000.0 }));
 
@@ -46,7 +46,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
             var emptyHost = new PublishRecordingHost();
             var empty = Uplink(emptyHost);
             var crowdedHost = new PublishRecordingHost();
-            var crowded = Uplink(crowdedHost, "ksc", "ground:woomerang", "vessel:abc");
+            var crowded = Uplink(crowdedHost, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
 
             var snapshot = new KspSnapshot { Ut = 1_050_000.0 };
             empty.PublishRosterOnCourier(empty.CaptureRosterOnMain(snapshot));
@@ -67,18 +67,57 @@ namespace Gonogo.KSP.Tests.CommandCentres
         public void AnUnsnapshottedCaptureStampsZeroRatherThanACount()
         {
             var host = new PublishRecordingHost();
-            var uplink = Uplink(host, "ksc", "ground:woomerang", "vessel:abc");
+            var uplink = Uplink(host, "ground:Kerbal Space Center", "ground:woomerang", "vessel:abc");
 
             uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
 
             Assert.Equal(0.0, Assert.Single(host.Recorder.Published).Ut);
         }
 
-        private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds)
+        /// <summary>
+        /// The roster publishes the home-command claimant's answer rather than working
+        /// home out again: exactly the named centre carries the flag, wherever it is listed.
+        /// </summary>
+        [Fact]
+        public void TheCentreTheClaimantNamesIsTheOnlyOneMarkedHome()
+        {
+            var host = new PublishRecordingHost();
+            var uplink = Uplink(
+                host,
+                HomeCommand.Identified("ground:Kerbal Space Center"),
+                "ground:woomerang", "ground:Kerbal Space Center", "vessel:abc");
+
+            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
+
+            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            Assert.Equal(new[] { "ground:Kerbal Space Center" }, roster.Where(e => e.IsHome).Select(e => e.Id));
+        }
+
+        /// <summary>
+        /// Not identified is published as no flag on any centre, never as a guess at the
+        /// first one, so a client can tell it apart from a home it was told about.
+        /// </summary>
+        [Fact]
+        public void WhenNoHomeIsIdentified_NoCentreIsMarkedHome()
+        {
+            var host = new PublishRecordingHost();
+            var uplink = Uplink(host, HomeCommand.NotIdentified, "ground:DSS 14 - Goldstone", "ground:DSS 43 - Canberra");
+
+            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
+
+            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            Assert.Equal(2, roster.Count);
+            Assert.DoesNotContain(roster, e => e.IsHome);
+        }
+
+        private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>
+            Uplink(host, HomeCommand.NotIdentified, centreIds);
+
+        private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, HomeCommand home, params string[] centreIds)
         {
             var registry = new CommandCentreRegistry();
             registry.RegisterSource(new FixedCentreSource(centreIds));
-            var uplink = new CommandCentreDelayUplink(registry);
+            var uplink = new CommandCentreDelayUplink(registry, () => home);
             uplink.Register(host);
             return uplink;
         }

@@ -33,10 +33,9 @@ namespace Sitrep.Contract;
 public class CommandCentreEntry
 {
     /// <summary>
-    /// Stable authority/vantage key: <c>"ksc"</c> | <c>"ground:&lt;name&gt;"</c> | <c>"vessel:&lt;guid&gt;"</c>.
-    /// <c>"ksc"</c> exists only when exactly one ground station is flagged as the
-    /// space centre, as in stock. Where a comms mod flags every station it
-    /// configures, no station is <c>"ksc"</c> and each is <c>"ground:&lt;name&gt;"</c>.
+    /// Stable authority/vantage key: <c>"ground:&lt;name&gt;"</c> | <c>"vessel:&lt;guid&gt;"</c>.
+    /// Every ground station is <c>"ground:&lt;name&gt;"</c>, the home one included:
+    /// which centre is home is <see cref="IsHome"/>, never a special id.
     /// Ground stations that share a name are told apart as
     /// <c>"ground:&lt;name&gt;#2"</c>, <c>"#3"</c> and so on.
     /// </summary>
@@ -81,6 +80,22 @@ public class CommandCentreEntry
     /// <summary>Whether this centre is a valid command source right now.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
+
+    /// <summary>
+    /// Whether this centre is the home command: the one centre that holds the
+    /// career ledger, as the mod's home-command claimant identifies it.
+    ///
+    /// <para>At most one entry carries it. When the claimant cannot say which
+    /// centre is home, as on an install whose ground stations all look alike to
+    /// it, NO entry carries it, and that is an answer rather than missing data: a
+    /// roster that lists ground stations and marks none of them home says the home
+    /// was not identified.</para>
+    ///
+    /// <para>Not the same fact as <see cref="CommsHop.FromIsHome"/>, which is true of
+    /// every ground station and so cannot say which one is home.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool IsHome { get; set; }
 
     /// <summary>
     /// Whether this centre can be routed to: <c>"routed"</c> (a CommNode

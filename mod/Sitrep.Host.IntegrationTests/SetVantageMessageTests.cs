@@ -14,8 +14,9 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Plan 3 set-vantage message: a client selects its command centre (vantage).
-    /// The default "ksc" is always selectable; any other id must name a currently
-    /// active command centre, else the prior vantage is kept and an error returns.
+    /// The id must name a currently active command centre, else the prior vantage is
+    /// kept and an error returns. No id is special: where a connection stands before it
+    /// chooses is covered by <see cref="FreshConnectionVantageTests"/>.
     ///
     /// <para>The per-command override on <c>CommandRequest.Vantage</c> is the same
     /// rule's second entry point and is covered here too, deliberately in one file:
@@ -32,7 +33,7 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(400);
 
         [Fact]
-        public async Task ActiveCentreAndKsc_AreSelectable_NoError()
+        public async Task AnActiveCentre_IsSelectable_AndNoIdIsSelectableJustForItsSpelling()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterCommandCentreSource(
@@ -47,9 +48,11 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
                 await client.AssertNoMessageArrivesAsync(Quiet);
 
-                // The default vantage is always selectable, even with no home-node source.
+                // "ksc" once named the stock space centre whether or not it was enumerated.
+                // An id that names no active centre is refused, whatever it spells.
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
-                await client.AssertNoMessageArrivesAsync(Quiet);
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("unknown-vantage", error.Code);
             }
             finally
             {
@@ -83,14 +86,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The two tests above only prove the WIRE reaction (silence on accept,
         /// an <see cref="ErrorMsg"/> on reject): neither looks at
-        /// <c>ClientSession.SelectedVantage</c> itself, so a `HandleSetVantage`
+        /// <c>ClientSession.ChosenVantage</c> itself, so a `HandleSetVantage`
         /// that validated correctly but forgot the actual assignment (or
         /// applied a rejected id anyway) would still pass both. This test
         /// reads the session's real vantage indirectly, via the one place it
-        /// is echoed back to the client: `CommandResponse.Meta.Vantage`
-        /// (`ChannelEngine.OnMessageReceived`'s `Vantage = session.SelectedVantage`).
+        /// is echoed back to the client: `CommandResponse.Meta.Vantage`.
         /// A valid switch must change that echo; a rejected switch must leave
-        /// it exactly where it was, not fall back to the default either.
+        /// it exactly where it was, not fall back to where a fresh connection starts.
         /// </summary>
         [Fact]
         public async Task ValidCentre_ActuallySetsSessionVantage_AndARejectedSwitchLeavesItUnchanged()
@@ -98,6 +100,8 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterCommandCentreSource(
                 new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
+            engine.RegisterCommandCentreSource(
+                new StaticSource("ground:gs2", CommandCentreKind.GroundStation));
             engine.RegisterUplink(new EchoVantageTestUplink());
             engine.Start();
             engine.TickAndWait(0.0, null, Timeout);
@@ -105,24 +109,24 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
 
-                // Baseline: nothing set yet, session starts on the default.
+                // Baseline: nothing chosen and no home identified, so the first ground station by id.
                 var baseline = await DispatchAndAwaitResponse(client, "r0");
-                Assert.Equal("ksc", baseline.Meta.Vantage);
+                Assert.Equal("ground:gs1", baseline.Meta.Vantage);
 
-                // A valid switch actually moves session.SelectedVantage, not
+                // A valid switch actually moves the session, not
                 // just the "no error" wire reaction already covered above.
-                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs2" }));
                 var afterValid = await DispatchAndAwaitResponse(client, "r1");
-                Assert.Equal("ground:gs1", afterValid.Meta.Vantage);
+                Assert.Equal("ground:gs2", afterValid.Meta.Vantage);
 
                 // A rejected switch must not touch the session: neither
-                // adopting the unknown id nor reverting to the default.
+                // adopting the unknown id nor reverting to where it started.
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "no-such-centre" }));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("unknown-vantage", error.Code);
 
                 var afterRejected = await DispatchAndAwaitResponse(client, "r2");
-                Assert.Equal("ground:gs1", afterRejected.Meta.Vantage);
+                Assert.Equal("ground:gs2", afterRejected.Meta.Vantage);
             }
             finally
             {
@@ -159,7 +163,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal("r1", error.RequestId);
 
                 // Refused, not demoted: the handler ran for nobody. A silent fallback
-                // would show up here as one entry reading "ksc".
+                // would show up here as one entry reading the session vantage.
                 Assert.Empty(uplink.SeenVantages);
             }
             finally
@@ -200,7 +204,7 @@ namespace Sitrep.Host.IntegrationTests
                 await SendCommandAsync(client, "r3", vantage: null);
                 await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
 
-                Assert.Equal(new[] { "ground:gs1", "meta", "ksc" }, uplink.SeenVantages);
+                Assert.Equal(new[] { "ground:gs1", "meta", "ground:gs1" }, uplink.SeenVantages);
             }
             finally
             {
@@ -241,9 +245,8 @@ namespace Sitrep.Host.IntegrationTests
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("unknown-vantage", error.Code);
 
-                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
-                var afterDefault = await DispatchAndAwaitResponse(client, "r2");
-                Assert.Equal("ksc", afterDefault.Meta.Vantage);
+                var afterRejected = await DispatchAndAwaitResponse(client, "r2");
+                Assert.Equal("ground:gs1", afterRejected.Meta.Vantage);
 
                 Assert.Empty(source.Violations);
                 Assert.True(source.MainThreadEnumerations > 0, "the source was never enumerated on the main thread");
@@ -288,10 +291,10 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal("unknown-vantage", error.Code);
                 Assert.Equal("r2", error.RequestId);
 
-                await SendCommandAsync(client, "r3", vantage: "ksc");
+                await SendCommandAsync(client, "r3", vantage: null);
                 await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
 
-                Assert.Equal(new[] { "ground:gs1", "ksc" }, uplink.SeenVantages);
+                Assert.Equal(new[] { "ground:gs1", "ground:gs1" }, uplink.SeenVantages);
                 Assert.Empty(source.Violations);
             }
             catch (OperationCanceledException)
@@ -308,12 +311,12 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A client can connect before the main loop has ticked once (the socket is up
-        /// from the menu onwards). Until a tick has captured the active centres, the only
-        /// selectable vantage is the default: no centre is known to be active, and the
-        /// sources cannot be asked from here.
+        /// from the menu onwards). Until a tick has captured the active centres, no vantage
+        /// is selectable: no centre is known to be active, and the sources cannot be asked
+        /// from here.
         /// </summary>
         [Fact]
-        public async Task BeforeTheFirstTick_OnlyTheDefaultVantageIsSelectable()
+        public async Task BeforeTheFirstTick_NoVantageIsSelectable()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var source = new MainThreadOnlySource("ground:gs1");
@@ -328,7 +331,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal("unknown-vantage", error.Code);
 
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
-                await client.AssertNoMessageArrivesAsync(Quiet);
+                var refused = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("unknown-vantage", refused.Code);
 
                 Assert.Empty(source.Violations);
             }

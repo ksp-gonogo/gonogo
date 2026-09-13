@@ -5,9 +5,9 @@ using System.Linq;
 namespace Sitrep.Host.CommandCentres
 {
     /// <summary>
-    /// One CommNet home as <see cref="HomeCentreIds.Mint"/> sees it: the two facts
-    /// its id is built from, plus the station's position, which only ever breaks a
-    /// tie between two homes that share a name.
+    /// One CommNet home as <see cref="HomeCentreIds.Mint"/> and the stock home-command
+    /// claimant see it: its name, the game's own space-centre flag, and the station's
+    /// position, which only ever breaks a tie between two homes that share a name.
     /// </summary>
     public readonly struct HomeNodeFacts
     {
@@ -19,7 +19,10 @@ namespace Sitrep.Host.CommandCentres
             Longitude = longitude;
         }
 
-        /// <summary>The home's own <c>CommNetHome.isKSC</c> flag, as the game reports it.</summary>
+        /// <summary>
+        /// The home's own <c>CommNetHome.isKSC</c> flag, as the game reports it. Read by
+        /// <see cref="StockHomeCommandProvider"/> alone: an id never depends on it.
+        /// </summary>
         public bool IsKsc { get; }
 
         /// <summary>The home's <c>CommNetHome.nodeName</c>; null reads as <c>"unknown"</c>.</summary>
@@ -34,13 +37,10 @@ namespace Sitrep.Host.CommandCentres
     /// Mints the command-centre id of every CommNet home in one pass, so that no
     /// two homes can ever share one.
     ///
-    /// <para><c>isKSC</c> names the home only when exactly one home carries it,
-    /// which is stock CommNet: that home is <see cref="Ksc"/> and every other is
-    /// <c>ground:&lt;nodeName&gt;</c>. A comms mod can set the flag on every
-    /// station it configures, and a flag every station carries identifies none of them,
-    /// so when more than one home carries it (or none does) NO home is minted
-    /// <see cref="Ksc"/>. Picking which of those stations is home is a decision
-    /// this function deliberately does not make.</para>
+    /// <para>Every home is <c>ground:&lt;nodeName&gt;</c>, the space centre
+    /// included. Which of them is home is the elected home-command claimant's
+    /// answer, published beside the id, so stock and a career overhaul differ only
+    /// in which claimant answers and never in what a station is called.</para>
     ///
     /// <para>Two homes whose names would mint the same id are told apart with a
     /// <c>#&lt;n&gt;</c> suffix from 2 upwards, handed out by position so the same
@@ -50,17 +50,15 @@ namespace Sitrep.Host.CommandCentres
     /// </summary>
     public static class HomeCentreIds
     {
-        public const string Ksc = "ksc";
         public const string GroundPrefix = "ground:";
 
         /// <summary>The ids for <paramref name="homes"/>, index for index.</summary>
         public static string[] Mint(IReadOnlyList<HomeNodeFacts> homes)
         {
-            var kscIndex = SoleKscIndex(homes);
             var bare = new string[homes.Count];
             for (var i = 0; i < homes.Count; i++)
             {
-                bare[i] = i == kscIndex ? Ksc : GroundPrefix + (homes[i].NodeName ?? "unknown");
+                bare[i] = GroundPrefix + (homes[i].NodeName ?? "unknown");
             }
 
             var reserved = new HashSet<string>(bare, StringComparer.Ordinal);
@@ -94,27 +92,6 @@ namespace Sitrep.Host.CommandCentres
             }
 
             return ids;
-        }
-
-        private static int SoleKscIndex(IReadOnlyList<HomeNodeFacts> homes)
-        {
-            var found = -1;
-            for (var i = 0; i < homes.Count; i++)
-            {
-                if (!homes[i].IsKsc)
-                {
-                    continue;
-                }
-
-                if (found >= 0)
-                {
-                    return -1;
-                }
-
-                found = i;
-            }
-
-            return found;
         }
     }
 }

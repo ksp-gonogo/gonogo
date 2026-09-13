@@ -55,8 +55,9 @@ namespace Sitrep.Host.IntegrationTests
 
                 // The delivery is a real delivery, not a special case that
                 // skipped the pipeline: it carries the vantage the connection
-                // is observing at, and a UT it was valid at.
-                Assert.Equal("ksc", header.Meta.Vantage);
+                // is observing at, and a UT it was valid at. No command centre is
+                // registered here, so that vantage is none.
+                Assert.Equal("", header.Meta.Vantage);
                 Assert.Equal(0.0, header.Meta.ValidAt);
             }
             finally

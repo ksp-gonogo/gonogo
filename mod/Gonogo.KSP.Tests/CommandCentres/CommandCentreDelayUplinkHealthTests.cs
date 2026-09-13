@@ -15,7 +15,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
         [Fact]
         public void HealthyWhileEveryIdIsDistinct()
         {
-            var registry = RegistryOf("ksc", "ground:A");
+            var registry = RegistryOf("ground:Kerbal Space Center", "ground:A");
             registry.EnumerateActive();
 
             Assert.Equal(UplinkHealthState.Healthy, new CommandCentreDelayUplink(registry).Health().State);
@@ -24,14 +24,14 @@ namespace Gonogo.KSP.Tests.CommandCentres
         [Fact]
         public void DegradedWithTheCollidingIdAsAFact_WhileACentreIsDropped()
         {
-            var registry = RegistryOf("ksc", "ksc");
+            var registry = RegistryOf("ground:Kerbal Space Center", "ground:Kerbal Space Center");
             registry.EnumerateActive();
 
             var health = new CommandCentreDelayUplink(registry).Health();
 
             Assert.Equal(UplinkHealthState.Degraded, health.State);
             var fact = Assert.Single(health.Facts);
-            Assert.Equal("ksc", fact.Label);
+            Assert.Equal("ground:Kerbal Space Center", fact.Label);
         }
 
         private static CommandCentreRegistry RegistryOf(params string[] ids)
