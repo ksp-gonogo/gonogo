@@ -22,6 +22,7 @@ import {
   RECORDED_ATTRIBUTES,
   readShapeText,
   type ShapeCapture,
+  settleAnimations,
 } from "./shape";
 
 /**
@@ -183,7 +184,9 @@ export async function renderUplink(
       viewport: { width: 900, height: 900 },
       deviceScaleFactor: 2,
       // Context level, so `prefers-reduced-motion`-guarded infinite pulses
-      // collapse. `animations: "disabled"` at capture covers the rest.
+      // collapse. `animations: "disabled"` covers the rest of the PICTURE and
+      // only the picture. The shape read is a capture too, and settling that
+      // one is `captureShape`'s job.
       reducedMotion: "reduce",
     });
     const tab = await context.newPage();
@@ -325,13 +328,59 @@ async function renderOneScene(
   }
 }
 
-/** One reading of the mounted widget. The whitelists travel as an argument so
- *  the page function closes over nothing. */
-function captureShape(tab: Page): Promise<ShapeCapture> {
-  return tab.evaluate(readShapeText, {
-    properties: ADMISSIBLE_PROPERTIES as readonly string[],
-    attributes: RECORDED_ATTRIBUTES,
-  });
+/**
+ * One reading of the mounted widget, taken once it has stopped moving.
+ *
+ * The whitelists travel as an argument so the page function closes over
+ * nothing. `settleAnimations` is why this is not a single `evaluate`: see its
+ * doc comment for the defect, which is that a transition still running at read
+ * time puts a stopwatch inside the hash.
+ *
+ * Then it reads TWICE and requires the two to agree, which is the part that
+ * makes this checkable rather than hopeful. Settling covers the cause we found;
+ * a second reading covers the ones we have not, because anything still moving
+ * for any other reason (an animation with no end that touches an admissible
+ * property, a pending `ResizeObserver`, a live clock that escaped pinning)
+ * shows up as two readings that differ. A shape gate whose own reading drifts
+ * is a random number generator, and this repo has now spent a day proving that
+ * from the outside. It fails here instead, at the moment the render is taken,
+ * naming the line.
+ */
+async function captureShape(tab: Page): Promise<ShapeCapture> {
+  const read = (): Promise<ShapeCapture> =>
+    tab.evaluate(readShapeText, {
+      properties: ADMISSIBLE_PROPERTIES as readonly string[],
+      attributes: RECORDED_ATTRIBUTES,
+    });
+
+  let previous: ShapeCapture | undefined;
+  let capture: ShapeCapture | undefined;
+  let endless: string[] = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    endless = (await tab.evaluate(settleAnimations)).endless;
+    previous = capture;
+    capture = await read();
+    if (previous !== undefined && previous.text === capture.text) {
+      return capture;
+    }
+    await settle(tab);
+  }
+
+  // The two readings that actually disagreed, rather than a fresh pair: a fourth read could agree by luck and print a message with no difference in it.
+  const before = (previous as ShapeCapture).text.split("\n");
+  const after = (capture as ShapeCapture).text.split("\n");
+  const differs = before.findIndex((row, i) => row !== after[i]);
+  const line = differs === -1 ? before.length : differs;
+  throw new Error(
+    "render shape: the widget is still changing after three settles, so its " +
+      "shape is a reading off a clock rather than a fact about the code.\n" +
+      `  line ${line + 1}\n` +
+      `    ${before[line] ?? "(end)"}\n` +
+      `    ${after[line] ?? "(end)"}\n` +
+      (endless.length > 0
+        ? `  animations with no end, running during the read: ${[...new Set(endless)].join(", ")}`
+        : "  no endless animation was running, so something outside CSS is moving."),
+  );
 }
 
 /**

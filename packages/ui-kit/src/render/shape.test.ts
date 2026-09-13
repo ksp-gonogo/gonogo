@@ -9,7 +9,7 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   ADMISSIBLE_PROPERTIES,
   type AssetShape,
@@ -20,6 +20,7 @@ import {
   readShapeRecord,
   readShapeText,
   SHAPE_RECORD_VERSION,
+  settleAnimations,
   writeShapeRecord,
 } from "./shape";
 
@@ -104,6 +105,84 @@ describe("readShapeText", () => {
   it("leaves a short decimal alone", () => {
     mount(`<svg><path d="M2 20 L18.65 6"></path></svg>`);
     expect(read().text).toContain("18.65");
+  });
+});
+
+describe("settleAnimations", () => {
+  /**
+   * jsdom implements no Web Animations API, so `document.getAnimations` is
+   * stood up here. That is the whole surface the function touches, and the
+   * behaviour under test is which animations it finishes rather than what a
+   * browser does with one; the browser half is
+   * `scripts/uplink-shape-determinism.mjs`.
+   */
+  const withAnimations = (animations: unknown[]): void => {
+    Reflect.set(document, "getAnimations", () => animations);
+  };
+
+  // jsdom has no such method of its own, so removing it restores the realm
+  // rather than leaving a stub for whatever is added to this file next.
+  afterEach(() => {
+    Reflect.deleteProperty(document, "getAnimations");
+  });
+
+  const fake = (opts: {
+    iterations?: number;
+    endTime?: number;
+    target?: Element;
+    transitionProperty?: string;
+    refuse?: boolean;
+  }) => {
+    const finished: string[] = [];
+    return {
+      finished,
+      animation: {
+        transitionProperty: opts.transitionProperty,
+        effect: {
+          target: opts.target,
+          getComputedTiming: () => ({
+            iterations: opts.iterations ?? 1,
+            endTime: opts.endTime ?? 120,
+          }),
+        },
+        finish() {
+          if (opts.refuse) throw new Error("cannot finish");
+          finished.push("finished");
+        },
+      },
+    };
+  };
+
+  it("finishes a transition, because the settled value is the one the picture shows", () => {
+    const { animation, finished } = fake({ transitionProperty: "color" });
+    withAnimations([animation]);
+    const report = settleAnimations();
+    expect(finished).toEqual(["finished"]);
+    expect(report.finished).toBe(1);
+    expect(report.endless).toEqual([]);
+  });
+
+  it("reports an animation with no end rather than skipping it silently", () => {
+    const span = document.createElement("span");
+    const { animation, finished } = fake({
+      iterations: Number.POSITIVE_INFINITY,
+      endTime: Number.POSITIVE_INFINITY,
+      target: span,
+      transitionProperty: "letter-spacing",
+    });
+    withAnimations([animation]);
+    const report = settleAnimations();
+    expect(finished).toEqual([]);
+    expect(report.finished).toBe(0);
+    expect(report.endless).toEqual(["span letter-spacing"]);
+  });
+
+  it("counts one that refuses to finish as still moving", () => {
+    const { animation } = fake({ refuse: true, transitionProperty: "color" });
+    withAnimations([animation]);
+    const report = settleAnimations();
+    expect(report.finished).toBe(0);
+    expect(report.endless).toEqual(["color"]);
   });
 });
 

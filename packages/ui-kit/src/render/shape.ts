@@ -263,6 +263,80 @@ export const readShapeText = (args: {
   return { text: lines.join("\n"), elements, visibleText: texts.join(" ") };
 };
 
+/**
+ * Stop the tree moving, so a computed style is a fact about the stylesheet
+ * rather than a reading off a clock.
+ *
+ * The shape read was the ONE capture in a render taken while animations were
+ * still running. The picture beside it is not: `shoot` passes playwright's
+ * `animations: "disabled"`, which fast-forwards a finite animation to its end
+ * before the shutter. Nothing did the same for the walk, and
+ * `getComputedStyle` on an element mid-transition returns the INTERPOLATED
+ * value, which depends on how many milliseconds elapsed between the act that
+ * started it and the read.
+ *
+ * That is not theoretical. `_scene.before` presses a control with
+ * `locator.click()`, which parks the pointer on it, and the kit's `Button`
+ * transitions `color` and `border-color` over 120ms on `:hover`. Seventeen of
+ * one Uplink's 105 assets hashed differently on two runs of identical source,
+ * every one of them a button the scene had pressed, every difference a few
+ * units of grey: `rgb(150, 150, 150)` against `rgb(153, 153, 153)`, the same
+ * colour caught at two points on the same ramp. A hash that moves on unchanged
+ * source cannot tell a stale page from noise, which is the whole job.
+ *
+ * Finite animations are finished rather than cancelled, to match what the
+ * screenshot does: the settled value is the one the picture shows. An animation
+ * with no end cannot be finished and is REPORTED instead, because a silent skip
+ * here is how the next version of this defect would arrive.
+ *
+ * Passed to `tab.evaluate` and so closes over nothing.
+ */
+export const settleAnimations = (): { finished: number; endless: string[] } => {
+  // `transitionProperty` is on CSSTransition, `animationName` on CSSAnimation
+  // and `target` on KeyframeEffect, none of which the base types declare. Read
+  // rather than asserted, because a stand-in in a test has neither prototype.
+  const read = (host: object, key: string): unknown => Reflect.get(host, key);
+  const word = (value: unknown): string | undefined =>
+    typeof value === "string" && value.length > 0 ? value : undefined;
+
+  const describe = (animation: Animation): string => {
+    const what =
+      word(read(animation, "transitionProperty")) ??
+      word(read(animation, "animationName")) ??
+      "an animation";
+    const effect = animation.effect;
+    const target = effect === null ? undefined : read(effect, "target");
+    const tag =
+      typeof target === "object" && target !== null
+        ? word(read(target, "tagName"))
+        : undefined;
+    return tag === undefined ? what : `${tag.toLowerCase()} ${what}`;
+  };
+
+  const endless: string[] = [];
+  let finished = 0;
+  for (const animation of document.getAnimations()) {
+    const timing = animation.effect?.getComputedTiming();
+    const ends =
+      timing !== undefined &&
+      timing.iterations !== Number.POSITIVE_INFINITY &&
+      Number.isFinite(Number(timing.endTime ?? Number.POSITIVE_INFINITY));
+    if (!ends) {
+      endless.push(describe(animation));
+      continue;
+    }
+    try {
+      animation.finish();
+      finished++;
+    } catch {
+      // An animation can refuse to finish (an unresolved effect end), and one
+      // that refuses is one still moving, so it belongs in the same bucket.
+      endless.push(describe(animation));
+    }
+  }
+  return { finished, endless };
+};
+
 const digest = (input: string, chars: number): string =>
   createHash("sha256").update(input).digest("hex").slice(0, chars);
 
