@@ -3,6 +3,14 @@
     "axiom": {
       "type": "http",
       "url": "https://mcp.axiom.co/mcp"
+    },
+    "saga": {
+      "command": "npx",
+      "args": ["-y", "saga-mcp@1.16.0"],
+      "env": {
+        "DB_PATH": "${HOME}/personal/claude-store/gonogo/tracker.db",
+        "SAGA_PROJECT": "gonogo"
+      }
     }
   }
 }
