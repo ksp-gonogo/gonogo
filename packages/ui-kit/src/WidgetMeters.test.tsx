@@ -1,3 +1,4 @@
+import { type Reading, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -64,6 +65,31 @@ const VESSEL_WIDE = {
   value: 0.8,
   valueLabel: "80%",
 };
+/** The same dose, contributed as a reading whose model will bound it. */
+const BANDED_DOSE = {
+  ...DOSE,
+  value: {
+    state: "observed",
+    reckoning: "available",
+    value: 0.4,
+    atUt: value("ut", 9_000),
+    reckoned: {
+      value: 0.4,
+      atUt: value("ut", 9_000),
+      basis: "linear-dead-reckoning",
+      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      owner: "core",
+      bands: {
+        "": {
+          value: value("ratio", 0.4),
+          lo: value("ratio", 0.34),
+          hi: value("ratio", 0.46),
+          kind: "sigma1",
+        },
+      },
+    },
+  } satisfies Reading<number>,
+};
 
 describe("WidgetMeters", () => {
   it("draws a contributed meter through the kit's own Meter", () => {
@@ -124,5 +150,21 @@ describe("WidgetMeters", () => {
   it("renders nothing outside a widget context, same as any segment slot", () => {
     const { container } = render(<WidgetMeters row="Jebediah Kerman" />);
     expect(container.innerHTML).toBe("");
+  });
+
+  it("carries a contributed reading's band through to the marks on the track", () => {
+    // The contributor hands over the reading it holds and nothing else: no
+    // band lookup, no path, no unit. Everything drawn below is the primitive's
+    // decision, which is what keeps one Uplink's meters looking like another's.
+    const { container } = render(
+      <WithMeters entries={[BANDED_DOSE]}>
+        <WidgetMeters row="Jebediah Kerman" />
+      </WithMeters>,
+    );
+
+    const marks = container.querySelectorAll<HTMLElement>("[data-bound]");
+    expect(marks).toHaveLength(2);
+    expect(marks[0]).toHaveStyle({ left: "34%" });
+    expect(marks[1]).toHaveStyle({ left: "46%" });
   });
 });

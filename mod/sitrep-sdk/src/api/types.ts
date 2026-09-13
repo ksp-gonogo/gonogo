@@ -24,6 +24,7 @@ import type {
   CommandReply,
 } from "../commands";
 import type { RailTags } from "../rail-tags";
+import type { Reading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   TopicId,
@@ -300,8 +301,24 @@ export interface MeterEntry {
   id: string;
   /** Short label above the bar; also the meter's accessible name. */
   label: string;
-  /** Fill fraction, 0..1. */
-  value: number;
+  /**
+   * Fill fraction, 0..1, or the whole {@link Reading} of one.
+   *
+   * A `Reading` is how a contributed meter says more than where the bar is.
+   * The host's `Meter` draws the figure the same either way; what the reading
+   * adds is whether it is a reading of NOW, and the band, which it draws as one
+   * mark per bound on the bar's own track. That band is looked up by the
+   * primitive and never by the contributor, which is what keeps one visual
+   * language across every Uplink that contributes one: a contributor hands over
+   * the reading it already holds and decides nothing about how doubt is drawn.
+   *
+   * The band it can place is the one at the payload ROOT and in `ratio`, since
+   * that is what this figure is. A model that bands the underlying quantity
+   * instead (an accumulator in its own unit) has to say so as a fraction of the
+   * same axis the bar is drawn on, or the meter has nothing to place and draws
+   * no marks.
+   */
+  value: number | Reading<number>;
   /** Semantic colour of the fill. Inlined for the reason `BadgeEntry.tone` is. */
   tone?: "neutral" | "go" | "warn" | "nogo" | "info";
   /** Text on the right of the header; a percentage when absent. */

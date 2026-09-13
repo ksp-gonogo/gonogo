@@ -1,10 +1,23 @@
-import { value as quantity, type Value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type BandKind,
+  bandFor,
+  bandIn,
+  value as quantity,
+  type Reading,
+  readingOf,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
-import { type FormatsFor, speakQuantity } from "./units";
+import {
+  type FormatQuantityOptions,
+  type FormatsFor,
+  speakQuantity,
+} from "./units";
 
 export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
 export type MeterSize = "sm" | "md";
@@ -59,10 +72,29 @@ interface MeterCommonProps
   size?: MeterSize;
 }
 
+/**
+ * Everything the bar can be drawn from, in either spelling: the figure alone,
+ * or the whole {@link Reading} it arrived in.
+ *
+ * A WIDENING rather than a replacement, the same shape `UnitValue` takes next
+ * door and for the same reason. The two are structurally distinguishable (a
+ * `Reading` has a `state`), so every call site written against the narrow form
+ * keeps compiling and keeps rendering identically, and a call site converts by
+ * handing over what it already holds instead of unwrapping it first.
+ */
+export type MeterPayload<U extends string = string> = number | MeterQuantity<U>;
+
+/** The internal, normalised form of either prop. See {@link MeterPayload}. */
+type MeterInput<U extends string> =
+  | MeterPayload<U>
+  | Reading<MeterPayload<U>>
+  | null;
+
 /** The meter driven by a pre-divided fraction. See {@link MeterProps}. */
 export interface MeterFractionProps extends MeterCommonProps {
   /**
-   * Fill fraction, 0..1. Clamped; non-finite renders empty.
+   * Fill fraction, 0..1, or the whole {@link Reading} of one. Clamped;
+   * non-finite renders empty.
    *
    * For a reading that is genuinely unitless where it is read: a count over a
    * count (three of five vessels linked), a fraction the source already
@@ -76,8 +108,16 @@ export interface MeterFractionProps extends MeterCommonProps {
    * fill fraction and an `aria-valuenow` to go with it, and there is no
    * fraction to assert; drawing an unreported reading as a 0% bar tells the
    * operator the tank is empty rather than that nobody said.
+   *
+   * A `Reading` carrying no number (`pending`, `unowned`, `absent`) renders
+   * that same absent form, so a call site needs no gate of its own.
+   *
+   * The band, where the reading's model offers one, is at the payload ROOT and
+   * in `ratio`, since that is what this figure is. A band in any other unit is
+   * one the meter cannot place on this track and it draws none; see
+   * {@link MeterProps} on why silence beats a guess.
    */
-  value: number | null;
+  value: number | Reading<number> | null;
   quantity?: never;
   format?: never;
 }
@@ -90,9 +130,14 @@ export interface MeterQuantityProps<U extends string = string>
    * AND the header's value text from them, so neither the division nor the
    * "3.0 / 4.0" string is written at the call site.
    *
-   * `null` renders the absent form, exactly as a `null` `value` does.
+   * `null` renders the absent form, exactly as a `null` `value` does, and so
+   * does a `Reading` carrying no number.
+   *
+   * The band, where the reading's model offers one, is the one at `"amount"`
+   * and in the amount's own unit: the capacity is the axis rather than the
+   * reading, so an interval about it is not something this track can draw.
    */
-  quantity: MeterQuantity<U> | null;
+  quantity: MeterQuantity<U> | Reading<MeterQuantity<U>> | null;
   /**
    * Pin the rung both halves are shown at, for the cases where convention
    * beats magnitude.
@@ -125,6 +170,34 @@ export type MeterProps<U extends string = string> =
  * `aria-valuetext` (the human `valueLabel`), named by `label`. Colour never
  * carries meaning alone: the header always shows the value in text. An absent
  * reading renders the absent form instead, see `value`'s own doc.
+ *
+ * ## Handed a whole `Reading`, it also draws how well the number is known
+ *
+ * One mark per band bound, on the track the bar is already drawn on, at the
+ * bound's own place along it. Two marks and never a shaded interval: a
+ * `sigma1` band is one standard deviation, so the true value sits outside it
+ * about a third of the time, and a filled region asserts a containment the
+ * commoner of the two kinds never claimed. What the reader takes from a pair of
+ * marks is the distance from the bar's end, which is the thing an operator can
+ * act on.
+ *
+ * **The bar keeps showing the OBSERVATION**, marked as not-current when that is
+ * what it is, exactly as `<Unit>` does and for the reason that component's own
+ * header gives: a modelled number quietly replacing an observed one at every
+ * call site is the substitution `Reading` exists to prevent. The marks sit
+ * where the model says the value is NOW, so on a stale reading the gap between
+ * the bar's end and the pair is how far the model has carried it, and the gap
+ * between the marks is how well it claims to know that. Two facts, neither
+ * invented.
+ *
+ * **The band LOOKUP is here and nowhere else.** A widget reaching
+ * `reckoned.bands` itself decides for itself what an absent map means, which
+ * path its own figure is at, and what unit the interval arrived in, and sixty
+ * widgets deciding those separately is how one visual language becomes sixty.
+ * So the two prop spellings each say where their own band is (the root for a
+ * fraction, `"amount"` for a pair) and narrow it to the unit the track is drawn
+ * in. A band in some other unit draws NOTHING rather than a number read as
+ * something it is not, which is `bandIn`'s own judgement applied here.
  */
 export function Meter<U extends string = string>({
   label,
@@ -138,7 +211,16 @@ export function Meter<U extends string = string>({
   size = "md",
   ...rest
 }: MeterProps<U>) {
-  const fraction = (pair === undefined ? value : fractionOf(pair)) ?? null;
+  // Unpacked first, so the figure and the statements about it go separate ways.
+  // Everything below works on `drawn`, which is what the narrow props carried.
+  const { drawn, reading } = unwrap<U>(
+    (pair === undefined ? value : pair) as MeterInput<U>,
+  );
+  const drawnPair =
+    pair === undefined ? null : (drawn as MeterQuantity<U> | null);
+  const fraction =
+    (pair === undefined ? (drawn as number | null) : fractionOf(drawnPair)) ??
+    null;
   if (fraction === null) {
     return (
       <Meter__Root $size={size} {...rest}>
@@ -165,16 +247,17 @@ export function Meter<U extends string = string>({
     size,
     ...rest,
   };
-  if (pair) {
+  if (drawnPair) {
     // The scope has to enclose the whole bar, not just the header: the rung
     // settled inside it is what `aria-valuetext` is written at, and that
     // attribute sits on the track. See `MeterQuantityBar` on why it is a
     // component of its own.
     return (
-      <UnitSharedFormat of={pair.amount.unit} format={format}>
+      <UnitSharedFormat of={drawnPair.amount.unit} format={format}>
         <MeterQuantityBar
           {...bar}
-          pair={pair}
+          pair={drawnPair}
+          reading={reading}
           valueLabel={valueLabel}
           valueLabelNode={valueLabelNode}
         />
@@ -191,14 +274,193 @@ export function Meter<U extends string = string>({
    * caller-supplied `valueLabel`) is for. Writing one string for both is what
    * the unit layer exists to stop: it would announce "72 percent-sign".
    */
-  const reading = quantity("ratio", clamped);
+  const ratio = quantity("ratio", clamped);
+  const bounds = boundsOn(reading, RATIO_PATH, "ratio", null);
   return (
     <MeterBar
       {...bar}
-      display={valueLabelNode ?? valueLabel ?? <Unit value={reading} />}
-      spoken={valueLabel ?? speakQuantity(reading)}
+      bounds={bounds}
+      display={
+        valueLabelNode ??
+        valueLabel ?? <Unit value={currencyOf(reading, ratio)} />
+      }
+      spoken={withBand(valueLabel ?? speakQuantity(ratio), bounds)}
     />
   );
+}
+
+/** Where a scalar topic's band is: the payload root. */
+const RATIO_PATH = "";
+
+/** Where the tank form's band is: the half the track is a fraction OF. */
+const AMOUNT_PATH = "amount";
+
+/**
+ * The figure to draw, and the reading it came in where it came in one.
+ *
+ * A bare fraction (and a bare pair, and `null`, and nothing at all) carries no
+ * currency and no model, so there is nothing to mark and nothing to place,
+ * which is what keeps every unconverted call site byte-identical.
+ *
+ * The discriminator is guarded on the runtime shape rather than trusted from
+ * the declared union, the same way `<Unit>`'s is: a bare number reaches this
+ * prop and `in` throws on a primitive.
+ */
+function unwrap<U extends string>(
+  input: MeterInput<U> | undefined,
+): {
+  drawn: MeterPayload<U> | null;
+  reading: Reading<MeterPayload<U>> | null;
+} {
+  if (typeof input !== "object" || input === null || !("state" in input)) {
+    return { drawn: input ?? null, reading: null };
+  }
+  if (input.state === "observed" || input.state === "stale") {
+    return { drawn: input.value, reading: input };
+  }
+  // pending, unowned and absent, which carry no figure between them. The caller
+  // gets the absent form, exactly as a `null` gets.
+  return { drawn: null, reading: input };
+}
+
+/**
+ * The same currency statement, about a figure DERIVED from the reading: the
+ * percentage the fraction form writes in its header, or one half of a pair.
+ *
+ * `readingOf` rather than a hand-rolled copy, because the arms are the part
+ * that gets written wrongly and the SDK already enumerates them. It drops the
+ * model, which is the honest answer here: the derived figure is not a path any
+ * model spoke about, and `<Unit>` would ignore a reckoning anyway.
+ */
+function currencyOf<T, R>(
+  reading: Reading<T> | null,
+  shown: R,
+): R | Reading<R> {
+  return reading === null ? shown : readingOf(reading, () => shown);
+}
+
+/**
+ * Where a band's two ends sit on the 0..1 track, and what they claim.
+ *
+ * The ends are kept as the quantities they arrived as and not only as
+ * fractions, because the spoken sentence names them in the value's own unit: a
+ * tank's interval is litres of fuel rather than a percentage of one.
+ *
+ * They are kept as the bare `{ magnitude, unit }` `speakQuantity` reads rather
+ * than as `Value`s, so this type carries no unit parameter. `Value<U>` is
+ * invariant (its comparison methods take a `U` in argument position), so a
+ * banded `Value<"units">` does not widen, and a generic here would push that
+ * parameter through every function and prop between the lookup and the mark for
+ * the sake of two numbers that are only ever written out.
+ */
+interface MeterBounds {
+  lo: number;
+  hi: number;
+  kind: BandKind;
+  /** The low end as it arrived, for the sentence. */
+  loSaid: { magnitude: number; unit: string };
+  /** The high end as it arrived. */
+  hiSaid: { magnitude: number; unit: string };
+}
+
+/**
+ * The band this reading offers about the bar's own figure, placed on the track.
+ *
+ * `capacity` is what the two ends are divided by, and `null` says the figure is
+ * already a fraction. A capacity of zero is no tank at all, so there is nothing
+ * to be a fraction of and nothing to place.
+ */
+function boundsOn<U extends string>(
+  reading: Reading<unknown> | null,
+  path: string,
+  unit: U,
+  capacity: Value<U> | null,
+): MeterBounds | null {
+  if (reading === null || reading.reckoning !== "available") return null;
+  const band = bandIn(bandFor(reading.reckoned, path), unit);
+  if (!band) return null;
+  const said = { loSaid: band.lo, hiSaid: band.hi, kind: band.kind };
+  /*
+   * Through the canonical unwrap rather than four reads of its own. A `ratio`
+   * end is already the fraction the track is drawn in; a tank's end becomes one
+   * by `dividedBy`, which is the same dimension check the fill fraction goes
+   * through, and the reason the two ends cannot be in the tank's unit while the
+   * capacity is in another.
+   */
+  if (capacity === null) {
+    return {
+      lo: magnitudeOr(band.lo, 0),
+      hi: magnitudeOr(band.hi, 0),
+      ...said,
+    };
+  }
+  if (!capacity.isPositive()) return null;
+  return {
+    lo: magnitudeOr(band.lo.dividedBy(capacity), 0),
+    hi: magnitudeOr(band.hi.dividedBy(capacity), 0),
+    ...said,
+  };
+}
+
+/**
+ * The interval appended to what the track is already announcing, because an
+ * attribute is the only place a screen reader can be told about a mark that is
+ * a shape and nothing else.
+ *
+ * It names WHAT the interval claims rather than leaving the reader to assume
+ * the stronger of the two: crossing a hard bound is impossible, crossing one
+ * sigma happens about a third of the time, and the same two numbers mean both
+ * until something says which.
+ */
+function withBand(
+  spoken: string,
+  bounds: MeterBounds | null,
+  shared?: FormatQuantityOptions,
+): string {
+  if (bounds === null) return spoken;
+  const claim = bounds.kind === "sigma1" ? "one sigma" : "bounded";
+  const lo = speakQuantity(bounds.loSaid, shared);
+  const hi = speakQuantity(bounds.hiSaid, shared);
+  return `${spoken}, ${claim} ${lo} to ${hi}`;
+}
+
+/**
+ * A bound's place along the track, as a percentage the style attribute can
+ * hold.
+ *
+ * Rounded to two decimals rather than to whole percent: a quantised band half a
+ * percent wide is a real claim, and rounding it away would draw two marks on
+ * top of each other and say the model knows the number exactly. The rounding is
+ * still needed, because `0.3 * 100` is not 30 in binary floating point and a
+ * style attribute would carry the noise.
+ *
+ * CLAMPED to the track, so a bound past full pins at the end rather than
+ * drawing outside the bar it is about. That is a real case rather than a
+ * defensive one: a model fitted near a limit routinely bounds past it, and the
+ * mark at the end is the honest reading of "at least this far".
+ */
+function boundPct(fraction: number): number {
+  if (!Number.isFinite(fraction)) return 0;
+  const clamped = Math.min(1, Math.max(0, fraction));
+  return Math.round(clamped * 10_000) / 100;
+}
+
+/**
+ * A mark's position, as the two style properties that place it.
+ *
+ * The mark STRADDLES its bound, half a width either side, so it reads as a line
+ * at that place rather than as a systematic two pixels of extra interval. At
+ * the two ends it tucks fully inside instead: the track is a pill with its
+ * overflow hidden, so half a mark hanging off the end is half a mark clipped
+ * away, on exactly the bounds (a model fitted hard against a limit) where the
+ * mark is the whole of what there is to say.
+ */
+function markAt(fraction: number): {
+  style: { left: string; transform: string };
+} {
+  const pct = boundPct(fraction);
+  const shift = pct <= 0 ? 0 : pct >= 100 ? -2 : -1;
+  return { style: { left: `${pct}%`, transform: `translateX(${shift}px)` } };
 }
 
 interface MeterBarProps
@@ -213,6 +475,8 @@ interface MeterBarProps
   display: ReactNode;
   /** The same value for the ear, as the string an attribute can hold. */
   spoken: string;
+  /** Where the model's two bounds sit, or `null` where it offers none. */
+  bounds: MeterBounds | null;
 }
 
 /**
@@ -231,6 +495,7 @@ function MeterBar({
   size,
   display,
   spoken,
+  bounds,
   ...rest
 }: MeterBarProps) {
   return (
@@ -253,6 +518,23 @@ function MeterBar({
           $fillColor={fillColor}
           style={{ width: `${pct}%` }}
         />
+        {/* Decorative, and deliberately so: what the marks say is already in
+            `aria-valuetext` above, in words, because a 2px line has no reading
+            of its own and two of them announced separately would be noise. */}
+        {bounds !== null && (
+          <>
+            <Meter__Bound
+              aria-hidden="true"
+              data-bound="lo"
+              {...markAt(bounds.lo)}
+            />
+            <Meter__Bound
+              aria-hidden="true"
+              data-bound="hi"
+              {...markAt(bounds.hi)}
+            />
+          </>
+        )}
       </Meter__Track>
     </Meter__Root>
   );
@@ -281,12 +563,14 @@ function MeterBar({
  */
 function MeterQuantityBar<U extends string = string>({
   pair,
+  reading,
   valueLabel,
   valueLabelNode,
   ...bar
-}: Omit<MeterBarProps, "display" | "spoken"> &
+}: Omit<MeterBarProps, "display" | "spoken" | "bounds"> &
   Pick<MeterQuantityProps<U>, "valueLabel" | "valueLabelNode"> & {
     pair: MeterQuantity<U>;
+    reading: Reading<MeterPayload<U>> | null;
   }) {
   // A pair a caller has overridden in BOTH forms is neither drawn nor spoken,
   // so it takes no part in the group: reporting it would move an enclosing
@@ -300,15 +584,33 @@ function MeterQuantityBar<U extends string = string>({
   const shared = fromAmount ?? fromCapacity ?? {};
   const display = valueLabelNode ?? valueLabel ?? (
     <>
-      <Unit value={pair.amount} />
+      <Unit value={currencyOf(reading, pair.amount)} />
       {" / "}
-      <Unit value={pair.capacity} />
+      <Unit value={currencyOf(reading, pair.capacity)} />
     </>
   );
   const spoken =
     valueLabel ??
     `${speakQuantity(pair.amount, shared)} of ${speakQuantity(pair.capacity, shared)}`;
-  return <MeterBar {...bar} display={display} spoken={spoken} />;
+  /*
+   * The band's ends are WRITTEN at the group's rung but never REPORTED into it:
+   * they are spoken and nothing else, and a figure nobody can see must not move
+   * the rung the two visible halves are drawn at.
+   */
+  const bounds = boundsOn(
+    reading,
+    AMOUNT_PATH,
+    pair.amount.unit,
+    pair.capacity,
+  );
+  return (
+    <MeterBar
+      {...bar}
+      display={display}
+      spoken={withBand(spoken, bounds, shared)}
+      bounds={bounds}
+    />
+  );
 }
 
 /**
@@ -432,7 +734,50 @@ const Meter__Track = styled.div<{ $size: MeterSize }>`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
   overflow: hidden;
+  /* The frame the bound marks are placed against. They live INSIDE the track
+     rather than over it so the same overflow that rounds the fill's ends keeps
+     a mark at 0% or 100% inside the pill. */
+  position: relative;
   ${({ $size }) => SIZE_TRACK[$size]}
+`;
+
+/**
+ * One end of the model's interval: a tick across the track at that end's own
+ * place along it.
+ *
+ * Two pixels, full track height, and nothing else. Every part of that is the
+ * "readable if you are looking for it, not in your face" the shape was asked
+ * for:
+ *
+ * - it sits ON the track rather than beside it, so the distance the eye reads
+ *   is the distance from the bar's end and needs no second axis to be measured
+ *   against
+ * - two pixels rather than one because the smaller track is four pixels tall,
+ *   where a hairline is not a mark, it is dust
+ *
+ * **Neutral and two-toned, because a mark has to cross the fill.** A bound
+ * below the value falls INSIDE the bar, so a single flat colour is a mark that
+ * vanishes on one side of the very boundary it is drawn to be read against: at
+ * the muted grey a first pass used, the low end disappeared outright over the
+ * neutral tone's own fill. So it is a dimmed white with a dark hairline around
+ * it, which reads over the empty track, over every status tone, and over a
+ * resource's arbitrary identity colour. A TONE here was the other option and is
+ * wrong: colour on a meter already means the fill's status, and a second
+ * meaning in the same few pixels is how one visual language stops being one.
+ */
+const Meter__Bound = styled.div`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-text-primary);
+  /* The separation from a light or saturated fill. Inset as well as outset so
+     the mark keeps an edge whichever side of the bar's end it lands on. */
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.35);
+  opacity: 0.62;
+  pointer-events: none;
 `;
 
 const Meter__Fill = styled.div<{ $tone: MeterTone; $fillColor?: string }>`

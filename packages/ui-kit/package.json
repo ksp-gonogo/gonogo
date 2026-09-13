@@ -53,7 +53,8 @@
     "lint": "tsc --noEmit",
     "render:markers": "node scripts/render-markers.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json",
+    "render:meter-bands": "node scripts/render-meter-bands.ts"
   },
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
