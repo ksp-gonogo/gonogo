@@ -181,8 +181,7 @@ export function AlarmsModal({
   const [leadSeconds, setLeadSeconds] = useState(String(DEFAULT_LEAD_SECONDS));
   /**
    * Which clock the new alarm's instant is on. Defaults to the command vantage,
-   * so nothing changes for an operator who never touches the control, and the
-   * control itself is hidden below the visible gap (see `vantageChoiceVisible`).
+   * so nothing changes for an operator who never touches the control.
    */
   const [vantage, setVantage] = useState<AlarmVantage>("command");
   // Threshold-trigger fields
@@ -211,19 +210,18 @@ export function AlarmsModal({
   const [renameDraft, setRenameDraft] = useState("");
 
   /**
-   * Whether to offer the choice at all.
+   * Whether the two clocks currently read alike, which is a HINT and nothing
+   * more.
    *
-   * `useTimeContexts` drops both qualifiers when the two clocks are under a
-   * second apart, on the reasoning that a label nobody can check teaches
-   * nothing. That applies with more force to a control whose two options would
-   * then be the same alarm: a visible-but-inert radio teaches an operator that
-   * the distinction is decorative, which is exactly the wrong lesson about the
-   * one thing this whole feature is for.
+   * `useTimeContexts` drops both qualifiers under a second of light time,
+   * because a label on an instant nobody can tell apart teaches nothing. That
+   * is a statement about what is on screen NOW. An alarm is armed for the
+   * future: a craft two light-seconds out today may be an hour out when the
+   * alarm comes due, and the operator setting it up is the only one who knows
+   * which clock they meant. So the reading is reported beside the radio and
+   * never decides for them.
    */
-  const vantageChoiceVisible = timeContexts.scet !== undefined;
-  const effectiveVantage: AlarmVantage = vantageChoiceVisible
-    ? vantage
-    : "command";
+  const clocksReadAlike = timeContexts.scet === undefined;
 
   const offsetN = Number.parseFloat(offsetSeconds);
   const valueN = Number.parseFloat(thresholdValue);
@@ -269,7 +267,7 @@ export function AlarmsModal({
     (kind === "threshold" &&
       (trimmedKey === "" ||
         !Number.isFinite(valueN) ||
-        (effectiveVantage === "scet" && !scetAddressable)));
+        (vantage === "scet" && !scetAddressable)));
 
   const handleAdd = () => {
     if (addDisabled) return;
@@ -286,7 +284,7 @@ export function AlarmsModal({
          clock, which is a light-time ahead of it, or "in 60 seconds" would mean
          an alarm that already passed. */
       const ut =
-        effectiveVantage === "scet"
+        vantage === "scet"
           ? liveUt + timeContexts.owltSeconds + offsetN
           : liveUt + offsetN;
       const lead = Number.parseFloat(leadSeconds);
@@ -295,7 +293,7 @@ export function AlarmsModal({
         ut,
         leadSeconds:
           Number.isFinite(lead) && lead > 0 ? lead : DEFAULT_LEAD_SECONDS,
-        vantage: effectiveVantage,
+        vantage,
       };
     } else {
       const sustain = Number.parseFloat(sustainSeconds);
@@ -308,13 +306,11 @@ export function AlarmsModal({
           Number.isFinite(sustain) && sustain >= 0
             ? sustain
             : DEFAULT_SUSTAIN_SECONDS,
-        vantage: effectiveVantage,
+        vantage,
         /* The Topic and the path, carried only on the arm that needs them.
            `addDisabled` has already refused a SCET threshold without an
            address, so this is never the half-filled case. */
-        ...(effectiveVantage === "scet" && scetAddress !== null
-          ? scetAddress
-          : {}),
+        ...(vantage === "scet" && scetAddress !== null ? scetAddress : {}),
       };
     }
     onAdd({
@@ -403,50 +399,57 @@ export function AlarmsModal({
 
         {/* Both arms, not just the time one: a threshold on the craft's clock
             is the case that genuinely cannot be evaluated here at all. */}
-        {vantageChoiceVisible && (
-          <Field>
-            <FieldLabel as="span" id="alarm-vantage-label">
-              Fires on
-            </FieldLabel>
-            <KindRow role="radiogroup" aria-labelledby="alarm-vantage-label">
-              {VANTAGE_OPTIONS.map((option) => (
-                <KindButton
-                  key={option.vantage}
-                  type="button"
-                  role="radio"
-                  aria-checked={vantage === option.vantage}
-                  tabIndex={vantage === option.vantage ? 0 : -1}
-                  $active={vantage === option.vantage}
-                  onClick={() => setVantage(option.vantage)}
-                  onKeyDown={(e) => {
-                    const step =
-                      e.key === "ArrowRight" || e.key === "ArrowDown"
-                        ? 1
-                        : e.key === "ArrowLeft" || e.key === "ArrowUp"
-                          ? -1
-                          : 0;
-                    if (step === 0) return;
-                    e.preventDefault();
-                    const index = VANTAGE_OPTIONS.findIndex(
-                      (o) => o.vantage === vantage,
-                    );
-                    const next =
-                      (index + step + VANTAGE_OPTIONS.length) %
-                      VANTAGE_OPTIONS.length;
-                    setVantage(VANTAGE_OPTIONS[next].vantage);
-                  }}
-                >
-                  {option.label}
-                </KindButton>
-              ))}
-            </KindRow>
+        <Field>
+          <FieldLabel as="span" id="alarm-vantage-label">
+            Fires on
+          </FieldLabel>
+          <KindRow role="radiogroup" aria-labelledby="alarm-vantage-label">
+            {VANTAGE_OPTIONS.map((option) => (
+              <KindButton
+                key={option.vantage}
+                type="button"
+                role="radio"
+                aria-checked={vantage === option.vantage}
+                tabIndex={vantage === option.vantage ? 0 : -1}
+                $active={vantage === option.vantage}
+                onClick={() => setVantage(option.vantage)}
+                onKeyDown={(e) => {
+                  const step =
+                    e.key === "ArrowRight" || e.key === "ArrowDown"
+                      ? 1
+                      : e.key === "ArrowLeft" || e.key === "ArrowUp"
+                        ? -1
+                        : 0;
+                  if (step === 0) return;
+                  e.preventDefault();
+                  const index = VANTAGE_OPTIONS.findIndex(
+                    (o) => o.vantage === vantage,
+                  );
+                  const next =
+                    (index + step + VANTAGE_OPTIONS.length) %
+                    VANTAGE_OPTIONS.length;
+                  setVantage(VANTAGE_OPTIONS[next].vantage);
+                }}
+              >
+                {option.label}
+              </KindButton>
+            ))}
+          </KindRow>
+          <FieldHint>
+            {vantage === "scet"
+              ? "Armed on the craft's clock. The mod stops the warp for everybody when it comes due, and your readings stay a light-time behind."
+              : "Armed on the clock you are reading. The craft passed the moment one light-time earlier."}
+          </FieldHint>
+          {/* The reading, not a ruling: the alarm is for whenever it comes due,
+              and the craft may be much further out by then. */}
+          {clocksReadAlike && (
             <FieldHint>
-              {effectiveVantage === "scet"
-                ? "Armed on the craft's clock. The mod stops the warp for everybody when it comes due, and your readings stay a light-time behind."
-                : "Armed on the clock you are reading. The craft passed the moment one light-time earlier."}
+              Both clocks read the same right now, so either choice arms the
+              same instant today. SCET is the one that stays right as the craft
+              gets further out.
             </FieldHint>
-          </Field>
-        )}
+          )}
+        </Field>
 
         {kind === "time" ? (
           <SideBySide>
@@ -474,13 +477,11 @@ export function AlarmsModal({
                   <MissionDate
                     value={
                       snapshot.ut +
-                      (effectiveVantage === "scet"
-                        ? timeContexts.owltSeconds
-                        : 0) +
+                      (vantage === "scet" ? timeContexts.owltSeconds : 0) +
                       Number.parseFloat(offsetSeconds || "0")
                     }
                     context={
-                      effectiveVantage === "scet"
+                      vantage === "scet"
                         ? timeContexts.scet
                         : timeContexts.received
                     }
@@ -520,14 +521,12 @@ export function AlarmsModal({
                 <code>vessel.flight.altitudeAsl</code>,{" "}
                 <code>vessel.flight.verticalSpeed</code>.
               </FieldHint>
-              {effectiveVantage === "scet" &&
-                trimmedKey !== "" &&
-                !scetAddressable && (
-                  <FieldHint>
-                    <code>{trimmedKey}</code> has no Topic behind it, so there
-                    is no address the simulation could read it from.
-                  </FieldHint>
-                )}
+              {vantage === "scet" && trimmedKey !== "" && !scetAddressable && (
+                <FieldHint>
+                  <code>{trimmedKey}</code> has no Topic behind it, so there is
+                  no address the simulation could read it from.
+                </FieldHint>
+              )}
             </Field>
             <SideBySide>
               <Field>
