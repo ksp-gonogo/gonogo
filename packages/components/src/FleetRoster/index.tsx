@@ -12,6 +12,7 @@ import {
   useFleetVesselContact,
   useFleetVesselLink,
   useFleetVesselSilence,
+  useObservedVantage,
   useSelectedVantage,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
@@ -586,9 +587,12 @@ function FleetRosterComponent({
   const { known, vessels } = useFleet();
   const rollup = commsRollup(vessels);
   // Whose light-time the per-vessel delays are computed from: the selected
-  // command centre (Plan 3). Resolved to its display name via the roster,
-  // falling back to the raw id (e.g. the default "ksc" before the roster lands).
-  const vantage = useSelectedVantage();
+  // command centre (Plan 3), or before this screen chooses, the one the mod put
+  // it at, which only the frames can name. Resolved to its display name via the
+  // roster, falling back to the raw id before the roster lands.
+  const chosenVantage = useSelectedVantage();
+  const observedVantage = useObservedVantage();
+  const vantage = chosenVantage ?? observedVantage;
   // A command-centre roster is ground-side and declared unmodellable: centres do
   // not move and a stale list is still the list. Falls back to the raw id before
   // anything has landed, which is what the comment above already described.
@@ -598,7 +602,7 @@ function FleetRosterComponent({
       ? centresReading.value
       : undefined;
   const vantageName =
-    centres?.find((c) => c.id === vantage)?.displayName ?? vantage;
+    centres?.find((c) => c.id === vantage)?.displayName ?? vantage ?? "unknown";
   const cols = w ?? 8;
   // Below the width threshold the Body column and the per-vessel update lines
   // are shed, the identity + crew + link (the at-a-glance fleet state) always

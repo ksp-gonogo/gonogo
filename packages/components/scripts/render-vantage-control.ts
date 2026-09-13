@@ -9,6 +9,8 @@
  * Renders into `local_docs/renders/vantage/`. The main screen picks the
  * vantage, a station only reads it, so the two screens get different renders
  * of the same banner field:
+ *   - `main-home-identified`   : home flagged, listed second, dropdown expanded
+ *   - `main-home-not-identified`: no centre flagged, dropdown expanded
  *   - `main-resting-home-only` : one active centre (KSC), collapsed
  *   - `main-resting-multi`     : two active centres, collapsed
  *   - `main-open-multi`        : two active centres, dropdown expanded
@@ -89,30 +91,86 @@ interface VantageState {
   open?: boolean;
   screen?: "main" | "station";
   observedVantage?: string;
+  /** Viewport size for a shot whose banner or open list outgrows the default. */
+  width?: number;
+  height?: number;
 }
 
 const KSC = {
-  id: "ksc",
+  id: "ground:Kerbal Space Center",
   displayName: "KSC",
   kind: "GroundStation",
   active: true,
+  isHome: true,
 };
 const WOOMERA = {
   id: "ground:gs1",
   displayName: "Woomera Station",
   kind: "GroundStation",
   active: true,
+  isHome: false,
 };
 
+const WOOMERANG_GROUND = {
+  id: "ground:Woomerang Station",
+  displayName: "Woomerang Station",
+  kind: "GroundStation",
+  active: true,
+  isHome: false,
+};
+const KSC_GROUND_HOME = {
+  id: "ground:Kerbal Space Center",
+  displayName: "Kerbal Space Center",
+  kind: "GroundStation",
+  active: true,
+  isHome: true,
+};
+const DSN = ["DSS 14 - Goldstone", "DSS 43 - Canberra", "DSS 63 - Madrid"].map(
+  (name) => ({
+    id: `ground:${name}`,
+    displayName: name,
+    kind: "GroundStation",
+    active: true,
+    isHome: false,
+  }),
+);
+
 const STATES: VantageState[] = [
-  { name: "main-resting-home-only", roster: [KSC] },
-  { name: "main-resting-multi", roster: [KSC, WOOMERA] },
-  { name: "main-open-multi", roster: [KSC, WOOMERA], open: true },
+  // Home identified, and deliberately not listed first.
+  {
+    name: "main-home-identified",
+    roster: [WOOMERANG_GROUND, KSC_GROUND_HOME],
+    observedVantage: KSC_GROUND_HOME.id,
+    open: true,
+    width: 720,
+    height: 220,
+  },
+  // No claimant could say which station is home, as on a RealAntennas install.
+  {
+    name: "main-home-not-identified",
+    roster: DSN,
+    observedVantage: DSN[0].id,
+    open: true,
+    width: 720,
+    height: 240,
+  },
+  { name: "main-resting-home-only", roster: [KSC], observedVantage: KSC.id },
+  {
+    name: "main-resting-multi",
+    roster: [KSC, WOOMERA],
+    observedVantage: KSC.id,
+  },
+  {
+    name: "main-open-multi",
+    roster: [KSC, WOOMERA],
+    observedVantage: KSC.id,
+    open: true,
+  },
   {
     name: "station-home",
     screen: "station",
     roster: [KSC, WOOMERA],
-    observedVantage: "ksc",
+    observedVantage: KSC.id,
   },
   {
     name: "station-away",
@@ -203,6 +261,10 @@ async function main(): Promise<void> {
     );
 
     for (const state of STATES) {
+      await page.setViewportSize({
+        width: state.width ?? 420,
+        height: state.height ?? 200,
+      });
       await page.evaluate(
         (p) =>
           (

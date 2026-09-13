@@ -259,10 +259,12 @@ export class ScetAlarmBridge {
     /* Whose knowledge the simulation judges this against. Empty is the
        simulation itself, which is what a SCET alarm means. A command-vantage
        alarm names the place this screen is commanding from, so the mod compares
-       against the readings that place has actually been sent. */
+       against the readings that place has actually been sent: the centre it
+       chose, or until it chooses, the one the mod stamped its frames with. */
+    const client = getActiveTelemetryClient();
     const audience = isScetTrigger(trigger)
       ? ""
-      : (getActiveTelemetryClient()?.selectedVantage ?? "");
+      : (client?.selectedVantage ?? client?.observedVantage ?? "");
     if (!isScetTrigger(trigger) && audience === "") return null;
     if (trigger.kind === "time") {
       return {

@@ -42,6 +42,9 @@ import { AlarmHostService } from "./AlarmHostService";
 /** One-way light time, seconds. A craft four minutes out. */
 const OWLT = 240;
 const UT_START = 10_000;
+
+/** Where the mod puts a screen that has chosen no vantage, stamped on its frames. */
+const HOME = "ground:Kerbal Space Center";
 /** UT (and wall) seconds per simulated step, and the host's tick interval. */
 const DT = 20;
 
@@ -218,7 +221,7 @@ function startSession(owlt: number): ModStandIn {
     lastRoster = [...conditions.entries()].map(([id, arm]) => ({
       id,
       name: id,
-      armedBy: "ksc",
+      armedBy: HOME,
       audience: arm.audience,
       subject: arm.subject,
       condition:
@@ -242,6 +245,7 @@ function startSession(owlt: number): ModStandIn {
     transport.emit("alarm.scet", lastRoster, {
       validAt: trueUt,
       deliveredAt: trueUt,
+      vantage: HOME,
     });
   }
 
@@ -272,9 +276,9 @@ function startSession(owlt: number): ModStandIn {
         {
           id,
           firedAtUt: trueUt,
-          audience: conditions.get(id)?.audience ?? "ksc",
+          audience: conditions.get(id)?.audience ?? HOME,
         },
-        { validAt: trueUt, deliveredAt: trueUt },
+        { validAt: trueUt, deliveredAt: trueUt, vantage: HOME },
       );
     },
     setReading(value) {
@@ -287,11 +291,13 @@ function startSession(owlt: number): ModStandIn {
       transport.emit("alarm.scet", lastRoster, {
         validAt: trueUt,
         deliveredAt: trueUt,
+        vantage: HOME,
       });
       if (lastFired) {
         transport.emit("alarm.scet.fired", lastFired, {
           validAt: trueUt,
           deliveredAt: trueUt,
+          vantage: HOME,
         });
       }
     },
@@ -310,7 +316,7 @@ function startSession(owlt: number): ModStandIn {
       transport.emit(
         "vessel.identity",
         { name: "Probe", vesselId: VESSEL_ID },
-        { validAt: ut - owlt, deliveredAt: ut },
+        { validAt: ut - owlt, deliveredAt: ut, vantage: HOME },
       );
 
       // The mod's pass, on the game's OWN clock: this is the whole point of the
@@ -354,6 +360,7 @@ function startSession(owlt: number): ModStandIn {
         transport.emit("alarm.scet.fired", lastFired, {
           validAt: ut,
           deliveredAt: ut,
+          vantage: HOME,
         });
       }
 
@@ -990,9 +997,10 @@ describe("SCET alarms", () => {
       svc.dispose();
 
       expect(session.armed()).toEqual([alarm.id]);
-      // "ksc" is the client's own default selected vantage: a PLACE, never a
-      // connection, which is the whole vocabulary the mod is given.
-      expect(session.armOf(alarm.id)?.audience).toBe("ksc");
+      // This screen chose no vantage, so the audience is the one the mod stamps
+      // its frames with: a PLACE, never a connection, which is the whole
+      // vocabulary the mod is given.
+      expect(session.armOf(alarm.id)?.audience).toBe(HOME);
     });
 
     /**
@@ -1025,7 +1033,7 @@ describe("SCET alarms", () => {
         },
       });
       await run(session, UT_START + 4 * DT);
-      expect(session.armOf(alarm.id)?.audience).toBe("ksc");
+      expect(session.armOf(alarm.id)?.audience).toBe(HOME);
 
       session.fireForAudience(alarm.id);
       await run(session, UT_START + 6 * DT);

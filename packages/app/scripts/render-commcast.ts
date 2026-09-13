@@ -37,7 +37,7 @@ const OUT_DIR =
   resolve(HERE, "../../../local_docs/renders/commcast");
 
 /** Where the two ends of the headline scene are. */
-const KSC = "ksc";
+const KSC = "ground:Kennedy";
 const ARES = "vessel:ares-4";
 /** A second command centre, downrange and at its own vantage. */
 const WOOMERA = "ground:woomera";
@@ -116,10 +116,10 @@ const PAIRS = [
 ];
 
 const ROSTER = [
-  { id: KSC, displayName: "Kennedy", active: true },
-  { id: ARES, displayName: "Ares 4", active: true },
-  { id: WOOMERA, displayName: "Woomera Range", active: true },
-  { id: RECOVERY, displayName: "Recovery 1", active: true },
+  { id: KSC, displayName: "Kennedy", active: true, isHome: true },
+  { id: ARES, displayName: "Ares 4", active: true, isHome: false },
+  { id: WOOMERA, displayName: "Woomera Range", active: true, isHome: false },
+  { id: RECOVERY, displayName: "Recovery 1", active: true, isHome: false },
 ];
 
 /** From the ground to the craft, and back. */

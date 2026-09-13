@@ -73,13 +73,13 @@ describe("MainScreen smoke", () => {
     // `components/MissionBanner.test.tsx` against a real stream fixture.
     // Full MainScreen has no telemetry stream mounted here, so the time
     // field reads its "no sample yet" placeholder and the vantage control
-    // reads its "no roster yet" fallback (the raw client-default id).
+    // names no centre, since nothing was chosen and no frame has said where.
     renderScreen(<MainScreen />);
     expect(
       screen.getByRole("group", { name: "Mission status" }),
     ).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "Command centre vantage: ksc" }),
+      screen.getByRole("button", { name: "Command centre vantage: Unknown" }),
     ).not.toBeNull();
   });
 

@@ -99,11 +99,22 @@ describe("TelemetryClient subscriptions", () => {
     off();
   });
 
+  it("names no centre before setVantage and sends no set-vantage, leaving the server's starting vantage in force", () => {
+    const t = new StubTransport();
+    const sendSpy = vi.spyOn(t, "send");
+    const client = new TelemetryClient(t);
+    client.subscribe("v.alt", () => {});
+
+    expect(client.selectedVantage).toBeUndefined();
+    expect(sendSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "set-vantage" }),
+    );
+  });
+
   it("setVantage sends set-vantage, tracks selectedVantage, and re-subscribes active topics", () => {
     const t = new StubTransport();
     const sendSpy = vi.spyOn(t, "send");
     const client = new TelemetryClient(t);
-    expect(client.selectedVantage).toBe("ksc");
 
     client.subscribe("v.alt", () => {});
     sendSpy.mockClear();

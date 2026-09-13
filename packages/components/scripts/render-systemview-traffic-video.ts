@@ -282,7 +282,7 @@ function pendingEntry(id: string, dispatchedAt: number, oneWaySeconds: number) {
     command: "kos.run",
     label: "Deploy solar panels",
     topic: "",
-    vantage: "ksc",
+    vantage: "ground:Kerbal Space Center",
     dispatchedAt,
     oneWaySeconds,
   };

@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { VantageControl } from "./VantageControl";
 
+const KSC = "ground:Kerbal Space Center";
+
 /**
  * What `VantageControl` DOES today when `commandCentre.roster` reads
  * `undefined`, recorded before `useTelemetry` starts returning a `Reading`.
@@ -11,7 +13,7 @@ import { VantageControl } from "./VantageControl";
  * The whole control funnels the roster through one absence gate,
  * `(roster ?? []).filter(...)`, and every visible consequence follows from it:
  * the option list, the empty popover, and (via `resolveHomeCentreId([])`
- * returning `undefined`) whether the trigger claims the selected vantage is
+ * returning `undefined`) whether the trigger claims the vantage in force is
  * home. The gate cannot tell a cold topic from a confirmed tombstone, and
  * these tests pin that it does not try.
  */
@@ -48,10 +50,10 @@ function mount() {
   return {
     ...fixture,
     ...view,
-    /** Emit at the default `validAt: 0` and advance the pinned frame onto it. */
+    /** Emit at the default `validAt: 0`, stamped as observed from home, and advance the pinned frame onto it. */
     emitRoster: (roster: unknown) => {
       act(() => {
-        fixture.emit("commandCentre.roster", roster);
+        fixture.emit("commandCentre.roster", roster, { vantage: KSC });
         fixture.store.beginFrame();
       });
     },
@@ -59,25 +61,22 @@ function mount() {
 }
 
 describe("VantageControl: what undefined means for commandCentre.roster today", () => {
-  it("with nothing on the wire, renders the selected id as its own label and asserts no centres exist", () => {
+  it("with nothing on the wire, names no centre and asserts no centres exist", () => {
     const fixture = mount();
 
-    // The label is the `selectedOption?.label ?? selected` fallback: no roster
-    // entry to match, so the raw client default id is what the operator reads.
+    // Nothing chosen and no frame has said where this screen is, so there is no
+    // id to show and the label says so rather than inventing one.
     // Nothing emitted, so the read is the bare `undefined` this whole file is
     // about, not a tombstone and not an empty array off the wire.
     expect(screen.getByText("roster:pending")).toBeInTheDocument();
 
     const trigger = screen.getByRole("button", {
-      name: "Command centre vantage: ksc",
+      name: "Command centre vantage: Unknown",
     });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
 
-    // KSC is NOT marked home before the roster arrives. `resolveHomeCentreId`
-    // over an empty active list answers `undefined`, and `"ksc" === undefined`
-    // is false, so the badge that appears the instant a roster lands is absent
-    // here. This is the undefined-meaning "waiting for telemetry" being
-    // rendered as the positive claim "this vantage is not home".
+    // Nothing is marked home before the roster arrives, and nothing claims the
+    // home was not identified either: an absent roster says neither.
     expect(screen.queryByText("Home")).toBeNull();
 
     // Opening it makes the same conflation louder: a topic that has simply not
@@ -98,7 +97,9 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     // Land a real roster first, so this test cannot pass merely because the
     // tombstone never reached the store: the Home badge appearing proves the
     // subscription and the frame are live.
-    fixture.emitRoster([{ id: "ksc", displayName: "KSC", active: true }]);
+    fixture.emitRoster([
+      { id: KSC, displayName: "KSC", active: true, isHome: true },
+    ]);
     expect(
       screen.getByRole("button", {
         name: "Command centre vantage: KSC (home)",
@@ -108,19 +109,19 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
 
     // `null` is the store's confirmed-absence tombstone, distinct from
     // `undefined`. `roster ?? []` collapses the two, so the control reverts to
-    // the byte-identical never-arrived render: no distinction is implemented
-    // here at all.
+    // the never-arrived render, naming the stamped vantage by its raw id: no
+    // distinction is implemented here at all.
     fixture.emitRoster(null);
     // The probe is what proves the tombstone genuinely reached the read: the
     // control below renders no trace of which of the two it got.
     expect(screen.getByText("roster:absent")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Command centre vantage: ksc" }),
+      screen.getByRole("button", { name: `Command centre vantage: ${KSC}` }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Home")).toBeNull();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Command centre vantage: ksc" }),
+      screen.getByRole("button", { name: `Command centre vantage: ${KSC}` }),
     );
     expect(screen.getByRole("status")).toHaveTextContent(
       "No command centres available",
@@ -133,7 +134,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     const fixture = mount();
 
     const trigger = screen.getByRole("button", {
-      name: "Command centre vantage: ksc",
+      name: "Command centre vantage: Unknown",
     });
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
     expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -143,7 +144,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     // land on, so Enter must not re-point the whole view.
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
     fireEvent.keyDown(trigger, { key: "Enter" });
-    expect(fixture.client.selectedVantage).toBe("ksc");
+    expect(fixture.client.selectedVantage).toBeUndefined();
     // Enter did not select, so the menu is still open.
     expect(trigger).toHaveAttribute("aria-expanded", "true");
 
@@ -163,7 +164,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     ]);
 
     const trigger = screen.getByRole("button", {
-      name: "Command centre vantage: ksc",
+      name: `Command centre vantage: ${KSC}`,
     });
     fireEvent.click(trigger);
     expect(screen.getByRole("status")).toHaveTextContent(
@@ -180,16 +181,16 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     // The entry passes the filter, so only `c.displayName ?? c.id` is in play:
     // a missing display name renders the wire id verbatim rather than a
     // placeholder.
-    fixture.emitRoster([{ id: "ksc", active: true }]);
+    fixture.emitRoster([{ id: KSC, active: true, isHome: true }]);
 
     const trigger = screen.getByRole("button", {
-      name: "Command centre vantage: ksc (home)",
+      name: `Command centre vantage: ${KSC} (home)`,
     });
     expect(screen.getByText("Home")).toBeInTheDocument();
 
     fireEvent.click(trigger);
     const option = screen.getByRole("option");
-    expect(option).toHaveTextContent("ksc");
+    expect(option).toHaveTextContent(KSC);
     expect(option).toHaveTextContent("Home");
 
     fixture.unmount();
