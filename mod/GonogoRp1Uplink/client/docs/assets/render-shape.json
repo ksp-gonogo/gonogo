@@ -178,17 +178,17 @@
       "text": "942b1ca1"
     },
     "avionics-controls-locked--default.png": {
-      "hash": "31359c31fea26825",
+      "hash": "5c396795f47c0d61",
       "elements": 260,
       "text": "948c7e34"
     },
     "avionics-not-installed--default.png": {
-      "hash": "e8d834b26ccc0946",
+      "hash": "dc2c25b721f2c7c1",
       "elements": 254,
       "text": "3c936ea3"
     },
     "avionics-roll-only--default.png": {
-      "hash": "eef01504859995c5",
+      "hash": "ea7dc2141d309e39",
       "elements": 260,
       "text": "589de221"
     },
@@ -253,37 +253,37 @@
       "text": "1ecaf521"
     },
     "complexes-add-pad--default.png": {
-      "hash": "c7e9ab7cdd91766f",
+      "hash": "6abb57110cbde2f5",
       "elements": 265,
       "text": "34a60c07"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "3851c67ed1c6fa30",
+      "hash": "05dee338e451946e",
       "elements": 209,
       "text": "510a6444"
     },
     "complexes-last-pad--default.png": {
-      "hash": "e90e14f9ffaab031",
+      "hash": "8a61dc4158987ac1",
       "elements": 248,
       "text": "2c4db57f"
     },
     "complexes-new--default.png": {
-      "hash": "77d578d7f505b2de",
+      "hash": "d61066a8498f1469",
       "elements": 236,
       "text": "7331e7db"
     },
     "complexes-rename--default.png": {
-      "hash": "1489ced61fd36e13",
+      "hash": "5eef0c152baca623",
       "elements": 266,
       "text": "46a7048d"
     },
     "complexes-renovate--default.png": {
-      "hash": "294fad5a2a62ce09",
+      "hash": "2f63b7d485267b6e",
       "elements": 244,
       "text": "24b7797f"
     },
     "complexes-rushing--default.png": {
-      "hash": "b3cc445e16750dc0",
+      "hash": "564e48f50b2c286b",
       "elements": 266,
       "text": "130a706c"
     },
@@ -323,12 +323,12 @@
       "text": "8348fe0e"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "ebab391fe5213e8d",
+      "hash": "c9335d093062ed71",
       "elements": 34,
       "text": "206699b0"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "ef245f7e5a824f95",
+      "hash": "8550fb22eb7f0d2d",
       "elements": 33,
       "text": "a8239cff"
     },
@@ -388,7 +388,7 @@
       "text": "6d930dce"
     },
     "hire-target-standing-order--default.png": {
-      "hash": "7fb792d7d227b3b2",
+      "hash": "c50aa63fc070e5ce",
       "elements": 176,
       "text": "3fad0c42"
     },
@@ -428,7 +428,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "792850167cb47843",
+      "hash": "8ce85e422e0ec172",
       "elements": 138,
       "text": "0dc12c0e"
     },
@@ -478,32 +478,32 @@
       "text": "a779cc0f"
     },
     "tooling-refit-instead--default.png": {
-      "hash": "b41be7668039abec",
+      "hash": "0b734243a3f0f28b",
       "elements": 90,
       "text": "e91f2657"
     },
     "tooling-refit-instead--landscape-18x5.png": {
-      "hash": "e3e151275167eee3",
+      "hash": "70e9bbb059001efe",
       "elements": 90,
       "text": "e91f2657"
     },
     "tooling-refit-instead--min.png": {
-      "hash": "7028cae760584a26",
+      "hash": "c968f3aae1b19f87",
       "elements": 90,
       "text": "17f84f3f"
     },
     "tooling-refit-instead--mobile-9x8.png": {
-      "hash": "96dfb7c19331587b",
+      "hash": "78701652e5c3d68f",
       "elements": 90,
       "text": "e91f2657"
     },
     "tooling-refit-instead--portrait-5x18.png": {
-      "hash": "fb0e9253bad34d82",
+      "hash": "817cbf3c21ba4647",
       "elements": 90,
       "text": "e91f2657"
     },
     "two-centres-unstaffed--default.png": {
-      "hash": "4d9a152159b11c56",
+      "hash": "b0c0e6bff6c23b96",
       "elements": 202,
       "text": "21d9408b"
     },
