@@ -60,6 +60,8 @@ type ArmedCondition =
 interface ArmedAlarm {
   condition: ArmedCondition;
   subject: string;
+  /** Whose ledger the mod would judge it against. Empty is the simulation's own. */
+  audience: string;
 }
 
 /**
@@ -97,6 +99,11 @@ interface ModStandIn {
   armForeign(id: string): void;
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
+  /**
+   * Publish the mod's SHADOW verdict on an audience alarm: the notice it would
+   * send having judged the condition against what that place has been told.
+   */
+  fireForAudience(id: string): void;
   /**
    * Drive the TRUE value every armed threshold is compared against, which only
    * the stand-in can see.
@@ -162,6 +169,7 @@ function startSession(owlt: number): ModStandIn {
       }
       conditions.set(id, {
         subject: String(bag.subject ?? ""),
+        audience: String(bag.audience ?? ""),
         condition: threshold
           ? {
               kind: "threshold",
@@ -211,6 +219,7 @@ function startSession(owlt: number): ModStandIn {
       id,
       name: id,
       armedBy: "ksc",
+      audience: arm.audience,
       subject: arm.subject,
       condition:
         arm.condition.kind === "time"
@@ -245,6 +254,7 @@ function startSession(owlt: number): ModStandIn {
     armForeign(id) {
       conditions.set(id, {
         subject: "game",
+        audience: "",
         condition: {
           kind: "threshold",
           topic: "career.status",
@@ -256,6 +266,17 @@ function startSession(owlt: number): ModStandIn {
       });
     },
     armOf: (id) => conditions.get(id),
+    fireForAudience(id) {
+      transport.emit(
+        "alarm.scet.fired",
+        {
+          id,
+          firedAtUt: trueUt,
+          audience: conditions.get(id)?.audience ?? "ksc",
+        },
+        { validAt: trueUt, deliveredAt: trueUt },
+      );
+    },
     setReading(value) {
       reading = value;
     },
@@ -296,6 +317,12 @@ function startSession(owlt: number): ModStandIn {
       // arm, and it runs whatever the client can currently see.
       for (const [id, arm] of conditions) {
         if (fired.has(id)) continue;
+        /* An AUDIENCE alarm is judged against what one PLACE has been told,
+           out of the Courier's archive, which this fixture does not model and
+           should not: that is the mod's own reveal and it has its own suite.
+           `fireForAudience` stands in for the verdict so the client's handling
+           of one can be exercised. */
+        if (arm.audience !== "") continue;
         const c = arm.condition;
         if (c.kind === "time") {
           if (!steppedDown.has(id) && ut >= c.ut - c.leadSeconds) {
@@ -928,5 +955,87 @@ describe("SCET alarms", () => {
     expect(row?.state).not.toBe("pending");
     expect(row?.eventUT).toBe(crossesAt);
     expect(session.gameIndex()).toBe(0);
+  });
+
+  /**
+   * The shadow arm. A COMMAND-vantage threshold is still this side's to
+   * evaluate; it is also sent to the mod, naming the place this screen commands
+   * from, so the same alarm gets a second verdict that can be compared.
+   */
+  describe("command-vantage shadow", () => {
+    it("arms a command-vantage threshold naming the vantage as its audience", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.altitudeAsl",
+          op: ">",
+          value: 100_000,
+          sustainSeconds: 0,
+          vantage: "command",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+        },
+      });
+      await run(session, UT_START + 4 * DT);
+      svc.dispose();
+
+      expect(session.armed()).toEqual([alarm.id]);
+      // "ksc" is the client's own default selected vantage: a PLACE, never a
+      // connection, which is the whole vocabulary the mod is given.
+      expect(session.armOf(alarm.id)?.audience).toBe("ksc");
+    });
+
+    /**
+     * And the mod's verdict on it changes NOTHING here. The latch it would
+     * write is the same field this side's own threshold tracking writes, so two
+     * authorities for it would clear each other's: until there is evidence they
+     * agree, a command-vantage alarm is the client's alone.
+     */
+    it("does not latch from the mod's verdict on an audience alarm", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.altitudeAsl",
+          op: ">",
+          value: 100_000,
+          sustainSeconds: 0,
+          vantage: "command",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+        },
+      });
+      await run(session, UT_START + 4 * DT);
+      expect(session.armOf(alarm.id)?.audience).toBe("ksc");
+
+      session.fireForAudience(alarm.id);
+      await run(session, UT_START + 6 * DT);
+      const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      svc.dispose();
+
+      // Still this side's to decide, and this side has read nothing that
+      // crosses 100 km.
+      expect(row?.state).toBe("pending");
+      expect(row?.eventUT).toBeUndefined();
+    });
   });
 });

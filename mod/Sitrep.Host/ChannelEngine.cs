@@ -3114,6 +3114,32 @@ namespace Sitrep.Host
             _commandHandlers.ContainsKey(command)
             || _vantageCommandHandlers.ContainsKey(command);
 
+        /// <summary>
+        /// The payload <paramref name="vantage"/> has been told about
+        /// <paramref name="topic"/>, or null if nothing has reached it yet.
+        ///
+        /// <para>The engine's half of the lookup is the ROUTING: a topic belongs
+        /// to a node (<see cref="NodeFor"/>) and the delay is measured to that
+        /// node, and neither is knowable to a caller holding only a topic
+        /// string. Everything after that is <see cref="Courier.ReadRawAtVantage"/>,
+        /// including the cursor it moves and what that costs retention.</para>
+        ///
+        /// <para><b>COURIER THREAD ONLY.</b> The archive is the Courier's own
+        /// state and nothing guards it. The one existing main-thread reader
+        /// (<see cref="PlanForVantage"/>) is safe for a reason that does not
+        /// generalise: it runs inside <see cref="RunOnMainThread"/>, so the
+        /// Courier thread is parked waiting for it. A sampled source must
+        /// therefore ask this from its handle and never from its capture.</para>
+        /// </summary>
+        public object? ReadTopicAtVantage(string topic, string vantage, double nowUt)
+        {
+            if (string.IsNullOrEmpty(topic) || string.IsNullOrEmpty(vantage))
+            {
+                return null;
+            }
+            return _courier.ReadRawAtVantage(NodeFor(topic), topic, vantage, nowUt);
+        }
+
         private object? PlanForVantage(object? args, string vantage)
         {
             var bound = BindCommandArgs(args, typeof(VantagePlanRequest)) as VantagePlanRequest;

@@ -4024,6 +4024,24 @@ export interface ScetAlarm
 	*/
 	armedBy: string;
 	/**
+	* Whose ledger the condition is read against, and therefore who the fire
+	* notice is for. Empty is the simulation itself; anything else is a place,
+	* spelled as a `commandCentre.roster` id (`"ksc"`, `"vessel:<guid>"`).
+	*
+	* **Distinct from `ScetAlarm.armedBy`, which is provenance.** That says where
+	* the arm command came from and nothing else. This says which body of
+	* knowledge the condition is compared against: empty means the craft's TRUE
+	* state, upstream of the reveal gate, and the warp stop that follows is
+	* universal because warp belongs to the simulation. A named place means what
+	* THAT place has been told, which is a light-time old and different at every
+	* vantage, so the answer is that place's alone and stops nothing.
+	*
+	* A place, never a connection. Two operators sharing a command centre share
+	* its ledger and its answer, and a browser reconnecting is the same place it
+	* was before, so the simulation never learns that clients exist.
+	*/
+	audience: string;
+	/**
 	* What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
 	* something the whole simulation shares. The same vocabulary `meta.source`
 	* uses.
@@ -4072,6 +4090,18 @@ export interface ScetAlarmFired
 	id: string;
 	/** The universal time it fired at, on the craft's clock. */
 	firedAtUt: Value<"ut">;
+	/**
+	* Whose answer this is, echoing the `ScetAlarm.audience` it was armed under.
+	* Empty is the simulation's own verdict, and the one that stopped the warp.
+	*
+	* Carried rather than left to the client to look up, because the two kinds of
+	* notice mean different things and a reader that has to consult the roster
+	* first is a reader that will act on the wrong one. A simulation notice is a
+	* fact about the craft and the warp is already stopped; an audience notice is
+	* a statement about what one place has been told, true only there, and nothing
+	* in the game moved because of it.
+	*/
+	audience: string;
 }
 /**
 * `alarm.scet.arm`'s args: register an alarm with the simulation host, or
@@ -4089,6 +4119,12 @@ export interface ScetAlarmArmArgs
 {
 	id: string;
 	name: string;
+	/**
+	* See `ScetAlarm.audience`. Empty arms against the simulation, which is what
+	* every alarm did before this field existed, so an older client's arm keeps
+	* the behaviour it had.
+	*/
+	audience: string;
 	/** See `ScetAlarm.subject`. Empty is read as `"game"`. */
 	subject: string;
 	condition: ScetAlarmCondition;

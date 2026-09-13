@@ -1579,7 +1579,27 @@ namespace Sitrep.Contract
         /// token is <c>"game"</c>, which the vocabulary already had for anything
         /// the whole simulation shares, and a career is exactly that: one per
         /// save, and switching vessels cannot change which one is read.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 5 -&gt; 6: an alarm can name whose
+        /// knowledge it is judged against.</b> One new member on each of three
+        /// existing types: <see cref="ScetAlarmArmArgs.Audience"/>,
+        /// <see cref="ScetAlarm.Audience"/> and
+        /// <see cref="ScetAlarmFired.Audience"/>. All three default to the empty
+        /// string, which is the behaviour every alarm already had, so an Uplink
+        /// built against 16.5 is unaffected and the frozen Major-16 floor is NOT
+        /// re-frozen.</para>
+        ///
+        /// <para>It exists because the two kinds of alarm this app offers differ
+        /// in exactly one thing, and the wire could not say it. A SCET alarm is
+        /// compared against the simulation's own state; a command-vantage alarm
+        /// is compared against what one place has been TOLD, which is a
+        /// light-time old and different at every vantage. The second kind was
+        /// evaluated on the client for want of a word for "whose ledger", and a
+        /// client holding delayed readings is the one party that cannot say when
+        /// its own readings were true. The token is a place, in the
+        /// <c>commandCentre.roster</c> vocabulary, never a connection: the
+        /// simulation must not learn that browsers exist.</para>
         /// </remarks>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

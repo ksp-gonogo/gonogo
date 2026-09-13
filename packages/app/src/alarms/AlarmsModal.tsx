@@ -307,10 +307,14 @@ export function AlarmsModal({
             ? sustain
             : DEFAULT_SUSTAIN_SECONDS,
         vantage,
-        /* The Topic and the path, carried only on the arm that needs them.
-           `addDisabled` has already refused a SCET threshold without an
-           address, so this is never the half-filled case. */
-        ...(vantage === "scet" && scetAddress !== null ? scetAddress : {}),
+        /* The Topic and the path, carried whenever the field HAS one, whatever
+           clock the alarm is on. A SCET threshold cannot be armed without it,
+           which `addDisabled` already refuses; a command-vantage one does not
+           need it to work, and carries it so the simulation can shadow-evaluate
+           the same alarm against what this vantage has been told and the two
+           answers can be compared. Either whole or absent, never half-filled:
+           `scetAddress` resolves both halves or neither. */
+        ...(scetAddress !== null ? scetAddress : {}),
       };
     }
     onAdd({

@@ -8,6 +8,7 @@ import {
   toggleCommandFor,
 } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
+import { logger } from "@ksp-gonogo/logger";
 import {
   type DispatchActiveCommandResult,
   dispatchActiveCommandTopic,
@@ -181,6 +182,20 @@ export class AlarmHostService {
    */
   private scetArmRefusals = new Map<string, string>();
 
+  /**
+   * What the SIMULATION decided about a command-vantage alarm, by alarm id.
+   *
+   * SHADOW ONLY: nothing reads this to decide anything, and it must not. The
+   * client stays the authority for an alarm on its own clock; this is here so
+   * the two verdicts on one alarm can be compared, in both directions, as they
+   * land. Not persisted and not emitted, because it is evidence about this
+   * session's agreement rather than state anything renders.
+   */
+  private shadowVerdicts = new Map<
+    string,
+    { firedAtUt: number; audience: string }
+  >();
+
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
       nowMs: opts.nowMs ?? (() => Date.now()),
@@ -247,6 +262,8 @@ export class AlarmHostService {
     this.scetBridge = new ScetAlarmBridge({
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt) => this.onScetFired(id, firedAtUt),
+      onShadowFired: (id, firedAtUt, audience) =>
+        this.onShadowFired(id, firedAtUt, audience),
       onArmRefused: (id, reason) => {
         if (this.scetArmRefusals.get(id) === reason) return;
         this.scetArmRefusals.set(id, reason);
@@ -521,6 +538,72 @@ export class AlarmHostService {
     this.tick();
   }
 
+  /**
+   * The simulation's verdict on a COMMAND-VANTAGE alarm, judged against what
+   * `audience` has been told. Recorded and compared, never acted on.
+   *
+   * <p>Mutating anything from here is the hazard
+   * `AlarmStateMachine.updateThresholdTracking` documents: the latch the mod
+   * would set is the same field this side's own tracking writes, so the two
+   * would clear each other's. Until there is evidence the two agree, the
+   * client's answer is the only one that counts for an alarm on the client's
+   * clock.</p>
+   */
+  private onShadowFired(id: string, firedAtUt: number, audience: string): void {
+    this.shadowVerdicts.set(id, { firedAtUt, audience });
+    const alarm = this.alarms.find((a) => a.id === id);
+    if (!alarm) {
+      logger.warn(
+        "alarm-shadow: mod fired an alarm this client does not hold",
+        {
+          id,
+          audience,
+          firedAtUt,
+        },
+      );
+      return;
+    }
+    if (alarm.state === "pending") {
+      logger.warn("alarm-shadow: mod fired first, client still pending", {
+        id,
+        audience,
+        firedAtUt,
+        clientUt: this.observedUT,
+      });
+      return;
+    }
+    logger.info("alarm-shadow: mod agrees, client had already fired", {
+      id,
+      audience,
+      firedAtUt,
+      clientEventUt: alarm.eventUT ?? null,
+    });
+  }
+
+  /**
+   * The other direction: this client has just fired a command-vantage alarm,
+   * so say whether the simulation had reached the same verdict. Silence from
+   * the mod is the divergence worth seeing, and it can only be noticed from
+   * here.
+   */
+  private compareShadowAtClientFire(alarm: Alarm): void {
+    if (isScetTrigger(alarm.trigger)) return;
+    const verdict = this.shadowVerdicts.get(alarm.id);
+    if (!verdict) {
+      logger.warn("alarm-shadow: client fired, mod has not", {
+        id: alarm.id,
+        clientUt: this.observedUT,
+      });
+      return;
+    }
+    logger.info("alarm-shadow: client fired, mod had already agreed", {
+      id: alarm.id,
+      audience: verdict.audience,
+      modFiredAtUt: verdict.firedAtUt,
+      clientUt: this.observedUT,
+    });
+  }
+
   // ── Tick loop ─────────────────────────────────────────────────────────
 
   private start(): void {
@@ -590,6 +673,7 @@ export class AlarmHostService {
           }
           if (alarm.state !== "firing" && nextState === "firing") {
             this.notifyFire(alarm);
+            this.compareShadowAtClientFire(alarm);
             // Force warp to 0 again: in case the warp recovered between
             // `arming` and `firing`, or for threshold alarms where there
             // was no `arming` phase at all.

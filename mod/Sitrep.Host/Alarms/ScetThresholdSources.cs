@@ -261,12 +261,8 @@ namespace Sitrep.Host.Alarms
                 return ScetReading.NotObservable;
             }
 
-            // The payload's own provenance stamp, which is the ONLY thing that
-            // stops an alarm armed against one craft answering off another's
-            // readings after the player switches vessels. A payload that does
-            // not say who it is about is not an answer to a question that names
-            // a craft.
-            if (ReadSource(root) is not { } source)
+            // The payload's own provenance stamp: see ScetPayload.ReadSource.
+            if (ScetPayload.ReadSource(root) is not { } source)
             {
                 return ScetReading.NotObservable;
             }
@@ -276,17 +272,10 @@ namespace Sitrep.Host.Alarms
                 return IsSubjectGone(subject) ? ScetReading.SubjectGone : ScetReading.NotObservable;
             }
 
-            return ReadNumber(root, fieldPath) is { } value
+            return ScetPayload.ReadNumber(root, fieldPath) is { } value
                 ? ScetReading.Observed(value)
                 : ScetReading.NotObservable;
         }
-
-        private static string? ReadSource(IDictionary<string, object?> root) =>
-            root.TryGetValue("meta", out var raw)
-                && raw is IDictionary<string, object?> meta
-                && meta.TryGetValue("source", out var source)
-                    ? source as string
-                    : null;
 
         /// <summary>
         /// Whether the craft this alarm names has left the simulation entirely,
@@ -323,60 +312,6 @@ namespace Sitrep.Host.Alarms
                 }
             }
             return true;
-        }
-
-        /// <summary>
-        /// Walk a dotted path to a finite number, or null for anything else.
-        ///
-        /// <para>A bool or a string at the end of the path is a miss rather than
-        /// a coercion. A threshold is a comparison between two numbers, and
-        /// turning <c>true</c> into 1 would let an operator arm "landed &gt; 0.5"
-        /// and get an alarm whose meaning nothing on screen explains.</para>
-        /// </summary>
-        private static double? ReadNumber(IDictionary<string, object?> root, string fieldPath)
-        {
-            object? current = root;
-            var from = 0;
-            while (from <= fieldPath.Length)
-            {
-                var dot = fieldPath.IndexOf('.', from);
-                var segment = dot < 0
-                    ? fieldPath.Substring(from)
-                    : fieldPath.Substring(from, dot - from);
-                if (segment.Length == 0
-                    || current is not IDictionary<string, object?> node
-                    || !node.TryGetValue(segment, out current))
-                {
-                    return null;
-                }
-                if (dot < 0)
-                {
-                    break;
-                }
-                from = dot + 1;
-            }
-
-            return AsFiniteNumber(current);
-        }
-
-        private static double? AsFiniteNumber(object? value)
-        {
-            double number;
-            switch (value)
-            {
-                case double d: number = d; break;
-                case float f: number = f; break;
-                case int i: number = i; break;
-                case long l: number = l; break;
-                case short s: number = s; break;
-                case byte b: number = b; break;
-                case decimal m: number = (double)m; break;
-                // An enum reaches the wire as its integer, and a threshold on one
-                // is a legitimate way to ask "has the situation changed".
-                case Enum e: number = Convert.ToDouble(e, CultureInfo.InvariantCulture); break;
-                default: return null;
-            }
-            return double.IsNaN(number) || double.IsInfinity(number) ? null : number;
         }
     }
 }

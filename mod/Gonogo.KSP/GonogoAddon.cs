@@ -202,6 +202,17 @@ namespace Gonogo.KSP
                 // Late-bound because the engine, and therefore the Kernel, does
                 // not exist when KspHost is constructed above.
                 var engine = _engine;
+
+                // What a command centre has been told, for the alarm arm's
+                // audience rosters. Late-bound and static for the same pair of
+                // reasons the sources below are late-bound: the engine does not
+                // exist when the uplink is constructed, and this uplink comes
+                // out of assembly-scan discovery so nothing here holds its
+                // instance. The closure is asked only from the Courier thread,
+                // which is where ReadTopicAtVantage must be asked from.
+                ScetAlarmUplink.ConfigureRevealedRead(
+                    (topic, vantage, nowUt) => engine.ReadTopicAtVantage(topic, vantage, nowUt));
+
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
@@ -591,6 +602,11 @@ namespace Gonogo.KSP
                 return;
             }
             _shutDown = true;
+
+            // Dropped before the engine goes, because it is a static closure
+            // over that engine: left in place it would outlive the archive it
+            // reads and hand the next scene's alarm arm a dead one.
+            ScetAlarmUplink.ConfigureRevealedRead(null);
 
             try
             {

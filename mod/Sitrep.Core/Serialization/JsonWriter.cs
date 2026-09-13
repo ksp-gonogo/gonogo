@@ -1746,6 +1746,10 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendString(sb, a.ArmedBy ?? "");
             sb.Append(',');
+            AppendString(sb, "audience");
+            sb.Append(':');
+            AppendString(sb, a.Audience ?? "");
+            sb.Append(',');
             AppendString(sb, "subject");
             sb.Append(':');
             AppendString(sb, a.Subject ?? "");
@@ -1823,9 +1827,11 @@ namespace Sitrep.Core.Serialization
         }
 
         /// <summary>
-        /// The fire notice as <c>{ id, firedAtUt }</c>. Two fields, and the
-        /// shortness is the design: see <see cref="Sitrep.Contract.ScetAlarmFired"/>
-        /// for why nothing about the craft may travel on this channel.
+        /// The fire notice as <c>{ id, firedAtUt, audience }</c>. Still the
+        /// honest minimum: see <see cref="Sitrep.Contract.ScetAlarmFired"/> for
+        /// why nothing about the craft may travel on this channel. The audience
+        /// says WHOSE verdict this is, which is a fact about the alarm rather
+        /// than a reading of anything.
         /// </summary>
         private static void AppendScetAlarmFired(
             StringBuilder sb, Sitrep.Contract.ScetAlarmFired f)
@@ -1838,6 +1844,10 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "firedAtUt");
             sb.Append(':');
             AppendNumber(sb, f.FiredAtUt);
+            sb.Append(',');
+            AppendString(sb, "audience");
+            sb.Append(':');
+            AppendString(sb, f.Audience ?? "");
             sb.Append('}');
         }
 

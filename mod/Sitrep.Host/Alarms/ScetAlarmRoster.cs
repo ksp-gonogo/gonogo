@@ -136,6 +136,11 @@ namespace Sitrep.Host.Alarms
                 Id = args.Id,
                 Name = args.Name ?? "",
                 ArmedBy = armedBy ?? "",
+                // Taken from the arguments, unlike ArmedBy: an operator at one
+                // centre may ask what another centre can currently see, and
+                // where the command entered cannot express that. See
+                // ScetAlarm.Audience.
+                Audience = args.Audience ?? "",
                 Subject = string.IsNullOrEmpty(args.Subject) ? "game" : args.Subject,
                 Condition = Copy(condition),
                 State = ScetAlarmState.Armed,
@@ -381,6 +386,10 @@ namespace Sitrep.Host.Alarms
             {
                 Id = entry.Alarm.Id,
                 FiredAtUt = nowUt,
+                // Echoed so a reader can tell the simulation's verdict from one
+                // audience's without consulting the roster. The two mean
+                // different things and only the first stopped anything.
+                Audience = entry.Alarm.Audience ?? "",
             });
         }
 
@@ -400,6 +409,7 @@ namespace Sitrep.Host.Alarms
                     Id = a.Id,
                     Name = a.Name,
                     ArmedBy = a.ArmedBy,
+                    Audience = a.Audience,
                     Subject = a.Subject,
                     Condition = Copy(a.Condition),
                     State = a.State,
@@ -431,6 +441,7 @@ namespace Sitrep.Host.Alarms
             return held.State == ScetAlarmState.Armed
                 && string.Equals(held.Name, incoming.Name, StringComparison.Ordinal)
                 && string.Equals(held.ArmedBy, incoming.ArmedBy, StringComparison.Ordinal)
+                && string.Equals(held.Audience, incoming.Audience, StringComparison.Ordinal)
                 && string.Equals(held.Subject, incoming.Subject, StringComparison.Ordinal)
                 && held.Condition != null
                 && held.Condition.Kind == incoming.Condition.Kind
