@@ -3119,13 +3119,25 @@ namespace Sitrep.Host
         /// <paramref name="topic"/>, or null if nothing has reached it yet.
         ///
         /// <para>The engine's half of the lookup is the ROUTING: a topic belongs
-        /// to a node (<see cref="NodeFor"/>) and the delay is measured to that
-        /// node, and neither is knowable to a caller holding only a topic
-        /// string. Everything after that is <see cref="Courier.ReadRawAtVantage"/>,
-        /// including the cursor it moves and what that costs retention.</para>
+        /// to a node (<see cref="NodeFor"/>), it is observed from a vantage
+        /// (<see cref="ObservationVantageFor"/>, which is what keeps an
+        /// instant-class topic instant here exactly as it is for a subscriber),
+        /// and the delay is measured between the two. None of that is knowable
+        /// to a caller holding only a topic string. Everything after it is
+        /// <see cref="Courier.ReadRawAtVantage"/>, including the cursor it moves
+        /// and what that costs retention.</para>
+        ///
+        /// <para>The vantage a caller names is therefore where it is STANDING,
+        /// not necessarily where the archive is read from: an instant-class
+        /// topic is read from the meta vantage whoever asks, because "what does
+        /// this say at that place" has one answer for a topic no distance
+        /// applies to. Routing the read is what makes a threshold armed at a
+        /// command centre compare the same number the operator's dashboard is
+        /// showing.</para>
         ///
         /// <para><b>COURIER THREAD ONLY.</b> The archive is the Courier's own
-        /// state and nothing guards it. The one existing main-thread reader
+        /// state and nothing guards it, and neither does the delay ledger the
+        /// routing pins. The one existing main-thread reader
         /// (<see cref="PlanForVantage"/>) is safe for a reason that does not
         /// generalise: it runs inside <see cref="RunOnMainThread"/>, so the
         /// Courier thread is parked waiting for it. A sampled source must
@@ -3137,7 +3149,56 @@ namespace Sitrep.Host
             {
                 return null;
             }
-            return _courier.ReadRawAtVantage(NodeFor(topic), topic, vantage, nowUt);
+            return _courier.ReadRawAtVantage(
+                NodeFor(topic), topic, ObservationVantageFor(topic, vantage), nowUt);
+        }
+
+        /// <summary>
+        /// Where <paramref name="topic"/> is OBSERVED from by someone standing at
+        /// <paramref name="selectedVantage"/>: itself for an ordinary Delayed
+        /// topic, and <see cref="MetaVantage"/> for an instant-class one.
+        ///
+        /// <para>Instant-class is two things, and both mean "the ledger must not
+        /// apply the whole-network signal delay to this": a <c>TrueNow</c>
+        /// declaration, and freeze-exemption (comms.link,
+        /// fleet.&lt;guid&gt;.contact), which carries its OWN horizon in the
+        /// reveal gate. An exempt topic that kept the ordinary vantage would be
+        /// delayed TWICE: once by that gate horizon, then again by the ledger's
+        /// live per-vessel row.</para>
+        ///
+        /// <para>comms.delay is NOT in this class. It is an ordinary Delayed
+        /// readout, and the delay it reports is carried to the client by the
+        /// ledger like any other. Nothing here depends on it: the ledger rows are
+        /// written by the capture pass, so a subscription can be gated without
+        /// the gate losing its own number.</para>
+        ///
+        /// <para>SHARED by the subscribe path and the vantage read on purpose.
+        /// They used to differ: only the subscription routed, so the same topic
+        /// at the same instant was worth one thing to a subscriber and a
+        /// light-time-older thing to a command-vantage threshold. One function
+        /// means a topic cannot be instant down one path and delayed down the
+        /// other.</para>
+        ///
+        /// <para>It WRITES, which is why it is not a predicate. MetaVantage
+        /// promises <c>DelayTo(meta, *) == 0</c>, but the constructor can only
+        /// pin the one node it knows up front ("system"); a fleet.&lt;guid&gt;
+        /// node is minted later by the fleet capture, and an unpinned pair falls
+        /// through to that node's own routed light-time. Pinning at the single
+        /// point where a topic is routed onto the meta vantage is what makes the
+        /// promise true for every node, whenever it was minted. Both callers run
+        /// on the Courier thread.</para>
+        /// </summary>
+        private string ObservationVantageFor(string topic, string selectedVantage)
+        {
+            var isInstantClass = IsFreezeExempt(topic)
+                || (_channelDeclarations.TryGetValue(topic, out var declaration)
+                    && declaration.Delay == DelayRole.TrueNow);
+            if (!isInstantClass)
+            {
+                return selectedVantage;
+            }
+            _network.SetDelay(MetaVantage, NodeFor(topic), 0.0);
+            return MetaVantage;
         }
 
         private object? PlanForVantage(object? args, string vantage)
@@ -5714,35 +5775,7 @@ namespace Sitrep.Host
                 _emitter.NotifySubscribed(topic);
             }
 
-            // Instant/exempt topics ride the meta-vantage (DelayTo -> 0) so the
-            // ledger never applies the whole-network signal delay to them; the
-            // gate keeps their own delay semantics (comms.link and
-            // fleet.<guid>.contact last-connected-delay, TrueNow 0). Ordinary
-            // Delayed topics keep the real per-connection vantage, which the
-            // ledger delays (Plan 1). A contact topic that kept the ordinary
-            // vantage would be delayed TWICE: once by its own exempt horizon in
-            // the gate, then again by the ledger's live per-vessel row.
-            //
-            // comms.delay is NOT in this class. It is an ordinary Delayed
-            // readout, and the delay it reports is carried to the client by the
-            // ledger like any other. Nothing here depends on it: the ledger rows
-            // are written by the capture pass, so a subscription can be gated
-            // without the gate losing its own number.
-            var isInstantClass = IsFreezeExempt(topic)
-                || _channelDeclarations[topic].Delay == DelayRole.TrueNow;
-            var vantage = isInstantClass ? MetaVantage : session.SelectedVantage;
-            if (isInstantClass)
-            {
-                // MetaVantage promises DelayTo(meta, *) == 0, but the constructor
-                // can only pin the one node it knows up front ("system"); a
-                // fleet.<guid> node is minted later by the fleet capture, and an
-                // unpinned pair falls through to that node's own routed
-                // light-time. Pinning here, at the single point where a topic is
-                // routed onto the meta vantage, is what stops an exempt channel
-                // being delayed once by its own gate horizon and then a second
-                // time by the ledger.
-                _network.SetDelay(MetaVantage, NodeFor(topic), 0.0);
-            }
+            var vantage = ObservationVantageFor(topic, session.SelectedVantage);
             var delivery = _channelDeclarations[topic].Delivery;
             var opaque = _channelDeclarations[topic].OpaquePayload;
 
