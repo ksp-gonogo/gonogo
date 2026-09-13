@@ -145,7 +145,7 @@ const STATES: VantageState[] = [
     width: 720,
     height: 220,
   },
-  // No claimant could say which station is home, as on a RealAntennas install.
+  // No claimant could say which station is home, as on a comms-mod install.
   {
     name: "main-home-not-identified",
     roster: DSN,

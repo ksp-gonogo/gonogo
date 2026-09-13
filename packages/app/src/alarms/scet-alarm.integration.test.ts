@@ -997,9 +997,7 @@ describe("SCET alarms", () => {
       svc.dispose();
 
       expect(session.armed()).toEqual([alarm.id]);
-      // This screen chose no vantage, so the audience is the one the mod stamps
-      // its frames with: a PLACE, never a connection, which is the whole
-      // vocabulary the mod is given.
+      // This screen chose no vantage, so the audience is the one the mod stamps its frames with: a PLACE, never a connection, which is the whole vocabulary the mod is given.
       expect(session.armOf(alarm.id)?.audience).toBe(HOME);
     });
 

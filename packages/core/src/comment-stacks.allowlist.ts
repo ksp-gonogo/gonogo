@@ -196,7 +196,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/components/SignalLossIndicator.undefined.characterise.test.tsx": 5,
   "packages/app/src/components/StationLinkFab.tsx": 1,
   "packages/app/src/components/VantageControl.station.test.tsx": 1,
-  "packages/app/src/components/VantageControl.tsx": 1,
   "packages/app/src/components/VantageControl.undefined.characterise.test.tsx": 4,
   "packages/app/src/dataSources/sitrep.ts": 1,
   "packages/app/src/goNoGo/CountdownAnnouncer.test.tsx": 1,
