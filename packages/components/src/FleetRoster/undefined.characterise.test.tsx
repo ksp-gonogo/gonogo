@@ -124,16 +124,15 @@ describe("FleetRoster: nothing has arrived at all", () => {
     expect(screen.queryByText("No Link")).toBeNull();
   });
 
-  it("names the vantage as the raw `ksc` id when no command-centre roster has arrived", () => {
+  it("names the vantage unknown when nothing was chosen and no frame has said where", () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
     /*
-     * `centres?.find(...)?.displayName ?? vantage` falls all the way back to
-     * the selection id, so the header presents an internal identifier as a
-     * command centre's name with no hint it is a fallback.
+     * `centres?.find(...)?.displayName ?? vantage ?? "unknown"` falls all the
+     * way through: no selection, no stamped frame, so there is no id to show.
      */
-    expect(screen.getByText(/viewing from:\s*ksc/i)).toBeInTheDocument();
+    expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
   });
 
   it("renders the same not-available state with no TelemetryProvider mounted at all", () => {
@@ -152,7 +151,7 @@ describe("FleetRoster: nothing has arrived at all", () => {
     expect(
       screen.getByText("Fleet data not available yet."),
     ).toBeInTheDocument();
-    expect(screen.getByText(/viewing from:\s*ksc/i)).toBeInTheDocument();
+    expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
     expect(
       screen.getByRole("meter", { name: "Comms coverage" }),
     ).toHaveAttribute("aria-valuenow", "0");

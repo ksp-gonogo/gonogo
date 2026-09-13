@@ -172,7 +172,13 @@ async function renderScene(scene: Scene): Promise<void> {
      which centre its data is delayed from; the roster is what turns that id
      into a name an operator reads. */
   fixture.emit("commandCentre.roster", [
-    { id: "ksc", displayName: "KSC", kind: 0, active: true },
+    {
+      id: "ground:Kerbal Space Center",
+      displayName: "KSC",
+      kind: 0,
+      active: true,
+      isHome: true,
+    },
   ]);
   /*
    * The orbit, three times, each with its own minted frame and a paint between.
@@ -184,7 +190,9 @@ async function renderScene(scene: Scene): Promise<void> {
    * BEFORE half of a comparison render gets the same treatment as the after.
    */
   for (let i = 0; i < 3; i++) {
-    fixture.emit("vessel.orbit", ORBIT, { vantage: "ksc" });
+    fixture.emit("vessel.orbit", ORBIT, {
+      vantage: "ground:Kerbal Space Center",
+    });
     fixture.store.beginFrame();
     await new Promise((r) =>
       requestAnimationFrame(() => requestAnimationFrame(r)),

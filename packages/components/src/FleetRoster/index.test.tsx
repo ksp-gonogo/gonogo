@@ -731,12 +731,22 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture);
     act(() => {
       fixture.emit("system.vessels", ALL_LINKED);
-      fixture.emit("commandCentre.roster", [
-        { id: "ksc", displayName: "KSC", active: true },
-      ]);
+      fixture.emit(
+        "commandCentre.roster",
+        [
+          {
+            id: "ground:Kerbal Space Center",
+            displayName: "KSC",
+            active: true,
+            isHome: true,
+          },
+        ],
+        { vantage: "ground:Kerbal Space Center" },
+      );
     });
-    // The header names whose light-time the per-vessel delays ride, resolved to
-    // the centre's display name.
+    // The header names whose light-time the per-vessel delays ride: the centre
+    // the frames are stamped with, since nothing was chosen, resolved to its
+    // display name.
     await waitFor(() =>
       expect(screen.getByText(/viewing from:\s*KSC/i)).toBeInTheDocument(),
     );

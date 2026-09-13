@@ -16,8 +16,8 @@ export type CommsMessageKind = "text" | "audio" | "video";
 
 /**
  * Who a message is for, or who it came from: a VANTAGE key, the same
- * vocabulary `SetVantage` and `commandCentre.roster` use (`"ksc"`,
- * `"ground:<name>"`, `"vessel:<guid>"`).
+ * vocabulary `SetVantage` and `commandCentre.roster` use (`"ground:<name>"`,
+ * `"vessel:<guid>"`).
  *
  * A vantage rather than a person, because the separation is a property of
  * where somebody is standing and not of who they are: two operators at one

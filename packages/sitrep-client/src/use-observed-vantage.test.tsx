@@ -55,9 +55,9 @@ describe("useObservedVantage", () => {
 
     emit("ground:gs1");
     // The two answer different questions, and a station is where they part
-    // company: its own selection cannot move off the default while its frames
-    // come from a host session that can be anywhere.
-    expect(client.selectedVantage).toBe("ksc");
+    // company: its own selection never leaves undefined while its frames come
+    // from a host session that can be anywhere.
+    expect(client.selectedVantage).toBeUndefined();
     expect(screen.getByText("observed:ground:gs1")).toBeTruthy();
   });
 

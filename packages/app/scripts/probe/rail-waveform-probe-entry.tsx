@@ -179,7 +179,7 @@ async function amplitudesOf(
   });
   await transmitter.keyDown({
     to: ["vessel:ares-4"],
-    from: "ksc",
+    from: "ground:Kerbal Space Center",
     authorStationKey: safeRandomUuid(),
     authorName: "CAPCOM",
     authorSeat: "mission-control",

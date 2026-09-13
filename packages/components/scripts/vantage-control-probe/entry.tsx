@@ -36,8 +36,9 @@ export interface VantageProbePayload {
   open?: boolean;
   /** Which screen to mount on. Defaults to `"main"`, the picker. */
   screen?: Screen;
-  /** The vantage to stamp the roster frame with, which is what the station
-   *  readout states. Omit to leave the readout with nothing to state. */
+  /** The vantage to stamp the roster frame with: what the station readout
+   *  states, and what the picker names until the main screen chooses. Omit to
+   *  leave the readout with nothing to state. */
   observedVantage?: string;
 }
 

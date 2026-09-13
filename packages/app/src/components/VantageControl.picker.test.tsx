@@ -5,9 +5,16 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { VantageControl } from "./VantageControl";
 
+const KSC = "ground:Kerbal Space Center";
+
 const ROSTER = [
-  { id: "ksc", displayName: "KSC", active: true },
-  { id: "ground:gs1", displayName: "Woomera Station", active: true },
+  { id: KSC, displayName: "KSC", active: true, isHome: true },
+  {
+    id: "ground:gs1",
+    displayName: "Woomera Station",
+    active: true,
+    isHome: false,
+  },
 ];
 
 /** Mounts the picker (main screen). */
@@ -23,7 +30,7 @@ function mountPicker() {
       </ScreenProvider>
     </fixture.Provider>,
   );
-  const emitRoster = (roster: unknown, vantage = "ksc") => {
+  const emitRoster = (roster: unknown, vantage = KSC) => {
     act(() => {
       fixture.emit("commandCentre.roster", roster, { vantage });
       fixture.store.beginFrame();
@@ -85,10 +92,7 @@ describe("VantagePicker's home badge carries an icon, not the word 'Home'", () =
 
   it("draws only the chevron on the closed trigger for a non-home selection", () => {
     const fixture = mountPicker();
-    fixture.emitRoster([
-      { id: "ksc", displayName: "KSC", active: true },
-      { id: "ground:gs1", displayName: "Woomera Station", active: true },
-    ]);
+    fixture.emitRoster(ROSTER);
 
     fireEvent.click(screen.getByRole("button"));
     /* The listbox selects on pointerdown (so the input doesn't lose focus and dismiss the dropdown before the click lands), not on click. */
@@ -98,6 +102,79 @@ describe("VantagePicker's home badge carries an icon, not the word 'Home'", () =
 
     const trigger = screen.getByRole("button");
     expect(trigger.querySelectorAll("svg")).toHaveLength(1);
+
+    fixture.unmount();
+  });
+
+  it("marks the centre the mod flags as home, even when it is not listed first", () => {
+    const fixture = mountPicker();
+    fixture.emitRoster([
+      {
+        id: "ground:Woomerang Station",
+        displayName: "Woomerang",
+        active: true,
+        isHome: false,
+      },
+      {
+        id: "ground:Kerbal Space Center",
+        displayName: "Kerbal Space Center",
+        active: true,
+        isHome: true,
+      },
+    ]);
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(
+      screen.getByRole("option", { name: /Kerbal Space Center.*Home/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Woomerang" }),
+    ).toBeInTheDocument();
+
+    fixture.unmount();
+  });
+
+  it("names the centre the frames are stamped with until this screen chooses one", () => {
+    const fixture = mountPicker();
+    fixture.emitRoster(ROSTER, "ground:gs1");
+
+    expect(fixture.client.selectedVantage).toBeUndefined();
+    expect(
+      screen.getByRole("button", {
+        name: "Command centre vantage: Woomera Station",
+      }),
+    ).toBeInTheDocument();
+
+    fixture.unmount();
+  });
+
+  it("says the home was not identified, and marks no centre home, when the roster flags none", () => {
+    const fixture = mountPicker();
+    fixture.emitRoster(
+      [
+        {
+          id: "ground:DSS 14 - Goldstone",
+          displayName: "Goldstone",
+          active: true,
+          isHome: false,
+        },
+        {
+          id: "ground:DSS 43 - Canberra",
+          displayName: "Canberra",
+          active: true,
+          isHome: false,
+        },
+      ],
+      "ground:DSS 14 - Goldstone",
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: "Command centre vantage: Goldstone (home not identified)",
+    });
+    expect(trigger).toHaveTextContent("home not identified");
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("option", { name: /Home/ })).toBeNull();
+    expect(document.querySelectorAll('[role="option"] svg')).toHaveLength(0);
 
     fixture.unmount();
   });

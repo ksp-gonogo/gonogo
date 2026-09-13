@@ -8,13 +8,15 @@ const VIEW_UT = 1_000;
 
 const CRAFT = "vessel:abc-123";
 
+const KSC = "ground:Kerbal Space Center";
+
 /**
  * The roster the mod publishes for a save whose crewed craft is a control
- * source with an antenna: exactly the shape `CrewedVesselSource` mints, KSC
- * alongside it because every save has one.
+ * source with an antenna: exactly the shape `CrewedVesselSource` mints, the home
+ * ground station alongside it because every save has one.
  */
 const ROSTER = [
-  { id: "ksc", displayName: "KSC", active: true },
+  { id: KSC, displayName: "KSC", active: true, isHome: true },
   { id: CRAFT, displayName: "Ares I", active: true },
 ];
 
@@ -74,7 +76,7 @@ function mountPilot() {
 describe("PilotVantage", () => {
   it("moves the session off the ground and onto the craft the pilot is aboard", () => {
     const fixture = mountPilot();
-    expect(fixture.client.selectedVantage).toBe("ksc");
+    expect(fixture.client.selectedVantage).toBeUndefined();
 
     fixture.emitRoster(ROSTER);
     fixture.emitOrbitFrom(CRAFT);
@@ -87,11 +89,13 @@ describe("PilotVantage", () => {
   it("keeps the ground vantage for a craft the roster does not carry as an active centre", () => {
     const fixture = mountPilot();
 
-    fixture.emitRoster([{ id: "ksc", displayName: "KSC", active: true }]);
+    fixture.emitRoster([
+      { id: KSC, displayName: "KSC", active: true, isHome: true },
+    ]);
     fixture.emitOrbitFrom(CRAFT);
 
     // The mod would refuse this id, and a refused request tracked optimistically would leave every reader of `selectedVantage` naming a centre the frames are not from.
-    expect(fixture.client.selectedVantage).toBe("ksc");
+    expect(fixture.client.selectedVantage).toBeUndefined();
 
     fixture.unmount();
   });

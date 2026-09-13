@@ -26,29 +26,30 @@ interface VantageOption extends ComboboxOption {
 interface ActiveCentre {
   id: string;
   displayName?: string;
+  isHome?: boolean;
 }
 
 /**
- * Which active roster entry counts as the HOME command centre: the canonical
- * routing point every currency spend will use regardless of the operator's
- * own selected vantage (see `local_docs/design/2026-08-15-currency-spend-vantage-model.md`,
- * decided but not yet built). The roster carries no explicit home flag to
- * read, so this is a convention, not a fact off the wire: `"ksc"` is today's
- * only possible home (the one centre every save starts with), not a
- * permanent rule. Every "which one is home" question in this file funnels
- * through this single function, so a future explicit marker (or a save with
- * a genuine alternate home) only has one call site to change.
+ * Which active roster entry is the HOME command centre, the one holding the
+ * career ledger, read off the flag the mod publishes. Never inferred from an id
+ * or a position in the list: when no entry carries the flag the mod could not
+ * identify a home, and the answer is `undefined`.
  */
 function resolveHomeCentreId(
-  active: readonly { id: string }[],
+  active: readonly { id: string; isHome?: boolean }[],
 ): string | undefined {
-  return (active.find((c) => c.id === "ksc") ?? active[0])?.id;
+  return active.find((c) => c.isHome === true)?.id;
 }
 
-/** The currently-active command centres, and which of them is home. */
+/**
+ * The currently-active command centres, which of them is home, and whether the
+ * mod said it could not identify one: a roster that lists centres and flags
+ * none of them. An empty or not-yet-arrived roster says nothing either way.
+ */
 function useActiveCentres(): {
   active: ActiveCentre[];
   homeId: string | undefined;
+  homeNotIdentified: boolean;
 } {
   // FAIL-OPEN FIX as well as a migration: `(roster ?? [])` never took its
   // fallback once the read became a Reading, so the filter below ran against a
@@ -62,15 +63,20 @@ function useActiveCentres(): {
   const active = (roster ?? []).filter(
     (c): c is typeof c & { id: string } => c.active && c.id != null,
   );
-  return { active, homeId: resolveHomeCentreId(active) };
+  const homeId = resolveHomeCentreId(active);
+  return {
+    active,
+    homeId,
+    homeNotIdentified: active.length > 0 && homeId === undefined,
+  };
 }
 
 /**
  * The command centre in force, rendered as a chooser on the main screen and as
  * a plain statement of fact on a station.
  *
- * A station reads the vantage, it does not pick one. The mod keeps
- * `SelectedVantage` on the `ClientSession` and a host has exactly one session,
+ * A station reads the vantage, it does not pick one. The mod keeps the
+ * vantage on the `ClientSession` and a host has exactly one session,
  * so two stations at two vantages would need two differently-delayed streams
  * down one socket: per-station vantage is not implementable without a wire
  * change, quite apart from being unwanted. But a station operator reading
@@ -93,13 +99,13 @@ export function VantageControl() {
  * actually delayed from, stated and nothing more.
  *
  * Sourced from the frames rather than from `useSelectedVantage`, which on a
- * station answers a constructor default that can never move and so names the
- * host's centre only by coincidence. Before any frame has named one there is
- * nothing to state, and saying so is the point: "we do not know yet" and "we
- * are at KSC" are different facts and must not look alike.
+ * station never leaves `undefined` because a station chooses nothing. Before
+ * any frame has named one there is nothing to state, and saying so is the
+ * point: "we do not know yet" and "we are at home" are different facts and
+ * must not look alike.
  */
 function VantageReadout() {
-  const { active, homeId } = useActiveCentres();
+  const { active, homeId, homeNotIdentified } = useActiveCentres();
   const observed = useObservedVantage();
   const entry = active.find((c) => c.id === observed);
 
@@ -116,9 +122,22 @@ function VantageReadout() {
             {entry?.displayName ?? observed}
           </Text>
           {observed === homeId && <HomeBadge />}
+          {homeNotIdentified && <HomeNotIdentified />}
         </>
       )}
     </VantageReadout__Root>
+  );
+}
+
+/**
+ * Stated beside the vantage when the mod could not say which centre is home,
+ * so a ground station standing in for home is never mistaken for it.
+ */
+function HomeNotIdentified() {
+  return (
+    <Text tone="faint" size="xs" weight="regular">
+      home not identified
+    </Text>
   );
 }
 
@@ -151,8 +170,12 @@ function HomeBadge() {
  * option to land on.
  */
 function VantagePicker() {
-  const { active, homeId } = useActiveCentres();
-  const selected = useSelectedVantage();
+  const { active, homeId, homeNotIdentified } = useActiveCentres();
+  // Until this screen chooses, the mod has put it wherever a fresh connection
+  // starts, and only the frames say where that is.
+  const chosen = useSelectedVantage();
+  const observed = useObservedVantage();
+  const selected = chosen ?? observed;
   const client = useTelemetryClientOptional();
 
   const [open, setOpen] = useState(false);
@@ -169,13 +192,10 @@ function VantagePicker() {
   }));
 
   const selectedOption = options.find((o) => o.key === selected);
-  // Never empty: before the roster has arrived (or for a vantage the roster
-  // doesn't carry) fall back to the raw selected id rather than rendering
-  // nothing.
-  const selectedLabel = selectedOption?.label ?? selected;
-  const selectedIsHome = selectedOption
-    ? selectedOption.isHome
-    : selected === homeId;
+  // Never empty: for a vantage the roster doesn't carry fall back to the raw
+  // id, and before any frame has said where this screen is, say so.
+  const selectedLabel = selectedOption?.label ?? selected ?? "Unknown";
+  const selectedIsHome = selected !== undefined && selected === homeId;
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -249,12 +269,13 @@ function VantagePicker() {
         aria-controls={listboxId}
         aria-label={`Command centre vantage: ${selectedLabel}${
           selectedIsHome ? " (home)" : ""
-        }`}
+        }${homeNotIdentified ? " (home not identified)" : ""}`}
         onClick={() => (open ? closeMenu() : openMenu())}
         onKeyDown={onTriggerKeyDown}
       >
         <TriggerValue>{selectedLabel}</TriggerValue>
         {selectedIsHome && <HomeBadge />}
+        {homeNotIdentified && <HomeNotIdentified />}
         <ChevronDownIcon size={12} />
       </Trigger>
       {open &&
@@ -264,7 +285,7 @@ function VantagePicker() {
             groups={[["Command Centres", options]]}
             flatOptions={options}
             activeIndex={activeIndex}
-            selectedKey={selected}
+            selectedKey={selected ?? null}
             getOptionId={optionId}
             onHoverIndex={setActiveIndex}
             onSelectKey={selectOption}

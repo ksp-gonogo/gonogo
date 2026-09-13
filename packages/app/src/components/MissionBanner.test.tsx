@@ -19,6 +19,8 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { MissionBanner } from "./MissionBanner";
 
+const KSC = "ground:Kerbal Space Center";
+
 /**
  * Mounts a real `TelemetryProvider` (`TelemetryClient` + `TimelineStore`
  * over a `StubTransport`) around a genuine, live `ViewClock`, the same
@@ -51,18 +53,25 @@ function setupTelemetryStream() {
   return {
     advanceTo: (ut: number) => clock.observeSample(ut, ut),
     emitRoster: (roster: unknown) =>
-      transport.emit("commandCentre.roster", roster),
+      transport.emit("commandCentre.roster", roster, { vantage: KSC }),
     Provider,
   };
 }
 
 const MULTI_ROSTER = [
-  { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
+  {
+    id: KSC,
+    displayName: "KSC",
+    kind: "GroundStation",
+    active: true,
+    isHome: true,
+  },
   {
     id: "ground:gs1",
     displayName: "Ground Station 1",
     kind: "GroundStation",
     active: true,
+    isHome: false,
   },
 ];
 
@@ -76,7 +85,7 @@ describe("MissionBanner", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Command centre vantage: ksc" }),
+      screen.getByRole("button", { name: "Command centre vantage: Unknown" }),
     ).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
@@ -125,7 +134,13 @@ describe("MissionBanner", () => {
     );
     act(() => {
       fixture.emitRoster([
-        { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
+        {
+          id: KSC,
+          displayName: "KSC",
+          kind: "GroundStation",
+          active: true,
+          isHome: true,
+        },
       ]);
     });
 

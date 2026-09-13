@@ -228,7 +228,7 @@ export class TelemetryClient {
   private readonly unsubscribeFromLost: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
-  private selectedVantageId = "ksc";
+  private selectedVantageId: string | undefined;
   private observedVantageId: string | undefined;
   /** Raw-frame tap listeners: see `onRawMessage`. */
   private readonly rawMessageListeners = new Set<
@@ -405,10 +405,15 @@ export class TelemetryClient {
    * the topic unsubscribes, sends `unsubscribe` and clears local state.
    */
   /**
-   * The command centre this connection commands from and observes at (Plan 3).
-   * Defaults to `"ksc"` until {@link setVantage} selects another.
+   * The command centre this client asked to command from and observe at (Plan 3),
+   * or `undefined` until {@link setVantage} asks for one.
+   *
+   * `undefined` is "wherever the server puts a connection that has not chosen",
+   * which is the home command, and not a centre id this client could spell: the
+   * server alone knows which centre is home. Where that turned out to be is
+   * {@link observedVantage}.
    */
-  get selectedVantage(): string {
+  get selectedVantage(): string | undefined {
     return this.selectedVantageId;
   }
 
@@ -428,10 +433,9 @@ export class TelemetryClient {
    *
    * Where {@link selectedVantage} is intent (what this client asked for), this
    * is observation (what it is being sent). The two differ wherever a client
-   * does not own the session its frames come from: a station's own selection is
-   * a constructor default that can never move, so it names the right centre
-   * only by luck, while every frame carries the vantage it was genuinely
-   * delayed from.
+   * does not own the session its frames come from, and before a client has
+   * chosen at all: a station's own selection never leaves `undefined`, while
+   * every frame carries the vantage it was genuinely delayed from.
    *
    * Instant-class topics ride the meta vantage instead of the session's
    * selection, so a frame stamped with it says nothing about where the session
@@ -469,9 +473,9 @@ export class TelemetryClient {
   /**
    * Select the command centre (vantage) to command from and observe at. Sends a
    * `set-vantage` message and re-subscribes every active topic so its downlink
-   * cursor re-points to the new vantage's offset. The server validates the id
-   * (the default `"ksc"` is always accepted) and errors on an inactive centre;
-   * this optimistically tracks the request.
+   * cursor re-points to the new vantage's offset. The server validates the id and
+   * errors on one that names no active centre; this optimistically tracks the
+   * request.
    */
   setVantage(centreId: string): void {
     // A transport that cannot carry the selection must not have one made

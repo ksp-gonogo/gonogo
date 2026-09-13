@@ -44,9 +44,8 @@ function usePilotCraftVantageId(): string | undefined {
  *
  * Renders nothing: it is a binding, not a control. A pilot holds their own
  * session and therefore their own vantage, and nothing on the page ever
- * selected one, so the session kept `TelemetryClient`'s constructor default of
- * `"ksc"` and a human strapped into the craft read every instrument at the
- * GROUND's light-time. That is the one thing `/pilot` exists to prevent.
+ * selected one, so the mod kept the session at home and a human strapped into
+ * the craft read every instrument at the GROUND's light-time. That is the one thing `/pilot` exists to prevent.
  *
  * Gated on the SELECTED vantage rather than the observed one. Observed lags a
  * whole light-time behind the request that moved it, so comparing against it

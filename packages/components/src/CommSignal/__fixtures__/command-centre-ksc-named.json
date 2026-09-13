@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "command-centre-ksc-named",
-    "notes": "strong direct link, comms.commandCentre names KSC explicitly (id ksc, kind GroundStation) instead of the widget's hardcoded fallback. comms.path is a single direct hop (vessel -> home), the 'You -> KSC' route case."
+    "notes": "strong direct link, comms.commandCentre names KSC explicitly (id ground:Kerbal Space Center, kind GroundStation) instead of the widget's hardcoded fallback. comms.path is a single direct hop (vessel -> home), the 'You -> KSC' route case."
   },
   "comm.connected": true,
   "comm.signalStrength": 0.87,
@@ -39,7 +39,7 @@
       {
         "channel": "comms.commandCentre",
         "value": {
-          "id": "ksc",
+          "id": "ground:Kerbal Space Center",
           "displayName": "Kerbin Space Center",
           "kind": "GroundStation",
           "bodyIndex": 1

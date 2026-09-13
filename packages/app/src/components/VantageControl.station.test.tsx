@@ -5,9 +5,16 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { VantageControl } from "./VantageControl";
 
+const KSC = "ground:Kerbal Space Center";
+
 const ROSTER = [
-  { id: "ksc", displayName: "KSC", active: true },
-  { id: "ground:gs1", displayName: "Woomera Station", active: true },
+  { id: KSC, displayName: "KSC", active: true, isHome: true },
+  {
+    id: "ground:gs1",
+    displayName: "Woomera Station",
+    active: true,
+    isHome: false,
+  },
 ];
 
 /**
@@ -34,7 +41,7 @@ function mountStation(screenRole: Screen = "station") {
   return {
     ...fixture,
     ...view,
-    emitRoster: (roster: unknown, vantage = "ksc") => {
+    emitRoster: (roster: unknown, vantage = KSC) => {
       act(() => {
         fixture.emit("commandCentre.roster", roster, { vantage });
         fixture.store.beginFrame();
@@ -58,12 +65,11 @@ describe("VantageControl on a station", () => {
 
   it("names the command centre the host's frames are stamped with, not its own default", () => {
     const fixture = mountStation();
-    // The host is observing from Woomera. This client's OWN selectedVantage is
-    // the constructor default "ksc" and can never move, so a readout sourced
-    // from it would name the wrong centre.
+    // The host is observing from Woomera. This client's OWN selectedVantage
+    // never leaves undefined, so a readout sourced from it would name nothing.
     fixture.emitRoster(ROSTER, "ground:gs1");
 
-    expect(fixture.client.selectedVantage).toBe("ksc");
+    expect(fixture.client.selectedVantage).toBeUndefined();
     expect(screen.getByText("Woomera Station")).toBeInTheDocument();
     expect(screen.queryByText("KSC")).toBeNull();
 
@@ -77,19 +83,47 @@ describe("VantageControl on a station", () => {
       "Command centre vantage: Unknown",
     );
     expect(screen.queryByText("KSC")).toBeNull();
-    expect(screen.queryByText("ksc")).toBeNull();
+    expect(screen.queryByText(KSC)).toBeNull();
 
     fixture.unmount();
   });
 
   it("marks the home centre, so the readout carries what the picker's badge did", () => {
     const fixture = mountStation();
-    fixture.emitRoster(ROSTER, "ksc");
+    fixture.emitRoster(ROSTER, KSC);
 
     const readout = screen.getByRole("status");
     expect(readout).toHaveTextContent("Command centre vantage:");
     expect(readout).toHaveTextContent("KSC");
     expect(readout).toHaveTextContent("Home");
+
+    fixture.unmount();
+  });
+
+  it("states that no home was identified rather than marking a station home", () => {
+    const fixture = mountStation();
+    fixture.emitRoster(
+      [
+        {
+          id: "ground:DSS 14 - Goldstone",
+          displayName: "Goldstone",
+          active: true,
+          isHome: false,
+        },
+        {
+          id: "ground:DSS 43 - Canberra",
+          displayName: "Canberra",
+          active: true,
+          isHome: false,
+        },
+      ],
+      "ground:DSS 14 - Goldstone",
+    );
+
+    const readout = screen.getByRole("status");
+    expect(readout).toHaveTextContent("Goldstone");
+    expect(readout).toHaveTextContent("home not identified");
+    expect(readout).not.toHaveTextContent(/Home$/);
 
     fixture.unmount();
   });
@@ -138,7 +172,7 @@ function mountPilot() {
   return {
     ...fixture,
     ...view,
-    emitRoster: (roster: unknown, vantage = "ksc") => {
+    emitRoster: (roster: unknown, vantage = KSC) => {
       act(() => {
         fixture.emit("commandCentre.roster", roster, { vantage });
         fixture.store.beginFrame();

@@ -10,14 +10,14 @@ function VantageProbe() {
 }
 
 describe("useSelectedVantage", () => {
-  it("defaults to ksc and re-renders when setVantage changes it", () => {
+  it("is undefined until setVantage chooses, then re-renders with the choice", () => {
     const client = new TelemetryClient(new StubTransport());
     render(
       <TelemetryProvider client={client}>
         <VantageProbe />
       </TelemetryProvider>,
     );
-    expect(screen.getByText("vantage:ksc")).toBeTruthy();
+    expect(screen.getByText("vantage:undefined")).toBeTruthy();
 
     act(() => {
       client.setVantage("ground:gs1");
@@ -25,8 +25,8 @@ describe("useSelectedVantage", () => {
     expect(screen.getByText("vantage:ground:gs1")).toBeTruthy();
   });
 
-  it("returns the default ksc with no provider mounted", () => {
+  it("is undefined with no provider mounted", () => {
     render(<VantageProbe />);
-    expect(screen.getByText("vantage:ksc")).toBeTruthy();
+    expect(screen.getByText("vantage:undefined")).toBeTruthy();
   });
 });
