@@ -8,7 +8,7 @@ import { MicroscopeIcon, StarIcon } from "./Icons";
  * and a number cannot use a different word from the badge captioning its panel.
  */
 import { formatStreamStatus } from "./StreamStatusBadge";
-import { useSharedRung } from "./UnitScale";
+import { useSharedFormat } from "./UnitSharedFormat";
 import {
   ATTACHED_SYMBOLS,
   displaySymbol,
@@ -457,16 +457,21 @@ export function Unit<U extends string = string>({
   // Unpacked first, so the number and the statement about it go separate ways.
   // Everything below works on `shown`, the `Value` the narrow prop carried.
   const { shown, notCurrent, caption } = resolveCurrency(value);
-  // Reports this quantity to an enclosing `<UnitScale>` and comes back with the
-  // rung the group settled on, so two Units drawing two ends of one interval
-  // cannot land on different rungs. Inert with no scope above it, which is
-  // every existing call site: the ladder answers per value exactly as before.
+  // Reports this quantity to an enclosing `<UnitSharedFormat>` and comes back
+  // with the format the group settled on, so two Units drawing two ends of one
+  // interval cannot land on different rungs or on digit counts that hide the
+  // width between them. Inert with no scope above it, which is every existing
+  // call site: the ladder answers per value exactly as before.
+  //
+  // APPLYING it is this component's job and only this component's. A caller
+  // that read the group's answer and passed it back down as a prop would be a
+  // second formatter standing beside the one formatter.
   //
   // A stale member reports exactly as a live one does, and must. A column whose
   // rung moved when one cell stopped updating would rewrite all the others.
   // The number is still a real number on the same ladder, which is the whole of
   // what a report carries.
-  const shared = useSharedRung(shown, opts);
+  const shared = useSharedFormat(shown, opts);
 
   // An absent value renders through here too, and comes out as the null token.
   // A reading that has not arrived and one that is explicitly inapplicable owe
@@ -474,16 +479,22 @@ export function Unit<U extends string = string>({
   // may be told by leaving the space empty. The only way past this branch is to
   // hand a bare symbol as children, which a call site does deliberately.
   if (value !== undefined || children === undefined) {
-    // formatted.symbol, NOT formatted.rung. They agree on a laddered value and
-    // differ exactly where it matters: a duration comes back with its parts
-    // interleaved into the value ("2h 14m") and an EMPTY symbol, while its
-    // rung is still "s", so rendering the rung would print a stray "s" beside
-    // a formatted duration. An absent value is the same shape, and renders no
-    // unit rather than a unit beside the null token.
+    /*
+     * The group's answer goes UNDER this call site's own props, never over
+     * them. An absent field is a group with no opinion; a field the caller also
+     * named is a caller who pinned it, and a pin is the standing escape.
+     *
+     * Below, formatted.symbol and NOT formatted.rung. They agree on a laddered
+     * value and differ exactly where it matters: a duration comes back with its
+     * parts interleaved into the value ("2h 14m") and an EMPTY symbol, while
+     * its rung is still "s", so rendering the rung would print a stray "s"
+     * beside a formatted duration. An absent value is the same shape, and
+     * renders no unit rather than a unit beside the null token.
+     */
     const formatted = formatQuantity(
       shown?.magnitude,
       shown?.unit,
-      shared === undefined ? opts : { ...opts, format: shared },
+      shared === undefined ? opts : { ...shared, ...opts },
     );
     return (
       <Unit__Quantity

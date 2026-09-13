@@ -7,7 +7,7 @@ import { NULL_DISPLAY } from "./NullValue";
 // changes what counts as visible, and the subpath resolves to the last build.
 import { visibleText } from "./testing";
 import { Unit } from "./Unit";
-import { UnitScale } from "./UnitScale";
+import { UnitSharedFormat } from "./UnitSharedFormat";
 
 /**
  * The staleness slot: what `<Unit>` draws when it is handed a whole `Reading`
@@ -186,14 +186,14 @@ describe("Unit: a reading that is not current", () => {
     expect(emittedCss()).toContain("user-select:none");
   });
 
-  it("reports into a UnitScale exactly as a live reading does", () => {
+  it("reports into a UnitSharedFormat exactly as a live reading does", () => {
     // A column whose rung moved when one cell stopped updating would rewrite
     // every other cell in it. The report carries the number and nothing else.
     const { container } = render(
-      <UnitScale>
+      <UnitSharedFormat>
         <Unit value={stale(999, "held-stale")} />
         <Unit value={metres(4_000)} />
-      </UnitScale>,
+      </UnitSharedFormat>,
     );
     expect(visibleText(container)).toBe("999.0 m4000.0 m");
   });

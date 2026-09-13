@@ -3,7 +3,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
-import { UnitScale, useSharedRung } from "./UnitScale";
+import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import { type FormatsFor, speakQuantity } from "./units";
 
 export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
@@ -171,15 +171,14 @@ export function Meter<U extends string = string>({
     // attribute sits on the track. See `MeterQuantityBar` on why it is a
     // component of its own.
     return (
-      <UnitScale>
+      <UnitSharedFormat format={format}>
         <MeterQuantityBar
           {...bar}
           pair={pair}
-          format={format}
           valueLabel={valueLabel}
           valueLabelNode={valueLabelNode}
         />
-      </UnitScale>
+      </UnitSharedFormat>
     );
   }
   /*
@@ -263,32 +262,30 @@ function MeterBar({
  * The pair, written and SPOKEN at one rung.
  *
  * <p><b>Two halves laddering independently print `999 m / 1.0 km`</b>, which is
- * one tank written in two units. So both report into the enclosing
- * `<UnitScale>` and are drawn at the rung it settles, the way a `<Band>`'s two
- * ends are.</p>
+ * one tank written in two units. So the two `<Unit>`s are wrapped in the
+ * enclosing `<UnitSharedFormat>` and are handed nothing: each reports its own
+ * half and applies what the group settles, the way a `<Band>`'s two ends do.</p>
  *
- * <p><b>And the spoken half has to land on that same rung, which a scope around
- * the two `<Unit>`s could not have done.</b> `aria-valuetext` is an attribute
- * holding a string, so it can never report into a group the way a rendered
- * child does, and a `speakQuantity` call left outside would keep choosing its
- * own rung: a screen-reader user would hear "one kilowatt" against a displayed
- * "1000 W" and neither reader could tell. The fix is that the settled rung is a
- * value in scope HERE, above both the `<Unit>`s and the `speakQuantity` calls,
- * so one decision writes both. `Tape` does the same thing with the rung
- * `quantityScale` hands it.</p>
+ * <p><b>The spoken half is the one member that cannot report by being
+ * rendered.</b> `aria-valuetext` is an attribute holding a string, so there is
+ * no `<Unit>` to put in the group, and a `speakQuantity` call left to itself
+ * would keep choosing its own rung: a screen-reader user would hear "one
+ * kilowatt" against a displayed "1000 W" and neither reader could tell. So this
+ * component reports the two halves on the spoken figure's behalf and writes it
+ * at what comes back. That is the one honest reason to call the hook outside
+ * `<Unit>`, and it is why the hook is published.</p>
  *
  * <p>Separate from `Meter` because the group has to exist before anything can
- * report into it, and a hook cannot see a provider its own component renders,
- * the same reason `Band` has a `BandEnds`.</p>
+ * report into it, and a hook cannot see a provider its own component
+ * renders.</p>
  */
 function MeterQuantityBar<U extends string = string>({
   pair,
-  format,
   valueLabel,
   valueLabelNode,
   ...bar
 }: Omit<MeterBarProps, "display" | "spoken"> &
-  Pick<MeterQuantityProps<U>, "format" | "valueLabel" | "valueLabelNode"> & {
+  Pick<MeterQuantityProps<U>, "valueLabel" | "valueLabelNode"> & {
     pair: MeterQuantity<U>;
   }) {
   // A pair a caller has overridden in BOTH forms is neither drawn nor spoken,
@@ -296,24 +293,21 @@ function MeterQuantityBar<U extends string = string>({
   // scope's rung on behalf of a figure nobody can read. An undefined value is
   // how this hook is told to sit out.
   const grouped = valueLabel === undefined ? pair : undefined;
-  const fromAmount = useSharedRung(grouped?.amount, { format });
-  const fromCapacity = useSharedRung(grouped?.capacity, { format });
+  const fromAmount = useSharedFormat(grouped?.amount);
+  const fromCapacity = useSharedFormat(grouped?.capacity);
   // One group, so both halves hear the same answer; either serves, and on the
-  // first pass neither has one yet. A rung is not always a unit the model
-  // declares, so the accepted-units type cannot express one; what the type
-  // would be checking is that the rung belongs to this value's own ladder,
-  // which is where it came from.
-  const rung = format ?? ((fromAmount ?? fromCapacity) as FormatsFor<U>);
+  // first pass neither has one yet.
+  const shared = fromAmount ?? fromCapacity ?? {};
   const display = valueLabelNode ?? valueLabel ?? (
     <>
-      <Unit value={pair.amount} format={rung} />
+      <Unit value={pair.amount} />
       {" / "}
-      <Unit value={pair.capacity} format={rung} />
+      <Unit value={pair.capacity} />
     </>
   );
   const spoken =
     valueLabel ??
-    `${speakQuantity(pair.amount, { format: rung })} of ${speakQuantity(pair.capacity, { format: rung })}`;
+    `${speakQuantity(pair.amount, shared)} of ${speakQuantity(pair.capacity, shared)}`;
   return <MeterBar {...bar} display={display} spoken={spoken} />;
 }
 

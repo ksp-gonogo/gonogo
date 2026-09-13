@@ -3,8 +3,7 @@ import styled from "styled-components";
 import { magnitudeOf } from "./magnitude";
 import { NULL_DISPLAY } from "./NullValue";
 import { Unit, type UnitProps } from "./Unit";
-import { UnitScale, useSharedRung } from "./UnitScale";
-import { type FormatsFor, separatingDecimals } from "./units";
+import { UnitSharedFormat } from "./UnitSharedFormat";
 
 export interface BandProps<U extends string = string>
   extends Pick<UnitProps<U>, "decimals" | "format" | "as"> {
@@ -40,14 +39,15 @@ export interface BandProps<U extends string = string>
  * ends read differently, the same thing the producer's own interval formatter
  * does for the same reason.</p>
  *
- * <p><b>Both ends are ONE group, so they cannot land on different rungs.</b>
- * Two independent ladders print `999 m – 1.0 km`, which is one interval written
- * in two units and a width the reader has to convert before they can see it.
- * The ends are wrapped in a `<UnitScale>` and report into it, so the rung is
- * settled across the pair, by the mechanism a table column of the same kind
- * uses. It is the same rung the digit count above is then chosen against: asking
- * how many digits separate two ends only means something once they are written
- * in the same unit.</p>
+ * <p><b>Both ends are ONE group, and this component does not format either of
+ * them.</b> Two independent ladders print `999 m – 1.0 km`, which is one
+ * interval written in two units and a width the reader has to convert before
+ * they can see it. So the ends are wrapped in a `<UnitSharedFormat>` and
+ * nothing else: they report into it, it settles both the rung and the digit
+ * count across the pair, and each `<Unit>` applies what it is given. Asking
+ * this renderer for the digits would put a second formatter beside `<Unit>`,
+ * and it could not answer honestly anyway, since how many digits separate two
+ * ends only means something once they are written in the same unit.</p>
  *
  * <p><b>Modular quantities get a state of their own.</b> An angle whose band
  * spans half the turn or more has no interval: printing `0° – 359°` says the
@@ -76,65 +76,18 @@ export function Band<U extends string = string>({
     return <Band__Body className={className}>(precesses)</Band__Body>;
   }
 
+  // `separate` is the whole of what this renderer says about digits: an
+  // interval promises a width, so its ends may not print the same figure. The
+  // three pins below are the caller's own, stated once for the group instead of
+  // at each end.
   return (
-    <UnitScale>
-      <BandEnds
-        min={min}
-        max={max}
-        low={low}
-        high={high}
-        className={className}
-        {...unit}
-      />
-    </UnitScale>
-  );
-}
-
-/**
- * The two ends, inside the scope that settles their rung.
- *
- * Separate from `Band` because the group has to exist before anything can
- * report into it, and a hook cannot see a provider its own component renders.
- * The ends report here rather than leaving it to the two `Unit`s below, because
- * the digit count is chosen from the settled rung and this is where that choice
- * is made.
- */
-function BandEnds<U extends string = string>({
-  min,
-  max,
-  low,
-  high,
-  className,
-  ...unit
-}: Omit<BandProps<U>, "min" | "max" | "wrapsAt"> & {
-  min: Value<U>;
-  max: Value<U>;
-  low: number;
-  high: number;
-}) {
-  // One group, so both ends hear the same answer; either serves, and on the
-  // first pass neither has one yet.
-  const fromMin = useSharedRung(min, unit);
-  const fromMax = useSharedRung(max, unit);
-  // A rung is not always a unit the model declares (`kt` and `Mbit/s` are
-  // rungs and nothing else), so the accepted-units type cannot express one.
-  // What the type would be checking is that the rung belongs to this value's
-  // own ladder, which is where it came from.
-  // One object for the digit decision and for both ends, so the count cannot be
-  // chosen against a rung different from the one the ends are written at.
-  const shown = {
-    ...unit,
-    format: unit.format ?? ((fromMin ?? fromMax) as FormatsFor<U>),
-  };
-  const decimals =
-    unit.decimals ?? separatingDecimals(min, max, low, high, shown);
-
-  return (
-    <Band__Body className={className}>
-      <Unit {...shown} value={min} decimals={decimals} />
-      <Band__Dash aria-hidden="true">–</Band__Dash>
-      <Unit {...shown} value={max} decimals={decimals} />
-    </Band__Body>
+    <UnitSharedFormat separate {...unit}>
+      <Band__Body className={className}>
+        <Unit value={min} />
+        <Band__Dash aria-hidden="true">–</Band__Dash>
+        <Unit value={max} />
+      </Band__Body>
+    </UnitSharedFormat>
   );
 }
 
