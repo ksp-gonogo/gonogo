@@ -855,6 +855,73 @@ export function observedValue<T>(
 }
 
 /**
+ * One PART of a payload, still carrying the whole reading's currency: the
+ * narrowing to write when a primitive draws a single field and has to know
+ * whether that field is current.
+ *
+ * `<Unit>` takes a `Reading<Value<U>>`, and a widget holds a
+ * `Reading<VesselOrbit>`. Without this, reaching the first from the second
+ * means a switch over the arms at every call site, and a switch written 373
+ * times is one that gets written wrongly somewhere: the arm most likely to be
+ * dropped is `stale`, which is the arm the whole type exists for.
+ *
+ * `select` runs only on the arms that HAVE a payload. The other three carry
+ * nothing to select from and come through unchanged, so a field of a pending
+ * reading is a pending reading rather than an observation of `undefined`.
+ *
+ * ## It DROPS the model, and that is the honest answer rather than a shortcut
+ *
+ * A {@link Reckoning} is a projection of the declared fields, keyed by their
+ * own paths. A selector is an arbitrary function: it may pick a field no model
+ * moves, or compute a magnitude out of three that it does. There is no general
+ * way to carry a reckoning through one, and carrying it through unchanged would
+ * be worse than dropping it, because the result would claim a model for a
+ * quantity the model never spoke about.
+ *
+ * So the return type is an {@link UnmodelledReading}, exactly as
+ * {@link withoutReckoning} produces, and for the same reason: a widget that
+ * wants the modelled figure branches on `reckoning` itself and hands the
+ * projection over as its own `Value`, which is a written choice and shows up in
+ * review.
+ */
+export function readingOf<T, K extends keyof T, R>(
+  reading: ReckonableReading<T, K>,
+  select: (payload: T) => R,
+): UnmodelledReading<R>;
+export function readingOf<T, R>(
+  reading: Reading<T>,
+  select: (payload: T) => R,
+): UnmodelledReading<R>;
+export function readingOf<T, R>(
+  reading: Reading<T> | ReckonableReading<T, keyof T>,
+  select: (payload: T) => R,
+): UnmodelledReading<R> {
+  if (reading.state === "observed") {
+    return {
+      state: "observed",
+      reckoning: "none",
+      value: select(reading.value),
+      atUt: reading.atUt,
+    };
+  }
+  if (reading.state === "stale") {
+    return {
+      state: "stale",
+      reckoning: "none",
+      value: select(reading.value),
+      asOfUt: reading.asOfUt,
+      grade: reading.grade,
+    };
+  }
+  if (reading.state === "absent") {
+    return { state: "absent", reckoning: "none", atUt: reading.atUt };
+  }
+  if (reading.state === "pending")
+    return { state: "pending", reckoning: "none" };
+  return { state: "unowned", reckoning: "none" };
+}
+
+/**
  * The band a reckoning offers for one path, or `undefined` where it offers
  * none. `""` is the payload root, which is what a scalar topic's band is under.
  *

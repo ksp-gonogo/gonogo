@@ -56,7 +56,13 @@ import { writeQuantity } from "./units";
  */
 export function visibleText(container: HTMLElement = document.body): string {
   const clone = container.cloneNode(true) as HTMLElement;
-  for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
+  // Both of `<Unit>`'s spoken-only nodes: the unit's word, and the caption a
+  // reading that is not current is marked with. Neither is on screen, and the
+  // second one would otherwise turn a stale readout into "2.87 Mm, STALE" in
+  // every assertion about what a sighted reader sees.
+  for (const hidden of clone.querySelectorAll(
+    "[data-unit-word], [data-unit-currency]",
+  )) {
     hidden.remove();
   }
   return (clone.textContent ?? "").replace(/ /g, " ");

@@ -49,6 +49,7 @@ export {
   hasAnswered,
   observedAt,
   observedValue,
+  readingOf,
   withoutReckoning,
 } from "../reading";
 

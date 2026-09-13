@@ -222,7 +222,13 @@ export const readShapeText = (args: {
   const walk = (el: Element, path: string): void => {
     // xterm injects its own stylesheet into the widget, so a naive walk records
     // a page of CSS selectors as text.
-    if (skip.has(el.tagName) || el.hasAttribute("data-unit-word")) return;
+    if (
+      skip.has(el.tagName) ||
+      el.hasAttribute("data-unit-word") ||
+      el.hasAttribute("data-unit-currency")
+    ) {
+      return;
+    }
     elements++;
     const attrs = Array.from(el.attributes)
       .filter((a) => attrRe.test(a.name))

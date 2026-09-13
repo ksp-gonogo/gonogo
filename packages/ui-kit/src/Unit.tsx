@@ -1,7 +1,13 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
+/*
+ * The badge's own vocabulary, reused rather than mirrored: `StaleGrade` is a
+ * subset of `StreamStatusValue`, so a stale reading's grade goes straight in
+ * and a number cannot use a different word from the badge captioning its panel.
+ */
+import { formatStreamStatus } from "./StreamStatusBadge";
 import { useSharedRung } from "./UnitScale";
 import {
   ATTACHED_SYMBOLS,
@@ -42,6 +48,70 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * This is also why a call site needs no absence gate of its own: handing a read
  * straight over is correct as written, and coalescing it to `null` first says
  * the same thing twice.
+ *
+ * ## A reading that is not current says so, in THREE treatments and not ten
+ *
+ * Hand it a `Reading<Value<U>>` instead of a bare `Value<U>` and it also draws
+ * whether the number is a reading of NOW. `Reading` is five states across two
+ * reckoning arms; this draws three things, because the rest are distinctions an
+ * operator cannot act on from a single number:
+ *
+ * - **current** (`observed`, either reckoning). Drawn exactly as a bare `Value`
+ *   is, with no mark at all. A healthy reading adds nothing to the screen, for
+ *   the reason `formatStreamStatus` returns `null` for `live`: a decoration
+ *   present in the normal case is one the operator stops seeing
+ * - **no number** (`pending`, `unowned`, `absent`). All three render the null
+ *   token, which is what a bare `null` has always rendered. They differ in WHY
+ *   there is no number, and an operator reading one cell cannot act on the
+ *   difference: the answer is the same either way, look elsewhere. Naming them
+ *   apart would also mean inventing a word for `pending` and one for `unowned`,
+ *   where `absent` already has one in the panel badge
+ * - **not current** (`stale`, any grade, either reckoning). The last real
+ *   observation, drawn in full and MARKED. It is still the best number
+ *   available and a reader must be able to read it
+ *
+ * The four {@link StaleGrade}s are one treatment and not four, for the same
+ * reason. WHY a reading stopped being current is a channel-wide or link-wide
+ * fact that already has a home in the panel's `StreamStatusBadge`, and four
+ * glyph vocabularies inside a table would say it once per cell. The grade is
+ * not thrown away though: it is the badge's own caption, said into the
+ * accessibility tree and shown on hover, so the number and the badge above it
+ * use one word for one fact.
+ *
+ * ## The mark is a SHAPE, never a tone, and never a glyph beside the number
+ *
+ * A dotted underline, in whatever colour the value already has. Three
+ * constraints leave very little else:
+ *
+ * - **tone belongs to the caller.** An alert readout is red and a go readout is
+ *   green (see "Why opacity rather than a colour token" below); a component that
+ *   dimmed on its own would compound with a caller that had already dimmed, and
+ *   the dimming floor exists because the theme's body text is near the contrast
+ *   minimum to start with. `currentColor` keeps the mark on whatever tone the
+ *   caller chose, and WCAG 1.4.1 rules out colour as the sole carrier anyway
+ * - **it must not change the width.** A prefix or a suffix glyph would reflow a
+ *   table column every time a channel went quiet, which is the loudest possible
+ *   way to say something quiet. An underline occupies no line box
+ * - **it must not shout.** A stale value is the best number available, not a
+ *   fault. Dots under it are readable when looked for and ignorable when not
+ *
+ * It is deliberately NOT a live region. `<Unit>` is the most-instanced
+ * primitive in the app, and announcing every cell that went stale is how a
+ * screen reader is made useless. A widget that wants the change announced wraps
+ * its readout in `role="status"`, which several already do.
+ *
+ * ## What the mark does NOT say, and does not try to
+ *
+ * How OLD the observation is. `asOfUt` is on the reading and the age is a
+ * number in its own right, so a widget that wants to show it renders it as a
+ * caption with a `<Unit>` of its own. The mark answers the yes-or-no question
+ * every readout has, and leaves the quantity to a readout that has room for it.
+ *
+ * It also never draws a RECKONED figure. A modelled number replacing an
+ * observed one has to be a written choice at the call site (see
+ * `withoutReckoning`), and a primitive doing it silently at 373 call sites is
+ * exactly the substitution `Reading` exists to prevent. A widget that wants the
+ * model hands `reckoned.value` over as the `Value` it is.
  *
  * ## The legacy symbol form
  *
@@ -172,10 +242,31 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
       : ""}
 `;
 
+/* The not-current mark. Longhands rather than the shorthand so the offset is
+   not reset by it, and currentColor (the default decoration colour) is what
+   keeps the mark on the value's own tone. Thickness has a pixel floor for the
+   same reason the symbol's size does: from-font lands under one device pixel in
+   a caption and the dots disappear. */
+const NOT_CURRENT = css`
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: max(1px, 0.05em);
+  text-underline-offset: 0.22em;
+`;
+
 /* Wraps a number and its unit so neither the thin space between them nor a
    compound symbol can be split across a line. */
-const Unit__Quantity = styled.span`
+const Unit__Quantity = styled.span<{ $notCurrent: boolean }>`
   white-space: nowrap;
+  ${({ $notCurrent }) => ($notCurrent ? NOT_CURRENT : null)}
+`;
+
+/* The staleness caption, for the accessibility tree and the clipboard's
+   exclusion list, on the same terms as the spoken unit word above: it is a
+   reading of the mark beside it rather than extra content, so copying a readout
+   must not pick it up. */
+const Unit__Currency = styled(VisuallyHidden)`
+  user-select: none;
 `;
 
 /* The spoken word, for the accessibility tree only. Excluded from selection so
@@ -188,6 +279,71 @@ const Unit__Word = styled(VisuallyHidden)`
 /** U+2009 THIN SPACE. SI puts a space between a number and its unit. */
 const THIN_SPACE = "\u2009";
 
+/**
+ * What `<Unit value>` accepts: the quantity on its own, or a whole `Reading` of
+ * it.
+ *
+ * A WIDENING rather than a replacement, and that is the whole shape of the
+ * migration. The two are structurally distinguishable (`Reading` has a `state`,
+ * a `Value` has a magnitude and a unit), so every call site written against the
+ * narrow form keeps compiling and keeps rendering identically, and a call site
+ * converts by handing over what it already holds instead of unwrapping it
+ * first.
+ */
+export type UnitValue<U extends string = string> = Value<U> | Reading<Value<U>>;
+
+/** What {@link resolveCurrency} answers: the number to draw, and its currency. */
+interface Resolved<U extends string> {
+  shown: Value<U> | null | undefined;
+  /** Whether the number on screen is a reading of now. Drives the mark. */
+  notCurrent: boolean;
+  /** The grade's caption, said rather than shown, or null when there is none. */
+  caption: string | null;
+}
+
+/**
+ * Split what was handed in into the number and the statement about it.
+ *
+ * A bare `Value` (and `null`, and nothing at all) is current by construction:
+ * it carries no currency, so there is nothing to say and nothing to draw, which
+ * is what keeps the unconverted call sites byte-identical.
+ *
+ * `notCurrent` and `caption` are two fields rather than one nullable string on
+ * purpose. `formatStreamStatus` answers `null` for `live` alone, which is not a
+ * `StaleGrade` and so cannot arrive here, but deriving the MARK from the
+ * caption would make an unmarked stale number the failure mode if that ever
+ * stopped being true. The mark comes off the state, where it belongs.
+ */
+function resolveCurrency<U extends string>(
+  input: UnitValue<U> | null | undefined,
+): Resolved<U> {
+  /*
+   * `in` throws on a primitive, and a bare number reaches this prop: several
+   * callers hand over a raw magnitude rather than a `Value`, which the old
+   * signature tolerated and which the widened one must keep tolerating. Guard
+   * the discriminator on the type rather than trusting the declared union.
+   */
+  if (typeof input !== "object" || input === null || !("state" in input)) {
+    return { shown: input, notCurrent: false, caption: null };
+  }
+  if (input.state === "observed") {
+    return { shown: input.value, notCurrent: false, caption: null };
+  }
+  if (input.state === "stale") {
+    return {
+      shown: input.value,
+      notCurrent: true,
+      caption: formatStreamStatus(input.grade),
+    };
+  }
+  /*
+   * pending, unowned and absent, which carry no number between them. `null`
+   * rather than `undefined`, so the branch below still takes the value path
+   * and renders the null token instead of falling through to the symbol form.
+   */
+  return { shown: null, notCurrent: false, caption: null };
+}
+
 export interface UnitProps<U extends string = string>
   extends Omit<FormatQuantityOptions, "format"> {
   /**
@@ -197,8 +353,12 @@ export interface UnitProps<U extends string = string>
    * Absent or null, it renders the null token, so a call site may hand a read
    * straight over without a gate of its own and still say something true. A
    * magnitude of zero is a reading and renders as a zero.
+   *
+   * Hand it the whole {@link Reading} instead and it also draws whether the
+   * number is current: see the header on the three treatments and why there are
+   * three.
    */
-  value?: Value<U> | null;
+  value?: UnitValue<U> | null;
   /**
    * Pin the unit rather than letting the ladder choose, for the cases where
    * convention beats magnitude: km/h on a launch broadcast, km/s in a
@@ -294,11 +454,19 @@ export function Unit<U extends string = string>({
   className,
   ...opts
 }: UnitProps<U>) {
+  // Unpacked first, so the number and the statement about it go separate ways.
+  // Everything below works on `shown`, the `Value` the narrow prop carried.
+  const { shown, notCurrent, caption } = resolveCurrency(value);
   // Reports this quantity to an enclosing `<UnitScale>` and comes back with the
   // rung the group settled on, so two Units drawing two ends of one interval
   // cannot land on different rungs. Inert with no scope above it, which is
   // every existing call site: the ladder answers per value exactly as before.
-  const shared = useSharedRung(value, opts);
+  //
+  // A stale member reports exactly as a live one does, and must. A column whose
+  // rung moved when one cell stopped updating would rewrite all the others.
+  // The number is still a real number on the same ladder, which is the whole of
+  // what a report carries.
+  const shared = useSharedRung(shown, opts);
 
   // An absent value renders through here too, and comes out as the null token.
   // A reading that has not arrived and one that is explicitly inapplicable owe
@@ -313,14 +481,28 @@ export function Unit<U extends string = string>({
     // a formatted duration. An absent value is the same shape, and renders no
     // unit rather than a unit beside the null token.
     const formatted = formatQuantity(
-      value?.magnitude,
-      value?.unit,
+      shown?.magnitude,
+      shown?.unit,
       shared === undefined ? opts : { ...opts, format: shared },
     );
     return (
-      <Unit__Quantity className={className}>
+      <Unit__Quantity
+        className={className}
+        $notCurrent={notCurrent}
+        // Greppable, and what a test asserts on. The mark itself is a CSS
+        // decoration, which jsdom reads off the emitted rule and not the node.
+        data-not-current={notCurrent ? "" : undefined}
+        // Hover says in words what the dots say in shape, for a sighted reader
+        // who has no badge in view. The symbol carries its own title (the unit
+        // word) and keeps it: hovering the digits answers the mark, hovering
+        // the symbol answers the unit.
+        title={caption ?? undefined}
+      >
         {formatted.value}
         <UnitSymbol token={formatted.symbol} spaced />
+        {caption !== null && (
+          <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
+        )}
       </Unit__Quantity>
     );
   }

@@ -632,7 +632,11 @@ export {
   type ToggleButtonTone,
 } from "./ToggleButton";
 export { Truncate } from "./Truncate";
-export { Unit } from "./Unit";
+// `UnitValue` is the widened prop: a quantity, or a whole `Reading` of one.
+// Exported because a widget that assembles what it is about to draw wants to
+// name the thing it is assembling, and because an Uplink can reach nothing of
+// this package that is not on the root.
+export { Unit, type UnitValue } from "./Unit";
 export {
   type RateControl,
   type SlidableRange,
