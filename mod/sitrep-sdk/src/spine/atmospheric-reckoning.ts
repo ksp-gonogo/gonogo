@@ -2,7 +2,11 @@ import { magnitudeOr, type Quantityish } from "../magnitude";
 import type { ReckoningDecline, StaleGrade } from "../reading";
 import type { TimelinePoint } from "../timeline";
 import { STANDARD_GRAVITY } from "../unit-system/definitions";
-import { atmosphereDepthOf, type ConicBodiesInput } from "./kepler-reckoning";
+import {
+  atmosphereDepthOf,
+  type ConicBodiesInput,
+  entryInterfaceRadius,
+} from "./kepler-reckoning";
 
 /**
  * The other half of an altitude, for the regime the conic hands over to.
@@ -38,13 +42,19 @@ import { atmosphereDepthOf, type ConicBodiesInput } from "./kepler-reckoning";
  *
  * ## Where the two models meet
  *
- * One named predicate over one published fact: {@link withinAtmosphere}, over
- * {@link atmosphereDepthOf}. Inside the air this model owns the frame and the
- * conic is not asked; outside it the conic owns the frame and this stands down.
- * `altitudeAsl` is `radius - seaLevel` by definition, so comparing the observed
- * altitude against the depth is the same line `entryInterfaceRadius` draws
- * against a solved radius, and the handover is an instant rather than an overlap
- * or a gap.
+ * One named predicate, {@link withinAtmosphere}, asked over the SPAN the reading
+ * covers rather than over one end of it. Inside the air this model owns the
+ * frame and the conic is not asked; outside it the conic owns the frame and this
+ * stands down.
+ *
+ * The span matters because the two ends are judged by different arithmetic. The
+ * observation is an altitude and is compared against {@link atmosphereDepthOf};
+ * the view time is a radius the conic has SOLVED for and is compared against
+ * `entryInterfaceRadius`, which is the conic's own floor and not a second
+ * reading of the same boundary. Asking only the observation is what left a band
+ * `|verticalSpeed| x gap` wide in which the selector sent the frame to the conic
+ * and the conic then withdrew on a floor the selector had never consulted, which
+ * is every reentry at the moment the interface is crossed.
  *
  * Each branch then owns its OWN declines. That is the reason the selector is a
  * predicate rather than a fall-through from one model's refusal: a descent past
@@ -187,7 +197,8 @@ export function horizonSecondsFor(gForce: number): number {
 export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
 
 /**
- * Whether the last observation puts the craft inside the parent body's air.
+ * Whether the span from the last observation to the view time puts the craft
+ * inside the parent body's air at EITHER end.
  *
  * THE HANDOVER, as one named predicate, so the two models of one altitude are
  * selected by a single test rather than by each guessing at the other's reach.
@@ -195,20 +206,53 @@ export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
  * There is no third answer and no band where both apply, which is the property
  * that could not be had while each branch drew its own boundary.
  *
+ * ## Why both ends, and why the far one is a RADIUS
+ *
+ * A reading covers an interval: an observation at one instant, read at another.
+ * The observation end is the one this model integrates from, so it is an
+ * altitude ASL compared against the published depth. The view end is the instant
+ * the CONIC would be asked about, and the conic's admissibility withdraws there
+ * on `entryInterfaceRadius` against the radius it solves for. So the far end is
+ * asked in exactly those terms, against exactly that floor, rather than being
+ * converted into an altitude and compared against the depth again: the two would
+ * then be two spellings of one boundary, free to disagree by a rounding, and the
+ * whole point of a single predicate is that they cannot.
+ *
+ * Asking the observation alone is what left the crossing band. A craft observed
+ * above the interface and falling is below it by the time the frame is read, so
+ * the selector handed it to the conic and the conic withdrew on its floor, with
+ * the air never asked. `conicRadiusAtViewTime` closes that by letting the
+ * selector see the same instant the floor does.
+ *
+ * `undefined` for that radius when no conic solves (hyperbolic elements, absent
+ * inputs), and then the observation end decides alone, which is the behaviour
+ * this had before the far end existed.
+ *
  * `false` when nothing published resolves, and that is the honest default rather
  * than a coin toss: with no atmosphere depth there is no interface to be inside
  * of, and with no observed altitude there is nothing for a rate integration to
- * advance, while a conic needs neither.
+ * advance, while a conic needs neither. The depth is asked FIRST for that
+ * reason: `entryInterfaceRadius` falls back to the bare surface on an airless
+ * body, and a far end tested against that floor would hand a craft skimming the
+ * Minmus flats to a model named for atmospheric drag.
  */
 export function withinAtmosphere(
   bodies: ConicBodiesInput | undefined,
   referenceBodyIndex: number | null | undefined,
   altitudeAsl: Quantityish,
+  conicRadiusAtViewTime?: number,
 ): boolean {
   const depth = atmosphereDepthOf(bodies, referenceBodyIndex);
   if (depth === undefined) return false;
   const observed = magnitudeOr(altitudeAsl, Number.NaN);
-  return Number.isFinite(observed) && observed < depth;
+  if (Number.isFinite(observed) && observed < depth) return true;
+  const floor = entryInterfaceRadius(bodies, referenceBodyIndex);
+  return (
+    floor !== undefined &&
+    conicRadiusAtViewTime !== undefined &&
+    Number.isFinite(conicRadiusAtViewTime) &&
+    conicRadiusAtViewTime <= floor
+  );
 }
 
 /** A least-squares slope over irregularly spaced samples, and how many there were. */
@@ -297,11 +341,14 @@ export function verticalAccelerationOver(
  *   rather than an integration, correctly does not
  * - **nothing to advance.** No observed altitude at the anchor, so there is no
  *   value for a rate to be applied to
- * - **there is no air here.** {@link withinAtmosphere} says the observation is
- *   outside the parent body's atmosphere, or that nothing published says
- *   otherwise, and the conic owns the regime. This is the handover, and it is one
- *   comparison against one number. A caller that already branched on the same
- *   predicate cannot reach it, and it is here so that a direct caller does
+ * - **there is no air here.** {@link withinAtmosphere} says neither end of the
+ *   span is inside the parent body's atmosphere, or that nothing published says
+ *   otherwise, and the conic owns the regime. This is the handover, and it takes
+ *   `conicRadiusAtViewTime` for the same reason the selector does: a frame whose
+ *   observation is above the interface and whose view time is below it belongs
+ *   here, and a guard asking only the observation would refuse the very frames
+ *   the selector now sends. A caller that already branched on the same predicate
+ *   cannot reach it, and it is here so that a direct caller does
  * - **no rate to advance it by.** The anchor's `verticalSpeed`, which is the
  *   quantity this model integrates
  * - **nothing to bound it with.** The anchor's `gForce`. Both of these are
@@ -347,6 +394,7 @@ export function atmosphericAdmissibility(
   gravity: number | undefined,
   grade: StaleGrade | undefined,
   viewUt: number,
+  conicRadiusAtViewTime?: number,
 ): AtmosphericDescentFit | { readonly declined: ReckoningDecline } {
   if (grade === undefined) {
     return {
@@ -365,7 +413,14 @@ export function atmosphericAdmissibility(
       },
     };
   }
-  if (!withinAtmosphere(bodies, referenceBodyIndex, altitudeAsl)) {
+  if (
+    !withinAtmosphere(
+      bodies,
+      referenceBodyIndex,
+      altitudeAsl,
+      conicRadiusAtViewTime,
+    )
+  ) {
     return {
       declined: {
         reason: "model-inapplicable",

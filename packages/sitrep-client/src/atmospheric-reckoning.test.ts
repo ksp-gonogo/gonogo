@@ -1,4 +1,9 @@
-import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  propagateVesselOrbit,
+  Quality,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Reading } from "./reading";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
@@ -78,6 +83,53 @@ function orbitOf(referenceBodyIndex: number, radius: number, mu = KERBIN_MU) {
     meanAnomalyAtEpoch: value("rad", 0),
     epoch: value("ut", 0),
     mu: value("m³/s²", mu),
+    horizon: { kind: 1, trajectoryKind: 1 },
+  };
+}
+
+/**
+ * A reentry ellipse: apoapsis 200 km, periapsis 50 km BELOW sea level.
+ *
+ * The circular orbit above holds the conic still, which is what isolates the
+ * selector in most of this file. The crossing band needs the opposite: elements
+ * that actually fall, so the radius the conic SOLVES for at the view time is
+ * lower than the one it was at when the last packet arrived. Sub-surface
+ * periapsis because that is what the wire carries during a descent, KSP
+ * recomputing the drag-free conic the craft is instantaneously on.
+ */
+const REENTRY = (() => {
+  const peri = KERBIN_RADIUS - 50_000;
+  const apo = KERBIN_RADIUS + 200_000;
+  return {
+    sma: (peri + apo) / 2,
+    ecc: (apo - peri) / (apo + peri),
+  };
+})();
+
+/**
+ * The mean anomaly that puts the craft at `radius` on the DESCENDING branch.
+ *
+ * `r = a(1 - e cos E)` has two solutions and only one of them is coming down;
+ * taking `2π - E` is what picks it, and getting it wrong produces a fixture
+ * that climbs out of the air instead of into it.
+ */
+function descendingMeanAnomaly(radius: number): number {
+  const eccentric =
+    2 * Math.PI - Math.acos((1 - radius / REENTRY.sma) / REENTRY.ecc);
+  return eccentric - REENTRY.ecc * Math.sin(eccentric);
+}
+
+function reentryOrbitAt(radius: number, epochUt: number) {
+  return {
+    referenceBodyIndex: KERBIN_INDEX,
+    sma: value("m", REENTRY.sma),
+    ecc: value("1", REENTRY.ecc),
+    inc: value("°", 0),
+    lan: value("°", 0),
+    argPe: value("°", 0),
+    meanAnomalyAtEpoch: value("rad", descendingMeanAnomaly(radius)),
+    epoch: value("ut", epochUt),
+    mu: value("m³/s²", KERBIN_MU),
     horizon: { kind: 1, trajectoryKind: 1 },
   };
 }
@@ -170,6 +222,7 @@ function scene(
   bodyIndex = KERBIN_INDEX,
   orbitRadius = 700_000,
   mu = KERBIN_MU,
+  orbit: ReturnType<typeof orbitOf> = orbitOf(bodyIndex, orbitRadius, mu),
 ) {
   let wall = 0;
   const clock = new ViewClock({
@@ -181,7 +234,7 @@ function scene(
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
   store.ingest("system.bodies", point(0, SYSTEM));
-  store.ingest("vessel.orbit", point(0, orbitOf(bodyIndex, orbitRadius, mu)));
+  store.ingest("vessel.orbit", point(0, orbit));
   return {
     store,
     /** Ingest a descent run at the given (uneven) instants. */
@@ -230,6 +283,23 @@ const UNEVEN_DESCENT = [
   { at: 1, altitudeAsl: 59_798, verticalSpeed: -205 },
   { at: 2, altitudeAsl: 59_590, verticalSpeed: -210 },
   { at: 10, altitudeAsl: 57_600, verticalSpeed: -250 },
+] as const;
+
+/**
+ * A craft two kilometres above Kerbin's interface at 400 m/s down, still in
+ * near-free fall so the sensed magnitude is negligible and the horizon is wide
+ * open.
+ *
+ * The anchor is UT 20 and the speeds are it walked backwards at a constant
+ * -7.9 m/s², so the least-squares slope IS that acceleration and the envelope
+ * (gravity plus 0.03 g, times the slack) comfortably holds it. What decides the
+ * case is the selector and nothing else.
+ */
+const CROSSING_BAND = [
+  { at: 9, altitudeAsl: 75_922.0, verticalSpeed: -313.1, gForce: 0.03 },
+  { at: 13, altitudeAsl: 74_606.45, verticalSpeed: -344.7, gForce: 0.03 },
+  { at: 17, altitudeAsl: 73_164.45, verticalSpeed: -376.3, gForce: 0.03 },
+  { at: 20, altitudeAsl: 72_000, verticalSpeed: -400, gForce: 0.03 },
 ] as const;
 
 /** The reckoned altitude, or `undefined` where the model withdrew. */
@@ -313,6 +383,43 @@ describe("the handover between the conic and the air", () => {
     ).toBe("rate-integration");
   });
 
+  it("hands the crossing band to the air, where the conic's own solution is already inside it", () => {
+    /*
+     * THE CROSSING BAND: observed two kilometres ABOVE the interface, and
+     * falling fast enough that the conic's own solution at the view time is
+     * already below it. The two halves of the handover used to judge different
+     * instants here, the selector the observation and the conic's floor the
+     * view time, so the frame went to the conic and the conic withdrew, and the
+     * air was never asked. That band is `|verticalSpeed| x gap` wide and every
+     * reentry crosses it.
+     */
+    const ANCHOR = 20;
+    const VIEW = ANCHOR + 6;
+    const orbit = reentryOrbitAt(KERBIN_RADIUS + 72_000, ANCHOR);
+    /*
+     * The premise, pinned rather than assumed: without this the ellipse could
+     * drift until the observation itself is below the interface and the case
+     * quietly becomes a duplicate of the plain below-the-air one above.
+     */
+    const solved = propagateVesselOrbit(orbit, VIEW);
+    if (solved == null) throw new Error("the reentry ellipse must solve");
+    expect(Math.hypot(...solved.position) - KERBIN_RADIUS).toBeLessThan(
+      ATMOSPHERE_DEPTH,
+    );
+
+    const s = scene(KERBIN_INDEX, 700_000, KERBIN_MU, orbit);
+    s.descend(CROSSING_BAND);
+
+    const reading = s.at(VIEW);
+
+    expect(reading.reckoning).toBe("available");
+    expect(
+      reading.reckoning === "available" ? reading.reckoned.basis : undefined,
+    ).toBe("rate-integration");
+    // 72000 + (-400)(6) + 0.5(-7.9)(36), the observed rates carried six seconds.
+    expect(reckonedAltitude(reading)).toBeCloseTo(69_457.8, 6);
+  });
+
   it("claims nothing on an airless body, at the very altitude that is air on Kerbin", () => {
     /*
      * The selector is the published DEPTH and not the altitude, so five
@@ -345,6 +452,33 @@ describe("the handover between the conic and the air", () => {
         ? overVacuum.reckoned.basis
         : "declined",
     ).toBe("kepler-propagation");
+  });
+
+  it("does not read an airless body's surface floor as air, even when the conic is under it", () => {
+    /*
+     * The far end of the span is tested against `entryInterfaceRadius`, which
+     * falls back to the BARE SURFACE where there is no published depth. So the
+     * selector asks the depth first, and this is what pins that ordering: a conic
+     * solving below the Minmus surface must still be the conic's own refusal and
+     * not a handover to a model named for atmospheric drag.
+     *
+     * The elements are deliberately degenerate, a circle a kilometre below the
+     * surface, because what is under test is the selector and not the orbit: it
+     * puts the solved radius under the floor on every frame without any descent
+     * arithmetic to get wrong.
+     */
+    const s = scene(MINMUS_INDEX, MINMUS_RADIUS - 1_000, MINMUS_MU);
+    s.descend([
+      { at: 0, altitudeAsl: 5_000, verticalSpeed: -200 },
+      { at: 1, altitudeAsl: 4_798, verticalSpeed: -205 },
+    ]);
+
+    const reading = s.at(3);
+
+    expect(reading.reckoning).toBe("none");
+    expect(reading).toMatchObject({
+      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+    });
   });
 });
 
