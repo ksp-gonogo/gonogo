@@ -77,7 +77,7 @@ function trackedSourceFiles(): string[] {
  * copy-pasted in thirty-nine identical definitions before it was exported.
  */
 const ACCESSORS =
-  /observedValue|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered/;
+  /observedValue|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered|readingOf/;
 
 /**
  * The one sanctioned exception, with its reason.
