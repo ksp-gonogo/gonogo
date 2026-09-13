@@ -138,6 +138,22 @@ export function FundTargetControl({
                      * the whole point: the simulation stops the warp on the tick
                      * the balance is reached, where a ground-side watch would
                      * read the number a light-time late and a poll later still.
+                     *
+                     * Unconditional on purpose, and it looks like it should not
+                     * be: the app's own alarm builder hides its "Fires on" radio
+                     * and pins the vantage to "command" whenever
+                     * `useTimeContexts` reports no `scet` qualifier, which is any
+                     * screen under a second of light time. That condition is
+                     * about a LABEL, not a capability. The two clocks print the
+                     * same string there, so a radio whose options read alike
+                     * teaches the operator the distinction is decorative;
+                     * nothing on the arming path consults it. The request is
+                     * carried through untouched, armed on the mod, and fired off
+                     * the simulation's own reading, at every delay including
+                     * none. Pinned by "arms and fires an Uplink's SCET threshold
+                     * on a screen with no SCET clock" in
+                     * `packages/app/src/alarms/scet-alarm.integration.test.ts`,
+                     * so nobody has to derive it again from the asymmetry.
                      */
                     vantage: "scet",
                   },
