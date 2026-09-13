@@ -48,6 +48,50 @@ namespace Gonogo.KSP.CommandCentres
             var nodes = new List<CommNode?>();
             var bodies = new List<CelestialBody?>();
             var facts = new List<HomeNodeFacts>();
+            ReadHomes(homes, nodes, bodies, facts);
+
+            var ids = HomeCentreIds.Mint(facts);
+            for (var i = 0; i < homes.Count; i++)
+            {
+                var comm = nodes[i];
+                if (comm == null)
+                {
+                    continue;
+                }
+
+                var home = homes[i];
+                yield return new KspCommandCentre(
+                    ids[i],
+                    home.displaynodeName ?? home.nodeName ?? ids[i],
+                    CommandCentreKind.GroundStation,
+                    BodyIndexOf(bodies[i]),
+                    comm,
+                    comm.precisePosition,
+                    active: true,
+                    latitude: facts[i].Latitude,
+                    longitude: facts[i].Longitude);
+            }
+        }
+
+        /// <summary>
+        /// The facts of every home, read the same way <see cref="Enumerate"/> reads
+        /// them and in the same order, so a mint over this list gives each home the
+        /// id its command centre carries. This is what the stock home-command
+        /// claimant decides from. Main thread only.
+        /// </summary>
+        public IReadOnlyList<HomeNodeFacts> HomeFacts()
+        {
+            var facts = new List<HomeNodeFacts>();
+            ReadHomes(new List<CommNetHome>(), new List<CommNode?>(), new List<CelestialBody?>(), facts);
+            return facts;
+        }
+
+        private void ReadHomes(
+            List<CommNetHome> homes,
+            List<CommNode?> nodes,
+            List<CelestialBody?> bodies,
+            List<HomeNodeFacts> facts)
+        {
             foreach (var home in _homes())
             {
                 if (home == null)
@@ -76,28 +120,6 @@ namespace Gonogo.KSP.CommandCentres
                 nodes.Add(comm);
                 bodies.Add(body);
                 facts.Add(new HomeNodeFacts(home.isKSC, home.nodeName, latitude, longitude));
-            }
-
-            var ids = HomeCentreIds.Mint(facts);
-            for (var i = 0; i < homes.Count; i++)
-            {
-                var comm = nodes[i];
-                if (comm == null)
-                {
-                    continue;
-                }
-
-                var home = homes[i];
-                yield return new KspCommandCentre(
-                    ids[i],
-                    home.displaynodeName ?? home.nodeName ?? ids[i],
-                    CommandCentreKind.GroundStation,
-                    BodyIndexOf(bodies[i]),
-                    comm,
-                    comm.precisePosition,
-                    active: true,
-                    latitude: facts[i].Latitude,
-                    longitude: facts[i].Longitude);
             }
         }
 

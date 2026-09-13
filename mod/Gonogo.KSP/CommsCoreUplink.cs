@@ -378,10 +378,18 @@ namespace Gonogo.KSP
         /// discovery order. CommNet is the capability's always-present vanilla
         /// fallback; the engine calls <c>Kernel.Resolve()</c> once every uplink
         /// has registered its providers.
+        ///
+        /// <para>The exclusive <c>"homeCommand"</c> capability is declared here too,
+        /// for the same two-pass reason: a mod's claimant registers from its own
+        /// uplink's Register. It sits beside comms because its stock
+        /// claimant decides from CommNet's home nodes.</para>
         /// </summary>
         public void DeclareCapabilities(Kernel kernel)
         {
             CommsElection.RegisterCapability(kernel, _ => new CommNetBackend());
+
+            var stockHomes = new StockHomeNodeSource();
+            HomeCommandElection.RegisterCapability(kernel, stockHomes.HomeFacts);
         }
 
         public void Register(IUplinkHost host)

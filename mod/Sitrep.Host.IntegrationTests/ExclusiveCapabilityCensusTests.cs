@@ -154,6 +154,16 @@ namespace Sitrep.Host.IntegrationTests
                     + "per election and reads live, and the delay and connectivity "
                     + "sources installed beside it are deliberately UNGATED."),
             new Entry(
+                "homeCommand",
+                "Sitrep.Host/CommandCentres/HomeCommandElection.cs",
+                FedByGatedCapture: false,
+                WhyNoBehaviouralCase: "No Uplink registers a provider yet: the stock "
+                    + "claimant, its Vanilla, is the only one. No gated capture feeds it "
+                    + "either: the engine asks the elected claimant in its command-centre "
+                    + "capture, which runs on every tick regardless of subscriptions. "
+                    + "Sitrep.Host.IntegrationTests/HomeCommandCaptureTests holds that "
+                    + "capture to the main thread."),
+            new Entry(
                 "activeVessel",
                 "Gonogo.KSP/VesselUplink.cs",
                 FedByGatedCapture: false,

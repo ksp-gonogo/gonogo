@@ -243,6 +243,17 @@ namespace Sitrep.Host
         private int _consecutiveCentreCaptureThrows;
 
         /// <summary>
+        /// The elected home-command claimant's answer at the last main-loop tick.
+        /// WRITTEN on the main-loop thread by <see cref="CaptureCommandCentresOnMain"/>,
+        /// READ from any thread through <see cref="CurrentHomeCommand"/>. The answer is
+        /// immutable and published by reference swap, so a reader needs no lock.
+        /// </summary>
+        private volatile HomeCommand _homeCommand = HomeCommand.NotIdentified;
+
+        /// <summary>Main-loop-thread only: throttles the home-command capture's throw report.</summary>
+        private int _consecutiveHomeCaptureThrows;
+
+        /// <summary>
         /// Gate evaluators by <see cref="CommandRequirement.Kind"/>. Populated
         /// during Uplink registration, in no controllable order, which is why the
         /// declared-kind-has-an-evaluator check is a pass after registration
@@ -2074,7 +2085,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// MAIN-THREAD capture: enumerate the active command centres and publish their
-        /// ids to <see cref="_activeCentreIds"/>. Called from <see cref="Tick"/> and
+        /// ids to <see cref="_activeCentreIds"/>, then ask the elected home-command
+        /// claimant for <see cref="CurrentHomeCommand"/>. Called from <see cref="Tick"/> and
         /// <see cref="TickAndWait"/>, which production runs on the Unity main thread.
         /// A throwing source is reported and the previous snapshot kept, so one bad
         /// pass neither stops the tick nor empties the selectable set.
@@ -2099,6 +2111,44 @@ namespace Sitrep.Host
                 {
                     LogHost("command-centre capture threw (attempt " + _consecutiveCentreCaptureThrows
                         + ", keeping the previous selectable vantages): " + SafeExceptionMessage(ex));
+                }
+            }
+
+            CaptureHomeCommandOnMain();
+        }
+
+        /// <summary>
+        /// Which command centre is home, as the elected <see cref="IHomeCommandProvider"/>
+        /// answered at the last main-loop tick. ANY-THREAD read of a snapshot; the
+        /// claimant itself is only ever asked on the main thread.
+        ///
+        /// <para><see cref="HomeCommand.NotIdentified"/> before the first tick, before
+        /// capabilities resolve, and whenever the claimant cannot say.</para>
+        /// </summary>
+        public HomeCommand CurrentHomeCommand => _homeCommand;
+
+        /// <summary>
+        /// MAIN-THREAD capture of the elected home-command claimant's answer, run in the
+        /// same pass as the active-centre ids. Caught separately from that capture so a
+        /// throwing centre source cannot stop home being asked, nor a throwing claimant
+        /// the centres. A throw keeps the previous answer, as a throwing centre source
+        /// keeps the previous selectable set.
+        /// </summary>
+        private void CaptureHomeCommandOnMain()
+        {
+            try
+            {
+                var claimant = CommandCentres.HomeCommandElection.Elected(_kernel);
+                _homeCommand = claimant?.Identify() ?? HomeCommand.NotIdentified;
+                _consecutiveHomeCaptureThrows = 0;
+            }
+            catch (Exception ex)
+            {
+                _consecutiveHomeCaptureThrows++;
+                if (_consecutiveHomeCaptureThrows == 1 || _consecutiveHomeCaptureThrows % 300 == 0)
+                {
+                    LogHost("home-command capture threw (attempt " + _consecutiveHomeCaptureThrows
+                        + ", keeping the previous answer): " + SafeExceptionMessage(ex));
                 }
             }
         }
