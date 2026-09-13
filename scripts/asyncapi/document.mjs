@@ -292,7 +292,7 @@ const EXAMPLE_META = {
   validAt: 1_842_006.5,
   seq: 918,
   deliveredAt: 1_842_006.5,
-  vantage: "ksc",
+  vantage: "ground:Kerbal Space Center",
   quality: 1,
   active: true,
   staleness: 0,
@@ -352,7 +352,7 @@ const EXAMPLE_COMMAND_REQUEST = {
   command: EXAMPLE_COMMAND,
   label: "Throttle 40%",
   topic: "vessel.control",
-  vantage: "ksc",
+  vantage: "ground:Kerbal Space Center",
   args: { value: 0.4 },
   /*
    * Zero, and not a placeholder. `CommandRequest.sentAt`'s own doc comment says

@@ -1599,7 +1599,21 @@ namespace Sitrep.Contract
         /// its own readings were true. The token is a place, in the
         /// <c>commandCentre.roster</c> vocabulary, never a connection: the
         /// simulation must not learn that browsers exist.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 6 -&gt; 7: the roster says which centre
+        /// is home.</b> One new member, <see cref="CommandCentreEntry.IsHome"/>.
+        /// Additive, nothing removed or retyped, so an Uplink built against 16.6
+        /// is unaffected and the frozen Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because home was a magic id. The stock space centre was
+        /// minted <c>"ksc"</c>, a client took "the centre called ksc" to be home,
+        /// and a connection started there. On an install where no station can be
+        /// singled out that way no station is <c>"ksc"</c>, so the client marked
+        /// an arbitrary station home and the picker showed a raw id. Every ground
+        /// station is now <c>"ground:&lt;name&gt;"</c>, the home-command claimant's
+        /// answer is published as this flag, and a roster with no flag set says
+        /// in so many words that no home was identified.</para>
         /// </remarks>
-        public const int Minor = 6;
+        public const int Minor = 7;
     }
 }

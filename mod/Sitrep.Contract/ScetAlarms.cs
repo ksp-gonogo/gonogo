@@ -271,7 +271,7 @@ public class ScetAlarm
     /// <summary>
     /// Whose ledger the condition is read against, and therefore who the fire
     /// notice is for. Empty is the simulation itself; anything else is a place,
-    /// spelled as a <c>commandCentre.roster</c> id (<c>"ksc"</c>,
+    /// spelled as a <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
     /// <c>"vessel:&lt;guid&gt;"</c>).
     ///
     /// <para><b>Distinct from <see cref="ArmedBy"/>, which is provenance.</b>

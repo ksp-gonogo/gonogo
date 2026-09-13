@@ -30,14 +30,13 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
 
         /// <summary>
-        /// The vantage a command centre observes from. Deliberately the DEFAULT
-        /// one rather than a centre minted for this test: it has no explicit
-        /// (vantage, node) delay pair and no node-default, so
+        /// The vantage a command centre observes from. Any id with no explicit
+        /// (vantage, node) delay pair and no node-default serves, so
         /// <c>StubNetwork.DelayTo</c> falls through to the whole-network default,
         /// which is exactly the tier <c>CaptureSignalDelay</c> drives from the
         /// active vessel's signal delay. That fall-through IS the defect.
         /// </summary>
-        private const string CommandVantage = ChannelEngine.DefaultVantage;
+        private const string CommandVantage = "ground:Kerbal Space Center";
 
         [Fact]
         public async Task TrueNowTopicReadsTheSameAtACommandVantageAsASubscriberSees()

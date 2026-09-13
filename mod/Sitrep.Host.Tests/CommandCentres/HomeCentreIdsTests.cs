@@ -6,29 +6,39 @@ namespace Sitrep.Host.Tests.CommandCentres
 {
     public class HomeCentreIdsTests
     {
+        /// <summary>
+        /// Who is home is the home-command claimant's answer, never the mint's, so a
+        /// station's id is the same whether or not it carries the flag.
+        /// </summary>
         [Fact]
-        public void Stock_TheOneFlaggedHomeIsKsc_AndEveryOtherIsGroundByName()
+        public void TheIsKscFlag_ChangesNoId()
         {
-            var ids = HomeCentreIds.Mint(new[]
+            var flagged = HomeCentreIds.Mint(new[]
             {
                 new HomeNodeFacts(false, "Woomerang Station"),
                 new HomeNodeFacts(true, "Kerbal Space Center"),
-                new HomeNodeFacts(false, "Dessert Station"),
+                new HomeNodeFacts(false, null),
+            });
+            var unflagged = HomeCentreIds.Mint(new[]
+            {
+                new HomeNodeFacts(false, "Woomerang Station"),
+                new HomeNodeFacts(false, "Kerbal Space Center"),
                 new HomeNodeFacts(false, null),
             });
 
             Assert.Equal(
-                new[] { "ground:Woomerang Station", "ksc", "ground:Dessert Station", "ground:unknown" },
-                ids);
+                new[] { "ground:Woomerang Station", "ground:Kerbal Space Center", "ground:unknown" },
+                flagged);
+            Assert.Equal(unflagged, flagged);
         }
 
         /// <summary>
-        /// The comms-mod shape: every configured station is flagged, and the flag
-        /// then names none of them. Before the mint every one of these was
-        /// <c>"ksc"</c> and all but the first vanished at the registry.
+        /// The comms-mod shape: every configured station is flagged. Each still mints
+        /// its own id, where a flag-driven mint once gave them all one and all but the
+        /// first vanished at the registry.
         /// </summary>
         [Fact]
-        public void EveryHomeFlagged_NoneIsKsc_AndAllAreDistinct()
+        public void EveryHomeFlagged_AllAreDistinct()
         {
             var homes = new[]
             {
@@ -43,7 +53,6 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(
                 new[] { "ground:DSS 14 - Goldstone", "ground:DSS 43 - Canberra", "ground:DSS 63 - Madrid", "ground:Cape Canaveral" },
                 ids);
-            Assert.DoesNotContain(HomeCentreIds.Ksc, ids);
         }
 
         [Fact]
@@ -62,18 +71,6 @@ namespace Sitrep.Host.Tests.CommandCentres
 
             Assert.Equal(3, registry.EnumerateActive().Count);
             Assert.Empty(registry.Collisions);
-        }
-
-        [Fact]
-        public void NoHomeFlagged_NoneIsKsc()
-        {
-            var ids = HomeCentreIds.Mint(new[]
-            {
-                new HomeNodeFacts(false, "A"),
-                new HomeNodeFacts(false, "B"),
-            });
-
-            Assert.Equal(new[] { "ground:A", "ground:B" }, ids);
         }
 
         [Fact]

@@ -181,7 +181,8 @@ namespace Gonogo.KSP
                     _engine.RegisterCommandCentreSource(src);
                     ccRegistry.RegisterSource(src);
                 }
-                _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry));
+                var homeEngine = _engine;
+                _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
                 // comms.commandCentre: give
                 // CommsCoreUplink the SAME registry instance so it resolves the
                 // active vessel's terminal node against the live centres the

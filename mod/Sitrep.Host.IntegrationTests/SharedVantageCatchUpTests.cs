@@ -12,10 +12,10 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Plan 3 vantage-seam multi-client safety: the observer vantage moved from the
-    /// per-connection <c>session.Connection.Id</c> to the shared
-    /// <c>session.SelectedVantage</c> (default "ksc"). The Archive read cursor is
-    /// keyed <c>_cursors[topic][vantage]</c>, shared and MONOTONIC, so all KSC
-    /// clients now share ONE cursor per topic. This suite proves a second client
+    /// per-connection <c>session.Connection.Id</c> to the shared session vantage
+    /// (every client here is at the same one, never having chosen). The Archive read
+    /// cursor is keyed <c>_cursors[topic][vantage]</c>, shared and MONOTONIC, so all
+    /// clients at one vantage share ONE cursor per topic. This suite proves a second client
     /// subscribing AFTER a first has advanced that shared cursor still catches up
     /// correctly:
     /// <list type="number">
@@ -33,7 +33,7 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
 
         [Fact]
-        public async Task LossyLatestState_SecondClientOnSharedKscVantage_CatchesUpToLatest()
+        public async Task LossyLatestState_SecondClientOnASharedVantage_CatchesUpToLatest()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new SharedVantageTestUplink();
@@ -45,7 +45,7 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(first, SharedVantageTestUplink.StateTopic, Timeout);
 
                 // Two delayed state samples mature past the 4s delay; the first
-                // client advances the shared "ksc" cursor by draining them.
+                // client advances the shared cursor by draining them.
                 engine.TickAndWait(1.0, SharedVantageTestUplink.Snapshot(1.0, delay: 4.0, state: "S1"), Timeout);
                 engine.TickAndWait(2.0, SharedVantageTestUplink.Snapshot(2.0, delay: 4.0, state: "S2"), Timeout);
                 foreach (var ut in new[] { 5.0, 6.0, 7.0 })
@@ -75,7 +75,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task KeyframeOrderedDiff_SecondClientOnSharedKscVantage_GetsKeyframeNotFragment()
+        public async Task KeyframeOrderedDiff_SecondClientOnASharedVantage_GetsKeyframeNotFragment()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new SharedVantageTestUplink();
@@ -95,7 +95,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     engine.TickAndWait(ut, SharedVantageTestUplink.Snapshot(ut, delay: 4.0, state: "S"), Timeout);
                 }
-                // First client drains everything, advancing the shared "ksc" cursor
+                // First client drains everything, advancing the shared cursor
                 // PAST the keyframe scene, onto the trailing diffs.
                 var firstFrames = await DrainAllStreamDataAsync(first, Quiet);
                 Assert.Contains(firstFrames, f => f.Topic == SharedVantageTestUplink.TermTopic);
@@ -115,7 +115,7 @@ namespace Sitrep.Host.IntegrationTests
                 var frame = Assert.IsType<Dictionary<string, object?>>(keyframe!.Payload);
                 Assert.True(
                     (bool)frame["fullRepaint"]!,
-                    "second client on the shared ksc vantage must catch up via the sticky full repaint, not a cursor-advanced diff fragment");
+                    "second client on the shared vantage must catch up via the sticky full repaint, not a cursor-advanced diff fragment");
                 Assert.Equal("BOOT>", frame["content"]);
             }
             finally

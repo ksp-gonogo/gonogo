@@ -51,15 +51,6 @@ namespace Sitrep.Host
         public const string MetaVantage = "meta";
 
         /// <summary>
-        /// The default command centre a connection commands from and observes at
-        /// until it selects another (Plan 3). "ksc" is the stock home-node centre;
-        /// with only KSC enumerated and no explicit (vantage, node) authority rows
-        /// set, <c>DelayTo("ksc", node)</c> falls through to Plan 2's node-default,
-        /// so KSC-only behaviour is identical to Plan 2.
-        /// </summary>
-        public const string DefaultVantage = "ksc";
-
-        /// <summary>
         /// Per-vessel node namespace (Plan 2): a topic "fleet.&lt;guid&gt;.&lt;field&gt;"
         /// records under the per-vessel Courier node "fleet.&lt;guid&gt;", so
         /// <c>DelayTo(vantage, node)</c> can give each vessel its own light-time.
@@ -91,8 +82,8 @@ namespace Sitrep.Host
         /// per-vessel node "fleet.&lt;guid&gt;" that vessel's telemetry uses, so the
         /// event is revealed at <c>DelayTo(vantage, thatVessel)</c> -- the light-time
         /// of the vessel the delta came FROM, not the observer's ambient
-        /// vantage-to-KSC delay (which is 0 for an operator at the default KSC
-        /// vantage, i.e. no delay at all) and not the active vessel's.
+        /// delay to home (which is 0 for an operator standing at home, i.e. no
+        /// delay at all) and not the active vessel's.
         ///
         /// <para>A currency total reveals instantly (<c>career.status</c> is
         /// <see cref="DelayRole.TrueNow"/>, deliberately: it gates spend decisions)
@@ -234,10 +225,29 @@ namespace Sitrep.Host
         /// needs no lock.
         ///
         /// <para>Empty until the first tick, so a client that connects before the main
-        /// loop has run can select only <see cref="DefaultVantage"/>. That is also what
-        /// the live sources would answer at the main menu, where no game is loaded.</para>
+        /// loop has run can select no vantage at all. That is also what the live sources
+        /// would answer at the main menu, where no game is loaded.</para>
         /// </summary>
         private volatile HashSet<string> _activeCentreIds = NoActiveCentreIds;
+
+        /// <summary>
+        /// The ground stations among <see cref="_activeCentreIds"/>, published by the same
+        /// capture and under the same rule. What <see cref="CommandCentres.FreshConnectionVantage"/>
+        /// falls back to when no home is identified.
+        /// </summary>
+        private volatile HashSet<string> _activeGroundIds = NoActiveCentreIds;
+
+        /// <summary>
+        /// Where a connection that has never chosen a vantage is, as
+        /// <see cref="CommandCentres.FreshConnectionVantage.Choose"/> answered at the last main-loop tick.
+        /// WRITTEN on the main-loop thread, READ on the Courier thread by
+        /// <see cref="VantageOf"/>. A change re-points every such connection's
+        /// subscriptions (see <see cref="ProcessFreshConnectionVantageMoved"/>).
+        /// </summary>
+        private volatile string _freshConnectionVantage = CommandCentres.FreshConnectionVantage.None;
+
+        /// <summary>Main-loop-thread only: the last home state logged, so a steady one is logged once.</summary>
+        private string? _loggedHomeState;
 
         /// <summary>Main-loop-thread only: throttles the capture's throw report the way a sampled source's is.</summary>
         private int _consecutiveCentreCaptureThrows;
@@ -2033,7 +2043,7 @@ namespace Sitrep.Host
         {
             // Per-(authority, subject) command delay (Plan 3): the explicit
             // (vantage = centreId, node = fleet.<vesselId>) pair overrides the
-            // SetVesselDelay node-default for an operator whose SelectedVantage is
+            // SetVesselDelay node-default for an operator whose session vantage is
             // this centre. DelayTo's 3-tier lookup keeps the node-default beneath
             // it for any unselected vantage, so KSC-only behaviour is unchanged.
             _network.SetDelay(centreId, FleetNodePrefix + vesselId, oneWaySeconds);
@@ -2055,9 +2065,10 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Whether a client-supplied vantage id names a place this connection may
-        /// observe or dispatch from. <see cref="DefaultVantage"/> is always allowed
-        /// (it resolves to Plan 2's node-default even before any home-node source is
-        /// live); any other id must name a currently-active command centre.
+        /// observe or dispatch from: it must name a currently-active command centre.
+        /// No id is special. A connection that never chose one is at
+        /// <see cref="_freshConnectionVantage"/>, which is never checked here because the
+        /// client did not supply it.
         ///
         /// <para>Both places a client can name a vantage answer to this one method:
         /// the session-wide <c>set-vantage</c> message, and the per-command override
@@ -2080,13 +2091,13 @@ namespace Sitrep.Host
         /// that tick, one sample stale.</para>
         /// </summary>
         private bool IsSelectableVantage(string centreId) =>
-            centreId == DefaultVantage
-            || _activeCentreIds.Contains(centreId);
+            _activeCentreIds.Contains(centreId);
 
         /// <summary>
         /// MAIN-THREAD capture: enumerate the active command centres and publish their
-        /// ids to <see cref="_activeCentreIds"/>, then ask the elected home-command
-        /// claimant for <see cref="CurrentHomeCommand"/>. Called from <see cref="Tick"/> and
+        /// ids to <see cref="_activeCentreIds"/>, ask the elected home-command claimant
+        /// for <see cref="CurrentHomeCommand"/>, then settle where a connection that has
+        /// not chosen a vantage stands. Called from <see cref="Tick"/> and
         /// <see cref="TickAndWait"/>, which production runs on the Unity main thread.
         /// A throwing source is reported and the previous snapshot kept, so one bad
         /// pass neither stops the tick nor empties the selectable set.
@@ -2096,12 +2107,18 @@ namespace Sitrep.Host
             try
             {
                 var ids = new HashSet<string>(StringComparer.Ordinal);
+                var groundIds = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var centre in _commandCentres.EnumerateActive())
                 {
                     ids.Add(centre.Id);
+                    if (centre.Kind == CommandCentreKind.GroundStation)
+                    {
+                        groundIds.Add(centre.Id);
+                    }
                 }
 
                 _activeCentreIds = ids;
+                _activeGroundIds = groundIds;
                 _consecutiveCentreCaptureThrows = 0;
             }
             catch (Exception ex)
@@ -2115,6 +2132,83 @@ namespace Sitrep.Host
             }
 
             CaptureHomeCommandOnMain();
+            SettleFreshConnectionVantageOnMain();
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: recompute <see cref="_freshConnectionVantage"/> from this pass's
+        /// centres and home answer. A move is queued to the Courier thread, which
+        /// re-points every connection that has not chosen a vantage, so a client that
+        /// connected at the main menu is at home once a save loads rather than left at
+        /// the nothing it subscribed under.
+        ///
+        /// <para>Home not being identified is logged whenever the answer changes, never
+        /// per tick: that state is a correct answer on some installs, but the operator
+        /// must be able to see that the ledger's place was not identified rather than
+        /// find a ground station silently standing in for it.</para>
+        /// </summary>
+        private void SettleFreshConnectionVantageOnMain()
+        {
+            var home = _homeCommand;
+            var ground = _activeGroundIds;
+            var next = CommandCentres.FreshConnectionVantage.Choose(_activeCentreIds, ground, home);
+
+            var homeState = (home.IsIdentified ? "home " + home.CentreId : "not identified") + " @ " + next;
+            if (homeState != _loggedHomeState)
+            {
+                _loggedHomeState = homeState;
+                if (home.IsIdentified && next == home.CentreId)
+                {
+                    LogHost("home command is '" + next + "'; a connection that has not chosen a vantage starts there");
+                }
+                else if (next != CommandCentres.FreshConnectionVantage.None)
+                {
+                    LogHost("home command " + (home.IsIdentified
+                            ? "'" + home.CentreId + "' is not an active command centre"
+                            : "not identified")
+                        + " among " + ground.Count + " ground station(s); no centre is marked home, and a connection"
+                        + " that has not chosen a vantage starts at '" + next + "', the first ground station by id");
+                }
+            }
+
+            if (next == _freshConnectionVantage)
+            {
+                return;
+            }
+
+            _freshConnectionVantage = next;
+            EnqueueJob(new FreshConnectionVantageMovedJob());
+        }
+
+        /// <summary>
+        /// The vantage a connection observes and dispatches from: the one it chose, or
+        /// <see cref="_freshConnectionVantage"/> until it chooses one.
+        /// </summary>
+        private string VantageOf(ClientSession session) =>
+            session.ChosenVantage ?? _freshConnectionVantage;
+
+        /// <summary>
+        /// Courier-thread-only: re-subscribe every topic of every connection that has
+        /// not chosen a vantage, so its downlink cursors re-point at the new
+        /// <see cref="_freshConnectionVantage"/>. The same unsubscribe-then-subscribe a
+        /// client sends after its own set-vantage, and for the same reason: a stream is
+        /// bound to the vantage it was subscribed under.
+        /// </summary>
+        private void ProcessFreshConnectionVantageMoved()
+        {
+            foreach (var session in _sessions.Values)
+            {
+                if (session.ChosenVantage != null)
+                {
+                    continue;
+                }
+
+                foreach (var topic in session.Unsubscribers.Keys.ToArray())
+                {
+                    ProcessUnsubscribe(session, topic);
+                    ProcessSubscribe(session, topic);
+                }
+            }
         }
 
         /// <summary>
@@ -2155,10 +2249,9 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Apply a client set-vantage request (Plan 3): switch the connection's
-        /// SelectedVantage to a command centre. <see cref="DefaultVantage"/> is
-        /// always selectable (it resolves to Plan 2's node-default even before any
-        /// home-node source is live); any other id must name a currently-active
-        /// centre, else the prior vantage is kept and an error is returned.
+        /// vantage to a command centre. The id must name a currently-active centre,
+        /// else the prior vantage is kept and an error is returned. Once chosen, the
+        /// connection stays there and no longer follows home.
         /// </summary>
         private void HandleSetVantage(ClientSession session, SetVantage sv)
         {
@@ -2176,7 +2269,7 @@ namespace Sitrep.Host
             // Reference assignment is atomic; the Courier thread reads the new
             // vantage on subsequent subscribes/dispatches (an eventually-consistent
             // switch, matching the client re-subscribing its topics at the new vantage).
-            session.SelectedVantage = sv.CentreId;
+            session.ChosenVantage = sv.CentreId;
         }
 
         public void SetVesselConnectivity(string vesselId, bool connected)
@@ -4364,6 +4457,9 @@ namespace Sitrep.Host
                             case DisconnectJob disconnect:
                                 ProcessDisconnect(disconnect.Session);
                                 break;
+                            case FreshConnectionVantageMovedJob:
+                                ProcessFreshConnectionVantageMoved();
+                                break;
                         }
                     }
                     catch (Exception ex)
@@ -5917,7 +6013,7 @@ namespace Sitrep.Host
                 _emitter.NotifySubscribed(topic);
             }
 
-            var vantage = ObservationVantageFor(topic, session.SelectedVantage);
+            var vantage = ObservationVantageFor(topic, VantageOf(session));
             var delivery = _channelDeclarations[topic].Delivery;
             var opaque = _channelDeclarations[topic].OpaquePayload;
 
@@ -6083,7 +6179,7 @@ namespace Sitrep.Host
                         Meta = new Meta
                         {
                             Source = NodeId,
-                            Vantage = session.SelectedVantage,
+                            Vantage = VantageOf(session),
                             ValidAt = _clock.Now(),
                             DeliveredAt = _clock.Now(),
                             Seq = ++_ackSeq,
@@ -6194,9 +6290,10 @@ namespace Sitrep.Host
                         // An override is checked against the same rule the set-vantage
                         // message answers to, plus MetaVantage, which is dispatch-only.
                         // Only the override is checked: an empty field resolves to
-                        // SelectedVantage, which HandleSetVantage already validated, and
-                        // re-checking it here would start refusing ordinary commands the
-                        // moment the centre a session is sitting at went inactive.
+                        // the session vantage, which HandleSetVantage validated when it was
+                        // chosen (or the engine chose itself), and re-checking it here would
+                        // start refusing ordinary commands the moment the centre a session is
+                        // sitting at went inactive.
                         if (!string.IsNullOrEmpty(req.Vantage)
                             && req.Vantage != MetaVantage
                             && !IsSelectableVantage(req.Vantage!))
@@ -6223,7 +6320,7 @@ namespace Sitrep.Host
                         DispatchCommand(
                             req.Command,
                             req.Args,
-                            string.IsNullOrEmpty(req.Vantage) ? session.SelectedVantage : req.Vantage,
+                            string.IsNullOrEmpty(req.Vantage) ? VantageOf(session) : req.Vantage,
                             result =>
                         {
                             // C2-4: `result` is whatever the uplink's
@@ -6248,7 +6345,7 @@ namespace Sitrep.Host
                                     Meta = new Meta
                                     {
                                         Source = NodeId,
-                                        Vantage = session.SelectedVantage,
+                                        Vantage = VantageOf(session),
                                         ValidAt = req.SentAt,
                                         DeliveredAt = _clock.Now(),
                                         Seq = Interlocked.Increment(ref _ackSeq),
@@ -6602,6 +6699,11 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>Queued when the fresh-connection vantage moves; see <c>ProcessFreshConnectionVantageMoved</c>.</summary>
+        private sealed class FreshConnectionVantageMovedJob : IEngineJob
+        {
+        }
+
         private sealed class DisconnectJob : IEngineJob
         {
             public readonly ClientSession Session;
@@ -6654,13 +6756,13 @@ namespace Sitrep.Host
             public readonly Dictionary<string, Action> Unsubscribers = new Dictionary<string, Action>();
 
             /// <summary>
-            /// The command centre this connection commands from and observes at
-            /// (Plan 3 vantage selection). Governs BOTH the downlink cursor read
-            /// (<c>ReadAtVantage(topic, SelectedVantage, ...)</c>) and the command
-            /// dispatch vantage (<c>DelayTo(SelectedVantage, node)</c>). Defaults to
-            /// <see cref="DefaultVantage"/> (KSC); set by the set-vantage message.
+            /// The command centre this connection chose with a set-vantage message, or
+            /// null until it chooses one, in which case it is at the engine's fresh-connection
+            /// vantage (see <c>VantageOf</c>). Whichever applies governs BOTH the downlink
+            /// cursor read and the command dispatch vantage (<c>DelayTo(vantage, node)</c>).
+            /// Written on a socket thread, read on the Courier thread.
             /// </summary>
-            public string SelectedVantage = DefaultVantage;
+            public volatile string? ChosenVantage;
 
             public ClientSession(ITransportConnection connection)
             {

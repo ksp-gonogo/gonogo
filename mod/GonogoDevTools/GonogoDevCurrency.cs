@@ -74,7 +74,7 @@ namespace Gonogo.DevTools
     /// {
     ///     id = 2026-08-26-sci-away-1   // unique per request; a repeat is ignored
     ///     attribute = lab              // none | lab | recover | destroy | crewdeath
-    ///     origin = active              // active | ksc | vessel name | vessel GUID
+    ///     origin = active              // active | home | vessel name | vessel GUID
     ///     watchSeconds = 600           // 0 (default) writes one before/after pair
     ///     watchIntervalSeconds = 5
     ///
@@ -1327,14 +1327,14 @@ namespace Gonogo.DevTools
         /// <summary>
         /// Matches <c>origin</c> against every vessel KSP knows about, by id
         /// first (a GUID is unambiguous) then by name. <c>active</c> names the
-        /// active vessel; an empty or <c>ksc</c> value means no origin at all.
+        /// active vessel; an empty or <c>home</c> value means no origin at all: the award is made at home, away from any craft.
         /// Unloaded vessels are included: the interceptor resolves light-time
         /// from a live <c>Vessel</c> object, which an unloaded craft still has.
         /// </summary>
         private static Vessel? ResolveVessel(string? origin)
         {
             var wanted = (origin ?? "").Trim();
-            if (wanted.Length == 0 || string.Equals(wanted, "ksc", StringComparison.OrdinalIgnoreCase))
+            if (wanted.Length == 0 || string.Equals(wanted, "home", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

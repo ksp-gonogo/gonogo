@@ -16,10 +16,10 @@ namespace Gonogo.KSP.CommandCentres
     /// scene. The node and body come through <see cref="CommNetHomeAccess"/> because
     /// stock keeps both protected.
     ///
-    /// <para>Ids come from <see cref="HomeCentreIds"/>. A comms mod that
-    /// configures its own stations can set <c>isKSC</c> on every one of them, and
-    /// then none of them is minted <c>"ksc"</c>: which station is home on such a
-    /// save is not something this flag can say.</para>
+    /// <para>Ids come from <see cref="HomeCentreIds"/>, and every home is
+    /// <c>ground:&lt;name&gt;</c>. Which one is home is not this source's
+    /// question: <see cref="HomeFacts"/> hands the game's flags to the stock
+    /// home-command claimant, the one reader of them.</para>
     /// </summary>
     public sealed class StockHomeNodeSource : ICommandCentreSource
     {
@@ -37,10 +37,8 @@ namespace Gonogo.KSP.CommandCentres
         /// <summary>
         /// Every home with a readable node, under an id minted across ALL homes at
         /// once by <see cref="HomeCentreIds.Mint"/>. A home whose node is not up yet
-        /// still counts towards the mint, because <c>isKSC</c> is a fact about the
-        /// home rather than its node: counting only the homes with a node would let
-        /// one flagged station briefly look like the sole KSC while its siblings
-        /// were still being built.
+        /// still counts towards the mint, so the suffix a shared name earns does not
+        /// shift while a sibling station is still being built.
         /// </summary>
         public IEnumerable<ICommandCentre> Enumerate()
         {

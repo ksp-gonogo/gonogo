@@ -84,6 +84,12 @@ public class Meta
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double DeliveredAt { get; set; }
+
+    /// <summary>
+    /// The place the payload was observed from: a <c>commandCentre.roster</c> id,
+    /// <c>"meta"</c> for an instant-class topic no distance applies to, or empty
+    /// when the connection is at no command centre because none is active.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
     [SitrepUnit(Units.Enumeration)]

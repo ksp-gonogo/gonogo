@@ -630,12 +630,10 @@ export interface ChannelEmissionReport
 export interface CommandCentreEntry
 {
 	/**
-	* Stable authority/vantage key: `"ksc"` | `"ground:<name>"` |
-	* `"vessel:<guid>"`. `"ksc"` exists only when exactly one ground station is
-	* flagged as the space centre, as in stock. Where a comms mod flags every
-	* station it configures, no station is `"ksc"` and each is `"ground:<name>"`.
-	* Ground stations that share a name are told apart as `"ground:<name>#2"`,
-	* `"#3"` and so on.
+	* Stable authority/vantage key: `"ground:<name>"` | `"vessel:<guid>"`. Every
+	* ground station is `"ground:<name>"`, the home one included: which centre is
+	* home is `CommandCentreEntry.isHome`, never a special id. Ground stations
+	* that share a name are told apart as `"ground:<name>#2"`, `"#3"` and so on.
 	*/
 	id?: string;
 	/** Human-facing name. */
@@ -676,6 +674,20 @@ export interface CommandCentreEntry
 	longitude?: Value<"°">;
 	/** Whether this centre is a valid command source right now. */
 	active: boolean;
+	/**
+	* Whether this centre is the home command: the one centre that holds the
+	* career ledger, as the mod's home-command claimant identifies it.
+	*
+	* At most one entry carries it. When the claimant cannot say which centre is
+	* home, as on an install whose ground stations all look alike to it, NO entry
+	* carries it, and that is an answer rather than missing data: a roster that
+	* lists ground stations and marks none of them home says the home was not
+	* identified.
+	*
+	* Not the same fact as `CommsHop.fromIsHome`, which is true of every ground
+	* station and so cannot say which one is home.
+	*/
+	isHome: boolean;
 	/**
 	* Whether this centre can be routed to: `"routed"` (a CommNode ControlPath
 	* exists, occlusion-aware) or `"unroutable"` (no CommNode, so no command path
@@ -1425,8 +1437,8 @@ export interface CommsLink
 export interface CommsCommandCentre
 {
 	/**
-	* Stable authority/vantage key, same scheme as `CommandCentreEntry.id`: "ksc"
-	* | "ground:<name>" | "vessel:<guid>". Null when no remote centre resolved.
+	* Stable authority/vantage key, same scheme as `CommandCentreEntry.id`:
+	* "ground:<name>" | "vessel:<guid>". Null when no remote centre resolved.
 	*/
 	id?: string;
 	/** Human-facing name. */
@@ -2035,8 +2047,8 @@ export interface CommandRequest<TArgs>
 	/**
 	* Per-call vantage override (Plan 3 / delay-UX): the command centre this
 	* specific command dispatches from, governing its delay via `DelayTo(vantage,
-	* node)`. Empty ⇒ the server uses the connection's session `SelectedVantage`
-	* (the default). A program-meta command (tech/strategy/contract) sends
+	* node)`. Empty ⇒ the server uses the connection's own vantage (see
+	* `SetVantage`). A program-meta command (tech/strategy/contract) sends
 	* `"meta"` so it stays instant (`DelayTo("meta", *) = 0`) regardless of which
 	* centre the operator has selected. Nullable/optional: a pre-Vantage client
 	* omits it (codegen emits vantage?: string), and the server treats null/empty
@@ -2088,8 +2100,16 @@ export interface Unsubscribe
 /**
 * Client-to-server: select the command centre this connection commands from
 * and observes at (Plan 3 vantage selection). Governs both the downlink cursor
-* read and the command-dispatch vantage. `"ksc"` (the default) is always
-* selectable; any other id must name a currently-active command centre.
+* read and the command-dispatch vantage. The id must name a currently-active
+* command centre, or the request is refused with an `unknown-vantage` error
+* and the connection keeps the vantage it had.
+*
+* A connection that has never sent one observes at the home command (the
+* roster entry whose `isHome` is true), and follows it if home moves. When no
+* home is identified it observes at the first ground station in ordinal id
+* order, and while no command centre is active at all (the main menu) at none,
+* stamping its frames with an empty `vantage`. Every frame's `meta.vantage`
+* says which of these is in force.
 */
 export interface SetVantage
 {
@@ -2854,6 +2874,11 @@ export interface Meta
 	* in the emitted type, as `Meta.validAt` is.
 	*/
 	deliveredAt: number;
+	/**
+	* The place the payload was observed from: a `commandCentre.roster` id,
+	* `"meta"` for an instant-class topic no distance applies to, or empty when
+	* the connection is at no command centre because none is active.
+	*/
 	vantage: string;
 	quality: Quality;
 	active: boolean;
@@ -4029,7 +4054,8 @@ export interface ScetAlarm
 	/**
 	* Whose ledger the condition is read against, and therefore who the fire
 	* notice is for. Empty is the simulation itself; anything else is a place,
-	* spelled as a `commandCentre.roster` id (`"ksc"`, `"vessel:<guid>"`).
+	* spelled as a `commandCentre.roster` id (`"ground:<name>"`,
+	* `"vessel:<guid>"`).
 	*
 	* **Distinct from `ScetAlarm.armedBy`, which is provenance.** That says where
 	* the arm command came from and nothing else. This says which body of

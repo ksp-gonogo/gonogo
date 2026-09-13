@@ -1712,6 +1712,10 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendBool(sb, e.Active);
             sb.Append(',');
+            AppendString(sb, "isHome");
+            sb.Append(':');
+            AppendBool(sb, e.IsHome);
+            sb.Append(',');
             AppendString(sb, "delayQuality");
             sb.Append(':');
             AppendNullableString(sb, e.DelayQuality);

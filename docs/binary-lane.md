@@ -34,7 +34,7 @@ The header is an ordinary JSON document:
     "validAt": 41823.5,
     "seq": 1204,
     "deliveredAt": 41853.5,
-    "vantage": "ksc",
+    "vantage": "ground:Kerbal Space Center",
     "quality": 1,
     "active": true,
     "staleness": 0,
