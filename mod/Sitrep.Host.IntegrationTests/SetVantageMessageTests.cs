@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
@@ -19,6 +21,10 @@ namespace Sitrep.Host.IntegrationTests
     /// rule's second entry point and is covered here too, deliberately in one file:
     /// the two paths are one rule, and the override went unchecked for as long as
     /// each had its own spelling.</para>
+    ///
+    /// <para>"Currently active" means active at the last main-loop tick, which is where
+    /// the engine enumerates the sources, so a test that expects a centre to be
+    /// selectable ticks once before it connects.</para>
     /// </summary>
     public class SetVantageMessageTests
     {
@@ -32,6 +38,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.RegisterCommandCentreSource(
                 new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
             engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
@@ -57,6 +64,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.RegisterCommandCentreSource(
                 new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
             engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
@@ -92,6 +100,7 @@ namespace Sitrep.Host.IntegrationTests
                 new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
             engine.RegisterUplink(new EchoVantageTestUplink());
             engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
@@ -138,6 +147,7 @@ namespace Sitrep.Host.IntegrationTests
             var uplink = new RecordVantageTestUplink();
             engine.RegisterUplink(uplink);
             engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
@@ -173,6 +183,7 @@ namespace Sitrep.Host.IntegrationTests
             var uplink = new RecordVantageTestUplink();
             engine.RegisterUplink(uplink);
             engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
@@ -195,6 +206,152 @@ namespace Sitrep.Host.IntegrationTests
             {
                 engine.Stop();
             }
+        }
+
+        /// <summary>
+        /// A set-vantage request arrives on a socket thread, and the production
+        /// home-node source answers through <c>FindObjectsOfType</c>, which Unity
+        /// refuses off its main thread. <see cref="StaticSource"/> never objects to
+        /// the thread it is called on, which is how validation came to enumerate the
+        /// live registry from the socket thread with every test green. This source
+        /// models the Unity rule: it throws when enumerated from any thread but the
+        /// one ticking the engine, and records the offence so a caller that swallows
+        /// the throw is still caught.
+        /// </summary>
+        [Fact]
+        public async Task SetVantage_ValidatesWithoutEnumeratingSourcesOffTheMainThread()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var source = new MainThreadOnlySource("ground:gs1");
+            engine.RegisterCommandCentreSource(source);
+            engine.RegisterUplink(new EchoVantageTestUplink());
+            engine.Start();
+            using var main = new MainThreadTicker(engine, source);
+            try
+            {
+                Assert.True(main.FirstTickDone.Wait(Timeout), "the main-thread ticker never completed a tick");
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
+                var afterValid = await DispatchAndAwaitResponse(client, "r1");
+                Assert.Equal("ground:gs1", afterValid.Meta.Vantage);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "no-such-centre" }));
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("unknown-vantage", error.Code);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
+                var afterDefault = await DispatchAndAwaitResponse(client, "r2");
+                Assert.Equal("ksc", afterDefault.Meta.Vantage);
+
+                Assert.Empty(source.Violations);
+                Assert.True(source.MainThreadEnumerations > 0, "the source was never enumerated on the main thread");
+            }
+            catch (OperationCanceledException)
+            {
+                AssertNoThreadViolation(source);
+                throw;
+            }
+            finally
+            {
+                main.Stop();
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The per-command override is the same rule's second entry point and runs
+        /// on the same socket thread, so it is held to the same thread rule.
+        /// </summary>
+        [Fact]
+        public async Task PerCommandVantage_ValidatesWithoutEnumeratingSourcesOffTheMainThread()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var source = new MainThreadOnlySource("ground:gs1");
+            engine.RegisterCommandCentreSource(source);
+            var uplink = new RecordVantageTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            using var main = new MainThreadTicker(engine, source);
+            try
+            {
+                Assert.True(main.FirstTickDone.Wait(Timeout), "the main-thread ticker never completed a tick");
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await SendCommandAsync(client, "r1", vantage: "ground:gs1");
+                await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+
+                await SendCommandAsync(client, "r2", vantage: "ground:gs99");
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal("r2", error.RequestId);
+
+                await SendCommandAsync(client, "r3", vantage: "ksc");
+                await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+
+                Assert.Equal(new[] { "ground:gs1", "ksc" }, uplink.SeenVantages);
+                Assert.Empty(source.Violations);
+            }
+            catch (OperationCanceledException)
+            {
+                AssertNoThreadViolation(source);
+                throw;
+            }
+            finally
+            {
+                main.Stop();
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A client can connect before the main loop has ticked once (the socket is up
+        /// from the menu onwards). Until a tick has captured the active centres, the only
+        /// selectable vantage is the default: no centre is known to be active, and the
+        /// sources cannot be asked from here.
+        /// </summary>
+        [Fact]
+        public async Task BeforeTheFirstTick_OnlyTheDefaultVantageIsSelectable()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var source = new MainThreadOnlySource("ground:gs1");
+            engine.RegisterCommandCentreSource(source);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("unknown-vantage", error.Code);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
+                await client.AssertNoMessageArrivesAsync(Quiet);
+
+                Assert.Empty(source.Violations);
+            }
+            catch (OperationCanceledException)
+            {
+                AssertNoThreadViolation(source);
+                throw;
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A source enumerated off the main thread throws on the socket thread, which
+        /// closes the connection, so the test first sees a reply that never arrives.
+        /// Naming the offending thread turns that timeout into the actual defect.
+        /// </summary>
+        private static void AssertNoThreadViolation(MainThreadOnlySource source)
+        {
+            var violations = source.Violations;
+            Assert.True(violations.Count == 0, "no reply arrived, and a command-centre source was " + string.Join("; ", violations));
         }
 
         private static Task SendCommandAsync(TestClient client, string requestId, string? vantage) =>
@@ -281,6 +438,97 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<object?, object?>(Command, _ => null);
+            }
+        }
+
+        /// <summary>
+        /// Stands in for the Unity main loop: a dedicated thread ticking the engine, the
+        /// only thread its <see cref="MainThreadOnlySource"/> will answer on.
+        /// </summary>
+        private sealed class MainThreadTicker : IDisposable
+        {
+            private readonly ManualResetEventSlim _stop = new ManualResetEventSlim(false);
+            private readonly Thread _thread;
+
+            public MainThreadTicker(ChannelEngine engine, MainThreadOnlySource source)
+            {
+                using var started = new ManualResetEventSlim(false);
+                _thread = new Thread(() =>
+                {
+                    source.MainThreadId = Thread.CurrentThread.ManagedThreadId;
+                    started.Set();
+                    var ut = 0.0;
+                    while (!_stop.IsSet)
+                    {
+                        engine.TickAndWait(ut, null, Timeout);
+                        FirstTickDone.Set();
+                        ut += 1.0;
+                        Thread.Sleep(2);
+                    }
+                })
+                { IsBackground = true, Name = "test-unity-main-thread" };
+                _thread.Start();
+                started.Wait(Timeout);
+            }
+
+            public ManualResetEventSlim FirstTickDone { get; } = new ManualResetEventSlim(false);
+
+            public void Stop()
+            {
+                _stop.Set();
+                _thread.Join(Timeout);
+            }
+
+            public void Dispose()
+            {
+                Stop();
+                _stop.Dispose();
+                FirstTickDone.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// A command-centre source under Unity's rule: enumerating it from any thread
+        /// other than <see cref="MainThreadId"/> throws, as <c>FindObjectsOfType</c> does.
+        /// The check sits inside the iterator so it fires where the real source's does,
+        /// on the first <c>MoveNext</c>.
+        /// </summary>
+        private sealed class MainThreadOnlySource : ICommandCentreSource
+        {
+            private readonly ICommandCentre _centre;
+            private readonly List<string> _violations = new List<string>();
+            private int _mainThreadEnumerations;
+
+            public MainThreadOnlySource(string id) =>
+                _centre = new StaticSource(id, CommandCentreKind.GroundStation).Enumerate().First();
+
+            /// <summary>Unset (-1) means no thread is main, so every enumeration is an offence.</summary>
+            public volatile int MainThreadId = -1;
+
+            public string ProviderId => "main-thread-only-test";
+
+            public int MainThreadEnumerations => Volatile.Read(ref _mainThreadEnumerations);
+
+            public IReadOnlyList<string> Violations
+            {
+                get { lock (_violations) { return _violations.ToArray(); } }
+            }
+
+            public IEnumerable<ICommandCentre> Enumerate()
+            {
+                var thread = Thread.CurrentThread;
+                if (thread.ManagedThreadId != MainThreadId)
+                {
+                    lock (_violations)
+                    {
+                        _violations.Add("enumerated on thread " + thread.ManagedThreadId + " (" + (thread.Name ?? "unnamed") + ")");
+                    }
+
+                    throw new InvalidOperationException("FindObjectsOfType can only be called from the main thread.");
+                }
+
+                Interlocked.Increment(ref _mainThreadEnumerations);
+                yield return _centre;
             }
         }
 
