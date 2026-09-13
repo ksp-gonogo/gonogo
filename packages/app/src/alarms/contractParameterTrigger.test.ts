@@ -76,7 +76,6 @@ describe("contract-parameter alarm trigger", () => {
    */
   function tick(alarm: Alarm, active: CareerContract[]): Alarm["state"] {
     const sm = new AlarmStateMachine(
-      () => [alarm],
       () => 100,
       () => [],
       () => active,
@@ -158,7 +157,6 @@ describe("contract-parameter alarm trigger", () => {
     function machine(alarm: Alarm, source: () => unknown) {
       let ut = 0;
       const sm = new AlarmStateMachine(
-        () => [alarm],
         () => ut,
         () => [],
         source as () => readonly CareerContract[] | undefined,
