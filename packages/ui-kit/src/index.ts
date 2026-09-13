@@ -404,6 +404,7 @@ export {
   HalfWidthIcon,
   HeartIcon,
   HistoryIcon,
+  HomeIcon,
   type IconProps,
   InfoIcon,
   JoystickIcon,

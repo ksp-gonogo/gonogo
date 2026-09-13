@@ -15,6 +15,7 @@ import {
   FileText,
   Heart,
   History,
+  Home,
   Info,
   Joystick,
   Layers,
@@ -63,6 +64,8 @@ function makeIcon(
 // Existing exports: kept stable so call sites don't change.
 export const JoystickIcon = makeIcon(Joystick);
 export const HistoryIcon = makeIcon(History);
+/** Marks a roster entry as the home command centre. Decorative: pair with an accessible name from the caller, this glyph carries none of its own. */
+export const HomeIcon = makeIcon(Home);
 export const InfoIcon = makeIcon(Info);
 export const BroadcastIcon = makeIcon(Radio);
 /** Audible. Pair with `MutedIcon`, which is the same speaker crossed out. */

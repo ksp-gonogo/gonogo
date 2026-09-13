@@ -11,6 +11,7 @@ import {
   ComboboxListbox,
   type ComboboxOption,
   EmptyState,
+  HomeIcon,
   Text,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -118,6 +119,21 @@ function VantageReadout() {
         </>
       )}
     </VantageReadout__Root>
+  );
+}
+
+/**
+ * The home marker, shared by the picker's closed trigger and its open list
+ * row so the two never drift: a glyph inside the same dark badge container
+ * either one already uses for state. The glyph is decorative, the visually
+ * hidden text is what carries "home" into the accessible name.
+ */
+function HomeBadge() {
+  return (
+    <Badge size="sm">
+      <VantageControl__HomeGlyph size={12} aria-hidden="true" />
+      <VisuallyHidden>Home</VisuallyHidden>
+    </Badge>
   );
 }
 
@@ -238,7 +254,7 @@ function VantagePicker() {
         onKeyDown={onTriggerKeyDown}
       >
         <TriggerValue>{selectedLabel}</TriggerValue>
-        {selectedIsHome && <Badge size="sm">Home</Badge>}
+        {selectedIsHome && <HomeBadge />}
         <ChevronDownIcon size={12} />
       </Trigger>
       {open &&
@@ -256,7 +272,7 @@ function VantagePicker() {
             renderItem={(opt) => (
               <>
                 <span>{opt.label}</span>
-                {opt.isHome && <Badge size="sm">Home</Badge>}
+                {opt.isHome && <HomeBadge />}
               </>
             )}
           />
@@ -291,6 +307,17 @@ const Trigger = styled(ActionButton)`
 
 const TriggerValue = styled.span`
   font-variant-numeric: tabular-nums;
+`;
+
+/**
+ * The glyph carries no accessible name of its own (`aria-hidden`); the
+ * `VisuallyHidden` "Home" beside it in `HomeBadge` is what a screen reader
+ * announces. `vertical-align` centres the small glyph against the badge's
+ * uppercase text baseline rather than sitting on it, which is where an inline
+ * svg defaults to.
+ */
+const VantageControl__HomeGlyph = styled(HomeIcon)`
+  vertical-align: -2px;
 `;
 
 const EmptyPopover = styled.div`
