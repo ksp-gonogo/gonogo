@@ -254,7 +254,15 @@ public class ScetAlarm
     /// <internal>
     /// Resolved by the engine from where the command entered
     /// (<c>AddVantageCommandHandler</c>) rather than taken from the arm
-    /// arguments, so a client cannot name a centre that is not its own.
+    /// arguments. The dispatch vantage it resolves from is either the session's
+    /// <c>SelectedVantage</c> or the per-command override on the request
+    /// envelope, and BOTH are client-supplied, so neither is trusted: each is
+    /// checked against <c>ChannelEngine.IsSelectableVantage</c>, which requires a
+    /// currently-active command centre (or the always-allowed default). A
+    /// set-vantage naming anything else keeps the prior vantage, and a command
+    /// override naming anything else is refused with <c>unknown-vantage</c>
+    /// rather than falling back, so this can only ever name a centre that was
+    /// real when the alarm was armed.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
