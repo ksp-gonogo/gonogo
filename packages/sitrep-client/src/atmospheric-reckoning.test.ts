@@ -681,3 +681,58 @@ describe("what the descent withdraws on", () => {
     });
   });
 });
+
+/**
+ * The same descent as a SERIES: what a chart can draw across the silence the
+ * readings above describe one frame at a time.
+ *
+ * `vessel.flight`'s fields are `Value`s, so until `computeReckonedTail` learned
+ * to carry a wrapped quantity the tail was empty on every frame of this
+ * scenario and the only topic in the tree that could produce a dashed trace was
+ * `vessel.state`, whose record holds bare magnitudes. The point read said "the
+ * altitude is 56 827 m, carried by rate-integration" while a plot of the same
+ * quantity stopped at the last packet, which is the asymmetry these cases pin.
+ */
+describe("the carried altitude as a plotted tail", () => {
+  it("samples the field subtopic across the gap", () => {
+    const s = scene();
+    s.descend(UNEVEN_DESCENT);
+    // Inside the 15/2 = 7.5 s horizon the sensed deceleration leaves open.
+    s.at(16);
+
+    const tail = s.store.sampleReckonedTail<Value<"m">>(
+      "vessel.flight.altitudeAsl",
+      0,
+      16,
+    );
+
+    expect(tail.length).toBeGreaterThan(0);
+    expect(tail.every((sample) => sample.basis === "rate-integration")).toBe(
+      true,
+    );
+    // Every instant lands after the newest observation and no later than the
+    // view time, which is the interval a tail is defined over.
+    expect(tail.every((sample) => sample.atUt > 10 && sample.atUt <= 16)).toBe(
+      true,
+    );
+  });
+
+  it("carries the metre rather than handing the chart a bare number", () => {
+    const s = scene();
+    s.descend(UNEVEN_DESCENT);
+    s.at(13);
+
+    const tail = s.store.sampleReckonedTail<Value<"m">>(
+      "vessel.flight.altitudeAsl",
+      0,
+      13,
+    );
+    const last = tail[tail.length - 1];
+
+    expect(last.atUt).toBe(13);
+    expect(last.value.unit).toBe("m");
+    // The same arithmetic the point read is pinned against at this instant:
+    // 57600 + (-250)(3) + 0.5(-5)(9).
+    expect(last.value.magnitude).toBeCloseTo(56_827.5, 6);
+  });
+});

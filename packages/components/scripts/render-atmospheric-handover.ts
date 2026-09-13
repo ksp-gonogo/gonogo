@@ -12,10 +12,7 @@
  * It cannot name the model, and no render of this widget can: `LandingStatus`
  * never tells an operator which of the two carried the number, and the only
  * `ReckoningBasis` prose in the tree (`packages/ui/src/LineChart.tsx`) reaches
- * a chart's accessible name and nothing else. Nor can a chart draw the carried
- * altitude as a dashed tail: `TimelineStore.computeReckonedTail` breaks on
- * anything that is not a bare `number`, and every `vessel.flight` field is a
- * `Value`, so the tail is empty on every frame here, conic frames included.
+ * a chart's accessible name and nothing else.
  *
  * So the attribution is pinned by `handover-basis.test.tsx`, which asks the
  * real store which basis carried each fixture, and what these PNGs are for is

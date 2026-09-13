@@ -17,7 +17,7 @@ import type {
 import { bandIsWellFormed } from "../reading";
 import { reckonableInputSpelling, reckonableValuesOf } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
-import { isValue, value } from "../unit-system/value";
+import { isValue, type Value, value } from "../unit-system/value";
 import { type Reading, type ReckonerFor, readingFrom } from "./client-reading";
 import {
   ClientTimeline,
@@ -204,16 +204,26 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
 export interface ReckonedSample<T> {
   /** The UT the model answered FOR. */
   atUt: number;
+  /**
+   * The model's answer: a finite `number`, or a finite `Value` with its unit
+   * still on it. A payload that arrived wrapped stays wrapped all the way to
+   * the boundary that plots it, which is the only place a magnitude is taken.
+   */
   value: T;
   basis: ReckoningBasis;
   /**
    * How well the model knew this instant, as bare magnitudes in the value's
    * own unit, present only where the model offered a band for the root path.
    *
-   * Magnitudes rather than `Value`s because `value` above is already one: a
-   * tail is only ever built for a quantity a chart can plot, so the walk has
-   * already reduced the payload to a number and a band beside it in `Value`
-   * form would be the only wrapped thing in the type.
+   * The unit is the value's by the {@link UncertaintyBand} contract, whose
+   * `value` field is the same quantity `reckon` produced here, so the three
+   * ends and the point estimate cannot disagree about what they measure.
+   *
+   * Magnitudes rather than `Value`s because a band is not read as a quantity
+   * anywhere: `lineChartMath` scales the two ends into SVG coordinates and
+   * nothing else ever holds them. `value` above keeps its unit because a chart
+   * axis, a tooltip and a readout all ask what it measures; a shading interval
+   * is asked only where it sits.
    *
    * The three move together. Either all of `bandLo`, `bandHi` and `bandKind`
    * are here or none is; a half-band is a producer bug and reads downstream as
@@ -266,6 +276,23 @@ function reckonedTailStep(
   const cadence = gaps.length > 0 ? gaps[gaps.length >> 1] : span;
   const floor = span / MAX_RECKONED_TAIL_SAMPLES;
   return Math.max(cadence > 0 ? cadence : span, floor);
+}
+
+/**
+ * A model's answer as something a LINE can be drawn through, or nothing.
+ *
+ * The finiteness test for a `Value` is the algebra's own `isFinite()` rather
+ * than `Number.isFinite` over an unwrapped magnitude, so asking whether a
+ * quantity is drawable costs no unwrap: the whole point of carrying the wrapper
+ * this far is that the magnitude is taken once, where the chart is built.
+ *
+ * See {@link TimelineStore.sampleReckonedTail}'s "Only a continuous quantity
+ * gets a tail" for what the exclusions buy and which shape still slips through.
+ */
+function plottableQuantity(raw: unknown): number | Value | undefined {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : undefined;
+  if (isValue(raw)) return raw.isFinite() ? raw : undefined;
+  return undefined;
 }
 
 /**
@@ -1192,14 +1219,23 @@ export class TimelineStore {
    * one stretch of silence that follows the last observation, and a stretch of
    * silence has one status.
    *
-   * ## Only a continuous number gets a tail
+   * ## Only a continuous quantity gets a tail, and it keeps its unit
    *
    * A model that moves a flag, a mode name or a vector may be perfectly honest
    * at a point and still have nothing a LINE can say: joining two states of an
    * enum draws a slope through values that do not exist. So a tail is emitted
-   * only for a finite `number`, which excludes booleans, strings, vectors and
-   * whole records by construction. A numeric enum would pass this test and is
-   * the one shape to keep out of a plotted key by hand.
+   * only for a finite `number` or a finite `Value`, which excludes booleans,
+   * strings, vectors and whole records by construction. A numeric enum would
+   * pass this test and is the one shape to keep out of a plotted key by hand.
+   *
+   * A `Value` comes back WRAPPED. The bare-number test that used to stand here
+   * was written when `vessel.state`'s bare-magnitude record was the only thing
+   * in the tree that had ever grown a tail, and every `vessel.flight` field is
+   * a `Value`: a carried altitude a point read described in words drew nothing,
+   * on every frame of a descent. The magnitude is taken once, at the boundary
+   * that plots it (`@ksp-gonogo/data`'s `useDataSeries`), not here, so nothing
+   * between the model and the chart holds a number that has forgotten what it
+   * measures.
    *
    * Returns an empty array for a topic with no derived channel, no
    * `deriveReckoning`, or nothing yet observed, which are all the same answer
@@ -1253,11 +1289,11 @@ export class TimelineStore {
       RECKONED_TAIL_BUDGET.record();
       const answer = walk.answerAt(at);
       if (!answer) break; // the model's own horizon
-      const raw = answer.value;
-      if (typeof raw !== "number" || !Number.isFinite(raw)) break;
+      const drawable = plottableQuantity(answer.value);
+      if (drawable === undefined) break;
       const sample: ReckonedSample<T> = {
         atUt: at,
-        value: raw as T,
+        value: drawable as T,
         basis: answer.basis,
       };
       /*

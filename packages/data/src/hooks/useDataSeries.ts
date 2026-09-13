@@ -392,7 +392,7 @@ export function useDataSeries(
      * `TimelineStore.sampleReckonedTail`, which is the only thing that mints
      * one and which nothing else in the tree calls.
      */
-    const tail = store.sampleReckonedTail<number>(topic, fromUt, toUt);
+    const tail = store.sampleReckonedTail<unknown>(topic, fromUt, toUt);
     const observed = points ?? [];
     /*
      * A tail with no observed run in front of it is a real window and worth
@@ -438,7 +438,12 @@ export function useDataSeries(
     for (const sample of tail) {
       const i = nextT.length;
       nextT.push(sample.atUt);
-      nextV.push(sample.value);
+      // Through the SAME unwrap the observed half takes, because a modelled
+      // instant of a `Value`-typed quantity arrives wrapped exactly as an
+      // observed one does. The tail used to be declared `number` and pushed
+      // raw, which was true only while `vessel.state`'s bare-magnitude record
+      // was the one topic in the tree that could produce a tail at all.
+      nextV.push(plotValue(sample.value));
       /*
        * A banded instant and an unbanded one do not share a run even under one
        * basis, and neither do two kinds. A run carries ONE `bandKind` over a
