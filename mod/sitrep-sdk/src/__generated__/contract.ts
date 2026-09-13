@@ -630,8 +630,12 @@ export interface ChannelEmissionReport
 export interface CommandCentreEntry
 {
 	/**
-	* Stable authority/vantage key: `"ksc"` | `"ground:<name>"` | `"kk:<site>"` |
-	* `"vessel:<guid>"`.
+	* Stable authority/vantage key: `"ksc"` | `"ground:<name>"` |
+	* `"vessel:<guid>"`. `"ksc"` exists only when exactly one ground station is
+	* flagged as the space centre, as in stock. Where a comms mod flags every
+	* station it configures, no station is `"ksc"` and each is `"ground:<name>"`.
+	* Ground stations that share a name are told apart as `"ground:<name>#2"`,
+	* `"#3"` and so on.
 	*/
 	id?: string;
 	/** Human-facing name. */
@@ -1422,8 +1426,7 @@ export interface CommsCommandCentre
 {
 	/**
 	* Stable authority/vantage key, same scheme as `CommandCentreEntry.id`: "ksc"
-	* | "ground:<name>" | "kk:<site>" | "vessel:<guid>". Null when no remote
-	* centre resolved.
+	* | "ground:<name>" | "vessel:<guid>". Null when no remote centre resolved.
 	*/
 	id?: string;
 	/** Human-facing name. */

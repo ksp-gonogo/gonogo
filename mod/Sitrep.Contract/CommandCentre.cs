@@ -34,7 +34,7 @@ namespace Sitrep.Contract
     /// </summary>
     public interface ICommandCentre
     {
-        /// <summary>Stable authority/vantage key: "ksc" | "ground:&lt;name&gt;" | "kk:&lt;site&gt;" | "vessel:&lt;guid&gt;".</summary>
+        /// <summary>Stable authority/vantage key, same scheme as <see cref="CommandCentreEntry.Id"/>: "ksc" | "ground:&lt;name&gt;" | "vessel:&lt;guid&gt;". Unique across every active centre.</summary>
         string Id { get; }
 
         /// <summary>Human-facing name.</summary>

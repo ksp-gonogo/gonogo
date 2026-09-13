@@ -32,7 +32,14 @@ namespace Sitrep.Contract;
 #endif
 public class CommandCentreEntry
 {
-    /// <summary>Stable authority/vantage key: <c>"ksc"</c> | <c>"ground:&lt;name&gt;"</c> | <c>"kk:&lt;site&gt;"</c> | <c>"vessel:&lt;guid&gt;"</c>.</summary>
+    /// <summary>
+    /// Stable authority/vantage key: <c>"ksc"</c> | <c>"ground:&lt;name&gt;"</c> | <c>"vessel:&lt;guid&gt;"</c>.
+    /// <c>"ksc"</c> exists only when exactly one ground station is flagged as the
+    /// space centre, as in stock. Where a comms mod flags every station it
+    /// configures, no station is <c>"ksc"</c> and each is <c>"ground:&lt;name&gt;"</c>.
+    /// Ground stations that share a name are told apart as
+    /// <c>"ground:&lt;name&gt;#2"</c>, <c>"#3"</c> and so on.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
