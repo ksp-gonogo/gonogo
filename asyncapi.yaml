@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.7.0
+  version: 16.8.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
     channels a client subscribes to, and 53 commands it dispatches, with the payload
@@ -8307,6 +8307,26 @@ components:
             NEGATIVE value denotes retrograde rotation. Null when absent. Carries "does
             this body rotate" on its own (a body rotates iff this is finite and
             non-zero), so no separate bool is emitted for it.
+        initialRotation:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            The body's rotation angle at UT 0, degrees
+            (`CelestialBody.initialRotation`); null when absent.
+
+            The PHASE that `BodyEntry.rotationPeriod`'s rate is measured from, and the
+            pair is what makes a body-fixed coordinate into a place: the angle at any UT
+            is `initialRotation + 360 · ut / rotationPeriod`, and turning a
+            latitude/longitude by it gives a position in the same frame this payload's
+            orbital elements are measured in. Without it a client knows how fast a body
+            turns and not where it is pointing, which places nothing: the surface of
+            every body was unreachable at a view time, and a ground station is where
+            most of a signal delay ends.
+
+            Zero is a real value, not a stand-in: a body whose prime meridian happens to
+            face the reference direction at UT 0 reports it.
         tidallyLocked:
           type:
             - boolean

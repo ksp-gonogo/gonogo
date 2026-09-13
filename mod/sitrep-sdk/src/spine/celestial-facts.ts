@@ -92,6 +92,12 @@ export interface CelestialBody {
   hillSphere: number | null;
   // ── Almanac (on the wire) ───────────────────────────────────────────────
   rotationPeriod: number | null;
+  /**
+   * The body's rotation angle at UT 0, degrees. The PHASE the period's rate is
+   * measured from, so the pair places a body-fixed coordinate in the frame the
+   * elements above are measured in.
+   */
+  initialRotation: number | null;
   tidallyLocked: boolean | null;
   /** Whether the body rotates: derived (rotationPeriod finite and non-zero). */
   rotates: boolean | null;
@@ -207,6 +213,7 @@ function mapBody(
     escapeVelocity: deriveEscapeVelocity(gravParameter, radius),
     hillSphere: numOrNull(entry.hillSphere),
     rotationPeriod,
+    initialRotation: numOrNull(entry.initialRotation),
     tidallyLocked: boolOrNull(entry.tidallyLocked),
     rotates:
       rotationPeriod === null

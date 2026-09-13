@@ -144,6 +144,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     hasOcean: "flag",
     hillSphere: "m",
     index: "id",
+    initialRotation: "°",
     isHome: "flag",
     mass: "kg",
     name: "text",

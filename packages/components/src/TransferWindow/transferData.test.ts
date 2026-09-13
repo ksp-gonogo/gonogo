@@ -46,6 +46,7 @@ function mkBody(
     escapeVelocity: null,
     hillSphere: null,
     rotationPeriod: null,
+    initialRotation: null,
     tidallyLocked: null,
     rotates: null,
     hasOcean: null,
