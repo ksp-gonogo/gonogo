@@ -3,11 +3,20 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
-// Stand-in for the unit/shape half of the same codegen step: see ./contract.ts.
-import type { SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
+/*
+ * Stand-in for the unit/shape half of the same codegen step: see ./contract.ts.
+ * Its exports are held to the real generator's by `fixture-shape.mjs`. The real
+ * KnownSitrepUnit lists every token in Sitrep.Contract.Units; this one lists
+ * only the core tokens the example uses, which the shape check treats as data.
+ */
+
+/** Every token first-party payloads use (Sitrep.Contract.Units). */
+export type KnownSitrepUnit = "K" | "flag" | "kW";
+
+/** A declared unit: a known token, or any symbol an Uplink declares itself. */
+export type SitrepUnit = KnownSitrepUnit | (string & {});
 
 export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
-export type ShapesByField = Readonly<Record<string, string>>;
 
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   ReactorStatus: {
@@ -15,6 +24,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     outputPower: "kW",
     coreTemp: "K",
     throughput: "thermalUnits",
+  },
+  SetOutputArgs: {
+    targetPower: "kW",
   },
 };
 
@@ -26,6 +38,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     throughput: "thermalUnits",
   },
 };
+
+export type ShapesByField = Readonly<Record<string, string>>;
 
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> =
   {};

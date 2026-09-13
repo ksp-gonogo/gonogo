@@ -15,3 +15,8 @@ export interface ReactorStatus {
   coreTemp?: Value<"K">;
   throughput?: Value<"thermalUnits">;
 }
+
+/** Bare numbers: ApplyUnitValueTypes skips inbound-only command args, [SitrepUnit] or not. */
+export interface SetOutputArgs {
+  targetPower?: number;
+}
