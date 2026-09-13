@@ -46,6 +46,7 @@ import styled from "styled-components";
 import type {
   Alarm,
   AlarmFireAction,
+  AlarmRequestedBy,
   AlarmSnapshot,
   AlarmTrigger,
   AlarmVantage,
@@ -109,6 +110,8 @@ export interface AlarmsModalProps {
     name: string;
     notes?: string;
     trigger: AlarmTrigger;
+    /** Set only on the Uplink request path; the modal itself never sends one. */
+    requestedBy?: AlarmRequestedBy;
     onFire?: AlarmFireAction[];
   }) => void;
   onUpdate: (
@@ -683,6 +686,15 @@ export function AlarmsModal({
                     <RowMeta>
                       <StateTag $state={a.state}>{a.state}</StateTag>
                     </RowMeta>
+                    {/* An alarm the operator did not create themselves says so.
+                        A row that simply appeared is otherwise indistinguishable
+                        from one they set and forgot, and the difference decides
+                        whether deleting it is safe. The Uplink's name is the one
+                        recorded on the alarm, so the row still reads after the
+                        Uplink is uninstalled. */}
+                    {a.requestedBy && (
+                      <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
+                    )}
                     {/* The simulation would not take this arm, in its own
                         words. Without it the row reads `pending` forever and
                         nothing tells the difference between an alarm waiting

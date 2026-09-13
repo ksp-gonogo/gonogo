@@ -52,6 +52,7 @@ import {
   type GonogoHost,
   hasHost,
 } from "@ksp-gonogo/sitrep-sdk";
+import { useAlarmRequest } from "./useAlarmRequest";
 import { useHostIceServers } from "./useHostIceServers";
 import { useUplinkRelay } from "./useUplinkRelay";
 
@@ -104,6 +105,7 @@ export function buildGonogoHost(): GonogoHost {
     useProcessor: ((handle) =>
       useProcessor(handle)) as GonogoHost["useProcessor"],
     useViewClock: () => useViewClock(),
+    useAlarmRequest: (owner) => useAlarmRequest(owner),
     useActionInput: (handlers) =>
       useActionInput(handlers as Parameters<typeof useActionInput>[0]),
     useDataSources: () => useDataSources(),

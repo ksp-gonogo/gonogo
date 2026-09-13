@@ -83,6 +83,18 @@ import type {
 
 // --- Author-facing types (re-exported real, erased at runtime) --------------
 
+// The alarm request surface: an Uplink asks the app to create an alarm and the
+// app owns the result. See `./alarm-request.ts` for why it cannot arm one for
+// itself.
+export type {
+  UplinkAlarmRequest,
+  UplinkAlarmThresholdOp,
+  UplinkAlarmThresholdTrigger,
+  UplinkAlarmTimeTrigger,
+  UplinkAlarmTrigger,
+  UplinkAlarmVantage,
+} from "./alarm-request";
+export { useAlarmRequest } from "./alarm-request";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type { LogContext, Logger, TaggedLogger } from "./logger-contract";

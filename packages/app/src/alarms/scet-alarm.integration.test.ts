@@ -436,6 +436,49 @@ describe("SCET alarms", () => {
     svc.dispose();
   });
 
+  it("keeps an alarm an Uplink asked for armed, because the app made it", async () => {
+    /*
+     * The wall this feature had to get past, and the shape that gets past it.
+     *
+     * `reconcile` reads the mod's roster and disarms every id the APP's own
+     * list cannot account for, with no filter on who armed what. An Uplink
+     * dispatching `alarm.scet.arm` for itself is therefore disarmed a frame or
+     * two later, and nothing reports it: the test above measures exactly that,
+     * by deleting the alarm and watching the arm go.
+     *
+     * A REQUESTED alarm is an ordinary entry in that list, so the diff finds it
+     * and leaves it armed. The provenance rides along and changes nothing about
+     * the reconcile, which is the property being asserted: an alarm an Uplink
+     * asked for is not a special case anywhere downstream of `addAlarm`.
+     */
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+
+    const alarm = svc.addAlarm({
+      name: "Launch pad upgrade complete",
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10, vantage: "scet" },
+      requestedBy: {
+        uplinkId: "rp1",
+        uplinkName: "RP-1",
+        key: "facility-upgrade:LaunchPad",
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+
+    // Many frames later, with the reconcile having run on every one of them.
+    await run(session, UT_START + 12 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(svc.snapshot().alarms[0].requestedBy?.uplinkName).toBe("RP-1");
+    svc.dispose();
+  });
+
   it("does not arm a command-vantage alarm on the mod", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);

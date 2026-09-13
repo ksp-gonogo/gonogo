@@ -1,5 +1,40 @@
-import type { PeerHostService } from "../peer/PeerHostService";
-import type { Alarm, AlarmFireAction, AlarmSnapshot } from "./types";
+import type { PeerMessage } from "../peer/protocol";
+import type {
+  Alarm,
+  AlarmFireAction,
+  AlarmRequestedBy,
+  AlarmSnapshot,
+} from "./types";
+
+/**
+ * The nine members of `PeerHostService` this bridge actually uses.
+ *
+ * Named rather than taking the whole class, because the whole class is a live
+ * PeerJS connection with a broker behind it, and a test that wants to watch one
+ * alarm message cross cannot stand one up. The real service satisfies this
+ * structurally, so the production call site is unchanged.
+ */
+export interface AlarmPeerHost {
+  onPeerConnect(cb: (peerId: string) => void): () => void;
+  onAlarmAdd(
+    cb: (
+      peerId: string,
+      msg: Extract<PeerMessage, { type: "alarm-add" }>,
+    ) => void,
+  ): () => void;
+  onAlarmUpdate(
+    cb: (
+      peerId: string,
+      msg: Extract<PeerMessage, { type: "alarm-update" }>,
+    ) => void,
+  ): () => void;
+  onAlarmDelete(cb: (peerId: string, id: string) => void): () => void;
+  onAlarmAcknowledge(cb: (peerId: string, id: string) => void): () => void;
+  onAlarmAckUnscheduledWarp(cb: (peerId: string) => void): () => void;
+  onAlarmWarpIntent(cb: (peerId: string, index: number) => void): () => void;
+  sendToPeer(peerId: string, msg: PeerMessage): void;
+  broadcast(msg: PeerMessage): void;
+}
 
 export interface AlarmPeerBridgeHandlers {
   addAlarm(input: {
@@ -7,6 +42,7 @@ export interface AlarmPeerBridgeHandlers {
     notes?: string;
     trigger: Alarm["trigger"];
     createdBy?: string;
+    requestedBy?: AlarmRequestedBy;
     onFire?: AlarmFireAction[];
   }): void;
   updateAlarm(
@@ -36,7 +72,7 @@ export interface AlarmPeerBridgeHandlers {
  */
 export class AlarmPeerBridge {
   constructor(
-    private readonly host: PeerHostService | null,
+    private readonly host: AlarmPeerHost | null,
     handlers: AlarmPeerBridgeHandlers,
   ) {
     if (!host) return;
@@ -46,6 +82,10 @@ export class AlarmPeerBridge {
         notes: msg.notes,
         trigger: msg.trigger,
         createdBy: peerId,
+        // Two different questions, so both are carried: `createdBy` is which
+        // screen the request came from, `requestedBy` is which Uplink asked
+        // for it. An Uplink widget on a station answers both at once.
+        requestedBy: msg.requestedBy,
         onFire: msg.onFire,
       });
     });

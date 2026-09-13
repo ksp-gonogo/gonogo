@@ -257,6 +257,11 @@ export type PeerMessage =
       name: string;
       notes?: string;
       trigger: import("../alarms/types").AlarmTrigger;
+      // Present when an Uplink widget on the station asked for the alarm rather
+      // than the operator. Carried so the row reads the same on both screens:
+      // without it an alarm an Uplink requested from a station would arrive
+      // anonymous, and the host's dedupe would have nothing to key on.
+      requestedBy?: import("../alarms/types").AlarmRequestedBy;
       onFire?: import("../alarms/types").AlarmFireAction[];
     }
   | {

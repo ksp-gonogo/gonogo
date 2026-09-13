@@ -25,6 +25,27 @@ export type AlarmsLauncher = (opts: AlarmsLauncherOptions) => void;
 const Context = createContext<AlarmsLauncher | null>(null);
 
 /**
+ * The Uplink that asked for an alarm, recorded on the alarm the app then
+ * created. Absent on an alarm the operator made themselves.
+ *
+ * `uplinkName` is denormalised rather than looked up, and that is the point of
+ * carrying it. The alarm is the app's own, so it outlives the Uplink: uninstall
+ * the Uplink and the alarm stays in the list, keeps its trigger and keeps
+ * firing, because a time or a threshold needs nothing from the Uplink to be
+ * evaluated. A row that resolved the name through the client registry would go
+ * blank at exactly that moment, which is the one moment the operator most needs
+ * to be told where the row came from.
+ */
+export interface AlarmRequestedBy {
+  /** The Uplink's id, as its client handle and its mod-side attribute spell it. */
+  uplinkId: string;
+  /** The Uplink's display name, as it read when the request was made. */
+  uplinkName: string;
+  /** The requesting Uplink's own name for the thing this alarm is about. */
+  key: string;
+}
+
+/**
  * Direct-create contract for "alarm me when X" affordances that don't
  * need the modal's free-form trigger editor, the trigger is fully
  * determined by where the operator clicked (e.g. Mission Director's
@@ -40,6 +61,12 @@ const Context = createContext<AlarmsLauncher | null>(null);
 export interface AlarmCreateRequest<TTrigger> {
   name?: string;
   trigger: TTrigger;
+  /**
+   * Set when an Uplink asked for this alarm rather than the operator. Carries
+   * the dedupe key: one `(uplinkId, key)` pair is one alarm, so a repeated
+   * request retargets the existing row instead of adding a near-duplicate.
+   */
+  requestedBy?: AlarmRequestedBy;
 }
 
 export type AlarmCreator<TTrigger> = (

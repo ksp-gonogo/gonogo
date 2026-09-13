@@ -31,6 +31,7 @@ import { useStreamEvent } from "../spine/use-stream-event";
 import { useTelemetry } from "../spine/use-telemetry";
 import { consoleLogger } from "./console-logger";
 import { installTestHost } from "./install-test-host";
+import { recordAlarmRequest } from "./recorded-alarm-requests";
 
 /**
  * The four host members whose implementations belong to `@ksp-gonogo/ui-kit`.
@@ -146,6 +147,8 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     useProcessor: ((handle) =>
       useProcessor(handle)) as GonogoHost["useProcessor"],
     useViewClock: () => useViewClock(),
+    // Records rather than creates: see `./recorded-alarm-requests.ts`.
+    useAlarmRequest: (owner) => recordAlarmRequest(owner),
     useActionInput: (handlers) =>
       useActionInput(handlers as Parameters<typeof useActionInput>[0]),
     useDataSources: () => useDataSources(),

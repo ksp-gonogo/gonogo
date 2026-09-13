@@ -19,6 +19,7 @@ import type { ComponentType } from "react";
 import type { CommandArgs, CommandId, CommandReply } from "../commands";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
+import type { UplinkAlarmRequest } from "./alarm-request";
 import type { Logger } from "./logger-contract";
 import type {
   ActionDefinition,
@@ -147,6 +148,21 @@ export interface GonogoHost {
     readonly __resultType?: R;
   }): R | undefined;
   useViewClock(): unknown;
+  /**
+   * Returns the function an Uplink calls to ask the app to CREATE an alarm.
+   * See `./alarm-request.ts` for why the request goes this way round rather
+   * than the Uplink arming one for itself.
+   *
+   * A hook rather than a plain member because the alarm surface is mounted in
+   * the screen's React tree, and which one is mounted decides where the
+   * request goes: on the main screen it reaches the host's own alarm list, on
+   * a station it travels to the host the same way a station operator's own add
+   * does. The Uplink writes one call and never learns stations exist, the same
+   * boundary property `useTelemetry` and `useCommand` have.
+   */
+  useAlarmRequest(
+    owner: UplinkClientHandle,
+  ): (request: UplinkAlarmRequest) => void;
   useActionInput<TActions extends readonly ActionDefinition[]>(
     handlers: ActionHandlers<TActions>,
   ): void;
