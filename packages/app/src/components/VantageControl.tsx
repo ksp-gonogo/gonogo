@@ -115,7 +115,7 @@ function VantageReadout() {
           <Text tone="default" size="xs">
             {entry?.displayName ?? observed}
           </Text>
-          {observed === homeId && <Badge size="sm">Home</Badge>}
+          {observed === homeId && <HomeBadge />}
         </>
       )}
     </VantageReadout__Root>
