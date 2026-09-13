@@ -62,9 +62,15 @@ function trackedSourceFiles(): string[] {
  * taken off it, and which never goes through one of the reading accessors.
  *
  * The accessors are the sanctioned narrowings (`observedValue`, `stillTrue`,
- * `dateable`, `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`), plus an
- * explicit branch on either discriminant, `.state` or `.reckoning`, which is what a
- * widget with its own rule writes.
+ * `dateable`, `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`,
+ * `readingOf`), plus an explicit branch on either discriminant, `.state` or
+ * `.reckoning`, which is what a widget with its own rule writes.
+ *
+ * `readingOf` joined the list when the scan was widened to see the bound hook, and it
+ * is a narrowing of a different kind from the rest: it maps the value INSIDE a
+ * reading and hands back a reading, so the currency information travels with it
+ * instead of being discarded at the call. That is exactly what the receivers this
+ * scan protects need, and a site using it was never at risk.
  *
  * `observedValue` and `hasAnswered` are the two exported from the SDK; the rest are
  * per-site local helpers matched by name. Both were shared for the same reason, which
@@ -78,6 +84,28 @@ function trackedSourceFiles(): string[] {
  */
 const ACCESSORS =
   /observedValue|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered|readingOf/;
+
+/**
+ * A telemetry read bound to a variable, in EITHER of the two spellings the tree uses.
+ *
+ * The optional `<identifier>.` prefix is the whole point. A widget in the built-in
+ * library declares its topics through `defineTopicManifest` and reads through the
+ * bound hook it yields, `const x = topics.useTelemetry("vessel.orbit")`, and that is
+ * the form CLAUDE.md prescribes precisely because declaration and read cannot drift
+ * apart. Matching only the free function made this scan blind to the recommended
+ * shape: 30 of the 115 reads in the tree, and a share that GREW every time a widget
+ * adopted the house style. A gate whose coverage shrinks as the codebase improves is
+ * worse than no gate, because its green is read as evidence.
+ *
+ * Deliberately not anchored to a specific receiver name. `topics` is the convention
+ * and not a rule, and a scan that hard-coded it would go blind again the first time
+ * someone named the manifest something else.
+ */
+const READ_ASSIGNMENT =
+  /const (\w+)\s*=\s*(?:\w+\.)?useTelemetry\([^)]*\)\s*;\s*$/;
+
+/** The same two spellings, unanchored, for collecting every variable bound to a read. */
+const READ_BINDING = /const (\w+)\s*=\s*(?:\w+\.)?useTelemetry\(/;
 
 /**
  * The one sanctioned exception, with its reason.
@@ -127,9 +155,7 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
     if (!text.includes("useTelemetry(")) continue;
     const lines = text.split("\n");
     for (const [index, line] of lines.entries()) {
-      const assigned = /const (\w+)\s*=\s*useTelemetry\([^)]*\)\s*;\s*$/.exec(
-        line,
-      );
+      const assigned = READ_ASSIGNMENT.exec(line);
       if (!assigned) continue;
       const variable = assigned[1];
       if (variable === undefined) continue;
@@ -192,7 +218,7 @@ function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
     const lines = text.split("\n");
     const readings = new Set<string>();
     for (const line of lines) {
-      const assigned = /const (\w+)\s*=\s*useTelemetry\(/.exec(line);
+      const assigned = READ_BINDING.exec(line);
       if (assigned?.[1] !== undefined) readings.add(assigned[1]);
     }
     if (readings.size === 0) continue;
@@ -269,17 +295,67 @@ describe("styleguide: a Reading is never handed on whole", () => {
     ]);
   });
 
-  it("still recognises the shape it is looking for", () => {
-    const probe = [
-      "const somethingRaw = useTelemetry('vessel.orbit');",
-      "const parsed = parseThing(somethingRaw);",
-    ].join("\n");
-    const lines = probe.split("\n");
-    const assigned = /const (\w+)\s*=\s*useTelemetry\([^)]*\)\s*;\s*$/.exec(
-      lines[0] ?? "",
-    );
-    expect(assigned?.[1]).toBe("somethingRaw");
-    expect(/[(,{}[\s]somethingRaw(?![\w.?])/.test(lines[1] ?? "")).toBe(true);
+  /**
+   * Guard on the guard, driven through `bareReadings` itself rather than through a
+   * copy of its regex.
+   *
+   * The previous version of this test pasted the assignment pattern inline and
+   * asserted the copy still matched, which is how the blindness it now covers went
+   * unnoticed: the copy and the scan agreed with each other perfectly while both
+   * missed the bound hook. Calling the real function is the only form of this test
+   * that can fail for the right reason.
+   *
+   * Both spellings appear, and so do both narrowings, because a pattern widened far
+   * enough to see the bound read is also wide enough to start swallowing the reads
+   * that were never at risk.
+   */
+  it("sees a bare read in BOTH spellings, and leaves a narrowed one alone", () => {
+    const bare = new Map([
+      [
+        "free.tsx",
+        [
+          'const freeRaw = useTelemetry("science.instruments");',
+          "const parsed = parseThing(freeRaw);",
+        ].join("\n"),
+      ],
+      [
+        "bound.tsx",
+        [
+          'const boundRaw = topics.useTelemetry("science.instruments");',
+          "const parsed = parseThing(boundRaw);",
+        ].join("\n"),
+      ],
+      [
+        "renamed.tsx",
+        [
+          'const viaOtherName = manifest.useTelemetry("science.instruments");',
+          "const parsed = parseThing(viaOtherName);",
+        ].join("\n"),
+      ],
+    ]);
+    expect(bareReadings(bare)).toEqual([
+      { at: "free.tsx:1", variable: "freeRaw" },
+      { at: "bound.tsx:1", variable: "boundRaw" },
+      { at: "renamed.tsx:1", variable: "viaOtherName" },
+    ]);
+
+    const narrowed = new Map([
+      [
+        "declined.tsx",
+        [
+          'const orbit = topics.useTelemetry("vessel.orbit");',
+          "const parsed = parseThing(withoutReckoning(orbit));",
+        ].join("\n"),
+      ],
+      [
+        "mapped.tsx",
+        [
+          'const orbit = topics.useTelemetry("vessel.orbit");',
+          "const parsed = parseThing(readingOf(orbit, (o) => o.sma));",
+        ].join("\n"),
+      ],
+    ]);
+    expect(bareReadings(narrowed)).toEqual([]);
   });
 
   it("gates presence on hasAnswered, never on pending alone", () => {
