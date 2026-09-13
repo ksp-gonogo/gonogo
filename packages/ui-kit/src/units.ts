@@ -51,11 +51,16 @@ type ConversionTargetsOfKind<K> = {
  * refusing everything. Being unable to type-check a third party's unit is not
  * a reason to stop them asking for one.
  */
-export type FormatsFor<U extends string> = [KindOfSymbol<U>] extends [infer K]
-  ? [K] extends [never]
-    ? string
-    : SymbolsOfKind<K>
-  : never;
+export type FormatsFor<U extends string> = FormatsForKind<KindOfSymbol<U>>;
+
+/**
+ * {@link FormatsFor}, asked of the KIND rather than of one of its units.
+ *
+ * A pin addressed to a whole group has no single unit to be checked against:
+ * the group is the length ladder, not the metre. The kind is what both spellings
+ * ultimately resolve to, so it is what the rule is written in terms of.
+ */
+export type FormatsForKind<K> = [K] extends [never] ? string : SymbolsOfKind<K>;
 
 /**
  * Every unit a value in `U` may be SHOWN as, which is every unit of its kind
@@ -67,13 +72,14 @@ export type FormatsFor<U extends string> = [KindOfSymbol<U>] extends [infer K]
  * belong to the other. Both refuse a cross-kind request, which is the check
  * that matters: `as="kg"` on a length is still an error.
  */
-export type PresentableAs<U extends string> = [KindOfSymbol<U>] extends [
-  infer K,
-]
-  ? [K] extends [never]
-    ? string
-    : SymbolsOfKind<K> | ConversionTargetsOfKind<K>
-  : never;
+export type PresentableAs<U extends string> = PresentableAsKind<
+  KindOfSymbol<U>
+>;
+
+/** {@link PresentableAs}, asked of the KIND. See {@link FormatsForKind}. */
+export type PresentableAsKind<K> = [K] extends [never]
+  ? string
+  : SymbolsOfKind<K> | ConversionTargetsOfKind<K>;
 
 /**
  * How many of the kind's BASE unit one of `symbol` is worth.
@@ -247,7 +253,7 @@ export interface Rung {
 // `unit-symbol-collision.test.ts` can walk every declared rung symbol
 // directly, the same source `formatQuantity` itself reads, instead of a
 // second hand-copied list that could silently drift from this one.
-export const LADDERS: Record<string, readonly Rung[]> = {
+export const LADDERS = {
   length: [
     { from: 0, symbol: "m", per: 1 },
     { from: 1e3, symbol: "km", per: 1e3 },
@@ -350,7 +356,56 @@ export const LADDERS: Record<string, readonly Rung[]> = {
   // `<Unit value={someRadPerSecond} />` render "X rad/h" directly, with no
   // per-call-site conversion.
   doseRate: [{ from: 0, symbol: "rad/h", per: 1 / 3600 }],
-};
+} satisfies Record<string, readonly Rung[]>;
+
+/**
+ * The same table, read by a kind that is not statically known.
+ *
+ * `satisfies` above keeps the literal keys, which is what lets a pin be
+ * addressed to a group by name and checked; the lookups here are by a kind that
+ * arrives as a plain string, including one a `registerUnit` call added after
+ * this module loaded.
+ */
+const laddersByKind = LADDERS as Record<string, readonly Rung[]>;
+
+/**
+ * Every kind that ships a ladder, and therefore settles its whole kind at one
+ * rung. A kind absent from here never climbs, so each of its units is a group
+ * of its own: `m`, `km` and `Mm` are one group and `s` and `min` are two.
+ */
+export type LadderedKind = keyof typeof LADDERS;
+
+/**
+ * What a pin may be addressed to: one GROUP, named the way the group is formed.
+ *
+ * A laddered kind is named by the kind, because every unit of it settles
+ * together and `m`, `km` and `Mm` are one thing to pin. Everything else is named
+ * by the unit, because nothing interconverts it with its siblings and a pin on
+ * `s` says nothing about `min`.
+ *
+ * Keying the record this way is what makes "a group is pinned at most once" a
+ * property of the type rather than a rule the runtime resolves silently: under a
+ * unit-keyed record `{ m: ..., km: ... }` was one group pinned twice, and the
+ * later entry quietly won.
+ *
+ * The one thing it cannot see is a ladder `registerUnit` adds at runtime, which
+ * moves a unit out of its own group and into a kind's. That residual is
+ * accepted: the tables it would need are populated after this module's types
+ * are fixed.
+ */
+export type UnitGroupKey =
+  | LadderedKind
+  | Exclude<GeneratedUnit, SymbolsOfKind<LadderedKind>>;
+
+/**
+ * What the group named by `G` measures, so a pin addressed to it can be checked.
+ *
+ * A laddered key IS its kind; a unit key resolves through the model table the
+ * same way a lone `<Unit>` does.
+ */
+export type KindOfGroup<G extends UnitGroupKey> = G extends LadderedKind
+  ? G
+  : KindOfSymbol<G>;
 
 /**
  * Kinds that render in scientific notation when nothing says otherwise.
@@ -581,7 +636,7 @@ function ladderForUnit(
   if (family !== undefined && LADDERS_BY_FAMILY[family]) {
     return LADDERS_BY_FAMILY[family];
   }
-  return LADDERS[kind];
+  return laddersByKind[kind];
 }
 
 /**
@@ -938,7 +993,7 @@ export function registerUnit(def: UnitDefinition): void {
     // interleave: bytes climb bytes, bits climb bits, and neither replaces the
     // other the way a kind-keyed ladder would.
     if (def.family !== undefined) LADDERS_BY_FAMILY[def.family] = def.ladder;
-    else LADDERS[def.kind] = def.ladder;
+    else laddersByKind[def.kind] = def.ladder;
     // Drop the derived rung index: a replacement ladder brings its own symbols
     // and drops the ones it replaces, so the cached index no longer holds.
     rungKinds = undefined;
@@ -1465,7 +1520,12 @@ export function unitScaleKey(unit: string | undefined): string | undefined {
   if (kind === undefined || SCIENTIFIC.has(kind)) return undefined;
   if (ladderForUnit(kind, unit) === undefined) return undefined;
   const family = FAMILY_BY_SYMBOL[unit];
-  return family === undefined ? `kind:${kind}` : `family:${family}`;
+  return family === undefined ? kindGroupKey(kind) : `family:${family}`;
+}
+
+/** The key every unit of one laddered kind reports under. */
+function kindGroupKey(kind: string): string {
+  return `kind:${kind}`;
 }
 
 /**
@@ -1487,6 +1547,24 @@ export function formatGroupKey(unit: string | undefined): string | undefined;
 export function formatGroupKey(unit: string | undefined): string | undefined {
   if (unit === undefined) return undefined;
   return unitScaleKey(unit) ?? `unit:${unit}`;
+}
+
+/**
+ * The group a PIN is addressed to, from the token a caller keyed it by.
+ *
+ * The mirror of {@link formatGroupKey}, which answers the same question for a
+ * reading. A reading arrives holding a unit and has its group derived; a pin is
+ * written by hand and names the group outright, so a laddered kind is a key here
+ * and never a key there. See {@link UnitGroupKey}.
+ *
+ * A token this build knows nothing about still resolves, as an unladdered unit
+ * would, rather than throwing: an Uplink's own symbol reaching a scope is a
+ * reading to be formatted, not a mistake to refuse.
+ */
+export function pinGroupKey(token: string): string {
+  return laddersByKind[token] === undefined
+    ? formatGroupKey(token)
+    : kindGroupKey(token);
 }
 
 /** How many digits it takes for two distinct readings to READ as distinct. */

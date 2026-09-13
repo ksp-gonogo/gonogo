@@ -651,7 +651,9 @@ export {
 // names nothing. See its module header.
 export {
   type SharedFormat,
+  type UnitGroupPins,
   type UnitPins,
+  type UnitPinsByGroup,
   UnitSharedFormat,
   type UnitSharedFormatMixedProps,
   type UnitSharedFormatProps,
@@ -665,11 +667,16 @@ export {
 // quantity, and a second way is how eleven widgets each grew their own ladder.
 export {
   type FormatsFor,
+  // The same rule asked of a KIND, for a pin addressed to a whole group: the group is the length ladder, not the metre, so there is no unit to check it against.
+  type FormatsForKind,
+  type KindOfGroup,
   type KnownQuantityKind,
+  type LadderedKind,
   // The `as` twin of `FormatsFor`: every unit of the same kind PLUS the
   // presentation-only ones the conversion table reaches, which is where `°C`
   // lives. The contract has no Celsius token on purpose.
   type PresentableAs,
+  type PresentableAsKind,
   type QuantityKind,
   // A SCALE rather than a formatter: one rung settled once, every mark printed
   // against it, and the symbol handed back APART so it can be shown at the head
@@ -690,6 +697,8 @@ export {
   // comments; everywhere else renders `<Unit>`.
   speakQuantity,
   type UnitDefinition,
+  // What a shared-format pin may be addressed to: a laddered kind, which settles its whole kind at one rung, or a unit that climbs nothing and so groups alone.
+  type UnitGroupKey,
   writeQuantity,
 } from "./units";
 export {

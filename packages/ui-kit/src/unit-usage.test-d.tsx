@@ -88,12 +88,13 @@ export const _scopeWrongKind = (
 );
 
 /*
- * A mixed scope keys its pins BY UNIT, so each is checked against the unit it
- * is filed under, a kind needing nothing is simply absent, and one group cannot
- * be pinned twice: a repeated key is already an error in an object literal.
+ * A mixed scope keys its pins BY GROUP, so each is checked against what that
+ * group measures, a group needing nothing is simply absent, and one group
+ * cannot be pinned twice: a repeated key is already an error in an object
+ * literal.
  */
 export const _mixedScope = (
-  <UnitSharedFormat pins={{ m: { format: "km" }, kg: { format: "t" } }}>
+  <UnitSharedFormat pins={{ length: { format: "km" }, mass: { format: "t" } }}>
     <Unit value={altitude} />
     <Unit value={dryMass} />
   </UnitSharedFormat>
@@ -104,8 +105,8 @@ export const _mixedScopeSwapped = (
   <UnitSharedFormat
     pins={{
       // @ts-expect-error: a mass rung is not a length's
-      m: { format: "t" },
-      kg: { format: "kg" },
+      length: { format: "t" },
+      mass: { format: "kg" },
     }}
   >
     <Unit value={altitude} />
@@ -113,16 +114,42 @@ export const _mixedScopeSwapped = (
   </UnitSharedFormat>
 );
 
-// A group may be pinned at most once, and there is no example below because the
-// mistake cannot be WRITTEN: `pins={{ m: ..., m: ... }}` is TS1117 from `tsc` and
-// `noDuplicateObjectKeys` from the linter, independently, and neither can be
-// suppressed without suppressing the other. A positional list could say none of
-// this: `["m", "m"]` reads as two pins and quietly keeps one.
+/*
+ * A laddered kind is keyed by the KIND, and a unit of one is not a key at all.
+ * This is the whole point of the group key: under a unit-keyed record
+ * `{ m: ..., km: ... }` was one length group pinned twice, and the runtime kept
+ * whichever entry came last.
+ */
+export const _mixedScopeUnitKeyRefused = (
+  <UnitSharedFormat
+    // @ts-expect-error: `m` is a unit of the length group, not a group
+    pins={{ m: { format: "km" } }}
+  >
+    <Unit value={altitude} />
+  </UnitSharedFormat>
+);
 
-// An entry may be left out entirely, and the kind it would have pinned settles
+/*
+ * A unit that climbs nothing keys ITSELF, because it shares a format with
+ * nothing else: `s` and `min` are one kind and two groups, and a record keyed
+ * by kind throughout would refuse to tell them apart.
+ */
+export const _mixedScopeUnladdered = (
+  <UnitSharedFormat pins={{ s: { decimals: 1 } }}>
+    <Unit value={burnTime} />
+  </UnitSharedFormat>
+);
+
+// A group may be pinned at most once, and there is no example below because the
+// mistake cannot be WRITTEN: `pins={{ length: ..., length: ... }}` is TS1117
+// from `tsc` and `noDuplicateObjectKeys` from the linter, independently, and
+// neither can be suppressed without suppressing the other. A positional list
+// could say none of this: `["m", "m"]` reads as two pins and quietly keeps one.
+
+// An entry may be left out entirely, and the group it would have pinned settles
 // for itself.
 export const _mixedScopePartial = (
-  <UnitSharedFormat pins={{ m: { format: "km" } }}>
+  <UnitSharedFormat pins={{ length: { format: "km" } }}>
     <Unit value={altitude} />
     <Unit value={dryMass} />
   </UnitSharedFormat>
