@@ -31,10 +31,14 @@ One call, three phases, always in this order:
    `versions.targetModVersionRange` can exclude it, `"version-excluded"`
    notice), then pick winner(s): an `exclusive` capability picks at most one
    provider (`preferences[capability]` beats a unique `isDefault`, which
-   beats a unique highest `priority`; anything left tied is a fail-loud
-   `AmbiguousResolutionError`: **multiple `isDefault` providers are
-   ambiguous regardless of their `priority` values**, checked before
-   priority ever comes into it); a shared capability just keeps everything
+   beats a unique highest `priority`; anything left tied is ambiguous:
+   **multiple `isDefault` providers are ambiguous regardless of their
+   `priority` values**, checked before priority ever comes into it). An
+   ambiguous capability is left unresolved, with no vanilla fallback, and
+   gets one `"ambiguous"` notice per tied provider; every other capability
+   resolves as normal. Any other selection failure (a provider's `canServe`
+   throwing) is kept to its capability the same way, as a
+   `"selection-failed"` notice. A shared capability just keeps everything
    that survived version gating. A `spineCritical` capability with zero
    compatible candidates and no `vanilla` throws
    `SpineCapabilityUnsatisfiedError`: the spine refuses to boot silently

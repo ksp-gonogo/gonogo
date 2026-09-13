@@ -15,9 +15,10 @@ namespace Sitrep.Contract
     /// or more registered providers the kernel takes a user preference first,
     /// then a sole <see cref="ProviderRegistration.IsDefault"/> provider, then the
     /// unique highest <see cref="ProviderRegistration.Priority"/>. A tie at the
-    /// top, or two <c>IsDefault</c> providers, throws
-    /// <see cref="AmbiguousResolutionError"/> out of <see cref="Kernel.Resolve"/>,
-    /// and that aborts resolution for EVERY capability, not only this one.</para>
+    /// top, or two <c>IsDefault</c> providers, is ambiguous: the home command is
+    /// left with NO claimant, not even the stock one, and the kernel reports an
+    /// "ambiguous" <see cref="ResolutionNotice"/> naming each tied provider.
+    /// Other capabilities still resolve.</para>
     ///
     /// <para>So two claimants that can be installed together must register at
     /// DISTINCT priorities, the one that should win strictly higher, and neither

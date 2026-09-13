@@ -10,15 +10,17 @@ namespace Sitrep.Contract
     /// </summary>
 
     /// <summary>
-    /// Thrown by <see cref="Kernel.Resolve"/> when an EXCLUSIVE capability has
-    /// two or more equally-ranked provider candidates and there is no user
-    /// preference or unique <c>IsDefault</c>/highest-priority provider to
-    /// break the tie.
+    /// Raised during <see cref="Kernel.Resolve"/>'s selection when an EXCLUSIVE
+    /// capability has two or more equally-ranked provider candidates and there
+    /// is no user preference or unique <c>IsDefault</c>/highest-priority
+    /// provider to break the tie.
     ///
     /// This is a fail-loud condition: the kernel refuses to silently pick a
     /// winner (e.g. by registration order) when the tie is genuinely
     /// ambiguous, since that non-determinism is exactly what the
-    /// exclusive-provider model exists to prevent.
+    /// exclusive-provider model exists to prevent. It does not escape
+    /// <see cref="Kernel.Resolve"/>: the kernel turns it into one "ambiguous"
+    /// notice per tied provider and leaves only that capability unresolved.
     /// </summary>
     public sealed class AmbiguousResolutionError : Exception
     {

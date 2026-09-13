@@ -9,16 +9,17 @@
  * all in the same kernel, asserting the full result (active sets + notices)
  * in one go, plus that the outcome is deterministic across repeated builds.
  *
- * It then covers the fail-loud paths, each as its own `resolve()` that
- * throws: a dependency cycle, an ambiguous exclusive tie, a spine-critical
- * capability with no compatible provider and no vanilla, and (filling a T4
+ * It then covers the fail-loud paths: a dependency cycle and a spine-critical
+ * capability with no compatible provider and no vanilla, each as its own
+ * `resolve()` that throws; and an ambiguous exclusive tie plus (filling a T4
  * coverage gap) two `isDefault` providers with unequal priority, still
- * ambiguous, because multiple defaults is checked before priority.
+ * ambiguous because multiple defaults is checked before priority. Those two
+ * no longer throw: an ambiguity is loud through its "ambiguous" notices and
+ * costs only its own capability.
  */
 import { describe, expect, it } from "vitest";
 import type { ProviderContext } from "./capability";
 import {
-  AmbiguousResolutionError,
   DependencyCycleError,
   SpineCapabilityUnsatisfiedError,
 } from "./errors";
@@ -189,7 +190,7 @@ describe("kernel integration: several mechanisms wired together in one resolve()
       );
     });
 
-    it("throws AmbiguousResolutionError for an exclusive capability with two equal-top candidates and no default/preference", () => {
+    it("reports an exclusive capability with two equal-top candidates and no default/preference as ambiguous, and leaves it unresolved", () => {
       const kernel = new Kernel();
       kernel.registerCapability<Named>({ id: "comms", exclusive: true });
       kernel.registerProvider<Named>({
@@ -203,9 +204,13 @@ describe("kernel integration: several mechanisms wired together in one resolve()
         factory: () => ({ name: "B" }),
       });
 
-      expect(() => kernel.resolve({ kernelVersion: "1.0.0" })).toThrow(
-        AmbiguousResolutionError,
-      );
+      const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+      expect(kernel.active("comms")).toEqual([]);
+      expect(notices.map((n) => `${n.capability}|${n.kind}`)).toEqual([
+        "comms|ambiguous",
+        "comms|ambiguous",
+      ]);
     });
 
     it("throws SpineCapabilityUnsatisfiedError when a spine-critical capability has no compatible provider and no vanilla", () => {
@@ -227,7 +232,7 @@ describe("kernel integration: several mechanisms wired together in one resolve()
       );
     });
 
-    it("throws AmbiguousResolutionError when two isDefault providers have unequal priority (default-multiplicity beats priority)", () => {
+    it("reports two isDefault providers with unequal priority as ambiguous (default-multiplicity beats priority)", () => {
       const kernel = new Kernel();
       kernel.registerCapability<Named>({ id: "comms", exclusive: true });
       kernel.registerProvider<Named>({
@@ -245,9 +250,13 @@ describe("kernel integration: several mechanisms wired together in one resolve()
         factory: () => ({ name: "B" }),
       });
 
-      expect(() => kernel.resolve({ kernelVersion: "1.0.0" })).toThrow(
-        AmbiguousResolutionError,
-      );
+      const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+      expect(kernel.active("comms")).toEqual([]);
+      expect(notices.map((n) => `${n.capability}|${n.kind}`)).toEqual([
+        "comms|ambiguous",
+        "comms|ambiguous",
+      ]);
     });
   });
 });

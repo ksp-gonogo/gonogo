@@ -153,7 +153,11 @@ namespace Sitrep.Contract
     /// "factory-failed" (a selected provider threw during activation and
     /// contributes no instance), or "provider-declined" (a provider withdrew
     /// through <see cref="ProviderRegistration.CanServe"/>, or its factory
-    /// returned null, so it never became a candidate).
+    /// returned null, so it never became a candidate), "ambiguous" (an
+    /// exclusive election tied with nothing to break the tie; one notice per
+    /// tied provider, and the capability is left unresolved), or
+    /// "selection-failed" (selection threw for any other reason; the
+    /// capability is left unresolved).
     /// </summary>
     public sealed class ResolutionNotice
     {
@@ -164,9 +168,10 @@ namespace Sitrep.Contract
         /// <summary>
         /// The provider this notice is ABOUT, when exactly one is implicated
         /// ("superseded", "version-excluded", "factory-failed",
-        /// "provider-declined"). Null for a capability-wide notice such as
-        /// "vanilla-fallback", which is about the absence of every provider
-        /// rather than the conduct of one.
+        /// "provider-declined", and each tied provider's "ambiguous"). Null for a
+        /// capability-wide notice such as "vanilla-fallback" or
+        /// "selection-failed", which is about the capability rather than the
+        /// conduct of one provider.
         ///
         /// <para>A field rather than something a reader digs back out of
         /// <see cref="Detail"/>: a consumer that sniffs a prose string is one
@@ -219,6 +224,13 @@ namespace Sitrep.Contract
     /// written to the active-instance table until activation begins, and
     /// activation only starts once selection/ordering have both succeeded
     /// without throwing.
+    ///
+    /// Only two outcomes throw out of <see cref="Resolve"/> now: a
+    /// spine-critical capability nothing can serve, and a dependency cycle.
+    /// Every other selection failure, an ambiguous exclusive election above
+    /// all, is kept to its own capability (see <see cref="SelectIsolated"/>),
+    /// because an ambiguity on one capability used to abort the election for
+    /// every capability together.
     /// </summary>
     public sealed class Kernel
     {
@@ -310,7 +322,7 @@ namespace Sitrep.Contract
             var selections = new List<CapabilitySelection>();
             foreach (var id in _capabilityOrder)
             {
-                selections.Add(SelectCapability(_capabilities[id], opts, notices));
+                selections.Add(SelectIsolated(_capabilities[id], opts, notices));
             }
 
             // Phase 2: ordering, topo-sort capability activation so a
@@ -340,6 +352,66 @@ namespace Sitrep.Contract
 
             LastNotices = notices;
             return new ResolveResult { Notices = notices };
+        }
+
+        /// <summary>
+        /// Selection for one capability, with its failure kept to that capability.
+        ///
+        /// <para>An ambiguous exclusive election is reported as one "ambiguous"
+        /// notice per tied provider, and any other selection failure (a provider's
+        /// own <see cref="ProviderRegistration.CanServe"/> throwing, say) as one
+        /// "selection-failed" notice. Either way the capability is left UNRESOLVED:
+        /// no instance, and no vanilla either, since falling back would be the
+        /// kernel quietly picking a winner, which is what the ambiguity rule
+        /// refuses to do.</para>
+        ///
+        /// <para>Isolated because a throw here used to escape the whole of
+        /// <see cref="Resolve"/>, so one mis-prioritised pair of claimants left
+        /// every capability unresolved together. The tie-break rules themselves are
+        /// untouched. <see cref="SpineCapabilityUnsatisfiedError"/> is deliberately
+        /// not caught: a spine-critical capability with nothing to serve it means
+        /// the kernel cannot start, and that is the one selection outcome whose
+        /// blast radius is meant to be everything.</para>
+        /// </summary>
+        private CapabilitySelection SelectIsolated(
+            CapabilityDescriptor descriptor,
+            ResolveOptions opts,
+            List<ResolutionNotice> notices)
+        {
+            try
+            {
+                return SelectCapability(descriptor, opts, notices);
+            }
+            catch (AmbiguousResolutionError error)
+            {
+                foreach (var providerId in error.ProviderIds)
+                {
+                    notices.Add(new ResolutionNotice
+                    {
+                        Capability = descriptor.Id,
+                        Kind = "ambiguous",
+                        ProviderId = providerId,
+                        Detail = error.Message + " The capability is left unresolved.",
+                    });
+                }
+                return CapabilitySelection.Unresolved(descriptor);
+            }
+            catch (SpineCapabilityUnsatisfiedError)
+            {
+                throw;
+            }
+            catch (Exception error)
+            {
+                notices.Add(new ResolutionNotice
+                {
+                    Capability = descriptor.Id,
+                    Kind = "selection-failed",
+                    Detail =
+                        $"Selection for capability \"{descriptor.Id}\" threw: {error.Message} " +
+                        "The capability is left unresolved.",
+                });
+                return CapabilitySelection.Unresolved(descriptor);
+            }
         }
 
         /// <summary>
@@ -537,7 +609,8 @@ namespace Sitrep.Contract
         ///  4. Else: two or more tied top candidates with no
         ///     default/preference to break the tie, fail loud with
         ///     <see cref="AmbiguousResolutionError"/> rather than silently
-        ///     picking by registration order.
+        ///     picking by registration order. <see cref="SelectIsolated"/>
+        ///     catches it, so the loud failure costs this capability alone.
         /// </summary>
         private static (ProviderRegistration Winner, string Reason) ResolveExclusiveWinner(
             string capability,
@@ -601,6 +674,10 @@ namespace Sitrep.Contract
             ProviderContext ctx,
             List<ResolutionNotice> notices)
         {
+            if (selection.IsUnresolved)
+            {
+                return new List<object?>();
+            }
             if (selection.Providers.Count == 0)
             {
                 return ActivateVanilla(selection.Descriptor, ctx, notices);
@@ -762,11 +839,27 @@ namespace Sitrep.Contract
             public CapabilityDescriptor Descriptor { get; }
             public List<ProviderRegistration> Providers { get; }
 
+            /// <summary>
+            /// Selection failed for this capability, so activation must leave it
+            /// with no instance rather than treat the empty provider list as "fall
+            /// back to vanilla".
+            /// </summary>
+            public bool IsUnresolved { get; }
+
             public CapabilitySelection(CapabilityDescriptor descriptor, List<ProviderRegistration> providers)
+                : this(descriptor, providers, false)
+            {
+            }
+
+            private CapabilitySelection(CapabilityDescriptor descriptor, List<ProviderRegistration> providers, bool isUnresolved)
             {
                 Descriptor = descriptor;
                 Providers = providers;
+                IsUnresolved = isUnresolved;
             }
+
+            public static CapabilitySelection Unresolved(CapabilityDescriptor descriptor) =>
+                new CapabilitySelection(descriptor, new List<ProviderRegistration>(), true);
         }
     }
 }

@@ -6,14 +6,16 @@
  */
 
 /**
- * Thrown by `Kernel.resolve()` when an EXCLUSIVE capability has two or more
- * equally-ranked provider candidates and there is no user preference or
- * unique `isDefault`/highest-priority provider to break the tie.
+ * Raised during `Kernel.resolve()`'s selection when an EXCLUSIVE capability
+ * has two or more equally-ranked provider candidates and there is no user
+ * preference or unique `isDefault`/highest-priority provider to break the tie.
  *
  * This is a fail-loud condition: the kernel refuses to silently pick a
  * winner (e.g. by registration order) when the tie is genuinely ambiguous,
  * since that non-determinism is exactly what the exclusive-provider model
- * exists to prevent.
+ * exists to prevent. It does not escape `resolve()`: the kernel turns it into
+ * one "ambiguous" notice per tied provider and leaves only that capability
+ * unresolved.
  */
 export class AmbiguousResolutionError extends Error {
   readonly capability: string;

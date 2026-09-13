@@ -34,7 +34,14 @@ export interface ResolutionNotice {
     | "vanilla-fallback"
     | "factory-failed"
     /** A selected provider returned nothing, meaning it cannot serve this capability here. */
-    | "provider-declined";
+    | "provider-declined"
+    /**
+     * An exclusive election tied with nothing to break the tie. One notice per
+     * tied provider; the capability is left unresolved.
+     */
+    | "ambiguous"
+    /** Selection threw for any other reason; the capability is left unresolved. */
+    | "selection-failed";
   detail: string;
 }
 
@@ -48,6 +55,12 @@ export interface ResolutionNotice {
 interface CapabilitySelection {
   descriptor: CapabilityDescriptor;
   providers: ProviderRegistration[];
+  /**
+   * Selection failed for this capability, so activation must leave it with no
+   * instance rather than treat the empty provider list as "fall back to
+   * vanilla".
+   */
+  unresolved?: boolean;
 }
 
 /**
@@ -69,6 +82,12 @@ interface CapabilitySelection {
  *     `activeInstances` immediately after its factory runs (not batched at
  *     the end), so a later capability's factory can call
  *     `ctx.query(dep)` and see the dependency's already-active instance.
+ *
+ * Only two outcomes throw out of `resolve()`: a spine-critical capability
+ * nothing can serve, and a dependency cycle. Every other selection failure,
+ * an ambiguous exclusive election above all, is kept to its own capability
+ * (see `selectIsolated`), because an ambiguity on one capability used to abort
+ * the election for every capability together.
  *
  * This split is what let each milestone task land without reshaping the
  * ones before it:
@@ -145,7 +164,7 @@ export class Kernel {
     // registration order regardless of any `deps` relationships.
     const selections: CapabilitySelection[] = [];
     for (const descriptor of this.capabilities.values()) {
-      selections.push(this.selectCapability(descriptor, opts, notices));
+      selections.push(this.selectIsolated(descriptor, opts, notices));
     }
 
     // Phase 2: ordering, topo-sort capability activation so a provider's
@@ -177,6 +196,56 @@ export class Kernel {
 
     this.lastNotices = notices;
     return { notices };
+  }
+
+  /**
+   * Selection for one capability, with its failure kept to that capability.
+   *
+   * An ambiguous exclusive election is reported as one "ambiguous" notice per
+   * tied provider, and any other selection failure (a provider's own
+   * `canServe` throwing, say) as one "selection-failed" notice. Either way the
+   * capability is left UNRESOLVED: no instance, and no vanilla either, since
+   * falling back would be the kernel quietly picking a winner, which is what
+   * the ambiguity rule refuses to do.
+   *
+   * Isolated because a throw here used to escape the whole of `resolve()`, so
+   * one mis-prioritised pair of claimants left every capability unresolved
+   * together. The tie-break rules themselves are untouched.
+   * `SpineCapabilityUnsatisfiedError` is deliberately rethrown: a
+   * spine-critical capability with nothing to serve it means the kernel cannot
+   * start, and that is the one selection outcome whose blast radius is meant
+   * to be everything. Mirrors `Kernel.SelectIsolated` in the C# port.
+   */
+  private selectIsolated(
+    descriptor: CapabilityDescriptor,
+    opts: ResolveOptions,
+    notices: ResolutionNotice[],
+  ): CapabilitySelection {
+    try {
+      return this.selectCapability(descriptor, opts, notices);
+    } catch (error) {
+      if (error instanceof SpineCapabilityUnsatisfiedError) {
+        throw error;
+      }
+      if (error instanceof AmbiguousResolutionError) {
+        for (const providerId of error.providerIds) {
+          notices.push({
+            capability: descriptor.id,
+            kind: "ambiguous",
+            detail: `${error.message} Provider "${providerId}" is one of those tied; the capability is left unresolved.`,
+          });
+        }
+      } else {
+        notices.push({
+          capability: descriptor.id,
+          kind: "selection-failed",
+          detail: `Selection for capability "${descriptor.id}" threw: ${
+            error instanceof Error ? error.message : String(error)
+          } The capability is left unresolved.`,
+        });
+      }
+      return { descriptor, providers: [], unresolved: true };
+    }
   }
 
   /**
@@ -362,7 +431,8 @@ export class Kernel {
    *     (default 0) wins: a clean supersede.
    *  4. Else: two or more tied top candidates with no default/preference to
    *     break the tie, fail loud with `AmbiguousResolutionError` rather
-   *     than silently picking by registration order.
+   *     than silently picking by registration order. `selectIsolated`
+   *     catches it, so the loud failure costs this capability alone.
    */
   private resolveExclusiveWinner(
     capability: CapabilityId,
@@ -428,6 +498,9 @@ export class Kernel {
     notices: ResolutionNotice[],
   ): unknown[] {
     const { descriptor, providers } = selection;
+    if (selection.unresolved) {
+      return [];
+    }
     if (providers.length === 0) {
       return this.activateVanilla(descriptor, ctx, notices);
     }
