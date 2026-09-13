@@ -213,10 +213,34 @@ namespace Sitrep.Host
         private readonly FleckTransportListener _listener;
         private readonly Kernel _kernel = new Kernel();
 
-        // Plan 3: the registered command-centre sources; enumerated to validate a
-        // set-vantage request (a centre must be active to be selectable, though
-        // DefaultVantage is always allowed).
+        /// <summary>
+        /// Plan 3: the registered command-centre sources. MAIN-THREAD-ONLY: a
+        /// production source answers through Unity (<c>FindObjectsOfType</c>, the live
+        /// vessel list), so this is enumerated solely by
+        /// <see cref="CaptureCommandCentresOnMain"/>. A vantage check reads
+        /// <see cref="_activeCentreIds"/> instead.
+        /// </summary>
         private readonly CommandCentres.CommandCentreRegistry _commandCentres = new CommandCentres.CommandCentreRegistry();
+
+        private static readonly HashSet<string> NoActiveCentreIds = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The ids of the command centres active at the last main-loop tick, the
+        /// cross-thread window onto <see cref="_commandCentres"/> in the way
+        /// <see cref="_subscribedTopics"/> is onto <c>_subscriptions</c>. WRITTEN on the
+        /// main-loop thread by <see cref="CaptureCommandCentresOnMain"/>, READ on Fleck's
+        /// socket threads by <see cref="IsSelectableVantage"/>. Each capture publishes a
+        /// new set by reference swap and never mutates a published one, so a reader
+        /// needs no lock.
+        ///
+        /// <para>Empty until the first tick, so a client that connects before the main
+        /// loop has run can select only <see cref="DefaultVantage"/>. That is also what
+        /// the live sources would answer at the main menu, where no game is loaded.</para>
+        /// </summary>
+        private volatile HashSet<string> _activeCentreIds = NoActiveCentreIds;
+
+        /// <summary>Main-loop-thread only: throttles the capture's throw report the way a sampled source's is.</summary>
+        private int _consecutiveCentreCaptureThrows;
 
         /// <summary>
         /// Gate evaluators by <see cref="CommandRequirement.Kind"/>. Populated
@@ -2037,10 +2061,47 @@ namespace Sitrep.Host
         /// a delay exemption rather than a place, so a command may be dispatched from
         /// it while a session may not sit at it. The command path adds that one
         /// allowance itself.</para>
+        ///
+        /// <para>ANY-THREAD read: both callers run on a Fleck socket thread, so this
+        /// consults only the <see cref="_activeCentreIds"/> snapshot and never
+        /// enumerates <see cref="_commandCentres"/>, whose sources throw off Unity's
+        /// main thread. A centre that came or went since the last tick is judged by
+        /// that tick, one sample stale.</para>
         /// </summary>
         private bool IsSelectableVantage(string centreId) =>
             centreId == DefaultVantage
-            || _commandCentres.EnumerateActive().Any(c => c.Id == centreId);
+            || _activeCentreIds.Contains(centreId);
+
+        /// <summary>
+        /// MAIN-THREAD capture: enumerate the active command centres and publish their
+        /// ids to <see cref="_activeCentreIds"/>. Called from <see cref="Tick"/> and
+        /// <see cref="TickAndWait"/>, which production runs on the Unity main thread.
+        /// A throwing source is reported and the previous snapshot kept, so one bad
+        /// pass neither stops the tick nor empties the selectable set.
+        /// </summary>
+        private void CaptureCommandCentresOnMain()
+        {
+            try
+            {
+                var ids = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var centre in _commandCentres.EnumerateActive())
+                {
+                    ids.Add(centre.Id);
+                }
+
+                _activeCentreIds = ids;
+                _consecutiveCentreCaptureThrows = 0;
+            }
+            catch (Exception ex)
+            {
+                _consecutiveCentreCaptureThrows++;
+                if (_consecutiveCentreCaptureThrows == 1 || _consecutiveCentreCaptureThrows % 300 == 0)
+                {
+                    LogHost("command-centre capture threw (attempt " + _consecutiveCentreCaptureThrows
+                        + ", keeping the previous selectable vantages): " + SafeExceptionMessage(ex));
+                }
+            }
+        }
 
         /// <summary>
         /// Apply a client set-vantage request (Plan 3): switch the connection's
@@ -3893,11 +3954,17 @@ namespace Sitrep.Host
         /// and change-gates a value and records it into the Courier, exactly
         /// <c>GonogoBodiesServer.Tick</c>'s single-topic behavior, generalized
         /// over every topic <see cref="AddChannelSource"/> registered.
-        /// Callable from any thread: only touches primitives/the snapshot/
-        /// mapper delegates and the explicit job queue, never the Courier/
-        /// clock directly (those are Courier-thread-only).
+        /// Runs every main-thread capture (the sampled sources, the command-centre
+        /// ids) on the calling thread, so production calls it from the Unity main
+        /// thread. Beyond those it only touches primitives/the snapshot/mapper
+        /// delegates and the explicit job queue, never the Courier/clock directly
+        /// (those are Courier-thread-only).
         /// </summary>
-        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), null));
+        public void Tick(double ut, KspSnapshot? snapshot)
+        {
+            CaptureCommandCentresOnMain();
+            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), null));
+        }
 
         /// <summary>
         /// Runs every registered <see cref="AddSampledSource"/> capture on the
@@ -4113,6 +4180,7 @@ namespace Sitrep.Host
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
+            CaptureCommandCentresOnMain();
             EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), barrier));
             barrier.Wait(timeout);
         }

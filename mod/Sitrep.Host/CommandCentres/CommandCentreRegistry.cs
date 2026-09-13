@@ -17,6 +17,10 @@ namespace Sitrep.Host.CommandCentres
     /// first sighting of each colliding id goes to the report sink. That silence is
     /// how every ground station of a mod that flags them all as KSC came to mint
     /// <c>"ksc"</c>, and all but one vanished, without a word.</para>
+    ///
+    /// <para>MAIN-THREAD-ONLY: <see cref="EnumerateActive"/> runs each source live, and the
+    /// production sources read Unity and KSP state that may only be touched on the main
+    /// thread. A reader on another thread takes a snapshot captured there instead.</para>
     /// </summary>
     public sealed class CommandCentreRegistry
     {
