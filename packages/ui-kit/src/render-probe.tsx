@@ -136,12 +136,20 @@ export interface SceneStep {
   /** Let go of whatever `hold` took. Driver-side. */
   release?: true;
   /**
-   * Real milliseconds to let pass, spread over `frames`. Driver-side.
+   * Milliseconds of the widget's OWN repeating timers, spread over `frames`.
+   * Driver-side.
    *
    * The counterpart to `advanceUt` and not a substitute for it: that one steps
-   * the PINNED clock, which is what keeps a countdown reproducible. This one
-   * waits, which is the only thing a control ticking on its own `setInterval`
-   * responds to.
+   * the PINNED clock, which is what keeps a countdown reproducible. This one is
+   * for a control ticking on its own `setInterval`, which the pinned clock does
+   * not reach.
+   *
+   * <p>Fired, not waited out. It used to be a real wait, and a real wait is a
+   * different number of ticks on every machine: `jogwheel-rate-mode` hashed
+   * differently on each of five consecutive regenerations before this was an
+   * amount rather than a duration. The driver takes `setInterval` for the length
+   * of the scene and runs exactly this much of it, so the frame and its shape
+   * are both of one instant. See `seizeIntervals` in `render/driver.ts`.</p>
    */
   waitMs?: number;
   /** How many frames this step spans. Defaults to 1. */
@@ -664,6 +672,12 @@ function hostLabelFor(slot: string): string {
 async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   currentScene = scene;
   teardown();
+  // Before the mount, because a scene whose steps wait needs its widget's
+  // repeating timers to register under the shim rather than under the page's.
+  releaseIntervals();
+  if ((scene.steps ?? []).some((step) => (step.waitMs ?? 0) > 0)) {
+    seizeIntervals();
+  }
   const el = document.getElementById("root");
   if (!el) throw new Error("render probe: no #root in the page");
   el.style.width = `${scene.pxW}px`;
@@ -1050,6 +1064,104 @@ function hash(input: string): string {
 /** The scene's current pinned instant, moved only by an `advanceUt` step. */
 let currentUt = 0;
 
+interface Repeating {
+  fn: (...args: unknown[]) => void;
+  args: unknown[];
+  every: number;
+  at: number;
+}
+
+/** The page's own `setInterval` pair, held while `seized` is true. */
+let realSetInterval: typeof globalThis.setInterval | null = null;
+let realClearInterval: typeof globalThis.clearInterval | null = null;
+const seizedTimers = new Map<number, Repeating>();
+let seizedNow = 0;
+/** Far above any real timer id one page reaches, so an id this shim did not
+ *  mint is recognisable and goes back to the page's own `clearInterval`. */
+let seizedNextId = 1_000_000_001;
+
+/**
+ * Take the page's REPEATING timers for the length of a motion scene, so a
+ * `waitMs` step is an amount of them rather than an amount of wall time.
+ *
+ * The driver pins what the page can READ off a clock: `Date.now`, `new Date()`,
+ * `performance.now`. That says nothing about how many times a `setInterval`
+ * fires, so a widget whose value moves once per tick was a stopwatch with the
+ * hands hidden. `jogwheel-rate-mode` hashed differently on each of five
+ * consecutive regenerations, every one healing the last, because the rate
+ * wheel's 60ms tick fired however many times the machine allowed during a real
+ * `waitForTimeout`. It is also what `captureShape`'s second reading catches,
+ * which is how it surfaced.
+ *
+ * <p>Taken at MOUNT, because the driver presses and drags before the first step
+ * runs and a timer registered under the real `setInterval` would keep ticking
+ * through the capture. Given back at the next mount, so the seize lasts exactly
+ * one scene: a still, and every scene with no `waitMs` step, renders under the
+ * page's own timers throughout.</p>
+ *
+ * <p>Only `setInterval`. `requestAnimationFrame` stays real, which is what rules
+ * out reaching for playwright's `page.clock`: it fakes animation frames too, and
+ * every step of this probe settles on two of them, so a paused clock deadlocks
+ * the first step of the scene it was installed for.</p>
+ */
+function seizeIntervals(): void {
+  if (realSetInterval) return;
+  realSetInterval = globalThis.setInterval;
+  realClearInterval = globalThis.clearInterval;
+  seizedNow = 0;
+  globalThis.setInterval = ((
+    fn: (...args: unknown[]) => void,
+    ms?: number,
+    ...args: unknown[]
+  ) => {
+    const every = Math.max(1, Number(ms) || 0);
+    const id = seizedNextId++;
+    seizedTimers.set(id, { fn, args, every, at: seizedNow + every });
+    return id;
+  }) as typeof globalThis.setInterval;
+  globalThis.clearInterval = ((handle?: number) => {
+    if (handle !== undefined && seizedTimers.delete(Number(handle))) return;
+    realClearInterval?.(handle);
+  }) as typeof globalThis.clearInterval;
+}
+
+/** Give the repeating timers back, before the next scene mounts under them. */
+function releaseIntervals(): void {
+  if (!realSetInterval || !realClearInterval) return;
+  globalThis.setInterval = realSetInterval;
+  globalThis.clearInterval = realClearInterval;
+  realSetInterval = null;
+  realClearInterval = null;
+  seizedTimers.clear();
+}
+
+/** Fire exactly the repeating callbacks `ms` are due, and then stop. */
+function advanceIntervals(ms: number): void {
+  const target = seizedNow + ms;
+  let fired = 0;
+  for (;;) {
+    let soonest: Repeating | undefined;
+    for (const timer of seizedTimers.values()) {
+      if (!soonest || timer.at < soonest.at) soonest = timer;
+    }
+    if (!soonest || soonest.at > target) break;
+    seizedNow = soonest.at;
+    soonest.at += soonest.every;
+    soonest.fn(...soonest.args);
+    fired++;
+    // A handler rescheduling itself faster than the clock moves would spin here
+    // forever, and a render that hangs says nothing about why.
+    if (fired > 10_000) {
+      throw new Error(
+        `render probe: advancing ${ms}ms of repeating timers fired ${fired} ` +
+          "callbacks without draining, so something is rescheduling faster " +
+          "than the clock moves.",
+      );
+    }
+  }
+  seizedNow = target;
+}
+
 /** Advance one motion step and settle. The driver screenshots between calls,
  *  so a step's frames are produced by repeated calls rather than in a loop. */
 async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
@@ -1071,6 +1183,9 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
       );
     }
     (el as HTMLElement).click();
+  }
+  if (step.waitMs !== undefined && step.waitMs > 0) {
+    advanceIntervals(step.waitMs);
   }
   if (deltaUt !== 0) {
     // The clock is an INPUT, which is what separates this from a screen
