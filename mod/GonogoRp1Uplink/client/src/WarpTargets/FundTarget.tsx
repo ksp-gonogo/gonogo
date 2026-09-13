@@ -134,10 +134,43 @@ export function FundTargetControl({
                     op: ">=",
                     value: wantedFunds,
                     /*
-                     * The craft's own clock rather than the operator's, which is
-                     * the whole point: the simulation stops the warp on the tick
-                     * the balance is reached, where a ground-side watch would
-                     * read the number a light-time late and a poll later still.
+                     * NOT because funds are a craft reading. They are not, and a
+                     * light-time is not what this escapes: career bookkeeping is
+                     * stamped "game", `career.status` is DelayRole.TrueNow, and
+                     * ChannelEngine.Subscribe routes an instant-class topic onto
+                     * the meta vantage, where DelayTo(meta, "system") is pinned to
+                     * 0. A command centre is told the balance the instant it
+                     * changes. Anything here claiming otherwise is wrong.
+                     *
+                     * What "scet" buys is PRECISION UNDER WARP, and only that. The
+                     * mod's roster reads the balance on the tick and sets
+                     * ScetAlarmTick.StopWarp in that same tick. The client
+                     * evaluator ticks at 1 Hz, so one tick moves the game clock by
+                     * the warp rate: at KSP's top stock rate a funds threshold is
+                     * seen up to ~28 game-hours late, and only then pays a command
+                     * round-trip to drop the warp. For an alarm whose whole job is
+                     * halting a months-long RP-1 build the moment the next thing is
+                     * affordable, that gap is the entire argument.
+                     *
+                     * So the command vantage is the honest DESCRIPTION of this
+                     * alarm and still costs precision today, for two reasons that
+                     * are not this widget's to fix. A command-vantage threshold is
+                     * evaluated mod-side in SHADOW only, the client staying
+                     * authoritative; and ScetAlarmUplink.HandleOnCourier discards
+                     * an audience roster's StopWarp deliberately, on the ground
+                     * that one vantage's light-time-old reading is not a fact about
+                     * the simulation. That ground does not hold for a zero-delay
+                     * "game" subject, where the two verdicts ARE the same verdict,
+                     * but exempting one is a decision to take rather than a flip to
+                     * make. Note also that the shadow read would not currently
+                     * agree with this screen: Courier.ReadRawAtVantage applies
+                     * DelayTo(vantage, "system"), which for a command centre falls
+                     * through to the whole-network default, i.e. the ACTIVE
+                     * VESSEL's signal delay, a number with nothing to do with the
+                     * career.
+                     *
+                     * Revisit when an audience verdict can stop the warp for a
+                     * subject at zero delay. Until then this stays "scet".
                      *
                      * Unconditional on purpose, and safe to be: the request is
                      * carried through untouched, armed on the mod, and fired off
