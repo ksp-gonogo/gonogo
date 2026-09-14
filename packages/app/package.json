@@ -15,6 +15,7 @@
     "render-commcast": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-commcast.ts",
     "render-alarms": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarms.ts",
     "render-flight-outcome": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-flight-outcome.ts",
+    "render-header-delay": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-header-delay.ts",
     "minsize-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/minsize-gate.ts",
     "bake-uplink-hash": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/bake-uplink-hash.ts",
     "render-rail-waveform": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-rail-waveform.ts"

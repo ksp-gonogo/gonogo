@@ -43,7 +43,7 @@ function resolveHomeCentreId(
 }
 
 /** The currently-active command centres, and which of them is home. */
-function useActiveCentres(): {
+export function useActiveCentres(): {
   active: ActiveCentre[];
   homeId: string | undefined;
 } {
