@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
+import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { MainScreen } from "./MainScreen";
 
@@ -132,20 +133,32 @@ export function PilotScreen() {
   }
 
   return (
-    <PeerClientProvider client={client}>
-      {!connected && !dismissed && (
-        <PilotScreen__CommsBanner role="status" aria-live="polite">
-          <Text size="xs" tone="warn">
-            {hostNotFound
-              ? `No mission control answering on ${hostInput}`
-              : `Reaching mission control (${hostInput}): ${status}`}
-          </Text>
-          <Button onClick={() => connect(hostInput)}>Retry</Button>
-          <Button onClick={() => setDismissed(true)}>Dismiss</Button>
-        </PilotScreen__CommsBanner>
-      )}
-      <MainScreen screen="pilot" />
-    </PeerClientProvider>
+    <ScopedStationIdentity defaultName="Pilot">
+      <PeerClientProvider client={client}>
+        {/*
+         * Tells the host a PILOT is on the link, not another mission-control
+         * screen. Nothing else can say it: the seat is known only to the peer
+         * sitting at it, which is why `StationInfoBroadcaster` takes it as a
+         * prop rather than inferring it. Until this landed, the only mount of
+         * that component was `StationScreen`'s, hardcoded to
+         * `"mission-control"`, so every peer the host knew about claimed to be
+         * at a command centre and a pilot was indistinguishable from one.
+         */}
+        <StationInfoBroadcaster client={client} seat="pilot" />
+        {!connected && !dismissed && (
+          <PilotScreen__CommsBanner role="status" aria-live="polite">
+            <Text size="xs" tone="warn">
+              {hostNotFound
+                ? `No mission control answering on ${hostInput}`
+                : `Reaching mission control (${hostInput}): ${status}`}
+            </Text>
+            <Button onClick={() => connect(hostInput)}>Retry</Button>
+            <Button onClick={() => setDismissed(true)}>Dismiss</Button>
+          </PilotScreen__CommsBanner>
+        )}
+        <MainScreen screen="pilot" />
+      </PeerClientProvider>
+    </ScopedStationIdentity>
   );
 }
 
