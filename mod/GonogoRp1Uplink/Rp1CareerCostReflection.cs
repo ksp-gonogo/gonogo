@@ -148,8 +148,42 @@ namespace GonogoRp1Uplink
             Collect(instance, "_techEvents", "techResearch", raw);
             Collect(instance, "_leaderEvents", "leader", raw);
 
-            raw.Events.Sort(static (a, b) => (a.Ut ?? 0.0).CompareTo(b.Ut ?? 0.0));
+            Order(raw.Events);
             return raw;
+        }
+
+        /// <summary>
+        /// The timeline oldest first, with every event RP-1 would not date placed
+        /// AFTER the dated ones.
+        ///
+        /// <para>Sorting an unreadable time as the epoch put the row at the FRONT,
+        /// where it read as the oldest thing that had ever happened in the career.
+        /// Its time travels absent either way, so the row was already
+        /// distinguishable to anyone who looked; what the position did was make a
+        /// claim about WHEN to anyone who only read the order. Last rather than
+        /// first because a career log is read downwards from its beginning, so the
+        /// undated tail is the one place that displaces nothing.</para>
+        ///
+        /// <para>Partitioned rather than sorted with a comparison that pushes
+        /// nulls down, because <c>List.Sort</c> is unstable: such a comparison
+        /// calls every undated row equal to every other and is then free to
+        /// reorder them tick to tick, so rows nobody edited would shuffle in front
+        /// of the operator. One walk keeps them in the order RP-1's own six lists
+        /// gave them.</para>
+        /// </summary>
+        private static void Order(List<Rp1CareerEventRaw> events)
+        {
+            var timed = new List<Rp1CareerEventRaw>(events.Count);
+            var undated = new List<Rp1CareerEventRaw>();
+            foreach (var e in events)
+            {
+                (e.Ut == null ? undated : timed).Add(e);
+            }
+
+            timed.Sort(static (a, b) => a.Ut!.Value.CompareTo(b.Ut!.Value));
+            events.Clear();
+            events.AddRange(timed);
+            events.AddRange(undated);
         }
 
         /// <summary>

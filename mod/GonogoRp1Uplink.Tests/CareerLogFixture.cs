@@ -19,8 +19,25 @@ namespace RP0
     /// <summary>The base every logged event derives from. UT is public on the real one.</summary>
     public abstract class CareerEvent
     {
+        /// <summary>
+        /// Makes <see cref="UT"/> unreadable on THIS event, which is what a mixed
+        /// timeline needs: one row RP-1 will not date sitting among rows it will.
+        /// A static switch could only make every row undated at once, and the
+        /// ordering question only exists when the two kinds are in one list.
+        /// </summary>
+        public bool UtUnreadable;
+
+        private double _ut;
+
+        // A property rather than the real type's plain field, and only so the flag
+        // above has somewhere to live. The reader resolves a property and a field
+        // by the same walk, so the production path is unchanged.
 #pragma warning disable IDE1006
-        public double UT;
+        public double UT
+        {
+            get => UtUnreadable ? throw new InvalidOperationException("UT unreadable") : _ut;
+            set => _ut = value;
+        }
 #pragma warning restore IDE1006
     }
 
@@ -135,7 +152,8 @@ namespace RP0
             double ut,
             string vesselName,
             string launchId,
-            EditorFacility builtAt = EditorFacility.VAB)
+            EditorFacility builtAt = EditorFacility.VAB,
+            bool utUnreadable = false)
         {
             _launchedVessels.Add(new LaunchEvent
             {
@@ -143,6 +161,7 @@ namespace RP0
                 VesselName = vesselName,
                 LaunchID = launchId,
                 BuiltAt = builtAt,
+                UtUnreadable = utUnreadable,
             });
             return this;
         }
@@ -154,7 +173,8 @@ namespace RP0
             return this;
         }
 
-        public CareerLog AddContract(double ut, string displayName, double repChange)
+        public CareerLog AddContract(
+            double ut, string displayName, double repChange, bool utUnreadable = false)
         {
             _contractDict.Add(new ContractEvent
             {
@@ -162,6 +182,7 @@ namespace RP0
                 DisplayName = displayName,
                 RepChange = repChange,
                 Type = ContractEventType.Completed,
+                UtUnreadable = utUnreadable,
             });
             return this;
         }

@@ -2980,7 +2980,11 @@ export interface Rp1CareerEvents
 	* "could not be read", is the channel publishing nothing at all.
 	*/
 	enabled?: boolean;
-	/** Everything recorded, oldest first. */
+	/**
+	* Everything recorded, oldest first, with any event whose
+	* `Rp1CareerEventEntry.ut` is absent placed after all the dated ones rather
+	* than among them. Read the tail as undated, not as the newest.
+	*/
 	events?: Rp1CareerEventEntry[];
 }
 /**
