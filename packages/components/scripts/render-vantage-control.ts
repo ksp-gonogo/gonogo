@@ -10,11 +10,13 @@
  * vantage, a station only reads it, so the two screens get different renders
  * of the same banner field:
  *   - `main-home-identified`   : home flagged, listed second, dropdown expanded
- *   - `main-home-not-identified`: no centre flagged, dropdown expanded
+ *   - `main-home-fallback`     : no home identified, a station stands in, expanded
+ *   - `main-home-fallback-notice`: the same, collapsed, with the notice raised
  *   - `main-resting-home-only` : one active centre (KSC), collapsed
  *   - `main-resting-multi`     : two active centres, collapsed
  *   - `main-open-multi`        : two active centres, dropdown expanded
  *   - `station-home`           : reading the home centre
+ *   - `station-home-fallback`  : reading the station standing in for home
  *   - `station-away`           : reading a centre that is not home
  *   - `station-unknown`        : nothing has arrived to say which centre
  *
@@ -91,6 +93,8 @@ interface VantageState {
   open?: boolean;
   screen?: "main" | "station";
   observedVantage?: string;
+  /** Mount the banner stack so the home-fallback notice is in the shot. */
+  notice?: boolean;
   /** Viewport size for a shot whose banner or open list outgrows the default. */
   width?: number;
   height?: number;
@@ -125,13 +129,15 @@ const KSC_GROUND_HOME = {
   active: true,
   isHome: true,
 };
+// No home identified: the mod marks the first station by id home in its place.
 const DSN = ["DSS 14 - Goldstone", "DSS 43 - Canberra", "DSS 63 - Madrid"].map(
-  (name) => ({
+  (name, i) => ({
     id: `ground:${name}`,
     displayName: name,
     kind: "GroundStation",
     active: true,
-    isHome: false,
+    isHome: i === 0,
+    isHomeFallback: i === 0,
   }),
 );
 
@@ -147,12 +153,20 @@ const STATES: VantageState[] = [
   },
   // No claimant could say which station is home, as on a comms-mod install.
   {
-    name: "main-home-not-identified",
+    name: "main-home-fallback",
     roster: DSN,
     observedVantage: DSN[0].id,
     open: true,
     width: 720,
     height: 240,
+  },
+  {
+    name: "main-home-fallback-notice",
+    roster: DSN,
+    observedVantage: DSN[0].id,
+    notice: true,
+    width: 1100,
+    height: 200,
   },
   { name: "main-resting-home-only", roster: [KSC], observedVantage: KSC.id },
   {
@@ -171,6 +185,13 @@ const STATES: VantageState[] = [
     screen: "station",
     roster: [KSC, WOOMERA],
     observedVantage: KSC.id,
+  },
+  {
+    name: "station-home-fallback",
+    screen: "station",
+    roster: DSN,
+    observedVantage: DSN[0].id,
+    width: 720,
   },
   {
     name: "station-away",
@@ -277,6 +298,7 @@ async function main(): Promise<void> {
           open: state.open,
           screen: state.screen,
           observedVantage: state.observedVantage,
+          notice: state.notice,
         },
       );
       const outPath = join(OUT_DIR, `${state.name}.png`);

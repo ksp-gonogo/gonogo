@@ -148,33 +148,64 @@ describe("VantagePicker's home badge carries an icon, not the word 'Home'", () =
     fixture.unmount();
   });
 
-  it("says the home was not identified, and marks no centre home, when the roster flags none", () => {
+  it("shows a fallback home with the ordinary home badge and no warning text", () => {
     const fixture = mountPicker();
     fixture.emitRoster(
       [
-        {
-          id: "ground:DSS 14 - Goldstone",
-          displayName: "Goldstone",
-          active: true,
-          isHome: false,
-        },
         {
           id: "ground:DSS 43 - Canberra",
           displayName: "Canberra",
           active: true,
           isHome: false,
+          isHomeFallback: false,
+        },
+        {
+          id: "ground:DSS 14 - Goldstone",
+          displayName: "Goldstone",
+          active: true,
+          isHome: true,
+          isHomeFallback: true,
         },
       ],
       "ground:DSS 14 - Goldstone",
     );
 
     const trigger = screen.getByRole("button", {
-      name: "Command centre vantage: Goldstone (home not identified)",
+      name: "Command centre vantage: Goldstone (home)",
     });
-    expect(trigger).toHaveTextContent("home not identified");
+    expect(trigger).not.toHaveTextContent(/identified/);
+    expect(trigger.querySelectorAll("svg")).toHaveLength(2);
     fireEvent.click(trigger);
-    expect(screen.queryByRole("option", { name: /Home/ })).toBeNull();
-    expect(document.querySelectorAll('[role="option"] svg')).toHaveLength(0);
+    expect(
+      screen.getByRole("option", { name: /Goldstone.*Home/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Canberra" }),
+    ).toBeInTheDocument();
+
+    fixture.unmount();
+  });
+
+  it("carries no warning text when the roster holds no ground station to stand in as home", () => {
+    const fixture = mountPicker();
+    fixture.emitRoster(
+      [
+        {
+          id: "vessel:abc",
+          displayName: "Kerbal X",
+          kind: "CrewedVessel",
+          active: true,
+          isHome: false,
+          isHomeFallback: false,
+        },
+      ],
+      "vessel:abc",
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: "Command centre vantage: Kerbal X",
+    });
+    expect(trigger).not.toHaveTextContent(/identified/);
 
     fixture.unmount();
   });

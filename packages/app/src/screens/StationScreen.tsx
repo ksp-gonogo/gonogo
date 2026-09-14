@@ -42,6 +42,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { SimulationIndicator } from "../components/SimulationIndicator";
@@ -536,6 +537,7 @@ export function StationScreen() {
                                 <SustainedFailureBanner />
                                 <HostVersionBanner client={client} />
                                 <FlightOutcomeBanner />
+                                <HomeFallbackNotice />
                                 <SceneSwitchPrompt
                                   onLoad={(items, layouts) =>
                                     dashboard.replaceState(items, layouts)

@@ -24,8 +24,10 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { BannerStack } from "@ksp-gonogo/ui";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { HomeFallbackNotice } from "../../../app/src/components/HomeFallbackNotice";
 import { MissionBanner } from "../../../app/src/components/MissionBanner";
 
 export interface VantageProbePayload {
@@ -40,6 +42,9 @@ export interface VantageProbePayload {
    *  states, and what the picker names until the main screen chooses. Omit to
    *  leave the readout with nothing to state. */
   observedVantage?: string;
+  /** Also mount the banner stack with the home-fallback notice, from a clean
+   *  session so the notice has not already been raised by an earlier shot. */
+  notice?: boolean;
 }
 
 let activeRoot: Root | null = null;
@@ -61,6 +66,8 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
     activeRoot = null;
   }
 
+  if (payload.notice) sessionStorage.clear();
+
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const clock = new ViewClock();
@@ -75,6 +82,9 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
         ScreenProvider,
         { value: payload.screen ?? "main" },
         createElement(MissionBanner),
+        payload.notice
+          ? createElement(BannerStack, null, createElement(HomeFallbackNotice))
+          : null,
       ),
     ),
   );

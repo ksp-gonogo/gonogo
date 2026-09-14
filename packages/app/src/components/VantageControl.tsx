@@ -32,8 +32,9 @@ interface ActiveCentre {
 /**
  * Which active roster entry is the HOME command centre, the one holding the
  * career ledger, read off the flag the mod publishes. Never inferred from an id
- * or a position in the list: when no entry carries the flag the mod could not
- * identify a home, and the answer is `undefined`.
+ * or a position in the list. A ground station standing in for a home the mod
+ * could not identify carries the same flag, and `HomeFallbackNotice` is what
+ * explains it; only a roster with no ground station at all has no home.
  */
 function resolveHomeCentreId(
   active: readonly { id: string; isHome?: boolean }[],
@@ -41,15 +42,10 @@ function resolveHomeCentreId(
   return active.find((c) => c.isHome === true)?.id;
 }
 
-/**
- * The currently-active command centres, which of them is home, and whether the
- * mod said it could not identify one: a roster that lists centres and flags
- * none of them. An empty or not-yet-arrived roster says nothing either way.
- */
+/** The currently-active command centres, and which of them is home. */
 function useActiveCentres(): {
   active: ActiveCentre[];
   homeId: string | undefined;
-  homeNotIdentified: boolean;
 } {
   // FAIL-OPEN FIX as well as a migration: `(roster ?? [])` never took its
   // fallback once the read became a Reading, so the filter below ran against a
@@ -63,12 +59,7 @@ function useActiveCentres(): {
   const active = (roster ?? []).filter(
     (c): c is typeof c & { id: string } => c.active && c.id != null,
   );
-  const homeId = resolveHomeCentreId(active);
-  return {
-    active,
-    homeId,
-    homeNotIdentified: active.length > 0 && homeId === undefined,
-  };
+  return { active, homeId: resolveHomeCentreId(active) };
 }
 
 /**
@@ -105,7 +96,7 @@ export function VantageControl() {
  * must not look alike.
  */
 function VantageReadout() {
-  const { active, homeId, homeNotIdentified } = useActiveCentres();
+  const { active, homeId } = useActiveCentres();
   const observed = useObservedVantage();
   const entry = active.find((c) => c.id === observed);
 
@@ -122,22 +113,9 @@ function VantageReadout() {
             {entry?.displayName ?? observed}
           </Text>
           {observed === homeId && <HomeBadge />}
-          {homeNotIdentified && <HomeNotIdentified />}
         </>
       )}
     </VantageReadout__Root>
-  );
-}
-
-/**
- * Stated beside the vantage when the mod could not say which centre is home,
- * so a ground station standing in for home is never mistaken for it.
- */
-function HomeNotIdentified() {
-  return (
-    <Text tone="faint" size="xs" weight="regular">
-      home not identified
-    </Text>
   );
 }
 
@@ -170,7 +148,7 @@ function HomeBadge() {
  * option to land on.
  */
 function VantagePicker() {
-  const { active, homeId, homeNotIdentified } = useActiveCentres();
+  const { active, homeId } = useActiveCentres();
   // Until this screen chooses, the mod has put it wherever a fresh connection
   // starts, and only the frames say where that is.
   const chosen = useSelectedVantage();
@@ -269,13 +247,12 @@ function VantagePicker() {
         aria-controls={listboxId}
         aria-label={`Command centre vantage: ${selectedLabel}${
           selectedIsHome ? " (home)" : ""
-        }${homeNotIdentified ? " (home not identified)" : ""}`}
+        }`}
         onClick={() => (open ? closeMenu() : openMenu())}
         onKeyDown={onTriggerKeyDown}
       >
         <TriggerValue>{selectedLabel}</TriggerValue>
         {selectedIsHome && <HomeBadge />}
-        {homeNotIdentified && <HomeNotIdentified />}
         <ChevronDownIcon size={12} />
       </Trigger>
       {open &&
