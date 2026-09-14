@@ -2462,10 +2462,11 @@ namespace Sitrep.Host
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
             // Per-vessel freeze (Plan 2b): the vessel's fleet.<id> subject
-            // freezes on ITS OWN link. Rides the gated fleet capture (only
-            // subscribed fleet vessels need freeze tracking); the active vessel
-            // stays on the ungated SetConnectivitySource. Courier-thread-only,
-            // like SetSubjectConnected's other caller.
+            // freezes on ITS OWN link. Expected from an UNGATED capture, every
+            // vessel every tick, so an outage that starts or ends with nobody
+            // subscribed is still on record for the first client to arrive; the
+            // active vessel's link stays on SetConnectivitySource.
+            // Courier-thread-only, like SetSubjectConnected's other caller.
             SetSubjectConnected(FleetNodePrefix + vesselId, connected, _clock.Now());
         }
 
@@ -5295,10 +5296,18 @@ namespace Sitrep.Host
                 history.Add((ut, connected));
             }
 
+            // The link-down mark follows _subjectDarkSinceUt rather than the
+            // _subjectConnected edge, because CleanUpSubjectIfGone forgets
+            // _subjectConnected when a fleet subject's last subscriber leaves,
+            // and the mark outlives it. Keyed on that edge, an outage that ends
+            // after the subscriber leaves is never seen to end, so the mark
+            // sticks for good, and one that carries on is seen to start again,
+            // later.
             if (!connected)
             {
-                if (connected != wasConnected)
+                if (!_subjectDarkSinceUt.TryGetValue(node, out var darkSince))
                 {
+                    darkSince = ut;
                     _subjectDarkSinceUt[node] = ut;
                 }
                 // The Courier holds the mark against the subject, so it also
@@ -5307,15 +5316,15 @@ namespace Sitrep.Host
                 // before any later tick. Re-applied every disconnected tick at
                 // the ORIGINAL loss-of-signal instant, held rather than re-read so
                 // it cannot drift forward as the outage runs. Idempotent.
-                _courier.MarkSubjectLinkDown(
-                    node,
-                    _subjectDarkSinceUt.TryGetValue(node, out var darkSince) ? darkSince : ut);
+                _courier.MarkSubjectLinkDown(node, darkSince);
+            }
+            else if (_subjectDarkSinceUt.Remove(node))
+            {
+                _courier.MarkSubjectLinkUp(node);
             }
 
             if (!wasConnected && connected)
             {
-                _subjectDarkSinceUt.Remove(node);
-                _courier.MarkSubjectLinkUp(node);
                 ReplayInBlackoutBacklog(node, ut);
             }
         }

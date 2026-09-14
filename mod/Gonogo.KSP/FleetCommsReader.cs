@@ -76,6 +76,33 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// A vessel's connectivity alone, by the same rules as
+        /// <see cref="ReadVessel"/>'s flag, without walking its control path.
+        /// Cheap enough to ask of every vessel in the save on every tick, which
+        /// is what the fleet's ungated link capture does.
+        /// </summary>
+        internal static bool ReadConnected(Vessel vessel, SignalDelayConfig config)
+        {
+            try
+            {
+                if (vessel == null)
+                {
+                    return false;
+                }
+                if (config != null && config.CutForNoCommsModel)
+                {
+                    return true;
+                }
+                return vessel.connection != null && vessel.connection.IsConnected;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadConnected failed (treating as no link): " + ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Routed one-way light-time between two arbitrary comms nodes, or null
         /// when the ELECTED BACKEND does not route between them. Unlike
         /// <see cref="ReadVessel"/>, which can only ever answer "how far is this

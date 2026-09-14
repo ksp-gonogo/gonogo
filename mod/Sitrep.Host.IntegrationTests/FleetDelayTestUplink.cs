@@ -71,11 +71,47 @@ namespace Sitrep.Host.IntegrationTests
                 PerVesselNode = true,
             });
             // Per-subject freeze (Plan 2b): each roster entry carries its own
-            // "connected" flag (default true), set via SetVesselConnectivity in
-            // the gated capture -- so each fleet vessel freezes on ITS OWN link.
-            // The active vessel ("system") is not driven here (stays connected).
-            // Subscription-gated: skip the whole fleet capture when no fleet.* topic is subscribed.
+            // "connected" flag (default true), so each fleet vessel freezes on
+            // ITS OWN link. The active vessel ("system") is not driven here
+            // (stays connected). Mirrors production's split: the whole fleet
+            // capture skips the tick when no fleet.* topic is subscribed, and a
+            // second, ungated capture registered after it reports every
+            // vessel's link regardless.
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix, ExtensionPrefix);
+            host.AddSampledSource(CaptureLinksOnMain, HandleLinksOnCourier);
+        }
+
+        internal object? CaptureLinksOnMain(KspSnapshot? snapshot)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue("vessels", out var raw)
+                || raw is not IEnumerable<object?> roster)
+            {
+                return null;
+            }
+            var links = new List<(string Id, bool Connected)>();
+            foreach (var entryObj in roster)
+            {
+                if (entryObj is IDictionary<string, object?> entry
+                    && entry.TryGetValue("id", out var idObj) && idObj is string id)
+                {
+                    links.Add((id, !(entry.TryGetValue("connected", out var cObj) && cObj is bool cb) || cb));
+                }
+            }
+            return links;
+        }
+
+        /// <summary>
+        /// Re-reports each link after the gated handle has already done so on a
+        /// tick it ran, which changes nothing; on a tick it skipped, this is the
+        /// only report.
+        /// </summary>
+        internal void HandleLinksOnCourier(object? captured)
+        {
+            if (captured is not List<(string Id, bool Connected)> links) { return; }
+            foreach (var (id, connected) in links)
+            {
+                _host?.SetVesselConnectivity(id, connected);
+            }
         }
 
         internal object? CaptureOnMain(KspSnapshot? snapshot)
@@ -109,6 +145,8 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     _host?.SetVesselDelay(id, delay.Value);
                 }
+                // After the delay, so the disconnect tick snapshots the last
+                // connected light-time, and before the publishes, so they freeze.
                 _host?.SetVesselConnectivity(id, connected);
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
                 // The SilenceTracker's per-vessel contact report (mirroring the

@@ -34,9 +34,15 @@ namespace Gonogo.KSP
     /// full split.</para>
     ///
     /// <para>Subscription-gated on the <c>fleet.</c> prefix: the whole fleet
-    /// read is skipped when no client subscribes to any fleet topic. This is a
-    /// DISPLAY delay applied by the ledger (not the reveal gate), so gating is
-    /// correct: freeze stays global in Plan 2.</para>
+    /// read is skipped when no client subscribes to any fleet topic. Each
+    /// vessel's LINK is the exception, read by a second, ungated capture
+    /// (<see cref="CaptureLinksOnMain"/>) every tick. An outage that starts or
+    /// ends with nobody watching has to be on record for the first client to
+    /// subscribe, whose catch-up is graded by it; a gated read would hand that
+    /// client a pre-outage sample marked fresh for a craft out of contact. It
+    /// costs one connectivity flag per vessel per tick, no path walk and no
+    /// orbit build, and the engine then keeps link state for every vessel
+    /// rather than only while a fleet topic is subscribed.</para>
     ///
     /// <para><b>Not an Uplink discovered by attribute scan, deliberately.</b>
     /// It implements <see cref="ISitrepUplink"/> so <see cref="GonogoAddon"/>
@@ -67,10 +73,12 @@ namespace Gonogo.KSP
 
         // Main-thread-only bookkeeping: the last UT each vessel was observed
         // connected. Trivial derived state (no hysteresis, no model), so it
-        // lives here rather than needing anything like SilenceTracker. Read
-        // and mutated only from CaptureOnMain; the cross-thread snapshot each
-        // FleetVesselCapture carries is what HandleOnCourier (Courier thread)
-        // actually reads.
+        // lives here rather than needing anything like SilenceTracker. Written
+        // by both main-thread captures: the ungated CaptureLinksOnMain keeps it
+        // true while nobody is watching, and CaptureOnMain, which runs first in
+        // a tick, writes it too so its own report is not a tick behind. The
+        // cross-thread snapshot each FleetVesselCapture carries is what
+        // HandleOnCourier (Courier thread) actually reads.
         private readonly Dictionary<string, double> _lastContactUt = new Dictionary<string, double>();
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -95,6 +103,59 @@ namespace Gonogo.KSP
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             });
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, ChannelEngine.FleetNodePrefix);
+            // Registered after the gated source, whose handle has to report a
+            // link after its delay and before its publishes on a tick it runs.
+            host.AddSampledSource(CaptureLinksOnMain, HandleLinksOnCourier);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD, UNGATED: every vessel's connectivity, and the
+        /// last-contact bookkeeping that follows from it, so both stay true
+        /// while nobody subscribes to a fleet topic.
+        /// </summary>
+        internal object? CaptureLinksOnMain(KspSnapshot? snapshot)
+        {
+            var all = FlightGlobals.Vessels;
+            if (all == null)
+            {
+                return null;
+            }
+
+            var ut = snapshot != null ? snapshot.Ut : 0.0;
+            var config = CommsCoreUplink.SignalDelayConfig;
+            var links = new List<VesselLinkCapture>(all.Count);
+            foreach (var vessel in all)
+            {
+                if (vessel == null)
+                {
+                    continue;
+                }
+                var id = vessel.id.ToString();
+                var connected = FleetCommsReader.ReadConnected(vessel, config);
+                if (connected)
+                {
+                    _lastContactUt[id] = ut;
+                }
+                links.Add(new VesselLinkCapture { Id = id, Connected = connected });
+            }
+            return links;
+        }
+
+        /// <summary>
+        /// COURIER-THREAD: report each vessel's link. On a tick the gated
+        /// handle also ran this repeats what it already reported and changes
+        /// nothing.
+        /// </summary>
+        internal void HandleLinksOnCourier(object? captured)
+        {
+            if (captured is not List<VesselLinkCapture> links)
+            {
+                return;
+            }
+            foreach (var link in links)
+            {
+                _host?.SetVesselConnectivity(link.Id, link.Connected);
+            }
         }
 
         /// <summary>MAIN-THREAD capture: per vessel, its guid + routed delay + orbit-element dict + last-contact bookkeeping.</summary>
@@ -221,6 +282,10 @@ namespace Gonogo.KSP
                     _host?.SetVesselDelay(v.Id, v.OneWaySeconds.Value);
                 }
                 // Per-subject freeze (Plan 2b): this vessel freezes on its own link.
+                // Reported here as well as by HandleLinksOnCourier because the
+                // order matters on a disconnect tick: after the delay, so the last
+                // connected light-time is kept, and before the publishes, so they
+                // freeze.
                 _host?.SetVesselConnectivity(v.Id, v.Connected);
                 if (v.Orbit != null)
                 {
@@ -251,6 +316,12 @@ namespace Gonogo.KSP
         {
             public double Ut { get; set; }
             public List<FleetVesselCapture> Vessels { get; set; } = new List<FleetVesselCapture>();
+        }
+
+        private sealed class VesselLinkCapture
+        {
+            public string Id { get; set; } = string.Empty;
+            public bool Connected { get; set; }
         }
 
         private sealed class FleetVesselCapture

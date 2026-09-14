@@ -1102,8 +1102,11 @@ namespace Sitrep.Contract
         /// <summary>
         /// Set a FLEET vessel's connectivity (Plan 2b): its
         /// <c>fleet.&lt;vesselId&gt;.*</c> topics freeze on ITS OWN link
-        /// independently of the active vessel. Call it per vessel each
-        /// fleet-capture tick (from the gated capture's handle-on-Courier).
+        /// independently of the active vessel. Call it for every vessel on every
+        /// tick from an UNGATED capture's handle-on-Courier, not from one gated
+        /// on a subscription: the engine only knows a vessel is out of contact
+        /// if it was told while nobody was watching, and a first subscriber's
+        /// catch-up is graded by exactly that.
         /// The active vessel's connectivity stays on the ungated
         /// <see cref="SetConnectivitySource"/>; this is the per-subject freeze
         /// lever for background fleet vessels.
