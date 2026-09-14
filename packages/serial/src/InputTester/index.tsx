@@ -108,10 +108,12 @@ function InputTesterComponent({
           )}
           {devices.map((d) => {
             const t = svc.getDeviceType(d.typeId);
+            // A type named the same as its device says nothing the name has not,
+            // and doubles the width of the one field the widget starts with.
             return (
               <option key={d.id} value={d.id}>
                 {d.name}
-                {t ? `: ${t.name}` : ""}
+                {t && t.name !== d.name ? `: ${t.name}` : ""}
               </option>
             );
           })}
@@ -240,11 +242,13 @@ registerComponent<InputTesterConfig>({
   description:
     "Live read-out of every button and axis on the selected serial device, straight off the transport, no action mapping required. Pick a device from the dropdown, press a button or move an axis, and watch its row light up. Useful for verifying wiring, offsets, and parser min/max before you start mapping inputs to actions.",
   tags: ["input", "debug"],
-  defaultSize: { w: 5, h: 6 },
-  // An axis row is a fixed instrument: an 80px name, a track wide enough to
-  // read a deflection off, and a 48px value. Five columns is the narrowest
-  // tile all three fit in.
-  minSize: { w: 5, h: 3 },
+  defaultSize: { w: 6, h: 6 },
+  /**
+   * Six columns, set by the device picker rather than the axis rows (an 80px
+   * name, a readable track and a 48px value fit in five): the seeded "Virtual
+   * Controller" is wider than the picker a five-column tile leaves it.
+   */
+  minSize: { w: 6, h: 3 },
   component: InputTesterComponent,
   dataRequirements: [],
   defaultConfig: {},

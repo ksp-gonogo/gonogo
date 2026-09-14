@@ -19,7 +19,9 @@
  *   decorative box drawn oversized inside a clipping parent (a gauge arc, a
  *   gradient bleed, a graph's plot area) is routinely and correctly clipped.
  *   Judging boxes by their looks cannot tell those apart from a pill whose
- *   rounded end is sliced off, so the pill says which it is.
+ *   rounded end is sliced off, so the pill says which it is. A form control's
+ *   value or placeholder counts as text too, though it is no text node: see
+ *   `CONTROLS`.
  * - Only what the browser actually paints: see `painted`. A box kept laid out
  *   under `visibility: hidden` has edges to slice and an operator who will never
  *   see either them or what is inside them.
@@ -74,11 +76,12 @@ export interface MinFitFinding {
     | "text-cut-off"
     | "escapes-tile"
     | "box-clipped"
-    | "box-escapes-tile";
+    | "box-escapes-tile"
+    | "control-cut-off";
   /** How many pixels of it are unreachable. */
   px: number;
-  /** The text that is cut off, the title's own words, or the name of the box
-   *  and whatever it carries. */
+  /** The text that is cut off, the title's own words, the name of the box and
+   *  whatever it carries, or a form control's accessible name and what it shows. */
   text: string;
   /** Which way it is cut: `x`, `y`, or both. */
   axis: string;
@@ -256,6 +259,226 @@ function painted(el: Element): boolean {
 }
 
 /**
+ * The form controls whose shown text is judged by `controlCut` rather than by the
+ * text pass.
+ *
+ * A control carries its words in its value, which is not a text node, so the text
+ * pass cannot see them at all: an altitude field showing only the "1" of "100"
+ * reported nothing. The option elements of a closed select and the
+ * default-value text node React writes into a textarea DO carry text nodes, and
+ * are skipped by the text pass so each control is spoken about once.
+ */
+const CONTROLS = "input, select, textarea";
+
+/** Input types that draw no text of their own, so have nothing to cut off. */
+const TEXTLESS_INPUTS = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+
+/**
+ * Input types that draw their `value` verbatim, so measuring the string measures
+ * what is on screen. A date or a password draws something else, and for those
+ * only the browser's own `scrollWidth` is trusted.
+ */
+const LITERAL_INPUTS = new Set([
+  "email",
+  "number",
+  "search",
+  "tel",
+  "text",
+  "url",
+]);
+
+type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+/**
+ * How far in from its padding box's right edge a select's drop-down arrow
+ * reaches. Chromium draws the arrow over the right end of the box whatever
+ * padding the author gives it and lets the text run underneath, so text that
+ * "fits" the content box can still end under the chevron. Measured at 13px
+ * across font sizes and paddings, plus one so a glyph touching it counts.
+ */
+const SELECT_ARROW_PX = 14;
+
+/**
+ * What the control shows and which of its strings that is. The placeholder
+ * counts: a hint cut to "Vess" is as unusable as a value cut to "1".
+ */
+function shownBy(
+  control: Control,
+): { text: string; from: "value" | "placeholder" } | undefined {
+  if (control instanceof HTMLSelectElement) {
+    const text = control.selectedOptions[0]?.text ?? "";
+    return text.trim() === "" ? undefined : { text, from: "value" };
+  }
+  if (
+    control instanceof HTMLInputElement &&
+    TEXTLESS_INPUTS.has(control.type)
+  ) {
+    return undefined;
+  }
+  if (control.value !== "") return { text: control.value, from: "value" };
+  if (control.placeholder.trim() !== "") {
+    return { text: control.placeholder, from: "placeholder" };
+  }
+  return undefined;
+}
+
+/**
+ * The width `text` draws at in this control's font.
+ *
+ * Needed because `scrollWidth` answers for the value and never for the
+ * placeholder. Measured by a hidden span appended to the document and removed
+ * straight after, so the page is left as it was found.
+ */
+function drawnWidth(control: Control, text: string): number {
+  const style = getComputedStyle(control);
+  const span = control.ownerDocument.createElement("span");
+  const copy = span.style;
+  copy.position = "absolute";
+  copy.visibility = "hidden";
+  copy.whiteSpace = "pre";
+  copy.fontFamily = style.fontFamily;
+  copy.fontSize = style.fontSize;
+  copy.fontWeight = style.fontWeight;
+  copy.fontStyle = style.fontStyle;
+  copy.fontStretch = style.fontStretch;
+  copy.fontVariant = style.fontVariant;
+  copy.fontFeatureSettings = style.fontFeatureSettings;
+  copy.letterSpacing = style.letterSpacing;
+  copy.wordSpacing = style.wordSpacing;
+  copy.textTransform = style.textTransform;
+  span.textContent = text;
+  control.ownerDocument.body.append(span);
+  const width = span.getBoundingClientRect().width;
+  span.remove();
+  return width;
+}
+
+/**
+ * How much of what a control shows an operator cannot see, per axis.
+ *
+ * Two causes, measured as one number because to the operator they are one
+ * defect: text wider than the control's own content box (a field sized too
+ * narrow for its value), and a content box that is itself cut by whatever clips
+ * it (a field pushed past the panel edge). Horizontally the shortfall is the
+ * text's width less the part of it left visible, placed where the control's
+ * `text-align` puts it. Vertically it is how far the content box, which holds the
+ * line of text, reaches past a clipper that cannot be scrolled.
+ *
+ * The text's width is the wider of the measured string and the browser's own
+ * overflow, because each sees what the other cannot: `scrollWidth` ignores a
+ * placeholder, and the string alone ignores a number field's spin buttons. A
+ * textarea wraps, so its text fills its box and only overflows sideways when told
+ * not to wrap; what wraps below its fold is reached by scrolling it.
+ */
+function controlCut(
+  control: Control,
+  tile: HTMLElement,
+  shown: { text: string; from: "value" | "placeholder" },
+): { cutX: number; cutY: number } {
+  const style = getComputedStyle(control);
+  const box = clientRect(control);
+  const drawsArrow =
+    control instanceof HTMLSelectElement && style.appearance !== "none";
+  const content = {
+    left: box.left + parseFloat(style.paddingLeft || "0"),
+    right: Math.min(
+      box.right - parseFloat(style.paddingRight || "0"),
+      drawsArrow ? box.right - SELECT_ARROW_PX : Infinity,
+    ),
+    top: box.top + parseFloat(style.paddingTop || "0"),
+    bottom: box.bottom - parseFloat(style.paddingBottom || "0"),
+  };
+  const room = content.right - content.left;
+  const overflow = Math.max(0, control.scrollWidth - control.clientWidth);
+  const measurable =
+    control instanceof HTMLSelectElement ||
+    shown.from === "placeholder" ||
+    (control instanceof HTMLInputElement && LITERAL_INPUTS.has(control.type));
+  const width =
+    control instanceof HTMLTextAreaElement
+      ? room + overflow
+      : Math.max(
+          measurable ? drawnWidth(control, shown.text) : room,
+          overflow > 0 ? room + overflow : 0,
+        );
+
+  let left = content.left;
+  if (width < room) {
+    if (style.textAlign === "right" || style.textAlign === "end") {
+      left = content.right - width;
+    } else if (style.textAlign === "center") {
+      left = content.left + (room - width) / 2;
+    }
+  }
+  const x = limitFor(control, tile, "x");
+  const seenLeft = Math.max(left, content.left, x?.left ?? -Infinity);
+  const seenRight = Math.min(left + width, content.right, x?.right ?? Infinity);
+  const cutX = width - Math.max(0, seenRight - seenLeft);
+
+  const y = limitFor(control, tile, "y");
+  const cutY = y
+    ? Math.max(0, y.top - content.top, content.bottom - y.bottom)
+    : 0;
+  return { cutX, cutY };
+}
+
+/**
+ * The rect that clips `el` on `axis`, or undefined when what lies beyond it is
+ * reached by scrolling. See `clipperFor`.
+ */
+function limitFor(
+  el: Element,
+  tile: HTMLElement,
+  axis: "x" | "y",
+): ReturnType<typeof clientRect> | undefined {
+  const { box, scrollable } = clipperFor(el, tile, axis);
+  if (scrollable) return undefined;
+  return box === tile ? tile.getBoundingClientRect() : clientRect(box);
+}
+
+/**
+ * What a finding calls a control: its accessible name, resolved the way a
+ * screen reader resolves the common cases, so the report names the field an
+ * operator would.
+ */
+function controlName(control: Control): string {
+  const flat = (text: string | null | undefined) =>
+    (text ?? "").replace(/\s+/g, " ").trim();
+  const label = flat(control.getAttribute("aria-label"));
+  if (label !== "") return label;
+  const by = control.getAttribute("aria-labelledby");
+  if (by) {
+    const named = flat(
+      by
+        .split(/\s+/)
+        .map((id) => control.ownerDocument.getElementById(id)?.textContent)
+        .join(" "),
+    );
+    if (named !== "") return named;
+  }
+  const labelled = flat(
+    Array.from(control.labels ?? [])
+      .map((l) => l.textContent)
+      .join(" "),
+  );
+  if (labelled !== "") return labelled;
+  const title = flat(control.getAttribute("title"));
+  if (title !== "") return title;
+  return `unnamed ${control.tagName.toLowerCase()}`;
+}
+
+/**
  * Every way this tile's content is unreachable at the size it is mounted at.
  *
  * `tile` is the mount box, sized to the widget's declared `minSize`. Nothing
@@ -288,6 +511,7 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
     // A title's ellipsis is already reported above, with the reason it is a
     // harsher rule than the one every other string gets.
     if (el.closest(HEADINGS)) continue;
+    if (el.closest(CONTROLS)) continue;
     if (!drawn(el) || !painted(el)) continue;
 
     const { cutX, cutY, escaping } = cutBy(el, tile);
@@ -318,6 +542,23 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
       kind: escaping ? "box-escapes-tile" : "box-clipped",
       px: Math.round(Math.max(cutX, cutY)),
       text: carried === "" ? name : `${name} ${carried}`,
+      axis: axisOf(cutX, cutY),
+    });
+  }
+
+  // A field is how an operator states a number, so a value they cannot read back
+  // is an instruction they cannot check before sending it.
+  for (const control of Array.from(tile.querySelectorAll<Control>(CONTROLS))) {
+    if (!drawn(control) || !painted(control)) continue;
+    const shown = shownBy(control);
+    if (shown === undefined) continue;
+    const { cutX, cutY } = controlCut(control, tile, shown);
+    if (cutX <= TOLERANCE_PX && cutY <= TOLERANCE_PX) continue;
+    const quoted = shown.text.replace(/\s+/g, " ").trim().slice(0, TEXT_SAMPLE);
+    findings.push({
+      kind: "control-cut-off",
+      px: Math.round(Math.max(cutX, cutY)),
+      text: `${controlName(control)} ${shown.from} '${quoted}'`,
       axis: axisOf(cutX, cutY),
     });
   }

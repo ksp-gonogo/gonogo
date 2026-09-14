@@ -16,6 +16,9 @@ import {
   Badge,
   Button,
   Cluster,
+  Field,
+  FieldLabel,
+  Input,
   Panel,
   Section,
   type Severity,
@@ -294,9 +297,14 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
           ) : null}
         </Section>,
         <Section key="ascent" title="Ascent">
-          <Cluster gap="sm">
-            <label htmlFor={altitudeInputId}>Target altitude (km)</label>
-            <input
+          {/* Label above the field rather than beside it, so the field gets the
+              section's full width: beside its label a 3-column tile leaves too
+              little room to read back the altitude about to be flown. */}
+          <Field>
+            <FieldLabel htmlFor={altitudeInputId}>
+              Target altitude (km)
+            </FieldLabel>
+            <Input
               id={altitudeInputId}
               type="number"
               min={0}
@@ -306,7 +314,7 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
               aria-describedby={altitudeKm == null ? altitudeNoteId : undefined}
               onChange={(e) => setAltitudeText(e.target.value)}
             />
-          </Cluster>
+          </Field>
           {altitudeKm == null ? (
             <Text id={altitudeNoteId} tone="warn" size="xs">
               No target altitude read from the field, so there is nothing to

@@ -1,6 +1,6 @@
 /**
  * The browser half of the min-size gate: every registration the app makes, plus
- * one widget that is deliberately broken.
+ * one widget that is deliberately broken and one whose form controls all fit.
  *
  * Bundled as the render probe's entry (see `minsize-gate.ts`), so it runs AFTER
  * `installRenderProbe()` and after the registration modules the gate names.
@@ -11,7 +11,16 @@
  */
 import { getComponents, registerComponent } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
-import { Panel, StatusPill } from "@ksp-gonogo/ui-kit";
+import {
+  Field,
+  FieldLabel,
+  Input,
+  Panel,
+  Select,
+  Stack,
+  StatusPill,
+  Textarea,
+} from "@ksp-gonogo/ui-kit";
 import { defineRenderSetup } from "@ksp-gonogo/ui-kit/render-probe";
 import { NotesHostProvider } from "../src/notes/NotesHostContext";
 import { NotesHostService } from "../src/notes/NotesHostService";
@@ -47,7 +56,7 @@ defineRenderSetup({
  * fits". So the gate mounts this widget too and REFUSES to report on the others
  * unless this one comes back broken.
  *
- * Broken in all five ways the audit can name, so a check that loses one of them
+ * Broken in all six ways the audit can name, so a check that loses one of them
  * fails here rather than going quiet in the field.
  *
  * The two pills carry their words in a child span that fits, and are cut only
@@ -76,6 +85,15 @@ function Canary() {
             nothing to scroll
           </div>
         </div>
+        {/* Its box fits the panel and its value does not fit its box, which is
+            the shape a text-only audit cannot see: the words are a value rather
+            than a text node. */}
+        <input
+          aria-label="Canary clipped field"
+          readOnly
+          style={{ width: 40 }}
+          value="A value no forty pixel field could show"
+        />
         <div style={{ overflow: "hidden", width: 80 }}>
           <StatusPill
             $tone="warning"
@@ -115,6 +133,54 @@ registerComponent({
   minSize: { w: 3, h: 3 },
 });
 
+/**
+ * The planted PASS: form controls that fit, which must audit clean.
+ *
+ * The canary proves the control check can see a cut field. This proves it does
+ * not call a field cut because it is a field: each one here shows its whole
+ * value or placeholder with room to spare, including the two shapes most likely
+ * to trip a measurement, a right-aligned number field with its spin buttons and a
+ * select with its arrow.
+ */
+const FITS_ID = "minsize-gate-fits";
+
+function Fits() {
+  return (
+    <Panel panelTitle="Fits">
+      <Stack gap="sm">
+        <Field>
+          <FieldLabel htmlFor="fits-text">Name</FieldLabel>
+          <Input id="fits-text" readOnly value="Kerbin" />
+        </Field>
+        <Input aria-label="Filter" placeholder="Filter" />
+        <input
+          aria-label="Altitude"
+          readOnly
+          style={{ width: "8em", textAlign: "right" }}
+          type="number"
+          value="100"
+        />
+        <Select aria-label="Body" defaultValue="mun">
+          <option value="mun">Mun</option>
+        </Select>
+        <Textarea aria-label="Notes" readOnly rows={2} value="Go for launch" />
+      </Stack>
+    </Panel>
+  );
+}
+
+registerComponent({
+  id: FITS_ID,
+  name: "Min-size gate fitting controls",
+  description:
+    "Registered only inside the min-size gate's probe page: proves the audit passes form controls that fit.",
+  tags: ["diagnostics"],
+  component: Fits,
+  dataRequirements: [],
+  defaultSize: { w: 6, h: 8 },
+  minSize: { w: 4, h: 6 },
+});
+
 /** One widget, as the Node half needs it. */
 export interface MinSizeWidget {
   id: string;
@@ -129,9 +195,11 @@ export interface MinSizeWidget {
 declare global {
   var __minsizeWidgets: () => MinSizeWidget[];
   var __minsizeCanaryId: string;
+  var __minsizeFitsId: string;
 }
 
 globalThis.__minsizeCanaryId = CANARY_ID;
+globalThis.__minsizeFitsId = FITS_ID;
 globalThis.__minsizeWidgets = () =>
   getComponents().map((def) => ({
     id: def.id,

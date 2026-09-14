@@ -344,7 +344,11 @@ function LibrationPointsComponent({
             value={chosen}
             onChange={(e) => setChosen(e.target.value)}
           >
-            <option value={AUTO_PAIR}>Auto (nearest to the craft)</option>
+            {/* The short form, because the toolbar shares its row with the
+                label: the long one could only ever show "Auto (n" at the
+                minimum. The pair Auto resolved to is named in the caption
+                below, and the config form says what Auto follows. */}
+            <option value={AUTO_PAIR}>Auto</option>
             {candidates.map((pair) => (
               <option
                 key={pair.secondaryIndex}

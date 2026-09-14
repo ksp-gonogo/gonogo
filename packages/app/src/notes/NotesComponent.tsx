@@ -99,7 +99,7 @@ function NotesView({
         <AddRow>
           <TagAutocomplete
             ariaLabel="New note body (use {{ to insert a variable)"
-            placeholder="New note... type {{ to insert a variable"
+            placeholder="New note"
             value={draft}
             onChange={setDraft}
             onKeyDown={(e) => {
@@ -123,7 +123,10 @@ function NotesView({
       sections={
         <Section full gap="lg">
           {ordered.length === 0 ? (
-            <Empty>No notes yet: add one below.</Empty>
+            <Empty>
+              No notes yet: add one below. Type {"{{"} in a note to insert a
+              variable.
+            </Empty>
           ) : (
             ordered.map((note, idx) => (
               <NoteRow
@@ -481,7 +484,9 @@ registerComponent({
     "Mission notes synced across all screens. Use {{key.path}} to embed live telemetry, values update as the data feed ticks.",
   tags: ["mission-control"],
   defaultSize: { w: 6, h: 8 },
-  minSize: { w: 4, h: 4 },
+  // Six columns: the composer's field shares its row with the Add button, and
+  // any narrower leaves it too little room to show even "New note".
+  minSize: { w: 6, h: 4 },
   component: NotesComponent,
   // Tags are dynamic per-note; we subscribe to whatever the body mentions
   // at render time rather than declaring fixed dataRequirements upfront.

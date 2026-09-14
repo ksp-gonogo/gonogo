@@ -29,12 +29,16 @@
  *
  * ## It proves it can still see
  *
- * `minsize-probe.tsx` registers a widget that is broken in all five ways the
+ * `minsize-probe.tsx` registers a widget that is broken in all six ways the
  * audit can name. The gate mounts it too and REFUSES to report on anything else
  * unless it comes back broken, because every way this check can quietly stop
  * working (a bundle that mounts nothing, a probe that throws before the audit, a
  * selector that stops matching) produces an empty findings array, and an empty
  * array reads as "everything fits".
+ *
+ * It registers a second widget of form controls that all fit, and refuses just
+ * as firmly unless that one comes back clean, because a control check that
+ * called every field cut would still pass the canary.
  *
  * Usage:
  *   pnpm --filter @ksp-gonogo/app minsize-gate
@@ -252,6 +256,10 @@ async function main(): Promise<void> {
         (globalThis as unknown as { __minsizeCanaryId: string })
           .__minsizeCanaryId,
     );
+    const fitsId = await tab.evaluate(
+      () =>
+        (globalThis as unknown as { __minsizeFitsId: string }).__minsizeFitsId,
+    );
 
     // The planted canary must fail, or the sweep below proves nothing.
     const canary = all.find((w) => w.id === canaryId);
@@ -270,19 +278,53 @@ async function main(): Promise<void> {
     );
     const canaryKinds = kindsOf(canaryFindings);
     const WANTED =
-      "box-clipped, box-escapes-tile, escapes-tile, text-cut-off, title-clipped";
+      "box-clipped, box-escapes-tile, control-cut-off, escapes-tile, text-cut-off, title-clipped";
     if (canaryKinds !== WANTED) {
       throw new Error(
-        `minsize-gate: BLIND. The planted canary is broken in five ways and ` +
+        `minsize-gate: BLIND. The planted canary is broken in six ways and ` +
           `the audit reported "${canaryKinds || "(nothing)"}" instead of ` +
           `"${WANTED}". A check that cannot see a violation it planted itself ` +
           `reports zero, and zero reads as success. No result from this run is ` +
           `trustworthy.`,
       );
     }
+    // Named as well as counted, so a finding that has lost track of which field
+    // it is about fails here rather than printing "unnamed input" in the field.
+    const cutField = canaryFindings.find((f) => f.kind === "control-cut-off");
+    if (!cutField?.text.startsWith("Canary clipped field value ")) {
+      throw new Error(
+        `minsize-gate: BLIND. The canary's clipped field was reported as ` +
+          `"${cutField?.text ?? "(nothing)"}", not by its accessible name ` +
+          `"Canary clipped field" and the value it shows.`,
+      );
+    }
+
+    // The planted pass: a check that calls every field cut would still see the
+    // canary's, so it has to be shown fields that fit and say nothing.
+    const fits = all.find((w) => w.id === fitsId);
+    if (!fits?.minSize) {
+      throw new Error(
+        "minsize-gate: BLIND. The planted fitting-controls widget did not " +
+          "register, so nothing proves the control check passes a field that " +
+          "fits. Fix minsize-probe.tsx rather than skipping this.",
+      );
+    }
+    const fitsFindings = await mountAndAudit(
+      tab,
+      fits,
+      fits.minSize.w,
+      fits.minSize.h,
+    );
+    if (fitsFindings.length > 0) {
+      throw new Error(
+        `minsize-gate: the planted form controls fit their tile and the audit ` +
+          `reported them anyway, so every control finding in this run may be ` +
+          `false:\n${describe(fits, fitsFindings, fitsFindings.length)}`,
+      );
+    }
 
     const subjects = all
-      .filter((w) => w.id !== canaryId)
+      .filter((w) => w.id !== canaryId && w.id !== fitsId)
       .filter((w) => (args.widget ? w.id === args.widget : true))
       .sort((a, b) => a.id.localeCompare(b.id));
     const undeclared = subjects.filter((w) => !w.minSize).map((w) => w.id);
@@ -384,7 +426,9 @@ async function main(): Promise<void> {
           `  - make it fit. A heading that will not wants <Panel compactTitle>,\n` +
           `    which draws the widest of the shorter forms you give it that the\n` +
           `    box has room for; content that overflows wants a scroller rather\n` +
-          `    than an overflow:hidden with nothing to scroll.\n` +
+          `    than an overflow:hidden with nothing to scroll. A form field cut off\n` +
+          `    wants a kit control laid out with room for its value (a Field\n` +
+          `    stacking the label above it) rather than squeezed beside a label.\n` +
           `  - RAISE its minSize, when the honest answer is that the widget cannot\n` +
           `    be that small. Say so in the commit.\n\n` +
           `Do NOT add it to minsize-debt.ts: that list is seeded and shrink-only.`,
