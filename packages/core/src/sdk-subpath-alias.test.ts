@@ -1,5 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -55,7 +63,9 @@ function sdkSubpaths(): string[] {
  * silently: the gate below would then iterate an empty list and report no
  * missing subpaths.
  */
-function sdkConfigs(): { path: string; source: string; aliases: boolean }[] {
+function sdkConfigs(
+  base = REPO_ROOT,
+): { path: string; source: string; aliases: boolean }[] {
   const found: { path: string; source: string; aliases: boolean }[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -70,14 +80,14 @@ function sdkConfigs(): { path: string; source: string; aliases: boolean }[] {
       const source = readFileSync(full, "utf8");
       if (!source.includes("@ksp-gonogo/sitrep-sdk")) continue;
       found.push({
-        path: full.slice(REPO_ROOT.length + 1),
+        path: full.slice(base.length + 1),
         source,
         aliases: source.includes('"@ksp-gonogo/sitrep-sdk":'),
       });
     }
   };
-  walk(join(REPO_ROOT, "mod"));
-  walk(join(REPO_ROOT, "packages"));
+  walk(join(base, "mod"));
+  walk(join(base, "packages"));
   return found;
 }
 
@@ -241,8 +251,44 @@ describe("sdk subpath aliases", () => {
     expect(sdkSubpaths().length).toBeGreaterThanOrEqual(3);
   });
 
-  it("finds at least one config to check, so a green result means something", () => {
-    expect(configsAliasingTheSdk().length).toBeGreaterThan(0);
+  it("finds a planted config to check, so a green result means something", () => {
+    /*
+     * This asked for at least one real config, and the configs that alias the
+     * sdk belong to Uplink clients leaving for the gonogo-uplinks repo, so the
+     * walk would have nothing to find and could not tell that from a broken one.
+     * It is proved on a planted tree instead: an aliasing config under mod/, a
+     * config naming the sdk without the alias under packages/, and a decoy inside
+     * node_modules that must not be read.
+     */
+    const root = mkdtempSync(join(tmpdir(), "sdk-alias-plant-"));
+    const plant = (rel: string, text: string) => {
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      writeFileSync(join(root, rel), text);
+    };
+    try {
+      plant(
+        "mod/GonogoPlantedUplink/client/vitest.config.ts",
+        'export default { resolve: { alias: { "@ksp-gonogo/sitrep-sdk": "./x" } } };\n',
+      );
+      plant(
+        "packages/planted/vitest.config.mts",
+        'import "@ksp-gonogo/sitrep-sdk";\n',
+      );
+      plant(
+        "packages/planted/node_modules/decoy/vitest.config.ts",
+        'export default { alias: { "@ksp-gonogo/sitrep-sdk": "./y" } };\n',
+      );
+      expect(
+        sdkConfigs(root)
+          .map((config) => `${config.path} ${config.aliases}`)
+          .sort(),
+      ).toEqual([
+        "mod/GonogoPlantedUplink/client/vitest.config.ts true",
+        "packages/planted/vitest.config.mts false",
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("recognises the alias in every config that names the sdk at all", () => {

@@ -10,7 +10,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
-import { styleguideScanRoots } from "./styleguideScanRoots";
+import {
+  SCANNED_PACKAGE_ROOTS,
+  styleguideScanRoots,
+  trackedModClientRoots,
+} from "./styleguideScanRoots";
 
 /**
  * A hand-rolled command control must render the BLOCKED phase.
@@ -108,16 +112,18 @@ const BLOCKED_PHASE_DEBT: Record<string, string> = {
 const EXCLUDED = /\/dist\/|\.test\.|\.spec\.|test-d|__fixtures__|__generated__/;
 
 /**
- * Scan floors. Both are held well under the live numbers so ordinary movement
- * never trips them and only a broken walk does.
+ * The file floor, held well under the live number so ordinary movement never
+ * trips it and only a broken walk does. The host packages alone keep it cleared
+ * whatever Uplinks leave.
  *
- * `styleguide-wall-clock` is why the ROOT floor exists: it walked 1 widget root
- * of 13 and stayed green for months, because its only guard against a broken
- * scan was a stale-entry check, which protects against a walk reading NOTHING
- * and not against one reading a thirteenth of the tree. A per-root assertion is
- * the shape that catches it: 19 roots at the time of writing, none empty.
+ * `styleguide-wall-clock` is why the roots are checked separately: it walked 1
+ * widget root of 13 and stayed green for months, because its only guard against
+ * a broken scan was a stale-entry check, which protects against a walk reading
+ * NOTHING and not against one reading a thirteenth of the tree. That used to be
+ * a floor of 15 roots, and every mod Uplink's client root is leaving for the
+ * gonogo-uplinks repo, so the roots walked are held exactly to the package roots
+ * plus every client root git tracks instead, none of them empty.
  */
-const MINIMUM_ROOTS = 15;
 const MINIMUM_FILES = 800;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -345,7 +351,9 @@ describe("a hand-rolled command control renders the blocked phase", () => {
       .filter(([, n]) => n === 0)
       .map(([rel]) => rel);
     expect(empty, "scan roots that yielded no source file").toEqual([]);
-    expect(scan.perRoot.size).toBeGreaterThanOrEqual(MINIMUM_ROOTS);
+    expect([...scan.perRoot.keys()].sort()).toEqual(
+      [...SCANNED_PACKAGE_ROOTS, ...trackedModClientRoots(root)].sort(),
+    );
     /*
      * Both halves named rather than inferred from a total. This rule is about
      * HOST widgets and Uplink widgets alike, and a walk that lost one side

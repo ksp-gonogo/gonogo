@@ -2,6 +2,7 @@
 //
 // Node realm rather than the package's jsdom default: this walks the mod tree and touches no DOM.
 import { execFileSync } from "node:child_process";
+import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -157,18 +158,32 @@ describe("wire payload reachability", () => {
   });
 
   it("reaches every Uplink's own contract slice", () => {
-    // An Uplink owns its wire types, and a walk that reads only the core slice
-    // cannot see them: that is how the third instance of this bug class, an
-    // Uplink publishing one of its OWN enums, sat outside the sweep. A
-    // discovery that matches nothing hashes nothing and reports a clean tree,
-    // so the count is floored rather than trusted. Six slices since three
-    // Uplinks left for the gonogo-uplinks repo on 2026-09-06.
-    expect(report.uplinkSlices).toBeGreaterThan(4);
-    expect(report.uplinkRoots).toBeGreaterThan(40);
-    expect(report.uplinkReached).toBeGreaterThan(40);
+    /*
+     * An Uplink owns its wire types, and a walk that reads only the core slice
+     * cannot see them: that is how the third instance of this bug class, an
+     * Uplink publishing one of its OWN enums, sat outside the sweep.
+     *
+     * A discovery that matches nothing hashes nothing and reports a clean tree.
+     * This was floored at 5 slices and 40 roots and types, and every mod Uplink
+     * is leaving for the gonogo-uplinks repo, so the slices are held to the
+     * codegen twins on disk instead, which holds at any count including none.
+     */
+    const twins = readdirSync(join(REPO_ROOT, "mod"))
+      .filter((name) => /^Gonogo.*Uplink\.Contract\.Codegen$/.test(name))
+      .map((name) => name.slice(0, -".Contract.Codegen".length))
+      .sort();
+    expect(
+      report.slices
+        .filter((slice) => !slice.core)
+        .map((slice) => slice.id)
+        .sort(),
+    ).toEqual(twins);
     // Every discovered slice actually contributed, rather than the total being
     // carried by one large Uplink while the rest silently walked nothing.
-    for (const slice of report.slices) expect(slice.roots).toBeGreaterThan(0);
+    for (const slice of report.slices) {
+      expect(slice.roots).toBeGreaterThan(0);
+      expect(slice.reached).toBeGreaterThan(0);
+    }
   });
 
   it("discovers the Uplink slices rather than listing them", () => {

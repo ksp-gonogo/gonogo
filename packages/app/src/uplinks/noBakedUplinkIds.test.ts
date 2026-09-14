@@ -109,17 +109,26 @@ function shippedSourceFiles(dir: string): string[] {
 
 describe("no baked Uplink ids in shipped app code", () => {
   it("has ids to look for, so a pass is not vacuous", () => {
-    expect(TARGET_IDS.length).toBeGreaterThanOrEqual(2);
+    // The parse throws on no ids at all. This was a floor of 2, and every Uplink
+    // but one in the bundle targets is leaving for the gonogo-uplinks repo, so
+    // the list is not held to a size; the plants below use fictional ids.
+    expect(TARGET_IDS.length).toBeGreaterThan(0);
   });
 
+  /*
+   * Fictional ids, for the reason the client-import plants below give, and so
+   * the plant still holds two ids once the bundle targets name only one.
+   */
+  const PLANTED_IDS = ["acmeReactor", "acmeTurbopump"];
+
   it("sees a planted violation", () => {
-    const planted = `export const IDS = ${JSON.stringify(TARGET_IDS)} as const;`;
-    expect(quotedIds(planted, TARGET_IDS)).toEqual(TARGET_IDS);
+    const planted = `export const IDS = ${JSON.stringify(PLANTED_IDS)} as const;`;
+    expect(quotedIds(planted, PLANTED_IDS)).toEqual(PLANTED_IDS);
   });
 
   it("does not fire on a single id, which is a legitimate one-off reference", () => {
-    const benign = `const only = "${TARGET_IDS[0]}";`;
-    expect(quotedIds(benign, TARGET_IDS)).toHaveLength(1);
+    const benign = `const only = "${PLANTED_IDS[0]}";`;
+    expect(quotedIds(benign, PLANTED_IDS)).toHaveLength(1);
   });
 
   it("finds no Uplink id list under src/", () => {

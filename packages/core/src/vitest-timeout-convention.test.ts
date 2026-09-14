@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -97,8 +98,29 @@ describe("every jsdom vitest project sets an explicit test timeout", () => {
     // with no timeout, and the assertion below would pass having checked nothing:
     // the exact shape of blindness this file exists to prevent.
     const projects = readProjects();
-    expect(projects.length).toBeGreaterThan(15);
-    expect(projects.filter((p) => p.jsdom).length).toBeGreaterThan(10);
+    /*
+     * Not counts: these were floors of 15 projects and 10 jsdom ones, and seven
+     * of those configs belong to Uplink clients leaving for the gonogo-uplinks
+     * repo. The configs found must be exactly the vitest.config.ts files git
+     * tracks, and the jsdom read must agree with a plain substring read of each.
+     */
+    const tracked = execFileSync("git", ["ls-files", "packages", "mod"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter((rel) => rel.split("/").pop() === "vitest.config.ts")
+      .sort((a, b) => a.localeCompare(b));
+    expect(projects.map((p) => p.path)).toEqual(tracked);
+    expect(
+      projects.filter((p) => p.jsdom).map((p) => p.path),
+      "the jsdom parse disagrees with a plain read of each config",
+    ).toEqual(
+      tracked.filter((rel) =>
+        readFileSync(join(ROOT, rel), "utf8").includes('environment: "jsdom"'),
+      ),
+    );
     expect(
       projects.map((p) => p.path),
       "the components suite is the one this guard was written for, so a parse " +

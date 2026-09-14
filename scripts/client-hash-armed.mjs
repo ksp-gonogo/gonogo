@@ -106,28 +106,13 @@ const withClient = JSON.parse(
   }),
 ).filter((leg) => leg.client && leg.csproj);
 
-/*
- * A run that examines nothing reports success. Both halves have to be true for
- * an Uplink to be checkable at all (a client to hash, a csproj to bake into), so
- * an empty set here means the matrix moved rather than that the repo has no
- * Uplinks.
- */
-if (withClient.length === 0) {
-  console.error(
-    "✖ the matrix reported no Uplink with BOTH a client and a plugin csproj, so this examined\n" +
-      "  nothing and would have exited clean. Either the matrix's shape changed or discovery is\n" +
-      "  broken; a hash gate that inspects zero DLLs is worse than no gate.",
-  );
-  process.exit(1);
-}
-
 const HASH = /public const string Value = "([^"]*)"/;
 
-const rows = withClient.map((leg) => {
-  const generated = join(ROOT, "mod", leg.id, "ExpectedClientHash.g.cs");
+/** One Uplink's arming state, read off its generated file. */
+const rowFor = (id, generated) => {
   if (!existsSync(generated)) {
     return {
-      id: leg.id,
+      id,
       state: "absent",
       detail: "no ExpectedClientHash.g.cs",
     };
@@ -135,15 +120,42 @@ const rows = withClient.map((leg) => {
   const matched = readFileSync(generated, "utf8").match(HASH);
   if (!matched) {
     return {
-      id: leg.id,
+      id,
       state: "unreadable",
       detail: 'no `public const string Value = "..."` in the generated file',
     };
   }
   return matched[1]
-    ? { id: leg.id, state: "armed", detail: matched[1] }
-    : { id: leg.id, state: "empty", detail: "vouches for nothing" };
-});
+    ? { id, state: "armed", detail: matched[1] }
+    : { id, state: "empty", detail: "vouches for nothing" };
+};
+
+/*
+ * A run that examines nothing reports success. This used to refuse when the
+ * matrix reported no Uplink with both a client and a plugin csproj, and every
+ * such Uplink is leaving for the gonogo-uplinks repo, so an empty set is a real
+ * end state. The matrix proves its own walk on a planted fixture, and the read
+ * below is proved on that fixture's armed ExpectedClientHash.g.cs, so a broken
+ * read still fails at any number of Uplinks including none.
+ */
+const planted = rowFor(
+  "GonogoPlantedUplink",
+  join(
+    ROOT,
+    "mod/Sitrep.Core.Tests/UplinkWalkPlant/GonogoPlantedUplink/ExpectedClientHash.g.cs",
+  ),
+);
+if (planted.state !== "armed") {
+  console.error(
+    `✖ BLIND: the planted GonogoPlantedUplink read as ${planted.state} (${planted.detail}), so this\n` +
+      "  read cannot tell an armed Uplink from an unarmed one and every row below is meaningless.",
+  );
+  process.exit(1);
+}
+
+const rows = withClient.map((leg) =>
+  rowFor(leg.id, join(ROOT, "mod", leg.id, "ExpectedClientHash.g.cs")),
+);
 
 for (const row of rows) {
   console.log(`  ${row.state.padEnd(10)} ${row.id.padEnd(38)} ${row.detail}`);

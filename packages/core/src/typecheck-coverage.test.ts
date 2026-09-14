@@ -4,6 +4,7 @@
 // `uplink-isolation.test.ts`: the shrink-only check transpiles the allowlist at
 // a git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm,
 // and the scan asks `ts.sys` to resolve config files off disk.
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -54,11 +55,33 @@ const ALLOWLIST_PATH = "packages/core/src/typecheck-coverage.allowlist.ts";
 const PACKAGE_ROOTS = ["packages", "mod"];
 
 /**
- * Floor for the self-check below. The repo had 24 packages carrying a
- * `typecheck` script when this landed; well under twenty means the walk lost
- * its input rather than the repo shrinking by half.
+ * The packages with test files as git tracks them: every tracked `package.json`
+ * directory under the roots that is the nearest package of some tracked test
+ * file. The independent list the directory walk is checked against, which
+ * replaced a floor of 18 packages: seven Uplink clients are leaving for the
+ * gonogo-uplinks repo, so a floor could not tell that from a walk that lost its
+ * input.
  */
-const MIN_PACKAGES_SCANNED = 18;
+function trackedPackagesWithTests(): string[] {
+  const tracked = execFileSync("git", ["ls-files", ...PACKAGE_ROOTS], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  }).split("\n");
+  const packages = tracked
+    .filter((rel) => rel.endsWith("/package.json"))
+    .map((rel) => rel.slice(0, -"/package.json".length))
+    .filter((dir) => !/(^|\/)(node_modules|dist)(\/|$)/.test(dir));
+  const withTests = new Set<string>();
+  for (const rel of tracked) {
+    if (!isTestFile(rel.split("/").pop() ?? "")) continue;
+    const owner = packages
+      .filter((dir) => rel.startsWith(`${dir}/`))
+      .sort((a, b) => b.length - a.length)[0];
+    if (owner) withTests.add(owner);
+  }
+  return [...withTests].sort();
+}
 
 const isTestFile = (f: string) => /\.test\.tsx?$/.test(f);
 
@@ -193,9 +216,10 @@ describe("typecheck coverage: every package typechecks its own test files", () =
     // and reports a clean tree. Silence is indistinguishable from success, so
     // the input set is asserted before anything is concluded from it.
     expect(
-      COVERAGE.length,
-      `Only ${COVERAGE.length} packages with test files were found under ${PACKAGE_ROOTS.join(", ")}. The walk lost its input.`,
-    ).toBeGreaterThanOrEqual(MIN_PACKAGES_SCANNED);
+      COVERAGE.map((c) => c.pkg.dir).sort(),
+      `The packages with test files found under ${PACKAGE_ROOTS.join(", ")} disagree with the ones git tracks. The walk lost its input.`,
+    ).toEqual(trackedPackagesWithTests());
+    expect(COVERAGE.map((c) => c.pkg.dir)).toContain("packages/core");
 
     const withoutConfigs = COVERAGE.filter((c) => c.configs.length === 0);
     expect(

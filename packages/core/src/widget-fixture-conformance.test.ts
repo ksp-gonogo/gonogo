@@ -5,6 +5,7 @@
 // below to read the debt list at the base revision, asserts
 // `new TextEncoder().encode("") instanceof Uint8Array` and throws "JavaScript
 // environment is broken" under jsdom. Nothing here touches the DOM.
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -248,15 +249,37 @@ describe("widget fixtures conform to the generated contract", () => {
 
   it("walked a real number of fixtures, payloads and fields", () => {
     const all = scanAll();
-    expect(all.length).toBeGreaterThan(40);
-    const payloads = all.reduce((n, s) => n + s.payloadsChecked, 0);
-    const fields = all.reduce((n, s) => n + s.fieldsChecked, 0);
-    // Floors, not equalities: fixtures are added constantly and an equality
-    // here would be a chore rather than a check. 1016 payloads and 14896 field
-    // names at the seeding scan.
-    expect(payloads).toBeGreaterThan(700);
-    expect(fields).toBeGreaterThan(10_000);
-    expect(all.filter((s) => s.payloadsChecked > 0).length).toBeGreaterThan(30);
+    /*
+     * Not floors: these were 40 widgets, 700 payloads, 10,000 field names and 30
+     * widgets with payloads, set under a tree whose Uplink fixtures are leaving
+     * for the gonogo-uplinks repo. The widget directories walked must be exactly
+     * those git tracks a fixture under; most of them must have had a payload
+     * graded, and every one that did must have had field names matched, which a
+     * walker that stopped descending cannot satisfy at any size.
+     */
+    const tracked = [
+      ...new Set(
+        execFileSync("git", ["ls-files", "packages", "mod"], {
+          cwd: ROOT,
+          encoding: "utf8",
+          maxBuffer: 64 * 1024 * 1024,
+        })
+          .split("\n")
+          .filter((rel) =>
+            /^(packages\/[^/]+\/src|mod\/[^/]+\/client\/src)\/(.+\/)?__fixtures__\/[^/]+$/.test(
+              rel,
+            ),
+          )
+          .map((rel) => rel.slice(0, rel.indexOf("/__fixtures__/"))),
+      ),
+    ].sort();
+    expect(all.map((s) => s.dir).sort()).toEqual(tracked);
+    const graded = all.filter((s) => s.payloadsChecked > 0);
+    expect(graded.length * 2).toBeGreaterThan(all.length);
+    expect(
+      graded.filter((s) => s.fieldsChecked === 0).map((s) => s.dir),
+      "widgets whose payloads were graded with no field name matched",
+    ).toEqual([]);
   });
 
   it("sends no field the contract does not declare", () => {
@@ -464,7 +487,15 @@ describe("the widget-fixture check can fail", () => {
     const fromUplinks = contract().topicIds.filter(
       (id) => contract().sourceOf(id) !== sdkFile,
     );
-    expect(fromUplinks.length).toBeGreaterThan(10);
+    /*
+     * This was a floor of 10 Uplink topics. Every Uplink topic map is leaving for
+     * the gonogo-uplinks repo, and once none is left an sdk-only resolver IS the
+     * resolver, so there is nothing for it to be blind to. Whether any map is left
+     * is read off disk, and "resolves both halves of the contract" holds the
+     * resolver to every map that is, so this cannot skip over a map it dropped.
+     */
+    expect(fromUplinks.length > 0).toBe(uplinkTopicMapCount() > 0);
+    if (uplinkTopicMapCount() === 0) return;
 
     const planted = fromUplinks
       .map((topic) => ({

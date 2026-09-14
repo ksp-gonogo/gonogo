@@ -438,14 +438,22 @@ try {
       (uplink) => !only || uplink.id.toLowerCase().includes(only.toLowerCase()),
     );
 
-  // A filter that selects nothing runs the loop zero times and reports success.
+  /*
+   * A filter that selects nothing runs the loop zero times and reports success.
+   * Without a filter an empty set is a real end state, since every Uplink with a
+   * plugin csproj is leaving for the gonogo-uplinks repo: the matrix proves its
+   * walk on a planted fixture, and selfTest above proved the probe can fail.
+   */
   if (uplinks.length === 0) {
-    console.error(
-      only
-        ? `✖ --only ${only} matched no Uplink with a csproj, so nothing was probed.`
-        : "✖ BLIND: the matrix reported no Uplink with a csproj, so nothing was probed.",
+    if (only) {
+      console.error(
+        `✖ --only ${only} matched no Uplink with a csproj, so nothing was probed.`,
+      );
+      process.exit(1);
+    }
+    console.log(
+      "  The matrix reports no Uplink with a csproj; nothing to probe.",
     );
-    process.exit(1);
   }
 
   const measured = {};
