@@ -410,13 +410,17 @@ namespace GonogoRp1Uplink
             bool operational,
             IDictionary? lcToEfficiency,
             double maxEfficiency,
-            double rushRateMult,
+            double? rushRateMult,
             Payroll payroll)
         {
             var lcId = ReadGuidString(lc, "ID");
             var lcType = ReadEnumName(lc, "LCType");
             var isRushing = ReadBool(lc, "IsRushing") == true;
-            var rushRate = isRushing ? rushRateMult : 1.0;
+            // Null-propagating, and only while the complex is RUSHING: a complex
+            // that is not rushing runs at 1.0 whatever RP-1 charges for rushing,
+            // so an unreadable multiplier is no gap there. A rushing one has no
+            // honest rate without it, and every rate it feeds goes absent with it.
+            double? rushRate = isRushing ? rushRateMult : 1.0;
 
             // The hangar has no efficiency record of its own and RP-1 reads it as
             // the ceiling; every other complex is looked up, and a MISS is absent
@@ -592,9 +596,9 @@ namespace GonogoRp1Uplink
                         : reversed ? rawProgress.Value : points.Value - rawProgress.Value,
                     // Un-shared: the sequencing applies each project's share
                     // itself, and re-applying it here would square it.
-                    Rate = baseRate < 0.0 || efficiency == null
+                    Rate = baseRate < 0.0 || efficiency == null || rushRate == null
                         ? (double?)null
-                        : baseRate * efficiency.Value * rushRate,
+                        : baseRate * efficiency.Value * rushRate.Value,
                 });
             }
 
@@ -631,7 +635,7 @@ namespace GonogoRp1Uplink
             string? lcId,
             object vp,
             double? efficiency,
-            double rushRate,
+            double? rushRate,
             bool? canIntegrate,
             Func<double, double>? ramp,
             bool withProgress)
@@ -686,7 +690,7 @@ namespace GonogoRp1Uplink
             string? lcId,
             object op,
             double? efficiency,
-            double rushRate,
+            double? rushRate,
             double? projectBpTotal,
             Func<double, double>? ramp,
             List<object> blockingOps,
@@ -1496,14 +1500,23 @@ namespace GonogoRp1Uplink
         private static double? NonZero(double? value) =>
             value == null || value.Value == 0.0 ? (double?)null : value;
 
-        private double ReadRushRateMult()
+        /// <summary>
+        /// What RP-1 multiplies a rushing complex's rate by, or null when it could
+        /// not be read, from any of the three places the read can fail.
+        ///
+        /// <para>Absent rather than 1.0, on the same grounds
+        /// <see cref="ReadRushTerms"/> states: RP-1 ships 1.5, so a substituted 1.0
+        /// tells an operator that rushing buys them nothing, and every rate derived
+        /// from it is then a rate nobody is building at.</para>
+        /// </summary>
+        private double? ReadRushRateMult()
         {
             if (_database == null)
             {
-                return 1.0;
+                return null;
             }
             var settings = Rp1Types.StaticValue(_database, "SettingsSC");
-            return settings == null ? 1.0 : ReadDouble(settings, "RushRateMult") ?? 1.0;
+            return settings == null ? (double?)null : ReadDouble(settings, "RushRateMult");
         }
 
         private double ReadMaxEfficiency()
