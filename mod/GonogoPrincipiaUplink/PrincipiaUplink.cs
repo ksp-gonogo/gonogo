@@ -314,7 +314,7 @@ namespace GonogoPrincipiaUplink
             var plan = _planReader.Read(
                 settings.Session,
                 settings.ActiveVesselGuid,
-                snapshot?.Ut ?? 0.0,
+                UtOf(snapshot),
                 settings.Celestials);
             // Kept for the maneuver-plan source, which answers an election on the
             // Courier thread and cannot reach the producer itself. A reference
@@ -502,7 +502,7 @@ namespace GonogoPrincipiaUplink
             using (frame)
             {
                 return _analysisReader.ReadInFrame(
-                    frame, settings.Celestials, guid!, snapshot?.Ut ?? 0.0);
+                    frame, settings.Celestials, guid!, UtOf(snapshot));
             }
         }
 
@@ -544,7 +544,7 @@ namespace GonogoPrincipiaUplink
             {
                 return null;
             }
-            var ut = snapshot?.Ut ?? 0.0;
+            var ut = UtOf(snapshot);
             var version = _settings.Session?.Version;
             var observation = new SettingsObservation { SampledAtUt = ut, PluginVersion = version };
             _settingsReader.Read(_settings, observation);
@@ -605,6 +605,22 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         private bool IsSubscribed(string topic) =>
             _host == null || _host.IsAnyTopicSubscribed(topic);
+
+        /// <summary>
+        /// The instant to stamp a capture with: the snapshot's own, or the live
+        /// clock on a tick that carries no snapshot.
+        ///
+        /// <para>It used to coalesce to <c>0.0</c>, which is year 1 day 1 and
+        /// therefore a real instant: a reading stamped with it says it came from
+        /// the start of the game rather than from a time nobody measured. A null
+        /// <c>_host</c> is a wiring fault rather than a tick without a snapshot,
+        /// because a capture cannot run before <see cref="Register"/> sets it, so
+        /// this throws rather than substituting an instant of its own. That is the
+        /// opposite reading of the same null from <see cref="IsSubscribed"/> above,
+        /// deliberately: a missing subscription answer has a safe default and a
+        /// missing clock has none.</para>
+        /// </summary>
+        private double UtOf(KspSnapshot? snapshot) => snapshot?.Ut ?? _host!.NowUt();
 
         /// <summary>
         /// Unavailable is the ORDINARY answer, not a fault: Principia is optional

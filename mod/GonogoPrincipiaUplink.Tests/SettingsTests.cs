@@ -612,6 +612,12 @@ namespace GonogoPrincipiaUplink.Tests
         private static readonly PrincipiaGuardResult Present =
             PrincipiaGuardResult.Ok(null);
 
+        /// <summary>
+        /// A UT no reading could arrive at by accident, so an observation carrying
+        /// it can only have asked the host for it.
+        /// </summary>
+        private const double HostClockUt = 987654.0;
+
         [Fact]
         public void PublishesNothingWithoutASource()
         {
@@ -629,6 +635,7 @@ namespace GonogoPrincipiaUplink.Tests
         public void StopsReadingEntirelyWhileAJournalIsBeingRecorded()
         {
             var uplink = new PrincipiaUplink(Present, new FakeJournallingSettingsSource());
+            uplink.Register(new RecordingUplinkHost { Clock = HostClockUt });
 
             var captured = Assert.IsType<SettingsObservation>(uplink.CaptureSettingsOnMain(null));
 
@@ -648,12 +655,30 @@ namespace GonogoPrincipiaUplink.Tests
         public void ARequestedJournalThatIsNotRunningDoesNotStopTheReading()
         {
             var uplink = new PrincipiaUplink(Present, new FakeSettingsSource());
+            uplink.Register(new RecordingUplinkHost { Clock = HostClockUt });
 
             var captured = Assert.IsType<SettingsObservation>(uplink.CaptureSettingsOnMain(null));
 
             Assert.True(captured.RecordJournalRequested);
             Assert.False(captured.ReadingSuspended);
             Assert.NotNull(captured.PlottingFrame);
+        }
+
+        /// <summary>
+        /// A tick with no snapshot is stamped with the host's clock, never 0.0. The
+        /// epoch is year 1 day 1 and therefore a real instant, so a reading carrying
+        /// it says the settings were read at the start of the game rather than at a
+        /// time nobody measured.
+        /// </summary>
+        [Fact]
+        public void AReadingOnATickWithNoSnapshotIsStampedWithTheHostsClock()
+        {
+            var uplink = new PrincipiaUplink(Present, new FakeSettingsSource());
+            uplink.Register(new RecordingUplinkHost { Clock = HostClockUt });
+
+            var captured = Assert.IsType<SettingsObservation>(uplink.CaptureSettingsOnMain(null));
+
+            Assert.Equal(HostClockUt, captured.SampledAtUt);
         }
     }
 
