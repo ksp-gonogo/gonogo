@@ -102,13 +102,18 @@ describe("deployed-science power state", () => {
   });
 
   /**
-   * No derived state at all - an older mod build, or a cluster the capture could
-   * not read. Not powered, because we cannot claim it is; and NOT partially
-   * powered, which is the invented middle state the old fall-through produced.
+   * No derived state at all: an older mod build, or a cluster the capture could
+   * not read. That is a THIRD answer, not "not powered".
+   *
+   * This asserted `powered: false` until 2026-09-14, on the reasoning that we
+   * cannot claim it IS powered. True, and it does not follow that we may claim
+   * it is not: `false` is what the render paints the red `nogo` "Unpowered"
+   * pill from, so an unread cluster read exactly as confidently dark as a
+   * genuinely dark one. `partialPower` stays false, as it does in every arm.
    */
-  it("reads an absent power state as not powered, and never as partial", () => {
+  it("reads an absent power state as neither powered nor unpowered", () => {
     const [base] = baseWith({ power: null, powerState: "Powered" });
-    expect(base?.powered).toBe(false);
+    expect(base?.powered).toBeNull();
     expect(base?.partialPower).toBe(false);
   });
 

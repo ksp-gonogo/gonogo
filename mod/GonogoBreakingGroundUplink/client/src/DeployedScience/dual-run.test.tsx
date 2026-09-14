@@ -1,3 +1,4 @@
+import { DeployedPowerState } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   setupStreamFixture,
@@ -55,6 +56,11 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           scienceLimit: 60,
           powerState: "Powered",
           connectionState: "Connected",
+          // The DERIVED ordinal the widget branches on, alongside the prose it
+          // ignores. Absent here until 2026-09-14, which the widget then read
+          // as "not powered" rather than as "cannot say".
+          power: DeployedPowerState.Powered,
+          controllerConnected: true,
           powerAvailable: 5,
           powerRequired: 4,
           deployedOnGround: true,
@@ -72,6 +78,11 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           scienceLimit: 12,
           powerState: "Powered",
           connectionState: "Connected",
+          // The DERIVED ordinal the widget branches on, alongside the prose it
+          // ignores. Absent here until 2026-09-14, which the widget then read
+          // as "not powered" rather than as "cannot say".
+          power: DeployedPowerState.Powered,
+          controllerConnected: true,
           powerAvailable: 5,
           powerRequired: 4,
           deployedOnGround: true,

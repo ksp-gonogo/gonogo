@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "unavailable",
-    "notes": "Breaking Ground not installed: muted empty state, no rotors."
+    "notes": "Breaking Ground not installed: muted empty state, no rotors. `robotics.available` is deliberately ABSENT rather than false. Without the expansion the Uplink goes Unavailable and never emits on that channel at all, so a fixture setting it false encoded the confusion the widget used to have: it read `available === false` as 'the DLC is missing' when that value actually means 'this craft carries no robotic part'. The DLC fact comes off `game.dlc.breakingGround`, which is ground-side and independent of any vessel."
   },
   "_scene": {
     "widget": "rotor-tachometer",
@@ -10,7 +10,7 @@
     "expectsEmpty": "There are no rotors without the DLC. A dial parked at 0 RPM would read as a rotor that is stopped, which is a reading; this scene exists to show that none is drawn.",
     "paints": ["ROTOR"]
   },
-  "robotics.available": false,
+  "game.dlc": { "breakingGround": false, "makingHistory": true },
   "robotics.servos": [],
   "_stream": {
     "pinnedUt": 1000000,
@@ -20,9 +20,10 @@
         "payload": []
       },
       {
-        "topic": "robotics.available",
+        "topic": "game.dlc",
         "payload": {
-          "available": false
+          "breakingGround": false,
+          "makingHistory": true
         }
       }
     ]

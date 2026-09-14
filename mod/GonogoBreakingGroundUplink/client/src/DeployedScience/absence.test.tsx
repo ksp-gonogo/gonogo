@@ -158,3 +158,75 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("DeployedScience: an unstated power state is not unpowered", () => {
+  it("withholds the powered flag rather than reading it as false", () => {
+    const parsed = parseBases([flatEntry({ power: null })]);
+    expect(parsed?.[0]?.powered).toBeNull();
+    expect(parsed?.[0]?.partialPower).toBe(false);
+  });
+
+  it("says the power is unknown rather than painting a red Unpowered pill", async () => {
+    mount([flatEntry({ power: null, powerState: "Powered" })]);
+
+    await screen.findByText("Mun");
+    /* `power === DeployedPowerState.Powered` answered false for an absent
+       `power`, and `POWER_TONE.unpowered` is `nogo`, so an unread cluster drew
+       the same red pill as a genuinely dark one. */
+    expect(screen.queryByText(/Unpowered/i)).toBeNull();
+    const pill = screen.getByRole("status");
+    expect(pill.textContent).toContain("Power unknown");
+    expect(pill.getAttribute("data-tone")).toBe("neutral");
+  });
+
+  it("still paints the red pill for a cluster that really is dark", async () => {
+    // The control: an actual Unpowered ordinal keeps its `nogo` verdict.
+    mount([
+      flatEntry({ power: DeployedPowerState.Unpowered, powerState: "Powered" }),
+    ]);
+
+    await screen.findByText("Mun");
+    const pill = screen.getByRole("status");
+    expect(pill.textContent).toContain("Unpowered");
+    expect(pill.getAttribute("data-tone")).toBe("nogo");
+  });
+});
+
+describe("DeployedScience: an unread roster is not an empty one", () => {
+  it("says it is waiting rather than claiming nothing is planted", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    const result = renderWidget("deployed-science", {
+      instanceId: "ds-absence-roster",
+      w: 5,
+      h: 9,
+      wrapper: fixture.Provider,
+    });
+    renderedTrees.push(result.unmount);
+    act(() => {
+      // The DLC is present, so the widget cannot blame a missing expansion.
+      // Nothing lands on `deployed.bases`, which is what a mod that does not
+      // carry the channel looks like, and `parseBases` answers null for it.
+      fixture.emit("game.dlc", { breakingGround: true, makingHistory: false });
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Waiting for the deployed-base roster/i),
+      ).toBeInTheDocument(),
+    );
+    // The `?? []` turned that null into an empty array, and the panel then
+    // told an operator with four bases on Duna that they had none.
+    expect(screen.queryByText(/No deployed bases/i)).toBeNull();
+  });
+
+  it("still says the roster is empty when the mod says it is", async () => {
+    // The control: an observed empty array IS "nothing planted".
+    mount([]);
+    await waitFor(() =>
+      expect(screen.getByText(/No deployed bases/i)).toBeInTheDocument(),
+    );
+  });
+});
