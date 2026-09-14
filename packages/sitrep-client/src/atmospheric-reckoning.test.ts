@@ -6,7 +6,11 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Reading } from "./reading";
-import { clearReckoners, registerCoreReckoners } from "./reckoners";
+import {
+  clearReckoners,
+  registerCoreReckoners,
+  registerReckoner,
+} from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
@@ -734,5 +738,282 @@ describe("the carried altitude as a plotted tail", () => {
     // The same arithmetic the point read is pinned against at this instant:
     // 57600 + (-250)(3) + 0.5(-5)(9).
     expect(last.value.magnitude).toBeCloseTo(56_827.5, 6);
+  });
+});
+
+/**
+ * A descent whose vertical speeds do NOT sit on one line, sampled unevenly
+ * inside `DESCENT_WINDOW`'s eight-second lookback.
+ *
+ * Every instant is within eight seconds of the anchor, which
+ * {@link UNEVEN_DESCENT} deliberately is not: its two oldest samples fall
+ * outside the window and the fit there runs on the two that remain. A residual
+ * needs a THIRD sample, so a fixture meant to produce one has to sit inside the
+ * lookback, and that is the difference between the two.
+ *
+ * The scatter is chosen rather than sprinkled, and the choice is the whole
+ * reason the arithmetic below can be written down. The residuals `[1, -2, 1, 0]`
+ * are orthogonal to both a constant and to `t - tBar`, so the least-squares
+ * slope is still exactly -5 m/s² and the fit's own error is the only thing that
+ * changes: the altitudes are that slope integrated twice, so the carried number
+ * is the same one the perfectly-linear case is pinned against and the band
+ * beside it is the only difference between them.
+ *
+ * With `tBar = 5.5` the residual sum of squares is `1 + 4 + 1 = 6` over
+ * `n - 2 = 2` degrees of freedom, and the time spread is
+ * `2.5² + 1.5² + 0.5² + 4.5² = 29`, so the slope's standard error is
+ * `sqrt(3 / 29)`.
+ */
+const SCATTERED_DESCENT = [
+  { at: 3, altitudeAsl: 59_227.5, verticalSpeed: -214 },
+  { at: 4, altitudeAsl: 59_010, verticalSpeed: -222 },
+  { at: 5, altitudeAsl: 58_787.5, verticalSpeed: -224 },
+  { at: 10, altitudeAsl: 57_600, verticalSpeed: -250 },
+] as const;
+
+/** The standard error of `SCATTERED_DESCENT`'s fitted acceleration, in m/s². */
+const SCATTERED_SIGMA = Math.sqrt(3 / 29);
+
+/**
+ * The same four instants with the residuals taken back out, so every sample
+ * sits exactly on the -5 m/s² line.
+ *
+ * The control for {@link SCATTERED_DESCENT}: same window, same sample count,
+ * same fitted slope, and a residual sum of squares of zero. It isolates the one
+ * thing the two differ on, which is whether the window holds any evidence about
+ * how wrong the fit might be.
+ */
+const LINEAR_IN_WINDOW = SCATTERED_DESCENT.map((s, i) => ({
+  ...s,
+  verticalSpeed: s.verticalSpeed - [1, -2, 1, 0][i],
+}));
+
+/** The band the model offers about the altitude, or `undefined` where it offers none. */
+function altitudeBand(reading: Reading<FlightSample>) {
+  return reading.reckoning === "available"
+    ? reading.reckoned.bands?.altitudeAsl
+    : undefined;
+}
+
+describe("how well the descent fit knows the altitude it carried", () => {
+  it("bands the altitude by the fit's own standard error, growing with the square of the carry", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+
+    const reading = s.at(13);
+    const band = altitudeBand(reading);
+
+    // Only the ACCELERATION is fitted: the anchor's altitude and descent rate
+    // are measurements the wire carried once, with no residuals to take a sigma
+    // from. So the half-width is `0.5 x sigma_a x dt²` and nothing else.
+    const halfWidth = 0.5 * SCATTERED_SIGMA * 3 * 3;
+    expect(band?.kind).toBe("sigma1");
+    expect(band?.value.magnitude).toBeCloseTo(56_827.5, 6);
+    expect(band?.lo.magnitude).toBeCloseTo(56_827.5 - halfWidth, 6);
+    expect(band?.hi.magnitude).toBeCloseTo(56_827.5 + halfWidth, 6);
+    expect(band?.lo.unit).toBe("m");
+  });
+
+  it("widens it with the square of how far the altitude was carried", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+
+    const near = altitudeBand(s.at(13));
+    const far = altitudeBand(s.at(16));
+
+    const nearWidth = (near?.hi.magnitude ?? 0) - (near?.lo.magnitude ?? 0);
+    const farWidth = (far?.hi.magnitude ?? 0) - (far?.lo.magnitude ?? 0);
+    /*
+     * Three seconds out against six: the carry doubles and the interval
+     * quadruples, because the fitted acceleration enters the altitude as
+     * `0.5 a dt²`.
+     */
+    expect(nearWidth).toBeGreaterThan(0);
+    expect(farWidth / nearWidth).toBeCloseTo(4, 6);
+  });
+
+  it("offers no band at exactly two samples, where the fit has no residual at all", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT.slice(2));
+
+    const reading = s.at(13);
+
+    // The last two instants only. Two points determine a line, so there is no
+    // degree of freedom left to estimate a spread from. The model still
+    // answers: two samples is its own declared floor, and what it withholds is
+    // the CLAIM about how well it knows the answer, not the answer.
+    expect(reading.reckoning).toBe("available");
+    expect(reckonedAltitude(reading)).toBeDefined();
+    expect(altitudeBand(reading)).toBeUndefined();
+  });
+
+  it("claims nothing where four samples sit on one straight line", () => {
+    const s = scene();
+    s.descend(LINEAR_IN_WINDOW);
+
+    const reading = s.at(13);
+
+    // Four samples and two degrees of freedom, so the arithmetic is available
+    // and answers zero. A residual sum of squares of zero is a degenerate
+    // estimate rather than evidence that an extrapolation is exact, and a
+    // zero-width band would be read downstream as the second thing.
+    // `ReckonedBands` would rather have none.
+    expect(reading.reckoning).toBe("available");
+    expect(altitudeBand(reading)).toBeUndefined();
+  });
+
+  it("hands the band to the plotted tail as well as to the point read", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+    s.at(16);
+
+    const tail = s.store.sampleReckonedTail<Value<"m">>(
+      "vessel.flight.altitudeAsl",
+      0,
+      16,
+    );
+    const last = tail[tail.length - 1];
+
+    // The chart's half of the same claim, through `fieldScopedReckoner`, which
+    // looks the band up at the EXACT field path rather than inheriting one.
+    expect(last.bandKind).toBe("sigma1");
+    expect(last.bandLo?.unit).toBe("m");
+    expect(last.bandHi?.magnitude).toBeGreaterThan(last.value.magnitude);
+  });
+});
+
+/**
+ * The band's journey through the store's input-rule walk, driven by SYNTHETIC
+ * models on the flight reckoner's two real declared inputs.
+ *
+ * Synthetic because nothing in the shipped tree models `vessel.orbit` or
+ * `system.bodies`: `reckoner-input-rule-ledger.test.ts` pins that the set of
+ * pairs either rule can act on is empty, and it stays empty after this change.
+ * So every case here is about STRUCTURE, and none of it fires on a live client
+ * today. What it is worth is that the day someone does model the body roster,
+ * the altitude is already held to it.
+ */
+describe("the altitude band through the store's input-rule walk", () => {
+  /** A model for one of the flight reckoner's inputs, reaching only to `horizonUt`. */
+  function reachingTo(horizonUt: number) {
+    return {
+      deps: [] as const,
+      reckon: (
+        p: TimelinePoint<unknown>,
+        _deps: unknown,
+        frame: { viewUt: number },
+      ) =>
+        frame.viewUt > horizonUt
+          ? {
+              declined: {
+                reason: "beyond-horizon" as const,
+                note: "this input does not reach that far",
+              },
+            }
+          : {
+              modelled: [{ path: "", basis: "rate-integration" as const }],
+              reckon: () => p.payload,
+            },
+    };
+  }
+
+  /** A model for one of those inputs, banding its own answer and counting the pulls. */
+  function bandedBy(
+    kind: "bound" | "sigma1",
+    halfWidth: number,
+    pulls: { count: number },
+  ) {
+    return {
+      deps: [] as const,
+      reckon: (p: TimelinePoint<unknown>) => ({
+        modelled: [{ path: "", basis: "rate-integration" as const }],
+        reckon: () => p.payload,
+        bandAt: () => {
+          pulls.count += 1;
+          return {
+            "": {
+              value: value("m", 100),
+              lo: value("m", 100 - halfWidth),
+              hi: value("m", 100 + halfWidth),
+              kind,
+            },
+          };
+        },
+      }),
+    };
+  }
+
+  function widthOf(reading: Reading<FlightSample>): number | undefined {
+    const band = altitudeBand(reading);
+    return band && band.hi.magnitude - band.lo.magnitude;
+  }
+
+  it("reaches no further than the SHORTEST-reaching of its two declared inputs", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+    // The elements reach to 20 and the roster only to 12, so 13 is inside one
+    // input and outside the other. Whichever runs out first is the one that
+    // settles the altitude's reach.
+    registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
+    registerReckoner("system.bodies", "test-uplink", reachingTo(12));
+
+    const reading = s.at(13);
+
+    expect(reading.reckoning).toBe("none");
+    expect(reading).toMatchObject({
+      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+    });
+  });
+
+  it("still carries the altitude while both inputs reach", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+    registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
+    registerReckoner("system.bodies", "test-uplink", reachingTo(12));
+
+    // The control for the case above: one second earlier, nothing has run out
+    // and the same frame is carried.
+    expect(s.at(11).reckoning).toBe("available");
+  });
+
+  it("holds the band no narrower once an input declares an interval of its own", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+    const alone = widthOf(s.at(13));
+
+    const t = scene();
+    t.descend(SCATTERED_DESCENT);
+    const pulls = { count: 0 };
+    registerReckoner(
+      "system.bodies",
+      "test-uplink",
+      bandedBy("sigma1", 40, pulls),
+    );
+    const withInput = widthOf(t.at(13));
+
+    // The walk REACHED the input's own model, which is the structural claim,
+    // and the altitude's interval is no narrower for it. It is not wider
+    // either: the rule as settled polices the two claims that are wrong
+    // whatever the mathematics (a bound out of a sigma, exactness out of an
+    // inexact input) and leaves the width to the model, which here already
+    // carries the only error it has evidence for.
+    expect(pulls.count).toBeGreaterThan(0);
+    expect(alone).toBeGreaterThan(0);
+    expect(withInput).toBeGreaterThanOrEqual(alone as number);
+  });
+
+  it("never hardens its sigma into a bound because an input claims one", () => {
+    const s = scene();
+    s.descend(SCATTERED_DESCENT);
+    const pulls = { count: 0 };
+    registerReckoner(
+      "system.bodies",
+      "test-uplink",
+      bandedBy("bound", 40, pulls),
+    );
+
+    // A model gains no confidence from an input that has more: the rule can
+    // only soften a claim, never strengthen one.
+    expect(altitudeBand(s.at(13))?.kind).toBe("sigma1");
   });
 });

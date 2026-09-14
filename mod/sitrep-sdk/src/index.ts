@@ -315,6 +315,7 @@ export {
   type AtmosphericFlightInput,
   atmosphericAdmissibility,
   atmosphericAltitudeAt,
+  atmosphericAltitudeBandAt,
   DESCENT_WINDOW,
   horizonSecondsFor,
   localGravity,
