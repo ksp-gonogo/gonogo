@@ -89,9 +89,7 @@ const matrix = parseMatrixInclude(workflowText);
 
 describe("publish-mods.yml's matrix names paths that exist", () => {
   it("parsed something, so the checks below mean something", () => {
-    // Guards the parser itself: a regressed `include:` match or indentation
-    // read would collapse this to an empty list, and every check after this
-    // one would then pass by comparing against nothing.
+    // Guards the parser itself: a regressed `include:` match or indentation read would collapse this to an empty list, and every check after this one would then pass by comparing against nothing.
     expect(matrix.length).toBeGreaterThanOrEqual(5);
     for (const entry of matrix) {
       expect(entry.id, JSON.stringify(entry)).toBeTruthy();

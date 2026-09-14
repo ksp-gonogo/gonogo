@@ -615,6 +615,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP/BreakingGroundUplink.cs",
       "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts",
+      /*
+       * publish-mods.yml matrix guard (2026-09-14): the header comment
+       * explains why GonogoScansatUplink no longer has a build leg (it moved
+       * to gonogo-uplinks), which is the reason this test exists at all.
+       * Doc-mention-only, no scansat import, path or Topic referenced.
+       */
+      "packages/core/src/publish-mods-matrix-paths.test.ts",
     ],
   },
 
