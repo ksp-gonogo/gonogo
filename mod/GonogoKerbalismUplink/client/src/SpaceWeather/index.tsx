@@ -16,7 +16,6 @@ import {
   Meter,
   MissionDate,
   magnitudeOf,
-  magnitudeOr,
   NULL_DISPLAY,
   Panel,
   ProgressBar,
@@ -322,7 +321,7 @@ function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
 // stars, which reads fine as one list.
 // ---------------------------------------------------------------------------
 
-interface StormDerived {
+export interface StormDerived {
   key: string;
   star: string;
   /**
@@ -334,9 +333,14 @@ interface StormDerived {
   state: number | null;
   /** UT the CME departed the star; null when dist or the ejection speed is uncaptured. */
   departureUt: number | null;
-  /** 0..100, transit progress toward `dist`. Only meaningful when departureUt is set. */
-  progressPct: number;
-  /** stormTime - now, seconds. Negative once the CME has arrived. */
+  /**
+   * 0..100, transit progress toward `dist`. Null when departure could not be
+   * placed, and null when there is no view clock to measure the transit
+   * against: how far a CME has come is a statement about now, so without a now
+   * there is no answer, only a starting position.
+   */
+  progressPct: number | null;
+  /** stormTime - now, seconds. Null without a storm time or a view clock. Negative once the CME has arrived. */
   impactEtaSec: number | null;
   /** What the CME is aimed at; null on a stream whose mod predates named targets. */
   targetKind: KerbalismStormTargetKind | null;
@@ -344,19 +348,25 @@ interface StormDerived {
   targetName: string | null;
 }
 
-function deriveStorm(
+/**
+ * One tracked CME reduced to what the cards draw. Exported for its own test:
+ * the two time-dependent fields answer a clockless frame with null, and the
+ * only way to feed that frame directly is to call this.
+ */
+export function deriveStorm(
   entry: KerbalismStormEntry,
   index: number,
-  nowUt: number,
+  nowUt: number | null,
   stormEjectionSpeedMps: number | null,
 ): StormDerived {
   const state = magnitudeOf(entry.stormState);
   const stormTime = magnitudeOf(entry.stormTime);
   const dist = magnitudeOf(entry.dist);
-  const impactEtaSec = stormTime !== null ? stormTime - nowUt : null;
+  const impactEtaSec =
+    stormTime !== null && nowUt !== null ? stormTime - nowUt : null;
 
   let departureUt: number | null = null;
-  let progressPct = 0;
+  let progressPct: number | null = null;
   if (
     stormTime !== null &&
     dist !== null &&
@@ -365,10 +375,15 @@ function deriveStorm(
   ) {
     const transitSec = dist / stormEjectionSpeedMps;
     departureUt = stormTime - transitSec;
-    progressPct =
-      transitSec > 0
-        ? Math.max(0, Math.min(100, ((nowUt - departureUt) / transitSec) * 100))
-        : 100;
+    if (nowUt !== null) {
+      progressPct =
+        transitSec > 0
+          ? Math.max(
+              0,
+              Math.min(100, ((nowUt - departureUt) / transitSec) * 100),
+            )
+          : 100;
+    }
   }
 
   return {
@@ -480,8 +495,9 @@ function starActivity(
   const level = Math.max(
     ...read.map((s) => {
       if ((s.state ?? 0) >= 2) return 1;
-      // Active, but transit has not been captured: half, so it never reads calm.
-      if (s.departureUt === null) return 0.5;
+      // Active, but transit has not been captured, or there is no clock to
+      // measure it against: half, so it never reads calm.
+      if (s.departureUt === null || s.progressPct === null) return 0.5;
       return Math.max(0.15, Math.min(1, s.progressPct / 100));
     }),
   );
@@ -621,6 +637,7 @@ function StarDiagram({
 function transitThreatColor(storm: StormDerived): string {
   if (storm.state !== null && storm.state >= 2)
     return "var(--color-status-nogo-bg)";
+  if (storm.progressPct === null) return "var(--color-status-info-fg)";
   if (storm.progressPct >= 66) return "var(--color-status-nogo-bg)";
   if (storm.progressPct >= 33) return "var(--color-status-warning-bg)";
   return "var(--color-status-info-fg)";
@@ -692,11 +709,17 @@ function StormCard({
                 </Text>
               </Cluster>
             )}
-            <ProgressBar
-              value={storm.progressPct}
-              ariaLabel={`Transit progress from ${storm.star}`}
-              fillColor={transitThreatColor(storm)}
-            />
+            {storm.progressPct !== null ? (
+              <ProgressBar
+                value={storm.progressPct}
+                ariaLabel={`Transit progress from ${storm.star}`}
+                fillColor={transitThreatColor(storm)}
+              />
+            ) : (
+              <Text tone="muted" size="xs">
+                Transit progress needs a mission clock.
+              </Text>
+            )}
           </>
         ) : (
           <Text tone="muted" size="xs">
@@ -993,7 +1016,10 @@ function SpaceWeatherComponent({
   const read = useSpaceWeather();
   // Both read unconditionally, ahead of the absence branch below, so the hook
   // order is the same on every render.
-  const nowUt = magnitudeOr(useViewUt(), 0);
+  // Null, never zero. `useViewUt` is undefined with no provider mounted AND
+  // before the first confirmed sample, and substituting UT 0 there measured
+  // every storm against year 1 day 1: an ETA years wide, stated to the second.
+  const nowUt = magnitudeOf(useViewUt());
   // Only the FALLBACK target name, for a stream whose mod predates the
   // named-target capture; see `StormCard`.
   const fallbackBodyName =
