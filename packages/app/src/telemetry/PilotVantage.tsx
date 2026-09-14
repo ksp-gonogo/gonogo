@@ -11,11 +11,17 @@ import { useEffect } from "react";
  * The vantage id of the craft this page is aboard, or `undefined` until the
  * craft has named itself AND the roster agrees it is a command centre.
  *
- * The id comes off `vessel.state.subjectId`, which is the orbit sample's
- * `meta.source`. The mod stamps that `"vessel:<guid>"` and
+ * The id comes off `vessel.state.subjectId`, which is the orbit PAYLOAD's own
+ * `meta.source`. The mod stamps that `"vessel:<guid>"`
+ * (`Sitrep.Host.VesselViewProvider.BuildMeta`) and
  * `Gonogo.KSP.CommandCentres.CrewedVesselSource` mints a crewed centre's id
  * from the same guid the same way, so the two strings are equal by
  * construction rather than by a format this file would otherwise restate.
+ *
+ * NOT the ENVELOPE `meta.source` beside it, which is the Courier node and is
+ * the literal `"system"` for every non-fleet topic. `deriveVesselState` read
+ * that one until this landed, so `subjectId` was `"system"`, no roster id
+ * could equal it, and this binding never fired at all.
  *
  * The roster is asked first because `ChannelEngine.HandleSetVantage` refuses
  * an id that is not a currently-active centre while

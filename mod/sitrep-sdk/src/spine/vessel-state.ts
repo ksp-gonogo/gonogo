@@ -1,5 +1,6 @@
 import {
   ControlState,
+  type PayloadMeta,
   Quality,
   SasMode,
   Situation,
@@ -79,6 +80,20 @@ export interface OrbitEncounterPayload {
  * equatorial / near-circular orbits): never NaN, never a fake 0.
  */
 export interface VesselOrbitPayload {
+  /**
+   * The sample's own provenance, `"vessel:<guid>"` for a craft and `"game"`
+   * for a reading no vessel owns (`Sitrep.Host.VesselViewProvider.BuildMeta`).
+   *
+   * NOT the same fact as the envelope `Meta.source` beside it, which is the
+   * Courier NODE a topic records under and is the literal `"system"` for every
+   * non-fleet topic. `Sitrep.Host.IntegrationTests.FoundationChannelsEndToEndTests`
+   * asserts both on one delivered frame, and says so.
+   *
+   * Optional because a recording made before it was read here, and the golden
+   * conformance fixtures, carry no payload meta; `subjectId` is then empty,
+   * which every reader already treats as "unknown subject".
+   */
+  meta?: PayloadMeta;
   referenceBodyIndex: number;
   sma: Value<"m">;
   ecc: Value<"1">;
@@ -783,7 +798,7 @@ export interface VesselState {
   orbitPatches: LegacyOrbitPatch[];
   /** Which path produced this record's kinematics: never a widget's choice (this avoids the dual-altitude ambiguity bug). */
   basis: "propagated" | "measured";
-  /** `vessel:<guid>`: subject provenance, from the orbit sample's envelope `meta.source`. */
+  /** `vessel:<guid>`: subject provenance, from the orbit PAYLOAD's own `meta.source`; empty when the sample carries none. */
   subjectId: string;
 }
 
@@ -1828,7 +1843,16 @@ export function deriveVesselState(
   if (orbitPoint.payload === null) return null; // tombstone, vessel confirmed absent
 
   const quality = orbitPoint.meta.quality;
-  const subjectId = orbitPoint.meta.source;
+  /*
+   * The PAYLOAD's provenance, never the envelope's. The envelope `meta.source`
+   * is the Courier node, which `NodeForTopic` resolves to the literal "system"
+   * for every non-fleet topic, so reading it named every craft in the game
+   * "system" and no `commandCentre.roster` id could ever equal it. That made
+   * `PilotVantage` unsatisfiable and left the mod's own zero-delay row for a
+   * pilot's craft unreachable. The fabricated fixtures could not catch it: they
+   * stamped `"vessel:<guid>"` onto the envelope, which the wire never does.
+   */
+  const subjectId = orbitPoint.payload.meta?.source ?? "";
   const orbit = orbitPoint.payload;
   // Pure reshape of already-solved patches (mod-side, no propagation), so it is
   // safe to compute once ahead of the quality branch and reuse in both.

@@ -76,6 +76,7 @@ function readOneWaySeconds(payload: unknown): number | null {
  */
 export class DelayAuthority {
   private oneWaySeconds = 0;
+  private ownCraftVantage = false;
 
   /**
    * Feed one `comms.delay` payload. A frame that reports a measurable one-way
@@ -115,12 +116,44 @@ export class DelayAuthority {
   }
 
   /**
+   * Tell the authority whether this session's selected vantage is the craft
+   * its own telemetry is about (`isOwnCraftVantage`). While it is, the delay
+   * is 0 whatever `comms.delay` reports.
+   *
+   * The override is needed because `comms.delay` is ONE global number, the
+   * active craft's CommNet path home, published once and read by every
+   * session. The mod already delivers a session at the active craft's own
+   * vantage with no delay at all (`AuthorityMatrixPass.PopulateActiveVessel`
+   * writes that centre a zero row against the node every ordinary channel
+   * records under), so the frames are live while the readout still says the
+   * ground's light-time. Left alone, the clock holds live frames back by a
+   * delay that is not being applied to them: at a light-time under the
+   * timeline's retention the pilot simply reads what the ground reads, and
+   * over it `ClientTimeline.at(viewUt)` falls below the oldest retained point
+   * and every widget goes absent on a live feed.
+   *
+   * It is a flag rather than a second delay source because there is no second
+   * NUMBER to be had: nothing on the wire carries a per-vantage delay, so the
+   * only two answers available are "the global reading" and "none", and this
+   * says which of them applies to this session.
+   */
+  setOwnCraftVantage(ownCraft: boolean): void {
+    this.ownCraftVantage = ownCraft;
+  }
+
+  /**
    * The current one-way delay in seconds. Pass `authority.delaySeconds` (bound
    * below) straight into `ViewClockOptions.delaySeconds`. Bound as an arrow
    * field so the identity is stable across renders and `this` is preserved
    * when handed off as a bare function reference.
+   *
+   * Zero while the session is at its own craft's vantage, per
+   * `setOwnCraftVantage`. The held `comms.delay` reading is kept rather than
+   * cleared, so a vantage that moves back to the ground reports the last
+   * measured light-time immediately instead of waiting a whole one to
+   * re-learn it.
    */
-  delaySeconds = (): number => this.oneWaySeconds;
+  delaySeconds = (): number => (this.ownCraftVantage ? 0 : this.oneWaySeconds);
 
   /**
    * Subscribe to `comms.delay` on `client`, keeping `delaySeconds()` current.

@@ -94,11 +94,22 @@ function orbitPoint(
     payload:
       payload === null
         ? null
-        : wrapWire<VesselOrbitPayload>("VesselOrbit", { ...payload }),
+        : wrapWire<VesselOrbitPayload>("VesselOrbit", {
+            ...payload,
+            // The subject rides the PAYLOAD's own meta, which is where the wire
+            // puts it; the envelope below carries the Courier node, which is
+            // "system" for every non-fleet topic. An earlier version of this
+            // helper stamped the craft onto the envelope instead, a shape the
+            // mod never emits, and that is what hid the bug this now covers.
+            meta: {
+              source: overrides.source ?? "vessel:abc-123",
+              quality: overrides.quality ?? Quality.OnRails,
+            },
+          }),
     meta: makeMeta({
       validAt: overrides.validAt ?? 0,
       quality: overrides.quality ?? Quality.OnRails,
-      source: overrides.source ?? "vessel:abc-123",
+      source: "system",
     }),
     epoch: 0,
   };
@@ -870,7 +881,7 @@ describe("deriveVesselState", () => {
       expect(state?.orbitalSpeed).not.toBeNull(); // derivable from |velocity| alone
     });
 
-    it("carries subjectId from the orbit sample's envelope meta.source", () => {
+    it("carries subjectId from the orbit PAYLOAD's own meta.source", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
           quality: Quality.OnRails,
