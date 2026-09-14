@@ -14,6 +14,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Button,
   Cluster,
   Panel,
   Section,
@@ -163,14 +164,14 @@ function CommandRow({
   const chip = commandChip(phase);
   return (
     <Cluster justify="between" gap="sm">
-      <button
+      <Button
         type="button"
         onClick={onFire}
         disabled={disabled}
         aria-label={label}
       >
         {label}
-      </button>
+      </Button>
       <span role="status" aria-live="polite">
         {chip ? (
           <Badge severity={chip.severity} size="sm">
