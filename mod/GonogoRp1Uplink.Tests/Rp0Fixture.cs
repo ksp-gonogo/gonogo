@@ -51,7 +51,26 @@ namespace RP0
 
     public sealed class SpaceCenterSettings
     {
-        public double RushRateMult = 1.5;
+        /// <summary>
+        /// Makes <see cref="RushRateMult"/> unreadable, which is the state a value
+        /// cannot express: RP-1 handed over its settings object and then would not
+        /// say what it charges for rushing.
+        /// </summary>
+        public static bool ThrowOnRushRateMultRead;
+
+        private double _rushRateMult = 1.5;
+
+        // A property rather than the real type's plain field, and only so the flag
+        // above has somewhere to live. The reader resolves a property and a field
+        // by the same walk, so the production path is unchanged.
+        public double RushRateMult
+        {
+            get => ThrowOnRushRateMultRead
+                ? throw new InvalidOperationException("RushRateMult unreadable")
+                : _rushRateMult;
+            set => _rushRateMult = value;
+        }
+
         public double RushSalaryMult = 2.0;
         public double repPortionLostPerDay = 0.02;
 

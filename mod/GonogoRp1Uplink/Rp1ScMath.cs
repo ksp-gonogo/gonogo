@@ -90,13 +90,19 @@ namespace GonogoRp1Uplink
         /// assuming a clear complex publishes a vehicle building at full speed
         /// behind a rollout that may well be holding it at a standstill.
         /// </param>
-        public static double? VesselRate(double baseRate, double? efficiency, double rushRate, bool? canIntegrate)
+        /// <param name="rushRate">
+        /// The multiplier a rushing complex works at, or null when RP-1's rush
+        /// setting could not be read. Absent makes the rate absent: RP-1 ships
+        /// 1.5, so standing in 1.0 publishes a rushing complex working at its
+        /// ordinary speed and tells the operator rushing bought them nothing.
+        /// </param>
+        public static double? VesselRate(double baseRate, double? efficiency, double? rushRate, bool? canIntegrate)
         {
-            if (baseRate < 0.0 || efficiency == null || canIntegrate == null)
+            if (baseRate < 0.0 || efficiency == null || rushRate == null || canIntegrate == null)
             {
                 return null;
             }
-            return canIntegrate.Value ? baseRate * efficiency.Value * rushRate : 0.0;
+            return canIntegrate.Value ? baseRate * efficiency.Value * rushRate.Value : 0.0;
         }
 
         /// <summary>
@@ -113,16 +119,20 @@ namespace GonogoRp1Uplink
         /// same optimism <see cref="SequencedTimeLeft"/> refuses. A
         /// non-blocking operation takes no share and does not care.</para>
         /// </summary>
+        /// <param name="rushRate">
+        /// Absent when RP-1's rush setting could not be read, and it takes the rate
+        /// with it, for the reason <see cref="VesselRate"/> gives.
+        /// </param>
         public static double? OperationRate(
             double baseRate,
             double? efficiency,
-            double rushRate,
+            double? rushRate,
             bool reversed,
             bool blocking,
             double? totalPoints,
             double? projectBpTotal)
         {
-            if (baseRate < 0.0 || efficiency == null)
+            if (baseRate < 0.0 || efficiency == null || rushRate == null)
             {
                 return null;
             }
@@ -130,7 +140,7 @@ namespace GonogoRp1Uplink
             {
                 return null;
             }
-            var rate = baseRate * efficiency.Value * rushRate * (reversed ? -1.0 : 1.0);
+            var rate = baseRate * efficiency.Value * rushRate.Value * (reversed ? -1.0 : 1.0);
             if (blocking && projectBpTotal!.Value > 0.0)
             {
                 rate *= totalPoints!.Value / projectBpTotal.Value;

@@ -47,6 +47,7 @@ public class Rp1ScReflectionTests : IDisposable
     private static void ClearUnreadableFlags()
     {
         Confidence.ThrowOnBalanceRead = false;
+        SpaceCenterSettings.ThrowOnRushRateMultRead = false;
         ConstructionProject.ThrowOnBpRead = false;
         ConstructionProject.ThrowOnWorkRateRead = false;
         ConstructionProject.ThrowOnCostRead = false;
@@ -187,6 +188,49 @@ public class Rp1ScReflectionTests : IDisposable
         Install(pad, efficiency: 1.0);
 
         Assert.Equal(4.0 * Database.SettingsSC.RushRateMult, Single(new Rp1ScReflection().Read(1.0).BuildQueue).Rate!.Value, 6);
+    }
+
+    /// <summary>
+    /// A rush setting nobody could read makes a RUSHING complex's rate absent,
+    /// never a rate worked out at a multiplier of 1.0.
+    ///
+    /// <para>RP-1 ships 1.5. Standing 1.0 in publishes a rushing complex working
+    /// at its ordinary speed, which tells the operator the rush they are paying
+    /// double salaries for is buying them nothing, and it does so from three
+    /// separate absent branches.</para>
+    /// </summary>
+    [Fact]
+    public void A_rush_setting_nobody_can_read_makes_a_rushing_complexs_rate_absent()
+    {
+        var vp = new VesselProject { shipName = "Redstone", buildPoints = 1000.0 };
+        vp.SetBuildRate(4.0);
+        var pad = new LaunchComplex { Name = "Pad A", IsRushing = true };
+        pad.BuildList.Add(vp);
+        Install(pad, efficiency: 1.0);
+        SpaceCenterSettings.ThrowOnRushRateMultRead = true;
+
+        var item = Single(new Rp1ScReflection().Read(1.0).BuildQueue);
+
+        Assert.Null(item.Rate);
+        Assert.Null(item.TimeLeftSeconds);
+    }
+
+    /// <summary>
+    /// The same unreadable setting leaves a complex that is NOT rushing alone. It
+    /// runs at 1.0 whatever RP-1 charges for rushing, so there is no gap there to
+    /// propagate and refusing the rate would hide a figure the save does state.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_rush_setting_does_not_touch_a_complex_that_is_not_rushing()
+    {
+        var vp = new VesselProject { shipName = "Redstone", buildPoints = 1000.0 };
+        vp.SetBuildRate(4.0);
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.BuildList.Add(vp);
+        Install(pad, efficiency: 0.5);
+        SpaceCenterSettings.ThrowOnRushRateMultRead = true;
+
+        Assert.Equal(2.0, Single(new Rp1ScReflection().Read(1.0).BuildQueue).Rate!.Value, 6);
     }
 
     [Fact]
