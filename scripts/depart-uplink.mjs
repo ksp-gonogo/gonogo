@@ -283,6 +283,22 @@ if (readFileSync(join(ROOT, "mod", "codegen.sh"), "utf8").includes(dirBase)) {
 }
 
 /*
+ * 7b. UNARMED_DEBT in client-hash-armed.mjs: the grandfather list of Uplinks
+ * whose DLL does not yet vouch for its client bundle. That script's own
+ * "departed" check fails hard on an entry naming an Uplink that is no longer
+ * here (since 1b71fdd74), so skipping this does not leave a stale ratchet, it
+ * leaves a red gate on the very next run.
+ */
+const hashArmed = join(ROOT, "scripts", "client-hash-armed.mjs");
+const hashArmedSrc = readFileSync(hashArmed, "utf8");
+const unarmedEntry = new RegExp(`\\n[ \\t]*"${dirBase}",`);
+if (unarmedEntry.test(hashArmedSrc)) {
+  record(`${dirBase} from UNARMED_DEBT in scripts/client-hash-armed.mjs`, () =>
+    writeFileSync(hashArmed, hashArmedSrc.replace(unarmedEntry, "")),
+  );
+}
+
+/*
  * 8. ratchet entries that name the departed files. These are SHRINK-ONLY lists
  * whose own tests fail on a stale entry, by design, so leaving them is not an
  * option and neither is a blanket sweep: only lines naming this Uplink's own
@@ -310,6 +326,43 @@ const ratchets = execFileSync(
   // line-based. Running it over one of them stripped a section heading and a
   // line from the middle of a doc comment, which is damage rather than cleanup.
   .filter((rel) => !STAYS_BY_DESIGN.some((keep) => rel.startsWith(keep)));
+/*
+ * A single scalar the ratchet files actually hold as an entry's value: a
+ * number, `true`/`false`, a quoted string, or a short `[...]` array of those,
+ * all on one line.
+ */
+const SCALAR = String.raw`-?\d+(?:\.\d+)?|true|false|["'\`](?:\\.|[^"'\`\\])*["'\`]`;
+const VALUE_TAIL = new RegExp(
+  `^(?::\\s*(?:${SCALAR}|\\[\\s*(?:${SCALAR})(?:\\s*,\\s*(?:${SCALAR}))*\\s*,?\\s*\\])\\s*)?,?$`,
+);
+/*
+ * Single-line entries only. An entry is not self-contained, and stays on the
+ * manual list, in two shapes:
+ *
+ *  - the value continues on the NEXT line (`"path":\n  "reason",`, or
+ *    `"path": {` opening an object that closes several lines down): dropping
+ *    just this line leaves an orphaned value and the file stops parsing.
+ *  - the path is itself a field's VALUE inside a larger multi-line struct
+ *    (`{ file: "path", why: "..." },`, with `file:` one of several
+ *    properties): dropping just this line leaves a sibling field with
+ *    nothing left to belong to. That one still parses, a required property
+ *    just silently goes missing, so it only surfaces as a typecheck error.
+ *
+ * This has damaged three files across as many attempts (two of the first
+ * shape, one of the second, `styleguide-earth-day.test.ts`'s `{ file, why }`
+ * list), so anything that is not fully self-contained on its own line is
+ * reported rather than guessed at.
+ *
+ * Self-contained means the path IS the line's own key or bare array item (the
+ * line's first non-space character is the opening quote, ruling out the
+ * second shape above), and whatever follows the path's closing quote is a
+ * complete SCALAR value ending the line, ruling out the first.
+ */
+const complete = (l) => {
+  const afterPath = l.trim().match(/^["'`](?:\\.|[^"'`\\])*["'`]([\s\S]*)$/);
+  return afterPath !== null && VALUE_TAIL.test(afterPath[1]);
+};
+
 for (const rel of ratchets) {
   const path = join(ROOT, rel);
   const lines = readFileSync(path, "utf8").split("\n");
@@ -322,17 +375,6 @@ for (const rel of ratchets) {
     new RegExp(`["'\`][^"'\`]*mod/${dirBase}/`).test(l) &&
     !l.trimStart().startsWith("*") &&
     !l.trimStart().startsWith("//");
-  /*
-   * Single-line entries only. An entry whose value continues on the NEXT line
-   * (`"path":\n  "reason",`) cannot be removed by dropping the line that holds
-   * the path: that leaves an orphaned value and the file stops parsing. This has
-   * damaged three files across as many attempts, so anything that is not
-   * self-contained is reported rather than guessed at.
-   */
-  const complete = (l) =>
-    /[:,]\s*$/.test(l) &&
-    /["'`].*["'`]\s*[:,]?\s*$/.test(l) &&
-    !/["'`]\s*:\s*$/.test(l.trim());
   const doomed = lines.filter(isEntry).filter(complete);
   const manual = lines.filter(isEntry).filter((l) => !complete(l));
   if (manual.length > 0) {
