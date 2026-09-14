@@ -59,6 +59,10 @@
          getting a decision wrong. -->
     <Compile Include="..\GonogoRealAntennasUplink\RaChainPolicy.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaChainRegister.cs" />
+    <!-- The home-command claimant's choice of station. It is handed the space
+         centre's position rather than reading it (RaSpaceCentre is the KSP half),
+         so nearest-station selection and the election are both headless. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaHomeCommand.cs" />
   </ItemGroup>
 
   <!-- RaRouting.cs is the RA route between two nodes, carved out of
