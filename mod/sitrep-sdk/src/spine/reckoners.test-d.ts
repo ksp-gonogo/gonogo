@@ -113,3 +113,27 @@ registerReckoner("vessel.flight", "core", {
     return { declined: { reason: "model-inapplicable" } };
   },
 });
+
+/*
+ * A DERIVED channel is not a Topic, and this registry will not take one.
+ *
+ * `vessel.state` is the case in hand: it carries three forward models (the
+ * conic, the ballistic landing set, the target's own conic) and none of them
+ * can be registered here, because this parameter is `TopicId` and
+ * `DERIVED_CHANNEL_IDS` is a deliberately separate union with no wire payload
+ * for `TopicPayload` to resolve. A derived channel states what it modelled
+ * through `DerivedChannelDefinition.deriveReckoning`, which
+ * `TimelineStore.derivedReckoner` adapts into the same `ReckonerFor` this
+ * registry hands out, so the two are arms of one seam rather than an old
+ * mechanism and a new one. Why each of the three stays on that arm is written
+ * beside it in `vessel-state.ts`.
+ *
+ * The directive is the gate, not the prose: widening this parameter to
+ * `WidgetChannelId` leaves it unused and fails typecheck, which is exactly when
+ * those three reasons want re-reading.
+ */
+// @ts-expect-error `vessel.state` is a derived channel, not a Topic.
+registerReckoner("vessel.state", "core", {
+  deps: [],
+  reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+});
