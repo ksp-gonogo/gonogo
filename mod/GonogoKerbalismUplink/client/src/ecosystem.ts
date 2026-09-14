@@ -537,7 +537,25 @@ export function diagnose({
     });
 }
 
-/** Seconds until a resource runs out at its current rate; null while not draining. */
+/**
+ * Seconds until a resource runs out at its current rate; null while not draining.
+ *
+ * Divides the LAST OBSERVED level by the last observed rate, so the countdown
+ * runs from the observation and not from the frame's view time.
+ * `kerbalism.resourceProjection` carries that same pair corrected to the view
+ * time, with a band around it, which makes it read like the obvious source for
+ * this number. `resourceProjectionCountdown.test.ts` is the standing answer to
+ * that, and all three of its reasons are arithmetic: the channel models a
+ * level and never a time, its band divided by the rate that produced it is
+ * exactly the elapsed interval wide whatever the rate is (so it restates the
+ * correction rather than adding any uncertainty about the rate), and it
+ * imposes no horizon, so a countdown taken off it clamps to zero at the
+ * crossing and then reads "empty" for as long as contact is out.
+ *
+ * What is left is the age of the levels, and that is reported rather than
+ * modelled: `ShipSystems.levels` carries the state, the observation's own UT
+ * and the age in seconds, for the levels every figure here derives from.
+ */
 export function timeToEmptySeconds(
   resource: string,
   lifeSupport: KerbalismLifeSupport | undefined,
