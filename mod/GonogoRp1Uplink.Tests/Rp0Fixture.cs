@@ -2363,6 +2363,16 @@ namespace ROUtils.DataTypes
     }
 }
 
+// KSCSwitcher's site loader, the first type RP-1's own interop binds to. Present
+// so the home-command claimant, which withdraws on an install without KSCSwitcher,
+// stands for election here the way it does on an RSS install.
+namespace regexKSP
+{
+    public class KSCLoader
+    {
+    }
+}
+
 namespace UnityEngine
 {
     public struct Vector3
