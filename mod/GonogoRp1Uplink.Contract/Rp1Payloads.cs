@@ -3048,7 +3048,11 @@ public sealed class Rp1CareerEvents
     [SitrepUnit(Sitrep.Contract.Units.Flag)]
     public bool? Enabled { get; set; }
 
-    /// <summary>Everything recorded, oldest first.</summary>
+    /// <summary>
+    /// Everything recorded, oldest first, with any event whose <see cref="Rp1CareerEventEntry.Ut"/>
+    /// is absent placed after all the dated ones rather than among them. Read the
+    /// tail as undated, not as the newest.
+    /// </summary>
     public Rp1CareerEventEntry[]? Events { get; set; }
 }
 

@@ -376,6 +376,48 @@ public class Rp1CareerCostTests : IDisposable
     }
 
     /// <summary>
+    /// An event whose time could not be read goes to the END of the timeline with
+    /// its time absent, never to the front.
+    ///
+    /// <para>Sorted as the epoch it landed before every real event, so the oldest
+    /// thing in the career was whichever row RP-1 declined to date. The absent
+    /// time makes the row distinguishable; the position stops the ORDER saying
+    /// something the log does not.</para>
+    ///
+    /// <para>The two undated rows are here to pin the order among themselves:
+    /// List.Sort is unstable, so a comparison that merely pushed nulls down would
+    /// call them equal and be free to swap them between ticks.</para>
+    /// </summary>
+    [Fact]
+    public void An_event_whose_time_cannot_be_read_lands_last_with_its_time_absent()
+    {
+        var log = new CareerLog { IsEnabled = true };
+        log.AddLeader(ut: 3000.0, name: "Von Braun", cost: 5000.0);
+        log.AddLaunch(ut: 1000.0, vesselName: "Ares I", launchId: "L-7");
+        log.AddLaunch(ut: 0.0, vesselName: "Undated first", launchId: "L-8", utUnreadable: true);
+        log.AddLaunch(ut: 0.0, vesselName: "Undated second", launchId: "L-9", utUnreadable: true);
+        log.AddContract(ut: 2000.0, displayName: "First Orbit", repChange: 12.5);
+        log.AddContract(
+            ut: 0.0, displayName: "Undated contract", repChange: 1.0, utUnreadable: true);
+        CareerLog.Instance = log;
+
+        var rows = (List<object?>)Events()!["events"]!;
+
+        var names = new List<object?>();
+        var instants = new List<object?>();
+        foreach (var row in rows)
+        {
+            names.Add(((Dictionary<string, object?>)row!)["name"]);
+            instants.Add(((Dictionary<string, object?>)row!)["ut"]);
+        }
+
+        Assert.Equal(
+            new object?[] { "Ares I", "First Orbit", "Von Braun", "Undated contract", "Undated first", "Undated second" },
+            names);
+        Assert.Equal(new object?[] { 1000.0, 2000.0, 3000.0, null, null, null }, instants);
+    }
+
+    /// <summary>
     /// A field a kind does not carry is ABSENT rather than zero. A launch has no
     /// reputation change; publishing 0 would say the flight earned nothing, which
     /// is a claim rather than a gap.
