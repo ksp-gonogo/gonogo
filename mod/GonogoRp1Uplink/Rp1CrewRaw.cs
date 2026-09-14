@@ -17,6 +17,14 @@ namespace GonogoRp1Uplink
     {
         public double Ut;
 
+        /// <summary>
+        /// RP-1's crew handler was live and the reading below came off it. False
+        /// publishes every channel's absence, which is the state the main menu
+        /// sits in; the capture mints the raw either way so the absence is stamped
+        /// at the tick that found it rather than at the start of the game.
+        /// </summary>
+        public bool Available;
+
         public List<Rp1CrewMemberRaw> Crew = new List<Rp1CrewMemberRaw>();
 
         public Rp1CrewProgramRaw? Program;

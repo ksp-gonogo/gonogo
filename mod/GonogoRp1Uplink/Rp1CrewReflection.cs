@@ -269,7 +269,7 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
-            var raw = new Rp1CrewRaw { Ut = ut };
+            var raw = new Rp1CrewRaw { Ut = ut, Available = true };
             var retirees = new HashSet<string>(StringComparer.Ordinal);
             foreach (var name in Strings(Rp1Types.Member(instance, "_retirees")))
             {

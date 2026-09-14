@@ -620,6 +620,7 @@ public class Rp1CrewCaptureTests
         var raw = new Rp1CrewRaw
         {
             Ut = 1000.0,
+            Available = true,
             Crew =
             {
                 new Rp1CrewMemberRaw

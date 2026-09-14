@@ -122,7 +122,7 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
-            var raw = new Rp1ProgramsRaw { Ut = ut };
+            var raw = new Rp1ProgramsRaw { Ut = ut, Available = true };
 
             var active = Materialise(Rp1Types.Member(instance, "ActivePrograms"));
             var completed = Materialise(Rp1Types.Member(instance, "CompletedPrograms"));

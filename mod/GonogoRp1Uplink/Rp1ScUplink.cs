@@ -1489,19 +1489,39 @@ namespace GonogoRp1Uplink
         /// <see cref="Rp1ProgramsReflection"/>'s header for the audit of every
         /// one of them.
         /// </summary>
-        internal object? CaptureProgramsOnMain(KspSnapshot? snapshot) =>
-            _programs.IsAvailable ? _programs.Read(UtOf(snapshot)) : null;
+        /// <remarks>
+        /// A tick that reads nothing still returns a raw, carrying the tick's UT
+        /// with <c>Available</c> false. The courier thread cannot ask the clock,
+        /// so an unread tick that returned null left the handle with no instant to
+        /// quote and it stamped the absence at 0: a reading older than the start
+        /// of the game, which on a Delayed HeldAtHome channel is also older than
+        /// every edge and so goes straight past the signal delay. Withholding the
+        /// publish instead is not the alternative it looks like: these are SAMPLED
+        /// sources, and <c>ChannelEngine.ProcessPublish</c> has no
+        /// <c>AbsenceIsData</c> birth gate, so the explicit publish below is the
+        /// only thing that ever puts their absence on the wire.
+        /// </remarks>
+        internal object? CaptureProgramsOnMain(KspSnapshot? snapshot)
+        {
+            var ut = UtOf(snapshot);
+            return (_programs.IsAvailable ? _programs.Read(ut) : null)
+                ?? new Rp1ProgramsRaw { Ut = ut };
+        }
 
         /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
         internal void HandleProgramsOnCourier(object? captured)
         {
-            var raw = captured as Rp1ProgramsRaw;
+            if (!(captured is Rp1ProgramsRaw raw))
+            {
+                return;
+            }
+
             var rows = Rp1ProgramsCapture.BuildPrograms(raw);
             var curves = Rp1ProgramsCapture.BuildFundingCurves(raw);
-            Rp1RowBudget.Record((rows?.Count ?? 0) + (curves?.Count ?? 0), raw?.Ut ?? 0.0);
-            _programList?.Publish(rows, raw?.Ut ?? 0.0);
-            _programSlots?.Publish(Rp1ProgramsCapture.BuildSlots(raw), raw?.Ut ?? 0.0);
-            _programCurves?.Publish(curves, raw?.Ut ?? 0.0);
+            Rp1RowBudget.Record((rows?.Count ?? 0) + (curves?.Count ?? 0), raw.Ut);
+            _programList?.Publish(rows, raw.Ut);
+            _programSlots?.Publish(Rp1ProgramsCapture.BuildSlots(raw), raw.Ut);
+            _programCurves?.Publish(curves, raw.Ut);
         }
 
         /// <summary>
@@ -1510,18 +1530,30 @@ namespace GonogoRp1Uplink
         /// <see cref="Rp1CrewReflection"/>'s header for the audit of every member
         /// it reads and the four it refuses to call.
         /// </summary>
-        internal object? CaptureCrewOnMain(KspSnapshot? snapshot) =>
-            _crew.IsAvailable ? _crew.Read(UtOf(snapshot)) : null;
+        /// <remarks>
+        /// Returns an unread raw carrying the tick's UT rather than null, for the
+        /// reason <see cref="CaptureProgramsOnMain"/> spells out.
+        /// </remarks>
+        internal object? CaptureCrewOnMain(KspSnapshot? snapshot)
+        {
+            var ut = UtOf(snapshot);
+            return (_crew.IsAvailable ? _crew.Read(ut) : null)
+                ?? new Rp1CrewRaw { Ut = ut };
+        }
 
         /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
         internal void HandleCrewOnCourier(object? captured)
         {
-            var raw = captured as Rp1CrewRaw;
+            if (!(captured is Rp1CrewRaw raw))
+            {
+                return;
+            }
+
             var rows = Rp1CrewCapture.BuildCrew(raw);
-            Rp1RowBudget.Record(rows?.Count ?? 0, raw?.Ut ?? 0.0);
-            _crewList?.Publish(rows, raw?.Ut ?? 0.0);
-            _crewProgram?.Publish(Rp1CrewCapture.BuildProgram(raw), raw?.Ut ?? 0.0);
-            _training?.Publish(Rp1CrewCapture.BuildTraining(raw), raw?.Ut ?? 0.0);
+            Rp1RowBudget.Record(rows?.Count ?? 0, raw.Ut);
+            _crewList?.Publish(rows, raw.Ut);
+            _crewProgram?.Publish(Rp1CrewCapture.BuildProgram(raw), raw.Ut);
+            _training?.Publish(Rp1CrewCapture.BuildTraining(raw), raw.Ut);
         }
 
         /// <summary>
@@ -1550,31 +1582,54 @@ namespace GonogoRp1Uplink
             _trainingCatalogue?.Publish(rows, raw.Ut);
         }
 
-        /// <summary>MAIN-THREAD capture: the editor ship's tooling, or null when there is none.</summary>
-        internal object? CaptureToolingOnMain(KspSnapshot? snapshot) =>
-            _tooling.IsAvailable ? _tooling.Read(UtOf(snapshot)) : null;
+        /// <summary>
+        /// MAIN-THREAD capture: the editor ship's tooling, or an unread raw
+        /// carrying the tick's UT when there is none, for the reason
+        /// <see cref="CaptureProgramsOnMain"/> spells out.
+        /// </summary>
+        internal object? CaptureToolingOnMain(KspSnapshot? snapshot)
+        {
+            var ut = UtOf(snapshot);
+            return (_tooling.IsAvailable ? _tooling.Read(ut) : null)
+                ?? new Rp1ToolingRaw { Ut = ut };
+        }
 
         /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
         internal void HandleToolingOnCourier(object? captured)
         {
-            var raw = captured as Rp1ToolingRaw;
+            if (!(captured is Rp1ToolingRaw raw))
+            {
+                return;
+            }
+
             var payload = Rp1ToolingCapture.Build(raw);
-            Rp1RowBudget.Record(raw?.Parts.Count ?? 0, raw?.Ut ?? 0.0);
-            _toolingPublisher?.Publish(payload, raw?.Ut ?? 0.0);
-            _buildCost?.Publish(
-                Rp1CareerCostCapture.BuildCost(raw?.BuildCost), raw?.Ut ?? 0.0);
+            Rp1RowBudget.Record(raw.Parts.Count, raw.Ut);
+            _toolingPublisher?.Publish(payload, raw.Ut);
+            _buildCost?.Publish(Rp1CareerCostCapture.BuildCost(raw.BuildCost), raw.Ut);
         }
 
-        /// <summary>MAIN-THREAD capture: RP-1's career event log.</summary>
-        internal object? CaptureCareerEventsOnMain(KspSnapshot? snapshot) =>
-            _careerLog.IsLogAvailable ? _careerLog.ReadEvents(UtOf(snapshot)) : null;
+        /// <summary>
+        /// MAIN-THREAD capture: RP-1's career event log, or an unread raw carrying
+        /// the tick's UT when its handler is not live, for the reason
+        /// <see cref="CaptureProgramsOnMain"/> spells out.
+        /// </summary>
+        internal object? CaptureCareerEventsOnMain(KspSnapshot? snapshot)
+        {
+            var ut = UtOf(snapshot);
+            return (_careerLog.IsLogAvailable ? _careerLog.ReadEvents(ut) : null)
+                ?? new Rp1CareerEventsRaw { Ut = ut };
+        }
 
         /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
         internal void HandleCareerEventsOnCourier(object? captured)
         {
-            var raw = captured as Rp1CareerEventsRaw;
-            Rp1RowBudget.Record(raw?.Events.Count ?? 0, raw?.Ut ?? 0.0);
-            _careerEvents?.Publish(Rp1CareerCostCapture.BuildEvents(raw), raw?.Ut ?? 0.0);
+            if (!(captured is Rp1CareerEventsRaw raw))
+            {
+                return;
+            }
+
+            Rp1RowBudget.Record(raw.Events.Count, raw.Ut);
+            _careerEvents?.Publish(Rp1CareerCostCapture.BuildEvents(raw), raw.Ut);
         }
 
         /// <summary>

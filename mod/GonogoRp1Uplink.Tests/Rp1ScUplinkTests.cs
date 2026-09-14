@@ -117,18 +117,83 @@ public class Rp1ScUplinkTests : IDisposable
     }
 
     [Fact]
-    public void The_Program_capture_publishes_nothing_when_RP1s_handler_is_absent()
+    public void The_Program_capture_maps_to_nothing_when_RP1s_handler_is_absent()
     {
         // The end-to-end of the same rule: capture to publish, with no handler
         // live. A bag of empty lists here would reach a client as a catalogue.
+        // The capture itself is not nothing, though: it carries the tick's UT down
+        // with its availability flag, which is what lets the handle stamp the
+        // absence at the tick that found it.
         RP0.Programs.ProgramHandler.Instance = null;
         var uplink = new Rp1ScUplink();
         uplink.Register(new ClockedUplinkHost(HostClockUt));
-        var captured = uplink.CaptureProgramsOnMain(null);
 
-        Assert.Null(captured);
-        Assert.Null(Rp1ProgramsCapture.BuildPrograms(captured as Rp1ProgramsRaw));
-        Assert.Null(Rp1ProgramsCapture.BuildSlots(captured as Rp1ProgramsRaw));
+        var captured = Assert.IsType<Rp1ProgramsRaw>(uplink.CaptureProgramsOnMain(null));
+
+        Assert.False(captured.Available);
+        Assert.Equal(HostClockUt, captured.Ut);
+        Assert.Null(Rp1ProgramsCapture.BuildPrograms(captured));
+        Assert.Null(Rp1ProgramsCapture.BuildSlots(captured));
+        Assert.Null(Rp1ProgramsCapture.BuildFundingCurves(captured));
+    }
+
+    /// <summary>
+    /// The four courier-thread handles on a tick that read nothing: every channel
+    /// is told its absence, and told it at the tick's own instant.
+    /// </summary>
+    /// <remarks>
+    /// <para>Both halves matter and they pull against each other. The stamp used
+    /// to be <c>raw?.Ut ?? 0.0</c>, so a tombstone claimed to have been taken at
+    /// year 1 day 1: wrong as a reading, and on a Delayed HeldAtHome channel also
+    /// older than every edge, so it went straight past the signal delay.</para>
+    /// <para>Withholding the publish would fix the number by deleting the sample,
+    /// which is worse. These are SAMPLED sources, and
+    /// <c>ChannelEngine.ProcessPublish</c> carries no <c>absenceIsData</c> birth
+    /// gate (only <c>ProcessTick</c>'s mapper loop does), so this publish is the
+    /// only thing that ever puts their absence on the wire. Without it every
+    /// channel below sits at SYNCING forever on the main menu and on any save
+    /// RP-1 does not manage.</para>
+    /// </remarks>
+    [Theory]
+    [InlineData(Rp1ScUplink.ProgramsTopic)]
+    [InlineData(Rp1ScUplink.ProgramSlotsTopic)]
+    [InlineData(Rp1ScUplink.ProgramFundingCurvesTopic)]
+    [InlineData(Rp1ScUplink.CrewTopic)]
+    [InlineData(Rp1ScUplink.CrewProgramTopic)]
+    [InlineData(Rp1ScUplink.TrainingTopic)]
+    [InlineData(Rp1ScUplink.ToolingTopic)]
+    [InlineData(Rp1ScUplink.BuildCostTopic)]
+    [InlineData(Rp1ScUplink.CareerEventsTopic)]
+    public void An_unread_courier_capture_publishes_its_absence_stamped_at_the_tick(string topic)
+    {
+        var host = AnUnreadCourierTick();
+
+        var sample = Assert.Single(host.Published, s => s.Topic == topic);
+        Assert.Null(sample.Value);
+        Assert.Equal(HostClockUt, sample.Ut);
+    }
+
+    /// <summary>
+    /// One tick of the four courier handles with nothing live to read: no Program
+    /// handler, no crew handler, no tooling manager, no career log. That is the
+    /// main menu, and any save RP-1 does not manage.
+    /// </summary>
+    private static ClockedUplinkHost AnUnreadCourierTick()
+    {
+        RP0.Programs.ProgramHandler.Instance = null;
+        RP0.Crew.CrewHandler.Instance = null;
+        ToolingManager.Instance = null;
+        CareerLog.Instance = null;
+
+        var uplink = new Rp1ScUplink();
+        var host = new ClockedUplinkHost(HostClockUt);
+        uplink.Register(host);
+
+        uplink.HandleProgramsOnCourier(uplink.CaptureProgramsOnMain(null));
+        uplink.HandleCrewOnCourier(uplink.CaptureCrewOnMain(null));
+        uplink.HandleToolingOnCourier(uplink.CaptureToolingOnMain(null));
+        uplink.HandleCareerEventsOnCourier(uplink.CaptureCareerEventsOnMain(null));
+        return host;
     }
 
     [Fact]
