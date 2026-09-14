@@ -980,7 +980,12 @@ registerComponent<ManeuverPlannerConfig>({
     "Plan maneuver nodes: circularise / custom ΔV at next apsis, with live preview + feasibility check against vessel ΔV.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 10, h: 18 },
-  minSize: { w: 6, h: 9 },
+  /**
+   * Seven columns so the preset picker reads its longest label, "Hohmann
+   * rendezvous (target)", in full: at six even the default preset ends under
+   * the picker's arrow.
+   */
+  minSize: { w: 7, h: 9 },
   component: ManeuverPlannerComponent,
   // A body `sections` slot for alternate-transfer-strategy comparisons, empty until an augment binds.
   augmentSlots: ["maneuver-planner.sections"],
