@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { bandClaim } from "./bandClaim";
 import { type FillQuantity, fillFraction } from "./fillQuantity";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
@@ -402,10 +403,11 @@ function boundsOn<U extends string>(
  * attribute is the only place a screen reader can be told about a mark that is
  * a shape and nothing else.
  *
- * It names WHAT the interval claims rather than leaving the reader to assume
- * the stronger of the two: crossing a hard bound is impossible, crossing one
- * sigma happens about a third of the time, and the same two numbers mean both
- * until something says which.
+ * The two ends are written here, since only this function knows the rung they
+ * settled at; WHAT they claim is `bandClaim`'s to say, shared with every other
+ * surface that draws a band. Leaving that to the reader to assume would hand
+ * them the stronger of two very different statements, and the same two numbers
+ * mean both until something says which.
  */
 function withBand(
   spoken: string,
@@ -413,10 +415,15 @@ function withBand(
   shared?: FormatQuantityOptions,
 ): string {
   if (bounds === null) return spoken;
-  const claim = bounds.kind === "sigma1" ? "one sigma" : "bounded";
   const lo = speakQuantity(bounds.loSaid, shared);
   const hi = speakQuantity(bounds.hiSaid, shared);
-  return `${spoken}, ${claim} ${lo} to ${hi}`;
+  /*
+   * "between ... and ...", never the bare "lo to hi" the ticks are drawn from.
+   * The bar has already announced its own figure, so a second pair of numbers
+   * behind a comma is three numbers in a row to someone listening, and the
+   * connector is the only thing telling them which two are the interval.
+   */
+  return `${spoken}, ${bandClaim(bounds.kind, `between ${lo} and ${hi}`)}`;
 }
 
 /**

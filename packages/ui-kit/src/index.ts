@@ -112,6 +112,11 @@ export {
   PrimaryButton,
   TextButton,
 } from "./Button";
+// How doubt is SPOKEN, in one place, the way `Meter` already holds how it is
+// drawn. Exported because the surfaces that need it are not all in this
+// package: a chart in the app and an augment in a bundled Uplink each had a
+// wording of their own before this did.
+export { bandClaim } from "./bandClaim";
 export { Card, type CardProps } from "./Card";
 export {
   Cluster,

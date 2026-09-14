@@ -4,6 +4,7 @@ import type {
   ReckoningBasis,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
+import { bandClaim } from "@ksp-gonogo/ui-kit";
 import React, { useId, useMemo } from "react";
 import {
   buildBandPath,
@@ -311,12 +312,14 @@ const RECKONING_BASIS_PHRASE: Record<ReckoningBasis, string> = {
  * and a one-sigma estimate are drawn differently and are worth different
  * amounts, and a reader who sees neither the fill nor its edge needs the
  * distinction spelled out rather than implied.
+ *
+ * The containment half is written here because only a chart calls its interval
+ * a shaded region; how much that containment is worth comes from `bandClaim`,
+ * so this reads the same as the band on a meter rather than nearly the same.
  */
-const BAND_KIND_PHRASE: Record<BandKind, string> = {
-  bound: "the shaded region is the range the model says the value is inside",
-  sigma1:
-    "the shaded region is one standard deviation, so the value is outside it about a third of the time",
-};
+function bandKindPhrase(kind: BandKind): string {
+  return bandClaim(kind, "the value is inside the shaded region");
+}
 
 /** Pull every plottable Y value out of a series, including band upper bounds. */
 function seriesYValues(s: ChartSeries): number[] {
@@ -667,7 +670,7 @@ export function LineChart({
         .filter((kind): kind is BandKind => kind !== undefined),
     );
     for (const kind of kinds) {
-      clauses.push(`${s.label}: ${BAND_KIND_PHRASE[kind]}`);
+      clauses.push(`${s.label}: ${bandKindPhrase(kind)}`);
     }
     return clauses;
   });

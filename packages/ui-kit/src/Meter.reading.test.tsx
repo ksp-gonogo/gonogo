@@ -174,13 +174,36 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
-    const spoken = meter.getAttribute("aria-valuetext") ?? "";
-    expect(spoken).toContain("one sigma");
-    expect(spoken).toContain("30");
-    expect(spoken).toContain("44");
+    /*
+     * Pinned whole rather than probed for its parts. This is a sentence a
+     * person hears, and the parts can each be present while the sentence reads
+     * as three numbers in a row.
+     */
+    expect(meter.getAttribute("aria-valuetext")).toBe(
+      "39 percent, between 30 percent and 44 percent about two thirds of the time",
+    );
   });
 
-  it("names a hard bound as a bound, which is the stronger claim", () => {
+  /*
+   * The listener is the reason. A meter's `aria-valuetext` is spoken on every
+   * focus and every change, and "one sigma" names the interval instead of
+   * saying what it claims: someone who already knows the statistics learns
+   * nothing new from it and someone who does not learns nothing at all.
+   */
+  it("speaks the interval in plain words, with no statistics vocabulary", () => {
+    render(
+      <Meter
+        label="Dose"
+        value={bandedFraction(0.39, { "": ratioBand(0.3, 0.39, 0.44) })}
+      />,
+    );
+    const meter = screen.getByRole("meter", { name: "Dose" });
+    expect(meter.getAttribute("aria-valuetext")).not.toMatch(
+      /sigma|standard deviation|standard error|confidence interval/i,
+    );
+  });
+
+  it("leaves a hard bound unqualified, which is the stronger claim", () => {
     render(
       <Meter
         label="Dose"
@@ -190,7 +213,9 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
-    expect(meter.getAttribute("aria-valuetext")).toContain("bounded");
+    expect(meter.getAttribute("aria-valuetext")).toBe(
+      "39 percent, between 38 percent and 40 percent",
+    );
   });
 
   it("renders a reading carrying no number as absence, not as a zeroed bar", () => {

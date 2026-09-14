@@ -266,11 +266,20 @@ describe("what the row shows", () => {
     expect(lo).not.toEqual(hi);
   });
 
-  it("says what the interval CLAIMS, a standard error not being a limit", async () => {
+  it("says what the interval CLAIMS, a fitted rate not being a limit", async () => {
     const container = await renderBand(SCATTERED, "Jebediah Kerman", 0);
+    const said =
+      container.querySelector("[title]")?.getAttribute("title") ?? "";
 
-    expect(container.querySelector("[title]")?.getAttribute("title")).toContain(
-      "one standard deviation",
+    expect(said).toMatch(/two thirds of the time/i);
+    /*
+     * Through the kit's shared helper, not a sentence of this augment's own.
+     * An Uplink writing its own wording for a band is the drift this whole
+     * helper exists to stop, and it would drift here first: nothing else in
+     * this repo would notice a claim reworded inside a bundled extension.
+     */
+    expect(said).not.toMatch(
+      /sigma|standard deviation|standard error|confidence interval/i,
     );
   });
 
