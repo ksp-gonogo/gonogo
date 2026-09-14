@@ -1,14 +1,24 @@
 {
   "_meta": {
-    "scenario": "resource-colour-spread",
-    "notes": "Synthetic colour-spread demo for the resource-colour system (local_docs/design/2026-08-08-resource-colour-system.md, gonogo main repo), with the planted Uplink (scripts/probe/plantedUplink.ts) metering every stored resource the built-in five leave alone. Exercises: (1) several curated Tier-1 resources across both contributors (LiquidFuel amber, Water blue, Oxygen cyan, Food green, ElectricCharge yellow); (2) SolidFuel and 'KerbalKrunchies' (an invented mod resource) both fall through to the Tier-2 hash fallback, proving unknowns still get a distinct legible colour; (3) Oxidizer is drained to a critical level and Food to a low level, to show the status border/badge rendering SEPARATELY from each resource's identity fill (neither meter's fill hue changes because of its status)."
+    "synthetic": true,
+    "notes": "SYNTHETIC. One vessel, two contributors on one slot: the fuel tank (LiquidFuel/Oxidizer) gets its meters from the built-in contribution, the life support tank (Water/Food) from this Uplink's `ShipMap/partMeters.ts`. Both supplies carry flow-mode ordinal 3 (STACK_PRIORITY_SEARCH), which does not pool, so each earns a per-part meter; without an ordinal the contribution cannot tell pooling and draws nothing. The tank also carries this Uplink's fitted-process part-meta row (a running water recycler, `ShipMap/partMeta.ts`), which shows in the part tooltip. Food.amount is deliberately small (0.4) to catch a rounding-to-zero bug in the tooltip's meter label."
+  },
+  "_scene": {
+    "contribution": "kerbalism:ship-map-part-meters",
+    "host": "ship-map",
+    "caption": "Supply tank meters contributed into Ship Map beside the built-in propellant meters, Food drained low enough to carry a status border",
+    "modes": ["default"],
+    "size": {
+      "w": 8,
+      "h": 10
+    },
+    "paints": ["3 parts"]
   },
   "_stream": {
-    "carriedChannels": ["vessel.parts", "planted.available"],
     "emits": [
       {
-        "channel": "vessel.parts",
-        "value": {
+        "topic": "vessel.parts",
+        "payload": {
           "parts": [
             {
               "id": "1",
@@ -78,12 +88,8 @@
                   "maxAmount": 180
                 },
                 "Oxidizer": {
-                  "amount": 5,
-                  "maxAmount": 220
-                },
-                "SolidFuel": {
                   "amount": 100,
-                  "maxAmount": 180
+                  "maxAmount": 220
                 }
               },
               "moduleStates": []
@@ -120,58 +126,12 @@
               "isPowerRelated": false,
               "resources": {
                 "Water": {
-                  "amount": 100,
+                  "amount": 42.3,
                   "maxAmount": 180
                 },
                 "Food": {
-                  "amount": 10,
+                  "amount": 0.4,
                   "maxAmount": 90
-                },
-                "Oxygen": {
-                  "amount": 150,
-                  "maxAmount": 200
-                },
-                "ElectricCharge": {
-                  "amount": 190,
-                  "maxAmount": 200
-                }
-              },
-              "moduleStates": []
-            },
-            {
-              "id": "4",
-              "parentId": "3",
-              "name": "modResourceTank",
-              "title": "Kerbal Krunchies Hopper",
-              "position": {
-                "x": 0,
-                "y": -3.79,
-                "z": 0
-              },
-              "up": {
-                "x": 0,
-                "y": 1,
-                "z": 0
-              },
-              "bounds": {
-                "size": {
-                  "x": 1.25,
-                  "y": 1,
-                  "z": 1.25
-                }
-              },
-              "dryMass": 0.2,
-              "inverseStage": 1,
-              "maxTemp": 2000,
-              "category": "FuelTank",
-              "categoryOrdinal": 7,
-              "modules": [],
-              "isRobotics": false,
-              "isPowerRelated": false,
-              "resources": {
-                "KerbalKrunchies": {
-                  "amount": 40,
-                  "maxAmount": 80
                 }
               },
               "moduleStates": []
@@ -180,8 +140,52 @@
         }
       },
       {
-        "channel": "planted.available",
-        "value": true
+        "topic": "kerbalism.available",
+        "payload": true
+      },
+      {
+        "topic": "kerbalism.profile",
+        "payload": {
+          "name": "Default",
+          "resources": {
+            "Water": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.2,
+              "flowModeOrdinal": 3
+            },
+            "Food": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Food",
+              "isSupply": true,
+              "lowThreshold": 0.15,
+              "flowModeOrdinal": 3
+            }
+          },
+          "rules": [],
+          "processes": []
+        }
+      },
+      {
+        "topic": "kerbalism.lifesupport",
+        "payload": {
+          "rates": {
+            "Water": -0.002,
+            "Food": -0.0007
+          },
+          "processes": [
+            {
+              "resource": "recycler",
+              "title": "Water Recycler",
+              "capacity": 1,
+              "running": true,
+              "broken": false,
+              "flightId": 3
+            }
+          ],
+          "greenhouses": []
+        }
       }
     ]
   }

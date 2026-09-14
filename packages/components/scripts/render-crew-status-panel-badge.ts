@@ -4,12 +4,12 @@
  * `local_docs/renders/crew-status-panel-badge/`, the header chips two
  * SEPARATE `crew-status.badges` contributions drop into the panel chrome:
  * the base widget's own info-tone "N/M aboard" headcount
- * (`src/CrewStatus/badge.ts`, `crewAboardBadge`) and the Kerbalism
- * Uplink's nogo-tone "N crew critical" danger badge
- * (`mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`). Both are
- * registered against the SAME automatic slot and coexist (info is
- * unconditional, nogo only fires once a kerbal crosses into the critical
- * band), so this fixture (crew-critical) exercises both at once.
+ * (`src/CrewStatus/badge.ts`, `crewAboardBadge`) and a nogo-tone "crew
+ * critical" danger badge from the planted Uplink (`probe/plantedUplink.ts`),
+ * standing in for an Uplink that tracks crew survival. Both are registered
+ * against the SAME automatic slot and coexist (info is unconditional, nogo
+ * only fires once a kerbal crosses into the critical band), so the fixture
+ * exercises both at once.
  *
  * The shared widget probe (`scripts/probe/probe-entry.tsx`, used for every
  * other widget's review render and the visual-gate baselines) deliberately
@@ -22,12 +22,9 @@
  * real `CrewStatusComponent`, so the PNG shows exactly what the dashboard
  * would render, not a hand-built mock.
  *
- * Replays the existing crew-critical fixture
- * (`src/CrewStatus/__render_kerbalism_survival__/crew-critical.json`,
- * already used for the per-row survival render) so the two renders describe
- * the SAME vessel state: Jebediah at 94% radiation and Bill's 240s death
- * clock both cross the "nogo" threshold, so the header reads "2 crew
- * critical" alongside the per-row badges/meters, plus the "3/4 aboard" info
+ * Replays `probe/planted-crew.json`, shared with the avatar render so the two
+ * describe the SAME vessel state: Jebediah past the planted danger line, so
+ * the header reads "crew critical" beside his meters, plus the "3/4 aboard" info
  * chip from the crew count itself.
  *
  * The tile is rendered WIDE (`PANEL_PX_W` below) rather than at the
@@ -63,10 +60,7 @@ const OUT_DIR = resolve(
   "../../../local_docs/renders/crew-status-panel-badge",
 );
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
-const FIXTURE_PATH = resolve(
-  HERE,
-  "../src/CrewStatus/__render_kerbalism_survival__/crew-critical.json",
-);
+const FIXTURE_PATH = resolve(HERE, "probe/planted-crew.json");
 
 // Wide enough for "CREW" + both badges ("3/4 ABOARD" info + "2 CREW
 // CRITICAL" nogo) to sit inline in the header without tripping the

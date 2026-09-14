@@ -34,9 +34,9 @@
  * fixture, no probe changes required.
  */
 // MUST be the first import: installs the injected gonogo host before the
-// `@ksp-gonogo/gonogo-kerbalism-uplink` side-effect import below self-registers a
-// facade-sealed widget (which would otherwise throw "the gonogo host has not
-// been installed" at module load). ES imports are hoisted in source order.
+// planted Uplink below registers through it (which would otherwise throw "the
+// gonogo host has not been installed" at module load). ES imports are hoisted
+// in source order.
 import "./probe-install-host";
 import {
   ContributionsProvider,
@@ -54,13 +54,6 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import type { Meta, TopicId } from "@ksp-gonogo/sitrep-sdk";
-// Side-effect import: the Kerbalism Uplink's own widgets (Ship Systems,
-// its Greenhouse augment, ...) self-register on module load, same contract.
-import "@ksp-gonogo/gonogo-kerbalism-uplink";
-// Side-effect import: RealAntennas registers no standalone widget, but wires
-// its comm-signal.sections augment (+ the Topic registrations it reads) at
-// module load, same contract.
-import "@ksp-gonogo/gonogo-realantennas-uplink";
 import {
   type BadgeEntry,
   DomainAvailabilityProvider,
@@ -84,6 +77,11 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
+// Side-effect import: the planted Uplink's contributions into built-in
+// widgets, for a fixture whose subject is a built-in widget WITH an Uplink's
+// contributions. Each requires the planted Domain, so only a fixture emitting
+// `planted.available` renders any of them.
+import "./plantedUplink";
 
 // Stock-body registry needs to be populated before any widget that calls
 // getBody(v.body) tries to read it. The live app does this in main.tsx;

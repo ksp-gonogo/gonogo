@@ -15,9 +15,9 @@ import { getScreen, getWidget, listScreens, listWidgets } from "./widgets";
 
 /**
  * The name `getWidget` actually accepts. Five configs share the widgetId
- * `landing-status` and two each share `crew-status` and `science-data`, so a
- * listing keyed on widgetId names nine widgets the CLI then rejects, and the
- * only way left to render them is `--all`.
+ * `landing-status` and two share `science-data`, so a listing keyed on
+ * widgetId names seven widgets the CLI then rejects, and the only way left to
+ * render them is `--all`.
  */
 function cliKey(w: { widgetId: string; label?: string }): string {
   return w.label ?? w.widgetId;

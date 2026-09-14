@@ -659,10 +659,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/uplink-bundle-targets.ts",
       // prose: a note about kOS's xterm.css being the stylesheet case that forced style folding.
       "packages/app/uplink-bundle.ts",
-      // prose: a header sentence naming the clients this probe used to import.
-      "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
-      // prose: it quotes the probe's import line to explain what the host bridge is for.
-      "packages/components/scripts/probe/probe-install-host.ts",
       // data: `command: "kos.run"`, a wire command id in a recorded scene.
       "packages/components/scripts/render-systemview-traffic-video.ts",
       // prose: two notes using the kOS terminal as the worked example of a blank render and of a stylesheet that must reach the page.
@@ -1031,22 +1027,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * domainDebt entries.
    */
   realantennas: {
-    domainDebt: [
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // The render harness imports this Uplink to photograph its AUGMENTS. That
-      // is a different shape from a widget move and does not clear the same way:
-      // RealAntennas registers no widget of its own, it fills the
-      // `comm-signal.sections` slot of a built-in widget, and the only way to
-      // photograph the augmented widget is to have both halves loaded. Moving
-      // `src/CommSignal/__fixtures__/realantennas-link.json` to the Uplink moves
-      // the picture, it does not remove the need for the client. A record, not an
-      // excuse: deleting the import would buy a clean gate with a lost picture.
-      "packages/components/scripts/probe/probe-entry.tsx",
-    ],
+    domainDebt: [],
     permanent: [
       /*
        * -- PROSE, both of them (2026-09-04). The visibility factory names RA to
@@ -1842,15 +1823,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // Same shape: a recorded scene that must contain this Uplink's
-      // contributions, so the client has to be loaded when the scene is captured.
-      "packages/components/scripts/probe/capture-entry-kerbalism.tsx",
-      // Same shape: the crew-survival augment supplies the per-row content this
-      // probe exists to photograph, so there is nothing to photograph without it.
-      "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
-      // Same shape, and the clearest case of it: the badge under test IS a
-      // contribution this Uplink drops into a built-in widget. No client, no badge.
-      "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx",
       // The render harness imports this Uplink to photograph its augments (the
       // Greenhouse section, the crew meters). Moving Ship Systems' and
       // CrewSurvival's fixtures to the Uplink moves those pictures and leaves this
@@ -1882,16 +1854,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
-      // prose: a note on which registrations the probe's host bridge has to stand up.
-      "packages/components/scripts/probe/probe-install-host.ts",
       // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
       "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
-      // data: fixture paths under `__render_kerbalism_survival__`, and the render-set name that must match widgets.ts.
-      "packages/components/scripts/render-crew-status-avatar.ts",
-      // data: the same fixture paths, plus prose naming the badge the Uplink contributes.
-      "packages/components/scripts/render-crew-status-panel-badge.ts",
-      // data: `kerbalism.available` and the topic values the recorded scene emits.
-      "packages/components/scripts/render-systemview-cme-video.ts",
       // data: the render-set config for the crew-survival augment, keyed by its fixtures path.
       "packages/components/scripts/widgets.ts",
       // The declaration-reachability ratchet's debt list: an inventory of
@@ -2563,7 +2527,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
     "packages/app/uplink-bundle-targets.ts",
-    "packages/components/scripts/probe/probe-entry.tsx",
     // The reachability ratchet's debt list: wire ids as DATA, one line per
     // declared Topic/command with no consumer. Survives the strip because the
     // ids are the inventory, not prose about it. Shrinks to zero as consumers
@@ -2622,14 +2585,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
     "packages/app/uplink-bundle-targets.ts",
-    "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
-    "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx",
-    "packages/components/scripts/probe/capture-entry-kerbalism.tsx",
-    "packages/components/scripts/probe/probe-entry.tsx",
     "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
-    "packages/components/scripts/render-crew-status-avatar.ts",
-    "packages/components/scripts/render-crew-status-panel-badge.ts",
-    "packages/components/scripts/render-systemview-cme-video.ts",
     "packages/components/scripts/widgets.ts",
     // The reachability ratchet's debt list: wire ids as DATA, one line per
     // declared Topic/command with no consumer. Survives the strip because the

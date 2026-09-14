@@ -1,15 +1,10 @@
 {
   "_meta": {
     "scenario": "water-family",
-    "notes": "Operator-requested colour-spread render for the 'water family' of resources (local_docs/design/2026-08-08-resource-colour-system.md, gonogo main repo): shows Water, WasteWater, Waste, CarbonDioxide, and Oxygen (for contrast) side-by-side so an operator can see how they currently colour before deciding whether WasteWater should get its own hue. RENDER-ONLY: does not change resourceColor.ts. Like 03-resource-colour-spread, this is NOT a realistic Kerbalism profile: WasteWater/Waste/CarbonDioxide are declared Supply + non-pooled here purely to earn a per-part meter for the render (a real Kerbalism profile usually classifies these as byproducts rather than life-support Supplies, and often pools them). Expected current colouring: Water blue, WasteWater/Waste/CarbonDioxide all the same olive (WasteWater's name contains 'waste', which matches the CURATED co2/waste family before the water family gets a chance), Oxygen cyan."
+    "notes": "Operator-requested colour-spread render for the 'water family' of resources (local_docs/design/2026-08-08-resource-colour-system.md, gonogo main repo): shows Water, WasteWater, Waste, CarbonDioxide, and Oxygen (for contrast) side-by-side so an operator can see how they currently colour before deciding whether WasteWater should get its own hue. RENDER-ONLY: does not change resourceColor.ts. The meters come from the planted Uplink (scripts/probe/plantedUplink.ts), which meters every stored resource the built-in five leave alone. Expected current colouring: Water blue, WasteWater/Waste/CarbonDioxide all the same olive (WasteWater's name contains 'waste', which matches the CURATED co2/waste family before the water family gets a chance), Oxygen cyan."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.parts",
-      "kerbalism.available",
-      "kerbalism.profile",
-      "kerbalism.lifesupport"
-    ],
+    "carriedChannels": ["vessel.parts", "planted.available"],
     "emits": [
       {
         "channel": "vessel.parts",
@@ -65,7 +60,7 @@
               "bounds": {
                 "size": {
                   "x": 1.25,
-                  "y": 1.0,
+                  "y": 1,
                   "z": 1.25
                 }
               },
@@ -111,7 +106,7 @@
               "bounds": {
                 "size": {
                   "x": 1.25,
-                  "y": 1.0,
+                  "y": 1,
                   "z": 1.25
                 }
               },
@@ -139,59 +134,8 @@
         }
       },
       {
-        "channel": "kerbalism.available",
+        "channel": "planted.available",
         "value": true
-      },
-      {
-        "channel": "kerbalism.profile",
-        "value": {
-          "name": "Default",
-          "resources": {
-            "Water": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Water",
-              "isSupply": true,
-              "lowThreshold": 0.2
-            },
-            "Oxygen": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Oxygen",
-              "isSupply": true,
-              "lowThreshold": 0.15
-            },
-            "CarbonDioxide": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Carbon Dioxide",
-              "isSupply": true,
-              "lowThreshold": 0.15
-            },
-            "WasteWater": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Waste Water",
-              "isSupply": true,
-              "lowThreshold": 0.15
-            },
-            "Waste": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Waste",
-              "isSupply": true,
-              "lowThreshold": 0.15
-            }
-          },
-          "rules": [],
-          "processes": []
-        }
-      },
-      {
-        "channel": "kerbalism.lifesupport",
-        "value": {
-          "rates": {
-            "Water": -0.002,
-            "Oxygen": -0.0015
-          },
-          "processes": [],
-          "greenhouses": []
-        }
       }
     ]
   }

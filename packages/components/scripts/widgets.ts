@@ -988,33 +988,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // CrewStatus's per-kerbal survival, an ADDITIVE Kerbalism augment: the
-    // widget itself (registered above) reads only the vanilla `vessel.crew`
-    // roster now; the CrewSurvival augment lives entirely in the Uplink
-    // (mod/GonogoKerbalismUplink/client/src/CrewSurvival) and fills the
-    // generic `crew-status.meters` segment CrewStatus draws per row. Same
-    // widget as above, a dedicated fixtures dir (mirrors landing-status's
-    // multi-scenario convention): `label` disambiguates this render set from
-    // the base-widget one since both share `widgetId: "crew-status"`.
-    widgetId: "crew-status",
-    label: "crew-status/kerbalism-survival",
-    fixturesPath: "CrewStatus/__render_kerbalism_survival__",
-    outPath: "renders/kerbalism-crew-survival",
-    modes: [
-      /*
-       * Narrowest roster width: the badge-wrap case actually has badges to
-       * wrap here (crew-critical.json's per-kerbal warnings), unlike the
-       * vanilla base-widget fixtures above which never bind the slot.
-       */
-      { name: "narrow-4x10", w: 4, h: 10 },
-      // defaultSize 6×8: the common operator view, both fixtures.
-      { name: "default-6x8", w: 6, h: 8 },
-      // Wide/tall review shot: every row's survival meter + badge readable
-      // without scrolling, both fixtures.
-      { name: "wide-9x12", w: 9, h: 12 },
-    ],
-  },
-  {
     widgetId: "experiments",
     fixturesPath: "Experiments/__fixtures__",
     outPath: "renders/experiments-widget",
@@ -1609,28 +1582,6 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: '[role="tablist"] [role="tab"]:nth-of-type(2)' }],
         forFixtures: ["career-archive-multi-body"],
       },
-    ],
-  },
-  {
-    // ScienceData's Aboard row, an ADDITIVE Kerbalism augment: the widget
-    // itself (registered above) renders the row identically with no
-    // Kerbalism data at all; the File Manager controls (Send/Delete/
-    // Analyze/Dump/Move to lab, drive capacity readout) live entirely in
-    // the Uplink (mod/GonogoKerbalismUplink/client/src/ScienceFileManager)
-    // and fill the generic `science-data.aboard-row` slot this widget
-    // exposes. Same widgetId, a dedicated fixtures dir and label (mirrors
-    // crew-status/kerbalism-survival's convention) so this render set is
-    // disambiguated from the base-widget one above.
-    widgetId: "science-data",
-    label: "science-data/kerbalism-file-manager",
-    fixturesPath: "ScienceData/__render_kerbalism_file_manager__",
-    outPath: "renders/kerbalism-science-file-manager",
-    modes: [
-      // defaultSize 8×10: the common operator view, every control visible.
-      { name: "default-8x10", w: 8, h: 10 },
-      // Wide/tall review shot: both the file and sample rows plus the drive
-      // readout readable without scrolling.
-      { name: "wide-12x12", w: 12, h: 12 },
     ],
   },
   {

@@ -17,10 +17,10 @@
  * `useViewUt`/`useUtNow` both advance every animation frame for the whole
  * capture instead of sitting pinned.
  *
- * Only registers the built-in widget library (`../../src`), not the
- * mod-client Uplinks `probe-entry.tsx` also pulls in: nothing this harness
- * captures needs the Uplink facade, so the facade-install bridge
- * (`probe-install-host.ts`) is skipped entirely.
+ * Only registers the built-in widget library (`../../src`), not the planted
+ * Uplink `probe-entry.tsx` also pulls in: nothing this harness captures needs
+ * the Uplink facade, so the facade-install bridge (`probe-install-host.ts`) is
+ * skipped entirely.
  */
 import {
   ContributionsProvider,

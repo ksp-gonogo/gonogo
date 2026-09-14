@@ -696,12 +696,6 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
-      '@ksp-gonogo/gonogo-kerbalism-uplink':
-        specifier: workspace:*
-        version: link:../../mod/GonogoKerbalismUplink/client
-      '@ksp-gonogo/gonogo-realantennas-uplink':
-        specifier: workspace:*
-        version: link:../../mod/GonogoRealAntennasUplink/client
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
