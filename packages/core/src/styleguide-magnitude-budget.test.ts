@@ -437,14 +437,18 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
  * one get a sentence explaining itself.
  */
 const WIRE_BUDGET: Record<string, number> = {
-  // 2: the band ends, written into `TimelineSample`'s `bandLo`/`bandHi`, which
-  // are declared `number` because the sample buffer crosses to the chart and
-  // then over PeerJS to a station. Nothing computes with them here; the shading
-  // path in `lineChartMath` scales them into SVG coordinates. This is the pair
-  // the named exit was added for, and they read as `.magnitude` until then,
-  // which put this file two over a budget whose comment described only the
-  // interpolator pair it still spends.
-  "mod/sitrep-sdk/src/spine/timeline-store.ts": 2,
+  /*
+   * 2: a reckoned tail's band ends, written into `SeriesReckonedSpan`'s
+   * `bandLo`/`bandHi`, which are declared `number` because the series crosses
+   * to the chart and then over PeerJS to a station. Nothing computes with them
+   * here; the shading path in `lineChartMath` scales them into SVG coordinates.
+   *
+   * The pair used to be spent in the store, where the tail is minted. It moved
+   * here on 2026-09-14 with `ReckonedSample`'s ends: those stay wrapped out of
+   * the store now, and are unwrapped beside the value they describe, at the one
+   * boundary this file's own magnitude entry already names.
+   */
+  "packages/data/src/hooks/useDataSeries.ts": 2,
 };
 
 /**

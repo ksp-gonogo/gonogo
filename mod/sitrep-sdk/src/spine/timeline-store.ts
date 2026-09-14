@@ -212,27 +212,41 @@ export interface ReckonedSample<T> {
   value: T;
   basis: ReckoningBasis;
   /**
-   * How well the model knew this instant, as bare magnitudes in the value's
-   * own unit, present only where the model offered a band for the root path.
+   * How well the model knew this instant, present only where the model offered
+   * a band for the root path.
    *
-   * The unit is the value's by the {@link UncertaintyBand} contract, whose
-   * `value` field is the same quantity `reckon` produced here, so the three
-   * ends and the point estimate cannot disagree about what they measure.
+   * In the value's own unit BY CONSTRUCTION: {@link ReckonedBound} resolves to
+   * the same quantity type `value` carries, so an end in another unit is a
+   * compile error at the consumer and is dropped at the producer. It used to be
+   * a pair of bare magnitudes resting on a sentence in {@link UncertaintyBand}'s
+   * doc comment, which was the only thing saying which unit they were in; that
+   * became a real exposure when the point estimate started carrying a unit,
+   * because until then there was nothing for the two ends to disagree with.
    *
-   * Magnitudes rather than `Value`s because a band is not read as a quantity
-   * anywhere: `lineChartMath` scales the two ends into SVG coordinates and
-   * nothing else ever holds them. `value` above keeps its unit because a chart
-   * axis, a tooltip and a readout all ask what it measures; a shading interval
-   * is asked only where it sits.
+   * The magnitudes are taken where the value's is, at the boundary that plots
+   * it (`@ksp-gonogo/data`'s `useDataSeries`), so the three travel to the chart
+   * together rather than one of them arriving there already unwrapped.
    *
    * The three move together. Either all of `bandLo`, `bandHi` and `bandKind`
    * are here or none is; a half-band is a producer bug and reads downstream as
    * no band at all.
    */
-  bandLo?: number;
-  bandHi?: number;
+  bandLo?: ReckonedBound<T>;
+  bandHi?: ReckonedBound<T>;
   bandKind?: BandKind;
 }
+
+/**
+ * The quantity one end of a {@link ReckonedSample}'s band is in: whatever the
+ * sample's own value is in.
+ *
+ * A sample whose value is a bare magnitude still gets a wrapped end, because a
+ * band is only ever minted from an {@link UncertaintyBand} and that type's ends
+ * are `Value`s whatever the payload holds. `Value` with its unit left open is
+ * the honest answer there: nothing in the payload says what the number measures,
+ * so nothing here can promise the end agrees with it.
+ */
+export type ReckonedBound<T> = T extends Value<infer U> ? Value<U> : Value;
 
 /**
  * The most instants one reckoned tail may be sampled at.
@@ -293,6 +307,26 @@ function plottableQuantity(raw: unknown): number | Value | undefined {
   if (typeof raw === "number") return Number.isFinite(raw) ? raw : undefined;
   if (isValue(raw)) return raw.isFinite() ? raw : undefined;
   return undefined;
+}
+
+/**
+ * Whether a band is about the quantity the model just answered with, rather
+ * than merely about some quantity.
+ *
+ * `bandIsWellFormed` asks whether the three ends agree with EACH OTHER, which a
+ * band in the wrong unit passes. This is the other half: the band's own `value`
+ * is contractually the number `reckon` produced at that path, so where the
+ * reckoned value is a quantity the two units have to be the same string.
+ *
+ * A bare-magnitude value is accepted with any band, because there is nothing to
+ * compare it against and refusing every band on those topics would take the
+ * shading off the one shape that has carried it longest.
+ */
+function bandDescribes(
+  drawable: number | Value,
+  band: UncertaintyBand,
+): boolean {
+  return !isValue(drawable) || drawable.unit === band.value.unit;
 }
 
 /**
@@ -1369,11 +1403,26 @@ export class TimelineStore {
       /*
        * A malformed band is dropped and the instant still drawn. The value is
        * the model's answer either way, and refusing the point over a bad
-       * interval would turn a shading bug into a hole in the trace.
+       * interval would turn a shading bug into a hole in the trace. A band in
+       * some OTHER unit than the value goes the same way: it is internally
+       * coherent, so `bandIsWellFormed` has nothing to say about it, and what
+       * makes it wrong is only visible against the quantity it claims to
+       * describe. That comparison is possible at all because the ends stay
+       * wrapped; while they were written out as bare magnitudes, a band in
+       * seconds reached two numeric slots a chart reads as metres.
+       *
+       * The cast is the one `value` above already takes, and for the same
+       * reason: this method is generic over a payload it reaches by runtime
+       * path, so `T` is not resolved here, and the two checks on the condition
+       * above are what establish the agreement `ReckonedBound<T>` states.
        */
-      if (answer.band && bandIsWellFormed(answer.band)) {
-        sample.bandLo = answer.band.lo.toWire();
-        sample.bandHi = answer.band.hi.toWire();
+      if (
+        answer.band &&
+        bandIsWellFormed(answer.band) &&
+        bandDescribes(drawable, answer.band)
+      ) {
+        sample.bandLo = answer.band.lo as ReckonedBound<T>;
+        sample.bandHi = answer.band.hi as ReckonedBound<T>;
         sample.bandKind = answer.band.kind;
       }
       out.push(sample);

@@ -454,7 +454,18 @@ export function useDataSeries(
        * alone, so a sample carrying half a band joins the unbanded runs
        * instead of opening a banded one it cannot fill.
        */
-      const { bandLo: lo, bandHi: hi } = sample;
+      const { bandLo, bandHi } = sample;
+      /*
+       * The ends cross the same boundary `plotValue` just took the value
+       * across, and in the same file on purpose: a tail's band arrives as two
+       * quantities in the value's own unit and `SeriesReckonedSpan` holds
+       * magnitudes, so this is where the shading stops being a quantity. It
+       * used to be unwrapped back in the store, which put the band a layer
+       * ahead of the number it describes and left nothing in between able to
+       * notice a unit.
+       */
+      const lo = bandLo?.toWire();
+      const hi = bandHi?.toWire();
       const kind =
         lo !== undefined && hi !== undefined ? sample.bandKind : undefined;
       const open = nextReckoned[nextReckoned.length - 1];

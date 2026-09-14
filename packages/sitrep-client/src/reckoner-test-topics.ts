@@ -20,11 +20,18 @@
  * puts a fake Topic into `getAllKnownTopicIds()` where another suite could
  * enumerate it.
  *
+ * `test.altitude` is the one whose payload is a QUANTITY rather than a bare
+ * magnitude, which is what the band suites need to ask whether an end arrives
+ * in the same unit as the value it describes. A bare-magnitude topic cannot
+ * pose that question at all.
+ *
  * Two segments each, deliberately: `resolveRawFieldSubtopic` treats a
  * three-segment name as `<domain>.<channel>.<fieldPath>`, so `test.target` is a
  * whole topic and `test.target.relativePosition` is a field of it, exactly as
  * `vessel.target` and `vessel.target.relativePosition` behave.
  */
+
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 
 /** A nested vector plus a sibling no model moves: the field-scoping case. */
 export interface TestTarget {
@@ -50,6 +57,7 @@ export interface TestPrefixed {
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "test.temperature": number;
+    "test.altitude": Value<"m">;
     "test.target": TestTarget;
     "test.contact": TestContact;
     "test.dock": TestPrefixed;
