@@ -75,8 +75,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
 
-    // Nothing is marked home before the roster arrives, and nothing claims the
-    // home was not identified either: an absent roster says neither.
+    // Nothing is marked home before the roster arrives.
     expect(screen.queryByText("Home")).toBeNull();
 
     // Opening it makes the same conflation louder: a topic that has simply not

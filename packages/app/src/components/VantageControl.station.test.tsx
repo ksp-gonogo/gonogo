@@ -100,7 +100,7 @@ describe("VantageControl on a station", () => {
     fixture.unmount();
   });
 
-  it("states that no home was identified rather than marking a station home", () => {
+  it("marks a fallback home as home, with no warning text", () => {
     const fixture = mountStation();
     fixture.emitRoster(
       [
@@ -108,13 +108,15 @@ describe("VantageControl on a station", () => {
           id: "ground:DSS 14 - Goldstone",
           displayName: "Goldstone",
           active: true,
-          isHome: false,
+          isHome: true,
+          isHomeFallback: true,
         },
         {
           id: "ground:DSS 43 - Canberra",
           displayName: "Canberra",
           active: true,
           isHome: false,
+          isHomeFallback: false,
         },
       ],
       "ground:DSS 14 - Goldstone",
@@ -122,8 +124,8 @@ describe("VantageControl on a station", () => {
 
     const readout = screen.getByRole("status");
     expect(readout).toHaveTextContent("Goldstone");
-    expect(readout).toHaveTextContent("home not identified");
-    expect(readout).not.toHaveTextContent(/Home$/);
+    expect(readout).toHaveTextContent(/Home$/);
+    expect(readout).not.toHaveTextContent(/identified/);
 
     fixture.unmount();
   });

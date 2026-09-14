@@ -55,6 +55,7 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
@@ -452,6 +453,7 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
                                           <SustainedFailureBanner />
                                           <SceneChangeBanner />
                                           <FlightOutcomeBanner />
+                                          <HomeFallbackNotice />
                                           <SceneSwitchPrompt
                                             onLoad={(items, layouts) =>
                                               dashboard.replaceState(
