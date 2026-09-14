@@ -22,6 +22,7 @@ namespace Sitrep.Host.Tests
     /// <c>Sitrep.Core.Serialization.EnvelopeCodec.WriteStreamData</c>/
     /// <c>ParseStreamData</c>: round-tripping to an equivalent tree.
     /// </summary>
+    [Collection("SystemViewProviderStatics")]
     public class SystemViewProviderTests
     {
         [Fact]

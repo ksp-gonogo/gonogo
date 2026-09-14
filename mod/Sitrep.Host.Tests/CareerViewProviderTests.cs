@@ -16,6 +16,7 @@ namespace Sitrep.Host.Tests
     /// missing fields -&gt; null never a sentinel, and the payload
     /// serializing cleanly through the REAL production path.
     /// </summary>
+    [Collection("SystemViewProviderStatics")]
     public class CareerViewProviderTests
     {
         [Fact]
