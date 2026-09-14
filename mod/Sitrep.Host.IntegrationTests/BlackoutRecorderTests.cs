@@ -278,13 +278,11 @@ namespace Sitrep.Host.IntegrationTests
         /// The link-down mark reaches a vantage that did not exist at loss of
         /// signal: the ONLY subscriber here connects mid-outage.
         ///
-        /// <para>The Courier records the mark per (node, vantage) over whatever
-        /// is subscribed when it is told, so marking on the disconnect EDGE
-        /// alone covers only the vantages already watching. This is the case
-        /// that distinguishes it, and it is the ordinary one: an operator opens
-        /// a dashboard while a craft is behind the Mun. The mark is re-applied
-        /// on every disconnected tick, always at the original loss-of-signal
-        /// instant.</para>
+        /// <para>The catch-up is served inside the subscribe, before any later
+        /// tick, so a mark that only reached the vantages subscribed when it was
+        /// applied would leave this one reading Fresh. This is the ordinary case:
+        /// an operator opens a dashboard while a craft is behind the Mun and
+        /// nobody else is watching.</para>
         /// </summary>
         [Fact]
         public async Task AVantageThatFirstAppearsMidOutageIsStillToldTheLinkIsDown()
@@ -306,6 +304,12 @@ namespace Sitrep.Host.IntegrationTests
                     Tick(engine, Snap(1.0, connected: true, delay: 0.0, onboard: 1.0));
                     await DrainAllStreamDataAsync(seed, Quiet);
                 }
+
+                // The seed's departure is processed on the engine's own queue.
+                // Ticking before it lands marks the departing vantage, which the
+                // late client shares, and the catch-up then reads as down for a
+                // reason this test is not about.
+                await WaitUntilUnsubscribedAsync(engine, BlackoutRecorderTestUplink.OnboardTopic);
 
                 // Out of contact from UT 2, with nobody watching.
                 Tick(engine, Snap(2.0, connected: false, delay: 0.0, onboard: 2.0));
@@ -370,6 +374,25 @@ namespace Sitrep.Host.IntegrationTests
             finally
             {
                 engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Returns once no client subscribes to <paramref name="topic"/>. The
+        /// engine drops a topic from its subscribed set inside the same queued job
+        /// that unsubscribes the Courier, so a tick enqueued after this returns
+        /// runs against a Courier with no subscriber on it.
+        /// </summary>
+        private static async Task WaitUntilUnsubscribedAsync(ChannelEngine engine, string topic)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (engine.IsAnyTopicSubscribed(topic))
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException($"'{topic}' was still subscribed after {Timeout}");
+                }
+                await Task.Delay(10);
             }
         }
 
