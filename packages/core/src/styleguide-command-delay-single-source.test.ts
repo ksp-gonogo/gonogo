@@ -130,12 +130,6 @@ const isTestSource = (rel: string): boolean =>
  */
 const CSHARP_FLOOR = 400;
 
-/** Likewise: fewer maps than this and the agreement half proved nothing. */
-const MAP_FLOOR = 6;
-
-/** And fewer commands than this. Core alone declares over fifty. */
-const COMMAND_FLOOR = 80;
-
 function findRepoRoot(start: string): string {
   let dir = start;
   while (dir !== "/") {
@@ -203,9 +197,36 @@ function railRows(): Row[] {
 describe("the delay disposition is declared once", () => {
   it("answers every declared command with that command's own generated row", () => {
     const rows = railRows();
-    const maps = new Set(rows.map((row) => row.map));
-    expect(maps.size).toBeGreaterThanOrEqual(MAP_FLOOR);
-    expect(rows.length).toBeGreaterThanOrEqual(COMMAND_FLOOR);
+
+    /*
+     * The agreement below proves nothing over rows the parser never read. This
+     * was a floor of 6 maps and 80 commands, and six of those maps belong to
+     * Uplinks leaving for the gonogo-uplinks repo, so instead every map's rail
+     * must carry exactly the commands its own GENERATED_COMMAND_IDS array lists,
+     * a second emission of the same reflection read by a different pattern, and
+     * the sdk's map, which stays, must be one of them.
+     */
+    const maps = tracked(/__generated__\/command-map\.ts$/);
+    expect(maps).toContain("mod/sitrep-sdk/src/__generated__/command-map.ts");
+    for (const map of maps) {
+      const ids =
+        /export const GENERATED_COMMAND_IDS\s*=\s*\[([\s\S]*?)\]/.exec(
+          readFileSync(join(ROOT, map), "utf8"),
+        );
+      expect(ids, `${map} carries no GENERATED_COMMAND_IDS`).not.toBeNull();
+      expect(
+        rows.filter((row) => row.map === map).map((row) => row.id),
+        `${map}'s rail rows disagree with its GENERATED_COMMAND_IDS`,
+      ).toEqual(
+        [...(ids as RegExpExecArray)[1].matchAll(/"([^"]+)"/g)].map(
+          (m) => m[1],
+        ),
+      );
+    }
+    expect(
+      rows.some((row) => row.map.startsWith("mod/sitrep-sdk/")),
+      "the sdk's own command rail parsed to no rows",
+    ).toBe(true);
 
     /*
      * An Uplink's commands reach the SDK the way its client package delivers

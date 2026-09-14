@@ -85,7 +85,23 @@ const matrix = parseMatrixInclude(workflowText);
 describe("publish-mods.yml's matrix names paths that exist", () => {
   it("parsed something, so the checks below mean something", () => {
     // Guards the parser itself: a regressed `include:` match or indentation read would collapse this to an empty list, and every check after this one would then pass by comparing against nothing.
-    expect(matrix.length).toBeGreaterThanOrEqual(5);
+    // Not a count, because every Uplink leg is leaving for the gonogo-uplinks repo: the parse must agree with a plain count of the `- id:` lines under `include:`, and must read the core mod's own leg, which stays.
+    const lines = workflowText.split("\n");
+    const includeAt = lines.findIndex((line) => /^\s*include:\s*$/.test(line));
+    const includeIndent = lines[includeAt].search(/\S/);
+    const blockEnd = lines.findIndex(
+      (line, i) =>
+        i > includeAt &&
+        line.trim() !== "" &&
+        line.search(/\S/) <= includeIndent,
+    );
+    const rawLegs = lines
+      .slice(includeAt + 1, blockEnd === -1 ? undefined : blockEnd)
+      .filter((line) => /^\s*-\s*id:/.test(line)).length;
+    expect(matrix.length).toBe(rawLegs);
+    expect(matrix.find((entry) => entry.id === "Gonogo")?.csproj).toBe(
+      "mod/Gonogo.KSP/Gonogo.KSP.csproj",
+    );
     for (const entry of matrix) {
       expect(entry.id, JSON.stringify(entry)).toBeTruthy();
       expect(entry.csproj, `${entry.id} has no csproj field`).toBeTruthy();

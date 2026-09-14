@@ -94,37 +94,20 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
 };
 
 /**
- * Floors that make a silent zero fail instead of pass.
+ * The floor that makes a silent zero fail instead of pass.
  *
  * A reachability gate that resolves nothing reports every declaration reached,
- * which converts exactly the failure it exists to catch into a green. These are
- * deliberately close to the live measurement rather than round numbers: a floor
- * of 300 against a live count of 882 lets two thirds of a walk stop resolving
- * before it bites, which is how the AsyncAPI unit check came to have a floor it
- * cannot reach.
+ * which converts exactly the failure it exists to catch into a green. The corpus
+ * is every non-test `.ts`/`.tsx` under `mod/` and `packages/`, so it stays in
+ * the thousands whatever Uplinks leave. Measured 2026-09-02 at 1,231.
  *
- * Measured 2026-09-02, after the three dead kOS dispatch commands were deleted:
- * 1,231 corpus files, 85 parsed, 94 declarations across 8 clients, 9 unreached.
- * The seeding note above records 1,253 / 89 / 101 / 11 from earlier the same
- * day; the walk itself has not changed, the tree has (an Uplink departed and
- * took its declarations with it, see `uplinksWithDeclarations`). Raise these
- * when the tree grows; a drop below one is a broken walk, not a smaller repo.
+ * Floors on files parsed, declarations found and Uplinks contributing them used
+ * to sit here too. Every one of those counts is an Uplink's, and every mod Uplink
+ * is leaving for the gonogo-uplinks repo, so they are replaced by a planted tree
+ * the scan must read exactly and by agreement with the declaring files git tracks
+ * (see `declaration-reachability.test.ts`).
  */
 export const SCAN_FLOORS = {
   /** Non-test, non-generated `.ts`/`.tsx` under `mod/` and `packages/`. */
   corpusFiles: 1000,
-  /** Corpus files that mentioned a candidate token and were parsed. */
-  filesParsed: 60,
-  /** Topics plus commands found across every Uplink client. */
-  declarations: 85,
-  /**
-   * Uplink clients contributing at least one declaration. Was 9 when this gate
-   * was written; two Uplinks have since departed this repo and taken their
-   * declarations with them, one on 2026-09-02 and three more on 2026-09-06.
-   * Lowered each time to the count the gate itself measured, not to a number
-   * chosen to make it pass: raise it again the moment an Uplink arrives, because
-   * the point of this floor is to catch a per-client walk that has started
-   * failing silently.
-   */
-  uplinksWithDeclarations: 6,
 } as const;

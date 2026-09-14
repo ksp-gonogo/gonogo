@@ -5,17 +5,22 @@
 // Runs in the node environment: the scan reads the repo off disk and builds
 // TypeScript source files over `ts.sys`.
 // @vitest-environment node
-import { mkdtempSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 import {
-  collectDeclarations,
   debtKey,
   hasGenericConsumer,
   scanReachability,
-  uplinkClientRoots,
 } from "./declaration-reachability";
 import {
   SCAN_FLOORS,
@@ -82,7 +87,7 @@ describe("every declared Topic and command is read by a client", () => {
  *
  * A reachability scan that resolves nothing reports every declaration reached
  * and passes, which is strictly worse than having no gate: it converts the
- * silent half-build into a green tick. These four checks are the instrument, and
+ * silent half-build into a green tick. These checks are the instrument, and
  * they are why a zero here means "nothing is wrong" rather than "nothing was
  * looked at".
  */
@@ -109,14 +114,58 @@ describe("the scan can be seen to work", () => {
     );
   });
 
-  it("finds a declaration it is known to reach, so it is not blind in both directions", () => {
-    // `rp1.available` is read by four RP-1 widgets through `useTelemetry`.
-    const known = scan.declarations.find((d) => d.id === "rp1.available");
-    expect(
-      known,
-      "rp1.available is no longer declared; pick another control",
-    ).toBeDefined();
-    expect(scan.unreached.map((d) => d.id)).not.toContain("rp1.buildQueue");
+  /**
+   * The scan over a planted tree, where every number is known: one Uplink client
+   * declaring two Topics and a command, one consumer reading one Topic by its
+   * constant and the command by its id, and a test file naming the other Topic,
+   * which does not count.
+   *
+   * This replaced a named control (an RP-1 Topic) and floors on how many files
+   * were parsed, how many declarations were found and how many Uplinks
+   * contributed them. Every declaration in this repo is an Uplink's, and every
+   * mod Uplink is leaving for the gonogo-uplinks repo, so those counts are
+   * heading for zero and could not tell that from a walk that stopped resolving.
+   */
+  it("reads a planted tree exactly, reached and unreached, in both directions", () => {
+    const root = mkdtempSync(join(tmpdir(), "reach-plant-"));
+    const plant = (rel: string, text: string) => {
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      writeFileSync(join(root, rel), text);
+    };
+    try {
+      plant(
+        "mod/GonogoPlantedUplink/client/src/topics.ts",
+        'export const PLANTED_READ_TOPIC = "planted.read";\n' +
+          'export const PLANTED_UNREAD_TOPIC = "planted.unread";\n',
+      );
+      plant(
+        "mod/GonogoPlantedUplink/client/src/__generated__/command-map.ts",
+        'export const GENERATED_COMMAND_IDS = [\n  "planted.command",\n] as const;\n',
+      );
+      plant(
+        "packages/consumer/src/widget.ts",
+        'import { PLANTED_READ_TOPIC } from "./topics";\n' +
+          'export const reads = [PLANTED_READ_TOPIC, "planted.command"];\n',
+      );
+      plant(
+        "packages/consumer/src/widget.test.ts",
+        'export const named = "planted.unread";\n',
+      );
+
+      const planted = scanReachability(root);
+      expect(planted.declarations.map(debtKey).sort()).toEqual([
+        "GonogoPlantedUplink: command planted.command",
+        "GonogoPlantedUplink: topic planted.read",
+        "GonogoPlantedUplink: topic planted.unread",
+      ]);
+      expect(planted.unreached.map(debtKey)).toEqual([
+        "GonogoPlantedUplink: topic planted.unread",
+      ]);
+      expect(planted.corpusSize).toBe(1);
+      expect(planted.filesParsed).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("actually walked the tree", () => {
@@ -125,50 +174,52 @@ describe("the scan can be seen to work", () => {
       "consumer corpus collapsed: the walk resolved almost nothing, so every " +
         "declaration would read as unreached or reached by accident",
     ).toBeGreaterThanOrEqual(SCAN_FLOORS.corpusFiles);
-    expect(
-      scan.filesParsed,
-      "no consumer file mentioned any declared id, which cannot be true while " +
-        "widgets exist",
-    ).toBeGreaterThanOrEqual(SCAN_FLOORS.filesParsed);
-    expect(
-      scan.declarations.length,
-      "the declaration side resolved almost nothing, so the gate would pass by " +
-        "having found no work to do",
-    ).toBeGreaterThanOrEqual(SCAN_FLOORS.declarations);
   });
 
-  it("a walk that resolves nothing lands UNDER the floors rather than clean", () => {
-    // The failure mode the floors exist for, exercised rather than assumed: a
-    // root with no `mod/` and no `packages/` is what a moved directory, a
-    // renamed client dir or a cwd change looks like from inside the scan. It
-    // reports zero unreached, which is indistinguishable from a healthy tree
-    // unless the floors refuse it.
+  it("a walk that resolves nothing lands UNDER the floor rather than clean", () => {
+    // The failure mode the floor exists for, exercised rather than assumed: a
+    // root with no `mod/` and no `packages/` is what a moved directory or a
+    // cwd change looks like from inside the scan. It reports zero unreached,
+    // which is indistinguishable from a healthy tree unless the floor refuses it.
     const blind = scanReachability(mkdtempSync(join(tmpdir(), "reach-blind-")));
 
     expect(blind.unreached).toEqual([]);
     expect(blind.declarations).toEqual([]);
     expect(
-      blind.corpusSize < SCAN_FLOORS.corpusFiles &&
-        blind.filesParsed < SCAN_FLOORS.filesParsed &&
-        blind.declarations.length < SCAN_FLOORS.declarations,
-      "a scan that resolved nothing cleared the floors, so the floors cannot " +
+      blind.corpusSize < SCAN_FLOORS.corpusFiles,
+      "a scan that resolved nothing cleared the floor, so the floor cannot " +
         "tell a broken walk from a clean tree",
     ).toBe(true);
   });
 
-  it("read declarations from most Uplink clients, not one", () => {
-    const roots = uplinkClientRoots(repoRoot);
-    expect(roots.length).toBeGreaterThanOrEqual(
-      SCAN_FLOORS.uplinksWithDeclarations,
-    );
-    const contributing = new Set(
-      collectDeclarations(repoRoot).map((d) => d.uplink),
-    );
+  it("read declarations from every Uplink client that declares any", () => {
+    /*
+     * Held to git rather than to a floor of Uplinks: every tracked Uplink
+     * topics.ts or generated command map that textually declares something must
+     * be a file the per-client walk took a declaration from.
+     */
+    const declaring = execFileSync("git", ["ls-files", "mod"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter((rel) =>
+        /^mod\/Gonogo[^/]*Uplink\/client\/src\/(topics\.ts|__generated__\/command-map\.ts)$/.test(
+          rel,
+        ),
+      )
+      .filter((rel) =>
+        /export const [A-Z0-9_]+_TOPIC\s*=\s*"|export const GENERATED_COMMAND_IDS\s*=\s*\[\s*"/.test(
+          readFileSync(join(repoRoot, rel), "utf8"),
+        ),
+      )
+      .sort();
     expect(
-      contributing.size,
-      "declarations came from too few Uplinks: the per-client walk is failing " +
-        "silently for the rest",
-    ).toBeGreaterThanOrEqual(SCAN_FLOORS.uplinksWithDeclarations);
+      [...new Set(scan.declarations.map((d) => d.declaredIn))].sort(),
+      "declarations came from a different set of files than git says declare " +
+        "any: the per-client walk is failing silently for the rest",
+    ).toEqual(declaring);
   });
 });
 

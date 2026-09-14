@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -123,15 +124,33 @@ function countFixtures(root: string): number {
   return count;
 }
 
-/** A floor, not an equality. A walk that matches nothing reports no violations,
- *  which is indistinguishable from a clean tree. */
-const FLOOR = 7;
-
 describe("one render process", () => {
   const clients = uplinkClients();
 
+  /**
+   * A walk that matches nothing reports no violations, which is indistinguishable
+   * from a clean tree. This was a floor of 7, and every mod Uplink is leaving for
+   * the gonogo-uplinks repo, so the walk is held to git's own list of Uplink
+   * client manifests, and that list to a client that stays in this repo.
+   */
   it("finds the Uplink clients at all", () => {
-    expect(clients.length).toBeGreaterThanOrEqual(FLOOR);
+    const tracked = execFileSync(
+      "git",
+      ["ls-files", "mod/*/client/package.json"],
+      { cwd: join(MOD, ".."), encoding: "utf8" },
+    )
+      .split("\n")
+      .map(
+        (rel) =>
+          /^mod\/(Gonogo[^/]*Uplink)\/client\/package\.json$/.exec(rel)?.[1],
+      )
+      .filter((id): id is string => id !== undefined)
+      .sort();
+    expect(tracked).toContain("GonogoBreakingGroundUplink");
+    expect(
+      clients.map((client) => client.id),
+      "The Uplink client walk disagrees with the client manifests git tracks.",
+    ).toEqual(tracked);
   });
 
   it("no Uplink client drives a browser of its own", () => {

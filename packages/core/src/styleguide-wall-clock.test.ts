@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { trackedModClientRoots } from "./styleguideScanRoots";
 
 /**
  * Wall-clock allowlist: keep `Date.now()` out of any currency computation in
@@ -172,14 +173,18 @@ function widgetRoots(root: string): string[] {
 function scanWallClock(root: string): {
   counts: Record<string, number>;
   scanned: number;
-  roots: number;
+  perRoot: Record<string, number>;
 } {
   const counts: Record<string, number> = {};
+  const perRoot: Record<string, number> = {};
   let scanned = 0;
   const roots = widgetRoots(root);
   for (const srcDir of roots) {
+    const rootKey = relative(root, srcDir);
+    perRoot[rootKey] = 0;
     for (const file of walk(srcDir)) {
       scanned++;
+      perRoot[rootKey]++;
       const content = stripComments(readFileSync(file, "utf8"));
       const total =
         [...content.matchAll(WALL_CLOCK)].length +
@@ -187,7 +192,7 @@ function scanWallClock(root: string): {
       if (total > 0) counts[relative(root, file)] = total;
     }
   }
-  return { counts, scanned, roots: roots.length };
+  return { counts, scanned, perRoot };
 }
 
 describe("wall-clock allowlist: currency is measured against the frame, never Date.now()", () => {
@@ -251,9 +256,24 @@ describe("wall-clock allowlist: currency is measured against the frame, never Da
    */
   it("walked every widget root, not just the first one", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-    const { scanned, roots } = scanWallClock(root);
-    expect(roots, "widget roots discovered").toBeGreaterThanOrEqual(8);
-    expect(scanned, "widget source files walked").toBeGreaterThan(200);
+    const { perRoot } = scanWallClock(root);
+    // Not a count: this was a floor of 8 roots and 200 files, and every mod
+    // Uplink is leaving for the gonogo-uplinks repo. The roots walked must be
+    // exactly the built-in library plus every Uplink client src git tracks, and
+    // none of them may have walked nothing.
+    const expected = [
+      "packages/components/src",
+      ...trackedModClientRoots(root).filter((rel) =>
+        /^mod\/Gonogo[^/]*Uplink\//.test(rel),
+      ),
+    ].sort();
+    expect(Object.keys(perRoot).sort(), "widget roots walked").toEqual(
+      expected,
+    );
+    expect(
+      Object.keys(perRoot).filter((key) => perRoot[key] === 0),
+      "widget roots that walked no files",
+    ).toEqual([]);
   });
 
   /**

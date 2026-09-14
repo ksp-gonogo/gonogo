@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -109,8 +110,26 @@ describe("an Uplink's tsconfig travels with it", () => {
 
   it("finds the clients it is meant to be checking", () => {
     // A walk that returns nothing reports no offenders, which is what a clean
-    // tree reports too. 7 since three Uplinks took their clients to the
-    // gonogo-uplinks repo on 2026-09-06.
-    expect(uplinkClientTsconfigs().length).toBeGreaterThanOrEqual(7);
+    // tree reports too. This was a floor of 7, and every mod Uplink is leaving
+    // for the gonogo-uplinks repo, so the walk is held to git's own list of
+    // Uplink client tsconfigs instead, which a broken walk cannot match at any
+    // count, and that list is held to a client that stays in this repo.
+    const tracked = execFileSync(
+      "git",
+      ["ls-files", "mod/*/client/tsconfig.json"],
+      { cwd: ROOT, encoding: "utf8" },
+    )
+      .split("\n")
+      .filter((rel) =>
+        /^mod\/Gonogo[^/]*Uplink\/client\/tsconfig\.json$/.test(rel),
+      )
+      .sort();
+    expect(tracked).toContain(
+      "mod/GonogoBreakingGroundUplink/client/tsconfig.json",
+    );
+    expect(
+      uplinkClientTsconfigs(),
+      "The Uplink client tsconfig walk disagrees with the client tsconfigs git tracks.",
+    ).toEqual(tracked);
   });
 });

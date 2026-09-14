@@ -105,12 +105,14 @@ const undeclaredTokens = new Set<string>();
 function dimensionOf(
   token: string,
   ownVocabulary: ReadonlySet<string>,
+  opaque: Set<string> = opaqueTokens,
+  undeclared: Set<string> = undeclaredTokens,
 ): Readonly<Record<string, number>> | undefined {
   if (NON_QUANTITY.has(token)) return undefined;
   const definition = lookupUnit(token);
   if (definition) return definition.dim;
-  if (ownVocabulary.has(token)) opaqueTokens.add(token);
-  else undeclaredTokens.add(token);
+  if (ownVocabulary.has(token)) opaque.add(token);
+  else undeclared.add(token);
   return undefined;
 }
 
@@ -190,14 +192,33 @@ describe("rate-integration candidates carry a written verdict", () => {
     // ETA is already derived from it server-side, efficiency-ramped and
     // sequenced against blocking peers, so there is nothing for a client to
     // integrate.
-    expect([...opaqueTokens].sort()).toEqual([
-      "MB",
-      "MB/s",
-      "bp",
-      "bp/s",
-      "confidence",
-      "science/MB",
-    ]);
+    //
+    // Which tokens those are is DERIVED rather than listed. The list named
+    // Kerbalism's and RP-1's units, both Uplinks leaving for the gonogo-uplinks
+    // repo, and the written-down half already exists where it belongs: each
+    // Uplink's own descriptor vocabulary. So every opaque token must be one a
+    // client descriptor declares, never core's, and the classification itself is
+    // shown a planted token of each kind.
+    const coreVocabulary = new Set(descriptors[0].vocabulary ?? []);
+    const uplinkVocabulary = new Set(
+      descriptors.slice(1).flatMap((descriptor) => descriptor.vocabulary ?? []),
+    );
+    expect(
+      [...opaqueTokens].filter(
+        (token) => coreVocabulary.has(token) || !uplinkVocabulary.has(token),
+      ),
+      "an opaque unit token that no Uplink descriptor declares, or that core declares",
+    ).toEqual([]);
+
+    const opaque = new Set<string>();
+    const undeclared = new Set<string>();
+    const vocabulary = new Set(["planted/opaque"]);
+    expect(dimensionOf("m", vocabulary, opaque, undeclared)).toBeDefined();
+    expect(dimensionOf("text", vocabulary, opaque, undeclared)).toBeUndefined();
+    dimensionOf("planted/opaque", vocabulary, opaque, undeclared);
+    dimensionOf("planted/nowhere", vocabulary, opaque, undeclared);
+    expect([...opaque]).toEqual(["planted/opaque"]);
+    expect([...undeclared]).toEqual(["planted/nowhere"]);
   });
 
   it("finds real derivatives among the coincidences, and mostly coincidences", () => {
