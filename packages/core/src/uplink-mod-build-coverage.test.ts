@@ -46,8 +46,8 @@ const SCRIPT_PATH = "scripts/uplink-mod-build.sh";
 const script = readFileSync(join(ROOT, SCRIPT_PATH), "utf8");
 
 /** Uplink plugin projects as `mod/Gonogo.sln` lists them, tests and contract slices excluded. */
-function solutionUplinkProjects(): string[] {
-  const sln = readFileSync(join(ROOT, "mod/Gonogo.sln"), "utf8");
+function solutionUplinkProjects(slnPath = "mod/Gonogo.sln"): string[] {
+  const sln = readFileSync(join(ROOT, slnPath), "utf8");
   const names = new Set<string>();
   for (const match of sln.matchAll(
     /^Project\("\{[^}]+}"\)\s*=\s*"([^"]+)"/gm,
@@ -93,12 +93,21 @@ describe("every Uplink plugin assembly is compiled by CI", () => {
     const discovered = discoveredUplinkProjects();
 
     // Guards the guard: a solution read that matched nothing would make the
-    // comparison below pass against an empty set. 6 since GonogoTestFlightUplink
-    // and four more left for the gonogo-uplinks repo.
+    // comparison below pass against an empty set. This was a floor of 6, and every
+    // mod Uplink is leaving for the gonogo-uplinks repo, so the read is proved on
+    // the planted fixture's solution instead, and the real solution has to be the
+    // one that builds this repo.
     expect(
-      inSolution.length,
-      "mod/Gonogo.sln lists no Gonogo*Uplink projects, so this test is comparing two empty sets.",
-    ).toBeGreaterThanOrEqual(6);
+      solutionUplinkProjects(
+        "mod/Sitrep.Core.Tests/UplinkWalkPlant/Gonogo.sln",
+      ),
+      "The solution read over the planted fixture did not find exactly the planted Uplink, so " +
+        "this test can compare two empty sets.",
+    ).toEqual(["GonogoPlantedUplink"]);
+    expect(
+      readFileSync(join(ROOT, "mod/Gonogo.sln"), "utf8"),
+      "mod/Gonogo.sln does not declare Sitrep.Core.Tests, so it is not the solution this repo builds.",
+    ).toMatch(/=\s*"Sitrep\.Core\.Tests"/);
 
     expect(
       discovered,
@@ -145,15 +154,22 @@ describe("every Uplink plugin assembly is compiled by CI", () => {
     }
   });
 
-  it("the script's discovery floor is not above what the tree holds", () => {
-    const floor = Number(script.match(/^FLOOR=(\d+)$/m)?.[1]);
-    expect(Number.isFinite(floor), `No FLOOR=<n> found in ${SCRIPT_PATH}`).toBe(
-      true,
+  it("the script proves its discovery on the planted fixture", () => {
+    /*
+     * The script exits 1 when its find over the plant is wrong; it needs the
+     * private ksp-managed checkout to run at all, so this pins from here that
+     * the plant it names exists and holds the csproj it expects.
+     */
+    expect(script).toMatch(
+      /^PLANT=mod\/Sitrep\.Core\.Tests\/UplinkWalkPlant$/m,
     );
     expect(
-      floor,
-      `${SCRIPT_PATH}'s FLOOR (${floor}) exceeds the ${discoveredUplinkProjects().length} Uplinks ` +
-        `on disk, so the script fails every run for a reason that has nothing to do with the tree.`,
-    ).toBeLessThanOrEqual(discoveredUplinkProjects().length);
+      existsSync(
+        join(
+          ROOT,
+          "mod/Sitrep.Core.Tests/UplinkWalkPlant/GonogoPlantedUplink/GonogoPlantedUplink.csproj",
+        ),
+      ),
+    ).toBe(true);
   });
 });

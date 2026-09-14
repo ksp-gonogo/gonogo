@@ -50,14 +50,23 @@ snapshot() {
 }
 
 # A discovery that matches nothing hashes nothing, compares equal to itself and
-# reports success, which is the exact shape of a gate that has gone blind. The
-# number is a floor rather than an equality: adding an Uplink must not require
-# editing this script, which was the whole problem.
-DIR_COUNT="$(generated_dirs | wc -l | tr -d ' ')"
-if [ "$DIR_COUNT" -lt 8 ]; then
-  echo "✖ codegen check: found only $DIR_COUNT __generated__ director(y/ies)."
-  echo "  That is fewer than this repo has ever had, so the discovery below is"
-  echo "  broken rather than the tree being small. Refusing to report success."
+# reports success, which is the exact shape of a gate that has gone blind. This
+# was a floor of 8 directories, and six of them belong to Uplinks leaving for the
+# gonogo-uplinks repo, so a floor could not tell a smaller tree from a broken
+# find. Two checks instead, neither a count. The discovery must find the two
+# directories core's own codegen writes, which stay whatever leaves. And it must
+# find every generated directory git tracks, a source that shares nothing with
+# `find`, so a pattern or prune that stops reaching one says so at any size.
+DISCOVERED="$(generated_dirs)"
+MISSED=""
+for dir in mod/sitrep-sdk/src/__generated__ packages/ui-kit/src/__generated__ \
+  $(git ls-files -- '*/__generated__/*' | sed 's|\(.*/__generated__\)/.*|\1|' | sort -u); do
+  printf '%s\n' "$DISCOVERED" | grep -qxF "$dir" || MISSED="$MISSED $dir"
+done
+if [ -n "$MISSED" ]; then
+  echo "✖ codegen check: the __generated__ discovery did not reach:$MISSED"
+  echo "  Either a core codegen output is gone or the find expression is broken, and"
+  echo "  a directory it cannot see is hashed by nothing. Refusing to report success."
   exit 1
 fi
 

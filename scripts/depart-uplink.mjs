@@ -230,21 +230,16 @@ if (ciSrc.includes(dirBase) || ciSrc.includes(pkg)) {
 }
 
 /*
- * 7. codegen: this Uplink's per-slice rtcli block.
- *
- * A leg ends where the NEXT leg's heading starts, and a heading is `# <Name>:`.
- * Terminating on any `\n# [A-Z]` instead ends it at the first capitalised
- * continuation line of its own comment, which left the whole leg behind under a
- * headless comment: `# SITREP_KERBCAST_TOPICMAP_OUT is set here too`. Scansat's
- * departure needed a follow-up commit for exactly that, so the terminator names
- * a heading.
+ * 7. codegen: nothing to cut. `mod/codegen.sh` discovers the
+ * `Gonogo*Uplink.Contract.Codegen` twins, so removing the twin in step 4 is the
+ * whole of it. It used to be a per-slice block cut out by its `# <Name>:`
+ * heading, which missed the two whose heading did not match their directory and,
+ * for the last block in the file, took the asyncapi and ui-kit steps with it.
+ * Should the script ever name this Uplink again, that is reported, not cut.
  */
-const codegen = join(ROOT, "mod", "codegen.sh");
-const codegenSrc = readFileSync(codegen, "utf8");
-const block = new RegExp(`\\n# ${Name}:[\\s\\S]*?(?=\\n# \\w+:|$)`, "i");
-if (block.test(codegenSrc)) {
-  record(`the ${id} block in codegen.sh`, () =>
-    writeFileSync(codegen, codegenSrc.replace(block, "")),
+if (readFileSync(join(ROOT, "mod", "codegen.sh"), "utf8").includes(dirBase)) {
+  deferred.push(
+    `mod/codegen.sh names ${dirBase}. It is meant to discover the codegen twins rather than list them; remove the reference by hand.`,
   );
 }
 

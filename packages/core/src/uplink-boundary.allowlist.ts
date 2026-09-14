@@ -2361,17 +2361,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
       /*
-       * -- DEPARTURE FLOORS (2026-09-06): both hold an anti-blind minimum on
-       * how many Uplink projects mod/Gonogo.sln lists, and both had to drop
-       * from 11 to 10 when this Uplink moved to the gonogo-uplinks repo. A
-       * floor that moves without recording which Uplink left is a number
-       * nobody can audit later, so each carries the name in a comment.
-       * Text-only mention in a ratchet-inventory file, the same case as the
-       * entry above.
-       */
-      "packages/core/src/uplink-matrix-coverage.test.ts",
-      "packages/core/src/uplink-mod-build-coverage.test.ts",
-      /*
        * FleetReliability's characterisation test emits `reliability.summary`
        * payloads carrying real `source` values, which is what the wire carries.
        * A wire-value reference, the case this bucket exists for: the widget only

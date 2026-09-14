@@ -71,213 +71,79 @@ echo "codegen -> $CHANNEL_MAP_OUT"
 echo "codegen -> $COMMAND_MAP_OUT"
 echo "codegen -> $RECKONABILITY_OUT"
 
-# --- Per-Uplink codegen ---
+# One rtcli run per Uplink that owns its own wire types, in addition to the core
+# Sitrep.Contract run above. Each Uplink's types live in its OWN contract-slice
+# project, never in Sitrep.Contract, and each writes into ITS OWN
+# client/src/__generated__/, never into sitrep-sdk: sitrep-sdk stays core-only.
 #
-# One rtcli run per Uplink that owns its own wire types, in addition to the
-# core Sitrep.Contract run above. Each Uplink's types live in its OWN
-# contract-slice project (e.g. GonogoMechJebUplink.Contract), never in
-# Sitrep.Contract (see local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md),
-# and each writes into ITS OWN client/src/__generated__/, never into
-# sitrep-sdk: sitrep-sdk stays core-only, an Uplink's client package imports
-# its generated types locally (Option A in the plan's §4b).
+# DISCOVERED from the `mod/Gonogo*Uplink.Contract.Codegen` twins rather than
+# written out once per Uplink. It used to be six hand-written blocks, and every
+# mod Uplink is leaving for the gonogo-uplinks repo: each departure then had to
+# cut its block out of this file by heading, which silently missed the two whose
+# heading did not match their directory and, for the last block in the file,
+# took the asyncapi and ui-kit steps below with it. A twin that exists is
+# generated; a twin that has left generates nothing, and zero twins is a valid run.
 #
-# MechJeb is the pilot (the smallest Uplink, 2 command-arg types, neither
-# wire-published raw). To migrate the next Uplink: add its own
-# <X>RtConfig.Configure (mirroring MechJebRtConfig.cs) to its own
-# <X>.Contract.csproj, then add one block below following the same shape.
-mechjeb_proj="$ROOT/mod/GonogoMechJebUplink.Contract.Codegen"
-mechjeb_out_dir="$ROOT/mod/GonogoMechJebUplink/client/src/__generated__"
-mechjeb_bin="$mechjeb_proj/bin/Debug/netstandard2.0"
+# Everything a leg needs follows from the twin's directory name and its slice's
+# own source, so adding an Uplink means adding its twin and its <X>RtConfig:
+#   - the env prefix is SITREP_<NAME>_, NAME being the directory's middle upper-cased
+#     (GonogoExampleUplink -> SITREP_EXAMPLE_), which every RtConfig reads
+#   - the ConfigurationMethod is <namespace>.<class>.Configure of the one
+#     *RtConfig.cs in the slice, so a slice with none, or two, stops the run
+#   - the topic map is asked for only when the slice tags a type [SitrepTopic]:
+#     a command-only slice emits none, and asking would add an empty topic-map.ts
+#
+# rtcli loads each slice's metadata and has to resolve every core type it
+# references, so Sitrep.Contract.dll must sit beside it. The twin references the
+# core twin normally, so the build puts it there.
+for uplink_twin in "$ROOT"/mod/Gonogo*Uplink.Contract.Codegen; do
+  [ -d "$uplink_twin" ] || continue
+  slice="$(basename "$uplink_twin" .Contract.Codegen)"
+  slice_name="${slice#Gonogo}"
+  slice_name="${slice_name%Uplink}"
+  prefix="SITREP_$(printf '%s' "$slice_name" | tr '[:lower:]' '[:upper:]')"
 
-dotnet build "$mechjeb_proj/GonogoMechJebUplink.Contract.Codegen.csproj" -v minimal
-# rtcli loads this assembly's metadata and has to resolve every type it
-# references (SitrepContractAttribute, SitrepUnitAttribute, Units, ...), so
-# Sitrep.Contract.dll must sit alongside it. The twin references the core twin
-# normally, so the build puts it there; the shipped slice keeps its
-# Private="false" reference, core providing it at runtime.
-mkdir -p "$mechjeb_out_dir"
+  rtconfigs=("$ROOT/mod/$slice.Contract/"*RtConfig.cs)
+  if [ "${#rtconfigs[@]}" -ne 1 ] || [ ! -f "${rtconfigs[0]}" ]; then
+    echo "✖ codegen: $slice.Contract must hold exactly one *RtConfig.cs, found: ${rtconfigs[*]}" >&2
+    exit 1
+  fi
+  rtconfig="${rtconfigs[0]}"
+  namespace="$(sed -n 's/^[[:space:]]*namespace[[:space:]]\{1,\}\([A-Za-z0-9_.]\{1,\}\).*/\1/p' "$rtconfig" | head -n 1)"
+  if [ -z "$namespace" ]; then
+    echo "✖ codegen: no namespace declaration found in $rtconfig" >&2
+    exit 1
+  fi
+  configure="$namespace.$(basename "$rtconfig" .cs).Configure"
 
-# No SITREP_MECHJEB_TOPICMAP_OUT: MechJeb has no [SitrepTopic]-tagged type
-# yet (it is command-only), so there is nothing for a topic map to name. The
-# next Uplink that DOES read a Topic (Avionics is next in the plan's
-# sequencing) should set it, mirroring the core invocation above.
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_MECHJEB_UNITMAP_OUT="$mechjeb_out_dir/units.ts" \
-  SITREP_MECHJEB_UNITJSON_OUT="$mechjeb_out_dir/units.json" \
-  SITREP_MECHJEB_COMMANDMAP_OUT="$mechjeb_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$mechjeb_bin/GonogoMechJebUplink.Contract.xml" \
-  SourceAssemblies="$mechjeb_bin/GonogoMechJebUplink.Contract.dll" \
-  TargetFile="$mechjeb_out_dir/contract.ts" \
-  ConfigurationMethod="Gonogo.MechJebUplink.MechJebRtConfig.Configure"
-echo "codegen -> $mechjeb_out_dir/contract.ts"
-echo "codegen -> $mechjeb_out_dir/units.ts"
-echo "codegen -> $mechjeb_out_dir/units.json"
-echo "codegen -> $mechjeb_out_dir/command-map.ts"
+  out_dir="$ROOT/mod/$slice/client/src/__generated__"
+  bin="$uplink_twin/bin/Debug/netstandard2.0"
 
-# Kerbalism: the fifth relocation, and the largest by every measure. FIFTEEN
-# types and FIVE [SitrepTopic]-tagged roots (kerbalism.spaceweather / .profile /
-# .lifesupport / .crew (isArray) / .features), so SITREP_KERBALISM_TOPICMAP_OUT
-# is set here the same as the earlier legs above. The emitted units.ts carries
-# more weight here than in any predecessor: EmitUnitMap writes the field->unit
-# map AND the field->nested-type SHAPE map from one pass, and this slice nests at
-# four separate roots (spaceweather's stars/storms, crew's rules, lifesupport's
-# habitat/processes/greenhouses, profile's resources/rules/processes), plus a
-# Vec3 on a NESTED type (KerbalismStarInfo.direction) that no earlier slice had.
-# The client has to register both halves: see KerbalismRtConfig.Configure's doc
-# comment.
-kerbalism_proj="$ROOT/mod/GonogoKerbalismUplink.Contract.Codegen"
-kerbalism_out_dir="$ROOT/mod/GonogoKerbalismUplink/client/src/__generated__"
-kerbalism_bin="$kerbalism_proj/bin/Debug/netstandard2.0"
+  dotnet build "$uplink_twin/$slice.Contract.Codegen.csproj" -v minimal
+  mkdir -p "$out_dir"
 
-dotnet build "$kerbalism_proj/GonogoKerbalismUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$kerbalism_out_dir"
+  outputs=(units.ts units.json command-map.ts)
+  topic_env=()
+  if grep -rEqs --include='*.cs' '^[[:space:]]*\[SitrepTopic' "$ROOT/mod/$slice.Contract"; then
+    topic_env=("${prefix}_TOPICMAP_OUT=$out_dir/topic-map.ts")
+    outputs=(topic-map.ts "${outputs[@]}")
+  fi
 
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_KERBALISM_TOPICMAP_OUT="$kerbalism_out_dir/topic-map.ts" \
-  SITREP_KERBALISM_UNITMAP_OUT="$kerbalism_out_dir/units.ts" \
-  SITREP_KERBALISM_UNITJSON_OUT="$kerbalism_out_dir/units.json" \
-  SITREP_KERBALISM_COMMANDMAP_OUT="$kerbalism_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$kerbalism_bin/GonogoKerbalismUplink.Contract.xml" \
-  SourceAssemblies="$kerbalism_bin/GonogoKerbalismUplink.Contract.dll" \
-  TargetFile="$kerbalism_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoKerbalismUplink.KerbalismRtConfig.Configure"
-echo "codegen -> $kerbalism_out_dir/contract.ts"
-echo "codegen -> $kerbalism_out_dir/topic-map.ts"
-echo "codegen -> $kerbalism_out_dir/units.ts"
-echo "codegen -> $kerbalism_out_dir/units.json"
-echo "codegen -> $kerbalism_out_dir/command-map.ts"
-
-# kOS: the sixth and last relocation in the plan's per-Uplink list. ELEVEN types,
-# but only ONE [SitrepTopic]-tagged root (kos.processors, isArray), so
-# SITREP_KOS_TOPICMAP_OUT is set here and names exactly one entry. That ratio is
-# the point: the other ten are the payloads of DYNAMIC channels
-# (kos.terminal.<coreId>, kos.run.<coreId>, kos.compute.<id>.status, whose names
-# are only known at runtime and so cannot carry a static tag) and seven
-# inbound-only command args. Nothing in this slice nests, so the field ->
-# nested-type SHAPE half of the emitted units.ts comes out empty, and exactly one
-# declared quantity in the whole slice survives to a Value<> (KosComputeStatus's
-# lastGoodAt, Units.Seconds): see KosRtConfig.Configure's doc comment for that
-# accounting in full, and this Uplink's client topics.ts for the runtime half.
-kos_proj="$ROOT/mod/GonogoKosUplink.Contract.Codegen"
-kos_out_dir="$ROOT/mod/GonogoKosUplink/client/src/__generated__"
-kos_bin="$kos_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$kos_proj/GonogoKosUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$kos_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_KOS_TOPICMAP_OUT="$kos_out_dir/topic-map.ts" \
-  SITREP_KOS_UNITMAP_OUT="$kos_out_dir/units.ts" \
-  SITREP_KOS_UNITJSON_OUT="$kos_out_dir/units.json" \
-  SITREP_KOS_COMMANDMAP_OUT="$kos_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$kos_bin/GonogoKosUplink.Contract.xml" \
-  SourceAssemblies="$kos_bin/GonogoKosUplink.Contract.dll" \
-  TargetFile="$kos_out_dir/contract.ts" \
-  ConfigurationMethod="Gonogo.KosUplink.KosRtConfig.Configure"
-echo "codegen -> $kos_out_dir/contract.ts"
-echo "codegen -> $kos_out_dir/topic-map.ts"
-echo "codegen -> $kos_out_dir/units.ts"
-echo "codegen -> $kos_out_dir/units.json"
-echo "codegen -> $kos_out_dir/command-map.ts"
-
-# RealAntennas: the seventh and last relocation, and the only PARTIAL one: three
-# types carved out of Sitrep.Contract/Comms.cs rather than a whole file moved,
-# because the rest of the comms.* family is the shared shape an ELECTED backend
-# fills and stays core. Highest Topic ratio of any slice, three types and three
-# [SitrepTopic] roots (comms.linkQuality / comms.dataRate / comms.linkMargin), so
-# SITREP_REALANTENNAS_TOPICMAP_OUT names all three, plus realantennas.antennas
-# from the targeting surface. That surface also brought this slice its first
-# commands, so a command map is emitted here now as well. Nothing nests, so the
-# field -> nested-type SHAPE half of the emitted units.ts comes out empty. What IS dense is
-# the unit retyping: four of the five annotated properties name a real dimension
-# (ratio, two bit rates, a decibel margin), so every generated interface in this
-# slice carries a Value<>, and its client can prove the runtime hydration by
-# decoding a frame rather than by inspecting a registry. See
-# RealAntennasRtConfig.Configure's doc comment.
-realantennas_proj="$ROOT/mod/GonogoRealAntennasUplink.Contract.Codegen"
-realantennas_out_dir="$ROOT/mod/GonogoRealAntennasUplink/client/src/__generated__"
-realantennas_bin="$realantennas_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$realantennas_proj/GonogoRealAntennasUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$realantennas_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_REALANTENNAS_TOPICMAP_OUT="$realantennas_out_dir/topic-map.ts" \
-  SITREP_REALANTENNAS_UNITMAP_OUT="$realantennas_out_dir/units.ts" \
-  SITREP_REALANTENNAS_UNITJSON_OUT="$realantennas_out_dir/units.json" \
-  SITREP_REALANTENNAS_COMMANDMAP_OUT="$realantennas_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$realantennas_bin/GonogoRealAntennasUplink.Contract.xml" \
-  SourceAssemblies="$realantennas_bin/GonogoRealAntennasUplink.Contract.dll" \
-  TargetFile="$realantennas_out_dir/contract.ts" \
-  ConfigurationMethod="Gonogo.RealAntennasUplink.RealAntennasRtConfig.Configure"
-echo "codegen -> $realantennas_out_dir/contract.ts"
-echo "codegen -> $realantennas_out_dir/topic-map.ts"
-echo "codegen -> $realantennas_out_dir/units.ts"
-echo "codegen -> $realantennas_out_dir/units.json"
-echo "codegen -> $realantennas_out_dir/command-map.ts"
-
-# Principia: the plan, settings and analysis slice. Topic-carrying, so the topic
-# map is emitted here the same as every other slice above. What IS different is
-# that several of its types are NESTED payloads reached only through a parent
-# (the burn rows, the reference frame, the write surface), and every one of them
-# has to be in the ExportAsInterfaces set in PrincipiaRtConfig: a nested payload
-# left out of that set generates with bare numbers where its parent generates
-# Value<> types, in the same file, with nothing failing.
-principia_proj="$ROOT/mod/GonogoPrincipiaUplink.Contract.Codegen"
-principia_out_dir="$ROOT/mod/GonogoPrincipiaUplink/client/src/__generated__"
-principia_bin="$principia_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$principia_proj/GonogoPrincipiaUplink.Contract.Codegen.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$principia_bin/"
-mkdir -p "$principia_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_PRINCIPIA_TOPICMAP_OUT="$principia_out_dir/topic-map.ts" \
-  SITREP_PRINCIPIA_UNITMAP_OUT="$principia_out_dir/units.ts" \
-  SITREP_PRINCIPIA_UNITJSON_OUT="$principia_out_dir/units.json" \
-  SITREP_PRINCIPIA_COMMANDMAP_OUT="$principia_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$principia_bin/GonogoPrincipiaUplink.Contract.xml" \
-  SourceAssemblies="$principia_bin/GonogoPrincipiaUplink.Contract.dll" \
-  TargetFile="$principia_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoPrincipiaUplink.PrincipiaRtConfig.Configure"
-echo "codegen -> $principia_out_dir/contract.ts"
-echo "codegen -> $principia_out_dir/topic-map.ts"
-echo "codegen -> $principia_out_dir/units.ts"
-echo "codegen -> $principia_out_dir/units.json"
-echo "codegen -> $principia_out_dir/command-map.ts"
-
-# RP-1: the space-centre and Programs slice. Eleven types, eleven
-# [SitrepTopic]s, and two unit tokens core has never heard of (bp and
-# confidence), declared in this slice's own Units class. The catalog check judges the slice against core's tokens PLUS
-# that class, so an undeclared token stops the build here rather than reaching
-# the client as an opaque symbol with no ladder.
-rp1_proj="$ROOT/mod/GonogoRp1Uplink.Contract.Codegen"
-rp1_out_dir="$ROOT/mod/GonogoRp1Uplink/client/src/__generated__"
-rp1_bin="$rp1_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$rp1_proj/GonogoRp1Uplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$rp1_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_RP1_TOPICMAP_OUT="$rp1_out_dir/topic-map.ts" \
-  SITREP_RP1_UNITMAP_OUT="$rp1_out_dir/units.ts" \
-  SITREP_RP1_UNITJSON_OUT="$rp1_out_dir/units.json" \
-  SITREP_RP1_COMMANDMAP_OUT="$rp1_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$rp1_bin/GonogoRp1Uplink.Contract.xml" \
-  SourceAssemblies="$rp1_bin/GonogoRp1Uplink.Contract.dll" \
-  TargetFile="$rp1_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoRp1Uplink.Rp1RtConfig.Configure"
-echo "codegen -> $rp1_out_dir/contract.ts"
-echo "codegen -> $rp1_out_dir/topic-map.ts"
-echo "codegen -> $rp1_out_dir/units.ts"
-echo "codegen -> $rp1_out_dir/units.json"
-echo "codegen -> $rp1_out_dir/command-map.ts"
+  env DOTNET_ROLL_FORWARD=LatestMajor \
+    ${topic_env[@]+"${topic_env[@]}"} \
+    "${prefix}_UNITMAP_OUT=$out_dir/units.ts" \
+    "${prefix}_UNITJSON_OUT=$out_dir/units.json" \
+    "${prefix}_COMMANDMAP_OUT=$out_dir/command-map.ts" \
+    dotnet "$RTCLI" \
+    DocumentationFilePath="$bin/$slice.Contract.xml" \
+    SourceAssemblies="$bin/$slice.Contract.dll" \
+    TargetFile="$out_dir/contract.ts" \
+    ConfigurationMethod="$configure"
+  echo "codegen -> $out_dir/contract.ts"
+  for output in "${outputs[@]}"; do
+    echo "codegen -> $out_dir/$output"
+  done
+done
 
 # asyncapi.yaml is generated from the SAME contract assemblies as everything
 # above, and it lives at the repo ROOT rather than in a __generated__ directory.

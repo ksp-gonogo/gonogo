@@ -41,7 +41,7 @@
  *
  * Usage:
  *   node scripts/uplink-matrix.mjs             pretty JSON, for a human
- *   node scripts/uplink-matrix.mjs --github    `matrix=<json>` for $GITHUB_OUTPUT
+ *   node scripts/uplink-matrix.mjs --github    `matrix=<json>` and `count=<n>` for $GITHUB_OUTPUT
  *   node scripts/uplink-matrix.mjs --ids       one id per line
  */
 
@@ -53,14 +53,25 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MOD = join(ROOT, "mod");
 
 /**
- * A floor, not an equality: adding an Uplink must never require editing this
- * script, which was the whole problem with the lists above. It is here because a
- * discovery that matches nothing emits an empty matrix, GitHub Actions skips the
- * job, and a skipped matrix job reports as successful. Set below the current
- * count so a deliberate removal does not trip it, and far enough above zero that
- * a broken walk does.
+ * The fixture tree the discovery is proved against before it is trusted: one
+ * planted Uplink with a plugin csproj, a Tests sibling and a contract slice, the
+ * same tree `Sitrep.Core.Tests/UplinkProjects.cs` proves the C# walks on.
+ *
+ * It replaced a floor on the count. A discovery that matches nothing emits an
+ * empty matrix and a skipped job reports as successful, so a broken walk has to
+ * fail here; but every mod Uplink is leaving for the gonogo-uplinks repo, and a
+ * floor on a count heading for zero cannot tell "all moved" from "the walk
+ * broke". The plant can, at any number of Uplinks including none.
  */
-const FLOOR = 7;
+const PLANT_MOD = join(MOD, "Sitrep.Core.Tests", "UplinkWalkPlant");
+
+const PLANTED_LEG = {
+  id: "GonogoPlantedUplink",
+  client: false,
+  csproj: true,
+  tests: true,
+  contract: true,
+};
 
 const readJson = (path) => {
   try {
@@ -101,48 +112,61 @@ const renderHostPackages = (clientDir, manifest) => {
   return [...names].sort();
 };
 
-const uplinks = readdirSync(MOD, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && /^Gonogo.*Uplink$/.test(entry.name))
-  .map((entry) => entry.name)
-  .sort()
-  .map((id) => {
-    const clientDir = join(MOD, id, "client");
-    const manifest = readJson(join(clientDir, "package.json"));
-    const scripts = Object.keys(manifest?.scripts ?? {});
-    return {
-      id,
-      /** npm package name, or "" when this Uplink has no client half. */
-      pkg: manifest?.name ?? "",
-      client: manifest !== null,
-      csproj: existsSync(join(MOD, id, `${id}.csproj`)),
-      tests: existsSync(join(MOD, `${id}.Tests`)),
-      contract: existsSync(join(MOD, `${id}.Contract`)),
-      generated: existsSync(join(clientDir, "src", "__generated__")),
-      // Emitted as strings because a matrix value has to survive `toJSON` into
-      // a shell `if:`; an array of one reads as its element and an empty array
-      // as nothing at all, which is how a step silently stops running.
-      render: scripts.includes("render"),
-      typecheck: scripts.includes("typecheck"),
-      /**
-       * Space-separated for the same reason: the Build step splits it into
-       * `--filter` arguments, and an empty string contributes none.
-       */
-      renderHosts: renderHostPackages(clientDir, manifest).join(" "),
-    };
-  });
+/** Every `Gonogo*Uplink` directory directly under `modDir`, as a matrix leg. */
+const discover = (modDir) =>
+  readdirSync(modDir, { withFileTypes: true })
+    .filter(
+      (entry) => entry.isDirectory() && /^Gonogo.*Uplink$/.test(entry.name),
+    )
+    .map((entry) => entry.name)
+    .sort()
+    .map((id) => {
+      const clientDir = join(modDir, id, "client");
+      const manifest = readJson(join(clientDir, "package.json"));
+      const scripts = Object.keys(manifest?.scripts ?? {});
+      return {
+        id,
+        /** npm package name, or "" when this Uplink has no client half. */
+        pkg: manifest?.name ?? "",
+        client: manifest !== null,
+        csproj: existsSync(join(modDir, id, `${id}.csproj`)),
+        tests: existsSync(join(modDir, `${id}.Tests`)),
+        contract: existsSync(join(modDir, `${id}.Contract`)),
+        generated: existsSync(join(clientDir, "src", "__generated__")),
+        // Emitted as strings because a matrix value has to survive `toJSON` into
+        // a shell `if:`; an array of one reads as its element and an empty array
+        // as nothing at all, which is how a step silently stops running.
+        render: scripts.includes("render"),
+        typecheck: scripts.includes("typecheck"),
+        /**
+         * Space-separated for the same reason: the Build step splits it into
+         * `--filter` arguments, and an empty string contributes none.
+         */
+        renderHosts: renderHostPackages(clientDir, manifest).join(" "),
+      };
+    });
 
-if (uplinks.length < FLOOR) {
+const planted = discover(PLANT_MOD);
+const plantedWrong =
+  planted.length !== 1 ||
+  Object.entries(PLANTED_LEG).some(([key, value]) => planted[0][key] !== value);
+if (plantedWrong) {
   console.error(
-    `✖ uplink matrix: discovered only ${uplinks.length} Uplink(s), fewer than this repo has ever had (${FLOOR}).\n` +
-      `  An empty or short matrix produces a job that SKIPS, and a skipped matrix job reports\n` +
-      `  as successful. The discovery is broken rather than the tree being small.`,
+    `✖ uplink matrix: over the fixture at ${PLANT_MOD} the discovery found\n` +
+      `  ${JSON.stringify(planted)}\n` +
+      `  expected exactly one leg matching ${JSON.stringify(PLANTED_LEG)}.\n` +
+      `  A broken discovery emits a short or empty matrix, and a skipped matrix job reports as\n` +
+      `  successful, so it refuses to emit one. Zero legs over the real tree is valid; this is not that.`,
   );
   process.exit(1);
 }
 
+const uplinks = discover(MOD);
+
 const mode = process.argv[2];
 if (mode === "--github") {
   console.log(`matrix=${JSON.stringify({ uplink: uplinks })}`);
+  console.log(`count=${uplinks.length}`);
 } else if (mode === "--ids") {
   for (const uplink of uplinks) console.log(uplink.id);
 } else {
