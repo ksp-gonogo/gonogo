@@ -1,23 +1,16 @@
-// Installs the injected gonogo host BEFORE the probe imports any facade-sealed
-// Uplink client. `probe-entry.tsx` / `screen-entry.tsx` do a side-effect
-// `import "@ksp-gonogo/gonogo-kerbalism-uplink"` to self-register that Uplink's
-// widgets, and that
-// client calls the facade's `registerComponent` (and, at render, `useCommand` /
-// `useStream` / ...): all of which resolve through `getHost()` and throw "the
-// gonogo host has not been installed" without a host. ES imports are hoisted
-// and evaluated in source order, so this module MUST be the FIRST import in
-// each probe entry, ahead of the client import.
+// Installs the injected gonogo host BEFORE a probe entry registers anything
+// through the sdk facade. The planted Uplink (`plantedUplink.ts`) and any
+// facade-sealed registration call `defineUplinkClient` / `registerComponent`
+// (and, at render, `useCommand` / `useStream` / ...), all of which resolve
+// through `getHost()` and throw "the gonogo host has not been installed"
+// without a host. ES imports are hoisted and evaluated in source order, so this
+// module MUST be the FIRST import in each probe entry.
 //
-// The bridge mirrors the kOS client's own `test/setup.ts` and the app's
-// `buildGonogoHost()` member-for-member, scoped to what the probe's sealed
-// widgets call: wiring the sdk facade's fail-loud shims to the SAME real
-// core / data / sitrep-client singletons the probe already imports. Its own
-// imports carry no facade self-registration, so running it first is safe.
-// `AugmentSlot`/`registerAugment`/`useProcessor` were added alongside the
-// `@ksp-gonogo/gonogo-kerbalism-uplink` probe import: Ship Systems calls
-// `useProcessor` + `AugmentSlot` at render, and its Greenhouse augment calls
-// `registerAugment` at module load, same as the Kerbalism client's own
-// `test/setup.ts`.
+// The bridge mirrors the app's `buildGonogoHost()` member-for-member, scoped
+// to what a probe-rendered registration calls: wiring the sdk facade's
+// fail-loud shims to the SAME real core / data / sitrep-client singletons the
+// probe already imports. Its own imports carry no facade self-registration, so
+// running it first is safe.
 import {
   AugmentSlot,
   defineUplinkClient,
@@ -84,9 +77,6 @@ installTestHost({
   // host.ts) member-for-member: real core `useTelemetry` already branches
   // internally on whether `key` is present while keeping every hook call
   // unconditional, so this is a single, unconditional forward of both args.
-  // Added alongside the CrewStatus Kerbalism Uplink's `crew-status.summary`
-  // augment, the first probe-rendered augment to read a raw Topic via
-  // `useTelemetry` instead of a Processor's `useProcessor`.
   useTelemetry: ((dataSourceIdOrTopic: string, key?: string) =>
     (useTelemetry as (a: string, b?: string) => unknown)(
       dataSourceIdOrTopic,

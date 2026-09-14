@@ -10,16 +10,13 @@
  * same esbuild -> injected HTML -> playwright pipeline as
  * `render-crew-status-panel-badge.ts`, that registers a plain-initials
  * STUB avatar augment before mounting the real `CrewStatusComponent`
- * (`crew-avatar-probe-entry.tsx`'s own doc comment). Replays the existing
- * `crew-critical.json` fixture (already used by the panel-badge render and
- * the kerbalism-crew-survival widget-render set) so the avatar column shows
- * up alongside a REAL per-row badge + survival meter, which is the case that
- * shows whether the avatar is spanning the whole row block rather than
- * sitting next to the name alone and dragging the badge low.
+ * (`crew-avatar-probe-entry.tsx`'s own doc comment). Replays
+ * `probe/planted-crew.json` (shared with the panel-badge render), whose
+ * planted Uplink contributions give every row survival meters and a critical
+ * tone, which is the case that shows whether the avatar is spanning the whole
+ * row block rather than sitting next to the name alone.
  *
- * Sizes mirror the `crew-status/kerbalism-survival` render-widget config
- * (`widgets.ts`) so this set is directly comparable to the no-avatar
- * renders: narrow-4x10 (badge-wrap width floor), default-6x8 (defaultSize),
+ * Sizes: narrow-4x10 (badge-wrap width floor), default-6x8 (defaultSize),
  * wide-9x12 (roomy review shot).
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -39,10 +36,7 @@ const PROBE_ENTRY = join(PROBE_DIR, "crew-avatar-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "crew-avatar-probe.html");
 const OUT_DIR = resolve(HERE, "../../../local_docs/renders/crew-status-avatar");
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
-const FIXTURE_PATH = resolve(
-  HERE,
-  "../src/CrewStatus/__render_kerbalism_survival__/crew-critical.json",
-);
+const FIXTURE_PATH = resolve(HERE, "probe/planted-crew.json");
 
 // Grid-unit -> pixel conversion, verbatim from `widgetRenderHarness.ts`
 // (COL_WIDTH/ROW_HEIGHT/GRID_MARGIN), so these renders start at the same
@@ -57,9 +51,6 @@ interface Mode {
   h: number;
 }
 
-// Mirrors `widgets.ts`'s `crew-status/kerbalism-survival` mode set, so
-// this render is directly comparable to the no-avatar renders produced by
-// `render-widget crew-status`.
 const MODES: Mode[] = [
   { name: "narrow-4x10", w: 4, h: 10 },
   { name: "default-6x8", w: 6, h: 8 },
@@ -193,7 +184,7 @@ async function main(): Promise<void> {
       );
 
       // Grow `#root` to swallow any vertical overflow so the PNG shows the
-      // WHOLE roster (all three crew-critical rows, badges + meters), never
+      // WHOLE roster (all three rows, meters included), never
       // a tile-height crop. Based on `widgetRenderHarness.ts`'s own
       // `fullContent` technique, EXTENDED with `[data-panel-body]`: Panel's
       // own body box (`PanelBody__Box`, ui-kit's `Panel.tsx`) is CrewStatus's

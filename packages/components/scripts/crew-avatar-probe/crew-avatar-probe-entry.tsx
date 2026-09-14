@@ -3,9 +3,7 @@
  * avatar-LEFT-of-the-WHOLE-block layout (avatar column | name + wrapping
  * badge + survival meters stacked to its right) that the normal widget
  * probe/visual-gate harness never exercises, no avatar-providing Uplink is
- * registered there (`probe-entry.tsx`'s own top comment lists exactly the
- * two mod clients it side-effect-imports, kOS and Kerbalism; kerbcast is
- * neither).
+ * registered there.
  *
  * Mirrors `crew-badge-probe-entry.tsx`'s own pattern (a narrow, standalone
  * copy of the real composition chain, scoped to CrewStatus only) but adds
@@ -17,18 +15,16 @@
  * ROW LAYOUT (avatar column spanning the block), not to preview kerbcast's
  * own facecam chrome.
  *
- * Replays the same `crew-critical.json` fixture the panel-badge probe uses
- * (Jebediah's radiation dose + Bill's death clock both cross "nogo"), so
- * this render shows the avatar column alongside a REAL per-row badge +
- * survival meter, not an empty slot, the actual case the operator flagged:
- * "the badge renders awkwardly lower" when the avatar sat next to the name
- * only.
+ * Replays the same `planted-crew.json` fixture the panel-badge probe uses,
+ * with the planted Uplink's per-row survival meters and critical row tone, so
+ * this render shows the avatar column beside a full row block rather than an
+ * empty one, the actual case the operator flagged: "the badge renders
+ * awkwardly lower" when the avatar sat next to the name only.
  */
 // MUST be the first import: installs the injected gonogo host before the
-// `@ksp-gonogo/gonogo-kerbalism-uplink` side-effect import below self-registers a
-// facade-sealed Uplink client (which would otherwise throw "the gonogo host
-// has not been installed" at module load). ES imports are hoisted in source
-// order, mirrors `probe-entry.tsx`'s own ordering requirement.
+// planted Uplink below registers through it (which would otherwise throw "the
+// gonogo host has not been installed" at module load). ES imports are hoisted
+// in source order, mirrors `probe-entry.tsx`'s own ordering requirement.
 import "../probe/probe-install-host";
 import {
   type ComponentProps,
@@ -40,17 +36,6 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
-// Side-effect import: the Kerbalism Uplink's crew-survival augment (per-row
-// badges + the `crew-status.meters` contribution) self-registers on module load.
-// Its SEPARATE panel-level "N crew critical" contribution also registers
-// here but is deliberately never surfaced by this probe (no
-// ContributionsProvider->useWidgetBadges->PanelBadgesProvider chain, unlike
-// `crew-badge-probe-entry.tsx`): that header chip is a different mechanism
-// (contributions, not augments) testing a different concern (panel chrome,
-// not the per-row avatar/badge/meter block this probe exists to show), and
-// at this probe's grid-formula tile widths it visually squeezes the panel
-// title, a distraction unrelated to the row layout being rendered here.
-import "@ksp-gonogo/gonogo-kerbalism-uplink";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -59,6 +44,11 @@ import { ThemeProvider } from "styled-components";
 // self-registers on module load, same contract as the shared probe.
 import "../../src";
 import type { CrewAvatarContext } from "../../src/CrewStatus";
+// Side-effect import: the planted Uplink's per-row crew contributions, gated
+// on the fixture emitting its Domain. Its panel badge registers too and is
+// never surfaced here: this probe mounts no PanelBadgesProvider, since the
+// header chip is `crew-badge-probe-entry.tsx`'s concern, not the row layout.
+import "../probe/plantedUplink";
 import {
   type StreamFixture,
   setupStreamFixture,

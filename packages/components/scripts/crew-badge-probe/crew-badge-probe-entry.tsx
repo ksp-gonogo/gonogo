@@ -1,8 +1,8 @@
 /**
  * Dedicated probe for CrewStatus's WIDGET-LEVEL panel badge ("Crew
- * critical" / "N crew critical"), a CONTRIBUTION the Kerbalism Uplink drops
- * into the auto-wired `crew-status.badges` CONTRIBUTION slot
- * (`mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`). This is a
+ * critical" / "N crew critical"), a CONTRIBUTION an Uplink drops into the
+ * auto-wired `crew-status.badges` CONTRIBUTION slot, here the planted
+ * Uplink's (`../probe/plantedUplink.ts`). This is a
  * different registry from the per-row `crew-status.row-badges` AugmentSlot the
  * base widget itself declares in `index.tsx`, which carried this exact name
  * until the two were told apart, see `badge.ts`'s own doc comment.
@@ -21,10 +21,9 @@
  * asserted against `screen`).
  */
 // MUST be the first import: installs the injected gonogo host before the
-// `@ksp-gonogo/gonogo-kerbalism-uplink` side-effect import below self-registers a
-// facade-sealed Uplink client (which would otherwise throw "the gonogo host
-// has not been installed" at module load). ES imports are hoisted in source
-// order, mirrors `probe-entry.tsx`'s own ordering requirement.
+// planted Uplink below registers through it (which would otherwise throw "the
+// gonogo host has not been installed" at module load). ES imports are hoisted
+// in source order, mirrors `probe-entry.tsx`'s own ordering requirement.
 import "../probe/probe-install-host";
 import {
   type ComponentProps,
@@ -36,9 +35,6 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
-// Side-effect import: the Kerbalism Uplink's widgets AND its crew-survival
-// panel-badge contribution (`badge.ts`) self-register on module load.
-import "@ksp-gonogo/gonogo-kerbalism-uplink";
 import { defaultDarkTheme, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -46,6 +42,9 @@ import { ThemeProvider } from "styled-components";
 // Side-effect import: every built-in widget (CrewStatus included)
 // self-registers on module load, same contract as the shared probe.
 import "../../src";
+// Side-effect import: the planted Uplink's crew contributions, the panel badge
+// among them, gated on the fixture emitting its Domain.
+import "../probe/plantedUplink";
 import {
   type StreamFixture,
   setupStreamFixture,

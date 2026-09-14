@@ -72,8 +72,7 @@ const PROBE_DIR = resolve(HERE, "probe");
 // Absolute main-repo paths (not derived from this file's own location via
 // `HERE`): a worktree-isolated run's `HERE` resolves to the WORKTREE's own
 // copy of this script, so a relative `../../..` would land the artifact in
-// a directory that gets torn down with the worktree, same trap
-// `render-systemview-cme-video.ts`'s own `OUT_DIRS` doc comment calls out.
+// a directory that gets torn down with the worktree.
 const OUT_DIRS = [
   "/Users/jon.pepler/personal/gonogo/local_docs/inbox/systemview-traffic",
   "/Users/jon.pepler/personal/gonogo/local_docs/inbox/systemview-contributions",

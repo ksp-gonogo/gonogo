@@ -1,15 +1,10 @@
 {
   "_meta": {
-    "scenario": "kerbalism-supply-tanks",
-    "notes": "One vessel, both contributors active: part 2 (LiquidFuel/Oxidizer) gets its meter from the built-in `core` contribution, part 3 (Water/Food) gets its meter from the Kerbalism Uplink contribution (mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.ts), and part 3 also carries a fitted-process ship-map.part-meta row (a running water recycler). Demonstrates spec §13.4's self-contribution unify: one aggregated slot, two contributors, rendered by the SAME code path. Food.amount is deliberately small (0.4) to catch a fmtAmt-style rounding-to-zero bug in the tooltip's Meter valueLabel."
+    "scenario": "two-contributors",
+    "notes": "One vessel, two contributors on one slot: part 2 (LiquidFuel/Oxidizer) gets its meter from the built-in `core` contribution, part 3 (Water/Food) gets its meter from the planted Uplink (scripts/probe/plantedUplink.ts), which meters every stored resource the built-in five leave alone. Demonstrates spec §13.4's self-contribution unify: one aggregated slot, two contributors, rendered by the SAME code path. Food.amount is deliberately small (0.4) to catch a fmtAmt-style rounding-to-zero bug in the tooltip's Meter valueLabel."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.parts",
-      "kerbalism.available",
-      "kerbalism.profile",
-      "kerbalism.lifesupport"
-    ],
+    "carriedChannels": ["vessel.parts", "planted.available"],
     "emits": [
       {
         "channel": "vessel.parts",
@@ -107,7 +102,7 @@
               "bounds": {
                 "size": {
                   "x": 1.25,
-                  "y": 1.0,
+                  "y": 1,
                   "z": 1.25
                 }
               },
@@ -135,50 +130,8 @@
         }
       },
       {
-        "channel": "kerbalism.available",
+        "channel": "planted.available",
         "value": true
-      },
-      {
-        "channel": "kerbalism.profile",
-        "value": {
-          "name": "Default",
-          "resources": {
-            "Water": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Water",
-              "isSupply": true,
-              "lowThreshold": 0.2
-            },
-            "Food": {
-              "flowMode": "STACK_PRIORITY_SEARCH",
-              "displayName": "Food",
-              "isSupply": true,
-              "lowThreshold": 0.15
-            }
-          },
-          "rules": [],
-          "processes": []
-        }
-      },
-      {
-        "channel": "kerbalism.lifesupport",
-        "value": {
-          "rates": {
-            "Water": -0.002,
-            "Food": -0.0007
-          },
-          "processes": [
-            {
-              "resource": "recycler",
-              "title": "Water Recycler",
-              "capacity": 1,
-              "running": true,
-              "broken": false,
-              "flightId": 3
-            }
-          ],
-          "greenhouses": []
-        }
       }
     ]
   }
