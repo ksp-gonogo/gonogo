@@ -1,15 +1,17 @@
-import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import type {
   PrincipiaPlan,
+  PrincipiaPlanIntegrator,
   PrincipiaPlannedBurn,
 } from "../__generated__/contract";
 import {
@@ -100,6 +102,22 @@ function plan(overrides: Partial<PrincipiaPlan> = {}): PrincipiaPlan {
 }
 
 /**
+ * The plan's integrator with its step limit unread and the two tolerances
+ * intact, which is the shape ONE failed decode leaves: the mod withholds the
+ * field it could not read and the rest of the payload is unaffected.
+ *
+ * <p>Real `Value`s rather than bare numbers, because this one is typed: the two
+ * tolerances have to be present and readable for the assertions to be about the
+ * step limit alone.</p>
+ */
+function integratorWithoutStepLimit(): PrincipiaPlanIntegrator {
+  return {
+    lengthToleranceMetres: value("m", 1),
+    speedToleranceMetresPerSecond: value("m/s", 1),
+  };
+}
+
+/**
  * One burn in the plan, for the row that counts what a shorter plan drops.
  *
  * <p>Bare numbers where the payload declares `Value`s, the same way `plan()`
@@ -133,6 +151,93 @@ describe("PlanIntegrationBlock", () => {
     const { container } = mount(plan());
     expect(await visibleText(container)).not.toContain(
       "short of the requested",
+    );
+  });
+
+  /**
+   * A step limit that was not read shows the absent token, exactly as POSITION
+   * TOL and SPEED TOL in the same block do.
+   *
+   * <p>It used to fall back to `MAX_STEPS_OPTIONS[0]`, which is 64: the LOWEST
+   * member of the set and three orders of magnitude under Principia's own
+   * default, presented as the plan's current limit with "Raise this when the
+   * plan stops short of its requested end" directly underneath. So the operator
+   * read a catastrophically under-integrated plan and went and fixed a setting
+   * nobody had read.</p>
+   */
+  it("shows the absent token for a step limit that was not read", async () => {
+    mount(plan({ integrator: integratorWithoutStepLimit() }));
+
+    const spin = screen.getByRole("spinbutton", {
+      name: "Max integration steps per segment",
+    });
+    expect(spin).toHaveAttribute("aria-valuetext", NULL_DISPLAY);
+    expect(spin.textContent).not.toContain("64");
+    // Nothing is announced as the held index either: an unread limit is not a
+    // member of the set, and `aria-valuenow` claiming one would put the
+    // fabrication back for a screen reader only.
+    expect(spin).not.toHaveAttribute("aria-valuenow");
+  });
+
+  /**
+   * And the write is refused while it is null. A dispatch composed against a
+   * limit nobody read is a limit nobody chose.
+   */
+  it("refuses the step-limit write while the limit is unread", async () => {
+    mount(plan({ integrator: integratorWithoutStepLimit() }));
+
+    expect(
+      screen.getByRole("button", { name: "Set the flight plan's step limit" }),
+    ).toBeDisabled();
+  });
+
+  /**
+   * The operator can still act. Stepping onto a value makes it theirs, which is
+   * why the control holds the null rather than being replaced by a bare
+   * readout: hiding it would leave the one remedy for an under-integrated plan
+   * unreachable on exactly the plan that needs it.
+   */
+  it("lets the operator step onto a value and send it", async () => {
+    mount(plan({ integrator: integratorWithoutStepLimit() }));
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Increase Max integration steps per segment",
+      }),
+    );
+
+    expect(
+      screen.getByRole("spinbutton", {
+        name: "Max integration steps per segment",
+      }),
+    ).toHaveAttribute(
+      "aria-valuetext",
+      MAX_STEPS_OPTIONS[MAX_STEPS_OPTIONS.length - 1].toLocaleString("en-GB"),
+    );
+    expect(
+      screen.getByRole("button", { name: "Set the flight plan's step limit" }),
+    ).toBeEnabled();
+  });
+
+  /**
+   * "Raise this" needs something to raise FROM, and the caption above the
+   * control says exactly that whatever the readout holds.
+   */
+  it("says there is nothing to raise the step limit from", async () => {
+    const { container } = mount(
+      plan({ integrator: integratorWithoutStepLimit() }),
+    );
+
+    expect(await visibleText(container)).toContain(
+      "current step limit was not read",
+    );
+  });
+
+  it("says nothing about an unread step limit when the plan carries one", async () => {
+    const { container } = mount(plan());
+
+    expect(await visibleText(container)).not.toContain(
+      "current step limit was not read",
     );
   });
 
