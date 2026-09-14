@@ -3,27 +3,27 @@
   "engine": "chromium",
   "assets": {
     "binary--default.png": {
-      "hash": "92c21ddb4f5c155b",
+      "hash": "1aa9575178cc1417",
       "elements": 103,
       "text": "52c0d842"
     },
     "dose-band-from-a-fitted-rate--default.png": {
-      "hash": "3ff6e5de76516bfe",
+      "hash": "5009328650b94228",
       "elements": 75,
       "text": "96b2a14e"
     },
     "dose-band-the-model-declines--default.png": {
-      "hash": "e3e6613d88a12be0",
+      "hash": "c01a00f33c318753",
       "elements": 52,
       "text": "d97157a2"
     },
     "ec-shortage-limits-water--default.png": {
-      "hash": "de8c737f3d8a1fae",
+      "hash": "76a72045383c9616",
       "elements": 161,
       "text": "ca2969e0"
     },
     "ec-shortage-limits-water--min.png": {
-      "hash": "0ac533bdd5e80bb1",
+      "hash": "c61b3aa439d45041",
       "elements": 161,
       "text": "ca2969e0"
     },
@@ -33,17 +33,17 @@
       "text": "1f3d9756"
     },
     "greenhouse-halted-in-the-dark--default.png": {
-      "hash": "c3eea18e6e00fa55",
+      "hash": "9022106b7de906b3",
       "elements": 110,
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "30af6d995e9c8989",
+      "hash": "64378e726117c2be",
       "elements": 78,
       "text": "2e0d06fc"
     },
     "interplanetary--default.png": {
-      "hash": "56f461f08f8c2573",
+      "hash": "890aad0cc806f2b0",
       "elements": 92,
       "text": "5db7f31e"
     },
@@ -53,27 +53,27 @@
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "231939a28c2e09ab",
+      "hash": "9e179d917ff6af10",
       "elements": 77,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "979f1836072d8a45",
+      "hash": "f7b34af5f87d1688",
       "elements": 66,
       "text": "970d0f26"
     },
     "radiation-dose-critical--default.png": {
-      "hash": "5c0595368e480939",
+      "hash": "84f30b7cf00281de",
       "elements": 104,
       "text": "806f8490"
     },
     "storm-inbound--default.png": {
-      "hash": "c9a1443e8f7d4ee3",
+      "hash": "a511acd4fe200f10",
       "elements": 92,
       "text": "e04b2f39"
     },
     "storm-peak--default.png": {
-      "hash": "04f2294c5639459a",
+      "hash": "5f2798d313e7a8cc",
       "elements": 93,
       "text": "78bd6f8c"
     },
