@@ -18,6 +18,7 @@ import {
 import { warnGatedRead } from "./gated-read-warning";
 import { resolveValueTopic } from "./map-topic";
 import type { NeverReckonable } from "./never-reckonable";
+import { subscribeTopicRead } from "./subscribe-read";
 import { useTelemetrySubscriberLabel } from "./subscriber-identity";
 import { useDataSourceSubscription } from "./use-data-source-subscription";
 
@@ -334,23 +335,16 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
       if (!client || !store || topic === undefined) {
         return () => {};
       }
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
+      const releaseInputs = subscribeTopicRead(
+        client,
+        store,
+        topic,
+        subscriberLabel,
       );
-      // Labelled per INPUT topic rather than per read: a derived topic is not
-      // a wire topic and can never be unowned itself, so the diagnostic has to
-      // name the raw topics the derivation actually subscribed.
-      const releaseLabels = subscriberLabel
-        ? inputTopics.map((inputTopic) =>
-            client.noteSubscriberLabel(inputTopic, subscriberLabel),
-          )
-        : [];
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
-        for (const release of releaseLabels) release();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        releaseInputs();
       };
     },
     [client, store, topic, subscriberLabel],

@@ -2,6 +2,7 @@ import type { ComponentProps, DataKey } from "@ksp-gonogo/core";
 import { registerComponent, useScreen } from "@ksp-gonogo/core";
 import {
   resolveValueTopic,
+  subscribeTopicRead,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -332,10 +333,7 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
       const topic = resolveValueTopic(LEGACY_DATA_SOURCE_ID, tag);
 
       if (client && store && topic !== undefined) {
-        const inputTopics = store.resolveSubscriptionTopics(topic);
-        const unsubscribeInputs = inputTopics.map((inputTopic) =>
-          client.subscribe(inputTopic, () => {}),
-        );
+        const releaseInputs = subscribeTopicRead(client, store, topic);
         const unsubscribeFrame = store.subscribeFrame(() => {
           const point = store.sample(topic, store.currentFrame());
           next.set(tag, point ? point.payload : undefined);
@@ -343,7 +341,7 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
         });
         unsubs.push(() => {
           unsubscribeFrame();
-          for (const unsubscribe of unsubscribeInputs) unsubscribe();
+          releaseInputs();
         });
       }
       // No `else` branch, because there is no fallback source. A tag naming no

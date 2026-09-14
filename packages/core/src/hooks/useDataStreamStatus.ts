@@ -4,6 +4,7 @@ import {
   isTopicCarried,
   mapTopic,
   type StreamStatusValue,
+  subscribeTopicRead,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -173,21 +174,17 @@ export function useDataStreamStatus(
       if (!client || !store) {
         return () => {};
       }
-      // Mirrors `useDataValue`'s `subscribeStream` (and, underneath it,
-      // `@ksp-gonogo/sitrep-client`'s `useStream`): a status read needs the same
-      // real `client.subscribe` on the topic's resolved raw inputs as a
-      // value read, for a `StubTransport`/real transport, nothing is
-      // actually delivered on an unsubscribed topic (`StubTransport.emit`'s
-      // own subscription-gating), so a status-only hook that skipped this
-      // would never see a live topic ever leave `"resyncing"`.
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
+      // A status read needs exactly the same subscriptions a value read needs,
+      // which is why it comes through the shared seam rather than resolving its
+      // own list: for a `StubTransport` or a real transport, nothing is
+      // delivered on an unsubscribed topic (`StubTransport.emit`'s own
+      // subscription-gating), so a status-only hook that skipped this would
+      // never see a live topic leave `"resyncing"`.
+      const releaseInputs = subscribeTopicRead(client, store, topic);
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        releaseInputs();
       };
     },
     [client, store, topic],

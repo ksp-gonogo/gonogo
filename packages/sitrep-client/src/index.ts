@@ -414,6 +414,11 @@ export {
 export type { StreamStatusValue } from "./stream-status";
 export { worstStatus } from "./stream-status";
 export { StubTransport, type WireOf } from "./stub-transport";
+export type {
+  ReadTopicResolver,
+  ReadTopicSubscriber,
+} from "./subscribe-read";
+export { subscribeTopicRead } from "./subscribe-read";
 export type { SystemState } from "./system-state";
 export { deriveSystemState, systemStateChannel } from "./system-state";
 export type { ClientTimelineOptions, TimelinePoint } from "./timeline";

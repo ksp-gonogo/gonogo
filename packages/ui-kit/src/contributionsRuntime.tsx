@@ -13,6 +13,7 @@ import {
   getProcessorValue,
   onContributionsChange,
   type ProcessorHandle,
+  subscribeTopicRead,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -189,19 +190,16 @@ function SlotAggregator({
   const subscribe = useCallback(
     (onChange: () => void) => {
       if (!client || !telemetryStore) return () => {};
-      // Resolved to the wire topics the server understands, exactly as
-      // `useStream` and the processor evaluator do. A derived channel is
-      // computed on this side and the server has never heard of its topic, so
-      // asking for the literal dep left the channel's inputs unsubscribed and
-      // the contribution reading `undefined` forever.
-      const unsubscribeInputs: Array<() => void> = [];
-      for (const topic of unionDeps.topics) {
-        for (const inputTopic of telemetryStore.resolveSubscriptionTopics(
-          topic,
-        )) {
-          unsubscribeInputs.push(client.subscribe(inputTopic, () => {}));
-        }
-      }
+      // Through the shared read seam, exactly as `useStream` and the processor
+      // evaluator do. A derived channel is computed on this side and the server
+      // has never heard of its topic, so asking for the literal dep left the
+      // channel's inputs unsubscribed and the contribution reading `undefined`
+      // forever; the seam also holds each dep's elected reckoner's own declared
+      // inputs up, so a contribution reading a modelled value is not relying on
+      // some other widget to have asked for them.
+      const unsubscribeInputs = unionDeps.topics.map((topic) =>
+        subscribeTopicRead(client, telemetryStore, topic),
+      );
       const unsubscribeFrame = telemetryStore.subscribeFrame(() => {
         // Force this slot's Processor deps fresh for the just-begun frame
         // BEFORE notifying React: a slot's own frame listener can fire before
