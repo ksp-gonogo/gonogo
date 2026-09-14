@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Gonogo.KSP;
-using Gonogo.RealAntennasUplink;
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
 using Xunit;
@@ -14,17 +13,19 @@ namespace Sitrep.Host.Tests
     ///
     /// <para>The thing under test is a disagreement. Stock CommNet shrinks a
     /// body before testing a radio path against it (0.9x airless, 0.75x with an
-    /// atmosphere); RealAntennas tests against the bare radius. For Kerbin that
-    /// is a 450 km occluder versus a 600 km one, roughly eleven minutes of
-    /// difference in a predicted low-orbit blackout, so a consumer that picks
-    /// the wrong one is not slightly off, it is wrong. These tests pin the two
-    /// declarations against each other and prove a consumer reads whichever one
-    /// won the election without knowing who won.</para>
+    /// atmosphere); a bare-radius backend does not. For
+    /// Kerbin that is a 450 km occluder versus a 600 km one, roughly eleven
+    /// minutes of difference in a predicted low-orbit blackout, so a consumer
+    /// that picks the wrong one is not slightly off, it is wrong. These tests pin
+    /// stock's declaration below the bare radius and prove a consumer reads
+    /// whichever model won the election without knowing who won.</para>
     ///
-    /// <para>Both declarations are the REAL ones: this project compiles
-    /// <c>CommNetOcclusion</c> and <c>RaOcclusion</c> straight out of their
-    /// backends (see the .csproj), so a change to either shows up here rather
-    /// than in a re-stated constant that could drift.</para>
+    /// <para>Stock's declaration is the REAL one: this project compiles
+    /// <c>CommNetOcclusion</c> straight out of its backend (see the .csproj), so
+    /// a change to it shows up here rather than in a re-stated constant that
+    /// could drift. The competing bare-radius model is planted from the
+    /// contract's own <see cref="ScaledRadiusOcclusionModel"/>; an Uplink that
+    /// declares a bare-radius model pins it in that Uplink's own tests.</para>
     /// </summary>
     public class CommsOcclusionTests
     {
@@ -33,45 +34,34 @@ namespace Sitrep.Host.Tests
         private const double KerbinRadiusMeters = 600_000.0;
         private const double MunRadiusMeters = 200_000.0;
 
+        private const string BareRadiusModelId = "planted-bare-radius";
+
         private static ICommsOcclusionModel Stock() => CommNetOcclusion.StockDefaults();
 
-        private static ICommsOcclusionModel RealAntennas() => RaOcclusion.Model;
+        /// <summary>The competitor stock's declaration is measured against: occludes at the bare radius, whatever the atmosphere.</summary>
+        private static ICommsOcclusionModel BareRadius() =>
+            new ScaledRadiusOcclusionModel(BareRadiusModelId, "Planted (bare body radius)", 1.0, 1.0);
 
         // ---------------------------------------------------------------
         // The disagreement itself.
         // ---------------------------------------------------------------
 
         [Fact]
-        public void AtmosphericBody_StockOccludesSmallerThanRealAntennas()
+        public void AtmosphericBody_StockOccludesSmallerThanTheBareRadius()
         {
             var stock = Stock().OccludingRadiusMeters(KerbinRadiusMeters, hasAtmosphere: true);
-            var ra = RealAntennas().OccludingRadiusMeters(KerbinRadiusMeters, hasAtmosphere: true);
 
             Assert.Equal(450_000.0, stock, 6);
-            Assert.Equal(KerbinRadiusMeters, ra, 6);
-            Assert.True(stock < ra, "stock's atmospheric multiplier must make its occluder the smaller of the two");
+            Assert.True(stock < KerbinRadiusMeters, "stock's atmospheric multiplier must shrink its occluder below the bare radius");
         }
 
         [Fact]
-        public void AirlessBody_StockOccludesSmallerThanRealAntennas()
+        public void AirlessBody_StockOccludesSmallerThanTheBareRadius()
         {
             var stock = Stock().OccludingRadiusMeters(MunRadiusMeters, hasAtmosphere: false);
-            var ra = RealAntennas().OccludingRadiusMeters(MunRadiusMeters, hasAtmosphere: false);
 
             Assert.Equal(180_000.0, stock, 6);
-            Assert.Equal(MunRadiusMeters, ra, 6);
-            Assert.True(stock < ra, "stock's vacuum multiplier must make its occluder the smaller of the two");
-        }
-
-        [Fact]
-        public void RealAntennas_IgnoresAtmosphere()
-        {
-            var model = RealAntennas();
-
-            Assert.Equal(
-                model.OccludingRadiusMeters(KerbinRadiusMeters, hasAtmosphere: false),
-                model.OccludingRadiusMeters(KerbinRadiusMeters, hasAtmosphere: true),
-                6);
+            Assert.True(stock < MunRadiusMeters, "stock's vacuum multiplier must shrink its occluder below the bare radius");
         }
 
         /// <summary>
@@ -92,20 +82,17 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void ModelsCarryDistinctNames()
+        public void Stock_CarriesItsOwnName()
         {
             Assert.Equal("commnet-scaled-radius", Stock().ModelId);
-            Assert.Equal("realantennas-bare-radius", RealAntennas().ModelId);
-            Assert.NotEqual(Stock().ModelId, RealAntennas().ModelId);
             Assert.False(string.IsNullOrWhiteSpace(Stock().ModelName));
-            Assert.False(string.IsNullOrWhiteSpace(RealAntennas().ModelName));
         }
 
         /// <summary>
         /// The multipliers are a per-save difficulty setting, not constants: the
         /// presets range from 0/0 (nothing occludes) to 1/1 (everything occludes
-        /// bare, i.e. RA's geometry reached by a stock route). A model built from
-        /// live parameters must honour them.
+        /// bare, i.e. a bare-radius backend's geometry reached by a stock route).
+        /// A model built from live parameters must honour them.
         /// </summary>
         [Fact]
         public void Stock_HonoursLiveMultipliers()
@@ -114,10 +101,7 @@ namespace Sitrep.Host.Tests
             var everythingOccludes = CommNetOcclusion.Model(1.0, 1.0);
 
             Assert.Equal(0.0, nothingOccludes.OccludingRadiusMeters(KerbinRadiusMeters, true), 6);
-            Assert.Equal(
-                RealAntennas().OccludingRadiusMeters(KerbinRadiusMeters, true),
-                everythingOccludes.OccludingRadiusMeters(KerbinRadiusMeters, true),
-                6);
+            Assert.Equal(KerbinRadiusMeters, everythingOccludes.OccludingRadiusMeters(KerbinRadiusMeters, true), 6);
         }
 
         [Theory]
@@ -143,7 +127,7 @@ namespace Sitrep.Host.Tests
         public void NonPositiveRadius_OccludesNothing(double radius)
         {
             Assert.Equal(0.0, Stock().OccludingRadiusMeters(radius, true), 6);
-            Assert.Equal(0.0, RealAntennas().OccludingRadiusMeters(radius, false), 6);
+            Assert.Equal(0.0, Stock().OccludingRadiusMeters(radius, false), 6);
         }
 
         // ---------------------------------------------------------------
@@ -177,20 +161,20 @@ namespace Sitrep.Host.Tests
             public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
 
-        private static Kernel ResolvedKernel(bool raPresent)
+        private static Kernel ResolvedKernel(bool bareRadiusBackendPresent)
         {
             var kernel = new Kernel();
             CommsElection.RegisterCapability(
                 kernel,
                 _ => new StubBackend(CommNetBackendId, () => CommNetOcclusion.StockDefaults()));
-            if (raPresent)
+            if (bareRadiusBackendPresent)
             {
                 kernel.RegisterProvider(new ProviderRegistration
                 {
                     Capability = CommsElection.CapabilityId,
-                    Id = "realantennas",
+                    Id = BareRadiusBackendId,
                     Priority = 100.0,
-                    Factory = _ => new StubBackend("realantennas", () => RaOcclusion.Model),
+                    Factory = _ => new StubBackend(BareRadiusBackendId, BareRadius),
                 });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
@@ -199,21 +183,23 @@ namespace Sitrep.Host.Tests
 
         private const string CommNetBackendId = "commnet";
 
+        private const string BareRadiusBackendId = "planted-bare-radius-backend";
+
         [Fact]
         public void CommNetElected_ConsumerReadsStockGeometry()
         {
-            var model = CommsElection.OcclusionModel(ResolvedKernel(raPresent: false));
+            var model = CommsElection.OcclusionModel(ResolvedKernel(bareRadiusBackendPresent: false));
 
             Assert.Equal(CommNetOcclusion.ModelId, model.ModelId);
             Assert.Equal(450_000.0, model.OccludingRadiusMeters(KerbinRadiusMeters, true), 6);
         }
 
         [Fact]
-        public void RealAntennasElected_ConsumerReadsBareRadiusGeometry()
+        public void BareRadiusBackendElected_ConsumerReadsBareRadiusGeometry()
         {
-            var model = CommsElection.OcclusionModel(ResolvedKernel(raPresent: true));
+            var model = CommsElection.OcclusionModel(ResolvedKernel(bareRadiusBackendPresent: true));
 
-            Assert.Equal(RaOcclusion.ModelId, model.ModelId);
+            Assert.Equal(BareRadiusModelId, model.ModelId);
             Assert.Equal(KerbinRadiusMeters, model.OccludingRadiusMeters(KerbinRadiusMeters, true), 6);
         }
 
@@ -225,12 +211,12 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void SameConsumerCall_DiffersOnlyByWhoWasElected()
         {
-            var withoutRa = CommsElection.OcclusionModel(ResolvedKernel(raPresent: false))
+            var stockElected = CommsElection.OcclusionModel(ResolvedKernel(bareRadiusBackendPresent: false))
                 .OccludingRadiusMeters(KerbinRadiusMeters, hasAtmosphere: true);
-            var withRa = CommsElection.OcclusionModel(ResolvedKernel(raPresent: true))
+            var bareRadiusElected = CommsElection.OcclusionModel(ResolvedKernel(bareRadiusBackendPresent: true))
                 .OccludingRadiusMeters(KerbinRadiusMeters, hasAtmosphere: true);
 
-            Assert.True(withoutRa < withRa);
+            Assert.True(stockElected < bareRadiusElected);
         }
 
         [Fact]
@@ -305,30 +291,31 @@ namespace Sitrep.Host.Tests
         public void Payload_ResolvesEveryBodyThroughTheElectedModel()
         {
             var stock = CommsOcclusionBuilder.Build(Stock(), SnapshotWithBodies());
-            var ra = CommsOcclusionBuilder.Build(RealAntennas(), SnapshotWithBodies());
+            var bare = CommsOcclusionBuilder.Build(BareRadius(), SnapshotWithBodies());
 
             var stockKerbin = stock.Bodies.Single(b => b.Name == "Kerbin");
-            var raKerbin = ra.Bodies.Single(b => b.Name == "Kerbin");
+            var bareKerbin = bare.Bodies.Single(b => b.Name == "Kerbin");
 
             // The bare radius rides alongside the resolved one, so the
             // assumption stays derivable without the consumer applying anything.
             Assert.Equal(KerbinRadiusMeters, stockKerbin.RadiusMeters, 6);
             Assert.Equal(450_000.0, stockKerbin.OccludingRadiusMeters, 6);
-            Assert.Equal(KerbinRadiusMeters, raKerbin.OccludingRadiusMeters, 6);
+            Assert.Equal(KerbinRadiusMeters, bareKerbin.OccludingRadiusMeters, 6);
 
             var stockMun = stock.Bodies.Single(b => b.Name == "Mun");
             Assert.False(stockMun.HasAtmosphere);
             Assert.Equal(180_000.0, stockMun.OccludingRadiusMeters, 6);
-            Assert.Equal(MunRadiusMeters, ra.Bodies.Single(b => b.Name == "Mun").OccludingRadiusMeters, 6);
+            Assert.Equal(MunRadiusMeters, bare.Bodies.Single(b => b.Name == "Mun").OccludingRadiusMeters, 6);
         }
 
         [Fact]
         public void Payload_NamesTheModelInPlay()
         {
-            var payload = CommsOcclusionBuilder.Build(RealAntennas(), SnapshotWithBodies());
+            var model = BareRadius();
+            var payload = CommsOcclusionBuilder.Build(model, SnapshotWithBodies());
 
-            Assert.Equal(RaOcclusion.ModelId, payload.ModelId);
-            Assert.Equal(RaOcclusion.ModelName, payload.ModelName);
+            Assert.Equal(model.ModelId, payload.ModelId);
+            Assert.Equal(model.ModelName, payload.ModelName);
         }
 
         /// <summary>Body index matches <c>system.bodies</c>' own, so a consumer joins the two without name-matching.</summary>
@@ -376,7 +363,7 @@ namespace Sitrep.Host.Tests
         {
             Assert.False(CommsOcclusionBuilder.SameDeclaration(
                 CommsOcclusionBuilder.Build(Stock(), SnapshotWithBodies()),
-                CommsOcclusionBuilder.Build(RealAntennas(), SnapshotWithBodies())));
+                CommsOcclusionBuilder.Build(BareRadius(), SnapshotWithBodies())));
         }
 
         /// <summary>

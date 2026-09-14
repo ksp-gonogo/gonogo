@@ -1261,8 +1261,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/truenow-allowlist.test.ts",
       /*
-       * -- the occlusion-model seam: three prose mentions and one test --
-       * All four name RealAntennas because the seam exists to record that the
+       * -- the occlusion-model seam: three prose mentions --
+       * All three name RealAntennas because the seam exists to record that the
        * two comms backends occlude at DIFFERENT radii (stock scales the body
        * down, RA takes it bare), and a comment that omitted the disagreement
        * would be describing the wrong problem. The contract declares the shape
@@ -1273,16 +1273,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/CommsOcclusion.cs",
       "mod/Gonogo.KSP/CommNetOcclusion.cs",
       "mod/Sitrep.Host/Comms/CommsOcclusionBuilder.cs",
-      /*
-       * The one real reference, and the reviewed exception the ratchet's own
-       * failure message names ("a new test"): this suite compiles BOTH
-       * backends' KSP-free occlusion declarations side by side, because the
-       * difference between them is the thing under test and asserting it
-       * against re-stated constants instead would let the two drift silently.
-       * Deliberately not domainDebt: there is no coupling here to pay off, the
-       * comparison is the point.
-       */
-      "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
       /*
        * -- the visibility geometry and the capture analyser built on the seam --
        * Every one of these names RealAntennas for the same reason the occlusion
@@ -2542,7 +2532,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
-    "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
     "mod/sitrep-kernel/src/registry.test.ts",
     "packages/components/src/FleetReliability/install-profiles.test.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",

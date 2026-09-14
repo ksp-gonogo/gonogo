@@ -63,6 +63,10 @@
          centre's position rather than reading it (RaSpaceCentre is the KSP half),
          so nearest-station selection and the election are both headless. -->
     <Compile Include="..\GonogoRealAntennasUplink\RaHomeCommand.cs" />
+    <!-- RA's declared occlusion geometry. Pure arithmetic over the contract's
+         scaled-radius model, so RaOcclusionTests runs with or without the KSP
+         assemblies; RaCommsBackend, gated below, hands this same model back. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaOcclusion.cs" />
   </ItemGroup>
 
   <!-- RaRouting.cs is the RA route between two nodes, carved out of
@@ -105,7 +109,6 @@
          which are either KSP-free or gated with it. -->
     <Compile Include="..\GonogoRealAntennasUplink\RaCommsBackend.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaHopExtensions.cs" />
-    <Compile Include="..\GonogoRealAntennasUplink\RaOcclusion.cs" />
     <Compile Include="Routing\**\*.cs" />
     <Compile Include="RaCommsBackendSharedShapeTests.cs" />
     <!-- Fallback-chain persistence. It is the half of the feature that makes a
