@@ -379,6 +379,58 @@ describe("TelemetryProvider wires comms.delay into the auto-built ViewClock (spe
   });
 });
 
+describe("TelemetryProvider holds the roster its store reads delay lanes from", () => {
+  it("subscribes system.uplinks with nothing mounted, and reads an Uplink held-at-home channel current at a real light-time", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    let store: TimelineStore | undefined;
+    function Capture() {
+      store = useTelemetryStore();
+      return null;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Capture />
+      </TelemetryProvider>,
+    );
+
+    expect(transport.isSubscribed("system.uplinks")).toBe(true);
+    const unsubscribeWidget = client.subscribe("rp1.programs", () => {});
+
+    const utNow = 10_000;
+    const at = { validAt: utNow, deliveredAt: utNow };
+    act(() => {
+      transport.emit(
+        COMMS_DELAY_TOPIC,
+        { oneWaySeconds: 240, source: CommsDelaySource.SignalDelay },
+        at,
+      );
+      transport.emit(
+        "system.uplinks",
+        {
+          uplinks: [],
+          delayRoles: {
+            trueNow: [],
+            heldAtHome: ["rp1.programs"],
+            trueNowPrefixes: [],
+          },
+        },
+        at,
+      );
+      transport.emit("rp1.programs", { programs: [] }, at);
+    });
+    store?.beginFrame();
+
+    expect(store?.currentFrame().viewUt).toBeLessThan(utNow);
+    expect(store?.sample("rp1.programs")?.validAt).toBe(utNow);
+
+    unsubscribeWidget();
+    client.dispose();
+  });
+});
+
 describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-UT)", () => {
   let raf: ReturnType<typeof installFakeRaf>;
 

@@ -118,6 +118,7 @@ export {
 // the same answer core reads, and a widget that draws a career balance beside a
 // vessel reading has to be able to say which of the two is current.
 export {
+  type DeclaredDelayRoles,
   type DelayLane,
   delayLaneOf,
   type GeneratedHeldAtHomeTopic,
@@ -125,6 +126,7 @@ export {
   type HeldAtHomeTopic,
   isHeldAtHomeTopic,
   isTrueNowTopic,
+  readDeclaredDelayRoles,
   type TrueNowTopic,
 } from "./delay-roles";
 // The atmospheric-descent maths a velocity-height plot is drawn from. Published

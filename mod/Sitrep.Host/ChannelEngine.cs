@@ -1662,7 +1662,76 @@ namespace Sitrep.Host
                 // of every refusal reason on the roster.
                 ["coreContractMajor"] = Sitrep.Contract.ContractVersion.Major,
                 ["coreContractMinor"] = Sitrep.Contract.ContractVersion.Minor,
+                ["delayRoles"] = DelayRolesPayload(),
             };
+        }
+
+        private Dictionary<string, object?>? _delayRolesPayload;
+        private int _delayRolesDeclarationCount = -1;
+        private int _delayRolesNamespaceCount = -1;
+
+        /// <summary>
+        /// Every registered channel's delay role, as the client reads its lane from:
+        /// <c>{ trueNow, heldAtHome, trueNowPrefixes }</c>, each sorted ordinally.
+        ///
+        /// <para>Built from what this engine actually routes by rather than from what
+        /// a manifest says: <c>heldAtHome</c> is <see cref="_heldAtHomeTopics"/>, so a
+        /// channel refused for declaring both roles is not claimed as held at home.
+        /// A topic materialized under a dynamic namespace is covered by that
+        /// namespace's prefix and not listed on its own, so the roster does not grow
+        /// with every craft and core that appears.</para>
+        ///
+        /// <para>Rebuilt only when a declaration or a namespace has been added, and
+        /// never mutated once handed out, so an unchanged roster compares equal to
+        /// the one before it and costs no emission.</para>
+        /// </summary>
+        private Dictionary<string, object?> DelayRolesPayload()
+        {
+            if (_delayRolesPayload != null
+                && _delayRolesDeclarationCount == _channelDeclarations.Count
+                && _delayRolesNamespaceCount == _dynamicNamespaces.Count)
+            {
+                return _delayRolesPayload;
+            }
+
+            var trueNow = new List<string>();
+            foreach (var kvp in _channelDeclarations)
+            {
+                if (kvp.Value.Delay != DelayRole.TrueNow)
+                {
+                    continue;
+                }
+                var prefix = FindDynamicNamespaceForTopic(kvp.Key);
+                if (prefix != null && _dynamicNamespaces[prefix].Delay == DelayRole.TrueNow)
+                {
+                    continue;
+                }
+                trueNow.Add(kvp.Key);
+            }
+
+            var trueNowPrefixes = new List<string>();
+            foreach (var kvp in _dynamicNamespaces)
+            {
+                if (kvp.Value.Delay == DelayRole.TrueNow)
+                {
+                    trueNowPrefixes.Add(kvp.Key);
+                }
+            }
+
+            var heldAtHome = new List<string>(_heldAtHomeTopics);
+            trueNow.Sort(StringComparer.Ordinal);
+            heldAtHome.Sort(StringComparer.Ordinal);
+            trueNowPrefixes.Sort(StringComparer.Ordinal);
+
+            _delayRolesPayload = new Dictionary<string, object?>
+            {
+                ["trueNow"] = trueNow,
+                ["heldAtHome"] = heldAtHome,
+                ["trueNowPrefixes"] = trueNowPrefixes,
+            };
+            _delayRolesDeclarationCount = _channelDeclarations.Count;
+            _delayRolesNamespaceCount = _dynamicNamespaces.Count;
+            return _delayRolesPayload;
         }
 
         /// <summary>

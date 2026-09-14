@@ -1,11 +1,19 @@
 // Runtime accessor for the contract's channel delay roles.
 //
-// A delay role is declared PER CHANNEL, in C# (`ChannelDeclaration.Delay`), and
-// `scripts/gen-delay-roles.mjs` scans the declarations into
-// ./__generated__/delay-roles.ts. This module is the hand-written accessor over
-// that data, mirroring units.ts, control-channels.ts and reckonability.ts: the
-// generated file stays free to change shape, and every consumer holds a named
-// function instead of an import of the const.
+// A delay role is declared PER CHANNEL, in C# (`ChannelDeclaration.Delay` and
+// `ChannelDeclaration.HeldAtHome`), and reaches the client two ways.
+//
+// The AUTHORITY is the running mod: `system.uplinks` carries a `delayRoles`
+// block the engine builds from every channel it has registered, core and Uplink
+// alike, so an Uplink built outside this repo is read in the right lane without
+// anything here knowing its name. `readDeclaredDelayRoles` decodes that block and
+// `TimelineStore` holds the newest one it was delivered.
+//
+// The FALLBACK is ./__generated__/delay-roles.ts, which `scripts/gen-delay-roles.mjs`
+// scans out of the core declarations. It answers before the roster has arrived,
+// against a mod that predates the block, and for replays recorded from one, and
+// it is the typed union for core topics. It cannot see an Uplink channel, which
+// is why it stops answering the moment the mod states its own roles.
 //
 // Two views, because two layers ask different questions, the same split
 // reckonability.ts makes. The TYPE layer wants the topic union, so a caller can
@@ -40,7 +48,7 @@ export type { GeneratedHeldAtHomeTopic, GeneratedTrueNowTopic };
 export type DelayLane = "delayed" | "true-now";
 
 /**
- * A topic the mod declares `DelayRole.TrueNow`.
+ * A core topic the mod declares `DelayRole.TrueNow`.
  *
  * The set is deliberately small: uplink health, the body catalogue, the alarm
  * roster, the warp state and the comms geometry, none of which describe a craft
@@ -49,29 +57,83 @@ export type DelayLane = "delayed" | "true-now";
 export type TrueNowTopic = GeneratedTrueNowTopic;
 
 /**
- * A topic the mod declares held at the home command: the career ledger and the
- * space centre's records. Delayed, but to each vantage by its own delay to home
- * rather than by the active craft's light-time.
+ * A core topic the mod declares held at the home command: the career ledger and
+ * the space centre's records. Delayed, but to each vantage by its own delay to
+ * home rather than by the active craft's light-time.
  */
 export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
 
-const TRUE_NOW: ReadonlySet<string> = new Set(GENERATED_TRUENOW_TOPICS);
-const HELD_AT_HOME: ReadonlySet<string> = new Set(
-  GENERATED_HELD_AT_HOME_TOPICS,
-);
-
-/** Whether the mod declares `topic` `DelayRole.TrueNow`. */
-export function isTrueNowTopic(topic: string): topic is TrueNowTopic {
-  return TRUE_NOW.has(topic);
+/**
+ * The roles a running mod stated for every channel it registered, as carried on
+ * `system.uplinks.delayRoles`.
+ *
+ * Complete for that mod: a static topic in neither set is delayed, and so is a
+ * dynamic topic under no prefix in `trueNowPrefixes`. No prefix list for held at
+ * home, because a dynamic namespace cannot be held there.
+ */
+export interface DeclaredDelayRoles {
+  readonly trueNow: ReadonlySet<string>;
+  readonly heldAtHome: ReadonlySet<string>;
+  readonly trueNowPrefixes: readonly string[];
 }
 
-/** Whether the mod declares `topic` held at the home command. */
+const GENERATED_ROLES: DeclaredDelayRoles = {
+  trueNow: new Set(GENERATED_TRUENOW_TOPICS),
+  heldAtHome: new Set(GENERATED_HELD_AT_HOME_TOPICS),
+  trueNowPrefixes: [],
+};
+
+function stringsOf(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+/**
+ * Decode the `delayRoles` block off a `system.uplinks` payload.
+ *
+ * `undefined` when the payload carries no block, which is a mod built before
+ * contract 16.13 and not a mod declaring every channel delayed. A block missing
+ * one of its lists is malformed rather than empty, and reads as absent for the
+ * same reason: taking it at its word would move every core TrueNow channel into
+ * the delayed lane on the strength of a field nobody sent.
+ */
+export function readDeclaredDelayRoles(
+  rosterPayload: unknown,
+): DeclaredDelayRoles | undefined {
+  if (rosterPayload === null || typeof rosterPayload !== "object") {
+    return undefined;
+  }
+  const block = (rosterPayload as { delayRoles?: unknown }).delayRoles;
+  if (block === null || typeof block !== "object") return undefined;
+  const raw = block as Record<string, unknown>;
+  const trueNow = stringsOf(raw.trueNow);
+  const heldAtHome = stringsOf(raw.heldAtHome);
+  const trueNowPrefixes = stringsOf(raw.trueNowPrefixes);
+  if (!trueNow || !heldAtHome || !trueNowPrefixes) return undefined;
+  return {
+    trueNow: new Set(trueNow),
+    heldAtHome: new Set(heldAtHome),
+    trueNowPrefixes,
+  };
+}
+
+/** Whether the generated core table declares `topic` `DelayRole.TrueNow`. */
+export function isTrueNowTopic(topic: string): topic is TrueNowTopic {
+  return GENERATED_ROLES.trueNow.has(topic);
+}
+
+/** Whether the generated core table declares `topic` held at the home command. */
 export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
-  return HELD_AT_HOME.has(topic);
+  return GENERATED_ROLES.heldAtHome.has(topic);
 }
 
 /**
  * Which lane `topic` is read in.
+ *
+ * Answers from `roles` when given, which is what the running mod stated and the
+ * only answer that covers an Uplink channel. Without it, answers from the
+ * generated core table, so a caller outside `TimelineStore` asking about an
+ * Uplink topic gets `"delayed"` whatever the Uplink declared.
  *
  * A held-at-home topic takes the true-now lane. The delayed lane subtracts the
  * ACTIVE craft's light-time, which is not how far the reader is from the ledger:
@@ -85,8 +147,14 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
  * a true-now channel while the whole-record read of the same channel was
  * current.
  */
-export function delayLaneOf(topic: string): DelayLane {
-  return TRUE_NOW.has(topic) || HELD_AT_HOME.has(topic)
+export function delayLaneOf(
+  topic: string,
+  roles: DeclaredDelayRoles = GENERATED_ROLES,
+): DelayLane {
+  if (roles.trueNow.has(topic) || roles.heldAtHome.has(topic)) {
+    return "true-now";
+  }
+  return roles.trueNowPrefixes.some((prefix) => topic.startsWith(prefix))
     ? "true-now"
     : "delayed";
 }

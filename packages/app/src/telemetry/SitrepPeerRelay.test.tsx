@@ -121,8 +121,10 @@ describe("SitrepPeerRelay", () => {
     const { transport, view } = renderRelay(peerHost);
 
     expect(transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(transport.isSubscribed("system.uplinks")).toBe(false);
     expect(peerHost.broadcasts).toEqual([]);
+    /* The roster IS held, by the provider rather than the relay: the host's own
+       store reads every topic's delay lane off it. */
+    expect(transport.isSubscribed("system.uplinks")).toBe(true);
 
     view.unmount();
   });
@@ -142,10 +144,14 @@ describe("SitrepPeerRelay", () => {
     expect(transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(transport.isSubscribed("system.bodies")).toBe(false);
 
+    /* The roster outlives the station, because the provider holds it for the
+       host's own delay lanes, so the relay letting go shows as it no longer
+       forwarding the frames that keep arriving. */
     act(() => peerHost.disconnectPeer("station-a"));
-    await waitFor(() =>
-      expect(transport.isSubscribed("system.uplinks")).toBe(false),
-    );
+    const broadcastsAtDisconnect = peerHost.broadcasts.length;
+    act(() => transport.emit("system.uplinks", { uplinks: [] }));
+    expect(transport.isSubscribed("system.uplinks")).toBe(true);
+    expect(peerHost.broadcasts).toHaveLength(broadcastsAtDisconnect);
 
     view.unmount();
   });
