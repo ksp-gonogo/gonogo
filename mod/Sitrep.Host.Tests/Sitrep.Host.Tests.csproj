@@ -18,20 +18,15 @@
     <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
     <ProjectReference Include="../Sitrep.Contract.TestSupport/Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
-  <!-- The two electable comms backends' OCCLUSION declarations. Each is a
-       deliberately KSP-free, reflection-free file carved out of its backend
-       (see CommNetOcclusion / RaOcclusion), so the difference between what
-       stock CommNet and RealAntennas consider an occluding body can be
-       asserted side by side, headlessly, against the REAL declarations rather
-       than re-stated constants. Compiling a pure source file out of another
-       project is the same pattern Gonogo.KSP.Tests and
-       GonogoRealAntennasUplink.Tests already use; a ProjectReference is not an
-       option, since both backends' assemblies need a live KSP. This is the
-       home for it because CommsElectionTests, next door, owns the election
-       these two compete in. -->
+  <!-- Stock CommNet's OCCLUSION declaration, a deliberately KSP-free file
+       carved out of Gonogo.KSP, so CommsOcclusionTests asserts against the REAL
+       declaration rather than re-stated constants. A ProjectReference is not an
+       option, since that assembly needs a live KSP. Only core source belongs
+       here: an Uplink's declaration is pinned in that Uplink's own Tests
+       project, which leaves with it, and the election tests compete stock
+       against a planted model instead. -->
   <ItemGroup>
     <Compile Include="../Gonogo.KSP/CommNetOcclusion.cs" />
-    <Compile Include="../GonogoRealAntennasUplink/RaOcclusion.cs" />
   </ItemGroup>
   <!-- NO Reinforced.Typings reference. There was one, added so this test host
        could resolve the [TsEnum]/[TsInterface] attributes the shipped contract
