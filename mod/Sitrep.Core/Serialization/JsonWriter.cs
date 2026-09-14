@@ -1662,8 +1662,8 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// One <c>commandCentre.roster</c> entry as <c>{ id, displayName, kind,
-        /// bodyIndex, latitude, longitude, active, delayQuality }</c>, camelCase
-        /// keys in the contract's own declaration order.
+        /// bodyIndex, latitude, longitude, active, isHome, isHomeFallback,
+        /// delayQuality }</c>, camelCase keys in the contract's own declaration order.
         /// </summary>
         ///
         /// <remarks>
@@ -1715,6 +1715,10 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "isHome");
             sb.Append(':');
             AppendBool(sb, e.IsHome);
+            sb.Append(',');
+            AppendString(sb, "isHomeFallback");
+            sb.Append(':');
+            AppendBool(sb, e.IsHomeFallback);
             sb.Append(',');
             AppendString(sb, "delayQuality");
             sb.Append(':');

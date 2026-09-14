@@ -87,15 +87,27 @@ public class CommandCentreEntry
     ///
     /// <para>At most one entry carries it. When the claimant cannot say which
     /// centre is home, as on an install whose ground stations all look alike to
-    /// it, NO entry carries it, and that is an answer rather than missing data: a
-    /// roster that lists ground stations and marks none of them home says the home
-    /// was not identified.</para>
+    /// it, the first active ground station in ordinal id order carries it in
+    /// home's place, with <see cref="IsHomeFallback"/> set: the same centre a
+    /// connection that has not chosen a vantage starts at. No entry carries it only
+    /// when the roster holds no ground station at all.</para>
     ///
     /// <para>Not the same fact as <see cref="CommsHop.FromIsHome"/>, which is true of
     /// every ground station and so cannot say which one is home.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool IsHome { get; set; }
+
+    /// <summary>
+    /// Whether this centre is home only because no home was identified: true on the
+    /// one entry that carries <see cref="IsHome"/> in its place, false on every other
+    /// entry and on an identified home.
+    ///
+    /// <para>A client that shows this centre as home can still tell the operator
+    /// that it is standing in, and name it, without working out the stand-in itself.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool IsHomeFallback { get; set; }
 
     /// <summary>
     /// Whether this centre can be routed to: <c>"routed"</c> (a CommNode

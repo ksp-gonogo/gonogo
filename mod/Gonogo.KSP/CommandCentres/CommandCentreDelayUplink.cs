@@ -384,14 +384,26 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>
         /// The active centres as roster entries, with <see cref="CommandCentreEntry.IsHome"/>
-        /// set on the one the claimant named and on none when it named nobody.
+        /// set on the centre <see cref="FreshConnectionVantage.Choose"/> answers: the one the
+        /// claimant named, or, when it named no active centre, the ground station standing in
+        /// for it, which also carries <see cref="CommandCentreEntry.IsHomeFallback"/>.
         /// </summary>
-        internal static List<CommandCentreEntry> ToRoster(IEnumerable<ICommandCentre> centres, HomeCommand home) =>
-            centres.Select(c => ToRosterEntry(c, home)).ToList();
+        internal static List<CommandCentreEntry> ToRoster(IEnumerable<ICommandCentre> centres, HomeCommand home)
+        {
+            var list = centres.ToList();
+            var homeId = FreshConnectionVantage.Choose(
+                list.Select(c => c.Id).ToList(),
+                list.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(c => c.Id),
+                home);
+            var isFallback = homeId != FreshConnectionVantage.None
+                && !(home.IsIdentified && homeId == home.CentreId);
+            return list.Select(c => ToRosterEntry(c, homeId, isFallback)).ToList();
+        }
 
-        private static CommandCentreEntry ToRosterEntry(ICommandCentre centre, HomeCommand home)
+        private static CommandCentreEntry ToRosterEntry(ICommandCentre centre, string homeId, bool homeIsFallback)
         {
             var ksp = centre as KspCommandCentre;
+            var isHome = homeId != FreshConnectionVantage.None && centre.Id == homeId;
             return new CommandCentreEntry
             {
                 Id = centre.Id,
@@ -399,7 +411,8 @@ namespace Gonogo.KSP.CommandCentres
                 Kind = centre.Kind.ToString(),
                 BodyIndex = centre.BodyIndex,
                 Active = centre.IsActiveNow(),
-                IsHome = home.IsIdentified && centre.Id == home.CentreId,
+                IsHome = isHome,
+                IsHomeFallback = isHome && homeIsFallback,
                 // Copied, never derived here. Whether a centre is surface-anchored is
                 // known only to the source that produced it, and a null is the
                 // contract's "not applicable" rather than "not computed": see
