@@ -58,15 +58,20 @@ const editWindow = commandWindow;
 /**
  * What the operator has changed but not yet sent.
  *
- * The three components are nullable and the rest is not, which is the split the
- * wire makes. The mod withholds the whole Dv triple when any one of the three is
- * not a finite number, because that is what Principia's own singular-manoeuvre
+ * The three components and the ignition instant are nullable, which is the split
+ * the wire makes. The mod withholds the whole Dv triple when any one of the three
+ * is not a finite number, because that is what Principia's own singular-manoeuvre
  * state reads as; a null here is that absence carried through rather than
  * flattened, and the boxes stay empty until the operator states one.
+ *
+ * The instant is the same absence and used to be flattened onto zero, which the
+ * date field then drew as Year 1 Day 1: the row above it said the ignition could
+ * not be read and the form under it stated a date, and the one the operator
+ * believed was the form.
  */
 interface Draft {
   burnIndex: number;
-  ignitionUt: number;
+  ignitionUt: number | null;
   tangent: number | null;
   normal: number | null;
   binormal: number | null;
@@ -77,7 +82,7 @@ interface Draft {
 function draftOf(burn: PrincipiaPlannedBurn): Draft {
   return {
     burnIndex: magnitudeOf(burn.index) ?? 0,
-    ignitionUt: magnitudeOf(burn.ignitionUt) ?? 0,
+    ignitionUt: magnitudeOf(burn.ignitionUt),
     tangent: magnitudeOf(burn.deltaVTangent),
     normal: magnitudeOf(burn.deltaVNormal),
     binormal: magnitudeOf(burn.deltaVBinormal),
@@ -351,6 +356,14 @@ export function BurnEditor() {
    * costs the operator the round trip rather than the plan.
    */
   const tripleUnstated = draft !== null && statedTriple(draft) === null;
+  /*
+   * An ignition nobody stated, refused the same way the triple is. A burn whose
+   * instant could not be read has no edit deadline either, so `tooLate` cannot
+   * answer for it: every write composed here would be one whose arrival nobody
+   * can time, against a burn the plugin holds and this Uplink cannot see. REMOVE
+   * sends the index alone and is unaffected.
+   */
+  const ignitionUnstated = draft !== null && draft.ignitionUt === null;
   const draftMagnitude = draft === null ? null : deltaVMagnitude(draft);
   /*
    * The ignition field stays live inside a shut window: pushing the burn further
@@ -715,7 +728,11 @@ export function BurnEditor() {
                   vesselId,
                   requestId: `replace-${draft.burnIndex}-${draft.ignitionUt}-${draft.tangent}-${draft.normal}-${draft.binormal}-${draft.inertiallyFixed}-${draft.instantImpulse}`,
                   burnIndex: draft.burnIndex,
-                  ignitionUt: draft.ignitionUt,
+                  // `undefined` rather than a zero for an instant nobody stated, the
+                  // same as the components below. Both controls are held shut in
+                  // that state, so this is the shape of the args rather than a
+                  // write that happens.
+                  ignitionUt: draft.ignitionUt ?? undefined,
                   // `undefined`, never a zero, for a component the operator has not
                   // stated: the mod leaves an omitted component at the plugin's own
                   // value, which is the only honest thing to say about one nobody
@@ -735,7 +752,11 @@ export function BurnEditor() {
                 pendingLabel="Applying..."
                 onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
                 disabled={
-                  frozen || tooLate || burnStructUnverified || tripleUnstated
+                  frozen ||
+                  tooLate ||
+                  burnStructUnverified ||
+                  tripleUnstated ||
+                  ignitionUnstated
                 }
                 aria-label="Apply the edited burn"
                 confirmAriaLabel="Confirm applying the edited burn"
@@ -770,7 +791,11 @@ export function BurnEditor() {
                    */
                   requestId: `insert-${draft.burnIndex}-${draft.ignitionUt}-${draft.tangent}-${draft.normal}-${draft.binormal}-${draft.inertiallyFixed}-${draft.instantImpulse}`,
                   burnIndex: draft.burnIndex,
-                  ignitionUt: draft.ignitionUt,
+                  // `undefined` rather than a zero for an instant nobody stated, the
+                  // same as the components below. Both controls are held shut in
+                  // that state, so this is the shape of the args rather than a
+                  // write that happens.
+                  ignitionUt: draft.ignitionUt ?? undefined,
                   // `undefined`, never a zero, for a component the operator has not
                   // stated: the mod leaves an omitted component at the plugin's own
                   // value, which is the only honest thing to say about one nobody
@@ -803,7 +828,11 @@ export function BurnEditor() {
                  * beat is a burn added to the plan already in the past.
                  */
                 disabled={
-                  frozen || tooLate || burnStructUnverified || tripleUnstated
+                  frozen ||
+                  tooLate ||
+                  burnStructUnverified ||
+                  tripleUnstated ||
+                  ignitionUnstated
                 }
                 aria-label="Add a burn from these values"
                 confirmAriaLabel="Confirm adding a burn from these values"
@@ -859,6 +888,19 @@ export function BurnEditor() {
                 Principia holds none this Uplink could read for those. Type all
                 three to mend the burn. REMOVE sends the index alone and is
                 unaffected.
+              </Text>
+            )}
+
+            {/* The same sentence for the instant, and it is a separate one
+                because the two absences mend differently: a triple is retyped
+                against numbers the operator can see elsewhere, and an instant
+                that nothing aboard holds has to be chosen. */}
+            {ignitionUnstated && (
+              <Text tone="warn" size="sm">
+                This burn's ignition instant could not be read, so there is no
+                date to edit and no deadline to measure a write against. Type an
+                instant to state one, or REMOVE the burn: REMOVE sends the index
+                alone and is unaffected.
               </Text>
             )}
 

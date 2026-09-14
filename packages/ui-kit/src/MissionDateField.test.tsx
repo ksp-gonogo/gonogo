@@ -5,6 +5,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { kspCalendar, STOCK_KERBIN_CALENDAR, setKspCalendar } from "./kspTime";
 import { MissionDateField, partsOfUt, utOfParts } from "./MissionDateField";
+import { NULL_DISPLAY } from "./NullValue";
 
 describe("partsOfUt and utOfParts", () => {
   it("puts the epoch at year one day one, as every other date here does", () => {
@@ -136,6 +137,95 @@ describe("MissionDateField", () => {
   it("has no accessibility violations", async () => {
     const { container } = render(
       <MissionDateField value={1234} onChange={() => {}} label="Ignition" />,
+    );
+
+    await expectNoA11yViolations(container);
+  });
+});
+
+describe("an instant nobody stated", () => {
+  /**
+   * The defect this state exists for. `partsOfUt` clamps a non-finite UT onto
+   * the epoch, so a caller that flattened an unread instant onto zero, or passed
+   * one straight through, got five boxes reading Year 1 Day 1: a date the save
+   * never claimed, under a row already showing the absent token for the same
+   * value.
+   */
+  it("comes up empty rather than on the epoch", () => {
+    render(
+      <MissionDateField value={null} onChange={() => {}} label="Ignition" />,
+    );
+
+    for (const name of ["YEAR", "DAY", "HR", "MIN", "SEC"]) {
+      expect(screen.getByLabelText(name)).toHaveValue(null);
+    }
+  });
+
+  /** The same absence by the other route: a NaN out of a producer. */
+  it("reads a non-finite instant as absent instead of clamping it", () => {
+    render(
+      <MissionDateField
+        value={Number.NaN}
+        onChange={() => {}}
+        label="Ignition"
+      />,
+    );
+
+    expect(screen.getByLabelText("YEAR")).toHaveValue(null);
+  });
+
+  /**
+   * A dash is a shape on a screen. Five empty number boxes are indistinguishable
+   * from a field that failed to render, so the absence is said in words and tied
+   * to every input, which is what a screen reader announces on focus.
+   */
+  it("says the absence rather than only drawing a dash", () => {
+    render(
+      <MissionDateField value={null} onChange={() => {}} label="Ignition" />,
+    );
+
+    expect(screen.getByText(new RegExp(NULL_DISPLAY))).toBeInTheDocument();
+    expect(screen.getByLabelText("DAY")).toHaveAccessibleDescription(
+      /no ignition to show/,
+    );
+  });
+
+  /** Nothing is committed by rendering. A date appears when a key is pressed. */
+  it("commits no instant until the operator types one", async () => {
+    const onChange = vi.fn();
+    render(
+      <MissionDateField value={null} onChange={onChange} label="Ignition" />,
+    );
+
+    expect(onChange).not.toHaveBeenCalled();
+
+    await userEvent.type(screen.getByLabelText("DAY"), "3");
+
+    // Day 3 of year 1 is two whole days in, the rest of the instant at the
+    // epoch: the first keystroke is what states it.
+    expect(onChange).toHaveBeenCalledWith(2 * STOCK_KERBIN_CALENDAR.day);
+  });
+
+  /**
+   * A step is relative and there is nothing here to step from. Nudging off the
+   * epoch would invent exactly the date the empty boxes are refusing to show.
+   */
+  it("darkens the nudges, which have nothing to move", () => {
+    render(
+      <MissionDateField value={null} onChange={() => {}} label="Ignition" />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Ignition later by 1d" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Ignition earlier by 1d" }),
+    ).toBeDisabled();
+  });
+
+  it("has no accessibility violations while absent", async () => {
+    const { container } = render(
+      <MissionDateField value={null} onChange={() => {}} label="Ignition" />,
     );
 
     await expectNoA11yViolations(container);
