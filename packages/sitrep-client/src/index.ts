@@ -342,22 +342,7 @@ export {
   type ReadingDep,
   type ResolvedDeps,
 } from "./processors";
-export type {
-  BuildPatchesInput,
-  BuildPatchesOptions,
-  ManeuverBurn,
-  ManeuverPreview,
-  OrbitPatch,
-  OsculatingElements,
-  PatchEncounter,
-} from "./propagation";
-export {
-  buildOrbitPatches,
-  orbitalPeriod,
-  previewManeuver,
-  rvToElements,
-  STANDARD_GRAVITY,
-} from "./propagation";
+export { orbitalPeriod, STANDARD_GRAVITY } from "./propagation";
 export type {
   Reading,
   ReadingState,

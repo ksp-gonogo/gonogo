@@ -448,16 +448,29 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
       expect(NEWTON_RESIDUAL.test(kernel)).toBe(true);
     });
 
-    it("propagation.ts and orbit-patches.ts consume the kernel rather than carrying one", () => {
-      for (const file of ["propagation.ts", "orbit-patches.ts"]) {
+    /**
+     * `orbit-patches.ts` advances elements to a UT, so it has to reach for the
+     * kernel. `propagation.ts` derives closed-form scalars off elements it is
+     * handed and propagates nothing, so it has nothing to reach for. Neither
+     * may grow a solver of its own, which is the half that matters for both.
+     */
+    const KERNEL_NEIGHBOURS = [
+      { file: "orbit-patches.ts", propagates: true },
+      { file: "propagation.ts", propagates: false },
+    ];
+
+    it("the spine's kernel neighbours consume it rather than carrying one", () => {
+      for (const { file, propagates } of KERNEL_NEIGHBOURS) {
         const source = readFileSync(
           join(repoRoot, "mod", "sitrep-sdk", "src", "spine", file),
           "utf8",
         );
 
-        expect(source, `${file} should import from the kernel`).toMatch(
-          /import \{[^}]*solve[^}]*\} from "\.\/kepler"/,
-        );
+        if (propagates) {
+          expect(source, `${file} should import from the kernel`).toMatch(
+            /import \{[^}]*solve[^}]*\} from "\.\/kepler"/,
+          );
+        }
         expect(source, `${file} should define no solver`).not.toMatch(
           /function\s+solve(Kepler|EccentricAnomaly)/,
         );
