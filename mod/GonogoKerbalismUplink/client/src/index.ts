@@ -226,5 +226,8 @@ export { SHIP_SYSTEMS, type ShipSystems } from "./processor";
 // TelemetryProvider builds.
 export {
   RESOURCE_RATE_HORIZON_SECONDS,
+  type ResourceBoundary,
+  type ResourceBoundaryCrossing,
   reckonResourceLevels,
+  resourceBoundaryCrossings,
 } from "./resourceReckoning";

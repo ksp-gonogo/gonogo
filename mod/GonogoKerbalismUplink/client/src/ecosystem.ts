@@ -545,11 +545,18 @@ export function diagnose({
  * over `vessel.resources` (`resourceReckoning.ts`) carries that same pair
  * corrected to the view time, which makes it read like the obvious source for
  * this number. `resourceCountdown.test.ts` is the standing answer to that, and
- * its reasons are arithmetic: the model advances a level and never a time, it
- * offers no band so it says nothing about how wrong the rate might be (which is
- * the uncertainty a countdown actually has), and its level clamps at zero while
- * still inside the horizon, so a countdown taken off it reads "empty NOW" on a
- * craft whose last observation saw a full tank.
+ * its reasons are arithmetic: the model advances a level and never a time, and
+ * it offers no band, so it says nothing about how wrong the rate might be,
+ * which is the uncertainty a countdown actually has.
+ *
+ * The sharpest of those reasons used to be that the model's level CLAMPED at
+ * zero while still inside the horizon, so a countdown off it read "empty NOW"
+ * on a craft whose last observation saw a full tank. It no longer does: it
+ * withdraws at the crossing and hands the level back as observed, and publishes
+ * the crossing as a UT (`resourceBoundaryCrossings`). That UT is this same
+ * division off the same observed level, so taking it would not change the
+ * number here; what it would buy is the anchor and the other end of the range,
+ * which a "time to empty" does not have a spelling for.
  *
  * What is left is the age of the levels, and that is reported rather than
  * modelled: `ShipSystems.levels` carries the state, the observation's own UT

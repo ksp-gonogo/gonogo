@@ -6,6 +6,7 @@ import { timeToEmptySeconds } from "./ecosystem";
 import {
   RESOURCE_RATE_HORIZON_SECONDS,
   reckonResourceLevels,
+  resourceBoundaryCrossings,
 } from "./resourceReckoning";
 
 /**
@@ -19,21 +20,26 @@ import {
  * they are pinned here because a survey of the two files cannot see any of
  * them: this was nominated as a duplication on exactly that reading.
  *
- * 1. **The model advances a LEVEL, never a time.** There is no time-to-empty on
- *    this wire or anywhere else in the tree, so any consumer of it still
- *    divides by the rate itself, and what the division buys is the staleness
- *    correction and nothing else
+ * 1. **The model's LEVEL is still not a time.** A countdown taken off the
+ *    reckoned level divides by the rate itself, and what the division buys is
+ *    the staleness correction and nothing else. The model does now publish a
+ *    time, but not that one: `resourceBoundaryCrossings` is the moment a level
+ *    leaves the range it can occupy, and it is the same division off the same
+ *    observed level, so taking it would not move the number. What it would buy
+ *    is an ANCHOR (a UT, against seconds from a moment the widget never states)
+ *    and the other end of the range, which `timeToEmptySeconds` does not cover
  * 2. **It carries no uncertainty about the rate.** `reckonResourceLevels`
  *    offers no `bandAt`, deliberately and for reasons `resourceReckoning.ts`
  *    sets out at length: the honest interval here is neither a bound nor a
  *    sigma, so there is none. A countdown off it is a point estimate, which is
  *    what the hand-rolled one already is
- * 3. **The clamp at zero still says "empty NOW", and the horizon only bounds
- *    how long it can say it.** A level that reaches its floor inside the
- *    horizon reckons as zero, and a countdown off zero is the flat claim that
- *    the craft is out. Past the horizon the model withdraws BY NAME instead,
- *    which is the one thing a countdown genuinely gains from it, and the
- *    reason the withdrawal is worth having where the level is not
+ * 3. **It withdraws where the widget's countdown keeps counting.** This used to
+ *    be the sharpest reason and is now the weakest: the model clamped a crossed
+ *    level at its boundary and went on reporting "empty NOW" on a craft whose
+ *    last observation saw a full tank. It no longer does. It stops modelling
+ *    that level at the crossing and hands back the observation, so what a
+ *    consumer gets past the crossing is an absence plus the crossing UT, and
+ *    the widget's own number is what still fills the row
  *
  * This argument was first written against `kerbalism.resourceProjection`, a
  * derived channel carrying the same model plus a two-scenario band. That
@@ -103,14 +109,31 @@ describe("what the forward model would add to a countdown", () => {
 });
 
 describe("what reading the countdown off the model would cost", () => {
-  it("hits zero inside the horizon and reads empty NOW from there", () => {
+  it("stops modelling inside the horizon rather than reading empty NOW", () => {
     // 100 units at 0.1/s empties 1000 s past the stamp, and the horizon does
-    // not reach for another 200 s, so the clamp bites while the model is still
-    // answering. The craft has a full tank as far as the last observation
-    // knows, and a countdown off the reckoned level says it is out.
+    // not reach for another 200 s. So the level leaves its range while the
+    // model is still inside the interval it answers over, and it withdraws
+    // there rather than pinning at zero. The widget's own countdown runs off
+    // the observation and not the view time, so it is unaffected.
     expect(1100).toBeLessThan(RESOURCE_RATE_HORIZON_SECONDS);
-    expect(reckonedCountdown(1000 + 1100)).toBe(0);
+    expect(() => reckonedCountdown(1000 + 1100)).toThrow(
+      "the model declined: beyond-horizon",
+    );
     expect(timeToEmptySeconds("Food", LIFE_SUPPORT, STORED)).toBeCloseTo(1000);
+  });
+
+  it("publishes a crossing that is the widget's own division, differently anchored", () => {
+    // Reason 1, pinned. The model's time-to-boundary and the widget's
+    // countdown are the same arithmetic over the same observed level.
+    // Switching would not change the number: what the crossing adds is the
+    // anchor Kerbalism measured, and an answer at the other end of the range.
+    const crossing = resourceBoundaryCrossings(AMOUNTS, LIFE_SUPPORT)[0];
+    if (crossing === undefined) throw new Error("no crossing was published");
+
+    expect(crossing.boundary).toBe("floor");
+    expect(crossing.atUt.magnitude - LIFE_SUPPORT.asOfUt.magnitude).toBeCloseTo(
+      timeToEmptySeconds("Food", LIFE_SUPPORT, STORED) ?? Number.NaN,
+    );
   });
 
   it("withdraws by name past the horizon rather than answering forever", () => {
