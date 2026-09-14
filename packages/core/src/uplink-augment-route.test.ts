@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -155,7 +156,23 @@ describe("an Uplink reaches the augment registry through the sdk", () => {
 
   it("scans a non-trivial number of Uplink client files, so a green result means something", () => {
     // Without this, a broken walk (a renamed `client/` directory, a bad prune)
-    // reports zero offenders and reads exactly like compliance.
-    expect(uplinkClientSources().length).toBeGreaterThan(100);
+    // reports zero offenders and reads exactly like compliance. Not a count: this
+    // was a floor of 100 files, and every mod Uplink is leaving for the
+    // gonogo-uplinks repo. Every client source git tracks must have been walked,
+    // and git's list must hold a client that stays in this repo.
+    const walked = new Set(uplinkClientSources().map((f) => relative(REPO, f)));
+    const tracked = execFileSync("git", ["ls-files", "mod"], {
+      cwd: REPO,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter((rel) => /^mod\/[^/]*Uplink\/client\/.*\.tsx?$/.test(rel));
+    expect(
+      tracked.some((rel) =>
+        rel.startsWith("mod/GonogoBreakingGroundUplink/client/"),
+      ),
+    ).toBe(true);
+    expect(tracked.filter((rel) => !walked.has(rel))).toEqual([]);
   });
 });

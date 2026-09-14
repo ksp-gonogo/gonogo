@@ -82,7 +82,7 @@
 // this repo keeps meeting.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readContract, readMapInterface } from "./asyncapi/contract-model.mjs";
@@ -552,14 +552,23 @@ export function selfCheck() {
 }
 
 /**
- * A floor on the Uplink slices the walk finds, not an equality.
+ * The Uplink contract slices on disk, by their codegen twins: every
+ * `mod/Gonogo*Uplink.Contract.Codegen` project is what `mod/codegen.sh` turns
+ * into one generated slice.
  *
  * A discovery that matches nothing hashes nothing and reports a clean tree, and
- * that reads as success. Set below the six slices on disk today so removing an
- * Uplink does not trip it, and far enough above zero that a broken walk does.
- * Same reasoning, and the same shape, as `uplink-matrix.mjs`'s own FLOOR.
+ * that reads as success. This used to be a floor of 5 slices, and every mod
+ * Uplink is leaving for the gonogo-uplinks repo, so a floor could not tell that
+ * from a broken walk. The slices the matrix discovery yields are held to this
+ * list exactly instead, which a broken walk cannot match at any count, and
+ * `uplink-matrix.mjs` proves its own walk on a planted fixture.
  */
-const UPLINK_SLICE_FLOOR = 5;
+function codegenTwinSlices(repoRoot) {
+  return readdirSync(join(repoRoot, "mod"))
+    .filter((name) => /^Gonogo.*Uplink\.Contract\.Codegen$/.test(name))
+    .map((name) => name.slice(0, -".Contract.Codegen".length))
+    .sort();
+}
 
 /**
  * The generated slices to walk: the core contract, plus every Uplink that owns
@@ -606,11 +615,15 @@ export function contractSlices(repoRoot = REPO_ROOT) {
       ].filter(([path]) => existsSync(join(repoRoot, path))),
     });
   }
-  const uplinks = slices.length - 1;
-  if (uplinks < UPLINK_SLICE_FLOOR) {
+  const walked = slices
+    .filter((slice) => !slice.core)
+    .map((slice) => slice.id)
+    .sort();
+  const twins = codegenTwinSlices(repoRoot);
+  if (JSON.stringify(walked) !== JSON.stringify(twins)) {
     throw new Error(
-      `wire-payload-coverage: found only ${uplinks} Uplink contract slice(s), ` +
-        `fewer than this repo has ever had (${UPLINK_SLICE_FLOOR}). An Uplink's own ` +
+      `wire-payload-coverage: the Uplink contract slices discovered [${walked.join(", ")}] ` +
+        `disagree with the codegen twins on disk [${twins.join(", ")}]. An Uplink's own ` +
         "payload types would go unwalked and the gate would report a clean tree " +
         "over them.",
     );
@@ -712,12 +725,15 @@ export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
   const uplinkReached = slices
     .filter((slice) => !slice.core)
     .reduce((total, slice) => total + slice.reached, 0);
-  if (uplinkReached === 0) {
+  // Per slice rather than in total: a total of zero is also what no Uplinks at
+  // all looks like, and every mod Uplink is leaving for the gonogo-uplinks repo.
+  const silent = slices.filter((slice) => !slice.core && slice.reached === 0);
+  if (silent.length > 0) {
     throw new Error(
-      "wire-payload-coverage: the Uplink slices reached no payload types at " +
-        "all. Nine slices publish between one and fifty-four channel roots, so " +
-        "a zero here is a broken walk rather than a small tree, and it would " +
-        "report clean over every Uplink-owned payload.",
+      `wire-payload-coverage: the Uplink slice(s) ${silent.map((slice) => slice.id).join(", ")} ` +
+        "reached no payload types at all. A generated slice exists because it " +
+        "declares wire types, so a zero here is a broken walk rather than a small " +
+        "tree, and it would report clean over that Uplink's own payloads.",
     );
   }
 

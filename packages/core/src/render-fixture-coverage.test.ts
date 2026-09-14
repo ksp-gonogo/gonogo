@@ -4,6 +4,7 @@
 // reason `uplink-boundary.test.ts` states: esbuild's `transformSync` asserts
 // `new TextEncoder().encode("") instanceof Uint8Array` and throws "JavaScript
 // environment is broken" under jsdom. Nothing here touches the DOM.
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -528,9 +529,32 @@ describe("render-fixture coverage: a field the widget reads is a field some fixt
    */
   it("loaded descriptors, fixtures and sources rather than an empty tree", () => {
     const all = scanAll();
-    expect(all.length).toBeGreaterThan(40);
+    /*
+     * Not counts: these were floors of 40 widgets and 40 graded, set just under
+     * a tree whose Uplink widgets are leaving for the gonogo-uplinks repo. The
+     * directories walked must be exactly those git tracks a fixture under, and
+     * most of them must grade against a descriptor, which a descriptor load that
+     * failed cannot satisfy at any size.
+     */
+    const tracked = [
+      ...new Set(
+        execFileSync("git", ["ls-files", "packages", "mod"], {
+          cwd: ROOT,
+          encoding: "utf8",
+          maxBuffer: 64 * 1024 * 1024,
+        })
+          .split("\n")
+          .filter((rel) =>
+            /^(packages\/[^/]+\/src|mod\/[^/]+\/client\/src)\/(.+\/)?__fixtures__\/[^/]+$/.test(
+              rel,
+            ),
+          )
+          .map((rel) => rel.slice(0, rel.indexOf("/__fixtures__/"))),
+      ),
+    ].sort();
+    expect(all.map((s) => s.dir).sort()).toEqual(tracked);
     const graded = all.filter((s) => s.universe.size > 0);
-    expect(graded.length).toBeGreaterThan(40);
+    expect(graded.length * 2).toBeGreaterThan(all.length);
     expect(all.some((s) => s.gap.length > 0)).toBe(true);
   });
 });

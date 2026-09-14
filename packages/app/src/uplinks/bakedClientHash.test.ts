@@ -60,8 +60,21 @@ const armed = clientBearing
   .filter((id) => bakedHash(generatedPath(id)));
 
 describe("a baked ExpectedClientHash is the hash of the bundle this build ships", () => {
-  it("has at least one armed Uplink to check, so a pass is never a pass over nothing", () => {
-    expect(armed).not.toEqual([]);
+  it("reads a planted armed Uplink as armed, so a pass is never a pass over a blind read", () => {
+    /*
+     * This asked for at least one real armed Uplink, and every one is leaving
+     * for the gonogo-uplinks repo, so an empty list is a real end state. The
+     * read is proved on the planted fixture's armed generated file instead, and
+     * the matrix proves its own walk on the same fixture.
+     */
+    expect(
+      bakedHash(
+        join(
+          ROOT,
+          "mod/Sitrep.Core.Tests/UplinkWalkPlant/GonogoPlantedUplink/ExpectedClientHash.g.cs",
+        ),
+      ),
+    ).toMatch(/^sha256-/);
   });
 
   it.each(

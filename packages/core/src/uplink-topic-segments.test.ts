@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -224,12 +225,39 @@ describe("every Uplink Topic id resolves whole through the static splitter", () 
     expect(silent).toEqual([]);
   });
 
-  it("matched both constructs in the real tree", () => {
-    const constructs = new Set(declared.map((d) => d.construct));
-    expect([...constructs].sort()).toEqual([
-      "GENERATED_TOPIC_IDS",
-      "TopicPayloadMap",
-    ]);
+  it("matched each construct in every file that writes it", () => {
+    /*
+     * This asked for both constructs somewhere in the real tree, and every file
+     * writing either belongs to a mod Uplink leaving for the gonogo-uplinks repo.
+     * Held per file instead: wherever a client source contains a construct's
+     * opening, as git tracks it and read by a plain substring, the extractor must
+     * have taken at least one id of that construct out of that file. The planted
+     * verdicts below prove each construct can match at all.
+     */
+    const openings: [Construct, string][] = [
+      ["TopicPayloadMap", "interface TopicPayloadMap {"],
+      ["GENERATED_TOPIC_IDS", "GENERATED_TOPIC_IDS = ["],
+    ];
+    const missed: string[] = [];
+    const tracked = execFileSync("git", ["ls-files", "mod"], {
+      cwd: REPO,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter((rel) => /^mod\/[^/]+\/client\/src\/.*\.tsx?$/.test(rel))
+      .filter((rel) => !/\.(test|test-d|spec)\.tsx?$/.test(rel));
+    for (const rel of tracked) {
+      const text = readFileSync(join(REPO, rel), "utf8");
+      for (const [construct, opening] of openings) {
+        if (!text.includes(opening)) continue;
+        const read = declared.some(
+          (d) => d.file === rel && d.construct === construct,
+        );
+        if (!read) missed.push(`${rel}: ${construct}`);
+      }
+    }
+    expect(missed).toEqual([]);
   });
 });
 
