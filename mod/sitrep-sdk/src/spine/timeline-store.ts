@@ -894,6 +894,62 @@ export class TimelineStore {
     return [...out];
   }
 
+  /**
+   * The raw wire topics `topic`'s ELECTED reckoner needs subscribed before it
+   * will answer, on top of the ones {@link resolveSubscriptionTopics} already
+   * names.
+   *
+   * A model declares its inputs and `registeredReckoning` refuses to run it
+   * with one of them missing, which is the whole point of declaring them. But
+   * nothing was holding those inputs UP. A read subscribed the topic it was
+   * reading and a derived channel's `inputs`, and a raw topic's reckoner deps
+   * are neither, so a lone plot of `vessel.flight.altitudeAsl` declined with
+   * `input-absent` for ever and drew no tail, while the same plot beside a
+   * widget reading `vessel.orbit` drew one. Whether a model runs is not
+   * supposed to be a fact about the rest of the dashboard.
+   *
+   * The ladder is {@link rawReckonedWalk}'s, deliberately: the topic's own
+   * registration, else the record's where `topic` is a field of one. Read
+   * through `getReckoner` rather than off any list here, so an Uplink-owned
+   * model is served exactly as core's is.
+   *
+   * ## Depth is ONE, and that is not an oversight
+   *
+   * A dep is resolved by `registeredReckoning` with a bare `sample()`, which
+   * consults no model, so a dep's own reckoner never runs for it and that
+   * reckoner's deps are never read. Walking further would subscribe topics
+   * nothing was going to ask for, and a dep that is itself reckonable is
+   * exactly where such a walk could go round in a circle. Each dep still passes
+   * through `resolveSubscriptionTopics`, so a DERIVED dep expands to its raw
+   * inputs under that method's own cycle guard.
+   *
+   * A `ProcessorHandle` dep names no wire topic and is skipped: a processor is
+   * ref-count ACTIVATED rather than subscribed (`activateProcessor`), and
+   * subscribing its inputs without activating it leaves `getProcessorValue`
+   * answering `undefined` anyway. Nothing in the tree declares one on a
+   * reckoner today, and the point layer has the same hole.
+   */
+  reckonerDepTopics(topic: string): string[] {
+    const parsed = this.resolveRawFieldSubtopic(topic);
+    const elected =
+      getReckoner(topic) ?? (parsed ? getReckoner(parsed.rawTopic) : undefined);
+    if (!elected) return [];
+    const out = new Set<string>();
+    for (const dep of elected.definition.deps as readonly Dep[]) {
+      const depTopic =
+        typeof dep === "string"
+          ? dep
+          : "reading" in dep
+            ? dep.reading
+            : undefined;
+      if (depTopic === undefined) continue;
+      for (const wireTopic of this.resolveSubscriptionTopics(depTopic)) {
+        out.add(wireTopic);
+      }
+    }
+    return [...out];
+  }
+
   private collectSubscriptionTopics(
     topic: string,
     out: Set<string>,

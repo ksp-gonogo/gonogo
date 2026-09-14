@@ -336,18 +336,6 @@ describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
       </fixture.Provider>,
     );
 
-    /*
-     * The model's DECLARED inputs, held up by hand. A series read subscribes to
-     * the topic it plots and to a derived channel's inputs, and a raw topic's
-     * reckoner deps are neither: on a real dashboard they are up because
-     * something else is reading them, and `StubTransport` delivers nothing
-     * nobody asked for.
-     */
-    const releaseDeps = [
-      fixture.client.subscribe("vessel.orbit", () => {}),
-      fixture.client.subscribe("system.bodies", () => {}),
-    ];
-
     act(() => {
       fixture.transport.emit("system.bodies", KERBIN_SYSTEM, {
         validAt: 0,
@@ -378,7 +366,70 @@ describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
     await waitFor(() => {
       expect(readValues()).toMatch(/^n:[1-9]\d*\|runs:[1-9]\d*\|last:number$/);
     });
-    for (const release of releaseDeps) release();
+  });
+});
+
+describe("useDataSeries: the inputs the model was promised", () => {
+  /**
+   * A plot of a RAW topic holds up its elected reckoner's declared deps for as
+   * long as it is mounted.
+   *
+   * The plotted topic and a derived channel's inputs were the whole of what a
+   * series read subscribed, and a raw topic's reckoner deps are neither, so a
+   * lone widget plotting `vessel.flight.altitudeAsl` on an otherwise empty
+   * screen declined with `input-absent` and drew no tail. It worked only where
+   * some other widget happened to be holding `vessel.orbit` and `system.bodies`
+   * up, which is a fact about the rest of the dashboard.
+   */
+  it("subscribes the deps of the elected reckoner for a lone plot", () => {
+    const fixture = buildStreamFixture({ pinnedUt: 600 });
+
+    render(
+      <fixture.Provider>
+        <ValueProbe dataKey="vessel.flight.altitudeAsl" windowSec={900} />
+      </fixture.Provider>,
+    );
+
+    // The plotted topic is a field of `vessel.flight`, so the deps come off the
+    // PARENT record's model, the same ladder `rawReckonedWalk` walks.
+    expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
+    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
+    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+  });
+
+  it("releases them again when the plot unmounts", () => {
+    const fixture = buildStreamFixture({ pinnedUt: 600 });
+
+    const { unmount } = render(
+      <fixture.Provider>
+        <ValueProbe dataKey="vessel.flight.altitudeAsl" windowSec={900} />
+      </fixture.Provider>,
+    );
+    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
+
+    act(() => unmount());
+
+    // A subscription taken for the life of a read and never given back is a
+    // leak nothing else in the tree would ever count.
+    expect(fixture.transport.isSubscribed("vessel.flight")).toBe(false);
+    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
+    expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
+  });
+
+  it("subscribes nothing extra where the model declares no deps", () => {
+    const fixture = buildStreamFixture({ pinnedUt: 600 });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.target" windowSec={900} />
+      </fixture.Provider>,
+    );
+
+    // Both core dead-reckoning models declare `deps: []`, and an empty
+    // declaration has to leave the subscription set exactly as it was.
+    expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
+    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
+    expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
   });
 });
 

@@ -356,8 +356,21 @@ export function useDataSeries(
       // raw `inputs` (recursively): the exact same raw topics
       // `sampleDerivedRange` below reads via `sampleRange`, so subscribing
       // here is what keeps those raw timelines populated for the replay.
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
+      /*
+       * `reckonerDepTopics` is the other half, and it is what the RECKONED tail
+       * below needs. The elected model declines outright with one declared dep
+       * missing, so a lone plot of a raw reckonable topic drew no tail at all
+       * unless something else on the dashboard happened to be holding those
+       * deps up. Read through the store rather than from a list here, so an
+       * Uplink's model is held up exactly as core's is. Deduplicated because a
+       * dep can also be an input of the plotted topic; `client.subscribe` is
+       * ref-counted, so the pair would be symmetric either way.
+       */
+      const inputTopics = new Set([
+        ...store.resolveSubscriptionTopics(topic),
+        ...store.reckonerDepTopics(topic),
+      ]);
+      const unsubscribeInputs = [...inputTopics].map((inputTopic) =>
         client.subscribe(inputTopic, () => {}),
       );
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
