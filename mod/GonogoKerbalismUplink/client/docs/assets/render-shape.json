@@ -2,6 +2,11 @@
   "version": 1,
   "engine": "chromium",
   "assets": {
+    "a-filter-term-per-process--default.png": {
+      "hash": "3aae0cc12a651b7c",
+      "elements": 169,
+      "text": "f6a1f5a9"
+    },
     "binary--default.png": {
       "hash": "1aa9575178cc1417",
       "elements": 103,
@@ -18,22 +23,22 @@
       "text": "d97157a2"
     },
     "ec-shortage-limits-water--default.png": {
-      "hash": "76a72045383c9616",
+      "hash": "349416aa07dd0101",
       "elements": 161,
       "text": "ca2969e0"
     },
     "ec-shortage-limits-water--min.png": {
-      "hash": "c61b3aa439d45041",
+      "hash": "95cf4b5eaac61684",
       "elements": 161,
       "text": "ca2969e0"
     },
     "file-and-sample-on-one-subject--default.png": {
-      "hash": "731e879623adacfa",
+      "hash": "d25dd79ae3ca6f8f",
       "elements": 94,
       "text": "1f3d9756"
     },
     "greenhouse-halted-in-the-dark--default.png": {
-      "hash": "9022106b7de906b3",
+      "hash": "0101992c0136888d",
       "elements": 110,
       "text": "1a15f8e3"
     },
@@ -77,8 +82,13 @@
       "elements": 93,
       "text": "78bd6f8c"
     },
+    "supply-tank-meters--default.png": {
+      "hash": "de8e175ba25ae66a",
+      "elements": 36,
+      "text": "50714c7e"
+    },
     "unread-send-and-analyze-flags--default.png": {
-      "hash": "58e0216518ac163c",
+      "hash": "e3314c34a09774d6",
       "elements": 91,
       "text": "c738f880"
     }
