@@ -15,9 +15,7 @@ import {
   Cluster,
   EmptyState,
   Inline,
-  magnitudeOr,
   Panel,
-  type Quantityish,
   ReadoutCaption,
   Section,
   SelectableRow,
@@ -28,6 +26,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { BREAKING_GROUND } from "../uplink";
+import { numOrNull } from "../wire";
 
 /**
  * Robotics Console (Breaking Ground). Lists the active vessel's robotic
@@ -90,16 +89,30 @@ const AT_TARGET_EPSILON: Record<ServoType, number> = {
  */
 export type ServoType = "hinge" | "rotationServo" | "piston";
 
+/**
+ * One positioned joint as this console drives it.
+ *
+ * Position, target and torque are `number | null`, and `atTarget` is
+ * `boolean | null` BECAUSE they are: it is derived from the two of them, so with
+ * either one withheld there is nothing to derive it from, and
+ * `abs(0 - 0) < 0.5` is how a joint nobody read acquires an AT TARGET badge.
+ * `BreakingGroundViewProvider` withholds each of these through
+ * `SnapshotDict.GetDouble` (absent, non-numeric and non-finite alike), and
+ * `ServoCapture` nulls the fields that do not apply to a joint of this kind, so
+ * a hinge carries no extension and a piston no angle. The target stepper steps
+ * FROM `target`, so a substituted zero there does not stay on screen: one press
+ * commands a 60° hinge to 5°.
+ */
 export interface ServoInfo {
   partId: string;
   name: string;
   type: ServoType;
-  current: number;
-  target: number;
-  atTarget: boolean;
+  current: number | null;
+  target: number | null;
+  atTarget: boolean | null;
   motorEngaged: boolean;
   locked: boolean;
-  torqueLimit: number;
+  torqueLimit: number | null;
 }
 
 /**
@@ -118,23 +131,28 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-/**
- * A wire field as a number.
- *
- * Takes a `Value` as well as a bare number: a declared quantity arrives
- * wrapped from the decode, and a `typeof === "number"` test answers "no
- * reading" for every one of them, which is silent and total.
- */
-function num(v: unknown, fallback = 0): number {
-  return magnitudeOr(v as Quantityish, fallback);
-}
-
 // A piston's extension is a LENGTH, not a percentage. The contract declares
 // ServoEntry.CurrentExtension/TargetExtension as metres, and a decompile of
 // ModuleRoboticServoPiston confirms it: the value is a Vector3.Dot of two
 // world positions along the servo's main axis. This label said "%" and was
 // wrong on screen at every piston readout in the widget.
 const unitFor = (type: ServoType) => (type === "piston" ? "m" : "°");
+
+/**
+ * A position for the joint list, where the row has no room for a sentence. The
+ * unit comes along so a withheld reading reads "unknown" rather than
+ * "unknown°".
+ */
+const posWithUnit = (type: ServoType, v: number | null): string =>
+  v === null ? "unknown" : `${formatPos(type, v)}${unitFor(type)}`;
+
+/**
+ * A relative stepper's accessible name, carrying WHY it is disabled when the
+ * figure it steps from was never read. A `disabled` attribute on its own is
+ * announced as "unavailable" with no reason, and the greying is visual only.
+ */
+const stepperLabel = (action: string, from: number | null): string =>
+  from === null ? `${action} (unavailable, not reported)` : action;
 
 /**
  * Parses the `robotics.servos` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
@@ -149,7 +167,9 @@ const unitFor = (type: ServoType) => (type === "piston" ? "m" : "°");
  * comes off `currentAngle`/`targetAngle`; a piston's off `currentExtension`/
  * `targetExtension`. `atTarget` is derived (no such field on the wire):
  * current and target within the type's tolerance, which differs because the two
- * types are measured in different units. See AT_TARGET_EPSILON.
+ * types are measured in different units. See AT_TARGET_EPSILON. With either
+ * side withheld it derives to `null` rather than to a verdict, because the
+ * tolerance test on two substituted zeros passes for every joint.
  */
 export function parseServos(raw: unknown): ServoInfo[] {
   if (!Array.isArray(raw)) return [];
@@ -161,20 +181,25 @@ export function parseServos(raw: unknown): ServoInfo[] {
       continue;
     if (typeof e.partId !== "string") continue;
     const type: ServoType = e.type;
-    const current = num(
+    const current = numOrNull(
       type === "piston" ? e.currentExtension : e.currentAngle,
     );
-    const target = num(type === "piston" ? e.targetExtension : e.targetAngle);
+    const target = numOrNull(
+      type === "piston" ? e.targetExtension : e.targetAngle,
+    );
     out.push({
       partId: e.partId,
       name: typeof e.partName === "string" ? e.partName : `Servo ${e.partId}`,
       type,
       current,
       target,
-      atTarget: Math.abs(current - target) < AT_TARGET_EPSILON[type],
+      atTarget:
+        current === null || target === null
+          ? null
+          : Math.abs(current - target) < AT_TARGET_EPSILON[type],
       motorEngaged: e.servoMotorIsEngaged === true,
       locked: e.servoIsLocked === true,
-      torqueLimit: num(e.servoMotorLimit),
+      torqueLimit: numOrNull(e.servoMotorLimit),
     });
   }
   return out;
@@ -259,16 +284,20 @@ function RoboticsConsoleComponent({
     );
 
   useActionInput<RoboticsConsoleActions>({
+    // Both nudges dispatch NOTHING while the target is unread. They are
+    // relative: `target + 5` off a substituted zero sends `setTarget value=5`
+    // to a hinge really commanded to 60°, so one press of a mapped button
+    // collapses the real target and the operator sees only their own nudge.
     targetUp: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.target === null) return undefined;
       const next = selected.target + TARGET_STEP[selected.type];
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
     targetDown: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.target === null) return undefined;
       const next = selected.target - TARGET_STEP[selected.type];
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
@@ -324,18 +353,33 @@ function RoboticsConsoleComponent({
       sections={[
         <Section key="readout" full>
           <Cluster justify="start" align="baseline" wrap>
-            <Text size="lg" weight="semibold">
-              {formatPos(selected.type, selected.current)}
-              <Unit>{unit}</Unit>
-            </Text>
+            {selected.current === null ? (
+              <Text size="lg" weight="semibold" tone="muted" role="status">
+                Position unknown
+              </Text>
+            ) : (
+              <Text size="lg" weight="semibold">
+                {formatPos(selected.type, selected.current)}
+                <Unit>{unit}</Unit>
+              </Text>
+            )}
             <Text tone="muted" aria-hidden="true">
               →
             </Text>
-            <Text tone="muted" size="lg">
-              {formatPos(selected.type, selected.target)}
-              <Unit>{unit}</Unit>
-            </Text>
-            {showToggles && (
+            {selected.target === null ? (
+              <Text tone="muted" size="lg" role="status">
+                Target unknown
+              </Text>
+            ) : (
+              <Text tone="muted" size="lg">
+                {formatPos(selected.type, selected.target)}
+                <Unit>{unit}</Unit>
+              </Text>
+            )}
+            {/* No badge with nothing to derive it from. AT TARGET off two
+                substituted zeros is the same lie one layer up: it tells the
+                operator the joint has arrived somewhere nobody measured. */}
+            {showToggles && selected.atTarget !== null && (
               <Badge
                 severity={selected.atTarget ? "nominal" : undefined}
                 role="status"
@@ -346,14 +390,21 @@ function RoboticsConsoleComponent({
           </Cluster>
         </Section>,
         <Section key="target" gap="sm">
+          {/* The stepper is RELATIVE to the target beside it, so an unread
+              target disables it rather than stepping off a substituted zero.
+              The reason rides the accessible NAME rather than a visual-only
+              greying, so a screen reader hears why the control will not act,
+              and the readout beside it says the same thing on screen. */}
           <Cluster justify="between" gap="md" wrap>
             <ReadoutCaption>Target</ReadoutCaption>
             <Inline gap="sm">
               <ActionButton
                 tone="ghost"
                 type="button"
-                aria-label="Decrease target"
+                aria-label={stepperLabel("Decrease target", selected.target)}
+                disabled={selected.target === null}
                 onClick={() =>
+                  selected.target !== null &&
                   setTarget(
                     selected.partId,
                     selected.type,
@@ -364,14 +415,22 @@ function RoboticsConsoleComponent({
                 −
               </ActionButton>
               <Text size="sm" tone="default">
-                {formatPos(selected.type, selected.target)}
-                {unit}
+                {selected.target === null ? (
+                  "unknown"
+                ) : (
+                  <>
+                    {formatPos(selected.type, selected.target)}
+                    {unit}
+                  </>
+                )}
               </Text>
               <ActionButton
                 tone="ghost"
                 type="button"
-                aria-label="Increase target"
+                aria-label={stepperLabel("Increase target", selected.target)}
+                disabled={selected.target === null}
                 onClick={() =>
+                  selected.target !== null &&
                   setTarget(
                     selected.partId,
                     selected.type,
@@ -417,10 +476,9 @@ function RoboticsConsoleComponent({
               >
                 <span>{s.name}</span>
                 <span>
-                  {s.type} · {formatPos(s.type, s.current)}
-                  {unitFor(s.type)}/{formatPos(s.type, s.target)}
-                  {unitFor(s.type)}
-                  {s.locked ? " · locked" : s.atTarget ? " · ✓" : ""}
+                  {s.type} · {posWithUnit(s.type, s.current)}/
+                  {posWithUnit(s.type, s.target)}
+                  {s.locked ? " · locked" : s.atTarget === true ? " · ✓" : ""}
                 </span>
               </SelectableRow>
             ))}

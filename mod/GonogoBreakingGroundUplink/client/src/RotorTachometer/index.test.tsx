@@ -220,5 +220,36 @@ describe("parseRotors", () => {
     expect(parsed[0]?.rpm).toBe(50);
     expect(parsed[0]?.motorEngaged).toBe(false);
     expect(parsed[0]?.name).toBe("Rotor 1");
+    // The entry carries `currentRPM` and nothing else, so every other figure
+    // is withheld rather than zero: a cap of 0 is a rotor commanded to stop.
+    expect(parsed[0]?.rpmLimit).toBeNull();
+    expect(parsed[0]?.torqueLimit).toBeNull();
+    expect(parsed[0]?.brakePercentage).toBeNull();
+  });
+
+  it("withholds every figure the mod did not report, rather than zeroing it", () => {
+    const [rotor] = parseRotors([{ partId: "9", type: "rotor" }]);
+    expect(rotor?.rpm).toBeNull();
+    expect(rotor?.rpmLimit).toBeNull();
+    expect(rotor?.torqueLimit).toBeNull();
+    expect(rotor?.maxTorque).toBeNull();
+    expect(rotor?.brakePercentage).toBeNull();
+    expect(rotor?.output).toBeNull();
+  });
+
+  it("withholds a non-finite figure the same as an absent one", () => {
+    /* `SnapshotDict.GetDouble` already withholds on non-finite input, so this
+       is the client half of the same rule: a NaN reaching `Math.round` drew
+       "NaN" on the dial and a stepper computed from it sent NaN to the rotor. */
+    const [rotor] = parseRotors([
+      {
+        partId: "9",
+        type: "rotor",
+        currentRPM: Number.NaN,
+        rpmLimit: Number.POSITIVE_INFINITY,
+      },
+    ]);
+    expect(rotor?.rpm).toBeNull();
+    expect(rotor?.rpmLimit).toBeNull();
   });
 });

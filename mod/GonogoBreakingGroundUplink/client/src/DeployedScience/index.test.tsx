@@ -213,7 +213,10 @@ describe("DeployedScienceComponent", () => {
       augments: "deployed-science.experiment",
       component: ({ experiment, body }: DeployedExperimentContext) => (
         <span data-testid="deployed-section">
-          {body}:{experiment.name}:{Math.round(experiment.progress * 100)}
+          {body}:{experiment.name}:
+          {experiment.progress === null
+            ? "unknown"
+            : Math.round(experiment.progress * 100)}
         </span>
       ),
     });
@@ -272,6 +275,9 @@ describe("parseBases", () => {
     ]);
     expect(parsed).toHaveLength(1);
     expect(parsed?.[0]?.experiments[0]?.progress).toBe(1);
-    expect(parsed?.[0]?.experiments[0]?.collecting).toBe(false);
+    // The legacy entry carries no `collecting` flag, so there is no verdict to
+    // report. This read `false` while `collecting` was `=== true`, which claims
+    // the experiment is idle on a wire that never said so.
+    expect(parsed?.[0]?.experiments[0]?.collecting).toBeNull();
   });
 });

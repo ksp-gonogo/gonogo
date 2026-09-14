@@ -509,17 +509,25 @@ export interface ExperimentsInstrumentSlotContext {
 
 // --- DeployedScience (mod/GonogoBreakingGroundUplink/client/src/DeployedScience) ---
 
-/** Mirrors `DeployedExperiment` (DeployedScience/index.tsx). */
+/**
+ * Mirrors `DeployedExperiment` (DeployedScience/index.tsx).
+ *
+ * The science figures and the `collecting` verdict are nullable because the mod
+ * withholds each of them rather than substituting a zero, and a zero here is a
+ * reading: a freshly planted experiment reports 0%. An augment rendering into
+ * this slot has to branch on the null rather than draw it, the same as the
+ * widget's own card does.
+ */
 export interface DeployedScienceExperiment {
   partId: number;
   id: string;
   name: string;
-  total: number;
-  limit: number;
-  progress: number;
-  stored: number;
-  transmitted: number;
-  collecting: boolean;
+  total: number | null;
+  limit: number | null;
+  progress: number | null;
+  stored: number | null;
+  transmitted: number | null;
+  collecting: boolean | null;
 }
 
 /** Mirrors `DeployedExperimentContext` (DeployedScience/index.tsx). */

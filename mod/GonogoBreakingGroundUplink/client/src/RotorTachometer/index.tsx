@@ -16,9 +16,7 @@ import {
   EmptyState,
   Gauge,
   Inline,
-  magnitudeOr,
   Panel,
-  type Quantityish,
   ReadoutCaption,
   Section,
   SelectableRow,
@@ -31,6 +29,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { BREAKING_GROUND } from "../uplink";
+import { numOrNull } from "../wire";
 
 /**
  * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
@@ -49,18 +48,31 @@ const ROTOR_MAX_RPM = 460; // ModuleRoboticServoRotor.rpmLimit range ceiling.
 const RPM_STEP = 10;
 const TORQUE_STEP = 10;
 
+/**
+ * One rotor as this widget draws it.
+ *
+ * Every measured field is `number | null`, and the null carries the weight:
+ * `BreakingGroundViewProvider` puts each of them through
+ * `SnapshotDict.GetDouble`, which withholds on absent, non-numeric AND
+ * non-finite input, and `ServoCapture` nulls every field that does not apply to
+ * a servo of this kind. A zero here is a READING: a rotor at 0 RPM is stopped,
+ * and a cap of 0 is a rotor commanded to stop. Substituting a zero for absence
+ * states something definite about the craft that nobody measured, and the RPM
+ * and torque steppers compute their next value from these numbers, so the
+ * substitution does not stay on screen: it goes up to the rotor.
+ */
 export interface RotorInfo {
   partId: string;
   name: string;
-  rpm: number;
-  rpmLimit: number;
-  torqueLimit: number;
-  maxTorque: number;
-  brakePercentage: number;
+  rpm: number | null;
+  rpmLimit: number | null;
+  torqueLimit: number | null;
+  maxTorque: number | null;
+  brakePercentage: number | null;
   motorEngaged: boolean;
   locked: boolean;
   counterClockwise: boolean;
-  output: number;
+  output: number | null;
 }
 
 /**
@@ -77,17 +89,6 @@ function stillTrue<T, A>(
   if (reading.state === "stale") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
-}
-
-/**
- * A wire field as a number.
- *
- * Takes a `Value` as well as a bare number: a declared quantity arrives
- * wrapped from the decode, and a `typeof === "number"` test answers "no
- * reading" for every one of them, which is silent and total.
- */
-function num(v: unknown, fallback = 0): number {
-  return magnitudeOr(v as Quantityish, fallback);
 }
 
 /**
@@ -109,15 +110,15 @@ export function parseRotors(raw: unknown): RotorInfo[] {
     out.push({
       partId: e.partId,
       name: typeof e.partName === "string" ? e.partName : `Rotor ${e.partId}`,
-      rpm: num(e.currentRPM),
-      rpmLimit: num(e.rpmLimit),
-      torqueLimit: num(e.servoMotorLimit),
-      maxTorque: num(e.maxTorque),
-      brakePercentage: num(e.brakePercentage),
+      rpm: numOrNull(e.currentRPM),
+      rpmLimit: numOrNull(e.rpmLimit),
+      torqueLimit: numOrNull(e.servoMotorLimit),
+      maxTorque: numOrNull(e.maxTorque),
+      brakePercentage: numOrNull(e.brakePercentage),
       motorEngaged: e.servoMotorIsEngaged === true,
       locked: e.servoIsLocked === true,
       counterClockwise: e.counterClockwise === true,
-      output: num(e.normalizedOutput),
+      output: numOrNull(e.normalizedOutput),
     });
   }
   return out;
@@ -125,6 +126,18 @@ export function parseRotors(raw: unknown): RotorInfo[] {
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
+
+/** A withheld figure in the rotor list, where the row has no room for a sentence. */
+const roundOrUnknown = (v: number | null): string =>
+  v === null ? "unknown" : String(Math.round(v));
+
+/**
+ * A relative stepper's accessible name, carrying WHY it is disabled when the
+ * figure it steps from was never read. A `disabled` attribute on its own is
+ * announced as "unavailable" with no reason, and the greying is visual only.
+ */
+const stepperLabel = (action: string, from: number | null): string =>
+  from === null ? `${action} (unavailable, not reported)` : action;
 
 const rotorActions = [
   {
@@ -233,16 +246,20 @@ function RotorTachometerComponent({
     void reverseCmd.send({ partId: id }, { label: "Reverse" });
 
   useActionInput<RotorTachometerActions>({
+    // Both steppers dispatch NOTHING while the cap is unread. They are
+    // relative: `cap + 10` off a substituted zero sends `setRpmLimit value=10`
+    // to a rotor really capped at 300, so one press of a mapped button
+    // collapses the real limit and the operator sees only their own nudge.
     rpmUp: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.rpmLimit === null) return undefined;
       const next = clamp(selected.rpmLimit + RPM_STEP, 0, ROTOR_MAX_RPM);
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
     rpmDown: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.rpmLimit === null) return undefined;
       const next = clamp(selected.rpmLimit - RPM_STEP, 0, ROTOR_MAX_RPM);
       setRpmLimit(selected.partId, next);
       return { RPM: next };
@@ -285,7 +302,11 @@ function RotorTachometerComponent({
   }
 
   const showGauge = (h ?? 8) >= 6;
-  const cap = Math.max(selected.rpmLimit, 1);
+  // The go-toned "within cap" arc needs a cap to end at. With the cap unread
+  // the dial still shows live RPM, it just draws no zones: an arc running to a
+  // substituted 1 rpm paints the whole dial as over-cap.
+  const cap =
+    selected.rpmLimit === null ? null : Math.max(selected.rpmLimit, 1);
   // Size the dial to the column width, but also cap it by a slice of the
   // widget's height so the controls (steppers + the full toggle row) stay
   // visible without scrolling; the rotor list below may scroll. Kept modest
@@ -305,51 +326,80 @@ function RotorTachometerComponent({
         showGauge && (
           <Section key="gauge">
             <Cluster justify="center" ref={gaugeRef}>
-              <Gauge
-                value={quantity("rpm", clamp(selected.rpm, 0, ROTOR_MAX_RPM))}
-                min={quantity("rpm", 0)}
-                max={quantity("rpm", ROTOR_MAX_RPM)}
-                width={gaugeW}
-                height={gaugeH}
-                zones={[
-                  {
-                    from: quantity("rpm", 0),
-                    to: quantity("rpm", cap),
-                    color: "var(--color-status-go-bg)",
-                  },
-                  {
-                    from: quantity("rpm", cap),
-                    to: quantity("rpm", ROTOR_MAX_RPM),
-                    color: "var(--color-surface-raised)",
-                  },
-                ]}
-                ariaLabel={`${selected.name}: ${writeQuantity(quantity("rpm", selected.rpm))}, cap ${writeQuantity(quantity("rpm", selected.rpmLimit))}`}
-              />
+              {/* No needle without a reading to put it at. A dial parked at 0
+                  is a rotor that is stopped, which is a reading the operator
+                  acts on, and the aria-label said it out loud too ("0 rpm,
+                  cap n rpm"). */}
+              {selected.rpm === null ? (
+                <Text size="sm" tone="muted" role="status">
+                  RPM unknown
+                </Text>
+              ) : (
+                <Gauge
+                  value={quantity("rpm", clamp(selected.rpm, 0, ROTOR_MAX_RPM))}
+                  min={quantity("rpm", 0)}
+                  max={quantity("rpm", ROTOR_MAX_RPM)}
+                  width={gaugeW}
+                  height={gaugeH}
+                  zones={
+                    cap === null
+                      ? undefined
+                      : [
+                          {
+                            from: quantity("rpm", 0),
+                            to: quantity("rpm", cap),
+                            color: "var(--color-status-go-bg)",
+                          },
+                          {
+                            from: quantity("rpm", cap),
+                            to: quantity("rpm", ROTOR_MAX_RPM),
+                            color: "var(--color-surface-raised)",
+                          },
+                        ]
+                  }
+                  ariaLabel={`${selected.name}: ${writeQuantity(quantity("rpm", selected.rpm))}, ${
+                    selected.rpmLimit === null
+                      ? "cap unknown"
+                      : `cap ${writeQuantity(quantity("rpm", selected.rpmLimit))}`
+                  }`}
+                />
+              )}
             </Cluster>
           </Section>
         ),
         <Section key="controls" gap="sm">
+          {/* Both steppers are RELATIVE to the value beside them, so an unread
+              figure disables them rather than stepping off a substituted zero.
+              The reason rides the accessible NAME rather than a visual-only
+              greying, so a screen reader hears why the control will not act,
+              and the readout beside it says the same thing on screen. */}
           <Cluster justify="between" gap="md" wrap>
             <ReadoutCaption>RPM cap</ReadoutCaption>
             <Inline gap="sm">
               <ActionButton
                 tone="ghost"
                 type="button"
-                aria-label="Lower RPM cap"
+                aria-label={stepperLabel("Lower RPM cap", selected.rpmLimit)}
+                disabled={selected.rpmLimit === null}
                 onClick={() =>
+                  selected.rpmLimit !== null &&
                   setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
                 }
               >
                 −
               </ActionButton>
               <Text size="sm" tone="default">
-                {Math.round(selected.rpmLimit)}
+                {selected.rpmLimit === null
+                  ? "RPM cap unknown"
+                  : Math.round(selected.rpmLimit)}
               </Text>
               <ActionButton
                 tone="ghost"
                 type="button"
-                aria-label="Raise RPM cap"
+                aria-label={stepperLabel("Raise RPM cap", selected.rpmLimit)}
+                disabled={selected.rpmLimit === null}
                 onClick={() =>
+                  selected.rpmLimit !== null &&
                   setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
                 }
               >
@@ -364,8 +414,13 @@ function RotorTachometerComponent({
               <ActionButton
                 tone="ghost"
                 type="button"
-                aria-label="Lower torque limit"
+                aria-label={stepperLabel(
+                  "Lower torque limit",
+                  selected.torqueLimit,
+                )}
+                disabled={selected.torqueLimit === null}
                 onClick={() =>
+                  selected.torqueLimit !== null &&
                   setTorqueLimit(
                     selected.partId,
                     selected.torqueLimit - TORQUE_STEP,
@@ -375,16 +430,25 @@ function RotorTachometerComponent({
                 −
               </ActionButton>
               <Text size="sm" tone="default">
-                <Unit
-                  value={quantity("%", selected.torqueLimit)}
-                  decimals={0}
-                />
+                {selected.torqueLimit === null ? (
+                  "Torque unknown"
+                ) : (
+                  <Unit
+                    value={quantity("%", selected.torqueLimit)}
+                    decimals={0}
+                  />
+                )}
               </Text>
               <ActionButton
                 tone="ghost"
                 type="button"
-                aria-label="Raise torque limit"
+                aria-label={stepperLabel(
+                  "Raise torque limit",
+                  selected.torqueLimit,
+                )}
+                disabled={selected.torqueLimit === null}
                 onClick={() =>
+                  selected.torqueLimit !== null &&
                   setTorqueLimit(
                     selected.partId,
                     selected.torqueLimit + TORQUE_STEP,
@@ -413,18 +477,36 @@ function RotorTachometerComponent({
             >
               {selected.locked ? "Locked" : "Unlocked"}
             </ToggleButton>
+            {/* The brake toggle sends an ABSOLUTE percentage chosen by
+                inverting the current one, so an unread brake would read "off"
+                and then command 100% to a rotor already fully braked. */}
             <ToggleButton
               size="sm"
-              active={selected.brakePercentage > 0}
+              active={
+                selected.brakePercentage !== null &&
+                selected.brakePercentage > 0
+              }
               tone="warn"
+              disabled={selected.brakePercentage === null}
+              aria-label={
+                selected.brakePercentage === null
+                  ? "Toggle brake (unavailable, not reported)"
+                  : undefined
+              }
               onClick={() =>
+                selected.brakePercentage !== null &&
                 setBrake(
                   selected.partId,
                   selected.brakePercentage > 0 ? 0 : 100,
                 )
               }
             >
-              Brake {selected.brakePercentage > 0 ? "on" : "off"}
+              Brake{" "}
+              {selected.brakePercentage === null
+                ? "unknown"
+                : selected.brakePercentage > 0
+                  ? "on"
+                  : "off"}
             </ToggleButton>
             <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
               {selected.counterClockwise ? "↺ CCW" : "↻ CW"}
@@ -441,7 +523,7 @@ function RotorTachometerComponent({
               >
                 <span>{r.name}</span>
                 <span>
-                  {Math.round(r.rpm)}/{Math.round(r.rpmLimit)} RPM
+                  {roundOrUnknown(r.rpm)}/{roundOrUnknown(r.rpmLimit)} RPM
                   {r.motorEngaged ? "" : " · off"}
                   {r.locked ? " · locked" : ""}
                 </span>

@@ -10,9 +10,7 @@ import {
   Box,
   Cluster,
   EmptyState,
-  magnitudeOf,
   Panel,
-  type Quantityish,
   Section,
   Stack,
   StatusIndicator,
@@ -22,6 +20,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { BREAKING_GROUND } from "../uplink";
+import { num, numOrNull } from "../wire";
 
 /**
  * Deployed Base Monitor (Breaking Ground). Lists every deployed surface
@@ -48,16 +47,30 @@ import { BREAKING_GROUND } from "../uplink";
 
 type DeployedScienceConfig = Record<string, never>;
 
+/**
+ * One deployed experiment as the widget draws it.
+ *
+ * The science figures are `number | null` for the same reason the power balance
+ * below is: the mod withholds each of them through `SnapshotDict.GetDouble`, and
+ * a deployed experiment genuinely sitting at 0% is a reading. A substituted zero
+ * drew the card at "0%" with an empty bar AND lit the collecting dot, because
+ * `collecting` was derived as `pct < 100` and 0 satisfies it, so an experiment
+ * nobody read presented as one that has gathered nothing and is hard at work.
+ * `aria-valuenow=0` said it to a screen reader too.
+ *
+ * `collecting` is therefore `boolean | null` as well: a verdict derived from a
+ * fabricated number is the same lie one layer up.
+ */
 export interface DeployedExperiment {
   partId: number;
   id: string;
   name: string;
-  total: number;
-  limit: number;
-  progress: number;
-  stored: number;
-  transmitted: number;
-  collecting: boolean;
+  total: number | null;
+  limit: number | null;
+  progress: number | null;
+  stored: number | null;
+  transmitted: number | null;
+  collecting: boolean | null;
 }
 
 export interface DeployedBase {
@@ -91,30 +104,8 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-/**
- * A wire field as a number.
- *
- * Takes a `Value` as well as a bare number: a declared quantity arrives
- * wrapped from the decode, and a `typeof === "number"` test answers "no
- * reading" for every one of them, which is silent and total.
- */
-function num(v: unknown, fallback = 0): number {
-  return numOrNull(v) ?? fallback;
-}
-
-/**
- * The same read for a field where ZERO IS A READING, so absence has to survive
- * as its own answer: a deployed cluster with dark panels genuinely reports
- * `0/0` power units, and a cluster we could not reach reports nothing.
- *
- * {@link num} defers to this rather than casting a second time, so the one
- * assertion out of `unknown` in this file stays one.
- */
-function numOrNull(v: unknown): number | null {
-  return magnitudeOf(v as Quantityish);
-}
-
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const clamp01OrNull = (v: number | null) => (v === null ? null : clamp01(v));
 
 function parseExperiments(raw: unknown): DeployedExperiment[] {
   if (!Array.isArray(raw)) return [];
@@ -123,15 +114,17 @@ function parseExperiments(raw: unknown): DeployedExperiment[] {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
-      partId: num(e.partId),
+      // A React list key, never rendered as text, so a substitute here states
+      // nothing about the craft. Every field below it does.
+      partId: num(e.partId, 0),
       id: typeof e.id === "string" ? e.id : "",
       name: typeof e.name === "string" && e.name ? e.name : "Experiment",
-      total: num(e.total),
-      limit: num(e.limit),
-      progress: clamp01(num(e.progress)),
-      stored: num(e.stored),
-      transmitted: num(e.transmitted),
-      collecting: e.collecting === true,
+      total: numOrNull(e.total),
+      limit: numOrNull(e.limit),
+      progress: clamp01OrNull(numOrNull(e.progress)),
+      stored: numOrNull(e.stored),
+      transmitted: numOrNull(e.transmitted),
+      collecting: typeof e.collecting === "boolean" ? e.collecting : null,
     });
   }
   return out;
@@ -143,10 +136,13 @@ interface FlatDeployedEntry {
   partName: string | null;
   body: string | null;
   experimentId: string | null;
-  scienceCompletedPercentage: number;
-  scienceTransmittedPercentage: number;
-  scienceValue: number;
-  scienceLimit: number;
+  /** The four science figures, `null` when the mod withheld one. Zero is a
+   *  reading here: a freshly planted experiment reports 0%. See
+   *  {@link DeployedExperiment}. */
+  scienceCompletedPercentage: number | null;
+  scienceTransmittedPercentage: number | null;
+  scienceValue: number | null;
+  scienceLimit: number | null;
   /** Localised prose, display only. {@link power} is the field to branch on. */
   powerState: string | null;
   /** Localised prose, display only. See {@link controllerConnected}. */
@@ -171,10 +167,10 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
     partName: typeof e.partName === "string" ? e.partName : null,
     body: typeof e.body === "string" ? e.body : null,
     experimentId: typeof e.experimentId === "string" ? e.experimentId : null,
-    scienceCompletedPercentage: num(e.scienceCompletedPercentage),
-    scienceTransmittedPercentage: num(e.scienceTransmittedPercentage),
-    scienceValue: num(e.scienceValue),
-    scienceLimit: num(e.scienceLimit),
+    scienceCompletedPercentage: numOrNull(e.scienceCompletedPercentage),
+    scienceTransmittedPercentage: numOrNull(e.scienceTransmittedPercentage),
+    scienceValue: numOrNull(e.scienceValue),
+    scienceLimit: numOrNull(e.scienceLimit),
     powerState: typeof e.powerState === "string" ? e.powerState : null,
     connectionState:
       typeof e.connectionState === "string" ? e.connectionState : null,
@@ -252,9 +248,24 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
     const first = entries[0];
     const { powered, partialPower } = powerFromState(first?.power);
     const experiments: DeployedExperiment[] = entries.map((e, i) => {
-      const progress = clamp01(e.scienceCompletedPercentage / 100);
+      /* Every derivation below carries the absence rather than closing over it:
+         a withheld completion percentage yields no progress, and therefore no
+         `collecting` verdict either, because `pct < 100` is satisfied by the
+         zero that used to stand in for it. */
+      const progress = clamp01OrNull(
+        e.scienceCompletedPercentage === null
+          ? null
+          : e.scienceCompletedPercentage / 100,
+      );
+      const transmittedShare = clamp01OrNull(
+        e.scienceTransmittedPercentage === null
+          ? null
+          : e.scienceTransmittedPercentage / 100,
+      );
       const transmitted =
-        e.scienceValue * clamp01(e.scienceTransmittedPercentage / 100);
+        e.scienceValue === null || transmittedShare === null
+          ? null
+          : e.scienceValue * transmittedShare;
       return {
         partId: i,
         id: e.experimentId ?? `${vesselName}-${i}`,
@@ -262,9 +273,15 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
         total: e.scienceValue,
         limit: e.scienceLimit,
         progress,
-        stored: Math.max(0, e.scienceValue - transmitted),
+        stored:
+          e.scienceValue === null || transmitted === null
+            ? null
+            : Math.max(0, e.scienceValue - transmitted),
         transmitted,
-        collecting: e.scienceCompletedPercentage < 100,
+        collecting:
+          e.scienceCompletedPercentage === null
+            ? null
+            : e.scienceCompletedPercentage < 100,
       };
     });
     return {
@@ -334,7 +351,8 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
       powerAvailable: numOrNull(e.powerAvailable),
       powerRequired: numOrNull(e.powerRequired),
       controllerEnabled: e.controllerEnabled === true,
-      experimentCount: num(e.experimentCount),
+      // Never rendered: the render counts `base.experiments` itself.
+      experimentCount: num(e.experimentCount, 0),
       experiments: parseExperiments(e.experiments),
     });
   }
@@ -457,11 +475,20 @@ function DeployedScienceComponent(
                     >
                       <Truncate style={XS2_STYLE}>{exp.name}</Truncate>
                       <Text tone="muted" style={XS2_STYLE}>
-                        <Unit
-                          value={value("%", exp.progress * 100)}
-                          decimals={0}
-                        />
-                        {exp.collecting && (
+                        {exp.progress === null ? (
+                          "Progress unknown"
+                        ) : (
+                          <Unit
+                            value={value("%", exp.progress * 100)}
+                            decimals={0}
+                          />
+                        )}
+                        {/* The dot is only lit on a verdict there was
+                            something to derive. `collecting` was `pct < 100`,
+                            which the substituted zero satisfied, so the card
+                            read "gathered nothing and actively working" about
+                            an experiment nobody had heard from. */}
+                        {exp.collecting === true && (
                           <Text
                             tone="accent"
                             style={XS2_STYLE}
@@ -475,28 +502,32 @@ function DeployedScienceComponent(
                     </Cluster>
                     {/* Plain-div track (4px stadium, surface-raised) + go-toned
                         fill, preserving the original bar's exact dims/colour
-                        rather than the generic ProgressBar (parity restore). */}
-                    <div
-                      role="progressbar"
-                      aria-label={`${exp.name} progress`}
-                      aria-valuenow={Math.round(exp.progress * 100)}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      style={{
-                        height: 4,
-                        borderRadius: "var(--radius-pill)",
-                        background: "var(--color-surface-raised)",
-                        overflow: "hidden",
-                      }}
-                    >
+                        rather than the generic ProgressBar (parity restore). No
+                        bar at all without a reading: an empty track is 0%, and
+                        `aria-valuenow={0}` states it outright. */}
+                    {exp.progress !== null && (
                       <div
+                        role="progressbar"
+                        aria-label={`${exp.name} progress`}
+                        aria-valuenow={Math.round(exp.progress * 100)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
                         style={{
-                          height: "100%",
-                          width: `${Math.min(100, Math.max(0, exp.progress * 100))}%`,
-                          background: "var(--color-status-go-bg)",
+                          height: 4,
+                          borderRadius: "var(--radius-pill)",
+                          background: "var(--color-surface-raised)",
+                          overflow: "hidden",
                         }}
-                      />
-                    </div>
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${Math.min(100, Math.max(0, exp.progress * 100))}%`,
+                            background: "var(--color-status-go-bg)",
+                          }}
+                        />
+                      </div>
+                    )}
                     {/* Per-experiment-card body slot (augment-slot-map:
                         deployed-science.experiment). A Kerbalism Uplink appends a
                         background-transmission progress bar here; because the
