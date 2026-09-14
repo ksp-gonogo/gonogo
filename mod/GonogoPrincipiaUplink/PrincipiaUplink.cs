@@ -670,6 +670,7 @@ namespace GonogoPrincipiaUplink
             AttachGravityModel();
             AttachPerturbers();
             var perturbers = _perturbers ?? (_ => NoPerturbers);
+            var parentOf = _bodyParents ?? (_ => (int?)null);
             host.Kernel.RegisterProvider(new ProviderRegistration
             {
                 Capability = PropagationCapability.Id,
@@ -683,7 +684,8 @@ namespace GonogoPrincipiaUplink
                 Factory = ctx => new PrincipiaPropagationProvider(
                     ctx.Vanilla<IPropagationProvider>(PropagationCapability.Id),
                     () => _gravityModel?.Model,
-                    perturbers),
+                    perturbers,
+                    parentOf),
             });
         }
 
@@ -698,6 +700,14 @@ namespace GonogoPrincipiaUplink
 
         /// <summary>Test seam: the neighbourhood injected, so the bound is provable with no game.</summary>
         private Func<int, IReadOnlyList<PrincipiaPerturber>>? _perturbers;
+
+        /// <summary>
+        /// Test seam: which body a body orbits, injected on the same terms as
+        /// <see cref="_perturbers"/>. A build that omits the game-facing partial says
+        /// nothing about any body's parent, and a body with no primary gets no
+        /// ephemeris bound rather than an invented one.
+        /// </summary>
+        private Func<int, int?>? _bodyParents;
 
         private static readonly PrincipiaPerturber[] NoPerturbers = new PrincipiaPerturber[0];
 

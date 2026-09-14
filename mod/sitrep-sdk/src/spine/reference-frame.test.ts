@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { BodyEntry } from "../__generated__/contract";
+import {
+  type BodyEntry,
+  PropagationHorizonKind,
+  TrajectoryKind,
+} from "../__generated__/contract";
 import { type CelestialFacts, deriveCelestialFacts } from "./celestial-facts";
 import type { Vector3 } from "./kepler";
 import {
@@ -36,6 +40,21 @@ interface BodySpec {
   lan?: number;
   argPe?: number;
   meanAnomalyAtEpoch?: number;
+  /**
+   * What the elected provider says these elements are worth. Absent means the
+   * payload carried no horizon at all, which is the shape every fixture below
+   * was written in and the one a stock host still sends.
+   */
+  horizon?: BodyEntry["horizon"];
+}
+
+/** A provider vouching for a body's elements until one stated UT and no further. */
+function boundedUntil(ut: number): BodyEntry["horizon"] {
+  return {
+    kind: PropagationHorizonKind.Until,
+    trajectoryKind: TrajectoryKind.Integrated,
+    untilUt: value(ut),
+  } as BodyEntry["horizon"];
 }
 
 function entry(spec: BodySpec): BodyEntry {
@@ -57,6 +76,7 @@ function entry(spec: BodySpec): BodyEntry {
     parentIndex: spec.parentIndex,
     gravParameter: value(spec.mu),
     orbit,
+    horizon: spec.horizon,
   } as BodyEntry;
 }
 
@@ -157,6 +177,58 @@ describe("systemInstantAt", () => {
     const system = systemInstantAt(catalogue(SOLAR), 12_345);
     expect(system.positionByIndex.get(0)).toEqual([0, 0, 0]);
     expect(system.velocityByIndex.get(0)).toEqual([0, 0, 0]);
+  });
+});
+
+describe("systemInstantAt: the horizon a body's provider stated", () => {
+  const BOUND_UT = 1_000;
+
+  /** The same system, with the moon's elements vouched for only to `BOUND_UT`. */
+  const BOUNDED_MOON = SOLAR.map((spec) =>
+    spec.index === 4 ? { ...spec, horizon: boundedUntil(BOUND_UT) } : spec,
+  );
+
+  it("places a bounded body up to the last instant its provider vouched for", () => {
+    const system = systemInstantAt(catalogue(BOUNDED_MOON), BOUND_UT);
+    expect(system.positionByIndex.has(4)).toBe(true);
+    expect(system.withdrawnByIndex.size).toBe(0);
+  });
+
+  it("withdraws a body past its horizon rather than extrapolating it", () => {
+    const system = systemInstantAt(catalogue(BOUNDED_MOON), BOUND_UT + 1);
+    expect(system.positionByIndex.has(4)).toBe(false);
+    expect(system.velocityByIndex.has(4)).toBe(false);
+    expect(system.withdrawnByIndex.get(4)).toEqual({
+      bodyIndex: 4,
+      untilUt: BOUND_UT,
+    });
+  });
+
+  it("leaves every body whose own provider still vouches for it in place", () => {
+    const system = systemInstantAt(catalogue(BOUNDED_MOON), BOUND_UT + 1);
+    for (const index of [0, 1, 2, 3, 5]) {
+      expect(system.positionByIndex.has(index)).toBe(true);
+    }
+  });
+
+  it("withdraws what hangs off a withdrawn body, naming the body that ran out", () => {
+    const bounded = SOLAR.map((spec) =>
+      spec.index === 3 ? { ...spec, horizon: boundedUntil(BOUND_UT) } : spec,
+    );
+    const system = systemInstantAt(catalogue(bounded), BOUND_UT + 1);
+    // The moon's own elements are unbounded, and are still no use: they are
+    // measured against a planet nobody will say where to put.
+    expect(system.positionByIndex.has(4)).toBe(false);
+    expect(system.withdrawnByIndex.get(4)).toEqual({
+      bodyIndex: 3,
+      untilUt: BOUND_UT,
+    });
+  });
+
+  it("extrapolates a body whose provider claimed no limit, as far as asked", () => {
+    const system = systemInstantAt(catalogue(SOLAR), 1e9);
+    expect(system.positionByIndex.has(4)).toBe(true);
+    expect(system.withdrawnByIndex.size).toBe(0);
   });
 });
 

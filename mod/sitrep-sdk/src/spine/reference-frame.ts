@@ -2,20 +2,25 @@
  * Read frames: the arithmetic that lets one widget draw in a different
  * reference frame from the widget beside it.
  *
- * ## Why this needs nothing from the n-body mod
+ * ## Two different things live here, and only one of them is a transform
  *
- * A reference frame is a coordinate change, and a coordinate change over
- * trajectory points is arithmetic on state the catalogue already carries: every
- * body's elements, every body's gravitational parameter, and the parent chain
- * that relates them. Nothing here asks the n-body mod for anything, which is
- * what makes a read frame free of the hazard the in-game plotting frame carries:
- * that one is singular and synced, so a second screen picking it moves what the
- * player sees, and this one cannot move anything at all.
+ * `toFrame` and `fromFrame` are a coordinate change and nothing else: arithmetic
+ * over points the caller already holds, which is what makes a read frame free of
+ * the hazard the in-game plotting frame carries. That one is singular and
+ * synced, so a second screen picking it moves what the player sees; this one
+ * cannot move anything at all. The boundary is the TRAJECTORY, not the
+ * transform: a read frame inherits the fidelity of whatever propagated the
+ * curve rather than conferring any of its own.
  *
- * The boundary is the TRAJECTORY, not the transform. We may re-express any set
- * of points we hold, and we cannot read the n-body mod's own points in any
- * frame, so a read frame inherits the fidelity of whatever propagated the curve
- * rather than conferring any of its own.
+ * {@link systemInstantAt} is NOT that. It EVALUATES the catalogue's elements at
+ * an arbitrary UT, which is a claim about where a body will be and not a
+ * restatement of one. The claim is sound under stock, where a body rides a fixed
+ * conic about a fixed parent and its place at a UT is a published fact computed
+ * on demand; it is bounded under an n-body install, where the elements are the
+ * conic tangent to an integrated path and the elected provider says how far it
+ * stays worth having. See that function for both halves. Nothing here asks the
+ * n-body mod for anything directly: the bound arrives on the wire beside the
+ * elements it bounds, stated by whoever propagates them.
  *
  * ## The frames, and what each needs
  *
@@ -54,6 +59,7 @@
  * `lengthsPulsate` exists to say.
  */
 
+import { PropagationHorizonKind } from "../__generated__/contract";
 import { PerfBudget } from "../perf/PerfBudget";
 import type { CelestialBody, CelestialFacts } from "./celestial-facts";
 import { type OrbitElements, solve, type Vector3 } from "./kepler";
@@ -259,6 +265,24 @@ function elementsOf(
   };
 }
 
+/**
+ * Why a body the catalogue carries has no state at this instant: a provider
+ * vouched for its elements only so far, and this instant is past that.
+ *
+ * Distinct from the other reason a body is missing, an unsolvable parent chain,
+ * which is a defect in the catalogue rather than a statement anybody made.
+ */
+export interface BodyWithdrawal {
+  /**
+   * The body whose horizon ran out: this body, or the ancestor it is measured
+   * against. A moon's own elements can be unbounded and still be no use when
+   * nobody will say where its planet is.
+   */
+  bodyIndex: number;
+  /** The last UT that body's provider vouched for. */
+  untilUt: number;
+}
+
 /** Every body's root-centred state at one instant, plus the lookups the frame maths needs. */
 export interface SystemInstant {
   ut: number;
@@ -266,6 +290,12 @@ export interface SystemInstant {
   velocityByIndex: ReadonlyMap<number, Vector3>;
   /** Standard gravitational parameter per body, for the point-mass sum. */
   muByIndex: ReadonlyMap<number, number>;
+  /**
+   * Bodies deliberately absent above because this instant is past the horizon
+   * their provider stated, and what stated it. Empty under a stock install,
+   * where every body is unbounded.
+   */
+  withdrawnByIndex: ReadonlyMap<number, BodyWithdrawal>;
 }
 
 function parentOf(
@@ -279,16 +309,49 @@ function parentOf(
 }
 
 /**
+ * The last UT a body's elements answer for, or null when its provider claimed
+ * no limit.
+ *
+ * Only a stated `Until` bounds anything. `Unspecified` does NOT withdraw the
+ * body, and that is a deliberate reading of a genuinely awkward arm: it is what
+ * a host sends when its horizon resolver FAULTED, and refusing every body on a
+ * fault empties the system diagram rather than making it honest. A caller that
+ * wants to know the shape has `body.horizon.trajectoryKind` beside this and can
+ * refuse a conic renderer on it; what this function will not do is invent a
+ * number nobody stated, in either direction.
+ */
+function horizonUt(body: CelestialBody): number | null {
+  const horizon = body.horizon;
+  if (horizon.kind !== PropagationHorizonKind.Until) return null;
+  return finite(horizon.untilUt) ? horizon.untilUt : null;
+}
+
+/**
  * Every body's position and velocity about the root, solved at `ut`.
+ *
+ * **On demand at the instant asked for, never propagated.** Under stock a body
+ * rides a fixed conic about a fixed parent, so its place at a UT is a published
+ * fact the catalogue's own elements already contain: evaluating it when a caller
+ * names an instant costs one Kepler solve per body and needs no horizon, which
+ * is why `system.bodies` carries no forward model and is on the
+ * `NEVER_RECKONABLE` list. Advancing the catalogue every frame instead would buy
+ * nothing and could only drift.
+ *
+ * **Under an n-body install that stops being true, and the provider says so.**
+ * There the elements on the wire are the conic tangent to an integrated path at
+ * the sample instant, and they part company with it. A body whose elected
+ * provider bounded them is WITHDRAWN past that bound rather than extrapolated,
+ * and {@link SystemInstant.withdrawnByIndex} says which body ran out. Same
+ * horizon, same words and same absolute-UT rule as a craft's elements carry.
  *
  * Computed for the whole system in one pass rather than per body on demand,
  * because the point-mass sum needs all of them anyway and solving one body's
  * chain twice is the commonest way this gets slow.
  *
  * A body whose chain cannot be solved is OMITTED rather than placed at the
- * origin. A body at a wrong position pulls the frame's origin to a wrong place
- * and says nothing about it; a body that is absent is one term missing from a
- * sum of thirty-four.
+ * origin, and so is a withdrawn one. A body at a wrong position pulls the
+ * frame's origin to a wrong place and says nothing about it; a body that is
+ * absent is one term missing from a sum of thirty-four.
  */
 export function systemInstantAt(
   facts: CelestialFacts,
@@ -297,8 +360,15 @@ export function systemInstantAt(
   const positionByIndex = new Map<number, Vector3>();
   const velocityByIndex = new Map<number, Vector3>();
   const muByIndex = new Map<number, number>();
+  const withdrawnByIndex = new Map<number, BodyWithdrawal>();
   if (!Number.isFinite(ut)) {
-    return { ut, positionByIndex, velocityByIndex, muByIndex };
+    return {
+      ut,
+      positionByIndex,
+      velocityByIndex,
+      muByIndex,
+      withdrawnByIndex,
+    };
   }
   FRAME_INSTANT_BUDGET.record();
 
@@ -335,6 +405,22 @@ export function systemInstantAt(
     let velocity: Vector3 = anchorVelocity;
     for (let i = chain.length - 1; i >= 0; i--) {
       const link = chain[i];
+
+      // Asked past what this body's provider vouched for. Refuse from here
+      // down: everything below hangs off a place nobody will state, so a moon
+      // whose own elements are unbounded is withdrawn naming the planet that
+      // ran out rather than itself.
+      const until = horizonUt(link);
+      if (until !== null && ut > until) {
+        for (let j = i; j >= 0; j--) {
+          withdrawnByIndex.set(chain[j].index, {
+            bodyIndex: link.index,
+            untilUt: until,
+          });
+        }
+        return false;
+      }
+
       const parent = parentOf(facts, link);
       const elements = elementsOf(link, parent);
       if (elements === null) {
@@ -357,7 +443,7 @@ export function systemInstantAt(
   };
 
   for (const body of facts.bodies) solveChain(body);
-  return { ut, positionByIndex, velocityByIndex, muByIndex };
+  return { ut, positionByIndex, velocityByIndex, muByIndex, withdrawnByIndex };
 }
 
 /**

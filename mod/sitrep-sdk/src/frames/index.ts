@@ -55,6 +55,39 @@
  * every body's state at the view instant anyway, and passing that state into
  * `frameInstantAt` is what stops the catalogue being solved twice per placement.
  *
+ * ## What `systemInstantAt` gives you, and what changes under n-body physics
+ *
+ * It is the one function here that makes a claim rather than restating one: it
+ * evaluates the catalogue's elements at whatever UT you name. Which install the
+ * operator is running changes the answer, and your widget sees the difference
+ * WITHOUT branching on a mod name. There is no mod name to branch on here and
+ * that is deliberate: the horizon is a standard shape every provider fills, and
+ * a vendor's name has no place in one.
+ *
+ * - **Stock.** Every body rides a fixed conic about a fixed parent, so its place
+ *   at any UT is a published fact. Ask for an instant and you get every body,
+ *   however far out you ask. `withdrawnByIndex` is empty, always. There is no
+ *   propagation to wait for and nothing advances per frame: call it for the
+ *   instant you are drawing.
+ * - **An n-body install.** A body's elements are the conic tangent to an
+ *   integrated path at the sample instant, and the elected provider states how
+ *   far they stay worth having. Past that a body is NOT in `positionByIndex`,
+ *   and `withdrawnByIndex` names which body's horizon ran out and when. A moon
+ *   whose own elements are unbounded is withdrawn too when its planet's ran
+ *   out, naming the planet.
+ *
+ * **So a body absent from `positionByIndex` is not always a gap in the
+ * catalogue.** Check `withdrawnByIndex` before drawing "no data": a withdrawal
+ * is an answer, and the honest thing to draw is the body's absence past a stated
+ * instant, not a body placed where nobody vouched for it. Widening the window a
+ * caller asks for is what shortens the set of bodies that come back.
+ *
+ * `body.horizon` on the catalogue carries the same statement per body, in the
+ * same words a craft's `vessel.orbit` horizon uses: `kind`, `trajectoryKind`,
+ * and a `untilUt` that is an absolute UT rather than a duration. Its
+ * `trajectoryKind` is the separate question of SHAPE, and it is the one to
+ * branch on before drawing a closed ellipse for a body.
+ *
  * Deliberately absent, each because it is a choice we intend to keep making:
  *
  * - `pointMassAccelerationAt`, a gravity sum whose stated fidelity (point
@@ -76,6 +109,7 @@ import type { Vector3 } from "../spine/kepler";
 import type { Vec3Of } from "../value";
 
 export {
+  type BodyWithdrawal,
   type FrameCoordinates,
   type FrameInstant,
   frameInstantAt,

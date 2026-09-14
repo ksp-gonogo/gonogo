@@ -333,7 +333,9 @@ export {
 // activates it.
 // ---------------------------------------------------------------------------
 export {
+  ANALYTIC_BODY_HORIZON,
   type BodyAtmosphere,
+  type BodyHorizon,
   bodyAtIndex,
   bodyNamed,
   CELESTIAL_FACTS,

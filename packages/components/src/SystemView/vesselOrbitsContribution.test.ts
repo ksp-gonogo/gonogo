@@ -3,11 +3,13 @@ import {
   type CommsNetwork,
   type CommsNetworkEdge,
   type CommsNetworkNode,
+  PropagationHorizonKind,
   Quality,
   RosterCommsControlSource,
   Situation,
   type SystemBodies,
   type SystemVessels,
+  TrajectoryKind,
   type VesselRosterEntry,
   VesselType,
   value,
@@ -18,15 +20,31 @@ import {
   computeVesselOrbitEntities,
 } from "./vesselOrbitsContribution";
 
+/**
+ * What a stock host says about every body: a fixed conic about a fixed parent
+ * is a published fact at any UT, so there is no drift to bound.
+ */
+const STOCK_BODY_HORIZON = {
+  kind: PropagationHorizonKind.Unbounded,
+  trajectoryKind: TrajectoryKind.Analytic,
+};
+
 function bodies(): SystemBodies {
   return {
     bodies: [
-      { index: 0, name: "Kerbol", parentIndex: undefined, orbit: undefined },
+      {
+        index: 0,
+        name: "Kerbol",
+        parentIndex: undefined,
+        orbit: undefined,
+        horizon: STOCK_BODY_HORIZON,
+      },
       {
         index: 1,
         name: "Kerbin",
         parentIndex: 0,
         orbit: undefined,
+        horizon: STOCK_BODY_HORIZON,
         isHome: true,
       },
     ],
@@ -314,13 +332,26 @@ describe("computeCommsNetworkEntities", () => {
   it("locates the home body by isHome, not by a fixed index, under a hypothetical planet pack ordering", () => {
     const reorderedBodies: SystemBodies = {
       bodies: [
-        { index: 0, name: "Kerbol", parentIndex: undefined, orbit: undefined },
-        { index: 1, name: "Moho", parentIndex: 0, orbit: undefined },
+        {
+          index: 0,
+          name: "Kerbol",
+          parentIndex: undefined,
+          orbit: undefined,
+          horizon: STOCK_BODY_HORIZON,
+        },
+        {
+          index: 1,
+          name: "Moho",
+          parentIndex: 0,
+          orbit: undefined,
+          horizon: STOCK_BODY_HORIZON,
+        },
         {
           index: 2,
           name: "HomeworldX",
           parentIndex: 0,
           orbit: undefined,
+          horizon: STOCK_BODY_HORIZON,
           isHome: true,
         },
       ],
@@ -436,8 +467,19 @@ describe("computeCommsNetworkEntities", () => {
       wire([relay]),
       {
         bodies: [
-          { index: 0, name: "Kerbol", orbit: undefined },
-          { index: 1, name: "Kerbin", parentIndex: 0, orbit: undefined }, // present, but not flagged home
+          {
+            index: 0,
+            name: "Kerbol",
+            orbit: undefined,
+            horizon: STOCK_BODY_HORIZON,
+          },
+          {
+            index: 1,
+            name: "Kerbin",
+            parentIndex: 0,
+            orbit: undefined,
+            horizon: STOCK_BODY_HORIZON,
+          }, // present, but not flagged home
         ],
       },
     );

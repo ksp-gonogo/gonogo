@@ -52,13 +52,18 @@ namespace GonogoPrincipiaUplink
     /// <see cref="TrajectoryRefusal.NoForceModel"/>: an install problem, said
     /// plainly.</para>
     /// </summary>
-    public sealed class PrincipiaPropagationProvider : IPropagationProvider, IIntegratedTrajectorySource
+    // The base list stays on this one line: the seam gate in Sitrep.Core.Tests reads
+    // source text and matches a type's bases on the same line as its name, so a
+    // legal wrap here reports every seam this type satisfies as implemented by
+    // nothing.
+    public sealed class PrincipiaPropagationProvider : IPropagationProvider, IIntegratedTrajectorySource, IBodyEphemerisHorizon
     {
         public const string ProviderIdValue = "principia-propagation";
 
         private readonly IPropagationProvider _conics;
         private readonly Func<GravityModel?> _forceModel;
         private readonly Func<int, IReadOnlyList<PrincipiaPerturber>> _perturbers;
+        private readonly Func<int, int?> _parentOf;
 
         private readonly object _boundGate = new object();
         private string? _boundVesselId;
@@ -66,6 +71,9 @@ namespace GonogoPrincipiaUplink
         private double _boundSma = double.NaN;
         private double? _boundSpan;
         private bool _hasBound;
+
+        private readonly object _bodyGate = new object();
+        private readonly Dictionary<int, BodyBound> _bodyBounds = new Dictionary<int, BodyBound>();
 
         /// <param name="conics">
         /// The solver this provider displaced, reached through
@@ -88,14 +96,25 @@ namespace GonogoPrincipiaUplink
         /// Injected rather than read here so the whole of the bound is exercised with
         /// no game running.
         /// </param>
+        /// <param name="parentOf">
+        /// Which body a body orbits, or null for the root and for anything the game
+        /// will not say. Needed only by the BODY horizon, which has to know the frame
+        /// a body's own conic is measured in; a craft carries that on its target and a
+        /// body deliberately does not, because which body a body orbits is the
+        /// provider's to know rather than the caller's to assert. Injected on the same
+        /// terms as <paramref name="perturbers"/>, so the whole of the bound is
+        /// exercised with no game running.
+        /// </param>
         public PrincipiaPropagationProvider(
             IPropagationProvider conics,
             Func<GravityModel?> forceModel,
-            Func<int, IReadOnlyList<PrincipiaPerturber>> perturbers)
+            Func<int, IReadOnlyList<PrincipiaPerturber>> perturbers,
+            Func<int, int?> parentOf)
         {
             _conics = conics ?? throw new ArgumentNullException(nameof(conics));
             _forceModel = forceModel ?? throw new ArgumentNullException(nameof(forceModel));
             _perturbers = perturbers ?? throw new ArgumentNullException(nameof(perturbers));
+            _parentOf = parentOf ?? throw new ArgumentNullException(nameof(parentOf));
         }
 
         public string ProviderId => ProviderIdValue;
@@ -259,5 +278,174 @@ namespace GonogoPrincipiaUplink
             double fromUt,
             double toUt) =>
             _conics.SolveClosestApproach(subject, other, frame, fromUt, toUt);
+
+        /// <summary>
+        /// How far this body's published elements stay within
+        /// <see cref="PrincipiaHorizonBound.ToleranceMetres"/> of the ephemeris they
+        /// osculate.
+        ///
+        /// <para><b>The same law, pointed at a different object.</b> A moon about its
+        /// planet is a conic about a primary perturbed by a neighbourhood, which is
+        /// the problem <see cref="ConicDeparture"/> already integrates; nothing in it
+        /// is about craft. Measured against the rig's own stock geometry, the answers
+        /// span three orders of magnitude, from about three minutes for a moon of Jool
+        /// to about twenty hours for Kerbin about the star, which is why this is asked
+        /// per body and why one number for the catalogue would have been wrong for
+        /// almost all of it. See <c>BodyEphemerisHorizonTests</c>.</para>
+        ///
+        /// <para><b>Held per body and only ever re-measured once it has EXPIRED.</b>
+        /// Thirty-four bodies each paying a four-revolution integration per sample is
+        /// not affordable on the Courier thread, and no fraction of a sample interval
+        /// is a defensible thing to recompute on. What is defensible is this: the
+        /// cached answer is an absolute instant, the span handed back is what is LEFT
+        /// of it, and a new measurement is taken when nothing is. So the published
+        /// horizon never reaches past an instant that was measured from a real sample,
+        /// it shrinks between measurements rather than drifting either way, and being
+        /// short is the safe direction for a bound to be wrong in.</para>
+        ///
+        /// <para><b>A cached answer is thrown away when the clock goes BACKWARDS</b>,
+        /// which in this game is a revert or a load and neither is rare. The instant a
+        /// measurement was taken AT is held beside the one it reaches to, because
+        /// without it an answer measured at a later sample would be handed to an
+        /// earlier one as a span of everything between them, which is the one way this
+        /// cache could over-vouch rather than under-vouch.</para>
+        ///
+        /// <para>Null wherever nothing can be said, never a number: no force model, a
+        /// root body with no primary to depart from, a body the gravity model does not
+        /// name, or a body the displaced solver cannot place.</para>
+        /// </summary>
+        public double? BodySpanSeconds(int bodyIndex, double fromUt)
+        {
+            if (double.IsNaN(fromUt) || double.IsInfinity(fromUt))
+            {
+                return null;
+            }
+
+            lock (_bodyGate)
+            {
+                if (_bodyBounds.TryGetValue(bodyIndex, out var held)
+                    && fromUt >= held.MeasuredAt && fromUt < held.UntilUt)
+                {
+                    return held.UntilUt - fromUt;
+                }
+            }
+
+            var span = ComputeBodySpanSeconds(bodyIndex, fromUt);
+            lock (_bodyGate)
+            {
+                if (span == null) _bodyBounds.Remove(bodyIndex);
+                else _bodyBounds[bodyIndex] = new BodyBound(fromUt, fromUt + span.Value);
+            }
+            return span;
+        }
+
+        /// <summary>One body's measurement: when it was taken, and what it reaches to.</summary>
+        private readonly struct BodyBound
+        {
+            public BodyBound(double measuredAt, double untilUt)
+            {
+                MeasuredAt = measuredAt;
+                UntilUt = untilUt;
+            }
+
+            public double MeasuredAt { get; }
+
+            public double UntilUt { get; }
+        }
+
+        private double? ComputeBodySpanSeconds(int bodyIndex, double fromUt)
+        {
+            var model = _forceModel();
+            if (model == null)
+            {
+                // No masses, no bound. The same absence reaches the client beside this
+                // as TrajectoryRefusal.NoForceModel on the craft side, so the two
+                // halves of the install say the same thing about the same problem.
+                return null;
+            }
+
+            var parentIndex = _parentOf(bodyIndex);
+            if (parentIndex == null || parentIndex.Value == bodyIndex)
+            {
+                // The root. It is the frame everything else is measured in and has no
+                // primary to depart from, so there is no departure to integrate.
+                return null;
+            }
+
+            var target = PropagationTarget.Body(bodyIndex);
+            var parentFrame = PropagationFrame.CentredOn(parentIndex.Value);
+            if (!_conics.CanPropagate(target, parentFrame, fromUt, fromUt))
+            {
+                return null;
+            }
+
+            // The primary's mass out of the PRODUCER's gravity model rather than the
+            // game's, for the reason the craft bound reads it there: how far this
+            // Uplink will vouch for something is a statement about its own model, and
+            // a bound taken against another mod's masses agrees with nothing while
+            // looking exactly like one that does.
+            var primaryMu = MuOfBody(model, parentIndex.Value, bodyIndex);
+            if (primaryMu == null)
+            {
+                return null;
+            }
+
+            var departure = new ConicDeparture(
+                primaryMu.Value,
+                fromUt,
+                ut => _conics.Solve(target, parentFrame, ut).Position);
+
+            // The PRIMARY's neighbourhood, which is where this body's siblings and its
+            // primary's own parent live. The body itself is dropped: a body does not
+            // perturb its own conic, and summing it in would put its whole central
+            // term into the differential.
+            var neighbourhood = _perturbers(parentIndex.Value);
+            if (neighbourhood != null)
+            {
+                for (var i = 0; i < neighbourhood.Count; i++)
+                {
+                    var body = neighbourhood[i];
+                    if (body.BodyIndex == bodyIndex || body.BodyIndex == parentIndex.Value) continue;
+
+                    var entry = model.Find(body.Name);
+                    if (entry == null) continue;
+
+                    var perturberTarget = PropagationTarget.Body(body.BodyIndex);
+                    if (!_conics.CanPropagate(perturberTarget, parentFrame, fromUt, fromUt)) continue;
+
+                    departure.Add(
+                        entry.GravitationalParameter,
+                        ut => _conics.Solve(perturberTarget, parentFrame, ut).Position);
+                }
+            }
+
+            return PrincipiaHorizonBound.SpanSeconds(
+                departure, _conics.CharacteristicCycleSeconds(target));
+        }
+
+        /// <summary>
+        /// One body's gravitational parameter out of the force model, found by the
+        /// name the model is keyed on.
+        ///
+        /// <para>The name comes off the neighbourhood walk, which is the only table
+        /// that joins a propagation index to the string the producer's config uses.
+        /// A body's own neighbourhood always lists its parent, so the primary is
+        /// reachable from the child's walk; <paramref name="childIndex"/> is which
+        /// walk to ask.</para>
+        /// </summary>
+        private double? MuOfBody(GravityModel model, int bodyIndex, int childIndex)
+        {
+            var neighbourhood = _perturbers(childIndex);
+            if (neighbourhood == null) return null;
+            for (var i = 0; i < neighbourhood.Count; i++)
+            {
+                if (neighbourhood[i].BodyIndex != bodyIndex) continue;
+                var entry = model.Find(neighbourhood[i].Name);
+                if (entry == null) return null;
+                var mu = entry.GravitationalParameter;
+                return mu > 0.0 && !double.IsInfinity(mu) ? mu : (double?)null;
+            }
+            return null;
+        }
     }
 }

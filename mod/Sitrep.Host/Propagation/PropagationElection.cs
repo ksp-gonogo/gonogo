@@ -175,5 +175,54 @@ namespace Sitrep.Host.Propagation
                 UntilUt = untilUt,
             };
         }
+
+        /// <summary>
+        /// The horizon and shape a BODY's published elements carry.
+        ///
+        /// <para>The two halves split the same way they do for a craft: the SHAPE is
+        /// this site's, because whether an install integrates is a property of which
+        /// provider won, and the REACH is the provider's, because only whoever models
+        /// the forces can say how far a body's osculating conic stays close to the
+        /// ephemeris it osculates.</para>
+        ///
+        /// <para><b>Asked through <see cref="IBodyEphemerisHorizon"/> rather than
+        /// through <see cref="IPropagationProvider.CanPropagate"/>, and the difference
+        /// is load-bearing.</b> That member is what the acceleration walk behind any
+        /// bound uses to PLACE each perturbing body, so a provider answering it with a
+        /// body bound would be refusing the walk its own answer is made of. The
+        /// existing pass-through there stays exactly as it is.</para>
+        ///
+        /// <para>An integrating provider with nothing to say about bodies gets
+        /// <c>Unspecified</c> for the reach and <c>Integrated</c> for the shape, which
+        /// is the honest pair: it has told us the elements are a tangent and not how
+        /// long a tangent lasts. Analytic and a kernel that is not up yet both report
+        /// <c>Unbounded</c> and <c>Analytic</c>, which for a two-body install is the
+        /// whole truth about a body rather than a withholding answer.</para>
+        /// </summary>
+        public static PropagationHorizon BodyHorizonFor(
+            Kernel? kernel, int bodyIndex, double sampleUt)
+        {
+            var provider = kernel == null ? null : Elected(kernel);
+            if (!(provider is IIntegratedTrajectorySource))
+            {
+                return new PropagationHorizon
+                {
+                    Kind = PropagationHorizonKind.Unbounded,
+                    TrajectoryKind = TrajectoryKind.Analytic,
+                };
+            }
+
+            var span = provider is IBodyEphemerisHorizon ephemeris
+                ? ephemeris.BodySpanSeconds(bodyIndex, sampleUt)
+                : null;
+            var usable = span != null && span.Value > 0.0
+                         && !double.IsNaN(span.Value) && !double.IsInfinity(span.Value);
+            return new PropagationHorizon
+            {
+                TrajectoryKind = TrajectoryKind.Integrated,
+                Kind = usable ? PropagationHorizonKind.Until : PropagationHorizonKind.Unspecified,
+                UntilUt = usable ? sampleUt + span!.Value : (double?)null,
+            };
+        }
     }
 }

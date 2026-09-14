@@ -1,4 +1,8 @@
-import type { BodyEntry } from "../__generated__/contract";
+import {
+  type BodyEntry,
+  PropagationHorizonKind,
+  TrajectoryKind,
+} from "../__generated__/contract";
 import {
   deriveEscapeVelocity,
   derivePeriod,
@@ -52,6 +56,48 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // body's index is how every other Topic refers to it.
 // ---------------------------------------------------------------------------
 
+/**
+ * How far a body's elements may be carried forward, as the elected provider
+ * stated it.
+ *
+ * **The SAME question a craft's elements answer, in the same words.** This is
+ * `PropagationHorizon` off the wire with its units stripped, which is what every
+ * quantity in this model is; the two enums are the contract's own, not a second
+ * copy. A body is not a vessel, but "how far do these elements reach" is one
+ * question and it gets one spelling: `untilUt` is an absolute UT here exactly as
+ * it is there, never a duration, and `Unbounded` is a claim a provider makes
+ * rather than a large number it picks.
+ *
+ * Under stock every body carries {@link ANALYTIC_BODY_HORIZON}: a fixed conic
+ * about a fixed parent is a published fact at any UT, and the client evaluates
+ * it when a caller asks for an instant rather than advancing it each frame.
+ * Under an n-body install the bodies are integrated too, their osculating
+ * elements part company with the path, and the provider says where.
+ */
+export interface BodyHorizon {
+  kind: PropagationHorizonKind;
+  trajectoryKind: TrajectoryKind;
+  /** The last UT these elements answer for; set iff `kind` is `Until`. */
+  untilUt: number | null;
+}
+
+/**
+ * Unbounded and closed-form: what a stock install's bodies are, and what a
+ * payload carrying no horizon at all is read as.
+ *
+ * A missing field is a host older than the field, and a host older than the
+ * field has no seam for a provider to bound a body through, which is a stock
+ * install. That is the same reading the host's own no-resolver arm takes
+ * (`VesselViewProvider.ElementHorizon`), and it keeps `Unspecified` meaning what
+ * the contract says it means: a producer that HAS the field and could not fill
+ * it.
+ */
+export const ANALYTIC_BODY_HORIZON: BodyHorizon = Object.freeze({
+  kind: PropagationHorizonKind.Unbounded,
+  trajectoryKind: TrajectoryKind.Analytic,
+  untilUt: null,
+});
+
 export interface BodyAtmosphere {
   /** Atmosphere height, metres. */
   depth: number | null;
@@ -78,6 +124,8 @@ export interface CelestialBody {
   argumentOfPeriapsis: number | null;
   meanAnomalyAtEpoch: number | null;
   epoch: number | null;
+  /** What the elected provider vouches these elements for; see {@link BodyHorizon}. */
+  horizon: BodyHorizon;
   /** Orbital period, seconds: derived `2π√(a³/μ_parent)`. OURS, and see below. */
   period: number | null;
   /** True anomaly, degrees in [0, 360), solved for the frame's view time. OURS. */
@@ -152,6 +200,20 @@ function boolOrNull(x: boolean | null | undefined): boolean | null {
   return typeof x === "boolean" ? x : null;
 }
 
+/**
+ * The horizon this body's elements carry, or the analytic reading when the
+ * payload carries none; see {@link ANALYTIC_BODY_HORIZON} for why absence reads
+ * that way and `Unspecified` does not.
+ */
+function mapHorizon(wire: BodyEntry["horizon"] | undefined): BodyHorizon {
+  if (wire === undefined || wire === null) return ANALYTIC_BODY_HORIZON;
+  return {
+    kind: wire.kind,
+    trajectoryKind: wire.trajectoryKind,
+    untilUt: numOrNull(wire.untilUt),
+  };
+}
+
 function mapBody(
   entry: BodyEntry,
   byIndex: Map<number, BodyEntry>,
@@ -199,6 +261,7 @@ function mapBody(
     argumentOfPeriapsis,
     meanAnomalyAtEpoch,
     epoch,
+    horizon: mapHorizon(entry.horizon),
     period: derivePeriod(semiMajorAxis, parentGravParameter),
     trueAnomaly: deriveTrueAnomalyDeg({
       semiMajorAxis,

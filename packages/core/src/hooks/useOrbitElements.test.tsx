@@ -5,7 +5,12 @@ import {
   type VesselOrbitPayload,
   type WireOf,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality, type SystemBodies } from "@ksp-gonogo/sitrep-sdk";
+import {
+  PropagationHorizonKind,
+  Quality,
+  type SystemBodies,
+  TrajectoryKind,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -37,10 +42,26 @@ const ORBIT: WireOf<VesselOrbitPayload> = {
   mu: 3.5316e12,
 };
 
-// `orbit` is absent rather than null: `BodyEntry.orbit` is optional on the
-// contract, and the reference-body lookup below only reads `radius`.
+/*
+ * `orbit` is absent rather than null: `BodyEntry.orbit` is optional on the
+ * contract, and the reference-body lookup below only reads `radius`.
+ *
+ * `horizon` is not optional, and what is spelled out here is the analytic claim
+ * every stock host makes about every body.
+ */
 const BODIES: WireOf<SystemBodies> = {
-  bodies: [{ name: "Kerbin", index: 1, parentIndex: 0, radius: 600_000 }],
+  bodies: [
+    {
+      name: "Kerbin",
+      index: 1,
+      parentIndex: 0,
+      radius: 600_000,
+      horizon: {
+        kind: PropagationHorizonKind.Unbounded,
+        trajectoryKind: TrajectoryKind.Analytic,
+      },
+    },
+  ],
 };
 
 function makeHarness() {

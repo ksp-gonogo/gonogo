@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.Propagation;
 
 namespace Gonogo.KSP
 {
@@ -197,6 +198,16 @@ namespace Gonogo.KSP
 
         public void Register(IUplinkHost host)
         {
+            // How far each body's elements are worth carrying forward. Same shape as
+            // the craft-side resolver in VesselUplink and asked of the same election:
+            // under stock nothing is elected over the two-body solver and every body
+            // reports unbounded and analytic, which is what a fixed conic about a
+            // fixed parent is. The kernel is reached at call time rather than
+            // captured, because Register runs before capabilities resolve.
+            SystemViewProvider.SetBodyHorizonSource(
+                (bodyIndex, sampleUt) =>
+                    PropagationElection.BodyHorizonFor(host.Kernel, bodyIndex, sampleUt));
+
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
             host.AddChannelSource(SystemViewProvider.VesselsTopic, SystemViewProvider.BuildSystemVessels);
             host.AddChannelSource(SystemViewProvider.TargetAvailableTopic, SystemViewProvider.BuildTargetAvailable);

@@ -60,6 +60,14 @@ export const COINCIDENTAL: readonly string[] = [
   // plot coordinates in crossSectionPlot.ts (`slice.points[0].x`)
   "packages/components/src/LandingStatus#x",
   "packages/components/src/LandingStatus#y",
+  /*
+   * `payload.kind === "button"` in the widget's `useActionInput` handler: a
+   * SERIAL INPUT discriminant, not a telemetry field. It had no payload field
+   * to collide with until `BodyEntry.horizon` landed, which gave `system.bodies`
+   * a nested `kind` and made the name a match. ResourceOps reads no body at all;
+   * the topic reaches its fixtures through the shared stream.
+   */
+  "packages/components/src/ResourceOps#kind",
   // `ctx.arc(...)`, the canvas API
   "packages/components/src/MapView#arc",
   // `const { x, y } = project(poi.lat, poi.lon)`, screen coordinates

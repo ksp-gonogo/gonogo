@@ -22,9 +22,12 @@ import { SystemViewComponent } from "./index";
  * confident one-period prediction through it.
  *
  * The bodies around it are a separate matter and are deliberately not gated
- * here: `system.bodies` carries no `PropagationHorizon` at all, so there is
- * nothing to ask, and refusing to draw the Mun because the VESSEL's provider
- * integrates would be inventing a refusal nobody stated.
+ * here. `system.bodies` now carries a `PropagationHorizon` OF ITS OWN, per body,
+ * and that is exactly why the vessel's is the wrong thing to ask: refusing to
+ * draw the Mun because the VESSEL's provider integrates would be inventing a
+ * refusal nobody stated about the Mun. A body's own horizon is honoured where
+ * its position is computed, in `systemInstantAt`, which withdraws a body past
+ * the instant its provider vouched for and leaves the rest in place.
  */
 
 const CONTRIBUTIONS_META = {
@@ -181,9 +184,9 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
   });
 
   it("keeps drawing the bodies when the vessel's trajectory is refused", async () => {
-    // The bodies come off `system.bodies`, which carries no horizon at all.
-    // Refusing to draw the Mun because the vessel's provider integrates would
-    // be inventing a refusal nobody stated.
+    // The bodies come off `system.bodies`, which states its own horizon per
+    // body. Refusing to draw the Mun because the VESSEL's provider integrates
+    // would be inventing a refusal nobody stated about the Mun.
     const container = await mount(UNBOUNDED_HORIZON);
     await waitFor(() => {
       if (!visibleText(container).includes("SHAPE NOT STATED")) {
