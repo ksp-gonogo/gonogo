@@ -672,6 +672,20 @@ export class TimelineStore {
    */
   private readonly unownedTopics = new Set<string>();
 
+  /**
+   * The topics whose input rules are being settled right now, so a cycle among
+   * models cannot recurse forever.
+   *
+   * Enforcing the rules means asking each declared input's OWN model how far it
+   * reaches and how well it knows its answer, which is another registered model
+   * with its own declared inputs. Nothing forbids two owners registering models
+   * that name each other's topics, and a cycle would otherwise be a stack
+   * overflow on a frame rather than a decline. A topic already on this set is
+   * skipped: a model cannot bound itself, and the model that started the walk is
+   * the one whose answer is being judged.
+   */
+  private readonly enforcingInputRules = new Set<string>();
+
   /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"`. */
   readonly heartbeats: HeartbeatTracker;
 
@@ -1803,19 +1817,34 @@ export class TimelineStore {
    * a second convention.
    */
   private static absentInput(topic: string, dep: Dep): ReckoningDecline {
+    return {
+      reason: "input-absent",
+      input: TimelineStore.inputSpelling(topic, dep),
+    };
+  }
+
+  /**
+   * How one declared dep is NAMED to an operator: the contract's own spelling
+   * where the contract names the same Topic, and the `@topic` shape otherwise.
+   *
+   * Shared by both declines that name an input, because a reader who is told
+   * `@vessel.orbit` ran out and `@vessel.orbit` did not arrive should be reading
+   * the same string for the same thing.
+   */
+  private static inputSpelling(topic: string, dep: Dep): string {
     if (typeof dep !== "string") {
-      return {
-        reason: "input-absent",
-        input: "reading" in dep ? `@${dep.reading}` : dep.id,
-      };
+      return "reading" in dep ? `@${dep.reading}` : dep.id;
     }
     const declared = reckonableValuesOf(topic)
       .flatMap((row) => row.inputs)
       .find((input) => input.topic === dep);
-    return {
-      reason: "input-absent",
-      input: declared ? reckonableInputSpelling(declared) : `@${dep}`,
-    };
+    return declared ? reckonableInputSpelling(declared) : `@${dep}`;
+  }
+
+  /** The Topic a dep names, or `undefined` for a processor handle, which names none. */
+  private static depTopic(dep: Dep): string | undefined {
+    if (typeof dep === "string") return dep;
+    return "reading" in dep ? dep.reading : undefined;
   }
 
   /**
@@ -1918,13 +1947,229 @@ export class TimelineStore {
       }
       resolved.push(value);
     }
+    if (!definition.exempt?.horizon) {
+      const outOfReach = this.inputPastItsHorizon(
+        topic,
+        definition.deps,
+        token,
+      );
+      if (outOfReach) return { declined: outOfReach };
+    }
+
     const answer = definition.reckon(point, resolved, {
       grade,
       viewUt,
       history: own.points,
     });
     if ("declined" in answer) return { declined: answer.declined };
-    return { owner: elected.owner, model: answer };
+    return {
+      owner: elected.owner,
+      model: definition.exempt?.band
+        ? answer
+        : this.bandFlooredByInputs(topic, answer, definition.deps, token),
+    };
+  }
+
+  /**
+   * The decline for a model whose declared input cannot itself be carried to
+   * this frame, or `undefined` when every input still reaches.
+   *
+   * This is the horizon rule, and it is spelled as a withdrawal because a
+   * horizon has no other spelling here: there is no horizon FIELD on a
+   * `TopicModel` to clamp, and `Reading`'s own doc is explicit that a model
+   * withdraws by not being offered on the next frame. So the composition rule
+   * "no further than the shortest of my inputs" becomes "not offered on a frame
+   * where an input has run out", which is the same statement made in the
+   * vocabulary the type already has.
+   *
+   * Only an input that HAS a model can have run out. An input nobody models is
+   * held-last and makes no claim about how far it reaches, so declining on one
+   * would refuse every model in the tree: `system.bodies` changes once a session
+   * and is permanently stale, and a hold-last is exactly the right reading of
+   * it.
+   *
+   * Asked AFTER the deps resolve, so an input that never arrived is reported as
+   * absent rather than as out of reach. The two are different facts and the
+   * absent one is the more basic.
+   */
+  private inputPastItsHorizon(
+    topic: string,
+    deps: readonly Dep[],
+    token: FrameToken,
+  ): ReckoningDecline | undefined {
+    return this.whileEnforcing(topic, () => {
+      for (const dep of deps) {
+        const depTopic = TimelineStore.depTopic(dep);
+        if (depTopic === undefined) continue;
+        const answer = this.inputReckoning(depTopic, token);
+        if (
+          answer &&
+          "declined" in answer &&
+          answer.declined.reason === "beyond-horizon"
+        ) {
+          return {
+            reason: "beyond-horizon",
+            input: TimelineStore.inputSpelling(topic, dep),
+            note: `${depTopic} cannot itself be carried this far, and nothing modelled from it reaches further than it does`,
+          };
+        }
+      }
+      return undefined;
+    });
+  }
+
+  /**
+   * Run `walk` with `topic` marked as under enforcement, and unmark it only if
+   * this call is what marked it.
+   *
+   * The bookkeeping is here rather than inlined at both call sites because
+   * getting it wrong is invisible: an inner call that unmarked a topic its
+   * CALLER had marked would reopen the cycle the mark exists to close, and every
+   * test would still pass right up to the frame two models named each other.
+   */
+  private whileEnforcing<T>(topic: string, walk: () => T): T {
+    const marked = !this.enforcingInputRules.has(topic);
+    if (marked) this.enforcingInputRules.add(topic);
+    try {
+      return walk();
+    } finally {
+      if (marked) this.enforcingInputRules.delete(topic);
+    }
+  }
+
+  /**
+   * One declared input's OWN registered model for this frame, resolved exactly
+   * as a read of that topic would resolve it.
+   *
+   * Resolved by TOPIC rather than off the dep the model was handed, which is
+   * the whole reason the rules apply without an author writing anything. Only a
+   * `ReadingDep` resolves to a `Reading` carrying currency and bands, every
+   * shipped reckoner declares bare Topic ids, and reading enforcement off the
+   * handed dep would have made both rules opt-in through a spelling choice.
+   *
+   * At the input's OWN delay lane's view time, not the dependent's. The input's
+   * uncertainty is the uncertainty of the value that actually fed the model, and
+   * that value is the one its own frame carries.
+   */
+  private inputReckoning(
+    depTopic: string,
+    token: FrameToken,
+  ):
+    | { readonly owner: string; readonly model: TopicModel<unknown, unknown> }
+    | { readonly declined: ReckoningDecline }
+    | undefined {
+    if (this.enforcingInputRules.has(depTopic)) return undefined;
+    if (!getReckoner(depTopic)) return undefined;
+    const status = this.sampleStatus(depTopic, token);
+    if (status === "resyncing" || status === "absent") return undefined;
+    return this.whileEnforcing(depTopic, () =>
+      this.registeredReckoning<unknown>(
+        depTopic,
+        token,
+        this.sample<unknown>(depTopic, token),
+        status === "live" ? undefined : (status as StaleGrade),
+        this.viewUtFor(token, this.laneForTopic(depTopic)),
+      ),
+    );
+  }
+
+  /**
+   * The model, with its bands held to what its inputs' own bands support.
+   *
+   * The band rule, and it wraps `bandAt` rather than running it, because a
+   * reckoning is a PULL: the store decides which arm to build without running
+   * the model, and forcing every input's band on a frame nobody asked for one
+   * would undo that. A model offering no band at all is handed back untouched,
+   * which is the honest majority and costs nothing.
+   *
+   * Two claims are policed and neither needs to know the model's mathematics: a
+   * `bound` over a `sigma1` input (a capped error derived from an uncapped one)
+   * and a zero-width band over an input with width (exactness derived from
+   * uncertainty). The first is DOWNGRADED, keeping the model's own numbers and
+   * softening only what they claim; the second is DROPPED, because widening it
+   * would mean inventing a width, and `ReckonedBands` already says a fabricated
+   * band is worse than none. See {@link ReckonerInputRule} for why widths are
+   * deliberately not compared.
+   */
+  private bandFlooredByInputs<T, R>(
+    topic: string,
+    model: TopicModel<T, R>,
+    deps: readonly Dep[],
+    token: FrameToken,
+  ): TopicModel<T, R> {
+    const inner = model.bandAt;
+    if (!inner) return model;
+    return {
+      modelled: model.modelled,
+      reckon: (viewUt) => model.reckon(viewUt),
+      bandAt: (viewUt) => {
+        const own = inner.call(model, viewUt);
+        if (!own) return own;
+        const floor = this.inputBandFloor(topic, deps, token);
+        if (!floor.softest && !floor.inexact) return own;
+        const held: { [path: string]: UncertaintyBand | undefined } = {};
+        for (const [path, band] of Object.entries(own)) {
+          held[path] = band && TimelineStore.holdBand(band, floor);
+        }
+        return held;
+      },
+    };
+  }
+
+  /** One band held to the floor its model's inputs set, or dropped where it cannot be. */
+  private static holdBand(
+    band: UncertaintyBand,
+    floor: { softest: boolean; inexact: boolean },
+  ): UncertaintyBand | undefined {
+    if (floor.inexact && band.lo.equals(band.hi)) return undefined;
+    if (floor.softest && band.kind === "bound") {
+      return { ...band, kind: "sigma1" };
+    }
+    return band;
+  }
+
+  /**
+   * What the declared inputs' own bands warrant, across every input that offers
+   * one: whether any is a `sigma1` and whether any has width.
+   *
+   * Memoised per frame because a plotted tail asks for a band at every instant
+   * it draws, and the inputs' claims do not move between two instants of one
+   * frame: the floor is a statement about the input readings, which are frozen
+   * for the frame, not about the view time being asked for.
+   *
+   * Marked as under enforcement for the walk, like the horizon half, because
+   * asking an input for its band runs that input's own floored model, which asks
+   * ITS inputs. Two models naming each other's topics would otherwise bounce
+   * between the two `bandAt` wrappers forever.
+   */
+  private inputBandFloor(
+    topic: string,
+    deps: readonly Dep[],
+    token: FrameToken,
+  ): { softest: boolean; inexact: boolean } {
+    const topics = deps
+      .map((dep) => TimelineStore.depTopic(dep))
+      .filter((dep): dep is string => dep !== undefined);
+    return this.memoize(
+      token,
+      `reckon-band-floor:${topic}\0${topics.join("\0")}`,
+      () =>
+        this.whileEnforcing(topic, () => {
+          let softest = false;
+          let inexact = false;
+          for (const depTopic of topics) {
+            const answer = this.inputReckoning(depTopic, token);
+            if (!answer || !("model" in answer)) continue;
+            const at = this.viewUtFor(token, this.laneForTopic(depTopic));
+            for (const band of Object.values(answer.model.bandAt?.(at) ?? {})) {
+              if (!band) continue;
+              if (band.kind === "sigma1") softest = true;
+              if (!band.lo.equals(band.hi)) inexact = true;
+            }
+          }
+          return { softest, inexact };
+        }),
+    );
   }
 
   /**

@@ -18,6 +18,7 @@ import {
   getContributedChannelTopics,
   getContributions,
   getReckonedTopics,
+  getReckonerExemptions,
   getUplinkClients,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -269,6 +270,13 @@ export interface InventoryContribution {
   settings: AugmentSettingField[];
 }
 
+/** One model of this Uplink's that opted out of an input rule, and the reason given. */
+export interface InventoryReckonerExemption {
+  topic: string;
+  rule: string;
+  reason: string;
+}
+
 /**
  * The compat numbers the Uplink's bundle was actually built against.
  *
@@ -314,6 +322,15 @@ export interface UplinkInventory {
    */
   processorTopicDeps: Record<string, string[]>;
   reckonedTopics: string[];
+  /**
+   * This client's models that opted out of an input rule, and why.
+   *
+   * On the page because the rules are a DEFAULT: an author gets a reach no
+   * further than their inputs and a band no wider than their inputs warrant
+   * without writing anything, so the only part anyone has to read is the
+   * exceptions, and an exception buried in a model file is not readable.
+   */
+  reckonerExemptions: InventoryReckonerExemption[];
   derivedChannels: string[];
   /** Every declared client id in the bundle, `core` included. Diagnostic. */
   declaredClients: string[];
@@ -468,6 +485,9 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     reckonedTopics: getReckonedTopics()
       .filter((r) => r.owners.includes(client.id))
       .map((r) => r.topic),
+    reckonerExemptions: getReckonerExemptions()
+      .filter((e) => e.owner === client.id)
+      .map((e) => ({ topic: e.topic, rule: e.rule, reason: e.reason })),
     derivedChannels: getContributedChannelTopics()
       .filter((r) => r.owners.includes(client.id))
       .map((r) => r.topic),

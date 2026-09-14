@@ -94,6 +94,7 @@ const INVENTORY: UplinkInventory = {
   processors: [],
   processorTopicDeps: {},
   reckonedTopics: [],
+  reckonerExemptions: [],
   derivedChannels: [],
   hosts: [
     {

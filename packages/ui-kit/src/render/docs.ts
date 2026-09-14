@@ -410,7 +410,37 @@ function modelTable(inputs: DocsInputs): string[] {
     ]),
   ];
   if (rows.length === 0) return [];
-  return ["## Models", "", ...table(["Kind", "Id"], rows)];
+  return [
+    "## Models",
+    "",
+    ...table(["Kind", "Id"], rows),
+    ...inputRuleExemptions(inputs),
+  ];
+}
+
+/**
+ * The input rules this Uplink's models opted out of, under the same heading the
+ * models themselves are listed under.
+ *
+ * Absent entirely when there are none, which is the normal case and the one the
+ * rules exist to make normal: the store holds every model to a reach no further
+ * than its inputs and a band no wider than its inputs warrant, so a page with no
+ * such table is saying its models take both defaults. A page that HAS one is
+ * where the reason gets read.
+ */
+function inputRuleExemptions(inputs: DocsInputs): string[] {
+  const rows = inputs.inventory.reckonerExemptions.map((exemption) => [
+    `\`${exemption.topic}\``,
+    exemption.rule,
+    exemption.reason,
+  ]);
+  if (rows.length === 0) return [];
+  return [
+    "",
+    "### Input rules these models opt out of",
+    "",
+    ...table(["Topic", "Rule", "Why it is sound"], rows),
+  ];
 }
 
 export function buildReadme(
