@@ -198,6 +198,15 @@ export function StartResearch() {
  * <para>Ordered by price, so the picker opens on the cheapest thing the career
  * can start. RP-1's tree runs to several hundred nodes and the reachable frontier
  * is what an operator is choosing between; alphabetical order would scatter it.</para>
+ *
+ * <para>A node whose price could not be read sorts AFTER every priced one,
+ * partitioned rather than compared. Treating an absent cost as zero made it the
+ * cheapest thing in the tree and therefore the picker's own default selection,
+ * offered under a heading that says cheapest-first and with no SHORT badge
+ * possible on it, because the shortfall reading needs the cost the row does not
+ * have. Partitioned rather than compared for the reason the career log is: the
+ * comparison has no honest answer, and an unstable sort would then shuffle the
+ * unpriced rows against each other between frames.</para>
  */
 function startable(
   nodes: readonly CareerTechNode[],
@@ -219,11 +228,17 @@ function startable(
         !queued.has(node.id) &&
         (node.parents ?? []).every((parent) => owned.has(parent)),
     )
-    .sort(
-      (a, b) =>
-        (magnitudeOf(a.scienceCost) ?? 0) - (magnitudeOf(b.scienceCost) ?? 0) ||
-        titleOf(a).localeCompare(titleOf(b)),
-    );
+    .sort((a, b) => {
+      const priceA = magnitudeOf(a.scienceCost);
+      const priceB = magnitudeOf(b.scienceCost);
+      if (priceA === null || priceB === null) {
+        if (priceA !== priceB) {
+          return priceA === null ? 1 : -1;
+        }
+        return titleOf(a).localeCompare(titleOf(b));
+      }
+      return priceA - priceB || titleOf(a).localeCompare(titleOf(b));
+    });
 }
 
 /**

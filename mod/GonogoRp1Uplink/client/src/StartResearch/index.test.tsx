@@ -193,6 +193,50 @@ describe("StartResearch: putting a node on RP-1's research queue", () => {
   });
 
   /**
+   * A node RP-1 has not priced sorts AFTER every priced one rather than to the
+   * front of a list headed cheapest-first.
+   *
+   * <para>Reading an absent cost as zero made it the cheapest thing in the tree
+   * and therefore the picker's own default, and the shortfall reading beside it
+   * needs the cost it does not have, so it could not even be badged SHORT: an
+   * unpriced node was pre-selected and looked affordable.</para>
+   */
+  it("does not open on a node RP-1 has not priced", async () => {
+    const stream = mount();
+    const base = tree(340);
+
+    emit(stream, {
+      ...base,
+      tech: {
+        ...base.tech,
+        nodes: [
+          ...base.tech.nodes,
+          {
+            id: "unpricedLine",
+            title: "A Line Nobody Priced",
+            scienceCost: null,
+            unlocked: false,
+            parents: ["start"],
+          },
+        ],
+      },
+    });
+    await screen.findByText("START RESEARCH");
+
+    const picker = screen.getByRole("combobox", {
+      name: /tech node to research/i,
+    });
+    expect(picker).toHaveValue("basicRocketry");
+    // Still OFFERED, because the command reads the cost itself and refuses; it
+    // is only the claim about its price that is withdrawn.
+    const offered = [...picker.querySelectorAll("option")].map((option) =>
+      option.getAttribute("value"),
+    );
+    expect(offered).toContain("unpricedLine");
+    expect(offered[offered.length - 1]).toBe("unpricedLine");
+  });
+
+  /**
    * Dark on STATE rather than on the press: the science comparison is one the
    * client can make from the wire, and RP-1's own `CanAfford(Science)` asks it
    * again at the press so a stale view cannot spend anything.
