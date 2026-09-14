@@ -1,5 +1,5 @@
 import "./reckoner-test-topics";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   bandFor,
@@ -282,7 +282,9 @@ describe("a reckoned tail carries the band per instant", () => {
     const tail = store.sampleReckonedTail<number>("test.temperature", 0, 50);
     expect(tail.map((s) => s.atUt)).toEqual([40, 50]);
     expect(tail.every((s) => s.bandKind === "bound")).toBe(true);
-    const widths = tail.map((s) => (s.bandHi as number) - (s.bandLo as number));
+    const widths = tail.map(
+      (s) => (s.bandHi?.magnitude ?? 0) - (s.bandLo?.magnitude ?? 0),
+    );
     expect(widths[0]).toBeGreaterThan(0);
     expect(widths[1]).toBeGreaterThan(widths[0]);
   });
@@ -320,6 +322,67 @@ describe("a reckoned tail carries the band per instant", () => {
     expect(tail.length).toBeGreaterThan(0);
     expect(tail.every((s) => s.value === 7)).toBe(true);
     expect(tail.every((s) => s.bandLo === undefined)).toBe(true);
+    expect(tail.every((s) => s.bandKind === undefined)).toBe(true);
+  });
+
+  /*
+   * The end of the prose promise task #83 left standing. A tail's point
+   * estimate has carried its unit since that task; its two ends were written
+   * out as bare magnitudes, and what said they were in the value's own unit
+   * was a sentence in `UncertaintyBand`'s doc comment rather than anything a
+   * consumer could check. These two assert the construction that replaced it.
+   */
+  function metreAltitudeReckoner(
+    bandUnit: "m" | "s",
+  ): ReckonerDefinition<Value<"m">> {
+    return {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: () => point.payload as Value<"m">,
+        bandAt: () => ({
+          "": {
+            value: value(bandUnit, 100),
+            lo: value(bandUnit, 90),
+            hi: value(bandUnit, 130),
+            kind: "bound",
+          },
+        }),
+      }),
+    };
+  }
+
+  function altitudeTail(bandUnit: "m" | "s") {
+    const store = newStore(50);
+    registerReckoner("test.altitude", "test", metreAltitudeReckoner(bandUnit));
+    ingestPoint(store, "test.altitude", 10, value("m", 100));
+    ingestPoint(store, "test.altitude", 20, value("m", 100));
+    store.setTransportConnected(false);
+    store.beginFrame();
+    return store.sampleReckonedTail<Value<"m">>("test.altitude", 0, 50);
+  }
+
+  it("hands the ends back as quantities in the value's own unit", () => {
+    const tail = altitudeTail("m");
+    expect(tail.length).toBeGreaterThan(0);
+    expect(tail.every((s) => s.bandLo?.unit === "m")).toBe(true);
+    expect(tail.every((s) => s.bandHi?.unit === "m")).toBe(true);
+    expect(tail[0].bandLo?.magnitude).toBe(90);
+    expect(tail[0].bandHi?.magnitude).toBe(130);
+  });
+
+  /*
+   * A band that is internally coherent and about some OTHER quantity is what
+   * the bare-magnitude ends could not express and therefore could not refuse:
+   * a band in seconds written into two numeric slots read downstream as
+   * metres. Dropped on the same terms a malformed band is, for the same reason.
+   */
+  it("drops a band whose unit disagrees with the value it describes", () => {
+    const tail = altitudeTail("s");
+    expect(tail.length).toBeGreaterThan(0);
+    expect(tail.every((s) => s.value.unit === "m")).toBe(true);
+    expect(tail.every((s) => s.bandLo === undefined)).toBe(true);
+    expect(tail.every((s) => s.bandHi === undefined)).toBe(true);
     expect(tail.every((s) => s.bandKind === undefined)).toBe(true);
   });
 
@@ -439,7 +502,11 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
       40,
     );
     expect(tail.length).toBeGreaterThan(0);
-    expect(tail.every((s) => s.bandLo === 100 && s.bandHi === 130)).toBe(true);
+    expect(
+      tail.every(
+        (s) => s.bandLo?.magnitude === 100 && s.bandHi?.magnitude === 130,
+      ),
+    ).toBe(true);
     expect(tail.every((s) => s.bandKind === "bound")).toBe(true);
   });
 });

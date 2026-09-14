@@ -415,6 +415,7 @@ export type {
   DerivedChannelDefinition,
   DerivedGet,
   FrameToken,
+  ReckonedBound,
   ReckonedSample,
   TimelineStoreOptions,
 } from "./timeline-store";

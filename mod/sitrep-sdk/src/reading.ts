@@ -958,6 +958,14 @@ export function bandFor(
  * Answering `undefined` rather than throwing is the same judgement the rest of
  * this file makes about a bad band: the reckoned value is still good, and a
  * consumer with no band behaves exactly as one whose model offered none.
+ *
+ * It survived a reckoned tail's ends being typed to the tail's own value on
+ * 2026-09-14, which looked at first as though it retired the mismatch arm. It
+ * does not: that construction ties two ends to ONE value, and this one is
+ * reached through {@link ReckonedBands}, a map keyed by a runtime path string
+ * whose values are `UncertaintyBand<string>`. Nothing in the type system knows
+ * what `"verticalSpeed"` is in, so the mismatch arm here is the only thing that
+ * ever knew, and it stays the check rather than a backstop for one.
  */
 export function bandIn<U extends string, V extends string = string>(
   band: UncertaintyBand<V> | undefined,
