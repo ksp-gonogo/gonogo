@@ -3,6 +3,7 @@ import type {
   ReckonerAnswer,
   ReckoningDecline,
   TopicPayload,
+  Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "@ksp-gonogo/ui-kit";
@@ -100,14 +101,136 @@ import { KERBALISM } from "./uplink";
  * containment this wire cannot support, and a fabricated band is worse than
  * none. `kerbalism.crew`'s model DOES band, because its rate is a fit with
  * residuals; see `crewReckoning.ts`.
+ *
+ * ## And why it is a CEILING on reach rather than the only reason to stop
+ *
+ * A level also withdraws the moment the model's own arithmetic carries it out
+ * of the range the quantity can occupy, and for most tanks that comes a long
+ * way first: a quarter-full tank filling at a unit a second is at its capacity
+ * in three hundred seconds. See {@link resourceBoundaryCrossings}.
  */
 export const RESOURCE_RATE_HORIZON_SECONDS = 1200;
 
 type Resources = TopicPayload<"vessel.resources">;
 type LifeSupport = TopicPayload<"kerbalism.lifesupport">;
 
-const clamp = (x: number, low: number, high: number): number =>
-  x < low ? low : x > high ? high : x;
+/** Which end of `[0, capacity]` a moving level is heading for. */
+export type ResourceBoundary = "floor" | "ceiling";
+
+/**
+ * The UT one level would leave the range it can occupy at, on the rate that was
+ * measured.
+ *
+ * ## Why the model publishes this rather than clamping
+ *
+ * The level used to be clamped into `[0, capacity]` and the model went on
+ * answering, which put a tank at ZERO on a craft whose last observation saw it
+ * full, for as long as the horizon allowed. A clamp is not a withdrawal: it is
+ * a confident positive claim, and at a readout it is indistinguishable from an
+ * observation of an empty tank. The clamp was symmetric, so a positive net rate
+ * did the same thing at the other end and reported a FULL one.
+ *
+ * The model stops at the crossing instead, and hands the crossed level back at
+ * its last observed value. That withdrawal is honest and it is also silent,
+ * which is why the moment itself is published: a consumer holding one can say
+ * "empty by about UT X, modelled" where otherwise it could only show a level
+ * that had quietly stopped moving.
+ *
+ * ## Why a UT, and why this vocabulary rather than a new one
+ *
+ * It is a time, and `Value<"ut">` is the spelling the reckoning vocabulary
+ * already has for an absolute moment (`Reckoning.atUt` is one). A duration
+ * would be the same fact measured from the frame, so it would have to be
+ * recomputed every frame and would need a second anchor stated beside it to
+ * mean anything at all. This one is a fact about the OBSERVATION and does not
+ * move as the view time does.
+ *
+ * It sits on its own entry point rather than on the model's answer for exactly
+ * that reason: it is not a function of `viewUt`, so a caller needs no frame to
+ * ask for it, and it is still there on the frames where the model has withdrawn
+ * and has no answer to hang it off.
+ *
+ * `boundary` names the END of the range rather than the condition, because the
+ * two ends are one rule. Zero is not a special number here: a consumer renders
+ * `"floor"` as empty and `"ceiling"` as full, and nothing upstream of that has
+ * to know which of them a given craft is heading for.
+ */
+export interface ResourceBoundaryCrossing {
+  readonly resource: string;
+  readonly boundary: ResourceBoundary;
+  readonly atUt: Value<"ut">;
+}
+
+/** One level the rates actually move, with the boundary it is heading for. */
+interface MovingLevel {
+  readonly name: string;
+  readonly perSecond: number;
+  readonly current: number;
+  readonly boundary: ResourceBoundary;
+  /** The UT it reaches that boundary at. Finite: the rate is non-zero. */
+  readonly crossesAtUt: number;
+}
+
+/**
+ * Which levels move, and when each one runs out of range.
+ *
+ * A rate for a resource this vessel does not carry moves nothing, and neither
+ * does a measured zero: a key present with 0 is Kerbalism's real statement that
+ * the resource is in balance, so the honest answer for it is the observation
+ * unchanged rather than a claim that arithmetic happened. A level whose amount
+ * or capacity cannot be read is dropped here as well, so the model never names
+ * a path it then declines to move.
+ */
+function movingLevels(
+  observed: Resources,
+  rates: NonNullable<LifeSupport["rates"]>,
+  asOfUt: number,
+): MovingLevel[] {
+  const moving: MovingLevel[] = [];
+  for (const name of Object.keys(rates).sort()) {
+    const amount = observed.resources[name];
+    const perSecond = magnitudeOf(rates[name]);
+    if (!amount || perSecond === null || perSecond === 0) continue;
+    const current = magnitudeOf(amount.current);
+    const capacity = magnitudeOf(amount.max);
+    if (current === null || capacity === null) continue;
+    const boundary: ResourceBoundary = perSecond < 0 ? "floor" : "ceiling";
+    const distance = perSecond < 0 ? current : capacity - current;
+    moving.push({
+      name,
+      perSecond,
+      current,
+      boundary,
+      crossesAtUt: asOfUt + distance / Math.abs(perSecond),
+    });
+  }
+  return moving;
+}
+
+/**
+ * When each moving level leaves the range it can occupy, for a consumer that
+ * wants to say WHEN. See {@link ResourceBoundaryCrossing}.
+ *
+ * Empty rather than a throw for every absence the model itself declines on: no
+ * observation, no ledger, no rates, and no stamp to anchor the moment to.
+ */
+export function resourceBoundaryCrossings(
+  observed: Resources | null,
+  lifeSupport: LifeSupport | null | undefined,
+): readonly ResourceBoundaryCrossing[] {
+  if (observed == null || lifeSupport == null) return [];
+  const rates = lifeSupport.rates;
+  if (rates == null) return [];
+  const asOfUt = magnitudeOf(lifeSupport.asOfUt);
+  if (asOfUt === null) return [];
+  return movingLevels(observed, rates, asOfUt).map(
+    ({ name, boundary, crossesAtUt }) => ({
+      resource: name,
+      boundary,
+      atUt: value("ut", crossesAtUt),
+    }),
+  );
+}
 
 /**
  * The interval to carry the accumulators across, or the reason not to.
@@ -205,25 +328,36 @@ export function reckonResourceLevels(
   const elapsed = intervalOrDecline(asOfUt, viewUt);
   if (typeof elapsed !== "number") return { declined: elapsed };
 
-  /*
-   * Which levels actually move, settled BEFORE the model is offered. A rate
-   * for a resource this vessel does not carry moves nothing, and neither does
-   * a measured zero: a key present with 0 is Kerbalism's real statement that
-   * the resource is in balance, so the honest answer for it is the
-   * observation unchanged rather than a claim that arithmetic happened.
-   */
-  const moving: { name: string; perSecond: number }[] = [];
-  for (const name of Object.keys(rates).sort()) {
-    const amount = observed.resources[name];
-    const perSecond = magnitudeOf(rates[name]);
-    if (!amount || perSecond === null || perSecond === 0) continue;
-    moving.push({ name, perSecond });
-  }
-  if (moving.length === 0) {
+  // Which levels actually move, settled BEFORE the model is offered.
+  const rated = movingLevels(observed, rates, asOfUt);
+  if (rated.length === 0) {
     return {
       declined: {
         reason: "model-inapplicable",
         note: "no resource this craft carries has a non-zero measured rate, so every level here is the observation itself",
+      },
+    };
+  }
+
+  /*
+   * And which of those the model still holds for. A tank cannot hold less than
+   * nothing or more than its capacity, so a rate that would carry a level past
+   * either end is a rate that has demonstrably stopped holding by then, whether
+   * or not the horizon has been reached. That is the same refusal
+   * `beyond-horizon` already names, against the same input, measured on this
+   * level rather than on the clock: reaching for a second reason code would
+   * imply a consumer should treat the two differently, and it should not.
+   */
+  const moving = rated.filter((level) => viewUt < level.crossesAtUt);
+  if (moving.length === 0) {
+    const last = rated.reduce((a, b) =>
+      a.crossesAtUt >= b.crossesAtUt ? a : b,
+    );
+    return {
+      declined: {
+        reason: "beyond-horizon",
+        input: "@kerbalism.lifesupport#rates",
+        note: `the last level to leave the range it can occupy, ${last.name}, reaches ${last.boundary === "floor" ? "empty" : "capacity"} at UT ${Math.round(last.crossesAtUt)}, and no measured rate carries a level past that`,
       },
     };
   }
@@ -239,22 +373,21 @@ export function reckonResourceLevels(
   return {
     modelled,
     reckon: (at) => {
-      const dt = at - asOfUt;
       /*
        * Spread first, overwrite second: every sibling this model does not move
-       * (the capacity, the presence flag, `meta`, and every resource with no
-       * rate) travels verbatim, which is what `Reckoning.modelled` promises
-       * about the paths it does not name.
+       * (the capacity, the presence flag, `meta`, every resource with no rate,
+       * and every level that has left its range) travels verbatim, which is
+       * what `Reckoning.modelled` promises about the paths it does not name.
        */
       const resources: Resources["resources"] = { ...observed.resources };
-      for (const { name, perSecond } of moving) {
-        const amount = observed.resources[name];
-        const current = magnitudeOf(amount.current);
-        const capacity = magnitudeOf(amount.max);
-        if (current === null || capacity === null) continue;
+      for (const { name, perSecond, current, crossesAtUt } of moving) {
+        // The filter above settles COVERAGE, for the frame's own view time.
+        // This settles the VALUE, for whatever time the caller asks at, so a
+        // pull at some other `at` cannot get a level out of its range either.
+        if (at >= crossesAtUt) continue;
         resources[name] = {
-          ...amount,
-          current: value("units", clamp(current + perSecond * dt, 0, capacity)),
+          ...observed.resources[name],
+          current: value("units", current + perSecond * (at - asOfUt)),
         };
       }
       return { ...observed, resources };
