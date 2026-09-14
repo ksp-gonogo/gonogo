@@ -126,6 +126,58 @@ namespace Sitrep.Core.Tests
             Assert.Equal(Staleness.Fresh, lateJoiner[0].Meta.Staleness);
         }
 
+        /// <summary>
+        /// A subject marked dark while NOTHING subscribes to it still grades the
+        /// first vantage that subscribes afterwards. The catch-up is served
+        /// synchronously inside the subscribe, before any later tick could
+        /// re-apply the mark, so a mark stored only against the vantages present
+        /// at mark time reaches this subscriber too late and it reads Fresh.
+        /// </summary>
+        [Fact]
+        public void ASubjectMarkedDownWithNoSubscribersStillGradesTheFirstVantageToSubscribe()
+        {
+            var clock = new ManualClock();
+            var network = new StubNetwork();
+            var courier = new Courier(clock, network);
+
+            courier.Record("vessel", "onboard", "before-blackout", 1);
+            clock.AdvanceTo(3);
+
+            courier.MarkSubjectLinkDown("vessel", sinceUt: 2);
+
+            var lateJoiner = new List<StreamData>();
+            courier.SubscribeStream("vessel", "onboard", "MissionControl", lateJoiner.Add);
+
+            Assert.Single(lateJoiner);
+            Assert.Equal("before-blackout", lateJoiner[0].Payload);
+            Assert.Equal(Staleness.LastBeforeBlackout, lateJoiner[0].Meta.Staleness);
+        }
+
+        /// <summary>
+        /// The subject mark covers vantages that never subscribed during the
+        /// outage, and <see cref="Courier.MarkSubjectLinkUp"/> lifts it for all of
+        /// them.
+        /// </summary>
+        [Fact]
+        public void MarkSubjectLinkUpRestoresFreshCatchUpForAVantageThatJoinsAfterIt()
+        {
+            var clock = new ManualClock();
+            var network = new StubNetwork();
+            var courier = new Courier(clock, network);
+
+            courier.Record("vessel", "onboard", "v0", 0);
+            clock.AdvanceTo(3);
+
+            courier.MarkSubjectLinkDown("vessel", sinceUt: 2);
+            courier.MarkSubjectLinkUp("vessel");
+
+            var lateJoiner = new List<StreamData>();
+            courier.SubscribeStream("vessel", "onboard", "MissionControl", lateJoiner.Add);
+
+            Assert.Single(lateJoiner);
+            Assert.Equal(Staleness.Fresh, lateJoiner[0].Meta.Staleness);
+        }
+
         [Fact]
         public void LinkDownIsScopedPerVantageNotGlobalToTheNode()
         {

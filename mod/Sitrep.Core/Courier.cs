@@ -93,17 +93,23 @@ namespace Sitrep.Core
             new Dictionary<string, PendingCommand>();
 
         // node -> vantage -> the UT the link was marked down since (absent =
-        // currently up). See MarkLinkDown/MarkLinkUp/MarkSubjectLinkDown and
-        // ResolveStaleness -- what makes a late or reconnecting subscriber's
-        // catch-up sample honestly labeled instead of Fresh. Driven by
-        // Sitrep.Host.ChannelEngine's blackout authority (SetSubjectConnected),
-        // which is the only thing that knows when a subject went dark; it sat
-        // here with no production caller until then.
+        // currently up). See MarkLinkDown/MarkLinkUp and ResolveStaleness --
+        // what makes a late or reconnecting subscriber's catch-up sample
+        // honestly labeled instead of Fresh. Nothing in production marks a
+        // single vantage; Sitrep.Host.ChannelEngine's blackout authority
+        // (SetSubjectConnected) marks the whole subject, in
+        // _subjectLinkDownSince below.
         // Deliberately untouched by ResetTimeline: link
         // reachability is a NETWORK-topology fact, orthogonal to the
         // quickload timeline it resets (same rationale as _subscribers).
         private readonly Dictionary<string, Dictionary<string, double>> _linkDownSince =
             new Dictionary<string, Dictionary<string, double>>();
+
+        // node -> the UT the subject's link went down for every vantage (absent =
+        // up). Held against the node so a vantage that subscribes after the mark
+        // is graded by it too. See MarkSubjectLinkDown. Untouched by
+        // ResetTimeline for the same reason as _linkDownSince.
+        private readonly Dictionary<string, double> _subjectLinkDownSince = new Dictionary<string, double>();
 
         // node -> topic -> the ONE sample on that topic that opens a known break
         // in the record, as (its ValidAt, the ValidAt the break runs back to).
@@ -366,11 +372,12 @@ namespace Sitrep.Core
         /// <paramref name="node"/> has been down since <paramref name="sinceUt"/>.
         /// Idempotent (a later call overwrites the recorded since-UT).
         ///
-        /// <para>C#-ONLY, no TS reference. Driven per-subject by
-        /// <see cref="MarkSubjectLinkDown"/>, which is what
-        /// <c>Sitrep.Host.ChannelEngine</c> calls; reach for this one directly
+        /// <para>C#-ONLY, no TS reference. <c>Sitrep.Host.ChannelEngine</c> calls
+        /// <see cref="MarkSubjectLinkDown"/> instead; reach for this one directly
         /// only where a single (node, vantage) pair is genuinely the subject,
-        /// which nothing in production is yet.</para>
+        /// which nothing in production is yet. Where this and a subject mark
+        /// are both set, this one's since-UT wins; <see cref="MarkLinkUp"/> does
+        /// not lift a subject mark.</para>
         /// </summary>
         public void MarkLinkDown(string node, string vantage, double sinceUt)
         {
@@ -393,42 +400,34 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Mark <paramref name="node"/>'s link down since <paramref name="sinceUt"/>
-        /// for EVERY vantage that currently subscribes to it, the whole-subject
-        /// twin of <see cref="MarkLinkDown"/>.
+        /// for every vantage, including one that has not subscribed yet: the
+        /// whole-subject twin of <see cref="MarkLinkDown"/>. Idempotent (a later
+        /// call overwrites the recorded since-UT).
         ///
         /// <para>A blackout is a fact about the SUBJECT, not about one observer's
         /// choice of vantage, and the caller that knows about it
         /// (<c>Sitrep.Host.ChannelEngine</c>'s reveal gate) is keyed by node with
-        /// no vantage in hand. Per-vantage remains the storage shape because
-        /// <see cref="ResolveStaleness"/> answers per delivery, and a future
-        /// relay where one vantage can hear a craft another cannot needs the axis
-        /// to exist.</para>
+        /// no vantage in hand. So the mark is held against the node rather than
+        /// copied onto whichever vantages subscribe at the time. A vantage that
+        /// first subscribes mid-outage is served its catch-up synchronously
+        /// inside <see cref="SubscribeStream"/>, before anything could mark it
+        /// individually, so a mark copied onto the vantages subscribed at mark
+        /// time would miss it and send its pre-outage sample out
+        /// <see cref="Staleness.Fresh"/>.</para>
         ///
-        /// <para>Covers the vantages present NOW. A vantage that subscribes
-        /// mid-outage is served through <see cref="SubscribeStream"/>'s catch-up
-        /// and gets the honest grade a different way: its catch-up read resolves
-        /// to a pre-outage sample because nothing from inside the outage has been
-        /// recorded, and <c>MarkSubjectLinkDown</c> is re-applied on the next
-        /// tick's connectivity refresh.</para>
+        /// <para>A per-vantage mark from <see cref="MarkLinkDown"/> is consulted
+        /// first by <see cref="ResolveStaleness"/>, so the axis stays available to
+        /// a future relay where one vantage can hear a craft another cannot.</para>
         /// </summary>
         public void MarkSubjectLinkDown(string node, double sinceUt)
         {
-            if (!_subscribers.TryGetValue(node, out var byTopic))
-            {
-                return;
-            }
-            foreach (var subs in byTopic.Values)
-            {
-                foreach (var subscriber in subs)
-                {
-                    MarkLinkDown(node, subscriber.Vantage, sinceUt);
-                }
-            }
+            _subjectLinkDownSince[node] = sinceUt;
         }
 
-        /// <summary>Companion of <see cref="MarkSubjectLinkDown"/>: every vantage's link to <paramref name="node"/> is up again.</summary>
+        /// <summary>Companion of <see cref="MarkSubjectLinkDown"/>: every vantage's link to <paramref name="node"/> is up again, lifting per-vantage marks on it too.</summary>
         public void MarkSubjectLinkUp(string node)
         {
+            _subjectLinkDownSince.Remove(node);
             _linkDownSince.Remove(node);
         }
 
@@ -997,8 +996,10 @@ namespace Sitrep.Core
         /// <see cref="SubscribeStream"/>'s doc comment): every other
         /// delivery stays <see cref="Staleness.Fresh"/> unconditionally.
         /// Consults <see cref="MarkLinkDown"/>/<see cref="MarkLinkUp"/>'s
-        /// per-(node, vantage) state, which the blackout authority in
-        /// <c>Sitrep.Host.ChannelEngine.SetSubjectConnected</c> drives: no link
+        /// per-(node, vantage) state first, then
+        /// <see cref="MarkSubjectLinkDown"/>'s per-node state, which the blackout
+        /// authority in <c>Sitrep.Host.ChannelEngine.SetSubjectConnected</c>
+        /// drives: no link
         /// marked down -> Fresh (the served sample
         /// is, by construction of <see cref="Archive.ReadAtVantage"/>, always
         /// the freshest available as of this vantage's scene, an old
@@ -1014,7 +1015,8 @@ namespace Sitrep.Core
         /// </summary>
         private Staleness ResolveStaleness(string node, string vantage, ArchiveSample sample)
         {
-            if (_linkDownSince.TryGetValue(node, out var byVantage) && byVantage.TryGetValue(vantage, out var sinceUt))
+            if ((_linkDownSince.TryGetValue(node, out var byVantage) && byVantage.TryGetValue(vantage, out var sinceUt))
+                || _subjectLinkDownSince.TryGetValue(node, out sinceUt))
             {
                 return sample.ValidAt <= sinceUt ? Staleness.LastBeforeBlackout : Staleness.HeldStale;
             }

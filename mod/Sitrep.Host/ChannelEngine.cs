@@ -5301,15 +5301,12 @@ namespace Sitrep.Host
                 {
                     _subjectDarkSinceUt[node] = ut;
                 }
-                // Re-applied EVERY disconnected tick rather than on the edge
-                // alone, always at the ORIGINAL loss-of-signal instant. The
-                // Courier records the mark per (node, vantage) over the vantages
-                // subscribed when it is called, so an edge-only mark would miss
-                // an operator who opens a dashboard mid-outage: their catch-up
-                // would resolve to a pre-outage sample and be stamped
-                // Fresh, which is the exact lie this wiring exists to stop.
-                // Idempotent, and the since-UT is held rather than re-read so it
-                // cannot drift forward as the outage runs.
+                // The Courier holds the mark against the subject, so it also
+                // grades an operator who opens a dashboard mid-outage with nobody
+                // else watching: their catch-up is served inside the subscribe,
+                // before any later tick. Re-applied every disconnected tick at
+                // the ORIGINAL loss-of-signal instant, held rather than re-read so
+                // it cannot drift forward as the outage runs. Idempotent.
                 _courier.MarkSubjectLinkDown(
                     node,
                     _subjectDarkSinceUt.TryGetValue(node, out var darkSince) ? darkSince : ut);
