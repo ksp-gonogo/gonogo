@@ -38,7 +38,8 @@
     "gen-eligibility-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-eligibility-fixtures.ts",
     "gen-handover-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-handover-fixtures.ts",
     "render-eligibility-unknown": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-eligibility-unknown.ts",
-    "render-atmospheric-handover": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-atmospheric-handover.ts"
+    "render-atmospheric-handover": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-atmospheric-handover.ts",
+    "render-altitude-band": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-altitude-band.ts"
   },
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",

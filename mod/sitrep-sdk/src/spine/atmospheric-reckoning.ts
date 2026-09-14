@@ -1,7 +1,8 @@
 import { magnitudeOr, type Quantityish } from "../magnitude";
-import type { ReckoningDecline, StaleGrade } from "../reading";
+import type { ReckoningDecline, StaleGrade, UncertaintyBand } from "../reading";
 import type { TimelinePoint } from "../timeline";
 import { STANDARD_GRAVITY } from "../unit-system/definitions";
+import { value } from "../unit-system/value";
 import {
   atmosphereDepthOf,
   type ConicBodiesInput,
@@ -135,6 +136,15 @@ export interface AtmosphericDescentFit {
    * change of a measured rate is.
    */
   readonly verticalAcceleration: number;
+  /**
+   * The standard error of {@link verticalAcceleration}, in metres per second
+   * squared, or `undefined` where the window gives no evidence of one.
+   *
+   * See {@link SlopeFit.stdError} for the three ways it is absent.
+   * {@link atmosphericAltitudeBandAt} is what turns it into an interval around
+   * an altitude.
+   */
+  readonly accelerationStdError: number | undefined;
   /** How far past {@link anchorUt} this fit may be asked, in seconds. */
   readonly horizonSeconds: number;
   /** How many usable samples of the rate the window held. */
@@ -260,6 +270,31 @@ export interface SlopeFit {
   readonly samples: number;
   /** `undefined` when every sample carries the same instant. */
   readonly slope: number | undefined;
+  /**
+   * The standard error of {@link slope}, in the slope's own units, or
+   * `undefined` where the window gives no evidence of one.
+   *
+   * THE ONLY QUANTITY IN THIS MODULE THAT HAS AN ERROR, which is why it is kept
+   * rather than discarded with the residuals it comes from. The anchor's
+   * altitude and descent rate are measurements the wire carried once; a single
+   * reading of a number has no spread, so nothing here can say how well it is
+   * known. A slope taken over a window does: the samples disagree with the line
+   * through them, and the disagreement is measurable.
+   *
+   * `undefined` on three facts, each a different kind of nothing rather than a
+   * small number:
+   * - **two samples.** Two points determine a line exactly, so there is no
+   *   residual degree of freedom (`n - 2` of them) to estimate a spread from.
+   *   This is the commonest case in a change-gated stream and it must answer no
+   *   band rather than a fabricated one
+   * - **no spread in time.** Handled where {@link slope} is, since without it
+   *   there is no fit at all
+   * - **residuals of exactly zero.** Every sample on one line is a DEGENERATE
+   *   estimate, not evidence that an extrapolation is exact, and a zero-width
+   *   band is read downstream as the second thing. `ReckonedBands` would rather
+   *   have none, and real samples never land on it
+   */
+  readonly stdError: number | undefined;
 }
 
 /**
@@ -304,7 +339,7 @@ export function verticalAccelerationOver(
     }
   }
   if (samples.length < MIN_HISTORY_SAMPLES) {
-    return { samples: samples.length, slope: undefined };
+    return { samples: samples.length, slope: undefined, stdError: undefined };
   }
   const n = samples.length;
   let tBar = 0;
@@ -320,8 +355,32 @@ export function verticalAccelerationOver(
     covariance += dt * (s.v - vBar);
     spread += dt * dt;
   }
-  if (!(spread > 0)) return { samples: n, slope: undefined };
-  return { samples: n, slope: covariance / spread };
+  if (!(spread > 0)) {
+    return { samples: n, slope: undefined, stdError: undefined };
+  }
+  const slope = covariance / spread;
+  /*
+   * The ordinary least-squares standard error of a slope: the residual variance
+   * over the spread the slope was taken across. `n - 2` degrees of freedom
+   * because the line spent two of them, on its own slope and intercept.
+   *
+   * A second pass over the samples rather than a running sum of squares, which
+   * is the numerically stable spelling and costs nothing on a window capped at
+   * eight points.
+   */
+  const dof = n - 2;
+  if (dof < 1) return { samples: n, slope, stdError: undefined };
+  let residuals = 0;
+  for (const s of samples) {
+    const predicted = vBar + slope * (s.t - tBar);
+    residuals += (s.v - predicted) ** 2;
+  }
+  const stdError = Math.sqrt(residuals / dof / spread);
+  return {
+    samples: n,
+    slope,
+    stdError: stdError > 0 && Number.isFinite(stdError) ? stdError : undefined,
+  };
 }
 
 /**
@@ -501,6 +560,7 @@ export function atmosphericAdmissibility(
     altitudeAsl,
     verticalSpeed,
     verticalAcceleration: fit.slope,
+    accelerationStdError: fit.stdError,
     horizonSeconds,
     samples: fit.samples,
   };
@@ -531,6 +591,58 @@ export function atmosphericAltitudeAt(
     fit.verticalSpeed * dt +
     0.5 * fit.verticalAcceleration * dt * dt
   );
+}
+
+/**
+ * How well the fit knows the altitude it just carried, as an interval around
+ * that altitude, or `undefined` where it cannot say.
+ *
+ * ## One term, because only one input to the arithmetic has an error
+ *
+ * `atmosphericAltitudeAt` composes three things, and two of them are
+ * measurements: the anchor's altitude and its vertical speed each arrived on
+ * the wire once, so there are no residuals to take a spread from and nothing
+ * here may invent one. The acceleration is the exception, and the only one: it
+ * is FITTED across a window whose samples disagree with the line through them,
+ * and that disagreement is `SlopeFit.stdError`.
+ *
+ * So the interval is `0.5 x sigma_a x dt²` and nothing else. It is zero at the
+ * anchor and grows with the SQUARE of the carry, which is the honest shape: the
+ * acceleration enters the altitude twice-integrated, so an error in it costs
+ * four times as much at six seconds as at three. An operator watching the marks
+ * pull away from the bar is watching the model stop being worth much, which is
+ * the thing the horizon alone cannot tell them because it is a cliff rather than
+ * a slope.
+ *
+ * ## `sigma1`, never `bound`
+ *
+ * One standard deviation of the fitted slope, so the true altitude sits outside
+ * this interval about a third of the time. Nothing here bounds anything: the
+ * window could straddle a change of regime the envelope did not catch, and the
+ * constant-acceleration model is itself an approximation of an atmosphere whose
+ * density is climbing under the craft. Claiming a `bound` would be claiming
+ * knowledge of the aero model this module exists to avoid needing.
+ *
+ * Pure and asked per instant, the same terms `atmosphericAltitudeAt` is on, so
+ * a plotted tail asking at every step gets one widening interval rather than a
+ * chain of re-anchored ones.
+ */
+export function atmosphericAltitudeBandAt(
+  fit: AtmosphericDescentFit,
+  at: number,
+): UncertaintyBand<"m"> | undefined {
+  const sigma = fit.accelerationStdError;
+  if (sigma === undefined) return undefined;
+  const dt = at - fit.anchorUt;
+  const halfWidth = 0.5 * sigma * dt * dt;
+  if (!Number.isFinite(halfWidth)) return undefined;
+  const altitude = atmosphericAltitudeAt(fit, at);
+  return {
+    value: value("m", altitude),
+    lo: value("m", altitude - halfWidth),
+    hi: value("m", altitude + halfWidth),
+    kind: "sigma1",
+  };
 }
 
 /**

@@ -666,14 +666,15 @@ function LandingStatusComponent({
    * widget used to wire into it asked `Reckoning.bands` for a band at
    * `"verticalSpeed"` and got `undefined` on every frame it ever ran.
    *
-   * Two reasons, and either alone is enough. `verticalSpeed` is not among
-   * `vessel.flight`'s declared reckonable fields (`altitudeAsl` and
-   * `orbitalSpeed` are), so no path on a reckoning is ever keyed by it: the
-   * atmospheric branch copies the rate verbatim off the observation. And no
-   * model in this tree implements `TopicModel.bandAt` for `vessel.flight` at
-   * all, which is the only source `bands` has. A measured rate the wire carries
-   * once has neither residuals to take a sigma from nor a bound to claim, so it
-   * is not a field a band is coming for either.
+   * The reason is the FIELD, and it did not move when the altitude gained a
+   * band. `verticalSpeed` is not among `vessel.flight`'s declared reckonable
+   * fields (`altitudeAsl` and `orbitalSpeed` are), so no path on a reckoning is
+   * ever keyed by it: the atmospheric branch copies the rate verbatim off the
+   * observation. `core-reckoners.ts` now does implement `TopicModel.bandAt` for
+   * `vessel.flight`, and it keys the band at `"altitudeAsl"` alone, off the
+   * standard error of the acceleration it fitted. A measured rate the wire
+   * carries once has no residuals to take a sigma from and no bound to claim,
+   * so it is still not a field a band is coming for.
    *
    * The lateral rate is composed from two rates by `solveSuicideBurn` and the
    * slope comes off `vessel.landing`, so the same holds for both of those.

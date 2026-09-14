@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GENERATED_RECKONABLE_VALUES } from "./__generated__/reckonability";
 import {
   reckonableInputSpelling,
   reckonableInputsOf,
@@ -54,5 +55,102 @@ describe("a value served by two models", () => {
     // empty, so empty could only have meant unmarked.
     expect(reckonableInputsOf("vessel.flight", "mach")).toBeUndefined();
     expect(reckonableInputsOf("no.such.topic", "anything")).toBeUndefined();
+  });
+});
+
+/**
+ * The shape of the DECLARED graph, asked before anything walks it.
+ *
+ * A reckonable value names inputs, and an input can itself be a reckonable
+ * value, so the rows describe a directed graph over `(topic, field)` nodes. A
+ * consumer that propagates anything along it (an uncertainty, a horizon, a
+ * provenance trail) is walking that graph, and a cycle walked without a guard
+ * is a hang or a stack overflow on a live client rather than a wrong number.
+ *
+ * So the question is asked here, of the rows, rather than assumed by whoever
+ * walks them.
+ */
+
+/** Every `(topic, field)` node the rows declare, as one key per value. */
+function declaredNodes(): Set<string> {
+  return new Set(
+    GENERATED_RECKONABLE_VALUES.map((row) => `${row.topic}.${row.field}`),
+  );
+}
+
+/**
+ * The edges: one per declared input that is ITSELF a declared value.
+ *
+ * An input is resolved to a node the way a consumer would resolve it: a path on
+ * the value's own payload (`topic: ""`) names a sibling field of the same
+ * topic, and a cross-topic input names another topic's whole payload or one
+ * field of it. An input naming something no model carries is not an edge at
+ * all, which is the majority: it is a measurement, and a measurement is where a
+ * walk stops.
+ */
+function declaredEdges(): [from: string, to: string][] {
+  const nodes = declaredNodes();
+  const edges: [string, string][] = [];
+  for (const row of GENERATED_RECKONABLE_VALUES) {
+    const from = `${row.topic}.${row.field}`;
+    for (const input of row.inputs) {
+      const to =
+        input.topic === ""
+          ? `${row.topic}.${input.path}`
+          : `${input.topic}.${input.path}`;
+      if (nodes.has(to)) edges.push([from, to]);
+    }
+  }
+  return edges;
+}
+
+/** Every cycle the declared graph holds, each as the nodes it runs through. */
+function declaredCycles(): string[] {
+  const out = new Set<string>();
+  const adjacency = new Map<string, string[]>();
+  for (const [from, to] of declaredEdges()) {
+    adjacency.set(from, [...(adjacency.get(from) ?? []), to]);
+  }
+  const walk = (node: string, path: string[]): void => {
+    const seenAt = path.indexOf(node);
+    if (seenAt !== -1) {
+      // Rotated to its smallest member so one cycle found from two entry points
+      // is reported once rather than twice.
+      const ring = path.slice(seenAt);
+      const pivot = ring.indexOf([...ring].sort()[0]);
+      out.add([...ring.slice(pivot), ...ring.slice(0, pivot)].join(" then "));
+      return;
+    }
+    for (const next of adjacency.get(node) ?? []) walk(next, [...path, node]);
+  };
+  for (const node of declaredNodes()) walk(node, []);
+  return [...out].sort();
+}
+
+describe("the declared reckonability graph", () => {
+  it("is NOT acyclic, and the one cycle in it is a state vector naming itself", () => {
+    /*
+     * `vessel.orbit.truth`'s position declares its velocity and its velocity
+     * declares its position, which is the honest declaration: one conic
+     * propagates the whole state vector, so neither half is carriable without
+     * the other. It is a cycle all the same, and it is the reason nothing may
+     * walk these rows without a visited set.
+     *
+     * Written down rather than asserted away because an acyclicity assertion
+     * here would simply fail, and a walk written against the belief that it
+     * holds would not fail at all until the frame it hung on.
+     */
+    expect(declaredCycles()).toEqual([
+      "vessel.orbit.truth.position then vessel.orbit.truth.velocity",
+    ]);
+  });
+
+  it("puts no cycle on the altitude, whose inputs are all measurements", () => {
+    // Both models of `vessel.flight.altitudeAsl` reach only values nothing
+    // carries forward: the elements, the body roster, the observed descent rate
+    // and the sensed deceleration. A walk from here terminates in one step.
+    expect(
+      declaredEdges().filter(([from]) => from === "vessel.flight.altitudeAsl"),
+    ).toEqual([]);
   });
 });

@@ -7,6 +7,7 @@ import type { Vec3Of } from "../value";
 import {
   atmosphericAdmissibility,
   atmosphericAltitudeAt,
+  atmosphericAltitudeBandAt,
   DESCENT_WINDOW,
   localGravity,
   withinAtmosphere,
@@ -342,6 +343,20 @@ function registerFlightReckoner(): void {
         if ("declined" in fit) return fit;
         return {
           modelled: movedFields("rate-integration", "altitudeAsl"),
+          /*
+           * Keyed at `"altitudeAsl"` and at no other path, because that is the
+           * one field this branch MOVES. The orbital speed below is a verbatim
+           * copy of the observation, and an interval around a copied
+           * measurement would be a claim about how well the wire knows its own
+           * number.
+           *
+           * `undefined` rather than an empty map wherever the fit has no
+           * standard error: see `atmosphericAltitudeBandAt`.
+           */
+          bandAt: (at) => {
+            const band = atmosphericAltitudeBandAt(fit, at);
+            return band ? { altitudeAsl: band } : undefined;
+          },
           reckon: (at) => ({
             altitudeAsl: value("m", atmosphericAltitudeAt(fit, at)),
             // Verbatim, absence included. A copy of the last observation is what
