@@ -154,7 +154,24 @@ describe("wire payload reachability", () => {
     expect(report.roots).toBeGreaterThan(100);
     expect(report.reached).toBeGreaterThan(120);
     expect(report.writable).toBeGreaterThan(30);
-    expect(report.files).toBeGreaterThan(400);
+    /*
+     * The source half is not a count. It was a floor of 400 files, and the mod
+     * Uplinks leaving for the gonogo-uplinks repo take the tree to 400 exactly.
+     * Instead every C# file git tracks under Sitrep.Core, a production project
+     * that stays and holds the writer itself, must be among the sources read.
+     */
+    const read = new Set(
+      gate.productionSources(REPO_ROOT).map((file) => file.path),
+    );
+    const core = execFileSync("git", ["ls-files", "mod/Sitrep.Core"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter((rel) => rel.endsWith(".cs"));
+    expect(core).toContain("mod/Sitrep.Core/Serialization/JsonWriter.cs");
+    expect(core.filter((rel) => !read.has(rel))).toEqual([]);
+    expect(report.files).toBe(read.size);
   });
 
   it("reaches every Uplink's own contract slice", () => {
