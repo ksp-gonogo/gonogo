@@ -28,7 +28,7 @@ namespace Sitrep.Core.Tests
     /// with the Uplink when the Uplink leaves. An Uplink whose suite only builds
     /// against this repo's private assemblies has not been made extractable, and
     /// the author who forks it inherits tests they cannot run. The Tests half has
-    /// its own walk, its own floor, and its own pair of debt lists
+    /// its own walk, its own plant, and its own pair of debt lists
     /// (<see cref="TestProjectReferenceDebt"/>, <see cref="TestProjectImportDebt"/>),
     /// seeded from measurement rather than assumed empty.</para>
     ///
@@ -54,10 +54,13 @@ namespace Sitrep.Core.Tests
     /// <para><b>The scan asserts it found its subjects.</b> A directory-walking gate
     /// whose walk silently returns nothing reports zero violations, which is
     /// indistinguishable from success and is the failure mode this repo keeps
-    /// hitting. So <see cref="ScanFindsEveryUplinkProject"/> pins the discovery
-    /// itself: the Uplinks it must find by name, and a floor on the count so a
-    /// renamed or newly added one cannot quietly drop out of scope. If the layout
-    /// changes, that test fails first and says so, rather than the isolation tests
+    /// hitting. So <see cref="ScanFindsEveryUplinkProject"/> and
+    /// <see cref="ScanFindsEveryUplinkTestProject"/> pin the discovery itself: the
+    /// walk must find a planted Uplink and Tests project, and must agree exactly
+    /// with <c>Gonogo.sln</c> in both directions, so a renamed or newly added one
+    /// cannot quietly drop out of scope. None of it is a count, because every mod
+    /// Uplink is leaving this repo and an empty set is where it ends. If the layout
+    /// changes, those tests fail first and say so, rather than the isolation tests
     /// passing on an empty set.</para>
     /// </summary>
     public class UplinkIsolationTests
@@ -87,10 +90,6 @@ namespace Sitrep.Core.Tests
             // question these gates ask.
             "Sitrep.Contract.TestSupport",
         };
-
-        private const int MinimumUplinkProjectCount = 6;
-
-        private const int MinimumUplinkTestProjectCount = 6;
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
@@ -239,73 +238,40 @@ namespace Sitrep.Core.Tests
                 },
             };
 
+        /// <summary>
+        /// The isolation assertions in this file walk the set this proves, so a
+        /// walk that finds nothing reports no violations and looks identical to a
+        /// clean repo. It was a floor of six until the mod Uplinks started leaving;
+        /// see <see cref="UplinkProjects.AssertWalkAgreesWithPlantAndSolution"/> for
+        /// what replaced it and why it holds at zero.
+        /// </summary>
         [Fact]
         public void ScanFindsEveryUplinkProject()
         {
-            var uplinks = DiscoverUplinkProjects();
-
-            Assert.True(
-                uplinks.Count >= MinimumUplinkProjectCount,
-                $"The Uplink scan found {uplinks.Count} project(s), expected at least " +
-                $"{MinimumUplinkProjectCount}. The isolation assertions in this file walk the same " +
-                "set, so a scan that finds nothing reports no violations and looks identical to a " +
-                "clean repo. Either the mod/ layout moved (fix ResolveModDir/DiscoverUplinkProjects) " +
-                "or Uplinks were removed (lower the floor deliberately). Found: " +
-                string.Join(", ", uplinks.Keys.OrderBy(k => k, StringComparer.Ordinal)));
-
-            var declared = UplinkProjectsDeclaredInSolution();
-            Assert.True(
-                declared.Count >= MinimumUplinkProjectCount,
-                $"Gonogo.sln declares only {declared.Count} Uplink project(s). This is the " +
-                "independent source the directory walk is checked against, so if it comes back " +
-                "empty the check below compares nothing to nothing and passes.");
-
-            var missing = declared.Except(uplinks.Keys).OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Assert.True(
-                missing.Count == 0,
-                "Gonogo.sln declares Uplink projects the directory walk did not find: " +
-                string.Join(", ", missing) +
-                ". Either the walk is broken or a project was removed from disk but left in the " +
-                "solution.");
+            UplinkProjects.AssertWalkAgreesWithPlantAndSolution(
+                "Uplink",
+                UplinkProjects.Discover,
+                UplinkProjects.DeclaredInSolution,
+                UplinkProjects.PlantedUplink);
         }
 
         /// <summary>
         /// The Tests half of <see cref="ScanFindsEveryUplinkProject"/>, and it
         /// exists for a sharper reason than symmetry. Every debt list in this file
         /// read zero for ten days while ten Uplinks were breaching the rule,
-        /// because <see cref="DiscoverUplinkProjects"/> excludes the <c>.Tests</c>
-        /// siblings and nothing else looked at them. A gate told to skip a
-        /// directory reports that directory clean. So the Tests walk is pinned
-        /// against <c>Gonogo.sln</c> too, and a floor keeps a broken walk from
-        /// passing as an empty one.
+        /// because the Uplink walk excludes the <c>.Tests</c> siblings and nothing
+        /// else looked at them. A gate told to skip a directory reports that
+        /// directory clean. So the Tests walk has its own plant and its own exact
+        /// agreement with <c>Gonogo.sln</c>.
         /// </summary>
         [Fact]
         public void ScanFindsEveryUplinkTestProject()
         {
-            var tests = DiscoverUplinkTestProjects();
-
-            Assert.True(
-                tests.Count >= MinimumUplinkTestProjectCount,
-                $"The Uplink Tests scan found {tests.Count} project(s), expected at least " +
-                $"{MinimumUplinkTestProjectCount}. The Tests isolation assertions walk this set, so " +
-                "a walk that finds nothing reports no violations and is indistinguishable from a " +
-                "clean repo. Found: " +
-                string.Join(", ", tests.Keys.OrderBy(k => k, StringComparer.Ordinal)));
-
-            var declared = UplinkTestProjectsDeclaredInSolution();
-            Assert.True(
-                declared.Count >= MinimumUplinkTestProjectCount,
-                $"Gonogo.sln declares only {declared.Count} Uplink Tests project(s). This is the " +
-                "independent source the directory walk is checked against, so if it comes back " +
-                "empty the check below compares nothing to nothing and passes.");
-
-            var missing = declared.Except(tests.Keys).OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Assert.True(
-                missing.Count == 0,
-                "Gonogo.sln declares Uplink Tests projects the directory walk did not find: " +
-                string.Join(", ", missing) +
-                ". Either the walk is broken or a project was removed from disk but left in the " +
-                "solution.");
+            UplinkProjects.AssertWalkAgreesWithPlantAndSolution(
+                "Uplink Tests",
+                UplinkProjects.DiscoverTests,
+                UplinkProjects.TestsDeclaredInSolution,
+                UplinkProjects.PlantedUplinkTests);
         }
 
         /// <summary>
@@ -342,7 +308,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NoUplinkTestProjectReachesAPrivateProjectOutsideTheDebtList()
         {
-            var tests = DiscoverUplinkTestProjects();
+            var tests = UplinkProjects.DiscoverTests();
             var graph = BuildProjectReferenceGraph();
             var failures = new List<string>();
 
@@ -376,7 +342,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NoUplinkTestProjectImportsAPrivateNamespaceOutsideTheDebtList()
         {
-            var tests = DiscoverUplinkTestProjects();
+            var tests = UplinkProjects.DiscoverTests();
             var failures = new List<string>();
 
             foreach (var (project, directory) in tests.OrderBy(t => t.Key, StringComparer.Ordinal))
@@ -409,7 +375,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NoUplinkReachesAPrivateProjectOutsideTheDebtList()
         {
-            var uplinks = DiscoverUplinkProjects();
+            var uplinks = UplinkProjects.Discover();
             var graph = BuildProjectReferenceGraph();
             var failures = new List<string>();
 
@@ -470,7 +436,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NoUplinkBundlesAnAssemblyItMerelyReaches()
         {
-            var uplinks = DiscoverUplinkProjects();
+            var uplinks = UplinkProjects.Discover();
             var graph = BuildProjectReferenceGraph();
             var failures = new List<string>();
 
@@ -497,7 +463,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NoUplinkImportsAPrivateNamespaceOutsideTheDebtList()
         {
-            var uplinks = DiscoverUplinkProjects();
+            var uplinks = UplinkProjects.Discover();
             var failures = new List<string>();
 
             foreach (var (uplink, directory) in uplinks.OrderBy(u => u.Key, StringComparer.Ordinal))
@@ -537,119 +503,10 @@ namespace Sitrep.Core.Tests
                 string.Join("\n  ", failures));
         }
 
-        /// <summary>
-        /// The Uplink projects <c>Gonogo.sln</c> declares. The solution is a source
-        /// independent of the directory walk, which is the point: a walk checked
-        /// against a list hardcoded here would only ever confirm that someone
-        /// remembered to edit the list. It also keeps this file free of Uplink name
-        /// literals, which the client-side uplink-boundary ratchet scans for outside
-        /// each Uplink's owning directory, and this file is outside all of them.
-        /// </summary>
-        private static HashSet<string> UplinkProjectsDeclaredInSolution()
-        {
-            var solution = Path.Combine(ResolveModDir(), "Gonogo.sln");
-            var declared = new HashSet<string>(StringComparer.Ordinal);
-            if (!File.Exists(solution))
-            {
-                return declared;
-            }
-
-            var project = new Regex(@"=\s*""([A-Za-z0-9_.]+Uplink)""", RegexOptions.Compiled);
-            foreach (Match match in project.Matches(File.ReadAllText(solution)))
-            {
-                declared.Add(match.Groups[1].Value);
-            }
-
-            return declared;
-        }
-
-        /// <summary>
-        /// The <c>&lt;Uplink&gt;.Tests</c> projects <c>Gonogo.sln</c> declares, the
-        /// independent source <see cref="DiscoverUplinkTestProjects"/> is checked
-        /// against. Same reasoning as
-        /// <see cref="UplinkProjectsDeclaredInSolution"/>, and the two regexes do
-        /// not overlap: that one anchors on <c>Uplink"</c>, this one on
-        /// <c>Uplink.Tests"</c>.
-        /// </summary>
-        private static HashSet<string> UplinkTestProjectsDeclaredInSolution()
-        {
-            var solution = Path.Combine(ResolveModDir(), "Gonogo.sln");
-            var declared = new HashSet<string>(StringComparer.Ordinal);
-            if (!File.Exists(solution))
-            {
-                return declared;
-            }
-
-            var project = new Regex(@"=\s*""([A-Za-z0-9_.]+Uplink\.Tests)""", RegexOptions.Compiled);
-            foreach (Match match in project.Matches(File.ReadAllText(solution)))
-            {
-                declared.Add(match.Groups[1].Value);
-            }
-
-            return declared;
-        }
-
-        /// <summary>Uplink project name -> its source directory. An Uplink is a
-        /// <c>Gonogo*Uplink</c> directory with a csproj; the <c>.Contract</c> and
-        /// <c>.Tests</c> siblings are not Uplinks and are excluded. The Tests
-        /// siblings get their own walk (<see cref="DiscoverUplinkTestProjects"/>)
-        /// and are held to the same rule from there.</summary>
-        private static Dictionary<string, string> DiscoverUplinkProjects()
-        {
-            var modDir = ResolveModDir();
-            var uplinks = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            foreach (var directory in Directory.EnumerateDirectories(modDir))
-            {
-                var name = Path.GetFileName(directory);
-                if (!name.StartsWith("Gonogo", StringComparison.Ordinal) ||
-                    !name.EndsWith("Uplink", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (File.Exists(Path.Combine(directory, name + ".csproj")))
-                {
-                    uplinks[name] = directory;
-                }
-            }
-
-            return uplinks;
-        }
-
-        /// <summary>
-        /// Uplink Tests project name -> its source directory. A
-        /// <c>Gonogo*Uplink.Tests</c> directory with a csproj. The
-        /// <c>.Contract.Codegen</c> siblings do not match and neither do the plain
-        /// Uplink directories.
-        /// </summary>
-        private static Dictionary<string, string> DiscoverUplinkTestProjects()
-        {
-            var modDir = ResolveModDir();
-            var tests = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            foreach (var directory in Directory.EnumerateDirectories(modDir))
-            {
-                var name = Path.GetFileName(directory);
-                if (!name.StartsWith("Gonogo", StringComparison.Ordinal) ||
-                    !name.EndsWith("Uplink.Tests", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (File.Exists(Path.Combine(directory, name + ".csproj")))
-                {
-                    tests[name] = directory;
-                }
-            }
-
-            return tests;
-        }
-
         /// <summary>Project name -> the project names its csproj references directly.</summary>
         private static Dictionary<string, HashSet<string>> BuildProjectReferenceGraph()
         {
-            var modDir = ResolveModDir();
+            var modDir = UplinkProjects.ResolveModDir();
             var graph = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
             var include = new Regex(@"ProjectReference\s+Include=""([^""]+)""", RegexOptions.Compiled);
 
@@ -812,28 +669,6 @@ namespace Sitrep.Core.Tests
             }
 
             return found;
-        }
-
-        /// <summary>
-        /// Walks up from the test assembly to the checked-out <c>mod/</c> directory,
-        /// same pattern as <see cref="UplinkContractOwnershipTests"/>.
-        /// </summary>
-        private static string ResolveModDir()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory is not null)
-            {
-                var candidate = Path.Combine(directory.FullName, "mod", "Sitrep.Contract");
-                if (Directory.Exists(candidate))
-                {
-                    return Path.Combine(directory.FullName, "mod");
-                }
-
-                directory = directory.Parent;
-            }
-
-            throw new InvalidOperationException(
-                "Could not locate mod/ walking up from " + AppContext.BaseDirectory);
         }
     }
 }

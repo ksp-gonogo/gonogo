@@ -47,33 +47,6 @@ namespace Sitrep.Core.Tests
     public class UplinkArmingCoverageTests
     {
         /// <summary>
-        /// Six Uplinks today, down from nine when three left for the
-        /// gonogo-uplinks repo on 2026-09-06. A floor, not an equality: adding
-        /// one must not need this number touched, removing several deliberately
-        /// should, and it is the same six <c>UplinkIsolationTests</c>'s own
-        /// floor already reads.
-        ///
-        /// <para><b>THE TARGET IS ZERO, so this floor has a designed-in
-        /// expiry.</b> Every MOD Uplink is meant to leave for the
-        /// gonogo-uplinks repo; seven already have. What stays is the
-        /// exception: an Uplink for something that is not a third-party mod at
-        /// all, like <c>Gonogo.KSP.BreakingGroundUplink</c> (the Serenity DLC),
-        /// which ships in the core DLL by design and has no project of its own
-        /// to count. Those have never been in this number.</para>
-        ///
-        /// <para>So do not defend this floor as the count falls. It exists
-        /// because a directory walk that returns nothing reports no violations
-        /// and looks exactly like a clean repo, and at the target state that
-        /// is the honest situation, which this instrument cannot tell from a
-        /// broken walk. Before the last mod Uplink leaves, REPLACE the floor
-        /// with something that still works at zero: assert the walk finds the
-        /// exact expected SET by name, or plant a synthetic project and require
-        /// the walk to see it. Lowering the number one departure at a time is
-        /// bookkeeping, and it stops being possible at 6 more.</para>
-        /// </summary>
-        private const int MinimumUplinkProjectCount = 6;
-
-        /// <summary>
         /// The exact wiring an armed Uplink's manifest needs, whitespace-collapsed.
         /// Pinned as one literal string rather than matched loosely, because the
         /// normalisation is the load-bearing half: assigning the const raw puts
@@ -85,35 +58,26 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The walk has to find its subjects or it reports a clean repo while
-        /// proving nothing. Same discipline, and the same independent
-        /// <c>Gonogo.sln</c> cross-check, as
-        /// <see cref="UplinkIsolationTests.ScanFindsEveryUplinkProject"/>: a floor
-        /// alone cannot tell a broken walk from a shrinking repo.
+        /// proving nothing.
+        ///
+        /// <para>This was a floor of six, and every mod Uplink is leaving for the
+        /// gonogo-uplinks repo, so the honest count here is heading for zero and a
+        /// floor on it could not tell "all moved" from "the walk broke". What
+        /// replaced it is the plant and the exact two-way <c>Gonogo.sln</c>
+        /// agreement in <see cref="UplinkProjects.AssertWalkAgreesWithPlantAndSolution"/>,
+        /// which holds at any number of Uplinks including none. An Uplink that is
+        /// not a third-party mod at all, like <c>Gonogo.KSP.BreakingGroundUplink</c>
+        /// (the Serenity DLC), ships in the core DLL with no project of its own and
+        /// was never in this set.</para>
         /// </summary>
         [Fact]
         public void ScanFindsEveryUplinkProject()
         {
-            var uplinks = UplinkProjects.Discover();
-
-            Assert.True(
-                uplinks.Count >= MinimumUplinkProjectCount,
-                $"The Uplink scan found {uplinks.Count} project(s), expected at least " +
-                $"{MinimumUplinkProjectCount}. Every assertion in this file walks that set, so a " +
-                "scan finding nothing reports no violations and looks exactly like a clean repo. " +
-                "Found: " + string.Join(", ", uplinks.Keys.OrderBy(k => k, StringComparer.Ordinal)));
-
-            var declared = UplinkProjects.DeclaredInSolution();
-            Assert.True(
-                declared.Count >= MinimumUplinkProjectCount,
-                $"Gonogo.sln declares only {declared.Count} Uplink project(s). It is the " +
-                "independent source this walk is checked against, so an empty one compares " +
-                "nothing to nothing and passes.");
-
-            var missing = declared.Except(uplinks.Keys).OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Assert.True(
-                missing.Count == 0,
-                "Gonogo.sln declares Uplink projects the directory walk did not find: " +
-                string.Join(", ", missing));
+            UplinkProjects.AssertWalkAgreesWithPlantAndSolution(
+                "Uplink",
+                UplinkProjects.Discover,
+                UplinkProjects.DeclaredInSolution,
+                UplinkProjects.PlantedUplink);
         }
 
         /// <summary>
@@ -181,20 +145,28 @@ namespace Sitrep.Core.Tests
         /// indistinguishable from a clean repo. So the walk is made to see a
         /// violation that is known to be there: the wiring is deleted from a real
         /// Uplink's source IN MEMORY and the same predicate must reject it.
+        ///
+        /// <para>The planted Uplink is armed and wired, so there is always one
+        /// subject whose hash, source and wiring are read through the same helpers
+        /// as a real Uplink's. This used to require at least one real armed Uplink,
+        /// and every armed one is a mod Uplink bound for the gonogo-uplinks
+        /// repo.</para>
         /// </summary>
         [Fact]
         public void TheWalkCanSeeAViolationItIsPlanted()
         {
             var armed = UplinkProjects.Discover()
+                .Concat(UplinkProjects.Discover(UplinkProjects.PlantRoot()))
                 .Where(u => BakedHash(u.Value) is not null)
                 .OrderBy(u => u.Key, StringComparer.Ordinal)
                 .ToList();
 
             Assert.True(
-                armed.Count > 0,
-                "No Uplink is armed, so this file's central assertion currently skips every " +
-                "project and cannot fail. That is legitimate (nothing is armed yet) but it means " +
-                "the gate is dormant, and it must not be mistaken for coverage.");
+                armed.Any(u => u.Key == UplinkProjects.PlantedUplink),
+                $"The planted {UplinkProjects.PlantedUplink} was not read as armed, so either its " +
+                "ExpectedClientHash.g.cs is no longer found or the baked-hash read stopped matching, and " +
+                "every real Uplink would read as unarmed and be skipped by the same fault. Armed: " +
+                string.Join(", ", armed.Select(u => u.Key)));
 
             foreach (var (name, directory) in armed)
             {

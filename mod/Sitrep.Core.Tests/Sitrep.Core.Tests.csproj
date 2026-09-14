@@ -18,6 +18,11 @@
     <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- A fixture tree the Uplink walks are proved against (UplinkProjects.cs). It is read
+         as text, and its sources stand in for an Uplink's, so it must not compile here. -->
+    <Compile Remove="UplinkWalkPlant/**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="../golden-fixtures/version.json" Link="golden-fixtures/version.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../golden-fixtures/clock.json" Link="golden-fixtures/clock.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../golden-fixtures/stub-network.json" Link="golden-fixtures/stub-network.json" CopyToOutputDirectory="PreserveNewest" />

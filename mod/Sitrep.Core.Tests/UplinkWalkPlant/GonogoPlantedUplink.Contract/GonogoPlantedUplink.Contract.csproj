@@ -1,0 +1,5 @@
+<!--
+  A fixture, never built. A contract slice is not an Uplink, so both Uplink
+  walks in Sitrep.Core.Tests/UplinkProjects.cs must pass over it.
+-->
+<Project />
