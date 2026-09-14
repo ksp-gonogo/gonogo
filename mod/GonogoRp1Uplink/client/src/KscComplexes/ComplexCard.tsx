@@ -110,13 +110,7 @@ export function ComplexCard({
           </Inline>
         </Cluster>
 
-        <Crew
-          complex={complex}
-          complexNames={complexNames}
-          engineers={engineers}
-          maxEngineers={maxEngineers}
-          name={name}
-        />
+        <Crew complex={complex} complexNames={complexNames} name={name} />
 
         {operational && (
           <AssignControl
@@ -232,19 +226,20 @@ export function ComplexCard({
 function Crew({
   complex,
   complexNames,
-  engineers,
-  maxEngineers,
   name,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   complexNames: ReadonlyMap<string, string>;
-  engineers: number | null;
-  maxEngineers: number | null;
   name: string;
 }>) {
-  const share =
-    engineers !== null && maxEngineers !== null && maxEngineers > 0
-      ? engineers / maxEngineers
+  /*
+   * The pair rather than the quotient: these are the same two counts the line
+   * above draws, so handing them over is what stops the bar and the text being
+   * free to disagree about what a full complex holds.
+   */
+  const staffing =
+    complex.engineers != null && complex.maxEngineers != null
+      ? { amount: complex.engineers, capacity: complex.maxEngineers }
       : null;
 
   return (
@@ -265,12 +260,10 @@ function Crew({
         </Text>
       </Cluster>
       <SharedRating complex={complex} complexNames={complexNames} />
-      {share === null ? null : (
-        <ProgressBar
-          ariaLabel={`Crew assigned to ${name}, as a share of what it can hold`}
-          value={share * 100}
-        />
-      )}
+      <ProgressBar
+        ariaLabel={`Crew assigned to ${name}, as a share of what it can hold`}
+        quantity={staffing}
+      />
     </Stack>
   );
 }
