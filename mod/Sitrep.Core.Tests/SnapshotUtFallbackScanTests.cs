@@ -27,24 +27,22 @@ namespace Sitrep.Core.Tests
     /// reachable first, and that is a change to the engine rather than to these
     /// call sites.</para>
     ///
-    /// <para><b>Core is held to zero, an Uplink is held to a ceiling</b>, and the
-    /// split is not laziness. In core the live-clock form is a one-word
-    /// substitution, <c>Planetarium.GetUniversalTime()</c>, and every core site
-    /// took it. An Uplink cannot: its test project compiles its sources with NO
-    /// KSP assemblies, so that call does not even build there, and the seam that
-    /// does work, <c>IUplinkHost.NowUt</c>, is null in precisely the case the
-    /// guard exists for. Those Uplinks' own tests call their capture with no host
-    /// registered and no host double to register, so reaching for the host there
-    /// turns a silent wrong answer into a crash in the test suite. Fixing them
-    /// means either giving those test projects a host double, or having the
-    /// captures decline when they have no instant, which makes the raw UTs
-    /// nullable and reaches the publish side too. That is a decision, tracked
-    /// separately, and not something to guess at from inside a ratchet.</para>
+    /// <para><b>The whole tree is held to zero, with no debt list.</b> It was
+    /// briefly a ceiling, because the live-clock form differs on either side of
+    /// the Uplink boundary: core substitutes
+    /// <c>Planetarium.GetUniversalTime()</c>, and an Uplink cannot, its test
+    /// project compiling its sources with no KSP assemblies. The seam that does
+    /// work there is <c>IUplinkHost.NowUt</c>, reached through a per-class
+    /// <c>UtOf</c> helper off a host held from <c>Register</c>, and the reason it
+    /// could not be taken sooner was that those test projects registered no host
+    /// and had no host double to register. A public clock-carrying double in
+    /// <c>Sitrep.Contract.TestSupport</c> removed the obstacle, so both forms are
+    /// now accepted and every capture in the tree takes one of them.</para>
     ///
     /// <para>This file deliberately names no Uplink. A core test that hardcoded
     /// Uplink paths would itself trip <c>uplink-boundary</c>, which is the gate
-    /// that keeps core from reaching into an Uplink, so the debt is expressed as
-    /// a directory shape and a count instead.</para>
+    /// that keeps core from reaching into an Uplink, so it reads every production
+    /// source and asks the same question of all of them.</para>
     /// </summary>
     public class SnapshotUtFallbackScanTests
     {
@@ -57,65 +55,38 @@ namespace Sitrep.Core.Tests
             @"snapshot\s*\?\s*\.\s*Ut\s*\?\?\s*-?\d+(\.\d+)?[dfDF]?",
             RegexOptions.Compiled);
 
-        /// <summary>Any file belonging to an Uplink project rather than to core.</summary>
-        private static readonly Regex UplinkOwned = new Regex(
-            @"^mod/Gonogo[A-Za-z0-9]*Uplink(\.[A-Za-z]+)?/",
-            RegexOptions.Compiled);
-
         /// <summary>
-        /// The Uplink sites still on the epoch form. SHRINK-ONLY: this number may
-        /// go down and must never go up. Measured 2026-09-14, when core reached
-        /// zero. See the class doc for what fixing these needs.
+        /// The two live-clock forms, one per side of the Uplink boundary. Held as
+        /// text rather than as paths so the assertion below can say the guard is
+        /// still PRESENT without naming a project.
         /// </summary>
-        private const int UplinkEpochFallbackCeiling = 12;
+        private static readonly string[] AcceptedForms =
+        {
+            "snapshot?.Ut ?? Planetarium.GetUniversalTime()",
+            "snapshot?.Ut ?? _host!.NowUt()",
+        };
 
         [Fact]
-        public void NoCoreCaptureFallsBackToTheEpochForItsInstant()
+        public void NoCaptureFallsBackToTheEpochForItsInstant()
         {
-            var offenders = Offenders().Where(o => !UplinkOwned.IsMatch(o)).ToList();
+            var offenders = Offenders();
 
             Assert.True(
                 offenders.Count == 0,
                 "A capture with no snapshot must take the live clock, not the epoch. Year 1 day 1 is "
-                    + "a real instant, so these stamp a reading with a time nobody measured. In core "
-                    + "the fix is snapshot?.Ut ?? Planetarium.GetUniversalTime(), which is what every "
-                    + "other core site does:\n  "
+                    + "a real instant, so these stamp a reading with a time nobody measured. The fix "
+                    + "is snapshot?.Ut ?? Planetarium.GetUniversalTime() in core, and the same guard "
+                    + "over IUplinkHost.NowUt in an Uplink, which cannot reach Planetarium:\n  "
                     + string.Join("\n  ", offenders));
-        }
-
-        [Fact]
-        public void TheUplinkEpochFallbackDebtDoesNotGrow()
-        {
-            var offenders = Offenders().Where(o => UplinkOwned.IsMatch(o)).ToList();
-
-            Assert.True(
-                offenders.Count <= UplinkEpochFallbackCeiling,
-                "More Uplink captures fall back to the epoch than the recorded ceiling of "
-                    + UplinkEpochFallbackCeiling + ". An Uplink cannot call Planetarium (its test "
-                    + "project has no KSP assemblies) and cannot lean on IUplinkHost.NowUt while its "
-                    + "tests register no host, so a new one here is a new wrong answer with no cheap "
-                    + "fix. Found " + offenders.Count + ":\n  "
-                    + string.Join("\n  ", offenders));
-
-            // Reported, never failed on a DROP: the ceiling is a ceiling, and a
-            // count that came in low wants tightening in the commit that earned
-            // it rather than failing the run that noticed.
-            if (offenders.Count < UplinkEpochFallbackCeiling)
-            {
-                Console.WriteLine(
-                    "[snapshot-ut-fallback] Uplink epoch fallbacks down to " + offenders.Count
-                        + " from a ceiling of " + UplinkEpochFallbackCeiling
-                        + ". Tighten UplinkEpochFallbackCeiling in the same commit.");
-            }
         }
 
         /// <summary>
         /// The scan can SEE the thing it forbids.
         ///
         /// <para>A counter that cannot see a violation reports zero, and zero
-        /// reads as success. Core is at zero on purpose, so without this the test
-        /// would pass just as happily if the pattern stopped matching, which it
-        /// would on any reformatting of the guard. It plants each spelling and
+        /// reads as success. The tree is at zero on purpose, so without this the
+        /// test would pass just as happily if the pattern stopped matching, which
+        /// it would on any reformatting of the guard. It plants each spelling and
         /// also asserts the accepted forms stay accepted, so a tightened regex
         /// that caught the live clock too fails here rather than sending someone
         /// hunting a phantom offender.</para>
@@ -136,23 +107,12 @@ namespace Sitrep.Core.Tests
                     "The scan no longer matches an epoch fallback it must catch: " + text);
             }
 
-            var accepted = new[]
-            {
-                "var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();",
-                "private double UtOf(KspSnapshot? snapshot) => snapshot?.Ut ?? _host!.NowUt();",
-            };
-            foreach (var text in accepted)
+            foreach (var text in AcceptedForms)
             {
                 Assert.False(
-                    EpochFallback.IsMatch(text),
+                    EpochFallback.IsMatch("private double UtOf(KspSnapshot? snapshot) => " + text + ";"),
                     "The scan now rejects a live-clock form it must accept: " + text);
             }
-
-            // And the core/Uplink split keys on a real directory shape.
-            Assert.True(UplinkOwned.IsMatch("mod/GonogoSomethingUplink/Thing.cs"));
-            Assert.True(UplinkOwned.IsMatch("mod/GonogoSomethingUplink.Contract/Thing.cs"));
-            Assert.False(UplinkOwned.IsMatch("mod/Gonogo.KSP/Thing.cs"));
-            Assert.False(UplinkOwned.IsMatch("mod/Sitrep.Host/Thing.cs"));
         }
 
         /// <summary>
@@ -160,8 +120,9 @@ namespace Sitrep.Core.Tests
         ///
         /// <para>Its sibling above proves the pattern matches; this proves there is
         /// something to match against. <c>ProductionSources</c> throws on an empty
-        /// walk, and the guard must still be PRESENT in its accepted form, or the
-        /// property being ratcheted has quietly stopped existing.</para>
+        /// walk, and BOTH live-clock forms must still be present, or the property
+        /// being ratcheted has quietly stopped existing on one side of the Uplink
+        /// boundary.</para>
         /// </summary>
         [Fact]
         public void TheGuardStillExistsInItsAcceptedForm()
@@ -169,15 +130,14 @@ namespace Sitrep.Core.Tests
             var sources = ProducerFlattenScan.ProductionSources(
                 ProducerFieldParityTests.ResolveModDir());
 
-            var accepted = sources
-                .Count(s => s.Text.Contains(
-                    "snapshot?.Ut ?? Planetarium.GetUniversalTime()", StringComparison.Ordinal));
-
-            Assert.True(
-                accepted > 0,
-                "No production file guards snapshot?.Ut with the live clock any more. Either the "
-                    + "guard was removed wholesale, in which case this ratchet is obsolete and "
-                    + "should go, or the scan has stopped reading the sources it thinks it reads.");
+            foreach (var form in AcceptedForms)
+            {
+                Assert.True(
+                    sources.Any(s => s.Text.Contains(form, StringComparison.Ordinal)),
+                    "No production file guards snapshot?.Ut with " + form + " any more. Either the "
+                        + "guard was removed wholesale, in which case this ratchet is obsolete and "
+                        + "should go, or the scan has stopped reading the sources it thinks it reads.");
+            }
         }
 
         private static List<string> Offenders()
