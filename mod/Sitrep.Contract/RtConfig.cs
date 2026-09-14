@@ -1078,9 +1078,9 @@ public static class RtConfig
         sb.Append(" * this union would therefore have meant an Uplink could never declare a\n");
         sb.Append(" * unit at all, which contradicts third parties being first-class.\n");
         sb.Append(" *\n");
-        sb.Append(" * A consumer teaches the client what an unknown symbol MEANS by calling\n");
-        sb.Append(" * registerUnit from @ksp-gonogo/ui-kit. Until it does, the value still\n");
-        sb.Append(" * renders, bare and unscaled.\n");
+        sb.Append(" * A consumer teaches the client what an unknown symbol MEANS by declaring it\n");
+        sb.Append(" * in UnitDeclarations and calling registerUnit from @ksp-gonogo/sitrep-sdk.\n");
+        sb.Append(" * Until it does, the value still renders, bare and unscaled.\n");
         sb.Append(" */\n");
         sb.Append("export type SitrepUnit = KnownSitrepUnit | (string & {});\n\n");
 

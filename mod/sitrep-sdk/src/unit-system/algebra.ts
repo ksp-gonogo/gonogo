@@ -1,3 +1,4 @@
+import type { DeclaredUnit, UnitDeclarations } from "./declarations";
 import type { UNIT_DEFINITIONS } from "./definitions";
 import type { UnknownUnit } from "./value";
 
@@ -235,47 +236,52 @@ export type Div<A, B> = [A] extends [never]
 /* ────────────────────────────────────────────────────────────────────────────
  * Symbols in, dimensions out
  * ─────────────────────────────────────────────────────────────────────────── */
-
 type StaticUnit = keyof typeof UNIT_DEFINITIONS;
 type Def<U extends StaticUnit> = (typeof UNIT_DEFINITIONS)[U];
 
 /**
- * A consumer that knows its unit symbols at compile time declares them here.
+ * A unit declared through {@link UnitDeclarations} that the static table does
+ * not carry: an Uplink's own.
  *
- * Empty by default, so `keyof UnitExtensions` is `never` and this costs
- * literally nothing until somebody uses it. An Uplink augments the module:
+ * Declared in the one place every unit is, in the shape a first-party one is:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
- *   interface UnitExtensions {
- *     "snacks:snack": { dim: { readonly resSnack: 1 }; ratio: 1 };
+ *   interface UnitDeclarations {
+ *     "snacks:snack": { kind: "snacks"; dim: { readonly resSnack: 1 }; ratio: 1 };
  *   }
  * }
  * ```
  *
- * It cannot corrupt a first-party answer: `resetUnitRegistry` seeds
- * `UNIT_DEFINITIONS` first and `declaredUnitFor` returns the FIRST ratio-1
- * match, so no registration can change what a statically-known dimension
- * resolves to.
+ * The static table is consulted first, so an augmentation cannot change what a
+ * first-party symbol resolves to, and neither can a runtime registration:
+ * `resetUnitRegistry` seeds `UNIT_DEFINITIONS` first and `declaredUnitFor`
+ * returns the FIRST ratio-1 match.
  */
-/*
- * It must stay an INTERFACE, and empty is the point. `declare module` can only
- * augment an interface, never a type alias, so biome's autofix to
- * `type UnitExtensions = {}` silently turns every consumer's augmentation into
- * a duplicate-identifier error. That is not hypothetical: the autofix ran, and
- * it took every resource assertion in the test-d suite down with it.
- */
-// biome-ignore lint/suspicious/noEmptyInterface: augmentable by design, see above
-export interface UnitExtensions {}
-
-type ExtUnit = keyof UnitExtensions & string;
+type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
 
 /**
  * A consumer that knows its RESOURCE names at compile time declares them here.
  *
+ * ```ts
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface ResourceNamespaces {
+ *     Food: true;
+ *   }
+ * }
+ * ```
+ *
  * See {@link ResourceDim} for the token grammar this unlocks.
  */
-// biome-ignore lint/suspicious/noEmptyInterface: augmentable by design, as UnitExtensions
+/*
+ * It must stay an INTERFACE, and empty is the point. `declare module` can only
+ * augment an interface, never a type alias, so biome's autofix to
+ * `type ResourceNamespaces = {}` silently turns every consumer's augmentation
+ * into a duplicate-identifier error. That is not hypothetical: the autofix ran
+ * on its sibling, and it took every resource assertion in the test-d suite down
+ * with it.
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: augmentable by design, see above
 export interface ResourceNamespaces {}
 
 type Res<R extends string> = R extends keyof ResourceNamespaces ? R : never;
@@ -345,7 +351,7 @@ export type DimOf<U> = [U] extends [UnknownUnit]
   : U extends StaticUnit
     ? Norm<Def<U>["dim"]>
     : U extends ExtUnit
-      ? Norm<UnitExtensions[U] extends { dim: infer D } ? D : never>
+      ? Norm<UnitDeclarations[U] extends { dim: infer D } ? D : never>
       : [ResourceDim<U>] extends [never]
         ? never
         : Norm<ResourceDim<U>>;

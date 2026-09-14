@@ -1,21 +1,42 @@
-import { calendarRatio } from "@ksp-gonogo/sitrep-sdk";
+import {
+  calendarRatio,
+  type DeclaredUnit,
+  onUnitRegistered,
+  type RegisteredUnit,
+  type UnitDeclarations,
+  type UnitRung,
+} from "@ksp-gonogo/sitrep-sdk";
 import { GENERATED_UNIT_KINDS } from "./__generated__/unit-kinds";
 import { formatKspDate } from "./formatKspDate";
 
-/** Every symbol the model declares. */
+/** A symbol the generated first-party table carries, for the runtime lookups. */
 type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
 
-/** What the model says `S` measures, or `never` for a symbol it has no unit for. */
-type KindOfSymbol<S extends string> = S extends GeneratedUnit
-  ? (typeof GENERATED_UNIT_KINDS)[S]["kind"]
+/**
+ * What the declaration says `S` measures, or `never` for a symbol nothing
+ * declares.
+ *
+ * Every type in this module reads `UnitDeclarations` and nothing else, which is
+ * what makes a unit an Uplink merges into it indistinguishable here from a
+ * first-party one.
+ */
+type KindOfSymbol<S extends string> = S extends DeclaredUnit
+  ? UnitDeclarations[S] extends { kind: infer K }
+    ? K
+    : never
   : never;
 
 /** Every declared symbol that measures `K`. */
 type SymbolsOfKind<K> = {
-  [S in GeneratedUnit]: (typeof GENERATED_UNIT_KINDS)[S]["kind"] extends K
-    ? S
-    : never;
-}[GeneratedUnit];
+  [S in DeclaredUnit]: KindOfSymbol<S> extends K ? S : never;
+}[DeclaredUnit];
+
+/** The ladder `S` is declared on, or `never` for a unit that climbs none. */
+type LadderOfSymbol<S extends string> = S extends DeclaredUnit
+  ? UnitDeclarations[S] extends { ladder: infer L extends string }
+    ? L
+    : never
+  : never;
 
 /**
  * Every symbol of kind `K` that exists only as a conversion TARGET, which the
@@ -23,7 +44,7 @@ type SymbolsOfKind<K> = {
  *
  * `°C` is the whole of it today: the contract has no Celsius token on purpose,
  * so the only place the symbol is named is {@link CONVERSIONS}, and a type that
- * read the model table alone would refuse the one conversion the kit ships a
+ * read the declarations alone would refuse the one conversion the kit ships a
  * readout for. A pair whose source is itself undeclared is skipped, or `°C→K`
  * would make every kind accept `K`.
  */
@@ -42,16 +63,18 @@ type ConversionTargetsOfKind<K> = {
  * value in `U` may be re-expressed in.
  *
  * This is what makes `format="km/h"` check on a speed and fail on a length. It
- * is a mapped type over the generated table, so a new unit in the model widens
- * the accepted set with nothing to keep in sync, and it is why that table is
- * emitted `as const`.
+ * is a mapped type over `UnitDeclarations`, so a unit declared there, by the
+ * model or by an Uplink, widens the accepted set with nothing to keep in sync.
  *
- * A symbol outside the model (an Uplink's, a ladder-only rung) yields `never`
- * for its own kind, so the prop falls back to accepting any string rather than
- * refusing everything. Being unable to type-check a third party's unit is not
- * a reason to stop them asking for one.
+ * A literal symbol nothing declares accepts no format at all: there is no kind
+ * to check the request against, and a request that cannot be checked is the
+ * wrong number under a right-looking label this module exists to prevent.
+ * Declare the unit. Only a wide `string`, a unit this code chose not to track,
+ * accepts any string.
  */
-export type FormatsFor<U extends string> = FormatsForKind<KindOfSymbol<U>>;
+export type FormatsFor<U extends string> = string extends U
+  ? string
+  : FormatsForKind<KindOfSymbol<U>>;
 
 /**
  * {@link FormatsFor}, asked of the KIND rather than of one of its units.
@@ -60,7 +83,7 @@ export type FormatsFor<U extends string> = FormatsForKind<KindOfSymbol<U>>;
  * the group is the length ladder, not the metre. The kind is what both spellings
  * ultimately resolve to, so it is what the rule is written in terms of.
  */
-export type FormatsForKind<K> = [K] extends [never] ? string : SymbolsOfKind<K>;
+export type FormatsForKind<K> = SymbolsOfKind<K>;
 
 /**
  * Every unit a value in `U` may be SHOWN as, which is every unit of its kind
@@ -72,14 +95,14 @@ export type FormatsForKind<K> = [K] extends [never] ? string : SymbolsOfKind<K>;
  * belong to the other. Both refuse a cross-kind request, which is the check
  * that matters: `as="kg"` on a length is still an error.
  */
-export type PresentableAs<U extends string> = PresentableAsKind<
-  KindOfSymbol<U>
->;
+export type PresentableAs<U extends string> = string extends U
+  ? string
+  : PresentableAsKind<KindOfSymbol<U>>;
 
 /** {@link PresentableAs}, asked of the KIND. See {@link FormatsForKind}. */
-export type PresentableAsKind<K> = [K] extends [never]
-  ? string
-  : SymbolsOfKind<K> | ConversionTargetsOfKind<K>;
+export type PresentableAsKind<K> =
+  | SymbolsOfKind<K>
+  | ConversionTargetsOfKind<K>;
 
 /**
  * How many of the kind's BASE unit one of `symbol` is worth.
@@ -87,7 +110,7 @@ export type PresentableAsKind<K> = [K] extends [never]
  * Three sources, in order, and none of them written by hand here. The LIVE
  * CALENDAR first, because `d`, `h`, `min` and `science/day` are sized by the
  * running game rather than by physics and codegen bakes stock Kerbin figures
- * for all four. Then the model's declared ratio, then the rung's own divisor
+ * for all four. Then the unit's declared ratio, then the rung's own divisor
  * for a rung the model has no unit for. Even the multiplicative conversions
  * (g to m/s², rad to degrees) come through as ordinary ratios.
  *
@@ -99,13 +122,12 @@ export type PresentableAsKind<K> = [K] extends [never]
 function ratioOf(symbol: string): number | undefined {
   const fromCalendar = calendarRatio(symbol);
   if (fromCalendar !== undefined) return fromCalendar;
-  const declared = GENERATED_UNIT_KINDS[symbol as GeneratedUnit];
+  const declared = declarationOf(symbol);
   if (declared) return declared.ratio;
-  for (const rungs of Object.values(LADDERS)) {
-    const rung = rungs.find((r) => r.symbol === symbol);
-    if (rung) return rung.per;
-  }
-  return undefined;
+  const ladder = rungLadderOf(symbol);
+  return ladder === undefined
+    ? undefined
+    : laddersByName[ladder]?.find((r) => r.symbol === symbol)?.per;
 }
 
 import { formatDuration, formatIrlDuration } from "./formatDuration";
@@ -224,13 +246,7 @@ export type KnownQuantityKind =
 export type QuantityKind = KnownQuantityKind | (string & {});
 
 /** One rung of a scaling ladder: a threshold in base units and its symbol. */
-export interface Rung {
-  /** Values at or above this magnitude (in base units) use this rung. */
-  from: number;
-  symbol: string;
-  /** Divide the base value by this to get the rung's value. */
-  per: number;
-}
+export type Rung = UnitRung;
 
 /**
  * Ladders, ascending. A dimension with no entry never scales, which is the
@@ -359,26 +375,29 @@ export const LADDERS = {
 } satisfies Record<string, readonly Rung[]>;
 
 /**
- * The same table, read by a kind that is not statically known.
+ * Every ladder by name: the first-party ones above, each named for the kind it
+ * scales, and every one a registration has supplied rungs for since.
  *
- * `satisfies` above keeps the literal keys, which is what lets a pin be
- * addressed to a group by name and checked; the lookups here are by a kind that
- * arrives as a plain string, including one a `registerUnit` call added after
- * this module loaded.
+ * `satisfies` above keeps the literal keys so a type test can hold them to the
+ * ladder names the declarations state; the lookups here are by a name that
+ * arrives as a plain string, including one an Uplink registered after this
+ * module loaded.
  */
-const laddersByKind = LADDERS as Record<string, readonly Rung[]>;
+const laddersByName: Record<string, readonly Rung[]> = { ...LADDERS };
 
 /**
- * Every kind that ships a ladder, and therefore settles its whole kind at one
- * rung. A kind absent from here never climbs, so each of its units is a group
- * of its own: `m`, `km` and `Mm` are one group and `s` and `min` are two.
+ * Every ladder a declared unit names, and therefore every group that settles
+ * one rung together. A unit on none of them is a group of its own: `m`, `km`
+ * and `Mm` are one group and `s` and `min` are two.
  */
-export type LadderedKind = keyof typeof LADDERS;
+export type LadderName = {
+  [S in DeclaredUnit]: LadderOfSymbol<S>;
+}[DeclaredUnit];
 
 /**
  * What a pin may be addressed to: one GROUP, named the way the group is formed.
  *
- * A laddered kind is named by the kind, because every unit of it settles
+ * A unit on a ladder is named by the ladder, because every unit of it settles
  * together and `m`, `km` and `Mm` are one thing to pin. Everything else is named
  * by the unit, because nothing interconverts it with its siblings and a pin on
  * `s` says nothing about `min`.
@@ -388,23 +407,29 @@ export type LadderedKind = keyof typeof LADDERS;
  * unit-keyed record `{ m: ..., km: ... }` was one group pinned twice, and the
  * later entry quietly won.
  *
- * The one thing it cannot see is a ladder `registerUnit` adds at runtime, which
- * moves a unit out of its own group and into a kind's. That residual is
- * accepted: the tables it would need are populated after this module's types
- * are fixed.
+ * Read off `UnitDeclarations`, so a ladder an Uplink declares is a key on
+ * exactly the terms `length` is, and the runtime groups by the same declaration.
  */
 export type UnitGroupKey =
-  | LadderedKind
-  | Exclude<GeneratedUnit, SymbolsOfKind<LadderedKind>>;
+  | LadderName
+  | {
+      [S in DeclaredUnit]: [LadderOfSymbol<S>] extends [never] ? S : never;
+    }[DeclaredUnit];
 
 /**
  * What the group named by `G` measures, so a pin addressed to it can be checked.
  *
- * A laddered key IS its kind; a unit key resolves through the model table the
- * same way a lone `<Unit>` does.
+ * A ladder key measures whatever its units do; a unit key resolves through the
+ * declarations the same way a lone `<Unit>` does.
  */
-export type KindOfGroup<G extends UnitGroupKey> = G extends LadderedKind
-  ? G
+export type KindOfGroup<G extends UnitGroupKey> = G extends LadderName
+  ? {
+      [S in DeclaredUnit]: [LadderOfSymbol<S>] extends [G]
+        ? [LadderOfSymbol<S>] extends [never]
+          ? never
+          : KindOfSymbol<S>
+        : never;
+    }[DeclaredUnit]
   : KindOfSymbol<G>;
 
 /**
@@ -600,43 +625,54 @@ const DISPLAY_BY_KIND: Record<string, string> = {
 };
 
 /**
- * Kinds taught at runtime by {@link registerUnit}, layered over the generated
- * table. Empty until an Uplink registers something.
+ * What `registerUnit` taught the kit about each Uplink unit, layered over the
+ * generated first-party table. Empty until an Uplink registers something.
  *
- * There is deliberately no hand-written first-party table any more. ui-kit kept
- * one beside the SDK's for as long as both existed, and they drifted: seven
- * units disagreed on what their kind was CALLED, which matters because kind is
- * the key an Uplink's `declare module` augmentation targets.
+ * There is deliberately no hand-written first-party table here. ui-kit kept one
+ * beside the SDK's for as long as both existed, and they drifted: seven units
+ * disagreed on what their kind was CALLED.
  */
-const REGISTERED_KINDS: Record<string, QuantityKind> = {};
+interface UnitFacts {
+  readonly kind: QuantityKind;
+  readonly ratio: number;
+  readonly ladder?: string;
+}
+
+const REGISTERED_UNITS: Record<string, UnitFacts> = {};
+
+/** The kind every ladder scales, by ladder name. */
+const LADDER_KINDS: Record<string, QuantityKind> = Object.fromEntries(
+  Object.keys(LADDERS).map((name) => [name, name]),
+);
+
+/** The declaration a symbol has, registered or first-party, if it has one. */
+function declarationOf(symbol: string): UnitFacts | undefined {
+  return (
+    REGISTERED_UNITS[symbol] ?? GENERATED_UNIT_KINDS[symbol as GeneratedUnit]
+  );
+}
 
 /**
- * Which family a symbol belongs to, for the symbols that declare one.
+ * The ladder a symbol climbs within, by name.
  *
- * A family is a set of rungs a value may climb WITHIN. Bits and bytes share
- * the data dimension so the two stay convertible, but a byte quantity must
- * never land on a bit rung, so they are separate families. Kind cannot carry
- * this: both are `data`, and keying ladders on kind is what made the last
- * mod to register silently re-scale the other's readouts.
+ * A declared unit climbs exactly the ladder its declaration names, and none if
+ * it names none, whatever its kind: that is the rule `UnitGroupKey` states, and
+ * the two must agree. Bits and bytes are both `data` and must never interleave,
+ * which is why the ladder is a name a unit declares rather than a property of
+ * its kind. A symbol with no declaration is a rung, and climbs the ladder that
+ * lists it.
  */
-const FAMILY_BY_SYMBOL: Record<string, string> = {};
+function ladderNameOf(symbol: string | undefined): string | undefined {
+  if (symbol === undefined) return undefined;
+  const declared = declarationOf(symbol);
+  if (declared) return declared.ladder;
+  return rungLadderOf(symbol);
+}
 
-/** Rungs owned by a family, which take precedence over the kind's ladder. */
-const LADDERS_BY_FAMILY: Record<string, readonly Rung[]> = {};
-
-/**
- * The rungs a value climbs: its family's if it declares one, otherwise its
- * kind's. A unit with neither never scales, which is the right default.
- */
-function ladderForUnit(
-  kind: string,
-  unit: string | undefined,
-): readonly Rung[] | undefined {
-  const family = unit === undefined ? undefined : FAMILY_BY_SYMBOL[unit];
-  if (family !== undefined && LADDERS_BY_FAMILY[family]) {
-    return LADDERS_BY_FAMILY[family];
-  }
-  return laddersByKind[kind];
+/** The rungs a value climbs. A unit on no ladder never scales. */
+function ladderForUnit(unit: string | undefined): readonly Rung[] | undefined {
+  const name = ladderNameOf(unit);
+  return name === undefined ? undefined : laddersByName[name];
 }
 
 /**
@@ -645,22 +681,27 @@ function ladderForUnit(
  * it measures. The ladder it belongs to already says, so the answer is derived
  * rather than stored: another table would be another thing to drift.
  *
- * Built lazily and rebuilt whenever a registration replaces a ladder.
+ * Built lazily and rebuilt whenever a registration supplies a ladder.
  */
-let rungKinds: Record<string, QuantityKind> | undefined;
+let rungLadders: Record<string, string> | undefined;
 
-function kindOfRung(symbol: string): QuantityKind | undefined {
-  if (rungKinds === undefined) {
-    rungKinds = {};
-    for (const [kind, rungs] of Object.entries(LADDERS)) {
+function rungLadderOf(symbol: string): string | undefined {
+  if (rungLadders === undefined) {
+    rungLadders = {};
+    for (const [name, rungs] of Object.entries(laddersByName)) {
       for (const rung of rungs) {
         // First ladder wins, so a base symbol shared with the model keeps the
         // model's answer rather than a ladder's.
-        rungKinds[rung.symbol] ??= kind;
+        rungLadders[rung.symbol] ??= name;
       }
     }
   }
-  return rungKinds[symbol];
+  return rungLadders[symbol];
+}
+
+function kindOfRung(symbol: string): QuantityKind | undefined {
+  const name = rungLadderOf(symbol);
+  return name === undefined ? undefined : LADDER_KINDS[name];
 }
 
 /**
@@ -673,11 +714,7 @@ function kindOfConversion(symbol: string): QuantityKind | undefined {
   for (const pair of Object.keys(CONVERSIONS)) {
     const [from, to] = pair.split("\u2192");
     if (to === symbol) {
-      return (
-        GENERATED_UNIT_KINDS[from as GeneratedUnit]?.kind ??
-        REGISTERED_KINDS[from] ??
-        kindOfRung(from)
-      );
+      return declarationOf(from)?.kind ?? kindOfRung(from);
     }
   }
   return undefined;
@@ -892,114 +929,87 @@ export function displaySymbol(
 /**
  * What a unit symbol measures, or undefined for one we do not know.
  *
- * Four sources, in order, and NONE of them is a hand-written table in this
- * package: a runtime registration wins, then the generated model table, then
- * the ladder a rung belongs to, then the conversion that names it.
+ * Three sources, in order, and NONE of them is a hand-written table in this
+ * package: the unit's declaration (an Uplink's registration, or the generated
+ * first-party table), then the ladder a rung belongs to, then the conversion
+ * that names it.
  */
 export function kindOfUnit(
   symbol: string | undefined,
 ): QuantityKind | undefined {
   if (symbol === undefined) return undefined;
   return (
-    REGISTERED_KINDS[symbol] ??
-    GENERATED_UNIT_KINDS[symbol as GeneratedUnit]?.kind ??
+    declarationOf(symbol)?.kind ??
     kindOfRung(symbol) ??
     kindOfConversion(symbol)
   );
 }
 
-export interface UnitDefinition {
-  /** The symbol the wire carries, exactly. Case-sensitive: `m` and `M` differ. */
-  symbol: string;
-  /**
-   * What it measures. May be a kind this package has never heard of; supplying
-   * a new one is how an Uplink introduces a dimension of its own.
-   */
-  kind: QuantityKind;
-  /** Decimal places on the scaled value. Defaults to the kind's, then to 2. */
-  decimals?: number;
-  /**
-   * Scaling rungs, ascending, stated in the kind's BASE unit. Registering one
-   * replaces the kind's ladder outright rather than merging, because a
-   * half-overridden ladder is worse than either whole one.
-   *
-   * Every threshold and divisor must be in the same base unit. That is the
-   * invariant behind `mass`: its symbols are gram-based while its numbers are
-   * kilograms, and mixing the two is what made a real prefix bug possible.
-   */
-  ladder?: readonly Rung[];
-  /**
-   * Which set of rungs this symbol climbs within, when its kind is not enough
-   * to say. Bits and bytes are both `data` and must never interleave, so they
-   * declare `bits` and `bytes` and each owns its own ladder.
-   *
-   * Any Uplink may declare into a family another already introduced: the
-   * families are shared vocabulary, not private property. Declaring the same
-   * symbol into a DIFFERENT family throws, because a value that renders one
-   * way or another depending on module load order is worse than either.
-   */
-  family?: string;
-  /** Render in scientific notation by default, as `gravParameter` does. */
-  scientific?: boolean;
-  /**
-   * What to show beside the number, when it is not the symbol itself. Set it
-   * to `""` for a token that names a category rather than a symbol, the way
-   * the built-in `count` and `id` do.
-   *
-   * Applies to the KIND, not the symbol, matching how `decimals` and `ladder`
-   * behave: a kind is the thing a presentation rule attaches to.
-   */
-  display?: string;
+function sameRungs(a: readonly Rung[], b: readonly Rung[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (rung, i) =>
+        rung.from === b[i].from &&
+        rung.symbol === b[i].symbol &&
+        rung.per === b[i].per,
+    )
+  );
 }
 
 /**
- * Teach the formatter a unit it does not ship with.
+ * Applies what one `registerUnit` call says about how a unit READS.
  *
- * This is the extension point that makes "third parties are first-class" true
- * rather than aspirational. An Uplink publishing a topic the contract has never
- * seen calls this at module load, exactly as it would call `registerComponent`
- * or `registerTheme`, and its readouts then scale, round and label like a
- * first-party one.
+ * Called for every registration the SDK's model accepts, including the ones made
+ * before this module loaded, so there is one registration call and this kit
+ * holds no registry an Uplink writes to directly.
  *
- * Without it an unknown symbol still renders, bare and unscaled, which is the
- * right FALLBACK and a poor ceiling: it means a third party cannot have a
- * ladder or a precision rule at all.
- *
- * Last registration wins, so an app may override a built-in deliberately. There
- * is no unregister: units are declared at module load and live for the session,
- * the same lifecycle every other registry here has.
+ * Two registrations of one symbol must mean the same thing by it, and two
+ * registrations of one ladder must climb the same rungs: a value that renders
+ * one way or another depending on which Uplink loaded last is worse than either,
+ * so a disagreement throws. Identical registrations are a no-op, which is what
+ * lets two Uplinks that never met share a ladder such as `bytes`.
  */
-export function registerUnit(def: UnitDefinition): void {
-  const priorFamily = FAMILY_BY_SYMBOL[def.symbol];
-  const priorKind = REGISTERED_KINDS[def.symbol];
-  if (
-    (priorKind !== undefined && priorKind !== def.kind) ||
-    (priorFamily !== undefined && priorFamily !== def.family)
-  ) {
+function applyRegisteredUnit(unit: RegisteredUnit): void {
+  const { symbol, kind, ratio, ladder, rungs } = unit;
+  const prior = declarationOf(symbol);
+  if (prior && (prior.kind !== kind || prior.ladder !== ladder)) {
     throw new Error(
-      `Unit "${def.symbol}" is already registered as ${priorKind}` +
-        `${priorFamily ? ` (family ${priorFamily})` : ""} and cannot be ` +
-        `re-registered as ${def.kind}${def.family ? ` (family ${def.family})` : ""}. ` +
+      `Unit "${symbol}" is already declared as ${prior.kind}` +
+        `${prior.ladder ? ` (ladder ${prior.ladder})` : ""} and cannot be ` +
+        `registered as ${kind}${ladder ? ` (ladder ${ladder})` : ""}. ` +
         "Two mods declaring the same symbol must mean the same thing by it: " +
         "a value would otherwise render differently depending on which loaded last.",
     );
   }
-
-  REGISTERED_KINDS[def.symbol] = def.kind;
-  if (def.family !== undefined) FAMILY_BY_SYMBOL[def.symbol] = def.family;
-  if (def.decimals !== undefined) DECIMALS[def.kind] = def.decimals;
-  if (def.ladder) {
-    // A family owns its own rungs so two families sharing a dimension never
-    // interleave: bytes climb bytes, bits climb bits, and neither replaces the
-    // other the way a kind-keyed ladder would.
-    if (def.family !== undefined) LADDERS_BY_FAMILY[def.family] = def.ladder;
-    else laddersByKind[def.kind] = def.ladder;
-    // Drop the derived rung index: a replacement ladder brings its own symbols
-    // and drops the ones it replaces, so the cached index no longer holds.
-    rungKinds = undefined;
+  if (ladder !== undefined) {
+    const ladderKind = LADDER_KINDS[ladder];
+    if (ladderKind !== undefined && ladderKind !== kind) {
+      throw new Error(
+        `Unit "${symbol}" names the ${ladder} ladder, which scales ${ladderKind}, ` +
+          `not ${kind}. Every unit on one ladder measures one kind.`,
+      );
+    }
+    const existing = laddersByName[ladder];
+    if (rungs !== undefined && existing && !sameRungs(existing, rungs)) {
+      throw new Error(
+        `The ${ladder} ladder already has rungs, and "${symbol}" registers ` +
+          "different ones. Two registrations of one ladder must climb the same rungs.",
+      );
+    }
+    LADDER_KINDS[ladder] = kind;
+    if (rungs !== undefined && !existing) {
+      laddersByName[ladder] = rungs;
+      // A new ladder brings rung symbols the cached index does not hold.
+      rungLadders = undefined;
+    }
   }
-  if (def.scientific) SCIENTIFIC.add(def.kind);
-  if (def.display !== undefined) DISPLAY_BY_KIND[def.kind] = def.display;
+  REGISTERED_UNITS[symbol] =
+    ladder === undefined ? { kind, ratio } : { kind, ratio, ladder };
+  if (unit.decimals !== undefined) DECIMALS[kind] = unit.decimals;
+  if (unit.scientific) SCIENTIFIC.add(kind);
+  if (unit.display !== undefined) DISPLAY_BY_KIND[kind] = unit.display;
+  if (unit.word !== undefined) WORD_BY_SYMBOL[symbol] = unit.word;
 }
 
 export interface FormatQuantityOptions {
@@ -1330,7 +1340,7 @@ export function formatQuantity(
     }
   }
 
-  const ladder = opts.scale === "never" ? undefined : ladderForUnit(kind, unit);
+  const ladder = opts.scale === "never" ? undefined : ladderForUnit(unit);
   const decimals = opts.decimals ?? DECIMALS[kind] ?? 2;
 
   // Where the non-dimensional kinds land: they have a kind (so they round to a
@@ -1489,8 +1499,7 @@ export function ladderPosition(
   magnitude: number,
   unit: string | undefined,
 ): LadderPosition {
-  const kind = kindOfUnit(unit);
-  const ladder = kind === undefined ? undefined : ladderForUnit(kind, unit);
+  const ladder = ladderForUnit(unit);
   return {
     base: Math.abs(toBase(magnitude, ladder, unit)),
     rung: formatQuantity(magnitude, unit).rung,
@@ -1509,23 +1518,22 @@ export function ladderPosition(
  * statement about the wrong quantity. A currency, a ratio and a temperature
  * have nothing to settle in the first place.
  *
- * FAMILY first and kind second, the same order {@link formatQuantity} resolves
- * a ladder in. Bits and bytes are both `data` and must never share rungs, so
- * keying on kind alone would put a bit reading on a byte rung the moment the
- * two appeared in one group.
+ * Keyed by the LADDER a unit declares, never by its kind. Bits and bytes are
+ * both `data` and must never share rungs, so keying on kind would put a bit
+ * reading on a byte rung the moment the two appeared in one group.
  */
 export function unitScaleKey(unit: string | undefined): string | undefined {
   if (unit === undefined) return undefined;
   const kind = kindOfUnit(unit);
   if (kind === undefined || SCIENTIFIC.has(kind)) return undefined;
-  if (ladderForUnit(kind, unit) === undefined) return undefined;
-  const family = FAMILY_BY_SYMBOL[unit];
-  return family === undefined ? kindGroupKey(kind) : `family:${family}`;
+  if (ladderForUnit(unit) === undefined) return undefined;
+  const name = ladderNameOf(unit);
+  return name === undefined ? undefined : ladderGroupKey(name);
 }
 
-/** The key every unit of one laddered kind reports under. */
-function kindGroupKey(kind: string): string {
-  return `kind:${kind}`;
+/** The key every unit on one ladder reports under. */
+function ladderGroupKey(ladder: string): string {
+  return `ladder:${ladder}`;
 }
 
 /**
@@ -1537,16 +1545,24 @@ function kindGroupKey(kind: string): string {
  * have no ladder at all. An eccentricity band and an angle band both need
  * their ends to read apart, and neither climbs anything.
  *
- * So a unit that climbs groups by its ladder, and a unit that does not groups
- * by ITSELF. Grouping the second case by kind instead would put two units of
- * one kind that are never interconverted here into one group, where a digit
- * count chosen across them says nothing about either.
+ * So a unit on a ladder groups by the ladder, and a unit on none groups by
+ * ITSELF. Grouping the second case by kind instead would put two units of one
+ * kind that are never interconverted here into one group, where a digit count
+ * chosen across them says nothing about either.
+ *
+ * A unit declared on a ladder that has no rungs registered yet still groups by
+ * the ladder: that is what its declaration, and so {@link UnitGroupKey}, says.
  */
 export function formatGroupKey(unit: string): string;
 export function formatGroupKey(unit: string | undefined): string | undefined;
 export function formatGroupKey(unit: string | undefined): string | undefined {
   if (unit === undefined) return undefined;
-  return unitScaleKey(unit) ?? `unit:${unit}`;
+  const scale = unitScaleKey(unit);
+  if (scale !== undefined) return scale;
+  const declared = declarationOf(unit);
+  return declared?.ladder === undefined
+    ? `unit:${unit}`
+    : ladderGroupKey(declared.ladder);
 }
 
 /**
@@ -1554,17 +1570,17 @@ export function formatGroupKey(unit: string | undefined): string | undefined {
  *
  * The mirror of {@link formatGroupKey}, which answers the same question for a
  * reading. A reading arrives holding a unit and has its group derived; a pin is
- * written by hand and names the group outright, so a laddered kind is a key here
+ * written by hand and names the group outright, so a ladder name is a key here
  * and never a key there. See {@link UnitGroupKey}.
  *
  * A token this build knows nothing about still resolves, as an unladdered unit
- * would, rather than throwing: an Uplink's own symbol reaching a scope is a
- * reading to be formatted, not a mistake to refuse.
+ * would, rather than throwing: a symbol reaching a scope is a reading to be
+ * formatted, not a mistake to refuse.
  */
 export function pinGroupKey(token: string): string {
-  return laddersByKind[token] === undefined
+  return LADDER_KINDS[token] === undefined
     ? formatGroupKey(token)
-    : kindGroupKey(token);
+    : ladderGroupKey(token);
 }
 
 /** How many digits it takes for two distinct readings to READ as distinct. */
@@ -1587,12 +1603,7 @@ export interface FormatMember {
  * not that.
  */
 function baseMeasure(reading: number, unit: string): number {
-  const kind = kindOfUnit(unit);
-  return toBase(
-    reading,
-    kind === undefined ? undefined : ladderForUnit(kind, unit),
-    unit,
-  );
+  return toBase(reading, ladderForUnit(unit), unit);
 }
 
 /**
@@ -1687,3 +1698,7 @@ export function separatingDecimals(
   }
   return MAX_SEPARATING_DECIMALS;
 }
+
+// Last, so every table the registrations write to exists before the replay of
+// the ones an Uplink made before this module loaded.
+onUnitRegistered(applyRegisteredUnit);

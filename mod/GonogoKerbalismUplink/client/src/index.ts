@@ -105,6 +105,11 @@ export {
   KERBALISM_PROFILE_TOPIC,
   KERBALISM_SPACEWEATHER_TOPIC,
 } from "./topics";
+// The megabyte units this Uplink declares. RE-EXPORTED for the same reason as
+// ./topics below: the module carries a `declare module "@ksp-gonogo/sitrep-sdk"`
+// UnitDeclarations augmentation, and only a named export carries it into
+// `dist/index.d.ts`.
+export { KERBALISM_UNIT_SYMBOLS } from "./units";
 
 // The Uplink client identity, then the per-frame `summarise` Processor that
 // stamps against it. Bare side-effect imports so the registrations survive

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
-import { setKspCalendar, value } from "@ksp-gonogo/sitrep-sdk";
+import type { RegisteredUnit, SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
+import { registerUnit, setKspCalendar, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import {
@@ -11,12 +11,59 @@ import {
   ladderPosition,
   pinGroupKey,
   quantityScale,
-  registerUnit,
   separatingDecimals,
   setQuantityLocale,
   unitScaleKey,
   writeQuantity,
 } from "./units";
+
+/*
+ * The units the extension tests below teach the kit, declared the way an Uplink
+ * declares them. Registration goes through the SDK: there is no kit-side call.
+ */
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface UnitDeclarations {
+    quux: {
+      kind: "dataRate";
+      dim: { readonly quux: 1 };
+      ratio: 1;
+      ladder: "quuxes";
+    };
+    blorp: {
+      kind: "data";
+      dim: { readonly blorp: 1 };
+      ratio: 1;
+      ladder: "blorps";
+    };
+    "EC/s": {
+      kind: "resourceRate";
+      dim: { readonly ec: 1; readonly s: -1 };
+      ratio: 1;
+      ladder: "resourceRate";
+    };
+    qx: { kind: "hugeThing"; dim: { readonly qx: 1 }; ratio: 1 };
+    "kerbals/hour": {
+      kind: "crewFlow";
+      dim: { readonly kerbal: 1; readonly s: -1 };
+      ratio: number;
+      ladder: "crewFlow";
+    };
+    zorp: {
+      kind: "dataRate";
+      dim: { readonly zorp: 1 };
+      ratio: 1;
+      ladder: "zorps";
+    };
+  }
+}
+
+/**
+ * `registerUnit` as a separately compiled Uplink reaches it, for the tests of what
+ * happens when two bundles disagree: one compilation cannot declare both.
+ */
+const registerFromAnotherBundle = (unit: RegisteredUnit): void => {
+  Reflect.apply(registerUnit, undefined, [unit]);
+};
 
 /** A 24-hour day and a 365-day year, what RSS and `KERBIN_TIME` off both give. */
 const EARTH_CALENDAR = {
@@ -247,28 +294,30 @@ describe("formatQuantity", () => {
     });
   });
 
-  it("ladders on the family a unit declares, not on its kind", () => {
+  it("ladders on the ladder a unit declares, not on its kind", () => {
     // The question the old pin left open (does a transmit rate read better in
     // MB/s or in the Mbit/s an antenna budget is quoted in) is answered by
-    // letting the DECLARER say. Two families can share a kind and a dimension
+    // letting the DECLARER say. Two ladders can share a kind and a dimension
     // so their values stay convertible, while each keeps its own rungs: that
     // is what stops the mod registering second from re-scaling the first
     // one's readouts, which is what a kind-keyed ladder did.
     //
     // Declared here rather than exercised through a real mod's units, because
     // this is the kit's mechanism and no byte lives in core: an Uplink brings
-    // its own family and its own rungs.
+    // its own ladder and its own rungs.
     registerUnit({
       symbol: "quux",
       kind: "dataRate",
-      family: "quuxes",
-      ladder: [
+      dimension: { quux: 1 },
+      ratio: 1,
+      ladder: "quuxes",
+      rungs: [
         { from: 1, symbol: "quux", per: 1 },
         { from: 1e3, symbol: "kquux", per: 1e3 },
       ],
     });
     expect(formatQuantity(2500, "quux")).toMatchObject({ symbol: "kquux" });
-    // The kind's own ladder is untouched by the family that borrowed its kind.
+    // The kind's own ladder is untouched by the ladder that borrowed its kind.
     expect(formatQuantity(4.2e6, "bit/s")).toMatchObject({
       symbol: "Mbit/s",
     });
@@ -276,14 +325,26 @@ describe("formatQuantity", () => {
 
   it("refuses to let two declarations disagree about one symbol", () => {
     // Same symbol, same meaning, declared by two mods that never met: fine,
-    // and the point of a shared family. Same symbol meaning DIFFERENT things
+    // and the point of a shared ladder. Same symbol meaning DIFFERENT things
     // is not, because which one wins would depend on module load order and the
     // number on screen would change with it.
-    registerUnit({ symbol: "blorp", kind: "data", family: "bytes" });
-    registerUnit({ symbol: "blorp", kind: "data", family: "bytes" });
+    const blorp = {
+      symbol: "blorp",
+      kind: "data",
+      dimension: { blorp: 1 },
+      ratio: 1,
+      ladder: "blorps",
+    } as const;
+    registerUnit(blorp);
+    registerUnit(blorp);
     expect(() =>
-      registerUnit({ symbol: "blorp", kind: "data", family: "bits" }),
-    ).toThrow(/already registered/);
+      registerFromAnotherBundle({ ...blorp, ladder: "otherBlorps" }),
+    ).toThrow(/already declared/);
+    // And one ladder climbs one set of rungs, whoever registers it.
+    registerUnit({ ...blorp, rungs: [{ from: 0, symbol: "blorp", per: 1 }] });
+    expect(() =>
+      registerUnit({ ...blorp, rungs: [{ from: 0, symbol: "blorp", per: 2 }] }),
+    ).toThrow(/different ones/);
   });
 
   it("keeps the bit rate ladder for a bit rate", () => {
@@ -618,8 +679,11 @@ describe("registerUnit", () => {
     registerUnit({
       symbol: "EC/s",
       kind: "resourceRate",
+      dimension: { ec: 1, s: -1 },
+      ratio: 1,
       decimals: 2,
-      ladder: [
+      ladder: "resourceRate",
+      rungs: [
         { from: 0, symbol: "EC/s", per: 1 },
         { from: 1e3, symbol: "kEC/s", per: 1e3 },
       ],
@@ -638,7 +702,13 @@ describe("registerUnit", () => {
   });
 
   it("lets a third party opt into scientific notation", () => {
-    registerUnit({ symbol: "qx", kind: "hugeThing", scientific: true });
+    registerUnit({
+      symbol: "qx",
+      kind: "hugeThing",
+      dimension: { qx: 1 },
+      ratio: 1,
+      scientific: true,
+    });
     expect(formatQuantity(4.2e15, "qx").value).toBe("4.200×10¹⁵");
   });
 
@@ -656,10 +726,13 @@ describe("registerUnit", () => {
     expect(formatQuantity(1500, declared).symbol).toBe("kerbals/hour");
 
     registerUnit({
-      symbol: declared,
+      symbol: "kerbals/hour",
       kind: "crewFlow",
+      dimension: { kerbal: 1, s: -1 },
+      ratio: 1 / 3600,
       decimals: 1,
-      ladder: [
+      ladder: "crewFlow",
+      rungs: [
         { from: 0, symbol: "kerbals/hour", per: 1 },
         { from: 1e3, symbol: "kkerbals/hour", per: 1e3 },
       ],
@@ -980,15 +1053,17 @@ describe("unitScaleKey", () => {
   /**
    * Bits and bytes share the data dimension so their values stay convertible,
    * and must never share RUNGS. Keyed on kind alone a byte reading would settle
-   * a bit reading onto a byte rung, which is the defect the family mechanism
+   * a bit reading onto a byte rung, which is the defect a declared ladder
    * exists for one layer down.
    */
-  it("separates two families that share a kind", () => {
+  it("separates two ladders that share a kind", () => {
     registerUnit({
       symbol: "zorp",
       kind: "dataRate",
-      family: "zorps",
-      ladder: [
+      dimension: { zorp: 1 },
+      ratio: 1,
+      ladder: "zorps",
+      rungs: [
         { from: 1, symbol: "zorp", per: 1 },
         { from: 1e3, symbol: "kzorp", per: 1e3 },
       ],

@@ -30,10 +30,10 @@ const { KNOWN_SITREP_UNITS } = await import(
   join(root, "scripts/known-sitrep-units.mjs")
 );
 
-/** symbol -> { kind, ratio }, from the model. */
+/** symbol -> { kind, ratio, ladder? }, from the model. */
 const kinds = {};
 for (const [symbol, def] of Object.entries(UNIT_DEFINITIONS)) {
-  kinds[symbol] = { kind: def.kind, ratio: def.ratio };
+  kinds[symbol] = { kind: def.kind, ratio: def.ratio, ladder: def.ladder };
 }
 
 // A token the CONTRACT declares but the model has no unit for is a
@@ -62,16 +62,16 @@ const lines = [
   "// prop re-express a value in any unit of the same kind without ui-kit",
   "// keeping conversion factors of its own.",
   "",
-  "// `as const` is load-bearing. The format prop's accepted values are a mapped",
-  "// type over this object, so widening it to Record<string, ...> would silently",
-  "// turn that validation off while leaving the runtime behaviour in place. This",
-  "// is the third table in this system to need saying so.",
+  "// The RUNTIME copy of what the SDK's UnitDeclarations states for first-party",
+  "// units. The types read the declarations, never this table, so an Uplink's",
+  "// declared unit is checked exactly as one of these is; unit-kinds.test-d.ts",
+  "// holds the two to one another. `as const` keeps that comparison exact.",
   "export const GENERATED_UNIT_KINDS = {",
   ...Object.keys(kinds)
     .sort()
     .map(
       (symbol) =>
-        `  ${JSON.stringify(symbol)}: { kind: ${JSON.stringify(kinds[symbol].kind)}, ratio: ${kinds[symbol].ratio} },`,
+        `  ${JSON.stringify(symbol)}: { kind: ${JSON.stringify(kinds[symbol].kind)}, ratio: ${kinds[symbol].ratio}${kinds[symbol].ladder === undefined ? "" : `, ladder: ${JSON.stringify(kinds[symbol].ladder)}`} },`,
     ),
   "} as const;",
   "",

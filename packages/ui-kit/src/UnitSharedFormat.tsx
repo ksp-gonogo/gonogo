@@ -242,7 +242,7 @@ export interface UnitGroupPins<G extends UnitGroupKey> {
  * Every entry optional, so a group that needs nothing is simply absent, and the
  * key set closed, so a key that is not a group is a compile error rather than a
  * pin that reaches nothing. A unit an Uplink declares reaches this type the way
- * it reaches every other one here, by widening the generated table on its own
+ * it reaches every other one here, by merging into `UnitDeclarations` on its own
  * side.
  */
 export type UnitPinsByGroup = {
@@ -347,10 +347,9 @@ function policyOf(
   for (const [token, pin] of Object.entries(pins ?? {})) {
     /*
      * One entry per group, which the keys already guarantee: a repeated key is
-     * an error in an object literal, and two keys can no longer name one group
-     * now that a laddered kind is keyed by the kind. What is left over is a
-     * ladder `registerUnit` adds at runtime, which moves a unit into a kind's
-     * group after these keys were fixed.
+     * an error in an object literal, and two keys cannot name one group now
+     * that a ladder is keyed by its name. The runtime groups by the same
+     * declaration the key type is read from, so the two cannot disagree.
      */
     if (pin !== undefined) byKey.set(pinGroupKey(token), pin);
   }

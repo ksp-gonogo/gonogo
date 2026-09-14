@@ -90,7 +90,10 @@ export {
   RP1_TOOLING_TOPIC,
   RP1_WAREHOUSE_TOPIC,
 } from "./topics";
-
+// The unit tokens this Uplink declares. RE-EXPORTED, like ./commands, because the
+// module carries a UnitDeclarations augmentation and only a named export carries
+// it into `dist/index.d.ts`.
+export { RP1_UNIT_SYMBOLS } from "./units";
 export { RP1 } from "./uplink";
 export {
   RP1_BUILD_REPEAT_COMMAND,

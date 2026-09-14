@@ -71,9 +71,9 @@ export type KnownSitrepUnit =
  * this union would therefore have meant an Uplink could never declare a
  * unit at all, which contradicts third parties being first-class.
  *
- * A consumer teaches the client what an unknown symbol MEANS by calling
- * registerUnit from @ksp-gonogo/ui-kit. Until it does, the value still
- * renders, bare and unscaled.
+ * A consumer teaches the client what an unknown symbol MEANS by declaring it
+ * in UnitDeclarations and calling registerUnit from @ksp-gonogo/sitrep-sdk.
+ * Until it does, the value still renders, bare and unscaled.
  */
 export type SitrepUnit = KnownSitrepUnit | (string & {});
 

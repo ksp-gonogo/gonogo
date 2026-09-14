@@ -25,6 +25,15 @@ export interface UnitDefinition {
    */
   readonly log?: true;
   /**
+   * The ladder this unit climbs, by name. The rungs themselves are ui-kit's,
+   * because which rung a value renders at is a display decision; which units
+   * settle one rung together is a fact about the unit, and it is declared here
+   * so the type system can see it (see `UnitDeclarations`).
+   *
+   * Every first-party ladder is named for the kind it scales.
+   */
+  readonly ladder?: string;
+  /**
    * A second spelling of a dimension somebody else already owns: it parses and
    * converts, but a COMPUTED value never renders as it.
    *
@@ -122,11 +131,11 @@ export const STANDARD_GRAVITY = 9.80665;
 
 export const UNIT_DEFINITIONS = {
   // ── Length ───────────────────────────────────────────────────────────────
-  m: { dim: { m: 1 }, ratio: 1, kind: "length" },
-  km: { dim: { m: 1 }, ratio: 1_000, kind: "length" },
-  Mm: { dim: { m: 1 }, ratio: 1_000_000, kind: "length" },
-  Gm: { dim: { m: 1 }, ratio: 1_000_000_000, kind: "length" },
-  Tm: { dim: { m: 1 }, ratio: 1e12, kind: "length" },
+  m: { dim: { m: 1 }, ratio: 1, kind: "length", ladder: "length" },
+  km: { dim: { m: 1 }, ratio: 1_000, kind: "length", ladder: "length" },
+  Mm: { dim: { m: 1 }, ratio: 1_000_000, kind: "length", ladder: "length" },
+  Gm: { dim: { m: 1 }, ratio: 1_000_000_000, kind: "length", ladder: "length" },
+  Tm: { dim: { m: 1 }, ratio: 1e12, kind: "length", ladder: "length" },
   "m²": { dim: { m: 2 }, ratio: 1, kind: "area" },
   "m³": { dim: { m: 3 }, ratio: 1, kind: "volume" },
 
@@ -192,26 +201,36 @@ export const UNIT_DEFINITIONS = {
   },
 
   // ── Mass, force, energy, power, pressure ─────────────────────────────────
-  kg: { dim: { kg: 1 }, ratio: 1, kind: "mass" },
+  kg: { dim: { kg: 1 }, ratio: 1, kind: "mass", ladder: "mass" },
   // Propellant consumption. Declared outright rather than left to decompose out
   // of mass-per-time, so it renders under its own kind instead of borrowing
   // whichever kind the algebra happened to reach for.
   "kg/s": { dim: { kg: 1, s: -1 }, ratio: 1, kind: "massFlow" },
-  t: { dim: { kg: 1 }, ratio: 1_000, kind: "mass" },
+  t: { dim: { kg: 1 }, ratio: 1_000, kind: "mass", ladder: "mass" },
   // The astronomical rungs are GRAM-based symbols on a KILOGRAM base: 1 Yg is
   // 1e24 g, which is 1e21 kg. Stating the ratio in kg is not a convenience, it
   // makes a real bug unrepresentable, and it is the bug SystemView shipped:
   // gram thresholds applied to a kilogram value labelled Kerbin one whole
   // prefix tier too small.
-  kt: { dim: { kg: 1 }, ratio: 1e6, kind: "mass" },
-  Tg: { dim: { kg: 1 }, ratio: 1e9, kind: "mass" },
-  Pg: { dim: { kg: 1 }, ratio: 1e12, kind: "mass" },
-  Eg: { dim: { kg: 1 }, ratio: 1e15, kind: "mass" },
-  Zg: { dim: { kg: 1 }, ratio: 1e18, kind: "mass" },
-  Yg: { dim: { kg: 1 }, ratio: 1e21, kind: "mass" },
-  N: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1, kind: "force" },
-  kN: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1_000, kind: "force" },
-  MN: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1e6, kind: "force" },
+  kt: { dim: { kg: 1 }, ratio: 1e6, kind: "mass", ladder: "mass" },
+  Tg: { dim: { kg: 1 }, ratio: 1e9, kind: "mass", ladder: "mass" },
+  Pg: { dim: { kg: 1 }, ratio: 1e12, kind: "mass", ladder: "mass" },
+  Eg: { dim: { kg: 1 }, ratio: 1e15, kind: "mass", ladder: "mass" },
+  Zg: { dim: { kg: 1 }, ratio: 1e18, kind: "mass", ladder: "mass" },
+  Yg: { dim: { kg: 1 }, ratio: 1e21, kind: "mass", ladder: "mass" },
+  N: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1, kind: "force", ladder: "force" },
+  kN: {
+    dim: { kg: 1, m: 1, s: -2 },
+    ratio: 1_000,
+    kind: "force",
+    ladder: "force",
+  },
+  MN: {
+    dim: { kg: 1, m: 1, s: -2 },
+    ratio: 1e6,
+    kind: "force",
+    ladder: "force",
+  },
   J: {
     dim: { kg: 1, m: 2, s: -2 },
     ratio: 1,
@@ -239,16 +258,42 @@ export const UNIT_DEFINITIONS = {
     alias: true,
     coincidentWith: "energy",
   },
-  W: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power" },
+  W: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power", ladder: "power" },
   // A declared alias for the same dimension. It parses, and it never renders:
   // the ratio-1 entry registered first (W) is what a computed power shows as.
-  "J/s": { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power", alias: true },
-  kW: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1_000, kind: "power" },
+  "J/s": {
+    dim: { kg: 1, m: 2, s: -3 },
+    ratio: 1,
+    kind: "power",
+    alias: true,
+    ladder: "power",
+  },
+  kW: {
+    dim: { kg: 1, m: 2, s: -3 },
+    ratio: 1_000,
+    kind: "power",
+    ladder: "power",
+  },
   // Descends below the base unit, which nothing else here needs to: the
   // upper atmosphere runs to fractions of a pascal.
-  mPa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1e-3, kind: "pressure" },
-  Pa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1, kind: "pressure" },
-  kPa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1_000, kind: "pressure" },
+  mPa: {
+    dim: { kg: 1, m: -1, s: -2 },
+    ratio: 1e-3,
+    kind: "pressure",
+    ladder: "pressure",
+  },
+  Pa: {
+    dim: { kg: 1, m: -1, s: -2 },
+    ratio: 1,
+    kind: "pressure",
+    ladder: "pressure",
+  },
+  kPa: {
+    dim: { kg: 1, m: -1, s: -2 },
+    ratio: 1_000,
+    kind: "pressure",
+    ladder: "pressure",
+  },
   "kg/m³": { dim: { kg: 1, m: -3 }, ratio: 1, kind: "density" },
   // Multiples of standard gravity, the convention KSP's own geeForce reports.
   g: { dim: { m: 1, s: -2 }, ratio: STANDARD_GRAVITY, kind: "acceleration" },
@@ -278,21 +323,36 @@ export const UNIT_DEFINITIONS = {
    * time from a data unit and `s`, so a family gets its per-second forms for
    * free rather than one atom per rung.
    */
-  bit: { dim: { bit: 1 }, ratio: 1, kind: "data" },
+  bit: { dim: { bit: 1 }, ratio: 1, kind: "data", ladder: "data" },
   // The one rate core declares, so the data-rate dimension has a name to
   // render as. Rungs above it belong to whoever models them.
-  "bit/s": { dim: { bit: 1, s: -1 }, ratio: 1, kind: "dataRate" },
+  "bit/s": {
+    dim: { bit: 1, s: -1 },
+    ratio: 1,
+    kind: "dataRate",
+    ladder: "dataRate",
+  },
   Mit: { dim: { Mit: 1 }, ratio: 1, kind: "scienceData" },
   dB: { dim: { dB: 1 }, ratio: 1, kind: "level", log: true },
   // Absorbed dose. Its base is `radDose`, NOT the `rad` of plane angle: they
   // are unrelated quantities that collide on a glyph. Declaring the compound
   // outright is what stops it decomposing into angle-per-second, which is a
   // real dimension (rpm's) and would have compared equal.
-  "rad/s": { dim: { radDose: 1, s: -1 }, ratio: 1, kind: "doseRate" },
+  "rad/s": {
+    dim: { radDose: 1, s: -1 },
+    ratio: 1,
+    kind: "doseRate",
+    ladder: "doseRate",
+  },
   // The scale a dose rate is READ at. The mod reports rad/s; an operator reads
   // rad/h, and that conversion was a bare `* 3600` at the one widget that
   // needed it. Same dimension, different scale, which is what `ratio` is for.
-  "rad/h": { dim: { radDose: 1, s: -1 }, ratio: 1 / 3600, kind: "doseRate" },
+  "rad/h": {
+    dim: { radDose: 1, s: -1 },
+    ratio: 1 / 3600,
+    kind: "doseRate",
+    ladder: "doseRate",
+  },
 
   // ── Career currencies ────────────────────────────────────────────────────
   // Three separate bases, not one "amount": they are not interchangeable, and a

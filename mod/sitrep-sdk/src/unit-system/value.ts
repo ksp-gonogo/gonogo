@@ -1,5 +1,6 @@
-import type { Product, Quotient } from "./algebra";
+import type { DimOf, Product, Quotient } from "./algebra";
 import { calendarRatio } from "./calendar";
+import type { DeclaredUnit, UnitDeclarations } from "./declarations";
 import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
 import { affineVectorUnitFor, declaredUnitFor, lookupUnit } from "./registry";
@@ -22,9 +23,11 @@ type Equal<A, B> =
     ? true
     : false;
 
-type DimensionOf<U> = U extends KnownUnit
-  ? (typeof UNIT_DEFINITIONS)[U]["dim"]
-  : never;
+/**
+ * The dimension a declared unit states, normalised, or `never` for a symbol
+ * nothing declares and for a non-quantity token, which states none.
+ */
+type DimensionOf<U> = U extends DeclaredUnit ? DimOf<U> : never;
 
 declare const UnknownUnitBrand: unique symbol;
 
@@ -53,18 +56,21 @@ declare const UnknownUnitBrand: unique symbol;
 export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
 
 /**
- * Every declared unit sharing `U`'s dimension.
+ * Every declared unit sharing `U`'s dimension, first-party or merged into
+ * `UnitDeclarations` by an Uplink.
  *
  * This is what makes `Value<"W">.plus(Value<"J/s">)` compile and
- * `Value<"m">.plus(Value<"s">)` not. For a unit outside the catalog the union
+ * `Value<"m">.plus(Value<"s">)` not. For a unit nothing declares the union
  * collapses to `never`, and `plus` then accepts only an exact match, which is
- * the safe reading when we know nothing about a third party's symbol.
+ * the safe reading when we know nothing about a symbol.
  */
-export type SameDimensionAs<U> = {
-  [K in KnownUnit]: Equal<DimensionOf<K>, DimensionOf<U>> extends true
-    ? K
-    : never;
-}[KnownUnit];
+export type SameDimensionAs<U> = [DimensionOf<U>] extends [never]
+  ? never
+  : {
+      [K in DeclaredUnit]: Equal<DimensionOf<K>, DimensionOf<U>> extends true
+        ? K
+        : never;
+    }[DeclaredUnit];
 
 /**
  * What `U` can be paired with in `plus`, `minus`, `in`, a comparison, or
@@ -132,8 +138,8 @@ type VectorKindOf<U> = U extends KnownUnit
  * never another `ut`.
  */
 type VectorFor<U> = {
-  [K in SameDimensionAs<U>]: (typeof UNIT_DEFINITIONS)[K &
-    KnownUnit]["kind"] extends VectorKindOf<U>
+  [K in SameDimensionAs<U>]: UnitDeclarations[K &
+    DeclaredUnit]["kind"] extends VectorKindOf<U>
     ? K
     : never;
 }[SameDimensionAs<U>];
@@ -240,8 +246,8 @@ type CoincidentKindOf<U> = U extends KnownUnit
  * whose kind is the one `U` declares itself merely coincident with.
  */
 type CoincidentWith<U> = {
-  [K in SameDimensionAs<U>]: (typeof UNIT_DEFINITIONS)[K &
-    KnownUnit]["kind"] extends CoincidentKindOf<U>
+  [K in SameDimensionAs<U>]: UnitDeclarations[K &
+    DeclaredUnit]["kind"] extends CoincidentKindOf<U>
     ? K
     : never;
 }[SameDimensionAs<U>];

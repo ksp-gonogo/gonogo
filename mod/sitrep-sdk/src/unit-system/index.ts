@@ -1,3 +1,8 @@
+// The two augmentable interfaces are exported for one reason: `declare module`
+// merges into what a module EXPORTS, so an interface the package entry does not
+// name cannot be augmented through the package name. Left out, the documented
+// spelling still compiles and silently declares a second, unrelated interface.
+export type { ResourceNamespaces } from "./algebra";
 export {
   calendarRatio,
   isCalendarUnit,
@@ -7,6 +12,11 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "./calendar";
+export type {
+  DeclaredUnit,
+  UnitDeclaration,
+  UnitDeclarations,
+} from "./declarations";
 export {
   type KnownUnit,
   STANDARD_GRAVITY,
@@ -21,9 +31,13 @@ export {
   displaySymbol,
   lookupUnit,
   namespaceOf,
+  onUnitRegistered,
+  type RegisteredUnit,
   registerUnit,
   resetUnitRegistry,
+  type UnitPresentation,
   type UnitRegistration,
+  type UnitRung,
 } from "./registry";
 export {
   hydrate,

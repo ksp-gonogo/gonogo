@@ -634,7 +634,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/resourceColor.ts": 1,
   "packages/ui-kit/src/status/useStatusContribution.ts": 1,
   "packages/ui-kit/src/units.test.ts": 4,
-  "packages/ui-kit/src/units.ts": 5,
+  "packages/ui-kit/src/units.ts": 4,
   "packages/ui-kit/src/useFittedTitle.ts": 2,
   "packages/ui-kit/src/usePanelAsideSize.test.tsx": 1,
   "packages/ui-kit/src/usePanelAsideSize.ts": 1,
@@ -673,7 +673,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * does not trip this and only a broken enumeration does.
  */
 export const SCAN_FLOORS = {
-  files: 1222,
+  files: 1287,
   filesWithStack: 366,
   stacks: 805,
 } as const;

@@ -3,10 +3,45 @@ import {
   displaySymbol,
   lookupUnit,
   namespaceOf,
+  onUnitRegistered,
+  type RegisteredUnit,
   registerUnit,
   resetUnitRegistry,
 } from "./registry";
 import { value } from "./value";
+
+declare module "./declarations" {
+  interface UnitDeclarations {
+    snacks: { kind: "snacks"; dim: { readonly snack: 1 }; ratio: 1 };
+    kSnack: { kind: "snacks"; dim: { readonly snack: 1 }; ratio: 1000 };
+    "snacks/s": {
+      kind: "snackFlow";
+      dim: { readonly snack: 1; readonly s: -1 };
+      ratio: 1;
+    };
+    crumbs: {
+      kind: "crumbs";
+      dim: { readonly crumb: 1 };
+      ratio: 1;
+      ladder: "crumbs";
+    };
+    x: { kind: "x"; dim: { readonly m: 1 }; ratio: number };
+    u: { kind: "resourceUnits"; dim: { readonly u: 1 }; ratio: 1 };
+    "grocer:g": { kind: "mass"; dim: { readonly kg: 1 }; ratio: 0.001 };
+    "grocer:m": { kind: "munchies"; dim: { readonly mn: 1 }; ratio: 1 };
+  }
+}
+
+/**
+ * `registerUnit` as a SECOND, separately compiled Uplink reaches it.
+ *
+ * Two bundles never share a program, so each one's declaration type-checks on its
+ * own and they can still disagree at runtime. The policy below is about that case,
+ * which one compilation cannot express, so these calls step around the type.
+ */
+const registerFromAnotherBundle = (unit: RegisteredUnit): void => {
+  Reflect.apply(registerUnit, undefined, [unit]);
+};
 
 afterEach(() => {
   resetUnitRegistry();
@@ -17,12 +52,17 @@ describe("registerUnit", () => {
   it("makes a new unit a full participant, not just a label", () => {
     // The point of the extension surface. An Uplink's symbol has to divide,
     // add and convert exactly as a first-party one does.
-    registerUnit({ symbol: "snacks", kind: "snacks", dimension: { snack: 1 } });
+    registerUnit({
+      symbol: "snacks",
+      kind: "snacks",
+      dimension: { snack: 1 },
+      ratio: 1,
+    });
     registerUnit({
       symbol: "snacks/s",
       kind: "snackFlow",
-      of: "snacks",
-      per: "s",
+      dimension: { snack: 1, s: -1 },
+      ratio: 1,
     });
 
     expect(value("snacks", 6).dividedBy(value("s", 2)).unit).toBe("snacks/s");
@@ -31,40 +71,25 @@ describe("registerUnit", () => {
     expect(() => value("snacks", 2).plus(value("m", 3))).toThrow();
   });
 
-  it("throws naming the component it could not find", () => {
-    // A compound built on a symbol nobody registered is a typo. Saying so at
-    // registration beats rendering nonsense three screens later.
-    expect(() =>
-      registerUnit({ symbol: "u/s", kind: "flow", of: "u", per: "s" }),
-    ).toThrow(/component "u" is not a registered unit/);
-  });
-
-  it("converts through a declared ratio", () => {
+  it("converts through a declared ratio, and the declaration lets the compiler see it", () => {
     registerUnit({
       symbol: "kSnack",
       kind: "snacks",
       dimension: { snack: 1 },
       ratio: 1_000,
     });
-    registerUnit({ symbol: "snacks", kind: "snacks", dimension: { snack: 1 } });
-    // @ts-expect-error both units are registered at RUNTIME, so the compile-time
-    // table cannot know they share a dimension; that they do is what this asserts
+    registerUnit({
+      symbol: "snacks",
+      kind: "snacks",
+      dimension: { snack: 1 },
+      ratio: 1,
+    });
+    // Both units are declared, so the type layer knows they share a dimension
+    // exactly as it knows `km` and `m` do.
     expect(value("kSnack", 2).plus(value("snacks", 500)).magnitude).toBeCloseTo(
       2.5,
       10,
     );
-  });
-
-  it("refuses a dimension and components together", () => {
-    expect(() =>
-      registerUnit({
-        symbol: "x",
-        kind: "x",
-        dimension: { m: 1 },
-        of: "m",
-        per: "s",
-      }),
-    ).toThrow(/Pick one/);
   });
 
   it("refuses a ratio that is not a usable multiplier", () => {
@@ -77,6 +102,102 @@ describe("registerUnit", () => {
       }),
     ).toThrow(/finite non-zero/);
   });
+
+  it("will not register a unit nobody declared, or one that disagrees with its declaration", () => {
+    expect(() =>
+      registerFromAnotherBundle({
+        symbol: "undeclared",
+        kind: "undeclared",
+        dimension: { q: 1 },
+        ratio: 1,
+      }),
+    ).not.toThrow();
+
+    const typeOnly = () => {
+      // @ts-expect-error a symbol with no declaration cannot be registered
+      registerUnit({ symbol: "nope", kind: "nope", dimension: {}, ratio: 1 });
+      registerUnit({
+        symbol: "snacks",
+        // @ts-expect-error the declaration says `snacks`
+        kind: "crisps",
+        dimension: { snack: 1 },
+        ratio: 1,
+      });
+      registerUnit({
+        symbol: "kSnack",
+        kind: "snacks",
+        dimension: { snack: 1 },
+        // @ts-expect-error the declaration says 1000
+        ratio: 100,
+      });
+      // @ts-expect-error the declaration names a ladder, so the registration must
+      registerUnit({
+        symbol: "crumbs",
+        kind: "crumbs",
+        dimension: { crumb: 1 },
+        ratio: 1,
+      });
+    };
+    expect(typeOnly).toBeTypeOf("function");
+  });
+
+  it("refuses rungs with no ladder to hang them on", () => {
+    expect(() =>
+      registerFromAnotherBundle({
+        symbol: "loose",
+        kind: "loose",
+        dimension: { loose: 1 },
+        ratio: 1,
+        rungs: [{ from: 0, symbol: "loose", per: 1 }],
+      }),
+    ).toThrow(/rungs and no ladder/);
+  });
+});
+
+describe("onUnitRegistered", () => {
+  it("replays what was accepted before it subscribed, then hears what follows", () => {
+    registerUnit({
+      symbol: "crumbs",
+      kind: "crumbs",
+      dimension: { crumb: 1 },
+      ratio: 1,
+      ladder: "crumbs",
+      rungs: [{ from: 0, symbol: "crumbs", per: 1 }],
+      word: "crumbs",
+    });
+    const heard: string[] = [];
+    const stop = onUnitRegistered((unit) => heard.push(unit.symbol));
+    registerUnit({
+      symbol: "u",
+      kind: "resourceUnits",
+      dimension: { u: 1 },
+      ratio: 1,
+    });
+    stop();
+    registerUnit({
+      symbol: "snacks",
+      kind: "snacks",
+      dimension: { snack: 1 },
+      ratio: 1,
+    });
+    expect(heard).toEqual(["crumbs", "u"]);
+  });
+
+  it("does not forward a registration the model refused", () => {
+    // The kit must never render a symbol as something the model does not
+    // believe it is.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const heard: RegisteredUnit[] = [];
+    const stop = onUnitRegistered((unit) => heard.push(unit));
+    registerFromAnotherBundle({
+      symbol: "g",
+      kind: "mass",
+      dimension: { kg: 1 },
+      ratio: 0.001,
+    });
+    stop();
+    expect(heard).toEqual([]);
+  });
 });
 
 describe("reserved symbols", () => {
@@ -85,7 +206,7 @@ describe("reserved symbols", () => {
     // Left open, a mod declaring `m` for minutes would silently turn every
     // altitude on the dashboard into a duration.
     expect(() =>
-      registerUnit({
+      registerFromAnotherBundle({
         symbol: "m",
         kind: "time",
         dimension: { s: 1 },
@@ -96,7 +217,13 @@ describe("reserved symbols", () => {
 
   it("still allows the real one to be re-declared identically", () => {
     expect(() =>
-      registerUnit({ symbol: "m", kind: "length", dimension: { m: 1 } }),
+      registerUnit({
+        symbol: "m",
+        kind: "length",
+        dimension: { m: 1 },
+        ratio: 1,
+        ladder: "length",
+      }),
     ).not.toThrow();
   });
 });
@@ -104,8 +231,18 @@ describe("reserved symbols", () => {
 describe("overlap policy", () => {
   it("is silent when two mods declare the same thing", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    registerUnit({ symbol: "u", kind: "resourceUnits", dimension: { u: 1 } });
-    registerUnit({ symbol: "u", kind: "resourceUnits", dimension: { u: 1 } });
+    registerUnit({
+      symbol: "u",
+      kind: "resourceUnits",
+      dimension: { u: 1 },
+      ratio: 1,
+    });
+    registerUnit({
+      symbol: "u",
+      kind: "resourceUnits",
+      dimension: { u: 1 },
+      ratio: 1,
+    });
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -113,8 +250,18 @@ describe("overlap policy", () => {
     // Same dimension, different kind. N·m and J are the first-party example:
     // the difference is display's business, not arithmetic's.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    registerUnit({ symbol: "u", kind: "resourceUnits", dimension: { u: 1 } });
-    registerUnit({ symbol: "u", kind: "snackUnits", dimension: { u: 1 } });
+    registerUnit({
+      symbol: "u",
+      kind: "resourceUnits",
+      dimension: { u: 1 },
+      ratio: 1,
+    });
+    registerFromAnotherBundle({
+      symbol: "u",
+      kind: "snackUnits",
+      dimension: { u: 1 },
+      ratio: 1,
+    });
     expect(warn).not.toHaveBeenCalled();
     expect(lookupUnit("u")?.kind).toBe("resourceUnits");
   });
@@ -124,19 +271,9 @@ describe("overlap policy", () => {
     // `a` threw on every render of a widget that declared one, because
     // neither half is a unit and never will be. Composition is an offer: an
     // unresolvable one means "not a unit I know", the same as any other
-    // unrecognised token. The loud failure belongs to `registerUnit`, where
-    // naming components that do not exist really is a typo.
+    // unrecognised token.
     expect(lookupUnit("n/a")).toBeUndefined();
     expect(() => lookupUnit("n/a")).not.toThrow();
-    // Still loud where it should be.
-    expect(() =>
-      registerUnit({
-        symbol: "widgets/fortnight",
-        kind: "silly",
-        of: "widgets",
-        per: "fortnight",
-      }),
-    ).toThrow(/not a registered unit/);
   });
 
   it("keeps the first and warns when the dimensions disagree", () => {
@@ -144,7 +281,7 @@ describe("overlap policy", () => {
     // dimensions and still answer whether two values can be added. One has to
     // win, and it is not a reason to break someone's install.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    registerUnit({
+    registerFromAnotherBundle({
       symbol: "g",
       kind: "mass",
       dimension: { kg: 1 },
@@ -196,11 +333,11 @@ describe("real time is a different dimension from game time", () => {
 describe("namespaced symbols", () => {
   it("lets two mods keep the same glyph and different dimensions", () => {
     // The collision the overlap policy could only half-answer. `g` is
-    // acceleration first-party; a snacks mod wanting grams namespaces its
+    // acceleration first-party; a grocer mod wanting grams namespaces its
     // token, and the two are then simply different units.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     registerUnit({
-      symbol: "snacks:g",
+      symbol: "grocer:g",
       kind: "mass",
       dimension: { kg: 1 },
       ratio: 0.001,
@@ -209,30 +346,30 @@ describe("namespaced symbols", () => {
 
     // Grams add to grams, and refuse to add to gees. Under the bare-symbol
     // policy these would have summed to a meaningless number.
-    expect(value("snacks:g", 500).plus(value("snacks:g", 250)).magnitude).toBe(
+    expect(value("grocer:g", 500).plus(value("grocer:g", 250)).magnitude).toBe(
       750,
     );
     // @ts-expect-error a namespaced gram plus a gee: refused statically and at runtime
-    expect(() => value("snacks:g", 500).plus(value("g", 2))).toThrow();
+    expect(() => value("grocer:g", 500).plus(value("g", 2))).toThrow();
   });
 
   it("converts a namespaced unit against the first-party base", () => {
     registerUnit({
-      symbol: "snacks:g",
+      symbol: "grocer:g",
       kind: "mass",
       dimension: { kg: 1 },
       ratio: 0.001,
     });
-    // @ts-expect-error `snacks:g` is registered at RUNTIME against the kg base, and
-    // the compile-time table cannot see that; that the conversion works is the point
-    expect(value("snacks:g", 1_500).in("kg").magnitude).toBeCloseTo(1.5, 10);
+    // `grocer:g` is declared against the kg base, so the compiler accepts the
+    // conversion for the reason the runtime performs it
+    expect(value("grocer:g", 1_500).in("kg").magnitude).toBeCloseTo(1.5, 10);
   });
 
   it("displays the glyph, not the token", () => {
     // A token may be namespaced; the symbol an operator reads never is.
-    expect(displaySymbol("snacks:g")).toBe("g");
+    expect(displaySymbol("grocer:g")).toBe("g");
     expect(displaySymbol("g")).toBe("g");
-    expect(namespaceOf("snacks:g")).toBe("snacks");
+    expect(namespaceOf("grocer:g")).toBe("grocer");
     expect(namespaceOf("g")).toBeUndefined();
   });
 
@@ -246,16 +383,22 @@ describe("namespaced symbols", () => {
   });
 
   it("does not let a namespace hijack a reserved symbol", () => {
-    // `m` is metres and cannot be redefined. `snacks:m` hijacks nothing, so an
+    // `m` is metres and cannot be redefined. `grocer:m` hijacks nothing, so an
     // Uplink is free to mean whatever it likes by it.
     expect(() =>
-      registerUnit({ symbol: "m", kind: "time", dimension: { s: 1 } }),
+      registerFromAnotherBundle({
+        symbol: "m",
+        kind: "time",
+        dimension: { s: 1 },
+        ratio: 60,
+      }),
     ).toThrow();
     expect(() =>
       registerUnit({
-        symbol: "snacks:m",
+        symbol: "grocer:m",
         kind: "munchies",
         dimension: { mn: 1 },
+        ratio: 1,
       }),
     ).not.toThrow();
   });
@@ -265,7 +408,7 @@ describe("namespaced symbols", () => {
     // only its token, so if a mod insists on the bare glyph there is no way to
     // tell its values apart from the first mod's. The warning says so.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    registerUnit({
+    registerFromAnotherBundle({
       symbol: "g",
       kind: "mass",
       dimension: { kg: 1 },

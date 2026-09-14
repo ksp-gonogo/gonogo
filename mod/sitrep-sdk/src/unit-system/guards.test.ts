@@ -3,6 +3,16 @@ import { assertGuardsRegistered, isUnit, unitGuard } from "./guards";
 import { registerUnit, resetUnitRegistry } from "./registry";
 import { value } from "./value";
 
+declare module "./declarations" {
+  interface UnitDeclarations {
+    "Oxygen:u": {
+      kind: "resourceAmount";
+      dim: { readonly resOxygen: 1 };
+      ratio: 1;
+    };
+  }
+}
+
 afterEach(() => {
   // Registry is module state; a unit registered here would otherwise be
   // visible to every later test in the process.
@@ -29,6 +39,7 @@ describe("unitGuard", () => {
       symbol: "Oxygen:u",
       kind: "resourceAmount",
       dimension: { resOxygen: 1 },
+      ratio: 1,
     });
     const isOxygen = unitGuard("Oxygen:u");
     const candidate = value("Oxygen:u", 10);
@@ -87,6 +98,7 @@ describe("assertGuardsRegistered", () => {
       symbol: "Oxygen:u",
       kind: "resourceAmount",
       dimension: { resOxygen: 1 },
+      ratio: 1,
     });
     expect(() => assertGuardsRegistered(["Oxygen:u"])).not.toThrow();
   });
@@ -96,6 +108,7 @@ describe("assertGuardsRegistered", () => {
       symbol: "Oxygen:u",
       kind: "resourceAmount",
       dimension: { resOxygen: 1 },
+      ratio: 1,
     });
     // The failure this exists to catch: a guard that is always false, behind
     // which the code simply never runs and nothing errors.

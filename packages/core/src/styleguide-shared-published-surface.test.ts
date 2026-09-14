@@ -79,17 +79,11 @@ const KNOWN_DIVERGENCES: readonly string[] = [
   "clearAugments",
   "getAugmentsForSlot",
   "registerAugment",
-  // Two independent unit registries with the same two entry points and
-  // DIFFERENT signatures (`registerUnit(def: UnitDefinition)` here against
-  // `registerUnit(registration: UnitRegistration)` there; `displaySymbol` takes
-  // a token plus options here and a bare token there). Not a copy: two designs.
-  // RULED that the sdk owns the unit system and ui-kit defers, but a merge is
-  // held pending a measurement of what each registry actually holds: a token
-  // present in only one of them is invisible to the other, which would be a
-  // live defect rather than a duplication.
-  "UnitDefinition",
+  // Two functions answering different questions under one name: the sdk's
+  // strips a token's namespace (`snacks:g` reads `g`), ui-kit's picks the glyph
+  // a KIND displays as (`funds` reads `f`). The unit registries they used to
+  // sit beside are one now, `registerUnit` on the sdk, which ui-kit listens to.
   "displaySymbol",
-  "registerUnit",
 ];
 
 function sourceFiles(dir: string): string[] {

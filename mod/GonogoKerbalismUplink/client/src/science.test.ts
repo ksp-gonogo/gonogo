@@ -148,7 +148,7 @@ describe("kerbalism's namespaces of the elected science.* payloads", () => {
   //
   // Doubly load-bearing here, and in a way reliability's equivalent was not:
   // "MB"/"MB/s"/"science/MB" are units the first-party catalog has never heard of, so
-  // ./science.ts also has to teach the model their dimensions with `registerUnit`.
+  // ./units.ts also has to declare them and teach the model their dimensions.
   // `wrapTopicPayload` treats a token the model does not know as a NON-quantity and
   // leaves it a bare number, so without those calls the generated type would claim
   // `Value<"MB">` over a plain number and nothing else would complain.

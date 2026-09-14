@@ -12,7 +12,12 @@
  * that starts.
  */
 
-import { registerUnit, type Vec3Of, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerUnit,
+  type Value,
+  type Vec3Of,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Band } from "./Band";
 import { Unit } from "./Unit";
 import { UnitSharedFormat } from "./UnitSharedFormat";
@@ -115,7 +120,7 @@ export const _mixedScopeSwapped = (
 );
 
 /*
- * A laddered kind is keyed by the KIND, and a unit of one is not a key at all.
+ * A ladder is keyed by its NAME, and a unit on one is not a key at all.
  * This is the whole point of the group key: under a unit-keyed record
  * `{ m: ..., km: ... }` was one length group pinned twice, and the runtime kept
  * whichever entry came last.
@@ -241,18 +246,32 @@ export const _vectorLeaf = <Unit value={relativeVelocity.x} />;
 export const _wholeVector = <Unit value={relativeVelocity} />;
 
 // ── 8. An Uplink's own unit ─────────────────────────────────────────────────
-// Namespaced, so it cannot collide with a first-party glyph. It is a full
-// participant: it adds, divides and renders.
+// Namespaced, so it cannot collide with a first-party glyph. Declared where every
+// unit is declared, so it is a full participant: it adds, divides and renders, and
+// every check above applies to it. `unit-declarations.test-d.tsx` walks each
+// surface for an Uplink unit beside a first-party one of the same shape.
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface UnitDeclarations {
+    "snacks:snack": { kind: "snacks"; dim: { readonly snack: 1 }; ratio: 1 };
+    "snacks:snack/s": {
+      kind: "snackFlow";
+      dim: { readonly snack: 1; readonly s: -1 };
+      ratio: 1;
+    };
+  }
+}
+
 registerUnit({
   symbol: "snacks:snack",
   kind: "snacks",
   dimension: { snack: 1 },
+  ratio: 1,
 });
 registerUnit({
   symbol: "snacks:snack/s",
   kind: "snackFlow",
-  of: "snacks:snack",
-  per: "s",
+  dimension: { snack: 1, s: -1 },
+  ratio: 1,
 });
 
 const snacks = value("snacks:snack", 40);
@@ -261,3 +280,6 @@ export const _snackReadout = <Unit value={snacks} />;
 
 // @ts-expect-error: a snack is not a tonne, whatever the glyph looks like
 export const _snacksPlusMass = snacks.plus(dryMass);
+
+// The per-second unit is declared, so dividing by a duration lands on it by name.
+export const _snackFlowUnit: Value<"snacks:snack/s"> = _snackFlow;
