@@ -89,15 +89,15 @@ namespace Sitrep.Core.Tests
         public UplinkWiringCoverageTests(ITestOutputHelper output) => _output = output;
 
         /// <summary>
-        /// Uplinks that must be seen to register a command handler. A floor, not a
-        /// list to keep current: it exists so an extractor that stops matching
-        /// <c>host.AddCommandHandler</c> goes red instead of reporting a clean
-        /// repo.
+        /// The one pairing of each kind the planted Uplink's <c>PlantedWiring.cs</c>
+        /// writes, which the walk must read exactly. These replaced two floors on how
+        /// many Uplinks were seen to register and publish: every mod Uplink is leaving
+        /// for the gonogo-uplinks repo, so those counts are heading for zero and a floor
+        /// on them cannot tell "all moved" from "the extractor stopped matching".
         /// </summary>
-        private const int MinimumUplinksRegisteringCommands = 4;
+        private const string PlantedCommand = "planted.wiring.command";
 
-        /// <summary>Uplinks that must be seen to take a publisher. Same floor, same reason.</summary>
-        private const int MinimumUplinksPublishingTopics = 5;
+        private const string PlantedTopic = "planted.wiring.topic";
 
         [Fact]
         public void EveryCommandAnUplinkRegistersIsAlsoDeclared()
@@ -182,8 +182,13 @@ namespace Sitrep.Core.Tests
         /// proving nothing, and it has to find the REGISTRATIONS specifically: the
         /// Uplinks are discovered by <see cref="UplinkProjects"/>, which
         /// <see cref="UplinkArmingCoverageTests.ScanFindsEveryUplinkProject"/>
-        /// already holds to <c>Gonogo.sln</c>, but an extractor that matched
-        /// nothing inside them would pass every assertion above.
+        /// already holds to <c>Gonogo.sln</c> and to its plant, but an extractor that
+        /// matched nothing inside them would pass every assertion above.
+        ///
+        /// <para>So the extractor is held to the planted Uplink, whose four sides are
+        /// known: each must come back as exactly the one name written there. The
+        /// same scan reads the real Uplinks, so an extractor that sees the plant sees
+        /// them, and this holds with none of them left.</para>
         /// </summary>
         [Fact]
         public void TheWalkSeesTheWiringItIsMeantToCover()
@@ -199,20 +204,26 @@ namespace Sitrep.Core.Tests
                     + $"{uplink.DeclaredTopics.Count} declared topics");
             }
 
-            var registering = scanned.Where(u => u.RegisteredCommands.Count > 0).Select(u => u.Name).ToList();
-            var publishing = scanned.Where(u => u.PublishedTopics.Count > 0).Select(u => u.Name).ToList();
-
+            var planted = scanned.SingleOrDefault(u => u.Name == UplinkProjects.PlantedUplink);
             Assert.True(
-                registering.Count >= MinimumUplinksRegisteringCommands,
-                $"The walk saw command handlers on only {registering.Count} Uplink(s), expected at "
-                + $"least {MinimumUplinksRegisteringCommands}. An extractor that matches nothing "
-                + "reports no violations and looks exactly like a correctly wired repo. Saw: "
-                + string.Join(", ", registering));
+                planted is not null,
+                $"The wiring scan did not read the planted {UplinkProjects.PlantedUplink}, so it is not "
+                + "reading the Uplinks it is handed. Read: " + string.Join(", ", scanned.Select(u => u.Name)));
 
+            AssertExactly(planted!.RegisteredCommands, PlantedCommand, "registered commands");
+            AssertExactly(planted.DeclaredCommands, PlantedCommand, "declared commands");
+            AssertExactly(planted.PublishedTopics, PlantedTopic, "published topics");
+            AssertExactly(planted.DeclaredTopics, PlantedTopic, "declared topics");
+        }
+
+        private static void AssertExactly(IReadOnlyList<WiringUse> uses, string expected, string what)
+        {
+            var values = uses.Select(u => u.Value ?? "<unresolved " + u.Expression + ">").ToList();
             Assert.True(
-                publishing.Count >= MinimumUplinksPublishingTopics,
-                $"The walk saw publishers on only {publishing.Count} Uplink(s), expected at least "
-                + $"{MinimumUplinksPublishingTopics}. Saw: " + string.Join(", ", publishing));
+                values.SequenceEqual(new[] { expected }),
+                $"The walk read the planted Uplink's {what} as [{string.Join(", ", values)}], expected "
+                + $"exactly [{expected}]. An extractor that matches nothing reports no violations and "
+                + "looks exactly like a correctly wired repo.");
         }
 
         /// <summary>
@@ -366,7 +377,7 @@ namespace Sitrep.Core.Tests
             Func<UplinkWiring, IReadOnlyList<WiringUse>> reported,
             string what)
         {
-            var directories = UplinkProjects.SourceDirectories(UplinkProjects.Discover()[uplink]);
+            var directories = UplinkProjects.SourceDirectories(Subjects()[uplink]);
             var wiring = UplinkWiringScan.Scan(uplink, directories);
 
             Assert.Empty(reported(wiring));
@@ -452,9 +463,20 @@ namespace Sitrep.Core.Tests
             uses.Count == 0 ? "nothing" : string.Join(", ", uses);
 
         private static List<UplinkWiring> Scan() =>
-            UplinkProjects.Discover()
+            Subjects()
                 .OrderBy(u => u.Key, StringComparer.Ordinal)
                 .Select(u => UplinkWiringScan.Scan(u.Key, UplinkProjects.SourceDirectories(u.Value)))
                 .ToList();
+
+        /// <summary>
+        /// Every real Uplink plus the planted one. The plant is correctly wired, so
+        /// it adds no violation to the assertions above, and it gives every theory
+        /// a row: xUnit fails a theory whose data source is empty, which is what
+        /// each of them would be once the last mod Uplink has left.
+        /// </summary>
+        private static Dictionary<string, string> Subjects() =>
+            UplinkProjects.Discover()
+                .Concat(UplinkProjects.Discover(UplinkProjects.PlantRoot()))
+                .ToDictionary(u => u.Key, u => u.Value, StringComparer.Ordinal);
     }
 }
