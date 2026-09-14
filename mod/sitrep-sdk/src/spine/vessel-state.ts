@@ -1098,6 +1098,34 @@ function deriveTargetDistance(get: DerivedGet): number | null | undefined {
  * reference-body radius: `undefined` (only it) until that's whole, `null`
  * (only it) on a `system.bodies` tombstone: same `deriveApsides` discipline;
  * `targetPeriod`/`targetTrueAnomaly` need no body table. Never throws.
+ *
+ * ## Still deliberately outside the modelled-path list, and still for its own
+ * reason
+ *
+ * `KEPLER_MODELLED_FIELDS` names this function as one of its three deliberate
+ * absences, and that argument was re-read against the reckoning work that has
+ * landed since. It holds, unchanged: every withdrawal condition
+ * `deriveVesselStateReckoning` asks is asked of the SELF craft's patch, so
+ * naming a `target*` path there would put the target's arc under a horizon
+ * computed from somebody else's orbit. A target crossing its own SOI would go
+ * on being drawn, and a self craft crossing its own would stop drawing a target
+ * arc that was perfectly good. Both are wrong, and they are wrong in opposite
+ * directions, which is why a second horizon is a decision to take on its own
+ * rather than a line to add to that list.
+ *
+ * Nothing has made that decision cheaper. The horizon a target would need is
+ * its own `orbit.encounter.transitionUt` and its own atmosphere floor, off its
+ * own reference body, which is a second `keplerAdmissibility` call against a
+ * second element set rather than a reuse of this frame's answer. That is a
+ * model worth writing when something asks for a dashed target trace; nothing
+ * does yet.
+ *
+ * Being absent from the list costs only the reckoned TAIL, and that is the cost
+ * it is meant to cost: the three scalars still appear on the record at the view
+ * time in both bases, because a whole-topic read borrows the root entry. What
+ * cannot happen is a chart growing a dashed `targetPeriod` run attributed to a
+ * model that never looked at the target's own bounds.
+ * `vessel-state-prediction-paths.test.ts` pins both halves.
  */
 function deriveTargetOrbit(
   get: DerivedGet,
@@ -1601,6 +1629,40 @@ const IMPACT_WALK_MIN_STEPS = 60;
  * component `vDown` (a vacuum-vertical descent model). Vacuum throughout,
  * ignores atmospheric drag, so on an atmospheric body these are upper bounds
  * (the widget already labels that case "treat as upper bound").
+ *
+ * ## It predicts a future EVENT, and that is not what a reckoner does
+ *
+ * This is the distinction worth holding, because the word "prediction" covers
+ * both and the mechanism only covers one. A reckoner carries a topic's OWN
+ * value forward past the last observation of it, and every field it moves is
+ * that field at the view time. These six are a different claim: they are
+ * quantities ABOUT an event that has not happened, computed from measurements
+ * at the view time. `landingTimeToImpact` is not an impact time carried
+ * forward, it is an answer derived from the altitude and vertical speed of this
+ * instant, and it is stale in exactly the way its inputs are stale.
+ *
+ * So the honest label for the set is the one it already has. The reading says
+ * `measured` and, past the last sample, `stale`, which is the truthful account
+ * of a number solved from an observation that has stopped arriving. Reckoning
+ * it would mean claiming the descent continued the way the arithmetic says, and
+ * a descent is the one regime where that is least defensible: the whole reason
+ * `atmospheric-reckoning.ts` exists is that a craft in air is not following
+ * anything a closed form here describes.
+ *
+ * The two never overlap, and the code says so rather than the comment:
+ * `keplerAdmissibility` withdraws for a craft under physics, which is every
+ * frame this function produces a number on, so `deriveVesselStateReckoning`
+ * returns `undefined` on precisely those frames. The set is also absent from
+ * `KEPLER_MODELLED_FIELDS` for the plainer reason that it does not exist on
+ * that branch at all (`LANDING_NONE` there), so it is not an omission from that
+ * list the way the three the list names are. Both facts are pinned in
+ * `vessel-state-prediction-paths.test.ts`.
+ *
+ * If the descent itself ever wants carrying across a gap in contact, the model
+ * for it exists and IS registered: `vessel.flight`'s `rate-integration` arm,
+ * which advances the measured vertical speed by its own observed rate of change
+ * rather than by a drag model it would have to invent. The right shape would be
+ * to feed a reckoned flight state, never to stamp a basis on these six.
  */
 function deriveLanding(
   get: DerivedGet,
@@ -2076,6 +2138,41 @@ export function deriveVesselStateStatus(
  * A BURN. A craft out of contact is exactly one whose burns we cannot see, so
  * nothing inside this function can bound it, and the `kepler-propagation`
  * basis carries that caveat in its own words. That is what a basis is for.
+ *
+ * ## Why this is not a `registerReckoner` registration
+ *
+ * Because it cannot be, and because the arm it is on is not the lesser one.
+ *
+ * `registerReckoner` takes a `TopicId`, and `vessel.state` is a
+ * `DerivedChannelId`: a separate union with no wire payload for `TopicPayload`
+ * to resolve, because a derived channel is computed in the browser and has no
+ * `[SitrepTopic]` type behind it. `registerReckoner("vessel.state", ...)` is a
+ * compile error today, asserted from both sides in `reckoners.test-d.ts` so
+ * that widening the parameter fails typecheck rather than passing quietly.
+ *
+ * Nor would widening it buy the thing it looks like it would buy. The
+ * generated reckonability map is emitted from `[SitrepReckonable]` marks on
+ * C# contract properties, so a channel with no C# payload cannot appear in it
+ * whichever seam declares the model: `use-telemetry.ts` says so where it
+ * explains why a derived channel needs the middle arm of its three-way
+ * narrowing at all.
+ *
+ * What a registration WOULD have to supply is a `reckon(at)` producing the
+ * record at an arbitrary instant, and that already exists one level up:
+ * `TimelineStore.derivedReckonedWalk` re-runs `derive` at each instant of a
+ * tail against hold-last inputs, and labels the result with this function. So
+ * a derived channel's model is a full forward model, expressed as `derive` plus
+ * this label rather than as one function, and `derivedReckoner` adapts the pair
+ * into the same `ReckonerFor` the registry hands out. Two arms of one seam, not
+ * an old mechanism and a new one.
+ *
+ * The one thing the derived arm genuinely lacks is the store's input rules:
+ * nothing withdraws this label because a declared input ran past its own
+ * model's horizon. It does not bite here, because the four conditions
+ * `keplerAdmissibility` asks ARE that check for the only inputs this label has,
+ * asked against the same published facts a registered model would name. A
+ * derived channel that grew an input whose horizon it did not itself consult
+ * would be the case that wants revisiting.
  */
 export function deriveVesselStateReckoning(
   get: DerivedGet,
