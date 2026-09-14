@@ -454,7 +454,12 @@ function LandingStatusComponent({
   const structureReading = useTelemetry("vessel.structure");
   const commsDelayReading = useTelemetry("comms.delay");
   const structure = describe(structureReading);
-  const commsDelay = describe(commsDelayReading);
+  /*
+   * `describeReckonable` since the contract declared `oneWaySeconds` carriable:
+   * the model moves that one field, so the projection has to be overlaid rather
+   * than taken whole, or this board reads a delay payload with no `source`.
+   */
+  const commsDelay = describeReckonable(commsDelayReading);
 
   /**
    * Whether the board is DESCRIBING rather than reporting, and which readings put it

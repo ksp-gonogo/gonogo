@@ -97,8 +97,11 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    *
    * The OBSERVED value only: the separation a message freezes at send has to be
    * the separation now, so a stale reading gives nothing and the pair matrix or
-   * the null answer stands in instead. `comms.delay` carries no forward model
-   * either, so there is nothing else the read could have taken.
+   * the null answer stands in instead. `comms.delay` does carry a forward model
+   * (its first hop, re-measured), and it is deliberately not taken here: this
+   * number is stamped into a message record that is kept and later read back as
+   * what the link WAS, and a modelled separation frozen into a record cannot be
+   * told from a measured one afterwards.
    */
   const pathHome =
     observedValue(useTelemetry("comms.delay"))?.oneWaySeconds?.magnitude ??

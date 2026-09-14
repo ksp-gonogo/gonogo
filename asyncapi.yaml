@@ -9896,6 +9896,32 @@ components:
             The one-way light-time to the command centre, seconds. See this type's own
             summary for the null/zero split, which is the whole discriminator: null is
             "nothing measurable", 0 is a measured or applied zero.
+
+            **Carried forward by re-measuring ONE leg of the route.** A delay is the
+            whole route's length over the speed light travels at, and almost none of
+            that route changes between the instant the light left and the instant it is
+            read: every hop except the first joins two ground stations, or a station and
+            a relay, or two relays, none of which move appreciably against each other on
+            a telemetry timescale. So their measured lengths carry forward as the sum
+            they already were, and only the FIRST hop, the one with the craft on one
+            end, is re-derived: `(route - firstHop + |craft - peer|) / c`, the craft
+            propagated on `@vessel.orbit` and its peer placed from
+            `@commandCentre.roster`, whose latitude and longitude are body-fixed and so
+            need the rotation phase on `@system.bodies`.
+
+            Declared for a route whose first hop ends at a GROUND STATION, which is the
+            direct link and the common case. A first hop ending at a RELAY needs that
+            relay's own elements, which ride the per-vessel `fleet.<guid>.orbit` channel
+            under a guid not known until the route arrives; an input here is a Topic id
+            resolved against the declared set, so there is no way to name it and no
+            promise made about it. A client reading a relayed route gets an honest
+            refusal naming that channel rather than a modelled number.
+
+            The `CommsDelay.source` is an input because three of its four members are a
+            zero that means something other than "no distance": the feature is off, the
+            flight is a rehearsal, or the save models no comms network. None of those
+            stops being true as the craft moves, so only `CommsDelaySource.SignalDelay`
+            is carried forward.
         source:
           $ref: "#/components/schemas/CommsDelaySource"
           x-sitrep-unit: enum
