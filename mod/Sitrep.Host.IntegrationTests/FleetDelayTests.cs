@@ -385,6 +385,124 @@ namespace Sitrep.Host.IntegrationTests
             return snap;
         }
 
+        /// <summary>
+        /// The fleet twin of the active vessel's mid-outage catch-up: a fleet
+        /// vessel that lost its link while nobody subscribed to anything under
+        /// <c>fleet.</c> is still graded as out of contact for the first client
+        /// to open it.
+        ///
+        /// <para>The fleet capture is subscription-gated, so with no fleet
+        /// subscriber it does not run at all. The link state has to be observed
+        /// anyway, or the engine never learns of the outage, places no mark, and
+        /// serves the pre-outage sample as <see cref="Staleness.Fresh"/> for a
+        /// craft that is out of contact.</para>
+        /// </summary>
+        [Fact]
+        public async Task AFirstSubscriberToAFleetVesselAlreadyInBlackoutIsNotToldItIsFresh()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                // A first client archives UT 1's orbit while v is in contact,
+                // then leaves, so nothing under fleet. is subscribed.
+                await using (var seed = await TestClient.ConnectAsync(engine.BoundPort, Timeout))
+                {
+                    await SubscribeAsync(seed, "fleet.v.orbit", Timeout);
+                    engine.TickAndWait(0.0, ConnFixture(0.0, ("v", true)), Timeout);
+                    engine.TickAndWait(1.0, ConnFixture(1.0, ("v", true)), Timeout);
+                    await DrainAllStreamDataAsync(seed, Quiet);
+                }
+                await WaitUntilNothingSubscribedUnderAsync(engine, ChannelEngine.FleetNodePrefix);
+
+                // v is out of contact from UT 2, with nobody watching.
+                engine.TickAndWait(2.0, ConnFixture(2.0, ("v", false)), Timeout);
+                engine.TickAndWait(3.0, ConnFixture(3.0, ("v", false)), Timeout);
+
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(Sitrep.Core.Serialization.EnvelopeCodec.WriteSubscribe(
+                    new Subscribe { Topic = "fleet.v.orbit" }));
+                var catchUp = (await DrainAllStreamDataAsync(late, Quiet))
+                    .Where(f => f.Topic == "fleet.v.orbit" && f.Payload != null)
+                    .ToList();
+
+                var served = Assert.Single(catchUp);
+                Assert.Equal(1.0, served.Meta.ValidAt);
+                Assert.Equal(Staleness.LastBeforeBlackout, served.Meta.Staleness);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The other half of tracking a fleet link without a subscriber: an
+        /// outage that ENDS while nobody is watching lifts the mark, so the next
+        /// client is not told a craft back in contact is still dark.
+        ///
+        /// <para>The last subscriber leaving mid-outage forgets the subject's
+        /// reveal-gate state, so the reacquisition that follows is not seen as
+        /// an edge. The mark has to come off anyway.</para>
+        /// </summary>
+        [Fact]
+        public async Task AFleetOutageThatEndsWithNobodyWatchingNoLongerGradesTheCatchUp()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                // Watched into the outage, then abandoned while v is still dark.
+                await using (var seed = await TestClient.ConnectAsync(engine.BoundPort, Timeout))
+                {
+                    await SubscribeAsync(seed, "fleet.v.orbit", Timeout);
+                    engine.TickAndWait(0.0, ConnFixture(0.0, ("v", true)), Timeout);
+                    engine.TickAndWait(1.0, ConnFixture(1.0, ("v", true)), Timeout);
+                    engine.TickAndWait(2.0, ConnFixture(2.0, ("v", false)), Timeout);
+                    await DrainAllStreamDataAsync(seed, Quiet);
+                }
+                await WaitUntilNothingSubscribedUnderAsync(engine, ChannelEngine.FleetNodePrefix);
+
+                // Back in contact from UT 3, with nobody watching.
+                engine.TickAndWait(3.0, ConnFixture(3.0, ("v", true)), Timeout);
+                engine.TickAndWait(4.0, ConnFixture(4.0, ("v", true)), Timeout);
+
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(Sitrep.Core.Serialization.EnvelopeCodec.WriteSubscribe(
+                    new Subscribe { Topic = "fleet.v.orbit" }));
+                var catchUp = (await DrainAllStreamDataAsync(late, Quiet))
+                    .Where(f => f.Topic == "fleet.v.orbit" && f.Payload != null)
+                    .ToList();
+
+                Assert.NotEmpty(catchUp);
+                Assert.All(catchUp, f => Assert.Equal(Staleness.Fresh, f.Meta.Staleness));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Returns once no client subscribes to any topic under
+        /// <paramref name="prefix"/>, so a tick enqueued afterwards runs with the
+        /// subscription gate on that prefix closed.
+        /// </summary>
+        private static async Task WaitUntilNothingSubscribedUnderAsync(ChannelEngine engine, string prefix)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (engine.IsAnyTopicSubscribed(prefix))
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException($"'{prefix}' still had a subscriber after {Timeout}");
+                }
+                await Task.Delay(10);
+            }
+        }
+
         [Fact]
         public async Task FleetSubjectFreezeMapsAreCleanedWhenAVesselGoesAway()
         {
