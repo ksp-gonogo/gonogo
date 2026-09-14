@@ -29,13 +29,23 @@ namespace Sitrep.Core.Tests
     internal sealed class FlattenProducer
     {
         public FlattenProducer(
-            string typeName, string method, string? owner, string file, IReadOnlyCollection<string> literals)
+            string typeName,
+            string method,
+            string? owner,
+            string file,
+            IReadOnlyCollection<string> literals,
+            IReadOnlyList<string>? helpers = null,
+            IReadOnlyCollection<string>? reachedLiterals = null,
+            IReadOnlyCollection<string>? delegatedTypes = null)
         {
             TypeName = typeName;
             Method = method;
             Owner = owner;
             File = file;
             Literals = literals;
+            Helpers = helpers ?? Array.Empty<string>();
+            ReachedLiterals = reachedLiterals ?? literals;
+            DelegatedTypes = delegatedTypes ?? Array.Empty<string>();
         }
 
         /// <summary>The contract type this producer stands for.</summary>
@@ -53,6 +63,24 @@ namespace Sitrep.Core.Tests
         /// rather than the keys in write position.
         /// </summary>
         public IReadOnlyCollection<string> Literals { get; }
+
+        /// <summary>
+        /// The sibling methods this producer reaches through its own calls, in
+        /// the order the walk found them. Their literals are in
+        /// <see cref="ReachedLiterals"/>; see <see cref="ProducerFlattenScan"/>
+        /// for which calls the walk follows and where it stops.
+        /// </summary>
+        public IReadOnlyList<string> Helpers { get; }
+
+        /// <summary><see cref="Literals"/> plus every literal in <see cref="Helpers"/>.</summary>
+        public IReadOnlyCollection<string> ReachedLiterals { get; }
+
+        /// <summary>
+        /// Contract types whose own producer the walk reached and stopped at.
+        /// Those fields are graded at that producer's site, so the parity check
+        /// does not descend into them from this one.
+        /// </summary>
+        public IReadOnlyCollection<string> DelegatedTypes { get; }
 
         public override string ToString() =>
             (Owner is null ? Method : Owner + "." + Method) + " (" + File + ")";
@@ -108,6 +136,14 @@ namespace Sitrep.Core.Tests
     /// for its type cannot be on the wire, which is exactly the bug class, and a
     /// generous reading is the right direction to be wrong in when there is no
     /// allowlist to park a false failure in.</para>
+    ///
+    /// <para><b>A producer is the method plus the helpers it reaches.</b> The
+    /// literals of the sibling methods a producer calls, transitively, count as
+    /// its own; <see cref="Walk"/> says which calls are followed and where the
+    /// walk stops. Reading the named method alone let
+    /// <c>SystemViewProvider.BuildSystemBodies</c> report clean while every body
+    /// field was written by <c>BuildBody</c>, which it calls and which names no
+    /// contract type the scan can attribute to it.</para>
     /// </summary>
     internal static class ProducerFlattenScan
     {
@@ -203,25 +239,19 @@ namespace Sitrep.Core.Tests
         public static IReadOnlyList<FlattenProducer> Scan(
             IEnumerable<ScannedSource> files, ISet<string> contractTypes)
         {
-            var found = new List<FlattenProducer>();
+            var records = new List<MethodRecord>();
             foreach (var source in files)
             {
-                if (!WireDictionary.IsMatch(source.Text))
-                {
-                    continue;
-                }
-
                 var structure = Mask(source.Text, blankStrings: true);
                 var code = Mask(source.Text, blankStrings: false);
                 var owners = TypeBlocks(structure);
+                var directory = source.Path.Contains('/')
+                    ? source.Path.Substring(0, source.Path.LastIndexOf('/'))
+                    : "";
 
                 foreach (var method in Methods(structure, owners))
                 {
-                    if (!WireDictionary.IsMatch(structure.Substring(method.BodyStart, method.BodyLength)))
-                    {
-                        continue;
-                    }
-
+                    var body = structure.Substring(method.BodyStart, method.BodyLength);
                     var literals = new HashSet<string>(StringComparer.Ordinal);
                     foreach (Match literal in StringLiteral.Matches(
                                  code.Substring(method.BodyStart, method.BodyLength)))
@@ -229,14 +259,267 @@ namespace Sitrep.Core.Tests
                         literals.Add(literal.Groups[1].Value);
                     }
 
-                    foreach (var subject in Subjects(method, contractTypes))
-                    {
-                        found.Add(new FlattenProducer(
-                            subject, method.Name, method.Owner, source.Path, literals));
-                    }
+                    var subjects = WireDictionary.IsMatch(body)
+                        ? Subjects(method, contractTypes).ToArray()
+                        : Array.Empty<string>();
+                    records.Add(new MethodRecord(method, source.Path, directory, body, literals, subjects));
+                }
+            }
+
+            // A partial class's halves sit side by side in one directory, so
+            // that is the scope a sibling is looked up in: an owner name alone
+            // would join unrelated classes that happen to share one.
+            var siblings = records
+                .Where(r => r.Method.Owner != null)
+                .GroupBy(r => (r.Directory, Owner: r.Method.Owner!))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.ToLookup(r => r.Method.Name, StringComparer.Ordinal));
+            var producersByOwner = records
+                .Where(r => r.Method.Owner != null && r.Subjects.Length > 0)
+                .ToLookup(r => (Owner: r.Method.Owner!, r.Method.Name));
+
+            var found = new List<FlattenProducer>();
+            foreach (var record in records)
+            {
+                foreach (var subject in record.Subjects)
+                {
+                    var walk = Walk(record, subject, siblings, producersByOwner);
+                    found.Add(new FlattenProducer(
+                        subject,
+                        record.Method.Name,
+                        record.Method.Owner,
+                        record.File,
+                        record.Literals,
+                        walk.Helpers,
+                        walk.Literals,
+                        walk.Delegated));
                 }
             }
             return found;
+        }
+
+        /// <summary>
+        /// Follows the calls <paramref name="producer"/> makes into methods of
+        /// its own class, transitively, and gathers what they mention.
+        ///
+        /// <para>A reached method that is itself a producer of
+        /// <paramref name="subject"/> is walked like any other helper. One that
+        /// is a producer of some OTHER contract type only is where the walk
+        /// stops: its literals are not added and its callees are not followed,
+        /// and its types are returned as delegated. That method is graded at its
+        /// own site, and folding its keys in here would let a key it happens to
+        /// share with this type vouch for a field this producer never writes.
+        /// Overloads cannot be told apart by text, so a call reaches every
+        /// sibling of that name and each one is judged on its own.</para>
+        ///
+        /// <para>A call qualified by ANOTHER class is not followed, but when it
+        /// lands on a producer its types are delegated all the same:
+        /// <c>ChannelEngine.ToWire(VantagePlanReply)</c> hands its arc to
+        /// <c>VesselViewProvider.ToWire(TrajectoryArc)</c>, which grades the arc
+        /// where it is written.</para>
+        ///
+        /// <para>A producer the CLASS name speaks for (<c>FleetVesselResourcesBuilder.Build</c>)
+        /// starts from every method of its class rather than from its own calls.
+        /// Such a class exists to flatten that one type, and its callers drive
+        /// the parts: <c>FleetChannels</c> calls <c>Add</c> once per tank to
+        /// write each resource row and then <c>Build</c> to wrap them, so the
+        /// rows are written by a sibling <c>Build</c> never calls.</para>
+        /// </summary>
+        private static WalkResult Walk(
+            MethodRecord producer,
+            string subject,
+            IReadOnlyDictionary<(string Directory, string Owner), ILookup<string, MethodRecord>> siblings,
+            ILookup<(string Owner, string Name), MethodRecord> producersByOwner)
+        {
+            var literals = new HashSet<string>(producer.Literals, StringComparer.Ordinal);
+            var helpers = new List<string>();
+            var delegated = new HashSet<string>(StringComparer.Ordinal);
+            if (producer.Method.Owner == null
+                || !siblings.TryGetValue((producer.Directory, producer.Method.Owner), out var byName))
+            {
+                return new WalkResult(helpers, literals, delegated);
+            }
+
+            var visited = new HashSet<MethodRecord> { producer };
+            var pending = new Queue<MethodRecord>();
+            void Enqueue(MethodRecord from)
+            {
+                var calls = Callees(from.Body, from.Method.Owner!);
+                foreach (var name in calls.Local)
+                {
+                    foreach (var callee in byName[name])
+                    {
+                        if (visited.Add(callee))
+                        {
+                            pending.Enqueue(callee);
+                        }
+                    }
+                }
+                foreach (var foreign in calls.Qualified)
+                {
+                    foreach (var other in producersByOwner[foreign])
+                    {
+                        delegated.UnionWith(other.Subjects.Where(s => s != subject));
+                    }
+                }
+            }
+
+            if (ClassNameSpeaksFor(producer.Method, subject))
+            {
+                foreach (var sibling in byName.SelectMany(group => group))
+                {
+                    if (visited.Add(sibling))
+                    {
+                        pending.Enqueue(sibling);
+                    }
+                }
+            }
+            Enqueue(producer);
+            while (pending.Count > 0)
+            {
+                var callee = pending.Dequeue();
+                if (callee.Subjects.Length > 0 && !callee.Subjects.Contains(subject, StringComparer.Ordinal))
+                {
+                    delegated.UnionWith(callee.Subjects);
+                    continue;
+                }
+
+                helpers.Add(callee.Method.Name);
+                literals.UnionWith(callee.Literals);
+                Enqueue(callee);
+            }
+
+            return new WalkResult(helpers, literals, delegated);
+        }
+
+        /// <summary>
+        /// Whether <paramref name="subject"/> was read off the class name alone,
+        /// the method being a bare verb: <c>FleetVesselLinkBuilder.Build</c>.
+        /// </summary>
+        private static bool ClassNameSpeaksFor(ScannedMethod method, string subject) =>
+            method.Owner != null
+            && Verbs.Contains(method.Name, StringComparer.Ordinal)
+            && WireOwnerSuffixes.Any(suffix =>
+                method.Owner.Length > suffix.Length
+                && method.Owner.EndsWith(suffix, StringComparison.Ordinal)
+                && method.Owner.Substring(0, method.Owner.Length - suffix.Length) == subject);
+
+        /// <summary>
+        /// A call in a method body: a name, optional type arguments, an open
+        /// paren. Or a bare method group passed as an argument.
+        /// </summary>
+        private static readonly Regex Call = new(
+            @"(?<![\w])(?<name>[A-Za-z_]\w*)[ \t\r\n]*(?:<[^;{}()]*>)?[ \t\r\n]*\(", RegexOptions.Compiled);
+
+        private static readonly Regex MethodGroup = new(
+            @"[(,][ \t\r\n]*(?<name>[A-Za-z_]\w*)[ \t\r\n]*(?=[),])", RegexOptions.Compiled);
+
+        /// <summary>
+        /// What <paramref name="body"/> calls. <c>Local</c> is its own class:
+        /// unqualified, or through <c>this.</c> or the class name.
+        /// <c>Qualified</c> is a call through a capitalised receiver other than
+        /// the class, which may be another class's static producer. A call
+        /// through a lower-case receiver is an object's method, and
+        /// <c>new X(</c> is a constructor; neither is either.
+        /// </summary>
+        private static (HashSet<string> Local, HashSet<(string Owner, string Name)> Qualified) Callees(
+            string body, string owner)
+        {
+            var local = new HashSet<string>(StringComparer.Ordinal);
+            var qualified = new HashSet<(string Owner, string Name)>();
+            foreach (Match match in Call.Matches(body))
+            {
+                var name = match.Groups["name"].Value;
+                var at = SkipWhitespaceBack(body, match.Index);
+                if (at > 0 && body[at - 1] == '.')
+                {
+                    var receiver = PrecedingWord(body, SkipWhitespaceBack(body, at - 1));
+                    if (receiver == "this" || receiver == owner)
+                    {
+                        local.Add(name);
+                    }
+                    else if (receiver.Length > 0 && char.IsUpper(receiver[0]))
+                    {
+                        qualified.Add((receiver, name));
+                    }
+                    continue;
+                }
+                if (PrecedingWord(body, at) != "new")
+                {
+                    local.Add(name);
+                }
+            }
+            foreach (Match match in MethodGroup.Matches(body))
+            {
+                local.Add(match.Groups["name"].Value);
+            }
+            return (local, qualified);
+        }
+
+        private static int SkipWhitespaceBack(string text, int end)
+        {
+            while (end > 0 && char.IsWhiteSpace(text[end - 1]))
+            {
+                end--;
+            }
+            return end;
+        }
+
+        private static string PrecedingWord(string text, int end)
+        {
+            var start = end;
+            while (start > 0 && (char.IsLetterOrDigit(text[start - 1]) || text[start - 1] == '_'))
+            {
+                start--;
+            }
+            return text.Substring(start, end - start);
+        }
+
+        private sealed class MethodRecord
+        {
+            public MethodRecord(
+                ScannedMethod method, string file, string directory, string body,
+                IReadOnlyCollection<string> literals, string[] subjects)
+            {
+                Method = method;
+                File = file;
+                Directory = directory;
+                Body = body;
+                Literals = literals;
+                Subjects = subjects;
+            }
+
+            public ScannedMethod Method { get; }
+
+            public string File { get; }
+
+            public string Directory { get; }
+
+            /// <summary>The body with comments and literals blanked, which is what calls are read from.</summary>
+            public string Body { get; }
+
+            public IReadOnlyCollection<string> Literals { get; }
+
+            /// <summary>The contract types this method stands for; empty unless it builds a wire dictionary.</summary>
+            public string[] Subjects { get; }
+        }
+
+        private sealed class WalkResult
+        {
+            public WalkResult(
+                IReadOnlyList<string> helpers, IReadOnlyCollection<string> literals, IReadOnlyCollection<string> delegated)
+            {
+                Helpers = helpers;
+                Literals = literals;
+                Delegated = delegated;
+            }
+
+            public IReadOnlyList<string> Helpers { get; }
+
+            public IReadOnlyCollection<string> Literals { get; }
+
+            public IReadOnlyCollection<string> Delegated { get; }
         }
 
         /// <summary>
