@@ -22,10 +22,13 @@
  * beside it in CI. It answers "can the harness render at all", a question
  * `visual` cannot ask, and it fails on any future module-load error whatever
  * the cause rather than only on this one's shape.
+ *
+ * Each loaded page is also asked one question about its stylesheet: do form
+ * controls draw in the page's font? See {@link formControlFontMismatches}.
  */
 
 import { pathToFileURL } from "node:url";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { PROBE_PAGES, prepareProbePage } from "./widgetRenderHarness";
 
 /** Generous: the assertion is about loading at all, not about speed, and a
@@ -48,6 +51,31 @@ interface PageFailure {
  */
 const MIN_PROBE_PAGES = 2;
 
+/**
+ * Form controls whose computed font-family differs from the body's, one line each.
+ *
+ * A native control takes its font from the UA stylesheet unless a rule says
+ * `font: inherit`, and the app says it for every page through the theme sheet.
+ * When that rule lived in the app's own global.css, which no probe injects,
+ * every kit `<button>` rendered in the browser's sans-serif here and in mono in
+ * the app, and nothing compared the two. The controls are planted rather than
+ * rendered so the answer does not depend on any one widget still drawing one.
+ */
+async function formControlFontMismatches(tab: Page): Promise<string[]> {
+  return tab.evaluate(() => {
+    const body = getComputedStyle(document.body).fontFamily;
+    const out: string[] = [];
+    for (const tag of ["button", "input", "select", "textarea"]) {
+      const el = document.createElement(tag);
+      document.body.appendChild(el);
+      const own = getComputedStyle(el).fontFamily;
+      if (own !== body) out.push(`<${tag}> draws in ${own}, body in ${body}`);
+      el.remove();
+    }
+    return out;
+  });
+}
+
 async function main(): Promise<void> {
   const pageCount = Object.keys(PROBE_PAGES).length;
   if (pageCount < MIN_PROBE_PAGES) {
@@ -59,6 +87,7 @@ async function main(): Promise<void> {
   }
 
   const failures: PageFailure[] = [];
+  const fontFailures: string[] = [];
   const browser = await chromium.launch();
   try {
     for (const [name, page] of Object.entries(PROBE_PAGES)) {
@@ -89,6 +118,15 @@ async function main(): Promise<void> {
           { timeout: INSTALL_TIMEOUT_MS },
         );
         console.log(`  window.${page.installs} installed`);
+        const mismatches = await formControlFontMismatches(tab);
+        if (mismatches.length > 0) {
+          fontFailures.push(
+            `✗ ${name} (${page.htmlTemplate})`,
+            ...mismatches.map((m) => `    ${m}`),
+          );
+        } else {
+          console.log("  form controls draw in the body font");
+        }
       } catch (err) {
         failures.push({
           page: `${name} (${page.entry})`,
@@ -130,8 +168,19 @@ async function main(): Promise<void> {
       console.error(`      ${f.reason}`);
       for (const e of f.pageErrors) console.error(`      page error: ${e}`);
     }
-    process.exit(1);
   }
+
+  if (fontFailures.length > 0) {
+    console.error(
+      "\nprobe-render-smoke: form controls on a probe page do not draw in the page " +
+        "font,\nso every kit button renders in a different typeface from the app. " +
+        "The\n`font: inherit` rule for form controls belongs in " +
+        "packages/theme/src/tokens.css,\nwhich both the app and every probe load.\n",
+    );
+    for (const line of fontFailures) console.error(`  ${line}`);
+  }
+
+  if (failures.length > 0 || fontFailures.length > 0) process.exit(1);
 
   console.log(
     `\nprobe-render-smoke: ${Object.keys(PROBE_PAGES).length} probe page(s) loaded and armed.`,

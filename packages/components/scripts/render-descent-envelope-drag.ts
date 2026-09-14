@@ -80,7 +80,7 @@ async function main(): Promise<void> {
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   const htmlWithBundle = htmlTemplate
     .replace(
-      '<style id="probe-theme">/* injected by render-descent-envelope-drag driver from packages/app/src/styles/global.css */</style>',
+      '<style id="probe-theme">/* injected by render-descent-envelope-drag driver from packages/theme/src/tokens.css */</style>',
       () => `<style id="probe-theme">${theme}</style>`,
     )
     .replace(

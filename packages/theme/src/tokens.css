@@ -20,6 +20,22 @@
   box-sizing: border-box;
 }
 
+/*
+ * Native form controls take their font from the UA stylesheet rather than
+ * inheriting it from `body`, so a `<button>` whose rule names no font-family
+ * draws in the browser's sans-serif while the text around it is mono.
+ *
+ * It lives here for the same reason as the reset above. It used to sit in the
+ * app's global.css, which no render probe loads, so every kit button was mono
+ * in the app and the browser sans-serif in every render and Uplink docs page.
+ */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 :root {
   --font-family-mono:
     "JetBrains Mono", ui-monospace, "IBM Plex Mono", Menlo, Consolas, monospace;
