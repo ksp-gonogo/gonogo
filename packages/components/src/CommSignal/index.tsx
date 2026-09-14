@@ -144,8 +144,11 @@ function CommSignalComponent({
   /*
    * Every reading below is a VERDICT, so each is taken from the observation
    * alone: the operator reads a bar or a pill as the situation NOW, and a
-   * judgement cannot be dated. None of these topics declares a reckonable
-   * value, so there is no forward model to fall back on either.
+   * judgement cannot be dated. `comms.delay` is the one that declares a
+   * reckonable value, and it is still read observed-only here, because it is
+   * drawn in the same block and the same styling as the verdicts: a modelled
+   * number that looks exactly like a measured one is read as measured. Drawing
+   * it reckoned is a presentation change rather than a change of read.
    */
   const connected =
     linkReading.state === "observed" ? linkReading.value.connected : undefined;

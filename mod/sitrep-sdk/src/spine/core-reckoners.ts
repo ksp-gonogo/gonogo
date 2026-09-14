@@ -11,6 +11,9 @@ import {
   localGravity,
   withinAtmosphere,
 } from "./atmospheric-reckoning";
+import { deriveCelestialFacts } from "./celestial-facts";
+import { commsDelaySecondsAt, fitCommsDelay } from "./comms-delay-reckoning";
+import { firstHopPeer, locateCommsPeer } from "./comms-path-geometry";
 import {
   advanceByVelocity,
   keplerAdmissibility,
@@ -390,6 +393,147 @@ function registerFlightReckoner(): void {
 }
 
 /**
+ * A peer whose orbit nothing here can reach.
+ *
+ * `locateCommsPeer` joins a RELAY endpoint to `fleet.<guid>.orbit`, and a
+ * reckoner cannot subscribe to that: a per-vessel dynamic topic is not a name a
+ * `deps` array declared once at module load can carry, and a declared input is
+ * the only thing the store resolves. The relay branch is refused ABOVE this,
+ * naming that topic, so the callback is never consulted; it is here because
+ * `locateCommsPeer` takes one and a lambda returning nothing says the true
+ * thing about what this caller holds.
+ */
+const NO_FLEET_ORBITS = () => undefined;
+
+/**
+ * `comms.delay.oneWaySeconds`, by re-measuring the FIRST hop of the observed
+ * route and carrying the rest of it forward unchanged.
+ *
+ * The arithmetic and the reasoning behind it are in `comms-delay-reckoning.ts`;
+ * what this adds is the join from three published channels to the two positions
+ * that arithmetic needs. `comms.path` names the far end of hop zero,
+ * `commandCentre.roster` says where that end is when it is a ground station
+ * (body-fixed, so it also needs the body's rotation phase off `system.bodies`),
+ * and `vessel.orbit` propagates the craft.
+ *
+ * ## The newest route pairs with the newest delay, and the gate is why
+ *
+ * The model scales by the observed delay over the observed route, which is the
+ * only way to recover the speed the mod divided by (`lightSpeedScale` is a
+ * career setting and is not on the wire). A ratio of two quantities observed at
+ * different instants would not be that speed, and the two points CAN carry
+ * different instants: both are published from one capture, but the engine
+ * compares each payload by value and suppresses an identical rebuild, so either
+ * can be gated out of a tick the other survives.
+ *
+ * Each of those gaps is a positive statement that nothing changed. A tick with
+ * no path point is a tick whose route is the one already held; a tick with no
+ * delay point is a tick whose total length did not move, which is the only
+ * thing the delay is a function of. So the newest of each is the current value
+ * of each, and their ratio is the speed in force, whichever tick each last
+ * arrived on. Demanding one instant would refuse the model on exactly the ticks
+ * the gate is working.
+ *
+ * ## A RELAY first hop is refused, and it is not a gap in this model
+ *
+ * A relay's elements ride `fleet.<guid>.orbit`, keyed by a guid that is not
+ * known until the route arrives. A reckoner's inputs are declared once, at
+ * registration, so there is no dep that names it, and the contract's
+ * `[SitrepReckonable]` input grammar cannot name it either: an input is
+ * `@<topicId>`, resolved against the declared topic set, and a per-vessel
+ * dynamic topic is not in it. So the model the CONTRACT can declare is the
+ * direct one, and this refuses the relayed route by naming the topic that would
+ * have placed the peer. Serving it needs a decision above this file: the peer's
+ * elements riding `comms.path` itself, or an input grammar with a per-subject
+ * form.
+ */
+function registerCommsDelayReckoner(): void {
+  registerReckoner("comms.delay", CORE_RECKONER_OWNER, {
+    deps: [
+      "comms.path",
+      "vessel.orbit",
+      "system.bodies",
+      "commandCentre.roster",
+    ],
+    reckon(
+      point,
+      [pathPoint, orbitPoint, bodiesPoint, rosterPoint],
+      { viewUt },
+    ) {
+      const observed = point.payload;
+      if (observed == null) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: "no delay was observed, so there is nothing to carry forward",
+          },
+        };
+      }
+      const path = pathPoint?.payload;
+      if (path == null) {
+        return { declined: { reason: "input-absent", input: "@comms.path" } };
+      }
+      const admissible = keplerAdmissibility(
+        orbitPoint,
+        bodiesPoint?.payload ?? undefined,
+        viewUt,
+      );
+      if ("declined" in admissible) return admissible;
+      if (orbitPoint?.payload == null) {
+        return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      }
+      const peer = firstHopPeer(path.hops);
+      if (peer === null) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            input: "@comms.path",
+            note: "no path home, so there is no route to re-measure a leg of",
+          },
+        };
+      }
+      if (!peer.isHome) {
+        return {
+          declined: {
+            reason: "input-absent",
+            input: `@fleet.${peer.id}.orbit`,
+            note: "the route home starts at a relay, and where that relay is now is not published anywhere this model can read",
+          },
+        };
+      }
+      const located = locateCommsPeer(
+        peer,
+        rosterPoint?.payload ?? undefined,
+        NO_FLEET_ORBITS,
+      );
+      if (located === null) {
+        return {
+          declined: {
+            reason: "input-absent",
+            input: "@commandCentre.roster",
+            note: `the roster carries no position for ${peer.id}`,
+          },
+        };
+      }
+      const fit = fitCommsDelay({
+        hops: path.hops,
+        observed,
+        craft: orbitPoint.payload,
+        peer: located,
+        facts: deriveCelestialFacts(bodiesPoint?.payload?.bodies, viewUt),
+      });
+      if ("declined" in fit) return fit;
+      return {
+        modelled: movedFields("kepler-propagation", "oneWaySeconds"),
+        reckon: (at) => ({
+          oneWaySeconds: value("s", commsDelaySecondsAt(fit, at)),
+        }),
+      };
+    },
+  });
+}
+
+/**
  * `vessel.orbit.truth.position` and `.velocity`: the state vector the same conic
  * produces.
  *
@@ -491,6 +635,7 @@ export function registerCoreReckoners(): void {
   registerDockReckoner();
   registerFlightReckoner();
   registerOrbitTruthReckoner();
+  registerCommsDelayReckoner();
 }
 
 registerCoreReckoners();

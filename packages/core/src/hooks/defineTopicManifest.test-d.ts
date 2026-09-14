@@ -14,7 +14,7 @@
 //   - an undeclared Topic that becomes an accepted argument fails a membership
 //     `Expect<...>`.
 
-import type { Reading } from "@ksp-gonogo/sitrep-client";
+import type { Reading, ReckonableReading } from "@ksp-gonogo/sitrep-client";
 import type {
   CommsDelay,
   VesselOrbit,
@@ -69,8 +69,16 @@ export type _AcRequiredIsReading = Expect<
 export type _AcRequired2IsReading = Expect<
   Equal<_AcRequired2, Reading<VesselOrbit>>
 >;
+/*
+ * `comms.delay` is the optional Topic here AND a Topic whose contract marks a
+ * value reckonable, so a read of it resolves to the projecting form rather than
+ * the plain one. That is the manifest hook agreeing with `useTelemetry`, which
+ * is the whole reason this file exists: the two must not drift, and a Topic
+ * gaining a `[SitrepReckonable]` mark is exactly the kind of change that would
+ * have drifted them silently.
+ */
 export type _AcOptionalIsReading = Expect<
-  Equal<_AcOptional, Reading<CommsDelay>>
+  Equal<_AcOptional, ReckonableReading<CommsDelay, "oneWaySeconds">>
 >;
 
 // ── The same, WITHOUT `as const`: `const` type params make the annotation optional ─
@@ -90,7 +98,7 @@ export type _PlainRequiredIsReading = Expect<
   Equal<_PlainRequired, Reading<VesselResources>>
 >;
 export type _PlainOptionalIsReading = Expect<
-  Equal<_PlainOptional, Reading<CommsDelay>>
+  Equal<_PlainOptional, ReckonableReading<CommsDelay, "oneWaySeconds">>
 >;
 
 // Proof the read is genuinely NOT the bare payload: the inner `Equal` is FALSE, so

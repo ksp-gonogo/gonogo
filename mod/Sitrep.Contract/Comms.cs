@@ -375,8 +375,52 @@ public class CommsDelay
     /// The one-way light-time to the command centre, seconds. See this type's
     /// own summary for the null/zero split, which is the whole discriminator:
     /// null is "nothing measurable", 0 is a measured or applied zero.
+    ///
+    /// <para><b>Carried forward by re-measuring ONE leg of the route.</b> A
+    /// delay is the whole route's length over the speed light travels at, and
+    /// almost none of that route changes between the instant the light left and
+    /// the instant it is read: every hop except the first joins two ground
+    /// stations, or a station and a relay, or two relays, none of which move
+    /// appreciably against each other on a telemetry timescale. So their
+    /// measured lengths carry forward as the sum they already were, and only
+    /// the FIRST hop, the one with the craft on one end, is re-derived:
+    /// <c>(route - firstHop + |craft - peer|) / c</c>, the craft propagated on
+    /// <c>@vessel.orbit</c> and its peer placed from
+    /// <c>@commandCentre.roster</c>, whose latitude and longitude are
+    /// body-fixed and so need the rotation phase on <c>@system.bodies</c>.</para>
+    ///
+    /// <para>Declared for a route whose first hop ends at a GROUND STATION,
+    /// which is the direct link and the common case. A first hop ending at a
+    /// RELAY needs that relay's own elements, which ride the per-vessel
+    /// <c>fleet.&lt;guid&gt;.orbit</c> channel under a guid not known until the
+    /// route arrives; an input here is a Topic id resolved against the declared
+    /// set, so there is no way to name it and no promise made about it. A
+    /// client reading a relayed route gets an honest refusal naming that
+    /// channel rather than a modelled number.</para>
+    ///
+    /// <para>The <see cref="Source"/> is an input because three of its four
+    /// members are a zero that means something other than "no distance": the
+    /// feature is off, the flight is a rehearsal, or the save models no comms
+    /// network. None of those stops being true as the craft moves, so only
+    /// <see cref="CommsDelaySource.SignalDelay"/> is carried forward.</para>
+    /// <internal>
+    /// The client divides the OBSERVED delay by the OBSERVED route rather than
+    /// by a light-speed constant, which recovers whatever
+    /// <c>SignalDelay.EffectiveC</c> used, <c>LightSpeedScale</c> included,
+    /// without that setting reaching the wire; putting it there was tried and
+    /// reverted. It also makes the model reproduce the observation exactly at
+    /// its own instant, so the reckoned value leaves the measured one
+    /// continuously.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
+    [SitrepReckonable(
+        ReckoningBases.KeplerPropagation,
+        "source",
+        "@comms.path",
+        "@vessel.orbit",
+        "@system.bodies",
+        "@commandCentre.roster")]
     public double? OneWaySeconds { get; set; }
 
     [SitrepUnit(Units.Enumeration)]

@@ -40,6 +40,7 @@ export interface GeneratedReckonableValue {
 }
 
 export const GENERATED_RECKONABLE_VALUES = [
+  { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" }, { topic: "commandCentre.roster", path: "" } ] },
   { topic: "vessel.dock", field: "distance", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativePosition" }, { topic: "", path: "relativeVelocity" } ] },
   { topic: "vessel.dock", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
   { topic: "vessel.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
@@ -55,6 +56,7 @@ export const GENERATED_RECKONABLE_VALUES = [
  * key union. A Topic ABSENT here has no declared model for any of its values.
  */
 export const GENERATED_RECKONABLE_FIELDS = {
+  "comms.delay": ["oneWaySeconds"],
   "vessel.dock": ["distance", "relativePosition"],
   "vessel.flight": ["altitudeAsl", "orbitalSpeed"],
   "vessel.orbit.truth": ["position", "velocity"],
