@@ -293,7 +293,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/isru.test.ts": 2,
   "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 2,
   "mod/GonogoKerbalismUplink/client/src/ResourceOps/processFilters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/resourceProjection.test.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/science.test.ts": 2,
   "mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.test.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/test/widgetDomSnapshot.tsx": 3,
