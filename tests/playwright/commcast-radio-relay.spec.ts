@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 import {
   closeAll,
+  decodedVerdict,
   keyDown,
   keyUp,
   NAMES,
@@ -109,15 +110,20 @@ test.describe("commcast radio: the relay repeats a peer once @chromium-only", ()
       console.info(
         `[radio-relay] ${CHUNKS} chunks keyed from the station: ${atControl.decoded.length} decoded at the host, ${atPilot.decoded.length} at the craft`,
       );
-      const whole = Array.from({ length: CHUNKS }, (_, i) => i);
+      /*
+       * Read as a verdict rather than a bare `toEqual`, because a repeat is this
+       * scene's subject and is not the only way the list can differ: a chunk
+       * released out of order, or lost, fails the same diff and is a different
+       * defect in a different place.
+       */
       expect(
-        atControl.decoded,
-        "the host repeated the station to itself more than once",
-      ).toEqual(whole);
+        decodedVerdict(atControl.decoded, CHUNKS),
+        "what mission control decoded (a REPEAT is the host echoing the station to itself)",
+      ).toBeNull();
       expect(
-        atPilot.decoded,
-        "the host repeated the station onto the wire more than once",
-      ).toEqual(whole);
+        decodedVerdict(atPilot.decoded, CHUNKS),
+        "what the craft decoded (a REPEAT is the host relaying the station more than once)",
+      ).toBeNull();
       // And the station still never hears itself, on either path.
       expect((await reception(station.page)).decoded).toEqual([]);
     } finally {

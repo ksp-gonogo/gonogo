@@ -7,11 +7,13 @@
  * `tests/playwright/radio-capability.spec.ts`.
  */
 import { PerfBudget } from "@ksp-gonogo/core";
+import { ViewClock } from "@ksp-gonogo/sitrep-sdk/spine";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SeparationMatrix, Vantage } from "../reveal";
 import { threadKeyOf } from "../threads";
 import type { RadioDecoderLike, RadioReceiver } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
+import { RadioTransmitter } from "./RadioTransmitter";
 import type { RadioFrame, RadioTransmission } from "./wire";
 
 const ARES = "vessel:ares";
@@ -252,6 +254,92 @@ describe("radio playout, held by the light-time", () => {
     session.pump(200);
     expect(sink.decoded).toHaveLength(2);
     expect(sink.resets).toBe(2);
+  });
+});
+
+describe("radio playout, in the order it was spoken", () => {
+  it("decodes in sequence when the transmitter's clock steps back between two chunks", async () => {
+    /*
+     * The real transmitter stamping off a real `ViewClock`. That estimate
+     * re-anchors on every delivered sample, so a sample that reaches the
+     * talker's screen later than the one before it moves their present
+     * BACKWARDS, and the next chunk goes out stamped behind the one spoken 20
+     * ms earlier. Both are still held for the crossing when the second lands.
+     */
+    let wall = 0;
+    const talker = new ViewClock({ nowWall: () => wall });
+    talker.observeSample(1000, 1000);
+    const sent: RadioFrame[] = [];
+    let speak: ((bytes: Uint8Array, amplitude: number) => void) | null = null;
+    const transmitter = new RadioTransmitter({
+      send: (frame) => sent.push(frame),
+      utNow: () => talker.utNowEstimate(),
+      startCapture: async (onChunk) => {
+        speak = onChunk;
+        return { stop: () => {} };
+      },
+    });
+    await transmitter.keyDown({
+      to: [KSC],
+      from: ARES,
+      authorStationKey: "pilot-1",
+      authorName: "Jeb",
+      authorSeat: "pilot",
+      separationSeconds: LIGHT_TIME,
+    });
+    const say = (seq: number) => speak?.(new Uint8Array(64).fill(seq), 0.5);
+    say(0);
+    wall = 0.02;
+    say(1);
+    // Stamped 5 ms after the anchor, delivered 25 ms after it.
+    wall = 0.03;
+    talker.observeSample(1000.005, 1000.005);
+    wall = 0.04;
+    say(2);
+    wall = 0.06;
+    say(3);
+    transmitter.keyUp();
+
+    const stamps = sent.flatMap((f) => (f.kind === "chunk" ? [f.ut] : []));
+    expect(stamps[2], "the talker's clock never stepped back").toBeLessThan(
+      stamps[1] as number,
+    );
+
+    const { clock, sink, session } = scene();
+    for (const frame of sent) session.receive(frame);
+    clock.set(2000);
+    for (const at of [100, 100.02, 100.04, 100.06, 100.08]) session.pump(at);
+    expect(sink.decoded.map((d) => d.bytes[0])).toEqual([0, 1, 2, 3]);
+  });
+
+  it("decodes in sequence when two chunks share a stamp and the wire swapped them", () => {
+    // A catch-up burst stamps several chunks inside one clock tick, so their
+    // instants tie and only arrival order separates them.
+    const { clock, sink, session } = scene();
+    const t = transmission();
+    session.receive(start(t));
+    session.receive(chunk(t, 0, 1000));
+    session.receive(chunk(t, 2, 1000 + CHUNK));
+    session.receive(chunk(t, 1, 1000 + CHUNK));
+    clock.set(2000);
+    for (const at of [100, 100.02, 100.04]) session.pump(at);
+    expect(sink.decoded.map((d) => d.bytes[0])).toEqual([0, 1, 2]);
+  });
+
+  it("does not stall behind an earlier chunk stamped far in the future of the next", () => {
+    /*
+     * A revert moves the talker's clock back by minutes mid-keying. Waiting for
+     * the chunk spoken before it would hold everything after it until the
+     * reader's clock caught up, so a gap that wide is played through instead.
+     */
+    const { clock, sink, session } = scene();
+    const t = transmission();
+    session.receive(start(t));
+    session.receive(chunk(t, 0, 1600));
+    session.receive(chunk(t, 1, 1000));
+    clock.set(1000 + LIGHT_TIME);
+    session.pump(100);
+    expect(sink.decoded.map((d) => d.bytes[0])).toEqual([1]);
   });
 });
 

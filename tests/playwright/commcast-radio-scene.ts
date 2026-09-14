@@ -441,6 +441,42 @@ export async function reception(page: Page): Promise<ReceptionWatch> {
 }
 
 /**
+ * What differs between the chunk indices a listener decoded and the whole
+ * utterance `0..chunks-1`, in the terms a failure has to be read in.
+ *
+ * A duplicate, a gap and a reorder are three different defects living in three
+ * different places (a relay repeating a frame, a wire or buffer losing one, a
+ * receive path releasing two in the wrong order), and one `toEqual` diff reads
+ * the same for all of them. Returns `null` when the two agree.
+ */
+export function decodedVerdict(
+  decoded: readonly number[],
+  chunks: number,
+): string | null {
+  const counts = new Map<number, number>();
+  for (const index of decoded) counts.set(index, (counts.get(index) ?? 0) + 1);
+  const repeated = [...counts].filter(([, n]) => n > 1).map(([i]) => i);
+  const missing = Array.from({ length: chunks }, (_, i) => i).filter(
+    (i) => !counts.has(i),
+  );
+  const stray = [...counts.keys()].filter((i) => i < 0 || i >= chunks);
+  const problems: string[] = [];
+  if (repeated.length > 0) {
+    problems.push(
+      `decoded ${decoded.length} chunks of ${chunks}, REPEATED: ${repeated.join(", ")}`,
+    );
+  }
+  if (missing.length > 0) problems.push(`MISSING: ${missing.join(", ")}`);
+  if (stray.length > 0) problems.push(`never spoken: ${stray.join(", ")}`);
+  if (problems.length > 0) return problems.join("; ");
+  const at = decoded.findIndex((index, i) => index !== i);
+  if (at === -1) return null;
+  return `every chunk decoded exactly once, OUT OF ORDER from position ${at}: ${decoded
+    .slice(Math.max(0, at - 1), at + 4)
+    .join(", ")}`;
+}
+
+/**
  * Waits, from the TEST rather than from the page, for `until` to hold.
  *
  * `page.waitForFunction` is the obvious tool and it does not work here.

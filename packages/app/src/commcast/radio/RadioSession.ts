@@ -243,6 +243,16 @@ interface HeardTransmission {
   /** Chunks accepted here and not yet played, dropped or skipped. */
   inflight: number;
   /**
+   * This keying's chunks still inside the delay buffer, lowest `seq` first:
+   * pushed, and neither released nor dropped.
+   */
+  inBuffer: Array<{ seq: number; ut: number }>;
+  /**
+   * Chunks the clock has released while a lower `seq` of the same keying was
+   * still crossing, lowest `seq` first. See {@link RadioSession.passInOrder}.
+   */
+  waiting: Array<{ ut: number; chunk: HeldChunk }>;
+  /**
    * Key-up has been heard. The envelope is kept anyway until the audio it
    * describes has finished playing: `end` travels at the speed of the internet
    * while the words it ends are still crossing the light-time, so forgetting
@@ -351,15 +361,19 @@ export class RadioSession {
           this.discard(chunk);
           return;
         }
-        this.paced += 1;
-        held.pacer.submit(
-          { ut: frame.ut, data: chunk },
-          this.releaseWall ?? this.nowWall(),
-        );
+        leaveBuffer(held, chunk.seq);
+        insertBySeq(held.waiting, { ut: frame.ut, chunk }, (w) => w.chunk.seq);
+        this.passInOrder(held);
       },
       onDrop: (frame) => {
         this.crossing = Math.max(0, this.crossing - 1);
+        const held = frame.data && this.heard.get(frame.data.transmissionId);
+        if (held && frame.data) leaveBuffer(held, frame.data.seq);
         this.discard(frame.data);
+        // A dropped chunk is no longer anything to wait for.
+        if (held && this.heard.has(held.transmission.id)) {
+          this.passInOrder(held);
+        }
       },
     });
     this.unsubscribeFrame = opts.view.onFrame(() => this.pump());
@@ -408,6 +422,11 @@ export class RadioSession {
         if (!held) return;
         held.inflight += 1;
         this.crossing += 1;
+        insertBySeq(
+          held.inBuffer,
+          { seq: frame.seq, ut: frame.ut + held.transitSeconds },
+          (c) => c.seq,
+        );
         this.buffer.push({
           ut: frame.ut + held.transitSeconds,
           data: {
@@ -515,8 +534,49 @@ export class RadioSession {
       decoder: this.opts.receiver.openStream(),
       streaming: false,
       inflight: 0,
+      inBuffer: [],
+      waiting: [],
       ended: false,
     });
+  }
+
+  /**
+   * Hand released chunks to the pacer in `seq` order, holding any that the
+   * clock let through ahead of a lower `seq` still crossing.
+   *
+   * The delay buffer orders by UT, and a chunk's UT is its transmitter's
+   * `utNowEstimate()`, which is not monotonic: it re-anchors on every delivered
+   * sample, so a sample reaching the talker's screen later than the one before
+   * it steps their present back, and the next chunk goes out stamped behind the
+   * one spoken 20 ms earlier. A burst of chunks stamped inside one clock tick
+   * ties instead, leaving only arrival order between them. Either way the
+   * buffer would release two words in the order they were NOT spoken, which a
+   * listener hears as a glitch. The wait costs the size of that step.
+   *
+   * Bounded by `maxBacklogSeconds`, because a lower `seq` stamped further ahead
+   * than that is a discontinuity rather than jitter: a revert moves the
+   * talker's clock back by minutes mid-keying, and waiting on the chunk spoken
+   * before it would silence everything after it until the reader's clock
+   * caught up.
+   */
+  private passInOrder(held: HeardTransmission): void {
+    while (held.waiting.length > 0) {
+      const next = held.waiting[0] as { ut: number; chunk: HeldChunk };
+      const lowest = held.inBuffer[0];
+      if (
+        lowest !== undefined &&
+        lowest.seq < next.chunk.seq &&
+        lowest.ut - next.ut <= this.maxBacklogSeconds
+      ) {
+        return;
+      }
+      held.waiting.shift();
+      this.paced += 1;
+      held.pacer.submit(
+        { ut: next.ut, data: next.chunk },
+        this.releaseWall ?? this.nowWall(),
+      );
+    }
   }
 
   private present(chunk: HeldChunk): void {
@@ -614,6 +674,25 @@ export class RadioSession {
       droppedChunks: this.droppedChunks,
     };
   }
+}
+
+/**
+ * Insert keeping `seq` order, scanning from the END: chunks arrive almost
+ * always in order, so this is one comparison per chunk rather than a search.
+ * An equal `seq` (a repeated frame) goes after the one already there.
+ */
+function insertBySeq<T>(list: T[], item: T, seqOf: (item: T) => number): void {
+  const seq = seqOf(item);
+  let at = list.length;
+  while (at > 0 && seqOf(list[at - 1] as T) > seq) at -= 1;
+  list.splice(at, 0, item);
+}
+
+/** One chunk of this `seq` has left the delay buffer. Scans from the FRONT,
+ *  where a chunk released in order always is. */
+function leaveBuffer(held: HeardTransmission, seq: number): void {
+  const at = held.inBuffer.findIndex((c) => c.seq === seq);
+  if (at !== -1) held.inBuffer.splice(at, 1);
 }
 
 /** Everything a subscriber would draw differently, as one comparable string. */

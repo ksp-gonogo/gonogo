@@ -5,6 +5,7 @@ import {
   caption,
   clipSeconds,
   closeAll,
+  decodedVerdict,
   HOLD_MS,
   installCaption,
   KSC,
@@ -340,9 +341,10 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
        * opening chunks, and a session rebuilt mid-transmission would split the
        * clip across two chains.
        */
-      expect(heard.decoded).toEqual(
-        Array.from({ length: STATION_CHUNKS }, (_, i) => i),
-      );
+      expect(
+        decodedVerdict(heard.decoded, STATION_CHUNKS),
+        "what the craft decoded of the station",
+      ).toBeNull();
       expect(heard.decoderLengths).toEqual([STATION_CHUNKS]);
       // The lamp went dark once the audio it named had finished, rather than at
       // the `end` frame that arrived seconds earlier.
