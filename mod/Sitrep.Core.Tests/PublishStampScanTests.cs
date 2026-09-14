@@ -122,21 +122,27 @@ namespace Sitrep.Core.Tests
         [InlineData("vessels.Count()")]
         [InlineData("index")]
         [InlineData("capture.VesselId")]
+        [InlineData("raw?.Ut ?? 0.0")] // twelve RP-1 sites, and it used to pass
+        [InlineData("raw?.Ut ?? 0")]
+        [InlineData("raw?.Ut ?? snapshot?.Ut ?? 0.0")]
         public void AStampThatNamesSomethingElseIsRejected(string stamp) =>
             Assert.False(NamesATime(stamp), stamp + " is not a universe time and must be rejected");
 
         /// <summary>
         /// Every spelling the tree actually uses is accepted, so the gate cannot
-        /// be satisfied by narrowing it until nothing passes.
+        /// be satisfied by narrowing it until nothing passes. The last two are the
+        /// pair the coalesce branch has to keep apart: a fallback that quotes a
+        /// clock is a stamp, and a literal standing alone is still the only thing
+        /// a site with no snapshot to quote can hand over.
         /// </summary>
         [Theory]
         [InlineData("ut")]
         [InlineData("cap.Ut")]
         [InlineData("capture.Ut")]
-        [InlineData("raw?.Ut ?? 0.0")]
         [InlineData("observation.SampledAtUt")]
         [InlineData("host.NowUt()")]
         [InlineData("snapshot.Ut")]
+        [InlineData("raw?.Ut ?? host.NowUt()")]
         [InlineData("0.0")]
         public void EverySpellingTheTreeUsesIsAccepted(string stamp) =>
             Assert.True(NamesATime(stamp), stamp + " is a universe time and must be accepted");
@@ -153,11 +159,22 @@ namespace Sitrep.Core.Tests
             // A null-coalesced fallback is a stamp of its own; both halves have
             // to name a time, so check them separately rather than reading only
             // the one that happens to be last.
+            //
+            // The fallback half is held to more than that: it must name a time the
+            // caller MEASURED, never a literal. A literal standing alone is a site
+            // that has no snapshot to quote and nothing else to hand over; a
+            // literal behind a ?? is a site that HAD an instant on the good path
+            // and fabricated one on the other, which is the shape twelve RP-1
+            // courier handles took. They coalesced an unread tick to 0.0 and
+            // published a reading dated the start of the game, and this scan
+            // waved every one of them through, because 0.0 does name a time.
             var index = stamp.IndexOf("??", StringComparison.Ordinal);
             if (index >= 0)
             {
+                var fallback = stamp.Substring(index + 2).Trim();
                 return NamesATime(stamp.Substring(0, index).Trim())
-                    && NamesATime(stamp.Substring(index + 2).Trim());
+                    && NamesATime(fallback)
+                    && !IsNumericLiteral(fallback);
             }
 
             var expression = stamp.Trim().TrimEnd('!');
@@ -166,11 +183,7 @@ namespace Sitrep.Core.Tests
                 return false;
             }
 
-            if (double.TryParse(
-                    expression.TrimEnd('d', 'D', 'f', 'F', 'm', 'M'),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out _))
+            if (IsNumericLiteral(expression))
             {
                 return true;
             }
@@ -188,6 +201,14 @@ namespace Sitrep.Core.Tests
             return last.EndsWith("Ut", StringComparison.Ordinal)
                 || last.Equals("ut", StringComparison.Ordinal);
         }
+
+        /// <summary>A bare numeric constant, suffix and all: <c>0</c>, <c>0.0</c>, <c>1.5d</c>.</summary>
+        private static bool IsNumericLiteral(string expression) =>
+            double.TryParse(
+                expression.Trim().TrimEnd('!').TrimEnd('d', 'D', 'f', 'F', 'm', 'M'),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out _);
 
         /// <summary>One <c>.Publish(</c> call site and the stamp it hands over.</summary>
         internal sealed class PublishSite
