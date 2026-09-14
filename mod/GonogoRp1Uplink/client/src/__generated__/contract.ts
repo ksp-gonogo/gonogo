@@ -1652,6 +1652,11 @@ export interface Rp1LcPricing
 	* Applied ONCE when a pad is added to a complex. A renovation uses the same
 	* figure differently, as `1 + (pads - 1) * mult`, because that one reprices
 	* every pad the complex already has.
+	*
+	* `null` means RP-1's own setting could not be read. The prices alongside this
+	* field were still computed, from RP-1's shipped 0.5, so they are usable; what
+	* a client cannot do on a null is present them as the career's own figure. Say
+	* the multiplier is the shipped default rather than quoting it as read.
 	*/
 	additionalPadCostMult?: Value<"ratio">;
 	/**
