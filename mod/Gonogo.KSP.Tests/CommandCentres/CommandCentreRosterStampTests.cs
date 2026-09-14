@@ -91,23 +91,64 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
             Assert.Equal(new[] { "ground:Kerbal Space Center" }, roster.Where(e => e.IsHome).Select(e => e.Id));
+            Assert.DoesNotContain(roster, e => e.IsHomeFallback);
         }
 
         /// <summary>
-        /// Not identified is published as no flag on any centre, never as a guess at the
-        /// first one, so a client can tell it apart from a home it was told about.
+        /// Not identified still publishes a home: the centre a fresh connection starts at,
+        /// the first ground station by id, carries the flag, and <see cref="CommandCentreEntry.IsHomeFallback"/>
+        /// says it stands in rather than being the claimant's answer.
         /// </summary>
         [Fact]
-        public void WhenNoHomeIsIdentified_NoCentreIsMarkedHome()
+        public void WhenNoHomeIsIdentified_TheFirstGroundStationByIdIsMarkedHomeAsAFallback()
         {
             var host = new PublishRecordingHost();
-            var uplink = Uplink(host, HomeCommand.NotIdentified, "ground:DSS 14 - Goldstone", "ground:DSS 43 - Canberra");
+            var uplink = Uplink(
+                host,
+                HomeCommand.NotIdentified,
+                "vessel:abc", "ground:DSS 43 - Canberra", "ground:DSS 14 - Goldstone");
 
             uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
 
             var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
-            Assert.Equal(2, roster.Count);
-            Assert.DoesNotContain(roster, e => e.IsHome);
+            var home = Assert.Single(roster, e => e.IsHome);
+            Assert.Equal("ground:DSS 14 - Goldstone", home.Id);
+            Assert.True(home.IsHomeFallback);
+            Assert.Equal(new[] { home.Id }, roster.Where(e => e.IsHomeFallback).Select(e => e.Id));
+        }
+
+        /// <summary>
+        /// A named home that is not among the active centres falls back exactly as an
+        /// unnamed one does, so the roster never marks a centre it does not list.
+        /// </summary>
+        [Fact]
+        public void WhenTheNamedHomeIsNotActive_TheFallbackIsMarkedHome()
+        {
+            var host = new PublishRecordingHost();
+            var uplink = Uplink(
+                host,
+                HomeCommand.Identified("ground:Kerbal Space Center"),
+                "ground:woomerang", "ground:Baikerbanur");
+
+            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
+
+            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            var home = Assert.Single(roster, e => e.IsHome);
+            Assert.Equal("ground:Baikerbanur", home.Id);
+            Assert.True(home.IsHomeFallback);
+        }
+
+        /// <summary>A roster with no ground station has nowhere to stand in, so nothing is marked home.</summary>
+        [Fact]
+        public void WithNoGroundStation_NoCentreIsMarkedHome()
+        {
+            var host = new PublishRecordingHost();
+            var uplink = Uplink(host, HomeCommand.NotIdentified, "vessel:abc");
+
+            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(null));
+
+            var roster = Assert.IsType<List<CommandCentreEntry>>(Assert.Single(host.Recorder.Published).Payload);
+            Assert.DoesNotContain(roster, e => e.IsHome || e.IsHomeFallback);
         }
 
         private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>
@@ -142,7 +183,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             public string DisplayName => Id;
 
-            public CommandCentreKind Kind => CommandCentreKind.GroundStation;
+            public CommandCentreKind Kind =>
+                Id.StartsWith("vessel:", StringComparison.Ordinal) ? CommandCentreKind.CrewedVessel : CommandCentreKind.GroundStation;
 
             public int? BodyIndex => 1;
 

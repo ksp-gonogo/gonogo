@@ -2175,8 +2175,8 @@ namespace Sitrep.Host
                     LogHost("home command " + (home.IsIdentified
                             ? "'" + home.CentreId + "' is not an active command centre"
                             : "not identified")
-                        + " among " + ground.Count + " ground station(s); no centre is marked home, and a connection"
-                        + " that has not chosen a vantage starts at '" + next + "', the first ground station by id");
+                        + " among " + ground.Count + " ground station(s); '" + next + "', the first ground station by id,"
+                        + " is marked home in its place, and a connection that has not chosen a vantage starts there");
                 }
             }
 

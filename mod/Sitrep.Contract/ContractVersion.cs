@@ -1628,7 +1628,22 @@ namespace Sitrep.Contract
         /// geometry: one hop ending at a station IS the delay, and the one end
         /// of it that moves between the light leaving and the operator reading
         /// is the craft, whose position a client already propagates.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 8 -&gt; 9: a roster with no identified
+        /// home still names one.</b> One new member on one existing type:
+        /// <see cref="CommandCentreEntry.IsHomeFallback"/>, and
+        /// <see cref="CommandCentreEntry.IsHome"/> now rides the ground station
+        /// that stands in for an unidentified home. Additive, so an Uplink built
+        /// against 16.8 is unaffected and the frozen Major-16 floor is NOT
+        /// re-frozen.</para>
+        ///
+        /// <para>It exists because a roster that marked no centre home left the
+        /// client to show a warning where the home badge goes, while a connection
+        /// was already standing at a ground station in home's place. The stand-in
+        /// is now the home the operator sees, and the flag lets a client explain
+        /// once that it was not identified rather than working the stand-in out
+        /// again.</para>
         /// </remarks>
-        public const int Minor = 8;
+        public const int Minor = 9;
     }
 }

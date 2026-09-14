@@ -14,8 +14,9 @@ namespace Sitrep.Host.CommandCentres
     /// <item><b>Otherwise the first active ground station in ordinal id
     /// order.</b> A home that is not identified still leaves the operator at a
     /// real place rather than at a phantom one, and ordinal order picks the same
-    /// station however the scene enumerates them. Nothing is marked home in this
-    /// case: the roster says the home was not identified, and the engine logs
+    /// station however the scene enumerates them. The roster marks that station
+    /// home with <see cref="CommandCentreEntry.IsHomeFallback"/> set, so a client
+    /// can show it as home and still say it stands in, and the engine logs
     /// it.</item>
     /// <item><b>Otherwise <see cref="None"/></b>, which is the main menu: no
     /// centre exists to stand at, and every delay falls through to its node
