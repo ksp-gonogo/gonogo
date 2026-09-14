@@ -94,6 +94,9 @@ namespace GonogoRp1Uplink
         private const string FormulaTypeName = "RP0.Formula";
         private const string MaintenanceTypeName = "RP0.MaintenanceHandler";
 
+        /// <summary>KSCSwitcher's own type, not RP-1's.</summary>
+        private const string KscSwitcherLoaderTypeName = "regexKSP.KSCLoader";
+
         /// <summary>The parameter type that tells the two salary overloads apart.</summary>
         private const string LaunchComplexTypeName = "RP0.LaunchComplex";
 
@@ -120,6 +123,9 @@ namespace GonogoRp1Uplink
         /// would buy nothing.
         /// </summary>
         private Dictionary<string, string>? _displayNames;
+
+        /// <summary>Resolved once: an assembly cannot unload from a running game.</summary>
+        private bool? _kscSwitcherLoaded;
 
         /// <summary>
         /// RP-1 is installed. Gated on the TYPE resolving, never on an assembly
@@ -1509,6 +1515,42 @@ namespace GonogoRp1Uplink
             var value = Rp1Types.StaticValue(_lcEfficiency, "MaxEfficiency");
             return value is double d ? d : 1.0;
         }
+
+        /// <summary>
+        /// The ground station of the oldest space centre RP-1 holds, or null when RP-1
+        /// is not managing this save, holds no centre, or the oldest names no station.
+        ///
+        /// <para>Only the first centre is asked. A newer centre is never home, so a
+        /// station read off one would be an answer to a different question.</para>
+        /// </summary>
+        public string? OldestCentreGroundStation()
+        {
+            var scm = ScmInstance();
+            if (scm == null || ReadBool(scm, "enabledForSave") != true)
+            {
+                return null;
+            }
+
+            foreach (var ksc in Enumerate(Member(scm, "KSCs")))
+            {
+                return GroundStationFor(ksc, ReadString(ksc, "KSCName"));
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Whether KSCSwitcher is loaded, decided by its site loader's type resolving,
+        /// the first type RP-1's own interop binds to. Without it RP-1 associates no
+        /// ground station with any centre.
+        ///
+        /// <para>Deliberately not RP-1's <c>KSCSwitcherInterop.IsKSCSwitcherInstalled</c>:
+        /// that getter binds to KSCSwitcher's loader instance on its first call and caches
+        /// the outcome for good, so asking it at resolve time, earlier than RP-1 itself
+        /// does, could fix RP-1's own answer before the loader exists.</para>
+        /// </summary>
+        public bool IsKscSwitcherLoaded() =>
+            _kscSwitcherLoaded ??= Rp1Types.Find(KscSwitcherLoaderTypeName) != null;
 
         private object? ScmInstance() => _scm == null ? null : Rp1Types.StaticValue(_scm, "Instance");
 

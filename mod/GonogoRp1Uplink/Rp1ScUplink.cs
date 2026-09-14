@@ -359,6 +359,9 @@ namespace GonogoRp1Uplink
         /// <summary>Why the SCET threshold source could not be registered, or null. Surfaced on this Uplink's health the same way the derived-currency arm's failure is.</summary>
         private string? _scetThresholdRegistrationError;
 
+        /// <summary>Why the home-command claimant could not be registered, or null.</summary>
+        private string? _homeCommandRegistrationError;
+
         private string? _derivedCurrencyRegistrationError;
 
         private IChannelPublisher? _centres;
@@ -1193,6 +1196,20 @@ namespace GonogoRp1Uplink
                 _scetThresholdRegistrationError = ex.Message;
             }
 
+            // Which command centre holds the career ledger: the oldest space centre
+            // RP-1 still holds. Fail-softed on its own like the arms above; a claimant
+            // that fails to register leaves the runner-up claimant answering.
+            try
+            {
+                host.Kernel.RegisterProvider(Rp1HomeCommandProvider.Registration(
+                    _rp1.OldestCentreGroundStation,
+                    _rp1.IsKscSwitcherLoaded));
+            }
+            catch (Exception ex)
+            {
+                _homeCommandRegistrationError = ex.Message;
+            }
+
             _centres = host.Publisher(CentresTopic);
             _complexes = host.Publisher(ComplexesTopic);
             _buildQueue = host.Publisher(BuildQueueTopic);
@@ -1720,6 +1737,15 @@ namespace GonogoRp1Uplink
                         ? "not registered: RP-1 warp types not found"
                         : "rp1.warp.toComplete registered ("
                           + _warp.MethodDiagnosis() + ")"),
+                new UplinkHealthFact(
+                    "home command claimant",
+                    _homeCommandRegistrationError != null
+                        ? "registration failed: " + _homeCommandRegistrationError
+                        : !_rp1.IsAvailable
+                            ? "not registered: RP-1 not loaded"
+                            : _rp1.IsKscSwitcherLoaded()
+                                ? "registered"
+                                : "withdrawn: KSCSwitcher not loaded"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

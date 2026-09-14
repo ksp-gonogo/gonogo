@@ -75,6 +75,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1SimulationBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1DerivedCurrencyWithholder.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ConfidenceThresholdSource.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1HomeCommand.cs" />
   </ItemGroup>
 
   <ItemGroup>
