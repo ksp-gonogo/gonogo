@@ -79,5 +79,25 @@ namespace Sitrep.Core.Tests
             network.SetDefaultDelay(double.PositiveInfinity);
             Assert.Equal(0.0, network.DelayTo("KSC", "system"));
         }
+
+        [Fact]
+        public void ClearDelayDropsOnlyThatPairBackToTheDefaults_AndRestampsTheNode()
+        {
+            var network = new StubNetwork(delay: 0);
+            network.SetDefaultDelay(240.0);
+            network.SetNodeDelay("fleet.G", 5.0);
+            network.SetDelay("vessel:G", "system", 0.0);
+            network.SetDelay("vessel:G", "fleet.G", 0.0);
+            network.SetDelay("meta", "system", 0.0);
+            Assert.Equal(0.0, network.StampFor("system").For("vessel:G"));
+
+            network.ClearDelay("vessel:G", "system");
+            network.ClearDelay("never-set", "system");
+
+            Assert.Equal(240.0, network.DelayTo("vessel:G", "system"));
+            Assert.Equal(240.0, network.StampFor("system").For("vessel:G"));
+            Assert.Equal(0.0, network.DelayTo("vessel:G", "fleet.G"));
+            Assert.Equal(0.0, network.DelayTo("meta", "system"));
+        }
     }
 }

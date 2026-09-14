@@ -257,6 +257,10 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
+        public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre)
+        {
+        }
+
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
         }

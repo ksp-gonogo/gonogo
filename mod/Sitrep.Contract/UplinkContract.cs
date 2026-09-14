@@ -1084,6 +1084,22 @@ namespace Sitrep.Contract
         void SetHomeCommandDelay(string centreId, double oneWaySeconds);
 
         /// <summary>
+        /// Replace every centre's delay to the ACTIVE craft: the delay each ordinary
+        /// channel (one with no per-vessel node and not held at home) rides to that centre
+        /// as a vantage, since those channels all describe whichever craft is active.
+        ///
+        /// <para>The map is the whole set, not an update. A centre left out reads the
+        /// active craft's own light-time home, the same number it read before any row
+        /// existed, and a centre that had a row on the previous call and has none now
+        /// loses it. That is what keeps a pilot who switches away from their craft from
+        /// reading the next one instantly on a stale zero.</para>
+        ///
+        /// <para>Populated per capture pass: zero for the crewed centre that IS the active
+        /// craft, its route to the active craft for any other centre that has one.</para>
+        /// </summary>
+        void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre);
+
+        /// <summary>
         /// Set a FLEET vessel's connectivity (Plan 2b): its
         /// <c>fleet.&lt;vesselId&gt;.*</c> topics freeze on ITS OWN link
         /// independently of the active vessel. Call it per vessel each

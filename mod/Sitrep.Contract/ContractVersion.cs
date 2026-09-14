@@ -1682,7 +1682,19 @@ namespace Sitrep.Contract
         /// could have reached it. A held-at-home channel records under the ledger's own
         /// node, and each centre's row there is its path home: zero on the ground
         /// network, and for a vessel the same seconds its award waited to be booked.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 11 -&gt; 12: each centre has its own delay to
+        /// the active craft.</b> One new member, <see cref="IUplinkHost.SetActiveVesselDelays"/>,
+        /// a method on an interface an Uplink consumes and never implements. Additive,
+        /// nothing removed or retyped, so an Uplink built against 16.11 is unaffected and
+        /// the frozen Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because every ordinary channel describes the active craft and
+        /// no centre had a row against it, so every vantage read the ground's light-time.
+        /// A pilot pinned to the active craft saw its own readouts a round trip late. The
+        /// crewed centre that is the active craft now reads it at zero, and any other
+        /// centre at its own route to it.</para>
         /// </remarks>
-        public const int Minor = 11;
+        public const int Minor = 12;
     }
 }

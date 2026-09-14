@@ -113,6 +113,10 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre)
+        {
+        }
+
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
         }

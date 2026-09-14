@@ -1151,9 +1151,10 @@ namespace Sitrep.Host
             // So the whole-network default is the ACTIVE carrier of signal delay for
             // the primary node, not a leftover: `NodeId` is "system", nothing writes
             // a node-level default for it, and SetVesselDelay/SetAuthorityDelay only
-            // ever write `fleet.*` nodes and command-centre pairs. For an operator
-            // vantage observing the active vessel, this tier is the ONLY one that
-            // resolves. Emptying `SetDefaultDelay` reds eight RevealGateTests.
+            // ever write `fleet.*` nodes and command-centre pairs. SetActiveVesselDelays
+            // does write rows against it, but only for a centre with a route of its
+            // own, so the home centre and every unrouted vantage still resolve here.
+            // Emptying `SetDefaultDelay` reds eight RevealGateTests.
             var stubNetwork = new StubNetwork(delay: networkDelaySeconds, reachable: true);
             // Pin the meta-vantage to 0 so instant/exempt topics on the active
             // vessel's node stay instant. The whole-network default underneath
@@ -2132,6 +2133,45 @@ namespace Sitrep.Host
             // held-at-home channel records under. The node default beneath it is
             // pinned to zero, which is the ground network's answer.
             _network.SetDelay(centreId, HomeCommandNode, oneWaySeconds);
+        }
+
+        /*
+         * The centres holding a row against NodeId as of the last
+         * SetActiveVesselDelays, so the next call can remove the ones it no
+         * longer names. Courier-thread-only, like every ledger write.
+         */
+        private readonly HashSet<string> _activeVesselRowCentres = new HashSet<string>();
+
+        public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre)
+        {
+            /*
+             * The explicit (vantage, node) tier against NodeId, the node every
+             * ordinary channel records under. A centre dropped from the set falls
+             * back to the whole-network default, which is the active craft's own
+             * light-time home and the blackout hold RefreshLedgerDelays puts on it.
+             *
+             * MetaVantage is never written or cleared here: its zero on NodeId is
+             * the constructor's pin that keeps instant topics instant.
+             */
+            foreach (var centre in _activeVesselRowCentres.ToList())
+            {
+                if (!oneWaySecondsByCentre.ContainsKey(centre))
+                {
+                    _network.ClearDelay(centre, NodeId);
+                    _activeVesselRowCentres.Remove(centre);
+                }
+            }
+
+            foreach (var row in oneWaySecondsByCentre)
+            {
+                if (row.Key == MetaVantage)
+                {
+                    continue;
+                }
+
+                _network.SetDelay(row.Key, NodeId, row.Value);
+                _activeVesselRowCentres.Add(row.Key);
+            }
         }
 
         public void RegisterCommandCentreSource(ICommandCentreSource source)
