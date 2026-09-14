@@ -788,6 +788,74 @@ const LINEAR_IN_WINDOW = SCATTERED_DESCENT.map((s, i) => ({
   verticalSpeed: s.verticalSpeed - [1, -2, 1, 0][i],
 }));
 
+/**
+ * The same shape again at -5.2 m/s² instead of -5, which is the same fixture to
+ * a reader and a different one to the hardware.
+ *
+ * {@link LINEAR_IN_WINDOW}'s speeds are whole metres per second on a line of
+ * whole slope, so every quantity in the fit is exact in binary and the residual
+ * sum of squares comes out as literally 0. Move the line a tenth and nothing
+ * about the physics changes, but -5.2 and the speeds it produces are all
+ * repeating fractions in base two, so the same perfect fit leaves a residual
+ * sum of squares of about 8e-28: a rounding of the arithmetic rather than a
+ * disagreement between the samples and the line.
+ *
+ * Which of those two a real descent lands on is decided by nothing the operator
+ * can see. Of the 191 accelerations between -1.0 and -20.0 m/s² in tenths, 85
+ * leave residue at these instants and 106 do not, and the generated handover
+ * set's -7.4 m/s² frame is one of the 85: the interval it offered was
+ * 1.2e-13 m wide and captioned with a one-sigma claim.
+ */
+const LINEAR_OFF_THE_BINARY_GRID = [
+  { at: 3, altitudeAsl: 59_222.6, verticalSpeed: -213.6 },
+  { at: 4, altitudeAsl: 59_006.4, verticalSpeed: -218.8 },
+  { at: 5, altitudeAsl: 58_785, verticalSpeed: -224 },
+  { at: 10, altitudeAsl: 57_600, verticalSpeed: -250 },
+] as const;
+
+/** The UT of a campaign a few years in, rather than of a fresh save. */
+const CAMPAIGN_UT = 1_000_000;
+
+/**
+ * The same perfect line again, moved to a campaign's UT.
+ *
+ * The scale the residue is judged against has to bound every rounding that went
+ * into a predicted value, and the largest of them is not in the speeds. `tBar`
+ * is a mean of INSTANTS, so its own rounding is a fraction of an ulp of UT, and
+ * the slope multiplies that up into the speeds it is compared against. These
+ * three samples sit exactly on a -5 m/s² line and leave a residual RMS of
+ * 6.7e-10 m/s: fifteen hundred times a rounding of their own 250 m/s speeds, and
+ * a tenth of one rounding of the fit's working magnitude.
+ *
+ * So a threshold scaled by the speeds alone reads this as the window disagreeing
+ * with the line and offers a 5.6e-10 m interval for it. The committed handover
+ * set is the same shape at UT ~1000 against speeds of ~700, where the miss is a
+ * factor of 13 to 45; here it is a factor of 1500. Three samples rather than
+ * four because four of these instants average exactly in binary and leave no
+ * residue for the guard to have an opinion about.
+ */
+const LINEAR_AT_CAMPAIGN_UT = [
+  { at: CAMPAIGN_UT + 3, altitudeAsl: 59_227.5, verticalSpeed: -215 },
+  { at: CAMPAIGN_UT + 4, altitudeAsl: 59_010, verticalSpeed: -220 },
+  { at: CAMPAIGN_UT + 10, altitudeAsl: 57_600, verticalSpeed: -250 },
+] as const;
+
+/**
+ * {@link SCATTERED_DESCENT}'s residuals divided by a thousand, so the window's
+ * disagreement is faint and entirely real.
+ *
+ * The control in the other direction. Withholding on residue has to be a claim
+ * about the ARITHMETIC's precision and not a floor under how small a genuine
+ * error may be, and a threshold set by eye rather than by the machine's epsilon
+ * would swallow this: the residual RMS here is 1.7e-3 m/s where the rounding of
+ * a 250 m/s sample is 4e-13. The same orthogonal residuals, so the slope is
+ * still exactly -5 and the carried altitude is unmoved.
+ */
+const FAINTLY_SCATTERED = SCATTERED_DESCENT.map((s, i) => ({
+  ...s,
+  verticalSpeed: s.verticalSpeed - [1, -2, 1, 0][i] + [1, -2, 1, 0][i] / 1000,
+}));
+
 /** The band the model offers about the altitude, or `undefined` where it offers none. */
 function altitudeBand(reading: Reading<FlightSample>) {
   return reading.reckoning === "available"
@@ -860,6 +928,54 @@ describe("how well the descent fit knows the altitude it carried", () => {
     // `ReckonedBands` would rather have none.
     expect(reading.reckoning).toBe("available");
     expect(altitudeBand(reading)).toBeUndefined();
+  });
+
+  it("claims nothing where the line the samples sit on is not one binary can land on", () => {
+    const s = scene();
+    s.descend(LINEAR_OFF_THE_BINARY_GRID);
+
+    const reading = s.at(13);
+
+    // The same degenerate fit as the case above, at an acceleration whose
+    // decimal does not survive the trip into a double. The residuals are the
+    // arithmetic's own rounding, about 2e-14 m/s against samples of 250, and a
+    // withdrawal that asks whether they are exactly zero reads them as evidence:
+    // what came out was a `sigma1` interval 3e-14 m wide, which a consumer draws
+    // with both ends on the same number and captions as a one-sigma claim.
+    expect(reading.reckoning).toBe("available");
+    expect(reckonedAltitude(reading)).toBeCloseTo(56_826.6, 6);
+    expect(altitudeBand(reading)).toBeUndefined();
+  });
+
+  it("claims nothing where that line sits at a campaign's UT rather than a fresh save's", () => {
+    const s = scene();
+    s.descend(LINEAR_AT_CAMPAIGN_UT);
+
+    const reading = s.at(CAMPAIGN_UT + 13);
+
+    // The residue of this perfect fit comes from `tBar` rather than from the
+    // speeds, so a guard scaled by the speeds alone offers a 5.6e-10 m interval
+    // here and misses every frame of the handover set for the same reason. UT is
+    // the larger magnitude in the arithmetic on every save but a brand new one.
+    expect(reading.reckoning).toBe("available");
+    expect(reckonedAltitude(reading)).toBeCloseTo(56_827.5, 6);
+    expect(altitudeBand(reading)).toBeUndefined();
+  });
+
+  it("still bands a fit whose residuals are faint and real", () => {
+    const s = scene();
+    s.descend(FAINTLY_SCATTERED);
+
+    const band = altitudeBand(s.at(13));
+
+    // A thousandth of `SCATTERED_DESCENT`'s scatter is eleven orders of
+    // magnitude above the rounding of a 250 m/s sample, so it is the window
+    // disagreeing with the line and the model owes an interval for it. The
+    // half-width is the same `0.5 x sigma_a x dt²` divided by the same thousand.
+    expect(band?.kind).toBe("sigma1");
+    const halfWidth = (0.5 * SCATTERED_SIGMA * 3 * 3) / 1000;
+    expect(band?.hi.magnitude).toBeCloseTo(56_827.5 + halfWidth, 9);
+    expect(band?.lo.magnitude).toBeCloseTo(56_827.5 - halfWidth, 9);
   });
 
   it("hands the band to the plotted tail as well as to the point read", () => {
