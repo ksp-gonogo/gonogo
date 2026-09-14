@@ -24,6 +24,7 @@ namespace GonogoPrincipiaUplink
         partial void AttachPerturbers()
         {
             _perturbers ??= PrincipiaPerturbers.Around;
+            _bodyParents ??= PrincipiaPerturbers.ParentOf;
         }
     }
 }

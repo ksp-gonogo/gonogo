@@ -1,3 +1,4 @@
+import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
@@ -42,6 +43,9 @@ function makeBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
+    // These fixtures are about geometry, not about how far anyone will vouch
+    // for it, so every body here is unbounded and analytic.
+    horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
     mass: null,

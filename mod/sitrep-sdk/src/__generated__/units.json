@@ -1938,6 +1938,7 @@
     },
     "BodyEntry": {
       "atmosphere": "AtmosphereEntry",
+      "horizon": "PropagationHorizon",
       "orbit": "OrbitEntry"
     },
     "CapabilitySelection": {

@@ -1643,7 +1643,31 @@ namespace Sitrep.Contract
         /// is now the home the operator sees, and the flag lets a client explain
         /// once that it was not identified rather than working the stand-in out
         /// again.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 9 -&gt; 10: a body says how far its own
+        /// elements reach.</b> One new member on one existing type,
+        /// <see cref="BodyEntry.Horizon"/>, carrying the SAME
+        /// <see cref="PropagationHorizon"/> a craft's elements already carry.
+        /// Additive, nothing removed or retyped, so an Uplink built against 16.9
+        /// is unaffected and the frozen Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because a client will happily place every body at any
+        /// UT, and under stock that is correct and under n-body physics it is
+        /// not. A body's published elements are a fixed conic about a fixed
+        /// parent in one install and the tangent to an integrated ephemeris in
+        /// the other, and nothing on the wire distinguished them, so a moon was
+        /// drawn wherever a widget's window happened to reach. Measured against
+        /// the rig's own stock geometry, a moon of Jool is a hundred metres off
+        /// its path inside five minutes where a planet holds for most of a day,
+        /// which is also why the field is per BODY: one number for the catalogue
+        /// would be the shortest of them applied to everything.</para>
+        ///
+        /// <para>No new vocabulary. The existing horizon type answers the same
+        /// question in the same words, <c>UntilUt</c> is an absolute UT here
+        /// exactly as it is there, and a stock host states
+        /// <c>Unbounded</c>/<c>Analytic</c> rather than leaving the field out,
+        /// so "nobody answered" stays distinguishable from "no limit".</para>
         /// </remarks>
-        public const int Minor = 9;
+        public const int Minor = 10;
     }
 }

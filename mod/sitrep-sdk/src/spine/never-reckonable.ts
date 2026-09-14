@@ -96,6 +96,13 @@ export const NEVER_RECKONABLE = [
 
   // -- Configuration and catalogues. They change when the GAME changes, never
   // continuously, so a model has no dimension to move them along.
+  //
+  // `system.bodies` belongs here even though `systemInstantAt` will put every
+  // body somewhere at any UT, and the two are not in tension: that function
+  // EVALUATES the catalogue's own elements when a caller names an instant, which
+  // is reading a published fact rather than advancing a payload, and the
+  // catalogue it reads is unchanged by it. A reckoner would have to hand the
+  // channel a NEW set of elements each frame, and nothing does or should.
   "system.bodies",
   "time.calendar",
   "game.dlc",

@@ -1,4 +1,7 @@
-import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
+import {
+  ANALYTIC_BODY_HORIZON,
+  type PropagationHorizonLike,
+} from "@ksp-gonogo/sitrep-client";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
@@ -45,6 +48,9 @@ function makeBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
+    // These fixtures are about geometry, not about how far anyone will vouch
+    // for it, so every body here is unbounded and analytic.
+    horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
     mass: null,

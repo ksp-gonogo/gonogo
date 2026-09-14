@@ -1,4 +1,5 @@
 import type { PorkchopGrid, TransferSolution } from "@ksp-gonogo/core";
+import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
 import {
@@ -39,6 +40,9 @@ function mkBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
+    // These fixtures are about geometry, not about how far anyone will vouch
+    // for it, so every body here is unbounded and analytic.
+    horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
     mass: null,

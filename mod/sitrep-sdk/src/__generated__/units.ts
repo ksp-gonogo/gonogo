@@ -2002,6 +2002,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "BodyEntry": {
     atmosphere: "AtmosphereEntry",
+    horizon: "PropagationHorizon",
     orbit: "OrbitEntry",
   },
   "CapabilitySelection": {

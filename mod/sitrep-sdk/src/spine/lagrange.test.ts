@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { CelestialBody, CelestialFacts } from "./celestial-facts";
+import {
+  ANALYTIC_BODY_HORIZON,
+  type CelestialBody,
+  type CelestialFacts,
+} from "./celestial-facts";
 import type { Vector3 } from "./kepler";
 import {
   LAGRANGE_POINT_NAMES,
@@ -43,6 +47,9 @@ function body(over: Partial<CelestialBody> & { index: number }): CelestialBody {
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
+    // Libration points are a statement about a pair's geometry, not about how
+    // far anyone will vouch for it, so these fixtures are unbounded throughout.
+    horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
     mass: null,

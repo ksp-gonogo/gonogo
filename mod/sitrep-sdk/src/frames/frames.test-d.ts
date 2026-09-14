@@ -44,6 +44,7 @@
 
 import { type Vec3Of, type Vector3, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  type BodyWithdrawal,
   type FrameCoordinates,
   type FrameInstant,
   type Vector3 as FrameVector3,
@@ -117,6 +118,23 @@ export function _readsTheScaleConvention(instant: FrameInstant): string {
 
 /** A frame control builds its options from the enumeration, not from literals. */
 export const _offersEveryKind: readonly ReadFrameKind[] = READ_FRAME_KINDS;
+
+/**
+ * A body missing from the instant is two different states, and an author who
+ * cannot tell them apart draws "no data" over a stated refusal. Under stock the
+ * second branch is unreachable; under an n-body install it is what a window
+ * wider than the provider's horizon produces.
+ */
+export function _tellsAWithdrawalFromAGap(
+  system: SystemInstant,
+  bodyIndex: number,
+): string {
+  if (system.positionByIndex.has(bodyIndex)) return "placed";
+  const withdrawn: BodyWithdrawal | undefined =
+    system.withdrawnByIndex.get(bodyIndex);
+  if (withdrawn === undefined) return "the catalogue cannot place it";
+  return `body ${withdrawn.bodyIndex} vouched only to UT ${withdrawn.untilUt}`;
+}
 
 /** A wire vector is what an author actually holds, and this is the one door in. */
 export function _transformsAWireVector(

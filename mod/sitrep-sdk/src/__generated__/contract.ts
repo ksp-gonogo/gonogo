@@ -5306,6 +5306,34 @@ export interface BodyEntry
 	*/
 	orbit?: OrbitEntry;
 	/**
+	* How far `BodyEntry.orbit` may be carried forward, and what kind of answer it
+	* is. NOT nullable, and the same `PropagationHorizon` a craft's elements
+	* carry, because it is the same question: "how far do these elements reach"
+	* gets one spelling, and `UntilUt` is an absolute UT here exactly as it is
+	* there.
+	*
+	* **Under stock this is always Unbounded and Analytic, and that is not a
+	* placeholder.** A body rides a fixed conic about a fixed parent, so where it
+	* is at a UT is a published fact a client computes ON DEMAND at whatever
+	* instant it is drawing: nothing propagates, nothing advances per frame, and
+	* there is no horizon to state because there is no drift to bound. Stating the
+	* claim rather than leaving it out is what lets a client tell that install
+	* from one where nobody answered.
+	*
+	* **Under n-body physics a body's elements drift like a craft's.** What the
+	* wire carries there is the conic osculating an integrated ephemeris at the
+	* sample instant, and a client extrapolating it without a limit draws a moon
+	* where nobody said it would be. Only whoever models the forces can say how
+	* far, which is why this arrives from the elected provider
+	* (IBodyEphemerisHorizon) rather than being computed anywhere in core.
+	*
+	* Per BODY rather than once for the catalogue, because the bound is a local
+	* property: a moon deep in a giant's satellite system and a planet out on its
+	* own are pulled by different neighbourhoods by orders of magnitude, and one
+	* number for the system would be the shortest of them applied to everything.
+	*/
+	horizon: PropagationHorizon;
+	/**
 	* Standard gravitational parameter μ = G·M, m³/s² (KSP
 	* `CelestialBody.gravParameter`). Null when the live game hasn't populated it.
 	*/

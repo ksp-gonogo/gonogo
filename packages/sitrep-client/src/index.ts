@@ -53,7 +53,9 @@ export {
 // barrel, which is what an Uplink imports; here so app-side call sites read the
 // same as every other spine name.
 export {
+  ANALYTIC_BODY_HORIZON,
   type BodyAtmosphere,
+  type BodyHorizon,
   bodyAtIndex,
   bodyNamed,
   CELESTIAL_FACTS,
@@ -212,6 +214,7 @@ export {
 export type {
   Anomalies,
   ArcFarEnd,
+  BodyWithdrawal,
   FrameCoordinates,
   FrameInstant,
   FrameSides,

@@ -107,5 +107,65 @@ namespace GonogoPrincipiaUplink
             }
             return list;
         }
+
+        /// <summary>
+        /// Which body <paramref name="bodyIndex"/> orbits, or null for the root and
+        /// for anything the game will not say.
+        ///
+        /// <para>Beside <see cref="Around"/> because it reads the same table under the
+        /// same constraint: plain managed fields only, never a native accessor, because
+        /// this runs on the Courier thread. It is what a BODY's own horizon needs and a
+        /// craft's does not, a craft carrying its primary on the target it arrives
+        /// as.</para>
+        ///
+        /// <para>Cached under the same lock and for the same reason: the hierarchy does
+        /// not change during a save, and the walk is linear in the body count.</para>
+        /// </summary>
+        public static int? ParentOf(int bodyIndex)
+        {
+            lock (Gate)
+            {
+                if (ParentCache.TryGetValue(bodyIndex, out var cached))
+                {
+                    return cached;
+                }
+            }
+
+            int? parentIndex = null;
+            try
+            {
+                var bodies = FlightGlobals.Bodies;
+                if (bodies == null || bodyIndex < 0 || bodyIndex >= bodies.Count)
+                {
+                    return null;
+                }
+
+                var body = bodies[bodyIndex];
+                var parent = body != null && body.orbit != null ? body.orbit.referenceBody : null;
+                if (parent != null)
+                {
+                    for (var i = 0; i < bodies.Count; i++)
+                    {
+                        if (i == bodyIndex || bodies[i] != parent) continue;
+                        parentIndex = i;
+                        break;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Headless, as above. Nothing to say is not the same as a fault, and a
+                // body with no primary gets no bound rather than a made-up one.
+                return null;
+            }
+
+            lock (Gate)
+            {
+                ParentCache[bodyIndex] = parentIndex;
+            }
+            return parentIndex;
+        }
+
+        private static readonly Dictionary<int, int?> ParentCache = new Dictionary<int, int?>();
     }
 }

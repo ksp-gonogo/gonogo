@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 
@@ -69,13 +70,22 @@ namespace Sitrep.Host
     ///         "sma": double|null, "ecc": double|null, "inc": double|null,
     ///         "lan": double|null, "argPe": double|null,
     ///         "meanAnomalyAtEpoch": double|null, "epoch": double|null
-    ///       } | null
+    ///       } | null,
     ///       // deliberately NO "eccentricAnomaly" field: see O-1 above.
+    ///       "horizon": {                      // present on EVERY body, root included
+    ///         "kind": int, "trajectoryKind": int, "untilUt": double|null
+    ///       }
     ///     },
     ///     ...
     ///   ]
     /// }
     /// </code>
+    /// <para><c>horizon</c> is the one key here that does NOT come off the raw
+    /// snapshot: how far a body's elements reach is a statement about the
+    /// PHYSICS, and only whoever propagates them can make it. It arrives
+    /// through <see cref="SetBodyHorizonSource"/>, and with nothing installed
+    /// says unbounded and analytic, which is the whole truth about a body under
+    /// stock.</para>
     /// </summary>
     public static class SystemViewProvider
     {
@@ -138,7 +148,7 @@ namespace Sitrep.Host
             {
                 if (rawEntry is IDictionary<string, object?> rawBody)
                 {
-                    bodies.Add(BuildBody(rawBody, i));
+                    bodies.Add(BuildBody(rawBody, i, snapshot.Ut));
                 }
                 i++;
             }
@@ -149,7 +159,89 @@ namespace Sitrep.Host
             };
         }
 
-        private static Dictionary<string, object?> BuildBody(IDictionary<string, object?> raw, int fallbackIndex)
+        /// <summary>
+        /// How far a body's published elements may be carried forward, asked of
+        /// whoever propagates them.
+        ///
+        /// <para>A delegate over plain contract types rather than the provider itself,
+        /// the same shape and for the same reason as
+        /// <c>VesselViewProvider.SetHorizonSource</c>: this class never links the
+        /// propagation assembly, and nothing here can branch on which provider
+        /// won.</para>
+        ///
+        /// <para>It takes the BODY INDEX and not the catalogue, because the bound is a
+        /// local property of one body: measured against the stock system's own
+        /// geometry, a moon of Jool is off by a hundred metres inside five minutes
+        /// where a planet holds for most of a day, so anything answering once for the
+        /// catalogue would be answering a question it cannot see.</para>
+        /// </summary>
+        private static Func<int, double, PropagationHorizon>? _bodyHorizonSource;
+
+        /// <summary>Installs the body-horizon resolver, or clears it with null; see <see cref="_bodyHorizonSource"/>.</summary>
+        public static void SetBodyHorizonSource(Func<int, double, PropagationHorizon>? resolver)
+        {
+            _bodyHorizonSource = resolver;
+        }
+
+        /// <summary>
+        /// The horizon and shape this body's elements carry.
+        ///
+        /// <para>With no resolver installed: <c>Analytic</c> and <c>Unbounded</c>, and
+        /// under stock that is the whole truth rather than a stand-in. A body rides a
+        /// fixed conic about a fixed parent, so where it is at a UT is a published
+        /// fact a client computes on demand at whatever instant it is drawing; there
+        /// is nothing to propagate and so nothing to bound. Both halves are STATED,
+        /// because <c>Unspecified</c> is what a producer that forgot would send and
+        /// that has to stay distinguishable.</para>
+        ///
+        /// <para>A resolver that faults or answers null gets <c>Unspecified</c> on
+        /// both halves, for the reason the vessel side gets it: an install that HAS a
+        /// backend and whose backend broke has told us neither the reach nor the
+        /// shape, and answering <c>Analytic</c> there would be a positive claim that
+        /// the save runs two-body physics, made on the strength of an
+        /// exception.</para>
+        /// </summary>
+        private static PropagationHorizon BodyHorizon(int bodyIndex, double sampleUt)
+        {
+            var source = _bodyHorizonSource;
+            if (source == null)
+            {
+                return new PropagationHorizon
+                {
+                    Kind = PropagationHorizonKind.Unbounded,
+                    TrajectoryKind = TrajectoryKind.Analytic,
+                };
+            }
+
+            try
+            {
+                return source(bodyIndex, sampleUt) ?? UnknownHorizon();
+            }
+            catch (Exception)
+            {
+                // A resolver fault must not cost the whole catalogue, and must not be
+                // paid for with a claim about the physics either.
+                return UnknownHorizon();
+            }
+        }
+
+        private static PropagationHorizon UnknownHorizon() =>
+            new PropagationHorizon
+            {
+                Kind = PropagationHorizonKind.Unspecified,
+                TrajectoryKind = TrajectoryKind.Unspecified,
+            };
+
+        private static Dictionary<string, object?> ToWire(PropagationHorizon horizon) =>
+            new Dictionary<string, object?>
+            {
+                ["kind"] = (int)horizon.Kind,
+                ["trajectoryKind"] = (int)horizon.TrajectoryKind,
+                ["untilUt"] = horizon.UntilUt,
+            };
+
+        private static Dictionary<string, object?> BuildBody(
+            IDictionary<string, object?> raw, int fallbackIndex, double sampleUt)
         {
             var index = GetInt(raw, "index") ?? fallbackIndex;
             var parentIndex = GetInt(raw, "parentIndex");
@@ -164,6 +256,11 @@ namespace Sitrep.Host
                 // entirely rather than emit junk elements, per the fix for the
                 // legacy "sun has a bogus orbit" wart.
                 ["orbit"] = parentIndex.HasValue ? BuildOrbit(raw) : null,
+                // How far those elements reach, in the same words a craft's do. The
+                // root star has no orbit and gets the horizon anyway: a payload where
+                // the field appears on some bodies and not others reads as a producer
+                // that forgot on the rest.
+                ["horizon"] = ToWire(BodyHorizon(index, sampleUt)),
                 // Almanac enrichment field set.
                 // The four the GAME is the authority for ride the wire, because
                 // the client rebuilding them off gravParameter cost more than

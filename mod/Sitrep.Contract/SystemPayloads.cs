@@ -67,6 +67,36 @@ public class BodyEntry
     public OrbitEntry? Orbit { get; set; }
 
     /// <summary>
+    /// How far <see cref="Orbit"/> may be carried forward, and what kind of answer
+    /// it is. NOT nullable, and the same <see cref="PropagationHorizon"/> a craft's
+    /// elements carry, because it is the same question: "how far do these elements
+    /// reach" gets one spelling, and <c>UntilUt</c> is an absolute UT here exactly
+    /// as it is there.
+    ///
+    /// <para><b>Under stock this is always Unbounded and Analytic, and that is not
+    /// a placeholder.</b> A body rides a fixed conic about a fixed parent, so where
+    /// it is at a UT is a published fact a client computes ON DEMAND at whatever
+    /// instant it is drawing: nothing propagates, nothing advances per frame, and
+    /// there is no horizon to state because there is no drift to bound. Stating the
+    /// claim rather than leaving it out is what lets a client tell that install from
+    /// one where nobody answered.</para>
+    ///
+    /// <para><b>Under n-body physics a body's elements drift like a craft's.</b>
+    /// What the wire carries there is the conic osculating an integrated ephemeris
+    /// at the sample instant, and a client extrapolating it without a limit draws a
+    /// moon where nobody said it would be. Only whoever models the forces can say
+    /// how far, which is why this arrives from the elected provider
+    /// (<see cref="IBodyEphemerisHorizon"/>) rather than being computed anywhere in
+    /// core.</para>
+    ///
+    /// <para>Per BODY rather than once for the catalogue, because the bound is a
+    /// local property: a moon deep in a giant's satellite system and a planet out on
+    /// its own are pulled by different neighbourhoods by orders of magnitude, and one
+    /// number for the system would be the shortest of them applied to everything.</para>
+    /// </summary>
+    public PropagationHorizon Horizon { get; set; } = new();
+
+    /// <summary>
     /// Standard gravitational parameter μ = G·M, m³/s² (KSP
     /// <c>CelestialBody.gravParameter</c>). Null when the live game hasn't
     /// populated it.
