@@ -48,6 +48,7 @@ public class Rp1ScReflectionTests : IDisposable
     {
         Confidence.ThrowOnBalanceRead = false;
         SpaceCenterSettings.ThrowOnRushRateMultRead = false;
+        LCEfficiency.ThrowOnMaxEfficiencyRead = false;
         ConstructionProject.ThrowOnBpRead = false;
         ConstructionProject.ThrowOnWorkRateRead = false;
         ConstructionProject.ThrowOnCostRead = false;
@@ -135,6 +136,48 @@ public class Rp1ScReflectionTests : IDisposable
         Install(hangar, efficiency: null);
 
         Assert.Equal(1.0, Single(new Rp1ScReflection().Read(1.0).Complexes).Efficiency!.Value, 6);
+    }
+
+    /// <summary>
+    /// An efficiency ceiling nobody could read makes the hangar's efficiency
+    /// absent, never the ratio of 1.0 that reads as a crew at the top of RP-1's
+    /// scale.
+    ///
+    /// <para>It is the hangar's ONLY source of the figure: every other complex is
+    /// looked up, so the substitution put "100% efficiency" on every hangar in
+    /// the career and on no other row, which is the reading an operator would
+    /// never think to question.</para>
+    /// </summary>
+    [Fact]
+    public void An_unreadable_efficiency_ceiling_makes_the_hangars_efficiency_absent()
+    {
+        var hangar = new LaunchComplex { Name = "Hangar", LcTypeValue = LaunchComplexType.Hangar };
+        Install(hangar, efficiency: null);
+        LCEfficiency.ThrowOnMaxEfficiencyRead = true;
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Complexes).Efficiency);
+    }
+
+    /// <summary>
+    /// The same unreadable ceiling declines the ramp rather than ramping against
+    /// a limit nobody measured, so the un-ramped estimate stands and errs LONG.
+    ///
+    /// <para>Unlike the crew ceiling beside it, the substitution here was not a
+    /// no-op: 1.0 sits ABOVE this crew's 0.5, so the ramp ran and published a
+    /// materially shorter clock off a scale the save never stated.</para>
+    /// </summary>
+    [Fact]
+    public void An_unreadable_efficiency_ceiling_leaves_a_build_un_ramped_rather_than_ramped_to_a_guess()
+    {
+        var vp = new VesselProject { shipName = "Titan", buildPoints = 4_000_000.0 };
+        vp.SetBuildRate(1.0);
+        var pad = new LaunchComplex { Name = "Pad A", Engineers = 50 };
+        pad.BuildList.Add(vp);
+        Install(pad, efficiency: 0.5);
+        LCEfficiency.ThrowOnMaxEfficiencyRead = true;
+
+        // RP-1's plain division: 4e6 points at 1.0 x 0.5 efficiency.
+        Assert.Equal(8_000_000.0, Single(new Rp1ScReflection().Read(1.0).BuildQueue).TimeLeftSeconds!.Value, 6);
     }
 
     [Fact]

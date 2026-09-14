@@ -138,7 +138,27 @@ namespace RP0
     /// </summary>
     public class LCEfficiency
     {
-        public static double MaxEfficiency = 1.0;
+        /// <summary>
+        /// Makes <see cref="MaxEfficiency"/> unreadable, which is the state a
+        /// value cannot express: RP-1's type resolved and then would not say
+        /// where its efficiency scale tops out.
+        /// </summary>
+        public static bool ThrowOnMaxEfficiencyRead;
+
+        private static double _maxEfficiency = 1.0;
+
+        // A property rather than the real type's plain static field, and only so
+        // the flag above has somewhere to live. StaticValue resolves a property
+        // before a field by the same walk, so the production path is unchanged.
+        // The prediction below reads the backing field, because a stand-in that
+        // threw at its own internal use would be testing the fixture.
+        public static double MaxEfficiency
+        {
+            get => ThrowOnMaxEfficiencyRead
+                ? throw new InvalidOperationException("MaxEfficiency unreadable")
+                : _maxEfficiency;
+            set => _maxEfficiency = value;
+        }
 
         private double _efficiency = 0.5;
 
@@ -171,7 +191,7 @@ namespace RP0
                 startingEfficiency = _efficiency;
             }
             newEff = startingEfficiency;
-            if (isRushing || tdelta < 86400.0 || startingEfficiency >= MaxEfficiency)
+            if (isRushing || tdelta < 86400.0 || startingEfficiency >= _maxEfficiency)
             {
                 // The shipped defect, reproduced deliberately: the early-out
                 // returns the INTERVAL where every caller reads an efficiency.
@@ -179,7 +199,7 @@ namespace RP0
             }
             // A crew that ends the interval a tenth better than it started, so
             // the mean sits halfway.
-            newEff = Math.Min(MaxEfficiency, startingEfficiency + 0.1);
+            newEff = Math.Min(_maxEfficiency, startingEfficiency + 0.1);
             return (startingEfficiency + newEff) / 2.0;
         }
     }
