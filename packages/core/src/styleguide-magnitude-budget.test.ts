@@ -91,7 +91,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
-  "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.

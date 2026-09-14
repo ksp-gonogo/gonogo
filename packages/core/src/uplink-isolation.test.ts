@@ -333,7 +333,8 @@ describe("uplink isolation", () => {
    * could no longer express a failure and would have reported success forever.
    *
    * It is not hypothetical either. When the harness first moved, a bulk re-point put
-   * `DerivedChannelDefinition` into `resourceProjection.ts`, a production file,
+   * `DerivedChannelDefinition` into `resourceProjection.ts` (since deleted), a
+   * production file,
    * because the script sorted by symbol and not by who was importing.
    */
   it("no PRODUCTION Uplink file imports a test-only entry", () => {
