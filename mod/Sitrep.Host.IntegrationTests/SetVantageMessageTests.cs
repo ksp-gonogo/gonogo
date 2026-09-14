@@ -561,6 +561,8 @@ namespace Sitrep.Host.IntegrationTests
                 public string DisplayName => Id;
                 public CommandCentreKind Kind { get; }
                 public int? BodyIndex => null;
+                public double? Latitude => null;
+                public double? Longitude => null;
                 public bool IsActiveNow() => true;
             }
         }

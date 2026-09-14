@@ -37,7 +37,12 @@ namespace Sitrep.Host.CommandCentres
 
         public string ProviderId => Id;
 
-        public HomeCommand Identify()
+        /// <summary>
+        /// Decides from the homes' own flags, which the active centres do not carry,
+        /// so <paramref name="activeCentres"/> goes unread. The id still comes from
+        /// core's own mint over the same homes.
+        /// </summary>
+        public HomeCommand Identify(IReadOnlyList<ICommandCentre> activeCentres)
         {
             var homes = _homes();
             if (homes == null)

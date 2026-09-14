@@ -19,18 +19,24 @@ namespace Sitrep.Host.Tests.CommandCentres
             string id,
             CommandCentreKind kind = CommandCentreKind.GroundStation,
             bool active = true,
-            int? bodyIndex = null)
+            int? bodyIndex = null,
+            double? latitude = null,
+            double? longitude = null)
         {
             Id = id;
             Kind = kind;
             _active = active;
             BodyIndex = bodyIndex;
+            Latitude = latitude;
+            Longitude = longitude;
         }
 
         public string Id { get; }
         public string DisplayName => Id;
         public CommandCentreKind Kind { get; }
         public int? BodyIndex { get; }
+        public double? Latitude { get; }
+        public double? Longitude { get; }
         public bool IsActiveNow() => _active;
     }
 

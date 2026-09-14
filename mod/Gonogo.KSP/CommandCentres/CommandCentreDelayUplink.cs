@@ -404,8 +404,8 @@ namespace Gonogo.KSP.CommandCentres
                 // known only to the source that produced it, and a null is the
                 // contract's "not applicable" rather than "not computed": see
                 // SurfaceCoordinates and CommandCentreEntry.Latitude.
-                Latitude = ksp?.Latitude,
-                Longitude = ksp?.Longitude,
+                Latitude = centre.Latitude,
+                Longitude = centre.Longitude,
                 // Only one honest value now. A centre with no CommNode cannot be
                 // routed to, so it reports that rather than a quality of estimate.
                 DelayQuality = ksp?.Node != null ? "routed" : "unroutable",

@@ -34,7 +34,8 @@ namespace Sitrep.Host.Tests
 
             public string ProviderId { get; }
 
-            public HomeCommand Identify() => HomeCommand.Identified("ground:" + ProviderId);
+            public HomeCommand Identify(IReadOnlyList<ICommandCentre> activeCentres) =>
+                HomeCommand.Identified("ground:" + ProviderId);
         }
 
         private static void Claim(Kernel kernel, string id, double priority)

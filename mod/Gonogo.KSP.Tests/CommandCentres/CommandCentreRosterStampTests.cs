@@ -146,6 +146,12 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             public int? BodyIndex => 1;
 
+
+            public double? Latitude => null;
+
+
+            public double? Longitude => null;
+
             public bool IsActiveNow() => true;
         }
 

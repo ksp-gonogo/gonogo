@@ -66,6 +66,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public string DisplayName => Id;
             public CommandCentreKind Kind => CommandCentreKind.GroundStation;
             public int? BodyIndex => null;
+            public double? Latitude => null;
+            public double? Longitude => null;
             public bool IsActiveNow() => true;
         }
     }
