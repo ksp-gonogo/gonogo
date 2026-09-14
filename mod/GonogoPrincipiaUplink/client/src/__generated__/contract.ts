@@ -1176,7 +1176,29 @@ export enum PrincipiaWriteRefusal {
 	* to the burn being changed. A burn with nothing ahead of it has no instant to
 	* be left at, so the one value it cannot derive has to be stated.
 	*/
-	ComposedBurnIncomplete = 21
+	ComposedBurnIncomplete = 21,
+	/**
+	* A read this guard depends on could not be decoded from the loaded build, so
+	* the guard cannot answer. Refused rather than permitted.
+	*
+	* Reached two ways today: a burn whose ignition or cutoff would not read,
+	* which leaves `PrincipiaWriteRefusal.BurnExecuting` unable to say whether the
+	* craft is under thrust; and an optimisation state that would not read, which
+	* leaves `PrincipiaWriteRefusal.OptimisationRunning` unable to say whether the
+	* edit would be reverted.
+	*
+	* **Distinct from those two, deliberately.** Both of them state a fact about
+	* the plan, and reusing either for an unreadable answer would put the reason
+	* for the refusal into a sentence nobody read. Distinct from
+	* `PrincipiaWriteRefusal.PluginShapeChanged` as well, which is a field missing
+	* off a struct this write must SET; this is a value this build could not READ.
+	*
+	* Refusing is the whole point. The absence used to permit: a REMOVE dispatched
+	* against a burn whose instants would not read came back with a
+	* `PrincipiaWriteOutcome.Written` receipt, so an operator's own console
+	* confirmed it had deleted a burn that may have been under thrust.
+	*/
+	GuardReadUnreadable = 22
 }
 /**
 * What a plan write did, as a separate artefact from the request.

@@ -136,7 +136,13 @@ namespace GonogoPrincipiaUplink
             observation.ActualFinalTimeUt = plan.ActualFinalTime();
             observation.AnomalousBurnCount = plan.NumberOfAnomalousManoeuvres();
             ReadStatus(plan.AnomalousStatus(), observation);
-            observation.OptimisationRunning = materialised.OptimisationManoeuvreIndex() >= 0;
+            // Tri-state, because `null >= 0` is false and that false was published as
+            // "no optimisation is running". The client freezes every write control on
+            // the true case and gives the reason as Principia being mid-optimisation,
+            // so the coercion put that sentence on screen for a state nobody read.
+            var optimising = materialised.OptimisationManoeuvreIndex();
+            observation.OptimisationRunning =
+                optimising == null ? (bool?)null : optimising.Value >= 0;
             ReadIntegrator(plan.AdaptiveStepParameters(), observation);
             ReadBurns(plan, observation, nowUt, celestials);
             DescribeWriteSurface(session, vesselGuid, observation, planExists: true);
@@ -250,7 +256,11 @@ namespace GonogoPrincipiaUplink
         {
             var cursor = plan.Manoeuvres();
             var count = cursor.Count;
-            var anomalous = observation.AnomalousBurnCount ?? 0;
+            // Carried through as a null rather than collapsed to zero. Zero is a real
+            // answer here and means "the integrator flagged nothing", so the `?? 0`
+            // that used to be on this line turned an unreadable count into a clean
+            // bill of health for every burn in the plan.
+            var anomalous = observation.AnomalousBurnCount;
             foreach (var burn in cursor)
             {
                 var manoeuvre = burn.Manoeuvre();
@@ -289,7 +299,7 @@ namespace GonogoPrincipiaUplink
             object manoeuvre,
             int index,
             int burnCount,
-            int anomalousCount,
+            int? anomalousCount,
             double nowUt,
             ICelestialNames? celestials)
         {
@@ -336,11 +346,21 @@ namespace GonogoPrincipiaUplink
                 Frame = descriptor == null || celestials == null
                     ? null
                     : Frames.FrameFromIndices(descriptor, celestials, "burn"),
-                FrameEditable =
-                    extension != null && PrincipiaBurnStruct.IsEditableFrame(extension.Value),
-                Executing = ignition != null && cutoff != null
-                    && nowUt >= ignition.Value && nowUt <= cutoff.Value,
-                Anomalous = IsAnomalous(index, burnCount, anomalousCount),
+                // Each of the three is a tri-state, and the null arm is the burn's
+                // own absence rather than a property of the burn. `&&` used to
+                // collapse all three onto false, which is a POSITIVE claim on every
+                // one of them: an unreadable frame extension said the frame is
+                // locked, unreadable instants said the craft is not under thrust,
+                // and an unreadable anomalous count said the integrator was happy.
+                FrameEditable = extension == null
+                    ? (bool?)null
+                    : PrincipiaBurnStruct.IsEditableFrame(extension.Value),
+                Executing = ignition == null || cutoff == null
+                    ? (bool?)null
+                    : nowUt >= ignition.Value && nowUt <= cutoff.Value,
+                Anomalous = anomalousCount == null
+                    ? (bool?)null
+                    : IsAnomalous(index, burnCount, anomalousCount.Value),
             };
         }
 

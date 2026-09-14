@@ -208,15 +208,17 @@ namespace GonogoPrincipiaUplink
             return _session!.Plugin.VesselGetAnalysis(handle, _guid, groundTrackRevolution);
         }
 
-        /// <summary>How many flight plans this vessel holds, up to Principia's ten.</summary>
-        public int FlightPlanCount()
+        /// <summary>How many flight plans this vessel holds, up to Principia's ten,
+        /// or null when the count could not be read.</summary>
+        public int? FlightPlanCount()
         {
             var handle = PrincipiaGateCheck.Enter(_session, _generation, "a vessel's flight plan count");
             return _session!.Plugin.FlightPlanCount(handle, _guid);
         }
 
-        /// <summary>Which of the vessel's plans is selected, or -1 when it has none.</summary>
-        public int SelectedFlightPlan()
+        /// <summary>Which of the vessel's plans is selected, -1 when it has none, or
+        /// null when the answer could not be read.</summary>
+        public int? SelectedFlightPlan()
         {
             var handle = PrincipiaGateCheck.Enter(
                 _session, _generation, "a vessel's selected flight plan");
@@ -295,13 +297,13 @@ namespace GonogoPrincipiaUplink
             _guid = guid;
         }
 
-        public double InitialTime()
+        public double? InitialTime()
         {
             var handle = PrincipiaGateCheck.Enter(_session, _generation, "a plan's initial time");
             return _session!.Plugin.FlightPlanGetInitialTime(handle, _guid);
         }
 
-        public double DesiredFinalTime()
+        public double? DesiredFinalTime()
         {
             var handle = PrincipiaGateCheck.Enter(_session, _generation, "a plan's desired final time");
             return _session!.Plugin.FlightPlanGetDesiredFinalTime(handle, _guid);
@@ -338,7 +340,7 @@ namespace GonogoPrincipiaUplink
         /// than a diagnosed abort. The re-read on every access is doing real work
         /// for this call in a way it is not for its neighbours.</para>
         /// </summary>
-        public double ActualFinalTime()
+        public double? ActualFinalTime()
         {
             var handle = PrincipiaGateCheck.Enter(_session, _generation, "a plan's actual final time");
             return _session!.Plugin.FlightPlanGetActualFinalTime(handle, _guid);
@@ -358,7 +360,7 @@ namespace GonogoPrincipiaUplink
             return _session!.Plugin.FlightPlanGetAdaptiveStepParameters(handle, _guid);
         }
 
-        public int NumberOfAnomalousManoeuvres()
+        public int? NumberOfAnomalousManoeuvres()
         {
             var handle = PrincipiaGateCheck.Enter(
                 _session, _generation, "a plan's anomalous manoeuvre count");

@@ -89,7 +89,7 @@ namespace GonogoPrincipiaUplink
         private readonly string _guid;
 
         internal PrincipiaMaterialisedPlanGate(
-            PrincipiaSession session, int generation, string guid, double desiredFinalTimeUt)
+            PrincipiaSession session, int generation, string guid, double? desiredFinalTimeUt)
         {
             _session = session;
             _generation = generation;
@@ -98,18 +98,19 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>The plan's end instant, read as the act of materialising it, so
-        /// nothing has to read it twice.</summary>
-        public double DesiredFinalTimeUt { get; }
+        /// nothing has to read it twice. Null when it would not read.</summary>
+        public double? DesiredFinalTimeUt { get; }
 
         /// <summary>
-        /// Which burn the producer's optimiser is working on, or -1 when none is.
+        /// Which burn the producer's optimiser is working on, -1 when none is, or null
+        /// when the answer would not read.
         ///
         /// <para>Not informational. A write made while this is not -1 is discarded:
         /// the optimiser publishes a fresh candidate plan and the producer's own
         /// planner window swaps it over the live plan every frame, so the edit is
         /// gone with nothing reported anywhere.</para>
         /// </summary>
-        public int OptimisationManoeuvreIndex()
+        public int? OptimisationManoeuvreIndex()
         {
             var handle = PrincipiaGateCheck.Enter(
                 _session, _generation, "a plan's optimisation state");
@@ -137,11 +138,25 @@ namespace GonogoPrincipiaUplink
             }
 
             var optimising = _session.Plugin.FlightPlanOptimizationDriverInProgress(handle, _guid);
-            if (optimising >= 0)
+            // An unreadable optimisation state REFUSES. `null >= 0` is false in C#, so
+            // it used to fall through this guard and permit the very write the guard
+            // exists to stop. The refusal names the unreadable read rather than
+            // borrowing OptimisationRunning, which would state a fact nobody read.
+            if (optimising == null)
+            {
+                refusal = PrincipiaWriteRefusal.GuardReadUnreadable;
+                detail =
+                    "Whether Principia is optimising this plan would not read off this build, so "
+                    + "there is no way to tell whether this edit would be reverted without being "
+                    + "reported. Nothing has been written.";
+                return false;
+            }
+            if (optimising.Value >= 0)
             {
                 refusal = PrincipiaWriteRefusal.OptimisationRunning;
                 detail =
-                    "Principia is optimising burn " + (optimising + 1) + " of this plan. An edit "
+                    "Principia is optimising burn " + (optimising.Value + 1)
+                    + " of this plan. An edit "
                     + "made now is reverted without being reported: the optimiser publishes a new "
                     + "candidate plan and Principia's own planner swaps it over the live one every "
                     + "frame. Stop the optimisation in-game first.";
@@ -181,7 +196,17 @@ namespace GonogoPrincipiaUplink
             }
 
             var optimising = _session.Plugin.FlightPlanOptimizationDriverInProgress(handle, _guid);
-            if (optimising >= 0)
+            // Refuses on an unreadable answer, for the reason given in TryWrite.
+            if (optimising == null)
+            {
+                refusal = PrincipiaWriteRefusal.GuardReadUnreadable;
+                detail =
+                    "Whether Principia is optimising this plan would not read off this build, so "
+                    + "the round-trip probe could not be shown to have proved anything. Nothing "
+                    + "has been written.";
+                return false;
+            }
+            if (optimising.Value >= 0)
             {
                 refusal = PrincipiaWriteRefusal.OptimisationRunning;
                 detail =
@@ -403,13 +428,34 @@ namespace GonogoPrincipiaUplink
         {
             var handle = PrincipiaGateCheck.Enter(_session, _generation, "duplicating a plan");
             var count = _session!.Plugin.FlightPlanCount(handle, _guid);
-            if (count >= MaxFlightPlans)
+            if (count == null)
             {
-                return AtPlanCap(count);
+                return CapUnreadable();
+            }
+            if (count.Value >= MaxFlightPlans)
+            {
+                return AtPlanCap(count.Value);
             }
             _session.Plugin.FlightPlanDuplicate(handle, _guid);
             return PrincipiaWriteResult.Written();
         }
+
+        /// <summary>
+        /// Refuses when the plan count would not read, rather than duplicating on an
+        /// answer nobody got. <c>null &gt;= 10</c> is false, so this used to fall
+        /// through into the write, and the cap is the one this Uplink cannot afford to
+        /// overshoot: an eleventh plan breaks Principia's own planner window
+        /// permanently, with the control that would delete it inside the part that
+        /// stopped rendering.
+        /// </summary>
+        internal static PrincipiaWriteResult CapUnreadable() =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.GuardReadUnreadable,
+                "How many flight plans this vessel already holds would not read off this build, "
+                + "so there is no way to tell whether another one would pass Principia's maximum "
+                + "of " + MaxFlightPlans + ". Nothing has been written. An eleventh plan makes "
+                + "Principia's own planner window throw on every layout pass, permanently, with "
+                + "the button that would delete it inside the part that stopped rendering.");
 
         private static PrincipiaWriteResult AtPlanCap(int count) =>
             PrincipiaWriteResult.Refused(
@@ -497,11 +543,16 @@ namespace GonogoPrincipiaUplink
             }
 
             var count = _session.Plugin.FlightPlanCount(handle, _guid);
-            if (count >= PrincipiaPlanWriteGate.MaxFlightPlans)
+            if (count == null)
+            {
+                return PrincipiaPlanWriteGate.CapUnreadable();
+            }
+            if (count.Value >= PrincipiaPlanWriteGate.MaxFlightPlans)
             {
                 return PrincipiaWriteResult.Refused(
                     PrincipiaWriteRefusal.PlanSlotsFull,
-                    "The vessel already holds " + count + " flight plans, Principia's maximum.");
+                    "The vessel already holds " + count.Value
+                    + " flight plans, Principia's maximum.");
             }
 
             if (double.IsNaN(finalTimeUt) || double.IsInfinity(finalTimeUt)

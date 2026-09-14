@@ -238,10 +238,23 @@ namespace GonogoPrincipiaUplink
             return true;
         }
 
-        public double CurrentTime(IntPtr plugin) => Double("CurrentTime", plugin);
+        /// <summary>
+        /// The plugin clock, still collapsing an unreadable answer to 0.0.
+        ///
+        /// <para><b>This one is a known absence bug and is not fixed here.</b> Zero
+        /// universal time is Year 1 Day 1, so an unreadable clock reads as the very
+        /// start of the campaign, and the instant flows into every write guard that
+        /// compares a burn against "now". Making it nullable cascades through the
+        /// whole command surface and the analysis reader, which is a change of its
+        /// own rather than a line of this one.</para>
+        /// </summary>
+        public double CurrentTime(IntPtr plugin) => Double("CurrentTime", plugin) ?? 0.0;
 
+        /// <summary>Fails CLOSED on an unreadable answer: every other call on this
+        /// surface aborts the process on a guid the plugin does not hold, so "we
+        /// could not tell" has to stop the lookup rather than travel.</summary>
         public bool HasVessel(IntPtr plugin, string vesselGuid) =>
-            Bool("HasVessel", plugin, vesselGuid);
+            Bool("HasVessel", plugin, vesselGuid) ?? false;
 
         public PrincipiaVector VesselVelocity(IntPtr plugin, string vesselGuid) =>
             Vector(Call("VesselVelocity", plugin, vesselGuid));
@@ -272,22 +285,25 @@ namespace GonogoPrincipiaUplink
         public object? VesselGetAnalysis(IntPtr plugin, string vesselGuid, int groundTrackRevolution) =>
             Call("VesselGetAnalysis", plugin, vesselGuid, null, null, groundTrackRevolution);
 
+        /// <summary>Fails CLOSED, like <see cref="HasVessel"/>: asking a plan read of
+        /// a vessel that has no plan aborts. The observation says "we could not look"
+        /// through <c>PlanCount</c> being null beside it.</summary>
         public bool FlightPlanExists(IntPtr plugin, string vesselGuid) =>
-            Bool("FlightPlanExists", plugin, vesselGuid);
+            Bool("FlightPlanExists", plugin, vesselGuid) ?? false;
 
-        public int FlightPlanCount(IntPtr plugin, string vesselGuid) =>
+        public int? FlightPlanCount(IntPtr plugin, string vesselGuid) =>
             Int("FlightPlanCount", plugin, vesselGuid);
 
-        public int FlightPlanSelected(IntPtr plugin, string vesselGuid) =>
+        public int? FlightPlanSelected(IntPtr plugin, string vesselGuid) =>
             Int("FlightPlanSelected", plugin, vesselGuid);
 
-        public double FlightPlanGetInitialTime(IntPtr plugin, string vesselGuid) =>
+        public double? FlightPlanGetInitialTime(IntPtr plugin, string vesselGuid) =>
             Double("FlightPlanGetInitialTime", plugin, vesselGuid);
 
-        public double FlightPlanGetDesiredFinalTime(IntPtr plugin, string vesselGuid) =>
+        public double? FlightPlanGetDesiredFinalTime(IntPtr plugin, string vesselGuid) =>
             Double("FlightPlanGetDesiredFinalTime", plugin, vesselGuid);
 
-        public double FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid) =>
+        public double? FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid) =>
             Double("FlightPlanGetActualFinalTime", plugin, vesselGuid);
 
         public object? FlightPlanGetAnomalousStatus(IntPtr plugin, string vesselGuid) =>
@@ -296,13 +312,20 @@ namespace GonogoPrincipiaUplink
         public object? FlightPlanGetAdaptiveStepParameters(IntPtr plugin, string vesselGuid) =>
             Call("FlightPlanGetAdaptiveStepParameters", plugin, vesselGuid);
 
+        /// <summary>A CURSOR BOUND rather than a published count, so an unreadable
+        /// answer fails closed to zero: the burn reads it bounds are the ones that
+        /// abort out of range, and iterating none is the only safe reading of "we do
+        /// not know how many". It is not the anomalous count, which is published and
+        /// stays null.</summary>
         public int FlightPlanNumberOfManoeuvres(IntPtr plugin, string vesselGuid) =>
-            Int("FlightPlanNumberOfManoeuvres", plugin, vesselGuid);
+            Int("FlightPlanNumberOfManoeuvres", plugin, vesselGuid) ?? 0;
 
+        /// <summary>Fails closed to zero for the same reason as
+        /// <see cref="FlightPlanNumberOfManoeuvres"/>.</summary>
         public int FlightPlanNumberOfSegments(IntPtr plugin, string vesselGuid) =>
-            Int("FlightPlanNumberOfSegments", plugin, vesselGuid);
+            Int("FlightPlanNumberOfSegments", plugin, vesselGuid) ?? 0;
 
-        public int FlightPlanNumberOfAnomalousManoeuvres(IntPtr plugin, string vesselGuid) =>
+        public int? FlightPlanNumberOfAnomalousManoeuvres(IntPtr plugin, string vesselGuid) =>
             Int("FlightPlanNumberOfAnomalousManoeuvres", plugin, vesselGuid);
 
         public object? FlightPlanGetCoastAnalysis(
@@ -332,7 +355,11 @@ namespace GonogoPrincipiaUplink
         /// export by symbol would have meant reimplementing that marshaller for one
         /// argument type.
         /// </summary>
-        public bool IteratorAtEnd(object iterator) => Bool("IteratorAtEnd", iterator);
+        public bool IteratorAtEnd(object iterator) =>
+            // Fails CLOSED, which for an end test means "treat it as ended". Reading
+            // past the end is the abort this call exists to prevent, so an
+            // unreadable answer has to stop the walk rather than continue it.
+            Bool("IteratorAtEnd", iterator) ?? true;
 
         public object? IteratorGetPlottableElements(object iterator) =>
             Call("IteratorGetPlottableElements", iterator);
@@ -343,7 +370,7 @@ namespace GonogoPrincipiaUplink
             return _writeBindFailure.Length == 0;
         }
 
-        public int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid) =>
+        public int? FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid) =>
             Int("FlightPlanOptimizationDriverInProgress", plugin, vesselGuid);
 
         /// <summary>
@@ -392,14 +419,26 @@ namespace GonogoPrincipiaUplink
         private object? Call(string name, params object?[] args) =>
             _methods[name].Invoke(null, args);
 
-        private double Double(string name, params object?[] args) =>
-            Call(name, args) is double value ? value : 0.0;
+        /// <summary>
+        /// The three decoders, and they answer null rather than a zero.
+        ///
+        /// <para>A mismatch here is the producer having changed a return type
+        /// between releases, and the reflected call still resolving: the invoke
+        /// succeeds and hands back something this build cannot read. Resolving that
+        /// to 0 / 0.0 / false published a FACT nobody read, and the facts these
+        /// calls carry are ones an operator acts on: a zero anomalous count says no
+        /// burn is flagged, a zero plan count renders "PLAN 1 OF 0", and a false
+        /// optimisation state says it is safe to write. Null is the only answer that
+        /// leaves the reading able to say it could not look.</para>
+        /// </summary>
+        private double? Double(string name, params object?[] args) =>
+            Call(name, args) is double value ? value : (double?)null;
 
-        private int Int(string name, params object?[] args) =>
-            Call(name, args) is int value ? value : 0;
+        private int? Int(string name, params object?[] args) =>
+            Call(name, args) is int value ? value : (int?)null;
 
-        private bool Bool(string name, params object?[] args) =>
-            Call(name, args) is bool value && value;
+        private bool? Bool(string name, params object?[] args) =>
+            Call(name, args) is bool value ? value : (bool?)null;
 
         /// <summary>
         /// Decodes Principia's three-double vector by reading its fields.

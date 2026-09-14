@@ -271,25 +271,49 @@ namespace GonogoPrincipiaUplink.Tests
         public bool FlightPlanExists(IntPtr plugin, string vesselGuid) =>
             Vessel("FlightPlanExists", plugin, vesselGuid).HasFlightPlan;
 
-        public int FlightPlanCount(IntPtr plugin, string vesselGuid) =>
-            Vessel("FlightPlanCount", plugin, vesselGuid).Plans;
+        /// <summary>
+        /// The reads whose decode can fail, each able to answer null.
+        ///
+        /// <para>Every one defaults to answering normally, so a test that does not
+        /// set one gets the ordinary case. Null is what the real
+        /// <c>ReflectedPrincipiaPlugin</c> hands back when its <c>Int</c>,
+        /// <c>Double</c> or <c>Bool</c> decoder finds a type this build cannot read,
+        /// which is the producer having moved a return type between releases with
+        /// the reflected call still resolving.</para>
+        /// </summary>
+        public bool PlanCountUnreadable { get; set; }
 
-        public int FlightPlanSelected(IntPtr plugin, string vesselGuid) =>
-            Vessel("FlightPlanSelected", plugin, vesselGuid).SelectedPlan;
+        public bool SelectedPlanUnreadable { get; set; }
 
-        public double FlightPlanGetInitialTime(IntPtr plugin, string vesselGuid)
+        public bool AnomalousCountUnreadable { get; set; }
+
+        public bool OptimisationStateUnreadable { get; set; }
+
+        public bool DesiredFinalTimeUnreadable { get; set; }
+
+        public int? FlightPlanCount(IntPtr plugin, string vesselGuid) =>
+            PlanCountUnreadable
+                ? (int?)null
+                : Vessel("FlightPlanCount", plugin, vesselGuid).Plans;
+
+        public int? FlightPlanSelected(IntPtr plugin, string vesselGuid) =>
+            SelectedPlanUnreadable
+                ? (int?)null
+                : Vessel("FlightPlanSelected", plugin, vesselGuid).SelectedPlan;
+
+        public double? FlightPlanGetInitialTime(IntPtr plugin, string vesselGuid)
         {
             Plan("FlightPlanGetInitialTime", plugin, vesselGuid);
             return 2000.0;
         }
 
-        public double FlightPlanGetDesiredFinalTime(IntPtr plugin, string vesselGuid)
+        public double? FlightPlanGetDesiredFinalTime(IntPtr plugin, string vesselGuid)
         {
             Plan("FlightPlanGetDesiredFinalTime", plugin, vesselGuid);
-            return DesiredFinalTime;
+            return DesiredFinalTimeUnreadable ? (double?)null : DesiredFinalTime;
         }
 
-        public double FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid)
+        public double? FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid)
         {
             Plan("FlightPlanGetActualFinalTime", plugin, vesselGuid);
             return 8000.0;
@@ -324,10 +348,15 @@ namespace GonogoPrincipiaUplink.Tests
         public int FlightPlanNumberOfSegments(IntPtr plugin, string vesselGuid) =>
             Plan("FlightPlanNumberOfSegments", plugin, vesselGuid).Segments;
 
-        public int FlightPlanNumberOfAnomalousManoeuvres(IntPtr plugin, string vesselGuid)
+        /// <summary>How many of the plan's burns the integrator flagged. Zero is a
+        /// real answer and means it flagged none, which is why the unreadable case
+        /// needs a flag of its own rather than a sentinel count.</summary>
+        public int AnomalousManoeuvres { get; set; }
+
+        public int? FlightPlanNumberOfAnomalousManoeuvres(IntPtr plugin, string vesselGuid)
         {
             Plan("FlightPlanNumberOfAnomalousManoeuvres", plugin, vesselGuid);
-            return 0;
+            return AnomalousCountUnreadable ? (int?)null : AnomalousManoeuvres;
         }
 
         /// <summary>Out of range answers null here, as the real one does: the coast
@@ -399,8 +428,10 @@ namespace GonogoPrincipiaUplink.Tests
             return WriteEntryPointsBound;
         }
 
-        public int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid) =>
-            Plan("FlightPlanOptimizationDriverInProgress", plugin, vesselGuid).OptimisingBurn;
+        public int? FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid) =>
+            OptimisationStateUnreadable
+                ? (int?)null
+                : Plan("FlightPlanOptimizationDriverInProgress", plugin, vesselGuid).OptimisingBurn;
 
         /// <summary>Insert accepts an index EQUAL to the count, which appends.</summary>
         /// <summary>The stand-in burn this fake accepts, which is what a
