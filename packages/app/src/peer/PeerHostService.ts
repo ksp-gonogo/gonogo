@@ -49,6 +49,16 @@ export interface UplinkRelayHandle {
  * `TelemetryClient` and the last-frame cache, so this service never reaches for
  * a client of its own.
  */
+/**
+ * The vantage key for the host's OWN mod session: what every connection reads
+ * from until it asks for one of its own.
+ *
+ * Deliberately not a `commandCentre.roster` id. Those are always
+ * `"ground:<name>"` or `"vessel:<guid>"`, so this can never collide with a
+ * vantage a connection actually asks for.
+ */
+export const HOST_SESSION = "host";
+
 export interface SitrepSubscriptionSink {
   /** Hold an upstream subscription for `topic`. Returns its release. */
   subscribe(topic: string): () => void;
@@ -382,6 +392,13 @@ export class PeerHostService {
    * entry, so a connection is not held past its own teardown.
    */
   private readonly sitrepSubs = new Map<DataConnection, Set<string>>();
+  /**
+   * Which upstream session each connection reads from, absent until it asks
+   * for one. A pilot wants the craft's own vantage so its instruments run at
+   * the craft's light-time rather than the host's; a station that never asks
+   * reads the host's, which is what every connection did before this existed.
+   */
+  private readonly connVantage = new Map<DataConnection, string>();
   /** Connections already torn down, so a `close` after an ICE death is a no-op. */
   private readonly droppedConnections = new WeakSet<DataConnection>();
   /**
@@ -391,10 +408,20 @@ export class PeerHostService {
    */
   private readonly sitrepTopicRefs = new Map<
     string,
-    { refCount: number; unsub: (() => void) | null }
+    Map<string, { refCount: number; unsub: (() => void) | null }>
   >();
-  /** The host's live stream, supplied by `SitrepPeerRelay`. Null before it mounts. */
-  private sitrepSink: SitrepSubscriptionSink | null = null;
+  /**
+   * One upstream session per vantage anything is reading from, keyed the same
+   * way as {@link connVantage}. `HOST_SESSION` is the host's own, supplied by
+   * `SitrepPeerRelay`; it is absent before that mounts.
+   *
+   * Sessions are separate because the MOD applies delay per subscriber keyed
+   * on vantage, so two sessions at two vantages are the only way to get two
+   * correctly-delayed streams out of one game. Merging them would mean
+   * re-deriving one stream's delay from the other's, which nothing on the wire
+   * carries enough information to do.
+   */
+  private readonly sitrepSinks = new Map<string, SitrepSubscriptionSink>();
 
   /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
    *  form (NOT the operator-facing 4-char code). Null until the broker
@@ -1054,6 +1081,8 @@ export class PeerHostService {
       }
     }
     this.sitrepSubs.delete(conn);
+    // After the releases above, which read it to find the right refcount table.
+    this.connVantage.delete(conn);
     logger.info(
       `[PeerHost] connection ${why}: peer=${conn.peer}, total=${this.connections.size}`,
     );
@@ -1079,6 +1108,7 @@ export class PeerHostService {
         this.releaseSitrepSub(conn, topic);
       }
       this.sitrepSubs.delete(conn);
+      this.connVantage.delete(conn);
     }
   }
 
@@ -1090,19 +1120,106 @@ export class PeerHostService {
    * remount re-establishes exactly what the stations still want.
    */
   attachSitrepSink(sink: SitrepSubscriptionSink): () => void {
+    return this.attachSitrepSinkFor(HOST_SESSION, sink);
+  }
+
+  /**
+   * The same, for one named vantage: the upstream session a connection reads
+   * from when it has asked to observe from somewhere other than the host.
+   *
+   * A session per vantage rather than one session re-pointed, because the mod
+   * keeps the chosen vantage per CLIENT SESSION and applies each subscriber's
+   * delay from it. Re-pointing the host's own session would move every station
+   * with it, and the delay on a frame already in flight cannot be recomputed
+   * at this end: nothing on the wire carries the delay it was sent under.
+   */
+  attachSitrepSinkFor(
+    vantage: string,
+    sink: SitrepSubscriptionSink,
+  ): () => void {
     this.reconcileSitrepSubs();
-    this.sitrepSink = sink;
-    for (const [topic, entry] of this.sitrepTopicRefs) {
+    this.sitrepSinks.set(vantage, sink);
+    for (const [topic, entry] of this.topicRefsFor(vantage)) {
       entry.unsub ??= sink.subscribe(topic);
     }
     return () => {
-      if (this.sitrepSink !== sink) return;
-      for (const entry of this.sitrepTopicRefs.values()) {
+      if (this.sitrepSinks.get(vantage) !== sink) return;
+      for (const entry of this.topicRefsFor(vantage).values()) {
         entry.unsub?.();
         entry.unsub = null;
       }
-      this.sitrepSink = null;
+      this.sitrepSinks.delete(vantage);
     };
+  }
+
+  /**
+   * Send `msg` only to the connections reading from `vantage`.
+   *
+   * The frame direction used to be broadcast-all, which was right while there
+   * was one upstream: every frame was from the one place everyone was looking.
+   * With a session per vantage it would be a lie, and an expensive one: a
+   * station at the ground would be handed a pilot's live frames for the same
+   * topic and could not tell them apart, since a frame does not say what delay
+   * it travelled under.
+   */
+  broadcastToVantage(vantage: string, msg: PeerMessage): void {
+    for (const conn of this.connections) {
+      if (this.vantageOf(conn) !== vantage) continue;
+      conn.send(msg);
+    }
+  }
+
+  /** Every vantage some live connection is reading from, the host's own excluded. */
+  requestedVantages(): string[] {
+    const wanted = new Set<string>();
+    for (const conn of this.connections) {
+      const vantage = this.vantageOf(conn);
+      if (vantage !== HOST_SESSION) wanted.add(vantage);
+    }
+    return [...wanted];
+  }
+
+  /**
+   * Move `conn` to `vantage`, carrying whatever it is already reading across.
+   *
+   * The claims have to MOVE rather than be re-asked for. A connection's topics
+   * are refcounted per vantage, so leaving them behind would pin the old
+   * session's subscriptions for the rest of the session and leave the new one
+   * pulling nothing, and the peer has no reason to re-send a subscribe list it
+   * has not changed. Re-claiming against the new vantage also subscribes them
+   * upstream there, which is what makes the switch deliver anything at all.
+   *
+   * The cached frame each re-claim replays is the NEW session's, so the peer
+   * sees that vantage's view of every topic it holds as soon as it arrives
+   * rather than keeping the old one's until the next emission.
+   */
+  private setConnVantage(conn: DataConnection, vantage: string): void {
+    if (this.vantageOf(conn) === vantage) return;
+    const claimed = [...(this.sitrepSubs.get(conn) ?? [])];
+    for (const topic of claimed) this.releaseSitrepSub(conn, topic);
+    this.connVantage.set(conn, vantage);
+    for (const topic of claimed) this.retainSitrepSub(conn, topic);
+  }
+
+  /** Which upstream session `conn` reads from: the host's own until it asks otherwise. */
+  private vantageOf(conn: DataConnection): string {
+    return this.connVantage.get(conn) ?? HOST_SESSION;
+  }
+
+  /**
+   * The refcount table for one vantage, created on demand. Per vantage because
+   * two sessions holding the same topic are two real upstream subscriptions:
+   * collapsing them to one count would drop BOTH the moment either side let go.
+   */
+  private topicRefsFor(
+    vantage: string,
+  ): Map<string, { refCount: number; unsub: (() => void) | null }> {
+    let refs = this.sitrepTopicRefs.get(vantage);
+    if (!refs) {
+      refs = new Map();
+      this.sitrepTopicRefs.set(vantage, refs);
+    }
+    return refs;
   }
 
   /**
@@ -1120,20 +1237,22 @@ export class PeerHostService {
     if (claimed.has(topic)) return;
     claimed.add(topic);
 
-    const existing = this.sitrepTopicRefs.get(topic);
+    const vantage = this.vantageOf(conn);
+    const refs = this.topicRefsFor(vantage);
+    const existing = refs.get(topic);
     if (existing) {
       existing.refCount += 1;
     } else {
-      this.sitrepTopicRefs.set(topic, {
+      refs.set(topic, {
         refCount: 1,
-        unsub: this.sitrepSink?.subscribe(topic) ?? null,
+        unsub: this.sitrepSinks.get(vantage)?.subscribe(topic) ?? null,
       });
     }
 
     // The host may have been subscribed to this for a while, in which case the
     // next frame is the only thing this station would otherwise see. Replay the
     // current one to it alone.
-    const cached = this.sitrepSink?.cachedFrame(topic);
+    const cached = this.sitrepSinks.get(vantage)?.cachedFrame(topic);
     if (cached) conn.send(cached);
   }
 
@@ -1141,12 +1260,21 @@ export class PeerHostService {
     const claimed = this.sitrepSubs.get(conn);
     if (!claimed?.delete(topic)) return;
     if (claimed.size === 0) this.sitrepSubs.delete(conn);
-    const entry = this.sitrepTopicRefs.get(topic);
-    if (!entry) return;
+    const vantage = this.vantageOf(conn);
+    const refs = this.sitrepTopicRefs.get(vantage);
+    const entry = refs?.get(topic);
+    if (!refs || !entry) return;
     entry.refCount -= 1;
     if (entry.refCount <= 0) {
       entry.unsub?.();
-      this.sitrepTopicRefs.delete(topic);
+      refs.delete(topic);
+      // The host's own table is kept even when empty: it is re-populated by
+      // every station and `attachSitrepSink` walks it on remount. A vantage
+      // nobody reads from any more is a session to be closed, so its table
+      // goes with it.
+      if (refs.size === 0 && vantage !== HOST_SESSION) {
+        this.sitrepTopicRefs.delete(vantage);
+      }
     }
   }
 
@@ -1399,6 +1527,9 @@ export class PeerHostService {
     },
     "sitrep-unsubscribe": (msg, conn) => {
       this.releaseSitrepSub(conn, msg.topic);
+    },
+    "sitrep-set-vantage": (msg, conn) => {
+      this.setConnVantage(conn, msg.vantage ?? HOST_SESSION);
     },
     "uplink-bundle-request": (msg, conn) => {
       void this.handleUplinkBundleRequest(msg, conn);

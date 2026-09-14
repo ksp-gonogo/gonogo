@@ -60,6 +60,13 @@ function makeFakeHost() {
     broadcast: (msg: PeerMessage) => {
       broadcasts.push(msg);
     },
+    // Sitrep frames go out per vantage, so the relay reaches the host through
+    // this rather than `broadcast`. Every connection in these tests reads from
+    // the host's own session, so recording it in the same place keeps what
+    // `broadcasts` means: the frames the stations were sent.
+    broadcastToVantage: (_vantage: string, msg: PeerMessage) => {
+      broadcasts.push(msg);
+    },
     sendToPeer: (peerId: string, msg: PeerMessage) => {
       sentToPeer.push({ peerId, msg });
     },
