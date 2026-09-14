@@ -1227,4 +1227,70 @@ describe("BurnEditor", () => {
     expect(form?.textContent ?? "").not.toContain(`MAGNITUDE${NULL_DISPLAY}`);
     await act(async () => {});
   });
+
+  /**
+   * The instant, on the same rule as the triple above.
+   *
+   * The draft used to flatten an unread ignition onto zero, and zero is a real
+   * instant: the five date boxes came up reading Year 1 Day 1 while the row the
+   * operator selected the burn from showed the absent token, so the form stated
+   * a date nothing aboard had. The mod refuses the resulting write as stale, so
+   * what it cost was a light-time round trip to find that out.
+   *
+   * Asserted on the BOXES, never on the document: the row above renders the dash
+   * for the same absence, so a whole-document assertion passes with the
+   * substitution still in place.
+   */
+  it("shows no ignition date for a burn whose instant could not be read", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ ignitionUt: null })] });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByLabelText("YEAR")).toHaveValue(null);
+    expect(screen.getByLabelText("DAY")).toHaveValue(null);
+    expect(screen.getByLabelText("HR")).toHaveValue(null);
+    await act(async () => {});
+  });
+
+  /**
+   * And neither write may compose one. A burn with no readable ignition has no
+   * edit deadline either, so the form cannot even say whether the write would
+   * land before the burn it is about.
+   */
+  it("holds both burn writes shut while the ignition instant is unstated", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ ignitionUt: null })] });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Add a burn from these values" }),
+    ).toBeDisabled();
+    // REMOVE sends the index alone, and dropping a burn nobody can time is the
+    // likeliest thing an operator wants next.
+    expect(
+      screen.getByRole("button", { name: "Remove this burn from the plan" }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByText(/ignition instant could not be read/),
+    ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** Typing an instant is what states one, and it reopens the two writes. */
+  it("reopens the burn writes once an ignition instant is typed", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ ignitionUt: null })] });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    await userEvent.type(screen.getByLabelText("YEAR"), "3");
+
+    expect(screen.getByLabelText("YEAR")).toHaveValue(3);
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).not.toBeDisabled();
+    await act(async () => {});
+  });
 });

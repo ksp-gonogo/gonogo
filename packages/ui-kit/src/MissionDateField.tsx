@@ -4,6 +4,7 @@ import { ActionButton } from "./ActionButton";
 import { Cluster } from "./Cluster";
 import { FieldLabel, Input } from "./Form";
 import { kspCalendar } from "./kspTime";
+import { NULL_DISPLAY } from "./NullValue";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
 import { writeQuantity } from "./units";
@@ -43,10 +44,26 @@ import { writeQuantity } from "./units";
  * on the first edit. That is deliberate: a plan whose ignition is specified to
  * the microsecond is not a plan an operator typed, and preserving the remainder
  * would make the field show one instant and hold another.
+ *
+ * ## An instant nobody stated is not the epoch
+ *
+ * A caller whose instant could not be read passes `null`, and the field comes up
+ * empty with the absent token beside it rather than showing a date. The epoch is
+ * a real instant and rendering it over an unread value tells the operator their
+ * save says Year 1 Day 1, which is a claim the save did not make. Nothing is
+ * committed until a component is typed, so a form over an absent instant cannot
+ * send one either.
  */
 export interface MissionDateFieldProps {
-  /** The instant being edited, in seconds since the game's epoch. */
-  value: number;
+  /**
+   * The instant being edited, in seconds since the game's epoch, or `null` when
+   * there is none: a reading that did not arrive, a field the producer withheld.
+   *
+   * <p>A non-finite number is read as `null` too. A NaN going through the
+   * calendar arithmetic is precisely how an unread instant came out as Year 1
+   * Day 1, so it is turned away at the door rather than clamped.</p>
+   */
+  value: number | null;
 
   onChange: (ut: number) => void;
 
@@ -84,6 +101,11 @@ export interface MissionDateParts {
  * A non-finite or negative UT lands on the epoch rather than on a negative year,
  * the same way every other date readout in this kit clamps: a stray value should
  * read as the start of time, not as a nonsensical date.
+ *
+ * That clamp is a floor under arithmetic, never a way to render an instant
+ * nobody stated. `MissionDateField` keeps an absent value away from here
+ * entirely, because "no reading" arriving as Year 1 Day 1 is a date the save
+ * never claimed.
  */
 export function partsOfUt(ut: number): MissionDateParts {
   const { year: YEAR, day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
@@ -102,6 +124,15 @@ export function partsOfUt(ut: number): MissionDateParts {
     second: Math.floor(inDay % MINUTE),
   };
 }
+
+/** What an instant typed into an empty field is built on top of. */
+const EPOCH_PARTS: MissionDateParts = {
+  year: 1,
+  day: 1,
+  hour: 0,
+  minute: 0,
+  second: 0,
+};
 
 /**
  * Recombines calendar components into a UT.
@@ -148,7 +179,14 @@ export function MissionDateField({
   steps,
 }: MissionDateFieldProps) {
   const groupId = useId();
-  const parts = partsOfUt(value);
+  const absentId = `${groupId}-absent`;
+  /*
+   * A non-finite number is the same absence as a null, reached by a different
+   * route: `magnitudeOf` on a withheld reading gives one, a NaN out of a
+   * producer gives the other, and neither is a date.
+   */
+  const instant = value !== null && Number.isFinite(value) ? value : null;
+  const parts = instant === null ? null : partsOfUt(instant);
   const calendar = kspCalendar();
   const coarse = steps ?? [
     calendar.minute,
@@ -189,11 +227,21 @@ export function MissionDateField({
         // which is called "DAY" cannot say which instant is being edited, and
         // two of these on one panel are indistinguishable.
         aria-label={`${label} ${text}`}
+        // The sentence below, on every field, so the absence is spoken on focus
+        // rather than left to a dash nobody's screen reader reads out.
+        aria-describedby={parts === null ? absentId : undefined}
         min={min}
         step={1}
         style={{ width }}
         disabled={disabled}
-        value={draft?.key === key ? draft.text : String(parts[key])}
+        placeholder={parts === null ? NULL_DISPLAY : undefined}
+        value={
+          draft?.key === key
+            ? draft.text
+            : parts === null
+              ? ""
+              : String(parts[key])
+        }
         onBlur={() => setDraft(null)}
         onChange={(event) => {
           const typed = event.target.value;
@@ -201,7 +249,12 @@ export function MissionDateField({
           if (typed.trim() === "") return;
           const next = Number(typed);
           if (!Number.isFinite(next)) return;
-          onChange(utOfParts({ ...parts, [key]: next }));
+          // The epoch is the base ONLY once the operator has typed something,
+          // which is the moment an instant starts existing. The other four
+          // components have to start somewhere and there is nothing else to
+          // start them from; what matters is that the date appears because a
+          // key was pressed, not because a reading was missing.
+          onChange(utOfParts({ ...(parts ?? EPOCH_PARTS), [key]: next }));
         }}
       />
     </Stack>
@@ -216,6 +269,15 @@ export function MissionDateField({
         {field("minute", "MIN", 0, "4rem")}
         {field("second", "SEC", 0, "4rem")}
       </Cluster>
+      {/* Words as well as the token. The dash carries the absence to an eye and
+          to nothing else, and an operator on a screen reader meeting five empty
+          number boxes has no way to tell an unread instant from one that failed
+          to render. */}
+      {parts === null && (
+        <Text id={absentId} tone="muted" size="sm">
+          {`${NULL_DISPLAY} no ${label.toLowerCase()} to show. Type one to state it.`}
+        </Text>
+      )}
       {/* Gone entirely when there are no steps, heading included. A caller
           passing an empty list has a different nudge control beside this one, and
           the word alone above nothing reads as a row that failed to render. */}
@@ -224,12 +286,15 @@ export function MissionDateField({
           <Text tone="faint" size="sm">
             NUDGE
           </Text>
+          {/* Dark over an absent instant, both rows: a step is relative, and
+              there is nothing here to step from. Stepping off the epoch would
+              invent the date the empty fields are refusing to show. */}
           {coarse.map((step) => (
             <ActionButton
               key={`minus-${step}`}
-              disabled={disabled}
+              disabled={disabled || instant === null}
               aria-label={`${label} earlier by ${stepLabel(step)}`}
-              onClick={() => onChange(value - step)}
+              onClick={() => instant !== null && onChange(instant - step)}
             >
               {`-${stepLabel(step)}`}
             </ActionButton>
@@ -237,9 +302,9 @@ export function MissionDateField({
           {coarse.map((step) => (
             <ActionButton
               key={`plus-${step}`}
-              disabled={disabled}
+              disabled={disabled || instant === null}
               aria-label={`${label} later by ${stepLabel(step)}`}
-              onClick={() => onChange(value + step)}
+              onClick={() => instant !== null && onChange(instant + step)}
             >
               {`+${stepLabel(step)}`}
             </ActionButton>
