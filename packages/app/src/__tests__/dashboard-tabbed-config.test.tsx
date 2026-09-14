@@ -7,10 +7,6 @@
 
 import type { ActionDefinition } from "@ksp-gonogo/core";
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
-import {
-  CpuRegistryProvider,
-  CpuRegistryService,
-} from "@ksp-gonogo/gonogo-kos-uplink";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
@@ -58,12 +54,9 @@ function renderWithProviders(
   // screen-level providers. If the harness inverted this, modal-portal
   // content would see those contexts for free and we'd never notice when
   // GearButton forgets to re-provide them.
-  const cpuRegistry = new CpuRegistryService("main");
   return render(
     <ModalProvider>
-      <SerialDeviceProvider service={service}>
-        <CpuRegistryProvider service={cpuRegistry}>{tree}</CpuRegistryProvider>
-      </SerialDeviceProvider>
+      <SerialDeviceProvider service={service}>{tree}</SerialDeviceProvider>
     </ModalProvider>,
   );
 }

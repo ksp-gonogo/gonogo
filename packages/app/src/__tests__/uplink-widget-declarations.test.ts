@@ -3,27 +3,26 @@ import {
   getAugments,
   getComponents,
 } from "@ksp-gonogo/core";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 /*
- * Side-effect imports: each Uplink client registers its widgets, augments and
- * Topics at module load, exactly as `main.tsx` gets them. Every one of the nine
- * is already a declared dependency of this package, so this costs no new edge.
- *
- * `components` is here for the same reason and it is not incidental. A built-in
- * widget may declare a channel an UPLINK owns (`space-weather` mounts on
- * `kerbalism.spaceweather`), and an Uplink's topic ids only enter the resolvable
- * set when that Uplink registers. So the components-side gate cannot classify
- * such an id from its own package and this is the only place that can: every
- * Uplink loaded, every widget registered, one resolvable vocabulary.
+ * Side-effect import: `components` registers the built-in widgets. It is here
+ * because a built-in widget may declare a channel an UPLINK owns, and an
+ * Uplink's topic ids only enter the resolvable set when that Uplink registers.
+ * So the components-side gate cannot classify such an id from its own package
+ * and this is the only place that can: every Uplink loaded, every widget
+ * registered, one resolvable vocabulary.
  */
 import "@ksp-gonogo/components";
-import "@ksp-gonogo/gonogo-breaking-ground-uplink";
-import "@ksp-gonogo/gonogo-kerbalism-uplink";
-import "@ksp-gonogo/gonogo-kos-uplink";
-import "@ksp-gonogo/gonogo-mechjeb-uplink";
-import "@ksp-gonogo/gonogo-principia-uplink";
-import "@ksp-gonogo/gonogo-realantennas-uplink";
-import "@ksp-gonogo/gonogo-rp1-uplink";
+import {
+  firstPartyUplinkClientRelDirs,
+  importFirstPartyUplinkClients,
+  trackedUplinkClientDirs,
+} from "../test/firstPartyUplinkIds";
+import {
+  PLANTED_AUGMENT_ID,
+  PLANTED_UPLINK,
+  PLANTED_WIDGET_ID,
+} from "../test/plantedUplinkClient";
 
 /**
  * The Uplink half of `packages/components/src/test/widgetDeclarations.test.ts`.
@@ -32,7 +31,7 @@ import "@ksp-gonogo/gonogo-rp1-uplink";
  * it says plainly what it cannot see: the widgets THIS package registers, and
  * nothing else. An Uplink's widgets register into the same registry from
  * packages `components` does not depend on, so their declarations are governed
- * by nothing there. Nine Uplinks, and `mod/*​/client` is where new widgets now go.
+ * by nothing there, and `mod/*​/client` is where new widgets now go.
  *
  * ## Why it lives here rather than in each Uplink
  *
@@ -50,9 +49,8 @@ import "@ksp-gonogo/gonogo-rp1-uplink";
  *
  * And it would be ten copies of one assertion, each able to rot on its own.
  * The check does not need to be inside anything: it needs a place that already
- * imports every Uplink client legitimately and can also see `core`. That is
- * this package, which does both today, and where `main.tsx` already imports
- * most of them for real.
+ * builds every first-party Uplink client and can also see `core`. That is
+ * this package, whose bundle targets name them.
  *
  * So `classifyRequirement` does NOT need to move into `sitrep-sdk` for this
  * coverage to exist. It would need to move for an outside author to run the
@@ -103,6 +101,17 @@ function declarationsFromAugments(): Declaration[] {
 
 describe("widget and augment declarations resolve to something real", () => {
   /**
+   * Each first-party Uplink client present registers its widgets, augments and
+   * Topics at module load, as the app's bundle loader gets them. Discovered
+   * rather than imported by name: every mod Uplink is leaving for its own repo,
+   * and a named import fails to resolve the moment one does.
+   */
+  let imported: string[] = [];
+  beforeAll(async () => {
+    imported = await importFirstPartyUplinkClients();
+  }, 30_000);
+
+  /**
    * All four component arrays plus the augment registry, because
    * `dataRequirements` is not the array a migrated widget uses. Measured across
    * the ten clients at the time of writing: 23 `dataRequirements` entries and 5
@@ -118,41 +127,58 @@ describe("widget and augment declarations resolve to something real", () => {
    * built against a stale SDK carries an id the current contract dropped, and
    * the two checks disagree exactly there.
    */
-  const declared = [
+  const declared = () => [
     ...declarationsFromComponents(),
     ...declarationsFromAugments(),
   ];
 
   /**
-   * The registry is global, so this sees the built-in widgets too if anything
-   * in the import graph pulls `@ksp-gonogo/components` in. That is harmless
-   * (the same assertion holds for them) but it means the count alone cannot
-   * prove the Uplinks arrived, so the next tests name them.
+   * The registry is global, so this sees the built-in widgets too. That is
+   * harmless (the same assertion holds for them) but it means the count alone
+   * cannot prove the Uplinks arrived, so the next tests check them by owner.
    */
   it("found a non-trivial number of declarations (scan sanity check)", () => {
-    expect(declared.length).toBeGreaterThan(10);
+    expect(declared().length).toBeGreaterThan(10);
+  });
+
+  /**
+   * The discovery is held to git's own list of Uplink client manifests, so a
+   * client the bundle targets stop naming cannot leave this gate unnoticed.
+   */
+  it("imports every Uplink client git tracks", () => {
+    expect(firstPartyUplinkClientRelDirs()).toEqual(trackedUplinkClientDirs());
   });
 
   /**
    * The guard on the guard, and the one that matters here. A side-effect import
    * that silently resolves to an empty module, or an Uplink that stops
-   * registering its widget, leaves the assertion below true about nothing. So
-   * the widgets have to be present by NAME.
+   * registering, leaves the assertion below true about nothing. So every Uplink
+   * imported has to own at least one widget or augment, checked per Uplink
+   * rather than counted: a count cannot tell several loaded Uplinks from one
+   * loaded several times.
+   *
+   * The planted client is in the set on purpose. With no real Uplink left in
+   * this repo the loop has nothing to iterate, and the planted one keeps "every
+   * Uplink registered something" from being true of an empty list.
    */
-  it("actually loaded the Uplinks' own widgets, so an empty result is not a pass", () => {
-    const ids = new Set(getComponents().map((def) => def.id));
-    // One widget from each Uplink that registers any, spelled out rather than
-    // counted: a count cannot tell nine loaded Uplinks from one loaded nine
-    // times, and one client failing to register is precisely the case where an
-    // empty check reads as a clean one.
-    const fromUplinks = [
-      "robotics-console",
-      "ship-systems",
-      "kos-terminal",
-      "mechjeb",
-    ];
-    const missing = fromUplinks.filter((id) => !ids.has(id));
-    expect(missing).toEqual([]);
+  it("every imported Uplink registered a widget or augment under its own handle", () => {
+    const owners = new Set(
+      [...getComponents(), ...getAugments()].map((def) => def.owner?.id),
+    );
+    const silent = [...imported, PLANTED_UPLINK.id].filter(
+      (id) => !owners.has(id),
+    );
+    expect(silent).toEqual([]);
+  });
+
+  /**
+   * The same guard for each registry on its own. Augments are absent from
+   * `getComponents()` entirely, so a client registering no augment leaves the
+   * augment half of `declared` empty and every assertion over it vacuously true.
+   */
+  it("loaded the planted Uplink's widget and augment, one per registry", () => {
+    expect(getComponents().map((def) => def.id)).toContain(PLANTED_WIDGET_ID);
+    expect(getAugments().map((def) => def.id)).toContain(PLANTED_AUGMENT_ID);
   });
 
   /**
@@ -161,28 +187,11 @@ describe("widget and augment declarations resolve to something real", () => {
    * the entries it contributes would leave silently and every assertion below
    * would still pass.
    */
-  it("actually loaded the built-in widgets, whose channels an Uplink owns", () => {
+  it("actually loaded the built-in widgets", () => {
     const ids = new Set(getComponents().map((def) => def.id));
-    const missing = ["space-weather", "crew-status", "ship-map"].filter(
+    const missing = ["crew-status", "ship-map", "comm-signal"].filter(
       (id) => !ids.has(id),
     );
-    expect(missing).toEqual([]);
-  });
-
-  /**
-   * The same guard for the augment registry, which the widget names above
-   * cannot speak for: augments are absent from `getComponents()` entirely, so
-   * a client registering no augment leaves the augment half of `declared` empty
-   * and every assertion over it vacuously true.
-   */
-  it("actually loaded the Uplinks' augments, which are a separate registry", () => {
-    const ids = new Set(getAugments().map((def) => def.id));
-    const fromUplinks = [
-      "realantennas-comm-signal-badge",
-      "realantennas-comm-signal-section",
-      "rp1-research-queue",
-    ];
-    const missing = fromUplinks.filter((id) => !ids.has(id));
     expect(missing).toEqual([]);
   });
 
@@ -213,7 +222,7 @@ describe("widget and augment declarations resolve to something real", () => {
   });
 
   it("classifies every declaration, no unresolvable entries", () => {
-    const unresolvable = declared
+    const unresolvable = declared()
       .filter(
         ({ requirement }) => classifyRequirement(requirement) === undefined,
       )

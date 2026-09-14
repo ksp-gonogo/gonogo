@@ -2,11 +2,14 @@
 //
 // Node realm rather than the package's jsdom default: this test shells out to
 // esbuild and reads the filesystem, and needs no DOM.
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { firstPartyUplinkIds } from "../../test/firstPartyUplinkIds";
+import {
+  firstPartyUplinkClientDirs,
+  firstPartyUplinkIds,
+} from "../../test/firstPartyUplinkIds";
 import {
   UPLINK_EXTERNAL_ENTRIES,
   UPLINK_EXTERNAL_NO_CHUNK,
@@ -38,44 +41,6 @@ import {
  *    emits no chunk and therefore no key), rather than against the declared
  *    list.
  */
-
-const APP_DIR = resolve(import.meta.dirname, "..", "..", "..");
-const MOD_DIR = resolve(APP_DIR, "..", "..", "mod");
-
-/**
- * The client directory of every Uplink this repo builds a runtime-loadable
- * bundle for, matched from the build's own target ids to the `Gonogo<Mod>Uplink`
- * directory naming each one.
- *
- * Derived rather than listed because a hardcoded id -> directory table would put
- * mod names in `src/`, which the mod-ownership boundary guard exists to stop.
- * The ids come from `uplink-bundle-targets.ts`, the list the build itself
- * resolves these same entry points from, and the directory names come off disk.
- * A descriptor id would be tidier but not every loader client ships a
- * `gonogo-uplink.json`, so keying on one silently drops a client, and a dropped
- * client is a check that passes while covering less than it claims.
- *
- * Ambiguity throws rather than picking: two directories matching one id means
- * the naming assumption has stopped holding.
- */
-function loaderClientDirs(): { id: string; dir: string }[] {
-  const uplinkDirs = readdirSync(MOD_DIR).filter((entry) =>
-    /^Gonogo.*Uplink$/.test(entry),
-  );
-  return firstPartyUplinkIds().map((id) => {
-    const matches = uplinkDirs.filter(
-      (entry) =>
-        entry.toLowerCase().includes(id.toLowerCase()) &&
-        existsSync(join(MOD_DIR, entry, "client", "src", "index.ts")),
-    );
-    if (matches.length !== 1) {
-      throw new Error(
-        `expected exactly one Uplink client directory for "${id}", found ${matches.length}: ${matches.join(", ")}`,
-      );
-    }
-    return { id, dir: join(MOD_DIR, matches[0] as string, "client") };
-  });
-}
 
 /**
  * The slice of esbuild's `build` this test uses.
@@ -249,7 +214,7 @@ export type Probe = [CelestialFacts, FrameInstant, ReadFrameChoice];
 `;
 
 describe("runtime-loaded Uplink link surface", () => {
-  const clients = loaderClientDirs();
+  const clients = firstPartyUplinkClientDirs();
   const esbuild = loadEsbuild(clients);
 
   it("finds a client for every id the build targets", () => {

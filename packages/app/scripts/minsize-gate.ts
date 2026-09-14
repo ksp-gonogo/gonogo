@@ -58,6 +58,7 @@ import type {
   ScenePayload,
 } from "@ksp-gonogo/ui-kit/render-probe";
 import { chromium, type Page } from "playwright";
+import { UPLINK_BUNDLE_TARGETS } from "../uplink-bundle-targets";
 import { KNOWN_MISFITS } from "./minsize-debt";
 import type { MinSizeWidget } from "./minsize-probe";
 
@@ -68,22 +69,19 @@ const DEBT_FILE = join(HERE, "minsize-debt.ts");
 /**
  * Every module whose import registers widgets in the running app.
  *
- * Bare specifiers, resolved from `packages/app`, which is the one package that
- * depends on all of them. Some Uplinks reach the app through the runtime bundle
- * loader rather than a static import, and they are named here anyway: which
+ * The built-in packages by bare specifier, resolved from `packages/app`. The
+ * Uplink clients by their source entry, one per bundle target: they reach the
+ * app through the runtime bundle loader rather than a static import, and which
  * widgets a gate covers should not depend on how their bundle happens to be
- * delivered.
+ * delivered. Read from the targets rather than listed, so an Uplink that leaves
+ * this repo leaves the gate with it.
  */
 const REGISTRATIONS = [
   "@ksp-gonogo/components",
   "@ksp-gonogo/serial",
-  "@ksp-gonogo/gonogo-breaking-ground-uplink",
-  "@ksp-gonogo/gonogo-kerbalism-uplink",
-  "@ksp-gonogo/gonogo-kos-uplink",
-  "@ksp-gonogo/gonogo-mechjeb-uplink",
-  "@ksp-gonogo/gonogo-principia-uplink",
-  "@ksp-gonogo/gonogo-realantennas-uplink",
-  "@ksp-gonogo/gonogo-rp1-uplink",
+  ...UPLINK_BUNDLE_TARGETS.map((target) =>
+    join(target.clientDir, "src", "index.ts"),
+  ),
   // The app's own two widgets, by path: they are not a package of their own,
   // and they carry a minSize like every other widget.
   resolve(APP_DIR, "src/goNoGo/GoNoGoComponent.tsx"),
