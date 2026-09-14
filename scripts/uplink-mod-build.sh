@@ -37,22 +37,26 @@ cd "$ROOT" || exit 1
 : "${KSP_GAMEDATA:?set KSP_GAMEDATA to <ksp-managed>/GameData}"
 
 uplink_csprojs() {
-  find mod -maxdepth 2 -type f -name 'Gonogo*Uplink.csproj' | sort
+  find "${1:-mod}" -maxdepth 2 -type f -name 'Gonogo*Uplink.csproj' | sort
 }
 
 # A discovery that matches nothing builds nothing, finds no failures and exits 0,
-# which is indistinguishable from success. The floor is what makes that
-# impossible; it is a FLOOR rather than an equality so adding an Uplink does not
-# require editing this script, which is the whole point of discovering.
-# Lowered from 11, once per Uplink that migrated to the gonogo-uplinks repo:
-# GonogoTestFlightUplink and the four that followed it on 2026-09-06.
-FLOOR=6
-COUNT="$(uplink_csprojs | wc -l | tr -d ' ')"
-if [ "$COUNT" -lt "$FLOOR" ]; then
-  echo "✖ uplink mod build: discovered only $COUNT Uplink csproj(s), fewer than this repo has ever had ($FLOOR)."
-  echo "  The discovery is broken rather than the tree being small. Refusing to report success."
+# which is indistinguishable from success. So the discovery is first run over the
+# fixture tree the C# Uplink walks are proved on, and must find exactly the one
+# planted csproj there. This replaced a floor on the count (lowered from 11 to 6
+# as Uplinks migrated to the gonogo-uplinks repo): every mod Uplink is leaving, so
+# the count is heading for zero, and a floor could not tell "all moved" from "the
+# find expression broke". The plant can, so zero Uplinks here is a valid run.
+PLANT=mod/Sitrep.Core.Tests/UplinkWalkPlant
+PLANTED="$(uplink_csprojs "$PLANT")"
+if [ "$PLANTED" != "$PLANT/GonogoPlantedUplink/GonogoPlantedUplink.csproj" ]; then
+  echo "✖ uplink mod build: over the fixture at $PLANT the discovery found:"
+  echo "${PLANTED:-  (nothing)}"
+  echo "  expected exactly $PLANT/GonogoPlantedUplink/GonogoPlantedUplink.csproj."
+  echo "  The discovery is broken, so an empty or short build would report success. Refusing."
   exit 1
 fi
+COUNT="$(uplink_csprojs | grep -c . || true)"
 
 # EXEMPTIONS: "<csproj name>|<the reference DLL that is missing>|<why>".
 #

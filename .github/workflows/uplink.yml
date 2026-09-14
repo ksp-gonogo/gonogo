@@ -55,13 +55,17 @@ permissions:
   packages: read
 
 jobs:
-  # The matrix axis, computed from disk. `uplink-matrix.mjs` refuses to emit a
-  # short list, because an empty matrix produces a job GitHub Actions SKIPS, and
-  # a skipped matrix job reports as successful.
+  # The matrix axis, computed from disk. `uplink-matrix.mjs` proves its
+  # discovery on a planted fixture before emitting anything, because a broken
+  # walk produces a short or empty matrix and a skipped matrix job reports as
+  # successful. Zero legs from a WORKING walk is a real state (every mod Uplink is
+  # leaving for gonogo-uplinks), so `count` gates the matrix job rather than
+  # handing GitHub an empty axis, which it rejects.
   discover:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -74,6 +78,7 @@ jobs:
 
   uplink:
     needs: discover
+    if: needs.discover.outputs.count != '0'
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:

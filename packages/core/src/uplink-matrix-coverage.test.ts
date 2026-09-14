@@ -58,7 +58,7 @@ type Leg = {
  * Run the discovery, keeping a non-zero exit as DATA rather than letting it
  * throw at module scope. Thrown here it becomes a vitest collection error
  * reporting "no tests", which is a failure whose message says nothing about the
- * matrix; the floor test below can then explain what actually happened.
+ * matrix; the first test below can then explain what actually happened.
  */
 function runMatrix(): { legs: Leg[]; failure: string | null } {
   try {
@@ -88,9 +88,30 @@ function lockfileClients(): string[] {
   return [...ids].sort();
 }
 
-/** Uplink plugin projects as `mod/Gonogo.sln` lists them. */
-function solutionUplinks(): string[] {
-  const sln = readFileSync(join(ROOT, "mod/Gonogo.sln"), "utf8");
+/**
+ * Uplink client manifests as git tracks them: a third source, so the lockfile
+ * read is not compared against the walk alone.
+ */
+function trackedClients(): string[] {
+  const ids = new Set<string>();
+  for (const rel of execFileSync(
+    "git",
+    ["ls-files", "mod/*/client/package.json"],
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+    },
+  ).split("\n")) {
+    const match =
+      /^mod\/(Gonogo[A-Za-z0-9]*Uplink)\/client\/package\.json$/.exec(rel);
+    if (match) ids.add(match[1]);
+  }
+  return [...ids].sort();
+}
+
+/** Uplink plugin projects as a `Gonogo.sln` lists them, the repo's own by default. */
+function solutionUplinks(slnPath = "mod/Gonogo.sln"): string[] {
+  const sln = readFileSync(join(ROOT, slnPath), "utf8");
   const ids = new Set<string>();
   for (const match of sln.matchAll(
     /^Project\("\{[^}]+}"\)\s*=\s*"([^"]+)"/gm,
@@ -112,13 +133,15 @@ describe("the Uplink CI matrix covers every Uplink", () => {
   it("gives a leg to every client pnpm knows about", () => {
     const fromLock = lockfileClients();
     // Guards the guard: a lockfile read that matched nothing would compare two
-    // empty sets and pass. 7 since three Uplinks took their clients to the
-    // gonogo-uplinks repo on 2026-09-06.
+    // empty sets and pass. This was a floor of 7, and every mod Uplink is leaving
+    // for the gonogo-uplinks repo, so the lockfile is held to git's own list of
+    // client manifests instead, which a broken read cannot match at any count.
     expect(
-      fromLock.length,
-      "pnpm-lock.yaml lists no mod/Gonogo*Uplink/client importers, so this test is comparing " +
-        "two empty sets. The lockfile format or the workspace layout changed.",
-    ).toBeGreaterThanOrEqual(7);
+      fromLock,
+      "pnpm-lock.yaml's mod/Gonogo*Uplink/client importers disagree with the client manifests git " +
+        "tracks. Either the lockfile read stopped matching (its format or the workspace layout " +
+        "changed) or the lockfile is out of date with the tree.",
+    ).toEqual(trackedClients());
 
     expect(
       matrix.filter((leg) => leg.client).map((leg) => leg.id),
@@ -129,9 +152,20 @@ describe("the Uplink CI matrix covers every Uplink", () => {
 
   it("gives a leg to every plugin project in the solution", () => {
     const fromSolution = solutionUplinks();
-    // 6 since GonogoTestFlightUplink and four more took their projects out of
-    // the solution for the gonogo-uplinks repo.
-    expect(fromSolution.length).toBeGreaterThanOrEqual(6);
+    /*
+     * Guards the solution read without a floor on how many Uplinks remain: over
+     * the planted fixture's solution it must find exactly the planted project,
+     * and the real solution must be the one that builds this repo.
+     */
+    expect(
+      solutionUplinks("mod/Sitrep.Core.Tests/UplinkWalkPlant/Gonogo.sln"),
+      "The solution read over the planted fixture did not find exactly the planted Uplink, so " +
+        "it can compare nothing to nothing.",
+    ).toEqual(["GonogoPlantedUplink"]);
+    expect(
+      readFileSync(join(ROOT, "mod/Gonogo.sln"), "utf8"),
+      "mod/Gonogo.sln does not declare Sitrep.Core.Tests, so it is not the solution this repo builds.",
+    ).toMatch(/=\s*"Sitrep\.Core\.Tests"/);
     expect(
       matrix.filter((leg) => leg.csproj).map((leg) => leg.id),
       `${SCRIPT} disagrees with mod/Gonogo.sln about which Uplinks have a plugin csproj.`,
@@ -195,10 +229,20 @@ describe("the Uplink CI matrix covers every Uplink", () => {
       return Array.isArray(manifest.gonogo?.renderWith);
     });
 
+    // Which clients declare a render host, read off git's list of manifests
+    // rather than the matrix, so an empty answer is checked rather than trusted.
+    const declaringByGit = trackedClients().filter((id) =>
+      Array.isArray(
+        JSON.parse(
+          readFileSync(join(ROOT, "mod", id, "client", "package.json"), "utf8"),
+        ).gonogo?.renderWith,
+      ),
+    );
     expect(
-      declaring.length,
-      "No Uplink client declares gonogo.renderWith, so this test is comparing two empty sets.",
-    ).toBeGreaterThan(0);
+      declaring.map((leg) => leg.id),
+      "The matrix and git's tracked client manifests disagree about which clients declare " +
+        "gonogo.renderWith.",
+    ).toEqual(declaringByGit);
 
     for (const leg of declaring) {
       expect(
@@ -237,20 +281,21 @@ describe("the Uplink CI matrix covers every Uplink", () => {
     ).toBe(true);
   });
 
-  it("the script's floor is below what the tree holds", () => {
-    const floor = Number(
-      readFileSync(join(ROOT, SCRIPT), "utf8").match(
-        /^const FLOOR = (\d+);$/m,
-      )?.[1],
+  it("the script proves its discovery on the planted fixture", () => {
+    // The script refuses to emit a matrix when its walk over the plant is wrong,
+    // which "the discovery runs at all" reports. This pins that the plant it
+    // names is the one the C# walks are proved on, so neither can be deleted
+    // without the other noticing.
+    expect(readFileSync(join(ROOT, SCRIPT), "utf8")).toContain(
+      'join(MOD, "Sitrep.Core.Tests", "UplinkWalkPlant")',
     );
     expect(
-      Number.isFinite(floor),
-      `No \`const FLOOR = <n>\` found in ${SCRIPT}`,
+      existsSync(
+        join(
+          ROOT,
+          "mod/Sitrep.Core.Tests/UplinkWalkPlant/GonogoPlantedUplink/GonogoPlantedUplink.csproj",
+        ),
+      ),
     ).toBe(true);
-    expect(
-      floor,
-      `${SCRIPT}'s FLOOR (${floor}) exceeds the ${matrix.length} Uplinks on disk, so it refuses ` +
-        `to emit a matrix on every run for a reason that has nothing to do with the tree.`,
-    ).toBeLessThanOrEqual(matrix.length);
   });
 });
