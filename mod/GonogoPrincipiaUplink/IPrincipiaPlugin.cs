@@ -85,17 +85,30 @@ namespace GonogoPrincipiaUplink
         object? VesselGetAnalysis(IntPtr plugin, string vesselGuid, int groundTrackRevolution);
 
         bool FlightPlanExists(IntPtr plugin, string vesselGuid);
-        int FlightPlanCount(IntPtr plugin, string vesselGuid);
-        int FlightPlanSelected(IntPtr plugin, string vesselGuid);
+        /// <summary>
+        /// The published plan reads, and every one of them is nullable because the
+        /// reflected decode can fail. Null is "this build could not read the answer",
+        /// never a zero: a zero plan count renders as "PLAN 1 OF 0" and a zero
+        /// anomalous count says the integrator flagged nothing.
+        ///
+        /// <para>The safety gates on this surface are NOT nullable, deliberately.
+        /// <see cref="HasVessel"/>, <see cref="FlightPlanExists"/>,
+        /// <see cref="IteratorAtEnd"/> and the two manoeuvre bounds each decide
+        /// whether a call that would abort the process gets made, so an unreadable
+        /// answer has to fail closed at the implementation rather than travel up as a
+        /// null for a caller to resolve.</para>
+        /// </summary>
+        int? FlightPlanCount(IntPtr plugin, string vesselGuid);
+        int? FlightPlanSelected(IntPtr plugin, string vesselGuid);
 
-        double FlightPlanGetInitialTime(IntPtr plugin, string vesselGuid);
-        double FlightPlanGetDesiredFinalTime(IntPtr plugin, string vesselGuid);
-        double FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid);
+        double? FlightPlanGetInitialTime(IntPtr plugin, string vesselGuid);
+        double? FlightPlanGetDesiredFinalTime(IntPtr plugin, string vesselGuid);
+        double? FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid);
         object? FlightPlanGetAnomalousStatus(IntPtr plugin, string vesselGuid);
         object? FlightPlanGetAdaptiveStepParameters(IntPtr plugin, string vesselGuid);
         int FlightPlanNumberOfManoeuvres(IntPtr plugin, string vesselGuid);
         int FlightPlanNumberOfSegments(IntPtr plugin, string vesselGuid);
-        int FlightPlanNumberOfAnomalousManoeuvres(IntPtr plugin, string vesselGuid);
+        int? FlightPlanNumberOfAnomalousManoeuvres(IntPtr plugin, string vesselGuid);
         object? FlightPlanGetCoastAnalysis(
             IntPtr plugin, string vesselGuid, int groundTrackRevolution, int coastIndex);
 
@@ -140,8 +153,13 @@ namespace GonogoPrincipiaUplink
         bool WritesBound(out string reason);
 
         /// <summary>
-        /// The manoeuvre index the producer's optimiser is working on, or -1 when
-        /// no optimisation is running.
+        /// The manoeuvre index the producer's optimiser is working on, -1 when no
+        /// optimisation is running, and NULL when the answer could not be read.
+        ///
+        /// <para>The third state is load-bearing. A false "no optimisation is
+        /// running" is what lets a write through that the optimiser then reverts with
+        /// nothing reported anywhere, and a false "one IS running" freezes every
+        /// write control with a reason that states a fact nobody read.</para>
         ///
         /// <para>A read, on the write surface, because it exists only to keep a
         /// write from being silently reverted. Its preconditions are stricter than
@@ -149,7 +167,7 @@ namespace GonogoPrincipiaUplink
         /// this frame, because the native body reaches into the plan's variant with
         /// no deserialisation test.</para>
         /// </summary>
-        int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid);
+        int? FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid);
 
         /// <summary>
         /// The type the producer's own build declares for a burn, taken off the

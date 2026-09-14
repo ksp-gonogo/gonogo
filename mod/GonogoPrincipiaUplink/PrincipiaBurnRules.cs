@@ -105,7 +105,8 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
-        /// Why a burn that is running right now must not be edited, or null.
+        /// Why a burn that is running right now must not be edited, or null when it is
+        /// known to be idle.
         ///
         /// <para><b>This guard is entirely ours.</b> Principia's fit test never looks
         /// at the current time, and only its rebase entry point refuses during a
@@ -117,13 +118,31 @@ namespace GonogoPrincipiaUplink
         /// <para>A burn wholly in the PAST is allowed. It cannot be re-flown and
         /// editing it is how an operator tidies a plan; the producer's own window
         /// allows it too, with a warning.</para>
+        ///
+        /// <para><b>An instant that would not read REFUSES.</b> Null used to mean "no
+        /// refusal" here, which is the same word this method uses for "nothing was
+        /// wrong", so an unreadable ignition or cutoff read as a burn known to be
+        /// idle. A REMOVE then came back <c>Written</c> and the operator's own console
+        /// confirmed it had deleted a burn that may have been under thrust. The two
+        /// instants ARE the guard: without both of them there is no window to test, so
+        /// the honest answer is that the guard could not answer.</para>
         /// </summary>
         public static PrincipiaWriteResult? RejectExecuting(
             double? ignitionUt, double? cutoffUt, double nowUt)
         {
             if (ignitionUt == null || cutoffUt == null)
             {
-                return null;
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.GuardReadUnreadable,
+                    "This burn's "
+                    + (ignitionUt == null
+                        ? cutoffUt == null ? "ignition and cutoff instants" : "ignition instant"
+                        : "cutoff instant")
+                    + " would not read off the plan, so whether the craft is under thrust right "
+                    + "now cannot be established. Nothing has been written. Principia permits an "
+                    + "edit mid-ignition and will not warn, so this refusal is the console's, and "
+                    + "it refuses rather than guessing: the alternative is a receipt reading "
+                    + "Written for a burn that may have been burning.");
             }
             if (nowUt < ignitionUt.Value || nowUt > cutoffUt.Value)
             {

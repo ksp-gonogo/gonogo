@@ -106,15 +106,32 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         public FrameObservation? Frame;
 
-        /// <summary>Whether this burn's frame is one an edit may be sent back
-        /// with. Resolved here so no client repeats the whitelist, and so the
-        /// answer a control greys itself out on is the same answer the write gate
-        /// refuses on.</summary>
-        public bool FrameEditable;
+        /// <summary>
+        /// Whether this burn's frame is one an edit may be sent back with. Resolved
+        /// here so no client repeats the whitelist, and so the answer a control greys
+        /// itself out on is the same answer the write gate refuses on.
+        ///
+        /// <para>Null when the frame extension could not be read at all, which is a
+        /// different fact from a frame that is locked: false is a property OF THE
+        /// FRAME, and publishing it for a frame nobody read put "FRAME LOCKED" and
+        /// "THIS FRAME CANNOT BE WRITTEN BACK" on screen about a frame this build
+        /// never saw. Either way the write stays refused.</para>
+        /// </summary>
+        public bool? FrameEditable;
 
-        /// <summary>Whether the burn is running at the observation instant.</summary>
-        public bool Executing;
+        /// <summary>
+        /// Whether the burn is running at the observation instant.
+        ///
+        /// <para>Null when its ignition or its cutoff could not be read, so the
+        /// window cannot be tested. False used to cover that case, which withheld
+        /// the BURNING badge from a burn that may have been under thrust and handed
+        /// out the edit and remove controls for it.</para>
+        /// </summary>
+        public bool? Executing;
 
-        public bool Anomalous;
+        /// <summary>Whether the integrator flagged this burn. Null when the plan's
+        /// anomalous count could not be read, which is not the same as a plan the
+        /// integrator was happy with.</summary>
+        public bool? Anomalous;
     }
 }

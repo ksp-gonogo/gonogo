@@ -136,7 +136,7 @@ namespace GonogoPrincipiaUplink
             PrincipiaPlanWriteGate gate,
             PrincipiaWriteAuthority authority,
             ProbeBurnFactory? composeAt,
-            double desiredFinalTimeUt)
+            double? desiredFinalTimeUt)
         {
             if (gate.ManoeuvreCount() <= 0)
             {
@@ -219,7 +219,7 @@ namespace GonogoPrincipiaUplink
             PrincipiaPlanWriteGate gate,
             PrincipiaWriteAuthority authority,
             ProbeBurnFactory? composeAt,
-            double desiredFinalTimeUt)
+            double? desiredFinalTimeUt)
         {
             if (composeAt == null)
             {
@@ -232,12 +232,28 @@ namespace GonogoPrincipiaUplink
                 return;
             }
 
+            // The plan's end is what places the composed burn inside it, so without it
+            // there is nowhere honest to put one. Reported as a layout failure, which
+            // leaves burn edits refused, rather than composing against a zero instant
+            // that would land the probe burn at the start of the campaign and read
+            // back as a struct that moved.
+            if (desiredFinalTimeUt == null)
+            {
+                authority.LayoutFailed(
+                    "This plan has no burns to round trip and its end instant would not read, so "
+                    + "there is no instant to place a composed burn at and the round trip could "
+                    + "not be run. Burn edits stay refused.",
+                    burn: true,
+                    integrator: false);
+                return;
+            }
+
             // The caller picks the instant, given the plan's end: it holds the
             // frame's own clock and so is the only side that can place a burn both
             // ahead of now and inside the plan. A burn outside the window is one the
             // producer will not accept, and that refusal would read here as a layout
             // failure rather than as a badly chosen instant.
-            var burn = composeAt(desiredFinalTimeUt, out var why);
+            var burn = composeAt(desiredFinalTimeUt.Value, out var why);
             if (burn == null)
             {
                 authority.LayoutFailed(
