@@ -1,0 +1,6 @@
+<!--
+  A fixture, never built and in no solution but the one beside it. The Uplink
+  walk in Sitrep.Core.Tests/UplinkProjects.cs must find it, so a walk that has
+  stopped finding Uplinks fails even once this repo has none of its own.
+-->
+<Project />

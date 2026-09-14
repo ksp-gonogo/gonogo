@@ -132,61 +132,132 @@ namespace Gonogo.KSP.Tests
                 + "never run:\n  " + string.Join("\n  ", unconstructable));
         }
 
+        /// <summary>
+        /// A directory walk that matches nothing reports no violations, and no
+        /// violations reads as success. This is the check that the tests above are
+        /// looking at the shipped roster.
+        ///
+        /// <para>It used to require five uplinks by name, three of them from mod
+        /// Uplinks bound for the gonogo-uplinks repo, and a floor of twenty-three,
+        /// which the first of those moves would have broken. There is no count now
+        /// and no name kept for this check alone, so it means the same thing however
+        /// many Uplink projects this repo still has. Each part answers a different
+        /// way the walk can go blind.</para>
+        /// <list type="bullet">
+        /// <item>Skipping a project: every production project <c>Gonogo.sln</c>
+        /// declares must be walked, and the solution must declare
+        /// <c>Gonogo.KSP</c>, so it cannot be an empty or foreign stand-in</item>
+        /// <item>Skipping files: every <see cref="HandRegistered"/> uplink must be
+        /// found, which reaches a file whose name does not end in <c>Uplink.cs</c>
+        /// and a file in a subdirectory</item>
+        /// <item>A class pattern that stopped matching: every walked file carrying a
+        /// <c>[SitrepUplink(</c> attribute line must yield an uplink class</item>
+        /// </list>
+        /// </summary>
         [Fact]
         public void TheScanFindsEveryUplinkProject()
         {
-            // A directory walk that matches nothing reports no violations, and no
-            // violations reads as success. This is the check that the two above are
-            // looking at the shipped roster, named across four different projects and
-            // including the two whose filenames do not end in Uplink.cs.
-            var found = UplinkSourceFiles()
+            var walked = WalkedProjects().Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
+            var declared = ProductionProjectsDeclaredInSolution();
+
+            Assert.True(
+                declared.Contains("Gonogo.KSP"),
+                "Gonogo.sln does not declare Gonogo.KSP, so it is not the solution this repo builds and "
+                + "checking the walk against it proves nothing. Declared: " + string.Join(", ", declared));
+
+            var unwalked = declared.Except(walked).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Assert.True(
+                unwalked.Count == 0,
+                "Gonogo.sln declares production projects the uplink walk never read, so an uplink in "
+                + "one of them is invisible to every check above: " + string.Join(", ", unwalked));
+
+            var files = UplinkSourceFiles().ToList();
+            var found = files
                 .SelectMany(file => UplinkClass.Matches(File.ReadAllText(file))
                     .Select(m => m.Groups[1].Value))
                 .ToHashSet(StringComparer.Ordinal);
 
-            foreach (var required in new[]
-                     {
-                         "VesselUplink", "FleetChannels", "KosExtension",
-                         "PrincipiaUplink", "KerbalismUplink",
-                     })
+            foreach (var required in HandRegistered)
             {
-                Assert.Contains(required, found);
+                Assert.True(
+                    found.Contains(required),
+                    required + " is hand-registered in GonogoAddon and the walk did not find its class, "
+                    + "so the walk is truncated and the checks above are passing over whatever it "
+                    + "stopped reading. Found: " + string.Join(", ", found.OrderBy(n => n, StringComparer.Ordinal)));
             }
 
+            var attributeLine = new Regex(@"^\s*\[SitrepUplink\(", RegexOptions.Multiline);
+            var attributedWithNoClass = files
+                .Where(file =>
+                {
+                    var source = File.ReadAllText(file);
+                    return attributeLine.IsMatch(source) && !UplinkClass.IsMatch(source);
+                })
+                .Select(file => Path.GetRelativePath(ModDirectory(), file))
+                .OrderBy(p => p, StringComparer.Ordinal)
+                .ToList();
+
             Assert.True(
-                found.Count >= 23,
-                "only " + found.Count + " uplinks found across mod/, against this repo's "
-                + "twenty-three: the walk is truncated and the checks above are passing "
-                + "over whatever it stopped reading");
+                attributedWithNoClass.Count == 0,
+                "These files carry a [SitrepUplink] attribute and the uplink class pattern matched "
+                + "nothing in them, so every check above is blind to the uplink they declare:\n  "
+                + string.Join("\n  ", attributedWithNoClass));
         }
 
         /// <summary>
         /// Every production <c>.cs</c> under <c>mod/</c>, not
         /// <c>Gonogo.KSP/**/*Uplink.cs</c>.
         ///
-        /// <para>Both halves of that widening were load-bearing. Eleven of this
-        /// repo's twenty-seven uplinks ship from their own <c>Gonogo*Uplink</c>
-        /// project and were never in scope at all, and an uplink class does not have
-        /// to live in a file whose name ends <c>Uplink.cs</c>:
-        /// <c>FleetChannels</c> and <c>KosExtension</c> do not, and
-        /// <c>FleetChannels</c> is hand-registered while being invisible to the very
-        /// check that exists because a fleet uplink once shipped unregistered.</para>
+        /// <para>Both halves of that widening were load-bearing. Uplinks that ship
+        /// from their own <c>Gonogo*Uplink</c> project were never in scope at all,
+        /// and an uplink class does not have to live in a file whose name ends
+        /// <c>Uplink.cs</c>: <c>FleetChannels</c> does not, and is hand-registered
+        /// while being invisible to the very check that exists because a fleet
+        /// uplink once shipped unregistered.</para>
         ///
         /// <para>Test projects are excluded because a test double carrying the
         /// attribute proves nothing about the shipped roster.</para>
         /// </summary>
         private static IEnumerable<string> UplinkSourceFiles() =>
-            Directory.EnumerateDirectories(ModDirectory())
-                .Where(project => !IsTestProject(Path.GetFileName(project)))
+            WalkedProjects()
                 .SelectMany(project => Directory.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories))
                 .Where(file =>
                     !file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                     && !file.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal));
 
+        private static IEnumerable<string> WalkedProjects() =>
+            Directory.EnumerateDirectories(ModDirectory())
+                .Where(project => !IsTestProject(Path.GetFileName(project)));
+
+        /// <summary>
+        /// The production projects <c>Gonogo.sln</c> declares, by the directory their
+        /// csproj sits in: a source independent of the directory walk.
+        ///
+        /// <para>A test project here is one whose csproj references
+        /// <c>Microsoft.NET.Test.Sdk</c>, not one <see cref="IsTestProject"/> names,
+        /// so a name rule widened to swallow a production project is caught rather
+        /// than applied to both sides. Only the projects that are not test runners
+        /// but ship nothing (<see cref="IsUnshipped"/>) are shared. Solution folders
+        /// carry no csproj and are skipped.</para>
+        /// </summary>
+        private static HashSet<string> ProductionProjectsDeclaredInSolution()
+        {
+            var project = new Regex(@"^Project\(""\{[^}]+\}""\)\s*=\s*""[^""]+"",\s*""(([^""\\/]+)[\\/][^""]+\.csproj)""", RegexOptions.Multiline);
+            return project.Matches(File.ReadAllText(Path.Combine(ModDirectory(), "Gonogo.sln")))
+                .Where(m => !File.ReadAllText(Path.Combine(ModDirectory(), m.Groups[1].Value.Replace('\\', Path.DirectorySeparatorChar)))
+                    .Contains("Microsoft.NET.Test.Sdk", StringComparison.Ordinal))
+                .Select(m => m.Groups[2].Value)
+                .Where(name => !IsUnshipped(name))
+                .ToHashSet(StringComparer.Ordinal);
+        }
+
         private static bool IsTestProject(string projectName) =>
             projectName.EndsWith(".Tests", StringComparison.Ordinal)
-            || projectName.EndsWith(".TestSupport", StringComparison.Ordinal)
             || projectName.Contains("IntegrationTests", StringComparison.Ordinal)
+            || IsUnshipped(projectName);
+
+        private static bool IsUnshipped(string projectName) =>
+            projectName.EndsWith(".TestSupport", StringComparison.Ordinal)
             || projectName.Equals("GonogoDevTools", StringComparison.Ordinal);
 
         private static string ModDirectory() =>

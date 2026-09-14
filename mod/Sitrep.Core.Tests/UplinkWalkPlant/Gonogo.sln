@@ -1,0 +1,11 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPlantedUplink", "GonogoPlantedUplink\GonogoPlantedUplink.csproj", "{5B0C7E2A-1D44-4C6F-9E3B-7A21D8F04C11}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPlantedUplink.Tests", "GonogoPlantedUplink.Tests\GonogoPlantedUplink.Tests.csproj", "{6C1D8F3B-2E55-4D70-AF4C-8B32E9A15D22}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPlantedUplink.Contract", "GonogoPlantedUplink.Contract\GonogoPlantedUplink.Contract.csproj", "{7D2E904C-3F66-4E81-B05D-9C43FAB26E33}"
+EndProject

@@ -614,7 +614,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Walks up from the test assembly to the checked-out <c>mod/</c> directory,
-        /// same pattern as <c>UplinkIsolationTests.ResolveModDir</c>.
+        /// same pattern as <c>Sitrep.Core.Tests.UplinkProjects.ResolveModDir</c>.
         /// </summary>
         private static string ResolveModDir() => LazyModDir.Value;
 

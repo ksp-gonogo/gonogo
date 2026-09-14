@@ -1,0 +1,5 @@
+<!--
+  A fixture, never built. The Uplink Tests walk in
+  Sitrep.Core.Tests/UplinkProjects.cs must find it.
+-->
+<Project />
