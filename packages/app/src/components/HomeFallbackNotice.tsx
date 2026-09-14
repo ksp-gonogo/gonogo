@@ -76,8 +76,7 @@ export function HomeFallbackNotice() {
 
   return (
     <BannerPill accent="var(--color-status-info-fg)">
-      Couldn't tell which ground station is home, so {shown.name} is standing
-      in.
+      Unable to identify home station. Using {shown.name}.
     </BannerPill>
   );
 }
