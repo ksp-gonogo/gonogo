@@ -44,8 +44,8 @@ example-uplink/
         uplink.ts                 # defineUplinkClient(...): the client identity
         topics.ts                 # your Topics, typed and registered
         commands.ts               # your Commands, typed and registered
-        units.ts                  # registerUnit on both seams, for tokens you introduce
-        index.ts                  # the entry point: bare imports plus two named re-exports
+        units.ts                  # the unit tokens you introduce, declared and registered
+        index.ts                  # the entry point: bare imports plus three named re-exports
         Reactor/index.tsx         # a widget, registered with owner: EXAMPLE
         __generated__/            # codegen output, never hand-edited
         test/setup.ts
@@ -1372,8 +1372,8 @@ published packages, and they are not the same function.** Import them from
 is the single registry the running app reads and the one your test's `installRealTestHost` wires up.
 ui-kit's are the implementation the host is built FROM, so registering through those in a test leaves
 you observing a registry the app never consults, and nothing about the call looks wrong. It is the
-sharpest instance of a dozen names the two barrels share; `registerUnit` is the other, and that one is
-covered under "The two seams" below.
+sharpest instance of the names the two barrels share. `registerUnit` is not one of them: it exists on
+the SDK alone, covered under "Declaring a unit to the client" below.
 
 `ContributionsProvider`, by contrast, is ui-kit's directly and is not shimmed, because the aggregation
 lives beside the per-widget store it writes. Import that one from ui-kit.
@@ -1383,22 +1383,23 @@ lives beside the per-widget store it writes. Import that one from ui-kit.
 `client/src/index.ts` is the entry the app loads, and it has two jobs that want two different forms.
 
 Most registration happens as a side effect of import, so those stay **bare imports** (never let a
-bundler tree-shake them away). The two modules carrying a `declare module` augmentation are the
-exception: a bare import is elided from the emitted `dist/index.d.ts`, so `topics.ts` and
-`commands.ts` are **re-exported by name** instead. Miss that and everything still runs, while every
-consumer resolves your Topics to `unknown` and your commands to the bare envelope.
+bundler tree-shake them away). The three modules carrying a `declare module` augmentation are the
+exception: a bare import is elided from the emitted `dist/index.d.ts`, so `topics.ts`, `commands.ts`
+and `units.ts` are **re-exported by name** instead. Miss that and everything still runs, while every
+consumer resolves your Topics to `unknown`, your commands to the bare envelope, and your units to
+symbols no `format` can be checked against.
 
 ```ts
 // client/src/index.ts
 import "./uplink"; // defineUplinkClient(EXAMPLE) runs first
-import "./units"; // registerUnit on both seams, before anything renders
 import "./Presence"; // registerComponent(... owner: EXAMPLE)
 import "./Reactor"; // ditto
 
-// Named re-exports, NOT bare imports: these two carry the `declare module`
+// Named re-exports, NOT bare imports: these three carry the `declare module`
 // augmentations, and only an export carries one across the package boundary.
 export { UPLINK_COMMAND_IDS } from "./commands";
 export * from "./topics";
+export { EXAMPLE_UNIT_SYMBOLS } from "./units";
 ```
 
 ---
@@ -1880,7 +1881,7 @@ carrying the magnitude AND the unit, not a bare number.
 unit is `"kW"` holds kilowatts, so `{ magnitude: 420, unit: "kW" }` is 420 kW and
 `{ magnitude: 420, unit: "W" }` is 420 watts, and the two are the same quantity
 only if one of them is wrong. What the ladder does is separate: it converts to
-the family's base to pick a RUNG, which is why `value("W", 12400)` renders
+the ladder's base to pick a RUNG, which is why `value("W", 12400)` renders
 "12.4 kW". Get this the wrong way round in a fixture and every number in your
 tests is off by the unit's ratio, while still looking right.
 
@@ -1945,60 +1946,142 @@ namespace ExampleUplink.Contract
 A compound counts as declared when both halves are: `MB/s` passes once `MB` and
 `s` do, so a rate does not need its own constant per rung.
 
-#### The two seams
+#### Declaring a unit to the client
 
-A unit has two independent halves, and they live in different packages because
-they answer different questions.
+A unit your Uplink introduces is declared to the client exactly the way every
+first-party unit is: one entry in `UnitDeclarations`, merged in through the
+published package name. From then on it is checked everywhere a first-party unit
+is. `<Unit format>` and `as` accept exactly the units of its kind, a
+`<UnitSharedFormat>` pin is addressed to its ladder or to the unit itself,
+`<Band>` and `<Meter>` check their `format` the same way, and a value in it adds
+only to values of its dimension. There is no Uplink-only function and no looser
+rule for a unit the core catalog has never heard of.
+
+The declaration tells the compiler. `registerUnit` tells the running app, and its
+argument is typed from the declaration, so a registration that disagrees with its
+declaration, or names a symbol nothing declares, does not compile.
 
 ```ts
 // client/src/units.ts
 import { registerUnit } from "@ksp-gonogo/sitrep-sdk";
-import { registerUnit as registerDisplayUnit } from "@ksp-gonogo/ui-kit";
 
-// MODEL: what it IS. Dimension and ratio are what make values add up, and are
-// all the SDK needs. Dimension onto an EXISTING base where one fits (`bit`,
-// `m`, `s`) rather than inventing a private axis, or your quantity becomes an
-// island nothing else can convert with.
-registerUnit({ symbol: "MB", kind: "data", dimension: { bit: 1 }, ratio: 8e6 });
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface UnitDeclarations {
+    MB: {
+      kind: "data";
+      dim: { readonly bit: 1 };
+      ratio: 8_000_000;
+      ladder: "bytes";
+    };
+    GB: {
+      kind: "data";
+      dim: { readonly bit: 1 };
+      ratio: 8_000_000_000;
+      ladder: "bytes";
+    };
+    thermalUnits: { kind: "thermal"; dim: { readonly thermal: 1 }; ratio: 1 };
+  }
+}
 
-// DISPLAY: how it READS. Which rung a value lands on is the kit's business.
-registerDisplayUnit({
+/** Every symbol declared here, for the hand-typed-unit guard below. */
+export const EXAMPLE_UNIT_SYMBOLS = ["MB", "GB", "thermalUnits"] as const;
+
+const BYTE_RUNGS = [
+  { from: 8, symbol: "B", per: 8 },
+  { from: 8e3, symbol: "kB", per: 8e3 },
+  { from: 8e6, symbol: "MB", per: 8e6 },
+  { from: 8e9, symbol: "GB", per: 8e9 },
+];
+
+registerUnit({
   symbol: "MB",
   kind: "data",
-  family: "bytes",
-  ladder: [
-    { from: 8, symbol: "B", per: 8 },
-    { from: 8e3, symbol: "kB", per: 8e3 },
-    { from: 8e6, symbol: "MB", per: 8e6 },
-  ],
+  dimension: { bit: 1 },
+  ratio: 8e6,
+  ladder: "bytes",
+  rungs: BYTE_RUNGS,
+  word: "megabytes",
 });
-
-// A token that names a category rather than a scale needs a display half only,
-// with no ladder. Until you register anything, the value still renders, bare
-// and unscaled.
-registerDisplayUnit({ symbol: "thermalUnits", kind: "count" });
+registerUnit({
+  symbol: "GB",
+  kind: "data",
+  dimension: { bit: 1 },
+  ratio: 8e9,
+  ladder: "bytes",
+  rungs: BYTE_RUNGS,
+  word: "gigabytes",
+});
+// A token naming a category rather than a scale: whole, with no symbol beside
+// the number, because the row it sits in already names it.
+registerUnit({
+  symbol: "thermalUnits",
+  kind: "thermal",
+  dimension: { thermal: 1 },
+  ratio: 1,
+  decimals: 0,
+  display: "",
+});
 ```
 
-The two are different functions with the same name, in the two packages you must
-import, so alias one at the import as above. It is the sharpest of a dozen names
-the two barrels share.
+What each part of a declaration does:
 
-#### Families, and sharing one with a mod you have never met
+- **`kind`** is what `format` and `as` are checked against. `MB` and `GB` share
+  one, so either is a legal format for the other and `km` is a legal format for
+  neither
+- **`dim`** is what arithmetic is checked against. Dimension onto an EXISTING base
+  where one fits (`bit`, `m`, `s`) rather than inventing a private axis, or your
+  quantity becomes an island nothing else can convert with
+- **`ratio`** is the multiplier onto that base: a numeric literal where the ratio
+  is one, `number` where it is computed (`1 / 3.6`)
+- **`ladder`** is optional. Every unit naming one ladder settles one rung together
+  and is pinned as that group; a unit naming none never climbs and is pinned as
+  itself
 
-`family` is the set of rungs a value climbs WITHIN. It exists because one kind
-can span scales that must never interleave: bits and bytes are both `data` and
-share a dimension so a link budget and a file size stay convertible, but a byte
-quantity landing on a bit rung would read `32 kbit/s` where it means `4 kB/s`.
-Ladders key on family, so each keeps its own rungs.
+The registration is where what only the runtime needs lives: the `rungs` a ladder
+climbs, `decimals`, the `display` symbol, the `word` a screen reader says, and
+`scientific` notation. It is not optional for a token that never climbs either.
+`wrapTopicPayload` treats a token the runtime does not know as a non-quantity, so
+without it every field in that unit arrives as a bare number while its generated
+type still says `Value<"thermalUnits">`.
 
-Two Uplinks may declare into the SAME family, and should when they mean the
-same thing by it: a megabyte is nobody's private invention. Declaring a symbol
+Once declared, the unit is held to the same checks as `m`:
+
+```tsx
+// client/src/Reactor/Buffer.tsx
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Unit, UnitSharedFormat } from "@ksp-gonogo/ui-kit";
+
+const buffer = value("MB", 2_048);
+
+export function Buffer() {
+  return (
+    <UnitSharedFormat pins={{ bytes: { format: "GB" } }}>
+      <Unit value={buffer} />
+      {/* @ts-expect-error: a megabyte is not a length */}
+      <Unit value={buffer} format="km" />
+    </UnitSharedFormat>
+  );
+}
+```
+
+#### Ladders, and sharing one with a mod you have never met
+
+A ladder is the set of rungs a value climbs WITHIN. It is a name a unit declares
+rather than a property of its kind, because one kind can span scales that must
+never interleave: bits and bytes are both `data` and share a dimension so a link
+budget and a file size stay convertible, but a byte quantity landing on a bit
+rung would read `32 kbit/s` where it means `4 kB/s`. Core's bits climb the `data`
+ladder; your bytes climb `bytes`.
+
+Two Uplinks may declare into the SAME ladder, and should when they mean the same
+thing by it: a megabyte is nobody's private invention. Registering a unit
 identically twice is a no-op, so independent mods coalesce without coordinating.
-Declaring it DIFFERENTLY throws, because which one won would otherwise depend on
-module load order and the number on screen would change with it.
+Registering one symbol with a different kind or ladder, or one ladder with
+different rungs, throws, because which one won would otherwise depend on module
+load order and the number on screen would change with it.
 
 Core owns only a dimension's base (`bit` for data), so that mods cannot diverge
-on the axis by accident. Rungs and families belong to whoever models them.
+on the axis by accident. Rungs and ladders belong to whoever models them.
 
 ### Testing it
 
@@ -2065,9 +2148,9 @@ authors. Nothing was watching.
 
 Two options worth knowing:
 
-- **`symbols`** extends what it looks for. If you `registerUnit({ symbol: "Sv" })`,
-  pass `symbols: [...HAND_TYPED_SYMBOLS, "Sv"]` so the guard notices when
-  somebody writes yours by hand instead
+- **`symbols`** extends what it looks for. Pass the units you declared,
+  `symbols: [...HAND_TYPED_SYMBOLS, ...EXAMPLE_UNIT_SYMBOLS]`, so the guard
+  notices when somebody writes yours by hand instead
 - **`baseline`** is a per-file allowance, for adopting this on a codebase that
   already has offenders: `baseline: { "Reactor/index.tsx": 3 }`, lowered as you
   convert. Never raise one. Going BELOW an entry throws too, so a stale
@@ -2114,8 +2197,9 @@ week after.
 - [ ] the mod is on CKAN and the client bundle is hosted with its URL + integrity hash
 - [ ] every quantity renders through `<Unit>`; no hand-formatted unit symbols
 - [ ] every unit token you introduce is declared in your own `<Name>Units` class (never named plainly
-      `Units`, which shadows core's), and registered on both seams: dimension and ratio with the SDK,
-      family and rungs with ui-kit
+      `Units`, which shadows core's), merged into `UnitDeclarations` with its kind, dimension, ratio
+      and any ladder, and registered once with the SDK's `registerUnit`, from a `units.ts` that
+      `index.ts` re-exports by name
 - [ ] `expectNoHandTypedUnits({ dir: "src" })` runs as a test (skip only if the Uplink renders nothing)
 - [ ] the test setup calls `setQuantityLocale("en-GB")`, so a render is reproducible
 - [ ] tests import `@ksp-gonogo/sitrep-sdk/testing` and `@ksp-gonogo/ui-kit/testing`, and nothing in `src/` does

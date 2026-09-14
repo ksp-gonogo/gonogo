@@ -664,11 +664,11 @@ import { registerAugment } from "@ksp-gonogo/ui-kit";       // do not
 `packages/core/src/styleguide-shared-published-surface.test.ts` is every name
 declared twice across the two published packages. It is shrink-only and a NEW
 duplicate fails outright, so the list is complete by construction rather than by
-anyone remembering to update it. Today it is seven names in two groups:
+anyone remembering to update it. Today it is five names in two groups:
 
 - **the augment registry**: `registerAugment`, `AugmentSlot`,
   `getAugmentsForSlot`, `clearAugments`
-- **the unit system**: `registerUnit`, `displaySymbol`, `UnitDefinition`
+- **the unit formatter**: `displaySymbol`
 
 ### The augment four: take them off the sdk
 
@@ -710,17 +710,27 @@ an Uplink has no route to them from either package. If you find you genuinely
 need one, the rule is the same as anywhere else on this page: move the export
 onto the sdk, do not import across.
 
-### The unit three: an open ruling, not a shim
+### Units: one channel, on the sdk
 
-`registerUnit` is not a shim pair. There are two independent unit registries with
-the same entry points and DIFFERENT signatures: `registerUnit(def: UnitDefinition)`
-on ui-kit against `registerUnit(registration: UnitRegistration)` on the sdk, and
-`displaySymbol` takes a token plus options on one and a bare token on the other.
-Two designs, not a copy. The ruling is that **the sdk owns the unit system and
-ui-kit defers**, so an Uplink teaching the formatter a new unit registers through
-the sdk. A merge of the two is held pending a measurement of what each registry
-actually holds, because a token present in only one of them is invisible to the
-other and that is a live defect rather than a duplication.
+There used to be three names here. `registerUnit` and `UnitDefinition` were
+declared on both packages as two independent registries, one for the model and
+one for the formatter, and an Uplink had to call both. They are one now, and the
+ruling that **the sdk owns the unit system and ui-kit defers** is what the code
+does:
+
+- a unit is DECLARED by merging into `UnitDeclarations` through
+  `declare module "@ksp-gonogo/sitrep-sdk"`, in the same shape the first-party
+  units take. Every ui-kit type that checks a unit (`FormatsFor`, `PresentableAs`,
+  `UnitGroupKey`) reads that interface and nothing else, so an Uplink's unit is
+  checked exactly as `m` is
+- a unit is REGISTERED with the sdk's `registerUnit`, whose argument is typed from
+  the declaration. ui-kit hears every accepted registration through
+  `onUnitRegistered` and applies its ladder rungs, decimals, display symbol and
+  spoken word. ui-kit exports no registration of its own
+
+`displaySymbol` is the one name left on both, and it is two functions rather than
+two registries: the sdk's strips a token's namespace (`snacks:g` reads `g`), and
+ui-kit's picks the glyph a kind displays as (`funds` reads `f`).
 
 ### The general rule
 
