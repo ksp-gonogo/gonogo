@@ -37,11 +37,6 @@ function OwnedWidget() {
   return <div>owned widget</div>;
 }
 
-// No CpuRegistryProvider wrap needed here (unlike
-// component-overlay-add.test.tsx): this suite imports no Uplink client
-// package, so nothing registers a chrome provider, and neither widget under
-// test opens a config modal, so ComponentOverlay's useChromeWrap() has an
-// empty registered-provider list to iterate: nothing to supply.
 function renderOverlay() {
   const serialService = new SerialDeviceService({ screenKey: "test" });
   return render(

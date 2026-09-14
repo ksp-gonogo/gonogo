@@ -1,18 +1,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-// Static, side-effecting imports of every first-party Uplink client. Importing each
-// package runs its `registerBarePrimitiveTopic(...)` calls, so by the time the assertions
-// read `getAllKnownTopicIds()` the runtime registry holds the full union, the SDK's own
-// Topics PLUS every bare-primitive Uplink Topic. These imports are DELIBERATE and must stay
-// static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
-import "@ksp-gonogo/gonogo-kerbalism-uplink";
-import "@ksp-gonogo/gonogo-principia-uplink";
-import "@ksp-gonogo/gonogo-kos-uplink";
-import "@ksp-gonogo/gonogo-realantennas-uplink";
-import "@ksp-gonogo/gonogo-rp1-uplink";
 import { getAllKnownTopicIds } from "@ksp-gonogo/sitrep-sdk";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  firstPartyUplinkClientRelDirs,
+  importFirstPartyUplinkClients,
+  trackedUplinkClientDirs,
+} from "../test/firstPartyUplinkIds";
+import { PLANTED_TOPIC } from "../test/plantedUplinkClient";
 
 // packages/app/src/__tests__ -> repo root -> mod
 const MOD_ROOT = join(
@@ -29,8 +25,8 @@ const MOD_ROOT = join(
  * skeleton server). Mirrors the collector the SDK's own `topics.test.ts` used before this
  * bidirectional check moved here: the SDK package cannot import the Uplink clients (that
  * would be the `^build` cycle the leaf architecture forbids), so the FULL C#↔registry sync
- * check lives here in `packages/app`, downstream of all three Uplink clients, where the
- * complete registered union actually exists.
+ * check lives here in `packages/app`, downstream of the Uplink clients, where the complete
+ * registered union actually exists.
  */
 function collectContractSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -61,14 +57,21 @@ function collectContractSources(dir: string, out: string[] = []): string[] {
 }
 
 /**
+ * The planted Uplink tree the C# Uplink walks read. Its `Tests`-named
+ * parent keeps it out of {@link MOD_ROOT}'s scan, so it is read on purpose and
+ * only here, as the C# half of the pair `plantedUplinkClient.ts` registers.
+ */
+const PLANT_ROOT = join(MOD_ROOT, "Sitrep.Core.Tests", "UplinkWalkPlant");
+
+/**
  * Every declared channel Topic in the C# sources: `const string <Name>Topic = "<value>"`.
  * Dotted values only: drops the kOS parser's dot-less "default" fallback bucket (and never
  * matches the `kos.compute.` dynamic *prefix*, whose constant is `ComputePrefix`).
  */
-function extractDeclaredTopics(): Set<string> {
+function extractDeclaredTopics(root: string): Set<string> {
   const re = /const\s+string\s+\w*Topic\w*\s*=\s*"([^"]+)"/g;
   const topics = new Set<string>();
-  for (const file of collectContractSources(MOD_ROOT)) {
+  for (const file of collectContractSources(root)) {
     const src = readFileSync(file, "utf8");
     for (const m of src.matchAll(re)) {
       const value = m[1];
@@ -78,7 +81,40 @@ function extractDeclaredTopics(): Set<string> {
   return topics;
 }
 
+/** Both directions of the sync, sorted: what C# declares that nothing knows, and the reverse. */
+function syncDiff(
+  declared: ReadonlySet<string>,
+  known: ReadonlySet<string>,
+): { missingFromRegistry: string[]; staleInRegistry: string[] } {
+  return {
+    missingFromRegistry: [...declared].filter((t) => !known.has(t)).sort(),
+    staleInRegistry: [...known].filter((t) => !declared.has(t)).sort(),
+  };
+}
+
 describe("C#-declared Topics stay in exact sync with the full runtime registry", () => {
+  /**
+   * Every first-party Uplink client present runs its `registerBarePrimitiveTopic(...)`
+   * calls, so by the time the assertions read `getAllKnownTopicIds()` the runtime registry
+   * holds the SDK's own Topics plus every bare-primitive Uplink Topic. Discovered rather
+   * than imported by name, because each mod Uplink is leaving for its own repo and a named
+   * import fails to resolve the moment one does.
+   */
+  beforeAll(async () => {
+    await importFirstPartyUplinkClients();
+  }, 30_000);
+
+  const declared = () =>
+    new Set([
+      ...extractDeclaredTopics(MOD_ROOT),
+      ...extractDeclaredTopics(PLANT_ROOT),
+    ]);
+  const known = () => new Set<string>(getAllKnownTopicIds());
+
+  it("imports every Uplink client git tracks", () => {
+    expect(firstPartyUplinkClientRelDirs()).toEqual(trackedUplinkClientDirs());
+  });
+
   /**
    * A scan budget rather than a unit-test budget. This walks every `.cs` file in
    * `mod/` with synchronous reads, and its cost is dominated by how busy the
@@ -108,13 +144,10 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
    * in the wrong currency.
    */
   it("every C# Topic is known, and every known Topic is declared in C#", () => {
-    const declared = extractDeclaredTopics();
-    const known = new Set<string>(getAllKnownTopicIds());
-
-    const missingFromRegistry = [...declared]
-      .filter((t) => !known.has(t))
-      .sort();
-    const staleInRegistry = [...known].filter((t) => !declared.has(t)).sort();
+    const { missingFromRegistry, staleInRegistry } = syncDiff(
+      declared(),
+      known(),
+    );
 
     // missingFromRegistry: a Topic declared in C# that no client registers and the SDK
     // does not own, either a new bare-primitive Topic whose client forgot its
@@ -131,11 +164,31 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
     ).toEqual([]);
   }, 30_000);
 
-  it("the bare-primitive Uplink Topics are present via client registration", () => {
-    // A focused witness that the relocation's whole point holds: these are NOT in the
-    // SDK's static TOPIC_IDS, so their presence proves the client imports above fired their
-    // registration.
-    const known = new Set<string>(getAllKnownTopicIds());
-    expect(known.has("kerbalism.available")).toBe(true);
+  /**
+   * The witness that the scan and the registration both reach a real pair. It used to name
+   * one real Uplink's Topic, which leaves this repo with that Uplink, so it is the planted
+   * pair instead: read out of the planted C# tree and registered by the planted client.
+   */
+  it("reads the planted Uplink's C# Topic and sees its client registration", () => {
+    expect(extractDeclaredTopics(PLANT_ROOT)).toContain(PLANTED_TOPIC);
+    expect(known()).toContain(PLANTED_TOPIC);
+  });
+
+  /**
+   * Each direction fails on a one-sided plant, so an empty diff above is the sync holding
+   * rather than a comparison that cannot see a gap.
+   */
+  it("reports the planted Topic when either side of the pair is missing", () => {
+    const withoutRegistration = new Set(known());
+    withoutRegistration.delete(PLANTED_TOPIC);
+    expect(
+      syncDiff(declared(), withoutRegistration).missingFromRegistry,
+    ).toEqual([PLANTED_TOPIC]);
+
+    const withoutDeclaration = new Set(declared());
+    withoutDeclaration.delete(PLANTED_TOPIC);
+    expect(syncDiff(withoutDeclaration, known()).staleInRegistry).toEqual([
+      PLANTED_TOPIC,
+    ]);
   });
 });

@@ -1,7 +1,8 @@
 // A fixture, excluded from compilation. One declared and registered command and one
 // declared and published topic, each written once on each side, so the wiring walk
 // in Sitrep.Core.Tests/UplinkWiringCoverageTests.cs always has a pairing to read and
-// to plant a violation in, at any number of real Uplinks including none.
+// to plant a violation in, at any number of real Uplinks including none. The app's
+// topic-cs-sync.test.ts reads the same topic, paired with its planted client registration.
 namespace Gonogo.PlantedUplink
 {
     internal sealed class PlantedWiring

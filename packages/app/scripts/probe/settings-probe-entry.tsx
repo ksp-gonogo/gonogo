@@ -29,10 +29,10 @@ import { SettingsService } from "../../src/settings/SettingsService";
  * that would render its null placeholder in the app renders it here: the whole
  * point of a render is to see the state a reviewer would actually meet.
  *
- * This lives app-side rather than in the Uplink because `SettingsModal` is in a
- * package an Uplink may not import. That is also the gap it closes: an Uplink's
- * own harness can render its widgets but never its settings rows, because the
- * surface those rows land on is not one it may reach.
+ * The Uplink rows are a planted Uplink's (`plantedSettings.ts`), not a real
+ * one's. `SettingsModal` is in a package an Uplink may not import, so no
+ * Uplink's own harness can render its settings rows, and the app depends on no
+ * Uplink it could import for them instead.
  */
 
 installRealTestHost({
@@ -50,18 +50,18 @@ setQuantityLocale("en-GB");
 /**
  * The rows, registered after the host is in place.
  *
- * Dynamic, and for the reason the Uplink's own probe records: a static
- * side-effect import is hoisted above every statement in this file, so
- * `registerSetting` would run against an uninstalled host and throw.
+ * Dynamic because a static side-effect import is hoisted above every
+ * statement in this file, so `registerSetting` would run against an
+ * uninstalled host and throw.
  */
 const registered = Promise.all([
   // The app's own rows, for the `dependsOn` pair: mission history's two
   // children go inert when the parent is off, which no Uplink row can show
   // because no Uplink row is writable.
   import("../../src/settings/missionHistorySettings"),
-  // The Uplink, by package name: the app already depends on it, and importing
-  // the whole client rather than its settings module is what the app does.
-  import("@ksp-gonogo/gonogo-principia-uplink"),
+  // A planted Uplink's read-only rows. No Uplink in this repo is the app's to
+  // import for a render, so the stream-backed axis is shown on a stand-in.
+  import("./plantedSettings"),
 ]);
 
 /** What one shot asks for. */

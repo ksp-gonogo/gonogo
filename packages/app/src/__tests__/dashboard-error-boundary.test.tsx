@@ -7,10 +7,6 @@
  */
 
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
-import {
-  CpuRegistryProvider,
-  CpuRegistryService,
-} from "@ksp-gonogo/gonogo-kos-uplink";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
@@ -47,11 +43,10 @@ function Harness({
 
 function renderWithProviders(tree: React.ReactNode) {
   const serialService = new SerialDeviceService({ screenKey: "test-screen" });
-  const cpuRegistry = new CpuRegistryService("main");
   return render(
     <ModalProvider>
       <SerialDeviceProvider service={serialService}>
-        <CpuRegistryProvider service={cpuRegistry}>{tree}</CpuRegistryProvider>
+        {tree}
       </SerialDeviceProvider>
     </ModalProvider>,
   );

@@ -201,8 +201,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // prose: an alias comment listing which Uplink clients resolve from source.
-      "packages/app/vitest.config.ts",
       // prose: a timeout note quoting this very gate's failure message.
       "packages/core/vitest.config.ts",
       // prose: kerbcast is the facecam this probe STANDS IN FOR with a fake augment, named to say what the fake is imitating. No import, and deliberately so.
@@ -374,13 +372,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * last escape does.
        */
       "packages/core/src/unknown-cast.debt.ts",
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // prose: the same alias comment.
-      "packages/app/vitest.config.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -641,17 +632,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * removed" pattern the kerbcast migration's own MainScreen.tsx/
        * StationScreen.tsx entries establish for its Uplink.
        */
-      /*
-       * Task 5: ComponentOverlay/WidgetGearMenu tests import kos's real
-       * kosChromeProvider self-registration (via CpuRegistryProvider/
-       * CpuRegistryService, both re-exported by @ksp-gonogo/gonogo-kos-uplink) rather than
-       * hand-rolling a bespoke fixture: the more honest integration test per
-       * this repo's "mock as little as possible" philosophy, and TEST-only
-       * exercising the real domain-coupled provider above.
-       */
-      "packages/app/src/__tests__/component-overlay-add.test.tsx",
-      "packages/app/src/__tests__/dashboard-error-boundary.test.tsx",
-      "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
       /*
@@ -675,8 +655,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // data: the bundle names the size gate measures. Naming every Uplink bundle IS its subject.
-      "packages/app/scripts/minsize-gate.ts",
       // data: the app's Uplink bundle registry, one id/repo/clientDir per Uplink. Same class as the gate above.
       "packages/app/uplink-bundle-targets.ts",
       // prose: a note about kOS's xterm.css being the stylesheet case that forced style folding.
@@ -760,17 +738,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * are written down rather than derived.
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
-      /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names Uplink paths by
@@ -1109,8 +1076,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // data: a bundle name in the size gate's list.
-      "packages/app/scripts/minsize-gate.ts",
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
       /*
@@ -1182,17 +1147,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * `system.uplinks`; see the matching entries under `testflight`.
        */
       "packages/components/src/FleetReliability/install-profiles.test.tsx",
-      /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
        * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
@@ -1368,15 +1322,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
       "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
       "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
-
-      /*
-       * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
-       * statically imports every first-party Uplink client so the assertions
-       * read the complete registered union. It is also the test that CAUGHT the
-       * gap above, by name, rather than letting three channels drop quietly.
-       * Same "one inventory naming every mod" class as the ownership ratchet.
-       */
-      "packages/app/src/__tests__/topic-cs-sync.test.ts",
 
       /*
        * -- contract/serializer/ratchet layer: PROVENANCE, no coupling --
@@ -1610,8 +1555,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // data: a bundle name in the size gate's list.
-      "packages/app/scripts/minsize-gate.ts",
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
       /*
@@ -1650,17 +1593,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * a third-party author could not run.
        */
       "packages/core/src/comment-stacks.allowlist.ts",
-      /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
        * -- CI gating ratchet (2026-08-20): names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
@@ -1948,12 +1880,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // data: a bundle name in the size gate's list.
-      "packages/app/scripts/minsize-gate.ts",
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
-      // data: a vitest alias resolving this client from source, so the app's suite sees its topic registrations.
-      "packages/app/vitest.config.ts",
       // prose: a note on which registrations the probe's host bridge has to stand up.
       "packages/components/scripts/probe/probe-install-host.ts",
       // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
@@ -1999,17 +1927,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * a demonstration rather than a description.
        */
       "packages/core/src/uplink-permanent-code.test.ts",
-      /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
        * -- WIDGET-FIXTURE CONFORMANCE gate (2026-08-30): text-only. Its
        * planted-failure demonstration replants the defect that shipped in this
@@ -2178,15 +2095,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/unit-system/guards.ts",
       "mod/sitrep-sdk/src/wrap-units.ts",
 
-      /*
-       * -- app / core --
-       * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate. It
-       * statically imports every Uplink client (incl. this one) so their
-       * registration calls fire, then asserts the registry matches the C#. A
-       * sanctioned self-registration import, same class as the entry every other
-       * token carries for this file.
-       */
-      "packages/app/src/__tests__/topic-cs-sync.test.ts",
+      // -- app / core --
       /*
        * defineTopicManifest.ts: `kerbalism.power` in a DOC-COMMENT example of the
        * manifest helper's shape. That Topic does not exist; it is illustrative.
@@ -2457,19 +2366,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * PrincipiaProviderId without ever being flagged.
    */
   principia: {
-    domainDebt: [
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // The settings probe imports this Uplink to photograph the settings panel it
-      // contributes, same shape as the components probes. Worth noting the
-      // spelling: a DYNAMIC `import("@ksp-gonogo/gonogo-principia-uplink")`, which
-      // is one of the three forms `uplink-isolation`'s package regex could not see
-      // until the same day this was found.
-      "packages/app/scripts/probe/settings-probe-entry.tsx",
-    ],
+    domainDebt: [],
     permanent: [
       /*
        * -- UNKNOWN-CAST ratchet inventory: `unknown-cast.debt.ts` is a per-file
@@ -2516,10 +2413,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // package's `scripts` directory and at its root were never visited, and
       // no line for them could ever have appeared here. These are what the
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // data: a bundle name in the size gate's list.
-      "packages/app/scripts/minsize-gate.ts",
-      // data: the `principia.settings` topic id and the fixture payload a recorded settings render emits.
-      "packages/app/scripts/render-settings.ts",
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
       // The declaration-reachability ratchet's debt list: an inventory of
@@ -2552,17 +2445,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/render-fixture-coverage.debt.ts",
       "packages/core/src/render-fixture-coverage.test.ts",
-      /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names Uplink paths by
@@ -2611,14 +2493,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * this bucket documents.
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
-      /*
-       * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
-       * statically imports every first-party Uplink client so the assertions
-       * read the complete registered union. Same "one inventory naming every
-       * mod" class as the ownership ratchet, and it imports for the same reason
-       * main.tsx does.
-       */
-      "packages/app/src/__tests__/topic-cs-sync.test.ts",
     ],
   },
 
@@ -2669,12 +2543,10 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
-    "packages/app/scripts/minsize-gate.ts",
     "packages/app/uplink-bundle-targets.ts",
     "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
@@ -2690,7 +2562,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
-    "packages/app/scripts/minsize-gate.ts",
     "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/probe/probe-entry.tsx",
     // The reachability ratchet's debt list: wire ids as DATA, one line per
@@ -2710,8 +2581,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
     "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
     "mod/sitrep-kernel/src/registry.test.ts",
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/components/src/FleetReliability/install-profiles.test.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
@@ -2752,9 +2621,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
-    "packages/app/scripts/minsize-gate.ts",
     "packages/app/uplink-bundle-targets.ts",
-    "packages/app/vitest.config.ts",
     "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
     "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx",
     "packages/components/scripts/probe/capture-entry-kerbalism.tsx",
@@ -2775,8 +2642,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/components/src/CrewStatus/index.test.tsx",
     "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
     "packages/components/src/FleetReliability/index.test.tsx",
@@ -2817,7 +2682,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
-    "packages/app/scripts/minsize-gate.ts",
     "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/probe/probe-entry.tsx",
     "packages/components/scripts/render-systemview-traffic-video.ts",
@@ -2840,13 +2704,8 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/sitrep-sdk/src/default-carried-topics.ts",
     "mod/sitrep-sdk/src/spine/map-topic.ts",
     "mod/sitrep-sdk/src/topics.test.ts",
-    "packages/app/src/__tests__/component-overlay-add.test.tsx",
-    "packages/app/src/__tests__/dashboard-error-boundary.test.tsx",
-    "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
     "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/logs/LogsManager.tsx",
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
@@ -2890,9 +2749,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there.
-    "packages/app/scripts/minsize-gate.ts",
-    "packages/app/scripts/probe/settings-probe-entry.tsx",
-    "packages/app/scripts/render-settings.ts",
     "packages/app/uplink-bundle-targets.ts",
     /*
      * `declaration-reachability.allowlist.ts` was here, and it is gone because
@@ -2901,8 +2757,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
      * the entries deleted the file names Principia only in prose, so the
      * exemption is stale rather than merely unused.
      */
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",

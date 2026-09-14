@@ -11,7 +11,7 @@
  * groups inside a category, and a `stream-backed` value with no writer at all)
  * and the only way to judge those is to look at them. So every scene here is a
  * state a reviewer has to make a call about rather than a happy path: a
- * category with six groups in it, the same category with the Topic silent, a
+ * category with several groups in it, the same category with the Topic silent, a
  * quantity beside a bare count, and a writable row gone inert under its parent.
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -43,7 +43,6 @@ const OUT_DIR =
   process.env.SETTINGS_RENDER_OUT ??
   resolve(HERE, "../../../local_docs/renders/settings");
 
-const VIEW_UT = 1_000_000;
 /**
  * A stock Kerbin day, in seconds, taken from the unit model's own calendar
  * rather than through ui-kit's re-export: this is the NODE half of the
@@ -52,75 +51,30 @@ const VIEW_UT = 1_000_000;
  * render fixture must not shift with whatever the last test set.
  */
 const KSP_DAY = STOCK_KERBIN_CALENDAR.day;
-const TOPIC = "principia.settings";
+
+/**
+ * The planted Uplink's settings Topic, spelled out rather than imported:
+ * `probe/plantedSettings.ts` registers rows at module load, which throws in
+ * this Node half where no host is installed.
+ */
+const TOPIC = "planted.settings";
 
 /** A quantity as it arrives off the wire, already wrapped. */
 const q = (unit: string, magnitude: number) => ({ magnitude, unit });
 
-/** A session mid-flight: Kerbin-centred inertial, journal off, reading. */
-const PRINCIPIA_LIVE = {
-  observedAtUt: q("ut", VIEW_UT),
-  pluginVersion:
-    "2026081218-Levi-Civita-0-gc6615048e8fc76722b081bb3f1f4536afcf66870",
-  readingSuspended: false,
-  plottingFrame: {
-    selector: "Plotting frame",
-    type: 6000,
-    centreBody: "Kerbin",
-    primaryBodies: ["Kerbin"],
-    secondaryBodies: [],
-    targetFrameSelected: false,
-  },
-  burnFrames: [
-    {
-      type: 6000,
-      centreBody: "Kerbin",
-    },
-    {
-      type: 6002,
-      primaryBody: "Kerbol",
-      secondaryBody: "Kerbin",
-    },
-  ],
-  selectingTargetVessel: false,
-  targetVesselId: "88888888-4444-4444-4444-121212121212",
-  targetVesselName: "Ares IV",
-  selectingTargetCelestial: false,
-  targetCelestialBody: undefined,
-  displayPatchedConics: true,
-  predictionVesselId: "Ares-IV",
-  predictionToleranceMetres: q("m", 1),
-  predictionMaxSteps: q("count", 1_000_000),
-  analysisMissionDurationRequestedSeconds: q("s", 28 * KSP_DAY),
-  recurrenceAutodetect: true,
-  recurrenceRevolutionsPerCycle: q("count", 43),
-  recurrenceDaysPerCycle: q("count", 3),
-  groundTrackRevolution: q("count", 1),
-  stabilityGridMaxEccentricityMinInclination: true,
-  stabilityGridMinEccentricityMaxInclination: false,
-  showElementGraphs: true,
-  historyLengthSeconds: q("s", 3 * 3600),
-  unpinnedMarkersHiddenHere: true,
-  framesHidingUnpinnedMarkers: q("count", 2),
-  unpinnedCelestialsHiddenHere: false,
-  framesHidingUnpinnedCelestials: q("count", 0),
-  pinnedCelestials: ["Mun", "Minmus"],
-  targetPinned: false,
-  showManoeuvreOnNavball: true,
-  planToleranceMetres: q("m", 10),
-  planMaxSteps: q("count", 1_048_576),
-  planInitialTimeUt: q("ut", VIEW_UT + 600),
-  planDesiredFinalTimeUt: q("ut", VIEW_UT + 30 * KSP_DAY),
-  planActualFinalTimeUt: q("ut", VIEW_UT + 12 * KSP_DAY),
-  flightPlanCount: q("count", 2),
-  selectedFlightPlan: q("count", 0),
-  optimiserTargetAltitudeMetres: q("m", 250_000),
-  optimiserTargetInclinationDegrees: q("°", 51.6),
-  verboseLevel: q("count", 0),
-  logThreshold: q("count", 0),
-  stderrThreshold: q("count", 2),
-  flushThreshold: q("count", 3),
-  recordJournalRequested: false,
+/** A planted session mid-flight: every row carries a value. */
+const PLANTED_LIVE = {
+  status: "Reading",
+  build: "0.0.0-planted",
+  frameName: "Kerbin-centred inertial",
+  frameCentre: "Kerbin",
+  frameHasApsides: true,
+  toleranceMetres: q("m", 1),
+  maxSteps: q("count", 1_000_000),
+  windowSeconds: q("s", 28 * KSP_DAY),
+  historySeconds: q("s", 3 * 3600),
+  markersHidden: q("count", 2),
+  logThreshold: "ERROR",
   journaling: false,
 };
 
@@ -142,49 +96,18 @@ interface Scene {
 
 const SCENES: Scene[] = [
   {
-    // Six named groups under one heading. The thing forty flat rows would not
-    // have been.
-    name: "principia-grouped",
-    emit: { [TOPIC]: PRINCIPIA_LIVE },
+    // Several named groups under one heading, rather than one flat list.
+    name: "planted-grouped",
+    emit: { [TOPIC]: PLANTED_LIVE },
     pxW: 900,
     pxH: 700,
-    scrollToLabel: "Frame kind",
+    scrollToLabel: "Frame",
   },
   {
-    // The same category, further down: the quantity rows (a tolerance in
-    // metres, a window in days, a history in hours) beside the bare counts,
-    // and the severities named rather than numbered.
-    name: "principia-quantities",
-    emit: { [TOPIC]: PRINCIPIA_LIVE },
-    pxW: 900,
-    pxH: 700,
-    scrollToLabel: "In-game prediction step limit",
-  },
-  {
-    // The Flight plan group: a step limit next to a tolerance, both of them the
-    // plugin's own, and the plan reaching short of where it was asked to.
-    name: "principia-flight-plan",
-    emit: { [TOPIC]: PRINCIPIA_LIVE },
-    pxW: 900,
-    pxH: 700,
-    scrollToLabel: "In-game plan step limit",
-  },
-  {
-    // Two groups that were widget-only until the settings surface became the
-    // floor: the pin exemptions that make the hide settings falsifiable, and
-    // the in-game navball guidance toggle, which is about the PLAYER's navball
-    // and not ours.
-    name: "principia-drawing-and-navball",
-    emit: { [TOPIC]: PRINCIPIA_LIVE },
-    pxW: 900,
-    pxH: 700,
-    scrollToLabel: "Guidance shown on the in-game navball",
-  },
-  {
-    // The Diagnostics group: the three sink thresholds by NAME, and the two
-    // journal rows that are deliberately not the same fact.
-    name: "principia-diagnostics",
-    emit: { [TOPIC]: PRINCIPIA_LIVE },
+    // Further down: quantity rows (a tolerance in metres, a window in days, a
+    // history in hours) beside the bare counts, and a severity by name.
+    name: "planted-quantities",
+    emit: { [TOPIC]: PLANTED_LIVE },
     pxW: 900,
     pxH: 700,
     scrollToLabel: "Journal recording now",
@@ -192,71 +115,11 @@ const SCENES: Scene[] = [
   {
     // Nothing on the wire. Every row shows its null placeholder rather than a
     // zero, which is the whole standard for a read-only row: a panel full of
-    // zeroes reads as a plugin configured to zero.
-    name: "principia-topic-silent",
+    // zeroes reads as a mod configured to zero.
+    name: "planted-topic-silent",
     pxW: 900,
     pxH: 700,
-    scrollToLabel: "Frame kind",
-  },
-  {
-    // Reading is suspended, so the plugin sends the gate and nothing else. The
-    // health row and its reason carry, everything below them goes absent.
-    name: "principia-reading-suspended",
-    emit: {
-      [TOPIC]: {
-        readingSuspended: true,
-        readingSuspendedReason:
-          "Principia is recording a journal; reading it would write us into the recording",
-      },
-    },
-    pxW: 900,
-    pxH: 700,
-  },
-  {
-    // A Lagrange frame: lengths in it are not lengths, and there are no
-    // apsides at all. Two rows that are consequences of the frame rather than
-    // facts about it.
-    name: "principia-pulsating-frame",
-    emit: {
-      [TOPIC]: {
-        ...PRINCIPIA_LIVE,
-        plottingFrame: {
-          selector: "Plotting frame",
-          type: 6004,
-          primaryBody: "Kerbol",
-          secondaryBody: "Kerbin",
-          primaryBodies: ["Kerbol"],
-          secondaryBodies: ["Kerbin"],
-          targetFrameSelected: false,
-        },
-      },
-    },
-    pxW: 900,
-    pxH: 700,
-    scrollToLabel: "Lengths pulsate in this frame",
-  },
-  {
-    // The target frame, whose name replaces the kind's rather than qualifying
-    // it. The selector is still sitting on Kerbin and the frame is named with
-    // the body the TARGET orbits, which is the divergence from the game's own
-    // wording this scene exists to show.
-    name: "principia-target-frame",
-    emit: {
-      [TOPIC]: {
-        ...PRINCIPIA_LIVE,
-        plottingFrame: {
-          selector: "Plotting frame",
-          type: 6000,
-          centreBody: "Kerbin",
-          targetFrameSelected: true,
-          targetVesselName: "Ares IV",
-          targetPrimaryBody: "Duna",
-        },
-      },
-    },
-    pxW: 900,
-    pxH: 700,
-    scrollToLabel: "Frame kind",
+    scrollToLabel: "Frame",
   },
   {
     // `dependsOn`, both ways. The parent is on: the two children are live

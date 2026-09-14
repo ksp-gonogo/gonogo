@@ -10,10 +10,6 @@ import {
   clearRegistry,
   registerComponent,
 } from "@ksp-gonogo/core";
-import {
-  CpuRegistryProvider,
-  CpuRegistryService,
-} from "@ksp-gonogo/gonogo-kos-uplink";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
@@ -91,19 +87,16 @@ describe("ComponentOverlay: add → configure → persist", () => {
     const addItem = vi.fn();
     const updateItemConfig = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
-    const cpuRegistry = new CpuRegistryService("main");
 
     render(
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
-          <CpuRegistryProvider service={cpuRegistry}>
-            <OverlayProvider
-              addItem={addItem}
-              updateItemConfig={updateItemConfig}
-            >
-              <ComponentOverlay currentLayouts={{ lg: [] }} />
-            </OverlayProvider>
-          </CpuRegistryProvider>
+          <OverlayProvider
+            addItem={addItem}
+            updateItemConfig={updateItemConfig}
+          >
+            <ComponentOverlay currentLayouts={{ lg: [] }} />
+          </OverlayProvider>
         </SerialDeviceProvider>
       </ModalProvider>,
     );
@@ -137,19 +130,16 @@ describe("ComponentOverlay: add → configure → persist", () => {
     const addItem = vi.fn();
     const updateItemConfig = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
-    const cpuRegistry = new CpuRegistryService("main");
 
     render(
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
-          <CpuRegistryProvider service={cpuRegistry}>
-            <OverlayProvider
-              addItem={addItem}
-              updateItemConfig={updateItemConfig}
-            >
-              <ComponentOverlay currentLayouts={{ lg: [] }} />
-            </OverlayProvider>
-          </CpuRegistryProvider>
+          <OverlayProvider
+            addItem={addItem}
+            updateItemConfig={updateItemConfig}
+          >
+            <ComponentOverlay currentLayouts={{ lg: [] }} />
+          </OverlayProvider>
         </SerialDeviceProvider>
       </ModalProvider>,
     );
