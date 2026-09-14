@@ -65,7 +65,6 @@ namespace GonogoPrincipiaUplink.Tests
         private static FakeManoeuvre Ordinary() =>
             new FakeManoeuvre { final_time = 3000.0 }.WithIgnition(2000.0);
 
-        // ---- Executing: a burn that may be under thrust ----
 
         /// <summary>
         /// Ignition unreadable. Not false: false says the craft is NOT under thrust,
@@ -114,7 +113,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(executing, described.Executing);
         }
 
-        // ---- FrameEditable: a property of a frame nobody read ----
 
         /// <summary>
         /// The frame extension is what the editable whitelist is checked against, so
@@ -152,7 +150,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(editable, described.FrameEditable);
         }
 
-        // ---- Anomalous: a clean bill of health nobody issued ----
 
         /// <summary>
         /// Zero is a real answer to "how many burns did the integrator flag" and it
@@ -209,7 +206,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.True(plan.Burns[1].Anomalous);
         }
 
-        // ---- OptimisationRunning: a frozen console with an invented reason ----
 
         /// <summary>
         /// `null >= 0` is false, so an unreadable optimisation state published as
@@ -243,7 +239,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.True(plan.OptimisationRunning);
         }
 
-        // ---- The plan identity badge ----
 
         /// <summary>
         /// The two numbers behind the badge an operator reads first. A zero pair
@@ -310,7 +305,6 @@ namespace GonogoPrincipiaUplink.Tests
         private static string Detail(CommandResult<Dictionary<string, object?>> result) =>
             (string)(Receipt(result)["refusalDetail"] ?? "");
 
-        // ---- RejectExecuting ----
 
         /// <summary>
         /// The guard's own unit. Each instant withdrawn on its own, and both, so the
@@ -381,7 +375,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(2, plugin.Known(Guid).Burns.Count);
         }
 
-        // ---- The optimiser guard ----
 
         /// <summary>
         /// The guard exists to stop a write Principia would revert with nothing
@@ -408,7 +401,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(plugin.Writes);
         }
 
-        // ---- The ten-plan cap ----
 
         /// <summary>
         /// The cap this Uplink cannot afford to overshoot: an eleventh plan makes

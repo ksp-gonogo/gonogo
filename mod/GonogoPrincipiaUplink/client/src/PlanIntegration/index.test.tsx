@@ -173,9 +173,11 @@ describe("PlanIntegrationBlock", () => {
     });
     expect(spin).toHaveAttribute("aria-valuetext", NULL_DISPLAY);
     expect(spin.textContent).not.toContain("64");
-    // Nothing is announced as the held index either: an unread limit is not a
-    // member of the set, and `aria-valuenow` claiming one would put the
-    // fabrication back for a screen reader only.
+    /*
+     * Nothing is announced as the held index either: an unread limit is not a
+     * member of the set, and `aria-valuenow` claiming one would put the
+     * fabrication back for a screen reader only.
+     */
     expect(spin).not.toHaveAttribute("aria-valuenow");
   });
 
