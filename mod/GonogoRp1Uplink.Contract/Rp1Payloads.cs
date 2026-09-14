@@ -1210,6 +1210,18 @@ public sealed class Rp1LcPricing
     /// <para>Applied ONCE when a pad is added to a complex. A renovation uses the
     /// same figure differently, as <c>1 + (pads - 1) * mult</c>, because that one
     /// reprices every pad the complex already has.</para>
+    ///
+    /// <para><c>null</c> means RP-1's own setting could not be read. The prices
+    /// alongside this field were still computed, from RP-1's shipped 0.5, so they
+    /// are usable; what a client cannot do on a null is present them as the
+    /// career's own figure. Say the multiplier is the shipped default rather than
+    /// quoting it as read.</para>
+    /// <internal>
+    /// Written from Rp1LcCostModel.ReadAdditionalPadCostMult, deliberately NOT
+    /// from AdditionalPadCostMult: the latter is the arithmetic half and applies
+    /// DefaultAdditionalPadCostMult, so publishing it made this nullable field
+    /// null never, and a substituted 0.5 indistinguishable from a read one.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double? AdditionalPadCostMult { get; set; }

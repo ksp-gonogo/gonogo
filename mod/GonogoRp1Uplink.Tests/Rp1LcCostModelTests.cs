@@ -666,6 +666,37 @@ namespace GonogoRp1Uplink.Tests
                 Rp1LcCostModel.AdditionalPadCostMult(typeof(Database)));
         }
 
+        [Fact]
+        public void An_unreadable_additional_pad_multiplier_reads_absent_rather_than_as_RP1s_value()
+        {
+            // The applied default above is correct and stays. What it cannot do is
+            // say where the number came from: a client handed 0.5 has no way to
+            // tell RP-1's own setting from this model standing in for it, and the
+            // two justify very different sentences next to a pad price.
+            Assert.Null(Rp1LcCostModel.ReadAdditionalPadCostMult(null));
+            Assert.Null(Rp1LcCostModel.ReadAdditionalPadCostMult(typeof(object)));
+            Assert.Equal(
+                Database.SettingsSC.AdditionalPadCostMult,
+                Rp1LcCostModel.ReadAdditionalPadCostMult(typeof(Database)));
+        }
+
+        [Fact]
+        public void The_applied_multiplier_and_the_read_one_disagree_exactly_when_it_was_substituted()
+        {
+            // The pair is the whole point of the change: same number, different
+            // claim. A test that only checked the reader would still pass if the
+            // arithmetic half started refusing, which would break every pad quote.
+            Assert.Equal(
+                Rp1LcCostModel.DefaultAdditionalPadCostMult,
+                Rp1LcCostModel.AdditionalPadCostMult(typeof(object)));
+            Assert.Null(Rp1LcCostModel.ReadAdditionalPadCostMult(typeof(object)));
+
+            // And they agree when there was a real reading to agree on.
+            Assert.Equal(
+                Rp1LcCostModel.AdditionalPadCostMult(typeof(Database)),
+                Rp1LcCostModel.ReadAdditionalPadCostMult(typeof(Database)));
+        }
+
         // ── The renovation envelope ────────────────────────────────────────────
 
         [Fact]

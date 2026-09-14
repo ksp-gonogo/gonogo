@@ -1480,7 +1480,12 @@ namespace GonogoRp1Uplink
 
             return new Rp1LcPricingRaw
             {
-                AdditionalPadCostMult = Rp1LcCostModel.AdditionalPadCostMult(_database),
+                // The READ value, not the applied one: null here means RP-1's own
+                // setting could not be reached, and a client quoting a pad price
+                // built on the shipped default can say so rather than presenting
+                // it as the career's own figure. The cost model still APPLIES
+                // Rp1LcCostModel.DefaultAdditionalPadCostMult, which is correct.
+                AdditionalPadCostMult = Rp1LcCostModel.ReadAdditionalPadCostMult(_database),
                 Resources = new List<Rp1LcResourcePriceRaw>(byName.Values),
             };
         }

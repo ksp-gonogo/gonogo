@@ -390,6 +390,32 @@ namespace GonogoRp1Uplink
         public static double? MinPossibleMass(object data) => Rp1Types.ReadDouble(data, "MinPossibleMass");
 
         /// <summary>
+        /// What RP-1 ships as the additional-pad multiplier, applied whenever its
+        /// own setting cannot be read.
+        /// </summary>
+        public const double DefaultAdditionalPadCostMult = 0.5;
+
+        /// <summary>
+        /// RP-1's additional-pad multiplier as actually READ, or null when the
+        /// settings object could not be reached.
+        ///
+        /// <para>The honest half of the pair below. A price quoted from
+        /// <see cref="DefaultAdditionalPadCostMult"/> and a price quoted from the
+        /// career's own setting are the same number on the wire, so a client given
+        /// only the applied value cannot tell a reading from a substitution. This
+        /// is what lets the payload carry that difference.</para>
+        /// </summary>
+        public static double? ReadAdditionalPadCostMult(Type? databaseType)
+        {
+            if (databaseType == null)
+            {
+                return null;
+            }
+            var settings = Rp1Types.StaticValue(databaseType, "SettingsSC");
+            return Rp1Types.ReadDouble(settings, "AdditionalPadCostMult");
+        }
+
+        /// <summary>
         /// RP-1's additional-pad multiplier, or its shipped default when the
         /// settings object cannot be read.
         ///
@@ -398,16 +424,15 @@ namespace GonogoRp1Uplink
         /// deciding whether an act is legal, RP-1 ships 0.5 and has since this
         /// setting existed, and refusing every complex command because a settings
         /// field moved would cost far more than a stale multiplier.</para>
+        ///
+        /// <para>This is the ARITHMETIC half: the cost model needs a number, and
+        /// this is the number it uses. What it cannot do is say where that number
+        /// came from, so anything PUBLISHED reads
+        /// <see cref="ReadAdditionalPadCostMult"/> instead and lets the absence
+        /// travel.</para>
         /// </summary>
-        public static double AdditionalPadCostMult(Type? databaseType)
-        {
-            if (databaseType == null)
-            {
-                return 0.5;
-            }
-            var settings = Rp1Types.StaticValue(databaseType, "SettingsSC");
-            return Rp1Types.ReadDouble(settings, "AdditionalPadCostMult") ?? 0.5;
-        }
+        public static double AdditionalPadCostMult(Type? databaseType) =>
+            ReadAdditionalPadCostMult(databaseType) ?? DefaultAdditionalPadCostMult;
 
         /// <summary>
         /// The engineers a specification can hold, by RP-1's own static
