@@ -5,6 +5,19 @@ import { BUILD_TIME, VERSION } from "../version";
 import type { PeerClientService } from "./PeerClientService";
 
 /**
+ * The minimal client surface this broadcaster needs: say who we are, and learn
+ * when to say it again. Declared structurally (and off `PeerClientService`'s
+ * own members, so it cannot drift from them) rather than taking the whole
+ * service, which is the same reason `DelayAuthority` takes a
+ * `DelaySubscribable`: a caller standing one up for a test should not have to
+ * build a peer connection to announce a name.
+ */
+export interface StationInfoAnnouncer {
+  sendStationInfo: PeerClientService["sendStationInfo"];
+  onConnectionStatus: PeerClientService["onConnectionStatus"];
+}
+
+/**
  * Tells the host who this peer is, and re-tells it on every reconnect and
  * rename.
  *
@@ -17,7 +30,7 @@ export function StationInfoBroadcaster({
   client,
   seat,
 }: {
-  client: PeerClientService;
+  client: StationInfoAnnouncer;
   seat: Seat;
 }) {
   const name = useStationName();
