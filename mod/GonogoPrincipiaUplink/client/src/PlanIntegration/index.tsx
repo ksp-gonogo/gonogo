@@ -112,7 +112,16 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
   }
 
   const maxSteps = magnitudeOf(plan.integrator?.maxSteps);
-  const chosen = draftSteps ?? maxSteps ?? MAX_STEPS_OPTIONS[0];
+  /*
+   * Null when the plan's own limit has not been read and the operator has not
+   * picked one, the same as POSITION TOL and SPEED TOL below. It used to fall
+   * back to MAX_STEPS_OPTIONS[0], which is 64: the LOWEST value in the set,
+   * three orders of magnitude under Principia's own default, presented as the
+   * plan's current limit with "raise this when the plan stops short" under it.
+   * An operator read a catastrophically under-integrated plan and fixed a
+   * setting nobody had read.
+   */
+  const chosen: number | null = draftSteps ?? maxSteps;
   const desired = magnitudeOf(plan.desiredFinalTimeUt);
   const actual = magnitudeOf(plan.actualFinalTimeUt);
   // The pair is the point: a plan that stopped short of where it was asked to
@@ -266,13 +275,20 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
       <Row as="div">
         <RowName>MAX STEPS</RowName>
         <Cluster justify="end" gap="sm" wrap>
-          <Stepper
+          {/* The Stepper holds the null rather than being replaced by a bare
+              NULL_DISPLAY, so the readout says the limit was not read AND the
+              operator can still step onto a value and send it. Its own doc
+              covers a held value outside the set: both step controls stay live
+              and stepping lands on the nearest end. */}
+          <Stepper<number | null>
             options={MAX_STEPS_OPTIONS}
             value={chosen}
             disabled={frozen}
             onChange={setDraftSteps}
             label="Max integration steps per segment"
-            format={(steps) => steps.toLocaleString("en-GB")}
+            format={(steps) =>
+              steps === null ? NULL_DISPLAY : steps.toLocaleString("en-GB")
+            }
           />
           <CommandButton
             size="sm"
@@ -280,7 +296,11 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
             args={{
               vesselId: plan.vesselId,
               requestId: `integrator-${plan.vesselId ?? "none"}-${chosen}`,
-              maxSteps: chosen,
+              // `undefined`, never a number, for a limit nobody stated: the mod
+              // leaves an omitted step parameter at the plugin's own value. The
+              // control is held shut in that state anyway, so this is the shape
+              // of the args rather than a write that happens.
+              maxSteps: chosen ?? undefined,
             }}
             commandLabel="Set the flight plan's step limit"
             label="SET"
@@ -289,7 +309,8 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
             disabled={
               frozen ||
               stepParametersUnverified ||
-              (maxSteps !== null && chosen === maxSteps)
+              chosen === null ||
+              chosen === maxSteps
             }
             aria-label="Set the flight plan's step limit"
             confirmAriaLabel="Confirm setting the flight plan's step limit"
@@ -302,6 +323,17 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
       <Text tone="faint" size="sm">
         Raise this when the plan stops short of its requested end.
       </Text>
+      {/* Why the readout above is the absent token while the control beside it
+          still steps. "Raise this" needs something to raise FROM, and there is
+          nothing: the sentence above is the only advice available and it cannot
+          be followed against a limit nobody read. */}
+      {maxSteps === null && (
+        <Text tone="warn" size="sm">
+          The plan's current step limit was not read, so there is nothing to
+          raise it from. Stepping to a value sends that value as the new limit
+          rather than an increase on the old one.
+        </Text>
+      )}
       {/* Why the control above is dark while the end instant beside it is live
           and the surface reads armed. The consequence rather than the mod's own
           sentence for the failed round trip, which travels on the surface's
