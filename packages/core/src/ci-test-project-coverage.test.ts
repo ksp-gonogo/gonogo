@@ -45,8 +45,8 @@ function findRepoRoot(start: string): string {
 const ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
 /** Project names in the solution whose name marks them a test project. */
-function solutionTestProjects(): string[] {
-  const sln = readFileSync(join(ROOT, "mod/Gonogo.sln"), "utf8");
+function solutionTestProjects(slnPath = "mod/Gonogo.sln"): string[] {
+  const sln = readFileSync(join(ROOT, slnPath), "utf8");
   const names = new Set<string>();
   // Solution project lines: Project("{guid}") = "Name", "Name\Name.csproj", ...
   for (const match of sln.matchAll(
@@ -89,9 +89,15 @@ describe("ci.yml's mod-job project list covers the solution's test projects", ()
   it("finds both lists at all, before comparing them", () => {
     // A parse that silently returned nothing would make every assertion below
     // pass while checking nothing, which is the exact failure shape this file
-    // exists to prevent.
-    expect(solutionTestProjects().length).toBeGreaterThan(10);
-    expect(ciGatedProjects().length).toBeGreaterThan(10);
+    // exists to prevent. Not a count: this was a floor of 10 on each, and the six
+    // mod Uplinks' Tests projects are leaving for the gonogo-uplinks repo. The
+    // solution parse must read the planted fixture's solution exactly, and both
+    // real lists must name a test project that stays in this repo.
+    expect(
+      solutionTestProjects("mod/Sitrep.Core.Tests/UplinkWalkPlant/Gonogo.sln"),
+    ).toEqual(["GonogoPlantedUplink.Tests"]);
+    expect(solutionTestProjects()).toContain("Sitrep.Core.Tests");
+    expect(ciGatedProjects()).toContain("Sitrep.Core.Tests");
   });
 
   it("runs every test project that is in the solution", () => {

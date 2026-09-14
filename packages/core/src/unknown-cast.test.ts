@@ -1,6 +1,7 @@
 // @vitest-environment node
 //
 // Node realm rather than the package's jsdom default, matching `typecheck-coverage.test.ts`: the scan asks `ts.sys` to resolve config files off disk, and the shrink-only half transpiles the debt list at a git ref through esbuild, which wants a real TextEncoder/Uint8Array realm.
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -56,6 +57,31 @@ const DEBT_PATH = "packages/core/src/unknown-cast.debt.ts";
 
 /** One scan for the whole file: 25 compiler programs is not a per-test cost. */
 const SCANS: RootScan[] = scanUnknownCasts(REPO_ROOT);
+
+/**
+ * The mod roots as git tracks them: `mod/<name>/client` where that client has a
+ * tsconfig, else `mod/<name>`, the same preference the discovery applies, read
+ * from a source that shares nothing with its directory walk.
+ */
+function trackedModTsRoots(): string[] {
+  const tracked = new Set(
+    execFileSync(
+      "git",
+      ["ls-files", "mod/*/tsconfig.json", "mod/*/client/tsconfig.json"],
+      { cwd: REPO_ROOT, encoding: "utf8" },
+    ).split("\n"),
+  );
+  const roots = new Set<string>();
+  for (const rel of tracked) {
+    const match = /^mod\/([^/]+)\/(client\/)?tsconfig\.json$/.exec(rel);
+    if (!match) continue;
+    const client = `mod/${match[1]}/client`;
+    roots.add(
+      tracked.has(`${client}/tsconfig.json`) ? client : `mod/${match[1]}`,
+    );
+  }
+  return [...roots].sort();
+}
 const SITES = SCANS.flatMap((scan) => scan.sites);
 
 /** Run the scanner over hand-written files, through the real walk. */
@@ -253,10 +279,18 @@ describe("the gate does not flag a legitimate narrow", () => {
 
 describe("the walk covered what it claims to have covered", () => {
   it("walked every root, and none of them empty", () => {
+    // Every root the discovery names was walked, and the discovery names every
+    // mod root git tracks a tsconfig for. This was a floor of 22 roots, and seven
+    // of them are Uplink clients leaving for the gonogo-uplinks repo, so a floor
+    // could not tell a smaller tree from a discovery that stopped matching.
     expect(
-      SCANS.length,
-      `Only ${SCANS.length} roots were walked; the floor is ${SCAN_FLOORS.roots}. The walk lost its input.`,
-    ).toBeGreaterThanOrEqual(SCAN_FLOORS.roots);
+      SCANS.map((scan) => scan.root).sort(),
+      "The walk did not walk exactly the roots the discovery names. The walk lost its input.",
+    ).toEqual([...unknownCastScanRoots(REPO_ROOT)].sort());
+    expect(
+      unknownCastScanRoots(REPO_ROOT).filter((root) => root.startsWith("mod/")),
+      "The mod-root discovery disagrees with the tsconfig.json files git tracks under mod/.",
+    ).toEqual(trackedModTsRoots());
 
     const empty = SCANS.filter((scan) => scan.files === 0).map((s) => s.root);
     expect(
@@ -337,9 +371,14 @@ describe("the walk covered what it claims to have covered", () => {
       .filter((name) =>
         existsSync(join(REPO_ROOT, "mod", name, "client", "tsconfig.json")),
       )
-      .map((name) => `mod/${name}/client`);
-    // 7 since three Uplinks took their clients to gonogo-uplinks on 2026-09-06.
-    expect(clients.length).toBeGreaterThanOrEqual(7);
+      .map((name) => `mod/${name}/client`)
+      .sort();
+    // Held to git rather than to a floor: this was 7, and every mod Uplink is
+    // leaving for the gonogo-uplinks repo, so the count is heading for one.
+    expect(
+      clients,
+      "The Uplink clients on disk disagree with the client tsconfig.json files git tracks.",
+    ).toEqual(trackedModTsRoots().filter((rel) => rel.endsWith("/client")));
     expect(
       clients.filter((rel) => !roots.includes(rel)),
       "An Uplink client has a tsconfig.json and is not in the scan.",

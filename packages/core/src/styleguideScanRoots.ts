@@ -18,6 +18,7 @@
  * is a dashboard widget bundle by construction.
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -70,6 +71,27 @@ export function modClientRoots(repoRoot: string): string[] {
       return existsSync(abs) && statSync(abs).isDirectory();
     })
     .sort();
+}
+
+/**
+ * Every `mod/<name>/client/src` git tracks a file under, sorted.
+ *
+ * The independent list `modClientRoots` is checked against. A floor on how many
+ * roots a walk found cannot tell the mod Uplinks leaving for the gonogo-uplinks
+ * repo from a listing that stopped matching; agreement with git can, at any
+ * number of clients.
+ */
+export function trackedModClientRoots(repoRoot: string): string[] {
+  const roots = new Set<string>();
+  for (const rel of execFileSync("git", ["ls-files", "mod"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  }).split("\n")) {
+    const match = /^(mod\/[^/]+\/client\/src)\//.exec(rel);
+    if (match) roots.add(match[1]);
+  }
+  return [...roots].sort();
 }
 
 /** The full scan list: the packages above plus every mod client bundle. */

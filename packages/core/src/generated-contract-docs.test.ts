@@ -2,7 +2,7 @@
 //
 // Node realm rather than the package's jsdom default: this walks the tree and touches no DOM.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -80,14 +80,27 @@ describe("generated contract docs", () => {
   const contracts = generatedContracts();
 
   it("finds every generated contract", () => {
-    // A walk that matched nothing would pass every assertion below. Nine since
     /*
-     * A walk that matched nothing would pass every assertion below. Seven since
-     * three Uplinks left for the gonogo-uplinks repo on 2026-09-06 and took
-     * their contract slices with them; a floor guards against the walk
-     * breaking, so it tracks what is here.
+     * A walk that matched nothing would pass every assertion below. This was a
+     * floor of 7, and six of those contracts belong to Uplinks leaving for the
+     * gonogo-uplinks repo, so the walk is held to the codegen twins instead: every
+     * `*.Contract.Codegen` project on disk writes exactly one contract.ts, so the
+     * two sets must match at any number of slices, and core's own stays.
      */
-    expect(contracts.length).toBeGreaterThanOrEqual(7);
+    const twins = readdirSync(join(REPO_ROOT, "mod"))
+      .filter((name) => name.endsWith(".Contract.Codegen"))
+      .map((name) => name.slice(0, -".Contract.Codegen".length))
+      .map((slice) =>
+        slice === "Sitrep"
+          ? "mod/sitrep-sdk/src/__generated__/contract.ts"
+          : `mod/${slice}/client/src/__generated__/contract.ts`,
+      )
+      .sort();
+    expect(twins).toContain("mod/sitrep-sdk/src/__generated__/contract.ts");
+    expect(
+      [...contracts].sort(),
+      "The generated contracts git tracks disagree with the codegen twins on disk.",
+    ).toEqual(twins);
   });
 
   it("sees markup it is meant to reject", () => {

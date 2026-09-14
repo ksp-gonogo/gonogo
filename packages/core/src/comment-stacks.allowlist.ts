@@ -470,7 +470,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/calc/maneuver.ts": 2,
   "packages/core/src/calc/transfer.ts": 2,
   "packages/core/src/chromeProviders.test.tsx": 1,
-  "packages/core/src/ci-test-project-coverage.test.ts": 1,
   "packages/core/src/contributionsRuntime.test.tsx": 6,
   "packages/core/src/fixture-gated-suites.test.ts": 1,
   "packages/core/src/hooks/defineTopicManifest.test-d.ts": 1,

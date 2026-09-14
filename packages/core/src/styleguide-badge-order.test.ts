@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { modClientRoots } from "./styleguideScanRoots";
 
 /**
  * Design-system guard: a status badge never reads before the thing it is a
@@ -95,6 +96,21 @@ function scannedFiles(root: string): string[] {
     .split("\n")
     .filter((f) => f.endsWith(".tsx") && !f.includes(".test."))
     .filter((f) => !f.startsWith("mod/") || f.includes("/client/src/"));
+}
+
+/** Whether a directory holds a non-test .tsx anywhere beneath it, read off disk. */
+function holdsTsx(dir: string): boolean {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === "dist") continue;
+    const path = join(dir, entry.name);
+    if (
+      entry.isDirectory()
+        ? holdsTsx(path)
+        : /(?<!\.test)\.tsx$/.test(entry.name)
+    )
+      return true;
+  }
+  return false;
 }
 
 /** The Uplink half of the scan, which is the half that went silently empty. */
@@ -214,6 +230,18 @@ describe("design-system: a status badge never precedes its subject", () => {
    * above would have stayed comfortably over its floor on `packages/` alone.
    */
   it("reached the Uplinks, not just the app's own packages", () => {
-    expect(uplinkFiles(files).length).toBeGreaterThan(50);
+    // Not a count: this was a floor of 50 files, and every mod Uplink is leaving
+    // for the gonogo-uplinks repo. Every client src directory that holds a .tsx
+    // on disk, found by walking the filesystem rather than asking git, must have
+    // contributed a file to the pathspec's list, and a client that stays in this
+    // repo must be among them.
+    const reached = new Set(
+      uplinkFiles(files).map((f) => f.split("/client/src/")[0]),
+    );
+    const withTsx = modClientRoots(root)
+      .filter((rel) => holdsTsx(join(root, rel)))
+      .map((rel) => rel.replace(/\/client\/src$/, ""));
+    expect(withTsx).toContain("mod/GonogoBreakingGroundUplink");
+    expect([...reached].sort()).toEqual([...withTsx].sort());
   });
 });

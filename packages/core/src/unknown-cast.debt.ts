@@ -522,7 +522,6 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  * steady as the debt falls and still fails if the walk stops seeing assertions.
  */
 export const SCAN_FLOORS = {
-  roots: 22,
   files: 2251,
   assertions: 2008,
 } as const;

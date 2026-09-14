@@ -3,6 +3,7 @@
 // Node realm rather than the package's jsdom default, matching
 // `uplink-boundary.test.ts`: the shrink-only check transpiles the allowlist at a
 // git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm.
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -130,6 +131,24 @@ function scan(): Map<string, Set<ForbiddenPackage>> {
   return found;
 }
 
+/**
+ * Files under `mod/Gonogo*Uplink/client/` as git tracks them, matching
+ * `pattern`, outside `node_modules` and `dist`: the independent list the walks
+ * above are checked against.
+ */
+function trackedUplinkClientFiles(pattern: RegExp): string[] {
+  return execFileSync("git", ["ls-files", "mod"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  })
+    .split("\n")
+    .filter((rel) => /^mod\/Gonogo[^/]*Uplink\/client\//.test(rel))
+    .filter((rel) => !/\/(node_modules|dist)\//.test(rel))
+    .filter((rel) => pattern.test(rel))
+    .sort();
+}
+
 /** `mod/Gonogo*Uplink/client/package.json`, in directory order. */
 function uplinkManifests(): string[] {
   if (!existsSync(MOD_DIR)) return [];
@@ -176,11 +195,26 @@ describe("uplink isolation", () => {
    * shipped in that state for weeks.
    */
   it("actually scanned the Uplink clients", () => {
-    const files = uplinkSourceFiles();
-    expect(files.length).toBeGreaterThan(200);
+    // Not a count: this was a floor of 200 files across 7 clients, and every
+    // mod Uplink is leaving for the gonogo-uplinks repo. Instead every client
+    // source file git tracks must have been read, and git's list must hold a
+    // client that stays in this repo, so a walk reading nothing fails at any size.
+    const read = new Set(
+      uplinkSourceFiles().map((f) =>
+        relative(REPO_ROOT, f).split("\\").join("/"),
+      ),
+    );
+    const tracked = trackedUplinkClientFiles(/\.tsx?$/);
     expect(
-      new Set(files.map((f) => f.split("/mod/")[1]?.split("/")[0])).size,
-    ).toBeGreaterThanOrEqual(7);
+      tracked.some((rel) =>
+        rel.startsWith("mod/GonogoBreakingGroundUplink/client/"),
+      ),
+      "git lists no source for the Uplink client that stays in this repo, so this check reads nothing.",
+    ).toBe(true);
+    expect(
+      tracked.filter((rel) => !read.has(rel)),
+      "Uplink client source git tracks that the isolation walk did not read.",
+    ).toEqual([]);
   });
 
   /**
@@ -244,7 +278,16 @@ describe("uplink isolation", () => {
    * from every Uplink being clean, and a renamed directory would produce it.
    */
   it("actually read the Uplink manifests", () => {
-    expect(uplinkManifests().length).toBeGreaterThanOrEqual(7);
+    // Held to git's list of client manifests rather than to a floor of 7.
+    const tracked = trackedUplinkClientFiles(/\/client\/package\.json$/);
+    expect(tracked).toContain(
+      "mod/GonogoBreakingGroundUplink/client/package.json",
+    );
+    expect(
+      uplinkManifests()
+        .map((f) => relative(REPO_ROOT, f).split("\\").join("/"))
+        .sort(),
+    ).toEqual(tracked);
   });
 
   it("no Uplink client imports an app-internal package outside the debt list", () => {

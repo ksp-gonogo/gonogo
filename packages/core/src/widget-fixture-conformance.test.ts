@@ -5,7 +5,7 @@
 // below to read the debt list at the base revision, asserts
 // `new TextEncoder().encode("") instanceof Uint8Array` and throws "JavaScript
 // environment is broken" under jsdom. Nothing here touches the DOM.
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
@@ -186,7 +186,6 @@ describe("widget fixtures conform to the generated contract", () => {
    * report a perfect tree. These ask whether either had any input at all.
    */
   it("resolves both halves of the contract", () => {
-    expect(contract().topicIds.length).toBeGreaterThan(100);
     expect(contract().topicIds).toContain("career.status");
     /*
      * Where the topics came from, rather than how many there are: a resolver
@@ -198,8 +197,43 @@ describe("widget fixtures conform to the generated contract", () => {
     const declaringFiles = new Set(
       contract().topicIds.map((id) => contract().sourceOf(id)),
     );
-    expect(declaringFiles.size).toBeGreaterThan(5);
     expect(contract().sources.length).toBe(uplinkTopicMapCount() + 1);
+    expect([...declaringFiles].sort()).toEqual([...contract().sources].sort());
+
+    /*
+     * And how many topics each source yielded, without a count: this was a
+     * floor of 100 topics and 5 declaring files, and a third of those topics
+     * belong to Uplinks leaving for the gonogo-uplinks repo. Every generated
+     * topic map also lists its ids as GENERATED_TOPIC_IDS, read here by a plain
+     * pattern rather than the type checker, so an Uplink map must resolve to
+     * exactly that list and the sdk's to at least its own generated one.
+     */
+    const generatedIds = (rel: string) =>
+      [
+        ...(
+          /export const GENERATED_TOPIC_IDS\s*=\s*\[([\s\S]*?)\]/.exec(
+            readFileSync(join(ROOT, rel), "utf8"),
+          )?.[1] ?? ""
+        ).matchAll(/"([^"]+)"/g),
+      ]
+        .map((m) => m[1])
+        .sort();
+    const resolvedFrom = (rel: string) =>
+      contract()
+        .topicIds.filter((id) => contract().sourceOf(id) === rel)
+        .sort();
+    const sdkGenerated = generatedIds(
+      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+    );
+    expect(sdkGenerated.length).toBeGreaterThan(0);
+    expect(resolvedFrom(contract().sources[0])).toEqual(
+      expect.arrayContaining(sdkGenerated),
+    );
+    for (const rel of contract().sources.slice(1)) {
+      expect(resolvedFrom(rel), `topics resolved from ${rel}`).toEqual(
+        generatedIds(rel),
+      );
+    }
 
     // The canary on the defect that started this, asked at the position it
     // actually lives at. If the resolver stops seeing CareerStrategy's fields

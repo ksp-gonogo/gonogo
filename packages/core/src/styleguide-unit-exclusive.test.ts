@@ -2,7 +2,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { styleguideScanRoots } from "./styleguideScanRoots";
+import {
+  SCANNED_PACKAGE_ROOTS,
+  styleguideScanRoots,
+  trackedModClientRoots,
+} from "./styleguideScanRoots";
 
 /**
  * `Unit` is the only unit renderer, enforced rather than merely stated.
@@ -531,15 +535,19 @@ describe("Unit is the only unit renderer", () => {
    * stayed green for months on exactly that.
    */
   it("walked every root, and no root was empty", () => {
-    const { perRoot, scanned } = scan(REPO_ROOT);
+    const { perRoot } = scan(REPO_ROOT);
     const roots = Object.keys(perRoot);
-    // 20 roots and 1,141 files when this was measured. The floors sit BELOW
-    // that on purpose: they exist to catch a walk that has collapsed, not to
-    // pin a count that legitimately moves when an Uplink lands or leaves.
-    // Set at the current number, removing one Uplink would fail this for no
-    // reason and the number would get raised back on reflex.
-    expect(roots.length, "roots discovered").toBeGreaterThanOrEqual(17);
-    expect(scanned, "source files walked").toBeGreaterThan(900);
+    // Not a count. This was a floor of 17 roots and 900 files, set below the
+    // measured 20 and 1,141 so one Uplink leaving would not trip it, and every
+    // mod Uplink is leaving for the gonogo-uplinks repo. The roots walked must
+    // be exactly the package roots, the sdk, and every client src git tracks.
+    expect([...roots].sort(), "roots walked").toEqual(
+      [
+        ...SCANNED_PACKAGE_ROOTS,
+        "mod/sitrep-sdk/src",
+        ...trackedModClientRoots(REPO_ROOT),
+      ].sort(),
+    );
     const empty = roots.filter((r) => perRoot[r] === 0);
     expect(
       empty,
