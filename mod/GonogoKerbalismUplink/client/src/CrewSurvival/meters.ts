@@ -3,6 +3,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
 import { CREW_SURVIVAL, type CrewSurvival, toneFor } from "./processor";
+import { CREW_RULE_READINGS, type RuleReadings, ruleKey } from "./ruleReadings";
 
 // ---------------------------------------------------------------------------
 // Per-kerbal survival meters, as DATA.
@@ -18,6 +19,13 @@ import { CREW_SURVIVAL, type CrewSurvival, toneFor } from "./processor";
 // can count what arrived, order it, and lay it out with its own rows. And the
 // rows are the point, `row` carries the kerbal's name, which is exactly what
 // let a per-row extension stop being a bespoke widget slot at all.
+//
+// A SECOND augment went the same way, for the same reason. The crew model's
+// uncertainty interval used to be printed as text on the roster row, beside
+// the very bar it was an interval about, because a `Meter` took a bare number
+// and had nowhere to put a second end. It takes a whole `Reading` now and
+// draws the interval as marks on its own track, so the band is zero pixels
+// this stack did not already own. `./ruleReadings` is what carries it here.
 // ---------------------------------------------------------------------------
 
 /**
@@ -57,17 +65,30 @@ const pct = (v: number): string =>
  */
 export function survivalMeters(
   survival: CrewSurvival | undefined,
+  readings: RuleReadings | undefined,
 ): MeterEntry[] | null {
   if (!survival) return null;
   const entries: MeterEntry[] = [];
   for (const kerbal of survival.kerbals) {
     for (const rule of kerbal.rules) {
+      // Namespaced by kerbal: two kerbals both have a "stress" rule, and a
+      // meter stack keyed on the rule name alone would collide across rows.
+      const id = ruleKey(kerbal.name, rule.name);
       entries.push({
-        // Namespaced by kerbal: two kerbals both have a "stress" rule, and a
-        // meter stack keyed on the rule name alone would collide across rows.
-        id: `${kerbal.name}:${rule.name}`,
+        id,
         label: ruleLabel(rule.name),
-        value: rule.fraction,
+        /*
+         * The whole READING, so the bar says how current the figure is and the
+         * kit draws the crew model's interval as marks on the track it is
+         * about. The lookup is the primitive's and the treatment is the
+         * primitive's; this only has to not throw the reading away.
+         *
+         * The bare fraction is the fallback rather than the norm: it is what
+         * is left when the wire carried a rule the reading cannot be keyed to,
+         * and a meter drawn from it is the picture every one of these was
+         * before the model existed.
+         */
+        value: readings?.[id] ?? rule.fraction,
         tone: toneFor(rule.fraction),
         valueLabel: pct(rule.fraction),
         // The roster row this meter belongs beside. CrewStatus mounts one
@@ -83,7 +104,8 @@ export function survivalMeters(
 KERBALISM.registerContribution({
   id: "crew-survival-meters",
   contributes: "crew-status.meters",
-  deps: [CREW_SURVIVAL],
+  deps: [CREW_SURVIVAL, CREW_RULE_READINGS],
   requires: "kerbalism",
-  compute: (topics) => survivalMeters(topics[CREW_SURVIVAL.id]),
+  compute: (topics) =>
+    survivalMeters(topics[CREW_SURVIVAL.id], topics[CREW_RULE_READINGS.id]),
 });

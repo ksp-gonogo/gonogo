@@ -1,4 +1,4 @@
-import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
+import type { Value, VesselCrew } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";
 import type {
   KerbalismCrewEntry,
@@ -108,6 +108,26 @@ function kerbalTone(
 }
 
 /**
+ * One accumulator's place on the 0..1 toward-fatal axis.
+ *
+ * Exported because the axis is shared rather than private: `./ruleReadings`
+ * moves the crew model's uncertainty interval onto the same axis end by end,
+ * and an interval divided by one number while the figure it bounds was divided
+ * by another is an interval about nothing.
+ *
+ * In the algebra rather than on two bare numbers, so the division is
+ * dimension-checked and the result says what it is. Both halves must be known
+ * finite before it runs: the clamp answers a non-finite accumulator with 0,
+ * which on this axis is the reading that says the crew is fine.
+ */
+export function onFatalAxis(
+  accumulated: Value<"units">,
+  threshold: Value<"units">,
+): Value<"ratio"> {
+  return accumulated.dividedBy(threshold).in("ratio").max(0).min(1);
+}
+
+/**
  * Normalize one wire rule's raw accumulator to a 0..1-toward-fatal fraction.
  * Kerbalism's default profile uses `fatal_threshold=1.0` for most rules but
  * overrides it per-rule (radiation's is 50), dividing by the rule's OWN
@@ -115,16 +135,21 @@ function kerbalTone(
  * comparable on the same 0..1 scale (ported unchanged from CrewStatus's
  * old `ruleFraction`, moved here with the rest of the Kerbalism-specific
  * logic it contaminated the base widget with).
+ *
+ * Exported for `./ruleReadings`, which needs the same figure keyed by the
+ * WIRE's own rule position rather than by this derivation's sorted one.
  */
-function ruleFraction(rule: KerbalismCrewRule): number | null {
+export function ruleFraction(rule: KerbalismCrewRule): number | null {
   // Null rather than 0 on either half. A rule whose accumulator or whose
   // fatal threshold never arrived has no position on the toward-fatal scale,
   // and 0 on that scale is the reading that says the crew is fine.
-  const accumulated = magnitudeOf(rule.value);
-  const threshold = magnitudeOr(rule.fatalThreshold, Number.NaN);
-  if (accumulated === null) return null;
-  if (!Number.isFinite(threshold) || threshold <= 0) return null;
-  return Math.min(1, Math.max(0, accumulated / threshold));
+  const accumulated = rule.value;
+  const threshold = rule.fatalThreshold;
+  if (accumulated === undefined || threshold === undefined) return null;
+  if (magnitudeOf(accumulated) === null) return null;
+  const limit = magnitudeOr(threshold, Number.NaN);
+  if (!Number.isFinite(limit) || limit <= 0) return null;
+  return magnitudeOf(onFatalAxis(accumulated, threshold));
 }
 
 /**
