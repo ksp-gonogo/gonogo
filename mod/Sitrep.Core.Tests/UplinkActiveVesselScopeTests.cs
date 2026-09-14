@@ -111,13 +111,15 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// A walk that finds nothing reports a clean repo. So the walk is pinned
         /// two ways: it must have read source from EVERY Uplink the discovery
-        /// found, and a floor on how much of it, either of which fails before
-        /// the counting tests above can pass on an empty set.
+        /// found, and over the planted Uplink it must read the fixture's own
+        /// files under the keys the debt list is written in, either of which
+        /// fails before the counting tests above can pass on an empty set.
         ///
         /// <para>Checked against the discovery rather than against a couple of
         /// filenames, so this names no mod. <c>UplinkIsolationTests</c> already
-        /// pins the discovery itself against <c>Gonogo.sln</c>, which is the
-        /// half a floor cannot do.</para>
+        /// pins the discovery itself against <c>Gonogo.sln</c> and its plant. The
+        /// plant half replaced a floor of a hundred files, which every mod Uplink
+        /// leaving for the gonogo-uplinks repo takes to zero.</para>
         /// </summary>
         [Fact]
         public void TheWalkFoundSourceForEveryUplinkItIsJudging()
@@ -132,9 +134,22 @@ namespace Sitrep.Core.Tests
                 .ToList();
 
             Assert.True(silent.Count == 0, "no .cs read for: " + string.Join(", ", silent));
+
+            var plantDirectory = Path.Combine(UplinkProjects.PlantRoot(), UplinkProjects.PlantedUplink);
+            var expected = Directory.EnumerateFiles(plantDirectory, "*.cs", SearchOption.TopDirectoryOnly)
+                .Select(path => UplinkProjects.PlantedUplink + "/" + Path.GetFileName(path))
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .ToList();
+            var plantRead = UplinkSourceFilesByKey(UplinkProjects.Discover(UplinkProjects.PlantRoot()))
+                .Select(entry => entry.Key)
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .ToList();
+
             Assert.True(
-                UplinkSourceFilesByKey().Count() > 100,
-                "only " + UplinkSourceFilesByKey().Count() + " Uplink .cs files found");
+                expected.Count > 0 && plantRead.SequenceEqual(expected),
+                $"Over the planted {UplinkProjects.PlantedUplink} the walk read [{string.Join(", ", plantRead)}], "
+                + $"expected exactly [{string.Join(", ", expected)}]. A walk that reads nothing, or keys what it "
+                + "reads differently from the debt list, reports a clean repo.");
         }
 
         /// <summary>
@@ -169,9 +184,13 @@ namespace Sitrep.Core.Tests
             return measured;
         }
 
-        private static IEnumerable<(string Key, string Path)> UplinkSourceFilesByKey()
+        private static IEnumerable<(string Key, string Path)> UplinkSourceFilesByKey() =>
+            UplinkSourceFilesByKey(UplinkProjects.Discover());
+
+        private static IEnumerable<(string Key, string Path)> UplinkSourceFilesByKey(
+            IReadOnlyDictionary<string, string> uplinks)
         {
-            foreach (var (uplink, directory) in UplinkProjects.Discover().OrderBy(e => e.Key, StringComparer.Ordinal))
+            foreach (var (uplink, directory) in uplinks.OrderBy(e => e.Key, StringComparer.Ordinal))
             {
                 foreach (var sourceDirectory in UplinkProjects.SourceDirectories(directory))
                 {

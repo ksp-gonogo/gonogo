@@ -157,14 +157,15 @@ namespace Sitrep.Core.Tests
                     + "source it thinks it is");
             }
 
+            // Only seams a project that stays in this repo implements. The shape
+            // the departed IIntegratedTrajectorySource pinned here, a seam satisfied
+            // across an assembly boundary by a base list naming two interfaces, is
+            // planted in TheScanSeesAPlantedViolationAndIgnoresAPlantedTestDouble
+            // instead, because its only implementer is an Uplink bound for the
+            // gonogo-uplinks repo.
             foreach (var required in new[]
                      {
                          "IPropagationProvider", "ISitrepProvider", "ISitrepUplink",
-                         // Satisfied only across an assembly boundary the solution
-                         // does not build, and satisfied by a type whose base list
-                         // names two interfaces rather than one. Both are why the
-                         // scan reads source text, so both are pinned here.
-                         "IIntegratedTrajectorySource",
                      })
             {
                 Assert.True(
@@ -222,12 +223,19 @@ namespace Planted
     public interface IPlantedUnsatisfied { }
 
     public interface IPlantedDoubleOnly { }
+
+    public interface IPlantedFirstOfTwo { }
+
+    public interface IPlantedSecondOfTwo { }
 }
 ");
                 Write(root, "Planted.Backend", "Backend.cs", @"
 namespace Planted
 {
     public sealed class PlantedBackend : IPlantedSatisfied { }
+
+    public sealed class PlantedTwoSeamBackend : IPlantedFirstOfTwo,
+        IPlantedSecondOfTwo { }
 }
 ");
                 Write(root, "Planted.Backend.Tests", "Doubles.cs", @"
@@ -239,11 +247,16 @@ namespace Planted.Tests
 
                 var graph = Scan(root);
 
-                Assert.Equal(3, graph.ProductionInterfaces.Count);
+                Assert.Equal(5, graph.ProductionInterfaces.Count);
                 Assert.Contains("IPlantedSatisfied", graph.Satisfied);
                 Assert.DoesNotContain("IPlantedUnsatisfied", graph.Satisfied);
                 Assert.DoesNotContain("IPlantedDoubleOnly", graph.Satisfied);
-                Assert.Equal(1, graph.ProductionTypeCount);
+
+                // Declared in one project and satisfied from another, by a base
+                // list naming two interfaces across a line break.
+                Assert.Contains("IPlantedFirstOfTwo", graph.Satisfied);
+                Assert.Contains("IPlantedSecondOfTwo", graph.Satisfied);
+                Assert.Equal(2, graph.ProductionTypeCount);
             }
             finally
             {

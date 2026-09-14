@@ -324,22 +324,104 @@ namespace Sitrep.Host.IntegrationTests
                     + "declared in production. The walk or the id resolver is broken.");
             }
 
-            var winnable = UplinkProvidedCapabilities();
-            Assert.True(
-                winnable.Count >= 10,
-                "The provider scan found " + winnable.Count + " exclusive capabilities "
-                + "with an Uplink provider, and ten had one on 2026-08-26. Fewer means "
-                + "the scan is no longer reading the registration sites, which would "
-                + "make every capability look unwinnable and the guard vacuous.");
+            AssertProviderAndMarkerScansSeeTheirSubjects();
+        }
 
-            var covered = MarkedCapabilities();
+        /// <summary>
+        /// The provider and marker scans, proved without counting what they find.
+        ///
+        /// <para>These were floors of ten providers and six markers, and every one
+        /// of those lives in an Uplink or its Tests project bound for the
+        /// gonogo-uplinks repo, so both counts are heading for zero and a floor
+        /// could not tell that from a scan that stopped reading its sites. Two
+        /// halves replace them. Over a planted tree each scan returns exactly the
+        /// planted ids, and nothing from the decoys beside them (a Tests project
+        /// and a contract slice registering a provider, a marker in a file with no
+        /// test, a marker outside a Tests project). Over the real tree the
+        /// directories each scan walks are exactly the matching projects
+        /// <c>Gonogo.sln</c> declares, in both directions, which holds at any
+        /// number of Uplinks including none.</para>
+        /// </summary>
+        private static void AssertProviderAndMarkerScansSeeTheirSubjects()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "census-plant-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                const string registration = "    Capability = {0},\n";
+                WritePlanted(root, "GonogoPlantedUplink", "GonogoPlantedUplink.csproj", "<Project />");
+                WritePlanted(root, "GonogoPlantedUplink", "PlantedProviders.cs",
+                    "class PlantedProviders\n{\n    private const string Aliased = \"plantedAliased\";\n"
+                    + string.Format(registration, "\"plantedLiteral\"")
+                    + string.Format(registration, "Aliased")
+                    + "}\n");
+                WritePlanted(root, "GonogoPlantedUplink.Contract", "GonogoPlantedUplink.Contract.csproj", "<Project />");
+                WritePlanted(root, "GonogoPlantedUplink.Contract", "Decoy.cs", string.Format(registration, "\"plantedContractDecoy\""));
+                WritePlanted(root, "GonogoPlantedUplink.Tests", "GonogoPlantedUplink.Tests.csproj", "<Project />");
+                WritePlanted(root, "GonogoPlantedUplink.Tests", "Decoy.cs", string.Format(registration, "\"plantedTestsDecoy\""));
+                WritePlanted(root, "GonogoPlantedUplink.Tests", "Case.cs",
+                    "class Case\n{\n    // " + Marker + " plantedLiteral\n    [Fact]\n    public void Starves() { }\n}\n");
+                WritePlanted(root, "GonogoPlantedUplink.Tests", "NoFact.cs", "// " + Marker + " plantedNoFact\n");
+                WritePlanted(root, "GonogoPlantedUplink", "Stray.cs", "// " + Marker + " plantedStray\n    [Fact]\n");
+
+                var providers = UplinkProvidedCapabilities(root).OrderBy(s => s, StringComparer.Ordinal).ToList();
+                Assert.True(
+                    providers.SequenceEqual(new[] { "plantedAliased", "plantedLiteral" }),
+                    "Over the planted tree the provider scan found [" + string.Join(", ", providers) + "], "
+                    + "expected exactly [plantedAliased, plantedLiteral]. A scan that is no longer reading "
+                    + "the registration sites makes every capability look unwinnable and the guard vacuous.");
+
+                var markers = MarkedCapabilities(root).OrderBy(s => s, StringComparer.Ordinal).ToList();
+                Assert.True(
+                    markers.SequenceEqual(new[] { "plantedLiteral" }),
+                    "Over the planted tree the marker scan found [" + string.Join(", ", markers) + "], "
+                    + "expected exactly [plantedLiteral]. A marker scan not reaching the Tests projects makes "
+                    + "the coverage guard fail loudly, but for the wrong reason.");
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+
+            var mod = ResolveModDir();
+            var solution = File.ReadAllText(Path.Combine(mod, "Gonogo.sln"));
+            var declared = Regex.Matches(solution, @"=\s*""([A-Za-z0-9_.]+)""")
+                .Select(m => m.Groups[1].Value)
+                .ToHashSet(StringComparer.Ordinal);
             Assert.True(
-                covered.Count >= 6,
-                "The marker scan found " + covered.Count + " capabilities claimed by a "
-                + "behavioural case, and six carried a marker on 2026-08-26. Fewer "
-                + "means the marker scan is not reaching the Tests projects, which "
-                + "would make the coverage guard fail loudly rather than silently, but "
-                + "for the wrong reason.");
+                declared.Contains("Sitrep.Host.IntegrationTests"),
+                "Gonogo.sln does not declare Sitrep.Host.IntegrationTests, the project running this check, "
+                + "so it is not the solution this repo builds and agreeing with it proves nothing.");
+
+            AssertAgrees(
+                "provider scan's Uplink directories",
+                UplinkDirectories(mod).Select(Path.GetFileName),
+                declared.Where(n => n.StartsWith("Gonogo", StringComparison.Ordinal)
+                    && n.EndsWith("Uplink", StringComparison.Ordinal)));
+
+            AssertAgrees(
+                "marker scan's Tests directories",
+                TestsDirectories(mod).Select(Path.GetFileName),
+                declared.Where(n => n.EndsWith(".Tests", StringComparison.Ordinal)));
+        }
+
+        private static void AssertAgrees(string what, IEnumerable<string?> walked, IEnumerable<string> declared)
+        {
+            var onDisk = walked.OfType<string>().ToHashSet(StringComparer.Ordinal);
+            var inSolution = declared.ToHashSet(StringComparer.Ordinal);
+            Assert.True(
+                onDisk.SetEquals(inSolution),
+                $"The {what} and Gonogo.sln disagree. Walked but not declared: ["
+                + string.Join(", ", onDisk.Except(inSolution).OrderBy(n => n, StringComparer.Ordinal))
+                + "]. Declared but not walked: ["
+                + string.Join(", ", inSolution.Except(onDisk).OrderBy(n => n, StringComparer.Ordinal))
+                + "].");
+        }
+
+        private static void WritePlanted(string root, string project, string file, string source)
+        {
+            var directory = Path.Combine(root, project);
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, file), source);
         }
 
         /// <summary>
@@ -383,9 +465,10 @@ namespace Sitrep.Host.IntegrationTests
         /// list would have to spell the Uplinks' names in a core test project, which
         /// is the coupling <c>uplink-boundary.test.ts</c> exists to stop.</para>
         /// </summary>
-        private static HashSet<string> UplinkProvidedCapabilities()
+        private static HashSet<string> UplinkProvidedCapabilities() => UplinkProvidedCapabilities(ResolveModDir());
+
+        private static HashSet<string> UplinkProvidedCapabilities(string mod)
         {
-            var mod = ResolveModDir();
             var constants = StringConstants(mod);
             var found = new HashSet<string>(StringComparer.Ordinal);
             var registration = new Regex(@"^\s*Capability\s*=\s*([^,]+),\s*$", RegexOptions.Compiled);
@@ -429,15 +512,15 @@ namespace Sitrep.Host.IntegrationTests
         /// Every capability claimed by a marker in a Tests project, where the marked
         /// file also holds at least one test.
         /// </summary>
-        private static HashSet<string> MarkedCapabilities()
+        private static HashSet<string> MarkedCapabilities() => MarkedCapabilities(ResolveModDir());
+
+        private static HashSet<string> MarkedCapabilities(string mod)
         {
-            var mod = ResolveModDir();
             var found = new HashSet<string>(StringComparer.Ordinal);
             var marked = new Regex(
                 Regex.Escape(Marker) + @"\s*([A-Za-z0-9_]+)", RegexOptions.Compiled);
 
-            foreach (var directory in Directory.EnumerateDirectories(mod)
-                .Where(d => Path.GetFileName(d).EndsWith(".Tests", StringComparison.Ordinal)))
+            foreach (var directory in TestsDirectories(mod))
             {
                 foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
                 {
@@ -589,6 +672,11 @@ namespace Sitrep.Host.IntegrationTests
                     && name.EndsWith("Uplink", StringComparison.Ordinal)
                     && File.Exists(Path.Combine(d, name + ".csproj"));
             });
+
+        /// <summary>Every <c>*.Tests</c> project directory, where behavioural cases carry their markers.</summary>
+        private static IEnumerable<string> TestsDirectories(string mod) =>
+            Directory.EnumerateDirectories(mod)
+                .Where(d => Path.GetFileName(d).EndsWith(".Tests", StringComparison.Ordinal));
 
         /// <summary>Every production <c>.cs</c> under <c>mod/</c>: no tests, no build output.</summary>
         private static IEnumerable<string> ProductionSources(string mod) =>

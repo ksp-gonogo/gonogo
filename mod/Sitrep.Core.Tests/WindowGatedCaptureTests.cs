@@ -89,8 +89,8 @@
 //   RenderMethod widened to match `Method`,    NoCaptureProjectPatchesARendering...
 //   so real Harmony call sites qualify         named two files in two different
 //                                              Uplinks, with line numbers
-//   MinimumCaptureProjectCount set to 999      ScanFindsEveryCaptureProject:
-//                                              "found 31 project(s), expected at
+//   Project floor set to 999 (the floor has    ScanFindsEveryCaptureProject:
+//   since been replaced by a planted tree)     "found 31 project(s), expected at
 //                                              least 999"
 //   An entry added with an empty reason        EveryUiReachExemptionStatesItsReason
 //   Restored                                   8 passed
@@ -151,17 +151,11 @@ namespace Sitrep.Core.Tests
         private static readonly string[] GameUiNamespaces = { "KSP.UI", "UnityEngine.UI", "TMPro" };
 
         /// <summary>
-        /// Floors on what the walk found, because a directory-walking gate whose
-        /// walk returns nothing reports no violations and looks exactly like a
-        /// clean repo. Measured 2026-09-01 at 31 projects and 562 files, and
-        /// again after three Uplinks left for the gonogo-uplinks repo on
-        /// 2026-09-06 at 21 and 21; the floors sit at or below that so ordinary
-        /// movement does not trip them and a broken path cannot pass as a clean
-        /// one.
+        /// A non-test project that stays in this repo whatever leaves it, so the
+        /// solution the walk is compared against can be seen to be the real one
+        /// rather than an empty stand-in.
         /// </summary>
-        private const int MinimumCaptureProjectCount = 21;
-
-        private const int MinimumScannedFileCount = 500;
+        private const string StayingCaptureProject = "Sitrep.Core";
 
         /// <summary>
         /// One file's sanctioned reach into the game's UI layer.
@@ -266,49 +260,64 @@ namespace Sitrep.Core.Tests
         /// The walk found its subjects, checked against a source it does not
         /// control.
         ///
-        /// <para>Two floors and a cross-check, because the counts alone would only
-        /// catch a walk that broke completely. <c>Gonogo.sln</c> is the
-        /// independent list: if the directory walk and the solution disagree about
-        /// which projects exist, one of them is wrong and this says so before the
+        /// <para>No count, because the honest count here falls every time an Uplink
+        /// leaves for the gonogo-uplinks repo and a floor on it cannot tell a smaller
+        /// tree from a broken walk. Three halves instead. The plant: over the fixture
+        /// tree in <see cref="UplinkProjects.PlantRoot"/> the project walk, the file
+        /// walk and the solution parse each return exactly what is planted, which a
+        /// broken predicate or parse cannot. The source: the real <c>Gonogo.sln</c>
+        /// declares a project that stays in this repo whatever leaves it. The
+        /// agreement: the directory walk and the solution name the same projects in
+        /// BOTH directions, so a project on one and not the other says so before the
         /// gates below report clean on a set they never assembled.</para>
         /// </summary>
         [Fact]
         public void ScanFindsEveryCaptureProject()
         {
+            var plantRoot = UplinkProjects.PlantRoot();
+            var plantedProjects = new[] { UplinkProjects.PlantedUplink, UplinkProjects.PlantedUplink + ".Contract" };
+
+            var plantWalked = DiscoverCaptureProjects(plantRoot).Keys.OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Assert.True(
+                plantWalked.SequenceEqual(plantedProjects),
+                $"The capture-project walk over the fixture at {plantRoot} found [{string.Join(", ", plantWalked)}], "
+                + $"expected exactly [{string.Join(", ", plantedProjects)}]. Every gate in this file walks this "
+                + "set, so a walk that finds nothing reports no violations and is indistinguishable from a clean repo.");
+
+            var plantDeclared = CaptureProjectsDeclaredInSolution(plantRoot).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Assert.True(
+                plantDeclared.SequenceEqual(plantedProjects),
+                $"The solution parse over the fixture's Gonogo.sln found [{string.Join(", ", plantDeclared)}], "
+                + $"expected exactly [{string.Join(", ", plantedProjects)}]. It is the independent source the "
+                + "real walk is checked against, so a parse that reads nothing compares nothing to nothing.");
+
+            var plantedDirectory = Path.Combine(plantRoot, UplinkProjects.PlantedUplink);
+            var plantedFiles = SourceFilesIn(plantedDirectory).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            var onDisk = Directory.EnumerateFiles(plantedDirectory, "*.cs").Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Assert.True(
+                onDisk.Count > 0 && plantedFiles.SequenceEqual(onDisk),
+                $"The file walk over the planted project read [{string.Join(", ", plantedFiles)}], expected "
+                + $"[{string.Join(", ", onDisk)}]. The project walk can look healthy while the file walk "
+                + "beneath it returns nothing, which is the same vacuous pass one level down.");
+
             var modDir = ResolveModDir();
             var projects = DiscoverCaptureProjects(modDir);
-
-            Assert.True(
-                projects.Count >= MinimumCaptureProjectCount,
-                $"The capture-project scan found {projects.Count} project(s), expected at least "
-                + $"{MinimumCaptureProjectCount}. Every gate in this file walks this set, so a walk "
-                + "that finds nothing reports no violations and is indistinguishable from a clean "
-                + "repo. Either mod/ moved (fix ResolveModDir/DiscoverCaptureProjects) or projects "
-                + "were removed (lower the floor deliberately). Found: "
-                + string.Join(", ", projects.Keys.OrderBy(k => k, StringComparer.Ordinal)));
-
-            var files = projects.Values.SelectMany(SourceFilesIn).Count();
-            Assert.True(
-                files >= MinimumScannedFileCount,
-                $"The scan walked {files} C# file(s) across {projects.Count} project(s), expected at "
-                + $"least {MinimumScannedFileCount}. The project count can look healthy while the "
-                + "file walk beneath it returns nothing, which is the same vacuous pass one level "
-                + "down, so the files are counted too.");
-
             var declared = CaptureProjectsDeclaredInSolution(modDir);
+
             Assert.True(
-                declared.Count >= MinimumCaptureProjectCount,
-                $"Gonogo.sln declares only {declared.Count} non-test project(s). This is the "
-                + "independent source the directory walk is checked against, so if it comes back "
-                + "empty the comparison below compares nothing to nothing and passes.");
+                declared.Contains(StayingCaptureProject),
+                $"Gonogo.sln does not declare {StayingCaptureProject}, which stays in this repo whatever leaves "
+                + "it, so it is not the solution this repo builds and agreeing with it proves nothing. Declared: "
+                + string.Join(", ", declared.OrderBy(n => n, StringComparer.Ordinal)));
 
             var missing = declared.Except(projects.Keys).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            var undeclared = projects.Keys.Except(declared).OrderBy(n => n, StringComparer.Ordinal).ToList();
             Assert.True(
-                missing.Count == 0,
-                "Gonogo.sln declares projects the directory walk did not find: "
-                + string.Join(", ", missing)
-                + ". Either the walk is broken or a project was removed from disk but left in the "
-                + "solution.");
+                missing.Count == 0 && undeclared.Count == 0,
+                "The capture-project walk and Gonogo.sln disagree. Declared but not walked: ["
+                + string.Join(", ", missing) + "]. Walked but not declared: ["
+                + string.Join(", ", undeclared) + "]. Either the walk is broken, or a project was added to "
+                + "or removed from one of disk and solution without the other.");
         }
 
         /// <summary>
@@ -709,11 +718,10 @@ namespace Sitrep.Core.Tests
         {
             var declared = new HashSet<string>(StringComparer.Ordinal);
             var solution = Path.Combine(root, "Gonogo.sln");
-            if (!File.Exists(solution))
-            {
-                return declared;
-            }
 
+            // A missing solution throws rather than answering empty: the walk is
+            // compared against this in both directions, and an empty set is also
+            // what a tree with nothing left to find looks like.
             foreach (Match match in Regex.Matches(File.ReadAllText(solution), @"=\s*""([A-Za-z0-9_.]+)"""))
             {
                 var name = match.Groups[1].Value;

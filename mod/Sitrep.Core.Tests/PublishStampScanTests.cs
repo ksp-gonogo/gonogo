@@ -33,24 +33,10 @@ namespace Sitrep.Core.Tests
     /// </summary>
     public class PublishStampScanTests
     {
-        /// <summary>
-        /// How few call sites would mean the scan has stopped seeing the tree
-        /// rather than that the tree got smaller. Seventy-eight were found when
-        /// this was written; a floor well under that survives ordinary churn
-        /// while still failing a match pattern that quietly stops matching.
-        /// </summary>
-        private const int MinimumCallSites = 60;
-
         [Fact]
         public void EveryPublishIsStampedWithSomethingThatNamesATime()
         {
             var sites = PublishSites(ProducerFieldParityTests.ResolveModDir());
-
-            Assert.True(
-                sites.Count >= MinimumCallSites,
-                "The publish scan found only " + sites.Count + " call sites (expected at least "
-                    + MinimumCallSites + "). Either the mod shrank a great deal or the scan has "
-                    + "stopped matching, and a scan that matches nothing reports a clean tree.");
 
             var offenders = sites.Where(site => !NamesATime(site.Stamp)).ToList();
 
@@ -60,6 +46,67 @@ namespace Sitrep.Core.Tests
                     + "expression that does not name one, and the engine will record the sample at "
                     + "whatever number it is, because its only check on a stamp is a forward clamp:\n  "
                     + string.Join("\n  ", offenders.Select(o => o.File + ": Publish(..., " + o.Stamp + ")")));
+        }
+
+        /// <summary>
+        /// The scan sees the call sites it is meant to judge.
+        ///
+        /// <para>This was a floor of sixty sites, and roughly half of them are in
+        /// Uplinks leaving for the gonogo-uplinks repo, so it could not tell a
+        /// smaller tree from a matcher that had stopped matching. Two halves
+        /// replace it. Over a planted tree the scan returns exactly the planted
+        /// stamps and nothing from a test project beside them. Over the real tree
+        /// the files it found a site in are exactly the production files whose
+        /// text contains <c>.Publish(</c> at all, a plain substring read that
+        /// shares nothing with the argument splitter, so a site the splitter drops
+        /// shows up as a disagreement at any size of tree.</para>
+        /// </summary>
+        [Fact]
+        public void TheScanSeesThePublishCallsItJudges()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "publish-stamp-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                WritePlanted(root, "Planted.Backend", "Backend.cs",
+                    "class Backend { void Tick(IChannelPublisher publisher, Snapshot cap) {\n"
+                    + "    publisher.Publish(new { a = 1, b = (2, 3) }, cap.Ut);\n"
+                    + "    _roster.Publish(cap.Roster, cap.Roster.Count);\n"
+                    + "} }\n");
+                WritePlanted(root, "Planted.Backend.Tests", "BackendDouble.cs",
+                    "class Double { void Tick() { publisher.Publish(payload, 42); } }\n");
+
+                var planted = PublishSites(root).Select(s => s.File + " " + s.Stamp).ToList();
+                Assert.Equal(
+                    new[] { "mod/Planted.Backend/Backend.cs cap.Ut", "mod/Planted.Backend/Backend.cs cap.Roster.Count" },
+                    planted);
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+
+            var modDir = ProducerFieldParityTests.ResolveModDir();
+            var withSites = PublishSites(modDir).Select(s => s.File).ToHashSet(StringComparer.Ordinal);
+            var mentioning = ProducerFlattenScan.ProductionSources(modDir)
+                .Where(s => s.Text.Contains(".Publish(", StringComparison.Ordinal))
+                .Select(s => s.Path)
+                .ToHashSet(StringComparer.Ordinal);
+
+            Assert.True(
+                withSites.SetEquals(mentioning),
+                "The publish scan and a plain substring read disagree about which production files "
+                    + "publish. Mentioning .Publish( with no site read: ["
+                    + string.Join(", ", mentioning.Except(withSites).OrderBy(p => p, StringComparer.Ordinal))
+                    + "]. Sites read in a file that never mentions it: ["
+                    + string.Join(", ", withSites.Except(mentioning).OrderBy(p => p, StringComparer.Ordinal))
+                    + "]. A scan that has stopped matching reports a clean tree.");
+        }
+
+        private static void WritePlanted(string root, string project, string file, string source)
+        {
+            var directory = Path.Combine(root, project);
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, file), source);
         }
 
         /// <summary>
