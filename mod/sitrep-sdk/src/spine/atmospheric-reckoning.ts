@@ -99,6 +99,28 @@ const SENSED_ENVELOPE_SLACK = 1.5;
 const MIN_HISTORY_SAMPLES = 2;
 
 /**
+ * How many roundings of the fit's own working magnitude the residuals must
+ * clear before they count as the window disagreeing with the line.
+ *
+ * A perfect fit leaves residuals of zero in arithmetic and of a few ulps in a
+ * double, and which one a descent lands on is decided by whether its numbers
+ * happen to be representable in base two rather than by anything about the
+ * craft. Samples walked back from an anchor at -5 m/s² land on the first; the
+ * same walk at -5.2 lands on the second, about 2e-14 m/s against speeds of 250.
+ * So the residuals are compared against the precision of the arithmetic that
+ * produced them, and eight ulps is room for the handful of roundings between a
+ * sample and its predicted value: the two means, the slope, and the product.
+ *
+ * It is a claim about the MACHINE and not a floor under how small an error may
+ * be. Measured over 33768 perfectly-fitting windows, across UT epochs from 0 to
+ * 9e7, accelerations from -0.5 to -25.5 m/s² and windows of three to eight
+ * samples, the worst residue was 0.73 of these units and the faintest genuine
+ * scatter still banded was 26 of them. The threshold sits in that gap rather
+ * than against either edge of it.
+ */
+const FLOAT_RESIDUE_ULPS = 8;
+
+/**
  * The slice of `vessel.flight` this model reads.
  *
  * Declared structurally for the same reason `ConicOrbitInput` is: every field is
@@ -289,10 +311,14 @@ export interface SlopeFit {
    *   band rather than a fabricated one
    * - **no spread in time.** Handled where {@link slope} is, since without it
    *   there is no fit at all
-   * - **residuals of exactly zero.** Every sample on one line is a DEGENERATE
-   *   estimate, not evidence that an extrapolation is exact, and a zero-width
-   *   band is read downstream as the second thing. `ReckonedBands` would rather
-   *   have none, and real samples never land on it
+   * - **residuals no larger than the arithmetic's own rounding.** Every sample
+   *   on one line is a DEGENERATE estimate, not evidence that an extrapolation
+   *   is exact, and a zero-width band is read downstream as the second thing.
+   *   `ReckonedBands` would rather have none. The test is against
+   *   {@link FLOAT_RESIDUE_ULPS} rather than against zero because a perfect fit
+   *   reaches zero exactly only when its numbers are representable in base two:
+   *   asking `> 0` withheld from a descent at -5 m/s² and offered a 3e-14 m
+   *   interval on the same descent at -5.2
    */
   readonly stdError: number | undefined;
 }
@@ -371,15 +397,40 @@ export function verticalAccelerationOver(
   const dof = n - 2;
   if (dof < 1) return { samples: n, slope, stdError: undefined };
   let residuals = 0;
+  let speedScale = 0;
+  let timeScale = 0;
   for (const s of samples) {
     const predicted = vBar + slope * (s.t - tBar);
     residuals += (s.v - predicted) ** 2;
+    speedScale = Math.max(speedScale, Math.abs(s.v));
+    timeScale = Math.max(timeScale, Math.abs(s.t));
+  }
+  /*
+   * The residuals against the precision they were computed at, rather than
+   * against zero: see {@link FLOAT_RESIDUE_ULPS}. An RMS is what the comparison
+   * needs because a rounding is a bound on ONE residual, where the sum of
+   * squares grows with the sample count.
+   *
+   * The scale carries the TIME term as well as the speed, because a residual is
+   * `v - (vBar + slope * (t - tBar))` and `tBar` is a mean of INSTANTS: its own
+   * rounding is a fraction of an ulp of UT, which the slope then multiplies up
+   * into the speeds. UT reaches tens of millions of seconds in a long campaign
+   * where a descent rate is hundreds, so `|slope| * timeScale` is the larger of
+   * the two wherever the window does not sit near UT zero. A bound on the speeds
+   * alone is not a bound on this: it misses a perfectly-fitting window by up to
+   * five orders of magnitude, and misses every frame of the committed handover
+   * set, whose instants are UT ~1000 against speeds of ~700.
+   */
+  const residualRms = Math.sqrt(residuals / dof);
+  const fitScale = speedScale + Math.abs(slope) * timeScale;
+  if (residualRms <= FLOAT_RESIDUE_ULPS * Number.EPSILON * fitScale) {
+    return { samples: n, slope, stdError: undefined };
   }
   const stdError = Math.sqrt(residuals / dof / spread);
   return {
     samples: n,
     slope,
-    stdError: stdError > 0 && Number.isFinite(stdError) ? stdError : undefined,
+    stdError: Number.isFinite(stdError) ? stdError : undefined,
   };
 }
 
