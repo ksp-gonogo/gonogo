@@ -286,7 +286,14 @@ namespace GonogoRp1Uplink
             foreach (var name in Names(retirees, retireTimes, expiries, courses))
             {
                 var retiresAt = Rp1CrewMath.ZeroAsAbsent(Lookup(retireTimes, name));
-                var extensionUsed = retiresAt == null ? (double?)null : (Lookup(retireIncreases, name) ?? 0.0);
+                // Two absences, and only one of them defaults. A MISS in a table
+                // RP-1 handed over is a kerbal who has earned no extension yet,
+                // which is a genuine zero; a table nobody could read states
+                // nothing about anybody, and standing zero in there pushes every
+                // kerbal's latest retirement out by the whole cap.
+                var extensionUsed = retiresAt == null || retireIncreases == null
+                    ? (double?)null
+                    : (Lookup(retireIncreases, name) ?? 0.0);
                 var member = new Rp1CrewMemberRaw
                 {
                     Name = name,
@@ -553,13 +560,16 @@ namespace GonogoRp1Uplink
         /// </summary>
         private static List<string> Names(
             HashSet<string> retirees,
-            Dictionary<string, double> retireTimes,
+            Dictionary<string, double>? retireTimes,
             Dictionary<string, ExpiryRaw> expiries,
             Dictionary<string, CourseRaw> courses)
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var name in retirees) names.Add(name);
-            foreach (var name in retireTimes.Keys) names.Add(name);
+            if (retireTimes != null)
+            {
+                foreach (var name in retireTimes.Keys) names.Add(name);
+            }
             foreach (var name in expiries.Keys) names.Add(name);
             foreach (var name in courses.Keys) names.Add(name);
 
@@ -568,8 +578,14 @@ namespace GonogoRp1Uplink
             return ordered;
         }
 
-        private static double? Lookup(Dictionary<string, double> map, string name) =>
-            map.TryGetValue(name, out var value) ? value : (double?)null;
+        /// <summary>
+        /// One kerbal's entry, or null for a MISS. Null too for a dictionary that
+        /// could not be read at all, which is why the map is nullable: a miss in a
+        /// table RP-1 handed over and a table it would not hand over are different
+        /// facts, and only the first of them has a meaning worth defaulting.
+        /// </summary>
+        private static double? Lookup(Dictionary<string, double>? map, string name) =>
+            map != null && map.TryGetValue(name, out var value) ? value : (double?)null;
 
         // ── Reflection primitives ────────────────────────────────────────────
 
@@ -598,14 +614,21 @@ namespace GonogoRp1Uplink
         /// One of RP-1's name-keyed double dictionaries, materialised so the whole
         /// tick reads it once. Walked as <see cref="IDictionary"/> rather than
         /// cast, for the reason <see cref="Strings"/> gives.
+        ///
+        /// <para>NULL rather than empty when the member could not be read, or when
+        /// the walk broke part way through it and left a partial table behind. An
+        /// empty dictionary answers every lookup with a MISS, and a miss is a fact
+        /// about one kerbal that callers legitimately default; a table nobody could
+        /// read is a fact about the table, and returning it as empty is what lets
+        /// one unreadable member default every kerbal in the career.</para>
         /// </summary>
-        private static Dictionary<string, double> Doubles(object? dictionary)
+        private static Dictionary<string, double>? Doubles(object? dictionary)
         {
-            var map = new Dictionary<string, double>(StringComparer.Ordinal);
             if (!(dictionary is IDictionary d))
             {
-                return map;
+                return null;
             }
+            var map = new Dictionary<string, double>(StringComparer.Ordinal);
             try
             {
                 foreach (DictionaryEntry entry in d)
@@ -620,7 +643,9 @@ namespace GonogoRp1Uplink
             }
             catch (Exception)
             {
-                // fail-soft: an unreadable dictionary costs its own fields, never the tick
+                // fail-soft: an unreadable dictionary costs its own fields, never
+                // the tick. Partial rather than empty, so the whole table goes.
+                return null;
             }
             return map;
         }

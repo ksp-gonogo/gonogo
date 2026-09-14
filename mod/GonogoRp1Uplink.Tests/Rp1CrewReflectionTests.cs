@@ -96,6 +96,59 @@ public class Rp1CrewReflectionTests : System.IDisposable
         Assert.Equal(90_000.0 + 473_040_000.0, row.LatestRetiresAtUt);
     }
 
+    /// <summary>
+    /// An extension table nobody could finish reading leaves the ceiling ABSENT,
+    /// never spent-nothing.
+    ///
+    /// <para>The figure is SUBTRACTED from the career cap, so a substituted zero
+    /// hands the whole cap back. Jebediah below has spent 300000000 of the
+    /// 473040000 cap, and trusting the walk that never reached him dates his
+    /// ceiling at 473240000 rather than 173240000: nine and a half Julian years
+    /// of headroom he does not have, on the one figure a career is planned
+    /// around.</para>
+    ///
+    /// <para>Bill's entry WAS collected before the walk broke, and his ceiling
+    /// goes absent too. Deliberately: a truncated walk cannot tell a kerbal who
+    /// is missing from the partial table from one it simply never reached, so the
+    /// table is untrustworthy as a whole rather than per row. The retirement DATE
+    /// is read from a different table and still arrives for both, which is what
+    /// keeps this to the ceiling: the card goes on saying when they retire and
+    /// only stops claiming how much further it can be pushed.</para>
+    /// </summary>
+    [Fact]
+    public void AnUnreadableExtensionTableLeavesTheCeilingAbsentRatherThanTheWholeCap()
+    {
+        CrewHandler.Instance = new CrewHandler()
+            .Retires("Bill Kerman", atUt: 100_000.0, increaseUsed: 40_000.0)
+            .Retires("Jebediah Kerman", atUt: 200_000.0, increaseUsed: 300_000_000.0)
+            .RetireIncreasesThatBreakMidWalk();
+
+        var rows = new Rp1CrewReflection().Read(1000.0)!.Crew;
+
+        var jeb = Assert.Single(rows, row => row.Name == "Jebediah Kerman");
+        Assert.Null(jeb.LatestRetiresAtUt);
+        Assert.Null(jeb.RetirementExtensionUsedSeconds);
+        // The date the save does hold is untouched.
+        Assert.Equal(200_000.0, jeb.RetiresAtUt);
+
+        var bill = Assert.Single(rows, row => row.Name == "Bill Kerman");
+        Assert.Null(bill.LatestRetiresAtUt);
+        Assert.Null(bill.RetirementExtensionUsedSeconds);
+        Assert.Equal(100_000.0, bill.RetiresAtUt);
+    }
+
+    /// <summary>
+    /// The extension consumed is what the ceiling is measured from, so an absent
+    /// one takes the ceiling rather than being counted as nothing spent.
+    /// </summary>
+    [Fact]
+    public void AnAbsentExtensionConsumedMakesTheCeilingAbsentRatherThanTheWholeCap()
+    {
+        Assert.Null(Rp1CrewMath.LatestRetiresAtUt(500.0, null, 1000.0));
+        // And a READ zero still answers, because nothing spent is a reading.
+        Assert.Equal(1500.0, Rp1CrewMath.LatestRetiresAtUt(500.0, 0.0, 1000.0));
+    }
+
     [Fact]
     public void ReadsARunningCourseThroughItsPrivateProgressAndProtectedRate()
     {
