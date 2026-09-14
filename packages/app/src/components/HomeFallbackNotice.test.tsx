@@ -49,8 +49,7 @@ function mount() {
   return { ...fixture, ...view, emitRoster };
 }
 
-const MESSAGE =
-  "Couldn't tell which ground station is home, so Goldstone is standing in.";
+const MESSAGE = "Unable to identify home station. Using Goldstone.";
 
 describe("HomeFallbackNotice", () => {
   beforeEach(() => {
@@ -123,7 +122,7 @@ describe("HomeFallbackNotice", () => {
     ]);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Couldn't tell which ground station is home, so Canberra is standing in.",
+      "Unable to identify home station. Using Canberra.",
     );
 
     fixture.unmount();
