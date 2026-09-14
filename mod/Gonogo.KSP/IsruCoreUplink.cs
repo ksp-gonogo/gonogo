@@ -83,7 +83,7 @@ namespace Gonogo.KSP
             {
                 return new IsruCapture
                 {
-                    Ut = snapshot?.Ut ?? 0.0,
+                    Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Drills = new List<IsruDrillEntry>(backend.Drills()),
                     Converters = new List<IsruConverterEntry>(backend.Converters()),
                 };
