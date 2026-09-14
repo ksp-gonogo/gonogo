@@ -183,9 +183,10 @@ export function resolveUplinkPackage(
  * the specifier resolves to a `dist/` that the caller is standing in.
  *
  * The whole file rather than its first `:root` block: the sheet also carries the
- * border-box reset the kit's primitives are drawn against, outside that block,
- * and a probe that injected only the tokens laid every widget out with its
- * paddings added to widths the app resolves them inside of.
+ * border-box reset and the form-control `font: inherit` the kit's primitives are
+ * drawn against, outside that block, and a probe that injected only the tokens
+ * laid every widget out with its paddings added to widths the app resolves them
+ * inside of.
  */
 export function themeTokensCss(): string {
   const candidates = [
