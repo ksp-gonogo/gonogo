@@ -220,6 +220,11 @@ namespace GonogoRp1Uplink
         /// identical route through absolute-time polynomial coefficients; over a
         /// domain of 0 to 2 the two agree to the last bits of a double, and the
         /// basis form is the one that can be read against the disassembly.</para>
+        ///
+        /// <para>Absent when the segment <paramref name="frac"/> lands in is
+        /// bounded by a tangent that could not be read. Only that segment: the
+        /// clamped ends and every other segment are answered from keys that do
+        /// state their own slopes.</para>
         /// </summary>
         public static double? EvaluateCurve(List<Rp1FundingCurveKeyRaw>? keys, double frac)
         {
@@ -245,9 +250,20 @@ namespace GonogoRp1Uplink
                     continue;
                 }
                 var k1 = keys[i + 1];
+                var leaving = k0.OutTangent;
+                var arriving = k1.InTangent;
+                // The two slopes this segment is shaped by. Absent takes the
+                // segment with it and nothing beyond it: a reading interpolated
+                // through a guessed slope of zero is a plateau RP-1's own curve
+                // does not have, while the keys either side still state their own
+                // values and the rest of the term is answered from its own keys.
+                if (leaving == null || arriving == null)
+                {
+                    return null;
+                }
                 // An infinite tangent is RP-1's step mode: the segment holds the
                 // left key's value rather than interpolating through infinity.
-                if (double.IsInfinity(k0.OutTangent) || double.IsInfinity(k1.InTangent))
+                if (double.IsInfinity(leaving.Value) || double.IsInfinity(arriving.Value))
                 {
                     return k0.PaidFraction;
                 }
@@ -266,9 +282,9 @@ namespace GonogoRp1Uplink
                 var t2 = t * t;
                 var t3 = t2 * t;
                 return (2.0 * t3 - 3.0 * t2 + 1.0) * k0.PaidFraction
-                    + (t3 - 2.0 * t2 + t) * span * k0.OutTangent
+                    + (t3 - 2.0 * t2 + t) * span * leaving.Value
                     + (-2.0 * t3 + 3.0 * t2) * k1.PaidFraction
-                    + (t3 - t2) * span * k1.InTangent;
+                    + (t3 - t2) * span * arriving.Value;
             }
             return first.PaidFraction;
         }

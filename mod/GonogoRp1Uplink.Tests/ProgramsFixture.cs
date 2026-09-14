@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 // A stand-in for RP-1's Program object graph, declared in RP-1's own namespace
@@ -218,16 +219,40 @@ namespace ROUtils
     {
         public struct Key
         {
+            /// <summary>
+            /// The POSITION of the one key whose <c>inTangent</c> cannot be read,
+            /// which is the state a value cannot express: the curve enumerated and
+            /// then would not say what slope arrives at this key.
+            ///
+            /// <para>Keyed on position rather than a bare flag so a test can leave
+            /// the neighbouring keys readable, which is what makes an absence that
+            /// costs only its own segment distinguishable from one that flattens
+            /// the whole curve.</para>
+            /// </summary>
+            public static double? UnreadableInTangentAt;
+
             public double time;
             public double value;
-            public double inTangent;
             public double outTangent;
+
+            private double _inTangent;
+
+            // A property rather than the real type's plain field, and only so the
+            // switch above has somewhere to live. The walk resolves a property and
+            // a field by the same call, so the production path is unchanged.
+            public double inTangent
+            {
+                get => UnreadableInTangentAt != null && UnreadableInTangentAt.Value == time
+                    ? throw new InvalidOperationException("inTangent unreadable")
+                    : _inTangent;
+                set => _inTangent = value;
+            }
 
             public Key(double time, double value, double inTangent, double outTangent)
             {
                 this.time = time;
                 this.value = value;
-                this.inTangent = inTangent;
+                _inTangent = inTangent;
                 this.outTangent = outTangent;
             }
         }
