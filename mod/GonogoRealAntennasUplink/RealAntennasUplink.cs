@@ -8,7 +8,7 @@ namespace Gonogo.RealAntennasUplink
     /// <summary>
     /// The GonogoRealAntennasUplink (comms-uplink-design.md §2.2, §4). A
     /// SEPARATE (non-bundled) uplink, discovered by the same
-    /// <c>[SitrepUplink]</c> assembly scan as every other. It does two things:
+    /// <c>[SitrepUplink]</c> assembly scan as every other. It does three things:
     ///
     /// <list type="number">
     /// <item>When RealAntennas is loaded (the <see cref="RaReflection"/> probe,
@@ -23,6 +23,9 @@ namespace Gonogo.RealAntennasUplink
     /// read live off the RACommLink; margin/quality are RE-DERIVED by
     /// <see cref="RaLinkBudget"/> from RA's public antenna props (§4.3), never
     /// reflected off a live field.</item>
+    /// <item>When RealAntennas is loaded, it claims the exclusive
+    /// <c>"homeCommand"</c> capability with <see cref="RaHomeCommandProvider"/>:
+    /// home is the ground station nearest KSP's space centre.</item>
     /// </list>
     ///
     /// <para>NO compile-time reference to RA's CC-BY-SA-4.0 assembly, every RA
@@ -253,6 +256,18 @@ namespace Gonogo.RealAntennasUplink
             catch (Exception ex)
             {
                 Console.Error.WriteLine("[RealAntennasUplink] could not register comms provider: " + ex.Message);
+            }
+
+            // Every RA ground station is home for comms, so stock's claimant, which
+            // wants exactly one flagged station, names none of them. The capability is
+            // declared in the comms core's capability pass, like "comms" above.
+            try
+            {
+                host.Kernel.RegisterProvider(RaHomeCommandProvider.Registration(new RaSpaceCentre().Read));
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("[RealAntennasUplink] could not register home-command provider: " + ex.Message);
             }
 
             // Bare-boolean presence gate: true while RA is loaded. Same shape as
