@@ -367,7 +367,10 @@ function RefitControl({
     return null;
   }
 
-  const others = magnitudeOf(part.symmetryCounterparts) ?? 0;
+  // Not defaulted to zero. Zero is what SUPPRESSES the reach line below, so a
+  // count RP-1 would not give up would silently promise that only the named part
+  // changes while a refit resizes every counterpart with it.
+  const others = magnitudeOf(part.symmetryCounterparts);
 
   return (
     <Disclosure
@@ -390,12 +393,20 @@ function RefitControl({
         <Text size="xs" tone="muted">
           costs nothing, and drops the{" "}
           <Unit value={part.untooledSurcharge} decimals={0} /> per build
-          {others > 0 && (
+          {others === null ? (
             <>
-              {" · takes "}
-              {others} other part{others === 1 ? "" : "s"} in symmetry, and the
-              material goes on the group
+              {" · "}
+              {NULL_DISPLAY} RP-1 has not said how many other parts are in
+              symmetry with this one, and a refit takes every one of them
             </>
+          ) : (
+            others > 0 && (
+              <>
+                {" · takes "}
+                {others} other part{others === 1 ? "" : "s"} in symmetry, and
+                the material goes on the group
+              </>
+            )
           )}
         </Text>
         {targets.map((target) => (

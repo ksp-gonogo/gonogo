@@ -281,7 +281,7 @@ namespace GonogoRp1Uplink
                 // afterwards, in a screen message. A console can put the number
                 // beside the control instead, which is the same disclosure at the
                 // moment it can still change the answer.
-                SymmetryCounterparts = Count(Rp1Types.Member(part, "symmetryCounterparts")),
+                SymmetryCounterparts = CountOrNull(Rp1Types.Member(part, "symmetryCounterparts")),
 
                 // A refit reshapes through ModuleROTank or ProceduralPart and
                 // silently does nothing on a part with neither. Answered here so a
@@ -475,12 +475,21 @@ namespace GonogoRp1Uplink
             }
         }
 
-        /// <summary>How many are in one of the game's collections.</summary>
-        private static int Count(object? collection)
+        /// <summary>
+        /// How many are in one of the game's collections, or null when the member
+        /// could not be read at all.
+        ///
+        /// <para>Absent rather than zero, in the same family as
+        /// <see cref="EmptyAsAbsent"/> beside it. Zero is the reading that
+        /// SUPPRESSES a count on a screen, so a member nobody could read and a
+        /// collection that is genuinely empty are the two answers that must not
+        /// look alike: the first leaves a consequence of a command unsaid.</para>
+        /// </summary>
+        private static int? CountOrNull(object? collection)
         {
             if (collection == null)
             {
-                return 0;
+                return null;
             }
             var n = 0;
             foreach (var _ in Rp1Types.Enumerate(collection))
