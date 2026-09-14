@@ -423,6 +423,129 @@ describe("BurnEditor", () => {
     await act(async () => {});
   });
 
+  /**
+   * The third state, which used to arrive as a false.
+   *
+   * <p>The mod withholds `executing` when the burn's ignition or cutoff would
+   * not read, because with neither instant there is no window to test. It used
+   * to coerce that to false, and false is the ALL-CLEAR: no badge, and every
+   * control live.</p>
+   */
+  it("marks a burn whose execution state could not be read", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ executing: null })] });
+
+    expect(screen.getByText("BURN STATE UNREAD")).toBeInTheDocument();
+    // Not BURNING, which would claim the craft IS under thrust. The whole point
+    // is that neither claim can be made.
+    expect(screen.queryByText("BURNING")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * <b>The destructive one.</b> REMOVE deletes a burn out of the plan the craft
+   * is flying, and it is deliberately NOT frozen by the edit deadline or the
+   * burn-struct verdict, so this is the only thing standing between the control
+   * and a burn that may be under thrust.
+   *
+   * <p>The mod's own refusal was unreachable: `RejectExecuting` answered null
+   * for an unreadable instant, null there means "no refusal", and the receipt
+   * came back `Written`. So the operator's console confirmed it had deleted a
+   * burn nobody could say was idle.</p>
+   */
+  it("freezes every write, REMOVE included, while the execution state is unread", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ executing: null })] });
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Remove this burn from the plan" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Add a burn from these values" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText("WHETHER THIS BURN IS RUNNING COULD NOT BE READ"),
+    ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * A burn the mod says IS running freezes the same three, rather than being
+   * offered locally and refused a light time later.
+   */
+  it("freezes every write, REMOVE included, on a burn that is running", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ executing: true })] });
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Remove this burn from the plan" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    await act(async () => {});
+  });
+
+  /**
+   * And a burn the mod says is idle keeps all three, so the freeze has not been
+   * turned into a blanket one. False is the only positive all-clear and it is
+   * still honoured.
+   */
+  it("leaves every write live on a burn the mod says is idle", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ executing: false })] });
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Remove this burn from the plan" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeEnabled();
+    await act(async () => {});
+  });
+
+  /**
+   * "Locked" is a property OF THE FRAME, and the mod withholds `frameEditable`
+   * when the frame extension would not read at all, so the whitelist was never
+   * checked against anything. It used to coerce that to false, which put "FRAME
+   * LOCKED" and "THIS FRAME CANNOT BE WRITTEN BACK" on screen about a frame
+   * this build never saw. The write stays refused either way; what differs is
+   * what the operator is told and where it sends them.
+   */
+  it("says the frame was unread rather than locked when it could not be read", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [burn({ frameType: null, frameEditable: null })],
+    });
+
+    expect(screen.getByText("FRAME UNREAD")).toBeInTheDocument();
+    expect(screen.queryByText("FRAME LOCKED")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByText("THIS FRAME COULD NOT BE READ"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("THIS FRAME CANNOT BE WRITTEN BACK"),
+    ).not.toBeInTheDocument();
+    // Still refused: an unreadable frame is not a frame an edit may be sent
+    // with, and the mod refuses `BurnFrameUnsupported` on it.
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    await act(async () => {});
+  });
+
   /** Which of the ten slots is live, because the numbers all belong to it. */
   it("says which plan slot the numbers belong to", async () => {
     const stream = mount();

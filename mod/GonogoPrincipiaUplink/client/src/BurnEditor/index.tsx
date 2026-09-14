@@ -332,10 +332,25 @@ export function BurnEditor() {
   const componentsUnreadable =
     selected !== undefined &&
     magnitudeOf(selected.coordinateSystem) !== CARTESIAN_TNB;
+  /*
+   * A burn NOT KNOWN to be idle, which is two states rather than one: it is
+   * running, or its ignition and cutoff would not read and so nothing can say
+   * whether it is. The mod refuses both, `BurnExecuting` for the first and
+   * `GuardReadUnreadable` for the second, so offering a control here spends a
+   * delay round trip to be told what the reading already carries.
+   *
+   * `!== false` rather than `=== true`, deliberately. A false is the only
+   * positive all-clear: an absent or null flag is the mod saying it could not
+   * establish the burn was idle, and the whole reason that state exists on the
+   * wire is that it used to arrive as a false and hand out these controls for a
+   * burn that may have been under thrust.
+   */
+  const notKnownIdle = selected !== undefined && selected.executing !== false;
   const frozen =
     !armed ||
     selected?.frameEditable !== true ||
     componentsUnreadable ||
+    notKnownIdle ||
     outOfContact !== null;
   /*
    * An arm is not a burn verdict. `PrincipiaLayoutProbe.Run` records both
@@ -512,8 +527,21 @@ export function BurnEditor() {
                   {burn.executing === true && (
                     <Badge severity="critical">BURNING</Badge>
                   )}
+                  {/* The third state, and it is not BURNING: the mod could not
+                      read this burn's instants, so nothing here can say whether
+                      the craft is under thrust. Claiming either way is what the
+                      coerced false did. Every write against it is refused. */}
+                  {burn.executing == null && (
+                    <Badge severity="caution">BURN STATE UNREAD</Badge>
+                  )}
                   {burn.frameEditable === false && (
                     <Badge severity="warning">FRAME LOCKED</Badge>
+                  )}
+                  {/* Locked is a property OF THE FRAME. This is the frame not
+                      having been read at all, which is a different sentence and
+                      sends the operator somewhere else. */}
+                  {burn.frameEditable == null && (
+                    <Badge severity="caution">FRAME UNREAD</Badge>
                   )}
                   {burn.anomalous === true && (
                     <Badge severity="warning">ANOM</Badge>
@@ -544,6 +572,21 @@ export function BurnEditor() {
               {selected.frameEditable === false && (
                 <Badge severity="warning">
                   THIS FRAME CANNOT BE WRITTEN BACK
+                </Badge>
+              )}
+              {/* Not "cannot be written back", which states a property of the
+                  frame. The frame extension did not read, so the whitelist
+                  could not be checked against anything. The write stays refused
+                  either way; what differs is what the operator is told. */}
+              {selected.frameEditable == null && (
+                <Badge severity="caution">THIS FRAME COULD NOT BE READ</Badge>
+              )}
+              {/* Said beside the burn rather than only in the frozen controls,
+                  because it is the reason they are dark and it is not a reason
+                  anything else on screen carries. */}
+              {selected.executing == null && (
+                <Badge severity="caution">
+                  WHETHER THIS BURN IS RUNNING COULD NOT BE READ
                 </Badge>
               )}
               {componentsUnreadable && (
@@ -857,7 +900,14 @@ export function BurnEditor() {
                 // deadline, though, because dropping a burn that has already
                 // flown is how a plan gets tidied and is the one write with
                 // nothing to beat.
-                disabled={!armed || outOfContact !== null}
+                //
+                // `notKnownIdle` freezes it because this is the DESTRUCTIVE one.
+                // Deleting a burn that may be under thrust changes the plan
+                // beneath a craft that is flying it, and the mod's refusal used
+                // to be unreachable: an unreadable instant answered "no refusal"
+                // and the receipt came back Written, so the operator's own
+                // console confirmed the deletion.
+                disabled={!armed || notKnownIdle || outOfContact !== null}
                 aria-label="Remove this burn from the plan"
                 confirmAriaLabel="Confirm removing this burn from the plan"
               />
