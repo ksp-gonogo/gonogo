@@ -190,7 +190,7 @@ function SemiMajorAxisComponent({
             }}
           >
             {/* The whole reading rather than the bare value, so the number
-                itself carries whether it is current: the dotted mark for a
+                itself carries whether it is current: the superscript dot for a
                 sighted reader, the grade's own word for a listening one. The
                 muted tone above and the caption below are the widget's own
                 additions to that, not the only thing saying it. */}

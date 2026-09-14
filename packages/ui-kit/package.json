@@ -54,7 +54,8 @@
     "render:markers": "node scripts/render-markers.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json",
-    "render:meter-bands": "node scripts/render-meter-bands.ts"
+    "render:meter-bands": "node scripts/render-meter-bands.ts",
+    "render:unit-currency": "node scripts/render-unit-currency.ts"
   },
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
