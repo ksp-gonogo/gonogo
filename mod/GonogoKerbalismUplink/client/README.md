@@ -152,5 +152,4 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | processor | `kerbalism:crew-survival` |
 | forward model | `kerbalism.crew` |
 | forward model | `vessel.resources` |
-| derived channel | `kerbalism.resourceProjection` |
 
