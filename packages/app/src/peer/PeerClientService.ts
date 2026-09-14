@@ -323,7 +323,17 @@ export class PeerClientService {
   private connectToHost(): void {
     if (!this.peer || !this.hostPeerId) return;
     logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
-    this.conn = this.peer.connect(this.hostPeerId);
+    /*
+     * `reliable: true` is what makes PeerJS open the channel ordered; without
+     * it the channel is reliable but unordered. Every class on this link is
+     * order-sensitive: a retransmitted `data` sample landing after its
+     * successor overwrites the newer value, a subscribe swapped with its
+     * unsubscribe leaves the wrong refcount on the host, a swapped GO/NO-GO
+     * vote or countdown start/cancel reverses the operator's last word, and
+     * radio chunks play in arrival order. Delivery is unchanged either way, so
+     * the only cost is head-of-line waiting behind a lost packet's retransmit.
+     */
+    this.conn = this.peer.connect(this.hostPeerId, { reliable: true });
     attachIceDiagnostics(this.conn, () => {
       // The host's peer can die without peerjs ever firing `close` (abrupt
       // pagehide on host refresh). This is the line that ships to Axiom to
