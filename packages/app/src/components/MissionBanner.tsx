@@ -1,7 +1,9 @@
+import { useGameContext } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
+import { SignalDelayReadout } from "./SignalDelayReadout";
 import { VantageControl } from "./VantageControl";
 
 /**
@@ -25,24 +27,49 @@ import { VantageControl } from "./VantageControl";
  * discoverable as one unit instead. A field whose value changes rarely and
  * matters when it does can still declare its own live region, and the station's
  * vantage readout is one.
+ *
+ * The signal delay sits beside the command centre because it is that centre's
+ * distance from the craft, and it is only there while a craft is flying.
  */
 export function MissionBanner() {
   const ut = useViewUt();
 
-  const fields: { label: string; value: ReactNode }[] = [
-    { label: "UT", value: <MissionDate value={ut} /> },
-    { label: "CC", value: <VantageControl /> },
-  ];
-
   return (
     <Banner role="group" aria-label="Mission status">
-      {fields.map((field) => (
-        <InlinePair key={field.label}>
-          <ReadoutCaption>{field.label}</ReadoutCaption>
-          <FieldValue>{field.value}</FieldValue>
-        </InlinePair>
-      ))}
+      <BannerField label="UT">
+        <MissionDate value={ut} />
+      </BannerField>
+      <BannerField label="CC">
+        <VantageControl />
+      </BannerField>
+      <SignalDelayField />
     </Banner>
+  );
+}
+
+function BannerField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <InlinePair>
+      <ReadoutCaption>{label}</ReadoutCaption>
+      <FieldValue>{children}</FieldValue>
+    </InlinePair>
+  );
+}
+
+/** No active vessel, no field: there is no craft for a delay to be measured to. */
+function SignalDelayField() {
+  const { inFlight } = useGameContext();
+  if (!inFlight) return null;
+  return (
+    <BannerField label="Delay">
+      <SignalDelayReadout />
+    </BannerField>
   );
 }
 
