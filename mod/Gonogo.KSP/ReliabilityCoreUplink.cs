@@ -171,7 +171,7 @@ namespace Gonogo.KSP
                 _lastCaptureFailed = false;
                 return new ReliabilityCapture
                 {
-                    Ut = snapshot?.Ut ?? 0.0,
+                    Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Summary = summary,
                     Parts = new List<ReliabilityPartEntry>(backend.Parts()),
                 };
@@ -186,7 +186,7 @@ namespace Gonogo.KSP
                 UnityEngine.Debug.LogError("[Gonogo] reliability capture threw: " + ex.Message);
                 return new ReliabilityCapture
                 {
-                    Ut = snapshot?.Ut ?? 0.0,
+                    Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Summary = new ReliabilitySummary
                     {
                         Source = backend.ProviderId,

@@ -504,7 +504,7 @@ namespace Gonogo.KSP
 
             return new PartActionsCapture
             {
-                Ut = snapshot?.Ut ?? 0.0,
+                Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                 Publications = PartActionsViewProvider.Build(_partActionActuator, subscribed, vesselId),
             };
         }

@@ -725,7 +725,7 @@ namespace Gonogo.KSP
 
                 return new CommsCapture
                 {
-                    Ut = snapshot?.Ut ?? 0.0,
+                    Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Connectivity = connectivity,
                     SignalStrength = backend.SignalStrength(),
                     ControlState = backend.ControlState(),
