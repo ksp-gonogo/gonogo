@@ -42,6 +42,34 @@ const trueNow = [...dispositions.entries()]
   .map(([topic]) => topic)
   .sort();
 
+/*
+ * Held at the home command: a DELAYED channel the mod already delivers to each
+ * vantage after that vantage's own delay to home, so the client must not take
+ * the active craft's light-time off it a second time. Its own table rather than
+ * a row in the TrueNow one, because the two are different claims: a TrueNow
+ * value is current everywhere at once, a held-at-home one only as current as the
+ * newest delivery to where the reader stands.
+ */
+const heldAtHome = [...dispositions.entries()]
+  .filter(
+    ([, disposition]) =>
+      disposition.heldAtHome === true && disposition.delay === "delayed",
+  )
+  .map(([topic]) => topic)
+  .sort();
+
+/** The same floor for the second table, and for the same reason: empty reads as "nothing is held at home". */
+const HELD_AT_HOME_FLOOR = 10;
+
+if (heldAtHome.length < HELD_AT_HOME_FLOOR) {
+  console.error(
+    `✖ delay-roles: the scan found ${heldAtHome.length} held-at-home channels, fewer ` +
+      `than the ${HELD_AT_HOME_FLOOR} this repo has. That is the scan being broken ` +
+      "rather than the ledger moving. Refusing to write the table.",
+  );
+  process.exit(1);
+}
+
 if (trueNow.length < FLOOR) {
   console.error(
     `✖ delay-roles: the scan found ${trueNow.length} TrueNow channels, fewer ` +
@@ -77,7 +105,21 @@ const lines = [
   "export type GeneratedTrueNowTopic =",
   "  (typeof GENERATED_TRUENOW_TOPICS)[number];",
   "",
+  "/**",
+  " * Every channel the mod declares `HeldAtHome`: delayed, and already delivered",
+  " * to each vantage after that vantage's own delay to the home command.",
+  " */",
+  "export const GENERATED_HELD_AT_HOME_TOPICS = [",
+  ...heldAtHome.map((topic) => `  ${JSON.stringify(topic)},`),
+  "] as const;",
+  "",
+  "/** One of the topics above, as a key union for the type layer. */",
+  "export type GeneratedHeldAtHomeTopic =",
+  "  (typeof GENERATED_HELD_AT_HOME_TOPICS)[number];",
+  "",
 ];
 
 writeFileSync(OUT, lines.join("\n"));
-console.log(`codegen (delay-roles) -> ${OUT} (${trueNow.length} TrueNow)`);
+console.log(
+  `codegen (delay-roles) -> ${OUT} (${trueNow.length} TrueNow, ${heldAtHome.length} held at home)`,
+);

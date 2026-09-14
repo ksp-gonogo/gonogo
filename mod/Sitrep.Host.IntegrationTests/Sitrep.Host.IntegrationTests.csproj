@@ -52,4 +52,12 @@
     <Compile Include="..\Gonogo.KSP\FleetVesselContactBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
   </ItemGroup>
+
+  <!-- The production rule a currency award from a vessel is timed by, so the
+       home-command round trip is asserted against the award's own seconds rather
+       than a number the test chose. Both files are KSP-free. -->
+  <ItemGroup>
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelayPolicy.cs" />
+  </ItemGroup>
 </Project>

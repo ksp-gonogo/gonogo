@@ -218,7 +218,13 @@ describe("asyncapi.yaml", () => {
     // somebody else's disposition, and both of these are declared with prose
     // saying exactly which class they belong to.
     expect(channels["vessel.orbit"]["x-sitrep-delay-role"]).toBe("delayed");
-    expect(channels["career.status"]["x-sitrep-delay-role"]).toBe("true-now");
+    expect(channels["game.dlc"]["x-sitrep-delay-role"]).toBe("true-now");
+    // Held at the home command: delayed, on the ledger's node rather than a craft's.
+    expect(channels["career.status"]["x-sitrep-delay-role"]).toBe("delayed");
+    expect(channels["career.status"]["x-sitrep-held-at-home"]).toBe(true);
+    expect(channels["vessel.orbit"]).not.toHaveProperty(
+      "x-sitrep-held-at-home",
+    );
 
     const commands = mapKeys(
       join(GENERATED, "command-map.ts"),

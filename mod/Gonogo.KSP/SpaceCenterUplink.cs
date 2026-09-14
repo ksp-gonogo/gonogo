@@ -22,14 +22,16 @@ namespace Gonogo.KSP
     /// <see cref="IUplinkHost.AddSampler"/> is for a future uplink whose data
     /// ISN'T already on the snapshot.
     ///
-    /// <para>All channels are <see cref="DelayRole.TrueNow"/>: launch-site
-    /// roster, current scene, crew roster, saved craft and part count are
-    /// ground-side game facts, known independent of any vessel's comms link,
-    /// the same class as <c>system.bodies</c> / <c>game.dlc</c> /
-    /// <c>ksp.revertAvailability</c>. Each hands back a fresh list/dict every
-    /// call, so ChannelEmitter's change-gate reads every considered sample as
-    /// "changed"; a 30s keyframe floor covers the steady state (these rarely
-    /// change tick-to-tick).</para>
+    /// <para>Every channel but the scene is
+    /// <see cref="ChannelDeclaration.HeldAtHome"/>: the launch sites and their pads,
+    /// the crew roster and the Astronaut Complex's applicants, the saved craft, the
+    /// buildable part count and the map's contract waypoints are the space centre's
+    /// own records, so each vantage learns a change after its delay to home. The
+    /// current scene is <see cref="DelayRole.TrueNow"/>, being which screen the game
+    /// is showing rather than anything the space centre holds. Each hands back a
+    /// fresh list/dict every call, so ChannelEmitter's change-gate reads every
+    /// considered sample as "changed"; a 30s keyframe floor covers the steady state
+    /// (these rarely change tick-to-tick).</para>
     /// </summary>
     [SitrepUplink("spaceCenter")]
     public sealed class SpaceCenterUplink : ISitrepUplink, IUplinkCapabilityDeclarer
@@ -45,7 +47,8 @@ namespace Gonogo.KSP
                     Topic = SpaceCenterViewProvider.LaunchSitesTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
@@ -59,35 +62,40 @@ namespace Gonogo.KSP
                     Topic = SpaceCenterViewProvider.CrewRosterTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
                     Topic = SpaceCenterViewProvider.SavedShipsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
                     Topic = SpaceCenterViewProvider.PartsAvailableTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
                     Topic = SpaceCenterViewProvider.PoisTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
                     Topic = SpaceCenterViewProvider.AstronautComplexTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
             },
         };

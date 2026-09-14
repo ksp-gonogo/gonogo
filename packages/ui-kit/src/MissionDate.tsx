@@ -74,11 +74,11 @@ import { VisuallyHidden } from "./VisuallyHidden";
  *
  * ## Only a Delayed value has two of these
  *
- * A `TrueNow` channel (funds, the research queue, every `rp1.*` date) is
- * command-centre bookkeeping the ground knows independently of any link, so
- * its SCET and its received time are the same instant by construction. Those
- * call sites pass no context at all. Offering the qualifier there would teach
- * an operator that the distinction is decorative.
+ * A space-centre channel (funds, the research queue, every `rp1.*` date) is
+ * bookkeeping held at the home command, describing no craft, so there is no
+ * far-end clock for a SCET to name. Those call sites pass no context at all.
+ * Offering the qualifier there would teach an operator that the distinction is
+ * decorative.
  */
 export type TimeContext =
   /** The craft's own clock: when the event happens, or happened, out there. */

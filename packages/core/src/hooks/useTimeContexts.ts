@@ -79,11 +79,11 @@ export function deriveTimeContexts(
  * from. On a station those frames are relayed from a host session it does not
  * own, so its own selection would name the wrong centre.
  *
- * **Not for a `TrueNow` value.** Funds, the research queue and every `rp1.*`
- * completion date are ground-side bookkeeping the command centre knows without
- * any link, so their SCET and their received time are one instant and there is
- * nothing to qualify. Reach for this where a DELAYED channel's instant is
- * drawn, or where the app computes one from delayed telemetry.
+ * **Not for a space-centre value.** Funds, the research queue and every `rp1.*`
+ * completion date are held at the home command and describe no craft, so there
+ * is no far-end clock for a SCET to name. Reach for this where a DELAYED craft
+ * channel's instant is drawn, or where the app computes one from delayed
+ * telemetry.
  */
 export function useTimeContexts(): TimeContexts {
   const clock = useViewClockOptional();

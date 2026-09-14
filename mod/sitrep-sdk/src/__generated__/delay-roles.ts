@@ -18,9 +18,6 @@
 export const GENERATED_TRUENOW_TOPICS = [
   "alarm.scet",
   "alarm.scet.fired",
-  "career.facilities",
-  "career.mode",
-  "career.status",
   "commandCentre.roster",
   "comms.commandCentre",
   "comms.connectivity",
@@ -31,13 +28,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "flight.simulation",
   "game.dlc",
   "ksp.revertAvailability",
-  "science.archive",
-  "spaceCenter.astronautComplex",
-  "spaceCenter.crewRoster",
-  "spaceCenter.launchSites",
-  "spaceCenter.partsAvailable",
-  "spaceCenter.pois",
-  "spaceCenter.savedShips",
   "spaceCenter.scene",
   "system.bodies",
   "system.channels",
@@ -52,3 +42,24 @@ export const GENERATED_TRUENOW_TOPICS = [
 /** One of the topics above, as a key union for the type layer. */
 export type GeneratedTrueNowTopic =
   (typeof GENERATED_TRUENOW_TOPICS)[number];
+
+/**
+ * Every channel the mod declares `HeldAtHome`: delayed, and already delivered
+ * to each vantage after that vantage's own delay to the home command.
+ */
+export const GENERATED_HELD_AT_HOME_TOPICS = [
+  "career.facilities",
+  "career.mode",
+  "career.status",
+  "science.archive",
+  "spaceCenter.astronautComplex",
+  "spaceCenter.crewRoster",
+  "spaceCenter.launchSites",
+  "spaceCenter.partsAvailable",
+  "spaceCenter.pois",
+  "spaceCenter.savedShips",
+] as const;
+
+/** One of the topics above, as a key union for the type layer. */
+export type GeneratedHeldAtHomeTopic =
+  (typeof GENERATED_HELD_AT_HOME_TOPICS)[number];

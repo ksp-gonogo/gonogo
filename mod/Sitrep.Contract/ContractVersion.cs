@@ -1667,7 +1667,22 @@ namespace Sitrep.Contract
         /// exactly as it is there, and a stock host states
         /// <c>Unbounded</c>/<c>Analytic</c> rather than leaving the field out,
         /// so "nobody answered" stays distinguishable from "no limit".</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 10 -&gt; 11: a fact can be held at the home
+        /// command.</b> Two new members: <see cref="ChannelDeclaration.HeldAtHome"/> and
+        /// <see cref="IUplinkHost.SetHomeCommandDelay"/>, a method on an interface an
+        /// Uplink consumes and never implements. Additive, nothing removed or retyped,
+        /// so an Uplink built against 16.10 is unaffected and the frozen Major-16 floor
+        /// is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because a career total had two honest places to be read
+        /// from and one wire role for both. <c>TrueNow</c> handed every change to every
+        /// vantage at once, so a crewed vessel that transmitted science saw the new
+        /// total the instant it was booked, a full return light-time before the news
+        /// could have reached it. A held-at-home channel records under the ledger's own
+        /// node, and each centre's row there is its path home: zero on the ground
+        /// network, and for a vessel the same seconds its award waited to be booked.</para>
         /// </remarks>
-        public const int Minor = 10;
+        public const int Minor = 11;
     }
 }

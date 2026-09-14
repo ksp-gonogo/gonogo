@@ -208,6 +208,11 @@ namespace Gonogo.KSP.CommandCentres
                 centres,
                 (from, to) => RouteCentreDelay(backend, from, to, config, solves),
                 Row);
+            pass.PopulateHomeCommand(
+                centres,
+                HomeCentreId(centres, _home()),
+                centre => SecondsToHome(centre, config),
+                (vantage, seconds) => Row(vantage, ChannelEngine.HomeCommandNode, seconds));
 
             PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
 
@@ -224,6 +229,12 @@ namespace Gonogo.KSP.CommandCentres
 
             foreach (var row in cap.Rows)
             {
+                if (row.Node == ChannelEngine.HomeCommandNode)
+                {
+                    _host?.SetHomeCommandDelay(row.Vantage, row.Seconds);
+                    continue;
+                }
+
                 // The row's node is already namespaced ("fleet.<guid>" or
                 // "centre.<id>") and both host hooks re-derive it from the bare
                 // subject id, so strip the prefix back off to pick the hook.
@@ -359,6 +370,39 @@ namespace Gonogo.KSP.CommandCentres
         }
 
         /// <summary>
+        /// A non-ground centre's path home, for the home-command ledger row. A crewed
+        /// vessel is measured by <see cref="CurrencyDelay.KscLightTime.SecondsToHome"/>,
+        /// the definition a currency award from that vessel is timed by, so the award
+        /// reaching the ledger and the new total coming back are the same seconds.
+        /// Any other kind has no path home to measure and gets no row.
+        /// </summary>
+        private static double? SecondsToHome(ICommandCentre centre, SignalDelayConfig? config)
+        {
+            if (centre.Kind != CommandCentreKind.CrewedVessel
+                || !centre.Id.StartsWith(CrewedVesselIdPrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return CurrencyDelay.KscLightTime.SecondsToHome(centre.Id.Substring(CrewedVesselIdPrefix.Length), config);
+        }
+
+        private const string CrewedVesselIdPrefix = "vessel:";
+
+        /// <summary>
+        /// The centre the roster marks home: the claimant's answer, or the ground
+        /// station standing in for it. Null when neither exists.
+        /// </summary>
+        internal static string? HomeCentreId(IReadOnlyList<ICommandCentre> centres, HomeCommand home)
+        {
+            var id = FreshConnectionVantage.Choose(
+                centres.Select(c => c.Id).ToList(),
+                centres.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(c => c.Id),
+                home);
+            return id == FreshConnectionVantage.None ? null : id;
+        }
+
+        /// <summary>
         /// One-way seconds between two command centres, over the route the
         /// ELECTED BACKEND finds between their nodes. A centre with no node
         /// cannot be routed to or from at all, which is the same "unroutable" the
@@ -391,19 +435,16 @@ namespace Gonogo.KSP.CommandCentres
         internal static List<CommandCentreEntry> ToRoster(IEnumerable<ICommandCentre> centres, HomeCommand home)
         {
             var list = centres.ToList();
-            var homeId = FreshConnectionVantage.Choose(
-                list.Select(c => c.Id).ToList(),
-                list.Where(c => c.Kind == CommandCentreKind.GroundStation).Select(c => c.Id),
-                home);
-            var isFallback = homeId != FreshConnectionVantage.None
+            var homeId = HomeCentreId(list, home);
+            var isFallback = homeId != null
                 && !(home.IsIdentified && homeId == home.CentreId);
             return list.Select(c => ToRosterEntry(c, homeId, isFallback)).ToList();
         }
 
-        private static CommandCentreEntry ToRosterEntry(ICommandCentre centre, string homeId, bool homeIsFallback)
+        private static CommandCentreEntry ToRosterEntry(ICommandCentre centre, string? homeId, bool homeIsFallback)
         {
             var ksp = centre as KspCommandCentre;
-            var isHome = homeId != FreshConnectionVantage.None && centre.Id == homeId;
+            var isHome = homeId != null && centre.Id == homeId;
             return new CommandCentreEntry
             {
                 Id = centre.Id,

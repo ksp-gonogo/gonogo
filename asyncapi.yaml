@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.10.0
+  version: 16.11.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
     channels a client subscribes to, and 53 commands it dispatches, with the payload
@@ -86,6 +86,12 @@ info:
       light-time clock, so the value is what the vantage KNEW rather than what is
       true now. `true-now` bypasses it, and is for a ground-side fact with no
       analogue in flight, such as whether the SCANsat assembly is installed at all
+    - `x-sitrep-held-at-home`, on a `delayed` telemetry channel: `true` means the
+      value is held at the home command (the career ledger, the space centre's
+      records) rather than aboard a craft. Each vantage receives a change after its
+      own delay to home, zero on the ground network and a crewed vessel's path home
+      otherwise, so the frame a vantage holds is already as current as it can be
+      there and a client subtracts no further light-time when reading it
     - `x-sitrep-keyframe-interval-ut`, on a telemetry channel: the UT seconds
       after which it re-emits unconditionally, with nothing changed. It is what
       makes a late subscriber, a quickload and a rejoin recoverable without waiting
@@ -430,8 +436,9 @@ channels:
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.career.facilities"
@@ -477,8 +484,9 @@ channels:
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.career.mode"
@@ -509,8 +517,9 @@ channels:
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.career.status"
@@ -1836,8 +1845,9 @@ channels:
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.science.archive"
@@ -2086,14 +2096,14 @@ channels:
       `AstronautComplexInfo.applicants` list).
 
       A TS-shape-only typing/codegen marker: the provider hand-builds the dict and
-      `JsonWriter` walks that live tree, this POCO never serializes. Classified
-      `DelayRole.TrueNow`: the Astronaut Complex is at KSC, known independent of
-      any vessel's comms link, same class as `CrewRosterEntry`.
+      `JsonWriter` walks that live tree, this POCO never serializes. Held at the
+      home command, like `CrewRosterEntry`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.astronautComplex"
@@ -2128,14 +2138,14 @@ channels:
       `CrewRosterEntry.experienceLevelDelta`) and the role tooltip text
       (`CrewRosterEntry.roleDescription`/`CrewRosterEntry.descriptionEffects`). A
       TS-shape-only typing/codegen marker: the provider hand-builds the dict and
-      `JsonWriter` walks that live tree, these POCOs never serialize. Classified
-      `DelayRole.TrueNow`: a ground-side career fact, same class as
-      `LaunchSiteEntry`.
+      `JsonWriter` walks that live tree, these POCOs never serialize. Held at the
+      home command, like `LaunchSiteEntry`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.crewRoster"
@@ -2163,14 +2173,14 @@ channels:
       and nullability; a TS-shape-only typing/codegen marker (no `Meta`, same
       `system`/`spaceCenter`-domain convention as `SystemBodies`: the provider
       hand-builds the dict and `JsonWriter` walks that live tree, these POCOs
-      never serialize). Classified `DelayRole.TrueNow`: ground-side facts, known
-      independent of any vessel's comms link, same class as `SystemBodies` /
-      `GameDlc`.
+      never serialize). Held at the home command: each vantage receives a change
+      after its own delay to home, at once on the ground network.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.launchSites"
@@ -2189,12 +2199,13 @@ channels:
       A wrapper object (a bare scalar has no Topic shape); the SpaceCenterStatus
       widget reads `spaceCenter.partsAvailable.count`. The whole payload is `null`
       when no sample has landed yet. A TS-shape-only typing/codegen marker that
-      never serializes. Classified `DelayRole.TrueNow`.
+      never serializes. Held at the home command.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.partsAvailable"
@@ -2218,13 +2229,13 @@ channels:
       payload is `null` (not an empty array) when no sample has landed yet: the
       provider's "no data yet" vs. "zero POIs" distinction. A TS-shape-only
       typing/codegen marker (the provider hand-builds the dict, this POCO never
-      serializes). Classified `DelayRole.TrueNow` (ground-side facts, same class
-      as `LaunchSiteEntry`).
+      serializes). Held at the home command, like `LaunchSiteEntry`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.pois"
@@ -2244,12 +2255,13 @@ channels:
       per `.craft` file keyed by `SavedShipEntry.name`. The whole payload is
       `null` (not an empty array) when no sample has landed yet. A TS-shape-only
       typing/codegen marker (the provider hand-builds the dict, these POCOs never
-      serialize). Classified `DelayRole.TrueNow`.
+      serialize). Held at the home command.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 30
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.savedShips"
@@ -8036,9 +8048,8 @@ components:
         `AstronautComplexInfo.applicants` list).
 
         A TS-shape-only typing/codegen marker: the provider hand-builds the dict and
-        `JsonWriter` walks that live tree, this POCO never serializes. Classified
-        `DelayRole.TrueNow`: the Astronaut Complex is at KSC, known independent of
-        any vessel's comms link, same class as `CrewRosterEntry`.
+        `JsonWriter` walks that live tree, this POCO never serializes. Held at the
+        home command, like `CrewRosterEntry`.
       required:
         - applicants
       properties:
@@ -8537,8 +8548,8 @@ components:
             newest-first by `Contract.DateFinished` (see
             `Gonogo.KSP.KspHost.BuildCareerContracts`). Same `CareerContract` element
             shape as `CareerContracts.active` / `CareerContracts.offered`: no extra
-            fields; `State` is always `"Completed"` here. Rides `career.status`
-            (TrueNow).
+            fields; `State` is always `"Completed"` here. Rides `career.status` (held at
+            the home command).
     CareerEconomy:
       type: object
       description: |-
@@ -10846,9 +10857,8 @@ components:
         `CrewRosterEntry.experienceLevelDelta`) and the role tooltip text
         (`CrewRosterEntry.roleDescription`/`CrewRosterEntry.descriptionEffects`). A
         TS-shape-only typing/codegen marker: the provider hand-builds the dict and
-        `JsonWriter` walks that live tree, these POCOs never serialize. Classified
-        `DelayRole.TrueNow`: a ground-side career fact, same class as
-        `LaunchSiteEntry`.
+        `JsonWriter` walks that live tree, these POCOs never serialize. Held at the
+        home command, like `LaunchSiteEntry`.
       properties:
         name:
           type:
@@ -12835,9 +12845,8 @@ components:
         and nullability; a TS-shape-only typing/codegen marker (no `Meta`, same
         `system`/`spaceCenter`-domain convention as `SystemBodies`: the provider
         hand-builds the dict and `JsonWriter` walks that live tree, these POCOs
-        never serialize). Classified `DelayRole.TrueNow`: ground-side facts, known
-        independent of any vessel's comms link, same class as `SystemBodies` /
-        `GameDlc`.
+        never serialize). Held at the home command: each vantage receives a change
+        after its own delay to home, at once on the ground network.
       properties:
         name:
           type:
@@ -14812,7 +14821,7 @@ components:
         per `.craft` file keyed by `SavedShipEntry.name`. The whole payload is
         `null` (not an empty array) when no sample has landed yet. A TS-shape-only
         typing/codegen marker (the provider hand-builds the dict, these POCOs never
-        serialize). Classified `DelayRole.TrueNow`.
+        serialize). Held at the home command.
       properties:
         name:
           type:
@@ -15944,7 +15953,7 @@ components:
         A wrapper object (a bare scalar has no Topic shape); the SpaceCenterStatus
         widget reads `spaceCenter.partsAvailable.count`. The whole payload is `null`
         when no sample has landed yet. A TS-shape-only typing/codegen marker that
-        never serializes. Classified `DelayRole.TrueNow`.
+        never serializes. Held at the home command.
       properties:
         count:
           type:
@@ -15968,8 +15977,7 @@ components:
         payload is `null` (not an empty array) when no sample has landed yet: the
         provider's "no data yet" vs. "zero POIs" distinction. A TS-shape-only
         typing/codegen marker (the provider hand-builds the dict, this POCO never
-        serializes). Classified `DelayRole.TrueNow` (ground-side facts, same class
-        as `LaunchSiteEntry`).
+        serializes). Held at the home command, like `LaunchSiteEntry`.
       properties:
         id:
           type:

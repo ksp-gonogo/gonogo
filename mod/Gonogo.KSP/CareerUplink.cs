@@ -69,12 +69,13 @@ namespace Gonogo.KSP
                     // value, so a career nobody is touching costs the
                     // keyframe alone.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit, judgment call documented in
-                    // contract-dynamic-delay-report.md: career state (funds,
-                    // contracts, strategies) is KSC/ground-side bookkeeping,
-                    // not something learned over a vessel's comms link, so
-                    // TrueNow: same class as system.bodies/scansat.available.
-                    Delay = DelayRole.TrueNow,
+                    // Funds, contracts and strategies are the home command's
+                    // ledger: held in one place, so each vantage learns a change
+                    // after its own delay to home. A vessel that transmits science
+                    // sees the new total only once the award has reached home and
+                    // the total has come back.
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
@@ -84,10 +85,10 @@ namespace Gonogo.KSP
                     // switching saves), so the same low-churn 30s keyframe +
                     // change-gate cadence career.status uses fits.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Ground-side game-global fact (which mode the save is in),
-                    // not something learned over a vessel's comms link, so
-                    // TrueNow - same class as career.status/system.bodies.
-                    Delay = DelayRole.TrueNow,
+                    // Which mode the career record is in: a property of the
+                    // ledger itself, so it is held where career.status is.
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
@@ -99,8 +100,10 @@ namespace Gonogo.KSP
                     // heartbeat measures the silence against, so it is what
                     // dates a held ladder.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Ground-side KSC bookkeeping, same class as career.status.
-                    Delay = DelayRole.TrueNow,
+                    // The space centre's own buildings, held at home like
+                    // career.status.
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                     // The mapper answers null through most of a session, because
                     // KSP only instantiates the buildings at the space centre,
                     // in the editor and in flight near the KSC. That is "cannot

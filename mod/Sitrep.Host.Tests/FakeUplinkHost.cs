@@ -109,6 +109,10 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
+        {
+        }
+
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
         }

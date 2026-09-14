@@ -66,7 +66,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 // than landing free - the zero here was the hole this
                 // subsystem's whole rule exists to close.
                 var config = CommsCoreUplink.SignalDelayConfig;
-                var lightTime = KscDelayPolicy.DelaySeconds(KscLightTime.ForVesselId(vesselId, config), config);
+                var lightTime = KscLightTime.SecondsToHome(vesselId, config);
 
                 var chunk = aggregator.Accept(vesselId, amount, ut, lightTime);
                 if (chunk.HasValue)

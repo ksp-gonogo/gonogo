@@ -120,7 +120,10 @@ export {
 export {
   type DelayLane,
   delayLaneOf,
+  type GeneratedHeldAtHomeTopic,
   type GeneratedTrueNowTopic,
+  type HeldAtHomeTopic,
+  isHeldAtHomeTopic,
   isTrueNowTopic,
   type TrueNowTopic,
 } from "./delay-roles";

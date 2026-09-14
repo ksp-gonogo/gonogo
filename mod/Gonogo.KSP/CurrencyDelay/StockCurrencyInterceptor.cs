@@ -403,7 +403,11 @@ namespace Gonogo.KSP.CurrencyDelay
             // arriving a Kerbin day after the craft was on the pad.
             var recovered = protoOrigin != null
                 && _recoveryVesselsById.ContainsKey(vesselId ?? string.Empty);
-            var delay = recovered ? KscDelay.Instant : KscLightTime.ForVesselId(vesselId, config);
+            // The same seconds a change to the ledger then takes to reach this vessel
+            // (KscLightTime.SecondsToHome), so the round trip is one number twice.
+            var lightTime = recovered
+                ? KscDelayPolicy.DelaySeconds(KscDelay.Instant, config)
+                : KscLightTime.SecondsToHome(vesselId, config);
 
             NeutraliseScience(shadowToRestore);
 
@@ -421,7 +425,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 Sitrep.Contract.DerivedCurrencyCapability.Science, baseAmount, ut);
 
             var chunk = _scienceAggregator.Accept(
-                vesselId, baseAmount, ut, KscDelayPolicy.DelaySeconds(delay, config));
+                vesselId, baseAmount, ut, lightTime);
             if (!chunk.HasValue)
             {
                 return;

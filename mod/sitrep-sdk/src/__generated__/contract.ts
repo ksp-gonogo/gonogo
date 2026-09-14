@@ -365,8 +365,8 @@ export interface CareerContracts
 	* newest-first by `Contract.DateFinished` (see
 	* `Gonogo.KSP.KspHost.BuildCareerContracts`). Same `CareerContract` element
 	* shape as `CareerContracts.active` / `CareerContracts.offered`: no extra
-	* fields; `State` is always `"Completed"` here. Rides `career.status`
-	* (TrueNow).
+	* fields; `State` is always `"Completed"` here. Rides `career.status` (held at
+	* the home command).
 	*/
 	completedRecent: CareerContract[];
 }
@@ -1945,12 +1945,12 @@ export enum CrewStanding {
 * probe five light-minutes out reports its transmit five minutes after the
 * fact.
 *
-* ADDITIVE to `career.status.economy.science`, which is untouched and still
-* DelayRole.TrueNow: that field gates what tech the operator can afford, so it
-* must stay the number the game will actually gate against (the same principle
-* as the always-show-the-funds-balance rule). These events let a consumer
-* build a separate, honestly-delayed running total; they never replace the
-* gating one.
+* ADDITIVE to `career.status.economy.science`, which is untouched and held at
+* the home command: that field gates what tech the operator can afford, so it
+* stays the number the game will actually gate against (the same principle as
+* the always-show-the-funds-balance rule), reaching a ground centre at once
+* and a crewed vessel after its path home. These events let a consumer build a
+* separate, honestly-delayed running total; they never replace the gating one.
 */
 export interface ScienceCreditEvent
 {
@@ -1986,16 +1986,17 @@ export interface ScienceCreditEvent
 * one. See `ScienceCreditEvent` for the general shape, and the hard constraint
 * below for why this type deliberately carries no absolute figure.
 *
-* **The gating field stays instant, non-negotiably.** Reputation GATES:
-* `StrategyEntry.RequiredReputation` is a strategy's minimum-rep unlock
-* threshold, and contract offer availability keys off the game's real current
-* reputation. A stale-high delayed number sitting where the operator reads it
-* before clicking "Activate Strategy" or "Accept Contract" could show a
-* strategy as available when the game's already-dropped reputation has made it
-* unavailable, and the action would then fail against ground truth the
-* operator had no way to see coming. So `career.status.economy.reputation`
-* remains TrueNow, instant, and completely untouched: it is the number the
-* game will actually gate against, the same principle as the
+* **The gating field is not delayed by this event, non-negotiably.**
+* Reputation GATES: `StrategyEntry.RequiredReputation` is a strategy's
+* minimum-rep unlock threshold, and contract offer availability keys off the
+* game's real current reputation. A stale-high delayed number sitting where
+* the operator reads it before clicking "Activate Strategy" or "Accept
+* Contract" could show a strategy as available when the game's already-dropped
+* reputation has made it unavailable, and the action would then fail against
+* ground truth the operator had no way to see coming. So
+* `career.status.economy.reputation` is held at the home command, where the
+* gate is decided, and completely untouched: it is the number the game will
+* actually gate against, the same principle as the
 * always-show-the-funds-balance rule. This event is ADDITIVE and carries only
 * a DELTA with no absolute total precisely so it can never be substituted for
 * the gating value, and it must never be co-located with an activate/accept
@@ -4701,9 +4702,8 @@ export interface SetSimulationDelayPolicyArgs
 * and nullability; a TS-shape-only typing/codegen marker (no `Meta`, same
 * `system`/`spaceCenter`-domain convention as `SystemBodies`: the provider
 * hand-builds the dict and `JsonWriter` walks that live tree, these POCOs
-* never serialize). Classified `DelayRole.TrueNow`: ground-side facts, known
-* independent of any vessel's comms link, same class as `SystemBodies` /
-* `GameDlc`.
+* never serialize). Held at the home command: each vantage receives a change
+* after its own delay to home, at once on the ground network.
 */
 export interface LaunchSiteEntry
 {
@@ -4817,9 +4817,8 @@ export interface SpaceCenterScene
 * `CrewRosterEntry.experienceLevelDelta`) and the role tooltip text
 * (`CrewRosterEntry.roleDescription`/`CrewRosterEntry.descriptionEffects`). A
 * TS-shape-only typing/codegen marker: the provider hand-builds the dict and
-* `JsonWriter` walks that live tree, these POCOs never serialize. Classified
-* `DelayRole.TrueNow`: a ground-side career fact, same class as
-* `LaunchSiteEntry`.
+* `JsonWriter` walks that live tree, these POCOs never serialize. Held at the
+* home command, like `LaunchSiteEntry`.
 */
 export interface CrewRosterEntry
 {
@@ -5001,7 +5000,7 @@ export interface CrewRosterEntry
 * per `.craft` file keyed by `SavedShipEntry.name`. The whole payload is
 * `null` (not an empty array) when no sample has landed yet. A TS-shape-only
 * typing/codegen marker (the provider hand-builds the dict, these POCOs never
-* serialize). Classified `DelayRole.TrueNow`.
+* serialize). Held at the home command.
 */
 export interface SavedShipEntry
 {
@@ -5052,7 +5051,7 @@ export interface SavedShipEntry
 * A wrapper object (a bare scalar has no Topic shape); the SpaceCenterStatus
 * widget reads `spaceCenter.partsAvailable.count`. The whole payload is `null`
 * when no sample has landed yet. A TS-shape-only typing/codegen marker that
-* never serializes. Classified `DelayRole.TrueNow`.
+* never serializes. Held at the home command.
 */
 export interface SpaceCenterPartsAvailable
 {
@@ -5075,9 +5074,8 @@ export interface SpaceCenterPartsAvailable
 * `AstronautComplexInfo.applicants` list).
 *
 * A TS-shape-only typing/codegen marker: the provider hand-builds the dict and
-* `JsonWriter` walks that live tree, this POCO never serializes. Classified
-* `DelayRole.TrueNow`: the Astronaut Complex is at KSC, known independent of
-* any vessel's comms link, same class as `CrewRosterEntry`.
+* `JsonWriter` walks that live tree, this POCO never serializes. Held at the
+* home command, like `CrewRosterEntry`.
 */
 export interface AstronautComplexInfo
 {
@@ -5125,8 +5123,7 @@ export interface AstronautComplexInfo
 * payload is `null` (not an empty array) when no sample has landed yet: the
 * provider's "no data yet" vs. "zero POIs" distinction. A TS-shape-only
 * typing/codegen marker (the provider hand-builds the dict, this POCO never
-* serializes). Classified `DelayRole.TrueNow` (ground-side facts, same class
-* as `LaunchSiteEntry`).
+* serializes). Held at the home command, like `LaunchSiteEntry`.
 */
 export interface SpaceCenterPoiEntry
 {

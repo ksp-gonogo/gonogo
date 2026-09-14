@@ -326,7 +326,7 @@ public class CareerContracts
     /// <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>). Same
     /// <see cref="CareerContract"/> element shape as <see cref="Active"/> /
     /// <see cref="Offered"/>: no extra fields; <c>State</c> is always
-    /// <c>"Completed"</c> here. Rides <c>career.status</c> (TrueNow).
+    /// <c>"Completed"</c> here. Rides <c>career.status</c> (held at the home command).
     /// </summary>
     public List<CareerContract> CompletedRecent { get; set; } = new();
 }

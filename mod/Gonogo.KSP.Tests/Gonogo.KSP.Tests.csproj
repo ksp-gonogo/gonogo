@@ -361,6 +361,11 @@
          directly rather than only through the mapper. -->
     <Compile Include="..\Gonogo.KSP\CommandCentres\SurfaceCoordinates.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
+    <!-- KscLightTime.cs is how the uplink above measures a crewed centre's path home
+         for the home-command ledger row, the same definition a currency award from
+         that vessel is timed by. It walks FlightGlobals.Vessels, so it sits under
+         this gate with its caller. -->
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscLightTime.cs" />
     <!-- StockHomeNodeSource.cs reads the CommNet homes the stock home-command
          claimant decides from, and CommsCoreUplink.DeclareCapabilities hands it to
          that election, so it has to resolve here with its caller. It drags

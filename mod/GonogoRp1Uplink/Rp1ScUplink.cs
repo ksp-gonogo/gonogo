@@ -24,12 +24,14 @@ namespace GonogoRp1Uplink
     /// a HANDLE, which on this Uplink is pure dictionary building on
     /// already-captured data.</para>
     ///
-    /// <para>Every channel but one is <see cref="DelayRole.TrueNow"/>. That is
-    /// state at a space centre, read at KSC cadence, with no analogue in flight:
-    /// the same disposition the stock <c>spaceCenter.*</c> and <c>career.*</c>
-    /// channels take. <see cref="AvionicsTopic"/> is the exception and is
-    /// <see cref="DelayRole.Delayed"/>, because its subject is a craft rather
-    /// than a building.</para>
+    /// <para>Every channel but two is <see cref="ChannelDeclaration.HeldAtHome"/>.
+    /// That is state at a space centre, held at the home command, so each vantage
+    /// learns a change after its own delay to home: the same disposition the stock
+    /// <c>spaceCenter.*</c> and <c>career.*</c> channels take.
+    /// <see cref="AvailableTopic"/> is <see cref="DelayRole.TrueNow"/>, a fact about
+    /// the install rather than a record anywhere. <see cref="AvionicsTopic"/> is an
+    /// ordinary <see cref="DelayRole.Delayed"/> channel on the craft's own node,
+    /// because its subject is a craft rather than a building.</para>
     ///
     /// <para>The capture/handle split is load-bearing rather than ceremony. The
     /// reflection walk reads a live object graph, which is only legal on the main
@@ -460,38 +462,50 @@ namespace GonogoRp1Uplink
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                Ground(AvailableTopic),
-                Ground(CentresTopic),
-                Ground(ComplexesTopic),
-                Ground(BuildQueueTopic),
-                Ground(WarehouseTopic),
+                // Whether RP-1 is installed and managing this save: a fact about
+                // the install, which no place holds and no signal carries.
+                new ChannelDeclaration
+                {
+                    Topic = AvailableTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
+                // Every other channel but avionics is RP-1's space centre: its
+                // queues, complexes, payroll, Programs and currencies are held at
+                // the home command, so each vantage learns a change after its own
+                // delay to home.
+                AtHome(CentresTopic),
+                AtHome(ComplexesTopic),
+                AtHome(BuildQueueTopic),
+                AtHome(WarehouseTopic),
                 // An EMPTY list is a real answer here, unlike the singletons
                 // below: a career with no craft saved has nothing to start,
                 // and so does an install whose core cannot open craft files.
                 // Both are things an operator needs told rather than left to
                 // read as silence.
-                Ground(BuildableTopic),
-                Ground(PadsTopic),
-                Ground(OperationsTopic),
-                Ground(ConstructionsTopic),
-                Ground(ResearchTopic),
+                AtHome(BuildableTopic),
+                AtHome(PadsTopic),
+                AtHome(OperationsTopic),
+                AtHome(ConstructionsTopic),
+                AtHome(ResearchTopic),
                 // An empty list is a real answer: a stock install has no RP-1
                 // cost table, and an operator whose facility section is silent
                 // needs to know which of the two silences they are looking at.
-                Ground(FacilitiesTopic),
+                AtHome(FacilitiesTopic),
                 // Both singletons are legitimately absent from the first tick:
                 // a stock install has no payroll and no Confidence module, and
                 // without this the client would wait for a value that is never
                 // coming instead of being told there is none.
-                Ground(PersonnelTopic, absenceIsData: true),
+                AtHome(PersonnelTopic, absenceIsData: true),
                 // The rush terms come out of RP-1's own settings, so an install
                 // whose settings could not be read publishes nothing rather than
                 // the shipped defaults. Quoting a price the career does not
                 // charge is worse than declining to quote one.
-                Ground(RushTermsTopic, absenceIsData: true),
-                Ground(LcPricingTopic, absenceIsData: true),
-                Ground(ConfidenceTopic, absenceIsData: true),
-                Ground(FundTargetTopic, absenceIsData: true),
+                AtHome(RushTermsTopic, absenceIsData: true),
+                AtHome(LcPricingTopic, absenceIsData: true),
+                AtHome(ConfidenceTopic, absenceIsData: true),
+                AtHome(FundTargetTopic, absenceIsData: true),
                 // All three Program channels publish NOTHING rather than an
                 // empty list when RP-1's ProgramHandler is not live. The
                 // distinction matters more here than anywhere else on this
@@ -501,23 +515,23 @@ namespace GonogoRp1Uplink
                 // curve table is the same shape one layer down: RP-1 ships
                 // twelve curves and pays every Program on one of them, so an
                 // empty table could only say it pays on none.
-                Ground(ProgramsTopic, absenceIsData: true),
-                Ground(ProgramSlotsTopic, absenceIsData: true),
-                Ground(ProgramFundingCurvesTopic, absenceIsData: true),
+                AtHome(ProgramsTopic, absenceIsData: true),
+                AtHome(ProgramSlotsTopic, absenceIsData: true),
+                AtHome(ProgramFundingCurvesTopic, absenceIsData: true),
                 // Both crew channels publish NOTHING rather than an empty list or
                 // a bag of falses when RP-1's CrewHandler is not live. An empty
                 // crew list would say "RP-1 is scheduling nobody" and a false
                 // retirementEnabled would say retirement is switched OFF, and both
                 // are claims about a career on a save RP-1 is not managing at all.
-                Ground(CrewTopic, absenceIsData: true),
-                Ground(CrewProgramTopic, absenceIsData: true),
-                Ground(TrainingTopic, absenceIsData: true),
+                AtHome(CrewTopic, absenceIsData: true),
+                AtHome(CrewProgramTopic, absenceIsData: true),
+                AtHome(TrainingTopic, absenceIsData: true),
                 // Same disposition, one step further out. An empty catalogue would
                 // say the install has no crewed part that can be trained on, which
                 // RP-1 never means: it generates a template from every one of them,
                 // so nothing to enrol on is a claim about the reader rather than
                 // about the career.
-                Ground(TrainingCatalogueTopic, absenceIsData: true),
+                AtHome(TrainingCatalogueTopic, absenceIsData: true),
                 // Absence here is a THIRD kind again, and the one most easily
                 // misread: no editor ship, or RP-1's tooling switched off. That
                 // second case matters because RP-1's own level lookup short-circuits
@@ -525,20 +539,20 @@ namespace GonogoRp1Uplink
                 // built then would report a finished vehicle. Saying nothing is the
                 // only honest answer, and absenceIsData is what tells a client that
                 // the silence is the answer rather than a wait.
-                Ground(ToolingTopic, absenceIsData: true),
+                AtHome(ToolingTopic, absenceIsData: true),
                 // Same scene and the same absence as the tooling channel beside it:
                 // no vehicle being designed means no breakdown, and a payload of
                 // zeros would read as a vehicle that costs nothing to fly.
-                Ground(BuildCostTopic, absenceIsData: true),
+                AtHome(BuildCostTopic, absenceIsData: true),
                 // Absence here is a THIRD state and the field says which of the
                 // other two applies. Nothing at all means RP-1's log handler could
                 // not be read; `enabled: false` means the career is not keeping a
                 // log and never will; enabled with no rows means it is keeping one
                 // and nothing has happened yet. A client shown only the rows could
                 // not tell a quiet career from an unrecorded one.
-                Ground(CareerEventsTopic, absenceIsData: true),
-                // The one channel here that is NOT ground state, and so the one
-                // that is not TrueNow. Its subject is a craft in flight and its
+                AtHome(CareerEventsTopic, absenceIsData: true),
+                // The one channel here that is NOT space-centre state, and so the
+                // one not held at home. Its subject is a craft in flight and its
                 // verdict changes as that craft burns propellant and sheds
                 // stages, so it travels reveal-gated with every other per-vessel
                 // fact: an operator watching a delayed link must not read a
@@ -788,12 +802,13 @@ namespace GonogoRp1Uplink
             Requires = Rp1BuildCommands.Requirements(),
         };
 
-        private static ChannelDeclaration Ground(string topic, bool absenceIsData = false) => new ChannelDeclaration
+        private static ChannelDeclaration AtHome(string topic, bool absenceIsData = false) => new ChannelDeclaration
         {
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-            Delay = DelayRole.TrueNow,
+            Delay = DelayRole.Delayed,
+            HeldAtHome = true,
             AbsenceIsData = absenceIsData,
         };
 

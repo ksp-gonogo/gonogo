@@ -17,12 +17,14 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="CurrencyEventTestUplink"/> over the real WS harness (the same shape
     /// as <see cref="RevealGateTests"/> / <see cref="FleetDelayTests"/>).
     ///
-    /// <para>The escape hatch these close: <c>career.status.economy.science</c> is
-    /// TrueNow (it gates what tech the operator can afford, so it must be
-    /// ground-truth), while the vessel telemetry confirming a transmit is Delayed. An
-    /// operator watching the total could infer a distant event a full return
-    /// light-time early. These tests pin that the new event does NOT arrive before its
-    /// source vessel's light-time, and that the instant channel is untouched.</para>
+    /// <para>The escape hatch these close: <c>career.status.economy.science</c> is held
+    /// at the home command and reaches a ground centre at once (it gates what tech the
+    /// operator can afford), while the vessel telemetry confirming a transmit is
+    /// Delayed. An operator at home watching the total could infer a distant event a
+    /// full return light-time early. These tests pin that the new event does NOT arrive
+    /// before its source vessel's light-time, and that a channel a ground centre reads
+    /// at once is untouched. How the total reaches a crewed vessel instead is
+    /// <see cref="HomeCommandLedgerDelayTests"/>.</para>
     /// </summary>
     public class CurrencyEventRevealTests
     {
@@ -45,8 +47,8 @@ namespace Sitrep.Host.IntegrationTests
         // No field segment after the guid is not a channel, so it does not invent a node.
         [InlineData("currency.abc-123", "system")]
         [InlineData("currency.", "system")]
-        // The instant career total is NOT per-vessel and stays on the single node.
-        [InlineData("career.status", "system")]
+        // A topic no per-vessel namespace claims stays on the single node.
+        [InlineData("vessel.flight", "system")]
         public void NodeForTopicRoutesCurrencyEventsToTheirSourceVesselsNode(string topic, string expectedNode)
         {
             // Through a REGISTERED engine: the currency namespace earns the
@@ -182,12 +184,13 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public async Task TheInstantCurrencyTotalIsUnaffectedByTheDelayedEvent()
         {
-            // The HARD constraint: the gating-facing career total stays instant. A
-            // delayed narrative event is ADDITIVE, never a reclassification. Here a
-            // TrueNow channel and a far vessel's currency event ride the same engine and
-            // the same ticks: the TrueNow value is live while the event is still in
-            // flight, which is exactly the split the design requires (the operator keeps
-            // seeing the number the game will gate a spend against).
+            // The HARD constraint: the gating-facing career total is not held back by
+            // the narrative event. A delayed narrative event is ADDITIVE, never a
+            // reclassification. Here a channel read at once and a far vessel's currency
+            // event ride the same engine and the same ticks: the first is live while the
+            // event is still in flight, which is exactly the split the design requires
+            // (an operator at home keeps seeing the number the game will gate a spend
+            // against).
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new CurrencyEventTestUplink());
             engine.RegisterUplink(new RevealGateTestUplink());
@@ -217,7 +220,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ReputationLossIsWithheldUntilTheLosingVesselsLightTimeElapses()
         {
             // The operator's own example: a crew loss aboard a vessel five light-minutes
-            // out. career.status.economy.reputation drops instantly (it must: it gates
+            // out. career.status.economy.reputation drops at home instantly (it must: it gates
             // strategy and contract eligibility), so the narrative event has to be the
             // thing that waits, and it does.
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -262,8 +265,8 @@ namespace Sitrep.Host.IntegrationTests
             // number in front of an activate/accept control would fail against ground
             // truth the operator could not see coming. This event therefore carries a
             // DELTA and no absolute reputation at all, so it cannot be substituted for
-            // the gating figure even by accident. career.status.economy.reputation stays
-            // TrueNow and is untouched by this feature.
+            // the gating figure even by accident. career.status.economy.reputation is
+            // held at the home command and untouched by this feature.
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new CurrencyEventTestUplink());
             engine.Start();

@@ -55,20 +55,26 @@ namespace Sitrep.Host.Tests
             [ScienceViewProvider.LabTopic] = DelayRole.Delayed,
             [ScienceViewProvider.SensorsTopic] = DelayRole.Delayed,
             [ScienceViewProvider.ExperimentBreakdownTopic] = DelayRole.Delayed,
-            [ScienceViewProvider.ArchiveTopic] = DelayRole.TrueNow,
+            [ScienceViewProvider.ArchiveTopic] = DelayRole.Delayed,
+        };
+
+        /// <summary>The <c>science.*</c> channels that declare <see cref="ChannelDeclaration.HeldAtHome"/>, mirrored by hand for the same reason as the table above.</summary>
+        private static readonly HashSet<string> ScienceUplinkHeldAtHome = new HashSet<string>
+        {
+            ScienceViewProvider.ArchiveTopic,
         };
 
         /// <summary>
-        /// The archive is career-wide banked science read at KSC/R&amp;D,
-        /// ground-side bookkeeping like <c>CareerUplink</c>'s
-        /// <c>career.status</c>/<c>career.mode</c>, not something learned over
-        /// the active vessel's comms link, so it is the sole
-        /// <see cref="DelayRole.TrueNow"/> entry in <c>science.*</c>.
+        /// The archive is career-wide banked science held at R&amp;D, on the home
+        /// command's node beside <c>career.status</c>, so it is the sole held-at-home
+        /// entry in <c>science.*</c>. The real declaration is also asserted from the
+        /// source scan, in <c>packages/sitrep-client/src/delay-lane.test.ts</c>.
         /// </summary>
         [Fact]
-        public void ScienceArchiveChannelIsTrueNow()
+        public void ScienceArchiveChannelIsHeldAtHome()
         {
-            Assert.Equal(DelayRole.TrueNow, ScienceUplinkChannelDelay[ScienceViewProvider.ArchiveTopic]);
+            Assert.Equal(DelayRole.Delayed, ScienceUplinkChannelDelay[ScienceViewProvider.ArchiveTopic]);
+            Assert.Equal(new[] { ScienceViewProvider.ArchiveTopic }, ScienceUplinkHeldAtHome);
         }
 
         /// <summary>

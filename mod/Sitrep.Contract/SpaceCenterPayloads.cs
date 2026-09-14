@@ -26,9 +26,8 @@ namespace Sitrep.Contract;
 /// <c>Meta</c>, same <c>system</c>/<c>spaceCenter</c>-domain convention as
 /// <see cref="SystemBodies"/>: the provider hand-builds the dict and
 /// <c>JsonWriter</c> walks that live tree, these POCOs never serialize).
-/// Classified <c>DelayRole.TrueNow</c>: ground-side facts, known independent
-/// of any vessel's comms link, same class as <see cref="SystemBodies"/> /
-/// <see cref="GameDlc"/>.</para>
+/// Held at the home command: each vantage receives a change after its own delay
+/// to home, at once on the ground network.</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.launchSites", isArray: true)]
@@ -133,8 +132,7 @@ public class SpaceCenterScene
 /// (<see cref="RoleDescription"/>/<see cref="DescriptionEffects"/>). A TS-shape-only
 /// typing/codegen marker: the provider hand-builds the dict and
 /// <c>JsonWriter</c> walks that live tree, these POCOs never serialize.
-/// Classified <c>DelayRole.TrueNow</c>: a ground-side career fact, same class
-/// as <see cref="LaunchSiteEntry"/>.</para>
+/// Held at the home command, like <see cref="LaunchSiteEntry"/>.</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.crewRoster", isArray: true)]
@@ -340,7 +338,7 @@ public class CrewRosterEntry
 /// <c>isArray: true</c>), one per <c>.craft</c> file keyed by <see cref="Name"/>.
 /// The whole payload is <c>null</c> (not an empty array) when no sample has
 /// landed yet. A TS-shape-only typing/codegen marker (the provider hand-builds
-/// the dict, these POCOs never serialize). Classified <c>DelayRole.TrueNow</c>.</para>
+/// the dict, these POCOs never serialize). Held at the home command.</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.savedShips", isArray: true)]
@@ -401,7 +399,7 @@ public class SavedShipEntry
 /// <para>A wrapper object (a bare scalar has no Topic shape); the SpaceCenterStatus
 /// widget reads <c>spaceCenter.partsAvailable.count</c>. The whole payload is
 /// <c>null</c> when no sample has landed yet. A TS-shape-only typing/codegen
-/// marker that never serializes. Classified <c>DelayRole.TrueNow</c>.</para>
+/// marker that never serializes. Held at the home command.</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.partsAvailable")]
@@ -432,9 +430,7 @@ public class SpaceCenterPartsAvailable
 ///
 /// <para>A TS-shape-only typing/codegen marker: the provider hand-builds the
 /// dict and <c>JsonWriter</c> walks that live tree, this POCO never serializes.
-/// Classified <c>DelayRole.TrueNow</c>: the Astronaut Complex is at KSC, known
-/// independent of any vessel's comms link, same class as
-/// <see cref="CrewRosterEntry"/>.</para>
+/// Held at the home command, like <see cref="CrewRosterEntry"/>.</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.astronautComplex")]
@@ -473,9 +469,8 @@ public class AstronautComplexInfo
 /// keyed by <see cref="Id"/>. The whole payload is <c>null</c> (not an empty
 /// array) when no sample has landed yet: the provider's "no data yet" vs.
 /// "zero POIs" distinction. A TS-shape-only typing/codegen marker (the
-/// provider hand-builds the dict, this POCO never serializes). Classified
-/// <c>DelayRole.TrueNow</c> (ground-side facts, same class as
-/// <see cref="LaunchSiteEntry"/>).</para>
+/// provider hand-builds the dict, this POCO never serializes). Held at the home
+/// command, like <see cref="LaunchSiteEntry"/>.</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.pois", isArray: true)]

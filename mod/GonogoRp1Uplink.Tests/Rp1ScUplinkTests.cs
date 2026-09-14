@@ -26,27 +26,41 @@ public class Rp1ScUplinkTests : IDisposable
     }
 
     [Fact]
-    public void Every_ground_channel_is_delivered_now_and_only_the_avionics_verdict_is_delayed()
+    public void Every_space_centre_channel_is_held_at_home_and_only_presence_is_true_now()
     {
-        // Space-centre state has no analogue in flight, so none of it rides the
-        // light-time delay clock. Asserted rather than assumed: a channel that
-        // drifted to Delayed would go quiet on a disconnect for no reason.
+        // Space-centre state is held at the home command, so it reaches each
+        // vantage after that vantage's delay to home rather than everywhere at
+        // once. Asserted per channel rather than assumed, and each exception is
+        // named here rather than exempted by a predicate, so neither can spread by
+        // copy-paste.
         //
-        // rp1.avionics is the deliberate exception and is named here rather than
-        // exempted by a predicate, so the exception cannot spread by copy-paste.
-        // Its subject is a craft rather than a building, so it MUST ride the
-        // reveal gate: an operator on a delayed link reading a live control state
-        // is the failure the gate exists to prevent, and this one is a
-        // launch-safety readout.
+        // rp1.available is a fact about the install, which no place holds.
+        //
+        // rp1.avionics is about a craft rather than a building, so it MUST ride the
+        // reveal gate on that craft's node: an operator on a delayed link reading a
+        // live control state is the failure the gate exists to prevent, and this
+        // one is a launch-safety readout.
         var manifest = new Rp1ScUplink().Manifest;
         Assert.Equal("rp1", manifest.Id);
         Assert.All(manifest.Channels, c => Assert.StartsWith("rp1.", c.Topic));
-        Assert.All(
-            manifest.Channels.Where(c => c.Topic != Rp1ScUplink.AvionicsTopic),
-            c => Assert.Equal(DelayRole.TrueNow, c.Delay));
-        Assert.Equal(
-            DelayRole.Delayed,
-            manifest.Channels.Single(c => c.Topic == Rp1ScUplink.AvionicsTopic).Delay);
+
+        var atHome = manifest.Channels
+            .Where(c => c.Topic != Rp1ScUplink.AvionicsTopic && c.Topic != Rp1ScUplink.AvailableTopic)
+            .ToList();
+        Assert.Equal(25, atHome.Count);
+        Assert.All(atHome, c =>
+        {
+            Assert.Equal(DelayRole.Delayed, c.Delay);
+            Assert.True(c.HeldAtHome, c.Topic + " is not held at home");
+        });
+
+        var available = manifest.Channels.Single(c => c.Topic == Rp1ScUplink.AvailableTopic);
+        Assert.Equal(DelayRole.TrueNow, available.Delay);
+        Assert.False(available.HeldAtHome);
+
+        var avionics = manifest.Channels.Single(c => c.Topic == Rp1ScUplink.AvionicsTopic);
+        Assert.Equal(DelayRole.Delayed, avionics.Delay);
+        Assert.False(avionics.HeldAtHome);
     }
 
     [Fact]

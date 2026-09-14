@@ -77,6 +77,28 @@ namespace Sitrep.Host
         public const string CentreNodePrefix = "centre.";
 
         /// <summary>
+        /// The node every <see cref="ChannelDeclaration.HeldAtHome"/> channel records
+        /// under: the career ledger's ADDRESS, the place a change to it happens.
+        ///
+        /// <para>Deliberately not a centre id. Which station is home is the elected
+        /// home-command claimant's answer, it can change once a save loads, and a
+        /// topic's node is fixed at record and subscribe time, so a node named after
+        /// the station would strand every stream bound before the answer moved.
+        /// What the claimant decides is instead written INTO this node's rows through
+        /// <see cref="SetHomeCommandDelay"/>, one per active centre.</para>
+        ///
+        /// <para>Nor is it <see cref="CommandCentres.AuthorityMatrixPass.CentreNode"/>'s <c>centre.&lt;home&gt;</c>. Those
+        /// rows are a route to that one station, and a vessel talking to another
+        /// ground station reaches the ledger over that station instead: every ground
+        /// station acts as home, so the ledger is as far away as the vessel's own path
+        /// home and no further.</para>
+        ///
+        /// <para>The node default is zero, pinned at construction: a vantage with no
+        /// row of its own is standing on the ground network.</para>
+        /// </summary>
+        public const string HomeCommandNode = "home-command";
+
+        /// <summary>
         /// Source-attributed currency-event namespace: a
         /// "currency.&lt;guid&gt;.&lt;currency&gt;" topic records under the SAME
         /// per-vessel node "fleet.&lt;guid&gt;" that vessel's telemetry uses, so the
@@ -85,10 +107,10 @@ namespace Sitrep.Host
         /// delay to home (which is 0 for an operator standing at home, i.e. no
         /// delay at all) and not the active vessel's.
         ///
-        /// <para>A currency total reveals instantly (<c>career.status</c> is
-        /// <see cref="DelayRole.TrueNow"/>, deliberately: it gates spend decisions)
-        /// while the vessel telemetry that would confirm the underlying event is
-        /// Delayed, so an operator could infer a distant event early by watching the
+        /// <para>A currency total reveals at home instantly (<c>career.status</c> is
+        /// held at the home command, and it gates spend decisions) while the vessel
+        /// telemetry that would confirm the underlying event is Delayed, so an
+        /// operator at home could infer a distant event early by watching the
         /// number. Attributing a delta to its source vessel and revealing it on that
         /// vessel's own clock closes that gap without touching the gating total.</para>
         ///
@@ -161,6 +183,10 @@ namespace Sitrep.Host
         /// </summary>
         internal string NodeFor(string topic)
         {
+            if (_heldAtHomeTopics.Contains(topic))
+            {
+                return HomeCommandNode;
+            }
             foreach (var prefix in _perVesselNamespacePrefixes)
             {
                 if (!topic.StartsWith(prefix, StringComparison.Ordinal))
@@ -490,6 +516,13 @@ namespace Sitrep.Host
         // Gonogo.KSP.CommsCoreUplink.LinkTopic (duplicated for the same
         // KSP-DLL-free reason as CommsDelayTopic above) and
         // Sitrep.Contract.CommsLink's [SitrepTopic].
+        //
+        // Not held at home, and not TrueNow either. It is the ACTIVE craft's
+        // link, observed from the ground end at that craft's last-connected
+        // light-time, so its place is the craft's node: what a vantage learns
+        // is when the far end went quiet, which no ledger records and no
+        // station holds. Moving it to the home node would reveal an outage at
+        // a ground centre the instant it began.
         internal const string ConnectivityMetaTopic = "comms.link";
 
         // The per-vessel contact MetaTopic suffix: "fleet.<guid>.contact" carries
@@ -919,6 +952,11 @@ namespace Sitrep.Host
         // discipline as _dynamicNamespaces above, then only read.
         private readonly List<string> _perVesselNamespacePrefixes = new List<string>();
 
+        // Static topics that declared ChannelDeclaration.HeldAtHome: NodeFor routes
+        // them onto HomeCommandNode. Written during RegisterUplink (before Start()),
+        // same single-writer-before-start discipline as the prefixes above.
+        private readonly HashSet<string> _heldAtHomeTopics = new HashSet<string>(StringComparer.Ordinal);
+
         // Per-prefix listeners registered via IDynamicChannelSource.OnSubscribed
         // (Gap A of the terminal-integrity adversarial review), invoked from
         // ProcessSubscribe, on the COURIER thread, once per individual session
@@ -1138,6 +1176,11 @@ namespace Sitrep.Host
             // Sitrep.Host.IntegrationTests fully green, so treat that greenness
             // as unmeasured rather than as permission to delete it.
             stubNetwork.SetDelay(MetaVantage, NodeId, 0.0);
+            // A vantage with no home-command row of its own is on the ground
+            // network, where the ledger is. Left to the whole-network default it
+            // would take the ACTIVE vessel's light-time, so a ground centre would
+            // learn its own balance a craft's distance late.
+            stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
             _courier = new Courier(_clock, _network);
             // Routed through InvokeCommandHandler (not a raw dictionary
@@ -1466,10 +1509,28 @@ namespace Sitrep.Host
 
             _registeredUplinks[id] = uplink;
 
+            string? contradiction = null;
             foreach (var channel in uplink.Manifest.Channels)
             {
                 _channelDeclarations[channel.Topic] = channel;
                 _channelOwner[channel.Topic] = id;
+                if (!channel.HeldAtHome)
+                {
+                    continue;
+                }
+                if (channel.Delay == DelayRole.TrueNow)
+                {
+                    contradiction ??= channel.Topic;
+                    continue;
+                }
+                _heldAtHomeTopics.Add(channel.Topic);
+            }
+            if (contradiction != null)
+            {
+                MarkUplinkUnavailable(id,
+                    "channel \"" + contradiction + "\" declares HeldAtHome and DelayRole.TrueNow, which contradict:"
+                    + " a fact held at home reaches each vantage after its delay to home, and TrueNow says it reaches every vantage at once");
+                return;
             }
             foreach (var command in uplink.Manifest.Commands)
             {
@@ -2063,6 +2124,14 @@ namespace Sitrep.Host
             // is what makes "send this from a deep-space centre to the home
             // centre" a lookup rather than a missing number.
             _network.SetDelay(fromCentreId, CentreNodePrefix + toCentreId, oneWaySeconds);
+        }
+
+        public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
+        {
+            // The explicit (vantage, node) tier again, against the one node every
+            // held-at-home channel records under. The node default beneath it is
+            // pinned to zero, which is the ground network's answer.
+            _network.SetDelay(centreId, HomeCommandNode, oneWaySeconds);
         }
 
         public void RegisterCommandCentreSource(ICommandCentreSource source)
@@ -5022,9 +5091,13 @@ namespace Sitrep.Host
         private void CleanUpSubjectIfGone(string topic)
         {
             var node = NodeFor(topic);
-            if (node == NodeId)
+            if (node == NodeId || node == HomeCommandNode)
             {
-                return; // "system" is permanent.
+                // Both are permanent. The home node's topics share no name
+                // prefix, so the subscribed-prefix test below would read "gone"
+                // while its siblings are still subscribed and sweep their
+                // record bookkeeping out from under them.
+                return;
             }
             // Keep the subject while ANY of its topics (node + ".*") is still subscribed.
             if (IsAnyTopicSubscribed(node + "."))
