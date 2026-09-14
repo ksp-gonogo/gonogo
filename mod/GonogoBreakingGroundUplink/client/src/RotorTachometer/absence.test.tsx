@@ -250,3 +250,115 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("RotorTachometer: an unread flag is not a false one", () => {
+  it("prints no heading for a rotor whose direction was never read", async () => {
+    const { container } = mount(rotor({ counterClockwise: null }));
+
+    await waitFor(() => expect(visibleText(container)).toContain("Reverse"));
+    // "↻ CW" is a definite claim, and it was what `=== true` produced.
+    expect(visibleText(container)).not.toContain("CW");
+    expect(visibleText(container)).not.toContain("CCW");
+  });
+
+  it("omits Direction from the reverse action rather than guessing it", async () => {
+    // `reverse` carries no value, so the COMMAND still goes: it flips whatever
+    // the rotor is doing. What must not happen is reporting "CW" back to the
+    // device's render style off a flag nobody read.
+    const { fixture } = mount(rotor({ counterClockwise: null }));
+    await screen.findByRole("button", { name: /Reverse/i });
+
+    let returned: unknown;
+    act(() => {
+      returned = dispatchAction(INSTANCE, "reverse", {
+        kind: "button",
+        value: true,
+      });
+    });
+    await act(async () => {});
+
+    expect(returned).toBeUndefined();
+    // The command itself is unaffected.
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "robotics.rotor.reverse",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("still reports the heading when the flag is a real reading", async () => {
+    mount(rotor({ counterClockwise: true }));
+    await screen.findByRole("button", { name: /CCW/i });
+
+    let returned: unknown;
+    act(() => {
+      returned = dispatchAction(INSTANCE, "reverse", {
+        kind: "button",
+        value: true,
+      });
+    });
+    expect(returned).toEqual({ Direction: "CW" });
+  });
+
+  it("dispatches no setLock when the lock state was never read", async () => {
+    const user = userEvent.setup();
+    const { fixture } = mount(rotor({ servoIsLocked: null }));
+
+    await user.click(await screen.findByRole("button", { name: /Lock/i }));
+    await act(async () => {});
+
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "robotics.rotor.setLock",
+      ),
+    ).toEqual([]);
+  });
+
+  it("dispatches no setMotor from the mapped toggleMotor action", async () => {
+    const { fixture } = mount(rotor({ servoMotorIsEngaged: null }));
+    await screen.findByRole("button", { name: /Motor/i });
+
+    act(() => {
+      dispatchAction(INSTANCE, "toggleMotor", { kind: "button", value: true });
+    });
+    await act(async () => {});
+
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "robotics.rotor.setMotor",
+      ),
+    ).toEqual([]);
+  });
+
+  it("leaves the off marker off a rotor row whose motor was unread", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    const result = renderWidget("rotor-tachometer", {
+      instanceId: "rt-absence-motor",
+      config: {},
+      w: 6,
+      h: 10,
+      wrapper: fixture.Provider,
+    });
+    renderedTrees.push(result.unmount);
+    act(() => {
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("robotics.servos", [
+        rotor({ partId: "101", partName: "Main Rotor" }),
+        rotor({
+          partId: "202",
+          partName: "Tail Rotor",
+          servoMotorIsEngaged: null,
+        }),
+      ]);
+    });
+
+    const row = await screen.findByRole("button", { name: /Tail Rotor/i });
+    await waitFor(() => expect(visibleText(row)).toContain("Tail Rotor"));
+    // " · off" is what `r.motorEngaged ? "" : " · off"` printed for an unread
+    // flag: the row said the motor was off.
+    expect(visibleText(row)).not.toContain("off");
+  });
+});

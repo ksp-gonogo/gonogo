@@ -25,8 +25,9 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
+import { emptyStateText } from "../robotics";
 import { BREAKING_GROUND } from "../uplink";
-import { numOrNull } from "../wire";
+import { boolOrNull, numOrNull } from "../wire";
 
 /**
  * Robotics Console (Breaking Ground). Lists the active vessel's robotic
@@ -110,8 +111,16 @@ export interface ServoInfo {
   current: number | null;
   target: number | null;
   atTarget: boolean | null;
-  motorEngaged: boolean;
-  locked: boolean;
+  /**
+   * Both flags are `boolean | null` because `ServoEntry` declares them nullable
+   * and `SnapshotDict.GetBool` withholds rather than defaulting. A `=== true`
+   * read collapsed unknown into false, and false is a definite claim here:
+   * "Unlocked" tells an operator the joint will move when commanded, and the
+   * toggle then sends an absolute `setLock enabled=true` computed from a state
+   * never read.
+   */
+  motorEngaged: boolean | null;
+  locked: boolean | null;
   torqueLimit: number | null;
 }
 
@@ -153,6 +162,10 @@ const posWithUnit = (type: ServoType, v: number | null): string =>
  */
 const stepperLabel = (action: string, from: number | null): string =>
   from === null ? `${action} (unavailable, not reported)` : action;
+
+/** The same, for a toggle whose `enabled` is the inverse of an unread flag. */
+const flagLabel = (action: string, from: boolean | null): string | undefined =>
+  from === null ? `${action} (unavailable, not reported)` : undefined;
 
 /**
  * Parses the `robotics.servos` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
@@ -197,8 +210,8 @@ export function parseServos(raw: unknown): ServoInfo[] {
         current === null || target === null
           ? null
           : Math.abs(current - target) < AT_TARGET_EPSILON[type],
-      motorEngaged: e.servoMotorIsEngaged === true,
-      locked: e.servoIsLocked === true,
+      motorEngaged: boolOrNull(e.servoMotorIsEngaged),
+      locked: boolOrNull(e.servoIsLocked),
       torqueLimit: numOrNull(e.servoMotorLimit),
     });
   }
@@ -244,10 +257,19 @@ function RoboticsConsoleComponent({
   const roboticsReading = useTelemetry("robotics.servos");
   const roboticsRaw =
     roboticsReading.state === "observed" ? roboticsReading.value : undefined;
+  // Two DIFFERENT facts, and the empty state needs both. `robotics.available`
+  // is "this craft carries a robotic part", a per-vessel reading that rides the
+  // delay clock. `game.dlc.breakingGround` is "the install has the expansion",
+  // a ground-side fact that is true or false independent of any vessel. See
+  // `emptyStateText`.
   const available = stillTrue(
     useTelemetry("robotics.available"),
     undefined,
   )?.available;
+  const breakingGround = stillTrue(
+    useTelemetry("game.dlc"),
+    undefined,
+  )?.breakingGround;
 
   // The servo motor, lock and target are actuated on the craft and so are
   // subject to the same signal delay as any other flight-control command. Each
@@ -302,15 +324,17 @@ function RoboticsConsoleComponent({
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
+    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state
+    // read back, so an unread flag would command the inverse of a guess.
     toggleMotor: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.motorEngaged === null) return undefined;
       setMotor(selected.partId, !selected.motorEngaged);
       return { Motor: !selected.motorEngaged };
     },
     toggleLock: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.locked === null) return undefined;
       setLock(selected.partId, !selected.locked);
       return { Locked: !selected.locked };
     },
@@ -323,9 +347,12 @@ function RoboticsConsoleComponent({
         sections={
           <Section>
             <EmptyState role="status">
-              {available === false
-                ? "Breaking Ground not installed"
-                : "No robotic parts on this vessel"}
+              {emptyStateText(
+                breakingGround,
+                available,
+                roboticsReading.state === "observed",
+                "robotic parts",
+              )}
             </EmptyState>
           </Section>
         }
@@ -443,25 +470,45 @@ function RoboticsConsoleComponent({
             </Inline>
           </Cluster>
 
+          {/* Motor and lock each send an ABSOLUTE `enabled` chosen by
+              inverting the state read back, so an unread flag gets a third,
+              disabled rung rather than defaulting to off/unlocked. */}
           {showToggles && (
             <Cluster justify="start" gap="sm" wrap>
               <ToggleButton
                 size="sm"
-                active={selected.motorEngaged}
+                active={selected.motorEngaged === true}
                 tone="go"
+                disabled={selected.motorEngaged === null}
+                aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
                 onClick={() =>
+                  selected.motorEngaged !== null &&
                   setMotor(selected.partId, !selected.motorEngaged)
                 }
               >
-                Motor {selected.motorEngaged ? "on" : "off"}
+                Motor{" "}
+                {selected.motorEngaged === null
+                  ? "unknown"
+                  : selected.motorEngaged
+                    ? "on"
+                    : "off"}
               </ToggleButton>
               <ToggleButton
                 size="sm"
-                active={selected.locked}
+                active={selected.locked === true}
                 tone="warn"
-                onClick={() => setLock(selected.partId, !selected.locked)}
+                disabled={selected.locked === null}
+                aria-label={flagLabel("Toggle lock", selected.locked)}
+                onClick={() =>
+                  selected.locked !== null &&
+                  setLock(selected.partId, !selected.locked)
+                }
               >
-                {selected.locked ? "Locked" : "Unlocked"}
+                {selected.locked === null
+                  ? "Lock unknown"
+                  : selected.locked
+                    ? "Locked"
+                    : "Unlocked"}
               </ToggleButton>
             </Cluster>
           )}
@@ -478,7 +525,11 @@ function RoboticsConsoleComponent({
                 <span>
                   {s.type} · {posWithUnit(s.type, s.current)}/
                   {posWithUnit(s.type, s.target)}
-                  {s.locked ? " · locked" : s.atTarget === true ? " · ✓" : ""}
+                  {s.locked === true
+                    ? " · locked"
+                    : s.atTarget === true
+                      ? " · ✓"
+                      : ""}
                 </span>
               </SelectableRow>
             ))}
@@ -498,7 +549,11 @@ registerComponent<RoboticsConsoleConfig>({
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },
   component: RoboticsConsoleComponent,
-  dataRequirements: ["robotics.servos", "robotics.available.available"],
+  dataRequirements: [
+    "robotics.servos",
+    "robotics.available.available",
+    "game.dlc.breakingGround",
+  ],
   defaultConfig: {},
   actions: roboticsActions,
   pushable: true,

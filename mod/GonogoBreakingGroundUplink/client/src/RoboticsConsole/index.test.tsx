@@ -40,7 +40,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = ["robotics.servos", "robotics.available"];
+const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
 
 const servo = (
   over: Record<string, unknown> = {},
@@ -65,18 +65,43 @@ function renderConsole(fixture: ReturnType<typeof setupStreamFixture>) {
 }
 
 describe("RoboticsConsoleComponent", () => {
-  it("shows the DLC-absent state when robotics.available is false", async () => {
+  /**
+   * The DLC sentence comes off `game.dlc.breakingGround`, not off
+   * `robotics.available`.
+   *
+   * This test used to emit `robotics.available: false` and expect
+   * "Breaking Ground not installed", which is the inversion itself written down
+   * as a test: without the expansion the Uplink goes Unavailable and never
+   * emits on that channel at all, so a definite `false` there means the craft
+   * carries no robotic part. See `robotics.ts`.
+   */
+  it("names the missing DLC off game.dlc, not off robotics.available", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
     act(() => {
-      fixture.emit("robotics.available", { available: false });
+      fixture.emit("game.dlc", { breakingGround: false, makingHistory: true });
       fixture.emit("robotics.servos", []);
     });
     expect(
       await screen.findByText(/Breaking Ground not installed/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the no-parts state when the craft carries no robotic part", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    renderConsole(fixture);
+    act(() => {
+      fixture.emit("game.dlc", { breakingGround: true, makingHistory: true });
+      fixture.emit("robotics.available", { available: false });
+    });
+    expect(
+      await screen.findByText(/No robotic parts on this vessel/i),
     ).toBeInTheDocument();
   });
 
@@ -95,14 +120,17 @@ describe("RoboticsConsoleComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the no-parts state when nothing has arrived", async () => {
+  it("says it is waiting when neither presence fact has arrived", async () => {
+    // The third rung. This expected "No robotic parts on this vessel", which
+    // is the sentence a player WITHOUT the expansion used to get: a positive
+    // claim about a craft nothing has reported on yet.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
     expect(
-      await screen.findByText(/No robotic parts on this vessel/i),
+      await screen.findByText(/Waiting for the robotic parts list/i),
     ).toBeInTheDocument();
   });
 

@@ -95,9 +95,16 @@ describe("DeployedScienceComponent", () => {
     );
   });
 
-  it("shows the no-bases state when nothing has streamed yet", () => {
+  it("says it is waiting when the roster has not streamed yet", () => {
+    // This expected "No deployed bases", a positive claim that nothing is
+    // planted anywhere, before the first emission: `parseBases` answers null
+    // for "could not read" and a `?? []` was discarding exactly that. An
+    // operator with four bases on Duna read that they had none.
     renderDeployed(newFixture());
-    expect(screen.getByText(/No deployed bases/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Waiting for the deployed-base roster/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/No deployed bases/i)).toBeNull();
   });
 
   it("renders a base with power balance and experiment progress", async () => {

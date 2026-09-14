@@ -20,7 +20,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { BREAKING_GROUND } from "../uplink";
-import { num, numOrNull } from "../wire";
+import { boolOrNull, num, numOrNull } from "../wire";
 
 /**
  * Deployed Base Monitor (Breaking Ground). Lists every deployed surface
@@ -76,7 +76,10 @@ export interface DeployedExperiment {
 export interface DeployedBase {
   id: number;
   body: string;
-  powered: boolean;
+  /** `null` when the mod declined to state the cluster's power state, which is
+   *  a third answer and not "unpowered": `power === DeployedPowerState.Powered`
+   *  made every unread base paint a red "Unpowered" pill. */
+  powered: boolean | null;
   partialPower: boolean;
   /** Breaking Ground's own integral power units, not electric charge. `null`
    *  when the cluster could not be read: a live cluster with dark panels
@@ -206,9 +209,16 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
  * fix.
  */
 function powerFromState(power: DeployedPowerState | null | undefined): {
-  powered: boolean;
+  powered: boolean | null;
   partialPower: boolean;
 } {
+  // `power === DeployedPowerState.Powered` answered a definite FALSE for a
+  // cluster the mod declined to state, so an unread base painted the red
+  // "Unpowered" pill (`POWER_TONE.unpowered` is `nogo`) as confidently as a
+  // genuinely dark one. Absence gets its own arm.
+  if (power === null || power === undefined) {
+    return { powered: null, partialPower: false };
+  }
   return { powered: power === DeployedPowerState.Powered, partialPower: false };
 }
 
@@ -346,7 +356,10 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
     out.push({
       id: e.id,
       body: typeof e.body === "string" ? e.body : "",
-      powered: e.powered === true,
+      /* Narrowed rather than `=== true`, for the same reason the new wire arm
+         is: the legacy shape can omit the flag, and the panel would then paint
+         the red "Unpowered" pill for a cluster that never reported one. */
+      powered: boolOrNull(e.powered),
       partialPower: e.partialPower === true,
       powerAvailable: numOrNull(e.powerAvailable),
       powerRequired: numOrNull(e.powerRequired),
@@ -359,9 +372,10 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
   return out;
 }
 
-type PowerState = "powered" | "partial" | "unpowered";
+type PowerState = "powered" | "partial" | "unpowered" | "unknown";
 
 function powerState(base: DeployedBase): PowerState {
+  if (base.powered === null) return "unknown";
   if (!base.powered) return "unpowered";
   return base.partialPower ? "partial" : "powered";
 }
@@ -370,12 +384,17 @@ const POWER_LABEL: Record<PowerState, string> = {
   powered: "Powered",
   partial: "Brownout",
   unpowered: "Unpowered",
+  // Matches the shape `powerBalance`'s "Power unknown" already uses on the
+  // same card, and reads as an absence rather than as a fourth power state.
+  unknown: "Power unknown",
 };
 
 const POWER_TONE: Record<PowerState, StatusTone> = {
   powered: "go",
   partial: "warn",
   unpowered: "nogo",
+  // Neutral, not `nogo`: a red pill is a verdict, and there is none here.
+  unknown: "neutral",
 };
 
 const XS2_STYLE = { fontSize: "var(--font-size-2xs)" } as const;
@@ -404,9 +423,14 @@ function DeployedScienceComponent(
     undefined,
   )?.breakingGround;
 
-  const bases = parseBases(basesRaw) ?? [];
+  // `parseBases` returns null for "could not read", which is the whole reason
+  // it returns null: a `?? []` here discarded exactly that and the panel then
+  // said "No deployed bases", a positive claim that nothing is planted
+  // anywhere, before the first emission and on a mod that does not carry the
+  // channel. An operator with four bases on Duna read that they had none.
+  const bases = parseBases(basesRaw);
 
-  if (bases.length === 0) {
+  if (bases === null || bases.length === 0) {
     return (
       <Panel
         panelTitle="DEPLOYED SCIENCE"
@@ -416,7 +440,9 @@ function DeployedScienceComponent(
             <EmptyState role="status">
               {available === false
                 ? "Breaking Ground not installed"
-                : "No deployed bases"}
+                : bases === null
+                  ? "Waiting for the deployed-base roster"
+                  : "No deployed bases"}
             </EmptyState>
           </Section>
         }

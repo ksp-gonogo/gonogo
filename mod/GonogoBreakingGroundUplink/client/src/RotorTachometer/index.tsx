@@ -28,8 +28,9 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
+import { emptyStateText } from "../robotics";
 import { BREAKING_GROUND } from "../uplink";
-import { numOrNull } from "../wire";
+import { boolOrNull, numOrNull } from "../wire";
 
 /**
  * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
@@ -69,9 +70,16 @@ export interface RotorInfo {
   torqueLimit: number | null;
   maxTorque: number | null;
   brakePercentage: number | null;
-  motorEngaged: boolean;
-  locked: boolean;
-  counterClockwise: boolean;
+  /**
+   * The three flags, `boolean | null` because every one of them is declared
+   * nullable on `ServoEntry` and `SnapshotDict.GetBool` withholds rather than
+   * defaulting. A `=== true` read collapsed unknown into false, and each false
+   * is a definite claim: "Motor off", "Unlocked", and a direction button
+   * reading "↻ CW" for a rotor whose heading nobody reported.
+   */
+  motorEngaged: boolean | null;
+  locked: boolean | null;
+  counterClockwise: boolean | null;
   output: number | null;
 }
 
@@ -115,9 +123,9 @@ export function parseRotors(raw: unknown): RotorInfo[] {
       torqueLimit: numOrNull(e.servoMotorLimit),
       maxTorque: numOrNull(e.maxTorque),
       brakePercentage: numOrNull(e.brakePercentage),
-      motorEngaged: e.servoMotorIsEngaged === true,
-      locked: e.servoIsLocked === true,
-      counterClockwise: e.counterClockwise === true,
+      motorEngaged: boolOrNull(e.servoMotorIsEngaged),
+      locked: boolOrNull(e.servoIsLocked),
+      counterClockwise: boolOrNull(e.counterClockwise),
       output: numOrNull(e.normalizedOutput),
     });
   }
@@ -138,6 +146,10 @@ const roundOrUnknown = (v: number | null): string =>
  */
 const stepperLabel = (action: string, from: number | null): string =>
   from === null ? `${action} (unavailable, not reported)` : action;
+
+/** The same, for a toggle whose `enabled` is the inverse of an unread flag. */
+const flagLabel = (action: string, from: boolean | null): string | undefined =>
+  from === null ? `${action} (unavailable, not reported)` : undefined;
 
 const rotorActions = [
   {
@@ -183,10 +195,19 @@ function RotorTachometerComponent({
   const roboticsReading = useTelemetry("robotics.servos");
   const roboticsRaw =
     roboticsReading.state === "observed" ? roboticsReading.value : undefined;
+  // Two DIFFERENT facts, and the empty state needs both. `robotics.available`
+  // is "this craft carries a robotic part", a per-vessel reading that rides the
+  // delay clock. `game.dlc.breakingGround` is "the install has the expansion",
+  // a ground-side fact that is true or false independent of any vessel. See
+  // `emptyStateText`.
   const available = stillTrue(
     useTelemetry("robotics.available"),
     undefined,
   )?.available;
+  const breakingGround = stillTrue(
+    useTelemetry("game.dlc"),
+    undefined,
+  )?.breakingGround;
 
   // Rotor RPM, torque, brake, motor, lock and direction are all actuated on the
   // craft and so are subject to signal delay. Each dispatches over
@@ -264,23 +285,31 @@ function RotorTachometerComponent({
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
+    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state
+    // read back, so an unread flag would command the inverse of a guess.
     toggleMotor: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.motorEngaged === null) return undefined;
       setMotor(selected.partId, !selected.motorEngaged);
       return { Motor: !selected.motorEngaged };
     },
     toggleLock: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected) return undefined;
+      if (!selected || selected.locked === null) return undefined;
       setLock(selected.partId, !selected.locked);
       return { Locked: !selected.locked };
     },
     reverse: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected) return undefined;
+      // `reverse` carries no value, so it stays available on an unread
+      // heading: it flips whatever the rotor is doing. What it must NOT do is
+      // report the heading back, because `counterClockwise === true` made an
+      // unread rotor answer "CW" and a bound device's render style drew that.
       reverse(selected.partId);
-      return { Direction: selected.counterClockwise ? "CW" : "CCW" };
+      return selected.counterClockwise === null
+        ? undefined
+        : { Direction: selected.counterClockwise ? "CW" : "CCW" };
     },
   });
 
@@ -291,9 +320,12 @@ function RotorTachometerComponent({
         sections={
           <Section>
             <EmptyState role="status">
-              {available === false
-                ? "Breaking Ground not installed"
-                : "No rotors on this vessel"}
+              {emptyStateText(
+                breakingGround,
+                available,
+                roboticsReading.state === "observed",
+                "rotors",
+              )}
             </EmptyState>
           </Section>
         }
@@ -461,21 +493,43 @@ function RotorTachometerComponent({
           </Cluster>
 
           <Cluster justify="start" gap="sm" wrap>
+            {/* Motor and lock each send an ABSOLUTE `enabled` chosen by
+                inverting the state read back, so an unread flag gets a third,
+                disabled rung rather than defaulting to off/unlocked. */}
             <ToggleButton
               size="sm"
-              active={selected.motorEngaged}
+              active={selected.motorEngaged === true}
               tone="go"
-              onClick={() => setMotor(selected.partId, !selected.motorEngaged)}
+              disabled={selected.motorEngaged === null}
+              aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
+              onClick={() =>
+                selected.motorEngaged !== null &&
+                setMotor(selected.partId, !selected.motorEngaged)
+              }
             >
-              Motor {selected.motorEngaged ? "on" : "off"}
+              Motor{" "}
+              {selected.motorEngaged === null
+                ? "unknown"
+                : selected.motorEngaged
+                  ? "on"
+                  : "off"}
             </ToggleButton>
             <ToggleButton
               size="sm"
-              active={selected.locked}
+              active={selected.locked === true}
               tone="warn"
-              onClick={() => setLock(selected.partId, !selected.locked)}
+              disabled={selected.locked === null}
+              aria-label={flagLabel("Toggle lock", selected.locked)}
+              onClick={() =>
+                selected.locked !== null &&
+                setLock(selected.partId, !selected.locked)
+              }
             >
-              {selected.locked ? "Locked" : "Unlocked"}
+              {selected.locked === null
+                ? "Lock unknown"
+                : selected.locked
+                  ? "Locked"
+                  : "Unlocked"}
             </ToggleButton>
             {/* The brake toggle sends an ABSOLUTE percentage chosen by
                 inverting the current one, so an unread brake would read "off"
@@ -508,8 +562,16 @@ function RotorTachometerComponent({
                   ? "on"
                   : "off"}
             </ToggleButton>
+            {/* Reverse carries no value, so it stays available: it flips
+                whatever the rotor is doing. Only the HEADING it prints is
+                withheld, because "↻ CW" was a definite claim off an unread
+                flag. */}
             <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
-              {selected.counterClockwise ? "↺ CCW" : "↻ CW"}
+              {selected.counterClockwise === null
+                ? "Reverse"
+                : selected.counterClockwise
+                  ? "↺ CCW"
+                  : "↻ CW"}
             </ToggleButton>
           </Cluster>
         </Section>,
@@ -524,8 +586,8 @@ function RotorTachometerComponent({
                 <span>{r.name}</span>
                 <span>
                   {roundOrUnknown(r.rpm)}/{roundOrUnknown(r.rpmLimit)} RPM
-                  {r.motorEngaged ? "" : " · off"}
-                  {r.locked ? " · locked" : ""}
+                  {r.motorEngaged === false ? " · off" : ""}
+                  {r.locked === true ? " · locked" : ""}
                 </span>
               </SelectableRow>
             ))}
@@ -545,7 +607,11 @@ registerComponent<RotorTachometerConfig>({
   defaultSize: { w: 6, h: 10 },
   minSize: { w: 4, h: 4 },
   component: RotorTachometerComponent,
-  dataRequirements: ["robotics.servos", "robotics.available.available"],
+  dataRequirements: [
+    "robotics.servos",
+    "robotics.available.available",
+    "game.dlc.breakingGround",
+  ],
   defaultConfig: {},
   actions: rotorActions,
   pushable: true,

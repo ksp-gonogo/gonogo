@@ -42,3 +42,16 @@ export function numOrNull(v: unknown): number | null {
 export function num(v: unknown, fallback: number): number {
   return numOrNull(v) ?? fallback;
 }
+
+/**
+ * A wire flag, or `null` when the mod withheld it.
+ *
+ * The twin of {@link numOrNull} for `SnapshotDict.GetBool`, which withholds on
+ * absence the same way. `=== true` was the spelling before, and it makes false
+ * and unknown render identically while each false is a definite claim about the
+ * craft: "Motor off" and "Unlocked" both tell an operator the joint will move
+ * when commanded.
+ */
+export function boolOrNull(v: unknown): boolean | null {
+  return typeof v === "boolean" ? v : null;
+}

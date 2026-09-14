@@ -247,3 +247,107 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
     });
   });
 });
+
+describe("RoboticsConsole: an unread flag is not a false one", () => {
+  it("withholds the motor and lock flags rather than reading them as off", () => {
+    const [joint] = parseServos([
+      { partId: "11", type: "hinge", currentAngle: 22, targetAngle: 60 },
+    ]);
+    // Both read `false` off `=== true`, which the panel drew as "Motor off"
+    // and "Unlocked": two definite claims about a joint that reported neither.
+    expect(joint?.motorEngaged).toBeNull();
+    expect(joint?.locked).toBeNull();
+  });
+
+  it("says the motor and lock states are unknown rather than off and unlocked", async () => {
+    const { container } = mount(
+      servo({ servoMotorIsEngaged: null, servoIsLocked: null }),
+    );
+
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("Motor unknown"),
+    );
+    expect(visibleText(container)).toContain("Lock unknown");
+    expect(visibleText(container)).not.toContain("Motor off");
+    // "Unlocked" is the one that matters: it tells an operator the joint will
+    // move when commanded.
+    expect(visibleText(container)).not.toContain("Unlocked");
+  });
+
+  it("dispatches no setLock when the lock state was never read", async () => {
+    const user = userEvent.setup();
+    const { fixture } = mount(servo({ servoIsLocked: null }));
+
+    // The click has to be REACHED under the old code, which sent
+    // `{ partId: "11", enabled: true }` computed by inverting a guessed false.
+    await user.click(await screen.findByRole("button", { name: /Lock/i }));
+    await act(async () => {});
+
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "robotics.servo.setLock",
+      ),
+    ).toEqual([]);
+  });
+
+  it("dispatches no setMotor from the mapped toggleMotor action", async () => {
+    const { fixture } = mount(servo({ servoMotorIsEngaged: null }));
+    await screen.findByRole("button", { name: /Motor/i });
+
+    let returned: unknown;
+    act(() => {
+      returned = dispatchAction(INSTANCE, "toggleMotor", {
+        kind: "button",
+        value: true,
+      });
+    });
+    await act(async () => {});
+
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "robotics.servo.setMotor",
+      ),
+    ).toEqual([]);
+    expect(returned).toBeUndefined();
+  });
+
+  it("leaves the locked marker off a joint row whose lock was unread", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+    });
+    const result = renderWidget("robotics-console", {
+      instanceId: "rc-absence-lock",
+      config: {},
+      w: 5,
+      h: 8,
+      wrapper: fixture.Provider,
+    });
+    renderedTrees.push(result.unmount);
+    act(() => {
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("robotics.servos", [
+        servo({ partId: "11", partName: "Arm Hinge" }),
+        servo({ partId: "22", partName: "Wrist Hinge", servoIsLocked: null }),
+      ]);
+    });
+
+    const row = await screen.findByRole("button", { name: /Wrist Hinge/i });
+    await waitFor(() => expect(visibleText(row)).toContain("Wrist Hinge"));
+    expect(visibleText(row)).not.toContain("locked");
+  });
+
+  it("still commands normally once the lock state is a real reading", async () => {
+    // The control, so the disabling above is not simply a dead toggle.
+    const user = userEvent.setup();
+    const { fixture } = mount(servo({ servoIsLocked: false }));
+
+    await user.click(await screen.findByRole("button", { name: /Unlocked/i }));
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.servo.setLock",
+      );
+      expect(sent?.args).toEqual({ partId: "11", enabled: true });
+    });
+  });
+});
