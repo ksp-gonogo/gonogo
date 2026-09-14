@@ -354,7 +354,7 @@ public class Rp1ProgramFundingCaptureTests
 
     private static Rp1ProgramsRaw WithCurves(params Rp1ProgramRaw[] programs)
     {
-        var raw = new Rp1ProgramsRaw { Ut = 1000.0, DefaultCurve = "Flat" };
+        var raw = new Rp1ProgramsRaw { Ut = 1000.0, Available = true, DefaultCurve = "Flat" };
         raw.Programs.AddRange(programs);
         raw.Curves.Add(new Rp1FundingCurveRaw
         {

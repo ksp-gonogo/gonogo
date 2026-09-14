@@ -135,6 +135,7 @@ namespace GonogoRp1Uplink
             var raw = new Rp1CareerEventsRaw
             {
                 Ut = ut,
+                Available = true,
                 Enabled = Rp1Types.ReadBool(instance, "IsEnabled"),
             };
 

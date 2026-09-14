@@ -10,14 +10,22 @@ namespace GonogoRp1Uplink
     /// for the same reason, as <see cref="Rp1ScRaw"/>.
     /// </summary>
     /// <remarks>
-    /// A null root is a first-class answer and the reason this is not a bag of
-    /// empty lists: RP-1 installed with no <c>ProgramHandler</c> live is the main
-    /// menu or a save RP-1 does not manage, and "no Programs exist" is a
+    /// An unavailable root is a first-class answer and the reason this is not a
+    /// bag of empty lists: RP-1 installed with no <c>ProgramHandler</c> live is
+    /// the main menu or a save RP-1 does not manage, and "no Programs exist" is a
     /// different fact from "this career has accepted none".
     /// </remarks>
     public sealed class Rp1ProgramsRaw
     {
         public double Ut;
+
+        /// <summary>
+        /// RP-1's <c>ProgramHandler</c> was live and the lists below came off it.
+        /// False publishes every channel's absence, which is the state the main
+        /// menu sits in; the capture mints the raw either way so the absence is
+        /// stamped at the tick that found it rather than at the start of the game.
+        /// </summary>
+        public bool Available;
 
         public List<Rp1ProgramRaw> Programs = new List<Rp1ProgramRaw>();
 

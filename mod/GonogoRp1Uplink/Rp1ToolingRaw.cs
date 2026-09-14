@@ -13,6 +13,15 @@ namespace GonogoRp1Uplink
         public double Ut;
 
         /// <summary>
+        /// There was a ship on the table, RP-1's tooling is switched on, and its
+        /// manager is live. False publishes the channel's absence, which is what
+        /// every scene but the editor sits in; the capture mints the raw either
+        /// way so the absence is stamped at the tick that found it rather than at
+        /// the start of the game.
+        /// </summary>
+        public bool Available;
+
+        /// <summary>
         /// RP-1's own deduplicated total for tooling everything untooled on this
         /// ship, off the field it caches it in.
         ///

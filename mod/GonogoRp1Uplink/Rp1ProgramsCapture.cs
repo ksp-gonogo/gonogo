@@ -22,7 +22,7 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static List<object?>? BuildPrograms(Rp1ProgramsRaw? raw)
         {
-            if (raw == null)
+            if (raw == null || !raw.Available)
             {
                 return null;
             }
@@ -80,7 +80,7 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static List<object?>? BuildFundingCurves(Rp1ProgramsRaw? raw)
         {
-            if (raw == null)
+            if (raw == null || !raw.Available)
             {
                 return null;
             }
@@ -204,7 +204,7 @@ namespace GonogoRp1Uplink
         /// <summary>Null when RP-1's Program handler is not live, for the reason above.</summary>
         public static Dictionary<string, object?>? BuildSlots(Rp1ProgramsRaw? raw)
         {
-            if (raw == null)
+            if (raw == null || !raw.Available)
             {
                 return null;
             }

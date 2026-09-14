@@ -21,7 +21,7 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static Dictionary<string, object?>? Build(Rp1ToolingRaw? raw)
         {
-            if (raw == null)
+            if (raw == null || !raw.Available)
             {
                 return null;
             }

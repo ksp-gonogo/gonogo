@@ -56,6 +56,14 @@ namespace GonogoRp1Uplink
         public double Ut;
 
         /// <summary>
+        /// RP-1's log handler was live and the rows below came off it. A THIRD
+        /// state beside <see cref="Enabled"/>'s two: false publishes the channel's
+        /// absence, and the capture mints the raw either way so that absence is
+        /// stamped at the tick that found it rather than at the start of the game.
+        /// </summary>
+        public bool Available;
+
+        /// <summary>
         /// Whether RP-1 is keeping the log. FALSE is not an empty log: a career
         /// with logging off has no history and never will, which is a different
         /// answer from one that has recorded nothing yet.

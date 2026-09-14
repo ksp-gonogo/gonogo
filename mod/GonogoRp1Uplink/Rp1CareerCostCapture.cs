@@ -67,7 +67,7 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static Dictionary<string, object?>? BuildEvents(Rp1CareerEventsRaw? raw)
         {
-            if (raw == null)
+            if (raw == null || !raw.Available)
             {
                 return null;
             }

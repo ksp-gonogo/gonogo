@@ -153,7 +153,7 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
-            var raw = new Rp1ToolingRaw { Ut = ut, ToolAllCost = ToolAllCost() };
+            var raw = new Rp1ToolingRaw { Ut = ut, Available = true, ToolAllCost = ToolAllCost() };
             double? surcharge = null;
             /*
              * One merge per tooling type per tick, not per part. Several parts on a

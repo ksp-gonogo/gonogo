@@ -24,7 +24,7 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static List<object?>? BuildCrew(Rp1CrewRaw? raw)
         {
-            if (raw == null)
+            if (raw == null || !raw.Available)
             {
                 return null;
             }
