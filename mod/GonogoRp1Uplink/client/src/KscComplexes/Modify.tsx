@@ -119,40 +119,95 @@ function ModifyForm({
   const name = complex.name ?? NULL_DISPLAY;
   const currentMass = magnitudeOf(complex.massMax);
   const massOrig = magnitudeOf(complex.massOrig);
-  const currentWidth = magnitudeOf(complex.sizeMaxWidth) ?? 0;
-  const currentHeight = magnitudeOf(complex.sizeMaxHeight) ?? 0;
-  const currentDepth = magnitudeOf(complex.sizeMaxDepth) ?? 0;
+  const currentWidth = magnitudeOf(complex.sizeMaxWidth);
+  const currentHeight = magnitudeOf(complex.sizeMaxHeight);
+  const currentDepth = magnitudeOf(complex.sizeMaxDepth);
+  const launchPadCount = magnitudeOf(complex.launchPadCount);
 
-  const [massMax, setMassMax] = useState(value("t", currentMass ?? 0));
-  const [width, setWidth] = useState(value("m", currentWidth));
-  const [height, setHeight] = useState(value("m", currentHeight));
-  const [depth, setDepth] = useState(value("m", currentDepth));
+  /*
+   * Seeded ABSENT where the complex's own figure is absent, which is what makes
+   * the promise above ("every field starts at what the complex already is") true
+   * rather than nearly true. A seed of zero reads as the complex's CURRENT
+   * envelope, so a complex with no size limit at all opened this form saying
+   * "Width 0 m", and `UnitInput` draws an empty field for an absent value for
+   * exactly this reason.
+   */
+  const [massMax, setMassMax] = useState(
+    currentMass === null ? null : value("t", currentMass),
+  );
+  const [width, setWidth] = useState(
+    currentWidth === null ? null : value("m", currentWidth),
+  );
+  const [height, setHeight] = useState(
+    currentHeight === null ? null : value("m", currentHeight),
+  );
+  const [depth, setDepth] = useState(
+    currentDepth === null ? null : value("m", currentDepth),
+  );
   const [humanRated, setHumanRated] = useState(complex.humanRated === true);
   const [reassign, setReassign] = useState(false);
 
-  const wantedMass = magnitudeOf(massMax) ?? 0;
-  const nextSpec: LcSpec = {
-    humanRated: isHangar || humanRated,
-    isHangar,
-    massMax: isHangar ? (currentMass ?? 0) : wantedMass,
-    resources: new Map(Object.entries(capacities)),
-    sizeMaxDepth: magnitudeOf(depth) ?? 0,
-    sizeMaxHeight: magnitudeOf(height) ?? 0,
-    sizeMaxWidth: magnitudeOf(width) ?? 0,
-  };
-  const current: LcCurrent = {
-    humanRated: complex.humanRated === true,
-    isHangar,
-    launchPadCount: magnitudeOf(complex.launchPadCount) ?? 1,
-    massMax: currentMass ?? 0,
-    massOrig: massOrig ?? currentMass ?? 0,
-    resources: new Map(Object.entries(capacities)),
-    sizeMaxDepth: currentDepth,
-    sizeMaxHeight: currentHeight,
-    sizeMaxWidth: currentWidth,
-  };
+  const wantedMass = magnitudeOf(massMax);
+  const wantedWidth = magnitudeOf(width);
+  const wantedHeight = magnitudeOf(height);
+  const wantedDepth = magnitudeOf(depth);
 
-  const quote = quoteModifyComplex(nextSpec, current, pricing);
+  /*
+   * Null while the form does not describe a whole complex, rather than a spec
+   * with zeros standing in for the fields nobody has typed. A hangar holds its
+   * tonnage where it is, so it needs the CURRENT limit for the same reason every
+   * other complex needs the wanted one.
+   */
+  const wantedSpecMass = isHangar ? currentMass : wantedMass;
+  const nextSpec: LcSpec | null =
+    wantedSpecMass === null ||
+    wantedWidth === null ||
+    wantedHeight === null ||
+    wantedDepth === null
+      ? null
+      : {
+          humanRated: isHangar || humanRated,
+          isHangar,
+          massMax: wantedSpecMass,
+          resources: new Map(Object.entries(capacities)),
+          sizeMaxDepth: wantedDepth,
+          sizeMaxHeight: wantedHeight,
+          sizeMaxWidth: wantedWidth,
+        };
+
+  /*
+   * The baseline a renovation is priced as a DIFFERENCE from, so a fabricated
+   * term here misprices the quote without appearing in it. Every one of them is
+   * refused rather than defaulted: `massOrig` fixes both the legal envelope and
+   * the curve the per-metre charge is lerped over, and falling back to the
+   * current limit would price a complex that HAS been renovated as though it
+   * never was; an axis of zero prices a growth from nothing; and a pad count of
+   * one drops the additional-pad multiplier off a complex that has three.
+   */
+  const current: LcCurrent | null =
+    currentMass === null ||
+    massOrig === null ||
+    currentWidth === null ||
+    currentHeight === null ||
+    currentDepth === null ||
+    launchPadCount === null
+      ? null
+      : {
+          humanRated: complex.humanRated === true,
+          isHangar,
+          launchPadCount,
+          massMax: currentMass,
+          massOrig,
+          resources: new Map(Object.entries(capacities)),
+          sizeMaxDepth: currentDepth,
+          sizeMaxHeight: currentHeight,
+          sizeMaxWidth: currentWidth,
+        };
+
+  const quote =
+    nextSpec === null || current === null
+      ? null
+      : quoteModifyComplex(nextSpec, current, pricing);
   // Not defaulted to zero. Both sentences below are about what a renovation
   // does to this complex's crew, and "0 engineers" is a promise that nobody is
   // affected rather than a missing figure.
@@ -169,16 +224,33 @@ function ModifyForm({
     massOrig === null ? null : Math.max(3, Math.floor(massOrig * 2));
   const floor =
     massOrig === null ? null : Math.max(1, Math.ceil(massOrig * 0.5));
-  const overCeiling = !isHangar && ceiling !== null && wantedMass > ceiling;
-  const underFloor = !isHangar && floor !== null && wantedMass < floor;
+  const overCeiling =
+    !isHangar &&
+    ceiling !== null &&
+    wantedMass !== null &&
+    wantedMass > ceiling;
+  const underFloor =
+    !isHangar && floor !== null && wantedMass !== null && wantedMass < floor;
 
-  const sized = [
-    nextSpec.sizeMaxWidth,
-    nextSpec.sizeMaxHeight,
-    nextSpec.sizeMaxDepth,
-  ].every((axis) => axis > 0);
+  const sized =
+    nextSpec !== null &&
+    [
+      nextSpec.sizeMaxWidth,
+      nextSpec.sizeMaxHeight,
+      nextSpec.sizeMaxDepth,
+    ].every((axis) => axis > 0);
+  /*
+   * Dark while there is no quote as well as while the specification is
+   * incomplete. A renovation nobody could price is one whose cost the operator
+   * cannot see before pressing, and this form's whole claim is that the bill is
+   * named beside the press.
+   */
   const blocked =
-    overCeiling || underFloor || !sized || (!isHangar && wantedMass <= 0);
+    quote === null ||
+    overCeiling ||
+    underFloor ||
+    !sized ||
+    (!isHangar && (wantedMass === null || wantedMass <= 0));
   const confirm =
     engineers === null
       ? `Confirm renovating ${name}, which takes its engineers off for the whole build`
@@ -315,9 +387,17 @@ function renovationArgs({
   isHangar: boolean;
   lcId: string;
   reassign: boolean;
-  spec: LcSpec;
-  wantedMass: number;
+  spec: LcSpec | null;
+  wantedMass: number | null;
 }>) {
+  /*
+   * Nothing to send while the form does not describe a whole complex. The press
+   * is already dark in that state; returning the arguments as absent means a
+   * specification with a hole in it cannot be assembled here either.
+   */
+  if (spec === null || (!isHangar && wantedMass === null)) {
+    return undefined;
+  }
   const size = {
     sizeMaxDepth: spec.sizeMaxDepth,
     sizeMaxHeight: spec.sizeMaxHeight,

@@ -186,6 +186,69 @@ describe("renovating a launch complex", () => {
     });
   });
 
+  /*
+   * The form's own docstring promises every field starts at what the complex
+   * already is. A seed of zero broke that promise in the most readable way
+   * available: an operator reads "0 m" as the complex's CURRENT envelope on a
+   * complex that has no size limit at all.
+   */
+  it("opens an axis empty rather than at zero when the complex has no limit on it", async () => {
+    const user = userEvent.setup();
+    mount({ ...LC1, sizeMaxWidth: null });
+    await openRenovation(user);
+
+    // A number field holding nothing reads back as null, which is the empty
+    // field; a seeded zero would read back as 0.
+    expect(await screen.findByLabelText("Width")).toHaveValue(null);
+    // The axes RP-1 did state are still seeded, which is what makes this an
+    // absence rather than a form that gave up.
+    expect(await screen.findByLabelText("Height")).toHaveValue(20);
+  });
+
+  /*
+   * And the quote is REFUSED rather than computed from that zero. The baseline is
+   * what a renovation is priced as a difference from, so a fabricated axis
+   * misprices the bill without ever appearing in it, and the "covers it" reading
+   * beside it inherits the error.
+   */
+  it("refuses to quote a renovation against an envelope RP-1 has not stated", async () => {
+    const user = userEvent.setup();
+    const { view } = mount({ ...LC1, sizeMaxWidth: null });
+    await openRenovation(user);
+
+    const width = await screen.findByLabelText("Width");
+    await user.type(width, "12");
+
+    await waitFor(() => {
+      expect(view.container.textContent).toContain(
+        "no price: RP-1 has not said what this would cost",
+      );
+    });
+    expect(
+      screen.getByRole("button", { name: "Queue the renovation of LC-1" }),
+    ).toBeDisabled();
+  });
+
+  /*
+   * `massOrig` fixes the legal envelope AND the curve the per-metre integration
+   * charge is lerped over, so falling back to the current limit prices a complex
+   * that HAS been renovated as though it never was.
+   */
+  it("refuses to quote when the tonnage the complex was built at is absent", async () => {
+    const user = userEvent.setup();
+    const { view } = mount({ ...LC1, massOrig: null });
+    await openRenovation(user);
+
+    await waitFor(() => {
+      expect(view.container.textContent).toContain(
+        "no price: RP-1 has not said what this would cost",
+      );
+    });
+    expect(
+      screen.getByRole("button", { name: "Queue the renovation of LC-1" }),
+    ).toBeDisabled();
+  });
+
   it("charges for a shrink and says so rather than implying a refund", async () => {
     const user = userEvent.setup();
     const { view } = mount({ ...LC1, massMax: 180, massOrig: 180 });
