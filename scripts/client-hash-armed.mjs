@@ -189,10 +189,17 @@ const unexcused = unarmed.filter((row) => !UNARMED_DEBT.has(row.id));
 const stale = rows.filter(
   (row) => row.state === "armed" && UNARMED_DEBT.has(row.id),
 );
+// An entry naming no client-bearing Uplink excuses nothing: the Uplink has left the repo, lost its client or plugin csproj, or the id is a typo.
+const departed = [...UNARMED_DEBT].filter(
+  (id) => !rows.some((row) => row.id === id),
+);
 if (report) {
   console.log(
     `\n${rows.length - unarmed.length} of ${rows.length} bundled Uplink(s) vouch for their client ` +
-      `bundle. ${unarmed.length} in UNARMED_DEBT.`,
+      `bundle. ${unarmed.length} in UNARMED_DEBT.` +
+      (departed.length > 0
+        ? ` ${departed.length} UNARMED_DEBT entr(y/ies) name no client-bearing Uplink: ${departed.join(", ")}.`
+        : ""),
   );
   process.exit(0);
 }
@@ -202,6 +209,16 @@ if (stale.length > 0) {
     `\n✖ ${stale.length} Uplink(s) now vouch for their bundle and are still in UNARMED_DEBT:\n` +
       stale.map((row) => `    ${row.id}`).join("\n") +
       "\n\n  Delete those entries from scripts/client-hash-armed.mjs to ratchet the gate down.",
+  );
+  process.exit(1);
+}
+
+if (departed.length > 0) {
+  console.error(
+    `\n✖ ${departed.length} UNARMED_DEBT entr(y/ies) name no client-bearing Uplink in this repo:\n` +
+      departed.map((id) => `    ${id}`).join("\n") +
+      "\n\n  The Uplink has moved out, lost its client or plugin csproj, or the id is wrong. Delete\n" +
+      "  those entries from scripts/client-hash-armed.mjs.",
   );
   process.exit(1);
 }
