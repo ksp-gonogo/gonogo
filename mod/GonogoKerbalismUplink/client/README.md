@@ -140,6 +140,10 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 
 ![Per-kerbal survival meters contributed into Crew Status: one kerbal near a fatal radiation dose, one on a death clock, one healthy](docs/assets/radiation-dose-critical--default.png)
 
+![Supply tank meters contributed into Ship Map beside the built-in propellant meters, Food drained low enough to carry a status border](docs/assets/supply-tank-meters--default.png)
+
+![One filter term per running Kerbalism process, contributed into Resource Ops beside its built-in by-resource filters](docs/assets/a-filter-term-per-process--default.png)
+
 ## Models
 
 | Kind | Id |
