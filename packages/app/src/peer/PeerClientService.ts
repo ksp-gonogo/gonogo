@@ -767,6 +767,17 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
+  /**
+   * Ask the host to serve this connection from `vantage` instead of its own.
+   * `null` hands it back to the host's session.
+   */
+  sendSitrepSetVantage(vantage: string | null): void {
+    this.conn?.send({
+      type: "sitrep-set-vantage",
+      vantage,
+    } satisfies PeerMessage);
+  }
+
   /** The release half of {@link sendSitrepSubscribe}. */
   sendSitrepUnsubscribe(topic: string): void {
     this.conn?.send({

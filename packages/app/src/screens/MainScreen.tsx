@@ -91,6 +91,7 @@ import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeede
 import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { DEMO_CONFIG } from "./demoConfig";
 
@@ -329,6 +330,13 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
   return (
     <SitrepTelemetryProvider>
       <SitrepPeerRelay peerHost={peerHostService} />
+      {/*
+       * The host's own session is the relay above; this serves every OTHER
+       * vantage a connected peer has asked to observe from, one mod session
+       * each. It holds nothing until somebody asks, which is every session
+       * with no remote pilot in it.
+       */}
+      <SitrepVantageSessions peerHost={peerHostService} />
       <AugmentAvailabilityFeeder />
       {/*
        * A pilot is aboard, so their session observes from the craft rather
