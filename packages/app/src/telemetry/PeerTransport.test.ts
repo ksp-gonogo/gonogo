@@ -80,6 +80,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     op: "subscribe" | "unsubscribe";
     topic: string;
   }> = [];
+  const sentVantages: Array<string | null> = [];
 
   const fake = {
     getConnStatus: () => status,
@@ -118,6 +119,9 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     sendSitrepUnsubscribe: (topic: string) => {
       sentSubscribes.push({ op: "unsubscribe", topic });
     },
+    sendSitrepSetVantage: (vantage: string | null) => {
+      sentVantages.push(vantage);
+    },
     // Test-only helpers to drive the fake from outside, not part of the
     // real PeerClientService surface PeerTransport reads.
     emitFrame(message: ServerMessage) {
@@ -135,6 +139,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     },
     sentCommands,
     sentSubscribes,
+    sentVantages,
   };
   return fake;
 }
@@ -464,35 +469,56 @@ describe("PeerTransport", () => {
     ]);
   });
 
-  it("refuses a vantage selection outright, rather than making one it cannot honour", () => {
+  it("CARRIES a vantage selection, because the host serves it from a session at that vantage", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));
     const telemetry = new TelemetryClient(transport);
     telemetry.subscribe("vessel.orbit", () => {});
-    telemetry.subscribe("vessel.flight", () => {});
-    client.sentSubscribes.length = 0;
+    client.sentVantages.length = 0;
 
-    expect(telemetry.canSetVantage).toBe(false);
-    telemetry.setVantage("some-centre");
+    expect(telemetry.canSetVantage).toBe(true);
+    telemetry.setVantage("vessel:abc-123");
 
-    // The selection does not move, so the vantage control cannot name a centre
-    // the data is not from.
-    expect(telemetry.selectedVantage).not.toBe("some-centre");
-    // And no unsubscribe/subscribe storm reaches the host. Two topics here;
-    // a real station reads dozens, and each click would be two ops apiece.
-    expect(client.sentSubscribes).toEqual([]);
+    expect(telemetry.selectedVantage).toBe("vessel:abc-123");
+    expect(client.sentVantages).toEqual(["vessel:abc-123"]);
 
     telemetry.dispose();
   });
 
-  it("drops set-vantage, which moves the whole host session rather than one station", () => {
+  it("forwards a direct set-vantage to the host", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));
 
     transport.send({ type: "set-vantage", centreId: "ksc" });
 
-    expect(client.sentSubscribes).toEqual([]);
-    expect(client.sentCommands).toEqual([]);
+    expect(client.sentVantages).toEqual(["ksc"]);
+  });
+
+  it("replays the vantage BEFORE the topics on reconnect, so claims land on the right session", () => {
+    /*
+     * The host keys a claim to whichever session the connection is reading
+     * from at the moment it is made, so subscribing first would pull every
+     * topic from the host's own session for a round trip before moving it.
+     */
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const telemetry = new TelemetryClient(transport);
+    telemetry.subscribe("vessel.orbit", () => {});
+    telemetry.setVantage("vessel:abc-123");
+
+    const order: string[] = [];
+    client.sentVantages.length = 0;
+    client.sentSubscribes.length = 0;
+    client.emitStatus("reconnecting");
+    client.emitStatus("connected");
+
+    for (const v of client.sentVantages) order.push(`vantage:${v}`);
+    for (const sub of client.sentSubscribes) order.push(`sub:${sub.topic}`);
+
+    expect(client.sentVantages).toEqual(["vessel:abc-123"]);
+    expect(order[0]).toBe("vantage:vessel:abc-123");
+
+    telemetry.dispose();
   });
 
   it("dispose() detaches every listener so later client events are ignored", () => {

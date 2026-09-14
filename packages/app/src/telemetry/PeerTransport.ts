@@ -71,15 +71,15 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * the replay a reconnected station would sit blank on every topic it had
  * already subscribed.
  *
- * `set-vantage` is refused rather than dropped, via `carriesVantage`. The mod
- * keeps `SelectedVantage` per `ClientSession` and the host has one session, so
- * two stations cannot observe at two vantages over one relayed stream. Dropping
- * the message alone was not enough: `TelemetryClient.setVantage` would still
- * change its own selection, leaving the vantage control naming a command centre
- * the data was not from, and would still re-subscribe every active topic, which
- * now reaches the host and churns its upstream subscriptions. Refusing at the
- * client keeps the control honest and the churn absent. Per-station observation
- * vantage needs a wire change and is separate work.
+ * `set-vantage` is CARRIED. It used to be refused, on the reasoning that the
+ * mod keeps the chosen vantage per `ClientSession` and the host has one
+ * session, so two stations could not observe at two vantages over one relayed
+ * stream. That premise is gone: the host now holds one upstream session per
+ * vantage anything asks for (`PeerHostService.attachSitrepSinkFor`), so the mod
+ * is still one-vantage-per-session and the selection can be honoured after all.
+ * The vantage is replayed before the topic set on every reconnect, so the
+ * host's fresh per-connection claims are keyed to the right session from the
+ * first subscribe rather than being made against its own and moved.
  *
  * Left unhandled, that gap means a command whose peer connection drops
  * mid-flight (or that is dispatched with no live `conn` at all:
@@ -100,13 +100,17 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  */
 export class PeerTransport implements Transport {
   /**
-   * A station's frames are relayed from a host session it does not own, and the
-   * mod keeps `SelectedVantage` on that session. So a station cannot select a
-   * vantage without moving every other station's observation with it.
-   * Declaring it here makes `TelemetryClient` refuse the selection instead of
-   * making one it cannot honour.
+   * The host serves a relayed connection from a session at whatever vantage it
+   * asks for, so a selection made here is one the far end can actually honour.
    */
-  readonly carriesVantage = false;
+  readonly carriesVantage = true;
+  /**
+   * The vantage this station last asked for, replayed on reconnect for the same
+   * reason the topic set is: the host's per-connection state dies with the
+   * `DataConnection` it was keyed to. `null` until one is chosen, which means
+   * the host's own session.
+   */
+  private vantage: string | null = null;
   /**
    * A station cannot tell a served topic from an unserved one, so it must not
    * try. Its subscribe reaches the mod only when the HOST's own refcount makes
@@ -257,10 +261,10 @@ export class PeerTransport implements Transport {
       this.client.sendSitrepUnsubscribe(message.topic);
       return;
     }
-    // set-vantage: unreachable in practice, since `carriesVantage: false` makes
-    // `TelemetryClient.setVantage` refuse before it sends. Left as a no-op
-    // rather than a throw so a direct `send` from a test or a future caller
-    // degrades the same way it always did.
+    if (message.type === "set-vantage") {
+      this.vantage = message.centreId;
+      this.client.sendSitrepSetVantage(message.centreId);
+    }
   }
 
   onMessage(listener: (message: ServerMessage) => void): () => void {
@@ -316,6 +320,13 @@ export class PeerTransport implements Transport {
     // will not re-send, since from its side nothing has unsubscribed, so replay
     // the live set here.
     if (!wasConnected && status === "connected") {
+      // The vantage FIRST. The host keys a claim to the session the connection
+      // is reading from at the moment it is made, so replaying the topics
+      // against the host's own session and moving them afterwards would pull
+      // every one of them from the wrong place for the length of a round trip.
+      if (this.vantage !== null) {
+        this.client.sendSitrepSetVantage(this.vantage);
+      }
       for (const topic of this.subscribedTopics) {
         this.client.sendSitrepSubscribe(topic);
       }

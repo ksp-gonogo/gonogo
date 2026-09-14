@@ -283,6 +283,7 @@ type HostEventMap = {
   gonogoVote: Parameters<GonogoVoteListener>;
   gonogoAbort: Parameters<GonogoAbortListener>;
   peerConnect: Parameters<PeerLifecycleListener>;
+  requestedVantages: [readonly string[]];
   peerDisconnect: Parameters<PeerLifecycleListener>;
   widgetPush: Parameters<WidgetPushListener>;
   widgetRecall: Parameters<WidgetRecallListener>;
@@ -1082,10 +1083,11 @@ export class PeerHostService {
     }
     this.sitrepSubs.delete(conn);
     // After the releases above, which read it to find the right refcount table.
-    this.connVantage.delete(conn);
+    const hadVantage = this.connVantage.delete(conn);
     logger.info(
       `[PeerHost] connection ${why}: peer=${conn.peer}, total=${this.connections.size}`,
     );
+    if (hadVantage) this.announceRequestedVantages();
     this.events.emit("peerDisconnect", conn.peer);
   }
 
@@ -1199,6 +1201,12 @@ export class PeerHostService {
     for (const topic of claimed) this.releaseSitrepSub(conn, topic);
     this.connVantage.set(conn, vantage);
     for (const topic of claimed) this.retainSitrepSub(conn, topic);
+    this.announceRequestedVantages();
+  }
+
+  /** Tell whoever owns the upstream sessions which vantages are wanted now. */
+  private announceRequestedVantages(): void {
+    this.events.emit("requestedVantages", this.requestedVantages());
   }
 
   /** Which upstream session `conn` reads from: the host's own until it asks otherwise. */
@@ -1708,6 +1716,24 @@ export class PeerHostService {
 
   onPeerConnect(cb: PeerLifecycleListener): () => void {
     return this.events.on("peerConnect", cb);
+  }
+
+  /**
+   * Fires whenever the set of vantages live connections are reading from
+   * changes, so whatever owns the upstream sessions can open one for a new
+   * vantage and close the one nobody reads from any more.
+   *
+   * Replayed to a late subscriber on subscribe: the sessions are mounted by a
+   * component, and a peer that asked for its vantage before that component
+   * existed would otherwise be served by nothing until it happened to ask
+   * again, which it has no reason to do.
+   */
+  onRequestedVantagesChanged(
+    cb: (vantages: readonly string[]) => void,
+  ): () => void {
+    const off = this.events.on("requestedVantages", cb);
+    cb(this.requestedVantages());
+    return off;
   }
 
   onPeerDisconnect(cb: PeerLifecycleListener): () => void {
