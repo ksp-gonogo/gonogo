@@ -772,14 +772,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
-       * -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
-       * uplink is registered must WALK every uplink project to find them, so
-       * it necessarily names each directory. It was previously blind to
-       * eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
-       * *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
-       */
-      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
-      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names Uplink paths by
        * construction, and there is nowhere else for it to live. A gate placed
@@ -2038,14 +2030,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/styleguide-magnitude-canonical.test.ts",
       /*
-       * -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
-       * uplink is registered must WALK every uplink project to find them, so
-       * it necessarily names each directory. It was previously blind to
-       * eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
-       * *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
-       */
-      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
-      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names Uplink paths by
        * construction, and there is nowhere else for it to live. A gate placed
@@ -2591,14 +2575,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
-       * -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
-       * uplink is registered must WALK every uplink project to find them, so
-       * it necessarily names each directory. It was previously blind to
-       * eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
-       * *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
-       */
-      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
-      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names Uplink paths by
        * construction, and there is nowhere else for it to live. A gate placed
@@ -2805,7 +2781,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // are written.
     "packages/core/src/declaration-reachability.allowlist.ts",
     "packages/core/src/uplink-permanent-code.test.ts",
-    "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
@@ -2866,7 +2841,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
      * with the entries gone the file names kOS only in prose, so the exemption
      * is stale rather than merely unused.
      */
-    "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
     "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
@@ -2938,7 +2912,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
      * the entries deleted the file names Principia only in prose, so the
      * exemption is stale rather than merely unused.
      */
-    "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
