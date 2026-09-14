@@ -1709,7 +1709,22 @@ namespace Sitrep.Contract
         /// Kerbalism TrueNow fact read a light-time late at a ground centre. The running
         /// mod knows every declaration, including one from an Uplink built somewhere else
         /// entirely, so it is the one that says.</para>
+        ///
+        /// <para><b>Bumped 13 -&gt; 14:</b> the <c>eva.crew</c> channel, carrying every
+        /// kerbal currently outside a craft and the state of the suit they are outside
+        /// in (<see cref="EvaCrew"/>, <see cref="EvaKerbal"/>). Additive, nothing removed
+        /// or retyped, so an Uplink built against 16.13 is unaffected and the frozen
+        /// Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>A kerbal on EVA is already a vessel in KSP's model, so it appears on
+        /// <c>system.vessels</c> and has its own <c>fleet.</c> node. What was nowhere was
+        /// the SUIT: how much propellant is in the pack, whether the jetpack is firing,
+        /// and above all whether the place the kerbal is standing in would kill them
+        /// without the helmet. The vantage deliberately stays with the craft they left,
+        /// so this is additive to that craft's stream rather than a change to it: nothing
+        /// reading the vessel channels sees a discontinuity when a kerbal steps
+        /// outside.</para>
         /// </remarks>
-        public const int Minor = 13;
+        public const int Minor = 14;
     }
 }

@@ -2155,6 +2155,100 @@ export interface SetVantage
 	centreId: string;
 }
 /**
+* One kerbal currently outside a craft, on the `eva.crew` channel.
+*
+* A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
+* appears on `system.vessels` and gets its own `fleet.` node. What is here and
+* nowhere else is the SUIT: what it is carrying, what it can do, and whether
+* the place it is standing in would kill the wearer without it.
+*
+* Every field is `null` when the value could not be read. Absence is never a
+* zero: a kerbal whose propellant could not be read is not a kerbal with an
+* empty tank.
+*/
+export interface EvaKerbal
+{
+	/** The kerbal's own vessel id, the same guid `system.vessels` carries for it. */
+	kerbalVesselId?: string;
+	/**
+	* The craft this kerbal stepped out of, or `null` when that is not known (a
+	* kerbal already outside when the save was loaded by a build that did not
+	* record it, or one whose craft has since gone).
+	*
+	* This is the vessel gonogo goes on reporting as active while they are
+	* outside, so a reader that follows the active vessel sees no discontinuity
+	* when a kerbal steps out.
+	*/
+	parentVesselId?: string;
+	name?: string;
+	/** KSP's own situation name for the kerbal (`FLYING`, `LANDED`, ...). */
+	situation?: string;
+	/** EVA propellant remaining in the pack. */
+	propellantAmount?: Value<"units">;
+	/**
+	* What the pack holds when full, so a reader can draw a fraction without
+	* knowing the model.
+	*/
+	propellantCapacity?: Value<"units">;
+	/**
+	* Whether this kerbal has a jetpack at all: without one the propellant figures
+	* describe nothing.
+	*/
+	hasJetpack?: boolean;
+	jetpackDeployed?: boolean;
+	/**
+	* Whether the pack is firing right now, which is the only signal that a kerbal
+	* is under thrust.
+	*/
+	jetpackIsThrusting?: boolean;
+	onALadder?: boolean;
+	lampOn?: boolean;
+	/** KSP's own visor state name. */
+	visorState?: string;
+	/**
+	* Whether removing the helmet here would KILL this kerbal.
+	*
+	* The sharpest fact on this channel, and the reason it is worth a channel:
+	* nothing else on the wire says whether the place a kerbal is standing in is
+	* survivable unsuited.
+	*/
+	willDieWithoutHelmet?: boolean;
+	/**
+	* Whether the helmet can come off here and now, which is a stricter question
+	* than surviving it.
+	*/
+	canSafelyRemoveHelmet?: boolean;
+	/**
+	* KSP's OWN words for why the helmet cannot come off, or `null` when it can.
+	*
+	* Passed through verbatim rather than re-worded: the game already phrases this
+	* for a player, and inventing a second vocabulary for the same fact would only
+	* let the two drift.
+	*/
+	helmetUnsafeReason?: string;
+}
+/**
+* Every kerbal currently outside a craft.
+*
+* ADDITIVE, and deliberately a channel of its own: a kerbal stepping out must
+* not change what the vessel channels report. The vantage stays with the craft
+* they left, so nothing reading the vessel's stream sees a discontinuity, and
+* this carries what is true of the kerbal instead.
+*
+* An empty list is a real answer: nobody is outside. The channel is absent
+* only before anything has been captured.
+*/
+export interface EvaCrew
+{
+	/**
+	* How many kerbals are outside, so a reader need not count to know whether to
+	* draw anything.
+	*/
+	count: Value<"count">;
+	kerbals: EvaKerbal[];
+	meta: PayloadMeta;
+}
+/**
 * Display-only per-vessel link facts on `fleet.<guid>.delay`: the one-way
 * light-time to that vessel and whether it is currently reachable. The mod
 * already computes both (`FleetCommsReader.ReadVessel`) to set the per-vessel
