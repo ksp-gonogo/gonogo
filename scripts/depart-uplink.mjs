@@ -230,6 +230,45 @@ if (ciSrc.includes(dirBase) || ciSrc.includes(pkg)) {
 }
 
 /*
+ * 6b. the publish-mods matrix leg. A leg is a `- id: <Uplink>` list item and the
+ * `key: value` lines indented under it, so it is cut by indentation from its
+ * `- id:` line to the next line at or above the dash. GitHub Actions validates
+ * none of this until a CI-green push to main runs the job, so a leg left behind
+ * breaks the next publish while every gate on staging stays green, save
+ * `publish-mods-matrix-paths.test.ts`.
+ */
+const publishMods = join(ROOT, ".github", "workflows", "publish-mods.yml");
+const publishLines = readFileSync(publishMods, "utf8").split("\n");
+const legAt = publishLines.findIndex((line) =>
+  new RegExp(`^\\s*-\\s*id:\\s*"?${dirBase}"?\\s*$`).test(line),
+);
+if (legAt !== -1) {
+  const dashIndent = publishLines[legAt].search(/\S/);
+  let legEnd = legAt + 1;
+  while (
+    legEnd < publishLines.length &&
+    (publishLines[legEnd].trim() === "" ||
+      publishLines[legEnd].search(/\S/) > dashIndent)
+  ) {
+    legEnd++;
+  }
+  // Trailing blank lines belong to whatever follows the leg, not to the leg.
+  while (legEnd > legAt + 1 && publishLines[legEnd - 1].trim() === "") {
+    legEnd--;
+  }
+  record(
+    `${dirBase} build-mod leg (${legEnd - legAt} lines) from publish-mods.yml`,
+    () =>
+      writeFileSync(
+        publishMods,
+        [...publishLines.slice(0, legAt), ...publishLines.slice(legEnd)].join(
+          "\n",
+        ),
+      ),
+  );
+}
+
+/*
  * 7. codegen: nothing to cut. `mod/codegen.sh` discovers the
  * `Gonogo*Uplink.Contract.Codegen` twins, so removing the twin in step 4 is the
  * whole of it. It used to be a per-slice block cut out by its `# <Name>:`
