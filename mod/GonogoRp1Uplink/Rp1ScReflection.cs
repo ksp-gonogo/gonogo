@@ -409,7 +409,7 @@ namespace GonogoRp1Uplink
             int? engineers,
             bool operational,
             IDictionary? lcToEfficiency,
-            double maxEfficiency,
+            double? maxEfficiency,
             double? rushRateMult,
             Payroll payroll)
         {
@@ -958,7 +958,7 @@ namespace GonogoRp1Uplink
             int? engineers,
             int? maxEngineers,
             double? efficiency,
-            double maxEfficiency)
+            double? maxEfficiency)
         {
             // A crew nobody could count cannot be ramped, and neither can one
             // whose CAP nobody could read: the ramp's whole input is the fraction
@@ -966,11 +966,15 @@ namespace GonogoRp1Uplink
             // collapses that fraction to nought, which is "nobody is improving"
             // dressed as a computed answer. The un-ramped estimate stands
             // instead, which is the same degradation an unreadable efficiency
-            // record already gets, and it errs LONG rather than early.
+            // record already gets, and it errs LONG rather than early. An
+            // unreadable CEILING goes the same way: it is what decides the ramp
+            // is a no-op at all, so ramping against a guessed one answers a
+            // question about a scale RP-1 never stated.
             if (efficiencySource == null
                 || efficiency == null
                 || engineers == null
                 || maxEngineers == null
+                || maxEfficiency == null
                 || _lcEfficiency == null)
             {
                 return null;
@@ -985,6 +989,7 @@ namespace GonogoRp1Uplink
             var cap = maxEngineers.Value;
             var portionEngineers = cap > 0 ? (double)crew / cap : 0.0;
             var startingEfficiency = efficiency.Value;
+            var ceiling = maxEfficiency.Value;
             Func<double, double> weightedEfficiency = seconds =>
             {
                 try
@@ -1005,7 +1010,7 @@ namespace GonogoRp1Uplink
             return baseSeconds => Rp1ScMath.RampedTimeLeft(
                 baseSeconds,
                 startingEfficiency,
-                maxEfficiency,
+                ceiling,
                 isRushing,
                 crew,
                 cap,
@@ -1524,14 +1529,25 @@ namespace GonogoRp1Uplink
             return settings == null ? (double?)null : ReadDouble(settings, "RushRateMult");
         }
 
-        private double ReadMaxEfficiency()
+        /// <summary>
+        /// The efficiency ceiling RP-1 rates a crew against, or null when either
+        /// the type or its static could not be read.
+        ///
+        /// <para>Absent rather than 1.0, on the same grounds
+        /// <see cref="ReadRushRateMult"/> states. It is read as a RATIO, so a
+        /// substituted 1.0 renders every hangar at "100% efficiency", which is a
+        /// crew at the top of RP-1's scale and the one reading the operator would
+        /// never question. It is also the ramp's ceiling, so the same substitution
+        /// ramps a build's time-remaining against a limit nobody measured.</para>
+        /// </summary>
+        private double? ReadMaxEfficiency()
         {
             if (_lcEfficiency == null)
             {
-                return 1.0;
+                return null;
             }
             var value = Rp1Types.StaticValue(_lcEfficiency, "MaxEfficiency");
-            return value is double d ? d : 1.0;
+            return value is double d ? d : (double?)null;
         }
 
         /// <summary>
