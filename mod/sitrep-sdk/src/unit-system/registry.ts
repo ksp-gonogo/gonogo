@@ -1,30 +1,76 @@
+import type { DeclaredUnit, UnitDeclarations } from "./declarations";
 import { UNIT_DEFINITIONS, type UnitDefinition } from "./definitions";
 import * as Dim from "./dimension";
 
-/**
- * What a caller hands {@link registerUnit}.
- *
- * A unit is declared either by its DIMENSION outright, or by naming the
- * components it is composed from. `{ of: "m", per: "s" }` is the same
- * declaration as `{ dimension: { m: 1, s: -1 } }` and is usually easier to
- * read, but it also means the components have to exist, which is the point:
- * a compound built on a symbol nobody registered is a typo, and it should say
- * so at registration rather than render as nonsense three screens later.
- */
-export interface UnitRegistration {
+/** One rung of a scaling ladder: a threshold in base units and its symbol. */
+export interface UnitRung {
+  /** Values at or above this magnitude (in base units) use this rung. */
+  readonly from: number;
   readonly symbol: string;
-  /** What the value MEANS. Display only; it never gates arithmetic. */
-  readonly kind: string;
-  /** Exponent map. Mutually exclusive with `of` / `per`. */
-  readonly dimension?: Dim.Dimension;
-  /** Numerator component symbol, for a compound. */
-  readonly of?: string;
-  /** Denominator component symbol, for a compound. */
-  readonly per?: string;
-  /** Multiplier onto the dimension's base unit. Defaults to 1. */
-  readonly ratio?: number;
+  /** Divide the base value by this to get the rung's value. */
+  readonly per: number;
+}
+
+/**
+ * How a unit READS, which the model ignores and the kit applies. Every field is
+ * optional, and a unit that sets none of them renders with its kind's defaults.
+ */
+export interface UnitPresentation {
+  /** Decimal places on the scaled value, for every unit of this kind. */
+  readonly decimals?: number;
+  /** Render this kind in scientific notation by default, as `gravParameter` does. */
+  readonly scientific?: true;
+  /**
+   * What to show beside the number for this kind, when it is not the symbol.
+   * `""` for a token naming a category rather than a symbol, as `count` does.
+   */
+  readonly display?: string;
+  /** What a screen reader says for the symbol: `megabytes` for `MB`. */
+  readonly word?: string;
+}
+
+type DeclarationOf<S extends DeclaredUnit> = UnitDeclarations[S];
+
+/**
+ * The runtime half of a declared unit, typed from its declaration.
+ *
+ * Every field the declaration states is required here and must agree with it:
+ * a `kind`, `dimension`, `ratio` or `ladder` different from the declared one is
+ * a compile error, and so is a symbol nobody declared. The runtime cannot read a
+ * type, so this is how the two are kept saying one thing.
+ *
+ * `rungs` is the only ladder fact the declaration does not carry, because a
+ * rung is a display threshold rather than a unit. A registration naming a
+ * ladder may supply them, and every unit on that ladder then climbs them.
+ */
+export type UnitRegistration<S extends DeclaredUnit = DeclaredUnit> = {
+  readonly symbol: S;
+  readonly kind: DeclarationOf<S>["kind"];
+  readonly dimension: DeclarationOf<S> extends {
+    dim: infer D extends Dim.Dimension;
+  }
+    ? D
+    : never;
+  readonly ratio: DeclarationOf<S>["ratio"];
   /** Logarithmic, so never prefix-scaled. */
   readonly log?: true;
+} & (DeclarationOf<S> extends { ladder: infer L extends string }
+  ? { readonly ladder: L; readonly rungs?: readonly UnitRung[] }
+  : { readonly ladder?: never; readonly rungs?: never }) &
+  UnitPresentation;
+
+/**
+ * A registration as the runtime holds it, with its types erased: what a
+ * {@link onUnitRegistered} listener receives.
+ */
+export interface RegisteredUnit extends UnitPresentation {
+  readonly symbol: string;
+  readonly kind: string;
+  readonly dimension: Dim.Dimension;
+  readonly ratio: number;
+  readonly log?: true;
+  readonly ladder?: string;
+  readonly rungs?: readonly UnitRung[];
 }
 
 /**
@@ -71,6 +117,16 @@ const registry = new Map<string, UnitDefinition>();
 /** Every declared unit sharing a dimension, in registration order. */
 const byDimension = new Map<string, string[]>();
 
+type UnitListener = (unit: RegisteredUnit) => void;
+
+const listeners = new Set<UnitListener>();
+
+/**
+ * Every registration the model accepted, in order, so a listener arriving after
+ * an Uplink registered still hears about it.
+ */
+const accepted: RegisteredUnit[] = [];
+
 function index(symbol: string, definition: UnitDefinition): void {
   registry.set(symbol, definition);
   const dimensionKey = Dim.key(definition.dim);
@@ -84,6 +140,7 @@ function index(symbol: string, definition: UnitDefinition): void {
 /** Restores the first-party catalog and drops everything registered on top. */
 export function resetUnitRegistry(): void {
   registry.clear();
+  accepted.length = 0;
   byDimension.clear();
   for (const [symbol, definition] of Object.entries(UNIT_DEFINITIONS)) {
     index(symbol, definition);
@@ -110,20 +167,17 @@ function splitCompound(token: string): readonly [string, string] | undefined {
  * the rate as its own atom. `/s` falls out of the algebra this way rather
  * than being baked into a table entry per rung.
  *
- * Reuses {@link resolveComponent}'s own guard for the failure rather than
- * inventing a second error for the same mistake: a compound naming a
- * component nobody registered is exactly the typo `registerUnit`'s
- * `{ of, per }` form already refuses, so looking one up here is refused the
- * same way and for the same reason, loudly rather than rendering a nonsense
- * unit three screens later.
+ * A component nobody registered makes the whole token unresolvable, and
+ * {@link lookupUnit} turns that into "not a unit I know" rather than composing
+ * a nonsense unit from half of one.
  */
 function composeToken(
-  token: string,
   parts: readonly [string, string],
-): UnitDefinition {
+): UnitDefinition | undefined {
   const [numeratorSymbol, denominatorSymbol] = parts;
-  const numerator = resolveComponent(numeratorSymbol, token);
-  const denominator = resolveComponent(denominatorSymbol, token);
+  const numerator = registry.get(numeratorSymbol);
+  const denominator = registry.get(denominatorSymbol);
+  if (!numerator || !denominator) return undefined;
   return {
     dim: Dim.divide(numerator.dim, denominator.dim),
     ratio: numerator.ratio / denominator.ratio,
@@ -145,13 +199,8 @@ export function lookupUnit(symbol: string): UnitDefinition | undefined {
   // field has no unit at all, and there is no unit `n` divided by a unit `a`.
   // Composition is an OFFER here, so an unresolvable one means "not a unit I
   // know" and the value renders bare, exactly as an unrecognised token always
-  // has. The loud version of this failure belongs to `registerUnit`, where a
-  // caller naming components that do not exist really is a typo.
-  try {
-    return composeToken(symbol, parts);
-  } catch {
-    return undefined;
-  }
+  // has.
+  return composeToken(parts);
 }
 
 /**
@@ -191,56 +240,45 @@ export function affineVectorUnitFor(symbol: string): string | undefined {
   });
 }
 
-function resolveComponent(symbol: string, registering: string): UnitDefinition {
-  const definition = registry.get(symbol);
-  if (!definition) {
-    throw new Error(
-      `Cannot register "${registering}": its component "${symbol}" is not a ` +
-        "registered unit. Register it first, or declare the dimension " +
-        "outright with { dimension }.",
-    );
-  }
-  return definition;
-}
-
-function dimensionFor(registration: UnitRegistration): Dim.Dimension {
-  const { symbol, dimension, of, per } = registration;
-  if (dimension && (of || per)) {
-    throw new Error(
-      `Cannot register "${symbol}" with both an explicit dimension and ` +
-        "components. Pick one.",
-    );
-  }
-  if (dimension) {
-    return dimension;
-  }
-  if (!of && !per) {
-    throw new Error(
-      `Cannot register "${symbol}": give it a dimension, or the components ` +
-        "it is composed from.",
-    );
-  }
-  const numerator = of ? resolveComponent(of, symbol).dim : {};
-  const denominator = per ? resolveComponent(per, symbol).dim : {};
-  return Dim.divide(numerator, denominator);
-}
-
 function sameDefinition(a: UnitDefinition, b: UnitDefinition): boolean {
   return (
     Dim.equal(a.dim, b.dim) &&
     a.ratio === b.ratio &&
     a.kind === b.kind &&
-    a.log === b.log
+    a.log === b.log &&
+    a.ladder === b.ladder
   );
 }
 
 /**
- * Teaches the model a unit it did not ship with.
+ * Hears every unit {@link registerUnit} accepts, starting with the ones already
+ * accepted.
  *
- * The extension point for an Uplink, and for anything the first-party catalog
- * has no business naming. It is the only way a symbol gets a dimension, which
- * is what lets an unfamiliar value take part in arithmetic instead of merely
- * rendering.
+ * This is how the kit learns a unit's presentation from the one registration
+ * call rather than from a second registry of its own. An Uplink has no reason
+ * to call it.
+ */
+export function onUnitRegistered(listener: UnitListener): () => void {
+  for (const unit of accepted) listener(unit);
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * Teaches the runtime a unit the type system already knows.
+ *
+ * The declaration in `UnitDeclarations` is what the compiler checks against; this
+ * is what the running app reads, and its argument is typed from that declaration
+ * so the two cannot say different things. A symbol nobody declared is a compile
+ * error here, which is the point: a unit the runtime knows and the types do not
+ * would render, and fall out of every check `<Unit>` makes.
+ *
+ * One call carries both halves. The model half (dimension, ratio) is what makes
+ * values add up and what the payload decoder uses to recognise a quantity; the
+ * presentation half (ladder rungs, decimals, the display symbol, the spoken word)
+ * is forwarded to the kit through {@link onUnitRegistered}.
  *
  * ## Overlap
  *
@@ -249,26 +287,28 @@ function sameDefinition(a: UnitDefinition, b: UnitDefinition): boolean {
  *
  * - **Identical declaration** is idempotent and silent. Two Uplinks declaring
  *   `u` as resource units are declaring the same thing.
- * - **Same dimension, different kind** is allowed and silent. `N·m` and `J` are
- *   the first-party example: same dimension, different meaning, and the
- *   difference is display's business rather than arithmetic's.
+ * - **Same dimension and ratio, different kind or ladder** is allowed by the
+ *   model, which never gates arithmetic on either. The kit refuses it, because
+ *   which one renders would depend on module load order: that throws.
  * - **Anything else keeps the FIRST registration and warns.** It does not
- *   throw: a presentation disagreement between two mods is not a reason to
- *   break someone's install.
+ *   throw: a disagreement between two mods about what a symbol measures is not a
+ *   reason to break someone's install.
  *
  * That last rule covers the case the design originally wanted to allow
  * outright, and here is why it cannot. A `Value` carries a bare symbol and
  * nothing else, so if one `g` were grams and another `g` were g-force, there
  * would be no way to answer whether two `g` values can be added. Two
  * dimensions on one symbol makes `plus` unanswerable, so one of them has to
- * win. Screen ambiguity is a different problem with a different fix: the
- * spoken word in a tooltip, which does not need the registry's help.
+ * win.
  *
  * Our own ladder sidesteps the `g` case anyway (mass starts at `kg`), which is
  * why this is a policy for Uplinks rather than a live first-party concern.
  */
-export function registerUnit(registration: UnitRegistration): void {
-  const { symbol, kind, ratio = 1, log } = registration;
+export function registerUnit<S extends DeclaredUnit>(
+  registration: UnitRegistration<S>,
+): void {
+  const unit: RegisteredUnit = registration;
+  const { symbol, kind, ratio, log, ladder, rungs, dimension: dim } = unit;
   if (!symbol) {
     throw new Error("Cannot register a unit with an empty symbol.");
   }
@@ -278,8 +318,17 @@ export function registerUnit(registration: UnitRegistration): void {
         "finite non-zero multiplier onto the dimension's base unit.",
     );
   }
-
-  const dim = dimensionFor(registration);
+  if (!dim) {
+    throw new Error(
+      `Cannot register "${symbol}": give it the dimension its declaration states.`,
+    );
+  }
+  if (rungs !== undefined && ladder === undefined) {
+    throw new Error(
+      `Cannot register "${symbol}" with rungs and no ladder: rungs belong to a ` +
+        "ladder, and every unit naming that ladder climbs them.",
+    );
+  }
 
   // Reserved symbols guard the UNNAMESPACED name only. `snacks:m` hijacks
   // nothing, so an Uplink is free to mean whatever it likes by it.
@@ -288,20 +337,27 @@ export function registerUnit(registration: UnitRegistration): void {
     throw new Error(`Cannot register "${symbol}": ${reserved.why}`);
   }
 
-  const definition: UnitDefinition = log
-    ? { dim, ratio, kind, log }
-    : { dim, ratio, kind };
+  const definition: UnitDefinition = {
+    dim,
+    ratio,
+    kind,
+    ...(log ? { log } : {}),
+    ...(ladder === undefined ? {} : { ladder }),
+  };
   const existing = registry.get(symbol);
   if (!existing) {
     index(symbol, definition);
+    accept(unit);
     return;
   }
-  if (sameDefinition(existing, definition)) {
-    return;
-  }
-  if (Dim.equal(existing.dim, definition.dim) && existing.ratio === ratio) {
-    // Same quantity, different name for what it means. Both are true; kind is
-    // display-only, so nothing downstream has to choose.
+  if (
+    sameDefinition(existing, definition) ||
+    (Dim.equal(existing.dim, definition.dim) && existing.ratio === ratio)
+  ) {
+    // Same quantity. A differing kind or ladder is display's business, so the
+    // model keeps what it has and the kit, which is where the two would render
+    // differently, is the one that decides.
+    accept(unit);
     return;
   }
   const conflictingDimension = !Dim.equal(existing.dim, definition.dim);
@@ -318,4 +374,9 @@ export function registerUnit(registration: UnitRegistration): void {
           " dimensions and still answer whether two values can be combined."
         : ""),
   );
+}
+
+function accept(unit: RegisteredUnit): void {
+  accepted.push(unit);
+  for (const listener of listeners) listener(unit);
 }

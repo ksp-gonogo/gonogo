@@ -674,16 +674,17 @@ export {
 // ── Units ───────────────────────────────────────────────────────────────────
 // The contract declares what a field IS; these decide how to SHOW it. The wire
 // is canonical SI and never pre-scaled, so every ladder lives here.
-// Only the extension point and the shapes it needs. Every formatter that used
-// to live here is gone: `<Unit value={...} />` is the one way to show a
-// quantity, and a second way is how eleven widgets each grew their own ladder.
+// Only the shapes a unit is checked and shown with: a unit is declared and
+// registered through the SDK, never here. Every formatter that used to live
+// here is gone: `<Unit value={...} />` is the one way to show a quantity, and a
+// second way is how eleven widgets each grew their own ladder.
 export {
   type FormatsFor,
   // The same rule asked of a KIND, for a pin addressed to a whole group: the group is the length ladder, not the metre, so there is no unit to check it against.
   type FormatsForKind,
   type KindOfGroup,
   type KnownQuantityKind,
-  type LadderedKind,
+  type LadderName,
   // The `as` twin of `FormatsFor`: every unit of the same kind PLUS the
   // presentation-only ones the conversion table reaches, which is where `°C`
   // lives. The contract has no Celsius token on purpose.
@@ -698,7 +699,6 @@ export {
   type QuantityScale,
   quantityScale,
   type Rung,
-  registerUnit,
   STANDARD_GRAVITY,
   // The locale every quantity is written in. One call at app boot changes
   // every readout at once, which is what having one formatter buys.
@@ -708,8 +708,7 @@ export {
   // visible text that is measured (an SVG label, a canvas). See their doc
   // comments; everywhere else renders `<Unit>`.
   speakQuantity,
-  type UnitDefinition,
-  // What a shared-format pin may be addressed to: a laddered kind, which settles its whole kind at one rung, or a unit that climbs nothing and so groups alone.
+  // What a shared-format pin may be addressed to: a ladder, whose units settle one rung together, or a unit on no ladder, which groups alone.
   type UnitGroupKey,
   writeQuantity,
 } from "./units";

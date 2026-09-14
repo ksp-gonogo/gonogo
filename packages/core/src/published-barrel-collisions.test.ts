@@ -11,12 +11,13 @@ import { describe, expect, it } from "vitest";
  *
  * An Uplink author imports `@ksp-gonogo/sitrep-sdk` and
  * `@ksp-gonogo/ui-kit`, and a name on both is only safe when both spellings
- * reach one declaration: 27 of the 33 do, because ui-kit re-exports the sdk's
- * type. The six that do not are two real declarations behind one name, and
- * picking the wrong one compiles.
+ * reach one declaration, because ui-kit re-exports the sdk's type. The ones
+ * that do not are two real declarations behind one name, and picking the wrong
+ * one compiles.
  *
- * `registerUnit` is the case the authoring guide already documents (the two
- * halves of a unit, aliased at the import). The augment three were not
+ * `registerUnit` was one until the two unit registries became one: an Uplink
+ * declares and registers a unit through the sdk alone, and ui-kit no longer
+ * exports a registration of its own. The augment three were not
  * documented anywhere: the sdk's are shims onto `getHost()` and ui-kit's are
  * the implementation, and while ui-kit's registry was a module static those
  * were the same `Map` only for as long as exactly one copy of ui-kit was
@@ -51,9 +52,6 @@ const DIVERGENT_COLLISIONS: Readonly<Record<string, string>> = {
     "the sdk's routes through `getHost()` and throws a named error when no host is installed; ui-kit's is the registry function and works without one. Either reaches the same registry",
   getAugmentsForSlot: "same pair as `clearAugments`",
   registerAugment: "same pair as `clearAugments`",
-  registerUnit:
-    "different halves of a unit and NOT interchangeable: the sdk's registers the dimension and conversion, ui-kit's the display formatting. The authoring guide imports the second as `registerDisplayUnit`",
-  UnitDefinition: "the descriptor for whichever `registerUnit` you called",
 };
 
 /** `name -> the file its declaration is in`, for one barrel. */
@@ -116,7 +114,7 @@ describe("names exported from both published packages", () => {
     // and the check below would report no divergent collisions at all.
     const all = collisions();
     expect(all.length).toBeGreaterThan(20);
-    expect(all.map((c) => c.name)).toContain("registerUnit");
+    expect(all.map((c) => c.name)).toContain("registerAugment");
   });
 
   it("resolves every collision to one declaration, or names the divergence", () => {
