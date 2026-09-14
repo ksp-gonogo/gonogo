@@ -121,32 +121,39 @@ namespace Sitrep.Core.Tests
                 .ToArray();
             Assert.NotEmpty(sites);
 
-            var required = type
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanRead)
-                // The provider extension bag is omitted from the wire entirely
-                // unless a provider filled it, and ReliabilityExtensionWireTests
-                // pins that omission as bytes. Excluded by ATTRIBUTE, the same
-                // mechanism JsonWriterFlattenerParityTests uses, so the exemption
-                // cannot quietly widen to a hand-added field.
-                .Where(p => p.GetCustomAttribute<ProviderExtensionBagAttribute>() == null)
-                .Select(p => CamelCase(p.Name))
-                .ToArray();
+            var missing = MissingFields(type, sites);
+            var helpers = sites.SelectMany(site => site.Helpers).Distinct(StringComparer.Ordinal).ToArray();
+            var writers = helpers.Length == 0
+                ? "the method does not name"
+                : $"neither the method nor the helpers it reaches ({string.Join(", ", helpers)}) name";
+
+            Assert.True(
+                missing.Length == 0,
+                $"{sites[0]} flattens {typeName}, which declares {string.Join(", ", missing)}, and {writers} "
+                    + $"{(missing.Length == 1 ? "that field" : "any of those fields")} at all. So "
+                    + $"{(missing.Length == 1 ? "it is" : "they are")} in the generated TS SDK and absent from what "
+                    + "this producer emits, which a subscriber reads as permanently null with nothing red anywhere. "
+                    + "Add the missing line to the flattener; there is no allowlist to record it in.");
+        }
+
+        /// <summary>
+        /// The field paths <paramref name="type"/> declares that nothing
+        /// <paramref name="sites"/> reach names. The Theory above and the planted
+        /// cases below both grade through this, so a plant proves the rule the
+        /// tree is held to rather than a copy of it.
+        /// </summary>
+        private static string[] MissingFields(Type type, IReadOnlyCollection<FlattenProducer> sites)
+        {
+            var delegated = new HashSet<string>(sites.SelectMany(site => site.DelegatedTypes), StringComparer.Ordinal);
+            var required = RequiredFields(type, delegated);
 
             // A type with nothing to check would pass this test by covering
             // nothing, and would say the same thing as a fully covered one.
             Assert.NotEmpty(required);
 
-            var mentioned = new HashSet<string>(sites.SelectMany(site => site.Literals), StringComparer.Ordinal);
-            var missing = required.Where(field => !mentioned.Contains(field)).ToArray();
-
-            Assert.True(
-                missing.Length == 0,
-                $"{sites[0]} flattens {typeName}, which declares {string.Join(", ", missing)}, and the method does "
-                    + $"not name {(missing.Length == 1 ? "that field" : "any of those fields")} at all. So "
-                    + $"{(missing.Length == 1 ? "it is" : "they are")} in the generated TS SDK and absent from what "
-                    + "this producer emits, which a subscriber reads as permanently null with nothing red anywhere. "
-                    + "Add the missing line to the flattener; there is no allowlist to record it in.");
+            var mentioned = new HashSet<string>(
+                sites.SelectMany(site => site.ReachedLiterals), StringComparer.Ordinal);
+            return required.Where(field => !mentioned.Contains(field.Key)).Select(field => field.Path).ToArray();
         }
 
         /// <summary>
@@ -304,6 +311,189 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
+        /// Producers that write fields through a helper, each named with one
+        /// helper the walk has to reach. Each of these reported clean before the
+        /// walk existed while grading none of the fields its helper writes, so a
+        /// walk that stopped following calls would put them back there with this
+        /// file green.
+        /// </summary>
+        public static IEnumerable<object[]> KnownHelpers() => new[]
+        {
+            new object[] { nameof(SystemBodies), "BuildSystemBodies", "BuildBody" },
+            new object[] { nameof(SystemBodies), "BuildSystemBodies", "BuildAtmosphere" },
+            new object[] { nameof(SystemVessels), "BuildSystemVessels", "BuildOrbit" },
+            new object[] { nameof(CareerEconomy), "BuildEconomy", "CarryUpkeep" },
+            new object[] { nameof(CareerContracts), "BuildContracts", "BuildContractParameters" },
+            new object[] { nameof(CareerStrategies), "BuildStrategies", "BuildStrategyList" },
+            new object[] { nameof(CareerTech), "BuildTech", "BuildTechNodes" },
+            // Not called by Build at all: the class-name rule.
+            new object[] { nameof(FleetVesselResources), "Build", "Add" },
+        };
+
+        [Theory]
+        [MemberData(nameof(KnownHelpers))]
+        public void TheWalkReachesTheKnownHelpers(string typeName, string method, string helper)
+        {
+            var site = Assert.Single(Producers.Value, p => p.TypeName == typeName && p.Method == method);
+            Assert.True(
+                site.Helpers.Contains(helper),
+                $"{site} no longer reaches {helper}, so the fields it writes are going ungraded. Reached: "
+                    + string.Join(", ", site.Helpers));
+        }
+
+        /// <summary>
+        /// The walk, planted. A field a producer names only through a helper it
+        /// calls is credited, a method it never calls vouches for nothing, and a
+        /// pair of helpers calling each other does not hang the scan.
+        /// </summary>
+        [Fact]
+        public void AFieldWrittenOnlyInACalledHelperIsCounted()
+        {
+            var planted = new HashSet<string>(new[] { "PlantedPayload" }, StringComparer.Ordinal);
+            var site = Assert.Single(Scan(
+                @"namespace P { static class Anything {
+                    private static Dictionary<string, object?> ToWire(PlantedPayload p)
+                    {
+                        var wire = new Dictionary<string, object?> { [""alpha""] = p.Alpha };
+                        AddBeta(wire, p);
+                        other.AddDelta(wire);
+                        return wire;
+                    }
+                    private static void AddBeta(Dictionary<string, object?> wire, PlantedPayload p)
+                    {
+                        wire[""beta""] = p.Beta;
+                        Anything.Again(wire, p);
+                    }
+                    private static void Again(Dictionary<string, object?> wire, PlantedPayload p) => AddBeta(wire, p);
+                    private static void AddDelta(Dictionary<string, object?> wire) => wire[""delta""] = 1;
+                    private static void Stray(Dictionary<string, object?> wire) => wire[""gamma""] = 1;
+                } }", planted));
+
+            Assert.DoesNotContain("beta", site.Literals);
+            Assert.Contains("beta", site.ReachedLiterals);
+            Assert.Equal(new[] { "AddBeta", "Again" }, site.Helpers);
+            Assert.DoesNotContain("gamma", site.ReachedLiterals);
+            // Through a receiver that is not this class, a same-named method is
+            // someone else's.
+            Assert.DoesNotContain("delta", site.ReachedLiterals);
+        }
+
+        /// <summary>
+        /// A helper that is the producer of a DIFFERENT contract type is where
+        /// the walk stops, in its own class or another. Folding its keys in would
+        /// let a key it happens to share vouch for a field this producer never
+        /// writes, and the type it stands for is left to its own site.
+        /// </summary>
+        [Fact]
+        public void AHelperProducingAnotherTypeVouchesForNothingHere()
+        {
+            var planted = new HashSet<string>(new[] { "PlantedPayload", "PlantedEntry" }, StringComparer.Ordinal);
+            var producers = Scan(
+                @"namespace P {
+                static class Anything {
+                    private static Dictionary<string, object?> ToWire(PlantedPayload p) => new Dictionary<string, object?>
+                    {
+                        [""alpha""] = p.Alpha,
+                        [""entry""] = ToWire(p.Entry),
+                    };
+                    internal static Dictionary<string, object?> ToWire(PlantedEntry e) => new Dictionary<string, object?>
+                    {
+                        [""beta""] = e.Beta,
+                    };
+                }
+                static class Elsewhere {
+                    private static Dictionary<string, object?> ToWire(PlantedPayload p) => new Dictionary<string, object?>
+                    {
+                        [""entry""] = Anything.ToWire(p.Entry),
+                    };
+                } }", planted);
+
+            var local = Assert.Single(producers, p => p.TypeName == "PlantedPayload" && p.Owner == "Anything");
+            Assert.DoesNotContain("beta", local.ReachedLiterals);
+            Assert.Empty(local.Helpers);
+            Assert.Contains("PlantedEntry", local.DelegatedTypes);
+
+            var foreign = Assert.Single(producers, p => p.TypeName == "PlantedPayload" && p.Owner == "Elsewhere");
+            Assert.DoesNotContain("beta", foreign.ReachedLiterals);
+            Assert.Contains("PlantedEntry", foreign.DelegatedTypes);
+        }
+
+        /// <summary>
+        /// A producer the class name speaks for owns every method of its class,
+        /// called or not, because its callers drive the parts.
+        /// </summary>
+        [Fact]
+        public void AClassNamedProducerIsCreditedWithItsSiblings()
+        {
+            var planted = new HashSet<string>(new[] { "PlantedPayload" }, StringComparer.Ordinal);
+            var site = Assert.Single(Scan(
+                @"namespace P { static class PlantedPayloadBuilder {
+                    public static void Add(Dictionary<string, object?> rows, string name)
+                    {
+                        rows[name] = new Dictionary<string, object?> { [""beta""] = 1 };
+                    }
+                    public static Dictionary<string, object?> Build(Dictionary<string, object?> rows) =>
+                        new Dictionary<string, object?> { [""alpha""] = rows };
+                } }", planted));
+
+            Assert.Equal("Build", site.Method);
+            Assert.Contains("beta", site.ReachedLiterals);
+        }
+
+        /// <summary>
+        /// The reported blindness, end to end against the REAL contract types
+        /// and through the same grading the Theory uses: a <c>system.bodies</c>
+        /// producer whose rows are written by a helper.
+        ///
+        /// <para>Before the walk and the nested descent, this gate graded
+        /// <see cref="SystemBodies"/> against its one <c>bodies</c> key, and
+        /// deleting <c>["initialRotation"]</c> from
+        /// <c>SystemViewProvider.BuildBody</c> left it reporting
+        /// <c>Passed! - Failed: 0, Passed: 98</c>.</para>
+        /// </summary>
+        [Fact]
+        public void ARowFieldMissingFromTheHelperThatWritesItFails()
+        {
+            var contract = new HashSet<string>(GradableContractTypes().Select(t => t.Name), StringComparer.Ordinal);
+            var rowKeys = RequiredFields(typeof(SystemBodies), new HashSet<string>())
+                .Select(field => field.Key)
+                .Where(key => key != "bodies")
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            Assert.Contains("initialRotation", rowKeys);
+
+            string Provider(IEnumerable<string> keys, string call) =>
+                @"namespace P { static class SystemViewProvider {
+                    public static object? BuildSystemBodies(KspSnapshot? snapshot)
+                    {
+                        var bodies = new List<object?>();
+                        bodies.Add(" + call + @"(snapshot));
+                        return new Dictionary<string, object?> { [""bodies""] = bodies };
+                    }
+                    private static Dictionary<string, object?> BuildBody(KspSnapshot? raw) => new Dictionary<string, object?>
+                    {
+                        " + string.Join("\n", keys.Select(key => "[\"" + key + "\"] = null,")) + @"
+                    };
+                } }";
+            string[] Grade(string source) =>
+                MissingFields(typeof(SystemBodies), Scan(source, contract).Where(p => p.TypeName == nameof(SystemBodies)).ToArray());
+
+            // Every row field written, in the helper only: counted, clean.
+            Assert.Empty(Grade(Provider(rowKeys, "BuildBody")));
+
+            // One row field dropped from the helper: named, by its path.
+            Assert.Equal(
+                new[] { "bodies[].initialRotation" },
+                Grade(Provider(rowKeys.Where(key => key != "initialRotation"), "BuildBody")));
+
+            // The helper is still in the class but never called: it vouches for
+            // nothing, and every row field is missing.
+            var detached = Grade(Provider(rowKeys, "Somewhere.BuildBody"));
+            Assert.Contains("bodies[].initialRotation", detached);
+            Assert.Contains("bodies[].name", detached);
+        }
+
+        /// <summary>
         /// Comments and verbatim strings are blanked before the structure is read,
         /// so a wire key quoted in a doc comment cannot vouch for a producer that
         /// does not write it. Same reasoning as the plant above: this is the half
@@ -326,6 +516,118 @@ namespace Sitrep.Core.Tests
             var site = Assert.Single(producers);
             Assert.Contains("alpha", site.Literals);
             Assert.DoesNotContain("beta", site.Literals);
+        }
+
+        /// <summary>
+        /// Every field <paramref name="type"/> puts on the wire, as a dotted path
+        /// for the message and the camelCase key the producer has to name.
+        ///
+        /// <para>Nested contract types are descended into, because a row type
+        /// written by the root's helpers has no producer of its own for the
+        /// scan to name: <see cref="BodyEntry"/> is filled by
+        /// <c>SystemViewProvider.BuildBody</c>, and grading
+        /// <see cref="SystemBodies"/> against its one <c>bodies</c> key alone let
+        /// a dropped body field ship with this file green. Two kinds of nested
+        /// type are not descended into. One whose producer the walk reached is
+        /// graded at that producer. One <see cref="JsonWriter"/> writes as a raw
+        /// object is handed over whole, so the producer spells none of its
+        /// keys, and its writer is held to them by
+        /// <see cref="JsonWriterFlattenerParityTests"/>.</para>
+        /// </summary>
+        private static IReadOnlyList<(string Path, string Key)> RequiredFields(
+            Type type, ISet<string> delegated)
+        {
+            var fields = new List<(string Path, string Key)>();
+            var descending = new HashSet<Type> { type };
+            void Visit(Type current, string prefix)
+            {
+                foreach (var property in current
+                             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                             .Where(p => p.CanRead)
+                             // The provider extension bag is omitted from the wire
+                             // entirely unless a provider filled it, and
+                             // ReliabilityExtensionWireTests pins that omission as
+                             // bytes. Excluded by ATTRIBUTE, the same mechanism
+                             // JsonWriterFlattenerParityTests uses, so the exemption
+                             // cannot quietly widen to a hand-added field.
+                             .Where(p => p.GetCustomAttribute<ProviderExtensionBagAttribute>() == null))
+                {
+                    var key = CamelCase(property.Name);
+                    fields.Add((prefix + key, key));
+                    var many = property.PropertyType != typeof(string)
+                        && typeof(System.Collections.IEnumerable).IsAssignableFrom(property.PropertyType);
+                    foreach (var nested in NestedContractTypes(property.PropertyType))
+                    {
+                        if (delegated.Contains(nested.Name) || WrittenRawByJsonWriter(nested) || !descending.Add(nested))
+                        {
+                            continue;
+                        }
+                        Visit(nested, prefix + key + (many ? "[]." : "."));
+                        descending.Remove(nested);
+                    }
+                }
+            }
+
+            Visit(type, "");
+            return fields;
+        }
+
+        private static IEnumerable<Type> NestedContractTypes(Type type)
+        {
+            if (type.IsArray)
+            {
+                return NestedContractTypes(type.GetElementType()!);
+            }
+            if (type.IsGenericType)
+            {
+                return type.GetGenericArguments().SelectMany(NestedContractTypes);
+            }
+            return GradableContractTypes().Contains(type) ? new[] { type } : Array.Empty<Type>();
+        }
+
+        private static readonly Dictionary<Type, bool> RawWritable = new();
+
+        /// <summary>
+        /// Whether <see cref="JsonWriter.AppendValue"/> has a case for
+        /// <paramref name="type"/>, asked the way
+        /// <see cref="WirePayloadCoverageTests"/> asks it: write a default
+        /// instance and see whether the switch falls through to its throw.
+        /// </summary>
+        private static bool WrittenRawByJsonWriter(Type type)
+        {
+            lock (RawWritable)
+            {
+                if (RawWritable.TryGetValue(type, out var known))
+                {
+                    return known;
+                }
+
+                bool writable;
+                if (type.GetConstructor(Type.EmptyTypes) == null)
+                {
+                    writable = false;
+                }
+                else
+                {
+                    try
+                    {
+                        WirePayloadCoverageTests.SerializeThroughWire(Activator.CreateInstance(type)!);
+                        writable = true;
+                    }
+                    catch (NotSupportedException)
+                    {
+                        writable = false;
+                    }
+                    catch (Exception)
+                    {
+                        // Past the switch into a writer that choked on a
+                        // default instance: the case exists.
+                        writable = true;
+                    }
+                }
+                RawWritable[type] = writable;
+                return writable;
+            }
         }
 
         private static IReadOnlyList<FlattenProducer> Scan(string source, ISet<string> types) =>

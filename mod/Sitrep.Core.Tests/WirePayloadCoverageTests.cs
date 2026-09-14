@@ -154,7 +154,7 @@ namespace Sitrep.Core.Tests
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false))
                 .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
 
-        private static void SerializeThroughWire(object payload)
+        internal static void SerializeThroughWire(object payload)
         {
             var msg = new StreamData<object?>
             {
