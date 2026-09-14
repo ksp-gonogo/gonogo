@@ -12,11 +12,10 @@ namespace Gonogo.KSP
     /// one on <c>currency.&lt;vesselGuid&gt;.&lt;currency&gt;</c> so it is revealed at
     /// that vessel's own light-time to the observer.
     ///
-    /// <para><b>Why this exists.</b> A career currency total reveals instantly
-    /// (<c>career.status</c> is <see cref="DelayRole.TrueNow"/>, deliberately: the
-    /// operator must see the number the game will actually gate a spend against)
-    /// while the vessel telemetry that would confirm the underlying event is Delayed.
-    /// An operator watching the total could therefore infer a distant event a full
+    /// <para><b>Why this exists.</b> A career currency total reveals at home instantly
+    /// (<c>career.status</c> is held at the home command, where the game gates a
+    /// spend) while the vessel telemetry that would confirm the underlying event is
+    /// Delayed. An operator at home watching the total could therefore infer a distant event a full
     /// return light-time before the model says they can know it. These events close
     /// that gap by carrying each delta on its SOURCE vessel's clock, additively:
     /// nothing about <c>career.status.economy</c> changes.</para>

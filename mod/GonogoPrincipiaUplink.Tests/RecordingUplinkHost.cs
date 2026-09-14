@@ -384,6 +384,9 @@ namespace GonogoPrincipiaUplink.Tests
         public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) =>
             throw NotExpected("SetCentreDelay");
 
+        public void SetHomeCommandDelay(string centreId, double oneWaySeconds) =>
+            throw NotExpected("SetHomeCommandDelay");
+
         public void SetVesselConnectivity(string vesselId, bool connected) =>
             throw NotExpected("SetVesselConnectivity");
 

@@ -218,6 +218,31 @@ namespace Sitrep.Contract
         /// the hole is stated rather than drawn through.</para>
         /// </summary>
         public bool Recordable { get; set; } = true;
+
+        /// <summary>
+        /// Declares that this channel's value is a fact HELD AT THE HOME COMMAND
+        /// (the career ledger, the space centre's facilities and rosters) rather
+        /// than aboard a craft or nowhere in particular. It records under the home
+        /// command's own node, so each vantage learns a change after its own delay
+        /// to home: a ground centre at effectively zero over the ground network, a
+        /// crewed vessel after its path home, the same seconds a currency award
+        /// from that vessel waits to reach the ledger in the first place.
+        ///
+        /// <para>Requires <see cref="Delay"/> to be <see cref="DelayRole.Delayed"/>.
+        /// A <see cref="DelayRole.TrueNow"/> channel reaches every vantage at once,
+        /// which is the claim this flag exists to retract, so declaring both is a
+        /// contradiction and the engine refuses the owning Uplink rather than
+        /// guessing which was meant. Ignored on a dynamic namespace template: a
+        /// per-vessel namespace is by definition not held at home.</para>
+        ///
+        /// <para>Never frozen by a blackout. The home command cannot lose contact
+        /// with its own ledger, so an out-of-contact active vessel does not withhold
+        /// it; a craft that cannot reach home learns nothing new until it can.</para>
+        ///
+        /// <para>Defaults to <c>false</c>: every existing channel keeps the node it
+        /// had.</para>
+        /// </summary>
+        public bool HeldAtHome { get; set; } = false;
     }
 
     /// <summary>
@@ -1040,6 +1065,23 @@ namespace Sitrep.Contract
         /// centres that are routable to each other.
         /// </summary>
         void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds);
+
+        /// <summary>
+        /// Set how long a change to a fact held at the home command takes to reach
+        /// <paramref name="centreId"/> as a vantage: the delay every
+        /// <see cref="ChannelDeclaration.HeldAtHome"/> channel rides to that centre.
+        ///
+        /// <para>This is the centre's PATH HOME, not a route to the one station the
+        /// home-command claimant named. Every ground station reaches home over the
+        /// ground network, so a ground centre's row is zero; a crewed vessel's row is
+        /// its own control path to whichever station it reaches, which is the same
+        /// number a currency award from that vessel waits before it is booked. A
+        /// centre with no row reads zero, so a vessel that has never been measured
+        /// must be written rather than left out.</para>
+        ///
+        /// <para>Populated per capture pass, one row per active centre.</para>
+        /// </summary>
+        void SetHomeCommandDelay(string centreId, double oneWaySeconds);
 
         /// <summary>
         /// Set a FLEET vessel's connectivity (Plan 2b): its

@@ -98,6 +98,51 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
+        /// Populates each active centre's delay to the HOME COMMAND's ledger, the row
+        /// every <see cref="ChannelDeclaration.HeldAtHome"/> channel is delivered on.
+        ///
+        /// <para>The ledger is reached over the ground network, so the home centre and
+        /// every ground station are written as zero, and any other centre as its own
+        /// path home, whichever station that path ends at. A route to the one station
+        /// the claimant named is deliberately not what is asked: a vessel talking to a
+        /// different station reaches the ledger there, and would otherwise be told the
+        /// ledger is unreachable or quoted a delay to a station it is not using.</para>
+        /// </summary>
+        /// <param name="activeCentres">The registry's currently-active centres.</param>
+        /// <param name="homeCentreId">
+        /// The centre the roster marks home, the claimant's answer or the ground station
+        /// standing in for it, or null when there is none.
+        /// </param>
+        /// <param name="secondsToHome">
+        /// KSP-layer measurement of a non-ground centre's path home, or null when the
+        /// centre has no measurable path at all, in which case no row is written.
+        /// </param>
+        /// <param name="setDelay">Writes the (centre, home ledger) row.</param>
+        public void PopulateHomeCommand(
+            IReadOnlyList<ICommandCentre> activeCentres,
+            string? homeCentreId,
+            Func<ICommandCentre, double?> secondsToHome,
+            Action<string, double> setDelay)
+        {
+            foreach (var centre in activeCentres)
+            {
+                if (centre.Id == homeCentreId || centre.Kind == CommandCentreKind.GroundStation)
+                {
+                    setDelay(centre.Id, 0.0);
+                    continue;
+                }
+
+                var seconds = secondsToHome(centre);
+                if (seconds == null)
+                {
+                    continue;
+                }
+
+                setDelay(centre.Id, seconds.Value);
+            }
+        }
+
+        /// <summary>
         /// Populates the CENTRE-to-CENTRE half of the same matrix: for every
         /// ordered pair of active centres, the delay from the first (as a
         /// vantage) to the second (as a destination <see cref="CentreNode"/>).

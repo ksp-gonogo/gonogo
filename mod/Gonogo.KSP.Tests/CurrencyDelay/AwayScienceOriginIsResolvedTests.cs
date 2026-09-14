@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Xunit;
 
 namespace Gonogo.KSP.Tests.CurrencyDelay
@@ -43,7 +44,10 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             var arm = AwayScienceArm();
 
-            Assert.Contains("KscLightTime.ForVesselId", arm, StringComparison.Ordinal);
+            // Through the one definition both legs of the home round trip share,
+            // which is itself the id walk.
+            Assert.Contains("KscLightTime.SecondsToHome(vesselId", arm, StringComparison.Ordinal);
+            Assert.Contains("ForVesselId(vesselId", SecondsToHomeBody(), StringComparison.Ordinal);
         }
 
         [Fact]
@@ -60,14 +64,49 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         [Fact]
         public void the_per_increment_sink_resolves_the_same_way()
         {
-            var sink = CurrencyDelaySourceText.Read("DelayedScienceSink.cs");
+            var sink = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.Read("DelayedScienceSink.cs"),
+                "public static void RecordDelayedScienceIncrement(");
 
-            Assert.Contains("KscLightTime.ForVesselId", sink, StringComparison.Ordinal);
+            // The call, in the method body: the file's doc comment names the id walk
+            // too, and a whole-file scan passed on the comment alone.
+            Assert.Contains("KscLightTime.SecondsToHome(vesselId", sink, StringComparison.Ordinal);
 
             // It grew its own roster walk while the interceptor grew none, which
             // is how one subsystem came to hold two answers to one question and
             // ship the wrong one on the busier path.
             Assert.DoesNotContain("FlightGlobals", sink, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Leg 2 of the home round trip, a change to the ledger reaching a crewed-vessel
+        /// centre, is timed by the same definition as leg 1, the award reaching the
+        /// ledger. <c>HomeCommandLedgerDelayTests</c> in Sitrep.Host.IntegrationTests
+        /// proves the row lands in the ledger as that number; this proves the capture
+        /// asks for it the same way the award does.
+        /// </summary>
+        [Fact]
+        public void the_home_command_ledger_row_is_timed_by_the_award_definition()
+        {
+            var leg2 = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative(Path.Combine("CommandCentres", "CommandCentreDelayUplink.cs")),
+                "private static double? SecondsToHome(");
+
+            Assert.Contains("KscLightTime.SecondsToHome(", leg2, StringComparison.Ordinal);
+            Assert.DoesNotContain("FleetCommsReader", leg2, StringComparison.Ordinal);
+        }
+
+        /// <summary>An expression-bodied member has no braces, so it runs to its first semicolon.</summary>
+        private static string SecondsToHomeBody()
+        {
+            const string declaration = "internal static double SecondsToHome(";
+            var source = CurrencyDelaySourceText.Read("KscLightTime.cs");
+            var at = source.IndexOf(declaration, StringComparison.Ordinal);
+            if (at < 0)
+            {
+                throw new InvalidOperationException("No '" + declaration + "' declaration found");
+            }
+            return source.Substring(at, source.IndexOf(';', at) - at);
         }
 
         private static string AwayScienceArm() =>

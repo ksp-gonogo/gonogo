@@ -71,8 +71,8 @@ function ScienceDataComponent({
 
   // Partial-gate rather than a hard `requires: ["flight"]`: the header SCI
   // readout stays meaningful at the Space Center (banked science persists
-  // across vessels), and so does the Archive tab (career-wide TrueNow ground
-  // truth). Only Aboard is vessel-scoped, and with nothing flying it has no
+  // across vessels), and so does the Archive tab (career-wide, held at the home
+  // command). Only Aboard is vessel-scoped, and with nothing flying it has no
   // vessel to be about, so the tab itself turns off.
   const { inFlight, hasGameSignal, isCareerLike } = useGameContext();
   const noVessel = hasGameSignal && !inFlight;
@@ -183,8 +183,8 @@ function ScienceDataComponent({
     {
       id: "archive",
       label: "Archive",
-      // Never dimmed by dimNonFlight: this is career-wide TrueNow ground
-      // truth, meaningful at the Space Center with nothing flying, unlike
+      // Never dimmed by dimNonFlight: this is career-wide and held at the home
+      // command, meaningful at the Space Center with nothing flying, unlike
       // Aboard's active-vessel onboard ledger.
       content: <ArchiveTab archive={archive} groups={archiveGroups} />,
     },

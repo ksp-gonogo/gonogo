@@ -69,6 +69,19 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
+        /// How many seconds lie between the home command's ledger and a vessel, in
+        /// either direction: what a currency award from the vessel waits before it is
+        /// booked, and what a change to the ledger waits before the vessel learns it.
+        /// ONE definition for both legs of that round trip, so a transmission and the
+        /// new total coming back can never be timed by two different numbers.
+        ///
+        /// <para>The silence-declaration deadline for a vessel with no route home, and
+        /// zero with signal delay switched off, both by <see cref="KscDelayPolicy"/>.</para>
+        /// </summary>
+        internal static double SecondsToHome(string vesselId, SignalDelayConfig? config) =>
+            KscDelayPolicy.DelaySeconds(ForVesselId(vesselId, config), config);
+
+        /// <summary>
         /// The routed one-way light-time for a vessel named only by its id, found
         /// among the vessels the game currently holds.
         ///

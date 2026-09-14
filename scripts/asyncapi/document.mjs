@@ -111,6 +111,12 @@ is absent means the declaration did not state it.
   light-time clock, so the value is what the vantage KNEW rather than what is
   true now. \`true-now\` bypasses it, and is for a ground-side fact with no
   analogue in flight, such as whether the SCANsat assembly is installed at all
+- \`x-sitrep-held-at-home\`, on a \`delayed\` telemetry channel: \`true\` means the
+  value is held at the home command (the career ledger, the space centre's
+  records) rather than aboard a craft. Each vantage receives a change after its
+  own delay to home, zero on the ground network and a crewed vessel's path home
+  otherwise, so the frame a vantage holds is already as current as it can be
+  there and a client subtracts no further light-time when reading it
 - \`x-sitrep-keyframe-interval-ut\`, on a telemetry channel: the UT seconds
   after which it re-emits unconditionally, with nothing changed. It is what
   makes a late subscriber, a quickload and a rejoin recoverable without waiting
@@ -381,6 +387,9 @@ function dispositionExtensions(disposition) {
   }
   if (disposition.absenceIsData !== undefined) {
     out["x-sitrep-absence-is-data"] = disposition.absenceIsData;
+  }
+  if (disposition.heldAtHome !== undefined) {
+    out["x-sitrep-held-at-home"] = disposition.heldAtHome;
   }
   return out;
 }

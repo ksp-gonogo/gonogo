@@ -80,6 +80,8 @@ namespace Sitrep.Contract.TestSupport
 
         public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) { }
 
+        public void SetHomeCommandDelay(string centreId, double oneWaySeconds) { }
+
         public void SetVesselConnectivity(string vesselId, bool connected) { }
 
         public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread) { }

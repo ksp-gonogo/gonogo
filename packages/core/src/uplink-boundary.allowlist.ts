@@ -528,7 +528,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/sitrep-client/src/map-topic.test.ts",
 
       // -- Cross-mod / doc-comment-only mentions (audit §2, "not violations") --
-      "mod/Gonogo.KSP/CareerUplink.cs",
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
       "mod/Gonogo.KSP/SystemUplink.cs",
       "mod/GonogoKosUplink.Tests/KosVersionGuardTests.cs",
@@ -557,7 +556,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * domain-debt case: the import had already gone, and now the file has too.
        * G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
        * justification comment while inventorying every TrueNow declaration
-       * in mod/: doc-mention only, same class as CareerUplink.cs above.
+       * in mod/: doc-mention only, same class as CommsCoreUplink.cs above.
        */
       "packages/core/src/truenow-allowlist.test.ts",
       // styleguide.test.ts: the raw-hex ratchet, whose scan roots now cover

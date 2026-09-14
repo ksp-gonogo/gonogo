@@ -141,10 +141,10 @@ namespace Gonogo.KSP
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     // The one deviation from the rest of science.*: the archive is
-                    // career-wide banked science read at KSC/R&D, ground-side
-                    // bookkeeping like CareerUplink's career.status/career.mode,
-                    // not something learned over the active vessel's comms link.
-                    Delay = DelayRole.TrueNow,
+                    // career-wide banked science held at R&D, on the home command's
+                    // node beside career.status rather than the active vessel's.
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
             },
             // Experiment actuation is a genuine uplink to the craft (deploy runs

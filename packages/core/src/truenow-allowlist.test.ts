@@ -10,10 +10,12 @@ import { describe, expect, it } from "vitest";
  *
  * `DelayRole.TrueNow` means a channel skips gonogo's signal-delay reveal
  * gate entirely: it is read/write "as of now", not "as of ut - delay". That
- * is the right call for ground-side facts the command centre knows
- * independent of any vessel's comms link (launch-site roster, uplink
- * health, career funds, DLC ownership, scan coverage, the RA link-quality
- * numbers ABOUT the link itself). It is never the right call for vessel
+ * is the right call for facts no place holds and no signal carries (uplink
+ * health, DLC ownership, the body catalogue, the RA link-quality numbers
+ * ABOUT the link itself). It is not the right call for a record held at the
+ * home command (career funds, the launch-site roster), which is
+ * `HeldAtHome` and reaches each vantage after its own delay to home, and it
+ * is never the right call for vessel
  * telemetry: anything that describes the state of a craft in flight must
  * ride the delay so operators can't see the future. This test is the
  * backstop: every production TrueNow declaration is enumerated below with
@@ -79,23 +81,18 @@ const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
  * match, the line inside its own body, no matter how many channels are built
  * through it.
  *
- * Two exist. `Rp1ScUplink.Ground(topic)` carries 25 channels and scores 1;
- * `KerbalismUplink.Static(topic)` carries 1 and scores 1. So the numbers in
- * this file total 44 (measured 2026-09-07, after comms.delay, comms.path and
- * commandCentre.separation moved to Delayed) while the mod declares roughly
- * two dozen more delay-bypassing channels than that, and rp1 alone is 25 of
- * them behind a single allowlist line reading 1.
+ * One exists today: `KerbalismUplink.Static(topic)` carries 1 channel and
+ * scores 1, which happens to be the right number. The large one,
+ * `Rp1ScUplink.Ground(topic)`, carried 26 channels behind a line reading 1 until
+ * 2026-09-14, when 25 of them moved to HeldAtHome through a helper that declares
+ * no TrueNow at all and the 26th, rp1.available, was declared inline. The
+ * numbers in this file total 37 (measured 2026-09-14, after that move and the
+ * stock career and space-centre channels left) against 31 real channels; the gap
+ * is the helper bodies and helper declaration lines the counts below explain.
  *
- * The "48 of 66" this note used to quote was already 1 out when it was read
- * back: the scan totalled 47 the moment before those three moved. Treat the
- * ratio as an order of magnitude and re-measure before quoting it.
- *
- * The consequence is not a wrong number, it is an ungated one: a 26th rp1
- * channel changes no count here, so nothing asks whether it is ground-side.
- * The entries themselves are honest about this (Rp1ScUplink's own note says
- * "1 explicit declaration, in the `Ground` helper every channel is built
- * through"), which is why this is recorded rather than quietly re-seeded:
- * counting per channel would rewrite every count and every arithmetic note in
+ * The hole itself is still open: a new helper under any other name hides every
+ * channel after its first, so nothing asks whether the next one is ground-side.
+ * Counting per channel would rewrite every count and every arithmetic note in
  * this file, and that is the operator's call, not a drive-by.
  */
 
@@ -116,14 +113,14 @@ const SKIP_DIR_PATTERN = /\.(Tests|IntegrationTests)$/;
 // that's what keeps this a ratchet and not just a snapshot.
 // ---------------------------------------------------------------------
 const ALLOWED_TRUENOW: Record<string, number> = {
-  // Launch sites, VAB/SPH craft roster, revert availability, DLC
-  // ownership, map POIs (KSC + contract waypoints), and the Astronaut
-  // Complex hire pool (applicant roster + facility cap): facilities/
-  // inventory/mission facts about the space centre itself, known to the
-  // command centre independent of any vessel's comms link, not flight
-  // state. The Astronaut Complex is at KSC, so its applicant pool is the
-  // same ground-side class as launchSites/crewRoster. 7 explicit declarations.
-  "mod/Gonogo.KSP/SpaceCenterUplink.cs": 7,
+  // spaceCenter.scene: which screen the game is showing, a session fact held
+  // nowhere, same class as time.warp.
+  //
+  // The other six (launch sites, crew roster, saved craft, parts available,
+  // POIs, the Astronaut Complex) LEFT this list and are HeldAtHome: the space
+  // centre's own records, which reach each vantage after its delay to home
+  // rather than everywhere at once. 1 explicit declaration.
+  "mod/Gonogo.KSP/SpaceCenterUplink.cs": 1,
 
   // time.warp: the game's own time acceleration. A meta-state of the
   // simulation, effectively the scene changing, not an observation of a craft:
@@ -207,15 +204,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 1 explicit declaration.
   "mod/Gonogo.KSP/FlightUplink.cs": 1,
 
-  // Active-strategies roster, funds/science/rep totals, contract board, and the
-  // facility tier ladder: career/admin bookkeeping the centre always knows,
-  // independent of any vessel's comms link. The third is `career.facilities`,
-  // which split out of `career.status` when the ladder gained a staleness of
-  // its own; it was already delay-free inside that channel, so the split
-  // changed where the tiers live and not whether they wait on a signal. What
-  // the KSC knows about its own buildings does not travel. 3 declarations.
-  "mod/Gonogo.KSP/CareerUplink.cs": 3,
-
   // KSP version/build id and similar mod-host facts, not vessel state, plus
   // system.frame: what frame the player's own navigation view is in. That is a
   // fact about their screen rather than anything observed down a link, so no
@@ -279,21 +267,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
   // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
   "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 5,
-  // Every rp1.* channel: RP-1's space centre, read at the KSC. The build queue,
-  // the launch complexes and their pads, the rollout operations, the research
-  // queue, the payroll and Confidence are all ground state the command centre
-  // knows independent of any vessel's comms link, exactly the class
-  // CareerUplink's career.status and SpaceCenterUplink's launch sites are in.
-  // Nothing here is read off a craft. 1 explicit declaration, in the `Ground`
-  // helper every channel is built through.
+  // rp1.available: whether RP-1 is installed and managing the save, an install
+  // fact held nowhere. Declared inline, so this 1 is one channel.
+  //
+  // The other 25 rp1.* channels LEFT this list and are HeldAtHome through the
+  // `AtHome` helper: RP-1's space centre (queues, complexes, payroll, Programs,
+  // Confidence) reaches each vantage after its delay to home. They used to ride
+  // a `Ground` helper that scored 1 here for 26 channels, which was this file's
+  // largest blind spot; that helper is gone. 1 explicit declaration.
   "mod/GonogoRp1Uplink/Rp1ScUplink.cs": 1,
-
-  // science.archive: the whole-career R&D archive (banked science read at
-  // KSC/R&D). Career-wide ground-side bookkeeping the command centre always
-  // knows, independent of any vessel's comms link, the same class as
-  // CareerUplink's career.status/career.mode. Every other science.* channel
-  // reads live onboard vessel state and stays Delayed. 1 explicit declaration.
-  "mod/Gonogo.KSP/ScienceCoreUplink.cs": 1,
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched
@@ -427,12 +409,13 @@ describe("TrueNow allowlist: delay-bypassing channels are a reviewed, ratcheted 
       throw new Error(
         `TrueNow declaration count changed or is new in the following file(s):\n` +
           `${lines.join("\n")}\n\n` +
-          `Either this channel is ground-side (a fact the command centre knows ` +
-          `independent of any vessel's comms link: same class as launch sites, ` +
-          `career funds, uplink health) and you add/bump its ALLOWED_TRUENOW line ` +
-          `in packages/core/src/truenow-allowlist.test.ts WITH a one-line ` +
-          `justification, or it is vessel state and MUST NOT be TrueNow, route it ` +
-          `through the normal signal-delay gate instead.`,
+          `Either this channel is a fact no place holds (same class as uplink ` +
+          `health, DLC ownership, the body catalogue) and you add/bump its ` +
+          `ALLOWED_TRUENOW line in packages/core/src/truenow-allowlist.test.ts ` +
+          `WITH a one-line justification; or it is a record held at the home ` +
+          `command (career funds, launch sites) and is Delayed with HeldAtHome; ` +
+          `or it is vessel state and MUST NOT be TrueNow, route it through the ` +
+          `normal signal-delay gate instead.`,
       );
     }
 

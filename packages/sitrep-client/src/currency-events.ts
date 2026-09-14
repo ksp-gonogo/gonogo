@@ -5,9 +5,9 @@ import { useStream } from "./use-stream";
 /**
  * Source-attributed currency events, read off `currency.<guid>.<currency>`.
  *
- * A career currency total reveals instantly (`career.status.economy.*` is TrueNow
- * on purpose: the operator must see the number the game will actually gate a spend
- * against) while the vessel telemetry confirming the underlying event is delayed.
+ * A career currency total reveals at home instantly (`career.status.economy.*` is
+ * held at the home command, where the game gates a spend) while the vessel
+ * telemetry confirming the underlying event is delayed.
  * These events carry each delta on its SOURCE vessel's own clock instead, so a
  * distant probe's science arrives when its light could have.
  *

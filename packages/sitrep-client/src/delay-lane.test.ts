@@ -1,4 +1,8 @@
-import { delayLaneOf, isTrueNowTopic } from "@ksp-gonogo/sitrep-sdk";
+import {
+  delayLaneOf,
+  isHeldAtHomeTopic,
+  isTrueNowTopic,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -26,7 +30,7 @@ const OWLT = 240;
 const UT_NOW = 10_000;
 
 /** A ground-side fact, and a craft's state, as the mod declares them. */
-const TRUE_NOW_TOPIC = "career.status";
+const TRUE_NOW_TOPIC = "game.dlc";
 const DELAYED_TOPIC = "vessel.flight";
 
 function point(validAt: number, payload: unknown): TimelinePoint<unknown> {
@@ -128,8 +132,8 @@ describe("a channel's declared delay role", () => {
       topic: "ground.state",
       inputs: ["system.bodies", TRUE_NOW_TOPIC],
       derive: (get) => {
-        const career = get(TRUE_NOW_TOPIC);
-        return career ? { at: career.validAt } : undefined;
+        const dlc = get(TRUE_NOW_TOPIC);
+        return dlc ? { at: dlc.validAt } : undefined;
       },
     });
     store.beginFrame();
@@ -150,5 +154,63 @@ describe("a channel's declared delay role", () => {
     store.ingest(DELAYED_TOPIC, point(UT_NOW - OWLT, { altitudeAsl: 70_000 }));
     store.beginFrame();
     expect(store.currentFrame().trueNowViewUt).toBe(UT_NOW - OWLT);
+  });
+});
+
+/**
+ * A fact HELD AT THE HOME COMMAND: delivered to each vantage after that vantage's
+ * own delay to home, by the mod, so the client subtracts nothing further. The
+ * light-time the delayed lane takes off is the ACTIVE craft's, which is neither a
+ * ground centre's distance from its own ledger (none) nor a crewed vessel's (its
+ * path home).
+ */
+describe("a channel held at the home command", () => {
+  const stockCareer = [
+    "career.status",
+    "career.mode",
+    "career.facilities",
+    "science.archive",
+  ];
+  const spaceCentre = [
+    "spaceCenter.launchSites",
+    "spaceCenter.crewRoster",
+    "spaceCenter.savedShips",
+    "spaceCenter.partsAvailable",
+    "spaceCenter.pois",
+    "spaceCenter.astronautComplex",
+  ];
+
+  it.each(stockCareer)("%s is held at home and no longer TrueNow", (topic) => {
+    expect(isHeldAtHomeTopic(topic)).toBe(true);
+    expect(isTrueNowTopic(topic)).toBe(false);
+  });
+
+  it.each(spaceCentre)("%s is held at home and no longer TrueNow", (topic) => {
+    expect(isHeldAtHomeTopic(topic)).toBe(true);
+    expect(isTrueNowTopic(topic)).toBe(false);
+  });
+
+  it("leaves the scene TrueNow: which screen is showing is held nowhere", () => {
+    expect(isTrueNowTopic("spaceCenter.scene")).toBe(true);
+    expect(isHeldAtHomeTopic("spaceCenter.scene")).toBe(false);
+  });
+
+  it("reads at the newest delivery, with no light-time taken off it", () => {
+    expect(delayLaneOf("career.status")).toBe("true-now");
+
+    /* A crewed vessel 30 s from home, whose active craft is a light-time
+       further out: the mod delivered the total booked at UT_NOW - 30 and has not
+       yet delivered anything newer, so that is the newest the vessel can read. */
+    const clock = new ViewClock({
+      nowWall: () => 0,
+      warpRate: () => 1,
+      delaySeconds: () => OWLT,
+    });
+    const store = new TimelineStore(clock);
+    store.ingest(DELAYED_TOPIC, point(UT_NOW, { altitudeAsl: 70_000 }));
+    store.ingest("career.status", point(UT_NOW - 30, { funds: 25 }));
+    store.beginFrame();
+
+    expect(store.sample("career.status")?.validAt).toBe(UT_NOW - 30);
   });
 });

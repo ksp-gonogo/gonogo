@@ -135,12 +135,10 @@ export function FundTargetControl({
                     value: wantedFunds,
                     /*
                      * NOT because funds are a craft reading. They are not, and a
-                     * light-time is not what this escapes: career bookkeeping is
-                     * stamped "game", `career.status` is DelayRole.TrueNow, and
-                     * ChannelEngine.Subscribe routes an instant-class topic onto
-                     * the meta vantage, where DelayTo(meta, "system") is pinned to
-                     * 0. A command centre is told the balance the instant it
-                     * changes. Anything here claiming otherwise is wrong.
+                     * light-time is not what this escapes: `career.status` is held
+                     * at the home command, so a ground centre is told the balance
+                     * the instant it changes and a crewed-vessel centre after its
+                     * own path home, which is the tick that centre learns it.
                      *
                      * What "scet" buys is PRECISION UNDER WARP, and only that. The
                      * mod's roster reads the balance on the tick and sets

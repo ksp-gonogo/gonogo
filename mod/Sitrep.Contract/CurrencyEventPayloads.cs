@@ -46,11 +46,11 @@ public static class CurrencyEventTopics
 /// reports its transmit five minutes after the fact.</para>
 ///
 /// <para>ADDITIVE to <c>career.status.economy.science</c>, which is untouched and
-/// still <see cref="DelayRole.TrueNow"/>: that field gates what tech the operator can
-/// afford, so it must stay the number the game will actually gate against (the same
-/// principle as the always-show-the-funds-balance rule). These events let a consumer
-/// build a separate, honestly-delayed running total; they never replace the gating
-/// one.</para>
+/// held at the home command: that field gates what tech the operator can afford, so
+/// it stays the number the game will actually gate against (the same principle as
+/// the always-show-the-funds-balance rule), reaching a ground centre at once and a
+/// crewed vessel after its path home. These events let a consumer build a separate,
+/// honestly-delayed running total; they never replace the gating one.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -90,15 +90,15 @@ public class ScienceCreditEvent
 /// one. See <see cref="ScienceCreditEvent"/> for the general shape, and the hard
 /// constraint below for why this type deliberately carries no absolute figure.</para>
 ///
-/// <para><b>The gating field stays instant, non-negotiably.</b> Reputation GATES:
+/// <para><b>The gating field is not delayed by this event, non-negotiably.</b> Reputation GATES:
 /// <c>StrategyEntry.RequiredReputation</c> is a strategy's minimum-rep unlock
 /// threshold, and contract offer availability keys off the game's real current
 /// reputation. A stale-high delayed number sitting where the operator reads it before
 /// clicking "Activate Strategy" or "Accept Contract" could show a strategy as
 /// available when the game's already-dropped reputation has made it unavailable, and
 /// the action would then fail against ground truth the operator had no way to see
-/// coming. So <c>career.status.economy.reputation</c> remains TrueNow, instant, and
-/// completely untouched: it is the number the game will actually gate against, the
+/// coming. So <c>career.status.economy.reputation</c> is held at the home command, where
+/// the gate is decided, and completely untouched: it is the number the game will actually gate against, the
 /// same principle as the always-show-the-funds-balance rule. This event is ADDITIVE
 /// and carries only a DELTA with no absolute total precisely so it can never be
 /// substituted for the gating value, and it must never be co-located with an

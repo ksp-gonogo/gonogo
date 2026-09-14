@@ -9,9 +9,11 @@ namespace GonogoRp1Uplink;
 // ─────────────────────────────────────────────────────────────────────────────
 // The rp1.* Topic payloads: RP-1's space-centre model, read at KSC cadence.
 //
-// Every channel here is DelayRole.TrueNow, matching the stock spaceCenter.* /
-// career.* ground-fact convention: this is state at a space centre, not a
-// reading taken from a craft.
+// Every channel here is held at the home command, matching the stock
+// spaceCenter.* / career.* convention: this is state at a space centre, not a
+// reading taken from a craft, so each vantage learns a change after its own
+// delay to home. rp1.available is the exception, TrueNow, being about the
+// install rather than the space centre.
 //
 // Two conventions run through the whole file and are the reason it reads the
 // way it does.

@@ -231,6 +231,7 @@ function channelDisposition(body, substitute) {
     delay: kebabMember(property(body, "Delay", substitute)),
     keyframeIntervalUt: keyframeInterval(body),
     absenceIsData: boolProperty(body, "AbsenceIsData", substitute),
+    heldAtHome: boolProperty(body, "HeldAtHome", substitute),
   };
 }
 
