@@ -20,6 +20,7 @@ namespace Sitrep.Host.Tests
     /// <c>false</c> (never offer a revert we can't confirm), and the payload
     /// serializing cleanly through the REAL production path.
     /// </summary>
+    [Collection("SystemViewProviderStatics")]
     public class RevertAvailabilityProviderTests
     {
         [Fact]

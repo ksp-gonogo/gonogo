@@ -24,6 +24,7 @@ namespace Sitrep.Host.Tests
     /// on <c>VesselViewProvider</c>: this provider never links the propagation
     /// assembly and cannot branch on which provider won.</para>
     /// </summary>
+    [Collection("SystemViewProviderStatics")]
     public class BodyCarriesItsHorizonTests : IDisposable
     {
         public BodyCarriesItsHorizonTests()
