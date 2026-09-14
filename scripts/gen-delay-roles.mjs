@@ -17,6 +17,13 @@
  * extraction is the same C# source scan `asyncapi.yaml` already publishes this
  * fact from (`scripts/asyncapi/sources.mjs`), and the two artifacts cannot
  * disagree because there is one scan.
+ *
+ * This is the FALLBACK, not the authority. The scan reads core's declarations
+ * and cannot see an Uplink, least of all one built outside this repo, so the
+ * running mod states every channel's role on `system.uplinks` and the client
+ * reads its lanes from that once it arrives. This table answers only before
+ * then, against a mod older than contract 16.13, and as the typed union for
+ * core topics.
  */
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -91,10 +98,10 @@ const lines = [
   "// fact is merely late, where a true-now read of a craft's state would show an",
   "// operator the future.",
   "//",
-  "// DYNAMIC topics cannot appear here. A per-vessel or per-part namespace is",
-  "// registered at runtime and has no declaration for the scan to find, so it is",
-  "// absent and therefore delayed, which is the right answer for every one of",
-  "// them that exists today (they all describe a craft). See ../delay-roles.ts.",
+  "// CORE channels only, and only the fallback: the running mod states every",
+  "// channel's role, Uplink channels and dynamic namespaces included, on",
+  "// `system.uplinks`, and the client stops consulting this table once it has.",
+  "// See ../delay-roles.ts.",
   "",
   "/** Every channel the mod declares `DelayRole.TrueNow`. */",
   "export const GENERATED_TRUENOW_TOPICS = [",

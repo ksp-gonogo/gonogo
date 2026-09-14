@@ -1694,7 +1694,22 @@ namespace Sitrep.Contract
         /// A pilot pinned to the active craft saw its own readouts a round trip late. The
         /// crewed centre that is the active craft now reads it at zero, and any other
         /// centre at its own route to it.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 12 -&gt; 13: the roster states every channel's
+        /// delay role.</b> One new field on the engine-built <c>system.uplinks</c> payload,
+        /// <c>delayRoles: { trueNow, heldAtHome, trueNowPrefixes }</c>, built from every
+        /// channel the engine registered, core and Uplink alike. Additive, nothing removed
+        /// or retyped, so an Uplink built against 16.12 is unaffected and the frozen
+        /// Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because the client learned a channel's role from a scan of this
+        /// repo's core declarations, which cannot see an Uplink. Every Uplink channel read
+        /// in the delayed lane whatever it declared: an RP-1 ledger held at home had the
+        /// active craft's light-time taken off a second time, and a RealAntennas or
+        /// Kerbalism TrueNow fact read a light-time late at a ground centre. The running
+        /// mod knows every declaration, including one from an Uplink built somewhere else
+        /// entirely, so it is the one that says.</para>
         /// </remarks>
-        public const int Minor = 12;
+        public const int Minor = 13;
     }
 }

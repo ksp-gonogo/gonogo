@@ -391,6 +391,12 @@ export function TelemetryProvider({
       detach();
     };
   }, [client, delayAuthority]);
+  /*
+   * The store decides every declared topic's lane from the roles block on
+   * `system.uplinks`, so the roster is held for the provider's life rather than
+   * only while something happens to be drawing Uplink health.
+   */
+  useEffect(() => client.subscribe("system.uplinks", () => {}), [client]);
   useEffect(() => {
     // Coalesce to (at most) one `beginFrame()` per animation-frame tick,
     // instead of one per `stream-data` message: see

@@ -1,0 +1,16 @@
+{
+  "topic": "system.uplinks",
+  "delayRoles": {
+    "trueNow": [
+      "comms.dataRate",
+      "comms.linkMargin",
+      "system.channels",
+      "system.units",
+      "system.uplink.gates",
+      "system.uplink.pending",
+      "system.uplinks"
+    ],
+    "heldAtHome": ["rp1.programs"],
+    "trueNowPrefixes": ["uplinktest.live."]
+  }
+}

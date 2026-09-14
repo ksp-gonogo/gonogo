@@ -36,6 +36,11 @@
     <Compile Include="..\Sitrep.Host.Tests\RecordingFact.cs" />
   </ItemGroup>
 
+  <!-- The roster's delay-roles block the client half reads back; see DelayRolesRosterTests. -->
+  <ItemGroup>
+    <None Include="../golden-fixtures/delay-roles-roster.json" Link="golden-fixtures/delay-roles-roster.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- The production wire builders the test uplinks publish through. They are
        plain C# with no KSP or Unity type in them, so they compile here directly
        (a ProjectReference on Gonogo.KSP would drag in the files that DO need a

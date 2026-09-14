@@ -1,6 +1,11 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
-import { type DelayLane, delayLaneOf } from "../delay-roles";
+import {
+  type DeclaredDelayRoles,
+  type DelayLane,
+  delayLaneOf,
+  readDeclaredDelayRoles,
+} from "../delay-roles";
 import { PerfBudget } from "../perf/PerfBudget";
 import { splitRawFieldSubtopic } from "../raw-field-split";
 import type {
@@ -167,10 +172,13 @@ function walkFieldPath(value: unknown, fieldPath: readonly string[]): unknown {
  * its declared inputs is therefore read no more current than the input it
  * declared and skipped, which is the safe direction of that inaccuracy.
  */
-function derivedLane(def: DerivedChannelDefinition<unknown>): DelayLane {
+function derivedLane(
+  def: DerivedChannelDefinition<unknown>,
+  declaredLane: (topic: string) => DelayLane,
+): DelayLane {
   const inputs = def.inputs ?? [];
   return inputs.length > 0 &&
-    inputs.every((topic) => delayLaneOf(topic) === "true-now")
+    inputs.every((topic) => declaredLane(topic) === "true-now")
     ? "true-now"
     : "delayed";
 }
@@ -262,6 +270,9 @@ export type ReckonedBound<T> = T extends Value<infer U> ? Value<U> : Value;
  * plotted series.
  */
 const MAX_RECKONED_TAIL_SAMPLES = 48;
+
+/** The engine-built roster whose `delayRoles` block decides every declared topic's lane. */
+const UPLINK_ROSTER_TOPIC = "system.uplinks";
 
 /**
  * How far apart to sample a reckoned tail: the cadence the observations
@@ -733,6 +744,18 @@ export class TimelineStore {
    */
   private transportConnected = true;
 
+  /**
+   * The delay roles the mod stated on the newest `system.uplinks` delivered.
+   * `undefined` before one arrives and when the newest carried none (a mod older
+   * than contract 16.13), which leaves every lane on the generated core table.
+   *
+   * Captured at ingest rather than read off that topic's timeline, because a
+   * role is a fact about the running mod rather than about a moment: a rewind
+   * that empties the roster's timeline must not drop every Uplink channel back
+   * into the delayed lane until the next keyframe.
+   */
+  private declaredRoles: DeclaredDelayRoles | undefined;
+
   constructor(
     readonly clock: ViewClock,
     private readonly options: TimelineStoreOptions = {},
@@ -811,6 +834,9 @@ export class TimelineStore {
     }
 
     this.timelineFor<T>(topic).append(point);
+    if (topic === UPLINK_ROSTER_TOPIC) {
+      this.declaredRoles = readDeclaredDelayRoles(point.payload);
+    }
     this.clock.observeSample(
       point.validAt,
       point.meta.deliveredAt,
@@ -1717,15 +1743,25 @@ export class TimelineStore {
    * ({@link derivedLane}). A raw FIELD SUBTOPIC takes its parent record's lane,
    * because `time.warp.warpRate` is the same wire frame as `time.warp` and
    * reading the two at different instants would be the same record disagreeing
-   * with itself. Anything else is its own declaration, and an undeclared or
-   * dynamic topic is delayed.
+   * with itself. Anything else is its own declaration, and an undeclared
+   * topic is delayed.
    */
   private laneForTopic(topic: string): DelayLane {
     const derived = this.resolveDerivedTopic(topic);
-    if (derived) return derivedLane(derived.def);
+    if (derived) return derivedLane(derived.def, this.declaredLane);
+    /* The whole topic is asked first because a topic under a TrueNow dynamic
+       namespace is its own wire topic, and the generic field split would
+       otherwise cut it into a parent no prefix matches. A field subtopic of a
+       static channel is never itself declared, so asking it first costs that
+       read nothing. */
+    if (this.declaredLane(topic) === "true-now") return "true-now";
     const rawField = this.resolveRawFieldSubtopic(topic);
-    return delayLaneOf(rawField ? rawField.rawTopic : topic);
+    return rawField ? this.declaredLane(rawField.rawTopic) : "delayed";
   }
+
+  /** A whole declared topic's lane, by the roles the mod stated when it has stated any. */
+  private readonly declaredLane = (topic: string): DelayLane =>
+    delayLaneOf(topic, this.declaredRoles);
 
   /**
    * Interpolating raw-topic read, the confirmed view is an
@@ -2733,7 +2769,7 @@ export class TimelineStore {
     def: DerivedChannelDefinition<unknown>,
     token: FrameToken,
   ): StreamStatusValue {
-    const lane = derivedLane(def);
+    const lane = derivedLane(def, this.declaredLane);
     const get: DerivedGet = (inputTopic) =>
       this.sampleInLane(inputTopic, token, lane);
     const getStatus = (inputTopic: string) =>
@@ -2910,7 +2946,7 @@ export class TimelineStore {
     // this real: it reads seven delayed vessel channels and the true-now
     // `system.bodies`, so it stays delayed and reads the body catalogue at the
     // delayed instant, exactly as it did before any of this existed.
-    const lane = derivedLane(def);
+    const lane = derivedLane(def, this.declaredLane);
 
     const { value, observedAt } = this.memoize(
       token,
