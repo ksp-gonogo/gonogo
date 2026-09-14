@@ -520,6 +520,50 @@ describe("PlanSlots", () => {
   });
 
   /**
+   * The third state of the same flag, and the warning is the whole of what the
+   * operator gets here: a slot delete is legal at any instant, so this is
+   * reported rather than enforced. An unreadable execution state used to arrive
+   * as a false and take the warning with it, leaving a plan discarded with a
+   * burn in it nobody could say was idle.
+   */
+  it("warns when a burn's execution state could not be read", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ executing: null })] });
+
+    expect(
+      screen.getByText("A BURN HERE MAY BE RUNNING, UNREAD"),
+    ).toBeInTheDocument();
+    // Not the definite one, which would claim a burn IS lit.
+    expect(screen.queryByText("A BURN IS RUNNING")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** The two never stack: a definite running burn says all of it already. */
+  it("says only that a burn is running when one definitely is", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [burn({ executing: true }), burn({ index: 1, executing: null })],
+    });
+
+    expect(screen.getByText("A BURN IS RUNNING")).toBeInTheDocument();
+    expect(
+      screen.queryByText("A BURN HERE MAY BE RUNNING, UNREAD"),
+    ).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("says neither when every burn is known to be idle", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ executing: false })] });
+
+    expect(screen.queryByText("A BURN IS RUNNING")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("A BURN HERE MAY BE RUNNING, UNREAD"),
+    ).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
    * A delete is legal at any instant, so this is reported rather than enforced:
    * the write can still land, it just lands after the burn the operator meant to
    * stop has lit. At a thirty-light-minute vantage the row saying so is itself

@@ -452,6 +452,16 @@ function ExistingPlan({
 }>) {
   const executing = (plan.burns ?? []).some((burn) => burn.executing === true);
   /*
+   * A burn nobody could say was idle, which is the third state of the same
+   * flag. The badge below warns before a slot delete discards the burns with
+   * it, and it is REPORTED rather than enforced, so the warning is the whole of
+   * what the operator gets: an unreadable execution state used to arrive as a
+   * false and take the warning with it.
+   */
+  const executionUnread = (plan.burns ?? []).some(
+    (burn) => burn.executing == null,
+  );
+  /*
    * Deleting a plan has nothing to beat in the way an edit to a burn does: the
    * write is legal at any instant. What it CAN do is arrive after a burn the
    * operator meant to stop has already lit, and at a distant vantage the row
@@ -509,6 +519,15 @@ function ExistingPlan({
       {executing && (
         <Cluster justify="start">
           <Badge severity="critical">A BURN IS RUNNING</Badge>
+        </Cluster>
+      )}
+
+      {/* Only when nothing in the slot is KNOWN to be running, so the two never
+          stack: a definite running burn is the stronger fact and says all of
+          this already. */}
+      {!executing && executionUnread && (
+        <Cluster justify="start">
+          <Badge severity="caution">A BURN HERE MAY BE RUNNING, UNREAD</Badge>
         </Cluster>
       )}
 
