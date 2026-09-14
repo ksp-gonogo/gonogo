@@ -146,12 +146,17 @@ namespace GonogoRp1Uplink
         public List<Rp1FundingCurveKeyRaw> Keys = new List<Rp1FundingCurveKeyRaw>();
     }
 
+    /// <summary>
+    /// One key of a funding curve. The position and value are what a key IS, so a
+    /// key missing either is dropped rather than carried; the TANGENTS are
+    /// nullable, because an absent one costs only the segment it bounds.
+    /// </summary>
     public sealed class Rp1FundingCurveKeyRaw
     {
         public double Frac;
         public double PaidFraction;
-        public double InTangent;
-        public double OutTangent;
+        public double? InTangent;
+        public double? OutTangent;
     }
 
     /// <summary>The speed names RP-1's <c>Program.Speed</c> enum declares, in its own order.</summary>

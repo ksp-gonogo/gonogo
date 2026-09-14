@@ -399,8 +399,13 @@ namespace GonogoRp1Uplink
                 {
                     Frac = frac.Value,
                     PaidFraction = value.Value,
-                    InTangent = ReadDouble(key, "inTangent") ?? 0.0,
-                    OutTangent = ReadDouble(key, "outTangent") ?? 0.0,
+                    // Carried absent rather than flattened to a slope of zero, on
+                    // the nullability the contract already declares. A tangent of
+                    // zero is a PLATEAU, so the substitution drew a stretch of
+                    // the term paying a flat funds/yr where RP-1's own curve
+                    // slopes, and took the cumulative series flat with it.
+                    InTangent = ReadDouble(key, "inTangent"),
+                    OutTangent = ReadDouble(key, "outTangent"),
                 });
             }
             return keys;

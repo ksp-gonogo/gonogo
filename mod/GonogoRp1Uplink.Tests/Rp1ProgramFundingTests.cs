@@ -98,6 +98,44 @@ public class Rp1ProgramFundingTests
         Assert.Equal(0.2, Rp1ProgramsMath.EvaluateCurve(stepped, 0.5)!.Value, 12);
     }
 
+    /// <summary>
+    /// A tangent nobody could read makes the segment it bounds absent, never a
+    /// segment interpolated through a slope of zero.
+    ///
+    /// <para>Zero is a PLATEAU. Substituted into Flat's straight first segment it
+    /// bends the line into a curve that leaves 0 flat, arrives at 1 flat, and
+    /// reads 0.5 at the midpoint by coincidence rather than by construction: the
+    /// funds/yr series the chart draws from the slope is flat across the whole
+    /// stretch, which is a claim about the career's funding that RP-1's own curve
+    /// does not make.</para>
+    /// </summary>
+    [Fact]
+    public void An_unreadable_tangent_makes_its_own_segment_absent_rather_than_flat()
+    {
+        var curve = FlatCurve();
+        curve[0].OutTangent = null;
+
+        Assert.Null(Rp1ProgramsMath.EvaluateCurve(curve, 0.25));
+        Assert.Null(Rp1ProgramsMath.EvaluateCurve(curve, 0.75));
+    }
+
+    /// <summary>
+    /// And it costs nothing but that segment. The keys either side still state
+    /// their own values, the clamped ends are answered from a value rather than a
+    /// slope, and the next segment has both of its own tangents.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_tangent_leaves_the_rest_of_the_curve_answerable()
+    {
+        var curve = FlatCurve();
+        curve[0].OutTangent = null;
+
+        Assert.Equal(0.0, Rp1ProgramsMath.EvaluateCurve(curve, -5.0)!.Value, 12);
+        Assert.Equal(1.4, Rp1ProgramsMath.EvaluateCurve(curve, 40.0)!.Value, 12);
+        // The 1-to-2 segment, whose own two tangents were both read.
+        Assert.Equal(1.26875, Rp1ProgramsMath.EvaluateCurve(curve, 1.5)!.Value, 12);
+    }
+
     [Theory]
     [InlineData(Rp1ProgramSpeeds.Normal, 9.0, 9.0)]
     [InlineData(Rp1ProgramSpeeds.Slow, 9.0, 13.5)]
@@ -492,6 +530,9 @@ public class Rp1ProgramFundingReflectionTests : IDisposable
         ProgramHandler.Settings = null;
         ProgramHandler.Programs = new List<Program>();
         ProgramHandler.ProgramModifiers = new List<ProgramModifier>();
+        // Cleared at both ends, or every later file in this collection reads
+        // absences it never asked for.
+        ROUtils.HermiteCurve.Key.UnreadableInTangentAt = null;
     }
 
     private static Rp1ProgramsRaw Read()
@@ -521,9 +562,46 @@ public class Rp1ProgramFundingReflectionTests : IDisposable
         var curve = Assert.Single(raw.Curves);
         Assert.Equal("Flat", curve.Name);
         Assert.Equal(2, curve.Keys.Count);
-        Assert.Equal(1.0, curve.Keys[0].OutTangent, 12);
-        Assert.Equal(0.8, curve.Keys[1].OutTangent, 12);
+        Assert.Equal(1.0, curve.Keys[0].OutTangent!.Value, 12);
+        Assert.Equal(0.8, curve.Keys[1].OutTangent!.Value, 12);
         Assert.Equal(1.0, curve.Keys[1].PaidFraction, 12);
+    }
+
+    /// <summary>
+    /// A tangent the curve would not hand over is carried absent, on the
+    /// nullability the contract already declares, rather than read as a slope of
+    /// zero.
+    ///
+    /// <para>The key's POSITION and VALUE are what a key is, so they still arrive
+    /// and the key is still carried: dropping it instead would merge the segments
+    /// either side of it and reshape a stretch of the curve nobody asked about,
+    /// which is a second wrong answer rather than an absent one.</para>
+    /// </summary>
+    [Fact]
+    public void A_tangent_the_curve_will_not_hand_over_is_absent_rather_than_a_flat_slope()
+    {
+        ProgramHandler.Settings = new ProgramHandlerSettings
+        {
+            defaultFundingCurve = "Flat",
+            paymentCurves =
+            {
+                ["Flat"] = new ROUtils.HermiteCurve(
+                    new ROUtils.HermiteCurve.Key(0.0, 0.0, 1.0, 1.0),
+                    new ROUtils.HermiteCurve.Key(1.0, 1.0, 1.0, 0.8)),
+            },
+        };
+        ROUtils.HermiteCurve.Key.UnreadableInTangentAt = 1.0;
+
+        var curve = Assert.Single(Read().Curves);
+
+        Assert.Equal(2, curve.Keys.Count);
+        Assert.Null(curve.Keys[1].InTangent);
+        // Everything else about that key still arrived, and the key beside it is
+        // untouched.
+        Assert.Equal(1.0, curve.Keys[1].Frac, 12);
+        Assert.Equal(1.0, curve.Keys[1].PaidFraction, 12);
+        Assert.Equal(0.8, curve.Keys[1].OutTangent!.Value, 12);
+        Assert.Equal(1.0, curve.Keys[0].InTangent!.Value, 12);
     }
 
     [Fact]
