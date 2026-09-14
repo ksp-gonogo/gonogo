@@ -2,6 +2,7 @@ import type {
   AnyReckonerDefinition,
   DepWindows,
   ReckonerDefinition,
+  ReckonerInputRule,
 } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Dep } from "./processors";
@@ -89,10 +90,62 @@ export function registerReckoner<
   owner: string,
   reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
 ): void {
+  for (const [rule, reason] of Object.entries(reckoner.exempt ?? {})) {
+    if (typeof reason !== "string" || reason.trim() === "") {
+      throw new Error(
+        `registerReckoner("${topic}", "${owner}"): the ${rule} exemption carries no reason.\n\n` +
+          "The store applies the input rules to every model by default, and an " +
+          "opt-out is only reviewable if it says what makes it sound. Write the " +
+          "reason as the value:\n" +
+          `  exempt: { ${rule}: "this input only seeds the integration and is never read again" }`,
+      );
+    }
+  }
   const byOwner =
     reckoners.get(topic) ?? new Map<string, AnyReckonerDefinition>();
   byOwner.set(owner, reckoner);
   reckoners.set(topic, byOwner);
+}
+
+/** One model's declared opt-out from one input rule, and who declared it. */
+export interface ReckonerExemption {
+  readonly topic: string;
+  readonly owner: string;
+  readonly rule: ReckonerInputRule;
+  readonly reason: string;
+}
+
+/**
+ * Every input-rule opt-out any registered model declared, sorted by topic, then
+ * owner, then rule.
+ *
+ * The point of the rules is that a model gets them without writing anything, so
+ * the exceptions are the only part anyone has to read, and they have to be
+ * readable in ONE place rather than found by grepping twelve Uplinks. An
+ * Uplink's generated page lists its own off this, and the ledger suite pins the
+ * whole set so a new exemption arrives as a reviewed diff rather than as a line
+ * inside a model nobody re-reads.
+ *
+ * Sorted rather than in registration order for the same reason
+ * `getReckonedTopics` is: a generated page whose rows depend on module import
+ * order churns on every bundler change.
+ */
+export function getReckonerExemptions(): ReckonerExemption[] {
+  const rows: ReckonerExemption[] = [];
+  for (const [topic, byOwner] of reckoners) {
+    for (const [owner, definition] of byOwner) {
+      for (const [rule, reason] of Object.entries(definition.exempt ?? {})) {
+        if (typeof reason !== "string" || reason.trim() === "") continue;
+        rows.push({ topic, owner, rule: rule as ReckonerInputRule, reason });
+      }
+    }
+  }
+  return rows.sort(
+    (a, b) =>
+      a.topic.localeCompare(b.topic) ||
+      a.owner.localeCompare(b.owner) ||
+      a.rule.localeCompare(b.rule),
+  );
 }
 
 /** The elected model for a topic, and which owner it belongs to. */

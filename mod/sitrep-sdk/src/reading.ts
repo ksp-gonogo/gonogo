@@ -1333,6 +1333,70 @@ export interface ReckonerFrame<T = unknown> {
 }
 
 /**
+ * A rule about a model's declared INPUTS that the store applies to every
+ * registration, whether or not the model's author knew it existed.
+ *
+ * Both come from the same statement: a forward model is a claim about the
+ * future made out of other people's numbers, and it cannot honestly claim more
+ * than those numbers support. A model author writing neither of these gets both,
+ * which is the point; a model that genuinely needs to exceed one says so in
+ * {@link ReckonerExemptions} and gives the reason.
+ *
+ * - `horizon`: the model is not offered on a frame where one of its declared
+ *   inputs is past ITS OWN model's horizon. There is no horizon FIELD to clamp
+ *   (see {@link ReckoningDecline}, and {@link Reading}'s "No horizon field"),
+ *   so the rule is spelled the only way a horizon is ever spelled here: the
+ *   model withdraws for that frame, declining `"beyond-horizon"` and naming the
+ *   input that ran out
+ * - `band`: the model's {@link UncertaintyBand}s never claim to know more than
+ *   the bands on its inputs do. A `sigma1` input caps the output's kind at
+ *   `sigma1`, because a hard bound cannot be derived from an error that was
+ *   never bounded; and an input band with width forbids a zero-width output
+ *   band, because exactness cannot be derived from uncertainty. A band the rule
+ *   rejects is DROPPED rather than widened to an invented number, which is the
+ *   same answer {@link ReckonedBands} already gives for a model that cannot
+ *   bound its own error
+ *
+ * ## What the band rule deliberately does NOT do
+ *
+ * It does not compare WIDTHS. A width comparison across an input path and an
+ * output path is not sound without knowing the model's sensitivity to that
+ * input: an altitude taken from a precise conic and an imprecise body radius is
+ * legitimately tighter in metres than either, and averaging independent samples
+ * legitimately narrows. So the rule polices the two claims that are wrong
+ * whatever the mathematics (a bound out of a sigma, an exact answer out of an
+ * inexact input) and leaves the arithmetic to the model.
+ */
+export type ReckonerInputRule = "horizon" | "band";
+
+/**
+ * A model's declared opt-out from an input rule, one key per rule, whose VALUE
+ * is the reason its mathematics justifies going beyond.
+ *
+ * The reason is the value rather than a sibling flag so an opt-out cannot be
+ * taken without stating one: there is no spelling of "exempt from the horizon
+ * rule" that does not also say why. `registerReckoner` rejects a blank reason
+ * for the same purpose, because an empty string is a flag wearing the shape of
+ * a sentence.
+ *
+ * A sound example is the one the rule cannot see from outside: a propagator
+ * whose output genuinely outlives an input because that input only SEEDS the
+ * integration and is never read again. The seed's own model running out says
+ * nothing about how far the integration reaches.
+ *
+ * Every exemption in the running program is enumerable through
+ * `getReckonerExemptions`, so an opt-out is reviewable rather than merely
+ * possible: an Uplink's generated page lists its own, and a ledger suite pins
+ * the whole set.
+ */
+export interface ReckonerExemptions {
+  /** Why this model may reach past an input's horizon. */
+  readonly horizon?: string;
+  /** Why this model's band may claim more than its inputs' bands do. */
+  readonly band?: string;
+}
+
+/**
  * A registered forward model, and the published inputs it needs.
  *
  * This is the registration surface: `registerReckoner` takes one of these, and
@@ -1382,6 +1446,12 @@ export interface ReckonerDefinition<
    */
   readonly depWindows?: Windows;
   /**
+   * The {@link ReckonerInputRule}s this model does not obey, each with the
+   * reason its mathematics justifies it. Omitted, which is the normal case,
+   * means the store applies both.
+   */
+  readonly exempt?: ReckonerExemptions;
+  /**
    * Offer a model for `point` at `frame.viewUt`, or decline and say why. Cheap:
    * it is asked whether a model exists and what it covers.
    */
@@ -1416,6 +1486,8 @@ export interface AnyReckonerDefinition {
    * against.
    */
   readonly depWindows?: { readonly [dep: string]: DepWindow | undefined };
+  /** See {@link ReckonerDefinition.exempt}. */
+  readonly exempt?: ReckonerExemptions;
   /** See {@link ReckonerDefinition.reckon}; the store resolves `deps` in order. */
   reckon(
     point: TimelinePoint<unknown>,
