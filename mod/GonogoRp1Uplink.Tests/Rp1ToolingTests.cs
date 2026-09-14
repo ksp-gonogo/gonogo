@@ -38,7 +38,11 @@ public class Rp1ToolingTests : IDisposable
 
     /// <summary>A career in the editor with one part carrying one tooling module.</summary>
     private static ModuleToolingDiamLen Editor(
-        bool tooled = false, double toolAllCost = 2500.0, uint craftId = 7, int counterparts = 0)
+        bool tooled = false,
+        double toolAllCost = 2500.0,
+        uint craftId = 7,
+        int counterparts = 0,
+        bool symmetryUnreadable = false)
     {
         ToolingManager.Instance = new ToolingManager { toolingEnabled = true };
         SpaceCenterManagement.Instance = new SpaceCenterManagement();
@@ -50,6 +54,12 @@ public class Rp1ToolingTests : IDisposable
         for (var i = 0; i < counterparts; i++)
         {
             part.symmetryCounterparts.Add(new Part());
+        }
+        if (symmetryUnreadable)
+        {
+            // The state KSP leaves on a part whose symmetry list has not been
+            // built: the member resolves and hands back nothing.
+            part.symmetryCounterparts = null!;
         }
 
         var ship = new ShipConstruct();
@@ -121,6 +131,34 @@ public class Rp1ToolingTests : IDisposable
         Assert.Equal(1000.0, row["toolingCost"]);
         Assert.Equal(400.0, row["untooledSurcharge"]);
         Assert.Equal(3, row["symmetryCounterparts"]);
+    }
+
+    /// <summary>
+    /// A symmetry list nobody could read publishes ABSENT, never a reach of zero.
+    ///
+    /// <para>This one is a command consequence rather than a readout. Zero is what
+    /// SUPPRESSES the line beside the Refit press, so the substitution let an
+    /// operator confirm a refit believing only the named part changes while RP-1
+    /// resizes every counterpart with it.</para>
+    /// </summary>
+    [Fact]
+    public void An_unreadable_symmetry_list_publishes_no_reach_rather_than_a_reach_of_nobody()
+    {
+        Editor(counterparts: 3, symmetryUnreadable: true);
+
+        Assert.Null(Row(Read())["symmetryCounterparts"]);
+    }
+
+    /// <summary>
+    /// And a part genuinely alone in its symmetry still reads zero, which is a
+    /// reading: nothing else moves when it is refitted.
+    /// </summary>
+    [Fact]
+    public void A_part_alone_in_its_symmetry_publishes_a_reach_of_zero()
+    {
+        Editor(counterparts: 0);
+
+        Assert.Equal(0, Row(Read())["symmetryCounterparts"]);
     }
 
     /// <summary>

@@ -136,6 +136,40 @@ describe("refitting a part onto tooling the career already owns", () => {
     });
   });
 
+  /*
+   * A reach RP-1 would not give up is the one case where saying nothing is the
+   * wrong answer. Zero is what suppresses the line, so an absent count rendered
+   * as one let the operator confirm a refit believing only the named part
+   * changes; the absence is stated instead, beside the same press.
+   */
+  it("says the reach is unknown rather than silently promising nothing else moves", async () => {
+    const user = userEvent.setup();
+    const { container } = mount(payload({ symmetryCounterparts: null }));
+    await openRefit(user);
+
+    await waitFor(() => {
+      expect(container.textContent).toMatch(
+        /has not said how many other parts/i,
+      );
+    });
+    expect(container.textContent).not.toMatch(/0 other parts/);
+  });
+
+  /* And a part genuinely alone still says nothing, because nothing else moves. */
+  it("says nothing about reach for a part alone in its symmetry", async () => {
+    const user = userEvent.setup();
+    const { container } = mount(payload({ symmetryCounterparts: 0 }));
+    await openRefit(user);
+
+    await waitFor(() => {
+      expect(container.textContent).toMatch(/costs nothing|spends nothing/i);
+    });
+    expect(container.textContent).not.toMatch(/in symmetry/i);
+    expect(container.textContent).not.toMatch(
+      /has not said how many other parts/i,
+    );
+  });
+
   it("offers nothing when the career owns no size this part could move to", async () => {
     const user = userEvent.setup();
     mount(payload({ refitTargets: [] }));
