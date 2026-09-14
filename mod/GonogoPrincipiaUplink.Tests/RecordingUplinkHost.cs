@@ -332,7 +332,16 @@ namespace GonogoPrincipiaUplink.Tests
                 "PrincipiaUplink.Register is not expected to call " + what
                 + "; if that changed, the recording above no longer describes what it does");
 
-        public double NowUt() => throw NotExpected("NowUt");
+        /// <summary>
+        /// The UT <see cref="NowUt"/> answers, set by a test that means to drive a
+        /// capture on a tick with no snapshot. Unset by default, so the refusal
+        /// below still stands for every test that never asked for a clock, and a
+        /// capture that starts reading one says so rather than quietly getting an
+        /// instant nobody chose.
+        /// </summary>
+        public double? Clock { get; set; }
+
+        public double NowUt() => Clock ?? throw NotExpected("NowUt");
 
         /// <summary>Recorded rather than refused: the frame the control-frame
         /// capability answers from is kept fresh by one of these, and a test that

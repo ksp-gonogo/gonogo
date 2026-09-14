@@ -326,6 +326,12 @@ namespace GonogoRp1Uplink
         /// </summary>
         private Kernel? _kernel;
 
+        /// <summary>
+        /// The host, held from <see cref="Register"/> for its clock. See
+        /// <see cref="UtOf"/>.
+        /// </summary>
+        private IUplinkHost? _host;
+
         /// <summary>Set when the command registration threw, so Health can say so rather than nothing.</summary>
         private string? _buildCommandRegistrationError;
 
@@ -815,6 +821,7 @@ namespace GonogoRp1Uplink
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
+            _host = host;
 
             // Presence is always sourced with the real answer, even when RP-1 is
             // absent, so a client can gate on it definitively rather than
@@ -1357,6 +1364,20 @@ namespace GonogoRp1Uplink
             host.AddSampledSource(_upkeepQuery.CaptureOnMain, _upkeepQuery.HandleOnCourier);
         }
 
+
+        /// <summary>
+        /// The instant to stamp a capture with: the snapshot's own, or the live
+        /// clock on a tick that carries no snapshot.
+        ///
+        /// <para>It used to coalesce to <c>0.0</c>, which is year 1 day 1 and
+        /// therefore a real instant: a reading stamped with it says it came from
+        /// the start of the game rather than from a time nobody measured. A null
+        /// <c>_host</c> is a wiring fault rather than a tick without a snapshot,
+        /// because a capture cannot run before <see cref="Register"/> sets it, so
+        /// this throws rather than substituting an instant of its own.</para>
+        /// </summary>
+        private double UtOf(KspSnapshot? snapshot) => snapshot?.Ut ?? _host!.NowUt();
+
         /// <summary>
         /// MAIN-THREAD capture: the whole reflection walk, returning plain data
         /// with no live RP-1 object in it.
@@ -1367,7 +1388,7 @@ namespace GonogoRp1Uplink
             {
                 return null;
             }
-            var raw = _rp1.Read(snapshot?.Ut ?? 0.0);
+            var raw = _rp1.Read(UtOf(snapshot));
             // The craft listing joins the walk HERE rather than in the reflection
             // reader, because it is core's rather than RP-1's and the reader holds
             // no Kernel. Main thread, which is where the catalogue's own contract
@@ -1469,7 +1490,7 @@ namespace GonogoRp1Uplink
         /// one of them.
         /// </summary>
         internal object? CaptureProgramsOnMain(KspSnapshot? snapshot) =>
-            _programs.IsAvailable ? _programs.Read(snapshot?.Ut ?? 0.0) : null;
+            _programs.IsAvailable ? _programs.Read(UtOf(snapshot)) : null;
 
         /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
         internal void HandleProgramsOnCourier(object? captured)
@@ -1490,7 +1511,7 @@ namespace GonogoRp1Uplink
         /// it reads and the four it refuses to call.
         /// </summary>
         internal object? CaptureCrewOnMain(KspSnapshot? snapshot) =>
-            _crew.IsAvailable ? _crew.Read(snapshot?.Ut ?? 0.0) : null;
+            _crew.IsAvailable ? _crew.Read(UtOf(snapshot)) : null;
 
         /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
         internal void HandleCrewOnCourier(object? captured)
@@ -1515,7 +1536,7 @@ namespace GonogoRp1Uplink
         /// whose list is null and publishes the absence.
         /// </remarks>
         internal object? CaptureCatalogueOnMain(KspSnapshot? snapshot) =>
-            _catalogue.IsAvailable ? _catalogue.Read(snapshot?.Ut ?? 0.0) : null;
+            _catalogue.IsAvailable ? _catalogue.Read(UtOf(snapshot)) : null;
 
         /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
         internal void HandleCatalogueOnCourier(object? captured)
@@ -1531,7 +1552,7 @@ namespace GonogoRp1Uplink
 
         /// <summary>MAIN-THREAD capture: the editor ship's tooling, or null when there is none.</summary>
         internal object? CaptureToolingOnMain(KspSnapshot? snapshot) =>
-            _tooling.IsAvailable ? _tooling.Read(snapshot?.Ut ?? 0.0) : null;
+            _tooling.IsAvailable ? _tooling.Read(UtOf(snapshot)) : null;
 
         /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
         internal void HandleToolingOnCourier(object? captured)
@@ -1546,7 +1567,7 @@ namespace GonogoRp1Uplink
 
         /// <summary>MAIN-THREAD capture: RP-1's career event log.</summary>
         internal object? CaptureCareerEventsOnMain(KspSnapshot? snapshot) =>
-            _careerLog.IsLogAvailable ? _careerLog.ReadEvents(snapshot?.Ut ?? 0.0) : null;
+            _careerLog.IsLogAvailable ? _careerLog.ReadEvents(UtOf(snapshot)) : null;
 
         /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
         internal void HandleCareerEventsOnCourier(object? captured)

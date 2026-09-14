@@ -145,6 +145,12 @@ namespace Gonogo.RealAntennasUplink
         /// </summary>
         private Kernel? _kernel;
 
+        /// <summary>
+        /// The host, held from <see cref="Register"/> for its clock. See
+        /// <see cref="UtOf"/>.
+        /// </summary>
+        private IUplinkHost? _host;
+
         private IChannelPublisher? _linkQuality;
         private IChannelPublisher? _dataRate;
         private IChannelPublisher? _linkMargin;
@@ -222,6 +228,7 @@ namespace Gonogo.RealAntennasUplink
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
+            _host = host;
             _ra = RaReflection.Probe();
             if (_ra == null || !_ra.IsAvailable)
             {
@@ -326,7 +333,7 @@ namespace Gonogo.RealAntennasUplink
                 return null;
             }
 
-            var ut = snapshot?.Ut ?? 0.0;
+            var ut = UtOf(snapshot);
             _chainWalk.Evaluate(ut);
             return new RaChainCapture
             {
@@ -363,7 +370,7 @@ namespace Gonogo.RealAntennasUplink
             }
             return new RaAntennaCapture
             {
-                Ut = snapshot?.Ut ?? 0.0,
+                Ut = UtOf(snapshot),
                 Antennas = _targeting.ReadAntennas(ScopedVessel()),
             };
         }
@@ -397,6 +404,19 @@ namespace Gonogo.RealAntennasUplink
         private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
 
         /// <summary>
+        /// The instant to stamp a capture with: the snapshot's own, or the live
+        /// clock on a tick that carries no snapshot.
+        ///
+        /// <para>It used to coalesce to <c>0.0</c>, which is year 1 day 1 and
+        /// therefore a real instant: a reading stamped with it says it came from
+        /// the start of the game rather than from a time nobody measured. A null
+        /// <c>_host</c> is a wiring fault rather than a tick without a snapshot,
+        /// because a capture cannot run before <see cref="Register"/> sets it, so
+        /// this throws rather than substituting an instant of its own.</para>
+        /// </summary>
+        private double UtOf(KspSnapshot? snapshot) => snapshot?.Ut ?? _host!.NowUt();
+
+        /// <summary>
         /// MAIN-THREAD capture: reads the RA link off the live control path.
         ///
         /// <para>The vessel is resolved ONCE here and threaded through every
@@ -412,7 +432,7 @@ namespace Gonogo.RealAntennasUplink
             }
 
             var vessel = ScopedVessel();
-            var capture = new RaCapture { Ut = snapshot?.Ut ?? 0.0, Source = Source(vessel) };
+            var capture = new RaCapture { Ut = UtOf(snapshot), Source = Source(vessel) };
 
             // Per-hop forward rates for realantennas.hopRates: built from the FULL
             // ControlPath (not just the primary link), keyed by the same node ids

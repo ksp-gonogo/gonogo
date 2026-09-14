@@ -3,6 +3,7 @@ using System.Linq;
 using GonogoRp1Uplink;
 using RP0;
 using Sitrep.Contract;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 /// <summary>
@@ -23,6 +24,28 @@ public class Rp1ScUplinkTests : IDisposable
     {
         SpaceCenterManagement.Instance = null;
         Confidence.Instance = null;
+    }
+
+    /// <summary>
+    /// A UT no capture could arrive at by accident, so a reading carrying it can
+    /// only have asked the host for it.
+    /// </summary>
+    private const double HostClockUt = 987654.0;
+
+    [Fact]
+    public void A_capture_on_a_tick_with_no_snapshot_is_stamped_with_the_hosts_clock()
+    {
+        // It used to be stamped 0.0, and 0.0 is year 1 day 1: a real instant, so
+        // the reading claimed to have been taken at the start of the game rather
+        // than at a time nobody measured. The host's clock is the only instant an
+        // Uplink can ask for, and this asserts the walk quotes it.
+        var uplink = new Rp1ScUplink();
+        SpaceCenterManagement.Instance = new SpaceCenterManagement();
+        uplink.Register(new ClockedUplinkHost(HostClockUt));
+
+        var raw = Assert.IsType<Rp1ScRaw>(uplink.CaptureOnMain(null));
+
+        Assert.Equal(HostClockUt, raw.Ut);
     }
 
     [Fact]
@@ -100,6 +123,7 @@ public class Rp1ScUplinkTests : IDisposable
         // live. A bag of empty lists here would reach a client as a catalogue.
         RP0.Programs.ProgramHandler.Instance = null;
         var uplink = new Rp1ScUplink();
+        uplink.Register(new ClockedUplinkHost(HostClockUt));
         var captured = uplink.CaptureProgramsOnMain(null);
 
         Assert.Null(captured);
@@ -130,6 +154,7 @@ public class Rp1ScUplinkTests : IDisposable
         // looking for a missing mod.
         var uplink = new Rp1ScUplink();
         SpaceCenterManagement.Instance = new SpaceCenterManagement { enabledForSave = false };
+        uplink.Register(new ClockedUplinkHost(HostClockUt));
         uplink.CaptureOnMain(null);
 
         var health = uplink.Health();
@@ -142,6 +167,7 @@ public class Rp1ScUplinkTests : IDisposable
     {
         var uplink = new Rp1ScUplink();
         SpaceCenterManagement.Instance = new SpaceCenterManagement();
+        uplink.Register(new ClockedUplinkHost(HostClockUt));
         uplink.CaptureOnMain(null);
 
         var health = uplink.Health();
