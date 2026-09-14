@@ -94,6 +94,101 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Empty(calls);
         }
 
+        private static Dictionary<string, double> ActiveVesselRows(
+            IReadOnlyList<ICommandCentre> centres,
+            string? activeGuid,
+            string? homeId,
+            System.Func<ICommandCentre, string, double?> route)
+        {
+            var rows = new Dictionary<string, double>();
+            new AuthorityMatrixPass().PopulateActiveVessel(centres, activeGuid, homeId, route, (id, s) => rows[id] = s);
+            return rows;
+        }
+
+        /// <summary>
+        /// Paired like the fleet test above: the active craft's own centre reads zero, and
+        /// a crewed centre that is NOT the active craft, the ground, and a station whose id
+        /// spells the active craft all keep their routed number.
+        /// </summary>
+        [Fact]
+        public void PopulateActiveVessel_PricesOnlyTheActiveCraftsOwnCentreAtZero()
+        {
+            var routes = new Dictionary<string, double> { ["vessel:H"] = 7.0, ["ground:gs1"] = 3.0 };
+            var rows = ActiveVesselRows(
+                new ICommandCentre[]
+                {
+                    new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+                    new FakeCommandCentre("vessel:H", CommandCentreKind.CrewedVessel),
+                    new FakeCommandCentre("ground:gs1"),
+                },
+                "G",
+                null,
+                (centre, guid) => routes[centre.Id]);
+
+            Assert.Equal(0.0, rows["vessel:G"]);
+            Assert.Equal(7.0, rows["vessel:H"]);
+            Assert.Equal(3.0, rows["ground:gs1"]);
+            Assert.Equal(3, rows.Count);
+
+            var likeNamed = ActiveVesselRows(
+                new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.GroundStation) },
+                "G",
+                null,
+                (_, __) => 5.0);
+            Assert.Equal(5.0, likeNamed["vessel:G"]);
+        }
+
+        [Fact]
+        public void PopulateActiveVessel_RoutesEachCentreToTheActiveGuid()
+        {
+            var asked = new List<string>();
+            ActiveVesselRows(
+                new ICommandCentre[] { new FakeCommandCentre("ground:gs1") },
+                "G",
+                null,
+                (_, guid) => { asked.Add(guid); return 1.0; });
+
+            Assert.Equal(new[] { "G" }, asked);
+        }
+
+        /// <summary>
+        /// The home centre's row is the whole-network default already, so it is left to
+        /// read that; the craft named home is still its own vantage and reads zero.
+        /// </summary>
+        [Fact]
+        public void PopulateActiveVessel_LeavesTheHomeCentreOnTheDefault()
+        {
+            var rows = ActiveVesselRows(
+                new ICommandCentre[] { new FakeCommandCentre("ksc"), new FakeCommandCentre("ground:gs1") },
+                "G",
+                "ksc",
+                (_, __) => 5.0);
+            Assert.False(rows.ContainsKey("ksc"));
+            Assert.Equal(5.0, rows["ground:gs1"]);
+
+            var craftHome = ActiveVesselRows(
+                new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel) },
+                "G",
+                "vessel:G",
+                (_, __) => 5.0);
+            Assert.Equal(0.0, craftHome["vessel:G"]);
+        }
+
+        [Fact]
+        public void PopulateActiveVessel_WritesNothingForAnUnroutableCentreOrWithNoActiveCraft()
+        {
+            var centres = new ICommandCentre[]
+            {
+                new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+                new FakeCommandCentre("ground:gs1"),
+            };
+
+            var unroutable = ActiveVesselRows(centres, "G", null, (_, __) => null);
+            Assert.Equal(("vessel:G", 0.0), (Assert.Single(unroutable).Key, unroutable["vessel:G"]));
+
+            Assert.Empty(ActiveVesselRows(centres, null, null, (_, __) => 5.0));
+        }
+
         [Fact]
         public void FleetNode_MatchesPlan2FleetNamespace()
         {

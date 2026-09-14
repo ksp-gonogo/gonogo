@@ -15,7 +15,9 @@ namespace Sitrep.Host.CommandCentres
     ///
     /// <para>Two subject namespaces, same tier: <see cref="Populate"/> writes the
     /// centre-to-VESSEL rows, <see cref="PopulateCentrePairs"/> the
-    /// centre-to-CENTRE ones. The second is what makes a centre addressable as a
+    /// centre-to-CENTRE ones. <see cref="PopulateActiveVessel"/> and
+    /// <see cref="PopulateHomeCommand"/> each write one more node, the active craft's
+    /// and the career ledger's. The second is what makes a centre addressable as a
     /// SUBJECT and not only as a vantage; without it an act aimed at another
     /// centre (a currency spend routed to the program's home) has no delay row
     /// to read.</para>
@@ -94,6 +96,66 @@ namespace Sitrep.Host.CommandCentres
 
                     setDelay(centre.Id, FleetNode(guid), seconds.Value);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Populates each active centre's delay to the ACTIVE craft, the row every ordinary
+        /// channel is delivered on (<see cref="ChannelEngine.NodeId"/>): those channels have
+        /// no per-vessel node because they always describe whichever craft is active.
+        ///
+        /// <para>The crewed centre that IS the active craft is written as zero, by the same
+        /// self-at-zero rule <see cref="Populate"/> applies to its fleet row. Any other centre
+        /// is written at its route to the active craft, and a centre with no route gets no
+        /// row.</para>
+        ///
+        /// <para>The home centre gets no row either, because it already has the right one.
+        /// With no row a vantage reads the whole-network default, which is the active craft's
+        /// own solved path home: the same path <see cref="Populate"/>'s routing reads for the
+        /// home centre's fleet row. That default also carries the hold the engine puts on it
+        /// while the craft is out of contact, which a row written from the path would not,
+        /// since a craft with no link measures an empty path at zero.</para>
+        /// </summary>
+        /// <param name="activeCentres">The registry's currently-active centres.</param>
+        /// <param name="activeGuid">The active craft's guid, or null when nothing is active (no row is written).</param>
+        /// <param name="homeCentreId">The home centre as the routing callback identifies it, or null.</param>
+        /// <param name="routeDelay">
+        /// KSP-layer routing, the same callback <see cref="Populate"/> takes: one-way seconds
+        /// from a centre to a subject guid, or null when unreachable.
+        /// </param>
+        /// <param name="setDelay">Writes the (centre, active craft) row.</param>
+        public void PopulateActiveVessel(
+            IReadOnlyList<ICommandCentre> activeCentres,
+            string? activeGuid,
+            string? homeCentreId,
+            Func<ICommandCentre, string, double?> routeDelay,
+            Action<string, double> setDelay)
+        {
+            if (activeGuid == null)
+            {
+                return;
+            }
+
+            foreach (var centre in activeCentres)
+            {
+                if (centre.Kind == CommandCentreKind.CrewedVessel && centre.Id == "vessel:" + activeGuid)
+                {
+                    setDelay(centre.Id, 0.0);
+                    continue;
+                }
+
+                if (centre.Id == homeCentreId)
+                {
+                    continue;
+                }
+
+                var seconds = routeDelay(centre, activeGuid);
+                if (seconds == null)
+                {
+                    continue;
+                }
+
+                setDelay(centre.Id, seconds.Value);
             }
         }
 

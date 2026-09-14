@@ -72,6 +72,40 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
+        /// The active craft's rows reach the engine as ONE set per pass, and an empty set
+        /// still goes out, since that is how a centre that stopped being the active craft
+        /// loses its zero. None of them leaks into the fleet hook as a guid of "system".
+        /// </summary>
+        [Fact]
+        public void TheActiveCraftRowsAreHandedOverAsOneSetEveryPass()
+        {
+            var host = new RecordingUplinkHost();
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+            uplink.Register(host);
+
+            uplink.ApplyLedgerOnCourier(Capture(
+                ("vessel:G", ChannelEngine.NodeId, 0.0),
+                ("ground:gs1", ChannelEngine.NodeId, 3.0),
+                ("ground:gs1", AuthorityMatrixPass.FleetNode("G"), 3.0)));
+            uplink.ApplyLedgerOnCourier(Capture());
+
+            Assert.Equal(2, host.ActiveVesselDelays.Count);
+            Assert.Equal(
+                new Dictionary<string, double> { ["vessel:G"] = 0.0, ["ground:gs1"] = 3.0 },
+                host.ActiveVesselDelays[0]);
+            Assert.Empty(host.ActiveVesselDelays[1]);
+            Assert.Equal(new[] { ("ground:gs1", "G", 3.0) }, host.AuthorityDelays);
+        }
+
+        private static CommandCentreDelayUplink.LedgerCapture Capture(params (string Vantage, string Node, double Seconds)[] rows) =>
+            new CommandCentreDelayUplink.LedgerCapture
+            {
+                Rows = rows
+                    .Select(r => new CommandCentreDelayUplink.AuthorityRow { Vantage = r.Vantage, Node = r.Node, Seconds = r.Seconds })
+                    .ToList(),
+            };
+
+        /// <summary>
         /// Records what an uplink registers. Every member an
         /// <see cref="IUplinkHost"/> owes that these tests do not exercise
         /// throws, so a registration that starts depending on one is a loud
@@ -106,9 +140,15 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddCommandRequirement(string command, CommandRequirement requirement) => throw new NotSupportedException();
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
-            public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw new NotSupportedException();
+            public List<(string, string, double)> AuthorityDelays { get; } = new List<(string, string, double)>();
+            public List<Dictionary<string, double>> ActiveVesselDelays { get; } = new List<Dictionary<string, double>>();
+
+            public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) =>
+                AuthorityDelays.Add((centreId, vesselId, oneWaySeconds));
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetHomeCommandDelay(string centreId, double oneWaySeconds) => throw new NotSupportedException();
+            public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) =>
+                ActiveVesselDelays.Add(new Dictionary<string, double>(oneWaySecondsByCentre));
             public void SetVesselConnectivity(string vesselId, bool connected) => throw new NotSupportedException();
             public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread) => throw new NotSupportedException();
             public void SetAvailability(Availability availability) => throw new NotSupportedException();

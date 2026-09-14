@@ -239,6 +239,17 @@ namespace Sitrep.Core
         void SetDelay(string vantage, string node, double seconds);
 
         /// <summary>
+        /// C#-ONLY. Removes an explicit (vantage, node) pair, so <see cref="DelayTo"/> for it
+        /// resolves through the node default and then the global default again. A no-op for
+        /// a pair that was never set.
+        ///
+        /// <para>For a row that stops being true rather than changing value: a centre that
+        /// was the active craft and no longer is, or that has lost its route to it. Leaving
+        /// the old row in place would keep quoting a delay nothing measured any more.</para>
+        /// </summary>
+        void ClearDelay(string vantage, string node);
+
+        /// <summary>
         /// C#-ONLY. Record that the route carrying <paramref name="node"/>'s
         /// signal broke at <paramref name="atUt"/>,
         /// <paramref name="lightSecondsOut"/> of light-time out from the node,
@@ -539,6 +550,14 @@ namespace Sitrep.Core
             }
             Set(_delays, vantage, node, seconds);
             _revision++;
+        }
+
+        public void ClearDelay(string vantage, string node)
+        {
+            if (_delays.TryGetValue(vantage, out var byNode) && byNode.Remove(node))
+            {
+                _revision++;
+            }
         }
 
         public void SetReachable(string vantage, string node, bool ok)

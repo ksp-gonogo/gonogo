@@ -198,12 +198,31 @@ namespace Gonogo.KSP.CommandCentres
             void Row(string vantage, string node, double seconds) =>
                 rows.Add(new AuthorityRow { Vantage = vantage, Node = node, Seconds = seconds });
 
+            // The active craft's row is the same route as its fleet row, so a pair already
+            // solved for the fleet is read back rather than solved a second time.
+            var routed = new Dictionary<(string CentreId, string Guid), double?>();
+            double? Routed(ICommandCentre centre, string guid)
+            {
+                if (!routed.TryGetValue((centre.Id, guid), out var seconds))
+                {
+                    seconds = RouteDelay(backend, centre, homeId, guid, config, vessels, solves);
+                    routed[(centre.Id, guid)] = seconds;
+                }
+                return seconds;
+            }
+
             var pass = new AuthorityMatrixPass();
             pass.Populate(
                 centres,
                 vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                (centre, guid) => RouteDelay(backend, centre, homeId, guid, config, vessels, solves),
+                Routed,
                 Row);
+            pass.PopulateActiveVessel(
+                centres,
+                ActiveVesselGuid(snapshot),
+                homeId,
+                Routed,
+                (vantage, seconds) => Row(vantage, ChannelEngine.NodeId, seconds));
             pass.PopulateCentrePairs(
                 centres,
                 (from, to) => RouteCentreDelay(backend, from, to, config, solves),
@@ -227,11 +246,20 @@ namespace Gonogo.KSP.CommandCentres
                 return;
             }
 
+            // Handed over as one set on every pass, empty included, so a centre that
+            // stopped being the active craft or lost its route to it loses its row.
+            var activeVesselRows = new Dictionary<string, double>();
             foreach (var row in cap.Rows)
             {
                 if (row.Node == ChannelEngine.HomeCommandNode)
                 {
                     _host?.SetHomeCommandDelay(row.Vantage, row.Seconds);
+                    continue;
+                }
+
+                if (row.Node == ChannelEngine.NodeId)
+                {
+                    activeVesselRows[row.Vantage] = row.Seconds;
                     continue;
                 }
 
@@ -253,8 +281,20 @@ namespace Gonogo.KSP.CommandCentres
                 _host?.SetAuthorityDelay(row.Vantage, guid, row.Seconds);
             }
 
+            _host?.SetActiveVesselDelays(activeVesselRows);
+
             PublishSeparation(cap);
         }
+
+        /// <summary>
+        /// The craft this tick's ordinary channels describe: the snapshot's own active
+        /// vessel, the subject <see cref="VesselEpochSampler"/> watches for a switch. Read
+        /// live from <see cref="ActiveVesselScope"/> only when the tick carries no snapshot.
+        /// </summary>
+        private static string? ActiveVesselGuid(KspSnapshot? snapshot) =>
+            snapshot != null
+                ? VesselViewProvider.TryGetActiveVesselId(snapshot)
+                : ActiveVesselScope.Current?.id.ToString();
 
         /// <summary>
         /// Publishes the centre-to-centre half of the ledger as
@@ -472,14 +512,14 @@ namespace Gonogo.KSP.CommandCentres
             public int Count;
         }
 
-        private sealed class AuthorityRow
+        internal sealed class AuthorityRow
         {
             public string Vantage = "";
             public string Node = "";
             public double Seconds;
         }
 
-        private sealed class LedgerCapture
+        internal sealed class LedgerCapture
         {
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
             public double Ut;
