@@ -4,17 +4,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * `publish-mods.yml`'s `build-mod` matrix names a `csproj` and (sometimes) a
- * `notice` file per leg. Only two triggers exercise it (a CI-green push to
- * `main`, and a release dispatch), and `main` has not moved since 2026-07-13,
- * so a leg whose Uplink moved out from under it (GonogoScansatUplink went to
- * the `gonogo-uplinks` repo) can sit broken for months with every other gate
- * green. The matrix is data GitHub Actions never validates until the job
- * actually runs, so nothing catches a stale path but a check that reads it.
- *
- * This parses the `matrix: include:` YAML block itself rather than grepping
- * for one known-bad leg id: a hand search for `GonogoScansatUplink` would
- * catch this one departed Uplink and nothing about the next one.
+ * `publish-mods.yml`'s `build-mod` matrix names a `csproj` and, for some legs,
+ * a `notice` file. The workflow runs only on a CI-green push to `main` and on a
+ * release, so a leg whose Uplink has moved to another repository can stay
+ * broken with every other gate green: GitHub Actions never validates matrix
+ * data until the job runs. This reads every leg and fails on any path that
+ * does not exist, so it catches the next departed Uplink as well as the last.
  */
 
 function findRepoRoot(start: string): string {
