@@ -66,14 +66,21 @@ namespace GonogoRp1Uplink
         /// <c>CrewHandler.GetLatestRetireTime</c>: the date plus whatever is left
         /// of the career-wide extension cap. Absent when there is no date, which
         /// is exactly the branch RP-1's own getter answers 0 for.
+        ///
+        /// <para>Absent too when the extension ALREADY CONSUMED could not be read.
+        /// It is subtracted from the cap, so treating it as zero hands back the
+        /// whole cap and dates the ceiling later than the save holds it, by however
+        /// much this kerbal has already spent. A retirement date is planning-
+        /// critical and the overstatement is silent, so the ceiling goes with
+        /// it.</para>
         /// </summary>
         public static double? LatestRetiresAtUt(double? retiresAtUt, double? extensionUsedSeconds, double? capSeconds)
         {
-            if (retiresAtUt == null || capSeconds == null)
+            if (retiresAtUt == null || capSeconds == null || extensionUsedSeconds == null)
             {
                 return null;
             }
-            var remaining = capSeconds.Value - (extensionUsedSeconds ?? 0.0);
+            var remaining = capSeconds.Value - extensionUsedSeconds.Value;
             if (remaining <= 0.0)
             {
                 // The cap is spent, so the date is already the latest it can be.

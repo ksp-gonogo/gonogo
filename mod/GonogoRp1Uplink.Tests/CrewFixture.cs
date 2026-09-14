@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 
 // A stand-in for RP-1's crew object graph, declared in RP-1's own namespace with
@@ -350,7 +352,11 @@ namespace RP0.Crew
         public static CrewHandler? Instance;
 
         private Dictionary<string, double> _retireTimes = new Dictionary<string, double>();
-        private Dictionary<string, double> _retireIncreases = new Dictionary<string, double>();
+        // Declared `object` for the reason given on _retirees below: a test needs
+        // to put a table behind it that RP-1 would not hand over cleanly. The
+        // declared type is invisible to reflection, so the normal case is
+        // unchanged and the field holds the real type's Dictionary by default.
+        private object _retireIncreases = new Dictionary<string, double>();
         // Declared `object` so a test can put a BARE IEnumerable behind it. The
         // declared type is invisible to reflection, which reads the runtime
         // object, so this changes nothing about the normal case: RP-1's real
@@ -378,9 +384,83 @@ namespace RP0.Crew
             _retireTimes[name] = atUt;
             if (increaseUsed != 0.0)
             {
-                _retireIncreases[name] = increaseUsed;
+                ((Dictionary<string, double>)_retireIncreases)[name] = increaseUsed;
             }
             return this;
+        }
+
+        /// <summary>
+        /// Replaces the extension table with one that throws PART WAY through its
+        /// own enumeration, standing in for RP-1 handing over a persistent
+        /// dictionary that will not finish being walked.
+        ///
+        /// <para>Part way rather than not at all, because that is the shape a
+        /// substituted zero hides best: the walk collects some kerbals, gives up,
+        /// and every kerbal it never reached then reads as having spent none of
+        /// their extension.</para>
+        /// </summary>
+        public CrewHandler RetireIncreasesThatBreakMidWalk()
+        {
+            _retireIncreases = new BreakingDictionary((Dictionary<string, double>)_retireIncreases);
+            return this;
+        }
+
+        private sealed class BreakingDictionary : System.Collections.IDictionary
+        {
+            private readonly Dictionary<string, double> _entries;
+
+            public BreakingDictionary(Dictionary<string, double> entries)
+            {
+                _entries = entries;
+            }
+
+            public System.Collections.IDictionaryEnumerator GetEnumerator() =>
+                new BreakingEnumerator(_entries);
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
+                GetEnumerator();
+
+            public bool Contains(object key) => false;
+            public void Add(object key, object? value) { }
+            public void Clear() { }
+            public void Remove(object key) { }
+            public object? this[object key] { get => null; set { } }
+            public System.Collections.ICollection Keys => new List<object>();
+            public System.Collections.ICollection Values => new List<object>();
+            public bool IsFixedSize => false;
+            public bool IsReadOnly => false;
+            public int Count => _entries.Count;
+            public bool IsSynchronized => false;
+            public object SyncRoot => this;
+            public void CopyTo(Array array, int index) { }
+
+            /// <summary>Yields the first entry and then refuses, which is the partial read.</summary>
+            private sealed class BreakingEnumerator : System.Collections.IDictionaryEnumerator
+            {
+                private readonly List<KeyValuePair<string, double>> _entries;
+                private int _index = -1;
+
+                public BreakingEnumerator(Dictionary<string, double> entries)
+                {
+                    _entries = new List<KeyValuePair<string, double>>(entries);
+                }
+
+                public bool MoveNext()
+                {
+                    _index++;
+                    if (_index >= 1)
+                    {
+                        throw new InvalidOperationException("_retireIncreases unreadable");
+                    }
+                    return _index < _entries.Count;
+                }
+
+                public object Key => _entries[_index].Key;
+                public object Value => _entries[_index].Value;
+                public DictionaryEntry Entry => new DictionaryEntry(Key, Value);
+                public object Current => Entry;
+                public void Reset() => _index = -1;
+            }
         }
 
         public CrewHandler Retired(string name)
