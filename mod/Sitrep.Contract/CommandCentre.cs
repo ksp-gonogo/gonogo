@@ -26,11 +26,12 @@ namespace Sitrep.Contract
     /// <summary>
     /// A command centre is a vantage/authority in the per-(vantage, subject) delay
     /// model: a physical place you command from. This interface is the KSP-free
-    /// IDENTITY view (id, name, kind, body) plus the "is a valid command source
-    /// right now" predicate. The routing geometry (the CommNet node / position that
-    /// <c>SignalDelay.Compute</c> consumes) lives in the KSP-layer source that
-    /// produces the centre, never here: Sitrep.Host references no KSP/Unity
-    /// assemblies, and the per-(centre, subject) routing runs in the KSP layer.
+    /// IDENTITY view (id, name, kind, body, surface position) plus the "is a valid
+    /// command source right now" predicate. The routing geometry (the CommNet node /
+    /// position that <c>SignalDelay.Compute</c> consumes) lives in the KSP-layer
+    /// source that produces the centre, never here: Sitrep.Host references no
+    /// KSP/Unity assemblies, and the per-(centre, subject) routing runs in the KSP
+    /// layer.
     /// </summary>
     public interface ICommandCentre
     {
@@ -45,6 +46,17 @@ namespace Sitrep.Contract
 
         /// <summary>Index into system.bodies of the body this centre sits on; null when unknown or not surface-anchored.</summary>
         int? BodyIndex { get; }
+
+        /// <summary>
+        /// Body-fixed surface latitude in degrees, under the rule
+        /// <see cref="CommandCentreEntry.Latitude"/> states: a ground station always has
+        /// one, a crewed vessel only while it sits on the surface, and an unreadable body
+        /// makes it null together with <see cref="BodyIndex"/>.
+        /// </summary>
+        double? Latitude { get; }
+
+        /// <summary>Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null exactly when <see cref="Latitude"/> is.</summary>
+        double? Longitude { get; }
 
         /// <summary>Whether this is a valid command source right now (crew present, difficulty on, powered, node exists).</summary>
         bool IsActiveNow();

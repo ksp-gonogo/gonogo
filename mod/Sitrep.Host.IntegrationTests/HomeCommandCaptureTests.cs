@@ -78,6 +78,93 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A claimant outside core names home by picking one of the centres the capture
+        /// hands it, so its answer is an id core minted and the roster carries.
+        /// </summary>
+        [Fact]
+        public void TheClaimantIsHandedTheActiveCentresOfTheSameCapture()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var picker = new LastGroundStationClaimant();
+            engine.RegisterCommandCentreSource(new FixedSource(
+                new FixedCentre("vessel:crewed", CommandCentreKind.CrewedVessel),
+                new FixedCentre("ground:Relay", CommandCentreKind.GroundStation),
+                new FixedCentre("ground:Relay#2", CommandCentreKind.GroundStation)));
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => Homes);
+            engine.Kernel.RegisterProvider(new ProviderRegistration
+            {
+                Capability = HomeCommandCapability.Id,
+                Id = "picker",
+                Factory = _ => picker,
+            });
+            engine.ResolveCapabilities();
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, null, Timeout);
+
+                Assert.Equal(new[] { "vessel:crewed", "ground:Relay", "ground:Relay#2" }, picker.LastHandedIds);
+                Assert.Equal("ground:Relay#2", engine.CurrentHomeCommand.CentreId);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private sealed class LastGroundStationClaimant : IHomeCommandProvider
+        {
+            public volatile string[] LastHandedIds = new string[0];
+
+            public string ProviderId => "picker";
+
+            public HomeCommand Identify(IReadOnlyList<ICommandCentre> activeCentres)
+            {
+                var ids = new string[activeCentres.Count];
+                string? last = null;
+                for (var i = 0; i < activeCentres.Count; i++)
+                {
+                    ids[i] = activeCentres[i].Id;
+                    if (activeCentres[i].Kind == CommandCentreKind.GroundStation)
+                    {
+                        last = activeCentres[i].Id;
+                    }
+                }
+
+                LastHandedIds = ids;
+                return last == null ? HomeCommand.NotIdentified : HomeCommand.Identified(last);
+            }
+        }
+
+        private sealed class FixedSource : ICommandCentreSource
+        {
+            private readonly ICommandCentre[] _centres;
+
+            public FixedSource(params ICommandCentre[] centres) => _centres = centres;
+
+            public string ProviderId => "home-capture-test";
+
+            public IEnumerable<ICommandCentre> Enumerate() => _centres;
+        }
+
+        private sealed class FixedCentre : ICommandCentre
+        {
+            public FixedCentre(string id, CommandCentreKind kind)
+            {
+                Id = id;
+                Kind = kind;
+            }
+
+            public string Id { get; }
+            public string DisplayName => Id;
+            public CommandCentreKind Kind { get; }
+            public int? BodyIndex => null;
+            public double? Latitude => null;
+            public double? Longitude => null;
+            public bool IsActiveNow() => true;
+        }
+
         /// <summary>No capability declared at all: the engine answers not identified rather than throwing.</summary>
         [Fact]
         public void NoHomeCommandCapability_TicksAndAnswersNotIdentified()

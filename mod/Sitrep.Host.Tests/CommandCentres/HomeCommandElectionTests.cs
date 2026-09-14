@@ -16,8 +16,10 @@ namespace Sitrep.Host.Tests.CommandCentres
     /// </summary>
     public class HomeCommandElectionTests
     {
+        private static readonly IReadOnlyList<ICommandCentre> NoCentres = new ICommandCentre[0];
+
         private static HomeCommand StockAnswer(IReadOnlyList<HomeNodeFacts> homes) =>
-            new StockHomeCommandProvider(() => homes).Identify();
+            new StockHomeCommandProvider(() => homes).Identify(NoCentres);
 
         [Fact]
         public void Stock_OneFlaggedHome_IsHome_UnderTheIdTheRegistryMintsForIt()
@@ -89,7 +91,7 @@ namespace Sitrep.Host.Tests.CommandCentres
 
             public string ProviderId { get; }
 
-            public HomeCommand Identify() => _answer;
+            public HomeCommand Identify(IReadOnlyList<ICommandCentre> activeCentres) => _answer;
         }
 
         private static readonly IReadOnlyList<HomeNodeFacts> StockHomes = new[]
@@ -123,7 +125,7 @@ namespace Sitrep.Host.Tests.CommandCentres
 
             Assert.NotNull(elected);
             Assert.Equal(StockHomeCommandProvider.Id, elected!.ProviderId);
-            Assert.Equal(HomeCentreIds.Mint(StockHomes)[0], elected.Identify().CentreId);
+            Assert.Equal(HomeCentreIds.Mint(StockHomes)[0], elected.Identify(NoCentres).CentreId);
         }
 
         [Fact]
@@ -133,7 +135,7 @@ namespace Sitrep.Host.Tests.CommandCentres
 
             Assert.NotNull(elected);
             Assert.Equal("overhaul", elected!.ProviderId);
-            Assert.Equal("ground:overhaul", elected.Identify().CentreId);
+            Assert.Equal("ground:overhaul", elected.Identify(NoCentres).CentreId);
         }
 
         /// <summary>

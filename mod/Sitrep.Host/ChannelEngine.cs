@@ -231,6 +231,13 @@ namespace Sitrep.Host
         private volatile HashSet<string> _activeCentreIds = NoActiveCentreIds;
 
         /// <summary>
+        /// Main-loop-thread only: the centres behind <see cref="_activeCentreIds"/>, kept by
+        /// the same capture under the same rule, and handed to the home-command claimant
+        /// so it names home from the ids core minted.
+        /// </summary>
+        private IReadOnlyList<ICommandCentre> _activeCentres = new ICommandCentre[0];
+
+        /// <summary>
         /// The ground stations among <see cref="_activeCentreIds"/>, published by the same
         /// capture and under the same rule. What <see cref="CommandCentres.FreshConnectionVantage"/>
         /// falls back to when no home is identified.
@@ -2106,9 +2113,10 @@ namespace Sitrep.Host
         {
             try
             {
+                var active = _commandCentres.EnumerateActive();
                 var ids = new HashSet<string>(StringComparer.Ordinal);
                 var groundIds = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var centre in _commandCentres.EnumerateActive())
+                foreach (var centre in active)
                 {
                     ids.Add(centre.Id);
                     if (centre.Kind == CommandCentreKind.GroundStation)
@@ -2117,6 +2125,7 @@ namespace Sitrep.Host
                     }
                 }
 
+                _activeCentres = active;
                 _activeCentreIds = ids;
                 _activeGroundIds = groundIds;
                 _consecutiveCentreCaptureThrows = 0;
@@ -2233,7 +2242,7 @@ namespace Sitrep.Host
             try
             {
                 var claimant = CommandCentres.HomeCommandElection.Elected(_kernel);
-                _homeCommand = claimant?.Identify() ?? HomeCommand.NotIdentified;
+                _homeCommand = claimant?.Identify(_activeCentres) ?? HomeCommand.NotIdentified;
                 _consecutiveHomeCaptureThrows = 0;
             }
             catch (Exception ex)

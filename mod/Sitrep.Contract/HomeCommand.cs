@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sitrep.Contract
 {
@@ -102,6 +103,14 @@ namespace Sitrep.Contract
         /// in the same capture that snapshots the active command centres; a
         /// reader on another thread takes that snapshot instead of calling this.</para>
         /// </summary>
-        HomeCommand Identify();
+        /// <param name="activeCentres">
+        /// The command centres that capture found active, every kind included. A
+        /// claimant names home by answering with one of their
+        /// <see cref="ICommandCentre.Id"/>s rather than spelling an id itself: core
+        /// mints every id, so an id copied from here is the one the roster carries
+        /// and one built by hand may not be (two stations that share a name are told
+        /// apart by a suffix only core can hand out).
+        /// </param>
+        HomeCommand Identify(IReadOnlyList<ICommandCentre> activeCentres);
     }
 }
