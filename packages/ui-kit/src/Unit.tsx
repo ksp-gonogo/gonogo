@@ -1,13 +1,20 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
+import { NULL_DISPLAY } from "./NullValue";
 /*
  * The badge's own vocabulary, reused rather than mirrored: `StaleGrade` is a
  * subset of `StreamStatusValue`, so a stale reading's grade goes straight in
  * and a number cannot use a different word from the badge captioning its panel.
  */
 import { formatStreamStatus } from "./StreamStatusBadge";
+/*
+ * The hue the whole app already reads as "this is not current": the
+ * `StreamStatusBadge` in the panel header paints its warning pill from the same
+ * function, so the dot on the cell and the pill above it cannot drift apart.
+ */
+import { severityDotColor } from "./status/severityDotColor";
 import { useSharedFormat } from "./UnitSharedFormat";
 import {
   ATTACHED_SYMBOLS,
@@ -79,36 +86,51 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * accessibility tree and shown on hover, so the number and the badge above it
  * use one word for one fact.
  *
- * ## The mark is a SHAPE, never a tone, and never a glyph beside the number
+ * ## The mark is a SHAPE first, and takes up none of the value's room
  *
- * A dotted underline, in whatever colour the value already has. Three
- * constraints leave very little else:
+ * A dot at superscript height, just past the value, in the same warning hue the
+ * panel's `StreamStatusBadge` paints. Three constraints shape it:
  *
- * - **tone belongs to the caller.** An alert readout is red and a go readout is
- *   green (see "Why opacity rather than a colour token" below); a component that
- *   dimmed on its own would compound with a caller that had already dimmed, and
- *   the dimming floor exists because the theme's body text is near the contrast
- *   minimum to start with. `currentColor` keeps the mark on whatever tone the
- *   caller chose, and WCAG 1.4.1 rules out colour as the sole carrier anyway
- * - **it must not change the width.** A prefix or a suffix glyph would reflow a
- *   table column every time a channel went quiet, which is the loudest possible
- *   way to say something quiet. An underline occupies no line box
+ * - **it must not change the width.** A prefix or a suffix glyph IN THE FLOW
+ *   reflows a table column every time a channel goes quiet, which is the
+ *   loudest possible way to say something quiet, and it is why this was an
+ *   underline first. The dot is absolutely positioned against the quantity, so
+ *   it occupies no line box and the column measures the same to the pixel
+ *   whether or not it is there
+ * - **shape carries the meaning, colour only reinforces it.** WCAG 1.4.1: the
+ *   dot is there or it is not, which a reader who cannot separate amber from
+ *   grey still reads, and the hover and the spoken caption say it in words for
+ *   one who cannot see it at all. The hue comes from `severityDotColor`, not
+ *   from a literal, so the mark on the cell and the pill above it are one fact
+ *   in one colour rather than two hand-typed ones drifting apart
  * - **it must not shout.** A stale value is the best number available, not a
- *   fault. Dots under it are readable when looked for and ignorable when not
+ *   fault. A dot at 0.3em is readable when looked for and ignorable when not
+ *
+ * The hue is the one thing here that is NOT `currentColor`, unlike the unit
+ * symbol beside it. A symbol is part of the quantity and must keep the tone the
+ * caller gave it; the mark is a statement ABOUT the quantity, and a red alert
+ * readout whose staleness mark was also red would be saying two things in one
+ * colour. Contrast on the dot is a non-text-UI question (3:1), which the
+ * warning token clears on every app surface.
  *
  * It is deliberately NOT a live region. `<Unit>` is the most-instanced
  * primitive in the app, and announcing every cell that went stale is how a
  * screen reader is made useless. A widget that wants the change announced wraps
  * its readout in `role="status"`, which several already do.
  *
- * ## What the mark does NOT say, and does not try to
+ * ## The dot says WHETHER, the hover says WHEN
  *
- * How OLD the observation is. `asOfUt` is on the reading and the age is a
- * number in its own right, so a widget that wants to show it renders it as a
- * caption with a `<Unit>` of its own. The mark answers the yes-or-no question
- * every readout has, and leaves the quantity to a readout that has room for it.
+ * How stale a reading is is most of what staleness means, so the component
+ * answers it: the hover and the spoken caption carry the grade and the instant
+ * the number was last a reading of now, formatted from the reading's own
+ * `asOfUt` on the game's own calendar.
  *
- * It also never draws a RECKONED figure. A modelled number replacing an
+ * Two levels rather than one, because a date in every cell is a date nobody
+ * reads and a wall of them is unscannable. Present on demand, absent from the
+ * glance. A widget that wants the AGE on screen still renders it as a caption
+ * with a `<Unit>` of its own, which several do, and this does not duplicate it.
+ *
+ * It never draws a RECKONED figure. A modelled number replacing an
  * observed one has to be a written choice at the call site (see
  * `withoutReckoning`), and a primitive doing it silently at 373 call sites is
  * exactly the substitution `Reading` exists to prevent. A widget that wants the
@@ -243,23 +265,50 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
       : ""}
 `;
 
-/* The not-current mark. Longhands rather than the shorthand so the offset is
-   not reset by it, and currentColor (the default decoration colour) is what
-   keeps the mark on the value's own tone. Thickness has a pixel floor for the
-   same reason the symbol's size does: from-font lands under one device pixel in
-   a caption and the dots disappear. */
-const NOT_CURRENT = css`
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-thickness: max(1px, 0.05em);
-  text-underline-offset: 0.22em;
+/*
+ * The not-current mark: a dot at superscript height, just past the value.
+ *
+ * ABSOLUTELY POSITIONED, and that is the whole reason a glyph is allowed here
+ * at all. An out-of-flow box contributes nothing to the line, so the value
+ * occupies exactly what it occupied before and a column of them cannot reflow
+ * when one channel goes quiet. Measured rather than argued, by
+ * `scripts/render-unit-currency.ts`: a four-column `DataTable` of 24 `<Unit>`
+ * cells, nine of them marked, sized to content in chromium. Marked and unmarked
+ * come back identical to the hundredth of a pixel (table 346.92px, speed column
+ * 84.66px). The same dot IN THE FLOW takes that table to 353.64px and the speed
+ * column to 90.33px, a 6.7% column move on a fact the operator cannot act on,
+ * and that third table is the ruler's control: a measurement that cannot see a
+ * reflow reports none, so the harness plants one and fails if it goes unseen.
+ *
+ * `left: 100%` reads off the containing block, which is the relatively
+ * positioned quantity beside it, so the dot follows the value's own right edge
+ * however wide the number is. `top: 0` is the top of that inline box, which is
+ * the font's ascent: superscript height without an actual `<sup>`, whose
+ * `font-size` change would have to be undone for a box with no text in it.
+ *
+ * Sized in `em` with a pixel floor, for the same reason the unit symbol is: an
+ * uncapped 0.3em in an 11px caption lands under 4px, which is a smudge rather
+ * than a dot. The hue is `severityDotColor`'s, not a literal, so the cell and
+ * the `StreamStatusBadge` above it paint one fact in one colour.
+ */
+const Unit__NotCurrentMark = styled.span`
+  position: absolute;
+  left: 100%;
+  top: 0;
+  width: max(0.3em, 4px);
+  height: max(0.3em, 4px);
+  margin-left: 0.14em;
+  border-radius: var(--radius-circle);
+  background: ${severityDotColor("warning")};
 `;
 
 /* Wraps a number and its unit so neither the thin space between them nor a
-   compound symbol can be split across a line. */
+   compound symbol can be split across a line. Relatively positioned when it
+   carries a mark, which is what gives the dot above something to hang off; the
+   `nowrap` is what makes that box a single rectangle to hang off. */
 const Unit__Quantity = styled.span<{ $notCurrent: boolean }>`
   white-space: nowrap;
-  ${({ $notCurrent }) => ($notCurrent ? NOT_CURRENT : null)}
+  ${({ $notCurrent }) => ($notCurrent ? "position: relative;" : "")}
 `;
 
 /* The staleness caption, for the accessibility tree and the clipboard's
@@ -298,8 +347,49 @@ interface Resolved<U extends string> {
   shown: Value<U> | null | undefined;
   /** Whether the number on screen is a reading of now. Drives the mark. */
   notCurrent: boolean;
-  /** The grade's caption, said rather than shown, or null when there is none. */
+  /**
+   * The grade's caption and, where the reading carries a readable instant, when
+   * the number was last a reading of now. Said rather than shown, and null when
+   * there is nothing to say.
+   */
   caption: string | null;
+}
+
+/**
+ * When the observation was made, on the game's own calendar, or null when the
+ * reading carries no readable instant.
+ *
+ * Through `formatQuantity` rather than around it, so a held number and a
+ * `<MissionDate>` beside it cannot print two spellings of one UT: the universal
+ * time branch there delegates to `formatKspDate`, which reads whichever
+ * calendar the running game reported. A malformed or non-finite `asOfUt` comes
+ * back as `NULL_DISPLAY`, and answers null here instead: an "as of" followed by
+ * the null token is worse than the grade on its own.
+ */
+function lastValidAt(asOfUt: Value<"ut"> | undefined): string | null {
+  if (asOfUt === undefined) return null;
+  const { value } = formatQuantity(asOfUt.magnitude, asOfUt.unit);
+  return value === NULL_DISPLAY ? null : value;
+}
+
+/**
+ * What the mark says in words: the grade, and how far back the number is from.
+ *
+ * Two levels, and the split is the operator ruling that shaped this. HOW stale
+ * a reading is is most of what staleness means, and a glance at a wall of cells
+ * is not where it belongs: a date in every cell is a date nobody reads. So the
+ * dot answers the yes-or-no question at a glance, and this answers the
+ * follow-up on demand, in the hover and in the accessibility tree.
+ *
+ * The grade word is `formatStreamStatus`'s and is never rephrased here.
+ */
+function sayCurrency(
+  caption: string | null,
+  asOfUt: Value<"ut"> | undefined,
+): string | null {
+  if (caption === null) return null;
+  const at = lastValidAt(asOfUt);
+  return at === null ? caption : `${caption}, as of ${at}`;
 }
 
 /**
@@ -334,7 +424,7 @@ function resolveCurrency<U extends string>(
     return {
       shown: input.value,
       notCurrent: true,
-      caption: formatStreamStatus(input.grade),
+      caption: sayCurrency(formatStreamStatus(input.grade), input.asOfUt),
     };
   }
   /*
@@ -511,17 +601,24 @@ export function Unit<U extends string = string>({
       <Unit__Quantity
         className={className}
         $notCurrent={notCurrent}
-        // Greppable, and what a test asserts on. The mark itself is a CSS
-        // decoration, which jsdom reads off the emitted rule and not the node.
+        // Greppable, and what a test asserts on.
         data-not-current={notCurrent ? "" : undefined}
-        // Hover says in words what the dots say in shape, for a sighted reader
-        // who has no badge in view. The symbol carries its own title (the unit
-        // word) and keeps it: hovering the digits answers the mark, hovering
-        // the symbol answers the unit.
+        // Hover says in words what the dot says in shape, and adds the instant
+        // the dot has no room for, for a sighted reader who has no badge in
+        // view. The symbol carries its own title (the unit word) and keeps it:
+        // hovering the digits answers the mark, hovering the symbol answers the
+        // unit.
         title={caption ?? undefined}
       >
         {formatted.value}
         <UnitSymbol token={formatted.symbol} spaced />
+        {/* Silent: it has no text, and a bullet announced on every held cell
+            would bury the caption below that actually says something. What it
+            carries instead is SHAPE, present or absent, so the meaning does not
+            rest on telling amber from grey (WCAG 1.4.1). */}
+        {notCurrent && (
+          <Unit__NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+        )}
         {caption !== null && (
           <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
         )}

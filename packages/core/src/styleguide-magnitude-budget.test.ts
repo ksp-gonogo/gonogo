@@ -406,7 +406,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // without a cycle. ui-kit re-exports it and now spends none.
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
-  "packages/ui-kit/src/Unit.tsx": 1,
+  /*
+   * 2, up from 1 on 2026-09-14. Both are the same seam `units.ts` spends its
+   * three on: `formatQuantity` takes the magnitude and the unit as two plain
+   * arguments, so a quantity object cannot be handed over whole. The second is
+   * the staleness hover rendering the reading's own `asOfUt` on the game's
+   * calendar, through the formatter rather than around it, so a held number and
+   * a `<MissionDate>` beside it cannot print two spellings of one instant.
+   */
+  "packages/ui-kit/src/Unit.tsx": 2,
   /*
    * 3, up from 2 on 2026-09-12. Each is the SAME unwrap in the same place: the
    * seam where a quantity object meets `formatQuantity`, which takes the

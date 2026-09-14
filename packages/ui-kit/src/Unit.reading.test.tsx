@@ -3,6 +3,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
+import { severityDotColor } from "./status/severityDotColor";
 // `visibleText` from the SOURCE, not from the published subpath: this file
 // changes what counts as visible, and the subpath resolves to the last build.
 import { visibleText } from "./testing";
@@ -21,6 +22,8 @@ import { UnitSharedFormat } from "./UnitSharedFormat";
  */
 
 const AT = value("ut", 1_000);
+/** What `formatKspDate` makes of {@link AT} on the stock calendar. */
+const AT_DATE = "Y1 D1 00:16:40";
 
 function observed(magnitude: number): Reading<ReturnType<typeof metres>> {
   return {
@@ -59,6 +62,23 @@ function quantity(container: HTMLElement): HTMLElement {
   const el = container.querySelector<HTMLElement>("span");
   if (!el) throw new Error("nothing rendered");
   return el;
+}
+
+/**
+ * Just the declarations styled-components emitted for the mark, rather than the
+ * whole sheet.
+ *
+ * The narrowing is the point: "the stylesheet contains no hex" is false of any
+ * page that renders a second component, so an assertion about THIS rule has to
+ * find this rule.
+ */
+function markRule(container: HTMLElement): string {
+  const mark = container.querySelector<HTMLElement>("[data-not-current-mark]");
+  if (!mark) throw new Error("no mark rendered");
+  const css = emittedCss();
+  return Array.from(mark.classList)
+    .flatMap((cls) => css.match(new RegExp(`\\.${cls}\\{[^}]*\\}`, "g")) ?? [])
+    .join("");
 }
 
 describe("Unit: a reading that is current", () => {
@@ -142,14 +162,28 @@ describe("Unit: a reading that is not current", () => {
     expect(quantity(container).hasAttribute("data-not-current")).toBe(true);
   });
 
-  it("marks with a dotted underline in the inherited colour, never a tone", () => {
-    // Tone belongs to the caller: an alert readout is red and a go readout is
-    // green, and dimming here would compound with a caller that already dimmed.
+  it("marks with a superscript dot, and draws no underline under the value", () => {
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    const css = emittedCss();
+    expect(css).not.toContain("text-decoration-style:dotted");
+    // Round off the radius ladder's own circle token, not a hand-typed 50%.
+    expect(css).toContain("border-radius:var(--radius-circle)");
+  });
+
+  it("takes the dot's hue from the same token the panel badge paints", () => {
+    // One fact, one colour: the mark on the cell and the pill above it are the
+    // same `warning` severity, and `severityDotColor` is where that is decided.
     render(<Unit value={stale(12_400, "held-stale")} />);
     const css = emittedCss();
-    expect(css).toContain("text-decoration-style:dotted");
-    expect(css).not.toContain("--color-text-muted");
-    expect(css).not.toContain("text-decoration-color");
+    expect(css).toContain(severityDotColor("warning"));
+  });
+
+  it("paints the dot from a token and never from a literal hue", () => {
+    // A hex typed in here is a hue the theme cannot restyle, and a second place
+    // the staleness colour would have to be kept in step with the badge.
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    expect(markRule(container)).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 
   it("does not change what the readout occupies", () => {
@@ -160,6 +194,19 @@ describe("Unit: a reading that is not current", () => {
     );
     const { container: plain } = render(<Unit value={metres(12_400)} />);
     expect(visibleText(marked)).toBe(visibleText(plain));
+  });
+
+  it("takes the dot out of the inline flow, so no column can reflow", () => {
+    /*
+     * The whole reason a glyph was refused before this. jsdom has no layout, so
+     * what is assertable here is the RULE that makes a zero-width mark: the dot
+     * is absolutely positioned and therefore contributes nothing to the line
+     * box. The measurement in a real engine lives in
+     * `scripts/render-unit-currency.ts`, which lays the same table out marked
+     * and unmarked and reports both widths.
+     */
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    expect(markRule(container)).toContain("position:absolute");
   });
 
   it.each([
@@ -174,7 +221,9 @@ describe("Unit: a reading that is not current", () => {
      * cannot use two words for one fact.
      */
     const { container } = render(<Unit value={stale(12_400, grade)} />);
-    expect(quantity(container).getAttribute("title")).toBe(caption);
+    expect(quantity(container).getAttribute("title")).toBe(
+      `${caption}, as of ${AT_DATE}`,
+    );
     expect(container.textContent).toContain(caption);
     expect(visibleText(container)).toBe("12.4 km");
   });
@@ -199,6 +248,68 @@ describe("Unit: a reading that is not current", () => {
   });
 });
 
+describe("Unit: when the reading was last valid", () => {
+  /*
+   * HOW stale a number is, which the mark itself deliberately does not say.
+   * The dot answers the yes-or-no question at a glance; the date answers the
+   * follow-up, on demand, where it costs the glance nothing.
+   *
+   * It comes off `asOfUt`, which the reading already carries, and renders
+   * through `formatQuantity` on the game's own calendar, so a held number and
+   * a `<MissionDate>` beside it cannot print two spellings of one instant.
+   */
+  it("puts the date on the hover, beside the grade", () => {
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    expect(quantity(container).getAttribute("title")).toBe(
+      `STALE, as of ${AT_DATE}`,
+    );
+  });
+
+  it("says the date out loud too, in the caption that is already there", () => {
+    // ONE spoken caption, extended. A second hidden node would announce the
+    // grade twice on every stale cell on the screen.
+    const { container } = render(<Unit value={stale(12_400, "recorded")} />);
+    const said = container.querySelectorAll("[data-unit-currency]");
+    expect(said).toHaveLength(1);
+    expect(said[0]?.textContent).toBe(`, RECORDED, as of ${AT_DATE}`);
+  });
+
+  it("keeps the date off the screen and off the clipboard", () => {
+    // It is a reading of the mark beside it, not extra content, on the same
+    // terms as the spoken unit word.
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    expect(visibleText(container)).toBe("12.4 km");
+  });
+
+  it("reads the instant on the game's calendar, not as a bare number", () => {
+    /*
+     * A UT rendered as "1,000.00 ut" is a true statement about a quantity
+     * nobody reads. `formatQuantity` already refuses to do that; this pins
+     * that the date goes through it rather than around it.
+     */
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    expect(quantity(container).getAttribute("title")).not.toMatch(/\but\b/);
+    expect(quantity(container).getAttribute("title")).toMatch(/Y\d+ D\d+/);
+  });
+
+  it("falls back to the grade alone when the instant is unreadable", () => {
+    // A malformed `asOfUt` must not turn the hover into an "as of" followed by
+    // the null token.
+    const { container } = render(
+      <Unit
+        value={{
+          state: "stale",
+          reckoning: "none",
+          value: metres(12_400),
+          asOfUt: value("ut", Number.NaN),
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(quantity(container).getAttribute("title")).toBe("STALE");
+  });
+});
+
 describe("Unit: the staleness slot is announced", () => {
   it("reaches a screen reader with the number and its caption", async () => {
     render(
@@ -207,6 +318,23 @@ describe("Unit: the staleness slot is announced", () => {
       </p>,
     );
     expect(await screen.findByText(/BLACKOUT/)).toBeTruthy();
+  });
+
+  it("carries the meaning without the hue, and draws no dot on a current one", () => {
+    /*
+     * WCAG 1.4.1. The mark is a SHAPE: a dot that is there or is not, so a
+     * reader who cannot tell amber from grey still reads it, and the hover and
+     * the caption say it in words for one who cannot see it at all. The dot
+     * itself is silent, or every stale cell would announce a bullet.
+     */
+    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const dot = container.querySelector<HTMLElement>("[data-not-current-mark]");
+    expect(dot?.getAttribute("aria-hidden")).toBe("true");
+    expect(dot?.textContent).toBe("");
+    expect(quantity(container).getAttribute("title")).toContain("STALE");
+
+    const { container: live } = render(<Unit value={observed(12_400)} />);
+    expect(live.querySelector("[data-not-current-mark]")).toBeNull();
   });
 
   it("raises no a11y violation on either treatment", async () => {
