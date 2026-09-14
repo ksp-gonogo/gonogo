@@ -2,7 +2,7 @@ import { PerfBudget } from "@ksp-gonogo/core";
 import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
-import type { PeerHostService } from "../peer/PeerHostService";
+import { HOST_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 
 /**
@@ -184,7 +184,12 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     const detachRaw = client.onRawMessage((message) => {
       if (!isCarriedFrame(message)) return;
       SITREP_PEER_RELAY_BUDGET.record();
-      peerHost.broadcast({
+      // To the connections reading from the HOST's session only. A peer that
+      // asked to observe from somewhere else is served by the session at that
+      // vantage, and handing it these frames as well would give it two views
+      // of one topic with no way to tell them apart: a frame does not carry
+      // the delay it travelled under.
+      peerHost.broadcastToVantage(HOST_SESSION, {
         type: "sitrep-frame",
         message,
       } satisfies PeerMessage);

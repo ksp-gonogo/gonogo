@@ -54,6 +54,9 @@ function makeFakeHost() {
     broadcast: (msg: PeerMessage) => {
       broadcasts.push(msg);
     },
+    broadcastToVantage: (_vantage: string, msg: PeerMessage) => {
+      broadcasts.push(msg);
+    },
     sendToPeer: () => {},
     attachSitrepSink: () => () => {},
     connectPeer(id: string) {

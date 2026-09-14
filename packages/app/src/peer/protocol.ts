@@ -447,13 +447,28 @@ export type PeerMessage =
   // `WebSocketTransport` re-subscribes its live topics on every socket open:
   // the host's per-connection claims die with the old `DataConnection`.
   //
-  // `set-vantage` has no counterpart here on purpose. The mod keeps
-  // `SelectedVantage` on the `ClientSession` and the host has one session, so
-  // per-station observation vantage needs a wire change rather than a relay
-  // message. Separate work, deliberately absent.
+  // `sitrep-set-vantage` below is what used to be deliberately absent here.
+  // The reasoning was that the mod keeps the chosen vantage on the
+  // `ClientSession` and the host has ONE session, so a relay message could not
+  // give two peers two vantages. That premise is what changed: the host now
+  // holds one upstream session PER vantage anything asks for, so the mod is
+  // still one-vantage-per-session and no wire change was needed after all.
   | {
       type: "sitrep-subscribe";
       topic: string;
+    }
+  // Peer -> host: observe from `vantage` instead of the host's own vantage.
+  // A pilot asks for the craft it is aboard so its instruments run at that
+  // craft's light-time rather than the ground's; a peer that never asks reads
+  // the host's, which is what every station did before this existed.
+  //
+  // `null` hands the connection back to the host's session. Sent on connect
+  // and on every change, and re-sent on reconnect for the same reason
+  // `sitrep-subscribe` is: the host's per-connection state dies with the old
+  // `DataConnection`.
+  | {
+      type: "sitrep-set-vantage";
+      vantage: string | null;
     }
   | {
       type: "sitrep-unsubscribe";
