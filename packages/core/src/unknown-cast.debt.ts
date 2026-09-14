@@ -82,7 +82,7 @@
  * commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 143 in 61 files (18 out of `any`, 114 in tests), walked 382 files
+  // packages/app: 143 in 61 files (18 out of `any`, 114 in tests), walked 387 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 2,
@@ -284,7 +284,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/ui-kit/src/render/wire.ts": 1,
   "packages/ui-kit/src/Tabs.test.tsx": 1,
   "packages/ui-kit/src/WidgetScope.tsx": 1,
-  // mod/GonogoBreakingGroundUplink/client: 5 in 3 files (5 out of `any`, 0 in tests), walked 28 files
+  // mod/GonogoBreakingGroundUplink/client: 5 in 3 files (5 out of `any`, 0 in tests), walked 30 files
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 3,
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 1,
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
@@ -373,7 +373,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 96 in 43 files (0 out of `any`, 84 in tests), walked 382 files
+  // packages/app: 96 in 43 files (0 out of `any`, 84 in tests), walked 387 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
@@ -522,8 +522,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 22,
-  files: 2320,
-  assertions: 2052,
+  files: 2326,
+  assertions: 2056,
 } as const;
 
 /**
@@ -536,26 +536,26 @@ export const SCAN_FLOORS = {
  * a root that collapsed.
  */
 export const ROOT_FILE_FLOORS: Record<string, number> = {
-  "packages/app": 292,
-  "packages/components": 526,
-  "packages/core": 168,
+  "packages/app": 309,
+  "packages/components": 529,
+  "packages/core": 174,
   "packages/data": 42,
   "packages/logger": 8,
   "packages/relay": 10,
   "packages/serial": 57,
-  "packages/sitrep-client": 121,
+  "packages/sitrep-client": 128,
   "packages/test-utils": 1,
   "packages/theme": 3,
-  "packages/ui": 49,
-  "packages/ui-kit": 224,
-  "mod/GonogoBreakingGroundUplink/client": 19,
-  "mod/GonogoKerbalismUplink/client": 62,
+  "packages/ui": 48,
+  "packages/ui-kit": 232,
+  "mod/GonogoBreakingGroundUplink/client": 24,
+  "mod/GonogoKerbalismUplink/client": 64,
   "mod/GonogoKosUplink/client": 38,
   "mod/GonogoMechJebUplink/client": 8,
   "mod/GonogoPrincipiaUplink/client": 28,
-  "mod/GonogoRealAntennasUplink/client": 16,
-  "mod/GonogoRp1Uplink/client": 68,
+  "mod/GonogoRealAntennasUplink/client": 18,
+  "mod/GonogoRp1Uplink/client": 70,
   "mod/sitrep-kernel": 12,
-  "mod/sitrep-sdk": 232,
+  "mod/sitrep-sdk": 248,
   "mod/sitrep-server": 10,
 };
