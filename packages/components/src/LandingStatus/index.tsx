@@ -10,13 +10,19 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  bandFor,
+  bandIn,
   type Value as Quantity,
+  readingOf,
   Situation,
+  type VesselFlight,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
+  Band,
+  bandClaim,
   Countdown,
   EmptyState,
   Grid,
@@ -99,17 +105,33 @@ function Mps({ v }: { v: Quantityish<"m/s"> }) {
   );
 }
 
+const ONE_KM = value("m", 1000);
+const TEN_KM = value("m", 10_000);
+
+/**
+ * This widget's own precision ladder for a height, in one place so the plain
+ * readout and the ASL readout below cannot drift apart about what an altitude
+ * looks like.
+ *
+ * Takes the quantity and compares in the algebra rather than unwrapping it: the
+ * rungs are lengths, and a bare 10000 here would be a length written as a
+ * number that nothing checks the unit of.
+ */
+function altitudeDecimals(m: Quantity<"m">): number {
+  const abs = m.abs();
+  return abs.greaterThanOrEqual(TEN_KM)
+    ? 1
+    : abs.greaterThanOrEqual(ONE_KM)
+      ? 2
+      : 0;
+}
+
 /** An altitude or a distance, on the shared length ladder. */
 function Metres({ m }: { m: Quantityish<"m"> }) {
   const n = magnitudeOf(m);
   if (n === null) return NULL_DISPLAY;
-  const abs = Math.abs(n);
-  return (
-    <Unit
-      value={value("m", n)}
-      decimals={abs >= 10_000 ? 1 : abs >= 1000 ? 2 : 0}
-    />
-  );
+  const height = value("m", n);
+  return <Unit value={height} decimals={altitudeDecimals(height)} />;
 }
 
 /** A delta-v budget. Always whole m/s: nobody plans a burn to the centimetre. */
@@ -252,6 +274,114 @@ function GridCellPair({
       <ReadoutCaption>{label}</ReadoutCaption>
       <Text tone={tone ?? "default"}>{children}</Text>
     </>
+  );
+}
+
+/**
+ * The reading `vessel.flight` arrives as, spelled once so the readout below and
+ * the widget body agree about which fields the contract marks reckonable.
+ */
+export type FlightReading = ReckonableReading<
+  VesselFlight,
+  "altitudeAsl" | "orbitalSpeed"
+>;
+
+/**
+ * Where `vessel.flight`'s altitude band is keyed, and why no kit primitive can
+ * be asked to fetch it.
+ *
+ * `Meter` owns the band LOOKUP for the whole kit and says so in its own header,
+ * and it knows exactly two addresses: the payload ROOT in `ratio` for a
+ * fraction, and `"amount"` for a tank pair. This band is at `"altitudeAsl"` in
+ * metres, which is neither, and there is no third spelling to pass. So the two
+ * ends are fetched here, with `bandFor` + `bandIn` (which is the narrowing a
+ * hand-written `reckoned.bands?.[...]` would skip), and drawn as a `<Band>`.
+ *
+ * That means this readout does NOT get the accepted band visual, which is marks
+ * on a track. `Tape` has the marks and takes bare `Value`s, but the only track
+ * on this widget is the AGL rail, and putting an ASL interval on it would be
+ * the same re-keying in a different costume. Reaching the accepted visual needs
+ * either a path on `Meter` or a length primitive that has one; both are kit API
+ * and neither is this slice's to invent.
+ */
+const ALTITUDE_BAND_PATH = "altitudeAsl";
+
+/**
+ * Altitude above sea level: what was last measured, where the model puts it
+ * now, and how well the model claims to know that.
+ *
+ * The widget carried `altitudeAsl` into `solveSuicideBurn` as a bare magnitude
+ * and drew it nowhere, so the one quantity `vessel.flight` has a reckoner for
+ * was invisible while the quantity ON screen (`heightFromTerrain`) has no
+ * reckoner at all. Height above TERRAIN is also not a carriable quantity: a
+ * rate fitted over the last few seconds of vertical speed says nothing about
+ * the ground ahead, and at reentry speed six seconds of carry is a dozen
+ * kilometres downrange of the terrain the measurement was taken over. Giving
+ * the AGL readout a modelled source would be inventing an interval dominated by
+ * relief the model has never seen, so the carried quantity gets a readout of
+ * its own instead of the displayed one getting a model.
+ *
+ * The observation stays the headline figure and is marked, never replaced, on
+ * the same grounds `<Unit>` and `<Meter>` both give: a modelled number quietly
+ * standing in for a measured one is the substitution `Reading` exists to
+ * prevent. The carried figure and the interval appear only while the reading is
+ * NOT current, because on a live link there is nothing carried and a row
+ * restating the headline is a row the operator stops reading.
+ */
+function CarriedAltitude({ reading }: { reading: FlightReading }) {
+  const observed = readingOf(reading, (f) => f.altitudeAsl);
+  const decimals =
+    "value" in observed ? altitudeDecimals(observed.value) : undefined;
+  const carrying = reading.state === "stale";
+  const carried =
+    carrying && reading.reckoning === "available"
+      ? reading.reckoned.value.altitudeAsl
+      : null;
+  const band =
+    carrying && reading.reckoning === "available"
+      ? bandIn(bandFor(reading.reckoned, ALTITUDE_BAND_PATH), "m")
+      : undefined;
+  /*
+   * Only while the reading is not current. A refusal is an answer to "why is
+   * there no carried figure", and on a live link nobody asked: the observation
+   * IS now, and a standing note about the conic declining under physics is a
+   * line the operator reads once and then stops seeing.
+   */
+  const declined =
+    carrying && "declined" in reading ? reading.declined : undefined;
+  return (
+    <Section title="Altitude ASL">
+      <Grid cols="auto 1fr" gap="xs">
+        <GridCellPair label={carrying ? "Last observed" : "Observed"}>
+          <Unit value={observed} decimals={decimals} />
+        </GridCellPair>
+        {carrying && (
+          <GridCellPair label="Carried to now">
+            {carried === null ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={carried} decimals={decimals} />
+            )}
+          </GridCellPair>
+        )}
+        {band && (
+          <GridCellPair label="Known to">
+            <Band min={band.lo} max={band.hi} />
+          </GridCellPair>
+        )}
+      </Grid>
+      {band ? (
+        <ReadoutCaption>
+          {bandClaim(band.kind, "the carried altitude is inside that interval")}
+        </ReadoutCaption>
+      ) : declined ? (
+        <ReadoutCaption>{declined.note ?? declined.reason}</ReadoutCaption>
+      ) : carried !== null ? (
+        <ReadoutCaption>
+          carried with no interval: this model bounds nothing
+        </ReadoutCaption>
+      ) : null}
+    </Section>
   );
 }
 
@@ -910,6 +1040,14 @@ function LandingStatusComponent({
       </Section>
     ) : null;
 
+  // ASL, the one quantity on this board a reckoner speaks for. Gated only on a
+  // payload having arrived at all, not on the descent board: an altitude the
+  // operator can read is worth the row on any frame, and the interval below it
+  // appears on its own once the link stops being current.
+  const carriedAltitudeEl = flight ? (
+    <CarriedAltitude reading={flightReading} />
+  ) : null;
+
   // Plain AGL readout only when there's no altitude rail (small size). The rail
   // is the altitude carrier everywhere else.
   const heightEl = !showRail ? (
@@ -963,6 +1101,7 @@ function LandingStatusComponent({
       {boardEl}
       {velocityEl}
       {readoutsStack}
+      {carriedAltitudeEl}
       {comDatumNote}
       {heightEl}
       {divertEl}
@@ -1179,6 +1318,7 @@ function LandingStatusComponent({
                       {boardEl}
                       {velocityEl}
                       {readoutsStack}
+                      {carriedAltitudeEl}
                       {comDatumNote}
                       {divertEl}
                     </div>

@@ -1,11 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   DashboardItemContext,
   PerfBudget,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import type { ReckonableReading, VesselFlight } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselFlight } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -13,7 +11,8 @@ import {
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
-import { LandingStatusComponent } from "./index";
+import { type HandoverFixture, loadHandoverFixtures } from "./handoverFixture";
+import { type FlightReading, LandingStatusComponent } from "./index";
 
 /**
  * WHICH of `vessel.flight`'s two altitude models carried each frame of the
@@ -32,118 +31,8 @@ import { LandingStatusComponent } from "./index";
  * through the real widget, on the same emit path the render harness uses. The
  * fixture holds the intent and the store holds the answer; two copies of the
  * answer would agree with each other forever.
- *
- * It walks the DIRECTORY rather than a list, so a frame added to the set is
- * covered without being remembered here.
+
  */
-
-const FIXTURES_DIR = join(__dirname, "__render_handover__");
-
-/** The two fields `VesselFlight.AltitudeAsl`'s mark declares as reckonable. */
-type FlightReading = ReckonableReading<
-  VesselFlight,
-  "altitudeAsl" | "orbitalSpeed"
->;
-
-interface StreamEmit {
-  channel: string;
-  value: unknown;
-  meta?: Record<string, unknown>;
-}
-
-interface HandoverFixture {
-  _meta: {
-    scenario: string;
-    expectedBasis: string;
-    /** Present on a `declined` frame; see the generator's own `Frame.decline`. */
-    expectedDecline?: { reason: string; input: string };
-  };
-  _stream: {
-    carriedChannels: string[];
-    pinnedUt: number;
-    emits: StreamEmit[];
-  };
-}
-
-/** A type predicate, so every property read below narrows rather than asserts. */
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-/**
- * One fixture, with the fields this file actually reads checked on the way in.
- *
- * Validated rather than asserted, because a fixture that has drifted out of
- * shape must fail HERE, naming itself, and not two frames later as an
- * unreadable `expectedBasis`. The generator writes these files, so the shape is
- * ours on both sides and a silent `undefined` would be a test that graded
- * nothing and passed.
- *
- * Built field by field off `isRecord` rather than with one cast at the top: an
- * assertion out of `unknown` is what `unknown-cast.test.ts` is for, and the
- * whole value of a check here is that it looked.
- */
-function parseFixture(file: string, raw: unknown): HandoverFixture {
-  const bad = (why: string): never => {
-    throw new Error(`${file}: ${why}`);
-  };
-  if (!isRecord(raw)) return bad("not an object");
-  const meta = raw._meta;
-  const stream = raw._stream;
-  if (!isRecord(meta)) return bad("no _meta");
-  if (!isRecord(stream)) return bad("no _stream");
-  const { scenario, expectedBasis, expectedDecline } = meta;
-  const { carriedChannels, pinnedUt, emits } = stream;
-  if (typeof scenario !== "string")
-    return bad("_meta.scenario is not a string");
-  if (typeof expectedBasis !== "string") {
-    return bad("_meta.expectedBasis is not a string");
-  }
-  if (!Array.isArray(carriedChannels) || !Array.isArray(emits)) {
-    return bad("_stream.carriedChannels and .emits must both be arrays");
-  }
-  if (typeof pinnedUt !== "number") {
-    return bad("_stream.pinnedUt is not a number");
-  }
-  let decline: { reason: string; input: string } | undefined;
-  if (expectedBasis === "declined") {
-    if (!isRecord(expectedDecline)) {
-      return bad("a declined frame needs _meta.expectedDecline");
-    }
-    const { reason, input } = expectedDecline;
-    if (typeof reason !== "string" || typeof input !== "string") {
-      return bad("_meta.expectedDecline needs a string reason and input");
-    }
-    decline = { reason, input };
-  }
-  const parsedEmits: StreamEmit[] = emits.map((entry: unknown) => {
-    if (!isRecord(entry) || typeof entry.channel !== "string") {
-      return bad("an emit has no channel");
-    }
-    return {
-      channel: entry.channel,
-      value: entry.value,
-      meta: isRecord(entry.meta) ? entry.meta : undefined,
-    };
-  });
-  return {
-    _meta: { scenario, expectedBasis, expectedDecline: decline },
-    _stream: {
-      carriedChannels: carriedChannels.map(String),
-      pinnedUt,
-      emits: parsedEmits,
-    },
-  };
-}
-
-function loadFixtures(): HandoverFixture[] {
-  return readdirSync(FIXTURES_DIR)
-    .filter((f) => f.endsWith(".json"))
-    .sort()
-    .map((f) =>
-      parseFixture(f, JSON.parse(readFileSync(join(FIXTURES_DIR, f), "utf8"))),
-    );
-}
 
 describe("the handover render set reaches the models it says it does", () => {
   let restoreResizeObserver: () => void;
@@ -211,7 +100,7 @@ describe("the handover render set reaches the models it says it does", () => {
     return reading;
   }
 
-  for (const fixture of loadFixtures()) {
+  for (const fixture of loadHandoverFixtures()) {
     const { scenario, expectedBasis } = fixture._meta;
 
     if (expectedBasis === "declined") {
