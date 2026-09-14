@@ -60,16 +60,45 @@ namespace Sitrep.Host.IntegrationTests
         /// capture. The unsafe shape, and the reason a case for it subscribes ONLY
         /// the derived topic rather than driving a bare tick.
         /// </param>
+        /// <param name="Excuse">
+        /// Which claim <paramref name="WhyNoBehaviouralCase"/> makes about the walk,
+        /// so the walk can check it rather than the prose being searched for a phrase.
+        /// </param>
         /// <param name="WhyNoBehaviouralCase">
-        /// Why a capability an Uplink can win has no case. Never a placeholder: an
-        /// entry here is a gap somebody can close, written down so the gap is
-        /// visible rather than absent, and asserted STALE once a case appears.
+        /// Why the capability has no case. Never a placeholder: an entry here is a
+        /// gap somebody can close, written down so the gap is visible rather than
+        /// absent, and asserted STALE once a case appears or the walk stops agreeing
+        /// with <paramref name="Excuse"/>.
         /// </param>
         private sealed record Entry(
             string Id,
             string DeclaredIn,
             bool FedByGatedCapture,
+            Excuse Excuse = Excuse.None,
             string WhyNoBehaviouralCase = "");
+
+        /// <summary>
+        /// The claim an excuse makes, each one checked against the provider walk in
+        /// <see cref="StaleExcuses"/>.
+        /// </summary>
+        private enum Excuse
+        {
+            /// <summary>No excuse: a capability an Uplink can win needs a marked case.</summary>
+            None,
+
+            /// <summary>
+            /// No Uplink registers a provider. Stale the moment the walk finds one,
+            /// because the reason no longer describes the tree.
+            /// </summary>
+            NoUplinkProvider,
+
+            /// <summary>
+            /// An Uplink registers a provider and no case can be written for it. Stale
+            /// the moment the walk finds no Uplink provider, which is what an Uplink
+            /// moving out of this repo looks like from here.
+            /// </summary>
+            UplinkProviderWithoutCase,
+        }
 
         /// <summary>
         /// Every exclusive capability in the tree, as of 2026-08-26. Twelve are
@@ -89,6 +118,7 @@ namespace Sitrep.Host.IntegrationTests
                 "craftCatalogue",
                 "Gonogo.KSP/SpaceCenterUplink.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.NoUplinkProvider,
                 WhyNoBehaviouralCase: "No Uplink registers a provider: core ships the only one, as "
                     + "the capability's Vanilla, because a craft folder is a fact about the save's "
                     + "directory rather than a model a mod could hold a rival opinion about. It is "
@@ -102,6 +132,7 @@ namespace Sitrep.Host.IntegrationTests
                 "simulation",
                 "Sitrep.Host/Comms/SimulationElection.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.UplinkProviderWithoutCase,
                 WhyNoBehaviouralCase: "The provider is registered at Register time from a live "
                     + "reflection probe, not fed by any capture, so there is no gated path that "
                     + "could starve it. The flight.simulation CHANNEL is subscription-gated and "
@@ -114,6 +145,7 @@ namespace Sitrep.Host.IntegrationTests
                 "delayedScience",
                 "Gonogo.KSP/CurrencyEventUplink.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.NoUplinkProvider,
                 WhyNoBehaviouralCase: "No Uplink registers a provider, so no Uplink "
                     + "capture is on its path. Discovered, not assumed: an Uplink "
                     + "provider appearing for it makes this line stale and fails."),
@@ -121,6 +153,7 @@ namespace Sitrep.Host.IntegrationTests
                 "science",
                 "Sitrep.Host/Science/ScienceElection.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.UplinkProviderWithoutCase,
                 WhyNoBehaviouralCase: "The starvation here was real and is FIXED. "
                     + "One provider's capture stashes the bundle its five command "
                     + "verbs read as a pre-filter, so the handler's effect escapes "
@@ -135,6 +168,7 @@ namespace Sitrep.Host.IntegrationTests
                 "isru",
                 "Sitrep.Host/Isru/IsruElection.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.UplinkProviderWithoutCase,
                 WhyNoBehaviouralCase: "Same limit as science: the Register that wires "
                     + "the provider reads live KSP. The provider constructs fresh and "
                     + "reads live, and core calls it from ITS OWN capture gated on the "
@@ -144,11 +178,13 @@ namespace Sitrep.Host.IntegrationTests
                 "reliability",
                 "Sitrep.Host/Reliability/ReliabilityElection.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.UplinkProviderWithoutCase,
                 WhyNoBehaviouralCase: "Same limit as isru, for both of its providers."),
             new Entry(
                 "comms",
                 "Sitrep.Host/Comms/CommsElection.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.UplinkProviderWithoutCase,
                 WhyNoBehaviouralCase: "Same limit again: the Register that wires the "
                     + "provider reads stock CommNet. The provider is constructed fresh "
                     + "per election and reads live, and the delay and connectivity "
@@ -158,6 +194,7 @@ namespace Sitrep.Host.IntegrationTests
                 "activeVessel",
                 "Gonogo.KSP/VesselUplink.cs",
                 FedByGatedCapture: false,
+                Excuse: Excuse.NoUplinkProvider,
                 WhyNoBehaviouralCase: "No Uplink registers a provider, and none can: "
                     + "which craft the stream is scoped to is a decision core makes "
                     + "and publishes, not a model a mod could hold a rival opinion "
@@ -240,7 +277,7 @@ namespace Sitrep.Host.IntegrationTests
 
             foreach (var entry in Census.Where(e => winnable.Contains(e.Id)))
             {
-                if (covered.Contains(entry.Id) || entry.WhyNoBehaviouralCase.Length > 0)
+                if (covered.Contains(entry.Id) || entry.Excuse == Excuse.UplinkProviderWithoutCase)
                 {
                     continue;
                 }
@@ -265,33 +302,94 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public void NoCensusEntryExcusesACapabilityThatIsActuallyProven()
         {
-            var covered = MarkedCapabilities();
-            var winnable = UplinkProvidedCapabilities();
-
-            var staleExcuses = Census
-                .Where(e => e.WhyNoBehaviouralCase.Length > 0 && covered.Contains(e.Id))
-                .Select(e => e.Id)
-                .ToList();
+            var stale = StaleExcuses(Census, UplinkProvidedCapabilities(), MarkedCapabilities());
 
             Assert.True(
-                staleExcuses.Count == 0,
-                "A census entry says a capability has no behavioural case, and one now "
-                + "carries its marker. Delete the excuse:\n  "
-                + string.Join("\n  ", staleExcuses));
+                stale.Count == 0,
+                "A census excuse no longer describes the tree. Rewrite or delete each one:\n  "
+                + string.Join("\n  ", stale));
+        }
 
-            var wronglyExcused = Census
-                .Where(e => e.WhyNoBehaviouralCase.Length > 0
-                    && !winnable.Contains(e.Id)
-                    && !e.WhyNoBehaviouralCase.Contains("No Uplink registers a provider", StringComparison.Ordinal))
-                .Select(e => e.Id)
+        /// <summary>
+        /// <see cref="StaleExcuses"/> over planted entries and a planted walk, so an
+        /// Uplink leaving the repo is proved to fail by name here rather than on the
+        /// day it moves, and the check cannot pass by comparing against nothing.
+        /// </summary>
+        [Fact]
+        public void AnExcuseTheWalkNoLongerSupportsIsNamedAsStale()
+        {
+            var planted = new[]
+            {
+                new Entry("plantedDeparted", "", false, Excuse.UplinkProviderWithoutCase, "its provider cannot be driven from a Tests project"),
+                new Entry("plantedArrived", "", false, Excuse.NoUplinkProvider, "nothing outside core provides it"),
+                new Entry("plantedProven", "", false, Excuse.UplinkProviderWithoutCase, "its provider cannot be driven from a Tests project"),
+                new Entry("plantedUnexplained", "", false, Excuse.UplinkProviderWithoutCase),
+                new Entry("plantedStillExcused", "", false, Excuse.UplinkProviderWithoutCase, "its provider cannot be driven from a Tests project"),
+                new Entry("plantedStillUnprovided", "", false, Excuse.NoUplinkProvider, "nothing outside core provides it"),
+                new Entry("plantedUnexcused", "", false),
+            };
+            var winnable = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "plantedArrived", "plantedProven", "plantedUnexplained", "plantedStillExcused", "plantedUnexcused",
+            };
+            var covered = new HashSet<string>(StringComparer.Ordinal) { "plantedProven" };
+
+            var named = StaleExcuses(planted, winnable, covered)
+                .Select(line => line.Substring(0, line.IndexOf(':')))
                 .ToList();
 
-            Assert.True(
-                wronglyExcused.Count == 0,
-                "A census entry excuses a capability no Uplink provides for a reason "
-                + "about an Uplink. Either an Uplink stopped providing it, in which "
-                + "case say so, or the id is wrong:\n  "
-                + string.Join("\n  ", wronglyExcused));
+            Assert.Equal(
+                new[] { "plantedDeparted", "plantedArrived", "plantedProven", "plantedUnexplained" },
+                named);
+        }
+
+        /// <summary>
+        /// Every excuse the walk contradicts, one line each, led by the capability id.
+        ///
+        /// <para>Checked in both directions. An excuse for a provider no case can
+        /// reach is stale once no Uplink provides the capability, which is how an
+        /// Uplink leaving for its own repo shows up here; an excuse that no Uplink
+        /// provides is stale once one does. Either way the reason describes a tree
+        /// that has gone.</para>
+        /// </summary>
+        private static List<string> StaleExcuses(
+            IEnumerable<Entry> census, ISet<string> winnable, ISet<string> covered)
+        {
+            var stale = new List<string>();
+            foreach (var entry in census)
+            {
+                var explained = entry.WhyNoBehaviouralCase.Length > 0;
+                if (entry.Excuse == Excuse.None)
+                {
+                    if (explained)
+                    {
+                        stale.Add($"{entry.Id}: carries a reason and no Excuse kind, so the walk cannot check it. Name the claim it makes");
+                    }
+
+                    continue;
+                }
+
+                if (!explained)
+                {
+                    stale.Add($"{entry.Id}: excused as {entry.Excuse} with no reason written down. Say why, or drop the excuse");
+                }
+                else if (covered.Contains(entry.Id))
+                {
+                    stale.Add($"{entry.Id}: excused as {entry.Excuse}, and a behavioural case now carries its marker. Delete the excuse");
+                }
+                else if (entry.Excuse == Excuse.NoUplinkProvider && winnable.Contains(entry.Id))
+                {
+                    stale.Add($"{entry.Id}: excused because no Uplink registers a provider, and the walk finds one. "
+                        + $"Give it a case marked '{Marker} {entry.Id}', or say why it cannot have one");
+                }
+                else if (entry.Excuse == Excuse.UplinkProviderWithoutCase && !winnable.Contains(entry.Id))
+                {
+                    stale.Add($"{entry.Id}: excused for an Uplink's provider, and the walk finds no Uplink providing it. "
+                        + "The Uplink has left or stopped providing it: rewrite the excuse as NoUplinkProvider, or delete it");
+                }
+            }
+
+            return stale;
         }
 
         /// <summary>
