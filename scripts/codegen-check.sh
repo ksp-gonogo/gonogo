@@ -59,8 +59,10 @@ snapshot() {
 # `find`, so a pattern or prune that stops reaching one says so at any size.
 DISCOVERED="$(generated_dirs)"
 MISSED=""
-for dir in mod/sitrep-sdk/src/__generated__ packages/ui-kit/src/__generated__ \
-  $(git ls-files -- '*/__generated__/*' | sed 's|\(.*/__generated__\)/.*|\1|' | sort -u); do
+for dir in $({
+  printf '%s\n' mod/sitrep-sdk/src/__generated__ packages/ui-kit/src/__generated__
+  git ls-files -- '*/__generated__/*' | sed 's|\(.*/__generated__\)/.*|\1|'
+} | sort -u); do
   printf '%s\n' "$DISCOVERED" | grep -qxF "$dir" || MISSED="$MISSED $dir"
 done
 if [ -n "$MISSED" ]; then
@@ -87,4 +89,4 @@ if [ "$BEFORE" != "$AFTER" ]; then
   git --no-pager diff -- $(generated_dirs) || true
   exit 1
 fi
-echo "codegen check: generated files are current ($DIR_COUNT directories)."
+echo "codegen check: generated files are current ($(printf '%s\n' "$DISCOVERED" | grep -c .) directories)."
