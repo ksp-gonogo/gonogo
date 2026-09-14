@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { type FillQuantity, fillFraction } from "./fillQuantity";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
@@ -25,19 +26,13 @@ export type MeterSize = "sm" | "md";
 /**
  * How much there is, and what that is a fraction OF.
  *
- * Both halves are `Value<U>` of the same unit, which is the whole reason this
- * shape exists rather than a pre-divided number: a fill fraction is the one
- * place two quantities have to be the same kind, and a bare
- * `amount / capacity` at a call site is where nothing checks that they were.
- * The meter divides them itself, so the division happens once, under a type
- * that refuses to cross dimensions.
+ * The kit's shared {@link FillQuantity}, under the name this component's call
+ * sites already say. One declaration rather than two that agree today: every
+ * primitive drawn from a fill takes the same pair, so a widget holding one
+ * hands the same object to whichever of them it is drawing into. See that
+ * type for why the pair exists at all rather than a pre-divided number.
  */
-export interface MeterQuantity<U extends string = string> {
-  /** How much there is now. */
-  amount: Value<U>;
-  /** The full tank: what `amount` is read as a fraction of. */
-  capacity: Value<U>;
-}
+export type MeterQuantity<U extends string = string> = FillQuantity<U>;
 
 interface MeterCommonProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
@@ -219,7 +214,7 @@ export function Meter<U extends string = string>({
   const drawnPair =
     pair === undefined ? null : (drawn as MeterQuantity<U> | null);
   const fraction =
-    (pair === undefined ? (drawn as number | null) : fractionOf(drawnPair)) ??
+    (pair === undefined ? (drawn as number | null) : fillFraction(drawnPair)) ??
     null;
   if (fraction === null) {
     return (
@@ -611,27 +606,6 @@ function MeterQuantityBar<U extends string = string>({
       bounds={bounds}
     />
   );
-}
-
-/**
- * The pair, as the 0..1 the track is drawn from.
- *
- * `dividedBy` is what makes the two halves have to be the same kind: an amount
- * in kg over a capacity in litres does not typecheck, and the quotient of two
- * same-kind values is dimensionless by construction. The single `.magnitude`
- * is therefore on a number that has already stopped being a quantity, and it
- * is where a fraction leaves the algebra for the two numeric slots that cannot
- * hold a unit: a CSS width and an `aria-valuenow`.
- *
- * A capacity of zero is not a full tank and not an empty one, it is no tank:
- * the absent form is the honest answer, the same one a `null` gets.
- */
-function fractionOf<U extends string>(
-  pair: MeterQuantity<U> | null,
-): number | null {
-  if (pair === null) return null;
-  if (!pair.capacity.isPositive()) return null;
-  return pair.amount.dividedBy(pair.capacity).magnitude;
 }
 
 /** Uniform vertical stack of meters with consistent spacing. */

@@ -382,15 +382,26 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * through `writeQuantity` or `speakQuantity`.
    *
    * Tape spends the most because it has the most axis props (value, min, max,
-   * tickStep, groundLine, plus a zone pair and a marker each). Meter and
-   * DivergingBar spend ONE apiece, on a quotient that `dividedBy` has already
-   * made dimensionless.
+   * tickStep, groundLine, plus a zone pair and a marker each). DivergingBar
+   * spends ONE, on a quotient that `dividedBy` has already made dimensionless.
    */
   "packages/ui-kit/src/Dial.tsx": 6,
   "packages/ui-kit/src/DivergingBar.tsx": 1,
   "packages/ui-kit/src/Gauge.tsx": 5,
-  "packages/ui-kit/src/Meter.tsx": 1,
   "packages/ui-kit/src/Tape.tsx": 8,
+  /*
+   * ONE, and it is the fill fraction every primitive drawn from an
+   * amount/capacity pair is derived by. Moved here from Meter.tsx, which held
+   * the only copy until ProgressBar needed the same division: one unwrap
+   * shared beats a second one written out, and this is the shape of budget
+   * movement to want, since the next primitive to take a pair adds none.
+   *
+   * `dividedBy` has already checked the two halves are the same kind and made
+   * the quotient dimensionless, so this unwraps a number that has stopped
+   * being a quantity, into the two slots that cannot hold a unit: a CSS width
+   * and an `aria-valuenow`.
+   */
+  "packages/ui-kit/src/fillQuantity.ts": 1,
   // 1, and it is the implementation: this is the ONE unwrap in the repo, moved
   // down from ui-kit on 2026-08-25 so `sitrep-sdk`'s own files could reach it
   // without a cycle. ui-kit re-exports it and now spends none.
