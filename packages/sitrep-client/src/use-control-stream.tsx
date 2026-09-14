@@ -15,6 +15,7 @@ import {
   normalize01,
   recordSample,
 } from "./control-stream-model";
+import { useOwnCraftVantage } from "./own-craft-vantage";
 import { useCommand } from "./use-command";
 import { useLatestValue } from "./use-stream";
 
@@ -150,7 +151,20 @@ export function useControlStream(
   // below is arithmetic on a span of seconds. Reading the object itself left
   // `oneWaySeconds` a `Value`, which compares as NaN against MIN_DELAY_SECONDS
   // and silently reported every channel as direct/no-delay.
-  const oneWaySeconds = commsDelay?.oneWaySeconds?.magnitude ?? null;
+  //
+  // The own-craft zero is applied HERE as well as on the view clock because
+  // this hook is the one delay surface that bypasses the clock entirely: it
+  // reads `comms.delay` off the topic, and that topic reports the active
+  // craft's path HOME whoever is asking. A pilot at the craft's own vantage
+  // commands it with no light-time at all, so an in-transit pill sized from
+  // the ground's number would draw seconds of flight on a control that has
+  // already answered. Zero (rather than null) is deliberate: it is a known
+  // delay that happens to be none, and it lands on the same
+  // `< MIN_DELAY_SECONDS` branch below that a direct link already takes.
+  const ownCraftVantage = useOwnCraftVantage();
+  const oneWaySeconds = ownCraftVantage
+    ? 0
+    : (commsDelay?.oneWaySeconds?.magnitude ?? null);
 
   const commandRing = useRef<LoggedSample[]>([]);
   const readbackRing = useRef<LoggedSample[]>([]);

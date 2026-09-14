@@ -7,6 +7,7 @@ import { createFakeWallClock } from "./fake-wall-clock";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { useControlStream } from "./use-control-stream";
+import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -174,5 +175,69 @@ describe("useControlStream", () => {
     expect(
       Number(screen.getByTestId("echo-count").textContent),
     ).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * `comms.delay` reports the active craft's path HOME, whoever is asking, and
+ * this hook reads it straight off the topic rather than through the view
+ * clock. So a pilot at the craft's own vantage, whose commands execute with no
+ * light-time at all, would still be drawn seconds of in-transit flight on a
+ * control that has already answered.
+ */
+describe("useControlStream at the craft's own vantage", () => {
+  const CRAFT = "vessel:abc-123";
+
+  function mountAtVantage(vantage: string | undefined) {
+    const fixture = setupFixture();
+    fixture.store.registerDerivedChannel(vesselStateChannel);
+    render(
+      <fixture.Provider>
+        <Probe value={0.5} />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit("comms.delay", { oneWaySeconds: 1.6 });
+      /*
+       * Two samples a light-time apart: the confirmed edge sits a delay behind
+       * the newest, so a lone point leaves `vessel.state` unreadable at view
+       * time for reasons that have nothing to do with the vantage.
+       */
+      for (const validAt of [0, 10]) {
+        fixture.transport.emit(
+          "vessel.orbit",
+          {
+            referenceBodyIndex: 1,
+            sma: 700_000,
+            ecc: 0.01,
+            inc: 0,
+            lan: 0,
+            argPe: 0,
+            meanAnomalyAtEpoch: 0,
+            epoch: 10,
+            mu: 3.5316e12,
+            meta: { source: CRAFT, quality: 0 },
+          },
+          { validAt, deliveredAt: validAt },
+        );
+      }
+      if (vantage) fixture.client.setVantage(vantage);
+      fixture.store.beginFrame();
+    });
+    return fixture;
+  }
+
+  it("reports no delay when the session is standing on the craft it commands", async () => {
+    mountAtVantage(CRAFT);
+    await waitFor(() =>
+      expect(screen.getByTestId("delay").textContent).toBe("0"),
+    );
+  });
+
+  it("still reports the ground's light-time for an operator at a centre", async () => {
+    mountAtVantage("ground:Kerbal Space Center");
+    await waitFor(() =>
+      expect(screen.getByTestId("delay").textContent).toBe("1.6"),
+    );
   });
 });

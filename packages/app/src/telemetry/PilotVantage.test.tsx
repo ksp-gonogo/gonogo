@@ -22,9 +22,10 @@ const ROSTER = [
 
 /**
  * Mounts the binding over a real client/store pipeline, with the craft's own
- * `meta.source` on the orbit sample: that stamp is what `vessel.state`'s
+ * source on the orbit PAYLOAD's meta: that stamp is what `vessel.state`'s
  * `subjectId` is, and the whole point of the fix is that it already spells the
- * centre id.
+ * centre id. Not the envelope's `meta.source`, which is the Courier node and
+ * reads "system" for every non-fleet topic.
  */
 function mountPilot() {
   const fixture = setupStreamFixture({
@@ -52,21 +53,18 @@ function mountPilot() {
     },
     emitOrbitFrom: (source: string) => {
       act(() => {
-        fixture.emit(
-          "vessel.orbit",
-          {
-            referenceBodyIndex: 1,
-            sma: 700_000,
-            ecc: 0.01,
-            inc: 0,
-            lan: 0,
-            argPe: 0,
-            meanAnomalyAtEpoch: 0,
-            epoch: 10,
-            mu: 3.5316e12,
-          },
-          { source },
-        );
+        fixture.emit("vessel.orbit", {
+          referenceBodyIndex: 1,
+          sma: 700_000,
+          ecc: 0.01,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: 0,
+          epoch: 10,
+          mu: 3.5316e12,
+          meta: { source, quality: 0 },
+        });
         fixture.store.beginFrame();
       });
     },

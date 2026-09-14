@@ -35,6 +35,7 @@ import {
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
 import { resolveValueTopic } from "./map-topic";
+import { OwnCraftDelayGate } from "./own-craft-vantage";
 import {
   setActiveTimelineStore as setProcessorEvaluatorStore,
   setProcessorTopicSubscriber,
@@ -442,6 +443,9 @@ export function TelemetryProvider({
     <TelemetryClientContext.Provider value={client}>
       <TimelineStoreContext.Provider value={store}>
         <CarriedChannelsContext.Provider value={carriedChannels}>
+          {delayAuthority ? (
+            <OwnCraftDelayGate authority={delayAuthority} />
+          ) : null}
           {children}
         </CarriedChannelsContext.Provider>
       </TimelineStoreContext.Provider>
