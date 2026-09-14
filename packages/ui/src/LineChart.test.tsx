@@ -415,8 +415,27 @@ describe("LineChart uncertainty band", () => {
       />,
     );
     const name = chartName(container);
-    expect(name).toMatch(/one standard deviation/i);
-    expect(name).toMatch(/about a third of the time/i);
+    expect(name).toMatch(/the value is inside/i);
+    expect(name).toMatch(/about two thirds of the time/i);
+  });
+
+  /*
+   * The same wording the meter speaks, from the same helper, because a reader
+   * who meets a band on a chart and a band on a bar is being told one thing
+   * and should hear it said one way.
+   */
+  it("names what the region claims without reaching for statistics vocabulary", () => {
+    const { container } = render(
+      <LineChart
+        series={banded("sigma1")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(chartName(container)).not.toMatch(
+      /sigma|standard deviation|standard error|confidence interval/i,
+    );
   });
 
   it("says a hard bound is a range the value is inside, which is a different claim", () => {
@@ -430,6 +449,6 @@ describe("LineChart uncertainty band", () => {
     );
     const name = chartName(container);
     expect(name).toMatch(/the value is inside/i);
-    expect(name).not.toMatch(/standard deviation/i);
+    expect(name).not.toMatch(/two thirds of the time/i);
   });
 });

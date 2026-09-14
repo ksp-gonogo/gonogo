@@ -10,7 +10,13 @@ import {
   registerAugment,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Band, Inline, ReadoutCaption, Text } from "@ksp-gonogo/ui-kit";
+import {
+  Band,
+  bandClaim,
+  Inline,
+  ReadoutCaption,
+  Text,
+} from "@ksp-gonogo/ui-kit";
 // Side-effect: registers the model whose output this augment IS. A module that
 // draws bands and can load without the thing that mints them renders an empty
 // row and reports success, which is the one failure mode here nothing else
@@ -134,15 +140,20 @@ function kerbalIndexFor(
 /**
  * What the interval CLAIMS, spelled out rather than implied by its width.
  *
- * A hard bound and a standard error are different statements about the same
- * two numbers, and this model mints the weaker one: the true value sits
- * outside a one-sigma interval about a third of the time. An operator reading
+ * A hard bound and a fitted rate's error are different statements about the
+ * same two numbers, and this model mints the weaker one. An operator reading
  * "46.8 – 47.6" with nothing beside it would take it for a range the value is
  * inside, which is the stronger claim the model declined to make.
+ *
+ * Read off the band's own `kind` rather than hard-coded to the one this model
+ * happens to mint, and worded by the kit's `bandClaim` rather than by this
+ * augment: an Uplink writing its own sentence for a band is exactly how the
+ * app and a bundled extension end up telling one operator two different things
+ * about the same interval.
  */
-const SIGMA1_CLAIM =
-  "one standard deviation of the fitted rate, so the true value is outside " +
-  "this interval about a third of the time";
+function claimFor(band: UncertaintyBand<"units">): string {
+  return bandClaim(band.kind, "the value is inside this interval");
+}
 
 function CrewSurvivalBandAugment({
   crewName,
@@ -170,7 +181,7 @@ function CrewSurvivalBandAugment({
           key={label}
           size="xs"
           tone="muted"
-          title={`${label}: ${SIGMA1_CLAIM}`}
+          title={`${label}: ${claimFor(band)}`}
         >
           <Inline gap="xs">
             <ReadoutCaption>{label}</ReadoutCaption>
@@ -195,4 +206,4 @@ registerAugment({
   owner: KERBALISM,
 });
 
-export { CrewSurvivalBandAugment, SIGMA1_CLAIM };
+export { CrewSurvivalBandAugment };
