@@ -1,4 +1,5 @@
 import {
+  subscribeTopicRead,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -23,14 +24,15 @@ export function useOptionalVesselIdentity(): VesselIdentity | undefined {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics("vessel.identity");
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
+      const releaseInputs = subscribeTopicRead(
+        client,
+        store,
+        "vessel.identity",
       );
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        releaseInputs();
       };
     },
     [client, store],

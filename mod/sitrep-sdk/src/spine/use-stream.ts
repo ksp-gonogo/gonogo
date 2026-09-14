@@ -3,6 +3,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import { subscribeTopicRead } from "./subscribe-read";
 
 /**
  * Reactively reads the latest value for `topic`, raw OR derived: from the
@@ -19,11 +20,13 @@ import {
  *
  * `subscribe` does two things, both required for a DERIVED topic to ever
  * actually receive data:
- * - **Derived-input ref-counting** (`store.resolveSubscriptionTopics`):
- *   subscribes every RAW input topic `topic` transitively depends on (itself,
- *   for an ordinary raw topic) via `client.subscribe`, ref-counted exactly
- *   like before, just redirected to the topics the server actually
- *   understands instead of the derived topic name.
+ * - **Everything the read needs held up** (`subscribeTopicRead`): every RAW
+ *   input topic `topic` transitively depends on (itself, for an ordinary raw
+ *   topic) plus the deps its elected reckoner declared, ref-counted through
+ *   `client.subscribe`, redirected to the topics the server actually
+ *   understands instead of the derived topic name. That seam is shared with
+ *   every other read path in the tree; see its doc for why the reckoner half
+ *   belongs there.
  * - **Frame-driven reactivity** (`store.subscribeFrame`): re-renders on every
  *   frame the provider mints (`TelemetryProvider` calls `beginFrame()` on
  *   every ingest tick), not on a raw per-topic callback, since a derived value
@@ -47,14 +50,11 @@ export function useStream<T>(topic: string): T | undefined {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
+      const releaseInputs = subscribeTopicRead(client, store, topic);
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        releaseInputs();
       };
     },
     [client, store, topic],

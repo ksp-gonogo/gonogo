@@ -7,6 +7,7 @@ import {
   getProcessor,
   type ReadingDep,
 } from "./processors";
+import { subscribeTopicRead } from "./subscribe-read";
 import type { TimelineStore } from "./timeline-store";
 
 // ---------------------------------------------------------------------------
@@ -274,13 +275,20 @@ function ensureTopicSubscriptions(id: string): void {
   ) {
     return;
   }
-  const unsubs: (() => void)[] = [];
-  for (const depTopic of collectRawTopicDeps(id)) {
-    for (const inputTopic of activeStore.resolveSubscriptionTopics(depTopic)) {
-      unsubs.push(subscribeInputTopic(inputTopic));
-    }
-  }
-  entry.topicUnsubs = unsubs;
+  /*
+   * Through the shared read seam: a processor dep is resolved with `sample`,
+   * which runs the topic's elected model, so a dep whose reckoner declares
+   * inputs needs those inputs on the wire for the same reason a widget's read
+   * does. `subscribeInputTopic` is an injected one-argument subscribe rather
+   * than a client, hence the adapter.
+   */
+  const store = activeStore;
+  const subscriber = {
+    subscribe: (topic: string) => subscribeInputTopic(topic),
+  };
+  entry.topicUnsubs = collectRawTopicDeps(id).map((depTopic) =>
+    subscribeTopicRead(subscriber, store, depTopic),
+  );
 }
 
 function teardownTopicSubscriptions(entry: ProcessorRuntimeEntry): void {

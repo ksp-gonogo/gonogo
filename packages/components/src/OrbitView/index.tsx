@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type OrbitTrajectory,
+  subscribeTopicRead,
   useOrbitTrajectory,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -65,14 +66,11 @@ function useStreamOptional<T>(topic: string): T | undefined {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
+      const releaseInputs = subscribeTopicRead(client, store, topic);
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        releaseInputs();
       };
     },
     [client, store, topic],

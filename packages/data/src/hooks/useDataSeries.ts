@@ -8,6 +8,7 @@ import {
   DEAD_READ_SETTLE_MS,
   isTopicCarried,
   mapTopic,
+  subscribeTopicRead,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -352,31 +353,17 @@ export function useDataSeries(
       if (!client || !store) {
         return () => {};
       }
-      // `resolveSubscriptionTopics` already resolves a DERIVED topic to its
-      // raw `inputs` (recursively): the exact same raw topics
-      // `sampleDerivedRange` below reads via `sampleRange`, so subscribing
-      // here is what keeps those raw timelines populated for the replay.
-      /*
-       * `reckonerDepTopics` is the other half, and it is what the RECKONED tail
-       * below needs. The elected model declines outright with one declared dep
-       * missing, so a lone plot of a raw reckonable topic drew no tail at all
-       * unless something else on the dashboard happened to be holding those
-       * deps up. Read through the store rather than from a list here, so an
-       * Uplink's model is held up exactly as core's is. Deduplicated because a
-       * dep can also be an input of the plotted topic; `client.subscribe` is
-       * ref-counted, so the pair would be symmetric either way.
-       */
-      const inputTopics = new Set([
-        ...store.resolveSubscriptionTopics(topic),
-        ...store.reckonerDepTopics(topic),
-      ]);
-      const unsubscribeInputs = [...inputTopics].map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
+      // The seam resolves a DERIVED topic to its raw `inputs` (recursively):
+      // the exact same raw topics `sampleDerivedRange` below reads via
+      // `sampleRange`, so subscribing here is what keeps those raw timelines
+      // populated for the replay. It holds the plotted topic's elected
+      // reckoner's declared deps up too, which is what the RECKONED tail below
+      // needs, and which every point read needs for the same reason.
+      const releaseInputs = subscribeTopicRead(client, store, topic);
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
+        releaseInputs();
       };
     },
     [client, store, topic],
