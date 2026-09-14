@@ -21,7 +21,7 @@ import "./commcast/CommcastComponent"; // app-level component: registers on impo
 import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
-import { isStationRoute } from "./screens/isStationRoute";
+import { bootsWithoutDirectMod } from "./screens/isStationRoute";
 import { setConsentPrompt } from "./uplinks/consent";
 import { promptForConsent } from "./uplinks/consentModal";
 import { loaderBootIdsOverride } from "./uplinks/flag";
@@ -118,10 +118,11 @@ async function bootUplinksAndRender(): Promise<void> {
   // first load on this same consent seam.
   setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
 
-  if (isStationRoute()) {
+  if (bootsWithoutDirectMod()) {
     // No roster probe, no fetch-based loader here; see the doc comment
     // above. `StationUplinkLoader` runs the equivalent sequence later,
-    // post-connect, through the peer conduit.
+    // post-connect, through the peer conduit. A hosted pilot takes this
+    // branch for the same reason a station does: no socket to probe.
     renderApp();
     return;
   }

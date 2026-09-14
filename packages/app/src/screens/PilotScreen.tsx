@@ -7,6 +7,8 @@ import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
+import { PeerTransport } from "../telemetry/PeerTransport";
+import { DEFAULT_SITREP_CARRIED_TOPICS } from "../telemetry/SitrepTelemetryProvider";
 import { MainScreen } from "./MainScreen";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -108,6 +110,20 @@ export function PilotScreen() {
     };
   }, []);
 
+  /*
+   * A secure origin cannot open an insecure socket, so a hosted build has no
+   * way to reach the mod directly and is fed through the peer link instead:
+   * the host opens a second mod session at this pilot's vantage and relays it
+   * (`SitrepVantageSessions`). On http:// the direct socket is both available
+   * and better, since it is a session of the pilot's own with no dependence on
+   * mission control staying up.
+   */
+  const [relayedTransport] = useState(() =>
+    globalThis.location.protocol === "https:"
+      ? new PeerTransport(client)
+      : undefined,
+  );
+
   const connected = status === "connected";
   // Nothing saved and nothing tried: the operator has to be asked once. This
   // is setup, not a connection failure, and it is the only state that takes
@@ -156,7 +172,13 @@ export function PilotScreen() {
             <Button onClick={() => setDismissed(true)}>Dismiss</Button>
           </PilotScreen__CommsBanner>
         )}
-        <MainScreen screen="pilot" />
+        <MainScreen
+          screen="pilot"
+          transport={relayedTransport}
+          carriedChannels={
+            relayedTransport ? DEFAULT_SITREP_CARRIED_TOPICS : undefined
+          }
+        />
       </PeerClientProvider>
     </ScopedStationIdentity>
   );

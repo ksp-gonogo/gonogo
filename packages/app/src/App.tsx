@@ -28,18 +28,26 @@ function AppRoute() {
   const route = currentRoute();
   if (route === "station") return <StationScreen />;
 
-  // The main screen and a pilot page BOTH reach the Gonogo mod over insecure
-  // ws://, which a secure-origin (HTTPS) page can't do (mixed content), so a
-  // hosted build can run neither. Over HTTPS, show the front-door landing that
-  // points at local setup; over http:// (local container / dev) render the real
-  // screen. Stations are unaffected, they peer over wss.
-  if (globalThis.location.protocol === "https:") return <HostedLanding />;
-
-  // A pilot is a peer CLIENT on the coordination plane, never a host: one host
-  // owns the thread and the roster, and it is the machine mission control is
-  // sitting at. So the pilot route deliberately renders OUTSIDE
-  // `PeerHostProvider` and inside a peer client provider of its own.
+  /*
+   * A pilot is a peer CLIENT on the coordination plane, never a host: one host
+   * owns the thread and the roster, and it is the machine mission control is
+   * sitting at. So the pilot route deliberately renders OUTSIDE
+   * `PeerHostProvider` and inside a peer client provider of its own.
+   *
+   * Ahead of the HTTPS gate below, and only since the host learned to serve a
+   * peer from a session at its own vantage: a hosted pilot reads its telemetry
+   * over the peer link (`PeerTransport`, wss) rather than the insecure ws://
+   * this gate exists to refuse, so there is nothing left for it to protect the
+   * pilot from. `PilotScreen` picks the transport by the same protocol test.
+   */
   if (route === "pilot") return <PilotScreen />;
+
+  // The MAIN screen still reaches the Gonogo mod over insecure ws://, which a
+  // secure-origin (HTTPS) page can't do (mixed content), so a hosted build
+  // cannot run one. Over HTTPS, show the front-door landing that points at
+  // local setup; over http:// (local container / dev) render the real screen.
+  // Stations are unaffected, they peer over wss, and so is the pilot above.
+  if (globalThis.location.protocol === "https:") return <HostedLanding />;
 
   return (
     <PeerHostProvider>

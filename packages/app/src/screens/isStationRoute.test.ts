@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { currentRoute, isStationRoute } from "./isStationRoute";
+import {
+  bootsWithoutDirectMod,
+  currentRoute,
+  isStationRoute,
+} from "./isStationRoute";
 
 function setPath(path: string): void {
   globalThis.history.replaceState({}, "", path);
@@ -83,5 +87,54 @@ describe("currentRoute", () => {
     } finally {
       import.meta.env.BASE_URL = original;
     }
+  });
+});
+
+/**
+ * The boot sequence asks a different question from the router: not "which
+ * screen is this" but "is there a socket to the mod to probe". A pilot's
+ * answer depends on the protocol, which is the whole of why this is its own
+ * predicate.
+ */
+describe("bootsWithoutDirectMod", () => {
+  const realLocation = globalThis.location;
+  afterEach(() => {
+    Object.defineProperty(globalThis, "location", {
+      value: realLocation,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  function at(pathname: string, protocol: string): void {
+    Object.defineProperty(globalThis, "location", {
+      value: { ...realLocation, pathname, protocol },
+      writable: true,
+      configurable: true,
+    });
+  }
+
+  it("is true for a station, which never holds a socket of its own", () => {
+    at("/station", "https:");
+    expect(bootsWithoutDirectMod()).toBe(true);
+    at("/station", "http:");
+    expect(bootsWithoutDirectMod()).toBe(true);
+  });
+
+  it("is FALSE for a pilot on http, which still holds its own session", () => {
+    // The LAN case, and the better one: a session of the pilot's own, with no
+    // dependence on mission control staying up.
+    at("/pilot", "http:");
+    expect(bootsWithoutDirectMod()).toBe(false);
+  });
+
+  it("is TRUE for a pilot on https, which cannot open an insecure socket", () => {
+    at("/pilot", "https:");
+    expect(bootsWithoutDirectMod()).toBe(true);
+  });
+
+  it("is false for the main screen, which is the only thing that still needs the probe", () => {
+    at("/", "http:");
+    expect(bootsWithoutDirectMod()).toBe(false);
   });
 });

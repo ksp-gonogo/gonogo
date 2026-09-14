@@ -20,6 +20,7 @@ import {
   SerialDeviceService,
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
+import type { Transport } from "@ksp-gonogo/sitrep-client";
 import { getViewUt } from "@ksp-gonogo/sitrep-client";
 import { RootProviders, readRevealedEvents } from "@ksp-gonogo/sitrep-sdk";
 import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
@@ -210,7 +211,26 @@ const NoActiveVessel__Body = styled.div`
  * genuine difference between them is one of the three values threaded from
  * this prop.
  */
-export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
+export function MainScreen({
+  screen = "main",
+  transport,
+  carriedChannels,
+}: {
+  screen?: Screen;
+  /**
+   * The telemetry transport to observe through, instead of the direct
+   * `ws://` socket this screen otherwise builds.
+   *
+   * A pilot that cannot reach the mod directly (a secure origin cannot open an
+   * insecure socket, which is every hosted build) is fed through the peer link
+   * it already holds instead, and the host serves it from a session at its own
+   * vantage. Omitted everywhere else, which is the LAN case and stays a direct
+   * session of its own.
+   */
+  transport?: Transport;
+  /** Carried-channels promotion list, when the caller's transport serves a different set. */
+  carriedChannels?: readonly string[];
+} = {}) {
   useEffect(() => {
     document.title = screen === "pilot" ? "gonogo - Pilot" : "gonogo - Main";
   }, [screen]);
@@ -328,15 +348,23 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
   }, []);
 
   return (
-    <SitrepTelemetryProvider>
+    <SitrepTelemetryProvider
+      transport={transport}
+      carriedChannels={carriedChannels}
+    >
       <SitrepPeerRelay peerHost={peerHostService} />
       {/*
        * The host's own session is the relay above; this serves every OTHER
        * vantage a connected peer has asked to observe from, one mod session
        * each. It holds nothing until somebody asks, which is every session
        * with no remote pilot in it.
+       *
+       * Not on a pilot page: a pilot joins the mesh as a CLIENT and has no
+       * peers of its own to serve. The host singleton is never started on that
+       * route so this would sit inert either way, but saying it here means the
+       * invariant does not depend on that staying true.
        */}
-      <SitrepVantageSessions peerHost={peerHostService} />
+      {hostsThePeerMesh && <SitrepVantageSessions peerHost={peerHostService} />}
       <AugmentAvailabilityFeeder />
       {/*
        * A pilot is aboard, so their session observes from the craft rather
