@@ -489,6 +489,26 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     topic: "id",
     type: "id",
   },
+  "EvaCrew": {
+    count: "count",
+  },
+  "EvaKerbal": {
+    canSafelyRemoveHelmet: "flag",
+    hasJetpack: "flag",
+    helmetUnsafeReason: "text",
+    jetpackDeployed: "flag",
+    jetpackIsThrusting: "flag",
+    kerbalVesselId: "id",
+    lampOn: "flag",
+    name: "text",
+    onALadder: "flag",
+    parentVesselId: "id",
+    propellantAmount: "units",
+    propellantCapacity: "units",
+    situation: "text",
+    visorState: "text",
+    willDieWithoutHelmet: "flag",
+  },
   "EventMsg": {
     name: "text",
     topic: "id",
@@ -1544,6 +1564,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalDvAsl: "m/s",
     totalDvVac: "m/s",
   },
+  "eva.crew": {
+    count: "count",
+  },
   "flight.current": {
     flightId: "id",
     phase: "enum",
@@ -2126,6 +2149,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "EmissionPolicy": {
     quantum: "EmissionQuantum",
   },
+  "EvaCrew": {
+    kerbals: "EvaKerbal[]",
+    meta: "PayloadMeta",
+  },
   "EventMsg": {
     meta: "Meta",
   },
@@ -2398,6 +2425,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "dv.stages": {
     resources: "*ResourceAmount",
+  },
+  "eva.crew": {
+    kerbals: "EvaKerbal[]",
+    meta: "PayloadMeta",
   },
   "fleet.silence": {
     vessels: "FleetSilenceEntry[]",

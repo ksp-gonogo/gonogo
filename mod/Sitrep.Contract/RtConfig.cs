@@ -94,6 +94,8 @@ public static class RtConfig
                 typeof(Vec3),
                 typeof(PayloadMeta),
                 typeof(CommandResult),
+                // eva.crew: the suit state of every kerbal currently outside
+                typeof(EvaCrew),
                 // vessel.* channels
                 typeof(VesselAttitude),
                 typeof(VesselComms),
@@ -327,6 +329,8 @@ public static class RtConfig
                 // vessel.physics.mode + vessel.crew nested roster entry
                 typeof(VesselPhysicsMode),
                 typeof(CrewMember),
+                // eva.crew nested roster entry
+                typeof(EvaKerbal),
                 // science.instruments / science.sensors entries
                 typeof(InstrumentEntry),
                 typeof(SensorEntry),

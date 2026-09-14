@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.13.0
+  version: 16.14.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
     channels a client subscribes to, and 53 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -163,6 +163,8 @@ info:
       description: 1 telemetry channel, 0 commands
     - name: dv
       description: 2 telemetry channels, 0 commands
+    - name: eva
+      description: 1 telemetry channel, 0 commands
     - name: fleet
       description: 1 telemetry channel, 0 commands
     - name: flight
@@ -1042,6 +1044,30 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.dv.summary"
+      event:
+        $ref: "#/components/messages/event"
+  eva.crew:
+    address: eva.crew
+    description: |-
+      Carries a `EvaCrew`.
+
+      Every kerbal currently outside a craft.
+
+      ADDITIVE, and deliberately a channel of its own: a kerbal stepping out must
+      not change what the vessel channels report. The vantage stays with the craft
+      they left, so nothing reading the vessel's stream sees a discontinuity, and
+      this carries what is true of the kerbal instead.
+
+      An empty list is a real answer: nobody is outside. The channel is absent
+      only before anything has been captured.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.eva.crew"
       event:
         $ref: "#/components/messages/event"
   fleet.silence:
@@ -4564,6 +4590,17 @@ operations:
     messages:
       - $ref: "#/channels/dv.summary/messages/streamData"
       - $ref: "#/channels/dv.summary/messages/event"
+  read:eva.crew:
+    action: receive
+    channel:
+      $ref: "#/channels/eva.crew"
+    title: Read eva.crew
+    description: Delivered only after `subscribe` names `eva.crew` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: eva
+    messages:
+      - $ref: "#/channels/eva.crew/messages/streamData"
+      - $ref: "#/channels/eva.crew/messages/event"
   read:fleet.silence:
     action: receive
     channel:
@@ -7021,6 +7058,19 @@ components:
                 const: dv.summary
               payload:
                 $ref: "#/components/schemas/StageDeltaVSummary"
+    streamData.eva.crew:
+      name: stream-data
+      title: A frame on eva.crew
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `eva.crew`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: eva.crew
+              payload:
+                $ref: "#/components/schemas/EvaCrew"
     streamData.fleet.silence:
       name: stream-data
       title: A frame on fleet.silence
@@ -11463,6 +11513,160 @@ components:
         message:
           type: string
           x-sitrep-unit: text
+    EvaCrew:
+      type: object
+      description: |-
+        Every kerbal currently outside a craft.
+
+        ADDITIVE, and deliberately a channel of its own: a kerbal stepping out must
+        not change what the vessel channels report. The vantage stays with the craft
+        they left, so nothing reading the vessel's stream sees a discontinuity, and
+        this carries what is true of the kerbal instead.
+
+        An empty list is a real answer: nobody is outside. The channel is absent
+        only before anything has been captured.
+      required:
+        - count
+        - kerbals
+        - meta
+      properties:
+        count:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            How many kerbals are outside, so a reader need not count to know whether to
+            draw anything.
+        kerbals:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvaKerbal"
+        meta:
+          $ref: "#/components/schemas/PayloadMeta"
+    EvaKerbal:
+      type: object
+      description: |-
+        One kerbal currently outside a craft, on the `eva.crew` channel.
+
+        A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
+        appears on `system.vessels` and gets its own `fleet.` node. What is here and
+        nowhere else is the SUIT: what it is carrying, what it can do, and whether
+        the place it is standing in would kill the wearer without it.
+
+        Every field is `null` when the value could not be read. Absence is never a
+        zero: a kerbal whose propellant could not be read is not a kerbal with an
+        empty tank.
+      properties:
+        kerbalVesselId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: The kerbal's own vessel id, the same guid `system.vessels` carries for it.
+        parentVesselId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The craft this kerbal stepped out of, or `null` when that is not known (a
+            kerbal already outside when the save was loaded by a build that did not
+            record it, or one whose craft has since gone).
+
+            This is the vessel gonogo goes on reporting as active while they are
+            outside, so a reader that follows the active vessel sees no discontinuity
+            when a kerbal steps out.
+        name:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+        situation:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: KSP's own situation name for the kerbal (`FLYING`, `LANDED`, ...).
+        propellantAmount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: units
+          description: EVA propellant remaining in the pack.
+        propellantCapacity:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: units
+          description: |-
+            What the pack holds when full, so a reader can draw a fraction without
+            knowing the model.
+        hasJetpack:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether this kerbal has a jetpack at all: without one the propellant figures
+            describe nothing.
+        jetpackDeployed:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+        jetpackIsThrusting:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the pack is firing right now, which is the only signal that a kerbal
+            is under thrust.
+        onALadder:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+        lampOn:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+        visorState:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: KSP's own visor state name.
+        willDieWithoutHelmet:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether removing the helmet here would KILL this kerbal.
+
+            The sharpest fact on this channel, and the reason it is worth a channel:
+            nothing else on the wire says whether the place a kerbal is standing in is
+            survivable unsuited.
+        canSafelyRemoveHelmet:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the helmet can come off here and now, which is a stricter question
+            than surviving it.
+        helmetUnsafeReason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            KSP's OWN words for why the helmet cannot come off, or `null` when it can.
+
+            Passed through verbatim rather than re-worded: the game already phrases this
+            for a player, and inventing a second vocabulary for the same fact would only
+            let the two drift.
     EventMsg:
       type: object
       description: |-

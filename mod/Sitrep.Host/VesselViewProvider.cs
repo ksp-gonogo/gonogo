@@ -79,13 +79,26 @@ namespace Sitrep.Host
         public const string SurfaceTopic = "vessel.surface";
         public const string LandingTopic = "vessel.landing";
 
+        /// <summary>
+        /// The <c>eva.crew</c> channel: every kerbal currently outside a craft,
+        /// and the state of the suit they are outside in.
+        ///
+        /// <para>Read from the SNAPSHOT ROOT rather than the vessel group, and
+        /// that is the whole reason it is not part of <c>vessel.crew</c>: while
+        /// a kerbal is on EVA the vessel group is still the craft they left
+        /// (<c>Gonogo.KSP.ActiveVesselScope</c> reports the parent), so a kerbal
+        /// outside appears in no vessel group at all. See
+        /// <see cref="BuildEvaCrew"/>.</para>
+        /// </summary>
+        public const string EvaCrewTopic = "eva.crew";
+
         /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics, shared by <see cref="Gonogo.KSP.VesselUplink"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
         public static readonly IReadOnlyList<string> Topics = new[]
         {
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
             AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, PhysicsModeTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
-            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic,
+            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, EvaCrewTopic,
         };
 
         // ----------------------------------------------------------------
@@ -1262,6 +1275,68 @@ namespace Sitrep.Host
             return result;
         }
 
+        /// <summary>
+        /// Every kerbal currently outside a craft, from the snapshot's root
+        /// <c>evaCrew</c> list.
+        ///
+        /// <para>An EMPTY list is a real answer and is published as one: nobody
+        /// is outside. Null is returned only when the capture produced no list
+        /// at all, which is a recording made before this channel existed rather
+        /// than a crew that went missing.</para>
+        /// </summary>
+        public static EvaCrew? BuildEvaCrew(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue("evaCrew", out var rawList)
+                || rawList is not IEnumerable<object?> entries)
+            {
+                return null;
+            }
+
+            var result = new EvaCrew { Meta = BuildGameMeta() };
+            foreach (var rawEntry in entries)
+            {
+                if (rawEntry is not IDictionary<string, object?> raw)
+                {
+                    continue;
+                }
+                var id = GetString(raw, "kerbalVesselId");
+                if (string.IsNullOrEmpty(id))
+                {
+                    // No stable subject id, so nothing could attribute this
+                    // entry to a kerbal: the same rule BuildSystemVessels
+                    // applies to a roster entry.
+                    continue;
+                }
+                result.Kerbals.Add(BuildEvaKerbal(raw, id));
+            }
+
+            result.Count = result.Kerbals.Count;
+            return result;
+        }
+
+        private static EvaKerbal BuildEvaKerbal(
+            IDictionary<string, object?> raw,
+            string kerbalVesselId
+        ) => new EvaKerbal
+        {
+            KerbalVesselId = kerbalVesselId,
+            ParentVesselId = GetString(raw, "parentVesselId"),
+            Name = GetString(raw, "name"),
+            Situation = GetString(raw, "situation"),
+            PropellantAmount = GetDouble(raw, "propellantAmount"),
+            PropellantCapacity = GetDouble(raw, "propellantCapacity"),
+            HasJetpack = GetBool(raw, "hasJetpack"),
+            JetpackDeployed = GetBool(raw, "jetpackDeployed"),
+            JetpackIsThrusting = GetBool(raw, "jetpackIsThrusting"),
+            OnALadder = GetBool(raw, "onALadder"),
+            LampOn = GetBool(raw, "lampOn"),
+            VisorState = GetString(raw, "visorState"),
+            WillDieWithoutHelmet = GetBool(raw, "willDieWithoutHelmet"),
+            CanSafelyRemoveHelmet = GetBool(raw, "canSafelyRemoveHelmet"),
+            HelmetUnsafeReason = GetString(raw, "helmetUnsafeReason"),
+        };
+
         private static CrewMember BuildCrewMember(IDictionary<string, object?> raw) => new CrewMember
         {
             Name = GetString(raw, "name"),
@@ -1540,6 +1615,9 @@ namespace Sitrep.Host
 
         public static object? BuildCrewWire(KspSnapshot? snapshot) =>
             BuildCrew(snapshot) is { } crew ? ToWire(crew) : null;
+
+        public static object? BuildEvaCrewWire(KspSnapshot? snapshot) =>
+            BuildEvaCrew(snapshot) is { } eva ? ToWire(eva) : null;
 
         public static object? BuildStructureWire(KspSnapshot? snapshot) =>
             BuildStructure(snapshot) is { } structure ? ToWire(structure) : null;
@@ -1926,6 +2004,32 @@ namespace Sitrep.Host
             ["capacity"] = crew.Capacity,
             ["crew"] = crew.Crew.Select(ToWire).ToList<object?>(),
             ["meta"] = ToWire(crew.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(EvaCrew eva) => new Dictionary<string, object?>
+        {
+            ["count"] = eva.Count,
+            ["kerbals"] = eva.Kerbals.Select(ToWire).ToList<object?>(),
+            ["meta"] = ToWire(eva.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(EvaKerbal kerbal) => new Dictionary<string, object?>
+        {
+            ["kerbalVesselId"] = kerbal.KerbalVesselId,
+            ["parentVesselId"] = kerbal.ParentVesselId,
+            ["name"] = kerbal.Name,
+            ["situation"] = kerbal.Situation,
+            ["propellantAmount"] = kerbal.PropellantAmount,
+            ["propellantCapacity"] = kerbal.PropellantCapacity,
+            ["hasJetpack"] = kerbal.HasJetpack,
+            ["jetpackDeployed"] = kerbal.JetpackDeployed,
+            ["jetpackIsThrusting"] = kerbal.JetpackIsThrusting,
+            ["onALadder"] = kerbal.OnALadder,
+            ["lampOn"] = kerbal.LampOn,
+            ["visorState"] = kerbal.VisorState,
+            ["willDieWithoutHelmet"] = kerbal.WillDieWithoutHelmet,
+            ["canSafelyRemoveHelmet"] = kerbal.CanSafelyRemoveHelmet,
+            ["helmetUnsafeReason"] = kerbal.HelmetUnsafeReason,
         };
 
         private static Dictionary<string, object?> ToWire(CrewMember member) => new Dictionary<string, object?>

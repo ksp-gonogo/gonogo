@@ -50,6 +50,7 @@ import type {
   CrewRosterEntry,
   DeployedEntry,
   DockAlignment,
+  EvaCrew,
   ExperimentBreakdownEntry,
   ExperimentEntry,
   FleetSilence,
@@ -128,6 +129,7 @@ export interface GeneratedTopicPayloadMap {
   "deployed.bases": DeployedEntry[];
   "dv.stages": StageDeltaVEntry[];
   "dv.summary": StageDeltaVSummary;
+  "eva.crew": EvaCrew;
   "fleet.silence": FleetSilence;
   "flight.current": FlightCurrent;
   "flight.ended": FlightEnded;
@@ -207,6 +209,7 @@ export const GENERATED_TOPIC_IDS = [
   "deployed.bases",
   "dv.stages",
   "dv.summary",
+  "eva.crew",
   "fleet.silence",
   "flight.current",
   "flight.ended",

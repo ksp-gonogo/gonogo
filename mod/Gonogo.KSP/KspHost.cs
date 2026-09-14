@@ -329,6 +329,41 @@ namespace Gonogo.KSP
                         }
                         values["vessels"] = roster;
                     }
+
+                    /*
+                     * Every kerbal currently outside a craft, and the state of
+                     * the suit they are outside in (eva.crew).
+                     *
+                     * A separate walk rather than a group on the vessel entry,
+                     * because while a kerbal is on EVA the vessel entry is the
+                     * craft they LEFT: ActiveVesselScope reports the parent, so
+                     * a kerbal outside belongs to no vessel entry at all. It
+                     * also covers several kerbals outside at once, which the
+                     * active-vessel resolution cannot see past the one KSP is
+                     * flying.
+                     *
+                     * An empty list is published rather than the key omitted:
+                     * "nobody is outside" is a real answer, and the mapper
+                     * distinguishes it from a recording made before the channel
+                     * existed, which has no key at all.
+                     */
+                    var eva = new List<object?>();
+                    if (allVessels != null)
+                    {
+                        foreach (var candidate in allVessels)
+                        {
+                            if (candidate == null || candidate.vesselType != VesselType.EVA)
+                            {
+                                continue;
+                            }
+                            var entry = BuildEvaKerbalEntry(candidate);
+                            if (entry != null)
+                            {
+                                eva.Add(entry);
+                            }
+                        }
+                    }
+                    values["evaCrew"] = eva;
                 }
 
                 // Time-warp/pause (G-5) is global game state, not tied to a
@@ -1755,6 +1790,86 @@ namespace Gonogo.KSP
         /// all, by design, so their null comms fields are an expected steady
         /// state, not a caught failure.</para>
         /// </summary>
+        /// <summary>
+        /// One kerbal outside a craft, for the <c>eva.crew</c> channel, or null
+        /// when the vessel carries no <c>KerbalEVA</c> to read.
+        ///
+        /// <para>The suit state lives on the <c>KerbalEVA</c> PartModule, not on
+        /// <c>Vessel</c>, so everything below goes through the root part. A
+        /// kerbal mid-spawn has no module yet and yields null rather than a row
+        /// of nulls that would read as a kerbal with an empty tank.</para>
+        ///
+        /// <para>Each read is its own try/catch for the same reason
+        /// <see cref="BuildVesselRosterEntry"/>'s are: one bad kerbal must not
+        /// take out the whole capture for the tick.</para>
+        /// </summary>
+        private static Dictionary<string, object?>? BuildEvaKerbalEntry(Vessel vessel)
+        {
+            KerbalEVA? eva = null;
+            try
+            {
+                eva = vessel.rootPart != null
+                    ? vessel.rootPart.FindModuleImplementing<KerbalEVA>()
+                    : null;
+            }
+            catch
+            {
+                eva = null;
+            }
+            if (eva == null)
+            {
+                return null;
+            }
+
+            var entry = new Dictionary<string, object?>
+            {
+                ["kerbalVesselId"] = vessel.id.ToString(),
+                ["name"] = vessel.GetName(),
+                ["situation"] = vessel.situation.ToString(),
+            };
+
+            if (ActiveVesselScope.Book.TryParentOf(vessel.id, out var parentId))
+            {
+                entry["parentVesselId"] = parentId.ToString();
+            }
+
+            TrySet(entry, "propellantAmount", () => (object?)eva.Fuel);
+            TrySet(entry, "propellantCapacity", () => (object?)eva.FuelCapacity);
+            TrySet(entry, "hasJetpack", () => (object?)eva.HasJetpack);
+            TrySet(entry, "jetpackDeployed", () => (object?)eva.JetpackDeployed);
+            TrySet(entry, "jetpackIsThrusting", () => (object?)eva.JetpackIsThrusting);
+            TrySet(entry, "onALadder", () => (object?)eva.OnALadder);
+            TrySet(entry, "lampOn", () => (object?)eva.lampOn);
+            TrySet(entry, "visorState", () => (object?)eva.VisorState.ToString());
+            TrySet(entry, "willDieWithoutHelmet", () => (object?)eva.WillDieWithoutHelmet());
+            TrySet(entry, "canSafelyRemoveHelmet", () => (object?)eva.CanSafelyRemoveHelmet());
+            TrySet(entry, "helmetUnsafeReason", () => (object?)eva.HelmetUnsafeReason);
+
+            return entry;
+        }
+
+        /// <summary>
+        /// Set <paramref name="key"/> from <paramref name="read"/>, leaving it
+        /// ABSENT when the read throws. Absence is how "could not be read"
+        /// reaches the wire; a caught failure must never become a zero or a
+        /// false, which would read as a real measurement.
+        /// </summary>
+        private static void TrySet(
+            Dictionary<string, object?> entry,
+            string key,
+            Func<object?> read
+        )
+        {
+            try
+            {
+                entry[key] = read();
+            }
+            catch
+            {
+                // Deliberately absent: see this method's own doc comment.
+            }
+        }
+
         private static Dictionary<string, object?> BuildVesselRosterEntry(Vessel vessel)
         {
             var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;

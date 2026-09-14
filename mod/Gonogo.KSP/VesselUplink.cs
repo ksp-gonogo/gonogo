@@ -149,6 +149,9 @@ namespace Gonogo.KSP
                 // array, never a null mapper result.
                 Channel(VesselViewProvider.TargetTopic, absenceIsData: true),
                 Channel(VesselViewProvider.CrewTopic, absenceIsData: true),
+                // Nobody outside is a real answer, not a gap: the channel
+                // publishes an empty roster rather than going quiet.
+                Channel(VesselViewProvider.EvaCrewTopic, absenceIsData: true),
                 // Nothing aboard carrying cargo is a real answer, not a gap.
                 Channel(VesselViewProvider.InventoryTopic, absenceIsData: true),
                 Channel(VesselViewProvider.StructureTopic),
@@ -363,6 +366,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.ManeuverTopic, VesselViewProvider.BuildManeuverWire);
             host.AddChannelSource(VesselViewProvider.TargetTopic, VesselViewProvider.BuildTargetWire);
             host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
+            host.AddChannelSource(VesselViewProvider.EvaCrewTopic, VesselViewProvider.BuildEvaCrewWire);
             host.AddChannelSource(VesselViewProvider.InventoryTopic, VesselViewProvider.BuildInventoryWire);
             host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
