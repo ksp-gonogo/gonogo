@@ -21,13 +21,13 @@ import { LandingStatusComponent } from "./index";
  * `"altitudeAsl"`, so these cases are as much a measurement of that band as a
  * check on the readout: where it is keyed, what unit it arrives in, and what it
  * is worth at descent scale. What they found is written into the readout's own
- * header and restated as the degenerate case below.
+ * header and restated as the withheld case below.
  *
  * The handover fixtures are the input because they are the only committed
  * descent that crosses the atmosphere interface. Every one of them is generated
  * from a perfect quadratic (`gen-handover-fixtures.ts`: "the fitted slope IS
  * that acceleration by construction"), which is exactly the history a
- * residual-based band can say nothing about, so the non-degenerate case below
+ * residual-based band can say nothing about, so the banded case below
  * perturbs one.
  */
 
@@ -35,9 +35,10 @@ import { LandingStatusComponent } from "./index";
  * The same descent with RESIDUALS in it: the two interior vertical-speed
  * samples pulled off the line the other two sit on.
  *
- * `atmosphericAltitudeBandAt` takes its one sigma from `SlopeFit.stdError`, so
- * a history lying exactly on its own fit leaves it nothing to take and the
- * interval collapses to a point. Every committed fixture is that history. The
+ * `atmosphericAltitudeBandAt` takes its one sigma from `SlopeFit.stdError`, and
+ * a history lying exactly on its own fit leaves it nothing to take, so the fit
+ * withholds the sigma altogether and there is no band to draw. Every committed
+ * fixture is that history. The
  * nudge is 6 m/s at the two interior samples: small enough that the fitted
  * acceleration stays inside the regime envelope the model would otherwise
  * decline on, large enough to produce an interval a reader can see.
@@ -191,17 +192,19 @@ describe("the carried ASL altitude reaches the operator", () => {
    * The finding, as an executable fact rather than a paragraph.
    *
    * Every committed handover fixture is a noiseless quadratic, so the fit has
-   * no residuals, its standard error is zero, and the interval the first real
-   * consumer of this band draws through the whole set is a point. The readout
-   * does not hide that: a degenerate band is the model's own claim, and
-   * softening it at the consumer would be the consumer inventing a hedge the
-   * producer never offered.
+   * nothing to take a sigma from and withholds one, and the first real consumer
+   * of this band draws no interval at all through the whole set. The readout
+   * does not paper over that with a point: a zero-width band reads downstream
+   * as "this extrapolation is exact", which is the opposite of what a
+   * residual-free window establishes, so the producer offers nothing and the
+   * consumer says so in words instead of inventing a hedge.
    */
-  it("draws the handover set's band as the degenerate point it actually is", () => {
-    const interval = requireInterval(
-      mount(loadHandoverFixture("05-drag-biting-42km.json")),
+  it("draws no band at all through the handover set, and says so", () => {
+    const tree = mount(loadHandoverFixture("05-drag-biting-42km.json"));
+    expect(drawnInterval(tree)).toBeNull();
+    expect(readoutText(tree)).toMatch(
+      /carried with no interval: this model bounds nothing/,
     );
-    expect(interval.lo).toBe(interval.hi);
   });
 
   it("draws no interval where the conic carried the altitude, and invents none", () => {
