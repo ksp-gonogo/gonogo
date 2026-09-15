@@ -11,6 +11,7 @@
     "src/**/*.test-d.ts",
     "src/ratchetBaseRef.ts",
     "src/unknown-cast.scan.ts",
-    "src/unknown-cast.debt.ts"
+    "src/unknown-cast.debt.ts",
+    "src/primitive-reading-feed.scan.ts"
   ]
 }
