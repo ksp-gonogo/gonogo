@@ -55,13 +55,13 @@ export interface StreamBinary
 * both endpoints about the parent they share, and saying which body that is
 * also lets one request serve a moon system as readily as a solar one.
 *
-* **The model is ASKED FOR, never inherited.** A transfer search wants the
-* two-body answer because that is what it is designed around, and it wants it
-* whatever an install's provider would otherwise hand back. So
-* `BodyStatesRequest.model` is part of the question rather than a property of
-* whoever answers it, and a request that does not name one is refused: a
-* planning grid that silently changed model when a default moved underneath it
-* would look like the transfer changed.
+* **The bound is ASKED FOR, never inherited.** Every provider answers a body
+* from the same analytical model, so what a caller actually has to state is
+* whether it will read that model past the span anyone vouches for. A transfer
+* search will, on purpose. So `BodyStatesRequest.certification` is part of the
+* question rather than a property of whoever answers it, and a request that
+* does not name one is refused: a planning grid that silently acquired a bound
+* when a default moved underneath it would look like the transfer changed.
 *
 * No horizon applies to the analytical answer, and that follows from what a
 * horizon IS: an ephemeris horizon bounds how long osculating elements still
@@ -84,12 +84,17 @@ export interface BodyStatesRequest
 	*/
 	uts: Value<"ut">[];
 	/**
-	* Which model the answer must come from. `TrajectoryKind.Unspecified` is
-	* refused rather than defaulted, for the reason that enum's own zero exists: a
-	* caller that says nothing gets told to say something, instead of silently
-	* inheriting whatever this install would otherwise have produced.
+	* Whether this caller accepts an answer past the span the provider vouches
+	* for. A transfer search asks `PropagationCertification.Unbounded`,
+	* deliberately: it is a two-body question about instants nobody has reached,
+	* and a bound derived from how long osculating elements stand in for an
+	* integrated path says nothing about it.
+	*
+	* `PropagationCertification.Unspecified` is refused rather than defaulted, so
+	* a caller that says nothing is told to choose instead of silently inheriting
+	* whatever this install would have produced.
 	*/
-	model: TrajectoryKind;
+	certification: PropagationCertification;
 }
 /**
 * The answer, or why there is not one.
@@ -8712,6 +8717,42 @@ export interface DelayedObservation
 	ageSeconds: number;
 	refusal: number;
 	reason?: string;
+}
+/**
+* Whether a caller will accept an answer past the span the provider vouches
+* for, which is a question about CERTIFICATION and not about which model
+* answered.
+*
+* Both values get the same model out of the same provider. Under an
+* integrating provider that is the craft's conic either way, because there is
+* no integrated point query to select (see the audit on #282). What differs is
+* whether the caller is willing to read it past the point anybody stands
+* behind it, which IPropagationProvider.CanPropagate already answers and which
+* nothing previously made a caller state.
+*
+* **`PropagationCertification.Unspecified` is zero and means nothing was
+* chosen.** Same rule as `TrajectoryKind`'s zero and for the same reason: had
+* the permissive value been zero, every existing caller would have been
+* granted it without anyone deciding, and the setting would be decoration.
+*/
+export enum PropagationCertification {
+	/** Nobody chose. Callers refuse rather than pick on their behalf. */
+	Unspecified = 0,
+	/**
+	* Answer wherever the solver can reach, horizon or no horizon. What a PLANNING
+	* search wants: a transfer grid asks a two-body question about instants nobody
+	* has reached, on purpose, and a bound derived from how long osculating
+	* elements stand in for an integrated path is not a statement about that
+	* question.
+	*/
+	Unbounded = 1,
+	/**
+	* Answer only across spans the provider vouches for, and decline past them.
+	* What an OPERATIONAL prediction wants: a reacquisition sweep quoting a UT
+	* read off arc nobody stands behind is a confident answer with nothing under
+	* it.
+	*/
+	CertifiedOnly = 2
 }
 /**
 * The kinds of reference frame a control frame can be.

@@ -3645,12 +3645,12 @@ namespace Sitrep.Host
         /// provider, so a planning search reads the same analytical model the rest
         /// of the mod does rather than a second copy of two-body motion.
         ///
-        /// <para><b>The model the request NAMES, not the one the provider would
-        /// pick.</b> Today's forwarding already gives the conic, so the check below
-        /// changes no answer; what it changes is what happens when the default
-        /// moves. A caller that asked for the analytical model keeps getting it,
-        /// and one that asked for something this seam cannot express is refused
-        /// rather than handed a conic wearing another name.</para>
+        /// <para><b>The bound the request NAMES, not one a default supplies.</b>
+        /// Nothing here is bounded today, so the check below changes no answer;
+        /// what it changes is what happens when a default moves. A caller that
+        /// asked for the unbounded answer keeps getting it, and one that asked
+        /// for something this command cannot express is refused rather than
+        /// quietly given the other thing.</para>
         ///
         /// <para><b>No horizon is applied, deliberately.</b> An ephemeris horizon
         /// bounds how long a body's osculating elements still stand in for an
@@ -3680,17 +3680,20 @@ namespace Sitrep.Host
                     "No propagation provider is elected, so nothing can say where a body is."));
             }
 
-            if (bound.Model != TrajectoryKind.Analytic)
+            if (bound.Certification != PropagationCertification.Unbounded)
             {
-                // Named rather than defaulted, so a planning grid keeps the conic it
-                // was designed around whatever an install's provider would otherwise
-                // hand back. Integrated is refused rather than quietly served: every
-                // provider forwards a body solve to its conics, so a conic under that
-                // name would be a lie the client has no way to detect.
+                /*
+                 * Named rather than defaulted, so a planning grid keeps the
+                 * unbounded answer it was designed around whatever a default
+                 * later becomes. CertifiedOnly is refused rather than
+                 * approximated: certification is a property of a SPAN, and this
+                 * request carries instants with no origin to measure one from,
+                 * so there is nothing here to certify against.
+                 */
                 return ToWire(BodyStatesReply.Refused(
-                    bound.Model == TrajectoryKind.Unspecified
-                        ? "This request named no propagation model. Ask for the analytical one."
-                        : "Only the analytical model can answer where a body is."));
+                    bound.Certification == PropagationCertification.Unspecified
+                        ? "This request named no certification. Ask for the unbounded answer."
+                        : "This command cannot bound an answer: it carries instants with no origin to measure a span from."));
             }
 
             var uts = bound.Uts ?? new List<double>();

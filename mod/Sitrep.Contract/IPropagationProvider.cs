@@ -189,6 +189,48 @@ namespace Sitrep.Contract
             double toUt);
     }
 
+    /// <summary>
+    /// Whether a caller will accept an answer past the span the provider
+    /// vouches for, which is a question about CERTIFICATION and not about which
+    /// model answered.
+    ///
+    /// <para>Both values get the same model out of the same provider. Under an
+    /// integrating provider that is the craft's conic either way, because there
+    /// is no integrated point query to select (see the audit on #282). What
+    /// differs is whether the caller is willing to read it past the point
+    /// anybody stands behind it, which
+    /// <see cref="IPropagationProvider.CanPropagate"/> already answers and which
+    /// nothing previously made a caller state.</para>
+    ///
+    /// <para><b><see cref="Unspecified"/> is zero and means nothing was
+    /// chosen.</b> Same rule as <c>TrajectoryKind</c>'s zero and for the same
+    /// reason: had the permissive value been zero, every existing caller would
+    /// have been granted it without anyone deciding, and the setting would be
+    /// decoration.</para>
+    /// </summary>
+    public enum PropagationCertification
+    {
+        /// <summary>Nobody chose. Callers refuse rather than pick on their behalf.</summary>
+        Unspecified = 0,
+
+        /// <summary>
+        /// Answer wherever the solver can reach, horizon or no horizon. What a
+        /// PLANNING search wants: a transfer grid asks a two-body question about
+        /// instants nobody has reached, on purpose, and a bound derived from how
+        /// long osculating elements stand in for an integrated path is not a
+        /// statement about that question.
+        /// </summary>
+        Unbounded = 1,
+
+        /// <summary>
+        /// Answer only across spans the provider vouches for, and decline past
+        /// them. What an OPERATIONAL prediction wants: a reacquisition sweep
+        /// quoting a UT read off arc nobody stands behind is a confident answer
+        /// with nothing under it.
+        /// </summary>
+        CertifiedOnly = 2,
+    }
+
     /// <summary>Frame-free overloads for callers working in the target's own parent frame.</summary>
     public static class PropagationProviderExtensions
     {

@@ -1,6 +1,9 @@
 import type { StateLike } from "@ksp-gonogo/core";
 import { useBodyStates } from "@ksp-gonogo/sitrep-client";
-import { type BodyState, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type BodyState,
+  PropagationCertification,
+} from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import type { PorkchopAxes } from "./transferData";
@@ -78,10 +81,11 @@ const ORIGIN_UNKNOWN: StateLike = {
  * Where the two bodies are on a porkchop's own time axes, asked of the game's
  * elected propagation provider rather than solved in the browser.
  *
- * The analytical model is named on every request rather than left to the
- * install's default: a transfer search is a two-body question by design, and a
- * grid that silently changed model when a default moved would look like the
- * transfer itself had changed.
+ * Every request names that it will read the answer past any horizon. A
+ * transfer search is a two-body question about instants nobody has reached, so
+ * a bound meant for how long osculating elements stand in for an integrated
+ * path does not apply to it; saying so keeps the grid from silently acquiring
+ * one when a default moves.
  *
  * Two dispatches per grid, one per body, each batching that body's whole axis:
  * a 32x32 grid is 64 body solves whichever side does them, and batching is
@@ -150,13 +154,13 @@ export function useBodyStatePropagators(
             bodyIndex: originIndex,
             centreBodyIndex: centreIndex,
             uts: departureUts,
-            model: TrajectoryKind.Analytic,
+            certification: PropagationCertification.Unbounded,
           }),
           dispatch({
             bodyIndex: destIndex,
             centreBodyIndex: centreIndex,
             uts: arrivalUts,
-            model: TrajectoryKind.Analytic,
+            certification: PropagationCertification.Unbounded,
           }),
         ]);
         if (!live) {

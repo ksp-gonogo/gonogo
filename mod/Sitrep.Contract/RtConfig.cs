@@ -516,6 +516,7 @@ public static class RtConfig
                 typeof(Situation),
                 typeof(TargetKind),
                 typeof(TransitionType),
+                typeof(PropagationCertification),
                 typeof(PropagationHorizonKind),
                 typeof(TrajectoryKind),
                 typeof(TrajectoryFrameKind),

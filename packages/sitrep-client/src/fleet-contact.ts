@@ -119,7 +119,8 @@ export type SilenceDeadlineBasis =
   | "no-occultation"
   | "no-emergence-in-window"
   | "warp-limited"
-  | "grace-exceeds-ceiling";
+  | "grace-exceeds-ceiling"
+  | "horizon-limited";
 
 /**
  * What an operator is actually being told, which is not the same as the
