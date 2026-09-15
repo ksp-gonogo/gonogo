@@ -38,6 +38,9 @@ export {
   type SubscriptionTopicResolver,
 } from "./carried-channels";
 export { parseServerMessage } from "./client";
+// The read contract: `useTelemetry` answers with a `Reading`, so the union and
+// its accessors ship on the author surface rather than app-side.
+export * from "./combine-readings";
 // Pure delayed-command derivations. Published because delay is ambient: an
 // Uplink rendering its own command surface needs the same mode/phase vocabulary
 // the app's rail uses, and there is nothing app-specific in deriving it.
@@ -279,8 +282,6 @@ export {
   type RawFieldSubtopic,
   splitRawFieldSubtopic,
 } from "./raw-field-split";
-// The read contract: `useTelemetry` answers with a `Reading`, so the union and
-// its accessors ship on the author surface rather than app-side.
 export * from "./reading";
 // Which VALUES the contract says a model can carry forward, and from which
 // published inputs. On the author surface because the promise is made to an API

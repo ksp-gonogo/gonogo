@@ -23,6 +23,23 @@ namespace Sitrep.Contract
 
         /// <summary>A quantity advanced by its last observed rate of change. Honest while the rate holds.</summary>
         public const string RateIntegration = "rate-integration";
+
+        /// <summary>
+        /// Arithmetic over several readings resolved against one view time. Carries
+        /// nothing forward itself: the forward step, where there was one, happened
+        /// inside each input under its own basis, so this is honest exactly as far
+        /// as its inputs are and no further.
+        /// </summary>
+        /// <remarks>
+        /// The one member no <c>[SitrepReckonable]</c> field will ever declare, and
+        /// that is correct rather than an oversight. This catalogue is the closed
+        /// set of arithmetic classes the project considers honest; it is not a
+        /// claim that every member is reachable from a contract declaration. A
+        /// combination is minted client-side by the published combinator from
+        /// values the wire already carries, so there is no single field for the
+        /// contract to mark.
+        /// </remarks>
+        public const string Combination = "combination";
     }
 
     /// <summary>

@@ -42,8 +42,18 @@ import type { Value } from "./unit-system/value";
  * - `rate-integration`: a quantity advanced by its last observed rate of
  *   change. Honest while the rate holds, which for a consumable means until
  *   something switches a converter, a light or a crew member
+ * - `combination`: arithmetic over several readings resolved against ONE view
+ *   time. The odd member, and it is worth saying why rather than leaving a
+ *   reader to assume it propagates anything: it carries nothing forward. The
+ *   other three answer "how did this number get from its observation to now";
+ *   this one answers "how did this number come to exist at all", and the
+ *   forward step, where there was one, happened inside each input under its
+ *   own basis. So it is honest exactly as far as its inputs are, and no
+ *   further: read {@link combineReadings} for the currency rule, and the
+ *   inputs themselves for what actually propagated
  */
 export type ReckoningBasis =
+  | "combination"
   | "kepler-propagation"
   | "linear-dead-reckoning"
   | "rate-integration";
