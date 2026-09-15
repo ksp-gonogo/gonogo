@@ -302,6 +302,14 @@ const RECKONED_BAND_EDGE_OPACITY = 0.45;
  * fails to compile here until it says what it did.
  */
 const RECKONING_BASIS_PHRASE: Record<ReckoningBasis, string> = {
+  /*
+   * Deliberately says nothing about carrying FORWARD, because a combination
+   * does not: it joins readings that already share a view time, and whatever
+   * propagation happened did so inside each input under that input's own
+   * basis. A phrase like "carried forward by combination" would tell a reader
+   * this figure was advanced through time, which is the one thing it was not.
+   */
+  combination: "computed from several readings of the same moment",
   "kepler-propagation": "propagated forward on two-body motion",
   "linear-dead-reckoning": "carried forward at the last observed velocity",
   "rate-integration": "integrated forward at the last observed rate",

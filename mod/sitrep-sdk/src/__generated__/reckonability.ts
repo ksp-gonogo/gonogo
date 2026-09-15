@@ -13,6 +13,7 @@
 
 /** The closed vocabulary of forward models (Sitrep.Contract.ReckoningBases). */
 export type GeneratedReckoningBasis =
+  | "combination"
   | "kepler-propagation"
   | "linear-dead-reckoning"
   | "rate-integration"
