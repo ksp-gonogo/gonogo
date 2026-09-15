@@ -177,7 +177,7 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
       if (narrowed) continue;
       // A function declared IN THIS FILE that takes a `Reading` is a narrowing too.
       // A widget with its own rule writes one rather than reaching for a shared
-      // accessor, and the receiver being typed `Reading<T>` is exactly what makes it
+      // accessor, and the receiver being typed `TopicReading<T>` is exactly what makes it
       // safe: the hazard this scan exists for is a receiver that accepts anything.
       if (
         localNarrowers(text).some((fn) =>
@@ -279,7 +279,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
    */
   it("counts a helper typed for any reading, and nothing typed unknown", () => {
     const helpers = [
-      "function describe<T>(r: Reading<T>): T | undefined { return undefined; }",
+      "function describe<T>(r: TopicReading<T>): T | undefined { return undefined; }",
       "const project = <T, K extends keyof T>(r: ReckonableReading<T, K>) => r;",
       "function plain<T>(r: UnmodelledReading<T>): T | undefined { return undefined; }",
       "function parseThing(raw: unknown): string | undefined { return undefined; }",

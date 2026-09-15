@@ -1,4 +1,4 @@
-import { type Reading, value } from "@ksp-gonogo/sitrep-sdk";
+import { type TopicReading, topicReading, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -25,26 +25,26 @@ const AT = value("ut", 1_000);
 /** What `formatKspDate` makes of {@link AT} on the stock calendar. */
 const AT_DATE = "Y1 D1 00:16:40";
 
-function observed(magnitude: number): Reading<ReturnType<typeof metres>> {
-  return {
+function observed(magnitude: number): TopicReading<ReturnType<typeof metres>> {
+  return topicReading({
     state: "observed",
-    reckoning: "none",
+    reckoning: { status: "none" },
     value: metres(magnitude),
     atUt: AT,
-  };
+  });
 }
 
 function stale(
   magnitude: number,
   grade: "held-stale" | "disconnected" | "last-before-blackout" | "recorded",
-): Reading<ReturnType<typeof metres>> {
-  return {
+): TopicReading<ReturnType<typeof metres>> {
+  return topicReading({
     state: "stale",
-    reckoning: "none",
+    reckoning: { status: "none" },
     value: metres(magnitude),
     asOfUt: AT,
     grade,
-  };
+  });
 }
 
 function metres(magnitude: number) {
@@ -106,19 +106,19 @@ describe("Unit: a reading that is current", () => {
     // A modelled figure replacing an observed one has to be a written choice at
     // the call site. A primitive doing it silently is the substitution the whole
     // type exists to prevent.
-    const withModel: Reading<ReturnType<typeof metres>> = {
+    const withModel: TopicReading<ReturnType<typeof metres>> = topicReading({
       state: "observed",
-      reckoning: "available",
       value: metres(12_400),
       atUt: AT,
-      reckoned: {
+      reckoning: {
+        status: "available",
         value: metres(99_900),
         atUt: AT,
         basis: "kepler-propagation",
         modelled: [],
         owner: "core",
       },
-    };
+    });
     const { container } = render(<Unit value={withModel} />);
     expect(visibleText(container)).toBe("12.4 km");
     expect(quantity(container).hasAttribute("data-not-current")).toBe(false);
@@ -130,7 +130,14 @@ describe("Unit: a reading with no number", () => {
     "pending",
     "unowned",
   ] as const)("renders the null token for %s", (state) => {
-    const { container } = render(<Unit value={{ state, reckoning: "none" }} />);
+    const { container } = render(
+      <Unit
+        value={topicReading<ReturnType<typeof metres>>({
+          state,
+          reckoning: { status: "none" },
+        })}
+      />,
+    );
     expect(visibleText(container)).toBe(NULL_DISPLAY);
   });
 
@@ -138,7 +145,13 @@ describe("Unit: a reading with no number", () => {
     // One treatment for three states. They differ in WHY there is no number,
     // and an operator reading one cell cannot act on the difference.
     const { container } = render(
-      <Unit value={{ state: "absent", reckoning: "none", atUt: AT }} />,
+      <Unit
+        value={topicReading<ReturnType<typeof metres>>({
+          state: "absent",
+          reckoning: { status: "none" },
+          atUt: AT,
+        })}
+      />,
     );
     expect(visibleText(container)).toBe(NULL_DISPLAY);
     expect(quantity(container).hasAttribute("data-not-current")).toBe(false);
@@ -148,7 +161,14 @@ describe("Unit: a reading with no number", () => {
     // `shown` is null rather than undefined precisely so a valueless reading
     // still takes the quantity path. Handed children as well, the reading wins.
     const { container } = render(
-      <Unit value={{ state: "pending", reckoning: "none" }}>km</Unit>,
+      <Unit
+        value={topicReading<ReturnType<typeof metres>>({
+          state: "pending",
+          reckoning: { status: "none" },
+        })}
+      >
+        km
+      </Unit>,
     );
     expect(visibleText(container)).toBe(NULL_DISPLAY);
   });
@@ -297,13 +317,13 @@ describe("Unit: when the reading was last valid", () => {
     // the null token.
     const { container } = render(
       <Unit
-        value={{
+        value={topicReading({
           state: "stale",
-          reckoning: "none",
+          reckoning: { status: "none" },
           value: metres(12_400),
           asOfUt: value("ut", Number.NaN),
           grade: "held-stale",
-        }}
+        })}
       />,
     );
     expect(quantity(container).getAttribute("title")).toBe("STALE");
@@ -342,7 +362,12 @@ describe("Unit: the staleness slot is announced", () => {
       <div>
         <Unit value={stale(12_400, "held-stale")} />
         <Unit value={observed(12_400)} />
-        <Unit value={{ state: "pending", reckoning: "none" }} />
+        <Unit
+          value={topicReading<ReturnType<typeof metres>>({
+            state: "pending",
+            reckoning: { status: "none" },
+          })}
+        />
       </div>,
     );
     await expectNoA11yViolations(container);

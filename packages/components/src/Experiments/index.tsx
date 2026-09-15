@@ -5,7 +5,7 @@ import {
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
+import { type TopicReading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -87,7 +87,7 @@ const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

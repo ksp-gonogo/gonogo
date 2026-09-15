@@ -5,7 +5,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Reading } from "./reading";
+import type { TopicReading } from "./reading";
 import {
   clearReckoners,
   registerCoreReckoners,
@@ -263,7 +263,7 @@ function scene(
         );
       }
     },
-    at(viewUt: number): Reading<FlightSample> {
+    at(viewUt: number): TopicReading<FlightSample> {
       wall = viewUt;
       store.beginFrame();
       return store.sampleReading<FlightSample>("vessel.flight");
@@ -307,9 +307,11 @@ const CROSSING_BAND = [
 ] as const;
 
 /** The reckoned altitude, or `undefined` where the model withdrew. */
-function reckonedAltitude(reading: Reading<FlightSample>): number | undefined {
-  return reading.reckoning === "available"
-    ? reading.reckoned.value.altitudeAsl.magnitude
+function reckonedAltitude(
+  reading: TopicReading<FlightSample>,
+): number | undefined {
+  return reading.reckoning.status === "available"
+    ? reading.reckoning.value.altitudeAsl.magnitude
     : undefined;
 }
 
@@ -328,10 +330,12 @@ describe("the handover between the conic and the air", () => {
     // time across the window, not from its sample count.
     const reading = s.at(13);
 
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(reckonedAltitude(reading)).toBeCloseTo(56_827.5, 6);
     expect(
-      reading.reckoning === "available" ? reading.reckoned.basis : undefined,
+      reading.reckoning.status === "available"
+        ? reading.reckoning.basis
+        : undefined,
     ).toBe("rate-integration");
   });
 
@@ -346,12 +350,13 @@ describe("the handover between the conic and the air", () => {
     s.descend(UNEVEN_DESCENT);
     const reading = s.at(13);
 
-    if (reading.reckoning !== "available") throw new Error("expected a model");
-    expect(reading.reckoned.modelled).toEqual([
+    if (reading.reckoning.status !== "available")
+      throw new Error("expected a model");
+    expect(reading.reckoning.modelled).toEqual([
       { path: "", basis: "rate-integration" },
       { path: "altitudeAsl", basis: "rate-integration" },
     ]);
-    expect(reading.reckoned.value.orbitalSpeed.magnitude).toBe(2200);
+    expect(reading.reckoning.value.orbitalSpeed.magnitude).toBe(2200);
   });
 
   it("flips from the conic to the air at the atmosphere depth, and never to neither", () => {
@@ -376,13 +381,13 @@ describe("the handover between the conic and the air", () => {
     const readingBelow = below.at(3);
 
     expect(
-      readingAbove.reckoning === "available"
-        ? readingAbove.reckoned.basis
+      readingAbove.reckoning.status === "available"
+        ? readingAbove.reckoning.basis
         : "declined",
     ).toBe("kepler-propagation");
     expect(
-      readingBelow.reckoning === "available"
-        ? readingBelow.reckoned.basis
+      readingBelow.reckoning.status === "available"
+        ? readingBelow.reckoning.basis
         : "declined",
     ).toBe("rate-integration");
   });
@@ -416,9 +421,11 @@ describe("the handover between the conic and the air", () => {
 
     const reading = s.at(VIEW);
 
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(
-      reading.reckoning === "available" ? reading.reckoned.basis : undefined,
+      reading.reckoning.status === "available"
+        ? reading.reckoning.basis
+        : undefined,
     ).toBe("rate-integration");
     // 72000 + (-400)(6) + 0.5(-7.9)(36), the observed rates carried six seconds.
     expect(reckonedAltitude(reading)).toBeCloseTo(69_457.8, 6);
@@ -449,11 +456,13 @@ describe("the handover between the conic and the air", () => {
     const overVacuum = vacuum.at(3);
 
     expect(
-      overAir.reckoning === "available" ? overAir.reckoned.basis : "declined",
+      overAir.reckoning.status === "available"
+        ? overAir.reckoning.basis
+        : "declined",
     ).toBe("rate-integration");
     expect(
-      overVacuum.reckoning === "available"
-        ? overVacuum.reckoned.basis
+      overVacuum.reckoning.status === "available"
+        ? overVacuum.reckoning.basis
         : "declined",
     ).toBe("kepler-propagation");
   });
@@ -479,8 +488,9 @@ describe("the handover between the conic and the air", () => {
 
     const reading = s.at(3);
 
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "beyond-horizon", input: "@system.bodies" },
     });
   });
@@ -494,8 +504,9 @@ describe("what the descent withdraws on", () => {
     // gForce 2 on the newest sample, so the horizon is 15/2 = 7.5 seconds.
     const reading = s.at(20);
 
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "beyond-horizon" },
     });
   });
@@ -519,9 +530,9 @@ describe("what the descent withdraws on", () => {
     ]);
 
     // Ten seconds past the observation: inside 15 s, outside 15/6 = 2.5 s.
-    expect(steady.at(12).reckoning).toBe("available");
-    expect(violent.at(12)).toMatchObject({
-      reckoning: "none",
+    expect(steady.at(12).reckoning.status).toBe("available");
+    expect(violent.at(12).reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "beyond-horizon" },
     });
   });
@@ -538,8 +549,9 @@ describe("what the descent withdraws on", () => {
 
     const reading = s.at(3);
 
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: {
         reason: "insufficient-history",
         note: expect.stringContaining("the window holds 1"),
@@ -562,8 +574,8 @@ describe("what the descent withdraws on", () => {
       { at: 6, altitudeAsl: 58_000, verticalSpeed: -240, gapSinceUt: 3 },
     ]);
 
-    expect(s.at(8)).toMatchObject({
-      reckoning: "none",
+    expect(s.at(8).reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "insufficient-history" },
     });
   });
@@ -599,8 +611,8 @@ describe("what the descent withdraws on", () => {
       { at: 3, altitudeAsl: 60_000, verticalSpeed: -200 },
     ]);
 
-    expect(s.at(5)).toMatchObject({
-      reckoning: "none",
+    expect(s.at(5).reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "insufficient-history" },
     });
   });
@@ -622,8 +634,8 @@ describe("what the descent withdraws on", () => {
 
     const reading = s.at(2);
 
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
       declined: { note: expect.stringContaining("change of regime") },
     });
   });
@@ -645,7 +657,8 @@ describe("what the descent withdraws on", () => {
       "vessel.flight",
       partialFlightPoint(1, { altitudeAsl: value("m", 59_800) }),
     );
-    expect(noRate.at(3)).toMatchObject({
+    expect(noRate.at(3).reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "verticalSpeed" },
     });
 
@@ -659,7 +672,8 @@ describe("what the descent withdraws on", () => {
         }),
       );
     }
-    expect(noBound.at(3)).toMatchObject({
+    expect(noBound.at(3).reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "gForce" },
     });
   });
@@ -679,8 +693,9 @@ describe("what the descent withdraws on", () => {
     const reading = s.at(10);
 
     expect(reading.state).toBe("observed");
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: { note: expect.stringContaining("the observation is current") },
     });
   });
@@ -857,9 +872,9 @@ const FAINTLY_SCATTERED = SCATTERED_DESCENT.map((s, i) => ({
 }));
 
 /** The band the model offers about the altitude, or `undefined` where it offers none. */
-function altitudeBand(reading: Reading<FlightSample>) {
-  return reading.reckoning === "available"
-    ? reading.reckoned.bands?.altitudeAsl
+function altitudeBand(reading: TopicReading<FlightSample>) {
+  return reading.reckoning.status === "available"
+    ? reading.reckoning.bands?.altitudeAsl
     : undefined;
 }
 
@@ -910,7 +925,7 @@ describe("how well the descent fit knows the altitude it carried", () => {
     // degree of freedom left to estimate a spread from. The model still
     // answers: two samples is its own declared floor, and what it withholds is
     // the CLAIM about how well it knows the answer, not the answer.
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(reckonedAltitude(reading)).toBeDefined();
     expect(altitudeBand(reading)).toBeUndefined();
   });
@@ -926,7 +941,7 @@ describe("how well the descent fit knows the altitude it carried", () => {
     // estimate rather than evidence that an extrapolation is exact, and a
     // zero-width band would be read downstream as the second thing.
     // `ReckonedBands` would rather have none.
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(altitudeBand(reading)).toBeUndefined();
   });
 
@@ -942,7 +957,7 @@ describe("how well the descent fit knows the altitude it carried", () => {
     // withdrawal that asks whether they are exactly zero reads them as evidence:
     // what came out was a `sigma1` interval 3e-14 m wide, which a consumer draws
     // with both ends on the same number and captions as a one-sigma claim.
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(reckonedAltitude(reading)).toBeCloseTo(56_826.6, 6);
     expect(altitudeBand(reading)).toBeUndefined();
   });
@@ -957,7 +972,7 @@ describe("how well the descent fit knows the altitude it carried", () => {
     // speeds, so a guard scaled by the speeds alone offers a 5.6e-10 m interval
     // here and misses every frame of the handover set for the same reason. UT is
     // the larger magnitude in the arithmetic on every save but a brand new one.
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(reckonedAltitude(reading)).toBeCloseTo(56_827.5, 6);
     expect(altitudeBand(reading)).toBeUndefined();
   });
@@ -1059,7 +1074,7 @@ describe("the altitude band through the store's input-rule walk", () => {
     };
   }
 
-  function widthOf(reading: Reading<FlightSample>): number | undefined {
+  function widthOf(reading: TopicReading<FlightSample>): number | undefined {
     const band = altitudeBand(reading);
     return band && band.hi.magnitude - band.lo.magnitude;
   }
@@ -1075,8 +1090,9 @@ describe("the altitude band through the store's input-rule walk", () => {
 
     const reading = s.at(13);
 
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "beyond-horizon", input: "@system.bodies" },
     });
   });
@@ -1089,7 +1105,7 @@ describe("the altitude band through the store's input-rule walk", () => {
 
     // The control for the case above: one second earlier, nothing has run out
     // and the same frame is carried.
-    expect(s.at(11).reckoning).toBe("available");
+    expect(s.at(11).reckoning.status).toBe("available");
   });
 
   it("holds the band no narrower once an input declares an interval of its own", () => {

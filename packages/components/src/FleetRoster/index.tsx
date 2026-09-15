@@ -8,7 +8,7 @@ import {
 import {
   contactPhase,
   overdueSeconds,
-  type Reading,
+  type TopicReading,
   useFleetVesselContact,
   useFleetVesselLink,
   useFleetVesselSilence,
@@ -105,7 +105,7 @@ const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

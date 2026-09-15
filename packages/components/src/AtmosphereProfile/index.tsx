@@ -128,9 +128,16 @@ function AtmosphereProfileComponent({
    * it is written here rather than hidden in a helper because choosing to draw a
    * modelled altitude beside an observed density IS the judgement.
    */
+  /* The observation is reached first because `reckoning.status` narrows the
+     reckoning and not the arm carrying it: a nested discriminant says nothing
+     about which state has a value. */
+  const flightObserved =
+    flightReading.state === "observed" || flightReading.state === "stale"
+      ? flightReading.value
+      : undefined;
   const flight =
-    flightReading.reckoning === "available"
-      ? { ...flightReading.value, ...flightReading.reckoned.value }
+    flightObserved && flightReading.reckoning.status === "available"
+      ? { ...flightObserved, ...flightReading.reckoning.value }
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
@@ -248,7 +255,9 @@ function AtmosphereProfileComponent({
      saying the readings are gone beside the density they produced is the one
      reading of this the operator cannot make sense of. */
   const showNotCurrentNotice =
-    chipFits && flightNotCurrent && flightReading.reckoning === "none";
+    chipFits &&
+    flightNotCurrent &&
+    flightReading.reckoning.status !== "available";
 
   return (
     <Fill>

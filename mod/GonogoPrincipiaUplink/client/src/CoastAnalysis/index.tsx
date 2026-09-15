@@ -1,4 +1,4 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
   useTelemetry,
@@ -28,7 +28,7 @@ import { PRINCIPIA } from "../uplink";
 import "../topics";
 
 function coastsOf(
-  reading: Reading<PrincipiaAnalysis>,
+  reading: TopicReading<PrincipiaAnalysis>,
 ): PrincipiaCoastAnalysis[] | null {
   switch (reading.state) {
     case "pending":

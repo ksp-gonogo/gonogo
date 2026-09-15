@@ -148,9 +148,16 @@ function useSpaceWeather(): SpaceWeatherRead {
   // field is overlaid on the observation rather than replacing it. The dot below
   // is placed from the altitude, which is exactly the field the model moves, so
   // this is the read the mark exists for.
+  /* The observation first, because `reckoning.status` narrows the reckoning and
+     not the arm it sits on: a nested discriminant tells the compiler nothing
+     about which state carries a value. */
+  const flightValue =
+    flightReading.state === "observed" || flightReading.state === "stale"
+      ? flightReading.value
+      : undefined;
   const flight =
-    flightReading.reckoning === "available"
-      ? { ...flightReading.value, ...flightReading.reckoned.value }
+    flightValue && flightReading.reckoning.status === "available"
+      ? { ...flightValue, ...flightReading.reckoning.value }
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;

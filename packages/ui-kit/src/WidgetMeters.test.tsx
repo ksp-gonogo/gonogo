@@ -1,4 +1,4 @@
-import { type Reading, value } from "@ksp-gonogo/sitrep-sdk";
+import { type TopicReading, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -70,10 +70,10 @@ const BANDED_DOSE = {
   ...DOSE,
   value: {
     state: "observed",
-    reckoning: "available",
     value: 0.4,
     atUt: value("ut", 9_000),
-    reckoned: {
+    reckoning: {
+      status: "available",
       value: 0.4,
       atUt: value("ut", 9_000),
       basis: "linear-dead-reckoning",
@@ -88,7 +88,7 @@ const BANDED_DOSE = {
         },
       },
     },
-  } satisfies Reading<number>,
+  } satisfies TopicReading<number>,
 };
 
 describe("WidgetMeters", () => {

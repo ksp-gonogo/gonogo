@@ -24,7 +24,7 @@ import type {
   CommandReply,
 } from "../commands";
 import type { RailTags } from "../rail-tags";
-import type { Reading } from "../reading";
+import type { TopicReading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   TopicId,
@@ -318,7 +318,7 @@ export interface MeterEntry {
    * same axis the bar is drawn on, or the meter has nothing to place and draws
    * no marks.
    */
-  value: number | Reading<number>;
+  value: number | TopicReading<number>;
   /** Semantic colour of the fill. Inlined for the reason `BadgeEntry.tone` is. */
   tone?: "neutral" | "go" | "warn" | "nogo" | "info";
   /** Text on the right of the header; a percentage when absent. */

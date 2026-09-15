@@ -9,7 +9,7 @@ import { ManeuverPlannerComponent } from "./index";
 
 /**
  * Characterisation of every place ManeuverPlanner reads `undefined` off
- * telemetry, recorded BEFORE `useTelemetry` becomes `Reading<T>`.
+ * telemetry, recorded BEFORE `useTelemetry` becomes `TopicReading<T>`.
  *
  * The widget currently reads `undefined` with four different meanings, and
  * nothing in the codebase says which is which:

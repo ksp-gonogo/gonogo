@@ -12,7 +12,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetingComponent } from "./index";
 
 /**
- * The `Reading<T>` proof. Targeting carried the worst defect the
+ * The `TopicReading<T>` proof. Targeting carried the worst defect the
  * absence-gate audit found: `tarName === undefined` rendered **"No target set
  * in KSP"**, a positive claim about game state derived from the absence of a
  * frame. A dropped link said "no target set". `vessel.target` is declared

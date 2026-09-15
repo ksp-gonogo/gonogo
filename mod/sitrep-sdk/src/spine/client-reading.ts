@@ -1,10 +1,11 @@
 import type {
   ModelledField,
-  Reading,
   ReckonableReading,
   ReckonerFor,
   ReckoningDecline,
+  TopicReading,
 } from "../reading";
+import { topicReading } from "../reading";
 import { value } from "../unit-system/value";
 
 /**
@@ -23,6 +24,7 @@ import { value } from "../unit-system/value";
 
 export type {
   BandKind,
+  DeclaredTopicReckoning,
   ModelledField,
   Reading,
   ReadingReckoning,
@@ -36,8 +38,14 @@ export type {
   Reckoning,
   ReckoningBasis,
   ReckoningDecline,
+  ReservedReadingKey,
   StaleGrade,
+  TopicCurrency,
+  TopicFields,
   TopicModel,
+  TopicReading,
+  TopicReckoning,
+  TopicReckoningAvailable,
   UncertaintyBand,
   UnmodelledReading,
 } from "../reading";
@@ -46,10 +54,12 @@ export {
   bandIn,
   bandIsWellFormed,
   bandSide,
+  fieldReckoning,
   hasAnswered,
   observedAt,
   observedValue,
   readingOf,
+  topicReading,
   withoutReckoning,
 } from "../reading";
 
@@ -70,7 +80,7 @@ function rootCoverage(model: {
  * thin and this is what gets tested.
  *
  * With no reckoner, one that declines, or one whose coverage does not reach the
- * payload root, the reading is `reckoning: "none"` whatever its `state`. That is
+ * payload root, the reading is `reckoning: { status: "none" }` whatever its `state`. That is
  * deliberately the default: absence of a model is a real statement ("nothing
  * trustworthy can be said"), so nothing here invents one, and a model that moves
  * one field of forty-seven has not modelled the payload a whole-topic read asks
@@ -113,7 +123,7 @@ export function readingFrom<T>(
   unowned?: boolean,
   declined?: undefined,
   owner?: string,
-): Reading<T>;
+): TopicReading<T>;
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
@@ -131,22 +141,24 @@ export function readingFrom<T>(
   unowned = false,
   declined?: ReckoningDecline,
   owner = "core",
-): Reading<T> | ReckonableReading<T, keyof T> {
+): TopicReading<T> | ReckonableReading<T, keyof T> {
   if (!point || status === "resyncing") {
-    return unowned
-      ? { state: "unowned", reckoning: "none" }
-      : { state: "pending", reckoning: "none" };
+    return topicReading(
+      unowned
+        ? { state: "unowned", reckoning: { status: "none" } }
+        : { state: "pending", reckoning: { status: "none" } },
+    );
   }
   // A tombstone outranks every staleness grade, the same precedence
   // `sampleRawStatus` uses and for the same reason: a confirmed absence is a
   // stronger claim than "may have changed, cannot tell". It also has no
   // observed VALUE to carry, so nothing here could model it anyway.
   if (point.payload === null || status === "absent") {
-    return {
+    return topicReading({
       state: "absent",
-      reckoning: "none",
+      reckoning: { status: "none" },
       atUt: value("ut", point.validAt),
-    };
+    });
   }
   const live = status === "live";
   /*
@@ -166,64 +178,47 @@ export function readingFrom<T>(
    */
   const model = reckoner?.(point, live ? undefined : status, viewUt);
   const root = model && rootCoverage(model);
+  const modelled =
+    model && root
+      ? ({
+          status: "available",
+          value: model.reckon(viewUt),
+          atUt: value("ut", viewUt),
+          basis: root.basis,
+          modelled: model.modelled,
+          owner,
+          /*
+           * Asked only where the model was actually used, and at the same
+           * `viewUt` it was reckoned for, so a model sharing work between the
+           * two can cache on the argument.
+           */
+          bands: model.bandAt?.(viewUt),
+        } as const)
+      : undefined;
+  /*
+   * The three reckoning arms in the order the type ranks them: a model that
+   * answered, a declared model that said why it could not, and the silence of a
+   * topic nothing ever promised one for. A caller passing `declined` for a
+   * topic whose model DID answer gets the answer, which is the point of the
+   * decline being an arm rather than a field sitting beside one.
+   */
+  const reckoning = modelled ??
+    (declined ? ({ status: "declined", declined } as const) : undefined) ?? {
+      status: "none" as const,
+    };
   if (live) {
-    if (!model || !root) {
-      const observed = {
-        state: "observed" as const,
-        reckoning: "none" as const,
-        value: point.payload,
-        atUt: value("ut", point.validAt),
-      };
-      return declined ? { ...observed, declined } : observed;
-    }
-    return {
+    return topicReading({
       state: "observed",
-      reckoning: "available",
+      reckoning,
       value: point.payload,
       atUt: value("ut", point.validAt),
-      reckoned: {
-        value: model.reckon(viewUt),
-        atUt: value("ut", viewUt),
-        basis: root.basis,
-        modelled: model.modelled,
-        owner,
-        /*
-         * Asked only where the model was actually used, and at the same
-         * `viewUt` it was reckoned for, so a model sharing work between the
-         * two can cache on the argument.
-         */
-        bands: model.bandAt?.(viewUt),
-      },
-    };
+    });
   }
-  if (model && root) {
-    return {
-      state: "stale",
-      reckoning: "available",
-      value: point.payload,
-      asOfUt: value("ut", point.validAt),
-      grade: status,
-      reckoned: {
-        value: model.reckon(viewUt),
-        atUt: value("ut", viewUt),
-        basis: root.basis,
-        modelled: model.modelled,
-        owner,
-        /*
-         * Asked only where the model was actually used, and at the same
-         * `viewUt` it was reckoned for, so a model sharing work between the
-         * two can cache on the argument.
-         */
-        bands: model.bandAt?.(viewUt),
-      },
-    };
-  }
-  const stale = {
-    state: "stale" as const,
-    reckoning: "none" as const,
+  return topicReading({
+    state: "stale",
+    reckoning,
     value: point.payload,
     asOfUt: value("ut", point.validAt),
     grade: status,
-  };
-  return declined ? { ...stale, declined } : stale;
+  });
 }

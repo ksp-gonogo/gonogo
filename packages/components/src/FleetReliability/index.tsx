@@ -3,7 +3,7 @@ import {
   type SlotProps,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
+import { type TopicReading, useCommand } from "@ksp-gonogo/sitrep-client";
 import type { CrewMember, RepairCostItem } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ReliabilityBudget,
@@ -106,7 +106,7 @@ type UpdatesProps = SlotProps<"fleet-roster.updates">;
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

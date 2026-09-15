@@ -156,8 +156,8 @@ function TrajectoryCurrencyContribution() {
   const reading = useTelemetry(TRAJECTORY_TOPIC);
   const viewUt = magnitudeOf(useViewUt());
   const orbit =
-    reading.reckoning === "available"
-      ? reading.reckoned.value
+    reading.reckoning.status === "available"
+      ? reading.reckoning.value
       : reading.state === "observed"
         ? reading.value
         : undefined;

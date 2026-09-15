@@ -109,9 +109,9 @@ describe("a per-topic model, expressed per field", () => {
     const position = store.sampleReading<{ x: number }>(
       "test.target.relativePosition",
     );
-    expect(position.reckoning).toBe("available");
-    if (position.reckoning !== "available") return;
-    const reckoning = position.reckoned;
+    expect(position.reckoning.status).toBe("available");
+    if (position.reckoning.status !== "available") return;
+    const reckoning = position.reckoning;
     expect(reckoning.value).toEqual({ x: 1600 });
     expect(reckoning.atUt).toEqual(value("ut", 160));
     expect(reckoning.basis).toBe("linear-dead-reckoning");
@@ -120,7 +120,7 @@ describe("a per-topic model, expressed per field", () => {
     // sibling is offered no model at all: it is the reckoning axis that says
     // so, both fields being equally stale.
     const name = store.sampleReading<string>("test.target.name");
-    expect(name.reckoning).toBe("none");
+    expect(name.reckoning.status).toBe("none");
     expect(name.state).toBe("stale");
   });
 
@@ -136,7 +136,9 @@ describe("a per-topic model, expressed per field", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<Target>("test.target").reckoning).toBe("none");
+    expect(store.sampleReading<Target>("test.target").reckoning.status).toBe(
+      "none",
+    );
   });
 
   it("carries the OBSERVED field value beside the reckoning, not the modelled one", () => {
@@ -155,7 +157,7 @@ describe("a per-topic model, expressed per field", () => {
     const position = store.sampleReading<{ x: number }>(
       "test.target.relativePosition",
     );
-    if (position.reckoning !== "available")
+    if (position.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
     if (position.state !== "stale") throw new Error("expected stale");
     expect(position.value).toEqual({ x: 1000 });
@@ -176,9 +178,9 @@ describe("a per-topic model, expressed per field", () => {
     store.beginFrame();
 
     const x = store.sampleReading<number>("test.target.relativePosition.x");
-    expect(x.reckoning).toBe("available");
-    if (x.reckoning !== "available") return;
-    expect(x.reckoned.value).toBe(1600);
+    expect(x.reckoning.status).toBe("available");
+    if (x.reckoning.status !== "available") return;
+    expect(x.reckoning.value).toBe(1600);
   });
 
   it("does not treat a covered path as a prefix of an unrelated sibling", () => {
@@ -208,7 +210,8 @@ describe("a per-topic model, expressed per field", () => {
     store.beginFrame();
 
     expect(
-      store.sampleReading<number>("test.dock.relativePositionError").reckoning,
+      store.sampleReading<number>("test.dock.relativePositionError").reckoning
+        .status,
     ).toBe("none");
   });
 });
@@ -252,7 +255,7 @@ describe("a topic two owners both model is served with neither", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<Target>("test.target");
-    expect(reading.reckoning).toBe("none");
+    expect(reading.reckoning.status).toBe("none");
     expect(reading.state).toBe("stale");
     expect(getReckonerConflicts()).toEqual([
       { topic: "test.target", owners: ["n-body-model", "two-body-model"] },
@@ -322,9 +325,9 @@ describe("every path to a reckoning shares the one cache", () => {
     const position = store.sampleReading<{ x: number }>(
       "test.target.relativePosition",
     );
-    if (position.reckoning !== "available")
+    if (position.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(position.reckoned).toBe(position.reckoned);
+    expect(position.reckoning).toBe(position.reckoning);
     expect(runs).toBe(1);
   });
 });

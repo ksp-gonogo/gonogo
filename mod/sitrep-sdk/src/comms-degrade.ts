@@ -1,5 +1,5 @@
 import type { CommsDegrade } from "./__generated__/contract";
-import type { Reading } from "./reading";
+import type { TopicCurrency } from "./reading";
 
 /**
  * A link grading a consumer can act on: how degraded the link is, plus which
@@ -77,7 +77,7 @@ export function degradeRatingOf(
  * read both.
  */
 export function degradeRating(
-  reading: Reading<CommsDegrade>,
+  reading: TopicCurrency<CommsDegrade>,
 ): DegradeRating | undefined {
   switch (reading.state) {
     case "observed":

@@ -24,7 +24,7 @@ import { trackedModClientRoots } from "./styleguideScanRoots";
  * single-view-time invariant exist to prevent, and under a signal delay it also
  * silently conflates UT with wall time.
  *
- * This ratchet exists BEFORE the `Reading<T>` sweep rather than after it,
+ * This ratchet exists BEFORE the `TopicReading<T>` sweep rather than after it,
  * deliberately: the sweep touches thirty-nine widgets and each one grows an
  * age rendering. A guardrail landed afterwards is a guardrail that has to be
  * paid for twice.

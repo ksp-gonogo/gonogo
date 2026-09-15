@@ -41,7 +41,7 @@ import {
   whyNotSendable,
 } from "../plan-composition";
 import { type PlanDraft, PlanDraftStore } from "../plan-drafts";
-import type { Reading, ReckonableReading } from "../reading";
+import type { ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -503,7 +503,7 @@ export function useTelemetry<T extends TopicId>(
       TopicPayload<T>,
       ReckonableFields<T> & keyof TopicPayload<T>
     >
-  : Reading<TopicPayload<T>>;
+  : TopicReading<TopicPayload<T>>;
 /**
  * Legacy two-arg overload, reading ONE field rather than a Topic's payload:
  * `dataSourceId` names a registered non-Sitrep source (`"kos"`, `"camera"`) or

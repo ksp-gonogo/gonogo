@@ -115,25 +115,27 @@ describe("the handover render set reaches the models it says it does", () => {
          * an assertion on absence alone would not have told the two apart.
          */
         const reading = readFlight(fixture);
-        expect(reading.reckoning).toBe("none");
         expect(reading.state).toBe("stale");
-        if (!("declined" in reading)) {
+        if (reading.reckoning.status !== "declined") {
           throw new Error(
             "a declared-reckonable topic must say why it declined",
           );
         }
-        expect(reading.declined.reason).toBe(decline?.reason);
-        expect(reading.declined.input).toBe(decline?.input);
+        expect(reading.reckoning.declined.reason).toBe(decline?.reason);
+        expect(reading.reckoning.declined.input).toBe(decline?.input);
       });
       continue;
     }
 
     it(`${scenario}: the altitude is carried by ${expectedBasis}`, () => {
       const reading = readFlight(fixture);
-      if (reading.reckoning !== "available") {
+      if (reading.reckoning.status !== "available") {
         throw new Error(
-          `expected a model, got reckoning "${reading.reckoning}" (state "${reading.state}")`,
+          `expected a model, got reckoning "${reading.reckoning.status}" (state "${reading.state}")`,
         );
+      }
+      if (reading.state !== "observed" && reading.state !== "stale") {
+        throw new Error(`expected an observation, got "${reading.state}"`);
       }
       /*
        * The ROOT entry, which is the one a whole-topic read is answered by, and
@@ -143,13 +145,13 @@ describe("the handover render set reaches the models it says it does", () => {
        * verbatim, so the pair of assertions is also what tells the two branches
        * apart on the wire rather than by their arithmetic.
        */
-      expect(reading.reckoned.basis).toBe(expectedBasis);
-      expect(reading.reckoned.modelled).toEqual(
+      expect(reading.reckoning.basis).toBe(expectedBasis);
+      expect(reading.reckoning.modelled).toEqual(
         expect.arrayContaining([{ path: "altitudeAsl", basis: expectedBasis }]),
       );
       // And the carried altitude is genuinely a different number from the
       // observation, or the picture would be showing an identity projection.
-      expect(reading.reckoned.value.altitudeAsl.toWire()).not.toBe(
+      expect(reading.reckoning.value.altitudeAsl.toWire()).not.toBe(
         reading.value.altitudeAsl.toWire(),
       );
     });

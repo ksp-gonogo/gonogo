@@ -3,8 +3,8 @@ import {
   bandFor,
   bandIn,
   value as quantity,
-  type Reading,
   readingOf,
+  type TopicReading,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
@@ -83,7 +83,7 @@ export type MeterPayload<U extends string = string> = number | MeterQuantity<U>;
 /** The internal, normalised form of either prop. See {@link MeterPayload}. */
 type MeterInput<U extends string> =
   | MeterPayload<U>
-  | Reading<MeterPayload<U>>
+  | TopicReading<MeterPayload<U>>
   | null;
 
 /** The meter driven by a pre-divided fraction. See {@link MeterProps}. */
@@ -113,7 +113,7 @@ export interface MeterFractionProps extends MeterCommonProps {
    * one the meter cannot place on this track and it draws none; see
    * {@link MeterProps} on why silence beats a guess.
    */
-  value: number | Reading<number> | null;
+  value: number | TopicReading<number> | null;
   quantity?: never;
   format?: never;
 }
@@ -133,7 +133,7 @@ export interface MeterQuantityProps<U extends string = string>
    * and in the amount's own unit: the capacity is the axis rather than the
    * reading, so an interval about it is not something this track can draw.
    */
-  quantity: MeterQuantity<U> | Reading<MeterQuantity<U>> | null;
+  quantity: MeterQuantity<U> | TopicReading<MeterQuantity<U>> | null;
   /**
    * Pin the rung both halves are shown at, for the cases where convention
    * beats magnitude.
@@ -306,7 +306,7 @@ function unwrap<U extends string>(
   input: MeterInput<U> | undefined,
 ): {
   drawn: MeterPayload<U> | null;
-  reading: Reading<MeterPayload<U>> | null;
+  reading: TopicReading<MeterPayload<U>> | null;
 } {
   if (typeof input !== "object" || input === null || !("state" in input)) {
     return { drawn: input ?? null, reading: null };
@@ -329,9 +329,9 @@ function unwrap<U extends string>(
  * model spoke about, and `<Unit>` would ignore a reckoning anyway.
  */
 function currencyOf<T, R>(
-  reading: Reading<T> | null,
+  reading: TopicReading<T> | null,
   shown: R,
-): R | Reading<R> {
+): R | TopicReading<R> {
   return reading === null ? shown : readingOf(reading, () => shown);
 }
 
@@ -367,13 +367,13 @@ interface MeterBounds {
  * to be a fraction of and nothing to place.
  */
 function boundsOn<U extends string>(
-  reading: Reading<unknown> | null,
+  reading: TopicReading<unknown> | null,
   path: string,
   unit: U,
   capacity: Value<U> | null,
 ): MeterBounds | null {
-  if (reading === null || reading.reckoning !== "available") return null;
-  const band = bandIn(bandFor(reading.reckoned, path), unit);
+  if (reading === null || reading.reckoning.status !== "available") return null;
+  const band = bandIn(bandFor(reading.reckoning, path), unit);
   if (!band) return null;
   const said = { loSaid: band.lo, hiSaid: band.hi, kind: band.kind };
   /*
@@ -572,7 +572,7 @@ function MeterQuantityBar<U extends string = string>({
 }: Omit<MeterBarProps, "display" | "spoken" | "bounds"> &
   Pick<MeterQuantityProps<U>, "valueLabel" | "valueLabelNode"> & {
     pair: MeterQuantity<U>;
-    reading: Reading<MeterPayload<U>> | null;
+    reading: TopicReading<MeterPayload<U>> | null;
   }) {
   // A pair a caller has overridden in BOTH forms is neither drawn nor spoken,
   // so it takes no part in the group: reporting it would move an enclosing

@@ -56,7 +56,12 @@ export type ReckoningBasis =
  * was made at (`Reading`'s `asOfUt` carries that). Both are needed: an operator
  * reads a modelled figure against how far it has been carried.
  */
-export interface Reckoning<T> {
+export interface TopicReckoningAvailable<T> {
+  /**
+   * The discriminant, spelled the same way {@link Reckoning}'s is so a caller
+   * asks one question of a topic and of a field.
+   */
+  readonly status: "available";
   value: T;
   atUt: Value<"ut">;
   basis: ReckoningBasis;
@@ -102,7 +107,42 @@ export interface Reckoning<T> {
   readonly bands?: ReckonedBands;
 }
 
-/** One path a model moved, and what moved it. See {@link Reckoning.modelled}. */
+/**
+ * What a whole-topic read can say about a model: it ran, nothing offered one,
+ * or one was declared and refused to answer for this frame.
+ *
+ * Per PATH rather than per value, because a topic genuinely has many fields and
+ * one model rarely moves all of them: `modelled` names the paths it moved and
+ * `bands` says how far it would defend each. That is the ONE difference from
+ * {@link Reckoning}, which answers for a single value and therefore needs
+ * neither map. The discriminant is the same word on both, so a caller asks
+ * `status` of a topic exactly as they ask it of a field.
+ *
+ * `"declined"` is only reachable on a topic whose contract DECLARES a value
+ * reckonable: see {@link ReckoningDecline} for why a refusal there has to say
+ * which input failed it, where an undeclared topic's `"none"` explains nothing
+ * because nothing promised it a model.
+ */
+export type TopicReckoning<T> =
+  | TopicReckoningAvailable<T>
+  | { readonly status: "none" }
+  | { readonly status: "declined"; readonly declined: ReckoningDecline };
+
+/**
+ * The arms a DECLARED value's topic reading may carry: it answered, or it said
+ * why it could not. Never the silent `"none"`.
+ *
+ * The declaration is a promise that the wire carries the model's inputs, so on
+ * a value-bearing arm there is no such thing as nothing-to-say. Dropping
+ * `"none"` here is what makes that promise a compile-time fact rather than a
+ * convention.
+ */
+export type DeclaredTopicReckoning<T> = Exclude<
+  TopicReckoning<T>,
+  { readonly status: "none" }
+>;
+
+/** One path a model moved, and what moved it. See {@link TopicReckoningAvailable.modelled}. */
 export interface ModelledField {
   /** Dotted from the payload root. `""` is the whole payload. */
   readonly path: string;
@@ -234,7 +274,7 @@ export interface TopicModel<T, R = T> {
  * Why a model could not answer for this frame, on a topic whose contract
  * DECLARES a value reckonable.
  *
- * On a plain {@link Reading}, `reckoning: "none"` is the honest majority answer
+ * On a plain {@link Reading}, `reckoning: { status: "none" }` is the honest majority answer
  * and needs no explanation: most topics have no model and never will. On a
  * declared value it is a specific refusal, because the declaration is a promise
  * that the wire carries the model's inputs, so the only ways to reach `"none"`
@@ -342,7 +382,7 @@ export type ReckonerAnswer<T, R = T> =
  * Whether a forward model is on offer is a SEPARATE axis, carried on its own
  * required field rather than folded into `state`:
  *
- * - `reckoning: "none"`: no model is on offer this frame. The honest majority
+ * - `reckoning: { status: "none" }`: no model is on offer this frame. The honest majority
  * - `reckoning: "available"`: a model is on offer, and `reckoned` carries what
  *   it says the quantity is at the frame's view time
  *
@@ -350,7 +390,7 @@ export type ReckonerAnswer<T, R = T> =
  * it is permanently `"none"`: nothing has been observed (or the subject has said
  * there is nothing), so there is nothing to carry forward. Carrying it on every
  * arm is what makes the axes independent, because a caller can ask
- * `reading.reckoning === "available"` without first narrowing `state`.
+ * `reading.reckoning.status === "available"` without first narrowing `state`.
  *
  * ## Why `unowned` is not `pending`
  *
@@ -412,13 +452,13 @@ export type ReckonerAnswer<T, R = T> =
  * marker in a different place from a last-known position. An OPTIONAL `reckoned`
  * field was the first shape tried here and it was wrong, because an optional
  * field is one a destructuring consumer ignores by default and ignoring it
- * compiles: `reading.reckoned` typechecks everywhere and answers `undefined`, so
+ * compiles: `reading.reckoning` typechecks everywhere and answers `undefined`, so
  * a reckoning that EXISTS could be silently dropped while the widget still
  * looked right. That is precisely the failure this type is built to prevent, and
  * it is still not the shape here.
  *
  * `reckoned` is a REQUIRED field of a union member selected by a REQUIRED
- * discriminant. `reading.reckoned` does not compile until `reading.reckoning ===
+ * discriminant. `reading.reckoning` does not compile until `reading.reckoning ===
  * "available"` has been written, because on the other member the property does
  * not exist at all. That is the same compiler pressure the old `reckonable` arm
  * applied, and it is what "forces a branch" means here: reaching a reckoning
@@ -448,14 +488,14 @@ export type ReckonerAnswer<T, R = T> =
  *
  * WHETHER a model still stands is boolean, and it is answered structurally.
  * The reading is rebuilt every frame, so once the provider's horizon is
- * exceeded it stops offering a model and the topic reads `reckoning: "none"`
+ * exceeded it stops offering a model and the topic reads `reckoning: { status: "none" }`
  * from that frame on, keeping whatever `state` it honestly has. There is no
  * horizon field for a caller to compare against, because there is nothing for
  * one to do: `reckoning: "available"` IS the statement that a model stands
  * right now, and it cannot be held past the moment it stopped being true.
  *
  * **That much is unchanged, and the rule it implies still holds. Do not make
- * `reckoned` able to answer "unavailable".** `reckoning: "none"` already says
+ * `reckoned` able to answer "unavailable".** `reckoning: { status: "none" }` already says
  * it, at the only moment it can be said honestly. A failure return would mean
  * a caller could hold a capability that has since gone bad and discover it at
  * call time, which puts an error path in thirty-nine widgets to represent
@@ -495,78 +535,156 @@ export type ReckonerAnswer<T, R = T> =
  * admit the possibility of two of them disagreeing, which is exactly what the
  * single-view-time invariant and `FrameToken` exist to prevent.
  */
-export type Reading<T> =
-  | { state: "pending"; reckoning: "none" }
-  | { state: "unowned"; reckoning: "none" }
-  | { state: "absent"; reckoning: "none"; atUt: Value<"ut"> }
+export type TopicReading<P> = TopicCurrency<P, TopicReckoning<P>> &
+  TopicFields<P>;
+
+/**
+ * The currency half of a topic reading: the observation, when it was made, and
+ * what the model said, with no per-field properties.
+ *
+ * Written as the arms rather than as one object with everything optional,
+ * because reaching a value still has to cost a WRITTEN BRANCH. `pending`,
+ * `unowned` and `absent` carry no value at all, and a model is impossible on
+ * each of the three: nothing has arrived, nothing ever will, or the mod has
+ * confirmed the thing is gone. A tombstone has no observation to carry
+ * forward, so admitting `"available"` there would be admitting a modelled
+ * value with nothing behind it.
+ *
+ * `Rk` is which reckoning arms the value-bearing states may carry, and it
+ * defaults to `unknown` deliberately: `TopicCurrency<P>` unparameterised is the
+ * WIDEST topic reading, so it is what a consumer that reads only the
+ * observation should ask for, and every reading in the system satisfies it
+ * without the caller having to know which kind it was handed.
+ * {@link TopicReading} fills it with {@link TopicReckoning}, and a topic whose
+ * contract DECLARES a value reckonable narrows it to
+ * {@link DeclaredTopicReckoning}, which is how {@link ReckonableReading} keeps
+ * "a declared value always says something about the model" a fact the compiler
+ * holds rather than a convention.
+ */
+export type TopicCurrency<P, Rk = unknown> =
+  | { state: "pending"; reckoning: { readonly status: "none" } }
+  | { state: "unowned"; reckoning: { readonly status: "none" } }
   | {
-      state: "observed";
-      reckoning: "none";
-      value: T;
+      state: "absent";
+      reckoning: { readonly status: "none" };
       atUt: Value<"ut">;
     }
   | {
       state: "observed";
-      reckoning: "available";
-      /** The observation itself. Never a modelled value; see `reckoned`. */
-      value: T;
+      /** The observation itself. Never a modelled value; see `reckoning`. */
+      value: P;
       atUt: Value<"ut">;
-      reckoned: Reckoning<T>;
+      reckoning: Rk;
     }
   | {
       state: "stale";
-      reckoning: "none";
       /** The last REAL observation. Never a modelled value. */
-      value: T;
+      value: P;
       /** The UT that observation was made at. */
       asOfUt: Value<"ut">;
       grade: StaleGrade;
-    }
-  | {
-      state: "stale";
-      reckoning: "available";
-      /** The last REAL observation, exactly as on the unmodelled member. */
-      value: T;
-      asOfUt: Value<"ut">;
-      grade: StaleGrade;
-      /**
-       * The forward-modelled value for this frame's view time, computed when the
-       * reading is built.
-       *
-       * A PLAIN FIELD, and the reasoning is worth keeping because it went the
-       * other way twice first. Laziness was justified as "a reckoner is
-       * provider-supplied, so its cost is not ours to assume". The same is true
-       * of everything else in this system: an Uplink's mapper runs every tick,
-       * its derived channel's `derive` runs every frame, its processor's
-       * `compute` runs every frame, and class B's projection IS a derived
-       * channel. Provider-supplied compute on the frame path is what this whole
-       * pipeline is, so reckoning being the single exception was an
-       * inconsistency rather than a principle. A mechanism that defends against
-       * its own providers is one that expects to be rare, and this one is meant
-       * to be universal.
-       *
-       * Cost is answered by DECLARATION instead: a topic whose model is too
-       * expensive to run per frame goes in `NEVER_RECKONABLE`'s
-       * too-expensive group, which is a reviewable engineering decision in the
-       * same list as every other classification rather than a mechanism hidden
-       * in the type.
-       *
-       * Being a field rather than a getter also removes a whole failure mode
-       * instead of defending against it: a getter is lost by a spread, and lost
-       * SILENTLY, because the spread evaluates it and freezes one frame's answer
-       * as a permanent plain value. A field survives a copy.
-       *
-       * Fresh per frame either way, which is what the identity contract needs: a
-       * reckoning is a function of the view time, so a reading that kept its
-       * identity while `viewUt` advanced would answer for a moment that had
-       * passed, and a model could never withdraw at its horizon. The store
-       * re-derives a reading (and only a reading whose topic has a model on
-       * offer) when the frame's view time moves; an unmodelled topic keeps the
-       * frozen identity that stops every widget re-rendering at frame cadence.
-       * See `TimelineStore.sampleReading`.
-       */
-      reckoned: Reckoning<T>;
+      reckoning: Rk;
     };
+
+/**
+ * The per-field half: one {@link Reading} per payload field, reachable as a
+ * PLAIN PROPERTY (`flight.altitudeAsl.reckoning.band`).
+ *
+ * ## Built from the topic's own model, never from a second read
+ *
+ * The obvious implementation is to have `flight.altitudeAsl` go and sample the
+ * subtopic of that name, and it is wrong in a way nothing would notice.
+ * `redirectKinematicSubtopic` rewrites `vessel.flight.altitudeAsl` onto the
+ * DERIVED `vessel.state.altitudeAsl`, and a derived channel's reckoner claims
+ * the root with no `bandAt` at all, so the delegating version would hand back a
+ * modelled altitude with the band silently gone. The field reading is therefore
+ * projected out of the reading that already exists: its basis from the
+ * {@link ModelledField} covering the path, its value from the modelled payload,
+ * its band from {@link TopicReckoningAvailable.bands} at that same path.
+ *
+ * ## Reserved names lose
+ *
+ * A payload field spelled like a currency member (`comms.signalStrength` has a
+ * `value`, `comms.controlState` has a `state`) is EXCLUDED rather than merged:
+ * intersecting `"observed" | "stale" | ...` with a `Reading` collapses to
+ * `never` and would poison the whole type. Those two fields are reached off the
+ * payload as they always were, and a call site that reaches for the field
+ * reading gets a compile error rather than a `never`.
+ *
+ * An array payload is left alone entirely: mapping `keyof P` over one would
+ * claim a `Reading` at `length`, `map` and every other array member.
+ */
+export type TopicFields<P> = P extends readonly unknown[]
+  ? unknown
+  : P extends object
+    ? { readonly [K in Exclude<keyof P, ReservedReadingKey>]: Reading<P[K]> }
+    : unknown;
+
+/** A currency member's name: what {@link TopicFields} may not shadow. */
+export type ReservedReadingKey =
+  | "state"
+  | "value"
+  | "atUt"
+  | "asOfUt"
+  | "grade"
+  | "reckoning";
+
+/**
+ * What a model says about ONE value: it ran, nothing offered one, or one was
+ * declared and refused for this frame.
+ *
+ * ## Why a union rather than flat optional fields
+ *
+ * On a flat shape `modelled` has to stay optional even when the model IS
+ * available, because the type cannot say the two go together. Every consumer
+ * then writes a fallback for a case that can never fire, and a fallback is
+ * exactly where a fabricated number gets in. On this union `modelled` is
+ * REQUIRED the moment `status === "available"` has been checked, and reading
+ * `declined` without checking is a type error rather than a silent
+ * `undefined`.
+ *
+ * ## `band` stays optional inside the available arm
+ *
+ * That is correct rather than an oversight. A model can be available and
+ * honestly bound nothing: most models cannot produce an interval they would
+ * defend, and inventing one is a claim about how well a number is known made by
+ * something that does not know. See {@link ReckonedBands}.
+ */
+export type Reckoning<V> =
+  | {
+      readonly status: "available";
+      /** What the model says the value is at the frame's view time. */
+      readonly modelled: V;
+      readonly basis: ReckoningBasis;
+      /** How far the model would defend `modelled`, where it will say. */
+      readonly band?: UncertaintyBand;
+    }
+  | { readonly status: "none" }
+  | { readonly status: "declined"; readonly declined: ReckoningDecline };
+
+/**
+ * Currency over ONE value: what was observed, how current it is, and what a
+ * model makes of it now.
+ *
+ * This is what a payload field answers with (see {@link TopicFields}), and what
+ * a primitive drawing one number consumes. The whole-topic companion is
+ * {@link TopicReading}, which differs only in that its model is keyed by path
+ * because a topic has many fields.
+ *
+ * `value` is present on `observed` and `stale` and absent on the other three,
+ * so reaching it still costs a written branch.
+ */
+export interface Reading<V> {
+  readonly state: ReadingState;
+  /** The last REAL observation. Never a modelled value; see `reckoning`. */
+  readonly value?: V;
+  /** When the observation was made, on `absent` and `observed`. */
+  readonly atUt?: Value<"ut">;
+  /** When the observation was made, on `stale`. */
+  readonly asOfUt?: Value<"ut">;
+  readonly grade?: StaleGrade;
+  readonly reckoning: Reckoning<V>;
+}
 
 /**
  * One RECKONABLE topic's value AND its currency, where `T` is the payload and
@@ -628,50 +746,15 @@ export type Reading<T> =
  * something typed `Reading<T>` fails to compile. That is the point: the callee
  * would be entitled to read the whole payload off the model. The observed
  * payload overlaid by the modelled fields is
- * `{ ...reading.value, ...reading.reckoned.value }`, written at the call site
+ * `{ ...reading.value, ...reading.reckoning.value }`, written at the call site
  * rather than hidden in a helper, because that spread IS the judgement and it
  * should be visible in review.
  */
-export type ReckonableReading<T, K extends keyof T> =
-  | { state: "pending"; reckoning: "none" }
-  | { state: "unowned"; reckoning: "none" }
-  | { state: "absent"; reckoning: "none"; atUt: Value<"ut"> }
-  | {
-      state: "observed";
-      reckoning: "none";
-      value: T;
-      atUt: Value<"ut">;
-      /** Why the declared model did not answer for this frame. */
-      declined: ReckoningDecline;
-    }
-  | {
-      state: "observed";
-      reckoning: "available";
-      /** The observation itself. Never a modelled value; see `reckoned`. */
-      value: T;
-      atUt: Value<"ut">;
-      /** The declared fields, carried forward to this frame's view time. */
-      reckoned: Reckoning<Pick<T, K>>;
-    }
-  | {
-      state: "stale";
-      reckoning: "none";
-      /** The last REAL observation. Never a modelled value. */
-      value: T;
-      /** The UT that observation was made at. */
-      asOfUt: Value<"ut">;
-      grade: StaleGrade;
-      declined: ReckoningDecline;
-    }
-  | {
-      state: "stale";
-      reckoning: "available";
-      /** The last REAL observation, exactly as on the unmodelled member. */
-      value: T;
-      asOfUt: Value<"ut">;
-      grade: StaleGrade;
-      reckoned: Reckoning<Pick<T, K>>;
-    };
+export type ReckonableReading<T, K extends keyof T> = TopicCurrency<
+  T,
+  DeclaredTopicReckoning<Pick<T, K>>
+> &
+  TopicFields<T>;
 
 /**
  * Which kind of missed-update a stale reading is. A FIELD rather than more arms:
@@ -725,10 +808,10 @@ export type StaleGrade =
  * field is for a value that is not one Topic's anything; a widget reading one
  * topic takes the whole `Reading`, so that reaching the value means branching.
  */
-export type ReadingState = Reading<unknown>["state"];
+export type ReadingState = TopicCurrency<unknown>["state"];
 
 /** The reckoning discriminant alone, the companion to {@link ReadingState}. */
-export type ReadingReckoning = Reading<unknown>["reckoning"];
+export type ReadingReckoning = Reckoning<unknown>["status"];
 
 /**
  * Drop the model: the written, greppable way for a widget to decline to
@@ -772,26 +855,50 @@ export type ReadingReckoning = Reading<unknown>["reckoning"];
 export function withoutReckoning<T, K extends keyof T>(
   reading: ReckonableReading<T, K>,
 ): UnmodelledReading<T>;
-export function withoutReckoning<T>(reading: Reading<T>): UnmodelledReading<T>;
 export function withoutReckoning<T>(
-  reading: Reading<T> | ReckonableReading<T, keyof T>,
+  reading: TopicReading<T>,
+): UnmodelledReading<T>;
+export function withoutReckoning<T>(
+  reading: TopicReading<T> | ReckonableReading<T, keyof T>,
 ): UnmodelledReading<T> {
-  if (reading.reckoning === "none" && !("declined" in reading)) return reading;
+  /*
+   * The SAME object where there was nothing to drop, because a widget calling
+   * this on an unmodelled reading must not pay a new identity for it: the store
+   * hands out one reading per topic per frame precisely so a `useSyncExternal
+   * Store` subscriber can compare by reference. The cast is what the narrowing
+   * cannot say: `reckoning.status` narrows the reckoning and not the arm
+   * carrying it, so the compiler still holds the wider member type.
+   */
+  if (reading.reckoning.status === "none")
+    return reading as UnmodelledReading<T>;
+  if (reading.state === "pending" || reading.state === "unowned") {
+    return topicReading({
+      state: reading.state,
+      reckoning: { status: "none" },
+    });
+  }
+  if (reading.state === "absent") {
+    return topicReading({
+      state: "absent",
+      reckoning: { status: "none" },
+      atUt: reading.atUt,
+    });
+  }
   if (reading.state === "observed") {
-    return {
+    return topicReading({
       state: "observed",
-      reckoning: "none",
+      reckoning: { status: "none" },
       value: reading.value,
       atUt: reading.atUt,
-    };
+    });
   }
-  return {
+  return topicReading({
     state: "stale",
-    reckoning: "none",
+    reckoning: { status: "none" },
     value: reading.value,
     asOfUt: reading.asOfUt,
     grade: reading.grade,
-  };
+  });
 }
 
 /**
@@ -807,7 +914,11 @@ export function withoutReckoning<T>(
  * things produce one: a topic declared unmodellable, and any reading a widget
  * has run {@link withoutReckoning} over.
  */
-export type UnmodelledReading<T> = Extract<Reading<T>, { reckoning: "none" }>;
+export type UnmodelledReading<T> = TopicCurrency<
+  T,
+  { readonly status: "none" }
+> &
+  TopicFields<T>;
 
 /**
  * The value of an OBSERVED reading, and `undefined` on every other arm.
@@ -844,13 +955,7 @@ export type UnmodelledReading<T> = Extract<Reading<T>, { reckoning: "none" }>;
  * type the OBSERVATION as the projection the model moves, and a caller reading
  * any other field of the payload it actually holds would fail to compile.
  */
-export function observedValue<T, K extends keyof T>(
-  reading: ReckonableReading<T, K>,
-): T | undefined;
-export function observedValue<T>(reading: Reading<T>): T | undefined;
-export function observedValue<T>(
-  reading: Reading<T> | ReckonableReading<T, keyof T>,
-): T | undefined {
+export function observedValue<T>(reading: TopicCurrency<T>): T | undefined {
   return reading.state === "observed" ? reading.value : undefined;
 }
 
@@ -889,36 +994,189 @@ export function readingOf<T, K extends keyof T, R>(
   select: (payload: T) => R,
 ): UnmodelledReading<R>;
 export function readingOf<T, R>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   select: (payload: T) => R,
 ): UnmodelledReading<R>;
 export function readingOf<T, R>(
-  reading: Reading<T> | ReckonableReading<T, keyof T>,
+  reading: TopicReading<T> | ReckonableReading<T, keyof T>,
   select: (payload: T) => R,
 ): UnmodelledReading<R> {
   if (reading.state === "observed") {
-    return {
+    return topicReading({
       state: "observed",
-      reckoning: "none",
+      reckoning: { status: "none" },
       value: select(reading.value),
       atUt: reading.atUt,
-    };
+    });
   }
   if (reading.state === "stale") {
-    return {
+    return topicReading({
       state: "stale",
-      reckoning: "none",
+      reckoning: { status: "none" },
       value: select(reading.value),
       asOfUt: reading.asOfUt,
       grade: reading.grade,
-    };
+    });
   }
   if (reading.state === "absent") {
-    return { state: "absent", reckoning: "none", atUt: reading.atUt };
+    return topicReading({
+      state: "absent",
+      reckoning: { status: "none" },
+      atUt: reading.atUt,
+    });
   }
   if (reading.state === "pending")
-    return { state: "pending", reckoning: "none" };
-  return { state: "unowned", reckoning: "none" };
+    return topicReading({ state: "pending", reckoning: { status: "none" } });
+  return topicReading({ state: "unowned", reckoning: { status: "none" } });
+}
+
+/**
+ * The {@link ModelledField} that covers `path`, or `undefined` where no entry
+ * does.
+ *
+ * A basis INHERITS from a shorter path: a model claiming the payload root has
+ * moved every field under it, and the most specific claim wins where two apply.
+ * A band does not inherit, and {@link fieldReckoning} looks one up at the exact
+ * path for that reason: a basis is a property of the model and is true of every
+ * path it moves, while a band is two numbers in one quantity's unit, so
+ * borrowing the root's would put a metre interval around a speed.
+ */
+function coveringField(
+  modelled: readonly ModelledField[],
+  path: string,
+): ModelledField | undefined {
+  let best: ModelledField | undefined;
+  for (const entry of modelled) {
+    const covers =
+      entry.path === "" ||
+      entry.path === path ||
+      path.startsWith(`${entry.path}.`);
+    if (!covers) continue;
+    if (!best || entry.path.length > best.path.length) best = entry;
+  }
+  return best;
+}
+
+/** One dotted step into a payload, or `undefined` where the walk falls off. */
+function walkField(payload: unknown, path: string): unknown {
+  let current = payload;
+  for (const segment of path.split(".")) {
+    if (current === null || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
+/**
+ * One path's {@link Reckoning}, projected out of the topic's own model.
+ *
+ * This is the whole reason a field property exists, and the reason it must not
+ * be built by reading the subtopic of the same name instead.
+ * `redirectKinematicSubtopic` sends `vessel.flight.altitudeAsl` to the DERIVED
+ * `vessel.state.altitudeAsl`, whose reckoner claims the root and offers no
+ * `bandAt` at all, so a delegating field property would answer with a modelled
+ * altitude and no band and nothing would notice the band had gone. Projecting
+ * instead keeps the band the topic's own model produced, because it is read out
+ * of {@link TopicReckoningAvailable.bands} at this path and never fetched a
+ * second time.
+ *
+ * A path no {@link ModelledField} covers reckons `"none"`, which is the honest
+ * answer: the value sitting at that path in the modelled payload is a verbatim
+ * copy of the last observation, carried along because the model answers with
+ * the whole payload, and labelling it modelled is the failure the `modelled`
+ * list exists to prevent.
+ */
+export function fieldReckoning(
+  reckoning: TopicReckoning<unknown>,
+  path: string,
+): Reckoning<unknown> {
+  if (reckoning.status !== "available") return reckoning;
+  const covering = coveringField(reckoning.modelled, path);
+  if (!covering) return { status: "none" };
+  return {
+    status: "available",
+    modelled: walkField(reckoning.value, path),
+    basis: covering.basis,
+    band: reckoning.bands?.[path],
+  };
+}
+
+/** One payload field's {@link Reading}, at the same currency as its topic. */
+function projectField(
+  currency: TopicCurrency<unknown, TopicReckoning<unknown>>,
+  path: string,
+): Reading<unknown> {
+  const reckoning = fieldReckoning(currency.reckoning, path);
+  switch (currency.state) {
+    case "pending":
+    case "unowned":
+      return { state: currency.state, reckoning };
+    case "absent":
+      return { state: "absent", atUt: currency.atUt, reckoning };
+    case "observed":
+      return {
+        state: "observed",
+        value: walkField(currency.value, path),
+        atUt: currency.atUt,
+        reckoning,
+      };
+    case "stale":
+      return {
+        state: "stale",
+        value: walkField(currency.value, path),
+        asOfUt: currency.asOfUt,
+        grade: currency.grade,
+        reckoning,
+      };
+  }
+}
+
+/**
+ * The currency half plus its per-field readings: what a whole-topic read hands
+ * a widget.
+ *
+ * LAZY, through a proxy, because a topic has as many fields as the contract
+ * gives it and a widget reads two of them. `vessel.target` flattens to
+ * forty-seven, so building every field eagerly would run the walk and the
+ * coverage search forty-five times per frame for nothing. Each answer is cached
+ * on first ask, so two reads of one field are one projection and the reading a
+ * caller holds keeps its identity.
+ *
+ * A proxy rather than `Object.defineProperty` over the payload's own keys,
+ * because the field half has to be there on `pending`, `unowned` and `absent`
+ * too, where there is no payload to enumerate. A widget that reaches
+ * `flight.altitudeAsl.state` before the first packet lands must get `"pending"`,
+ * not a crash.
+ *
+ * Spreading one copies the currency and NOT the field readings: `ownKeys` is
+ * the currency's, so `{ ...reading }` is what it has always been. Reach a field
+ * off the reading itself.
+ */
+export function topicReading<P>(
+  currency: TopicCurrency<P, { readonly status: "none" }>,
+): UnmodelledReading<P>;
+export function topicReading<P>(
+  currency: TopicCurrency<P, TopicReckoning<P>>,
+): TopicReading<P>;
+export function topicReading<P>(
+  currency: TopicCurrency<P, { readonly status: string }>,
+): TopicReading<P> {
+  const cache = new Map<string, Reading<unknown>>();
+  return new Proxy(currency, {
+    get(target, prop, receiver) {
+      if (typeof prop !== "string" || prop in target)
+        return Reflect.get(target, prop, receiver);
+      let projected = cache.get(prop);
+      if (!projected) {
+        projected = projectField(
+          target as TopicCurrency<unknown, TopicReckoning<unknown>>,
+          prop,
+        );
+        cache.set(prop, projected);
+      }
+      return projected;
+    },
+  }) as TopicReading<P>;
 }
 
 /**
@@ -929,7 +1187,7 @@ export function readingOf<T, R>(
  * serve: a path COMPOSED AT RUNTIME, as a model keyed by collection index does
  * (`` `${kerbal}.rules.${index}.value` ``). Reach a band on a known field
  * through the primitive that draws it instead; a widget hand-writing
- * `reading.reckoned.bands?.["field"]` is deciding for itself both what an
+ * `reading.reckoning.bands?.["field"]` is deciding for itself both what an
  * absent map means and what unit the band came in, and the second of those is
  * `bandIn`'s job.
  *
@@ -1116,8 +1374,8 @@ export function hasAnswered(reading: {
  * how far a modelled figure has been carried is the same number whether or not
  * the model that carried it was declared in the contract.
  */
-export function observedAt<T, K extends keyof T = keyof T>(
-  reading: Reading<T> | ReckonableReading<T, K>,
+export function observedAt<T>(
+  reading: TopicCurrency<T>,
 ): Value<"ut"> | undefined {
   switch (reading.state) {
     case "pending":
@@ -1134,7 +1392,7 @@ export function observedAt<T, K extends keyof T = keyof T>(
 /**
  * A provider of forward models, consulted once per reading. Returning
  * `undefined` is the honest majority answer and leaves the reading
- * `reckoning: "none"`; returning a model makes it `"available"`.
+ * `reckoning: { status: "none" }`; returning a model makes it `"available"`.
  *
  * `TopicModel.reckon` is what makes the reckoning a pull. This function itself
  * must stay cheap: it is asked whether a model EXISTS and what it covers,

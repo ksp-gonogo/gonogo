@@ -1,4 +1,4 @@
-import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicReading, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
@@ -59,7 +59,7 @@ import { VisuallyHidden } from "./VisuallyHidden";
  *
  * ## A reading that is not current says so, in THREE treatments and not ten
  *
- * Hand it a `Reading<Value<U>>` instead of a bare `Value<U>` and it also draws
+ * Hand it a `TopicReading<Value<U>>` instead of a bare `Value<U>` and it also draws
  * whether the number is a reading of NOW. `Reading` is five states across two
  * reckoning arms; this draws three things, because the rest are distinctions an
  * operator cannot act on from a single number:
@@ -340,7 +340,9 @@ const THIN_SPACE = "\u2009";
  * converts by handing over what it already holds instead of unwrapping it
  * first.
  */
-export type UnitValue<U extends string = string> = Value<U> | Reading<Value<U>>;
+export type UnitValue<U extends string = string> =
+  | Value<U>
+  | TopicReading<Value<U>>;
 
 /** What {@link resolveCurrency} answers: the number to draw, and its currency. */
 interface Resolved<U extends string> {

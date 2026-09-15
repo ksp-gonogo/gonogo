@@ -144,7 +144,7 @@ describe("a derived reading must not claim the frame's own view time as its obse
   it("does not serve a forward-modelled derived value with no reckoning on offer", () => {
     // `Reading`'s doc on the stale arm: "The last REAL observation. Never a
     // modelled value." Under OnRails `vessel.state.position` IS
-    // `kepler.solve(elements, viewUt)`, so serving it with `reckoning: "none"`
+    // `kepler.solve(elements, viewUt)`, so serving it with `reckoning: { status: "none" }`
     // makes the type say the opposite of what it carries. A model that exists
     // says so on the reckoning axis, and the modelled figure rides `reckoned`.
     const wall = fakeWall();
@@ -156,7 +156,7 @@ describe("a derived reading must not claim the frame's own view time as its obse
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<unknown>("vessel.state").reckoning).toBe(
+    expect(store.sampleReading<unknown>("vessel.state").reckoning.status).toBe(
       "available",
     );
   });
@@ -211,9 +211,9 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("test.temperature");
-    expect(reading.reckoning).toBe("available");
-    if (reading.reckoning !== "available") return;
-    const reckoning = reading.reckoned;
+    expect(reading.reckoning.status).toBe("available");
+    if (reading.reckoning.status !== "available") return;
+    const reckoning = reading.reckoning;
     expect(reckoning.atUt).toEqual(value("ut", 160));
     expect(reckoning.value).toBe(65);
   });
@@ -245,16 +245,16 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     wall.advanceBy(10);
     store.setTransportConnected(false);
     store.beginFrame();
-    expect(store.sampleReading<number>("test.temperature").reckoning).toBe(
-      "available",
-    );
+    expect(
+      store.sampleReading<number>("test.temperature").reckoning.status,
+    ).toBe("available");
 
     // Nothing arrives; only time passes. Past the horizon the model withdraws,
     // and the topic keeps the staleness it honestly has with nothing on offer.
     wall.advanceBy(600);
     store.beginFrame();
     const expired = store.sampleReading<number>("test.temperature");
-    expect(expired.reckoning).toBe("none");
+    expect(expired.reckoning.status).toBe("none");
     expect(expired.state).toBe("stale");
   });
 
@@ -322,7 +322,7 @@ describe("a reckoning says which fields it actually modelled", () => {
      * stale too, and only differ here.
      */
     const reading = store.sampleReading<Target>("test.contact");
-    expect(reading.reckoning).toBe("none");
+    expect(reading.reckoning.status).toBe("none");
     expect(reading.state).toBe("stale");
   });
 });
@@ -357,19 +357,19 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     store.beginFrame();
 
     const first = store.sampleReading<number>("test.temperature");
-    if (first.reckoning !== "available")
+    if (first.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(first.reckoned.value).toBe(10);
+    expect(first.reckoning.value).toBe(10);
 
     // Ten more seconds of silence. Nothing ingests; only the clock moves.
     wall.advanceBy(10);
     store.beginFrame();
 
     const second = store.sampleReading<number>("test.temperature");
-    if (second.reckoning !== "available")
+    if (second.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(second.reckoned.value).toBe(20);
-    expect(second.reckoned.atUt).toEqual(value("ut", 120));
+    expect(second.reckoning.value).toBe(20);
+    expect(second.reckoning.atUt).toEqual(value("ut", 120));
   });
 });
 
@@ -397,9 +397,9 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("test.temperature");
-    if (reading.reckoning !== "available")
+    if (reading.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(reading.reckoned).toBe(reading.reckoned);
+    expect(reading.reckoning).toBe(reading.reckoning);
   });
 
   it("runs the model once per frame, however many times the field is read", () => {
@@ -427,12 +427,12 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("test.temperature");
-    if (reading.reckoning !== "available")
+    if (reading.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
     expect(runs).toBe(1);
-    void reading.reckoned;
-    void reading.reckoned;
-    void reading.reckoned;
+    void reading.reckoning;
+    void reading.reckoning;
+    void reading.reckoning;
     expect(runs).toBe(1);
   });
 
@@ -456,17 +456,17 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.setTransportConnected(false);
     store.beginFrame();
     const first = store.sampleReading<number>("test.temperature");
-    if (first.reckoning !== "available")
+    if (first.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(first.reckoned.value).toBe(10);
+    expect(first.reckoning.value).toBe(10);
 
     wall.advanceBy(10);
     store.beginFrame();
     const second = store.sampleReading<number>("test.temperature");
-    if (second.reckoning !== "available")
+    if (second.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(second.reckoned).not.toBe(first.reckoned);
-    expect(second.reckoned.value).toBe(20);
+    expect(second.reckoning).not.toBe(first.reckoning);
+    expect(second.reckoning.value).toBe(20);
   });
 
   it("survives a copy, which is the point of it not being a getter", () => {
@@ -491,10 +491,12 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("test.temperature");
-    if (reading.reckoning !== "available")
+    if (reading.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
     const copied = { ...reading };
-    expect(copied.reckoned).toBe(reading.reckoned);
-    expect(copied.reckoned.value).toBe(65);
+    expect(copied.reckoning).toBe(reading.reckoning);
+    if (copied.reckoning.status !== "available")
+      throw new Error("the copy lost the model");
+    expect(copied.reckoning.value).toBe(65);
   });
 });

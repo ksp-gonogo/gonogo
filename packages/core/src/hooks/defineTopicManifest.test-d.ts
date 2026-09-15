@@ -14,7 +14,10 @@
 //   - an undeclared Topic that becomes an accepted argument fails a membership
 //     `Expect<...>`.
 
-import type { Reading, ReckonableReading } from "@ksp-gonogo/sitrep-client";
+import type {
+  ReckonableReading,
+  TopicReading,
+} from "@ksp-gonogo/sitrep-client";
 import type {
   CommsDelay,
   VesselOrbit,
@@ -64,10 +67,10 @@ type _AcOptional = ReturnType<
  * value and is asserted at the bottom of this file.
  */
 export type _AcRequiredIsReading = Expect<
-  Equal<_AcRequired, Reading<VesselResources>>
+  Equal<_AcRequired, TopicReading<VesselResources>>
 >;
 export type _AcRequired2IsReading = Expect<
-  Equal<_AcRequired2, Reading<VesselOrbit>>
+  Equal<_AcRequired2, TopicReading<VesselOrbit>>
 >;
 /*
  * `comms.delay` is the optional Topic here AND a Topic whose contract marks a
@@ -95,7 +98,7 @@ type _PlainOptional = ReturnType<
 >;
 
 export type _PlainRequiredIsReading = Expect<
-  Equal<_PlainRequired, Reading<VesselResources>>
+  Equal<_PlainRequired, TopicReading<VesselResources>>
 >;
 export type _PlainOptionalIsReading = Expect<
   Equal<_PlainOptional, ReckonableReading<CommsDelay, "oneWaySeconds">>
@@ -114,7 +117,7 @@ type _RoRequired = ReturnType<
   typeof requiredOnly.useTelemetry<"vessel.resources">
 >;
 export type _RoRequiredIsReading = Expect<
-  Equal<_RoRequired, Reading<VesselResources>>
+  Equal<_RoRequired, TopicReading<VesselResources>>
 >;
 
 // ── Reading an UNDECLARED Topic is a compile error ──────────────────────────────────
@@ -171,7 +174,7 @@ export type _WireStillAcceptedArg = Expect<
 export type _DerivedWireReadIsReading = Expect<
   Equal<
     ReturnType<typeof derivedManifest.useTelemetry<"vessel.orbit">>,
-    Reading<VesselOrbit>
+    TopicReading<VesselOrbit>
   >
 >;
 

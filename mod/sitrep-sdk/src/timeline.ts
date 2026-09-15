@@ -128,7 +128,7 @@ export interface DerivedChannelDefinition<T> {
    * Whether this record is FORWARD-MODELLED for `viewUt` rather than merely
    * carried from the last observation, and on what basis. Returning a basis
    * makes the reading `reckoning: "available"` whatever its `state`, live
-   * included; returning `undefined` leaves it `reckoning: "none"`.
+   * included; returning `undefined` leaves it `reckoning: { status: "none" }`.
    *
    * A derived channel is where class-A propagation actually lives, and it got
    * there before `Reading` existed: `deriveVesselState` calls

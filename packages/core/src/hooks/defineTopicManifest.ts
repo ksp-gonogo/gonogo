@@ -1,4 +1,4 @@
-import type { Reading } from "@ksp-gonogo/sitrep-client";
+import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import type {
   ReckonableFields,
   ReckonableReading,
@@ -19,8 +19,8 @@ import { useTelemetry } from "./useTelemetry";
  *     optionalChannels: ["comms.delay"],       // optional
  *   });
  *
- *   const res = topics.useTelemetry("vessel.resources");   // Reading<VesselResources>
- *   const delay = topics.useTelemetry("comms.delay");      // Reading<CommsDelay>
+ *   const res = topics.useTelemetry("vessel.resources");   // TopicReading<VesselResources>
+ *   const delay = topics.useTelemetry("comms.delay");      // TopicReading<CommsDelay>
  *
  * ## Both arrays read the same, and this is the correction worth reading
  *
@@ -87,7 +87,7 @@ export type WidgetTopicValue<T extends TopicId> = T extends ReckonableTopic
       TopicPayload<T>,
       ReckonableFields<T> & keyof TopicPayload<T>
     >
-  : Reading<TopicPayload<T>>;
+  : TopicReading<TopicPayload<T>>;
 
 /**
  * A telemetry read hook bound to one widget's declared channels. The single call
@@ -146,8 +146,8 @@ export interface TopicManifest<
  *   });
  *
  *   function PowerSystems() {
- *     const res = useTelemetry("vessel.resources"); // Reading<VesselResources>
- *     const delay = useTelemetry("comms.delay");    // Reading<CommsDelay>
+ *     const res = useTelemetry("vessel.resources"); // TopicReading<VesselResources>
+ *     const delay = useTelemetry("comms.delay");    // TopicReading<CommsDelay>
  *
  *     // Both branch the same way. `pending` is merely unlikely on a required
  *     // channel, not unrepresentable, so neither read is dereferenceable.

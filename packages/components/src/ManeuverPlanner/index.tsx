@@ -10,8 +10,8 @@ import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import {
   DELTA_V_BUDGET,
   type OrbitTrajectory,
-  type Reading,
   type ReckonableReading,
+  type TopicReading,
   useCommand,
   useOrbitTrajectory,
   useProcessor,
@@ -92,12 +92,12 @@ declare module "@ksp-gonogo/core" {
  * A measurement this widget can present with its age attached, and whether it needs
  * that label. The reckoned value needs none: it IS the current one.
  */
-function dateable<T>(reading: Reading<T>): {
+function dateable<T>(reading: TopicReading<T>): {
   value: T | undefined;
   needsDating: boolean;
 } {
-  if (reading.reckoning === "available")
-    return { value: reading.reckoned.value, needsDating: false };
+  if (reading.reckoning.status === "available")
+    return { value: reading.reckoning.value, needsDating: false };
   if (reading.state === "observed")
     return { value: reading.value, needsDating: false };
   if (reading.state === "stale")
@@ -120,9 +120,15 @@ function dateableReckonable<T, K extends keyof T>(
   value: T | undefined;
   needsDating: boolean;
 } {
-  if (reading.reckoning === "available")
+  /* The state is asked first because `reckoning.status` narrows the reckoning
+     and not the arm carrying it: a nested discriminant says nothing about which
+     state has a value. */
+  if (
+    (reading.state === "observed" || reading.state === "stale") &&
+    reading.reckoning.status === "available"
+  )
     return {
-      value: { ...reading.value, ...reading.reckoned.value },
+      value: { ...reading.value, ...reading.reckoning.value },
       needsDating: false,
     };
   if (reading.state === "observed")
@@ -139,7 +145,7 @@ function dateableReckonable<T, K extends keyof T>(
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

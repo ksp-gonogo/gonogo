@@ -4,7 +4,7 @@ import { registerMapPoiProvider, useTelemetry } from "@ksp-gonogo/core";
 /** A confirmed-no-POIs tombstone: a list, and it is empty. */
 const EMPTY_POIS: never[] = [];
 
-import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
+import { type TopicReading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { type SpaceCenterPoiEntry, TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -27,7 +27,7 @@ import { useMemo } from "react";
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

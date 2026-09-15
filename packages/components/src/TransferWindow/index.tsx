@@ -11,7 +11,7 @@ import {
   CELESTIAL_FACTS,
   type CelestialBody,
   DELTA_V_BUDGET,
-  type Reading,
+  type TopicReading,
   useProcessor,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
@@ -161,7 +161,7 @@ const fmtCountdown = (sec: number): string => {
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

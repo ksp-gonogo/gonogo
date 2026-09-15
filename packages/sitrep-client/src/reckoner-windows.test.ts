@@ -204,7 +204,7 @@ describe("minSamples is the only rejection, and it is the store's", () => {
     const reading = store.sampleReading<number>("test.temperature");
 
     expect(calls).toBe(0);
-    expect(reading.reckoning).toBe("none");
+    expect(reading.reckoning.status).toBe("none");
   });
 
   it("runs the model once the floor is met", () => {
@@ -225,9 +225,9 @@ describe("minSamples is the only rejection, and it is the store's", () => {
     ingestRun(store, 100, 5);
     store.beginFrame();
 
-    expect(store.sampleReading<number>("test.temperature").reckoning).toBe(
-      "available",
-    );
+    expect(
+      store.sampleReading<number>("test.temperature").reckoning.status,
+    ).toBe("available");
     expect(calls).toBeGreaterThan(0);
   });
 
@@ -255,8 +255,8 @@ describe("minSamples is the only rejection, and it is the store's", () => {
     });
     store.beginFrame();
 
-    expect(store.sampleReading("vessel.flight")).toMatchObject({
-      reckoning: "none",
+    expect(store.sampleReading("vessel.flight").reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "insufficient-history" },
     });
   });
@@ -287,7 +287,8 @@ describe("minSamples is the only rejection, and it is the store's", () => {
       store.ingest("vessel.flight", flight(validAt));
     }
     store.beginFrame();
-    expect(store.sampleReading("vessel.flight")).toMatchObject({
+    expect(store.sampleReading("vessel.flight").reckoning).toMatchObject({
+      status: "declined",
       declined: {
         reason: "insufficient-history",
         note: expect.not.stringContaining("break in the record"),
@@ -296,7 +297,8 @@ describe("minSamples is the only rejection, and it is the store's", () => {
 
     store.ingest("vessel.flight", flight(400, { gapSinceUt: 130 }));
     store.beginFrame();
-    expect(store.sampleReading("vessel.flight")).toMatchObject({
+    expect(store.sampleReading("vessel.flight").reckoning).toMatchObject({
+      status: "declined",
       declined: {
         reason: "insufficient-history",
         note: expect.stringContaining("break in the record"),
@@ -394,9 +396,9 @@ describe("a window stops at a break in the record", () => {
     store.beginFrame();
 
     expect(calls).toBe(0);
-    expect(store.sampleReading<number>("test.temperature").reckoning).toBe(
-      "none",
-    );
+    expect(
+      store.sampleReading<number>("test.temperature").reckoning.status,
+    ).toBe("none");
   });
 });
 
@@ -490,8 +492,8 @@ describe("a dependency resolves to one point unless it opts in", () => {
     store.beginFrame();
 
     expect(calls).toBe(0);
-    expect(store.sampleReading<number>("test.temperature").reckoning).toBe(
-      "none",
-    );
+    expect(
+      store.sampleReading<number>("test.temperature").reckoning.status,
+    ).toBe("none");
   });
 });

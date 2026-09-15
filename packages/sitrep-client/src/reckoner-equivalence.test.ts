@@ -234,17 +234,17 @@ function bothAt(
   }>("vessel.flight");
   return {
     builtIn:
-      state.reckoning === "available"
+      state.reckoning.status === "available"
         ? {
-            altitudeAsl: state.reckoned.value.altitudeAsl as number,
-            orbitalSpeed: state.reckoned.value.orbitalSpeed as number,
+            altitudeAsl: state.reckoning.value.altitudeAsl as number,
+            orbitalSpeed: state.reckoning.value.orbitalSpeed as number,
           }
         : undefined,
     uplink:
-      flight.reckoning === "available"
+      flight.reckoning.status === "available"
         ? {
-            altitudeAsl: flight.reckoned.value.altitudeAsl.magnitude,
-            orbitalSpeed: flight.reckoned.value.orbitalSpeed.magnitude,
+            altitudeAsl: flight.reckoning.value.altitudeAsl.magnitude,
+            orbitalSpeed: flight.reckoning.value.orbitalSpeed.magnitude,
           }
         : undefined,
   };
@@ -349,14 +349,15 @@ describe("core's conic and an Uplink's registration of it are the same model", (
     store.ingest("vessel.flight", point(0, { altitudeAsl: value("m", 0) }));
     store.beginFrame();
 
-    expect(store.sampleReading("vessel.flight")).toMatchObject({
-      reckoning: "none",
+    expect(store.sampleReading("vessel.flight").reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "@vessel.orbit" },
     });
 
     store.ingest("vessel.orbit", point(0, ECCENTRIC));
     store.beginFrame();
-    expect(store.sampleReading("vessel.flight")).toMatchObject({
+    expect(store.sampleReading("vessel.flight").reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "@system.bodies" },
     });
   });
@@ -367,12 +368,12 @@ describe("core's conic and an Uplink's registration of it are the same model", (
     const world = scene();
     world.at(1400);
     const core = world.store.sampleReading("vessel.flight");
-    expect(core).toMatchObject({ reckoned: { owner: "core" } });
+    expect(core).toMatchObject({ reckoning: { owner: "core" } });
 
     registerProbeReckoner();
     world.at(1401);
     expect(world.store.sampleReading("vessel.flight")).toMatchObject({
-      reckoned: { owner: "equivalence-probe" },
+      reckoning: { owner: "equivalence-probe" },
     });
   });
 });

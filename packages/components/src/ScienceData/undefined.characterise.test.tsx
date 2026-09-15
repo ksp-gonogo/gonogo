@@ -12,7 +12,7 @@ import { ScienceDataComponent } from "./index";
 
 /**
  * CHARACTERISATION. What Science Data does TODAY when its telemetry reads are
- * `undefined`, ahead of the `Reading<T>` migration. Not what it should do.
+ * `undefined`, ahead of the `TopicReading<T>` migration. Not what it should do.
  *
  * This widget gives `undefined` at least four meanings:
  *

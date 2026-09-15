@@ -64,7 +64,7 @@ describe("TimelineStore.sampleReading", () => {
     expect(second).not.toBe(first);
     expect(second).toEqual({
       state: "observed",
-      reckoning: "none",
+      reckoning: { status: "none" },
       value: 6,
       atUt: value("ut", 11),
     });
@@ -78,7 +78,7 @@ describe("TimelineStore.sampleReading", () => {
     const frame = s.currentFrame();
     expect(s.sampleReading("vessel.orbit", frame)).toEqual({
       state: "observed",
-      reckoning: "none",
+      reckoning: { status: "none" },
       value: s.sample<number>("vessel.orbit", frame)?.payload,
       atUt: value("ut", 10),
     });
@@ -90,7 +90,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.orbit")).toEqual({
       state: "pending",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
   });
 
@@ -100,7 +100,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.orbit")).toEqual({
       state: "observed",
-      reckoning: "none",
+      reckoning: { status: "none" },
       value: 5,
       atUt: value("ut", 10),
     });
@@ -109,7 +109,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.orbit")).toEqual({
       state: "stale",
-      reckoning: "none",
+      reckoning: { status: "none" },
       grade: "disconnected",
       value: 5,
       asOfUt: value("ut", 10),
@@ -122,14 +122,14 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.orbit")).toEqual({
       state: "absent",
-      reckoning: "none",
+      reckoning: { status: "none" },
       atUt: value("ut", 10),
     });
   });
 });
 
 /**
- * A topic the CONTRACT declares reckonable is the one place `reckoning: "none"`
+ * A topic the CONTRACT declares reckonable is the one place `reckoning: { status: "none" }`
  * on a value-bearing arm is not the honest default. The mark promises the wire
  * carries the model's inputs, so nothing answering is a specific refusal, and
  * the refusal names the input in the contract's own spelling.
@@ -145,9 +145,8 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     );
     s.beginFrame();
 
-    expect(s.sampleReading("vessel.target")).toMatchObject({
-      state: "observed",
-      reckoning: "none",
+    expect(s.sampleReading("vessel.target").reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "relativeVelocity" },
     });
   });
@@ -162,7 +161,8 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     s.ingest("vessel.flight", point<Record<string, unknown>>(10, {}));
     s.beginFrame();
 
-    expect(s.sampleReading("vessel.flight")).toMatchObject({
+    expect(s.sampleReading("vessel.flight").reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "@vessel.orbit" },
     });
   });
@@ -187,7 +187,8 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     );
     s.beginFrame();
 
-    expect(s.sampleReading("vessel.target")).toMatchObject({
+    expect(s.sampleReading("vessel.target").reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "model-inapplicable" },
     });
     registerCoreReckoners();
@@ -237,7 +238,8 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     const after = s.sampleReading("vessel.flight");
 
     expect(after).not.toBe(before);
-    expect(after).toMatchObject({
+    expect(after.reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "input-absent", input: "@system.bodies" },
     });
   });

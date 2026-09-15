@@ -9,7 +9,7 @@
  * placeholder rather than a tracking readout, and PBDS mirrors the same value to
  * the station, so both sides read identically.
  *
- * This test is why the placeholder is DATED. `Reading<T>` splits "no frame yet"
+ * This test is why the placeholder is DATED. `TopicReading<T>` splits "no frame yet"
  * from "the wire says there is nothing", and both used to render this same
  * string, so asserting the string alone could not tell you which reading
  * produced it. The caption assertion below is the part that can fail.

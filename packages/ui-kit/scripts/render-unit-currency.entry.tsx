@@ -17,7 +17,12 @@
  * which both treatments of this component have carried, so the same harness
  * renders the tree before this change and the tree after it.
  */
-import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type TopicReading,
+  topicReading,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DataTable, type DataTableColumn } from "../src/DataTable";
@@ -27,18 +32,23 @@ import { Unit } from "../src/Unit";
 /** An arbitrary but fixed instant, so the hover text is reproducible. */
 const AT = value("ut", 1_000);
 
-function observed<U extends string>(v: Value<U>): Reading<Value<U>> {
-  return { state: "observed", reckoning: "none", value: v, atUt: AT };
+function observed<U extends string>(v: Value<U>): TopicReading<Value<U>> {
+  return topicReading({
+    state: "observed",
+    reckoning: { status: "none" },
+    value: v,
+    atUt: AT,
+  });
 }
 
-function held<U extends string>(v: Value<U>): Reading<Value<U>> {
-  return {
+function held<U extends string>(v: Value<U>): TopicReading<Value<U>> {
+  return topicReading({
     state: "stale",
-    reckoning: "none",
+    reckoning: { status: "none" },
     value: v,
     asOfUt: AT,
     grade: "held-stale",
-  };
+  });
 }
 
 interface Craft {

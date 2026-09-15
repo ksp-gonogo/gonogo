@@ -1,4 +1,4 @@
-import type { Reading, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicPayload, TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import { bandIn, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
@@ -79,7 +79,11 @@ type Run = readonly (readonly [number, number, number])[];
 
 const renderedTrees: Array<() => void> = [];
 
-function ReadingProbe({ sink }: { sink: (reading: Reading<Crew>) => void }) {
+function ReadingProbe({
+  sink,
+}: {
+  sink: (reading: TopicReading<Crew>) => void;
+}) {
   sink(useTelemetry("kerbalism.crew"));
   return null;
 }
@@ -95,7 +99,7 @@ function readingOver(run: Run, children?: ReactNode) {
     pinnedUt: VIEW_UT,
   });
   for (const topic of CARRIED) fixture.subscribe(topic);
-  let latest: Reading<Crew> | undefined;
+  let latest: TopicReading<Crew> | undefined;
   const result = render(
     <fixture.Provider>
       <ReadingProbe
@@ -109,7 +113,7 @@ function readingOver(run: Run, children?: ReactNode) {
   renderedTrees.push(result.unmount);
   return {
     container: result.container,
-    async feed(): Promise<Reading<Crew>> {
+    async feed(): Promise<TopicReading<Crew>> {
       act(() => {
         for (const [validAt, radiation, asOfUt] of run) {
           fixture.emit("kerbalism.crew", crew(radiation, asOfUt), {
@@ -166,8 +170,8 @@ describe("what a survival meter carries", () => {
 
   it("places the band on the axis the track is drawn on", async () => {
     const dose = (await metersOver()).get("Jebediah Kerman:radiation");
-    const reading = dose?.value as Reading<number>;
-    if (reading.reckoning !== "available") {
+    const reading = dose?.value as TopicReading<number>;
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got "${reading.reckoning}"`);
     }
 
@@ -178,7 +182,7 @@ describe("what a survival meter carries", () => {
      * handed over unconverted is an interval fifty times too wide that the
      * primitive silently declines to draw.
      */
-    const band = bandIn(reading.reckoned.bands?.[""], "ratio");
+    const band = bandIn(reading.reckoning.bands?.[""], "ratio");
     if (!band) throw new Error("no ratio band at the payload root");
     expect(band.kind).toBe("sigma1");
     expect(band.hi.magnitude - band.lo.magnitude).toBeGreaterThan(0);
@@ -190,23 +194,24 @@ describe("what a survival meter carries", () => {
 
   it("offers no interval for an accumulator the model never watched move", async () => {
     const stress = (await metersOver()).get("Jebediah Kerman:stress");
-    const reading = stress?.value as Reading<number>;
+    const reading = stress?.value as TopicReading<number>;
 
     /*
      * A flat rule is not a shallow slope: it is positive evidence that the
      * rule's input resource is still aboard. The bar still draws, because the
      * figure is a real observation; what it must not draw is an interval.
      */
-    expect(reading.reckoning).toBe("none");
+    expect(reading.reckoning.status).toBe("none");
   });
 
   it("offers no interval from a two-sample window, where there is no sigma", async () => {
     const dose = (await metersOver(TWO_SAMPLES)).get(
       "Jebediah Kerman:radiation",
     );
-    const reading = dose?.value as Reading<number>;
+    const reading = dose?.value as TopicReading<number>;
     const banded =
-      reading.reckoning === "available" && reading.reckoned.bands !== undefined;
+      reading.reckoning.status === "available" &&
+      reading.reckoning.bands !== undefined;
 
     // The model still carries the accumulator here, so this separates "has a
     // reckoning" from "has a band": banding every reckoning invents `0/0`.

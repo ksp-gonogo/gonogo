@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { getDataSource } from "../api/registry";
 import type { DataSource } from "../api/types";
 import { isTopicCarried } from "../carried-channels";
-import type { Reading, ReckonableReading, UnmodelledReading } from "../reading";
+import type {
+  ReckonableReading,
+  TopicReading,
+  UnmodelledReading,
+} from "../reading";
+import { topicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import {
@@ -128,10 +133,10 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  * One shared `pending` for the canonical no-provider path. A fresh object per
  * call would fail `useSyncExternalStore`'s reference comparison and loop.
  */
-const CANONICAL_PENDING: Reading<never> = {
+const CANONICAL_PENDING = topicReading<never>({
   state: "pending",
-  reckoning: "none",
-};
+  reckoning: { status: "none" },
+});
 
 /**
  * Canonical overload: keyed by TopicId, returns the Topic's `Reading`.
@@ -166,9 +171,9 @@ const CANONICAL_PENDING: Reading<never> = {
  * the second off a modelled value is a mistake the projection makes impossible
  * rather than merely documented.
  *
- * It is deliberately NOT assignable to `Reading<payload>`, so a call site that
+ * It is deliberately NOT assignable to `TopicReading<payload>`, so a call site that
  * hands one to a helper typed for the whole payload stops compiling. The overlay
- * is `{ ...reading.value, ...reading.reckoned.value }`, written where it happens
+ * is `{ ...reading.value, ...reading.reckoning.value }`, written where it happens
  * because that spread IS the judgement.
  *
  * The three arms are exclusive by construction: a marked topic in
@@ -218,7 +223,7 @@ export function useTelemetry<T extends TopicId>(
     >
   : T extends NeverReckonable
     ? UnmodelledReading<TopicPayload<T>>
-    : Reading<TopicPayload<T>>;
+    : TopicReading<TopicPayload<T>>;
 
 // Implementation (not part of the public API surface)
 export function useTelemetry(dataSourceId: string, key?: string): unknown {

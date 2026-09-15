@@ -1,4 +1,4 @@
-import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   DeployedPowerState,
@@ -98,7 +98,7 @@ export interface DeployedBase {
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

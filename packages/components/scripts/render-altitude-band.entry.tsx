@@ -22,8 +22,8 @@
  */
 
 import {
-  type Reading,
   TimelineStore,
+  type TopicReading,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -101,7 +101,7 @@ function point<T>(validAt: number, payload: T) {
  * landed, so a run ingested without moving the wall reads every later frame
  * further ahead than the dial says.
  */
-function read(row: Row): Reading<FlightSample> {
+function read(row: Row): TopicReading<FlightSample> {
   let wall = 0;
   const clock = new ViewClock({
     nowWall: () => wall,
@@ -132,9 +132,9 @@ function read(row: Row): Reading<FlightSample> {
 
 /** The same reading, addressed as a tank so `Meter` can find its band. */
 function asTank(
-  reading: Reading<FlightSample>,
+  reading: TopicReading<FlightSample>,
   capacity: Value<"m">,
-): Reading<MeterQuantity<"m">> | null {
+): TopicReading<MeterQuantity<"m">> | null {
   if (reading.state !== "observed" && reading.state !== "stale") return null;
   const quantity = { amount: reading.value.altitudeAsl, capacity };
   const base =
@@ -146,25 +146,27 @@ function asTank(
           grade: reading.grade,
         }
       : { state: "observed" as const, value: quantity, atUt: reading.atUt };
-  if (reading.reckoning !== "available") {
-    return { ...base, reckoning: "none" } as Reading<MeterQuantity<"m">>;
+  if (reading.reckoning.status !== "available") {
+    return { ...base, reckoning: { status: "none" } } as TopicReading<
+      MeterQuantity<"m">
+    >;
   }
-  const band = reading.reckoned.bands?.altitudeAsl;
+  const band = reading.reckoning.bands?.altitudeAsl;
   return {
     ...base,
-    reckoning: "available",
-    reckoned: {
-      ...reading.reckoned,
-      value: { amount: reading.reckoned.value.altitudeAsl, capacity },
+    reckoning: {
+      status: "available",
+      ...reading.reckoning,
+      value: { amount: reading.reckoning.value.altitudeAsl, capacity },
       bands: band ? { amount: band } : undefined,
     },
-  } as Reading<MeterQuantity<"m">>;
+  } as TopicReading<MeterQuantity<"m">>;
 }
 
 /** What the model said about this row, in one line under its meter. */
-function verdict(reading: Reading<FlightSample>): string {
-  if (reading.reckoning !== "available") return "model declined";
-  const band = reading.reckoned.bands?.altitudeAsl;
+function verdict(reading: TopicReading<FlightSample>): string {
+  if (reading.reckoning.status !== "available") return "model declined";
+  const band = reading.reckoning.bands?.altitudeAsl;
   if (!band) return "carried, no band offered";
   const halfWidth = band.hi.minus(band.lo).scaled(0.5);
   return `${band.kind}, ±${writeQuantity(halfWidth, { decimals: 2 })}`;

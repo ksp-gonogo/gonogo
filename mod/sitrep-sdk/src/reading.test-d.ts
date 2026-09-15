@@ -1,7 +1,7 @@
 import type {
-  Reading,
   ReckonableReading,
   ReckoningDecline,
+  TopicReading,
   UnmodelledReading,
 } from "./reading";
 import { observedValue } from "./reading";
@@ -32,15 +32,15 @@ import type { Value } from "./unit-system/value";
  * which is how a guarantee gets deleted under a passing suite.
  */
 
-declare const reading: Reading<number>;
+declare const reading: TopicReading<number>;
 
 /*
  * The guarantee. Reaching a reckoning costs a written test, exactly as reaching
  * a value costs one: on a reading nobody has narrowed, `reckoned` is not merely
  * absent at runtime, it is absent from the type.
  */
-// @ts-expect-error `reckoned` is unreachable until `reckoning` is narrowed.
-export const unnarrowed = reading.reckoned;
+// @ts-expect-error a model is unreachable until `reckoning.status` is narrowed.
+export const unnarrowed = reading.reckoning.value;
 
 /*
  * And narrowing the OTHER axis does not open it. This is the half that would
@@ -48,14 +48,14 @@ export const unnarrowed = reading.reckoned;
  * migration is most likely to break by accident: a widget that has established
  * a value is not thereby entitled to a model.
  */
-export function narrowingStateAloneIsNotEnough(r: Reading<number>) {
+export function narrowingStateAloneIsNotEnough(r: TopicReading<number>) {
   if (r.state === "stale") {
     // @ts-expect-error a value-bearing state does not imply a model.
-    return r.reckoned;
+    return r.reckoning.value;
   }
   if (r.state === "observed") {
     // @ts-expect-error the same on the live side, which is the new capability.
-    return r.reckoned;
+    return r.reckoning.value;
   }
   return undefined;
 }
@@ -66,23 +66,28 @@ export function narrowingStateAloneIsNotEnough(r: Reading<number>) {
  * reintroduced the nesting would break one of them.
  */
 export function reckoningNarrowsWithoutState(
-  r: Reading<number>,
+  r: TopicReading<number>,
 ): number | null {
-  return r.reckoning === "available" ? r.reckoned.value : null;
+  return r.reckoning.status === "available" ? r.reckoning.value : null;
 }
 
-export function reckoningSurvivesLive(r: Reading<number>): Value<"ut"> | null {
+export function reckoningSurvivesLive(
+  r: TopicReading<number>,
+): Value<"ut"> | null {
   /*
    * A live reading carrying a model: unrepresentable before the axes split, and
    * the whole point of splitting them. `atUt` proves the narrowing landed on the
    * observed member rather than collapsing to `never`.
    */
-  if (r.state === "observed" && r.reckoning === "available") return r.atUt;
+  if (r.state === "observed" && r.reckoning.status === "available")
+    return r.atUt;
   return null;
 }
 
-export function staleWithoutAModelStillHasItsValue(r: Reading<number>): number {
-  if (r.state === "stale" && r.reckoning === "none") return r.value;
+export function staleWithoutAModelStillHasItsValue(
+  r: TopicReading<number>,
+): number {
+  if (r.state === "stale" && r.reckoning.status === "none") return r.value;
   return 0;
 }
 
@@ -93,8 +98,8 @@ export function staleWithoutAModelStillHasItsValue(r: Reading<number>): number {
  */
 declare const unmodelled: UnmodelledReading<number>;
 
-// @ts-expect-error an unmodelled reading has no `reckoned` in any state.
-export const noModelOnUnmodelled = unmodelled.reckoned;
+// @ts-expect-error an unmodelled reading has no model in any state.
+export const noModelOnUnmodelled = unmodelled.reckoning.value;
 
 export const unmodelledKeepsItsStates:
   | "pending"
@@ -107,7 +112,7 @@ export const unmodelledKeepsItsStates:
  * A `Reading` is assignable FROM an unmodelled one and not the other way, which
  * is what makes declining to propagate a narrowing rather than a cast.
  */
-export const wideningIsFine: Reading<number> = unmodelled;
+export const wideningIsFine: TopicReading<number> = unmodelled;
 
 // @ts-expect-error narrowing back has to be a written decision, not an assignment.
 export const narrowingIsNot: UnmodelledReading<number> = reading;
@@ -135,8 +140,8 @@ declare const reckonable: ReckonableReading<Flightish, "altitudeAsl">;
  * The guarantee `Reading` already applies, applied here too: the projection is
  * unreachable until the reckoning discriminant has been written.
  */
-// @ts-expect-error `reckoned` is unreachable until `reckoning` is narrowed.
-export const declaredButUnnarrowed = reckonable.reckoned;
+// @ts-expect-error a model is unreachable until `reckoning.status` is narrowed.
+export const declaredButUnnarrowed = reckonable.reckoning.value;
 
 /*
  * Narrowing the reckoning alone reaches the model on BOTH value-bearing arms at
@@ -145,7 +150,9 @@ export const declaredButUnnarrowed = reckonable.reckoned;
 export function everyValueBearingArmCarriesTheModel(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ): number | null {
-  return r.reckoning === "available" ? r.reckoned.value.altitudeAsl : null;
+  return r.reckoning.status === "available"
+    ? r.reckoning.value.altitudeAsl
+    : null;
 }
 
 /*
@@ -156,9 +163,9 @@ export function everyValueBearingArmCarriesTheModel(
 export function theProjectionIsNarrowerThanThePayload(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ): string | null {
-  if (r.reckoning === "available") {
+  if (r.reckoning.status === "available") {
     // @ts-expect-error no model moves `situation`, so it is not in the projection.
-    return r.reckoned.value.situation;
+    return r.reckoning.value.situation;
   }
   return null;
 }
@@ -171,21 +178,22 @@ export function theProjectionIsNotThePayload(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ): Flightish | null {
   // @ts-expect-error the modelled fields are not a whole payload.
-  if (r.reckoning === "available") return r.reckoned.value;
+  if (r.reckoning.status === "available") return r.reckoning.value;
   return null;
 }
 
 /*
- * A decline is REACHABLE on the value-bearing `"none"` arms, and carries the
- * reason. A declared value has a model on offer, so `"none"` there is a specific
- * refusal rather than the honest majority answer it is on a plain `Reading`.
+ * A decline is REACHABLE on a declared value's arms, and carries the reason. A
+ * declared value has a model on offer, so a refusal there is specific rather
+ * than the honest silence a plain `TopicReading` answers with.
  */
 export function aDeclineIsReachableAndSaysWhy(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ): ReckoningDecline["reason"] | null {
-  if (r.state === "observed" && r.reckoning === "none")
-    return r.declined.reason;
-  if (r.state === "stale" && r.reckoning === "none") return r.declined.reason;
+  if (r.state === "observed" && r.reckoning.status === "declined")
+    return r.reckoning.declined.reason;
+  if (r.state === "stale" && r.reckoning.status === "declined")
+    return r.reckoning.declined.reason;
   return null;
 }
 
@@ -198,9 +206,9 @@ export function aDeclineIsReachableAndSaysWhy(
 export function aDeclinedArmHasNoModel(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ) {
-  if (r.state === "observed" && r.reckoning === "none") {
+  if (r.state === "observed" && r.reckoning.status === "declined") {
     // @ts-expect-error a declined arm carries the reason, never a model.
-    return r.reckoned;
+    return r.reckoning.value;
   }
   return undefined;
 }
@@ -208,9 +216,9 @@ export function aDeclinedArmHasNoModel(
 export function aModelledArmHasNoDecline(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ) {
-  if (r.reckoning === "available") {
+  if (r.reckoning.status === "available") {
     // @ts-expect-error a model that answered has nothing to decline.
-    return r.declined;
+    return r.reckoning.declined;
   }
   return undefined;
 }
@@ -235,16 +243,16 @@ export function anEmptyArmCarriesNeither(
  * before, and they have gained no `declined`: an undeclared topic saying "no
  * model" owes nobody a reason.
  */
-export function aPlainReadingIsUnchanged(r: Reading<number>) {
-  if (r.reckoning === "none") {
+export function aPlainReadingIsUnchanged(r: TopicReading<number>) {
+  if (r.reckoning.status === "none") {
     // @ts-expect-error the unmodelled arms of a plain reading carry no model.
-    return r.reckoned;
+    return r.reckoning.value;
   }
   return undefined;
 }
 
-export function aPlainReadingOwesNoReason(r: Reading<number>) {
-  if (r.state === "observed" && r.reckoning === "none") {
+export function aPlainReadingOwesNoReason(r: TopicReading<number>) {
+  if (r.state === "observed" && r.reckoning.status === "none") {
     // @ts-expect-error only a DECLARED value's decline has a reason to carry.
     return r.declined;
   }
@@ -254,14 +262,14 @@ export function aPlainReadingOwesNoReason(r: Reading<number>) {
 /*
  * Neither union is assignable to the other, and the failing direction is the
  * load-bearing one: handing a reckonable reading to something typed
- * `Reading<T>` would entitle the callee to read the whole payload off the
+ * `TopicReading<T>` would entitle the callee to read the whole payload off the
  * model. This is the inverse of `wideningIsFine` above, and it has to stay an
  * error for the projection to mean anything.
  */
 // @ts-expect-error a projection is not a payload, so this is not a widening.
-export const reckonableIsNotAReading: Reading<Flightish> = reckonable;
+export const reckonableIsNotAReading: TopicReading<Flightish> = reckonable;
 
-declare const plainFlight: Reading<Flightish>;
+declare const plainFlight: TopicReading<Flightish>;
 
 // @ts-expect-error a plain reading declares no model and owes no decline.
 export const aReadingIsNotReckonable: ReckonableReading<
@@ -273,7 +281,7 @@ export const aReadingIsNotReckonable: ReckonableReading<
  * `observedValue` answers with the OBSERVATION on either union, and on the
  * reckonable one that means the whole payload rather than the projection.
  *
- * This is the assertion the overload ORDER exists for. `Reading<Pick<T, K>>`
+ * This is the assertion the overload ORDER exists for. `TopicReading<Pick<T, K>>`
  * accepts a `ReckonableReading<T, K>` by inference, so with the wider overload
  * declared first the observation would come back typed as the fields the model
  * moves, and `situation` (which no model moves, and which the observation
@@ -290,7 +298,7 @@ export function theObservationIsThePayloadNotTheProjection(
  * had before the helper existed.
  */
 export function theObservationOfAPlainReading(
-  r: Reading<Flightish>,
+  r: TopicReading<Flightish>,
 ): string | undefined {
   return observedValue(r)?.situation;
 }
@@ -304,5 +312,5 @@ export function theObservationIsNotAModel(
   r: ReckonableReading<Flightish, "altitudeAsl">,
 ) {
   // @ts-expect-error the observation is a payload, it carries no reckoning.
-  return observedValue(r)?.reckoned;
+  return observedValue(r)?.reckoning;
 }

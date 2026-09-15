@@ -1,6 +1,6 @@
 import type {
-  Reading,
   SystemUplinkHealth,
+  TopicReading,
   VantagePlanReply,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -80,7 +80,7 @@ type PlanView =
  * the producer's own claim means the display cannot disagree with the field it is
  * describing.
  */
-function planView(reading: Reading<PrincipiaPlan>): PlanView {
+function planView(reading: TopicReading<PrincipiaPlan>): PlanView {
   switch (reading.state) {
     /**
      * The three absences are grouped on purpose: this section renders the CONTENTS
@@ -482,7 +482,9 @@ function isNextBurn(burn: PrincipiaPlannedBurn, plan: PrincipiaPlan): boolean {
  *  identity is fine here: which craft is active does not decay the way a
  *  trajectory does, and the alternative is losing the attribution guard
  *  whenever the identity read lags. */
-function vesselIdOf(reading: Reading<{ vesselId: string }>): string | null {
+function vesselIdOf(
+  reading: TopicReading<{ vesselId: string }>,
+): string | null {
   switch (reading.state) {
     case "observed":
       return reading.value.vesselId ?? null;

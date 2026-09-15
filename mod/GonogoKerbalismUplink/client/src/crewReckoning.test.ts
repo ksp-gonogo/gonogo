@@ -1,4 +1,4 @@
-import type { Reading, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicPayload, TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import {
   bandFor,
   bandIn,
@@ -77,7 +77,7 @@ function readRun(
   viewUt: number,
   run: readonly (readonly [number, number, number])[],
   threshold = 1,
-): Reading<Crew> {
+): TopicReading<Crew> {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: viewUt,
@@ -95,10 +95,10 @@ function reckonedRun(
   threshold = 1,
 ): Crew {
   const reading = readRun(viewUt, run, threshold);
-  if (reading.reckoning !== "available") {
+  if (reading.reckoning.status !== "available") {
     throw new Error(`expected a model, got reckoning "${reading.reckoning}"`);
   }
-  return reading.reckoned.value;
+  return reading.reckoning.value;
 }
 
 /** Climbing by 0.01/s of STAMP time, sampled at three uneven wire instants. */
@@ -200,14 +200,14 @@ describe("carrying an accumulator forward", () => {
 
   it("names the accumulator it moved, and nothing else on the kerbal", () => {
     const reading = readRun(1060, CLIMBING);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
-    expect(reading.reckoned.modelled.map((f) => f.path)).toEqual([
+    expect(reading.reckoning.modelled.map((f) => f.path)).toEqual([
       "",
       "0.rules.0.value",
     ]);
-    expect(reading.reckoned.basis).toBe("rate-integration");
-    expect(reading.reckoned.owner).toBe("kerbalism");
+    expect(reading.reckoning.basis).toBe("rate-integration");
+    expect(reading.reckoning.owner).toBe("kerbalism");
   });
 
   it("leaves the mod's own death clock alone rather than restamping it", () => {
@@ -241,9 +241,11 @@ describe("carrying an accumulator forward", () => {
     // the same object. The accumulator sits two levels down, so this only holds
     // if the clone goes that deep.
     const reading = readRun(1060, CLIMBING);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
+    if (reading.state !== "observed" && reading.state !== "stale")
+      throw new Error("no observation");
 
-    expect(reading.reckoned.value[0].rules?.[0].value?.magnitude).toBeCloseTo(
+    expect(reading.reckoning.value[0].rules?.[0].value?.magnitude).toBeCloseTo(
       0.7,
       6,
     );
@@ -293,7 +295,7 @@ describe("joining the window to the observation", () => {
   function readRoster(
     viewUt: number,
     run: readonly (readonly [number, Crew])[],
-  ): Reading<Crew> {
+  ): TopicReading<Crew> {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: viewUt,
@@ -331,17 +333,17 @@ describe("joining the window to the observation", () => {
         ]),
       ],
     ]);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
-    expect(reading.reckoned.modelled.map((f) => f.path)).toEqual([
+    expect(reading.reckoning.modelled.map((f) => f.path)).toEqual([
       "",
       "0.rules.0.value",
     ]);
-    expect(reading.reckoned.value[0].rules?.[0].value?.magnitude).toBeCloseTo(
+    expect(reading.reckoning.value[0].rules?.[0].value?.magnitude).toBeCloseTo(
       0.7,
       6,
     );
-    expect(reading.reckoned.value[1].rules?.[0].value?.magnitude).toBe(0.4);
+    expect(reading.reckoning.value[1].rules?.[0].value?.magnitude).toBe(0.4);
   });
 
   it("drops samples from another craft, which the store does not cut the window at", () => {
@@ -376,9 +378,9 @@ describe("joining the window to the observation", () => {
     }
     fixture.store.beginFrame();
 
-    expect(fixture.store.sampleReading<Crew>("kerbalism.crew").reckoning).toBe(
-      "none",
-    );
+    expect(
+      fixture.store.sampleReading<Crew>("kerbalism.crew").reckoning.status,
+    ).toBe("none");
   });
 
   it("does not read a departed kerbal's history as the newcomer who took their slot", () => {
@@ -407,16 +409,16 @@ describe("joining the window to the observation", () => {
         ]),
       ],
     ]);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
     // Only Bill. Val contributes one pair, which is not a slope, so she is
     // carried verbatim rather than handed a stranger's decline.
-    expect(reading.reckoned.modelled.map((f) => f.path)).toEqual([
+    expect(reading.reckoning.modelled.map((f) => f.path)).toEqual([
       "",
       "0.rules.0.value",
     ]);
-    expect(reading.reckoned.value[1].name).toBe("Val");
-    expect(reading.reckoned.value[1].rules?.[0].value?.magnitude).toBe(0.2);
+    expect(reading.reckoning.value[1].name).toBe("Val");
+    expect(reading.reckoning.value[1].rules?.[0].value?.magnitude).toBe(0.2);
   });
 });
 
@@ -424,7 +426,7 @@ describe("when the model refuses", () => {
   it("offers nothing on a flat accumulator, whatever the profile's rate says", () => {
     // The whole point: `degenPerSec` is 0.002 in every fixture here, so a model
     // integrating the DECLARED rate would answer 0.14 for this kerbal.
-    expect(readRun(1060, FLAT).reckoning).toBe("none");
+    expect(readRun(1060, FLAT).reckoning.status).toBe("none");
   });
 
   it("offers nothing from a single sample", () => {
@@ -432,7 +434,7 @@ describe("when the model refuses", () => {
     // raises `insufficient-history` on its behalf below `minSamples`, and
     // `observedSlope` refuses a lone pair anyway. The floor is the cheaper of
     // the two, so the assertion that pins it is on the declaration below.
-    expect(readRun(1060, [CLIMBING[2]]).reckoning).toBe("none");
+    expect(readRun(1060, [CLIMBING[2]]).reckoning.status).toBe("none");
   });
 
   it("offers nothing past the horizon", () => {
@@ -440,8 +442,8 @@ describe("when the model refuses", () => {
     const outside = 1040 + CREW_DEGENERATION_HORIZON_SECONDS + 1;
 
     // A high threshold, so the clamp is not what withdraws the model instead.
-    expect(readRun(inside, CLIMBING, 1e6).reckoning).toBe("available");
-    expect(readRun(outside, CLIMBING, 1e6).reckoning).toBe("none");
+    expect(readRun(inside, CLIMBING, 1e6).reckoning.status).toBe("available");
+    expect(readRun(outside, CLIMBING, 1e6).reckoning.status).toBe("none");
   });
 
   it("declares a window with a floor of two, because one point is not a slope", () => {
@@ -474,19 +476,19 @@ describe("how well it says it knows the answer", () => {
     threshold = 1e6,
   ) {
     const reading = readRun(viewUt, run, threshold);
-    if (reading.reckoning !== "available") throw new Error("no model");
-    return bandIn(bandFor(reading.reckoned, "0.rules.0.value"), "units");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
+    return bandIn(bandFor(reading.reckoning, "0.rules.0.value"), "units");
   }
 
   it("keys the band by the same path `modelled` names", () => {
     const reading = readRun(1060, SCATTERED, 1e6);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
     // The two line up without a join, which is the whole point of sharing the
     // path vocabulary. A band under a path nothing modelled is a producer bug
     // nothing rejects, because a consumer reads bands BY path.
-    expect(Object.keys(reading.reckoned.bands ?? {})).toEqual(
-      reading.reckoned.modelled
+    expect(Object.keys(reading.reckoning.bands ?? {})).toEqual(
+      reading.reckoning.modelled
         .map((f) => f.path)
         .filter((path) => path !== ""),
     );
@@ -508,11 +510,11 @@ describe("how well it says it knows the answer", () => {
      * two diverge. Measured by planting exactly that change.
      */
     const reading = readRun(1060, SCATTERED, 1e6);
-    if (reading.reckoning !== "available") throw new Error("no model");
-    const band = bandIn(bandFor(reading.reckoned, "0.rules.0.value"), "units");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
+    const band = bandIn(bandFor(reading.reckoning, "0.rules.0.value"), "units");
 
     expect(band?.value.magnitude).toBe(
-      reading.reckoned.value[0].rules?.[0].value?.magnitude,
+      reading.reckoning.value[0].rules?.[0].value?.magnitude,
     );
   });
 
@@ -570,11 +572,11 @@ describe("how well it says it knows the answer", () => {
 
   it("offers no bands at all from a two-sample window", () => {
     const reading = readRun(1060, [SCATTERED[1], SCATTERED[2]], 1e6);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
     // `undefined` rather than an empty map: a model that bands nothing says so
     // by absence, and the store's own doc asks for exactly that.
-    expect(reading.reckoned.bands).toBeUndefined();
+    expect(reading.reckoning.bands).toBeUndefined();
   });
 
   it("keeps both ends inside the range the accumulator can actually occupy", () => {
