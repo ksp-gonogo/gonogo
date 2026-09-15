@@ -332,25 +332,41 @@ namespace Gonogo.KosUplink
                 : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
         }
 
-        /// <summary>Resize a CPU screen held by <paramref name="leaseToken"/>.</summary>
+        /// <summary>
+        /// Resize a CPU screen held by <paramref name="leaseToken"/>.
+        ///
+        /// <para>A non-positive dimension is refused rather than acked.
+        /// <c>kos.terminal.resize</c> is a declared public command, so a client
+        /// nobody in this repo wrote reaches it, and
+        /// <c>KosTerminalResizeArgs.Cols</c>/<c>Rows</c> are non-nullable ints:
+        /// an omitted key, a null, and a blank field all deserialise to 0, so
+        /// "the client did not tell us a size" arrives identically to "the
+        /// client asked for a zero-column terminal". Acking it would report a
+        /// resize that never happened, so it is refused with
+        /// <see cref="CommandErrorCode.Range"/> instead.</para>
+        /// </summary>
         public CommandResult Resize(int coreId, string leaseToken, int cols, int rows)
         {
             if (!HoldsLease(coreId, leaseToken))
             {
                 return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
             }
+            if (cols <= 0 || rows <= 0)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Range,
+                    "No terminal size to resize to. Both cols and rows must be above 0, "
+                        + "and an absent or unreadable dimension arrives here as 0.");
+            }
             var screen = GetOrCreateSession(coreId).Screen;
             if (screen == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            if (cols > 0 && rows > 0)
-            {
-                screen.Resize(cols, rows);
-                // A dimension change invalidates the diff baseline, force a
-                // clean full repaint on the next poll.
-                GetOrCreateSession(coreId).PendingReseed = true;
-            }
+            screen.Resize(cols, rows);
+            // A dimension change invalidates the diff baseline, force a clean
+            // full repaint on the next poll.
+            GetOrCreateSession(coreId).PendingReseed = true;
             return CommandResult.Ok();
         }
 

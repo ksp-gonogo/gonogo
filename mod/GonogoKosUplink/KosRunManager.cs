@@ -75,6 +75,50 @@ namespace Gonogo.KosUplink
             return true;
         }
 
+        /// <summary>
+        /// The whole <c>kos.run</c> dispatch sequence: arm, type, and disarm
+        /// again if the typing did not happen. <paramref name="type"/> returns
+        /// false when the CPU could not be typed into at all (no terminal
+        /// window), which is not a run the caller can ever get a result for:
+        /// arming is undone so the next <c>kos.run</c> to that CPU still gets
+        /// through, and the operator is told the press did nothing instead of
+        /// waiting out the client's round-trip timeout.
+        ///
+        /// <para>The arm has to come first because a trivial one-tick script
+        /// can complete its <c>[KOSDATA]</c> block synchronously inside the
+        /// typing call (<c>OnPrint</c> runs inline inside kOS's PRINT), so the
+        /// manager must already be expecting the result before any character
+        /// reaches the interpreter. That ordering is why the undo is needed:
+        /// there is no way to check the window first and arm afterwards.</para>
+        ///
+        /// <para>Lives here rather than in the KSP-touching caller so it can be
+        /// tested headlessly: <c>KosExtension.Ksp.cs</c> is excluded from this
+        /// Uplink's test project, so a refusal written there could not be
+        /// covered at all.</para>
+        /// </summary>
+        public CommandResult ArmAndType(int coreId, string requestId, Func<bool> type)
+        {
+            if (!TryArm(coreId, requestId))
+            {
+                // Another kos.run is already in flight for this CPU. The
+                // client's own per-CPU serialization (mirroring
+                // KosComputeSession's FIFO queue) is expected to prevent this
+                // in the steady state: reject rather than silently clobbering
+                // the earlier request's correlation.
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            if (!type())
+            {
+                Cancel(coreId);
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "That CPU has no terminal window to type into, so the script was never run.");
+            }
+
+            return CommandResult.Ok();
+        }
+
         /// <summary>True while a run is armed (in flight) for <paramref name="coreId"/>.</summary>
         public bool IsArmed(int coreId) => _pending.ContainsKey(coreId);
 
@@ -111,9 +155,9 @@ namespace Gonogo.KosUplink
         /// Disarm <paramref name="coreId"/> WITHOUT publishing: for a CPU
         /// going away (reboot/unload) mid-run, so a later unrelated block
         /// from a freshly-booted CPU with the same id isn't mis-attributed
-        /// to the abandoned request. Not currently called from
-        /// <c>KosExtension</c> (see the migration plan's known gaps),
-        /// exposed for the main-tree follow-up to wire in.
+        /// to the abandoned request. Also how <see cref="ArmAndType"/> undoes
+        /// an arm whose typing never reached the CPU. Nothing evicts a request
+        /// whose CPU went away mid-run, that is still the known gap above.
         /// </summary>
         public void Cancel(int coreId) => _pending.Remove(coreId);
 
