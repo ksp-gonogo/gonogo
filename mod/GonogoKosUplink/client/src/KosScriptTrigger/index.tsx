@@ -1,4 +1,5 @@
 import type {
+  CommsDelay,
   ComponentProps,
   ConfigComponentProps,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -6,7 +7,6 @@ import {
   registerComponent,
   useLatestValue,
   useStream,
-  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -132,9 +132,15 @@ function KosScriptTriggerComponent({
   // `useLatestValue` (comms.delay is TrueNow command-centre bookkeeping, not a
   // reveal-gated stream): surfaced as a round-trip readout so the operator
   // understands why the result is a wait, not an instant reply.
-  const commsDelay = useLatestValue<{ oneWaySeconds: number | null }>(
-    "comms.delay",
-  );
+  //
+  // `CommsDelay`, not a hand-written `{ oneWaySeconds: number | null }`. The
+  // hook hands back the WRAPPED payload, so `oneWaySeconds` is a `Value<"s">`,
+  // not a number. The old local shape read correctly only because a wrapped
+  // value coerces through `valueOf` and every arm below went through
+  // arithmetic or a comparison; it typechecked `2 * oneWay` as arithmetic on
+  // an object and was one prototype-losing hop from quietly reading NaN.
+  // Stay in the algebra (`isPositive`, `times`) rather than unwrapping.
+  const commsDelay = useLatestValue<CommsDelay>("comms.delay");
   const oneWay = commsDelay?.oneWaySeconds ?? null;
 
   const noCpu = runnable.length === 0;
@@ -242,14 +248,24 @@ function KosScriptTriggerComponent({
             <PrimaryButton type="button" onClick={dispatch} disabled={!canRun}>
               {run.status === "running" ? "Running..." : "Run"}
             </PrimaryButton>
-            {oneWay !== null && oneWay > 0 && (
+            {/*
+              Three rungs, because a missing reading and a measured zero are
+              different facts. No reading at all (no comms model publishing,
+              or no measurable ControlPath) draws nothing, there is nothing to
+              quote. A measured zero says the link is instant and says so, so
+              the operator can tell "the round-trip is nil" from "we could not
+              tell you". Anything above zero quotes the doubled figure.
+            */}
+            {oneWay !== null && (
               <RoundTrip aria-label="Signal round-trip">
-                round-trip ~
-                <Unit
-                  value={value("s", 2 * oneWay)}
-                  scale="never"
-                  decimals={1}
-                />
+                {oneWay.isPositive() ? (
+                  <>
+                    round-trip ~
+                    <Unit value={oneWay.times(2)} scale="never" decimals={1} />
+                  </>
+                ) : (
+                  "round-trip instant"
+                )}
               </RoundTrip>
             )}
           </FormActions>
