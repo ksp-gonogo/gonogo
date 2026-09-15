@@ -1,6 +1,14 @@
-import type { TopicReading, Value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type BandKind,
+  bandIn,
+  value as quantity,
+  type Reading,
+  type UncertaintyBand,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
+import { bandClaim } from "./bandClaim";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import { NULL_DISPLAY } from "./NullValue";
 /*
@@ -24,6 +32,7 @@ import {
   formatQuantity,
   kindOfUnit,
   type PresentableAs,
+  speakQuantity,
   wordForSymbol,
 } from "./units";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -59,7 +68,7 @@ import { VisuallyHidden } from "./VisuallyHidden";
  *
  * ## A reading that is not current says so, in THREE treatments and not ten
  *
- * Hand it a `TopicReading<Value<U>>` instead of a bare `Value<U>` and it also draws
+ * Hand it a `Reading<Value<U>>` instead of a bare `Value<U>` and it also draws
  * whether the number is a reading of NOW. `Reading` is five states across two
  * reckoning arms; this draws three things, because the rest are distinctions an
  * operator cannot act on from a single number:
@@ -134,7 +143,21 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * observed one has to be a written choice at the call site (see
  * `withoutReckoning`), and a primitive doing it silently at 373 call sites is
  * exactly the substitution `Reading` exists to prevent. A widget that wants the
- * model hands `reckoned.value` over as the `Value` it is.
+ * model hands `reckoning.modelled` over as the `Value` it is.
+ *
+ * ## How well the number is known, where the model will say
+ *
+ * A reading whose model publishes an {@link UncertaintyBand} also gets the
+ * interval beside the figure: `1 km ± 0.025 km` where the band is symmetric
+ * about what is on screen, and `1 km (0.97 to 1.03 km)` where it is not. See
+ * {@link toInterval} for why the short form is conditional rather than the
+ * default, and why forcing it would misstate the interval rather than round it.
+ *
+ * Drawing it is the PRIMITIVE's job and not the call site's, for the reason
+ * `Meter`'s own header gives about the band lookup: sixty widgets each deciding
+ * what an absent band means, which path theirs is at and what unit it arrived
+ * in is how one visual language becomes sixty. The unit check is `bandIn`'s and
+ * a band in some other unit draws nothing at all.
  *
  * ## The legacy symbol form
  *
@@ -311,6 +334,16 @@ const Unit__Quantity = styled.span<{ $notCurrent: boolean }>`
   ${({ $notCurrent }) => ($notCurrent ? "position: relative;" : "")}
 `;
 
+/* The model's interval, beside the figure it is about.
+   Dimmer than the value and never smaller: it is a qualifier rather than a
+   second reading, so it must recede at a glance, and shrinking it is how a
+   readout ends up with a precision claim nobody can read. `nowrap` because the
+   two ends and the word between them are one phrase. */
+const Unit__Interval = styled.span`
+  color: var(--color-text-muted);
+  white-space: nowrap;
+`;
+
 /* The staleness caption, for the accessibility tree and the clipboard's
    exclusion list, on the same terms as the spoken unit word above: it is a
    reading of the mark beside it rather than extra content, so copying a readout
@@ -340,9 +373,7 @@ const THIN_SPACE = "\u2009";
  * converts by handing over what it already holds instead of unwrapping it
  * first.
  */
-export type UnitValue<U extends string = string> =
-  | Value<U>
-  | TopicReading<Value<U>>;
+export type UnitValue<U extends string = string> = Value<U> | Reading<Value<U>>;
 
 /** What {@link resolveCurrency} answers: the number to draw, and its currency. */
 interface Resolved<U extends string> {
@@ -355,6 +386,12 @@ interface Resolved<U extends string> {
    * there is nothing to say.
    */
   caption: string | null;
+  /**
+   * How far the reading's model would defend its answer, as it arrived. Left
+   * unnarrowed: the unit an interval has to agree with is the SHOWN value's,
+   * and the arms that carry no number have no unit to check it against.
+   */
+  band: UncertaintyBand | null;
 }
 
 /**
@@ -417,24 +454,161 @@ function resolveCurrency<U extends string>(
    * the discriminator on the type rather than trusting the declared union.
    */
   if (typeof input !== "object" || input === null || !("state" in input)) {
-    return { shown: input, notCurrent: false, caption: null };
+    return { shown: input, notCurrent: false, caption: null, band: null };
   }
+  /*
+   * Read once, ahead of the arms, because the two axes are orthogonal: a live
+   * reading and a held one may each carry a model, so branching for the band
+   * inside the states would be the same line written twice.
+   */
+  const band =
+    input.reckoning.status === "available"
+      ? (input.reckoning.band ?? null)
+      : null;
   if (input.state === "observed") {
-    return { shown: input.value, notCurrent: false, caption: null };
+    return { shown: input.value, notCurrent: false, caption: null, band };
   }
   if (input.state === "stale") {
+    /*
+     * The mark follows the NUMBER and not the state. `Reading`'s value is
+     * optional on every arm, so a held reading carrying none renders the null
+     * token, and a staleness dot beside that would be a claim about nothing.
+     *
+     * `grade` is optional for the same reason, where the old topic-level arm
+     * made it required. A held reading that names no grade says nothing rather
+     * than captioning its mark with a missing word.
+     */
     return {
       shown: input.value,
-      notCurrent: true,
-      caption: sayCurrency(formatStreamStatus(input.grade), input.asOfUt),
+      notCurrent: input.value !== undefined,
+      caption:
+        input.grade === undefined
+          ? null
+          : sayCurrency(formatStreamStatus(input.grade), input.asOfUt),
+      band,
     };
   }
   /*
    * pending, unowned and absent, which carry no number between them. `null`
    * rather than `undefined`, so the branch below still takes the value path
    * and renders the null token instead of falling through to the symbol form.
+   * The band goes with them: an interval about a number nobody reported is an
+   * interval about nothing.
    */
-  return { shown: null, notCurrent: false, caption: null };
+  return { shown: null, notCurrent: false, caption: null, band: null };
+}
+
+/**
+ * The interval the reading's model published, written against the figure on
+ * screen, in the two forms an operator reads at two different speeds.
+ *
+ * ## `±` is a claim about SHAPE, and a fitted band usually has a different one
+ *
+ * {@link UncertaintyBand} carries `lo`, `value` and `hi` independently, so the
+ * two half-widths routinely differ. Writing `±` over that keeps one of them and
+ * discards the other, which misstates the interval's shape rather than rounding
+ * its width. So the short form is used exactly where it says what the two ends
+ * say: where the halves agree TO THE PRECISION ON SCREEN, and where the figure
+ * the model bounded is the figure being drawn.
+ *
+ * That second condition is the one worth stating. `±` is read as an offset from
+ * the number beside it, so on a held reading, whose observation the model has
+ * since moved on from, the short form would bracket the wrong figure. The range
+ * form needs no special case there, because it prints the model's own two
+ * numbers and never refers to the figure at all.
+ *
+ * ## Both forms are written at the value's own rung
+ *
+ * Through `formatQuantity` with the options the value itself went through, plus
+ * the rung it actually landed on. An interval laddering on its own prints
+ * `1 km ± 25 m`: one quantity in two units, and a width the reader has to
+ * convert before they can see it. It is the failure `<Band>` wraps its two ends
+ * in one format scope to avoid, solved here by pinning instead, because these
+ * ends are written rather than rendered as `<Unit>`s of their own.
+ */
+function toInterval<U extends string>(
+  shown: Value<U>,
+  band: UncertaintyBand<U> | undefined,
+  opts: FormatQuantityOptions,
+  rung: string,
+): Interval | null {
+  if (band === undefined) return null;
+  /*
+   * ONE unwrap for every figure that is WRITTEN, at the seam `units.ts` spends
+   * its own on: `formatQuantity` takes the magnitude and the unit as two plain
+   * arguments, so a quantity cannot be handed over whole.
+   */
+  const write = (quantity: Value<U>): string =>
+    formatQuantity(quantity.magnitude, quantity.unit, {
+      ...opts,
+      format: rung,
+    }).value;
+  /*
+   * The two half-widths are subtracted on magnitudes rather than through
+   * `minus`, and that is an API GAP rather than a shortcut. `minus` is declared
+   * over `Addend<U>`, which a bare `U extends string` cannot be shown to
+   * satisfy, so `band.hi.minus(band.value)` does not compile in a component
+   * generic over its unit even though both operands are the same `Value<U>`.
+   * The dimension is safe anyway: all three ends came back from `bandIn`
+   * narrowed to the one unit, which is the check `minus` would have done.
+   */
+  const width = (from: Value<U>, to: Value<U>): string =>
+    write(quantity(shown.unit, to.magnitude - from.magnitude));
+  const below = width(band.lo, band.value);
+  const above = width(band.value, band.hi);
+  const anchored = write(band.value) === write(shown);
+  /*
+   * The SPOKEN ends carry the unit's word where the written ones carry no
+   * symbol at all: the visible form renders one `<UnitSymbol>` after the pair,
+   * so writing a symbol into each end would print it three times, while a
+   * hover reading "between 0.975 and 1.025" is a pair of numbers about nothing.
+   * `speakQuantity` at the figure's own rung is the same sentence a `<Meter>`
+   * puts in its `aria-valuetext`.
+   */
+  const spoken = { ...opts, format: rung };
+  return {
+    plusMinus: anchored && below === above ? above : null,
+    lo: write(band.lo),
+    hi: write(band.hi),
+    loSaid: speakQuantity(band.lo, spoken),
+    hiSaid: speakQuantity(band.hi, spoken),
+    kind: band.kind,
+  };
+}
+
+/** The interval as it is written and as it is qualified. See {@link toInterval}. */
+interface Interval {
+  /** The half-width, where the short form is honest, and null where it is not. */
+  plusMinus: string | null;
+  /** The low end for the eye: no symbol, since the pair shares one. */
+  lo: string;
+  hi: string;
+  /** The low end for the ear, with the unit's WORD rather than its symbol. */
+  loSaid: string;
+  hiSaid: string;
+  kind: BandKind;
+}
+
+/**
+ * The hover, which carries whatever the glance could not: the staleness
+ * sentence, the band's CLAIM, or both.
+ *
+ * `bandClaim` and never a wording of its own, so the sentence a reader gets
+ * from a number is the sentence they get from the meter drawn beside it.
+ */
+function hover(
+  caption: string | null,
+  interval: Interval | null,
+): string | null {
+  const said =
+    interval === null
+      ? null
+      : bandClaim(
+          interval.kind,
+          `between ${interval.loSaid} and ${interval.hiSaid}`,
+        );
+  if (caption === null) return said;
+  return said === null ? caption : `${caption}, ${said}`;
 }
 
 export interface UnitProps<U extends string = string>
@@ -559,7 +733,7 @@ export function Unit<U extends string = string>({
 }: UnitProps<U>) {
   // Unpacked first, so the number and the statement about it go separate ways.
   // Everything below works on `shown`, the `Value` the narrow prop carried.
-  const { shown, notCurrent, caption } = resolveCurrency(value);
+  const { shown, notCurrent, caption, band } = resolveCurrency(value);
   // Reports this quantity to an enclosing `<UnitSharedFormat>` and comes back
   // with the format the group settled on, so two Units drawing two ends of one
   // interval cannot land on different rungs or on digit counts that hide the
@@ -594,11 +768,20 @@ export function Unit<U extends string = string>({
      * beside a formatted duration. An absent value is the same shape, and
      * renders no unit rather than a unit beside the null token.
      */
-    const formatted = formatQuantity(
-      shown?.magnitude,
-      shown?.unit,
-      shared === undefined ? opts : { ...shared, ...opts },
-    );
+    const resolved = shared === undefined ? opts : { ...shared, ...opts };
+    const formatted = formatQuantity(shown?.magnitude, shown?.unit, resolved);
+    /*
+     * NARROWED to the shown value's unit, never assumed to be in it. A band
+     * reaches a reading through a map keyed by a runtime path, so nothing in
+     * the type system knows what `"verticalSpeed"` was bounded in, and an
+     * interval printed in the wrong unit beside a right-looking number is the
+     * failure this whole module exists to prevent. `bandIn` answers nothing
+     * rather than converting, and nothing is what gets drawn.
+     */
+    const interval =
+      shown == null || band === null
+        ? null
+        : toInterval(shown, bandIn(band, shown.unit), resolved, formatted.rung);
     return (
       <Unit__Quantity
         className={className}
@@ -610,10 +793,25 @@ export function Unit<U extends string = string>({
         // view. The symbol carries its own title (the unit word) and keeps it:
         // hovering the digits answers the mark, hovering the symbol answers the
         // unit.
-        title={caption ?? undefined}
+        //
+        // The band's CLAIM is said here rather than beside the numbers. A hard
+        // bound and a one-sigma interval are the same two numbers until
+        // something says which, and they are worth very different amounts; the
+        // qualifier that separates them is a clause, and a clause inline would
+        // double the length of every banded readout in a table.
+        title={hover(caption, interval) ?? undefined}
       >
         {formatted.value}
         <UnitSymbol token={formatted.symbol} spaced />
+        {interval !== null && (
+          <Unit__Interval data-unit-band="">
+            {interval.plusMinus === null
+              ? ` (${interval.lo} to ${interval.hi}`
+              : ` ± ${interval.plusMinus}`}
+            <UnitSymbol token={formatted.symbol} spaced />
+            {interval.plusMinus === null ? ")" : null}
+          </Unit__Interval>
+        )}
         {/* Silent: it has no text, and a bullet announced on every held cell
             would bury the caption below that actually says something. What it
             carries instead is SHAPE, present or absent, so the meaning does not

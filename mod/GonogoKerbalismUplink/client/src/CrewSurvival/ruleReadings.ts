@@ -1,17 +1,12 @@
 import type {
-  ModelledField,
+  Reading,
+  Reckoning,
   TopicPayload,
   TopicReading,
-  TopicReckoningAvailable,
   UncertaintyBand,
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  bandFor,
-  bandIn,
-  readingOf,
-  topicReading,
-} from "@ksp-gonogo/sitrep-sdk";
+import { bandFor, bandIn, value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "@ksp-gonogo/ui-kit";
 // Side-effect: registers the model whose interval this module exists to carry.
 // A module that reads bands and can load without the thing that mints them
@@ -68,7 +63,7 @@ type Crew = TopicPayload<typeof KERBALISM_CREW_TOPIC>;
  * so every consumer would be woken on every frame with nothing able to notice.
  * `PROCESSOR_UNCOMPARABLE_BUDGET` fails the suite over it, and did over this.
  */
-export type RuleReadings = Readonly<Record<string, TopicReading<number>>>;
+export type RuleReadings = Readonly<Record<string, Reading<Value<"ratio">>>>;
 
 /**
  * How a rule is addressed across this folder: the kerbal it is about, then the
@@ -93,7 +88,7 @@ export function ruleKey(kerbalName: string, ruleName: string): string {
  * the ambiguity the meter ids already carry.
  */
 export function ruleReadings(reading: TopicReading<Crew>): RuleReadings {
-  const readings: Record<string, TopicReading<number>> = {};
+  const readings: Record<string, Reading<Value<"ratio">>> = {};
   const observed =
     reading.state === "observed" || reading.state === "stale"
       ? reading.value
@@ -109,7 +104,7 @@ export function ruleReadings(reading: TopicReading<Crew>): RuleReadings {
       if (Object.hasOwn(readings, key)) return;
       readings[key] = fractionReading(
         reading,
-        fraction,
+        value("ratio", fraction),
         kerbal,
         index,
         threshold,
@@ -120,58 +115,46 @@ export function ruleReadings(reading: TopicReading<Crew>): RuleReadings {
 }
 
 /**
- * One rule's figure, on the arm the whole payload arrived on, carrying the
- * model only where the model spoke about this rule.
+ * One rule's figure as a PER-VALUE reading: the arm the whole payload arrived
+ * on, and the model only where the model spoke about this rule.
  *
- * `readingOf` for the arms, since the five of them are the part that gets
- * written wrongly and the sdk already enumerates them. It drops the model by
- * design, which is the right answer for every rule the model did not move: a
- * reckoning kept through a selector would claim a model for a number nobody
- * modelled. What is added back, deliberately and in one place, is the model
- * for the rule it IS about.
+ * The arms are written out here rather than taken from `readingOf`, which is a
+ * topic-to-topic selector and hands back a whole-topic reading. What a meter
+ * takes is one value's currency, and a fraction is not a field of the payload
+ * anyway: it is an accumulator over a threshold, computed here, so there is no
+ * field property to reach for either.
+ *
+ * The valueless arms carry no model between them, which is why `reckoning` is
+ * `"none"` on all three rather than the rule's: nothing has arrived, nothing
+ * ever will, or the kerbal is gone, and a model over any of the three would be
+ * a figure with nothing behind it.
  */
 function fractionReading(
   reading: TopicReading<Crew>,
-  observedFraction: number,
+  observedFraction: Value<"ratio">,
   kerbal: number,
   index: number,
   threshold: Value<"units">,
-): TopicReading<number> {
-  const base = readingOf(reading, () => observedFraction);
-  if (reading.reckoning.status !== "available") return base;
-  const path = `${kerbal}.rules.${index}.value`;
-  // The model's own path vocabulary, read back verbatim: `crewReckoning.ts`
-  // keys both `modelled` and `bands` by this string, dotted from the payload
-  // root. A rule missing from `modelled` is one the model copied rather than
-  // carried, and claiming a basis for it would be a modelled label over an
-  // observation.
-  const moved = reading.reckoning.modelled.find((field) => field.path === path);
-  if (!moved) return base;
-  const reckoned = fractionReckoning(
-    reading.reckoning,
-    moved,
-    kerbal,
-    index,
-    threshold,
-  );
-  if (base.state === "observed") {
-    return topicReading({
+): Reading<Value<"ratio">> {
+  const reckoning = fractionReckoning(reading, kerbal, index, threshold);
+  if (reading.state === "observed") {
+    return {
       state: "observed",
-      reckoning: reckoned,
-      value: base.value,
-      atUt: base.atUt,
-    });
+      value: observedFraction,
+      atUt: reading.atUt,
+      reckoning,
+    };
   }
-  if (base.state === "stale") {
-    return topicReading({
+  if (reading.state === "stale") {
+    return {
       state: "stale",
-      reckoning: reckoned,
-      value: base.value,
-      asOfUt: base.asOfUt,
-      grade: base.grade,
-    });
+      value: observedFraction,
+      asOfUt: reading.asOfUt,
+      grade: reading.grade,
+      reckoning,
+    };
   }
-  return base;
+  return { state: reading.state, reckoning: { status: "none" } };
 }
 
 /**
@@ -187,31 +170,37 @@ function fractionReading(
  * would refuse the unit and the marks would silently never appear.
  */
 function fractionReckoning(
-  reckoned: TopicReckoningAvailable<Crew>,
-  moved: ModelledField,
+  reading: TopicReading<Crew>,
   kerbal: number,
   index: number,
   threshold: Value<"units">,
-): TopicReckoningAvailable<number> {
+): Reckoning<Value<"ratio">> {
+  if (reading.reckoning.status !== "available") return { status: "none" };
+  const reckoned = reading.reckoning;
   const path = `${kerbal}.rules.${index}.value`;
+  // The model's own path vocabulary, read back verbatim: `crewReckoning.ts`
+  // keys both `modelled` and `bands` by this string, dotted from the payload
+  // root. A rule missing from `modelled` is one the model copied rather than
+  // carried, and claiming a basis for it would be a modelled label over an
+  // observation.
+  const moved = reckoned.modelled.find((field) => field.path === path);
+  if (!moved) return { status: "none" };
   const carried = reckoned.value[kerbal]?.rules?.[index]?.value;
   const band = bandIn(bandFor(reckoned, path), "units");
   return {
     status: "available",
-    value:
+    modelled:
       carried === undefined || magnitudeOf(carried) === null
-        ? 0
-        : (magnitudeOf(onFatalAxis(carried, threshold)) ?? 0),
-    atUt: reckoned.atUt,
+        ? value("ratio", 0)
+        : onFatalAxis(carried, threshold),
     // The basis of the entry covering THIS rule, not the one covering the
     // root: the two agree in this model and nothing makes them.
     basis: moved.basis,
-    // The root, because this reading IS the one figure. The path the crew
+    // A plain field, because this reading IS the one figure. The path the crew
     // model keys by names a field of a roster, and a consumer holding a lone
-    // fraction has no roster to walk.
-    modelled: [{ path: "", basis: moved.basis }],
-    owner: reckoned.owner,
-    bands: band === undefined ? undefined : { "": onAxis(band, threshold) },
+    // fraction has no roster to walk; the per-value reading has nowhere to put
+    // one and needs nowhere.
+    band: band === undefined ? undefined : onAxis(band, threshold),
   };
 }
 

@@ -10,10 +10,10 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
  * The primitive divides them itself, so the division happens once, under a type
  * that refuses to cross dimensions.
  *
- * Shared by every kit primitive drawn from a fill rather than from a figure,
- * so that a call site holding a pair hands the SAME shape to whichever one it
- * is drawing into. `Meter` names it `MeterQuantity` for the call sites that
- * already say that; the two are one declaration, not two that agree today.
+ * `ProgressBar`'s shape, and no longer `Meter`'s: a meter takes its two halves
+ * as two props, so each can carry its own currency and its own band, which a
+ * bundle has nowhere to put. This stays for the bar, where both halves are
+ * plain numbers a build reports together and neither has a reading of its own.
  */
 export interface FillQuantity<U extends string = string> {
   /** How much there is now. */

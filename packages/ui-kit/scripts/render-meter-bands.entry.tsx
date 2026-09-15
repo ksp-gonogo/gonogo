@@ -6,9 +6,8 @@
  * one bundle and one page rather than four scripts.
  */
 import {
-  type MeterQuantity,
-  type ReckonedBands,
-  type TopicReading,
+  type Reading,
+  type UncertaintyBand,
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -18,8 +17,10 @@ import { type MeterCase, type MeterSheet, SHEETS } from "./meterBandScenarios";
 
 const AT = value("ut", 42_000);
 
-/** The tank pair for a case that has one, else `null`. */
-function tankOf(c: MeterCase): MeterQuantity<"units"> | null {
+/** The two halves of a case drawn from a tank, else `null`. */
+function tankOf(
+  c: MeterCase,
+): { amount: Value<"units">; capacity: Value<"units"> } | null {
   if (!c.tank) return null;
   return {
     amount: value(c.tank.unit, c.tank.amount),
@@ -33,51 +34,44 @@ function tankOf(c: MeterCase): MeterQuantity<"units"> | null {
  *
  * The band the sheet DESCRIBES is a pair of fractions, because that is the axis
  * a reader judges it on. Which unit it has to arrive in is the primitive's
- * business, so it is minted here at the last moment: `ratio` at the root for a
- * fraction, the tank's own unit at `amount` for a pair.
+ * business, so it is minted here at the last moment: `ratio` for a fraction,
+ * the tank's own unit for an amount.
  */
-function readingOfCase<T>(
+function readingOfCase<U extends string>(
   c: MeterCase,
-  drawn: T,
-  bands: ReckonedBands | undefined,
-): TopicReading<T> {
-  const base = c.stale
-    ? ({
+  drawn: Value<U>,
+  band: UncertaintyBand | undefined,
+): Reading<Value<U>> {
+  const reckoning: Reading<Value<U>>["reckoning"] =
+    band === undefined
+      ? { status: "none" }
+      : {
+          status: "available",
+          modelled: drawn,
+          basis: "linear-dead-reckoning",
+          band,
+        };
+  return c.stale
+    ? {
         state: "stale",
         value: drawn,
         asOfUt: AT,
         grade: "held-stale",
-      } as const)
-    : ({ state: "observed", value: drawn, atUt: AT } as const);
-  if (!bands)
-    return { ...base, reckoning: { status: "none" } } as TopicReading<T>;
-  return {
-    ...base,
-    reckoning: {
-      status: "available",
-      value: drawn,
-      atUt: AT,
-      basis: "linear-dead-reckoning",
-      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-      owner: "core",
-      bands,
-    },
-  } as TopicReading<T>;
+        reckoning,
+      }
+    : { state: "observed", value: drawn, atUt: AT, reckoning };
 }
 
-function bandsAt(
+function bandOf(
   c: MeterCase,
-  path: string,
   mint: (fraction: number) => Value<string>,
-): ReckonedBands | undefined {
+): UncertaintyBand | undefined {
   if (!c.band) return undefined;
   return {
-    [path]: {
-      value: mint(c.band.at ?? c.fraction),
-      lo: mint(c.band.lo),
-      hi: mint(c.band.hi),
-      kind: c.band.kind,
-    },
+    value: mint(c.band.at ?? c.fraction),
+    lo: mint(c.band.lo),
+    hi: mint(c.band.hi),
+    kind: c.band.kind,
   };
 }
 
@@ -89,11 +83,12 @@ function Case({ c, size }: { c: MeterCase; size: "sm" | "md" }) {
         <Meter
           label={c.label}
           size={size}
-          quantity={readingOfCase(
+          value={readingOfCase(
             c,
-            tank,
-            bandsAt(c, "amount", (f) => tank.capacity.scaled(f)),
+            tank.amount,
+            bandOf(c, (f) => tank.capacity.scaled(f)),
           )}
+          capacity={tank.capacity}
           tone={c.tone}
           fillColor={c.fillColor}
         />
@@ -103,8 +98,8 @@ function Case({ c, size }: { c: MeterCase; size: "sm" | "md" }) {
           size={size}
           value={readingOfCase(
             c,
-            c.fraction,
-            bandsAt(c, "", (f) => value("ratio", f)),
+            value("ratio", c.fraction),
+            bandOf(c, (f) => value("ratio", f)),
           )}
           tone={c.tone}
           fillColor={c.fillColor}

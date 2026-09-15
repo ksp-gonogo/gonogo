@@ -9,16 +9,16 @@
  * the fit's own standard error. Run against an sdk without that, the same rows
  * draw the same bars with no marks, which is the whole of the comparison.
  *
- * ## The one adaptation, and why it is not a cheat
+ * ## There is no longer an adaptation
  *
- * `Meter` looks a band up at the payload ROOT (a fraction) or at `"amount"` (a
- * tank), and the flight reckoner keys this one at `"altitudeAsl"` in metres. So
- * each row re-keys the reading onto the tank spelling, altitude over a capacity
- * the scene names, which is a change of ADDRESS and of nothing else: the
- * interval drawn is the one the model minted, in the unit it minted it in.
+ * This scene used to re-key each reading onto a tank spelling, because `Meter`
+ * looked a band up at the payload root or at `"amount"` and the flight reckoner
+ * keys this one at `"altitudeAsl"`. It takes a per-value `Reading` now, so the
+ * row hands over `flight.altitudeAsl` and the band is the entry the model wrote
+ * at that path, reached by the primitive with no re-addressing anywhere.
  *
- * No shipped widget does that today, which is the honest state of this band and
- * is said out loud in the report rather than hidden by a scene.
+ * The capacity the scene names is still the scene's: an altitude has no tank,
+ * and the axis exists so a length can be drawn as a bar at all.
  */
 
 import {
@@ -28,12 +28,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  Meter,
-  type MeterQuantity,
-  MeterStack,
-  writeQuantity,
-} from "@ksp-gonogo/ui-kit";
+import { Meter, MeterStack, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { createRoot } from "react-dom/client";
 import { type Row, SHEETS, type Sheet } from "./altitudeBandScenarios";
 
@@ -130,39 +125,6 @@ function read(row: Row): TopicReading<FlightSample> {
   return store.sampleReading<FlightSample>("vessel.flight");
 }
 
-/** The same reading, addressed as a tank so `Meter` can find its band. */
-function asTank(
-  reading: TopicReading<FlightSample>,
-  capacity: Value<"m">,
-): TopicReading<MeterQuantity<"m">> | null {
-  if (reading.state !== "observed" && reading.state !== "stale") return null;
-  const quantity = { amount: reading.value.altitudeAsl, capacity };
-  const base =
-    reading.state === "stale"
-      ? {
-          state: "stale" as const,
-          value: quantity,
-          asOfUt: reading.asOfUt,
-          grade: reading.grade,
-        }
-      : { state: "observed" as const, value: quantity, atUt: reading.atUt };
-  if (reading.reckoning.status !== "available") {
-    return { ...base, reckoning: { status: "none" } } as TopicReading<
-      MeterQuantity<"m">
-    >;
-  }
-  const band = reading.reckoning.bands?.altitudeAsl;
-  return {
-    ...base,
-    reckoning: {
-      status: "available",
-      ...reading.reckoning,
-      value: { amount: reading.reckoning.value.altitudeAsl, capacity },
-      bands: band ? { amount: band } : undefined,
-    },
-  } as TopicReading<MeterQuantity<"m">>;
-}
-
 /** What the model said about this row, in one line under its meter. */
 function verdict(reading: TopicReading<FlightSample>): string {
   if (reading.reckoning.status !== "available") return "model declined";
@@ -174,10 +136,19 @@ function verdict(reading: TopicReading<FlightSample>): string {
 
 function RowView({ row }: { row: Row }) {
   const reading = read(row);
-  const tank = asTank(reading, value("m", row.capacityM));
   return (
     <figure style={{ margin: 0, display: "grid", gap: 4 }}>
-      <Meter label={row.label} size="md" quantity={tank} />
+      {/* The FIELD reading, handed straight over. There is no longer a tank
+          shape to fold the altitude into so the primitive can find its band:
+          `flight.altitudeAsl` is a `Reading<Value<"m">>` carrying the model's
+          entry at that exact path, and the capacity is the second prop it
+          always wanted to be. */}
+      <Meter
+        label={row.label}
+        size="md"
+        value={reading.altitudeAsl}
+        capacity={value("m", row.capacityM)}
+      />
       <figcaption
         style={{
           fontSize: 10,

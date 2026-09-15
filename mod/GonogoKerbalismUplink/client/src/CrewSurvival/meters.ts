@@ -88,7 +88,7 @@ export function survivalMeters(
          * and a meter drawn from it is the picture every one of these was
          * before the model existed.
          */
-        value: readings?.[id] ?? rule.fraction,
+        value: readings?.[id] ?? value("ratio", rule.fraction),
         tone: toneFor(rule.fraction),
         valueLabel: pct(rule.fraction),
         // The roster row this meter belongs beside. CrewStatus mounts one

@@ -630,7 +630,7 @@ function FleetRosterComponent({
       panelFooter={
         <Meter
           label="Comms coverage"
-          value={total > 0 ? rollup.linked / total : 0}
+          value={value("ratio", total > 0 ? rollup.linked / total : 0)}
           tone={rollup.tone}
           valueLabel={`${rollup.linked} linked · ${rollup.none} no link${
             rollup.unknown > 0 ? ` · ${rollup.unknown} unknown` : ""

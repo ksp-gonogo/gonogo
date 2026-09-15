@@ -24,7 +24,7 @@ import type {
   CommandReply,
 } from "../commands";
 import type { RailTags } from "../rail-tags";
-import type { TopicReading } from "../reading";
+import type { Reading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   TopicId,
@@ -302,7 +302,7 @@ export interface MeterEntry {
   /** Short label above the bar; also the meter's accessible name. */
   label: string;
   /**
-   * Fill fraction, 0..1, or the whole {@link Reading} of one.
+   * The fill, as a `ratio` quantity or the whole {@link Reading} of one.
    *
    * A `Reading` is how a contributed meter says more than where the bar is.
    * The host's `Meter` draws the figure the same either way; what the reading
@@ -312,13 +312,17 @@ export interface MeterEntry {
    * language across every Uplink that contributes one: a contributor hands over
    * the reading it already holds and decides nothing about how doubt is drawn.
    *
-   * The band it can place is the one at the payload ROOT and in `ratio`, since
-   * that is what this figure is. A model that bands the underlying quantity
-   * instead (an accumulator in its own unit) has to say so as a fraction of the
-   * same axis the bar is drawn on, or the meter has nothing to place and draws
-   * no marks.
+   * A quantity rather than a bare 0..1 number, and a per-value {@link Reading}
+   * rather than a whole-topic one, because both are what the primitive takes:
+   * an entry that could be handed over only after a conversion would be a
+   * second place deciding what a fraction is.
+   *
+   * The band it can place is the one in `ratio`, since that is what this figure
+   * is. A model that bands the underlying quantity instead (an accumulator in
+   * its own unit) has to say so as a fraction of the same axis the bar is drawn
+   * on, or the meter has nothing to place and draws no marks.
    */
-  value: number | TopicReading<number>;
+  value: Value<"ratio"> | Reading<Value<"ratio">>;
   /** Semantic colour of the fill. Inlined for the reason `BadgeEntry.tone` is. */
   tone?: "neutral" | "go" | "warn" | "nogo" | "info";
   /** Text on the right of the header; a percentage when absent. */

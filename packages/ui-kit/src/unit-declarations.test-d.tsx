@@ -241,21 +241,24 @@ export const _bandWrongKind = (
 export const _meter = (
   <Meter
     label="Fuel"
-    quantity={{ amount: fuel, capacity: value("fuel:ku", 4) }}
+    value={fuel}
+    capacity={value("fuel:ku", 4)}
     format="fuel:ku"
   />
 );
 export const _meterFirstParty = (
   <Meter
     label="Range"
-    quantity={{ amount: altitude, capacity: value("km", 40) }}
+    value={altitude}
+    capacity={value("km", 40)}
     format="km"
   />
 );
 export const _meterWrongKind = (
   <Meter
     label="Fuel"
-    quantity={{ amount: fuel, capacity: value("fuel:ku", 4) }}
+    value={fuel}
+    capacity={value("fuel:ku", 4)}
     // @ts-expect-error: a fuel meter is not read in metres
     format="m"
   />

@@ -1236,7 +1236,7 @@ function SpaceWeatherComponent({
                  the header, empty track, and no `role="meter"`, because a meter
                  asserts an `aria-valuenow` and there is none to assert. `tone`
                  and `valueLabel` are both unread on that path. */
-              value={shieldFrac}
+              value={shieldFrac === null ? null : value("ratio", shieldFrac)}
               tone={
                 shieldFrac === null
                   ? "info"

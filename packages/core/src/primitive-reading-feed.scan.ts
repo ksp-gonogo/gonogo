@@ -40,6 +40,14 @@
  * next month, which is what "per primitive" in ruling 8 has to mean if it is
  * not to be a list someone forgets to add to.
  *
+ * THE OTHER HALF OF RULING 8 IS `styleguide-primitive-inputs.test.ts`, and the
+ * two are not duplicates. That one refuses a bare magnitude, top-level
+ * arithmetic or a cast reaching the prop; this one refuses a reading that was
+ * unwrapped on the way in. Cross-planted both ways rather than reasoned about:
+ * arithmetic at a call site fails that gate and passes this one, and
+ * `<Unit value={reading.value} />` fails this one and passes that. Deleting
+ * either leaves a live fault uncovered.
+ *
  * WHAT DOES NOT
  *
  *  - a prop that accepts only a `Value`. Nothing was dropped: the primitive

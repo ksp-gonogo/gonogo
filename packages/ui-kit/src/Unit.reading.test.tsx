@@ -1,4 +1,4 @@
-import { type TopicReading, topicReading, value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -25,26 +25,32 @@ const AT = value("ut", 1_000);
 /** What `formatKspDate` makes of {@link AT} on the stock calendar. */
 const AT_DATE = "Y1 D1 00:16:40";
 
-function observed(magnitude: number): TopicReading<ReturnType<typeof metres>> {
-  return topicReading({
+/*
+ * Plain object literals, and no `topicReading` anywhere. The primitive takes a
+ * PER-VALUE `Reading` now, which has no field half to project, so the proxy the
+ * whole-topic form needs would be building twenty-six field readings over a
+ * `Value`'s own methods for a component that reads five properties.
+ */
+function observed(magnitude: number): Reading<Value<"m">> {
+  return {
     state: "observed",
     reckoning: { status: "none" },
     value: metres(magnitude),
     atUt: AT,
-  });
+  };
 }
 
 function stale(
   magnitude: number,
   grade: "held-stale" | "disconnected" | "last-before-blackout" | "recorded",
-): TopicReading<ReturnType<typeof metres>> {
-  return topicReading({
+): Reading<Value<"m">> {
+  return {
     state: "stale",
     reckoning: { status: "none" },
     value: metres(magnitude),
     asOfUt: AT,
     grade,
-  });
+  };
 }
 
 function metres(magnitude: number) {
@@ -106,19 +112,16 @@ describe("Unit: a reading that is current", () => {
     // A modelled figure replacing an observed one has to be a written choice at
     // the call site. A primitive doing it silently is the substitution the whole
     // type exists to prevent.
-    const withModel: TopicReading<ReturnType<typeof metres>> = topicReading({
+    const withModel: Reading<Value<"m">> = {
       state: "observed",
       value: metres(12_400),
       atUt: AT,
       reckoning: {
         status: "available",
-        value: metres(99_900),
-        atUt: AT,
+        modelled: metres(99_900),
         basis: "kepler-propagation",
-        modelled: [],
-        owner: "core",
       },
-    });
+    };
     const { container } = render(<Unit value={withModel} />);
     expect(visibleText(container)).toBe("12.4 km");
     expect(quantity(container).hasAttribute("data-not-current")).toBe(false);
@@ -131,12 +134,7 @@ describe("Unit: a reading with no number", () => {
     "unowned",
   ] as const)("renders the null token for %s", (state) => {
     const { container } = render(
-      <Unit
-        value={topicReading<ReturnType<typeof metres>>({
-          state,
-          reckoning: { status: "none" },
-        })}
-      />,
+      <Unit value={{ state, reckoning: { status: "none" } }} />,
     );
     expect(visibleText(container)).toBe(NULL_DISPLAY);
   });
@@ -146,11 +144,11 @@ describe("Unit: a reading with no number", () => {
     // and an operator reading one cell cannot act on the difference.
     const { container } = render(
       <Unit
-        value={topicReading<ReturnType<typeof metres>>({
+        value={{
           state: "absent",
           reckoning: { status: "none" },
           atUt: AT,
-        })}
+        }}
       />,
     );
     expect(visibleText(container)).toBe(NULL_DISPLAY);
@@ -162,10 +160,10 @@ describe("Unit: a reading with no number", () => {
     // still takes the quantity path. Handed children as well, the reading wins.
     const { container } = render(
       <Unit
-        value={topicReading<ReturnType<typeof metres>>({
+        value={{
           state: "pending",
           reckoning: { status: "none" },
-        })}
+        }}
       >
         km
       </Unit>,
@@ -317,13 +315,13 @@ describe("Unit: when the reading was last valid", () => {
     // the null token.
     const { container } = render(
       <Unit
-        value={topicReading({
+        value={{
           state: "stale",
           reckoning: { status: "none" },
           value: metres(12_400),
           asOfUt: value("ut", Number.NaN),
           grade: "held-stale",
-        })}
+        }}
       />,
     );
     expect(quantity(container).getAttribute("title")).toBe("STALE");
@@ -363,12 +361,179 @@ describe("Unit: the staleness slot is announced", () => {
         <Unit value={stale(12_400, "held-stale")} />
         <Unit value={observed(12_400)} />
         <Unit
-          value={topicReading<ReturnType<typeof metres>>({
+          value={{
             state: "pending",
             reckoning: { status: "none" },
-          })}
+          }}
         />
       </div>,
+    );
+    await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * The band slot: what `<Unit>` draws when the reading's model publishes an
+ * interval as well as a figure.
+ *
+ * Two forms rather than one, and which one is used is the whole subject here.
+ * `±` is read as an offset from the number beside it, so it is only ever the
+ * same statement the two ends make when the band is symmetric AND about the
+ * figure on screen. Everything that is not both falls back to the range, which
+ * prints the model's own numbers and cannot misstate them.
+ */
+
+function banded(
+  magnitude: number,
+  band: { lo: number; value: number; hi: number; kind?: "bound" | "sigma1" },
+  state: "observed" | "stale" = "observed",
+): Reading<Value<"m">> {
+  const reckoning = {
+    status: "available",
+    modelled: metres(band.value),
+    basis: "linear-dead-reckoning",
+    band: {
+      value: metres(band.value),
+      lo: metres(band.lo),
+      hi: metres(band.hi),
+      kind: band.kind ?? "sigma1",
+    },
+  } as const;
+  return state === "stale"
+    ? {
+        state: "stale",
+        value: metres(magnitude),
+        asOfUt: AT,
+        grade: "held-stale",
+        reckoning,
+      }
+    : { state: "observed", value: metres(magnitude), atUt: AT, reckoning };
+}
+
+describe("Unit: how well the number is known", () => {
+  it("writes a symmetric band about the shown figure as a tolerance", () => {
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 975, value: 1000, hi: 1025 })}
+        decimals={3}
+      />,
+    );
+    expect(visibleText(container)).toBe("1.000 km ± 0.025 km");
+  });
+
+  it("falls back to the range where the two sides disagree", () => {
+    /*
+     * A fitted band is routinely asymmetric, and `±` over one keeps a half and
+     * discards the other: that misstates the interval's shape rather than
+     * rounding its width.
+     */
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 970, value: 1000, hi: 1030.6 })}
+        decimals={3}
+      />,
+    );
+    expect(visibleText(container)).toBe("1.000 km (0.970 to 1.031 km)");
+  });
+
+  it("falls back to the range where the model has left the figure behind", () => {
+    /*
+     * The held case, and the reason the short form asks about the ANCHOR and
+     * not only about symmetry. The interval is symmetric about where the model
+     * says the value is now, which is not the observation on screen, so a `±`
+     * here would bracket the wrong figure.
+     */
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "stale")}
+        decimals={3}
+      />,
+    );
+    expect(visibleText(container)).toBe("1.000 km (1.180 to 1.220 km)");
+  });
+
+  it("draws nothing where the model offers a figure and no interval", () => {
+    // A model can be available and honestly bound nothing. An absent band is
+    // never evidence that a value is well known, so it draws as silence.
+    const { container } = render(<Unit value={observed(1000)} />);
+    expect(container.querySelector("[data-unit-band]")).toBeNull();
+  });
+
+  it("ignores a band the model wrote in some other unit", () => {
+    // `bandIn` refuses to narrow it, and a number with no interval beside it
+    // beats an interval a reader would take for metres.
+    const { container } = render(
+      <Unit
+        value={{
+          state: "observed",
+          value: metres(1000),
+          atUt: AT,
+          reckoning: {
+            status: "available",
+            modelled: metres(1000),
+            basis: "linear-dead-reckoning",
+            band: {
+              value: value("s", 1000),
+              lo: value("s", 975),
+              hi: value("s", 1025),
+              kind: "sigma1",
+            },
+          },
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-unit-band]")).toBeNull();
+  });
+
+  it("says what the interval CLAIMS in the hover, not beside the numbers", () => {
+    /*
+     * A hard bound and a one-sigma interval are the same two numbers until
+     * something says which, and they are worth very different amounts. The
+     * qualifier is a clause, and a clause inline would double the length of
+     * every banded readout in a table.
+     */
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 975, value: 1000, hi: 1025 })}
+        decimals={3}
+      />,
+    );
+    expect(quantity(container).getAttribute("title")).toBe(
+      "between 0.975 kilometres and 1.025 kilometres about two thirds of the time",
+    );
+  });
+
+  it("leaves a hard bound unqualified, which is the stronger claim", () => {
+    const { container } = render(
+      <Unit
+        value={banded(1000, {
+          lo: 975,
+          value: 1000,
+          hi: 1025,
+          kind: "bound",
+        })}
+        decimals={3}
+      />,
+    );
+    expect(quantity(container).getAttribute("title")).toBe(
+      "between 0.975 kilometres and 1.025 kilometres",
+    );
+  });
+
+  it("keeps the staleness sentence when both have something to say", () => {
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "stale")}
+      />,
+    );
+    const title = quantity(container).getAttribute("title") ?? "";
+    expect(title).toContain("STALE");
+    expect(title).toContain("between");
+  });
+
+  it("raises no a11y violation with an interval drawn", async () => {
+    const { container } = render(
+      <Unit value={banded(1000, { lo: 975, value: 1000, hi: 1025 })} />,
     );
     await expectNoA11yViolations(container);
   });

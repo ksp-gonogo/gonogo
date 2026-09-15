@@ -289,7 +289,8 @@ export function ShipDiagram({
             <Meter
               key={`meter-${m.resource}`}
               label={m.displayName}
-              value={m.capacity > 0 ? m.amount / m.capacity : 0}
+              value={value("units", m.amount)}
+              capacity={m.capacity > 0 ? value("units", m.capacity) : null}
               valueLabel={`${m.amount.toFixed(1)} / ${m.capacity.toFixed(1)}`}
               fillColor={resourceColor(m.resource)}
               size="sm"
@@ -316,7 +317,7 @@ export function ShipDiagram({
               <Meter
                 key={`meta-${m.label}`}
                 label={m.label}
-                value={m.value ?? 0}
+                value={m.value == null ? null : value("ratio", m.value)}
                 tone={m.tone}
                 size="sm"
               />
