@@ -78,10 +78,14 @@ function StationConnectionPanel({
           <Input
             type="text"
             value={pending}
-            placeholder="ABCD"
-            maxLength={4}
+            placeholder="ABC3KP"
+            // Wide enough for the code a host mints today (six characters)
+            // plus room for a longer one later. A cap of four silently TRIMMED
+            // a six-character code down to four here, and the station then
+            // reported "couldn't find that code" for a host that was up.
+            maxLength={8}
             onChange={(e) =>
-              setPending(e.target.value.toUpperCase().slice(0, 4))
+              setPending(e.target.value.toUpperCase().slice(0, 8))
             }
           />
           <PrimaryButton
@@ -97,8 +101,8 @@ function StationConnectionPanel({
           </PrimaryButton>
         </SwitchRow>
         <Hint>
-          Enter the four-character code shown on the new host. The current
-          connection is dropped before the new one is attempted.
+          Enter the code shown on the new host. The current connection is
+          dropped before the new one is attempted.
         </Hint>
       </SeparatedSection>
 

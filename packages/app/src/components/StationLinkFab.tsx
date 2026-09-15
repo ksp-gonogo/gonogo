@@ -86,7 +86,7 @@ function StationLinkPanel() {
   // to the service singleton directly: it already drives the provider's
   // state, so this sees the same value without relying on React context.
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
-  // The operator-facing 4-char share code. Stable across refreshes; only a
+  // The operator-facing short share code. Stable across refreshes; only a
   // regenerate changes it. Both the QR and the typed value are this code,
   // the station derives the broker peer id (`gonogo-host-<code>`) from it.
   const [shareCode, setShareCode] = useState(peerHostService.shareCode);

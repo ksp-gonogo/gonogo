@@ -68,13 +68,13 @@ export function StationConnectView({
     <ConnectLayout as="main" aria-label="Connect to mission control">
       <ConnectBox>
         <h1>Connect to Mission Control</h1>
-        <p>Enter the 4-character host ID shown on the main screen.</p>
+        <p>Enter the host ID shown on the main screen.</p>
         <ConnectRow>
           <HostInput
             value={hostInput}
             onChange={(e) => onHostInputChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onConnect(hostInput)}
-            placeholder="e.g. AB3K"
+            placeholder="e.g. AB3KP7"
             maxLength={8}
             aria-label="Host ID"
             autoFocus

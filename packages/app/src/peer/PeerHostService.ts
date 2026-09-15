@@ -141,11 +141,40 @@ const PEER_BROADCAST_COUNT_BUDGET = new PerfBudget({
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I/L
 
+/**
+ * How many characters a freshly-minted share code carries. Six of this
+ * 32-character alphabet is about 1.07e9 codes, where four was 1,048,576.
+ *
+ * The code is the ONLY thing standing between a stranger and a hosted game:
+ * the host's broker peer id is derived from it (`gonogo-host-<CODE>`, see
+ * `hostPeerId.ts`), so the public PeerJS broker will answer whether a guessed
+ * code is live, and the broker has no rate limiting to slow that down. Four
+ * characters behind an online oracle like that is a speed bump; six is a gate.
+ * Stations still accept a shorter code, because a host that minted one keeps
+ * it until it regenerates.
+ */
+const SHARE_CODE_LENGTH = 6;
+
+/**
+ * A fresh share code, drawn from the platform CSPRNG.
+ *
+ * Deliberately no `Math.random()` fallback. This value is a secret, and a
+ * fallback would mint a weak one that looks exactly like a strong one, which
+ * is the whole failure this replaced. `crypto.getRandomValues` has been in
+ * every browser since IE11, so the throw is unreachable in a browser and
+ * loud anywhere else.
+ */
 function generateShortId(): string {
-  return Array.from(
-    { length: 4 },
-    () => CHARS[Math.floor(Math.random() * CHARS.length)],
-  ).join("");
+  if (typeof crypto === "undefined" || !crypto.getRandomValues) {
+    throw new Error(
+      "cannot mint a share code: this environment has no crypto.getRandomValues",
+    );
+  }
+  // Rejection-free because 32 divides 256 exactly: every byte maps to one
+  // character with no modulo bias. An alphabet whose length is not a power
+  // of two would need the rejection loop this deliberately does not have.
+  const bytes = crypto.getRandomValues(new Uint8Array(SHARE_CODE_LENGTH));
+  return Array.from(bytes, (b) => CHARS[b % CHARS.length]).join("");
 }
 
 /**
@@ -153,6 +182,10 @@ function generateShortId(): string {
  * id is derived from it (`gonogo-host-<CODE>`); a host refresh re-claims the
  * *same* derived id, so the operator's code stays valid and stations
  * reconnect transparently. Only `regenerateShareCode()` changes it.
+ *
+ * A stored code is returned AS IT WAS STORED, whatever its length: a host
+ * that minted a four-character code before `SHARE_CODE_LENGTH` grew keeps
+ * it, and its stations keep joining, until the operator regenerates.
  */
 function getOrCreateShareCode(): string {
   const saved = localStorage.getItem(SHARE_CODE_KEY);
@@ -425,7 +458,7 @@ export class PeerHostService {
   private readonly sitrepSinks = new Map<string, SitrepSubscriptionSink>();
 
   /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
-   *  form (NOT the operator-facing 4-char code). Null until the broker
+   *  form (NOT the operator-facing share code). Null until the broker
    *  confirms it with an `open`. Stations connect to this directly; the
    *  operator never sees it (they see `shareCode`). */
   peerId: string | null = null;
@@ -563,7 +596,7 @@ export class PeerHostService {
     if (this.peer) return;
     const peerId = deriveHostPeerId(this.shareCode);
     // `key: "gonogo"` isolates us from the default `peerjs` namespace on the
-    // public 0.peerjs.com broker. Without it, our 4-char ids collide with
+    // public 0.peerjs.com broker. Without it, our short ids collide with
     // every other PeerJS app on the planet using the default key, the broker
     // namespace is shared by `key`, so picking our own gives us our own slice.
     // MUST match the `key` set in PeerClientService and packages/relay (any
@@ -608,7 +641,7 @@ export class PeerHostService {
         this.brokerReconnectTimer = null;
       }
       // Tag every subsequent log entry with this device's identity. The
-      // human-facing device id is the 4-char SHARE CODE (what the operator
+      // human-facing device id is the SHARE CODE (what the operator
       // shares); the broker peer id is the derived `gonogo-host-<code>`.
       logger.setIdentity({ role: "host", id: this.shareCode, peerId: id });
       logger.info(`[PeerHost] open: id=${id} (shareCode=${this.shareCode})`);
