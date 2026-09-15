@@ -1022,7 +1022,11 @@ export interface PrincipiaPlannedBurn
 	* fact is published.
 	*/
 	executing?: boolean;
-	/** True when this burn is one the integrator flagged. */
+	/**
+	* True when this burn is one the integrator flagged, false when it is one the
+	* integrator was happy with, and `null` when the plan's flagged count would
+	* not read. Null is not a clean bill of health.
+	*/
 	anomalous?: boolean;
 }
 /**

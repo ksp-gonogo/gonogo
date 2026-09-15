@@ -430,7 +430,9 @@ public sealed class PrincipiaPlannedBurn
     [SitrepUnit(Units.Flag)]
     public bool? Executing { get; set; }
 
-    /// <summary>True when this burn is one the integrator flagged.</summary>
+    /// <summary>True when this burn is one the integrator flagged, false when it
+    /// is one the integrator was happy with, and <c>null</c> when the plan's
+    /// flagged count would not read. Null is not a clean bill of health.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Anomalous { get; set; }
 }
