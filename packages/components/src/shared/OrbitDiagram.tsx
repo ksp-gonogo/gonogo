@@ -86,6 +86,20 @@ export interface OrbitDiagramProps {
    * of the (dashed) transfer ellipse. Same bbox treatment as `projected`.
    */
   secondaryProjected?: ProjectedOrbit | null;
+  /**
+   * Fill the region between the current conic and `projected`, as one shape
+   * rather than two lines.
+   *
+   * <p>For a FLOWN-versus-PLANNED comparison, where both curves are known
+   * exactly: one is authored by the planner, the other is observed. The filled
+   * region is their measured difference, so it carries no claim about
+   * uncertainty and is deliberately not a band.</p>
+   *
+   * <p>Ignored unless both conics are closed. A region between an ellipse and
+   * an open hyperbola is not bounded, and filling it would draw a shape whose
+   * area means nothing.</p>
+   */
+  corridor?: boolean;
   /** Interactive prograde/radial drag handles at the burn point. */
   maneuverHandles?: ManeuverHandleProps | null;
   /**
@@ -167,6 +181,45 @@ const variantConfig = {
   },
 } as const;
 
+/**
+ * One closed conic sampled to a polygon, in the diagram's own frame.
+ *
+ * The two conics a corridor spans each carry their OWN argument of periapsis,
+ * so neither can ride the `<g transform="rotate(...)">` the strokes use: the
+ * rotation has to be baked per point or the region between them is drawn
+ * between two curves that were never in the same frame. Degrees and the sign
+ * convention match that transform exactly.
+ *
+ * Sampled on eccentric anomaly rather than true anomaly, which spaces points
+ * evenly around the ellipse instead of crowding them at periapsis, where the
+ * two curves are usually closest and the fill thinnest.
+ */
+function conicPolygon(
+  sma: number,
+  ecc: number,
+  argPeDeg: number,
+  steps: number,
+): string {
+  const b = sma * Math.sqrt(Math.max(0, 1 - ecc * ecc));
+  const c = sma * ecc;
+  const theta = (-argPeDeg * Math.PI) / 180;
+  const cos = Math.cos(theta);
+  const sin = Math.sin(theta);
+  let d = "";
+  for (let i = 0; i < steps; i++) {
+    const e = (2 * Math.PI * i) / steps;
+    const x = -c + sma * Math.cos(e);
+    const y = b * Math.sin(e);
+    const rx = x * cos - y * sin;
+    const ry = x * sin + y * cos;
+    d += `${i === 0 ? "M" : "L"}${rx.toFixed(3)} ${ry.toFixed(3)}`;
+  }
+  return `${d}Z`;
+}
+
+/** Points per conic in a corridor. 240 keeps the fill smooth at the widest variant. */
+const CORRIDOR_STEPS = 240;
+
 export function OrbitDiagram({
   sma,
   ecc,
@@ -188,6 +241,7 @@ export function OrbitDiagram({
   trajectoryPath = null,
   trailPath = null,
   trajectoryFarEnd = null,
+  corridor = false,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
@@ -207,6 +261,21 @@ export function OrbitDiagram({
   // Orbital geometry: semi-minor axis and focus offset
   const b = sma * Math.sqrt(Math.max(0, 1 - ecc * ecc));
   const c = sma * ecc;
+
+  /*
+   * Only where the region is bounded and there are two curves to bound it.
+   * An open hyperbola has no inside, so a fill between one and an ellipse
+   * would be a shape whose area is an artefact of where the sampling stopped.
+   */
+  const corridorPath =
+    corridor && projected && !isHyperbolic && !projIsHyperbolic
+      ? `${conicPolygon(sma, ecc, argPe, CORRIDOR_STEPS)}${conicPolygon(
+          projected.sma,
+          projected.ecc,
+          projected.argPe ?? argPe,
+          CORRIDOR_STEPS,
+        )}`
+      : null;
 
   // Projected orbit geometry (optional overlay)
   const projB = projected
@@ -404,6 +473,21 @@ export function OrbitDiagram({
            one. */
         data-orbiting={isOrbiting ? "yes" : "no"}
       >
+        {/* The corridor between flown and planned, drawn first so both
+          strokes stay legible on top of it. An even-odd ring: two closed
+          subpaths, so whichever conic is inside the other leaves a hole
+          rather than the fill covering the gap it exists to show. Which one
+          encloses which is not fixed (a burn can raise or lower the orbit),
+          and even-odd means nothing here has to know. */}
+        {corridorPath && (
+          <path
+            d={corridorPath}
+            fillRule="evenodd"
+            fill="rgba(255,180,40,0.22)"
+            stroke="none"
+          />
+        )}
+
         {/* Projected orbit (behind): dashed, amber to contrast with the
           green "current" trajectory. Drawn before the current orbit so
           the live trajectory stays visually dominant. */}

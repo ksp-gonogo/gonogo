@@ -38,6 +38,97 @@ describe("OrbitDiagram projected overlay", () => {
     expect(ellipses[1].getAttribute("stroke-dasharray")).toBeNull();
   });
 
+  /**
+   * The corridor exists to show the gap, so the assertion is that the fill has
+   * a HOLE in it: two subpaths under even-odd. A single closed path would be a
+   * filled blob covering the very region it was added to reveal.
+   */
+  it("fills the region between the two conics as a two-subpath even-odd ring", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        projected={{
+          sma: 800_000,
+          ecc: 0.12,
+          apoapsis: 896_000,
+          periapsis: 704_000,
+        }}
+        corridor
+      />,
+    );
+
+    const ring = container.querySelector('path[fill-rule="evenodd"]');
+    expect(ring).not.toBeNull();
+    const d = ring?.getAttribute("d") ?? "";
+    expect(d.match(/M/g) ?? []).toHaveLength(2);
+    expect(d.match(/Z/g) ?? []).toHaveLength(2);
+  });
+
+  it("draws no corridor without the prop, so every other caller is untouched", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        projected={{
+          sma: 800_000,
+          ecc: 0.12,
+          apoapsis: 896_000,
+          periapsis: 704_000,
+        }}
+      />,
+    );
+
+    expect(container.querySelector('path[fill-rule="evenodd"]')).toBeNull();
+  });
+
+  /**
+   * An open hyperbola has no inside. Filling between one and an ellipse would
+   * draw a region whose area is an artefact of where the sampling stopped, so
+   * the corridor withholds rather than inventing a bounded shape.
+   */
+  it("withholds the corridor when either conic is unbounded", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        projected={{ sma: -900_000, ecc: 1.4, apoapsis: 0, periapsis: 650_000 }}
+        corridor
+      />,
+    );
+
+    expect(container.querySelector('path[fill-rule="evenodd"]')).toBeNull();
+  });
+
+  /**
+   * Each conic carries its own argument of periapsis, and the strokes get
+   * theirs from a `<g transform>` the corridor cannot use. Baking the rotation
+   * per point is what keeps both curves in one frame; without it the fill is
+   * drawn between two curves that were never in the same place.
+   */
+  it("bakes each conic's own argPe into the ring rather than a shared transform", () => {
+    const projected = {
+      sma: 800_000,
+      ecc: 0.12,
+      apoapsis: 896_000,
+      periapsis: 704_000,
+      argPe: 90,
+    };
+    const aligned = render(
+      <OrbitDiagram
+        {...BASE}
+        projected={{ ...projected, argPe: 0 }}
+        corridor
+      />,
+    );
+    const rotated = render(
+      <OrbitDiagram {...BASE} projected={projected} corridor />,
+    );
+
+    const of = (r: { container: Element }) =>
+      r.container.querySelector('path[fill-rule="evenodd"]')?.getAttribute("d");
+
+    expect(of(aligned)).not.toBeUndefined();
+    expect(of(rotated)).not.toEqual(of(aligned));
+  });
+
   it("expands the mini viewBox to contain an argPe-rotated orbit", () => {
     // At argPe=0 the orbit's wide axis is x; at argPe=90° it's y. The mini
     // viewBox used to assume argPe=0 and would clip rotated orbits, we

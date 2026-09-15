@@ -176,6 +176,14 @@ export function ConformancePlot({
             trueAnomaly={current.trueAnomaly}
             argPe={current.argPe}
             projected={planned}
+            /*
+             * The gap between flown and planned as one shape rather than two
+             * lines, which is the whole subject of this plot. Conformance only:
+             * before the burn there is nothing flown to compare against, and on
+             * the Plan tab the second conic is a proposal rather than a
+             * measurement.
+             */
+            corridor
             bodyRadius={bodyRadius ?? undefined}
             variant="mini"
           />
