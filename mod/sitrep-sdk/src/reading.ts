@@ -604,15 +604,34 @@ export type TopicCurrency<P, Rk = unknown> =
  *
  * ## Reserved names lose
  *
- * A payload field spelled like a currency member (`comms.signalStrength` has a
- * `value`, `comms.controlState` has a `state`) is EXCLUDED rather than merged:
- * intersecting `"observed" | "stale" | ...` with a `Reading` collapses to
- * `never` and would poison the whole type. Those two fields are reached off the
- * payload as they always were, and a call site that reaches for the field
- * reading gets a compile error rather than a `never`.
+ * A payload field spelled like a currency member is EXCLUDED rather than
+ * merged: intersecting `"observed" | "stale" | ...` with a `Reading` collapses
+ * to `never` and would poison the whole type. Such a field is reached off the
+ * payload as it always was, and a call site that reaches for the field reading
+ * gets a compile error rather than a `never`.
+ *
+ * ## The exclusion is a workaround, and codegen now owns the rule
+ *
+ * Dropping a field from this surface with no diagnostic is the worst half of
+ * the bargain: an author gets no field reading and no reason for its absence.
+ * `RtConfig.CheckReservedFieldNames` refuses the collision at codegen instead,
+ * so the failure lands on whoever spells the field that way, with the topic,
+ * the field and a stack.
+ *
+ * This exclusion stays only while `RtConfig.ReservedFieldNameDebt` is
+ * non-empty. Four contract fields collide today, two of them core's own
+ * (`comms.signalStrength.value` and `comms.controlState.state`) and two
+ * declared by Uplink slices; that list names them. Each is a wire-visible
+ * rename away from gone, which is a Major apiece. When the list empties, delete
+ * the `Exclude` and this paragraph: nothing will be reaching a reserved name to
+ * excuse. `styleguide-reserved-reading-keys.test.ts` keeps the two spellings of
+ * the key list in step meanwhile.
  *
  * An array payload is left alone entirely: mapping `keyof P` over one would
- * claim a `Reading` at `length`, `map` and every other array member.
+ * claim a `Reading` at `length`, `map` and every other array member. That is
+ * also why the codegen refusal exempts an array topic: five channels carry a
+ * reserved name on their ELEMENT (`alarm.scet` is core's) and none of them
+ * shadows anything.
  */
 export type TopicFields<P> = P extends readonly unknown[]
   ? unknown
