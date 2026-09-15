@@ -112,6 +112,21 @@ namespace Gonogo.KosUplink
         // gate") only in headless tests that don't call Register.
         private Func<bool>? _computeSubscribed;
 
+        /// <summary>
+        /// The game clock every compute publish is stamped with, wired to
+        /// <c>IUplinkHost.NowUt</c> in Register, exactly as the terminal
+        /// downlink's <see cref="KosTerminalManager"/> is.
+        ///
+        /// <para>Null means this instance has no clock seam at all (a headless
+        /// test that wired compute without one), and a compute publish is then
+        /// SKIPPED rather than stamped. kos.compute.* is Delayed, so its stamp
+        /// is the UT the reveal gate and the keyframe cadence both index on: a
+        /// fabricated one froze the emitter's keyframe clock and made the
+        /// channel reveal as if it were TrueNow, which is why the processor
+        /// capture beside it returns null rather than substitute a 0.0.</para>
+        /// </summary>
+        private Func<double>? _nowUt;
+
         // Reverse-map from a ScreenBuffer to the owning CPU's KOSCoreId,
         // resolved ONLY when a [KOSDATA] block completes (never per fragment).
         // Injectable so headless tests can count invocations and avoid the live
@@ -292,11 +307,22 @@ namespace Gonogo.KosUplink
         /// live kOS/Unity process for the version guard + Harmony install). Pair
         /// with <see cref="CoreIdResolver"/> to exercise <see cref="OnPrint"/>
         /// headlessly.
+        ///
+        /// <para><paramref name="nowUt"/> is the clock the publishes are
+        /// stamped with, and is REQUIRED rather than defaulted: passing null
+        /// exercises the no-clock case, where a compute publish is skipped
+        /// rather than dated from a substitute, and a defaulted parameter made
+        /// a re-wire (this is called twice in one test, to flip the
+        /// subscription gate) silently drop the clock the first call set.</para>
         /// </summary>
-        internal void WireComputeForTests(IDynamicChannelSource computeSource, Func<bool>? computeSubscribed)
+        internal void WireComputeForTests(
+            IDynamicChannelSource computeSource,
+            Func<bool>? computeSubscribed,
+            Func<double>? nowUt)
         {
             _computeSource = computeSource;
             _computeSubscribed = computeSubscribed;
+            _nowUt = nowUt;
         }
 
         /// <summary>
@@ -435,6 +461,10 @@ namespace Gonogo.KosUplink
 
             // A block completed: NOW resolve the emitting CPU once (spec §4.2).
             int coreId = CoreIdResolver(screen);
+            // One clock read per completed batch, not per field: every field of
+            // a block was printed at the same instant, and a block closing is
+            // rare (never per PRINT fragment), so this is off the hot path.
+            double? nowUt = _nowUt?.Invoke();
             foreach (var block in blocks)
             {
                 block.CoreId = coreId;
@@ -448,10 +478,19 @@ namespace Gonogo.KosUplink
                     _runManager.Complete(coreId, block);
                     continue;
                 }
+                if (nowUt == null)
+                {
+                    // No clock seam, so nothing honest to date this sample
+                    // from: drop it rather than publish it at a made-up
+                    // instant. The armed-run branch above is deliberately
+                    // unaffected, a kos.run result is correlated by request id
+                    // and carries no UT of its own.
+                    continue;
+                }
                 foreach (var kv in block.Fields)
                 {
                     var sub = KosChannels.ComputeFieldSubTopic(block.Topic, kv.Key);
-                    _computeSource.Publisher(sub).Publish(kv.Value, 0.0);
+                    _computeSource.Publisher(sub).Publish(kv.Value, nowUt.Value);
                 }
             }
         }

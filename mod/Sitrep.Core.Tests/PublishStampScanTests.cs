@@ -125,15 +125,19 @@ namespace Sitrep.Core.Tests
         [InlineData("raw?.Ut ?? 0.0")] // twelve RP-1 sites, and it used to pass
         [InlineData("raw?.Ut ?? 0")]
         [InlineData("raw?.Ut ?? snapshot?.Ut ?? 0.0")]
+        [InlineData("0.0")] // the last standalone literal in the tree, until 2026-09-15
+        [InlineData("0")]
+        [InlineData("1.5d")]
+        [InlineData("nowUt.GetValueOrDefault()")] // the substitution, spelled as an unwrap
+        [InlineData("nowUt.GetValueOrDefault(0)")]
         public void AStampThatNamesSomethingElseIsRejected(string stamp) =>
             Assert.False(NamesATime(stamp), stamp + " is not a universe time and must be rejected");
 
         /// <summary>
         /// Every spelling the tree actually uses is accepted, so the gate cannot
-        /// be satisfied by narrowing it until nothing passes. The last two are the
-        /// pair the coalesce branch has to keep apart: a fallback that quotes a
-        /// clock is a stamp, and a literal standing alone is still the only thing
-        /// a site with no snapshot to quote can hand over.
+        /// be satisfied by narrowing it until nothing passes. The last one is the
+        /// half of the coalesce branch that survives: a fallback quoting a clock
+        /// is a stamp, where a fallback quoting a constant is not.
         /// </summary>
         [Theory]
         [InlineData("ut")]
@@ -142,50 +146,58 @@ namespace Sitrep.Core.Tests
         [InlineData("observation.SampledAtUt")]
         [InlineData("host.NowUt()")]
         [InlineData("snapshot.Ut")]
+        [InlineData("nowUt.Value")]
         [InlineData("raw?.Ut ?? host.NowUt()")]
-        [InlineData("0.0")]
         public void EverySpellingTheTreeUsesIsAccepted(string stamp) =>
             Assert.True(NamesATime(stamp), stamp + " is a universe time and must be accepted");
 
         /// <summary>
         /// Whether an argument expression names a universe time: its final
         /// member is a <c>Ut</c>-suffixed identifier (<c>ut</c>, <c>cap.Ut</c>,
-        /// <c>observation.SampledAtUt</c>, <c>host.NowUt()</c>), or it is a
-        /// numeric literal, which is how the tree spells "before the first
-        /// snapshot, so there is no time to quote".
+        /// <c>observation.SampledAtUt</c>, <c>host.NowUt()</c>,
+        /// <c>nowUt.Value</c>).
+        ///
+        /// <para>A numeric literal is NOT one, standing alone or behind a
+        /// <c>??</c>. It was accepted standing alone until 2026-09-15, on the
+        /// grounds that a site with no snapshot to quote has nothing else to
+        /// hand over. The one site that relied on that stamped every sample of
+        /// a Delayed channel 0.0, dating it from the start of the campaign; it
+        /// now reads the game clock and publishes nothing when it has none, so
+        /// there is no honest use of a constant left to allow for.</para>
         /// </summary>
         internal static bool NamesATime(string stamp)
         {
             // A null-coalesced fallback is a stamp of its own; both halves have
             // to name a time, so check them separately rather than reading only
-            // the one that happens to be last.
-            //
-            // The fallback half is held to more than that: it must name a time the
-            // caller MEASURED, never a literal. A literal standing alone is a site
-            // that has no snapshot to quote and nothing else to hand over; a
-            // literal behind a ?? is a site that HAD an instant on the good path
-            // and fabricated one on the other, which is the shape twelve RP-1
-            // courier handles took. They coalesced an unread tick to 0.0 and
-            // published a reading dated the start of the game, and this scan
-            // waved every one of them through, because 0.0 does name a time.
+            // the one that happens to be last. A literal behind a ?? is a site
+            // that HAD an instant on the good path and fabricated one on the
+            // other, which is the shape twelve RP-1 courier handles took: they
+            // coalesced an unread tick to 0.0 and published a reading dated the
+            // start of the game, and this scan waved every one of them through,
+            // because 0.0 did then name a time.
             var index = stamp.IndexOf("??", StringComparison.Ordinal);
             if (index >= 0)
             {
-                var fallback = stamp.Substring(index + 2).Trim();
                 return NamesATime(stamp.Substring(0, index).Trim())
-                    && NamesATime(fallback)
-                    && !IsNumericLiteral(fallback);
+                    && NamesATime(stamp.Substring(index + 2).Trim());
             }
 
             var expression = stamp.Trim().TrimEnd('!');
-            if (expression.Length == 0)
+            if (expression.Length == 0 || IsNumericLiteral(expression))
             {
                 return false;
             }
 
-            if (IsNumericLiteral(expression))
+            // `.Value` on a nullable is the same value under a different
+            // spelling, so it is read through to what it unwraps: a site that
+            // resolved its own absence and hands over the instant it DID read
+            // must not be judged as if it had named something else, or the
+            // reading that does the honest thing is the one that fails.
+            // `.GetValueOrDefault()` is deliberately not read through, being
+            // the substitution this whole scan exists to catch.
+            if (expression.EndsWith(".Value", StringComparison.Ordinal))
             {
-                return true;
+                expression = expression.Substring(0, expression.Length - ".Value".Length);
             }
 
             // The final member is what the expression evaluates to, so it is the
