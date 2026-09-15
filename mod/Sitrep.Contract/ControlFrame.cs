@@ -18,6 +18,7 @@ namespace Sitrep.Contract
     /// control frame resolves to nothing, which is the behaviour that side
     /// already documents.</para>
     /// </summary>
+    [SitrepContract]
     public enum ControlFrameKind
     {
         /// <summary>Nothing stated one. Distinct from a frame we could not name.</summary>
@@ -70,6 +71,7 @@ namespace Sitrep.Contract
     /// <see cref="PrimaryBody"/> so a reader wanting the pair can take the heads
     /// and a reader computing the frame can take the sets.</para>
     /// </summary>
+    [SitrepContract]
     [SitrepTopic("system.frame")]
 #if SITREP_CODEGEN
     [TsInterface]

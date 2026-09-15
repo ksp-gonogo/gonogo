@@ -182,7 +182,7 @@ namespace Sitrep.Host.Tests
                         continue;
                     }
 
-                    var decoded = attribute.DecodeValue(StringTypeProvider.Instance);
+                    var decoded = attribute.DecodeValue(AttributeBlobTypeProvider.Instance);
                     var topicId = (string)decoded.FixedArguments[0].Value!;
                     var isArray = decoded.FixedArguments.Length > 1 && decoded.FixedArguments[1].Value is true;
                     return (topicId, isArray);
@@ -214,35 +214,6 @@ namespace Sitrep.Host.Tests
                 default:
                     return null;
             }
-        }
-
-        /// <summary>
-        /// Minimal <see cref="ICustomAttributeTypeProvider{T}"/> for decoding
-        /// the <c>[SitrepTopic(string, bool)]</c> blob: only primitive
-        /// (string / bool) fixed arguments occur, so the type-shaped members
-        /// need only be well-formed, never meaningful.
-        /// </summary>
-        private sealed class StringTypeProvider : ICustomAttributeTypeProvider<string>
-        {
-            public static readonly StringTypeProvider Instance = new();
-
-            public string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode.ToString();
-
-            public string GetSystemType() => "System.Type";
-
-            public string GetSZArrayType(string elementType) => elementType + "[]";
-
-            public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) =>
-                reader.GetString(reader.GetTypeDefinition(handle).Name);
-
-            public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) =>
-                reader.GetString(reader.GetTypeReference(handle).Name);
-
-            public string GetTypeFromSerializedName(string name) => name;
-
-            public PrimitiveTypeCode GetUnderlyingEnumType(string type) => PrimitiveTypeCode.Int32;
-
-            public bool IsSystemType(string type) => type == "System.Type";
         }
 
         // --- fully-populated fixture ---------------------------------------
