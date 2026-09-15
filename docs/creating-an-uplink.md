@@ -923,20 +923,20 @@ And the second axis:
 
 `grade` says which kind of missed update a stale reading was (`held-stale`, `disconnected`,
 `last-before-blackout`), and it labels the same render rather than changing it, which is why it is a
-plain field and not three more arms. `reckoned` is different: it is a REQUIRED field of a member
-selected by a REQUIRED discriminant, so `reading.reckoned` does not compile until you have written
-`reading.reckoning === "available"`. An OPTIONAL field would compile everywhere and answer `undefined`,
-and silently dropping a reckoning while the widget still looked right is precisely what this type
-prevents.
+plain field and not three more arms. The modelled value is different: it is a REQUIRED field of a member
+selected by a REQUIRED discriminant, so `reading.reckoning.value` does not compile until you have
+written `reading.reckoning.status === "available"`. An OPTIONAL field would compile everywhere and
+answer `undefined`, and silently dropping a reckoning while the widget still looked right is precisely
+what this type prevents.
 
 A model withdraws by not being offered on the next frame, so there is no horizon field to compare
-against and `reckoned` is never absent on a reading that carries it.
+against and the modelled value is never absent on a reckoning that carries it.
 
 Here is the whole union handled once, in a helper, which is the shape to copy:
 
 ```tsx
 // client/src/Reactor/index.tsx
-import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
   useCommand,
@@ -967,18 +967,18 @@ type ReactorConfig = Record<string, never>;
  * that there is one branch per `state`, and the compiler will not let you leave
  * one out, so a new state added later fails here rather than rendering blank.
  */
-function present(reading: Reading<ReactorStatus>): {
+function present(reading: TopicReading<ReactorStatus>): {
   caption: string;
   status?: ReactorStatus;
 } {
-  if (reading.reckoning === "available") {
+  if (reading.reckoning.status === "available") {
     // The modelled value for THIS frame, not the last observation. Draw
     // `reading.value` instead and you have declined to propagate, which is
     // legitimate and should be written as `withoutReckoning(reading)` so it
     // is greppable.
     return {
       caption: "modelled forward to this frame",
-      status: reading.reckoned.value,
+      status: reading.reckoning.value,
     };
   }
   switch (reading.state) {
