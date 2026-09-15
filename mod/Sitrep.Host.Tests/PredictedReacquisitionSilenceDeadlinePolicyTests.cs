@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sitrep.Host.Comms;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
@@ -783,6 +784,129 @@ namespace Sitrep.Host.Tests
             // period-stepped case exactly: 4 * (3600/720) + 2 * 1 + 300 = 322.
             Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
             Assert.Equal(900.0 + 322.0, deadline.DurationSec, 1);
+        }
+
+        /// <summary>
+        /// A provider that vouches for a craft only so far, the way an
+        /// integrating one does, and answers everything else out of the
+        /// two-body vanilla.
+        ///
+        /// <para>The bound is applied ONLY to a non-zero vessel window,
+        /// mirroring the integrating provider's own <c>CanPropagate</c> exactly:
+        /// a zero-length ask is always answerable, which is what makes the
+        /// policy's own guard useless and is the whole subject of these two
+        /// tests.</para>
+        /// </summary>
+        private sealed class BoundedVesselProvider : IPropagationProvider
+        {
+            private readonly KeplerProvider _conics = new KeplerProvider();
+            private readonly double _spanSeconds;
+
+            public BoundedVesselProvider(double spanSeconds) => _spanSeconds = spanSeconds;
+
+            public string ProviderId => "bounded-test";
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut) =>
+                _conics.Solve(target, frame, ut);
+
+            public void SolveMany(
+                PropagationTarget target,
+                PropagationFrame frame,
+                IReadOnlyList<double> uts,
+                StateVector[] into) =>
+                _conics.SolveMany(target, frame, uts, into);
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) =>
+                _conics.CharacteristicCycleSeconds(target);
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) =>
+                _conics.RadiusExtremesOf(target);
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) =>
+                _conics.SolveClosestApproach(subject, other, frame, fromUt, toUt);
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt)
+            {
+                if (!_conics.CanPropagate(target, frame, fromUt, toUt)) return false;
+                if (target.Kind != PropagationTargetKind.Vessel || !(toUt > fromUt)) return true;
+                return toUt - fromUt <= _spanSeconds;
+            }
+        }
+
+        /// <summary>
+        /// The defect: the sweep runs two orbital periods ahead while the
+        /// provider vouches for a quarter of one, and the emergence it quotes
+        /// is taken from the part it was never entitled to extrapolate.
+        ///
+        /// <para>The craft is in a 3600 s orbit, so the sweep window is 7200 s.
+        /// The provider vouches for 900 s. The emergence sits at 3000 s, past
+        /// the bound by more than three times, which is the same 4-6x
+        /// over-reach measured against an integrating provider in LKO.</para>
+        /// </summary>
+        [Fact]
+        public void WithholdsAPredictionTakenFromBeyondTheVouchedForSpan()
+        {
+            var orbit = Circular(3600.0);
+            var onset = 1_000.0;
+            var emergence = onset + 3_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(emergence),
+                propagator: new BoundedVesselProvider(900.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.Null(deadline.PredictedReacquisitionUt);
+            Assert.Equal(SilenceDeadlineBasis.HorizonLimited, deadline.Basis);
+        }
+
+        /// <summary>
+        /// The control, and the reason the fix cannot simply shorten every
+        /// sweep: an emergence INSIDE the vouched-for span is still published,
+        /// because the conic is certified there rather than merely tolerated.
+        /// </summary>
+        [Fact]
+        public void StillPredictsAnEmergenceInsideTheVouchedForSpan()
+        {
+            var orbit = Circular(3600.0);
+            var onset = 1_000.0;
+            var emergence = onset + 600.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(emergence),
+                propagator: new BoundedVesselProvider(900.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Equal(emergence, deadline.PredictedReacquisitionUt!.Value, 1);
+        }
+
+        /// <summary>
+        /// The stock provider bounds nothing, so the clamp must be invisible
+        /// there. Without this the fix could quietly shorten every vanilla
+        /// sweep and no other test in this file would notice, because they all
+        /// take the default provider and find their emergence early.
+        /// </summary>
+        [Fact]
+        public void LeavesAnUnboundedProviderSweepingItsWholeWindow()
+        {
+            var orbit = Circular(3600.0);
+            var onset = 1_000.0;
+            // Past any horizon a bounded provider would allow, and well inside
+            // the unbounded two-body window of two full periods.
+            var emergence = onset + 5_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(emergence));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Equal(emergence, deadline.PredictedReacquisitionUt!.Value, 1);
         }
 
         /// <summary>

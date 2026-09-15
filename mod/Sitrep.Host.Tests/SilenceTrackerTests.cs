@@ -249,5 +249,68 @@ namespace Sitrep.Host.Tests
             Assert.Equal(SilenceState.Nominal, tracker.TryGetState(VesselA)!.State);
             Assert.Equal(SilenceState.Lost, tracker.TryGetState(VesselB)!.State);
         }
+
+        /// <summary>
+        /// Every verdict the deadline policy can reach has to be able to
+        /// REPLACE the armed orbital-period basis on the wire, including the
+        /// ones that decline to predict.
+        ///
+        /// <para>Written as a loop over the whole vocabulary rather than one
+        /// case, because the tracker recognises verdicts through a hand-listed
+        /// predicate and a basis added to the policy without being added there
+        /// falls out of it in total silence: the wire keeps reporting
+        /// <c>orbital-period</c> forever and a working sweep is indistinguishable
+        /// from one that never ran. That is the exact failure the upgrade path's
+        /// own comment records having already been shipped once.</para>
+        /// </summary>
+        [Theory]
+        [InlineData(SilenceDeadlineBasis.PredictedReacquisition)]
+        [InlineData(SilenceDeadlineBasis.NoOccultation)]
+        [InlineData(SilenceDeadlineBasis.NoEmergenceInWindow)]
+        [InlineData(SilenceDeadlineBasis.WarpLimited)]
+        [InlineData(SilenceDeadlineBasis.GraceExceedsCeiling)]
+        [InlineData(SilenceDeadlineBasis.HorizonLimited)]
+        public void EveryPolicyVerdictReachesTheWire(string verdict)
+        {
+            // Arms on the first silent tick with the fallback basis, the way a
+            // save load does when no geometry can be had yet, then answers with
+            // the verdict once asked again.
+            var armed = false;
+            var tracker = new SilenceTracker((sample, onsetUt) =>
+            {
+                if (!armed)
+                {
+                    armed = true;
+                    return new SilenceDeadline(10_000.0, SilenceDeadlineBasis.OrbitalPeriod);
+                }
+                return new SilenceDeadline(10_000.0, verdict);
+            });
+
+            tracker.Tick(One(VesselA, true), ut: 0);
+            tracker.Tick(One(VesselA, false), ut: 10);
+            Assert.Equal(SilenceDeadlineBasis.OrbitalPeriod, tracker.TryGetState(VesselA)!.DeadlineBasis);
+
+            tracker.Tick(One(VesselA, false), ut: 20);
+
+            Assert.Equal(verdict, tracker.TryGetState(VesselA)!.DeadlineBasis);
+        }
+
+        /// <summary>
+        /// The control for the loop above: a basis that is NOT a verdict, i.e.
+        /// the policy falling back because it could not look at all, must leave
+        /// the armed basis alone and keep its one retry.
+        /// </summary>
+        [Fact]
+        public void AFallbackBasisDoesNotSpendTheUpgrade()
+        {
+            var tracker = new SilenceTracker((sample, onsetUt) =>
+                new SilenceDeadline(10_000.0, SilenceDeadlineBasis.PolicyCeiling));
+
+            tracker.Tick(One(VesselA, true), ut: 0);
+            tracker.Tick(One(VesselA, false), ut: 10);
+            tracker.Tick(One(VesselA, false), ut: 20);
+
+            Assert.Equal(SilenceDeadlineBasis.PolicyCeiling, tracker.TryGetState(VesselA)!.DeadlineBasis);
+        }
     }
 }

@@ -31,13 +31,14 @@ namespace Sitrep.Contract
     /// so a convenience overload would have no parent on the target to resolve.
     /// </internal></para>
     ///
-    /// <para><b>The model is ASKED FOR, never inherited.</b> A transfer search
-    /// wants the two-body answer because that is what it is designed around, and
-    /// it wants it whatever an install's provider would otherwise hand back. So
-    /// <see cref="Model"/> is part of the question rather than a property of
-    /// whoever answers it, and a request that does not name one is refused: a
-    /// planning grid that silently changed model when a default moved underneath
-    /// it would look like the transfer changed.</para>
+    /// <para><b>The bound is ASKED FOR, never inherited.</b> Every provider
+    /// answers a body from the same analytical model, so what a caller actually
+    /// has to state is whether it will read that model past the span anyone
+    /// vouches for. A transfer search will, on purpose. So
+    /// <see cref="Certification"/> is part of the question rather than a
+    /// property of whoever answers it, and a request that does not name one is
+    /// refused: a planning grid that silently acquired a bound when a default
+    /// moved underneath it would look like the transfer changed.</para>
     ///
     /// <para>No horizon applies to the analytical answer, and that follows from
     /// what a horizon IS: an ephemeris horizon bounds how long osculating elements
@@ -74,21 +75,29 @@ namespace Sitrep.Contract
         public List<double> Uts { get; set; } = new();
 
         /// <summary>
-        /// Which model the answer must come from.
-        /// <see cref="TrajectoryKind.Unspecified"/> is refused rather than
-        /// defaulted, for the reason that enum's own zero exists: a caller that
-        /// says nothing gets told to say something, instead of silently
-        /// inheriting whatever this install would otherwise have produced.
+        /// Whether this caller accepts an answer past the span the provider
+        /// vouches for. A transfer search asks
+        /// <see cref="PropagationCertification.Unbounded"/>, deliberately: it
+        /// is a two-body question about instants nobody has reached, and a
+        /// bound derived from how long osculating elements stand in for an
+        /// integrated path says nothing about it.
+        ///
+        /// <para><see cref="PropagationCertification.Unspecified"/> is refused
+        /// rather than defaulted, so a caller that says nothing is told to
+        /// choose instead of silently inheriting whatever this install would
+        /// have produced.</para>
         /// <internal>
-        /// <see cref="TrajectoryKind.Integrated"/> is refused too, today: every
-        /// provider forwards a body solve to its conics, so there is no
-        /// integrated body answer to give and handing back a conic under that
-        /// name would be a lie the client cannot detect. The refusal is what
-        /// makes this field honest before the seam can carry a model at all.
+        /// <see cref="PropagationCertification.CertifiedOnly"/> is refused too,
+        /// and not because it is unwanted: certification is a property of a
+        /// SPAN (from one instant to another), and this request carries a bare
+        /// list of instants with no origin to measure one from. Making it
+        /// expressible means adding that origin, which is a change to the
+        /// request rather than to the handler. Refusing is what keeps the field
+        /// from appearing to offer something it cannot honour.
         /// </internal>
         /// </summary>
         [SitrepUnit(Units.Enumeration)]
-        public TrajectoryKind Model { get; set; }
+        public PropagationCertification Certification { get; set; }
     }
 
     /// <summary>

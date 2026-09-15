@@ -63,26 +63,26 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void TheRequestNamesTheModelItWantsTheAnswerFrom()
+        public void TheRequestNamesTheBoundItWillAccept()
         {
-            // The model is part of the QUESTION, not a property of whoever answers
-            // it. A transfer search is a two-body question by design and must keep
-            // getting the two-body answer whatever an install's provider would
-            // otherwise hand back.
+            // Certification is part of the QUESTION, not a property of whoever
+            // answers it. A transfer search reads the analytical model past any
+            // horizon on purpose, and has to say so rather than inherit it.
             var named = typeof(BodyStatesRequest).GetProperties().Select(p => p.Name);
 
-            Assert.Contains("Model", named);
+            Assert.Contains("Certification", named);
         }
 
         [Fact]
-        public void ARequestThatNamesNoModelDefaultsToNothing()
+        public void ARequestThatNamesNoCertificationDefaultsToNothing()
         {
-            // The zero value is Unspecified rather than Analytic, so a caller that
-            // forgets the field is refused instead of silently inheriting whatever
-            // this install would otherwise have produced. Had Analytic been zero,
-            // the field would be decoration: every existing caller would pass the
-            // check without ever having made the choice.
-            Assert.Equal(TrajectoryKind.Unspecified, new BodyStatesRequest().Model);
+            // The zero is Unspecified rather than Unbounded, so a caller that
+            // forgets the field is refused instead of silently granted the
+            // permissive answer. Had Unbounded been zero, the field would be
+            // decoration: every caller would pass without ever having chosen.
+            Assert.Equal(
+                PropagationCertification.Unspecified,
+                new BodyStatesRequest().Certification);
         }
 
         [Fact]

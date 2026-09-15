@@ -86,6 +86,25 @@ namespace Sitrep.Host.Comms
         /// answer's precision that is not good enough.</para>
         /// </summary>
         public const string GraceExceedsCeiling = "grace-exceeds-ceiling";
+
+        /// <summary>
+        /// The sweep could only be run as far as the elected propagation
+        /// capability vouches for this craft's trajectory, and found no
+        /// emergence inside that. Same treatment as
+        /// <see cref="NoOccultation"/>: orbital-period deadline, no prediction.
+        ///
+        /// <para>Distinct from <see cref="NoEmergenceInWindow"/>, and the
+        /// distinction is the whole point. That one says the craft is behind
+        /// something for AT LEAST the span the policy wanted to search, which
+        /// under an integrating provider would be a claim about arc nobody
+        /// vouched for. This one says the search itself was cut short, so
+        /// nothing at all is being asserted about the part that was not
+        /// reached.</para>
+        ///
+        /// <para>Never reached under the two-body vanilla, which bounds
+        /// nothing: there the sweep always gets the window it asked for.</para>
+        /// </summary>
+        public const string HorizonLimited = "horizon-limited";
     }
 
     /// <summary>One deadline-policy evaluation: how long to wait, and why.</summary>
@@ -518,7 +537,8 @@ namespace Sitrep.Host.Comms
             || basis == SilenceDeadlineBasis.NoOccultation
             || basis == SilenceDeadlineBasis.NoEmergenceInWindow
             || basis == SilenceDeadlineBasis.WarpLimited
-            || basis == SilenceDeadlineBasis.GraceExceedsCeiling;
+            || basis == SilenceDeadlineBasis.GraceExceedsCeiling
+            || basis == SilenceDeadlineBasis.HorizonLimited;
 
         private static VesselContactState MarkDestroyed(VesselContactState s, double ut)
         {

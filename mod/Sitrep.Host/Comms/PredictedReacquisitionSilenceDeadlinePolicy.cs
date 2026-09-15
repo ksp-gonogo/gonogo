@@ -140,6 +140,25 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public const int MaxSamplesPerEvaluation = 20_000;
 
+        /// <summary>
+        /// What this policy will accept from the propagation provider, stated
+        /// rather than implied.
+        ///
+        /// <para>A predicted emergence UT is an OPERATIONAL claim: an operator
+        /// reads it as "it should be back by then" and judges a vessel late
+        /// against it. So it may only be read off arc the provider vouches for,
+        /// and this policy declines past that instead of quoting a number with
+        /// nothing behind it. A planning search makes the opposite choice for
+        /// the opposite reason.</para>
+        ///
+        /// <para>Constant rather than a parameter because it is a property of
+        /// what this policy PUBLISHES, not of who is calling it. Under the
+        /// two-body vanilla nothing is bounded, so it changes no behaviour
+        /// there.</para>
+        /// </summary>
+        public const PropagationCertification Certification =
+            PropagationCertification.CertifiedOnly;
+
         private readonly GeometryFactory _geometryFactory;
         private readonly OrbitalPeriodSilenceDeadlinePolicy _fallback;
         private readonly Func<double> _observationQuantumSeconds;
@@ -248,7 +267,39 @@ namespace Sitrep.Host.Comms
             }
 
             var window = SearchWindowCycles * cycle;
-            if (window / step > MaxSamplesPerEvaluation)
+
+            /*
+             * Sweep only as far as the elected capability will vouch for this
+             * craft, which under an integrating provider is a fraction of the
+             * window above rather than all of it.
+             *
+             * The policy's own `CanPropagate` check further up is ZERO-LENGTH,
+             * and a zero-length ask is always answerable by construction, so it
+             * says nothing at all about extrapolating across a window. Without
+             * this the sweep quoted an emergence read off arc nobody vouched
+             * for: measured against an integrating provider, four to six times
+             * past a craft's certified span in low orbit.
+             *
+             * Under the two-body vanilla nothing is bounded, so `UntilUt`
+             * answers the whole search window on its first question and this
+             * clamp never binds.
+             */
+            var vouchedUntil = Certification == PropagationCertification.CertifiedOnly
+                ? IntegratedHorizon.UntilUt(_propagator, target, ut)
+                : ut + window;
+            if (vouchedUntil == null)
+            {
+                return WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited);
+            }
+
+            var sweepEnd = Math.Min(ut + window, vouchedUntil.Value);
+            var horizonLimited = sweepEnd < ut + window;
+            if (!(sweepEnd > ut))
+            {
+                return WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited);
+            }
+
+            if ((sweepEnd - ut) / step > MaxSamplesPerEvaluation)
             {
                 return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
             }
@@ -256,7 +307,7 @@ namespace Sitrep.Host.Comms
             VisibilitySweepResult sweep;
             try
             {
-                sweep = VisibilitySweep.Run(geometry, ut, ut + window, step);
+                sweep = VisibilitySweep.Run(geometry, ut, sweepEnd, step);
             }
             catch (Exception)
             {
@@ -296,6 +347,16 @@ namespace Sitrep.Host.Comms
                 // prediction and keep the orbital-period deadline; naming them
                 // apart is what lets an operator tell "nothing is in the way"
                 // from "it is still behind the Mun".
+                if (horizonLimited && !sweep.ClearAtStart)
+                {
+                    // "Blocked throughout" is a claim about the whole span the
+                    // policy meant to search. A sweep cut short by the horizon
+                    // did not search it, so it says nothing about the part it
+                    // never reached rather than asserting the craft is still
+                    // behind something out there.
+                    return WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited);
+                }
+
                 return WithBasis(
                     fallback,
                     sweep.ClearAtStart

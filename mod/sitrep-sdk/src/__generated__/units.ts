@@ -172,7 +172,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "BodyStatesRequest": {
     bodyIndex: "id",
     centreBodyIndex: "id",
-    model: "enum",
+    certification: "enum",
     uts: "ut",
   },
   "CareerContract": {

@@ -1,4 +1,4 @@
-import { TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
+import { PropagationCertification } from "@ksp-gonogo/sitrep-sdk";
 import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -100,23 +100,23 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
     const sent = fixture.transport.sentCommands.map((c) => c.args);
     /*
      * Two commands for six instants, not six: the batch is the whole reason a
-     * 32x32 grid is 64 solves rather than 64 round trips. And the model is on
-     * the request rather than left to the install's default, so a grid cannot
-     * keep drawing the same plot right up until that default moves and then
-     * draw a different transfer without saying so.
+     * 32x32 grid is 64 solves rather than 64 round trips. And the bound it
+     * will accept is on the request rather than left to a default, so a grid
+     * cannot keep drawing the same plot right up until that default moves and
+     * then draw a different transfer without saying so.
      */
     expect(sent).toEqual([
       {
         bodyIndex: 1,
         centreBodyIndex: 0,
         uts: [0, 100, 200],
-        model: TrajectoryKind.Analytic,
+        certification: PropagationCertification.Unbounded,
       },
       {
         bodyIndex: 2,
         centreBodyIndex: 0,
         uts: [1000, 1100, 1200],
-        model: TrajectoryKind.Analytic,
+        certification: PropagationCertification.Unbounded,
       },
     ]);
   });
