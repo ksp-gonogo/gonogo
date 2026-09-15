@@ -18040,6 +18040,223 @@
         "type-removed:Sitrep.Contract.CommsSignalStrength"
       ],
       "Shape": {
+        "Topics": {
+          "alarm.scet": ["type:Sitrep.Contract.ScetAlarm", "array:True"],
+          "alarm.scet.fired": [
+            "type:Sitrep.Contract.ScetAlarmFired",
+            "array:False"
+          ],
+          "career.facilities": [
+            "type:Sitrep.Contract.CareerFacilities",
+            "array:False"
+          ],
+          "career.mode": ["type:Sitrep.Contract.CareerMode", "array:False"],
+          "career.status": ["type:Sitrep.Contract.CareerStatus", "array:False"],
+          "commandCentre.roster": [
+            "type:Sitrep.Contract.CommandCentreEntry",
+            "array:True"
+          ],
+          "commandCentre.separation": [
+            "type:Sitrep.Contract.CommandCentreSeparation",
+            "array:False"
+          ],
+          "comms.commandCentre": [
+            "type:Sitrep.Contract.CommsCommandCentre",
+            "array:False"
+          ],
+          "comms.connectivity": [
+            "type:Sitrep.Contract.CommsConnectivity",
+            "array:False"
+          ],
+          "comms.control": ["type:Sitrep.Contract.CommsControl", "array:False"],
+          "comms.degrade": ["type:Sitrep.Contract.CommsDegrade", "array:False"],
+          "comms.delay": ["type:Sitrep.Contract.CommsDelay", "array:False"],
+          "comms.link": ["type:Sitrep.Contract.CommsLink", "array:False"],
+          "comms.network": ["type:Sitrep.Contract.CommsNetwork", "array:False"],
+          "comms.occlusion": [
+            "type:Sitrep.Contract.CommsOcclusion",
+            "array:False"
+          ],
+          "comms.path": ["type:Sitrep.Contract.CommsPath", "array:False"],
+          "comms.signal": ["type:Sitrep.Contract.CommsSignal", "array:False"],
+          "crash.lastCrash": [
+            "type:Sitrep.Contract.CrashReport",
+            "array:False"
+          ],
+          "deployed.bases": [
+            "type:Sitrep.Contract.DeployedEntry",
+            "array:True"
+          ],
+          "dv.stages": ["type:Sitrep.Contract.StageDeltaVEntry", "array:True"],
+          "dv.summary": [
+            "type:Sitrep.Contract.StageDeltaVSummary",
+            "array:False"
+          ],
+          "eva.crew": ["type:Sitrep.Contract.EvaCrew", "array:False"],
+          "fleet.silence": ["type:Sitrep.Contract.FleetSilence", "array:False"],
+          "flight.current": [
+            "type:Sitrep.Contract.FlightCurrent",
+            "array:False"
+          ],
+          "flight.ended": ["type:Sitrep.Contract.FlightEnded", "array:False"],
+          "flight.simulation": [
+            "type:Sitrep.Contract.FlightSimulation",
+            "array:False"
+          ],
+          "flight.started": [
+            "type:Sitrep.Contract.FlightStarted",
+            "array:False"
+          ],
+          "flight.vesselChanged": [
+            "type:Sitrep.Contract.FlightVesselChanged",
+            "array:False"
+          ],
+          "game.dlc": ["type:Sitrep.Contract.GameDlc", "array:False"],
+          "isru.converters": [
+            "type:Sitrep.Contract.IsruConverterEntry",
+            "array:True"
+          ],
+          "isru.drills": ["type:Sitrep.Contract.IsruDrillEntry", "array:True"],
+          "ksp.revertAvailability": [
+            "type:Sitrep.Contract.RevertAvailability",
+            "array:False"
+          ],
+          "parts.power": ["type:Sitrep.Contract.PartsPower", "array:False"],
+          "recovery.lastSummary": [
+            "type:Sitrep.Contract.RecoveryReport",
+            "array:False"
+          ],
+          "reliability.parts": [
+            "type:Sitrep.Contract.ReliabilityPartEntry",
+            "array:True"
+          ],
+          "reliability.summary": [
+            "type:Sitrep.Contract.ReliabilitySummary",
+            "array:False"
+          ],
+          "robotics.available": [
+            "type:Sitrep.Contract.RoboticsAvailability",
+            "array:False"
+          ],
+          "robotics.servos": ["type:Sitrep.Contract.ServoEntry", "array:True"],
+          "science.archive": [
+            "type:Sitrep.Contract.ArchiveEntry",
+            "array:True"
+          ],
+          "science.experimentBreakdown": [
+            "type:Sitrep.Contract.ExperimentBreakdownEntry",
+            "array:True"
+          ],
+          "science.experiments": [
+            "type:Sitrep.Contract.ExperimentEntry",
+            "array:True"
+          ],
+          "science.instruments": [
+            "type:Sitrep.Contract.InstrumentEntry",
+            "array:True"
+          ],
+          "science.lab": ["type:Sitrep.Contract.LabEntry", "array:True"],
+          "science.sensors": ["type:Sitrep.Contract.SensorEntry", "array:True"],
+          "spaceCenter.astronautComplex": [
+            "type:Sitrep.Contract.AstronautComplexInfo",
+            "array:False"
+          ],
+          "spaceCenter.crewRoster": [
+            "type:Sitrep.Contract.CrewRosterEntry",
+            "array:True"
+          ],
+          "spaceCenter.launchSites": [
+            "type:Sitrep.Contract.LaunchSiteEntry",
+            "array:True"
+          ],
+          "spaceCenter.partsAvailable": [
+            "type:Sitrep.Contract.SpaceCenterPartsAvailable",
+            "array:False"
+          ],
+          "spaceCenter.pois": [
+            "type:Sitrep.Contract.SpaceCenterPoiEntry",
+            "array:True"
+          ],
+          "spaceCenter.savedShips": [
+            "type:Sitrep.Contract.SavedShipEntry",
+            "array:True"
+          ],
+          "spaceCenter.scene": [
+            "type:Sitrep.Contract.SpaceCenterScene",
+            "array:False"
+          ],
+          "system.bodies": ["type:Sitrep.Contract.SystemBodies", "array:False"],
+          "system.frame": ["type:Sitrep.Contract.ControlFrame", "array:False"],
+          "system.vessels": [
+            "type:Sitrep.Contract.SystemVessels",
+            "array:False"
+          ],
+          "target.available": [
+            "type:Sitrep.Contract.TargetAvailable",
+            "array:False"
+          ],
+          "time.calendar": ["type:Sitrep.Contract.TimeCalendar", "array:False"],
+          "time.warp": ["type:Sitrep.Contract.WarpState", "array:False"],
+          "vessel.attitude": [
+            "type:Sitrep.Contract.VesselAttitude",
+            "array:False"
+          ],
+          "vessel.comms": ["type:Sitrep.Contract.VesselComms", "array:False"],
+          "vessel.control": [
+            "type:Sitrep.Contract.VesselControl",
+            "array:False"
+          ],
+          "vessel.crew": ["type:Sitrep.Contract.VesselCrew", "array:False"],
+          "vessel.dock": ["type:Sitrep.Contract.DockAlignment", "array:False"],
+          "vessel.flight": ["type:Sitrep.Contract.VesselFlight", "array:False"],
+          "vessel.identity": [
+            "type:Sitrep.Contract.VesselIdentity",
+            "array:False"
+          ],
+          "vessel.inventory": [
+            "type:Sitrep.Contract.VesselInventory",
+            "array:False"
+          ],
+          "vessel.landing": [
+            "type:Sitrep.Contract.VesselLanding",
+            "array:False"
+          ],
+          "vessel.maneuver": [
+            "type:Sitrep.Contract.VesselManeuver",
+            "array:False"
+          ],
+          "vessel.orbit": ["type:Sitrep.Contract.VesselOrbit", "array:False"],
+          "vessel.orbit.truth": [
+            "type:Sitrep.Contract.VesselOrbitTruth",
+            "array:False"
+          ],
+          "vessel.parts": ["type:Sitrep.Contract.VesselParts", "array:False"],
+          "vessel.physics.mode": [
+            "type:Sitrep.Contract.VesselPhysicsMode",
+            "array:False"
+          ],
+          "vessel.propulsion": [
+            "type:Sitrep.Contract.VesselPropulsion",
+            "array:False"
+          ],
+          "vessel.resources": [
+            "type:Sitrep.Contract.VesselResources",
+            "array:False"
+          ],
+          "vessel.structure": [
+            "type:Sitrep.Contract.VesselStructure",
+            "array:False"
+          ],
+          "vessel.surface": [
+            "type:Sitrep.Contract.VesselSurface",
+            "array:False"
+          ],
+          "vessel.target": ["type:Sitrep.Contract.VesselTarget", "array:False"],
+          "vessel.thermal": [
+            "type:Sitrep.Contract.VesselThermal",
+            "array:False"
+          ]
+        },
         "Types": {
           "Sitrep.Contract.ActionBinding": [
             "Action:System.String",

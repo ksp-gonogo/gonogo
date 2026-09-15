@@ -133,6 +133,23 @@ namespace Sitrep.Host.Tests
         {
             public Dictionary<string, string[]> Types { get; set; } = new();
             public Dictionary<string, string[]> Enums { get; set; } = new();
+
+            /// <summary>
+            /// Every <c>[SitrepTopic]</c> id, mapped to the tag's own contents
+            /// (<c>"type:&lt;FullName&gt;"</c>, <c>"array:&lt;bool&gt;"</c>).
+            ///
+            /// <para>The id is what a CLIENT binds to. The CLR type name is
+            /// invisible to it, so a rename that touches only the tag breaks
+            /// every subscriber while leaving <see cref="Types"/> identical:
+            /// planted and confirmed green before this was added.</para>
+            ///
+            /// <para>NULLABLE on purpose, and the null is not "no topics". It
+            /// means the dimension was never recorded, which is true of every
+            /// Major before 17. <see cref="ComputeRemovals"/> skips the
+            /// comparison entirely in that case, so backfilling this could not
+            /// retroactively add entries to a frozen <c>Breaks</c> list.</para>
+            /// </summary>
+            public Dictionary<string, string[]>? Topics { get; set; }
         }
 
         private sealed class Ledger
@@ -495,6 +512,30 @@ namespace Sitrep.Host.Tests
                 }
             }
 
+            // A floor that never recorded topics cannot be diffed on them.
+            // Skipping rather than treating absent as empty is what keeps this
+            // dimension from inventing removals against Majors 3 to 16.
+            if (from.Topics is not null && to.Topics is not null)
+            {
+                foreach (var topicId in from.Topics.Keys.Except(to.Topics.Keys))
+                {
+                    removals.Add("topic-removed:" + topicId);
+                }
+
+                foreach (var (topicId, fromTag) in from.Topics)
+                {
+                    if (!to.Topics.TryGetValue(topicId, out var toTag))
+                    {
+                        continue; // already reported as a removed topic
+                    }
+
+                    foreach (var part in fromTag.Except(toTag, StringComparer.Ordinal))
+                    {
+                        removals.Add($"topic-changed:{topicId}.{part}");
+                    }
+                }
+            }
+
             foreach (var enumName in from.Enums.Keys.Except(to.Enums.Keys))
             {
                 removals.Add("enum-removed:" + enumName);
@@ -518,6 +559,146 @@ namespace Sitrep.Host.Tests
 
             removals.Sort(StringComparer.Ordinal);
             return removals;
+        }
+
+        /// <summary>
+        /// Proves the topic dimension does what the type and enum dimensions
+        /// already do, INCLUDING the case that was the whole defect: an id
+        /// renamed while the class and its members stay identical.
+        ///
+        /// <para>That case was planted in the real contract first
+        /// (<c>career.mode</c> to <c>career.modeRENAMED</c>, nothing else
+        /// touched) and the gate passed 8 of 8. A client binds to the id
+        /// string, so every subscriber would have broken while the shape gate
+        /// reported the contract unchanged.</para>
+        ///
+        /// <para>The absent-floor case is asserted here too, because it is the
+        /// one that decides whether backfilling this dimension could rewrite
+        /// history. It cannot: a floor with no topics recorded yields no topic
+        /// removals at all.</para>
+        /// </summary>
+        [Fact]
+        public void GateSelfTest_ComputeRemovalsCatchesTopicIdRenameAndRetag()
+        {
+            var floor = new Shape
+            {
+                Topics = new Dictionary<string, string[]>
+                {
+                    ["career.mode"] = new[] { "type:Sitrep.Contract.CareerModeStatus", "array:False" },
+                },
+            };
+
+            // The defect: the id moves, the CLR type does not.
+            var renamedId = new Shape
+            {
+                Topics = new Dictionary<string, string[]>
+                {
+                    ["career.modeRENAMED"] = new[] { "type:Sitrep.Contract.CareerModeStatus", "array:False" },
+                },
+            };
+            Assert.Equal(new[] { "topic-removed:career.mode" }, ComputeRemovals(floor, renamedId));
+
+            // The id survives but now names a different payload type.
+            var movedType = new Shape
+            {
+                Topics = new Dictionary<string, string[]>
+                {
+                    ["career.mode"] = new[] { "type:Sitrep.Contract.SomethingElse", "array:False" },
+                },
+            };
+            Assert.Equal(
+                new[] { "topic-changed:career.mode.type:Sitrep.Contract.CareerModeStatus" },
+                ComputeRemovals(floor, movedType));
+
+            // An object topic becoming an array topic is a wire change too.
+            var nowArray = new Shape
+            {
+                Topics = new Dictionary<string, string[]>
+                {
+                    ["career.mode"] = new[] { "type:Sitrep.Contract.CareerModeStatus", "array:True" },
+                },
+            };
+            Assert.Equal(
+                new[] { "topic-changed:career.mode.array:False" },
+                ComputeRemovals(floor, nowArray));
+
+            // Adding a topic breaks nobody.
+            var additive = new Shape
+            {
+                Topics = new Dictionary<string, string[]>
+                {
+                    ["career.mode"] = new[] { "type:Sitrep.Contract.CareerModeStatus", "array:False" },
+                    ["career.newThing"] = new[] { "type:Sitrep.Contract.NewThing", "array:False" },
+                },
+            };
+            Assert.Empty(ComputeRemovals(floor, additive));
+
+            // A floor that never recorded topics yields nothing, in either
+            // direction. This is what makes Majors 3 to 16 safe.
+            Assert.Empty(ComputeRemovals(new Shape { Topics = null }, renamedId));
+            Assert.Empty(ComputeRemovals(floor, new Shape { Topics = null }));
+        }
+
+        /// <summary>
+        /// Every <c>[SitrepTopic]</c> type is also <c>[SitrepContract]</c>
+        /// marked, so no topic can sit outside the shape the gate walks.
+        ///
+        /// <para><see cref="ComputeShape"/> only reaches a type it has already
+        /// accepted as contract-marked, so an unmarked topic type would be
+        /// skipped along with its tag: monitored by nothing, silently. This is
+        /// the same class of hole as the one this dimension was added for, and
+        /// it costs one assertion to close.</para>
+        /// </summary>
+        [Fact]
+        public void EveryTopicTypeIsInTheShape()
+        {
+            var assembly = typeof(StreamData<object>).Assembly;
+            var (_, _, topicShapes) = ReadSitrepContractMarkedShapes(assembly.Location);
+
+            var taggedButUnmarked = ReadEveryTopicTag(assembly.Location)
+                .Where(t => !topicShapes.ContainsKey(t.TopicId))
+                .Select(t => $"{t.TopicId} ({t.DeclaringType})")
+                .OrderBy(x => x, StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.True(
+                taggedButUnmarked.Length == 0,
+                "These types carry [SitrepTopic] but not [SitrepContract], so the shape gate "
+                + "cannot see them and a rename of their id would go unreported:\n  "
+                + string.Join("\n  ", taggedButUnmarked));
+
+            // And the walk found topics at all, rather than reporting a clean
+            // zero because the marker check stopped matching.
+            Assert.NotEmpty(topicShapes);
+        }
+
+        /// <summary>
+        /// Every <c>[SitrepTopic]</c> tag in the assembly, marked or not: the
+        /// second opinion <see cref="EveryTopicTypeIsInTheShape"/> grades the
+        /// shape's own topic list against.
+        /// </summary>
+        private static List<(string TopicId, string DeclaringType)> ReadEveryTopicTag(string assemblyPath)
+        {
+            using var stream = File.OpenRead(assemblyPath);
+            using var peReader = new PEReader(stream);
+            var metadataReader = peReader.GetMetadataReader();
+
+            var found = new List<(string, string)>();
+            foreach (var typeHandle in metadataReader.TypeDefinitions)
+            {
+                var typeDef = metadataReader.GetTypeDefinition(typeHandle);
+                var tag = ReadTopicTag(metadataReader, typeDef);
+                if (tag is null)
+                {
+                    continue;
+                }
+
+                var ns = metadataReader.GetString(typeDef.Namespace);
+                var name = metadataReader.GetString(typeDef.Name);
+                found.Add((tag.Value.TopicId, string.IsNullOrEmpty(ns) ? name : ns + "." + name));
+            }
+
+            return found;
         }
 
         // ---------------------------------------------------------------
@@ -659,7 +840,8 @@ namespace Sitrep.Host.Tests
         private static Shape ComputeShape()
         {
             var assembly = typeof(StreamData<object>).Assembly;
-            var (contractMarkedTypeNames, enumShapes) = ReadSitrepContractMarkedShapes(assembly.Location);
+            var (contractMarkedTypeNames, enumShapes, topicShapes) =
+                ReadSitrepContractMarkedShapes(assembly.Location);
 
             var sortedTypes = new SortedDictionary<string, string[]>(StringComparer.Ordinal);
             foreach (var type in assembly.GetTypes())
@@ -695,6 +877,7 @@ namespace Sitrep.Host.Tests
             {
                 Types = new Dictionary<string, string[]>(sortedTypes),
                 Enums = new Dictionary<string, string[]>(new SortedDictionary<string, string[]>(enumShapes, StringComparer.Ordinal)),
+                Topics = new Dictionary<string, string[]>(new SortedDictionary<string, string[]>(topicShapes, StringComparer.Ordinal)),
             };
         }
 
@@ -729,7 +912,7 @@ namespace Sitrep.Host.Tests
         /// to reference. That is the right property for this check to have on
         /// its own merits, rather than as a workaround.</para>
         /// </summary>
-        private static (HashSet<string> MarkedTypeNames, Dictionary<string, string[]> EnumShapes) ReadSitrepContractMarkedShapes(string assemblyPath)
+        private static (HashSet<string> MarkedTypeNames, Dictionary<string, string[]> EnumShapes, Dictionary<string, string[]> TopicShapes) ReadSitrepContractMarkedShapes(string assemblyPath)
         {
             using var stream = File.OpenRead(assemblyPath);
             using var peReader = new System.Reflection.PortableExecutable.PEReader(stream);
@@ -737,6 +920,7 @@ namespace Sitrep.Host.Tests
 
             var marked = new HashSet<string>(StringComparer.Ordinal);
             var enumShapes = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            var topicShapes = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
             foreach (var typeHandle in metadataReader.TypeDefinitions)
             {
@@ -764,13 +948,56 @@ namespace Sitrep.Host.Tests
                 var fullName = string.IsNullOrEmpty(ns) ? name : ns + "." + name;
                 marked.Add(fullName);
 
+                var topic = ReadTopicTag(metadataReader, typeDef);
+                if (topic is not null)
+                {
+                    topicShapes[topic.Value.TopicId] = new[]
+                    {
+                        "type:" + fullName,
+                        "array:" + topic.Value.IsArray,
+                    };
+                }
+
                 if (IsEnumTypeDefinition(metadataReader, typeDef))
                 {
                     enumShapes[fullName] = ReadEnumMemberShape(metadataReader, typeDef);
                 }
             }
 
-            return (marked, enumShapes);
+            return (marked, enumShapes, topicShapes);
+        }
+
+        /// <summary>
+        /// The <c>[SitrepTopic]</c> tag on a type, decoded from its attribute
+        /// blob, or null if it carries none.
+        ///
+        /// <para>Read through the same raw metadata as everything else here,
+        /// for the reason in
+        /// <see cref="ReadSitrepContractMarkedShapes"/>'s doc comment: a gate
+        /// whose job is to describe an assembly's shape must not be breakable
+        /// by what that assembly happens to reference.</para>
+        /// </summary>
+        private static (string TopicId, bool IsArray)? ReadTopicTag(
+            MetadataReader metadataReader,
+            TypeDefinition typeDef)
+        {
+            foreach (var attrHandle in typeDef.GetCustomAttributes())
+            {
+                var attribute = metadataReader.GetCustomAttribute(attrHandle);
+                if (GetAttributeConstructorSimpleName(metadataReader, attribute)
+                    != nameof(SitrepTopicAttribute))
+                {
+                    continue;
+                }
+
+                var decoded = attribute.DecodeValue(AttributeBlobTypeProvider.Instance);
+                var topicId = (string)decoded.FixedArguments[0].Value!;
+                var isArray = decoded.FixedArguments.Length > 1
+                    && decoded.FixedArguments[1].Value is true;
+                return (topicId, isArray);
+            }
+
+            return null;
         }
 
         /// <summary>
