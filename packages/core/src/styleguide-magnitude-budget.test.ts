@@ -415,14 +415,39 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   /*
-   * 2, up from 1 on 2026-09-14. Both are the same seam `units.ts` spends its
-   * three on: `formatQuantity` takes the magnitude and the unit as two plain
-   * arguments, so a quantity object cannot be handed over whole. The second is
-   * the staleness hover rendering the reading's own `asOfUt` on the game's
-   * calendar, through the formatter rather than around it, so a held number and
-   * a `<MissionDate>` beside it cannot print two spellings of one instant.
+   * 5, up from 2 on 2026-09-15 with the uncertainty interval `<Unit>` now draws
+   * beside a banded reading. Three of the five are the seam `units.ts` spends
+   * its three on: `formatQuantity` takes the magnitude and the unit as two
+   * plain arguments, so a quantity object cannot be handed over whole. One of
+   * those three is the staleness hover rendering the reading's own `asOfUt` on
+   * the game's calendar, through the formatter rather than around it, so a held
+   * number and a `<MissionDate>` beside it cannot print two spellings of one
+   * instant, and one is the single writer every end of the band goes through.
+   *
+   * The OTHER TWO are an API gap and are worth widening `Value` to close.
+   * `minus` is declared over `Addend<U>`, which a bare `U extends string`
+   * cannot be shown to satisfy, so `band.hi.minus(band.value)` does not compile
+   * inside a component generic over its unit even though both operands are one
+   * `Value<U>`. The two half-widths are therefore subtracted on magnitudes,
+   * with the dimension already established by `bandIn` having narrowed all
+   * three ends to the same unit. Give `minus` a same-unit overload and this
+   * entry falls to 3 on its own.
    */
-  "packages/ui-kit/src/Unit.tsx": 2,
+  "packages/ui-kit/src/Unit.tsx": 5,
+  /*
+   * ONE, and it is the same fill fraction `fillQuantity.ts` spends its own on,
+   * moved back here on 2026-09-15 when `Meter` stopped taking the pair as one
+   * object: the two halves are two props now, so the division is this file's
+   * again and `fillQuantity` keeps its copy for `ProgressBar`, which still
+   * takes a pair.
+   *
+   * `dividedBy` has already checked the two halves are the same kind and made
+   * the quotient dimensionless, so this unwraps a number that has stopped being
+   * a quantity, into the two slots that cannot hold a unit: a CSS width and an
+   * `aria-valuenow`. Both the already-a-ratio path and the divided one converge
+   * on it rather than each reading its own.
+   */
+  "packages/ui-kit/src/Meter.tsx": 1,
   /*
    * 3, up from 2 on 2026-09-12. Each is the SAME unwrap in the same place: the
    * seam where a quantity object meets `formatQuantity`, which takes the

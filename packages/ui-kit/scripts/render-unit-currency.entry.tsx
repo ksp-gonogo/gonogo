@@ -17,12 +17,7 @@
  * which both treatments of this component have carried, so the same harness
  * renders the tree before this change and the tree after it.
  */
-import {
-  type TopicReading,
-  topicReading,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DataTable, type DataTableColumn } from "../src/DataTable";
@@ -32,23 +27,31 @@ import { Unit } from "../src/Unit";
 /** An arbitrary but fixed instant, so the hover text is reproducible. */
 const AT = value("ut", 1_000);
 
-function observed<U extends string>(v: Value<U>): TopicReading<Value<U>> {
-  return topicReading({
+/*
+ * Plain `Reading` literals rather than `topicReading(...)`.
+ *
+ * `Unit` takes the per-value reading, so there is no payload here to project
+ * field properties from and the proxy a topic reading is built on has nothing
+ * to do. A literal is also what a fixture SHOULD mint: it is the whole of what
+ * the primitive reads.
+ */
+function observed<U extends string>(v: Value<U>): Reading<Value<U>> {
+  return {
     state: "observed",
     reckoning: { status: "none" },
     value: v,
     atUt: AT,
-  });
+  };
 }
 
-function held<U extends string>(v: Value<U>): TopicReading<Value<U>> {
-  return topicReading({
+function held<U extends string>(v: Value<U>): Reading<Value<U>> {
+  return {
     state: "stale",
     reckoning: { status: "none" },
     value: v,
     asOfUt: AT,
     grade: "held-stale",
-  });
+  };
 }
 
 interface Craft {

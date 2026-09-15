@@ -10,12 +10,9 @@
  */
 export {
   Meter,
-  type MeterFractionProps,
-  type MeterPayload,
   type MeterProps,
-  type MeterQuantity,
-  type MeterQuantityProps,
   type MeterSize,
   MeterStack,
   type MeterTone,
+  type MeterValue,
 } from "@ksp-gonogo/ui-kit";

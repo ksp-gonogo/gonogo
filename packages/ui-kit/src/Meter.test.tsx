@@ -1,47 +1,55 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
 import { NULL_DISPLAY } from "./NullValue";
 
+/** A fill with no currency question: the shortest thing a call site can pass. */
+const fill = (fraction: number) => value("ratio", fraction);
+
+/** The same fill, as a reading that has nothing more to say about it. */
+function unread(): Reading<Value<"ratio">> {
+  return { state: "pending", reckoning: { status: "none" } };
+}
+
 describe("Meter", () => {
   it("renders the accessible meter role with the given label and value", () => {
-    render(<Meter label="LiquidFuel" value={0.5} />);
+    render(<Meter label="LiquidFuel" value={fill(0.5)} />);
     const meter = screen.getByRole("meter", { name: "LiquidFuel" });
     expect(meter).toHaveAttribute("aria-valuenow", "50");
   });
 
   it("existing tone callers are unaffected: no fillColor falls back to the tone palette", () => {
-    render(<Meter label="Dose" value={0.5} tone="warn" />);
+    render(<Meter label="Dose" value={fill(0.5)} tone="warn" />);
     const meter = screen.getByRole("meter", { name: "Dose" });
-    const fill = meter.firstElementChild as HTMLElement;
-    expect(fill).toHaveStyle({ background: "var(--color-status-warning-bg)" });
+    const fill_ = meter.firstElementChild as HTMLElement;
+    expect(fill_).toHaveStyle({ background: "var(--color-status-warning-bg)" });
   });
 
   it("fillColor wins over tone for the fill colour", () => {
     render(
       <Meter
         label="LiquidFuel"
-        value={0.5}
+        value={fill(0.5)}
         tone="go"
         fillColor="hsl(40deg 65% 55%)"
       />,
     );
     const meter = screen.getByRole("meter", { name: "LiquidFuel" });
-    const fill = meter.firstElementChild as HTMLElement;
-    expect(fill).toHaveStyle({ background: "hsl(40deg 65% 55%)" });
+    const fill_ = meter.firstElementChild as HTMLElement;
+    expect(fill_).toHaveStyle({ background: "hsl(40deg 65% 55%)" });
   });
 
   it("defaults to the neutral tone fill when neither tone nor fillColor is set", () => {
-    render(<Meter label="Plain" value={0.5} />);
+    render(<Meter label="Plain" value={fill(0.5)} />);
     const meter = screen.getByRole("meter", { name: "Plain" });
-    const fill = meter.firstElementChild as HTMLElement;
-    expect(fill).toHaveStyle({ background: "var(--color-text-muted)" });
+    const fill_ = meter.firstElementChild as HTMLElement;
+    expect(fill_).toHaveStyle({ background: "var(--color-text-muted)" });
   });
 
-  it("renders an absent reading as absence, not as a zeroed bar", () => {
-    render(<Meter label="Comfort" value={null} />);
+  it("renders an unread reading as absence, not as a zeroed bar", () => {
+    render(<Meter label="Comfort" value={unread()} />);
     // No role="meter": a meter asserts a fill fraction, and there is none
     expect(screen.queryByRole("meter", { name: "Comfort" })).toBeNull();
     expect(screen.getByText("Comfort")).toBeInTheDocument();
@@ -49,20 +57,17 @@ describe("Meter", () => {
   });
 
   it("keeps a genuine zero as a meter, distinct from an absent one", () => {
-    render(<Meter label="Comfort" value={0} />);
+    render(<Meter label="Comfort" value={fill(0)} />);
     const meter = screen.getByRole("meter", { name: "Comfort" });
     expect(meter).toHaveAttribute("aria-valuenow", "0");
   });
 });
 
-describe("Meter, given the quantity pair", () => {
-  const tank = (amount: number, capacity: number) => ({
-    amount: value("units", amount),
-    capacity: value("units", capacity),
-  });
+describe("Meter, given a capacity to divide by", () => {
+  const units = (magnitude: number) => value("units", magnitude);
 
   it("derives the fill fraction itself, so no call site divides", () => {
-    render(<Meter label="LiquidFuel" quantity={tank(3, 4)} />);
+    render(<Meter label="LiquidFuel" value={units(3)} capacity={units(4)} />);
     expect(screen.getByRole("meter", { name: "LiquidFuel" })).toHaveAttribute(
       "aria-valuenow",
       "75",
@@ -71,7 +76,7 @@ describe("Meter, given the quantity pair", () => {
 
   it("writes both halves itself, rather than taking a formatted string", () => {
     const { container } = render(
-      <Meter label="LiquidFuel" quantity={tank(3, 4)} />,
+      <Meter label="LiquidFuel" value={units(3)} capacity={units(4)} />,
     );
     expect(container.textContent).toContain("3");
     expect(container.textContent).toContain("4");
@@ -81,10 +86,7 @@ describe("Meter, given the quantity pair", () => {
     // 500 W of a 1 kW budget is half, and nothing at the call site had to
     // know that a kilowatt is a thousand watts.
     render(
-      <Meter
-        label="Power"
-        quantity={{ amount: value("W", 500), capacity: value("kW", 1) }}
-      />,
+      <Meter label="Power" value={value("W", 500)} capacity={value("kW", 1)} />,
     );
     expect(screen.getByRole("meter", { name: "Power" })).toHaveAttribute(
       "aria-valuenow",
@@ -94,10 +96,7 @@ describe("Meter, given the quantity pair", () => {
 
   it("speaks both halves, with their unit's word rather than its symbol", () => {
     render(
-      <Meter
-        label="Power"
-        quantity={{ amount: value("kW", 3), capacity: value("kW", 4) }}
-      />,
+      <Meter label="Power" value={value("kW", 3)} capacity={value("kW", 4)} />,
     );
     const spoken = screen
       .getByRole("meter", { name: "Power" })
@@ -112,7 +111,8 @@ describe("Meter, given the quantity pair", () => {
     const { container } = render(
       <Meter
         label="Range"
-        quantity={{ amount: value("m", 999), capacity: value("m", 1000) }}
+        value={value("m", 999)}
+        capacity={value("m", 1000)}
       />,
     );
     expect(container.textContent).toContain("999");
@@ -129,10 +129,7 @@ describe("Meter, given the quantity pair", () => {
      * "1000 W", and neither reader could tell.
      */
     const { container } = render(
-      <Meter
-        label="Power"
-        quantity={{ amount: value("W", 500), capacity: value("kW", 1) }}
-      />,
+      <Meter label="Power" value={value("W", 500)} capacity={value("kW", 1)} />,
     );
     const spoken = screen
       .getByRole("meter", { name: "Power" })
@@ -148,7 +145,8 @@ describe("Meter, given the quantity pair", () => {
       <Meter
         label="Power"
         format="kW"
-        quantity={{ amount: value("W", 500), capacity: value("kW", 1) }}
+        value={value("W", 500)}
+        capacity={value("kW", 1)}
       />,
     );
     const spoken = screen
@@ -162,13 +160,21 @@ describe("Meter, given the quantity pair", () => {
 
   it("renders no tank at all as absence, not as an empty one", () => {
     // A zero capacity is not a full tank and not an empty one; it is no tank.
-    render(<Meter label="LiquidFuel" quantity={tank(0, 0)} />);
+    render(<Meter label="LiquidFuel" value={units(0)} capacity={units(0)} />);
     expect(screen.queryByRole("meter", { name: "LiquidFuel" })).toBeNull();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 
-  it("renders a null pair as absence, exactly as a null fraction does", () => {
-    render(<Meter label="LiquidFuel" quantity={null} />);
+  it("renders an unread capacity as absence, exactly as an unread value does", () => {
+    // The capacity is the axis. With no axis there is no fraction to assert,
+    // and a bar drawn anyway would be asserting one.
+    render(
+      <Meter
+        label="LiquidFuel"
+        value={units(3)}
+        capacity={{ state: "pending", reckoning: { status: "none" } }}
+      />,
+    );
     expect(screen.queryByRole("meter", { name: "LiquidFuel" })).toBeNull();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
@@ -177,7 +183,8 @@ describe("Meter, given the quantity pair", () => {
     render(
       <Meter
         label="LiquidFuel"
-        quantity={tank(3, 4)}
+        value={units(3)}
+        capacity={units(4)}
         valueLabel="almost full"
       />,
     );
@@ -189,7 +196,7 @@ describe("Meter, given the quantity pair", () => {
 
   it("has no axe violations", async () => {
     const { container } = render(
-      <Meter label="LiquidFuel" quantity={tank(3, 4)} />,
+      <Meter label="LiquidFuel" value={units(3)} capacity={units(4)} />,
     );
     await expectNoA11yViolations(container);
   });

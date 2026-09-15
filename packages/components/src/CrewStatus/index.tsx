@@ -11,9 +11,8 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import type { ResourceAmount } from "@ksp-gonogo/sitrep-sdk";
+import type { ResourceAmount, Value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
-import type { MeterQuantity } from "@ksp-gonogo/ui-kit";
 import {
   BigReadout,
   Card,
@@ -158,10 +157,24 @@ type CrewStatusConfig = Record<string, never>;
  *  both figures itself, so there is nothing here for a bare number to be. */
 function toSuitResourceReadout(
   entry: ResourceAmount | undefined,
-): MeterQuantity<"units"> | undefined {
+): SuitTank | undefined {
   if (!entry?.current || !entry.max) return undefined;
   if (!entry.max.isPositive()) return undefined;
   return { amount: entry.current, capacity: entry.max };
+}
+
+/**
+ * A suit tank as this widget carries it between the read and the two props it
+ * becomes.
+ *
+ * Local rather than the kit's, because the kit no longer has one: `Meter` takes
+ * the amount and the capacity as two props, so the bundle exists only for the
+ * few lines between reading a `vessel.resources` entry and handing both halves
+ * over, and nothing outside this file ever sees it.
+ */
+interface SuitTank {
+  amount: Value<"units">;
+  capacity: Value<"units">;
 }
 
 /** Tone for what is left in a suit tank: a full tank is calm, an empty one is
@@ -171,7 +184,7 @@ function toSuitResourceReadout(
  *  quotient is dimensionless by construction, so the `.magnitude` is on a
  *  number that has already stopped being a quantity. It is compared against
  *  two thresholds and never shown. */
-function suitResourceTone(pair: MeterQuantity<"units">): MeterTone {
+function suitResourceTone(pair: SuitTank): MeterTone {
   const fraction = pair.amount.dividedBy(pair.capacity).magnitude;
   if (fraction <= 0.15) return "nogo";
   if (fraction <= 0.4) return "warn";
@@ -190,8 +203,8 @@ function EvaSuitReadout({
   electricCharge,
   notCurrent: readingsNotCurrent,
 }: Readonly<{
-  oxygen: MeterQuantity<"units"> | undefined;
-  electricCharge: MeterQuantity<"units"> | undefined;
+  oxygen: SuitTank | undefined;
+  electricCharge: SuitTank | undefined;
   /** The suit figures went stale rather than never arriving. */
   notCurrent: boolean;
 }>) {
@@ -214,7 +227,8 @@ function EvaSuitReadout({
         <Meter
           size="sm"
           label="O2"
-          quantity={oxygen}
+          value={oxygen.amount}
+          capacity={oxygen.capacity}
           tone={suitResourceTone(oxygen)}
         />
       )}
@@ -222,7 +236,8 @@ function EvaSuitReadout({
         <Meter
           size="sm"
           label="EC"
-          quantity={electricCharge}
+          value={electricCharge.amount}
+          capacity={electricCharge.capacity}
           tone={suitResourceTone(electricCharge)}
         />
       )}

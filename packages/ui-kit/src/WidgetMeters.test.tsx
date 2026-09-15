@@ -1,4 +1,4 @@
-import { type TopicReading, value } from "@ksp-gonogo/sitrep-sdk";
+import { type MeterEntry, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -46,50 +46,45 @@ function Seed({
 const DOSE = {
   id: "Jeb:radiation",
   label: "Radiation dose",
-  value: 0.4,
+  value: value("ratio", 0.4),
   tone: "warn" as const,
   valueLabel: "40%",
   row: "Jebediah Kerman",
-};
+} satisfies MeterEntry;
 const STRESS = {
   id: "Bill:stress",
   label: "Stress",
-  value: 0.1,
+  value: value("ratio", 0.1),
   tone: "go" as const,
   valueLabel: "10%",
   row: "Bill Kerman",
-};
+} satisfies MeterEntry;
 const VESSEL_WIDE = {
   id: "shielding",
   label: "Shielding",
-  value: 0.8,
+  value: value("ratio", 0.8),
   valueLabel: "80%",
-};
+} satisfies MeterEntry;
 /** The same dose, contributed as a reading whose model will bound it. */
 const BANDED_DOSE = {
   ...DOSE,
   value: {
     state: "observed",
-    value: 0.4,
+    value: value("ratio", 0.4),
     atUt: value("ut", 9_000),
     reckoning: {
       status: "available",
-      value: 0.4,
-      atUt: value("ut", 9_000),
+      modelled: value("ratio", 0.4),
       basis: "linear-dead-reckoning",
-      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-      owner: "core",
-      bands: {
-        "": {
-          value: value("ratio", 0.4),
-          lo: value("ratio", 0.34),
-          hi: value("ratio", 0.46),
-          kind: "sigma1",
-        },
+      band: {
+        value: value("ratio", 0.4),
+        lo: value("ratio", 0.34),
+        hi: value("ratio", 0.46),
+        kind: "sigma1",
       },
     },
-  } satisfies TopicReading<number>,
-};
+  },
+} satisfies MeterEntry;
 
 describe("WidgetMeters", () => {
   it("draws a contributed meter through the kit's own Meter", () => {

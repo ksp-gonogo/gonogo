@@ -1,4 +1,9 @@
-import type { TopicPayload, TopicReading } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Reading,
+  TopicPayload,
+  TopicReading,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { bandIn, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
@@ -170,20 +175,20 @@ describe("what a survival meter carries", () => {
 
   it("places the band on the axis the track is drawn on", async () => {
     const dose = (await metersOver()).get("Jebediah Kerman:radiation");
-    const reading = dose?.value as TopicReading<number>;
+    const reading = dose?.value as Reading<Value<"ratio">>;
     if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got "${reading.reckoning}"`);
     }
 
     /*
-     * `ratio`, at the payload root, which is where `Meter`'s fraction form
-     * looks and the only place it looks. The model mints this interval in the
-     * accumulator's own units against a fatal threshold of 50, so a band
-     * handed over unconverted is an interval fifty times too wide that the
-     * primitive silently declines to draw.
+     * `ratio`, and on the reading itself rather than under a path: a per-value
+     * reading has one figure, so it has one band and nothing to key it by. The
+     * model mints this interval in the accumulator's own units against a fatal
+     * threshold of 50, so a band handed over unconverted is an interval fifty
+     * times too wide that the primitive silently declines to draw.
      */
-    const band = bandIn(reading.reckoning.bands?.[""], "ratio");
-    if (!band) throw new Error("no ratio band at the payload root");
+    const band = bandIn(reading.reckoning.band, "ratio");
+    if (!band) throw new Error("no ratio band on the reading");
     expect(band.kind).toBe("sigma1");
     expect(band.hi.magnitude - band.lo.magnitude).toBeGreaterThan(0);
     expect(band.lo.magnitude).toBeLessThanOrEqual(band.value.magnitude);
@@ -194,7 +199,7 @@ describe("what a survival meter carries", () => {
 
   it("offers no interval for an accumulator the model never watched move", async () => {
     const stress = (await metersOver()).get("Jebediah Kerman:stress");
-    const reading = stress?.value as TopicReading<number>;
+    const reading = stress?.value as Reading<Value<"ratio">>;
 
     /*
      * A flat rule is not a shallow slope: it is positive evidence that the
@@ -208,10 +213,10 @@ describe("what a survival meter carries", () => {
     const dose = (await metersOver(TWO_SAMPLES)).get(
       "Jebediah Kerman:radiation",
     );
-    const reading = dose?.value as TopicReading<number>;
+    const reading = dose?.value as Reading<Value<"ratio">>;
     const banded =
       reading.reckoning.status === "available" &&
-      reading.reckoning.bands !== undefined;
+      reading.reckoning.band !== undefined;
 
     // The model still carries the accumulator here, so this separates "has a
     // reckoning" from "has a band": banding every reckoning invents `0/0`.
@@ -223,7 +228,7 @@ describe("what the meter says with it", () => {
   it("announces the interval beside the figure the bar is drawing", async () => {
     const dose = (await metersOver()).get("Jebediah Kerman:radiation");
     const { container } = render(
-      <Meter label={dose?.label ?? ""} value={dose?.value ?? 0} />,
+      <Meter label={dose?.label ?? ""} value={dose?.value ?? null} />,
     );
     const said =
       container.querySelector("[role=meter]")?.getAttribute("aria-valuetext") ??

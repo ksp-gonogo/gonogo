@@ -1,123 +1,92 @@
 import {
-  type ReckonedBands,
-  type TopicReading,
-  topicReading,
+  type Reading,
   type UncertaintyBand,
+  type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { Meter, type MeterQuantity } from "./Meter";
+import { Meter } from "./Meter";
 import { NULL_DISPLAY } from "./NullValue";
 
 /**
  * The reckoning slot: what `<Meter>` draws when it is handed a whole `Reading`
- * rather than a bare fraction or a bare pair.
+ * rather than a bare quantity.
  *
- * Two things come off the reading and only two: whether the bar is a reading of
- * NOW, which it draws the way `<Unit>` does, and the band, which it draws as one
- * mark per bound on its own track. The band LOOKUP is what these tests pin to
- * the primitive: a call site that had to reach `reckoned.bands` itself would be
- * deciding both what an absent map means and what unit the interval arrived in,
- * and sixty widgets deciding that separately is the visual language the operator
- * asked for coming apart.
+ * Three things come off the readings and only three: whether the bar is a
+ * reading of NOW, which it draws the way `<Unit>` does; the VALUE's band, which
+ * it draws as one mark per bound where the value is; and the CAPACITY's band,
+ * which it draws at the track's end, because the end is one whole and an
+ * uncertain whole is an uncertain end. The two are never merged, which the last
+ * describe block pins.
+ *
+ * The band LOOKUP is what these tests pin to the primitive: a call site that had
+ * to reach `reckoning.band` itself would be deciding both what an absent one
+ * means and what unit the interval arrived in, and sixty widgets deciding that
+ * separately is the visual language the operator asked for coming apart.
  */
 
 const AT = value("ut", 12_000);
 
-function ratioBand(
+function bandOf<U extends string>(
+  unit: U,
   lo: number,
   v: number,
   hi: number,
   kind: "bound" | "sigma1" = "sigma1",
-): UncertaintyBand {
+): UncertaintyBand<U> {
   return {
-    value: value("ratio", v),
-    lo: value("ratio", lo),
-    hi: value("ratio", hi),
+    value: value(unit, v),
+    lo: value(unit, lo),
+    hi: value(unit, hi),
     kind,
   };
 }
 
-/** An observed fraction, with whatever bands the model offers at the root. */
-function bandedFraction(
-  v: number,
-  bands?: ReckonedBands,
-): TopicReading<number> {
-  if (!bands) {
-    return topicReading({
-      state: "observed",
-      reckoning: { status: "none" },
-      value: v,
-      atUt: AT,
-    });
-  }
-  return topicReading({
+/** An observed quantity, with whatever band its own model offers. */
+function banded<U extends string>(
+  quantity: Value<U>,
+  band?: UncertaintyBand,
+): Reading<Value<U>> {
+  return {
     state: "observed",
-    value: v,
+    value: quantity,
     atUt: AT,
-    reckoning: {
-      status: "available",
-      value: v,
-      atUt: AT,
-      basis: "linear-dead-reckoning",
-      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-      owner: "core",
-      bands,
-    },
-  });
-}
-
-/** A pair, with whatever bands the model offers about its `amount`. */
-function bandedPair(
-  amount: number,
-  capacity: number,
-  bands?: ReckonedBands,
-): TopicReading<MeterQuantity<"units">> {
-  const pair: MeterQuantity<"units"> = {
-    amount: value("units", amount),
-    capacity: value("units", capacity),
+    reckoning:
+      band === undefined
+        ? { status: "none" }
+        : {
+            status: "available",
+            modelled: quantity,
+            basis: "linear-dead-reckoning",
+            band,
+          },
   };
-  if (!bands) {
-    return topicReading({
-      state: "observed",
-      reckoning: { status: "none" },
-      value: pair,
-      atUt: AT,
-    });
-  }
-  return topicReading({
-    state: "observed",
-    value: pair,
-    atUt: AT,
-    reckoning: {
-      status: "available",
-      value: pair,
-      atUt: AT,
-      basis: "linear-dead-reckoning",
-      modelled: [{ path: "amount", basis: "linear-dead-reckoning" }],
-      owner: "core",
-      bands,
-    },
-  });
 }
 
-/** The bound marks on the one meter rendered, in the order they were drawn. */
+/** The value's bound marks, in the order they were drawn. */
 function marks(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-bound]"));
 }
 
+/** The capacity's bound marks, which live at the end of the track. */
+function endMarks(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>("[data-end-bound]"),
+  );
+}
+
 describe("Meter, given a reading of a fraction", () => {
-  it("draws the fraction, so an unbanded reading is the bare number's bar", () => {
-    render(<Meter label="Stress" value={bandedFraction(0.34)} />);
+  it("draws the fraction, so an unbanded reading is the bare quantity's bar", () => {
+    render(<Meter label="Stress" value={banded(value("ratio", 0.34))} />);
     const meter = screen.getByRole("meter", { name: "Stress" });
     expect(meter).toHaveAttribute("aria-valuenow", "34");
   });
 
   it("draws nothing extra where the model offers no band", () => {
     const { container } = render(
-      <Meter label="Stress" value={bandedFraction(0.34)} />,
+      <Meter label="Stress" value={banded(value("ratio", 0.34))} />,
     );
     expect(marks(container)).toHaveLength(0);
   });
@@ -126,7 +95,7 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, { "": ratioBand(0.3, 0.39, 0.44) })}
+        value={banded(value("ratio", 0.39), bandOf("ratio", 0.3, 0.39, 0.44))}
       />,
     );
     const [lo, hi] = marks(container);
@@ -134,13 +103,13 @@ describe("Meter, given a reading of a fraction", () => {
     expect(hi).toHaveStyle({ left: "44%" });
   });
 
-  it("finds the band itself, so no call site reads reckoned.bands", () => {
+  it("finds the band itself, so no call site reads reckoning.band", () => {
     // The whole of what a caller passes is the reading it already holds: no
     // path, no unit, no map lookup, and nothing to get wrong per widget.
     const { container } = render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, { "": ratioBand(0.3, 0.39, 0.44) })}
+        value={banded(value("ratio", 0.39), bandOf("ratio", 0.3, 0.39, 0.44))}
       />,
     );
     expect(marks(container)).toHaveLength(2);
@@ -150,7 +119,7 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.95, { "": ratioBand(0.9, 0.95, 1.2) })}
+        value={banded(value("ratio", 0.95), bandOf("ratio", 0.9, 0.95, 1.2))}
       />,
     );
     const [lo, hi] = marks(container);
@@ -167,14 +136,7 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, {
-          "": {
-            value: value("%", 39),
-            lo: value("%", 30),
-            hi: value("%", 44),
-            kind: "sigma1",
-          },
-        })}
+        value={banded(value("ratio", 0.39), bandOf("%", 30, 39, 44))}
       />,
     );
     expect(marks(container)).toHaveLength(0);
@@ -184,7 +146,7 @@ describe("Meter, given a reading of a fraction", () => {
     render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, { "": ratioBand(0.3, 0.39, 0.44) })}
+        value={banded(value("ratio", 0.39), bandOf("ratio", 0.3, 0.39, 0.44))}
       />,
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
@@ -208,7 +170,7 @@ describe("Meter, given a reading of a fraction", () => {
     render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, { "": ratioBand(0.3, 0.39, 0.44) })}
+        value={banded(value("ratio", 0.39), bandOf("ratio", 0.3, 0.39, 0.44))}
       />,
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
@@ -221,9 +183,10 @@ describe("Meter, given a reading of a fraction", () => {
     render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, {
-          "": ratioBand(0.38, 0.39, 0.4, "bound"),
-        })}
+        value={banded(
+          value("ratio", 0.39),
+          bandOf("ratio", 0.38, 0.39, 0.4, "bound"),
+        )}
       />,
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
@@ -236,12 +199,7 @@ describe("Meter, given a reading of a fraction", () => {
     render(
       <Meter
         label="Dose"
-        value={
-          {
-            state: "pending",
-            reckoning: { status: "none" },
-          } as TopicReading<number>
-        }
+        value={{ state: "pending", reckoning: { status: "none" } }}
       />,
     );
     expect(screen.queryByRole("meter", { name: "Dose" })).toBeNull();
@@ -252,15 +210,13 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter
         label="Dose"
-        value={
-          {
-            state: "stale",
-            reckoning: { status: "none" },
-            value: 0.39,
-            asOfUt: AT,
-            grade: "held-stale",
-          } as TopicReading<number>
-        }
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
       />,
     );
     expect(container.querySelector("[data-not-current]")).not.toBeNull();
@@ -270,32 +226,32 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter
         label="Dose"
-        value={bandedFraction(0.39, { "": ratioBand(0.3, 0.39, 0.44) })}
+        value={banded(value("ratio", 0.39), bandOf("ratio", 0.3, 0.39, 0.44))}
       />,
     );
     await expectNoA11yViolations(container);
   });
 });
 
-describe("Meter, given a reading of a pair", () => {
-  it("draws the pair exactly as the bare pair does", () => {
-    render(<Meter label="LiquidFuel" quantity={bandedPair(232, 400)} />);
+describe("Meter, given a value and a capacity", () => {
+  it("draws the two halves exactly as the bare quantities do", () => {
+    render(
+      <Meter
+        label="LiquidFuel"
+        value={banded(value("units", 232))}
+        capacity={value("units", 400)}
+      />,
+    );
     const meter = screen.getByRole("meter", { name: "LiquidFuel" });
     expect(meter).toHaveAttribute("aria-valuenow", "58");
   });
 
-  it("divides the band by the capacity, so the marks land on the same track", () => {
+  it("divides the value's band by the capacity, so the marks land on the same track", () => {
     const { container } = render(
       <Meter
         label="LiquidFuel"
-        quantity={bandedPair(232, 400, {
-          amount: {
-            value: value("units", 232),
-            lo: value("units", 200),
-            hi: value("units", 260),
-            kind: "sigma1",
-          },
-        })}
+        value={banded(value("units", 232), bandOf("units", 200, 232, 260))}
+        capacity={value("units", 400)}
       />,
     );
     const [lo, hi] = marks(container);
@@ -303,20 +259,101 @@ describe("Meter, given a reading of a pair", () => {
     expect(hi).toHaveStyle({ left: "65%" });
   });
 
-  it("draws nothing where the model banded some other field of the pair", () => {
+  it("draws nothing where the model banded the value in some other unit", () => {
     const { container } = render(
       <Meter
         label="LiquidFuel"
-        quantity={bandedPair(232, 400, {
-          capacity: {
-            value: value("units", 400),
-            lo: value("units", 390),
-            hi: value("units", 410),
-            kind: "bound",
-          },
-        })}
+        value={banded(value("units", 232), bandOf("kg", 200, 232, 260))}
+        capacity={value("units", 400)}
       />,
     );
     expect(marks(container)).toHaveLength(0);
+  });
+});
+
+describe("Meter, given a capacity that is itself a reading", () => {
+  /*
+   * A capacity is not always a tank. A fatal threshold is one, and RP-1's
+   * facility tiers move, so the axis can go stale and can carry doubt of its
+   * own. These pin the three places that doubt goes, and the one place it must
+   * never go.
+   */
+  it("marks an uncertain capacity at the END of the track, not along it", () => {
+    // The end IS one whole. A capacity that might be 390 rather than 400 puts
+    // the true end just inside the track, at 390/400.
+    const { container } = render(
+      <Meter
+        label="LiquidFuel"
+        value={value("units", 232)}
+        capacity={banded(
+          value("units", 400),
+          bandOf("units", 390, 400, 410, "bound"),
+        )}
+      />,
+    );
+    const [lo, hi] = endMarks(container);
+    expect(lo).toHaveStyle({ left: "97.5%" });
+    expect(hi).toHaveStyle({ left: "100%" });
+  });
+
+  it("names the capacity's interval as the capacity's, in its own clause", () => {
+    render(
+      <Meter
+        label="LiquidFuel"
+        value={value("units", 232)}
+        capacity={banded(
+          value("units", 400),
+          bandOf("units", 390, 400, 410, "bound"),
+        )}
+      />,
+    );
+    const meter = screen.getByRole("meter", { name: "LiquidFuel" });
+    expect(meter.getAttribute("aria-valuetext")).toContain(
+      "capacity between 390",
+    );
+  });
+
+  it("never merges the two intervals into one", () => {
+    /*
+     * #215: a fraction of an uncertain whole is uncertain twice over, and
+     * combining two intervals is width arithmetic the framework may not do,
+     * because it cannot know whether the errors are independent. So the two
+     * bands stay four marks in two places, and the sentence stays two clauses.
+     */
+    const { container } = render(
+      <Meter
+        label="LiquidFuel"
+        value={banded(value("units", 232), bandOf("units", 200, 232, 260))}
+        capacity={banded(
+          value("units", 400),
+          bandOf("units", 390, 400, 410, "bound"),
+        )}
+      />,
+    );
+    expect(marks(container)).toHaveLength(2);
+    expect(endMarks(container)).toHaveLength(2);
+    const spoken = screen
+      .getByRole("meter", { name: "LiquidFuel" })
+      .getAttribute("aria-valuetext");
+    expect(spoken).toContain("between 200");
+    expect(spoken).toContain("capacity between 390");
+  });
+
+  it("marks the TRACK when the capacity has stopped being current", () => {
+    // The axis is what aged, not the reading on it, so the fill is left alone.
+    const { container } = render(
+      <Meter
+        label="LiquidFuel"
+        value={value("units", 232)}
+        capacity={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("units", 400),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-track-not-current]")).not.toBeNull();
   });
 });

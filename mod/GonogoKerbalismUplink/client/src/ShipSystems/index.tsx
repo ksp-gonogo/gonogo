@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   registerComponent,
@@ -82,6 +82,20 @@ type Tone = "neutral" | "go" | "info" | "warn" | "nogo";
  * transient, short enough that it fires with time left to actually act.
  */
 const SOON_EMPTY_SEC = 600;
+
+/**
+ * A fill fraction as the `ratio` quantity `<Meter>` takes, or `null` where the
+ * craft reported none.
+ *
+ * The wrapping is the whole change: these figures are derived by this widget
+ * from a resource ledger rather than read off one topic, so they carry no
+ * currency of their own and a `Reading` here would be one this file invented.
+ * `null` is the same statement it always was, that there is no fraction, which
+ * the primitive draws as absence rather than as an empty tank.
+ */
+function fill(fraction: number | null): Value<"ratio"> | null {
+  return fraction === null ? null : value("ratio", fraction);
+}
 
 /** Whole numbers drop decimals; smaller values keep enough precision to read. */
 export function fmtAmt(n: number): string {
@@ -436,7 +450,7 @@ function ShipSystemsBody({
             // for the resource, and a Power bar sitting at zero is the one
             // readout on this widget an operator would act on immediately. The
             // kit draws the absence and drops `role="meter"` with it.
-            value={ecRow.fraction}
+            value={fill(ecRow.fraction)}
             tone={toneForRow(ecRow)}
             valueLabel={rowValueLabel(ecRow)}
             valueLabelNode={<RowValueDisplay row={ecRow} />}
@@ -547,7 +561,7 @@ function ShipSystemsBody({
                 <Meter
                   key={w.name}
                   label={w.process}
-                  value={w.fraction}
+                  value={fill(w.fraction)}
                   tone={wearTone(w)}
                   valueLabel={wearValueLabel(w)}
                   size="sm"
@@ -578,19 +592,19 @@ function ShipSystemsBody({
           <Grid minColWidth="10rem" gap="md">
             <Meter
               label="Comfort"
-              value={comfort}
+              value={fill(comfort)}
               tone={comfort !== null && comfort < 0.25 ? "warn" : "neutral"}
               size="sm"
             />
             <Meter
               label="Living space"
-              value={magnitudeOf(habitat?.livingSpace)}
+              value={fill(magnitudeOf(habitat?.livingSpace))}
               tone="neutral"
               size="sm"
             />
             <Meter
               label="CO2 poisoning"
-              value={poisoning}
+              value={fill(poisoning)}
               tone={poisoning !== null && poisoning >= 0.5 ? "nogo" : "neutral"}
               size="sm"
             />
@@ -707,7 +721,7 @@ function ResourceLedgerRow({
           label={row.displayName}
           // See the Power footer: a resource the craft has no tank for has no
           // fill fraction, and drawing one at zero says the tank is empty.
-          value={row.fraction}
+          value={fill(row.fraction)}
           tone={toneForRow(row)}
           valueLabel={rowValueLabel(row)}
           valueLabelNode={<RowValueDisplay row={row} />}
