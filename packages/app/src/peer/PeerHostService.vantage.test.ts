@@ -120,6 +120,7 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
+import { setActiveTelemetryClientForTests } from "@ksp-gonogo/sitrep-client";
 import { PeerHostService } from "./PeerHostService";
 
 const TOPIC = "thirdparty.readout";
@@ -315,6 +316,101 @@ describe("a connection's upstream vantage", () => {
     pilot.close();
 
     expect(craftSink.live.has(TOPIC)).toBe(false);
+    host.stop();
+  });
+});
+
+/**
+ * Where a peer's COMMAND is addressed from.
+ *
+ * A peer observing from its own vantage still dispatches through the HOST's
+ * client, so an empty per-call vantage used to fall through to the host's
+ * session and address the command from the ground. Its telemetry comes from a
+ * session at its own vantage (above); its commands have to agree, or the two
+ * disagree about where the peer is standing. Cosmetic while the address only
+ * sizes the delay-UX pills, and not cosmetic at all once the address decides
+ * the command's delay.
+ */
+describe("a peer's command address", () => {
+  afterEach(() => {
+    setActiveTelemetryClientForTests(undefined);
+    FakeHub.reset();
+    localStorageMock.clear();
+  });
+
+  /** Records the vantage each dispatch was addressed under. */
+  function captureDispatches() {
+    const vantages: Array<string | undefined> = [];
+    const client = {
+      dispatch: (
+        _command: string,
+        _args: unknown,
+        _label: string,
+        _topic: string,
+        vantage?: string,
+      ) => {
+        vantages.push(vantage);
+        return { requestId: "c1", result: Promise.resolve(null) };
+      },
+    };
+    setActiveTelemetryClientForTests(client as never);
+    return vantages;
+  }
+
+  function command(conn: FakeConn, vantage?: string): void {
+    conn.emit("data", {
+      type: "sitrep-command-request",
+      requestId: "r1",
+      command: "vessel.control.throttle",
+      args: {},
+      ...(vantage === undefined ? {} : { vantage }),
+    });
+  }
+
+  it("addresses a command from the vantage that connection reads from", async () => {
+    const host = await startedHost();
+    const vantages = captureDispatches();
+    const pilot = await connectStation(host, "pilot-a");
+    setVantage(pilot, CRAFT);
+
+    command(pilot);
+    await Promise.resolve();
+
+    expect(vantages).toEqual([CRAFT]);
+    host.stop();
+  });
+
+  it("leaves a connection that never asked for a vantage addressed at the host's session", async () => {
+    /*
+     * The assertion is on the MEANING, not the spelling: `undefined` and `""`
+     * both reach the mod as "use the session vantage" (`TelemetryClient
+     * .dispatch` sends `vantage ?? ""`). What must not happen is a plain
+     * station's command acquiring an address it never asked for.
+     */
+    const host = await startedHost();
+    const vantages = captureDispatches();
+    const station = await connectStation(host, "station-a");
+
+    command(station);
+    await Promise.resolve();
+
+    expect(vantages).toHaveLength(1);
+    expect(vantages[0] ?? "").toBe("");
+    host.stop();
+  });
+
+  it("lets an explicit per-call vantage win over the connection's", async () => {
+    // `meta` pins a program-meta command to instant dispatch, and must not be
+    // overwritten by wherever the sender happens to be observing from.
+    const host = await startedHost();
+    const vantages = captureDispatches();
+    const pilot = await connectStation(host, "pilot-a");
+    setVantage(pilot, CRAFT);
+
+    command(pilot, "meta");
+    await Promise.resolve();
+
+    expect(vantages).toEqual(["meta"]);
     host.stop();
   });
 });

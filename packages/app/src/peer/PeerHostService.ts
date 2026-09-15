@@ -2071,15 +2071,33 @@ export class PeerHostService {
       timelineEpoch: 0,
     };
     try {
+      /*
+       * The address the command is dispatched under, in priority order: the
+       * sender's own per-call override, then the vantage that CONNECTION is
+       * reading from, and only then the host's session.
+       *
+       * The middle term is the point. A peer observing from its own vantage
+       * (a pilot aboard the craft, a station at a centre of its own) dispatches
+       * through the HOST's client, so an empty vantage used to resolve to the
+       * host's session and address the command from the ground. Its telemetry
+       * comes from a session at its own vantage; its commands must be addressed
+       * the same way, or the two disagree about where the peer is standing.
+       *
+       * Today that only sizes the delay-UX pills. It stops being cosmetic the
+       * moment a command's address decides its DELAY, at which point a pilot's
+       * input to the craft they are sitting in would be held for the ground's
+       * light-time.
+       *
+       * A connection that never asked for a vantage still sends `""`, which is
+       * exactly what it sent before, so nothing about a plain station changes.
+       */
+      const connVantage = this.vantageOf(conn);
       const { result } = client.dispatch(
         msg.command,
         msg.args,
         msg.label ?? "",
         msg.topic ?? "",
-        // The station's own per-call override, not the host's session vantage:
-        // `""` already means "use the session vantage", so passing it through
-        // is a no-op for a command that did not override.
-        msg.vantage,
+        msg.vantage || (connVantage === HOST_SESSION ? "" : connVantage),
       );
       const value = await result;
       conn.send({
