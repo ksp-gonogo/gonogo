@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.15.0
+  version: 17.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -689,14 +689,14 @@ channels:
         $ref: "#/components/messages/streamData.comms.connectivity"
       event:
         $ref: "#/components/messages/event"
-  comms.controlState:
-    address: comms.controlState
+  comms.control:
+    address: comms.control
     description: |-
-      Carries a `CommsControlState`.
+      Carries a `CommsControl`.
 
-      The `comms.controlState` payload: always-present, elected backend.
-      `CommsControlState.reason` is a nullable annotation (absent = no
-      annotation), never an empty-string sentinel.
+      The `comms.control` payload: always-present, elected backend.
+      `CommsControl.reason` is a nullable annotation (absent = no annotation),
+      never an empty-string sentinel.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -704,7 +704,7 @@ channels:
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
-        $ref: "#/components/messages/streamData.comms.controlState"
+        $ref: "#/components/messages/streamData.comms.control"
       event:
         $ref: "#/components/messages/event"
   comms.degrade:
@@ -721,13 +721,13 @@ channels:
       perfect" are opposite instructions to anything choosing a quality, so a
       consumer must branch on the absence rather than default it to a number.
 
-      **Read this rather than deriving a quality from `comms.signalStrength`.**
-      That field is 0..1 too, and it is a different quantity on a stock install
-      than on a RealAntennas one: a range fraction against an antenna curve versus
-      spare room on a data-rate ladder. Nothing on the wire distinguishes them, so
-      `1 - signalStrength` is two different quality curves on two saves. This
-      channel names its rule, so a consumer acting on the number can see which
-      grading produced it.
+      **Read this rather than deriving a quality from `comms.signal`.** That field
+      is 0..1 too, and it is a different quantity on a stock install than on a
+      RealAntennas one: a range fraction against an antenna curve versus spare
+      room on a data-rate ladder. Nothing on the wire distinguishes them, so `1 -
+      strength` is two different quality curves on two saves. This channel names
+      its rule, so a consumer acting on the number can see which grading produced
+      it.
 
       DELAYED, like the link observations it grades and unlike its always-live
       `comms.delay` sibling. A rating is an observation of the craft's link, so an
@@ -913,14 +913,14 @@ channels:
         $ref: "#/components/messages/commandRequest.comms.setSimulationDelayPolicy"
       commandResponse:
         $ref: "#/components/messages/commandResponse.comms.setSimulationDelayPolicy"
-  comms.signalStrength:
-    address: comms.signalStrength
+  comms.signal:
+    address: comms.signal
     description: |-
-      Carries a `CommsSignalStrength`.
+      Carries a `CommsSignal`.
 
-      The `comms.signalStrength` payload: always-present, elected backend. 0..1.
-      CommNet gives a coarse range-fraction; RealAntennas gives a
-      link-budget-derived value.
+      The `comms.signal` payload: always-present, elected backend. 0..1. CommNet
+      gives a coarse range-fraction; RealAntennas gives a link-budget-derived
+      value.
 
       A save with the stock CommNet difficulty option off models no link budget at
       all and reports 1 here: nothing attenuates a link that is not modelled. A
@@ -934,7 +934,7 @@ channels:
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
-        $ref: "#/components/messages/streamData.comms.signalStrength"
+        $ref: "#/components/messages/streamData.comms.signal"
       event:
         $ref: "#/components/messages/event"
   crash.lastCrash:
@@ -4517,17 +4517,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.connectivity/messages/streamData"
       - $ref: "#/channels/comms.connectivity/messages/event"
-  read:comms.controlState:
+  read:comms.control:
     action: receive
     channel:
-      $ref: "#/channels/comms.controlState"
-    title: Read comms.controlState
-    description: Delivered only after `subscribe` names `comms.controlState` on the session channel, which the mod answers here with an `event` named `subscribed`.
+      $ref: "#/channels/comms.control"
+    title: Read comms.control
+    description: Delivered only after `subscribe` names `comms.control` on the session channel, which the mod answers here with an `event` named `subscribed`.
     tags:
       - name: comms
     messages:
-      - $ref: "#/channels/comms.controlState/messages/streamData"
-      - $ref: "#/channels/comms.controlState/messages/event"
+      - $ref: "#/channels/comms.control/messages/streamData"
+      - $ref: "#/channels/comms.control/messages/event"
   read:comms.degrade:
     action: receive
     channel:
@@ -4594,17 +4594,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.path/messages/streamData"
       - $ref: "#/channels/comms.path/messages/event"
-  read:comms.signalStrength:
+  read:comms.signal:
     action: receive
     channel:
-      $ref: "#/channels/comms.signalStrength"
-    title: Read comms.signalStrength
-    description: Delivered only after `subscribe` names `comms.signalStrength` on the session channel, which the mod answers here with an `event` named `subscribed`.
+      $ref: "#/channels/comms.signal"
+    title: Read comms.signal
+    description: Delivered only after `subscribe` names `comms.signal` on the session channel, which the mod answers here with an `event` named `subscribed`.
     tags:
       - name: comms
     messages:
-      - $ref: "#/channels/comms.signalStrength/messages/streamData"
-      - $ref: "#/channels/comms.signalStrength/messages/event"
+      - $ref: "#/channels/comms.signal/messages/streamData"
+      - $ref: "#/channels/comms.signal/messages/event"
   read:crash.lastCrash:
     action: receive
     channel:
@@ -6985,19 +6985,19 @@ components:
                 const: comms.connectivity
               payload:
                 $ref: "#/components/schemas/CommsConnectivity"
-    streamData.comms.controlState:
+    streamData.comms.control:
       name: stream-data
-      title: A frame on comms.controlState
+      title: A frame on comms.control
       contentType: application/json
       payload:
-        description: The `stream-data` envelope carrying `comms.controlState`.
+        description: The `stream-data` envelope carrying `comms.control`.
         allOf:
           - $ref: "#/components/schemas/StreamData"
           - properties:
               topic:
-                const: comms.controlState
+                const: comms.control
               payload:
-                $ref: "#/components/schemas/CommsControlState"
+                $ref: "#/components/schemas/CommsControl"
     streamData.comms.degrade:
       name: stream-data
       title: A frame on comms.degrade
@@ -7076,19 +7076,19 @@ components:
                 const: comms.path
               payload:
                 $ref: "#/components/schemas/CommsPath"
-    streamData.comms.signalStrength:
+    streamData.comms.signal:
       name: stream-data
-      title: A frame on comms.signalStrength
+      title: A frame on comms.signal
       contentType: application/json
       payload:
-        description: The `stream-data` envelope carrying `comms.signalStrength`.
+        description: The `stream-data` envelope carrying `comms.signal`.
         allOf:
           - $ref: "#/components/schemas/StreamData"
           - properties:
               topic:
-                const: comms.signalStrength
+                const: comms.signal
               payload:
-                $ref: "#/components/schemas/CommsSignalStrength"
+                $ref: "#/components/schemas/CommsSignal"
     streamData.crash.lastCrash:
       name: stream-data
       title: A frame on crash.lastCrash
@@ -10089,6 +10089,26 @@ components:
           x-sitrep-unit: flag
         meta:
           $ref: "#/components/schemas/PayloadMeta"
+    CommsControl:
+      type: object
+      description: |-
+        The `comms.control` payload: always-present, elected backend.
+        `CommsControl.reason` is a nullable annotation (absent = no annotation),
+        never an empty-string sentinel.
+      required:
+        - level
+        - meta
+      properties:
+        level:
+          $ref: "#/components/schemas/CommsControlStateKind"
+          x-sitrep-unit: enum
+        reason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+        meta:
+          $ref: "#/components/schemas/PayloadMeta"
     CommsControlSource:
       type: integer
       description: |-
@@ -10103,29 +10123,9 @@ components:
           title: Partial
         - const: 2
           title: Full
-    CommsControlState:
-      type: object
-      description: |-
-        The `comms.controlState` payload: always-present, elected backend.
-        `CommsControlState.reason` is a nullable annotation (absent = no
-        annotation), never an empty-string sentinel.
-      required:
-        - state
-        - meta
-      properties:
-        state:
-          $ref: "#/components/schemas/CommsControlStateKind"
-          x-sitrep-unit: enum
-        reason:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-        meta:
-          $ref: "#/components/schemas/PayloadMeta"
     CommsControlStateKind:
       type: integer
-      description: Control-state kind for `CommsControlState`.
+      description: Control-state kind for `CommsControl`.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -10146,13 +10146,13 @@ components:
         perfect" are opposite instructions to anything choosing a quality, so a
         consumer must branch on the absence rather than default it to a number.
 
-        **Read this rather than deriving a quality from `comms.signalStrength`.**
-        That field is 0..1 too, and it is a different quantity on a stock install
-        than on a RealAntennas one: a range fraction against an antenna curve versus
-        spare room on a data-rate ladder. Nothing on the wire distinguishes them, so
-        `1 - signalStrength` is two different quality curves on two saves. This
-        channel names its rule, so a consumer acting on the number can see which
-        grading produced it.
+        **Read this rather than deriving a quality from `comms.signal`.** That field
+        is 0..1 too, and it is a different quantity on a stock install than on a
+        RealAntennas one: a range fraction against an antenna curve versus spare
+        room on a data-rate ladder. Nothing on the wire distinguishes them, so `1 -
+        strength` is two different quality curves on two saves. This channel names
+        its rule, so a consumer acting on the number can see which grading produced
+        it.
 
         DELAYED, like the link observations it grades and unlike its always-live
         `comms.delay` sibling. A rating is an observation of the craft's link, so an
@@ -10572,12 +10572,12 @@ components:
             $ref: "#/components/schemas/CommsHop"
         meta:
           $ref: "#/components/schemas/PayloadMeta"
-    CommsSignalStrength:
+    CommsSignal:
       type: object
       description: |-
-        The `comms.signalStrength` payload: always-present, elected backend. 0..1.
-        CommNet gives a coarse range-fraction; RealAntennas gives a
-        link-budget-derived value.
+        The `comms.signal` payload: always-present, elected backend. 0..1. CommNet
+        gives a coarse range-fraction; RealAntennas gives a link-budget-derived
+        value.
 
         A save with the stock CommNet difficulty option off models no link budget at
         all and reports 1 here: nothing attenuates a link that is not modelled. A
@@ -10585,10 +10585,10 @@ components:
         `CommsDelaySource.NoCommsModel` on `comms.delay`, which is the one
         discriminator for the whole family rather than a second one per field.
       required:
-        - value
+        - strength
         - meta
       properties:
-        value:
+        strength:
           type: number
           x-sitrep-unit: ratio
         meta:

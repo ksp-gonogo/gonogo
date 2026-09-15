@@ -151,8 +151,8 @@ public static class RtConfig
                 typeof(SetSimulationDelayPolicyArgs),
                 // comms.* channels
                 typeof(CommsConnectivity),
-                typeof(CommsSignalStrength),
-                typeof(CommsControlState),
+                typeof(CommsSignal),
+                typeof(CommsControl),
                 typeof(CommsPath),
                 typeof(CommsHop),
                 typeof(CommsNetwork),
@@ -931,9 +931,9 @@ public static class RtConfig
     /// fails codegen, and an entry that has stopped colliding fails codegen too,
     /// so the list cannot outlive what it excuses.
     ///
-    /// <para>Neither rename is free. A renamed member on a wire-visible type is
+    /// <para>No rename is free. A renamed member on a wire-visible type is
     /// breaking by definition (see <see cref="ContractVersion"/>), so clearing
-    /// either one costs a Major and a frozen shape. They are listed rather than
+    /// one costs a Major and a frozen shape. An entry is listed rather than
     /// quietly tolerated so the bill is visible.</para>
     ///
     /// <para>An UPLINK slice's own collisions are not listed here. It passes
@@ -943,10 +943,9 @@ public static class RtConfig
     /// </summary>
     internal static readonly string[] ReservedFieldNameDebt =
     {
-        // The pair this check was written for. A rename is ruled and blocked on
-        // the Major it costs, not on the naming.
-        "comms.controlState.state",
-        "comms.signalStrength.value",
+        // Empty: the pair this check was written for (comms.controlState.state and
+        // comms.signalStrength.value) was renamed to comms.control.level and
+        // comms.signal.strength at contract Major 17.
     };
 
     /// <summary>

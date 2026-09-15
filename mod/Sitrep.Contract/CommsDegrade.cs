@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 // in both need ONE number they can key a ladder on, and neither has any
 // business knowing which comms mod is installed.
 //
-// WHY comms.signalStrength COULD NOT SERVE. That field is 0..1 and
+// WHY comms.signal COULD NOT SERVE. That field is 0..1 and
 // looks like exactly this number, and it is not, because it means two
 // different things depending on which backend filled it:
 //
@@ -31,7 +31,7 @@ namespace Sitrep.Contract;
 //
 // Those are different quantities in the same slot, under one unit
 // annotation, with nothing on the wire to tell them apart. A consumer
-// that computes 1 - signalStrength (which is what the camera feed does
+// that computes 1 - strength (which is what the camera feed does
 // today) is therefore computing two different things on two installs
 // and cannot know which. This file does NOT fix that field. It adds a
 // separate, honest one beside it: a rating that arrives NAMED, so a
@@ -45,7 +45,7 @@ namespace Sitrep.Contract;
 // does not touch the JUDGEMENT: what degrades a link, and by how much,
 // stays entirely the backend's, because that is precisely the thing the
 // two shipped backends disagree about. There is deliberately no formula
-// here, and adding one later would be the same mistake signalStrength
+// here, and adding one later would be the same mistake comms.signal
 // already made.
 // ====================================================================
 
@@ -258,10 +258,10 @@ public static class CommsDegradeModels
 /// number.</para>
 ///
 /// <para><b>Read this rather than deriving a quality from
-/// <c>comms.signalStrength</c>.</b> That field is 0..1 too, and it is a
+/// <c>comms.signal</c>.</b> That field is 0..1 too, and it is a
 /// different quantity on a stock install than on a RealAntennas one: a range
 /// fraction against an antenna curve versus spare room on a data-rate ladder.
-/// Nothing on the wire distinguishes them, so <c>1 - signalStrength</c> is two
+/// Nothing on the wire distinguishes them, so <c>1 - strength</c> is two
 /// different quality curves on two saves. This channel names its rule, so a
 /// consumer acting on the number can see which grading produced it.</para>
 ///

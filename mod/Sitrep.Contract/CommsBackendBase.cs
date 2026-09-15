@@ -55,7 +55,7 @@ namespace Sitrep.Contract;
 public abstract class CommsBackendBase : ICommsBackend
 {
     /// <summary>
-    /// The annotation on <see cref="CommsControlState.Reason"/> when there is no
+    /// The annotation on <see cref="CommsControl.Reason"/> when there is no
     /// link home.
     ///
     /// <para>Byte-identical in both backends before this constant existed, which
@@ -176,20 +176,20 @@ public abstract class CommsBackendBase : ICommsBackend
     /// this field MEANS across backends, which is a wire question rather than a
     /// derivation one and is deliberately not papered over here.
     /// </summary>
-    public CommsSignalStrength SignalStrength() =>
-        new CommsSignalStrength { Value = LinkState()?.SignalStrength ?? 0.0, Meta = Meta() };
+    public CommsSignal SignalStrength() =>
+        new CommsSignal { Strength = LinkState()?.SignalStrength ?? 0.0, Meta = Meta() };
 
     /// <inheritdoc cref="ICommsBackend.ControlState" />
-    public CommsControlState ControlState()
+    public CommsControl ControlState()
     {
         var state = LinkState();
         if (state == null)
         {
-            return new CommsControlState { State = CommsControlStateKind.None, Meta = Meta() };
+            return new CommsControl { Level = CommsControlStateKind.None, Meta = Meta() };
         }
-        return new CommsControlState
+        return new CommsControl
         {
-            State = KindOf(state.Value.Grade),
+            Level = KindOf(state.Value.Grade),
             Reason = state.Value.Connected ? null : DisconnectedReason,
             Meta = Meta(),
         };
@@ -417,7 +417,7 @@ public abstract class CommsBackendBase : ICommsBackend
         }
     }
 
-    /// <summary>The same collapse in <c>comms.controlState</c>'s own vocabulary.</summary>
+    /// <summary>The same collapse in <c>comms.control</c>'s own vocabulary.</summary>
     private static CommsControlStateKind KindOf(CommsControlGrade grade)
     {
         switch (grade)

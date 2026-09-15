@@ -102,7 +102,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // grading of the link, with the rule that produced it named alongside. The
   // one number a consumer choosing a quality (a video feed's bitrate, a voice
   // channel's noise) can key on without knowing which comms mod is installed,
-  // which `comms.signalStrength` cannot be: that field means a different
+  // which `comms.signal` cannot be: that field means a different
   // quantity depending on which backend the comms capability elected, and the
   // grading here names its own rule. Must be
   // carried or a `useTelemetry("comms.degrade")` read silently stays undefined,

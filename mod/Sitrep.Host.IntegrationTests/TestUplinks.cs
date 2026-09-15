@@ -676,15 +676,15 @@ namespace Sitrep.Host.IntegrationTests
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
-            public CommsSignalStrength SignalStrength() => new CommsSignalStrength
+            public CommsSignal SignalStrength() => new CommsSignal
             {
-                Value = 0.87,
+                Strength = 0.87,
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
-            public CommsControlState ControlState() => new CommsControlState
+            public CommsControl ControlState() => new CommsControl
             {
-                State = CommsControlStateKind.Full,
+                Level = CommsControlStateKind.Full,
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 

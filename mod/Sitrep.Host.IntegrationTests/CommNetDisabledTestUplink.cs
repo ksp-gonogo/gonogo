@@ -144,15 +144,15 @@ namespace Sitrep.Host.IntegrationTests
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
-            public CommsSignalStrength SignalStrength() => new CommsSignalStrength
+            public CommsSignal SignalStrength() => new CommsSignal
             {
-                Value = 0.0,
+                Strength = 0.0,
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
-            public CommsControlState ControlState() => new CommsControlState
+            public CommsControl ControlState() => new CommsControl
             {
-                State = CommsControlStateKind.None,
+                Level = CommsControlStateKind.None,
                 Reason = "no connection to a command source",
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };

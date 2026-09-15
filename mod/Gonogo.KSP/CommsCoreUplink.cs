@@ -41,8 +41,8 @@ namespace Gonogo.KSP
     public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         public const string ConnectivityTopic = "comms.connectivity";
-        public const string SignalStrengthTopic = "comms.signalStrength";
-        public const string ControlStateTopic = "comms.controlState";
+        public const string SignalTopic = "comms.signal";
+        public const string ControlTopic = "comms.control";
         public const string PathTopic = "comms.path";
         public const string NetworkTopic = "comms.network";
         public const string DelayTopic = "comms.delay";
@@ -65,7 +65,7 @@ namespace Gonogo.KSP
         ///
         /// <para>It exists so a consumer choosing a quality (a video feed's
         /// bitrate, a voice channel's noise) has one number that means the same
-        /// KIND of thing on every install. <c>comms.signalStrength</c> cannot
+        /// KIND of thing on every install. <c>comms.signal</c> cannot
         /// serve: it carries a range fraction under stock and a rate-ladder
         /// headroom fraction under RealAntennas, so the <c>1 - strength</c> a
         /// consumer would otherwise write is a different curve per save with
@@ -229,8 +229,8 @@ namespace Gonogo.KSP
             _commandCentreRegistry = registry;
 
         private IChannelPublisher? _connectivity;
-        private IChannelPublisher? _signalStrength;
-        private IChannelPublisher? _controlState;
+        private IChannelPublisher? _signal;
+        private IChannelPublisher? _control;
         private IChannelPublisher? _path;
         private IChannelPublisher? _network;
         private IChannelPublisher? _delay;
@@ -292,8 +292,8 @@ namespace Gonogo.KSP
             Channels = new List<ChannelDeclaration>
             {
                 TrueNow(ConnectivityTopic),
-                TrueNow(SignalStrengthTopic),
-                TrueNow(ControlStateTopic),
+                TrueNow(SignalTopic),
+                TrueNow(ControlTopic),
                 TrueNow(NetworkTopic),
                 // comms.path: DELAYED. The route a signal took is a fact about
                 // where the craft and every relay in the chain WERE when the
@@ -407,8 +407,8 @@ namespace Gonogo.KSP
                 SetSimulationDelayPolicy);
 
             _connectivity = host.Publisher(ConnectivityTopic);
-            _signalStrength = host.Publisher(SignalStrengthTopic);
-            _controlState = host.Publisher(ControlStateTopic);
+            _signal = host.Publisher(SignalTopic);
+            _control = host.Publisher(ControlTopic);
             _path = host.Publisher(PathTopic);
             _network = host.Publisher(NetworkTopic);
             _delay = host.Publisher(DelayTopic);
@@ -421,8 +421,8 @@ namespace Gonogo.KSP
                 CaptureOnMain,
                 HandleOnCourier,
                 ConnectivityTopic,
-                SignalStrengthTopic,
-                ControlStateTopic,
+                SignalTopic,
+                ControlTopic,
                 PathTopic,
                 NetworkTopic,
                 DelayTopic,
@@ -727,8 +727,8 @@ namespace Gonogo.KSP
                 {
                     Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Connectivity = connectivity,
-                    SignalStrength = backend.SignalStrength(),
-                    ControlState = backend.ControlState(),
+                    Signal = backend.SignalStrength(),
+                    Control = backend.ControlState(),
                     Path = path,
                     Network = backend.Network(),
                     Delay = delay,
@@ -811,8 +811,8 @@ namespace Gonogo.KSP
                 return;
             }
             _connectivity?.Publish(capture.Connectivity, capture.Ut);
-            _signalStrength?.Publish(capture.SignalStrength, capture.Ut);
-            _controlState?.Publish(capture.ControlState, capture.Ut);
+            _signal?.Publish(capture.Signal, capture.Ut);
+            _control?.Publish(capture.Control, capture.Ut);
             _path?.Publish(capture.Path, capture.Ut);
             _network?.Publish(capture.Network, capture.Ut);
             _delay?.Publish(capture.Delay, capture.Ut);
@@ -849,8 +849,8 @@ namespace Gonogo.KSP
         {
             public double Ut;
             public CommsConnectivity Connectivity = new();
-            public CommsSignalStrength SignalStrength = new();
-            public CommsControlState ControlState = new();
+            public CommsSignal Signal = new();
+            public CommsControl Control = new();
             public CommsPath Path = new();
             public CommsNetwork Network = new();
             public CommsDelay Delay = new();

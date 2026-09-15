@@ -296,9 +296,9 @@
       "controlSource": "enum",
       "hasLocalControl": "flag"
     },
-    "CommsControlState": {
-      "reason": "text",
-      "state": "enum"
+    "CommsControl": {
+      "level": "enum",
+      "reason": "text"
     },
     "CommsDegrade": {
       "level": "ratio",
@@ -341,8 +341,8 @@
       "occludingRadiusMeters": "m",
       "radiusMeters": "m"
     },
-    "CommsSignalStrength": {
-      "value": "ratio"
+    "CommsSignal": {
+      "strength": "ratio"
     },
     "ComposedBurn": {
       "dvNormal": "m/s",
@@ -1462,9 +1462,9 @@
       "controlSource": "enum",
       "hasLocalControl": "flag"
     },
-    "comms.controlState": {
-      "reason": "text",
-      "state": "enum"
+    "comms.control": {
+      "level": "enum",
+      "reason": "text"
     },
     "comms.degrade": {
       "level": "ratio",
@@ -1482,8 +1482,8 @@
       "modelId": "id",
       "modelName": "text"
     },
-    "comms.signalStrength": {
-      "value": "ratio"
+    "comms.signal": {
+      "strength": "ratio"
     },
     "crash.lastCrash": {
       "altitude": "m",
@@ -2050,7 +2050,7 @@
     "CommsConnectivity": {
       "meta": "PayloadMeta"
     },
-    "CommsControlState": {
+    "CommsControl": {
       "meta": "PayloadMeta"
     },
     "CommsDegrade": {
@@ -2082,7 +2082,7 @@
       "hops": "CommsHop[]",
       "meta": "PayloadMeta"
     },
-    "CommsSignalStrength": {
+    "CommsSignal": {
       "meta": "PayloadMeta"
     },
     "CraftLoad": {
@@ -2348,7 +2348,7 @@
     "comms.connectivity": {
       "meta": "PayloadMeta"
     },
-    "comms.controlState": {
+    "comms.control": {
       "meta": "PayloadMeta"
     },
     "comms.degrade": {
@@ -2373,7 +2373,7 @@
       "hops": "CommsHop[]",
       "meta": "PayloadMeta"
     },
-    "comms.signalStrength": {
+    "comms.signal": {
       "meta": "PayloadMeta"
     },
     "crash.lastCrash": {

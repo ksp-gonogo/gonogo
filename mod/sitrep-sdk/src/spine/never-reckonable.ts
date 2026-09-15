@@ -134,7 +134,7 @@ export const NEVER_RECKONABLE = [
 
   // -- Ground-side bookkeeping about our own commands and links, which is
   // observed or it is nothing.
-  "comms.controlState",
+  "comms.control",
   "comms.connectivity",
 
   // -- The route home. A path changes DISCRETELY: a relay drops below the

@@ -512,7 +512,7 @@ export function useTelemetry<T extends TopicId>(
  * `useTelemetry<number>("data", "vessel.control.throttle")`.
  *
  * A bare Topic id resolves to nothing here: the resolution needs at least one
- * field segment after the Topic, so `useTelemetry("data", "comms.signalStrength")`
+ * field segment after the Topic, so `useTelemetry("data", "comms.signal")`
  * reads `undefined` for ever rather than erroring. Read a whole Topic through
  * the one-arg form above, which answers with a {@link Reading} and is what a
  * new widget should use.

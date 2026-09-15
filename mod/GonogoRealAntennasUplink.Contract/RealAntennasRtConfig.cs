@@ -167,10 +167,13 @@ public static class RealAntennasRtConfig
                 // <see cref="CommsLinkQuality.Value"/> is spelled like a Reading
                 // currency member, so it cannot be reached as a field reading:
                 // see RtConfig.CheckReservedFieldNames. It is this slice's twin
-                // of core's comms.signalStrength and wants whatever rename that
-                // one gets; a renamed member on a wire-visible type is breaking,
-                // so it costs a Major. Shrink-only: delete this line in the same
-                // commit as the rename, or the codegen leg refuses it as stale.
+                // of core's comms.signalStrength.value, which became
+                // comms.signal.strength at Major 17. The analogous rename here is
+                // NOT settled: comms.link is already a topic, so comms.link.quality
+                // would collide with a field read on it. A renamed member on a
+                // wire-visible type is breaking, so it costs a Major. Shrink-only:
+                // delete this line in the same commit as the rename, or the codegen
+                // leg refuses it as stale.
                 new[] { "comms.linkQuality.value" });
         }
 

@@ -52,8 +52,8 @@ namespace Sitrep.Host.Tests
 
             public string ProviderId { get; }
             public CommsConnectivity Connectivity() => new CommsConnectivity();
-            public CommsSignalStrength SignalStrength() => new CommsSignalStrength();
-            public CommsControlState ControlState() => new CommsControlState();
+            public CommsSignal SignalStrength() => new CommsSignal();
+            public CommsControl ControlState() => new CommsControl();
             public CommsPath Path() => new CommsPath();
             public CommsNetwork Network() => new CommsNetwork();
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;

@@ -312,11 +312,11 @@ namespace Gonogo.KSP.Tests.Comms
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
-            public CommsSignalStrength SignalStrength() => new CommsSignalStrength { Value = 0.0 };
+            public CommsSignal SignalStrength() => new CommsSignal { Strength = 0.0 };
 
-            public CommsControlState ControlState() => new CommsControlState
+            public CommsControl ControlState() => new CommsControl
             {
-                State = CommsControlStateKind.None,
+                Level = CommsControlStateKind.None,
                 Reason = "no connection to a command source",
             };
 

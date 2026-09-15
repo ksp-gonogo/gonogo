@@ -439,16 +439,49 @@ namespace Sitrep.Contract
         /// generated command rail is byte-identical, and every Uplink in the tree
         /// is rebuilt from source alongside the contract, so no artifact exists
         /// that could meet the gap.</para>
+        ///
+        /// <para><b>Bumped 16 -&gt; 17: two payload fields stop being spelled like
+        /// a <c>Reading</c> currency member.</b> <c>comms.signalStrength
+        /// { value }</c> becomes <c>comms.signal { strength }</c>, and
+        /// <c>comms.controlState { state, reason }</c> becomes
+        /// <c>comms.control { level, reason }</c>. Two <c>type-removed</c>:
+        /// <c>CommsSignalStrength</c> and <c>CommsControlState</c> are renamed to
+        /// <see cref="CommsSignal"/> and <see cref="CommsControl"/>, which the
+        /// topic-id-to-interface convention forces once the topic ids move.
+        /// <see cref="CommsControlStateKind"/> keeps its name and its three
+        /// ordinals, so nothing enum-shaped breaks.</para>
+        ///
+        /// <para>A topic reading is <c>TopicCurrency&lt;P&gt; &amp;
+        /// TopicFields&lt;P&gt;</c>, so a field spelled <c>value</c> or
+        /// <c>state</c> lands on the currency's own discriminant and the
+        /// intersection collapses to <c>never</c>: the field could not be
+        /// reached as a field reading at all. The SDK hid that behind
+        /// <c>Exclude&lt;keyof P, ReservedReadingKey&gt;</c>, which is silent,
+        /// so an author went looking for a reading that was simply not on the
+        /// surface. <c>RtConfig.CheckReservedFieldNames</c> named the pair and
+        /// excused it on a shrink-only debt list; this bump is the bill for
+        /// those two entries, and the list is now empty.</para>
+        ///
+        /// <para>The other two collisions are NOT cleared here.
+        /// <c>comms.linkQuality.value</c> stays on the RealAntennas slice's debt
+        /// list because <c>comms.link</c> is already a topic, so
+        /// <c>comms.link.quality</c> would collide with a field read on it;
+        /// <c>kerbalism.lifesupport.asOfUt</c> stays on Kerbalism's because it
+        /// is genuinely an as-of time and the replacement has to keep that
+        /// legible. Neither name is settled, so neither is renamed.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as every Major above: the
+        /// mod is still pre-release with NO external Uplinks, and the app and mod
+        /// ship together, so no artifact exists that was built against the old
+        /// shape.</para>
         /// </remarks>
-        public const int Major = 16;
+        public const int Major = 17;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
-        /// then bumped 0 -&gt; 1 on the Major-4 line for the kerbcast Uplink's
-        /// control-plane types (see the Major-4 entry below).
-        /// The remaining Minor history below belongs to the Major-1/2/3 lines
-        /// and is retained for provenance; every one of those additive
-        /// changes is carried forward into Major 4.
+        /// Reset to 0 alongside the Major 16 -&gt; 17 bump (see <see cref="Major"/>).
+        /// The Minor history below belongs to the earlier Major lines and is
+        /// retained for provenance; every one of those additive changes is
+        /// carried forward.
         /// </summary>
         /// <remarks>
         /// <para>Major-3 history, Bumped 2 -&gt; 3 (Minor reset to 0): the
@@ -515,7 +548,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Bumped 1 -&gt; 2: additive-only Minor adding the comms.* wire
         /// contract (U2: comms trio): the <see cref="CommsConnectivity"/>/
-        /// <see cref="CommsSignalStrength"/>/<see cref="CommsControlState"/>/
+        /// <see cref="CommsSignal"/>/<see cref="CommsControl"/>/
         /// <see cref="CommsPath"/>/<see cref="CommsHop"/>/<see cref="CommsNetwork"/>
         /// (+ node/edge)/<see cref="CommsDelay"/>/<see cref="CommsLinkQuality"/>/
         /// <see cref="CommsDataRate"/>/<see cref="CommsLinkMargin"/> payloads and
@@ -1739,7 +1772,11 @@ namespace Sitrep.Contract
         /// rather than a second copy of two-body motion on the client. No horizon
         /// applies: an ephemeris horizon bounds how long osculating elements stand in
         /// for an INTEGRATED path, and a conic search is not claiming to be one.</para>
+        ///
+        /// <para><b>Reset to 0 alongside the Major 16 -&gt; 17 bump</b> (see
+        /// <see cref="Major"/>). The Minor history above belongs to the Major-16 line
+        /// and is retained for provenance.</para>
         /// </remarks>
-        public const int Minor = 15;
+        public const int Minor = 0;
     }
 }

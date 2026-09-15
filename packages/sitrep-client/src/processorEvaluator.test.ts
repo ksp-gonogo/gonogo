@@ -641,11 +641,11 @@ describe("processorEvaluator topic-dep subscription", () => {
 
     // Model the server: a topic's data is delivered only once that topic is
     // SUBSCRIBED (use-stream's contract, and the reason sampling alone is the
-    // bug). Nothing else in this file reads `comms.signalStrength` and we
+    // bug). Nothing else in this file reads `comms.signal` and we
     // deliberately do NOT prime a subscription: activating the processor must
     // be what makes it flow.
     const served = new Map<string, TimelinePoint<number>>([
-      ["comms.signalStrength", pointOf(0, 101)],
+      ["comms.signal", pointOf(0, 101)],
     ]);
     const subscribed: string[] = [];
     setProcessorTopicSubscriber((topic) => {
@@ -659,14 +659,14 @@ describe("processorEvaluator topic-dep subscription", () => {
     const pressure = defineProcessor({
       id: "pressure",
       owner: "test",
-      deps: ["comms.signalStrength"] as const,
+      deps: ["comms.signal"] as const,
       compute: (values) => values[0],
     });
 
     const deactivate = activateProcessor(pressure.id);
     store.beginFrame();
 
-    expect(subscribed).toContain("comms.signalStrength");
+    expect(subscribed).toContain("comms.signal");
     expect(getProcessorValue(pressure.id)).toBe(101);
 
     deactivate();
@@ -681,7 +681,7 @@ describe("processorEvaluator topic-dep subscription", () => {
     const p = defineProcessor({
       id: "p",
       owner: "test",
-      deps: ["comms.signalStrength"] as const,
+      deps: ["comms.signal"] as const,
       compute: (values) => values[0],
     });
     const deactivate = activateProcessor(p.id);
@@ -694,7 +694,7 @@ describe("processorEvaluator topic-dep subscription", () => {
   it("back-fills subscriptions when the store/subscriber arrive AFTER activation (the real effect order)", () => {
     const store = makeStore();
     const served = new Map<string, TimelinePoint<number>>([
-      ["comms.signalStrength", pointOf(0, 202)],
+      ["comms.signal", pointOf(0, 202)],
     ]);
 
     // Activate FIRST, before any store or subscriber is wired, exactly as a
@@ -702,7 +702,7 @@ describe("processorEvaluator topic-dep subscription", () => {
     const pressure = defineProcessor({
       id: "pressure",
       owner: "test",
-      deps: ["comms.signalStrength"] as const,
+      deps: ["comms.signal"] as const,
       compute: (values) => values[0],
     });
     const deactivate = activateProcessor(pressure.id);

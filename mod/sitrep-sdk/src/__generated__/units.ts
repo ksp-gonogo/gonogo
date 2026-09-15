@@ -330,9 +330,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     controlSource: "enum",
     hasLocalControl: "flag",
   },
-  "CommsControlState": {
+  "CommsControl": {
+    level: "enum",
     reason: "text",
-    state: "enum",
   },
   "CommsDegrade": {
     level: "ratio",
@@ -375,8 +375,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     occludingRadiusMeters: "m",
     radiusMeters: "m",
   },
-  "CommsSignalStrength": {
-    value: "ratio",
+  "CommsSignal": {
+    strength: "ratio",
   },
   "ComposedBurn": {
     dvNormal: "m/s",
@@ -1501,9 +1501,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     controlSource: "enum",
     hasLocalControl: "flag",
   },
-  "comms.controlState": {
+  "comms.control": {
+    level: "enum",
     reason: "text",
-    state: "enum",
   },
   "comms.degrade": {
     level: "ratio",
@@ -1521,8 +1521,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     modelId: "id",
     modelName: "text",
   },
-  "comms.signalStrength": {
-    value: "ratio",
+  "comms.signal": {
+    strength: "ratio",
   },
   "crash.lastCrash": {
     altitude: "m",
@@ -2114,7 +2114,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsConnectivity": {
     meta: "PayloadMeta",
   },
-  "CommsControlState": {
+  "CommsControl": {
     meta: "PayloadMeta",
   },
   "CommsDegrade": {
@@ -2146,7 +2146,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     hops: "CommsHop[]",
     meta: "PayloadMeta",
   },
-  "CommsSignalStrength": {
+  "CommsSignal": {
     meta: "PayloadMeta",
   },
   "CraftLoad": {
@@ -2414,7 +2414,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "comms.connectivity": {
     meta: "PayloadMeta",
   },
-  "comms.controlState": {
+  "comms.control": {
     meta: "PayloadMeta",
   },
   "comms.degrade": {
@@ -2439,7 +2439,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     hops: "CommsHop[]",
     meta: "PayloadMeta",
   },
-  "comms.signalStrength": {
+  "comms.signal": {
     meta: "PayloadMeta",
   },
   "crash.lastCrash": {

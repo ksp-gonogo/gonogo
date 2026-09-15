@@ -160,7 +160,7 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(local, wrapped.Connectivity().ControlSource);
             Assert.Equal(expectedLocalControl, wrapped.Connectivity().HasLocalControl);
-            Assert.Equal(expectedState, wrapped.ControlState().State);
+            Assert.Equal(expectedState, wrapped.ControlState().Level);
         }
 
         /// <summary>
@@ -192,7 +192,7 @@ namespace Sitrep.Host.Tests
         {
             var wrapped = Wrap(new StubBackend(connected: false), CommsControlSource.Full);
 
-            Assert.Equal(1.0, wrapped.SignalStrength().Value);
+            Assert.Equal(1.0, wrapped.SignalStrength().Strength);
         }
 
         [Fact]
@@ -313,11 +313,11 @@ namespace Sitrep.Host.Tests
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
-            public CommsSignalStrength SignalStrength() => new CommsSignalStrength { Value = 0.0 };
+            public CommsSignal SignalStrength() => new CommsSignal { Strength = 0.0 };
 
-            public CommsControlState ControlState() => new CommsControlState
+            public CommsControl ControlState() => new CommsControl
             {
-                State = CommsControlStateKind.None,
+                Level = CommsControlStateKind.None,
                 Reason = _connected ? null : "no connection to a command source",
             };
 
