@@ -35,9 +35,19 @@ namespace Gonogo.KSP
         // TODO(config): hard-coded for this first build - a future settings
         // surface (in-game GUI or a PluginData config file) should let the
         // user change bind host/port without a rebuild.
+        //
         // Binds all interfaces (0.0.0.0) so a client on another LAN device can
-        // reach it at ws://<this-machine-LAN-IP>:8090. ws:// only - read-only
-        // telemetry, home-LAN scope.
+        // reach it at ws://<this-machine-LAN-IP>:8090, which is the primary
+        // topology: the browser runs on a different machine from KSP.
+        //
+        // This socket is NOT read-only, whatever this comment used to say. The
+        // stream that carries telemetry also accepts every declared command,
+        // and there is no TLS, no authentication and no origin check, here or
+        // in the Fleck listener. Anything that can reach this port can fly the
+        // player's ship, so it belongs on a network the player trusts or
+        // behind a tunnel they control, and must never be forwarded to the
+        // internet. docs/KSP-SETUP.md says the same to players; a remote pilot
+        // joins through the host's share code instead of this port.
         private const string BindUri = "ws://0.0.0.0:8090";
 
         // UT-cadence sampling: sampling the host on every physics tick is,
