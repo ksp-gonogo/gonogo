@@ -125,11 +125,50 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     const a = new PeerHostService();
     const persisted = localStorage.getItem("gonogo-host-share-code");
     expect(persisted).toBe(a.shareCode);
-    expect(a.shareCode).toMatch(/^[A-Z0-9]{4}$/);
+    expect(a.shareCode).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/);
 
     // A second service instance reads the SAME persisted share-code.
     const b = new PeerHostService();
     expect(b.shareCode).toBe(a.shareCode);
+  });
+
+  it("mints the share code from the platform CSPRNG, never Math.random", async () => {
+    /*
+     * The code is the only thing between a stranger and a hosted game: the
+     * broker answers whether a guessed `gonogo-host-<CODE>` is live, so the
+     * code's strength IS the gate. A `Math.random()` code looks exactly like
+     * a crypto one, which is why this asserts the SOURCE and not just the
+     * shape.
+     */
+    const getRandomValues = vi.spyOn(crypto, "getRandomValues");
+    const mathRandom = vi.spyOn(Math, "random");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+
+    const service = new PeerHostService();
+
+    expect(getRandomValues).toHaveBeenCalled();
+    expect(mathRandom).not.toHaveBeenCalled();
+    expect(service.shareCode).toHaveLength(6);
+    getRandomValues.mockRestore();
+    mathRandom.mockRestore();
+  });
+
+  it("keeps a shorter code a host minted before the length grew", async () => {
+    /*
+     * Raising the length must not strand a host that already has a code: its
+     * stations have that code written down, and the derived peer id has to go
+     * on matching it until the operator regenerates.
+     */
+    localStorage.setItem("gonogo-host-share-code", "AB3K");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+
+    const service = new PeerHostService();
+    await service.start();
+    await flush();
+
+    expect(service.shareCode).toBe("AB3K");
+    expect(FakePeer.last?.id).toBe("gonogo-host-AB3K");
+    service.stop();
   });
 
   it("on unavailable-id, RETRY-RECLAIMS the SAME derived id (does not rotate to a new one)", async () => {
@@ -248,7 +287,9 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
 
     // The in-memory code + the persisted key both rotated.
     expect(service.shareCode).not.toBe(oldCode);
-    expect(service.shareCode).toMatch(/^[A-Z0-9]{4}$/);
+    expect(service.shareCode).toMatch(
+      /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/,
+    );
     expect(localStorage.getItem("gonogo-host-share-code")).toBe(
       service.shareCode,
     );

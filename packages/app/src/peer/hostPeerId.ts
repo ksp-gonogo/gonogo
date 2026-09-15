@@ -3,16 +3,16 @@
  * model that replaced the relay-hosted broker directory.
  *
  * The host's PeerJS peer claims a deterministic id derived from the
- * operator-facing 4-char share code (`gonogo-host-<CODE>`). The station
+ * operator-facing short share code (`gonogo-host-<CODE>`). The station
  * derives the *same* id from the code the operator types/scans and connects
  * to it directly: no directory peer, no resolve hop. That keeps both ends
  * browsers, which is what makes mDNS host candidates resolve natively on the
  * LAN; a Node-wrtc directory peer in the middle can neither do that nor run
  * TURN on a macOS host.
  *
- * The prefix is REQUIRED: bare 4-char codes would collide with other gonogo
+ * The prefix is REQUIRED: bare share codes would collide with other gonogo
  * users on the shared broker key "gonogo". The operator never sees the
- * prefix: they share the 4-char code; the prefix is an implementation
+ * prefix: they share the code itself; the prefix is an implementation
  * detail of both ends.
  */
 
