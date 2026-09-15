@@ -108,6 +108,13 @@ namespace Gonogo.KosUplink
             // subscribed-topics mirror.
             _computeSubscribed = () => host.IsAnyTopicSubscribed(KosChannels.ComputePrefix);
 
+            // The instant every compute publish is stamped with. Same seam and
+            // same reason as the terminal downlink below and the processor
+            // capture above: a Delayed channel is revealed and keyframed
+            // against its stamp, so it has to be the game's clock rather than
+            // a constant.
+            _nowUt = host.NowUt;
+
             if (guard.ComputePostfixAvailable)
             {
                 KosComputeHarmony.Sink = OnPrint;
