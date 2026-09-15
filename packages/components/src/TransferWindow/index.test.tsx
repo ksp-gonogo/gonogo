@@ -84,6 +84,17 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
     pinnedUt: 0,
     suspendFrames: true,
   });
+  /*
+   * The widget asks the game where the two bodies are, and a stub that never
+   * answers leaves the dispatch hanging until its loss timer rejects it, after
+   * the test body has returned. Refusing it is the honest answer for a fixture
+   * carrying no propagation provider, and it is the path every assertion below
+   * was written against: the grid falls back to the client's own conic.
+   */
+  fixture.transport.setCommandHandler(() => ({
+    solved: false,
+    refusal: "this fixture elects no propagation provider",
+  }));
   const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "transfer-test" }}>
@@ -191,6 +202,13 @@ describe("TransferWindow widget", () => {
     expect(collapsed.length).toBeGreaterThan(0);
     fireEvent.click(collapsed[0]);
     expect(collapsed[0]).toHaveAttribute("aria-expanded", "true");
+    /*
+     * Selecting a window re-centres the grid, which asks the game for the two
+     * bodies again; the stub answers on a later microtask, after this body has
+     * returned. Holding the scope open across it is CLAUDE.md's second cause,
+     * and the alternative is a settle that lands in teardown.
+     */
+    await act(async () => {});
   });
 
   it("lets the operator pick the destination (labelled select)", async () => {

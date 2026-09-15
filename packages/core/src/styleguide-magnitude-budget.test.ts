@@ -307,6 +307,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // it in the algebra instead would mean wrapping every figure the coplanar
   // model returns.
   "packages/components/src/TransferWindow/index.tsx": 1,
+  // 6: the six components of one body state, crossing from the contract's
+  // `BodyState` (position and velocity as `Value<"m">` / `Value<"m/s">`, which
+  // is what the wire declares) into `StateLike` in `calc/porkchop.ts`, whose
+  // `Vec3Tuple` is plain SI for the same stated reason the entry above gives.
+  // Nothing is computed here, so there is no algebra to do it in: it is a
+  // shape change at the boundary between a typed payload and a solver that
+  // predates it, once per requested instant.
+  "packages/components/src/TransferWindow/useBodyStatePropagators.ts": 6,
   // The shared ΔV budget's one raw read: `totalVac` is `Value<"m/s"> | null` and
   // the feasibility deduction below it subtracts plain node magnitudes in a
   // running total. Doing it in the algebra would wrap and unwrap once per node

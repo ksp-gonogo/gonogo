@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.14.0
+  version: 16.15.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
-    channels a client subscribes to, and 53 commands it dispatches, with the payload
+    channels a client subscribes to, and 54 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -188,7 +188,7 @@ info:
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
-      description: 3 telemetry channels, 1 command
+      description: 3 telemetry channels, 2 commands
     - name: target
       description: 1 telemetry channel, 0 commands
     - name: time
@@ -2351,6 +2351,51 @@ channels:
         $ref: "#/components/messages/streamData.system.bodies"
       event:
         $ref: "#/components/messages/event"
+  system.bodies.statesAt:
+    address: system.bodies.statesAt
+    description: |-
+      Takes `BodyStatesRequest`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Args for `system.bodies.statesAt`: where is this body at each of these
+      instants, from whichever propagation provider the install elected.
+
+      **Why a command and not a channel.** The instants are the caller's, not the
+      game's: a transfer search asks about departure and arrival times nobody has
+      reached and may never reach. Nothing publishes an answer to a question that
+      has not been asked, so this is a query, the same shape
+      `vessel.trajectory.forVantage` uses for the same reason.
+
+      **No vantage field, for the reason the trajectory query gives:** a client
+      that could name one could name somebody else's and be shown what they can
+      see. It is resolved where the command enters instead.
+
+      **A centre body IS named, and has to be.** The answer is expressed relative
+      to whatever body you name, and there is no default: a transfer search wants
+      both endpoints about the parent they share, and saying which body that is
+      also lets one request serve a moon system as readily as a solar one.
+
+      **The model is ASKED FOR, never inherited.** A transfer search wants the
+      two-body answer because that is what it is designed around, and it wants it
+      whatever an install's provider would otherwise hand back. So
+      `BodyStatesRequest.model` is part of the question rather than a property of
+      whoever answers it, and a request that does not name one is refused: a
+      planning grid that silently changed model when a default moved underneath it
+      would look like the transfer changed.
+
+      No horizon applies to the analytical answer, and that follows from what a
+      horizon IS: an ephemeris horizon bounds how long osculating elements still
+      stand in for an integrated path, and a conic search is not claiming to be
+      that path.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.system.bodies.statesAt"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.system.bodies.statesAt"
   system.frame:
     address: system.frame
     description: |-
@@ -4023,6 +4068,20 @@ operations:
         $ref: "#/channels/science.experiment.transmit"
       messages:
         - $ref: "#/channels/science.experiment.transmit/messages/commandResponse"
+  dispatch:system.bodies.statesAt:
+    action: send
+    channel:
+      $ref: "#/channels/system.bodies.statesAt"
+    title: Dispatch system.bodies.statesAt
+    tags:
+      - name: system
+    messages:
+      - $ref: "#/channels/system.bodies.statesAt/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/system.bodies.statesAt"
+      messages:
+        - $ref: "#/channels/system.bodies.statesAt/messages/commandResponse"
   dispatch:system.frame.set:
     action: send
     channel:
@@ -5668,6 +5727,21 @@ components:
                 const: science.experiment.transmit
               args:
                 $ref: "#/components/schemas/ExperimentActionArgs"
+    commandRequest.system.bodies.statesAt:
+      name: command-request
+      title: Dispatch system.bodies.statesAt
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `system.bodies.statesAt`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: system.bodies.statesAt
+              args:
+                $ref: "#/components/schemas/BodyStatesRequest"
     commandRequest.system.frame.set:
       name: command-request
       title: Dispatch system.frame.set
@@ -6405,6 +6479,19 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.system.bodies.statesAt:
+      name: command-response
+      title: Reply to system.bodies.statesAt
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `system.bodies.statesAt`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/BodyStatesReply"
     commandResponse.system.frame.set:
       name: command-response
       title: Reply to system.frame.set
@@ -8460,6 +8547,148 @@ components:
             (`CelestialBody.isHomeWorld`); true on exactly one body, null when absent.
             The authoritative home-body marker: a client locates home by this flag,
             never by index.
+    BodyState:
+      type: object
+      description: |-
+        One body's position and velocity at one instant, relative to the request's
+        centre body.
+
+        Flat keys rather than nested vectors, matching `TrajectoryPoint`: these
+        arrive in bulk and the wire cost of a nested object per point is paid on
+        every cell of every grid.
+      required:
+        - ut
+        - x
+        - y
+        - z
+        - vx
+        - vy
+        - vz
+      properties:
+        ut:
+          type: number
+          x-sitrep-unit: ut
+          description: The instant this state is at, echoing the request.
+        x:
+          type: number
+          x-sitrep-unit: m
+        y:
+          type: number
+          x-sitrep-unit: m
+        z:
+          type: number
+          x-sitrep-unit: m
+        vx:
+          type: number
+          x-sitrep-unit: m/s
+        vy:
+          type: number
+          x-sitrep-unit: m/s
+        vz:
+          type: number
+          x-sitrep-unit: m/s
+    BodyStatesReply:
+      type: object
+      description: |-
+        The answer, or why there is not one.
+
+        `BodyStatesReply.solved` is the discriminator and is never inferred from an
+        empty list: a body the provider could not place and a caller that asked
+        about no instants are different facts, and a search that read them the same
+        would draw an empty plot for an install problem.
+      required:
+        - solved
+        - states
+      properties:
+        solved:
+          type: boolean
+          x-sitrep-unit: flag
+        states:
+          type: array
+          items:
+            $ref: "#/components/schemas/BodyState"
+          description: One state per requested instant, in the order asked.
+        providerId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            Which provider answered, so a reading that looks wrong can be attributed
+            without guessing at the install.
+        refusal:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: Why there is no answer, when `BodyStatesReply.solved` is false.
+    BodyStatesRequest:
+      type: object
+      description: |-
+        Args for `system.bodies.statesAt`: where is this body at each of these
+        instants, from whichever propagation provider the install elected.
+
+        **Why a command and not a channel.** The instants are the caller's, not the
+        game's: a transfer search asks about departure and arrival times nobody has
+        reached and may never reach. Nothing publishes an answer to a question that
+        has not been asked, so this is a query, the same shape
+        `vessel.trajectory.forVantage` uses for the same reason.
+
+        **No vantage field, for the reason the trajectory query gives:** a client
+        that could name one could name somebody else's and be shown what they can
+        see. It is resolved where the command enters instead.
+
+        **A centre body IS named, and has to be.** The answer is expressed relative
+        to whatever body you name, and there is no default: a transfer search wants
+        both endpoints about the parent they share, and saying which body that is
+        also lets one request serve a moon system as readily as a solar one.
+
+        **The model is ASKED FOR, never inherited.** A transfer search wants the
+        two-body answer because that is what it is designed around, and it wants it
+        whatever an install's provider would otherwise hand back. So
+        `BodyStatesRequest.model` is part of the question rather than a property of
+        whoever answers it, and a request that does not name one is refused: a
+        planning grid that silently changed model when a default moved underneath it
+        would look like the transfer changed.
+
+        No horizon applies to the analytical answer, and that follows from what a
+        horizon IS: an ephemeris horizon bounds how long osculating elements still
+        stand in for an integrated path, and a conic search is not claiming to be
+        that path.
+      required:
+        - bodyIndex
+        - centreBodyIndex
+        - uts
+        - model
+      properties:
+        bodyIndex:
+          type: number
+          x-sitrep-unit: id
+          description: The body, by its `system.bodies` index.
+        centreBodyIndex:
+          type: number
+          x-sitrep-unit: id
+          description: |-
+            The body the answer is expressed relative to, by the same index. For a
+            transfer search this is the parent both endpoints orbit.
+        uts:
+          type: array
+          items:
+            type: number
+            x-sitrep-unit: ut
+          description: |-
+            The instants to solve for, in UT seconds. Answered in the order given, so a
+            caller can zip the reply against its own grid without matching on a time it
+            would have to compare as a float.
+        model:
+          description: |-
+            Which model the answer must come from. `TrajectoryKind.Unspecified` is
+            refused rather than defaulted, for the reason that enum's own zero exists: a
+            caller that says nothing gets told to say something, instead of silently
+            inheriting whatever this install would otherwise have produced.
+          allOf:
+            - $ref: "#/components/schemas/TrajectoryKind"
+              x-sitrep-unit: enum
     CareerContract:
       type: object
       description: One contract in `CareerContracts.active` / `CareerContracts.offered`.

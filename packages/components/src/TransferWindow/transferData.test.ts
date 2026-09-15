@@ -9,6 +9,7 @@ import {
   computeTransfer,
   parentMu,
   phaseAngleDeg,
+  porkchopAxes,
   porkchopGridQuantum,
   quantiseGridUt,
   type ReachEntry,
@@ -203,6 +204,81 @@ describe("transferData bridge", () => {
     expect(corner(0, N - 1)).toBeGreaterThan(best);
     expect(corner(N - 1, 0)).toBeGreaterThan(best);
     expect(corner(N - 1, N - 1)).toBeGreaterThan(best);
+  });
+
+  // The whole point of exporting the axes separately is that a caller can fetch
+  // the body states for a grid BEFORE building it. That only works while the
+  // instants it pre-fetches are the instants the grid then asks about, so the
+  // two are pinned against each other rather than each against a literal.
+  it("porkchopAxes names exactly the instants the grid it describes asks about", () => {
+    const input = {
+      origin: earth,
+      dest: mars,
+      bodies,
+      nowUt: -10 * 365 * DAY,
+      centerDepUt: 0,
+      departureSamples: 8,
+      arrivalSamples: 8,
+    };
+    const axes = porkchopAxes(input);
+    const grid = buildTransferPorkchop(input);
+    expect(axes).not.toBeNull();
+    expect(grid).not.toBeNull();
+    if (!axes || !grid) return;
+
+    expect(grid.cells.map((row) => row[0].depUt)).toEqual(axes.departureUts);
+    expect(grid.cells[0].map((cell) => cell.arrUt)).toEqual(axes.arrivalUts);
+  });
+
+  // The injection is what carries comment 306: the grid must read the game's
+  // elected propagation provider when one answered, not this package's own
+  // conic. Asserted by feeding states that are NOT the conic's and seeing them
+  // come back out, because a builder that quietly ignored the argument would
+  // pass every other test here unchanged.
+  it("buildTransferPorkchop propagates through injected states, not its own solve", () => {
+    const base = {
+      origin: earth,
+      dest: mars,
+      bodies,
+      nowUt: -10 * 365 * DAY,
+      centerDepUt: 0,
+      departureSamples: 8,
+      arrivalSamples: 8,
+    };
+    const asked: { origin: number[]; dest: number[] } = {
+      origin: [],
+      dest: [],
+    };
+    // Both bodies frozen, a quarter turn apart: a well-conditioned 90-degree
+    // transfer that the moving conic cannot reproduce at any instant.
+    const injected = buildTransferPorkchop({
+      ...base,
+      propagateOrigin: (ut) => {
+        asked.origin.push(ut);
+        return { position: [1.5e11, 0, 0], velocity: [0, 29780, 0] };
+      },
+      propagateDest: (ut) => {
+        asked.dest.push(ut);
+        return { position: [0, 2.28e11, 0], velocity: [-24070, 0, 0] };
+      },
+    });
+    const local = buildTransferPorkchop(base);
+    expect(injected?.best).toBeTruthy();
+    expect(local?.best).toBeTruthy();
+    if (!injected?.best || !local?.best) return;
+
+    /*
+     * Once per axis line rather than once per cell: `buildPorkchop` caches per
+     * UT, and a grid that asked 64 times for 16 instants would spend 4x the
+     * round trips the batched fetch exists to avoid.
+     */
+    expect(asked.origin).toHaveLength(8);
+    expect(asked.dest).toHaveLength(8);
+
+    // The answer actually came from them. A builder that accepted the argument
+    // and quietly solved its own conic anyway would pass every other assertion
+    // in this file unchanged.
+    expect(injected.best.deltaV).not.toBeCloseTo(local.best.deltaV, 0);
   });
 });
 

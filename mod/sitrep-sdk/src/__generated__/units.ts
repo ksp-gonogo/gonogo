@@ -155,6 +155,26 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     surfaceGravity: "g",
     tidallyLocked: "flag",
   },
+  "BodyState": {
+    ut: "ut",
+    vx: "m/s",
+    vy: "m/s",
+    vz: "m/s",
+    x: "m",
+    y: "m",
+    z: "m",
+  },
+  "BodyStatesReply": {
+    providerId: "id",
+    refusal: "text",
+    solved: "flag",
+  },
+  "BodyStatesRequest": {
+    bodyIndex: "id",
+    centreBodyIndex: "id",
+    model: "enum",
+    uts: "ut",
+  },
   "CareerContract": {
     agent: "text",
     dateAccepted: "ut",
@@ -2027,6 +2047,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     atmosphere: "AtmosphereEntry",
     horizon: "PropagationHorizon",
     orbit: "OrbitEntry",
+  },
+  "BodyStatesReply": {
+    states: "BodyState[]",
   },
   "CapabilitySelection": {
     descriptor: "CapabilityDescriptor",

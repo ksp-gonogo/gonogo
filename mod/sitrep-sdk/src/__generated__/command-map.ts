@@ -53,6 +53,8 @@
 import type {
   ActivateStrategyArgs,
   AddManeuverNodeArgs,
+  BodyStatesReply,
+  BodyStatesRequest,
   CommandResult,
   CommandResultOf,
   ContractActionArgs,
@@ -123,6 +125,7 @@ export interface GeneratedCommandArgsMap {
   "robotics.servo.setTarget": ServoSetTargetArgs;
   "science.experiment.deploy": ExperimentActionArgs;
   "science.experiment.transmit": ExperimentActionArgs;
+  "system.bodies.statesAt": BodyStatesRequest;
   "system.frame.set": SetControlFrameArgs;
   "time.setPaused": SetPausedArgs;
   "time.setWarpIndex": SetWarpIndexArgs;
@@ -179,6 +182,7 @@ export interface GeneratedCommandReplyMap {
   "robotics.servo.setTarget": CommandResult;
   "science.experiment.deploy": CommandResult;
   "science.experiment.transmit": CommandResult;
+  "system.bodies.statesAt": BodyStatesReply;
   "system.frame.set": CommandResult;
   "time.setPaused": CommandResult;
   "time.setWarpIndex": CommandResult;
@@ -266,6 +270,7 @@ export const GENERATED_COMMAND_RAIL = {
   "robotics.servo.setTarget": { replies: true, delayed: true },
   "science.experiment.deploy": { replies: true, delayed: true },
   "science.experiment.transmit": { replies: true, delayed: true },
+  "system.bodies.statesAt": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
   "time.setPaused": { replies: true, delayed: false },
   "time.setWarpIndex": { replies: true, delayed: false },
@@ -322,6 +327,7 @@ export const GENERATED_COMMAND_IDS = [
   "robotics.servo.setTarget",
   "science.experiment.deploy",
   "science.experiment.transmit",
+  "system.bodies.statesAt",
   "system.frame.set",
   "time.setPaused",
   "time.setWarpIndex",

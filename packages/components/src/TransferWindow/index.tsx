@@ -38,6 +38,7 @@ import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import {
   buildTransferPorkchop,
   computeTransfer,
+  porkchopAxes,
   porkchopGridQuantum,
   quantiseGridUt,
   type ReachEntry,
@@ -48,6 +49,7 @@ import {
   transferDestinations,
   upcomingWindows,
 } from "./transferData";
+import { useBodyStatePropagators } from "./useBodyStatePropagators";
 
 const topics = defineTopicManifest({
   channels: ["system.bodies", "vessel.orbit", "target.available", "dv.summary"],
@@ -356,6 +358,32 @@ function TransferWindowComponent({
 
   // The base porkchop is windowed on the next window's ideal departure; its
   // optimum is that window's Δv, which seeds the windows list.
+  //
+  // Its time axes are derived first, without solving anything on them, so the
+  // body states can be asked of the game before the grid is built. The grid
+  // falls back to the client's own conic until they arrive, and for good on a
+  // screen with no stream mounted, so the chart is never blank waiting on a
+  // round trip.
+  const baseAxes = useMemo(
+    () =>
+      origin && dest
+        ? porkchopAxes({
+            origin,
+            dest,
+            bodies,
+            nowUt: gridNowUt,
+            centerDepUt: gridCenterDepUt,
+          })
+        : null,
+    [origin, dest, bodies, gridNowUt, gridCenterDepUt],
+  );
+  const baseStates = useBodyStatePropagators(
+    origin ?? null,
+    dest ?? null,
+    bodies,
+    baseAxes,
+  );
+
   const basePorkchop = useMemo(
     () =>
       origin && dest
@@ -365,9 +393,11 @@ function TransferWindowComponent({
             bodies,
             nowUt: gridNowUt,
             centerDepUt: gridCenterDepUt,
+            propagateOrigin: baseStates?.propagateOrigin,
+            propagateDest: baseStates?.propagateDest,
           })
         : null,
-    [origin, dest, bodies, gridNowUt, gridCenterDepUt],
+    [origin, dest, bodies, gridNowUt, gridCenterDepUt, baseStates],
   );
 
   const windows = useMemo(
@@ -456,6 +486,25 @@ function TransferWindowComponent({
   const focusedCenterDepUt = selected
     ? quantise(selected.departureUt)
     : undefined;
+  const focusedAxes = useMemo(() => {
+    if (!origin || !dest || focusedIsBase || focusedCenterDepUt === undefined) {
+      return null;
+    }
+    return porkchopAxes({
+      origin,
+      dest,
+      bodies,
+      nowUt: gridNowUt,
+      centerDepUt: focusedCenterDepUt,
+    });
+  }, [origin, dest, bodies, gridNowUt, focusedIsBase, focusedCenterDepUt]);
+  const focusedStates = useBodyStatePropagators(
+    origin ?? null,
+    dest ?? null,
+    bodies,
+    focusedAxes,
+  );
+
   const focusedPorkchop = useMemo(() => {
     if (!origin || !dest || focusedIsBase || focusedCenterDepUt === undefined) {
       return basePorkchop;
@@ -466,6 +515,8 @@ function TransferWindowComponent({
       bodies,
       nowUt: gridNowUt,
       centerDepUt: focusedCenterDepUt,
+      propagateOrigin: focusedStates?.propagateOrigin,
+      propagateDest: focusedStates?.propagateDest,
     });
   }, [
     origin,
@@ -474,6 +525,7 @@ function TransferWindowComponent({
     gridNowUt,
     focusedIsBase,
     focusedCenterDepUt,
+    focusedStates,
     basePorkchop,
   ]);
 

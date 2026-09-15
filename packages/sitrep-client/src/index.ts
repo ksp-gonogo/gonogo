@@ -437,6 +437,11 @@ export {
   deriveSystemUplinkHealth,
   systemUplinkHealthChannel,
 } from "./uplink-health";
+export {
+  BODY_STATES_COMMAND,
+  type BodyStatesQuery,
+  useBodyStates,
+} from "./use-body-states";
 export { useCertainty } from "./use-certainty";
 export {
   type CommandOutputToken,
