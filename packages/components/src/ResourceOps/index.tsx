@@ -4,7 +4,7 @@ import {
   registerComponent,
   useActionInput,
 } from "@ksp-gonogo/core";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
+import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import type {
   IsruConverterEntry,
   IsruDrillEntry,
@@ -141,7 +141,7 @@ const RESOURCE_NAME_STYLE = {
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

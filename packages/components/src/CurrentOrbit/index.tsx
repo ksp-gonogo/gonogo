@@ -127,8 +127,8 @@ function CurrentOrbitComponent({
   // MapView, SystemView and FleetComms.
   const orbitReading = useTelemetry("vessel.orbit");
   const orbit =
-    orbitReading.reckoning === "available"
-      ? orbitReading.reckoned.value
+    orbitReading.reckoning.status === "available"
+      ? orbitReading.reckoning.value
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;

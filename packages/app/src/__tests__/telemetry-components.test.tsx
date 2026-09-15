@@ -235,7 +235,7 @@ describe("TargetingComponent", () => {
   it("waits for telemetry rather than claiming no target is set, before anything is received", () => {
     // The old assertion (and this test's own old title) had it backwards: "not
     // yet received" is pending, and "No target set in KSP" is a claim about the
-    // GAME that only a tombstone can support. `Reading<T>` splits the two, and
+    // GAME that only a tombstone can support. `TopicReading<T>` splits the two, and
     // no provider is mounted here at all, so this is the pending branch.
     render(<TargetingComponent config={{}} id="tar" />);
     expect(

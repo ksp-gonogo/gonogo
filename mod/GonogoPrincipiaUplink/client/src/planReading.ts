@@ -1,4 +1,4 @@
-import type { Reading, StaleGrade } from "@ksp-gonogo/sitrep-sdk";
+import type { StaleGrade, TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import type { PrincipiaPlan } from "./__generated__/contract";
 
 /**
@@ -41,7 +41,7 @@ export type PlanWriteView =
  * discriminant, so a LIVE plan can carry a model too, and this declines that one
  * for the same reason.
  */
-export function planView(reading: Reading<PrincipiaPlan>): PlanWriteView {
+export function planView(reading: TopicReading<PrincipiaPlan>): PlanWriteView {
   switch (reading.state) {
     case "pending":
       return { kind: "none", reason: "Waiting for Principia." };

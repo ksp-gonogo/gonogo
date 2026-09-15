@@ -9,8 +9,8 @@ const topics = defineTopicManifest({
 import { useDataSeries } from "@ksp-gonogo/data";
 import {
   observedAt,
-  type Reading,
   readingOf,
+  type TopicReading,
   useStream,
   useViewUt,
   type VesselState,
@@ -38,7 +38,7 @@ const SPARK_WINDOW_SEC = 300;
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

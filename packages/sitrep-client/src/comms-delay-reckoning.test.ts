@@ -5,7 +5,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { CommsDelaySource, CommsHopKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Reading } from "./reading";
+import type { TopicReading } from "./reading";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -172,7 +172,7 @@ function scene(
       wall = at;
       store.ingest("comms.path", point(at, { hops: [...hops] }));
     },
-    at(viewUt: number): Reading<DelaySample> {
+    at(viewUt: number): TopicReading<DelaySample> {
       wall = viewUt;
       store.beginFrame();
       return store.sampleReading<DelaySample>("comms.delay");
@@ -181,9 +181,11 @@ function scene(
 }
 
 /** The reckoned one-way delay, or `undefined` where the model withdrew. */
-function reckonedSeconds(reading: Reading<DelaySample>): number | undefined {
-  return reading.reckoning === "available"
-    ? reading.reckoned.value.oneWaySeconds?.magnitude
+function reckonedSeconds(
+  reading: TopicReading<DelaySample>,
+): number | undefined {
+  return reading.reckoning.status === "available"
+    ? reading.reckoning.value.oneWaySeconds?.magnitude
     : undefined;
 }
 
@@ -197,7 +199,7 @@ describe("a direct link to a ground station", () => {
     const s = scene(DIRECT_HOPS);
     const reading = s.at(0);
 
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     // The craft and the station are where they were when the light left, so the
     // re-measured first hop IS the measured one and the model reproduces the
     // observation exactly. Continuity at the anchor, not a coincidence of this
@@ -217,10 +219,12 @@ describe("a direct link to a ground station", () => {
     const station = PLANET_RADIUS * Math.SQRT1_2;
     const expected = Math.hypot(CRAFT_SMA + station, station) / C;
 
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(reckonedSeconds(reading)).toBeCloseTo(expected, 12);
     expect(
-      reading.reckoning === "available" ? reading.reckoned.basis : undefined,
+      reading.reckoning.status === "available"
+        ? reading.reckoning.basis
+        : undefined,
     ).toBe("kepler-propagation");
   });
 
@@ -235,7 +239,7 @@ describe("a direct link to a ground station", () => {
     const station = PLANET_RADIUS * Math.SQRT1_2;
     const reading = s.at(HALF_ORBIT);
 
-    expect(reading.reckoning).toBe("available");
+    expect(reading.reckoning.status).toBe("available");
     expect(reckonedSeconds(reading)).toBeCloseTo(
       Math.hypot(CRAFT_SMA + station, station) / C,
       12,
@@ -249,8 +253,9 @@ describe("a direct link to a ground station", () => {
     // A save with no comms model reports 0 with `connected: true`. Carrying a
     // light-time forward from it would invent a delay the operator has switched
     // off, which is a worse answer than none.
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "model-inapplicable", input: "source" },
     });
   });
@@ -265,8 +270,9 @@ describe("a relayed link", () => {
     // topic. A reckoner's inputs are declared once at registration, so there is
     // no dep that names it and no honest way to place the relay. The refusal
     // says which input, spelled as the wire spells it.
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: {
         reason: "input-absent",
         input: `@fleet.${RELAY_GUID}.orbit`,

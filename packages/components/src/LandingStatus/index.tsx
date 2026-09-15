@@ -2,15 +2,14 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
   DELTA_V_BUDGET,
-  type Reading,
   type ReadingState,
   type ReckonableReading,
+  type TopicReading,
   useProcessor,
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  bandFor,
   bandIn,
   type Value as Quantity,
   readingOf,
@@ -287,26 +286,6 @@ export type FlightReading = ReckonableReading<
 >;
 
 /**
- * Where `vessel.flight`'s altitude band is keyed, and why no kit primitive can
- * be asked to fetch it.
- *
- * `Meter` owns the band LOOKUP for the whole kit and says so in its own header,
- * and it knows exactly two addresses: the payload ROOT in `ratio` for a
- * fraction, and `"amount"` for a tank pair. This band is at `"altitudeAsl"` in
- * metres, which is neither, and there is no third spelling to pass. So the two
- * ends are fetched here, with `bandFor` + `bandIn` (which is the narrowing a
- * hand-written `reckoned.bands?.[...]` would skip), and drawn as a `<Band>`.
- *
- * That means this readout does NOT get the accepted band visual, which is marks
- * on a track. `Tape` has the marks and takes bare `Value`s, but the only track
- * on this widget is the AGL rail, and putting an ASL interval on it would be
- * the same re-keying in a different costume. Reaching the accepted visual needs
- * either a path on `Meter` or a length primitive that has one; both are kit API
- * and neither is this slice's to invent.
- */
-const ALTITUDE_BAND_PATH = "altitudeAsl";
-
-/**
  * Altitude above sea level: what was last measured, where the model puts it
  * now, and how well the model claims to know that.
  *
@@ -333,14 +312,20 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
   const decimals =
     "value" in observed ? altitudeDecimals(observed.value) : undefined;
   const carrying = reading.state === "stale";
-  const carried =
-    carrying && reading.reckoning === "available"
-      ? reading.reckoned.value.altitudeAsl
-      : null;
-  const band =
-    carrying && reading.reckoning === "available"
-      ? bandIn(bandFor(reading.reckoned, ALTITUDE_BAND_PATH), "m")
+  /*
+   * The FIELD reading, not the topic's model keyed by a path string. The band
+   * and the carried figure are both properties of this one altitude, and the
+   * field property is where they live: it is projected out of the topic's own
+   * model, so the interval issue 255 fixed survives the `vessel.state` redirect that
+   * a read of `vessel.flight.altitudeAsl` would have gone through.
+   */
+  const altitude = reading.altitudeAsl;
+  const modelled =
+    carrying && altitude.reckoning.status === "available"
+      ? altitude.reckoning
       : undefined;
+  const carried = modelled ? modelled.modelled : null;
+  const band = bandIn(modelled?.band, "m");
   /*
    * Only while the reading is not current. A refusal is an answer to "why is
    * there no carried figure", and on a live link nobody asked: the observation
@@ -348,7 +333,9 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
    * line the operator reads once and then stops seeing.
    */
   const declined =
-    carrying && "declined" in reading ? reading.declined : undefined;
+    carrying && reading.reckoning.status === "declined"
+      ? reading.reckoning.declined
+      : undefined;
   return (
     <Section title="Altitude ASL">
       <Grid cols="auto 1fr" gap="xs">
@@ -533,9 +520,9 @@ function LandingStatusComponent({
    * descent state is genuinely better than the last observed one. `instruct` demands
    * `observed`, which is the whole distinction.
    */
-  const describe = <T,>(r: Reading<T>): T | undefined =>
-    r.reckoning === "available"
-      ? r.reckoned.value
+  const describe = <T,>(r: TopicReading<T>): T | undefined =>
+    r.reckoning.status === "available"
+      ? r.reckoning.value
       : r.state === "observed" || r.state === "stale"
         ? r.value
         : undefined;
@@ -552,12 +539,14 @@ function LandingStatusComponent({
    */
   const describeReckonable = <T, K extends keyof T>(
     r: ReckonableReading<T, K>,
-  ): T | undefined =>
-    r.reckoning === "available"
-      ? { ...r.value, ...r.reckoned.value }
-      : r.state === "observed" || r.state === "stale"
-        ? r.value
-        : undefined;
+  ): T | undefined => {
+    // The observation first, because `reckoning.status` narrows the reckoning
+    // and not the arm carrying it.
+    if (r.state !== "observed" && r.state !== "stale") return undefined;
+    return r.reckoning.status === "available"
+      ? { ...r.value, ...r.reckoning.value }
+      : r.value;
+  };
 
   // Which situation the vessel is in does not decay the way a velocity does: a
   // craft that was on the pad when the last frame arrived has not since taken

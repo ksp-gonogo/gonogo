@@ -347,7 +347,6 @@ export {
 } from "./processors";
 export { orbitalPeriod, STANDARD_GRAVITY } from "./propagation";
 export type {
-  Reading,
   ReadingState,
   ReckonableReading,
   ReckonerFor,
@@ -355,6 +354,7 @@ export type {
   ReckoningBasis,
   ReckoningDecline,
   StaleGrade,
+  TopicReading,
   UnmodelledReading,
 } from "./reading";
 /**

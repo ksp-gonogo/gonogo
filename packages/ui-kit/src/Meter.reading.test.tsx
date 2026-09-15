@@ -1,6 +1,7 @@
 import {
-  type Reading,
   type ReckonedBands,
+  type TopicReading,
+  topicReading,
   type UncertaintyBand,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -40,16 +41,24 @@ function ratioBand(
 }
 
 /** An observed fraction, with whatever bands the model offers at the root. */
-function bandedFraction(v: number, bands?: ReckonedBands): Reading<number> {
+function bandedFraction(
+  v: number,
+  bands?: ReckonedBands,
+): TopicReading<number> {
   if (!bands) {
-    return { state: "observed", reckoning: "none", value: v, atUt: AT };
+    return topicReading({
+      state: "observed",
+      reckoning: { status: "none" },
+      value: v,
+      atUt: AT,
+    });
   }
-  return {
+  return topicReading({
     state: "observed",
-    reckoning: "available",
     value: v,
     atUt: AT,
-    reckoned: {
+    reckoning: {
+      status: "available",
       value: v,
       atUt: AT,
       basis: "linear-dead-reckoning",
@@ -57,7 +66,7 @@ function bandedFraction(v: number, bands?: ReckonedBands): Reading<number> {
       owner: "core",
       bands,
     },
-  };
+  });
 }
 
 /** A pair, with whatever bands the model offers about its `amount`. */
@@ -65,20 +74,25 @@ function bandedPair(
   amount: number,
   capacity: number,
   bands?: ReckonedBands,
-): Reading<MeterQuantity<"units">> {
+): TopicReading<MeterQuantity<"units">> {
   const pair: MeterQuantity<"units"> = {
     amount: value("units", amount),
     capacity: value("units", capacity),
   };
   if (!bands) {
-    return { state: "observed", reckoning: "none", value: pair, atUt: AT };
+    return topicReading({
+      state: "observed",
+      reckoning: { status: "none" },
+      value: pair,
+      atUt: AT,
+    });
   }
-  return {
+  return topicReading({
     state: "observed",
-    reckoning: "available",
     value: pair,
     atUt: AT,
-    reckoned: {
+    reckoning: {
+      status: "available",
       value: pair,
       atUt: AT,
       basis: "linear-dead-reckoning",
@@ -86,7 +100,7 @@ function bandedPair(
       owner: "core",
       bands,
     },
-  };
+  });
 }
 
 /** The bound marks on the one meter rendered, in the order they were drawn. */
@@ -222,7 +236,12 @@ describe("Meter, given a reading of a fraction", () => {
     render(
       <Meter
         label="Dose"
-        value={{ state: "pending", reckoning: "none" } as Reading<number>}
+        value={
+          {
+            state: "pending",
+            reckoning: { status: "none" },
+          } as TopicReading<number>
+        }
       />,
     );
     expect(screen.queryByRole("meter", { name: "Dose" })).toBeNull();
@@ -236,11 +255,11 @@ describe("Meter, given a reading of a fraction", () => {
         value={
           {
             state: "stale",
-            reckoning: "none",
+            reckoning: { status: "none" },
             value: 0.39,
             asOfUt: AT,
             grade: "held-stale",
-          } as Reading<number>
+          } as TopicReading<number>
         }
       />,
     );

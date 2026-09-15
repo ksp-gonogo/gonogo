@@ -1,4 +1,4 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicReading } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The value where one is current.
@@ -14,8 +14,8 @@ import type { Reading } from "@ksp-gonogo/sitrep-sdk";
  * contribution off the frame store instead, which gates it, and nothing routes
  * it through here.</para>
  */
-export function current<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
+export function current<T>(reading: TopicReading<T>): T | undefined {
+  if (reading.reckoning.status === "available") return reading.reckoning.value;
   if (reading.state === "observed") return reading.value;
   return undefined;
 }

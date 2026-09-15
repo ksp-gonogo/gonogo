@@ -1,4 +1,4 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
   useTelemetry,
@@ -43,7 +43,7 @@ type AnalysisView =
   | { kind: "notAnalysing" }
   | { kind: "analysed"; orbit: PrincipiaOrbitAnalysis };
 
-function analysisView(reading: Reading<PrincipiaAnalysis>): AnalysisView {
+function analysisView(reading: TopicReading<PrincipiaAnalysis>): AnalysisView {
   switch (reading.state) {
     case "pending":
     case "absent":

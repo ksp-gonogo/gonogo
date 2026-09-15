@@ -1,7 +1,7 @@
 import type {
   ComposedBurn,
   PlanDraft,
-  Reading,
+  TopicReading,
   UseCommandResult,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -456,7 +456,7 @@ function emptyBurn(ignitionUt: Value<"ut">): ComposedBurn {
  * name is a minute old would make this useless at exactly the distances it is
  * for.</p>
  */
-function knownId(reading: Reading<VesselIdentity>): string | undefined {
+function knownId(reading: TopicReading<VesselIdentity>): string | undefined {
   if (reading.state === "observed" || reading.state === "stale") {
     return reading.value.vesselId;
   }

@@ -7,7 +7,7 @@ import {
   useContributions,
 } from "@ksp-gonogo/core";
 import {
-  type Reading,
+  type TopicReading,
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -114,7 +114,7 @@ const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

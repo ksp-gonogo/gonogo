@@ -435,9 +435,16 @@ function MapViewComponent({
   // frame mapping is not on the wire. So the dot below still draws from the last
   // observed pair even while a model is on offer, and the projection is what
   // stops that being invisible.
+  /* The observation is reached first because `reckoning.status` narrows the
+     reckoning and not the arm carrying it: a nested discriminant says nothing
+     about which state has a value. */
+  const flightObserved =
+    flightReading.state === "observed" || flightReading.state === "stale"
+      ? flightReading.value
+      : undefined;
   const positioned =
-    flightReading.reckoning === "available"
-      ? { ...flightReading.value, ...flightReading.reckoned.value }
+    flightObserved && flightReading.reckoning.status === "available"
+      ? { ...flightObserved, ...flightReading.reckoning.value }
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
@@ -450,7 +457,8 @@ function MapViewComponent({
    * withholding happens when no model is on offer.
    */
   const positionStale =
-    flightReading.state === "stale" && flightReading.reckoning === "none";
+    flightReading.state === "stale" &&
+    flightReading.reckoning.status !== "available";
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
   const altSea = vesselState?.altitudeAsl ?? undefined;
@@ -467,8 +475,8 @@ function MapViewComponent({
   // whether a Kepler solve is the right way to sample it.
   const orbitReading = useTelemetry("vessel.orbit");
   const orbitSample =
-    orbitReading.reckoning === "available"
-      ? orbitReading.reckoned.value
+    orbitReading.reckoning.status === "available"
+      ? orbitReading.reckoning.value
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;

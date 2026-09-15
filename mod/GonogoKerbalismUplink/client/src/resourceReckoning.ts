@@ -274,7 +274,7 @@ function intervalOrDecline(
  * REASONS are testable. `vessel.resources` carries no `[SitrepReckonable]` mark
  * (see this file's header for why the mark would be a promise core cannot
  * keep), so a plain `Reading` reduces every refusal below to
- * `reckoning: "none"` and a consumer never sees which one fired. The reasons
+ * `reckoning: { status: "none" }` and a consumer never sees which one fired. The reasons
  * are still worth getting right, and a caller of this function is the only
  * thing that can check them.
  */

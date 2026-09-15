@@ -128,7 +128,7 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
       }),
     });
 
-    expect(store.sampleReading("test.contact").reckoning).toBe("none");
+    expect(store.sampleReading("test.contact").reckoning.status).toBe("none");
   });
 
   it("leaves the same model alone while the input still reaches", () => {
@@ -142,7 +142,9 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
       }),
     });
 
-    expect(store.sampleReading("test.contact").reckoning).toBe("available");
+    expect(store.sampleReading("test.contact").reckoning.status).toBe(
+      "available",
+    );
   });
 
   it("names the input that ran out, in the contract's own spelling", () => {
@@ -158,8 +160,9 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
 
     const reading = store.sampleReading("vessel.dock");
 
-    expect(reading.reckoning).toBe("none");
-    expect(reading).toMatchObject({
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
       declined: { reason: "beyond-horizon", input: `@${INPUT}` },
     });
   });
@@ -178,7 +181,9 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
       }),
     });
 
-    expect(store.sampleReading("test.contact").reckoning).toBe("available");
+    expect(store.sampleReading("test.contact").reckoning.status).toBe(
+      "available",
+    );
   });
 });
 
@@ -213,10 +218,10 @@ describe("rule 2: a band claims no more than its inputs know", () => {
 
   function bandOf(store: TimelineStore): UncertaintyBand | undefined {
     const reading = store.sampleReading("test.contact");
-    if (reading.reckoning !== "available") {
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    return reading.reckoned.bands?.[""];
+    return reading.reckoning.bands?.[""];
   }
 
   it("caps a bound claim at sigma1 when an input only offers sigma1", () => {
@@ -312,7 +317,9 @@ describe("two models that name each other's topics", () => {
     registerReckoner("test.contact", UPLINK, mutual(undefined)("test.dock"));
     registerReckoner("test.dock", UPLINK, mutual(undefined)("test.contact"));
 
-    expect(store.sampleReading("test.contact").reckoning).toBe("available");
+    expect(store.sampleReading("test.contact").reckoning.status).toBe(
+      "available",
+    );
   });
 
   it("settles rather than recursing, on the band walk", () => {
@@ -326,10 +333,10 @@ describe("two models that name each other's topics", () => {
     registerReckoner("test.dock", UPLINK, mutual("sigma1")("test.contact"));
 
     const reading = store.sampleReading("test.contact");
-    if (reading.reckoning !== "available") {
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    expect(reading.reckoned.bands?.[""]?.kind).toBe("sigma1");
+    expect(reading.reckoning.bands?.[""]?.kind).toBe("sigma1");
   });
 });
 

@@ -179,10 +179,10 @@ describe("a reading carries the band its model offered", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("test.temperature");
-    if (reading.reckoning !== "available") {
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    const carried = bandFor(reading.reckoned);
+    const carried = bandFor(reading.reckoning);
     expect(carried).toBeDefined();
     expect(carried?.kind).toBe("sigma1");
     // 30 s carried at 0.5/s: 15 below, 45 above, around a value of 130.
@@ -206,11 +206,11 @@ describe("a reading carries the band its model offered", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("test.temperature");
-    if (reading.reckoning !== "available") {
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    expect(reading.reckoned.bands).toBeUndefined();
-    expect(bandFor(reading.reckoned)).toBeUndefined();
+    expect(reading.reckoning.bands).toBeUndefined();
+    expect(bandFor(reading.reckoning)).toBeUndefined();
   });
 
   /*
@@ -229,18 +229,20 @@ describe("a reading carries the band its model offered", () => {
     store.beginFrame();
 
     const near = store.sampleReading<number>("test.temperature");
-    if (near.reckoning !== "available") throw new Error("expected a model");
+    if (near.reckoning.status !== "available")
+      throw new Error("expected a model");
     const nearWidth =
-      (bandFor(near.reckoned)?.hi.magnitude ?? 0) -
-      (bandFor(near.reckoned)?.lo.magnitude ?? 0);
+      (bandFor(near.reckoning)?.hi.magnitude ?? 0) -
+      (bandFor(near.reckoning)?.lo.magnitude ?? 0);
 
     store.clock.scrubTo(120);
     store.beginFrame();
     const far = store.sampleReading<number>("test.temperature");
-    if (far.reckoning !== "available") throw new Error("expected a model");
+    if (far.reckoning.status !== "available")
+      throw new Error("expected a model");
     const farWidth =
-      (bandFor(far.reckoned)?.hi.magnitude ?? 0) -
-      (bandFor(far.reckoned)?.lo.magnitude ?? 0);
+      (bandFor(far.reckoning)?.hi.magnitude ?? 0) -
+      (bandFor(far.reckoning)?.lo.magnitude ?? 0);
 
     expect(farWidth).toBeGreaterThan(nearWidth);
   });
@@ -465,10 +467,10 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
     const reading = store.sampleReading<number>(
       "test.contact.relativePosition",
     );
-    if (reading.reckoning !== "available") {
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    const carried = bandFor(reading.reckoned);
+    const carried = bandFor(reading.reckoning);
     expect(carried?.lo.magnitude).toBe(100);
     expect(carried?.hi.magnitude).toBe(130);
   });
@@ -481,10 +483,10 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
     const reading = store.sampleReading<number>(
       "test.contact.relativePosition",
     );
-    if (reading.reckoning !== "available") {
+    if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    expect(bandFor(reading.reckoned)).toBeUndefined();
+    expect(bandFor(reading.reckoning)).toBeUndefined();
   });
 
   it("carries it onto the plotted tail as well as the point read", () => {

@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   observedAt,
-  type Reading,
+  type TopicReading,
   useViewUt,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
@@ -163,7 +163,7 @@ type ViewMode = "tracking" | "approach" | "docking-hud";
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
@@ -216,9 +216,16 @@ function TargetingComponent({
    * observation, and it is written here rather than hidden in a helper because
    * that overlay IS the judgement.
    */
+  /* The observation is reached first because `reckoning.status` narrows the
+     reckoning and not the arm carrying it: a nested discriminant says nothing
+     about which state has a value. */
+  const dockObserved =
+    dockReading.state === "observed" || dockReading.state === "stale"
+      ? dockReading.value
+      : undefined;
   const dock =
-    dockReading.reckoning === "available"
-      ? { ...dockReading.value, ...dockReading.reckoned.value }
+    dockObserved && dockReading.reckoning.status === "available"
+      ? { ...dockObserved, ...dockReading.reckoning.value }
       : dockReading.state === "observed"
         ? dockReading.value
         : undefined;
@@ -335,7 +342,7 @@ function TargetingComponent({
    */
   const alignmentWithheld =
     dockReading.state === "stale" &&
-    dockReading.reckoning === "none" &&
+    dockReading.reckoning.status !== "available" &&
     dockPairing?.relativePosition !== undefined;
   /*
    * The other half of the same question: the separation IS being carried
@@ -345,8 +352,9 @@ function TargetingComponent({
    * could only ever describe a gap.
    */
   const modelledAlignment =
-    dockReading.reckoning === "available" && dockReading.state === "stale"
-      ? dockReading.reckoned.basis
+    dockReading.reckoning.status === "available" &&
+    dockReading.state === "stale"
+      ? dockReading.reckoning.basis
       : undefined;
   /*
    * The age, spelled out: an instant minus an instant is a duration, and the
@@ -539,8 +547,8 @@ function TargetingComponent({
   // is the alternative and would be wrong for this widget: range to a target is
   // exactly the quantity an approach is flown on.
   const reckoned =
-    targetReading.reckoning === "available"
-      ? targetReading.reckoned
+    targetReading.reckoning.status === "available"
+      ? targetReading.reckoning
       : undefined;
   // Derived exactly as the observed distance is, from the same Vec3 field, so a
   // modelled range and an observed one are the same quantity computed the same

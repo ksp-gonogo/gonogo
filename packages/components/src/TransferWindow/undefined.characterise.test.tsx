@@ -8,7 +8,7 @@ import { TransferWindowComponent } from "./index";
 
 /**
  * Characterisation of TransferWindow's `undefined` telemetry reads, recorded
- * BEFORE `useTelemetry` becomes `Reading<T>`.
+ * BEFORE `useTelemetry` becomes `TopicReading<T>`.
  *
  * Three absence gates decide everything this widget draws:
  *

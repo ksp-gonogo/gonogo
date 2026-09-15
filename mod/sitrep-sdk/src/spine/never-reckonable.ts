@@ -42,7 +42,7 @@
  * A list that merely RECORDS the default has no source construct to scan for,
  * so it rots without ever failing. This one is not that, because **it has the
  * compiler as a consumer**: a wrong entry surfaces the moment someone writes a
- * `reckoning === "available"` branch that then refuses to compile.
+ * `reckoning.status === "available"` branch that then refuses to compile.
  *
  * A list nothing reads rots. A list the type checker reads cannot.
  *
@@ -60,7 +60,7 @@
  *
  * Add a topic here only when no model could ever exist for it, and say why in
  * the comment beside it. If the answer is "no model YET", leave it out: the
- * absence of a registered reckoner already reads `reckoning: "none"`, which is
+ * absence of a registered reckoner already reads `reckoning: { status: "none" }`, which is
  * the honest default, and putting it here would forbid the model someone is
  * about to write.
  *

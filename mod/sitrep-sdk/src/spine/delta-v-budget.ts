@@ -1,7 +1,7 @@
 import { observedAt } from "../reading";
 import { isValue, value } from "../unit-system/value";
 import type { Value } from "../value";
-import type { Reading, ReadingState } from "./client-reading";
+import type { ReadingState, TopicCurrency } from "./client-reading";
 import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
 // ---------------------------------------------------------------------------
@@ -228,7 +228,7 @@ const NO_BUDGET: DeltaVBudget = {
  * derivation beside its handle.
  */
 export function deriveDeltaVBudget(
-  summaryReading: Reading<SummaryWire>,
+  summaryReading: TopicCurrency<SummaryWire>,
   stagesRaw: unknown,
   currentStage: number | undefined,
   viewUt: number,

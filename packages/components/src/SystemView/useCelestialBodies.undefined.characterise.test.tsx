@@ -5,7 +5,7 @@ import { useCelestialBodies } from "./useCelestialBodies";
 
 /**
  * CHARACTERISATION of what `undefined` MEANS to `useCelestialBodies` today, so
- * the `Reading<T>` migration can be checked against recorded behaviour rather
+ * the `TopicReading<T>` migration can be checked against recorded behaviour rather
  * than against intent.
  *
  * The hook has exactly one telemetry read, `useTelemetry("system.bodies")`, and

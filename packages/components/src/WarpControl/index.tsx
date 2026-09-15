@@ -8,7 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
-  type Reading,
+  type TopicReading,
   useCommand,
 } from "@ksp-gonogo/sitrep-client";
 import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
@@ -120,7 +120,7 @@ const HIGH_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

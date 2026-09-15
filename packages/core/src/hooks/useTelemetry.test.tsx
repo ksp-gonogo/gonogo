@@ -72,7 +72,7 @@ const ORBIT: WireOf<VesselOrbitPayload> = {
 beforeEach(() => clearRegistry());
 
 describe("useTelemetry: canonical TopicId read", () => {
-  it("reads a Topic straight off the mounted TimelineStore, typed as Reading<TopicPayload<T>>", async () => {
+  it("reads a Topic straight off the mounted TimelineStore, typed as TopicReading<TopicPayload<T>>", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
@@ -116,7 +116,10 @@ describe("useTelemetry: canonical TopicId read", () => {
     // are the `pending` arm. A widget on a station with no host reads exactly what a
     // widget waiting for its first frame reads, which is the honest answer.
     const { result } = renderHook(() => useTelemetry("vessel.orbit"));
-    expect(result.current).toEqual({ state: "pending", reckoning: "none" });
+    expect(result.current).toEqual({
+      state: "pending",
+      reckoning: { status: "none" },
+    });
   });
 });
 

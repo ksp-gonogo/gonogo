@@ -23,7 +23,11 @@ import { bandIsWellFormed } from "../reading";
 import { reckonableInputSpelling, reckonableValuesOf } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { isValue, type Value, value } from "../unit-system/value";
-import { type Reading, type ReckonerFor, readingFrom } from "./client-reading";
+import {
+  type ReckonerFor,
+  readingFrom,
+  type TopicReading,
+} from "./client-reading";
 import {
   ClientTimeline,
   type ClientTimelineOptions,
@@ -703,7 +707,7 @@ export class TimelineStore {
        * Its own input, because it is a function of OTHER topics' data.
        */
       declineKey: string | undefined;
-      reading: Reading<unknown>;
+      reading: TopicReading<unknown>;
     }
   >();
 
@@ -2489,7 +2493,7 @@ export class TimelineStore {
   }
 
   /**
-   * The topic's value AND its currency as one `Reading<T>`, at a frame token's
+   * The topic's value AND its currency as one `TopicReading<T>`, at a frame token's
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
    *
@@ -2515,7 +2519,7 @@ export class TimelineStore {
   sampleReading<T>(
     topic: string,
     token: FrameToken = this.currentToken,
-  ): Reading<T> {
+  ): TopicReading<T> {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
     // Epoch-folded like every sibling read: a reading memoized before a
@@ -2602,10 +2606,11 @@ export class TimelineStore {
           // reading and is not now, the withdrawal is itself the change, and
           // reusing that reading is what made `Reading`'s "it withdraws by not
           // being offered on the next frame" untrue.
-          ((reckoner === undefined && previous.reading.reckoning === "none") ||
+          ((reckoner === undefined &&
+            previous.reading.reckoning.status !== "available") ||
             previous.viewUt === viewUt)
         ) {
-          return previous.reading as Reading<T>;
+          return previous.reading as TopicReading<T>;
         }
         const reading = declined
           ? readingFrom(
@@ -2633,9 +2638,9 @@ export class TimelineStore {
           viewUt,
           unowned,
           declineKey,
-          reading: reading as Reading<unknown>,
+          reading: reading as TopicReading<unknown>,
         });
-        return reading as Reading<T>;
+        return reading as TopicReading<T>;
       },
     );
   }

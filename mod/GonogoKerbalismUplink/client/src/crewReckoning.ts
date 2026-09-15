@@ -282,7 +282,7 @@ function movingAccumulators(
  * `reckonResourceLevels` is: `kerbalism.crew` cannot carry a
  * `[SitrepReckonable]` mark (the gate refuses an array Topic outright, and
  * `value` sits on a nested type that publishes no Topic of its own), so a
- * plain `Reading` reduces every refusal here to `reckoning: "none"` and only a
+ * plain `Reading` reduces every refusal here to `reckoning: { status: "none" }` and only a
  * direct caller can check which one fired.
  */
 export function reckonCrewAccumulators(

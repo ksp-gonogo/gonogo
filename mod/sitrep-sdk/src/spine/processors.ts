@@ -1,5 +1,5 @@
 import type { TopicId, TopicPayload } from "../index";
-import type { Reading } from "./client-reading";
+import type { TopicReading } from "./client-reading";
 
 // ---------------------------------------------------------------------------
 // The Processor primitive: a declared
@@ -87,7 +87,7 @@ type ResolvedDep<D extends Dep> =
   D extends ProcessorHandle<infer R>
     ? R
     : D extends ReadingDep<infer T>
-      ? Reading<TopicPayload<T>>
+      ? TopicReading<TopicPayload<T>>
       : D extends TopicId
         ? TopicPayload<D> | undefined
         : never;

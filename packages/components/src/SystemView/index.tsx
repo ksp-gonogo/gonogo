@@ -381,8 +381,8 @@ function SystemViewComponent({
   // takes over. Same decision as MapView and FleetComms, for the same reason.
   const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit =
-    orbitReading.reckoning === "available"
-      ? orbitReading.reckoned.value
+    orbitReading.reckoning.status === "available"
+      ? orbitReading.reckoning.value
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;

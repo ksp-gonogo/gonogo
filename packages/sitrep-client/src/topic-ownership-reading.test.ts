@@ -41,7 +41,7 @@ describe("a topic nothing will ever publish", () => {
     store.beginFrame();
     expect(store.sampleReading("nobody.publishes.this")).toEqual({
       state: "pending",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
   });
 
@@ -51,7 +51,7 @@ describe("a topic nothing will ever publish", () => {
     vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS);
     expect(store.sampleReading("nobody.publishes.this")).toEqual({
       state: "unowned",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
   });
 
@@ -63,7 +63,7 @@ describe("a topic nothing will ever publish", () => {
     store.beginFrame();
     expect(store.sampleReading("vessel.orbit")).toEqual({
       state: "pending",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
   });
 
@@ -79,7 +79,7 @@ describe("a topic nothing will ever publish", () => {
     store.beginFrame();
     expect(store.sampleReading("nobody.publishes.this")).toEqual({
       state: "pending",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
     expect(client.topicOwnership("nobody.publishes.this")).toBe("undecided");
   });
@@ -116,7 +116,7 @@ describe("a topic nothing will ever publish", () => {
     vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS);
     expect(store.sampleReading("vessel.altitude")).toEqual({
       state: "unowned",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
 
     transport.emitRaw({
@@ -143,7 +143,7 @@ describe("a topic nothing will ever publish", () => {
     late.beginFrame();
     expect(late.sampleReading("nobody.publishes.this")).toEqual({
       state: "unowned",
-      reckoning: "none",
+      reckoning: { status: "none" },
     });
   });
 
@@ -158,7 +158,7 @@ describe("a topic nothing will ever publish", () => {
     const second = store.sampleReading("nobody.publishes.this");
     // Asserted before the identity check so this cannot pass by both reads
     // agreeing on the WRONG arm, which is how it first passed.
-    expect(first).toEqual({ state: "unowned", reckoning: "none" });
+    expect(first).toEqual({ state: "unowned", reckoning: { status: "none" } });
     expect(second).toBe(first);
   });
 });

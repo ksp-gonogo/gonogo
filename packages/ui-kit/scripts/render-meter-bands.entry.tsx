@@ -7,8 +7,8 @@
  */
 import {
   type MeterQuantity,
-  type Reading,
   type ReckonedBands,
+  type TopicReading,
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -40,7 +40,7 @@ function readingOfCase<T>(
   c: MeterCase,
   drawn: T,
   bands: ReckonedBands | undefined,
-): Reading<T> {
+): TopicReading<T> {
   const base = c.stale
     ? ({
         state: "stale",
@@ -49,11 +49,12 @@ function readingOfCase<T>(
         grade: "held-stale",
       } as const)
     : ({ state: "observed", value: drawn, atUt: AT } as const);
-  if (!bands) return { ...base, reckoning: "none" } as Reading<T>;
+  if (!bands)
+    return { ...base, reckoning: { status: "none" } } as TopicReading<T>;
   return {
     ...base,
-    reckoning: "available",
-    reckoned: {
+    reckoning: {
+      status: "available",
       value: drawn,
       atUt: AT,
       basis: "linear-dead-reckoning",
@@ -61,7 +62,7 @@ function readingOfCase<T>(
       owner: "core",
       bands,
     },
-  } as Reading<T>;
+  } as TopicReading<T>;
 }
 
 function bandsAt(

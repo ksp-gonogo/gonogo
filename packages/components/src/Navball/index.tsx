@@ -13,7 +13,7 @@ import {
 import type { ControlStream, SasModeName } from "@ksp-gonogo/sitrep-client";
 import {
   observedAt,
-  type Reading,
+  type TopicReading,
   useCommand,
   useControlStream,
   useStream,
@@ -278,7 +278,7 @@ type NavballActions = typeof navballActions;
  * been one. Never a modelled value; see `showDial`'s comment for why an attitude
  * is not forward-modellable at all.
  */
-function lastObserved<T>(reading: Reading<T>): T | undefined {
+function lastObserved<T>(reading: TopicReading<T>): T | undefined {
   switch (reading.state) {
     case "observed":
     case "stale":
@@ -312,7 +312,7 @@ function AttitudeCurrency({
   reading,
   dialSuppressed,
 }: {
-  reading: Reading<unknown>;
+  reading: TopicReading<unknown>;
   dialSuppressed: boolean;
 }) {
   if (reading.state === "observed") return null;
@@ -347,7 +347,7 @@ function StaleCaption({
   reading,
 }: {
   label: string;
-  reading: Reading<unknown>;
+  reading: TopicReading<unknown>;
 }) {
   const viewUt = useViewUt();
   // The age, spelled out now that `readingAge` is gone: an instant minus an instant

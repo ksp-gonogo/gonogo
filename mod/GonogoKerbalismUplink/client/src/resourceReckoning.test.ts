@@ -1,4 +1,4 @@
-import type { Reading, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicPayload, TopicReading } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import type { StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { makeMeta, setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -76,7 +76,7 @@ function readAt(
   viewUt: number,
   ls: unknown = lifeSupport(),
   amounts: unknown = AMOUNTS,
-): Reading<Resources> {
+): TopicReading<Resources> {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: viewUt,
@@ -94,12 +94,12 @@ function reckonedAt(
   amounts?: unknown,
 ): Resources {
   const reading = readAt(viewUt, ls, amounts);
-  if (reading.reckoning !== "available") {
+  if (reading.reckoning.status !== "available") {
     throw new Error(
       `expected a model at UT ${viewUt}, got reckoning "${reading.reckoning}"`,
     );
   }
-  return reading.reckoned.value;
+  return reading.reckoning.value;
 }
 
 describe("carrying a consumable level forward", () => {
@@ -119,14 +119,14 @@ describe("carrying a consumable level forward", () => {
 
   it("names only the levels it actually moved", () => {
     const reading = readAt(1100);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
-    expect(reading.reckoned.modelled.map((f) => f.path).sort()).toEqual([
+    expect(reading.reckoning.modelled.map((f) => f.path).sort()).toEqual([
       "",
       "resources.Food.current",
     ]);
-    expect(reading.reckoned.basis).toBe("rate-integration");
-    expect(reading.reckoned.owner).toBe("kerbalism");
+    expect(reading.reckoning.basis).toBe("rate-integration");
+    expect(reading.reckoning.owner).toBe("kerbalism");
   });
 
   it("carries the capacity, the presence flag and meta through untouched", () => {
@@ -165,7 +165,7 @@ describe("when the model's own arithmetic leaves the range", () => {
     // Food is the only level moving and the model has nothing left to say.
     expect(1100).toBeLessThan(RESOURCE_RATE_HORIZON_SECONDS);
 
-    expect(readAt(900 + 1100).reckoning).toBe("none");
+    expect(readAt(900 + 1100).reckoning.status).toBe("none");
   });
 
   it("withdraws a filling level at the moment it would reach capacity", () => {
@@ -174,8 +174,8 @@ describe("when the model's own arithmetic leaves the range", () => {
     // the horizon. The old model reported a full tank for the other 900 s.
     const filling = lifeSupport({ rates: { Food: value("units/s", 1) } });
 
-    expect(readAt(900 + 400, filling).reckoning).toBe("none");
-    expect(readAt(900 + 1199, filling).reckoning).toBe("none");
+    expect(readAt(900 + 400, filling).reckoning.status).toBe("none");
+    expect(readAt(900 + 1199, filling).reckoning.status).toBe("none");
   });
 
   it("leaves a crossed level where it was last observed and carries on with the rest", () => {
@@ -187,13 +187,13 @@ describe("when the model's own arithmetic leaves the range", () => {
       rates: { Food: value("units/s", -0.1), Oxygen: value("units/s", -0.01) },
     });
     const reading = readAt(900 + 1100, ls);
-    if (reading.reckoning !== "available") throw new Error("no model");
+    if (reading.reckoning.status !== "available") throw new Error("no model");
 
-    expect(reading.reckoned.value.resources.Food.current.magnitude).toBe(100);
+    expect(reading.reckoning.value.resources.Food.current.magnitude).toBe(100);
     expect(
-      reading.reckoned.value.resources.Oxygen.current.magnitude,
+      reading.reckoning.value.resources.Oxygen.current.magnitude,
     ).toBeCloseTo(39, 6);
-    expect(reading.reckoned.modelled.map((f) => f.path).sort()).toEqual([
+    expect(reading.reckoning.modelled.map((f) => f.path).sort()).toEqual([
       "",
       "resources.Oxygen.current",
     ]);
@@ -203,7 +203,7 @@ describe("when the model's own arithmetic leaves the range", () => {
 describe("when the model refuses", () => {
   it("offers nothing when Kerbalism is not on the stream at all", () => {
     // The STORE's decline, raised for an unresolved dep before the model runs.
-    expect(readAt(1100, NO_LIFESUPPORT).reckoning).toBe("none");
+    expect(readAt(1100, NO_LIFESUPPORT).reckoning.status).toBe("none");
   });
 
   it("declines when Kerbalism publishes no last-advanced stamp", () => {
@@ -211,13 +211,13 @@ describe("when the model refuses", () => {
     // substituting a capture time: with no anchor there is no interval.
     const unstamped = lifeSupport({ asOfUt: undefined });
 
-    expect(readAt(1100, unstamped).reckoning).toBe("none");
+    expect(readAt(1100, unstamped).reckoning.status).toBe("none");
   });
 
   it("declines at the view time the accumulators were advanced at", () => {
     // Nothing to carry the value across: the observation IS the answer for
     // this instant, and arithmetic about it would replace a measured value.
-    expect(readAt(900).reckoning).toBe("none");
+    expect(readAt(900).reckoning.status).toBe("none");
   });
 
   it("declines past the horizon rather than extrapolating a net rate forever", () => {
@@ -227,8 +227,8 @@ describe("when the model refuses", () => {
     const inside = 900 + RESOURCE_RATE_HORIZON_SECONDS - 1;
     const outside = 900 + RESOURCE_RATE_HORIZON_SECONDS + 1;
 
-    expect(readAt(inside, slow).reckoning).toBe("available");
-    expect(readAt(outside, slow).reckoning).toBe("none");
+    expect(readAt(inside, slow).reckoning.status).toBe("available");
+    expect(readAt(outside, slow).reckoning.status).toBe("none");
   });
 
   it("declines when no resource on the vessel has a rate to integrate", () => {
@@ -236,7 +236,7 @@ describe("when the model refuses", () => {
       rates: { Nitrogen: value("units/s", -1) },
     });
 
-    expect(readAt(1100, irrelevant).reckoning).toBe("none");
+    expect(readAt(1100, irrelevant).reckoning.status).toBe("none");
   });
 });
 
@@ -244,7 +244,7 @@ describe("when the model refuses", () => {
  * The refusals, read back as REASONS rather than as an absence.
  *
  * `vessel.resources` carries no `[SitrepReckonable]` mark, so `Reading` has no
- * `declined` field and every case above can only show `reckoning: "none"`. Four
+ * `declined` field and every case above can only show `reckoning: { status: "none" }`. Four
  * distinct refusals collapse into one observable answer, and calling the model
  * directly is the only way to tell them apart. If the field is ever marked,
  * these become assertions on `ReckonableReading.declined` and this block goes.

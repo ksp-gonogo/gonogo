@@ -7,7 +7,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
-  type Reading,
+  type TopicReading,
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -55,7 +55,7 @@ type ScienceDataConfig = Record<string, never>;
  * and must not collapse into it.
  */
 function stillTrue<T, A>(
-  reading: Reading<T>,
+  reading: TopicReading<T>,
   whenConfirmedNothing: A,
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;

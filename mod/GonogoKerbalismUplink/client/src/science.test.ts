@@ -6,8 +6,8 @@ import type {
   ExperimentEntry,
   InstrumentEntry,
   LabEntry,
-  Reading,
   TopicPayloadMap,
+  TopicReading,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -71,7 +71,7 @@ async function decoded<T>(
   // cast says only what this function's own signature already says.
   const { result } = renderHook(
     () => {
-      const reading = useTelemetry(topic) as Reading<T>;
+      const reading = useTelemetry(topic) as TopicReading<T>;
       return reading.state === "observed" ? reading.value : undefined;
     },
     { wrapper: fixture.Provider },

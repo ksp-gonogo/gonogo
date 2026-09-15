@@ -1,12 +1,17 @@
 import type {
   ModelledField,
-  Reading,
-  Reckoning,
   TopicPayload,
+  TopicReading,
+  TopicReckoningAvailable,
   UncertaintyBand,
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { bandFor, bandIn, readingOf } from "@ksp-gonogo/sitrep-sdk";
+import {
+  bandFor,
+  bandIn,
+  readingOf,
+  topicReading,
+} from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "@ksp-gonogo/ui-kit";
 // Side-effect: registers the model whose interval this module exists to carry.
 // A module that reads bands and can load without the thing that mints them
@@ -63,7 +68,7 @@ type Crew = TopicPayload<typeof KERBALISM_CREW_TOPIC>;
  * so every consumer would be woken on every frame with nothing able to notice.
  * `PROCESSOR_UNCOMPARABLE_BUDGET` fails the suite over it, and did over this.
  */
-export type RuleReadings = Readonly<Record<string, Reading<number>>>;
+export type RuleReadings = Readonly<Record<string, TopicReading<number>>>;
 
 /**
  * How a rule is addressed across this folder: the kerbal it is about, then the
@@ -87,8 +92,8 @@ export function ruleKey(kerbalName: string, ruleName: string): string {
  * kerbals sharing a name (legal in KSP) resolve to the first seat, which is
  * the ambiguity the meter ids already carry.
  */
-export function ruleReadings(reading: Reading<Crew>): RuleReadings {
-  const readings: Record<string, Reading<number>> = {};
+export function ruleReadings(reading: TopicReading<Crew>): RuleReadings {
+  const readings: Record<string, TopicReading<number>> = {};
   const observed =
     reading.state === "observed" || reading.state === "stale"
       ? reading.value
@@ -126,47 +131,45 @@ export function ruleReadings(reading: Reading<Crew>): RuleReadings {
  * for the rule it IS about.
  */
 function fractionReading(
-  reading: Reading<Crew>,
+  reading: TopicReading<Crew>,
   observedFraction: number,
   kerbal: number,
   index: number,
   threshold: Value<"units">,
-): Reading<number> {
+): TopicReading<number> {
   const base = readingOf(reading, () => observedFraction);
-  if (reading.reckoning !== "available") return base;
+  if (reading.reckoning.status !== "available") return base;
   const path = `${kerbal}.rules.${index}.value`;
   // The model's own path vocabulary, read back verbatim: `crewReckoning.ts`
   // keys both `modelled` and `bands` by this string, dotted from the payload
   // root. A rule missing from `modelled` is one the model copied rather than
   // carried, and claiming a basis for it would be a modelled label over an
   // observation.
-  const moved = reading.reckoned.modelled.find((field) => field.path === path);
+  const moved = reading.reckoning.modelled.find((field) => field.path === path);
   if (!moved) return base;
   const reckoned = fractionReckoning(
-    reading.reckoned,
+    reading.reckoning,
     moved,
     kerbal,
     index,
     threshold,
   );
   if (base.state === "observed") {
-    return {
+    return topicReading({
       state: "observed",
-      reckoning: "available",
+      reckoning: reckoned,
       value: base.value,
       atUt: base.atUt,
-      reckoned,
-    };
+    });
   }
   if (base.state === "stale") {
-    return {
+    return topicReading({
       state: "stale",
-      reckoning: "available",
+      reckoning: reckoned,
       value: base.value,
       asOfUt: base.asOfUt,
       grade: base.grade,
-      reckoned,
-    };
+    });
   }
   return base;
 }
@@ -184,16 +187,17 @@ function fractionReading(
  * would refuse the unit and the marks would silently never appear.
  */
 function fractionReckoning(
-  reckoned: Reckoning<Crew>,
+  reckoned: TopicReckoningAvailable<Crew>,
   moved: ModelledField,
   kerbal: number,
   index: number,
   threshold: Value<"units">,
-): Reckoning<number> {
+): TopicReckoningAvailable<number> {
   const path = `${kerbal}.rules.${index}.value`;
   const carried = reckoned.value[kerbal]?.rules?.[index]?.value;
   const band = bandIn(bandFor(reckoned, path), "units");
   return {
+    status: "available",
     value:
       carried === undefined || magnitudeOf(carried) === null
         ? 0
@@ -236,6 +240,6 @@ export const CREW_RULE_READINGS = KERBALISM.registerProcessor({
   // A READING, not the payload, and the only dep: the reckoning is the whole
   // subject here, and a contribution cannot ask for one itself.
   deps: [{ reading: KERBALISM_CREW_TOPIC }] as const,
-  compute: ([reading]: readonly [Reading<Crew>]): RuleReadings =>
+  compute: ([reading]: readonly [TopicReading<Crew>]): RuleReadings =>
     ruleReadings(reading),
 });
