@@ -74,6 +74,8 @@ The mod loads before the main menu and stays loaded across every scene change, s
 
 There is no TLS and no password, and the same socket that serves telemetry also accepts commands that act on your game. Anything that can reach port 8090 on that machine can fly your ship. Keep it to a network you trust, and don't forward the port.
 
+That includes playing with someone who isn't on your network: they don't need this port, and shouldn't have it. A remote crewmate opens the hosted app and joins with the share code your main screen shows, and their commands travel over that link and are dispatched by your machine. Forwarding 8090 to the internet would hand anyone who found it the same control, with nothing to stop them.
+
 ### Installing the kOS and SCANsat Uplinks
 
 An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half.
