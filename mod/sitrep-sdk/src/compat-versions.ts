@@ -22,7 +22,7 @@
  * the sdk's package version: bump it when the surface an Uplink compiles against
  * changes, not when the package publishes.
  */
-export const EXTENSION_API_VERSION = "1.0.0";
+export const EXTENSION_API_VERSION = "2.0.0";
 
 /**
  * The wire contract's major, mirroring `ContractVersion.Major` in
