@@ -1181,11 +1181,14 @@ export enum PrincipiaWriteRefusal {
 	* A read this guard depends on could not be decoded from the loaded build, so
 	* the guard cannot answer. Refused rather than permitted.
 	*
-	* Reached two ways today: a burn whose ignition or cutoff would not read,
+	* Reached three ways today: a burn whose ignition or cutoff would not read,
 	* which leaves `PrincipiaWriteRefusal.BurnExecuting` unable to say whether the
-	* craft is under thrust; and an optimisation state that would not read, which
+	* craft is under thrust; an optimisation state that would not read, which
 	* leaves `PrincipiaWriteRefusal.OptimisationRunning` unable to say whether the
-	* edit would be reverted.
+	* edit would be reverted; and the producer's own clock failing to read, which
+	* leaves every check that compares a burn against "now" with nothing to
+	* compare it to, `PrincipiaWriteRefusal.IgnitionInPast` and
+	* `PrincipiaWriteRefusal.FinalTimeInPast` included.
 	*
 	* **Distinct from those two, deliberately.** Both of them state a fact about
 	* the plan, and reusing either for an unreadable answer would put the reason

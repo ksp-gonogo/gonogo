@@ -239,16 +239,16 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
-        /// The plugin clock, still collapsing an unreadable answer to 0.0.
+        /// The plugin clock, null when the answer would not decode.
         ///
-        /// <para><b>This one is a known absence bug and is not fixed here.</b> Zero
-        /// universal time is Year 1 Day 1, so an unreadable clock reads as the very
-        /// start of the campaign, and the instant flows into every write guard that
-        /// compares a burn against "now". Making it nullable cascades through the
-        /// whole command surface and the analysis reader, which is a change of its
-        /// own rather than a line of this one.</para>
+        /// <para>It used to collapse to 0.0, and zero universal time is Year 1 Day 1,
+        /// so an unreadable clock read as the very start of the campaign. The damage
+        /// was not the readout: the instant is the one every write guard compares a
+        /// burn against, and each of those comparisons is false at zero, so a guard
+        /// asking whether a burn is running right now answered a question about the
+        /// start of the campaign and PERMITTED the edit.</para>
         /// </summary>
-        public double CurrentTime(IntPtr plugin) => Double("CurrentTime", plugin) ?? 0.0;
+        public double? CurrentTime(IntPtr plugin) => Double("CurrentTime", plugin);
 
         /// <summary>Fails CLOSED on an unreadable answer: every other call on this
         /// surface aborts the process on a guid the plugin does not hold, so "we

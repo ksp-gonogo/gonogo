@@ -69,7 +69,18 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         bool GetVersion(out string? buildDate, out string? version, out string? platform);
 
-        double CurrentTime(IntPtr plugin);
+        /// <summary>
+        /// The plugin's own universal time, or null when the answer would not
+        /// decode.
+        ///
+        /// <para>Nullable rather than fail-closed at the implementation, unlike the
+        /// gates below it, because it is not itself a gate: it is the instant a
+        /// reading is stamped with AND the instant several guards compare against,
+        /// and those two want opposite answers. So the null travels and each caller
+        /// resolves it, a reading by surfacing the absence and a write by refusing.
+        /// </para>
+        /// </summary>
+        double? CurrentTime(IntPtr plugin);
 
         /// <summary>
         /// The only call on this surface that tolerates a guid we have not just

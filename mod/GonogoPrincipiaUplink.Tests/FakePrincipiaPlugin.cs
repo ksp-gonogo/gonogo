@@ -144,10 +144,10 @@ namespace GonogoPrincipiaUplink.Tests
             return VersionReadable;
         }
 
-        public double CurrentTime(IntPtr plugin)
+        public double? CurrentTime(IntPtr plugin)
         {
             Record("CurrentTime", plugin);
-            return CurrentTimeValue;
+            return CurrentTimeUnreadable ? (double?)null : CurrentTimeValue;
         }
 
         /// <summary>
@@ -589,6 +589,19 @@ namespace GonogoPrincipiaUplink.Tests
         /// <summary>The clock, so a test can place a burn in the past, in progress,
         /// or in the future without arithmetic at the call site.</summary>
         public double CurrentTimeValue { get; set; } = 1000.0;
+
+        /// <summary>
+        /// The clock will not decode, while the game goes on holding one.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately separate from <see cref="CurrentTimeValue"/> rather than
+        /// setting that to a null: what fails in the real case is our reflected
+        /// read of the producer's return type, not the producer's own clock. So
+        /// every consequence below still lands against the real instant, and
+        /// <see cref="FlightPlanCreate"/> goes on aborting on a plan that ends
+        /// before it, which is the point a test of this flag is making.
+        /// </remarks>
+        public bool CurrentTimeUnreadable { get; set; }
 
         /// <summary>Takes ownership of a burn handed in, copying it as the
         /// producer's marshaller does on the way across.</summary>

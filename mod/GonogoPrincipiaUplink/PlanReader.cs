@@ -77,7 +77,7 @@ namespace GonogoPrincipiaUplink
         public PlanObservation? Read(
             PrincipiaSession? session,
             string? vesselGuid,
-            double nowUt,
+            double? nowUt,
             ICelestialNames? celestials)
         {
             if (session == null || string.IsNullOrEmpty(vesselGuid))
@@ -104,7 +104,7 @@ namespace GonogoPrincipiaUplink
             PrincipiaSession session,
             PrincipiaFrame frame,
             string vesselGuid,
-            double nowUt,
+            double? nowUt,
             ICelestialNames? celestials)
         {
             if (!frame.TryVessel(vesselGuid, out var vessel))
@@ -251,7 +251,7 @@ namespace GonogoPrincipiaUplink
         private static void ReadBurns(
             PrincipiaFlightPlanGate plan,
             PlanObservation observation,
-            double nowUt,
+            double? nowUt,
             ICelestialNames? celestials)
         {
             var cursor = plan.Manoeuvres();
@@ -276,9 +276,14 @@ namespace GonogoPrincipiaUplink
                 // burn already under way is the one being flown rather than the next
                 // one, and calling it past would point an operator at the burn after
                 // the one their engines are lit for.
+                //
+                // An unread clock leaves it unanswered rather than picking the first
+                // burn. Stated rather than left to the lifted comparison, which is
+                // false against a null and would have got there by accident.
                 if (observation.FirstFutureBurnIndex == null
+                    && nowUt != null
                     && described.CutoffUt != null
-                    && described.CutoffUt > nowUt)
+                    && described.CutoffUt > nowUt.Value)
                 {
                     observation.FirstFutureBurnIndex = described.Index;
                 }
@@ -300,7 +305,7 @@ namespace GonogoPrincipiaUplink
             int index,
             int burnCount,
             int? anomalousCount,
-            double nowUt,
+            double? nowUt,
             ICelestialNames? celestials)
         {
             var burn = Fields.Get(manoeuvre, PrincipiaBurnStruct.ManoeuvreBurnField);
@@ -355,9 +360,13 @@ namespace GonogoPrincipiaUplink
                 FrameEditable = extension == null
                     ? (bool?)null
                     : PrincipiaBurnStruct.IsEditableFrame(extension.Value),
-                Executing = ignition == null || cutoff == null
+                // The clock is the third thing this needs, and it is the one nobody
+                // used to check: at the 0.0 an unreadable clock collapsed to, the
+                // comparison is false for every burn in a real career, so a plan mid
+                // ignition read as idle from end to end.
+                Executing = ignition == null || cutoff == null || nowUt == null
                     ? (bool?)null
-                    : nowUt >= ignition.Value && nowUt <= cutoff.Value,
+                    : nowUt.Value >= ignition.Value && nowUt.Value <= cutoff.Value,
                 Anomalous = anomalousCount == null
                     ? (bool?)null
                     : IsAnomalous(index, burnCount, anomalousCount.Value),

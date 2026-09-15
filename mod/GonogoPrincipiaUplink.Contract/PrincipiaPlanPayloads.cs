@@ -600,11 +600,14 @@ public enum PrincipiaWriteRefusal
     /// A read this guard depends on could not be decoded from the loaded build, so
     /// the guard cannot answer. Refused rather than permitted.
     ///
-    /// <para>Reached two ways today: a burn whose ignition or cutoff would not
+    /// <para>Reached three ways today: a burn whose ignition or cutoff would not
     /// read, which leaves <see cref="BurnExecuting"/> unable to say whether the
-    /// craft is under thrust; and an optimisation state that would not read, which
+    /// craft is under thrust; an optimisation state that would not read, which
     /// leaves <see cref="OptimisationRunning"/> unable to say whether the edit
-    /// would be reverted.</para>
+    /// would be reverted; and the producer's own clock failing to read, which
+    /// leaves every check that compares a burn against "now" with nothing to
+    /// compare it to, <see cref="IgnitionInPast"/> and
+    /// <see cref="FinalTimeInPast"/> included.</para>
     ///
     /// <para><b>Distinct from those two, deliberately.</b> Both of them state a
     /// fact about the plan, and reusing either for an unreadable answer would put
