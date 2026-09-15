@@ -1199,4 +1199,49 @@ describe("separatingDecimals", () => {
       ]),
     ).toBeUndefined();
   });
+
+  /** The next representable double above `v`: one ULP, not a chosen epsilon. */
+  const nextAfter = (v: number): number => {
+    const buf = new Float64Array([v]);
+    new BigUint64Array(buf.buffer)[0] += 1n;
+    return buf[0];
+  };
+
+  /**
+   * Two ends a hair apart are NOT a precise interval, and spending every digit
+   * on them says they are.
+   *
+   * The readings here are adjacent doubles, 7.3e-12 m apart: distinct numbers,
+   * closer together than any decimal count can show. This used to return the
+   * maximum and print `65.286800 km - 65.286800 km`, six decimals separating
+   * nothing, while ends that were exactly equal printed `65.3 km`. Float
+   * residue alone moved a published primitive five decimal places, and it moved
+   * it in the direction that reads as precision.
+   */
+  it("gives up rather than spending digits on ends it cannot separate", () => {
+    const alongside = 65_286.8;
+    expect(
+      separatingDecimals(metres(alongside, nextAfter(alongside))),
+    ).toBeUndefined();
+  });
+
+  /**
+   * The pair above and a pair that is exactly equal are indistinguishable to a
+   * reader, so they must not render differently. This is the assertion that
+   * would have caught the defect: each case alone looked defensible.
+   */
+  it("treats unseparable ends and equal ends the same way", () => {
+    const alongside = 65_286.8;
+    expect(separatingDecimals(metres(alongside, nextAfter(alongside)))).toBe(
+      separatingDecimals(metres(alongside, alongside)),
+    );
+  });
+
+  /**
+   * The floor must not cost the ladder its job. 0.3 m apart is genuinely
+   * separable and still earns the digits that show it.
+   */
+  it("still widens for ends that a finer precision does separate", () => {
+    expect(separatingDecimals(metres(65_286.8, 65_287.1))).toBe(4);
+  });
 });
