@@ -546,6 +546,12 @@ export function BurnEditor() {
                   {burn.anomalous === true && (
                     <Badge severity="warning">ANOM</Badge>
                   )}
+                  {/* Flagged is a property the integrator reported. This is the
+                      plan's flagged count not having been read at all, and
+                      drawing nothing for it says the integrator was happy. */}
+                  {burn.anomalous == null && (
+                    <Badge severity="caution">ANOM UNREAD</Badge>
+                  )}
                 </Cluster>
               </SelectableRow>
             );

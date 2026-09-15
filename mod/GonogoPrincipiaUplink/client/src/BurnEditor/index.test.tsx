@@ -443,6 +443,36 @@ describe("BurnEditor", () => {
   });
 
   /**
+   * The same shape for the flagged state, which the editor drew with the same
+   * `=== true` the section did. A burn whose flagged state nobody could read
+   * drew no badge, and no badge is what a burn the integrator was happy with
+   * draws.
+   */
+  it("marks a burn whose flagged state could not be read", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      anomalousBurnCount: null,
+      burns: [burn({ anomalous: null })],
+    });
+
+    expect(screen.getByText("ANOM UNREAD")).toBeInTheDocument();
+    expect(screen.queryByText("ANOM")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The complement, so the badge is not simply always on.
+   */
+  it("leaves a burn the integrator was happy with unbadged", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ anomalous: false })] });
+
+    expect(screen.queryByText("ANOM UNREAD")).not.toBeInTheDocument();
+    expect(screen.queryByText("ANOM")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
    * <b>The destructive one.</b> REMOVE deletes a burn out of the plan the craft
    * is flying, and it is deliberately NOT frozen by the edit deadline or the
    * burn-struct verdict, so this is the only thing standing between the control

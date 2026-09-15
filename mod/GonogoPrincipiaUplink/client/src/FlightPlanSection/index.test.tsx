@@ -246,6 +246,48 @@ describe("FlightPlanSection: a reading, dated", () => {
   });
 
   /**
+   * The third state. The mod withholds `anomalous` when the plan's flagged count
+   * would not read, and `=== true` drew nothing for it, which is exactly what a
+   * burn the integrator was happy with draws. So a plan whose flagged state
+   * nobody could read looked clean.
+   */
+  it("marks a burn whose flagged state could not be read", async () => {
+    const stream = mount();
+
+    emitPlan(stream, {
+      anomalousBurnCount: null,
+      burns: [
+        {
+          index: 0,
+          ignitionUt: VIEW_UT + 600,
+          durationSeconds: 60,
+          deltaV: 10,
+          anomalous: null,
+        },
+      ],
+    });
+
+    expect(await screen.findByText("ANOM UNREAD")).toBeInTheDocument();
+    // Neither of the two readings it must not collapse onto: not flagged, and
+    // not the badge-free row a clean burn gets.
+    expect(screen.queryByText("ANOM")).not.toBeInTheDocument();
+  });
+
+  /**
+   * The complement, so the badge is not simply always on: a burn the integrator
+   * was happy with still draws neither.
+   */
+  it("leaves a burn the integrator was happy with unbadged", async () => {
+    const stream = mount();
+
+    emitPlan(stream);
+
+    expect(await screen.findByText("READ NOW")).toBeInTheDocument();
+    expect(screen.queryByText("ANOM UNREAD")).not.toBeInTheDocument();
+    expect(screen.queryByText("ANOM")).not.toBeInTheDocument();
+  });
+
+  /**
    * Three states, three sentences. A failed integration names the burn, because
    * "the plan failed" and "burn 2 failed" ask different things of an operator,
    * and an UNKNOWN status is its own row rather than being rounded to either

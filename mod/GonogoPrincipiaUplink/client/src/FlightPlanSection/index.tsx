@@ -187,6 +187,13 @@ function BurnRow({
         )}
         {isNext && <Badge severity="info">NEXT</Badge>}
         {burn.anomalous === true && <Badge severity="warning">ANOM</Badge>}
+        {/* The third state, and it is not clean: the plan's flagged count would
+            not read, so nothing here can say whether the integrator flagged this
+            burn. Drawing nothing is exactly what a burn it was happy with draws,
+            which is the claim `=== true` was making on its behalf. */}
+        {burn.anomalous == null && (
+          <Badge severity="caution">ANOM UNREAD</Badge>
+        )}
       </Cluster>
     </Row>
   );
