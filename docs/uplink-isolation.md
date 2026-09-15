@@ -263,12 +263,12 @@ at the language boundary. `mod/Gonogo*Uplink/*.csproj` may reference:
 `Gonogo.KSP` are unpublished. An outside author has no way to obtain them, so an
 Uplink that references one cannot be built by anyone but us.
 
-`Sitrep.Contract.TestSupport` is on that list despite the name: it is
-`IsPackable=false` and `net10.0`-only, so nothing ships and there is no target
-framework of it a consumer could bind to. The same rule and the same list apply
-to the `<Uplink>.Tests` projects, which travel with their Uplink. That leaves a
-new Uplink's test project with no shared harness to reach for, which is a real
-gap and has a real answer: see "Testing a NEW Uplink" below.
+`Sitrep.Contract.TestSupport` is on that list for the PLUGIN only. It is
+`net10.0` and depends on `xunit.assert`, so it is never in GameData and a plugin
+must not reach it. The same rule applies to the `<Uplink>.Tests` projects, which
+travel with their Uplink, with that one name taken off the list: TestSupport
+ships beside the vendored contract (not as a package), so an outside author's
+Tests project can reference it. See "Testing a NEW Uplink" below.
 
 If a type you need is in one of them, **move it into `Sitrep.Contract`**. A
 contract change is free. The test is not where the type currently sits but what
@@ -464,23 +464,48 @@ Do not verify this by looking in `bin/`: an incremental build shows whatever was
 there last time. `rm -rf bin obj` first, or trust the gate below, which checks the
 references instead.
 
-### Testing a NEW Uplink, when the shared test-support project is off limits
+### Testing a NEW Uplink
 
-This is the one place the C# side has no equivalent of the TypeScript answer.
-There, `@ksp-gonogo/sitrep-sdk/testing` is published and hands you the real host
-and spine. Here, `Sitrep.Contract.TestSupport` holds the same kind of thing (a
-recording `IUplinkHost`, a starvation probe, the Unit-coverage and
-command-registration assertions), it is forbidden, and the debt lists that excuse
-it for ten existing projects are shrink-only and seeded: **a new `.Tests` project
-cannot add itself to them.**
+The TypeScript side publishes `@ksp-gonogo/sitrep-sdk/testing`, which hands you
+the real host and spine. The C# side has no package, but it does ship
+`Sitrep.Contract.TestSupport.dll`, beside the vendored contract rather than on
+NuGet. **Use the vendored copy; do not hand-copy its fakes or assertions into your
+Tests project.** A copied rule check agrees with itself forever: when core
+tightens "every field declares a unit", a hand copy keeps passing the old rule and
+nothing reports it.
 
-The substitute is not a workaround, it is what the two clean projects already do:
-**write the double in your own Tests project.** `IUplinkHost` lives in
-`Sitrep.Contract`, so anyone can implement it, and it is about a hundred lines of
-lists and no-ops. `GonogoPrincipiaUplink.Tests/RecordingUplinkHost.cs` is the
-reference: it records what the Uplink registered, and exposes a REAL `Kernel`
-rather than a recorded one, because what an Uplink registers into a capability is
-only half a wiring claim and the other half is what the election then resolves.
+`scripts/vendor-uplinks-reference-set.sh <gonogo-uplinks checkout> [<ref>]` builds
+both halves from ONE gonogo commit and writes the sha to `VENDORED_FROM` in each:
+the contract to `vendor/contract`, and TestSupport alone to `vendor/devkit`. A
+Tests project in gonogo-uplinks references it by HintPath, next to the contract it
+was built against:
+
+```xml
+<Reference Include="Sitrep.Contract">
+  <HintPath>$(GonogoContract)\netstandard2.0\Sitrep.Contract.dll</HintPath>
+</Reference>
+<Reference Include="Sitrep.Contract.TestSupport">
+  <HintPath>$(GonogoDevkit)\Sitrep.Contract.TestSupport.dll</HintPath>
+</Reference>
+```
+
+`xunit.assert`, the only other thing it needs, comes with your own xunit package.
+What it gives you: `UnitCoverageAssertion` and `CommandRegistrationAssertion`
+(the core rules, which should never be copied), `ReckonabilityAssertion`, and the
+`IUplinkHost` doubles `ClockedUplinkHost` and `StarvationProbeHost`, plus
+`CrewStandingQueries` and `ScetThresholdSourceProbe`.
+
+What it does NOT make shared is a host double shaped to one Uplink. When yours
+needs something the shipped doubles do not do (a capability declared on the
+kernel before `Register`, ticks gated on subscriptions, a throw on every seam the
+Uplink should never touch), **write the double in your own Tests project.**
+`IUplinkHost` lives in `Sitrep.Contract`, so anyone can implement it, and it is
+about a hundred lines of lists and no-ops. `GonogoPrincipiaUplink.Tests/RecordingUplinkHost.cs`
+is the reference: it records what the Uplink registered, and exposes a REAL
+`Kernel` rather than a recorded one, because what an Uplink registers into a
+capability is only half a wiring claim and the other half is what the election
+then resolves. A double implementing a shipped interface breaks at compile time
+when the interface grows, so unlike a copied assertion it cannot drift silently.
 
 ```csharp
 internal sealed class RecordingUplinkHost : IUplinkHost
@@ -509,11 +534,9 @@ Two other habits keep a Tests project clean, and both come from those two:
   files that name a KSP or Harmony type. Make the Uplink class `partial` so the
   omitted half's partial-method calls simply disappear. That is what lets the
   whole decision surface be driven with no game running
-- **Reference `Sitrep.Contract` and your own `.Contract` slice, and stop.** The
-  same two lines as the Uplink itself
-
-The cost of this is one copy of a host double per Uplink, which is real, and the
-alternative on offer today is a project no author outside this repo can obtain.
+- **Reference `Sitrep.Contract`, your own `.Contract` slice, and at most the
+  vendored TestSupport, and stop.** Anything else of gonogo's is private to the
+  Tests project exactly as it is to the Uplink
 
 ## Enforcement
 
@@ -585,21 +608,21 @@ whoever forks it inherits tests they cannot run.
 
 Seeded from measurement on 2026-08-30, shrink-only like the others:
 
-- **All ten reached `Sitrep.Contract.TestSupport`**, which is `IsPackable=false` and
-  `net10.0`-only, so there is no build of it an outside author could reference
-  even if they had it. Six of the ten reach nothing else, and clear the day that
-  project is publishable. A NEW Tests project does not join this list and cannot:
-  see "Testing a NEW Uplink" above for what it writes instead
-- **`GonogoKerbalismUplink.Tests` and `GonogoRealAntennasUplink.Tests`** also
-  reach `Sitrep.Core`, for `EnvelopeCodec`, to assert what an extension puts on
-  the wire
-- **`GonogoKosUplink.Tests` and `GonogoRp1Uplink.Tests`** also reach
-  `Sitrep.Host`, and `Sitrep.Core`, `Sitrep.Transport` and `Sitrep.Propagation`
-  behind it, none of which their csprojs name. Those are the transitive case, and
-  the widest breaches
-- **`GonogoPrincipiaUplink.Tests`** is clean, which is the proof the rest owe.
+- **All ten reached `Sitrep.Contract.TestSupport`**. Those entries cleared on
+  2026-09-15, when TestSupport started shipping beside the vendored contract, and
+  the gate now reads it as private to a plugin and shipped to a Tests project
+  (`ShippedToTestProjects`). A Tests project reaching `Sitrep.Host` or any other
+  private project still fails
+- **`GonogoKerbalismUplink.Tests` and `GonogoRealAntennasUplink.Tests`** reach
+  `Sitrep.Core`, for `EnvelopeCodec`, to assert what an extension puts on the wire
+- **`GonogoKosUplink.Tests` and `GonogoRp1Uplink.Tests`** reach `Sitrep.Host`, and
+  `Sitrep.Core`, `Sitrep.Transport` and `Sitrep.Propagation` behind it, none of
+  which their csprojs name. Those are the transitive case, and the widest breaches
+- **`GonogoPrincipiaUplink.Tests` and `GonogoMechJebUplink.Tests`** are clean.
   `GonogoTestFlightUplink.Tests` was too, and has left for the `gonogo-uplinks`
   repo
+
+A NEW Tests project does not join these lists and cannot.
 
 **`GonogoActionGroupsExtendedUplink.Tests` was the widest of the ten, was made
 clean, and only then left for the `gonogo-uplinks` repo.** That order is the
@@ -620,7 +643,7 @@ list above makes it look like:
 Only the first was a contract change. The other two were a test asserting
 somebody else's behaviour from the one place that may not name it, and a shared
 helper reached for out of habit: look for both before concluding an entry here
-needs `Sitrep.Contract.TestSupport` to ship.
+needs something new to ship.
 
 There is no packaging equivalent for a `.Tests` project and there should not be:
 a test assembly's `bin/` is never installed into `GameData`, so there is no

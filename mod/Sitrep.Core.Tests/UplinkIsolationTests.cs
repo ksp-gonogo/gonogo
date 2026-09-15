@@ -82,14 +82,35 @@ namespace Sitrep.Core.Tests
             "Sitrep.Skeleton",
             "Gonogo.KSP",
 
-            // Private despite the name. Sitrep.Contract.TestSupport is
-            // IsPackable=false and net10.0-only, so it is not in the box a
-            // third-party author installs and there is no target framework of it
-            // they could reference if it were. An Uplink's Tests project that
-            // needs it cannot be built outside this repo, which is the whole
-            // question these gates ask.
+            // Private to an Uplink PLUGIN, and only to one: see
+            // ShippedToTestProjects. It is net10.0 and carries an xunit.assert
+            // dependency, so it is never in GameData and a plugin that reached it
+            // would compile against something KSP cannot load.
             "Sitrep.Contract.TestSupport",
         };
+
+        /// <summary>
+        /// Projects in <see cref="PrivateProjects"/> that a <c>&lt;Uplink&gt;.Tests</c>
+        /// project MAY reach, because an outside author has them too.
+        ///
+        /// <para><c>Sitrep.Contract.TestSupport</c> ships beside the vendored
+        /// contract: <c>scripts/vendor-uplinks-reference-set.sh</c> builds it from
+        /// the same gonogo commit as <c>Sitrep.Contract</c> and writes it to the
+        /// gonogo-uplinks repo's <c>vendor/devkit</c>, where that repo's Tests
+        /// projects reference it by HintPath. It is not a package, and it is not
+        /// in GameData, which is why the plugin half still counts it private.</para>
+        ///
+        /// <para>A name here never loosens the plugin gates, which read
+        /// <see cref="PrivateProjects"/> unfiltered. Adding one is a claim that the
+        /// vendoring script produces it.</para>
+        /// </summary>
+        private static readonly string[] ShippedToTestProjects =
+        {
+            "Sitrep.Contract.TestSupport",
+        };
+
+        private static readonly string[] TestProjectPrivateProjects =
+            PrivateProjects.Except(ShippedToTestProjects, StringComparer.Ordinal).ToArray();
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
@@ -132,39 +153,25 @@ namespace Sitrep.Core.Tests
         /// cannot run. Every entry below is a real breach being carried, not an
         /// exemption.</para>
         ///
-        /// <para><c>Sitrep.Contract.TestSupport</c> dominates the list and is the
-        /// cheapest to clear in principle (it is contract-only code that nothing
-        /// stops from being published) and the most expensive to leave (it is what
-        /// makes ten of the twelve unextractable). The others are genuine reaches
-        /// into host internals and need the capability route instead.</para>
+        /// <para><c>Sitrep.Contract.TestSupport</c> used to be on every entry, and
+        /// left all of them at once when it started shipping beside the vendored
+        /// contract (<see cref="ShippedToTestProjects"/>). What remains are genuine
+        /// reaches into host internals, and they need the capability route.</para>
         /// </summary>
         private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
             new(StringComparer.Ordinal)
             {
-                // The Unit-coverage assertion only. Clears the day TestSupport
-                // ships, no source change needed here.
-                ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
-
                 // Sitrep.Core for EnvelopeCodec, to assert what an extension puts
                 // on the wire. An author outside this repo has no encoder to
                 // assert against, so these are wire tests that cannot travel.
-                ["GonogoKerbalismUplink.Tests"] = new[]
-                {
-                    "Sitrep.Contract.TestSupport",
-                    "Sitrep.Core",
-                },
-                ["GonogoRealAntennasUplink.Tests"] = new[]
-                {
-                    "Sitrep.Contract.TestSupport",
-                    "Sitrep.Core",
-                },
+                ["GonogoKerbalismUplink.Tests"] = new[] { "Sitrep.Core" },
+                ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Core" },
 
                 // Sitrep.Host for the extension-discovery and headless-terminal
                 // harnesses, Sitrep.Core for the courier/reveal internals, and the
                 // rest transitively behind Host.
                 ["GonogoKosUplink.Tests"] = new[]
                 {
-                    "Sitrep.Contract.TestSupport",
                     "Sitrep.Core",
                     "Sitrep.Host",
                     "Sitrep.Propagation",
@@ -175,7 +182,6 @@ namespace Sitrep.Core.Tests
                 // rest transitively behind it.
                 ["GonogoRp1Uplink.Tests"] = new[]
                 {
-                    "Sitrep.Contract.TestSupport",
                     "Sitrep.Core",
                     "Sitrep.Host",
                     "Sitrep.Propagation",
@@ -184,15 +190,16 @@ namespace Sitrep.Core.Tests
 
                 // Absent, and deliberately: GonogoPrincipiaUplink.Tests reaches
                 // nothing private. It is the proof this is achievable and the shape
-                // the rest owe.
+                // the rest owe. GonogoMechJebUplink.Tests reached only TestSupport,
+                // so it has nothing left to owe either.
                 //
                 // GonogoActionGroupsExtendedUplink.Tests was the widest entry here
                 // and was paid off in full before the Uplink left for the
                 // gonogo-uplinks repo, which is the order that matters: a debt
                 // exported is a debt an outside author inherits and cannot pay.
-                // What it took, since the list above reads as if the TestSupport
-                // entries were the only cheap ones: the capability id moved to
-                // Sitrep.Contract, so the id had one declaration instead of two
+                // What it took, since the TestSupport entries this list used to
+                // carry made those look like the only cheap ones: the capability id
+                // moved to Sitrep.Contract, so the id had one declaration instead of two
                 // spellings pinned equal by a test; the cases needing ChannelEngine
                 // turned out to be asserting CORE's discovery ordering through a
                 // hand-written double of the Uplink, and moved to Sitrep.Host.Tests
@@ -213,26 +220,15 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectImportDebt =
             new(StringComparer.Ordinal)
             {
-                ["GonogoKerbalismUplink.Tests"] = new[]
-                {
-                    "Sitrep.Contract.TestSupport",
-                    "Sitrep.Core.Serialization",
-                },
+                ["GonogoKerbalismUplink.Tests"] = new[] { "Sitrep.Core.Serialization" },
                 ["GonogoKosUplink.Tests"] = new[]
                 {
-                    "Sitrep.Contract.TestSupport",
                     "Sitrep.Core",
                     "Sitrep.Host",
                 },
-                ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
-                ["GonogoRealAntennasUplink.Tests"] = new[]
-                {
-                    "Sitrep.Contract.TestSupport",
-                    "Sitrep.Core.Serialization",
-                },
+                ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Core.Serialization" },
                 ["GonogoRp1Uplink.Tests"] = new[]
                 {
-                    "Sitrep.Contract.TestSupport",
                     "Sitrep.Host.Crew",
                     "Sitrep.Host.Economy",
                 },
@@ -314,7 +310,7 @@ namespace Sitrep.Core.Tests
 
             foreach (var (project, _) in tests.OrderBy(t => t.Key, StringComparer.Ordinal))
             {
-                var reachable = ReachablePrivateProjects(project, graph);
+                var reachable = ReachablePrivateProjects(project, graph, TestProjectPrivateProjects);
                 var excused = TestProjectReferenceDebt.TryGetValue(project, out var debt)
                     ? new HashSet<string>(debt, StringComparer.Ordinal)
                     : new HashSet<string>(StringComparer.Ordinal);
@@ -347,7 +343,7 @@ namespace Sitrep.Core.Tests
 
             foreach (var (project, directory) in tests.OrderBy(t => t.Key, StringComparer.Ordinal))
             {
-                var found = PrivateNamespaceImports(directory);
+                var found = PrivateNamespaceImports(directory, TestProjectPrivateProjects);
                 var excused = TestProjectImportDebt.TryGetValue(project, out var debt)
                     ? new HashSet<string>(debt, StringComparer.Ordinal)
                     : new HashSet<string>(StringComparer.Ordinal);
@@ -381,7 +377,7 @@ namespace Sitrep.Core.Tests
 
             foreach (var (uplink, _) in uplinks.OrderBy(u => u.Key, StringComparer.Ordinal))
             {
-                var reachable = ReachablePrivateProjects(uplink, graph);
+                var reachable = ReachablePrivateProjects(uplink, graph, PrivateProjects);
                 var excused = ReferenceDebt.TryGetValue(uplink, out var debt)
                     ? new HashSet<string>(debt, StringComparer.Ordinal)
                     : new HashSet<string>(StringComparer.Ordinal);
@@ -442,7 +438,7 @@ namespace Sitrep.Core.Tests
 
             foreach (var (uplink, directory) in uplinks.OrderBy(u => u.Key, StringComparer.Ordinal))
             {
-                var reachable = ReachablePrivateProjects(uplink, graph);
+                var reachable = ReachablePrivateProjects(uplink, graph, PrivateProjects);
                 var suppressed = NonCopyingDirectReferences(
                     Path.Combine(directory, uplink + ".csproj"));
 
@@ -468,7 +464,7 @@ namespace Sitrep.Core.Tests
 
             foreach (var (uplink, directory) in uplinks.OrderBy(u => u.Key, StringComparer.Ordinal))
             {
-                var found = PrivateNamespaceImports(directory);
+                var found = PrivateNamespaceImports(directory, PrivateProjects);
                 var excused = ImportDebt.TryGetValue(uplink, out var debt)
                     ? new HashSet<string>(debt, StringComparer.Ordinal)
                     : new HashSet<string>(StringComparer.Ordinal);
@@ -580,9 +576,9 @@ namespace Sitrep.Core.Tests
             Path.GetFileNameWithoutExtension(include.Replace('\\', '/'));
 
         private static HashSet<string> ReachablePrivateProjects(
-            string uplink, Dictionary<string, HashSet<string>> graph)
+            string uplink, Dictionary<string, HashSet<string>> graph, IReadOnlyCollection<string> privateSet)
         {
-            var privateProjects = new HashSet<string>(PrivateProjects, StringComparer.Ordinal);
+            var privateProjects = new HashSet<string>(privateSet, StringComparer.Ordinal);
             var reached = new HashSet<string>(StringComparer.Ordinal);
             var seen = new HashSet<string>(StringComparer.Ordinal) { uplink };
             var pending = new Queue<string>();
@@ -632,7 +628,8 @@ namespace Sitrep.Core.Tests
         /// reached by ANY of those routes without the assembly being reachable
         /// first, and that is asserted independently.
         /// </summary>
-        private static Dictionary<string, List<string>> PrivateNamespaceImports(string directory)
+        private static Dictionary<string, List<string>> PrivateNamespaceImports(
+            string directory, IReadOnlyCollection<string> privateSet)
         {
             var found = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var usingDirective = new Regex(@"^\s*using\s+(?:static\s+)?([A-Za-z0-9_.]+)\s*;", RegexOptions.Compiled);
@@ -649,7 +646,7 @@ namespace Sitrep.Core.Tests
                     }
 
                     var imported = match.Groups[1].Value;
-                    var owner = PrivateProjects.FirstOrDefault(p =>
+                    var owner = privateSet.FirstOrDefault(p =>
                         imported.Equals(p, StringComparison.Ordinal) ||
                         imported.StartsWith(p + ".", StringComparison.Ordinal));
 

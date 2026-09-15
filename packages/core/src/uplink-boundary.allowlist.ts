@@ -2499,7 +2499,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/uplink-bundle-targets.ts",
     "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
