@@ -255,6 +255,16 @@ describe("useKosScriptListing", () => {
     expect(fallback).toBe('"null"');
   });
 
+  it("emits an ABSENT size from the kerboscript, never a definite 0", () => {
+    /*
+     * A size the volume could not read has to reach the caller as JSON null
+     * too: a 0 is a claim that the file is empty, and nothing downstream could
+     * tell that apart from a file that really is.
+     */
+    const fallback = /LOCAL size IS (.+)\./.exec(KOS_FILES_SCRIPT)?.[1];
+    expect(fallback).toBe('"null"');
+  });
+
   it("keeps quiet about a kind-less entry that was never a candidate anyway", async () => {
     /*
      * A `.txt` with no reported kind was not runnable whatever it is, so it
