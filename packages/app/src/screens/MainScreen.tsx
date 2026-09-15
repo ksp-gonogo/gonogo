@@ -1,4 +1,7 @@
-import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
+import {
+  ManeuverTriggerProvider,
+  WarpIntentProvider,
+} from "@ksp-gonogo/components";
 import {
   type GameScene,
   getDataSources,
@@ -382,97 +385,109 @@ export function MainScreen({
             <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
             <AutoRecordControllerWithMissionHistory scene={scene} />
             <AlarmHostProvider service={alarmHost}>
-              <NotesHostProvider service={notesHost}>
-                <ScopedStationIdentity defaultName={DEFAULT_NAME_FOR[screen]}>
-                  <CommcastLogProviderOrPassthrough log={commcastLog}>
-                    <ManeuverTriggerProvider service={maneuverTriggerHost}>
-                      <RootProviders screen={screen}>
-                        <MissionProfilesProvider service={missionProfiles}>
-                          <GoNoGoHostProvider service={goNoGoHost}>
-                            <PushHostProvider service={pushHost}>
-                              <CoverageMaskCacheProvider
-                                store={coverageMaskStore}
-                              >
-                                <SerialDeviceProvider service={serialService}>
-                                  <OverlayProvider
-                                    addItem={dashboard.addItem}
-                                    updateItemConfig={
-                                      dashboard.updateItemConfig
-                                    }
-                                  >
-                                    <MainAlarmsLauncherScope>
-                                      <Layout
-                                        as="main"
-                                        aria-label="Mission control"
-                                      >
-                                        <UplinkIntegrityBanner />
-                                        <MissionBanner />
-                                        {screen === "pilot" && !inFlight ? (
-                                          <NoActiveVessel
-                                            hasGameSignal={hasGameSignal}
-                                            scene={scene}
-                                          />
-                                        ) : null}
-                                        <Dashboard
-                                          items={dashboard.items}
-                                          layouts={dashboard.layouts}
-                                          currentLayouts={
-                                            dashboard.currentLayouts
-                                          }
-                                          breakpoint={dashboard.breakpoint}
-                                          onLayoutChange={
-                                            dashboard.handleLayoutChange
-                                          }
-                                          onBreakpointChange={
-                                            dashboard.handleBreakpointChange
-                                          }
-                                          updateItemConfig={
-                                            dashboard.updateItemConfig
-                                          }
-                                          updateItemMappings={
-                                            dashboard.updateItemMappings
-                                          }
-                                          updateItemMobileWidth={
-                                            dashboard.updateItemMobileWidth
-                                          }
-                                          updateItemMobileHeight={
-                                            dashboard.updateItemMobileHeight
-                                          }
-                                          removeItem={dashboard.removeItem}
-                                          moveItemUp={dashboard.moveItemUp}
-                                          moveItemDown={dashboard.moveItemDown}
-                                          lastAddedId={dashboard.lastAddedId}
-                                          clearLastAdded={
-                                            dashboard.clearLastAdded
-                                          }
-                                        />
-                                        <FabClusterProvider>
-                                          <ComponentOverlay
+              {/*
+               * So a deliberate press on this screen's own warp control does
+               * not trip this screen's own unscheduled-warp banner. Scoped to
+               * THIS service on purpose: a pilot and a command centre each run
+               * their own observer, and the ground is meant to see a warp it
+               * did not ask for.
+               */}
+              <WarpIntentProvider
+                announce={() => alarmHost.announceWarpIntent()}
+              >
+                <NotesHostProvider service={notesHost}>
+                  <ScopedStationIdentity defaultName={DEFAULT_NAME_FOR[screen]}>
+                    <CommcastLogProviderOrPassthrough log={commcastLog}>
+                      <ManeuverTriggerProvider service={maneuverTriggerHost}>
+                        <RootProviders screen={screen}>
+                          <MissionProfilesProvider service={missionProfiles}>
+                            <GoNoGoHostProvider service={goNoGoHost}>
+                              <PushHostProvider service={pushHost}>
+                                <CoverageMaskCacheProvider
+                                  store={coverageMaskStore}
+                                >
+                                  <SerialDeviceProvider service={serialService}>
+                                    <OverlayProvider
+                                      addItem={dashboard.addItem}
+                                      updateItemConfig={
+                                        dashboard.updateItemConfig
+                                      }
+                                    >
+                                      <MainAlarmsLauncherScope>
+                                        <Layout
+                                          as="main"
+                                          aria-label="Mission control"
+                                        >
+                                          <UplinkIntegrityBanner />
+                                          <MissionBanner />
+                                          {screen === "pilot" && !inFlight ? (
+                                            <NoActiveVessel
+                                              hasGameSignal={hasGameSignal}
+                                              scene={scene}
+                                            />
+                                          ) : null}
+                                          <Dashboard
+                                            items={dashboard.items}
+                                            layouts={dashboard.layouts}
                                             currentLayouts={
                                               dashboard.currentLayouts
                                             }
-                                          />
-                                          <FlightsFabWithMissionHistory />
-                                          <SerialPortRecoveryWatcher />
-                                          <StationLinkFab />
-                                          <FullscreenFab bottom={204} />
-                                          <SettingsFab bottom={264} />
-                                          <MissionProfilesFab
-                                            bottom={324}
-                                            currentItems={dashboard.items}
-                                            currentLayouts={dashboard.layouts}
-                                            onLoad={(p) =>
-                                              dashboard.replaceState(
-                                                p.items,
-                                                p.layouts,
-                                              )
+                                            breakpoint={dashboard.breakpoint}
+                                            onLayoutChange={
+                                              dashboard.handleLayoutChange
+                                            }
+                                            onBreakpointChange={
+                                              dashboard.handleBreakpointChange
+                                            }
+                                            updateItemConfig={
+                                              dashboard.updateItemConfig
+                                            }
+                                            updateItemMappings={
+                                              dashboard.updateItemMappings
+                                            }
+                                            updateItemMobileWidth={
+                                              dashboard.updateItemMobileWidth
+                                            }
+                                            updateItemMobileHeight={
+                                              dashboard.updateItemMobileHeight
+                                            }
+                                            removeItem={dashboard.removeItem}
+                                            moveItemUp={dashboard.moveItemUp}
+                                            moveItemDown={
+                                              dashboard.moveItemDown
+                                            }
+                                            lastAddedId={dashboard.lastAddedId}
+                                            clearLastAdded={
+                                              dashboard.clearLastAdded
                                             }
                                           />
-                                          <MainAlarmsFab />
-                                        </FabClusterProvider>
-                                        <ReplaySessionBanner />
-                                        <BannerStack>
-                                          {/* BannerStack is row-reverse,
+                                          <FabClusterProvider>
+                                            <ComponentOverlay
+                                              currentLayouts={
+                                                dashboard.currentLayouts
+                                              }
+                                            />
+                                            <FlightsFabWithMissionHistory />
+                                            <SerialPortRecoveryWatcher />
+                                            <StationLinkFab />
+                                            <FullscreenFab bottom={204} />
+                                            <SettingsFab bottom={264} />
+                                            <MissionProfilesFab
+                                              bottom={324}
+                                              currentItems={dashboard.items}
+                                              currentLayouts={dashboard.layouts}
+                                              onLoad={(p) =>
+                                                dashboard.replaceState(
+                                                  p.items,
+                                                  p.layouts,
+                                                )
+                                              }
+                                            />
+                                            <MainAlarmsFab />
+                                          </FabClusterProvider>
+                                          <ReplaySessionBanner />
+                                          <BannerStack>
+                                            {/* BannerStack is row-reverse,
                                         first DOM child sits closest
                                         to the FAB. AlarmBanner stays
                                         adjacent; per-concern pills
@@ -480,40 +495,41 @@ export function MainScreen({
                                         unscheduled warp) stack to its
                                         left as separate single-row
                                         pills. */}
-                                          <AlarmBanner />
-                                          <SafetyMarginPill />
-                                          <FiredAlarmPills />
-                                          <UnscheduledWarpPill />
-                                          <SimulationIndicator />
-                                          <SignalLossIndicator />
-                                          <SustainedFailureBanner />
-                                          <SceneChangeBanner />
-                                          <FlightOutcomeBanner />
-                                          <HomeFallbackNotice />
-                                          <SceneSwitchPrompt
-                                            onLoad={(items, layouts) =>
-                                              dashboard.replaceState(
-                                                items,
-                                                layouts,
-                                              )
-                                            }
-                                          />
-                                        </BannerStack>
-                                        <PushedDashboardOverlay />
-                                      </Layout>
-                                    </MainAlarmsLauncherScope>
-                                  </OverlayProvider>
-                                </SerialDeviceProvider>
-                              </CoverageMaskCacheProvider>
-                            </PushHostProvider>
-                          </GoNoGoHostProvider>
-                        </MissionProfilesProvider>
-                        ,
-                      </RootProviders>
-                    </ManeuverTriggerProvider>
-                  </CommcastLogProviderOrPassthrough>
-                </ScopedStationIdentity>
-              </NotesHostProvider>
+                                            <AlarmBanner />
+                                            <SafetyMarginPill />
+                                            <FiredAlarmPills />
+                                            <UnscheduledWarpPill />
+                                            <SimulationIndicator />
+                                            <SignalLossIndicator />
+                                            <SustainedFailureBanner />
+                                            <SceneChangeBanner />
+                                            <FlightOutcomeBanner />
+                                            <HomeFallbackNotice />
+                                            <SceneSwitchPrompt
+                                              onLoad={(items, layouts) =>
+                                                dashboard.replaceState(
+                                                  items,
+                                                  layouts,
+                                                )
+                                              }
+                                            />
+                                          </BannerStack>
+                                          <PushedDashboardOverlay />
+                                        </Layout>
+                                      </MainAlarmsLauncherScope>
+                                    </OverlayProvider>
+                                  </SerialDeviceProvider>
+                                </CoverageMaskCacheProvider>
+                              </PushHostProvider>
+                            </GoNoGoHostProvider>
+                          </MissionProfilesProvider>
+                          ,
+                        </RootProviders>
+                      </ManeuverTriggerProvider>
+                    </CommcastLogProviderOrPassthrough>
+                  </ScopedStationIdentity>
+                </NotesHostProvider>
+              </WarpIntentProvider>
             </AlarmHostProvider>
           </SettingsProvider>
         </ScreenProvider>

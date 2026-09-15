@@ -461,8 +461,21 @@ export class AlarmHostService {
     this.emit();
   }
 
-  registerStationWarpIntent(): void {
+  /**
+   * "A screen on this service meant the warp it is about to command."
+   *
+   * Suppresses this observer's unscheduled-warp alert for the next couple of
+   * seconds and nothing else. Every other screen keeps its own observer, so a
+   * pilot announcing here does not quiet the command centre's banner, which is
+   * the point: the ground would not otherwise know a pilot was warping.
+   */
+  announceWarpIntent(): void {
     this.warpObserver.registerIntent();
+  }
+
+  /** The peer-mesh entry point for the same announcement. */
+  registerStationWarpIntent(): void {
+    this.announceWarpIntent();
   }
 
   /**
