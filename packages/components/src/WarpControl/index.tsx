@@ -24,6 +24,7 @@ import {
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
+import { useWarpIntent } from "../shared/WarpIntent";
 
 const topics = defineTopicManifest({
   channels: ["time.warp"],
@@ -163,6 +164,7 @@ function WarpControlComponent({
   // vessel), so they dispatch at the meta-vantage and are never signal-delayed
   // (`commandDelayed` is false for `time.*`); usePanelDelay below draws nothing
   // in the panel rail but still consumes the handles per the must-consume invariant.
+  const announceWarpIntent = useWarpIntent();
   const warpCmd = useCommand("time.setWarpIndex", { vantage: META_VANTAGE });
   const pauseCmd = useCommand("time.setPaused", { vantage: META_VANTAGE });
   usePanelDelay(warpCmd);
@@ -200,6 +202,13 @@ function WarpControlComponent({
   const currentRate = magnitudeOf(rate);
 
   const setWarp = (idx: number) => {
+    /*
+     * Before the command, so the watcher has heard of it by the time the
+     * game's warp state comes back changed. It suppresses only this screen's
+     * own unscheduled-warp alert; every other screen still sees a warp it did
+     * not ask for, which is what tells a command centre a pilot is warping.
+     */
+    announceWarpIntent?.();
     void warpCmd.send({ index: idx });
   };
   // The fork ships separate `t.pause` / `t.unpause` action keys, there's

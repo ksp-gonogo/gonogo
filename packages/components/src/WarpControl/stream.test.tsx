@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { WarpIntentProvider } from "../shared/WarpIntent";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
@@ -98,6 +99,96 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
     const button = screen.getByRole("button", { name: "10×" });
     act(() => {
       button.click();
+    });
+
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("time.setWarpIndex", {
+        index: 2,
+      }),
+    );
+  });
+
+  /**
+   * The screen watching the game's warp state cannot tell a deliberate press
+   * here from a warp nobody at this console asked for, so a widget that
+   * commands warp without saying so trips its own screen's unscheduled-warp
+   * alarm. Announcing is what tells the local watcher this one was meant.
+   *
+   * Local only, and the assertion below is deliberately about the announcer
+   * rather than about anything leaving this screen: a command centre flagging
+   * a pilot's warp IS wanted, so nothing here may suppress somebody else's
+   * alert.
+   */
+  it("announces warp intent to its own screen before commanding a warp", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["time.warp", "time.setWarpIndex"],
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    fixture.transport.setCommandHandler(() => ({ ok: true }));
+    const announce = vi.fn();
+
+    render(
+      <fixture.Provider>
+        <WarpIntentProvider announce={announce}>
+          <DashboardItemContext.Provider value={{ instanceId: "warp-intent" }}>
+            <WarpControlComponent id="warp-intent" w={6} h={5} />
+          </DashboardItemContext.Provider>
+        </WarpIntentProvider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("time.warp", {
+        warpRate: 1,
+        warpRateIndex: 0,
+        warpMode: 0,
+        paused: false,
+      });
+    });
+    await waitFor(() => expect(visibleText()).toContain("1×"));
+
+    act(() => {
+      screen.getByRole("button", { name: "10×" }).click();
+    });
+
+    await waitFor(() => expect(announce).toHaveBeenCalled());
+  });
+
+  /**
+   * A station runs no warp watcher of its own, so there is nobody local to
+   * tell and the widget has to work with no provider above it. Pinned because
+   * the obvious implementation, announcing unconditionally, throws there.
+   */
+  it("commands a warp with no announcer mounted at all", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["time.warp", "time.setWarpIndex"],
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    const commandHandler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(commandHandler);
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "warp-bare" }}>
+          <WarpControlComponent id="warp-bare" w={6} h={5} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("time.warp", {
+        warpRate: 1,
+        warpRateIndex: 0,
+        warpMode: 0,
+        paused: false,
+      });
+    });
+    await waitFor(() => expect(visibleText()).toContain("1×"));
+
+    act(() => {
+      screen.getByRole("button", { name: "10×" }).click();
     });
 
     await waitFor(() =>

@@ -329,6 +329,44 @@ describe("AlarmHostService", () => {
     expect(svc.snapshot().unscheduledWarp).toBeNull();
   });
 
+  /**
+   * The local half of the warp-intent fix: this is what the screen's own warp
+   * control reaches through `WarpIntentProvider`, and it must quiet THIS
+   * observer.
+   */
+  it("suppresses its own flag when the screen announces its own warp intent", async () => {
+    const { svc, telemetry } = makeService();
+    svc.announceWarpIntent();
+    telemetry.set("t.currentRateIndex", 3);
+    telemetry.set("t.currentRate", 10);
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(svc.snapshot().unscheduledWarp).toBeNull();
+  });
+
+  /**
+   * The property the operator asked for, and the reason announcing is local
+   * rather than broadcast: a command centre must still be told about a warp it
+   * did not ask for, because it "won't necessarily know what a pilot is doing".
+   *
+   * Two services stand in for two screens watching the same game. One announces
+   * and goes quiet; the other never heard, and must still raise its flag.
+   */
+  it("leaves another screen's observer flagging a warp it never heard about", async () => {
+    const mine = makeService();
+    const theirs = makeService();
+
+    mine.svc.announceWarpIntent();
+    for (const s of [mine, theirs]) {
+      s.telemetry.set("t.universalTime", 1200);
+      s.telemetry.set("t.currentRateIndex", 3);
+      s.telemetry.set("t.currentRate", 10);
+    }
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(mine.svc.snapshot().unscheduledWarp).toBeNull();
+    expect(theirs.svc.snapshot().unscheduledWarp).not.toBeNull();
+  });
+
   it("persists alarms across service instances", async () => {
     const storage = memoryStorage();
     const telemetry = fakeTelemetry();

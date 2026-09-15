@@ -50,6 +50,7 @@ export * from "./shared/AlarmsLauncher";
 export * from "./shared/RequiresGuard";
 export * from "./shared/SeatGuard";
 export * from "./shared/seatAvailability";
+export * from "./shared/WarpIntent";
 export * from "./Targeting";
 export * from "./TargetPicker";
 export * from "./TechTree";
