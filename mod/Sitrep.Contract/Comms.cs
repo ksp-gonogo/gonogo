@@ -65,7 +65,7 @@ public class CommsConnectivity
 }
 
 /// <summary>
-/// The <c>comms.signalStrength</c> payload: always-present, elected
+/// The <c>comms.signal</c> payload: always-present, elected
 /// backend. 0..1. CommNet gives a coarse range-fraction; RealAntennas gives
 /// a link-budget-derived value.
 ///
@@ -87,15 +87,15 @@ public class CommsConnectivity
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.signalStrength")]
-public class CommsSignalStrength
+[SitrepTopic("comms.signal")]
+public class CommsSignal
 {
     [SitrepUnit(Units.Ratio)]
-    public double Value { get; set; }
+    public double Strength { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>Control-state kind for <see cref="CommsControlState"/>.</summary>
+/// <summary>Control-state kind for <see cref="CommsControl"/>.</summary>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -108,7 +108,7 @@ public enum CommsControlStateKind
 }
 
 /// <summary>
-/// The <c>comms.controlState</c> payload: always-present, elected backend.
+/// The <c>comms.control</c> payload: always-present, elected backend.
 /// <see cref="Reason"/> is a nullable annotation (absent = no annotation),
 /// never an empty-string sentinel.
 /// </summary>
@@ -116,11 +116,11 @@ public enum CommsControlStateKind
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.controlState")]
-public class CommsControlState
+[SitrepTopic("comms.control")]
+public class CommsControl
 {
     [SitrepUnit(Units.Enumeration)]
-    public CommsControlStateKind State { get; set; }
+    public CommsControlStateKind Level { get; set; }
     [SitrepUnit(Units.Text)]
     public string? Reason { get; set; }
     public PayloadMeta Meta { get; set; } = new();
@@ -560,8 +560,8 @@ public readonly struct CommsRouteHop
 public interface ICommsBackend : ISitrepProvider
 {
     CommsConnectivity Connectivity();
-    CommsSignalStrength SignalStrength();
-    CommsControlState ControlState();
+    CommsSignal SignalStrength();
+    CommsControl ControlState();
 
     /// <summary>Ordered hops to KSC: the geometry SignalDelay reads for light-time (§3).</summary>
     CommsPath Path();
@@ -663,7 +663,7 @@ public interface ICommsBackend : ISitrepProvider
     /// <para>It is on the interface for the same reason
     /// <see cref="OcclusionModel"/> and <see cref="ReachModel"/> are, and the
     /// alternative was already shipping: consumers derive a quality from
-    /// <c>1 - comms.signalStrength</c>, and that field carries a range fraction
+    /// <c>1 - comms.signal.strength</c>, and that field carries a range fraction
     /// under stock and a rate-ladder headroom fraction under RealAntennas. The
     /// derivation is therefore a different curve per install with nothing saying
     /// so, which is a wrong number acted on rather than a missing one noticed.

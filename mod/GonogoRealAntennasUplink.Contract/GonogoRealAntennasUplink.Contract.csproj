@@ -20,7 +20,7 @@
     two-provider channel family: Gonogo.KSP/CommsCoreUplink.cs owns the shared
     shape and the elected backend sources it (stock CommNet, or this Uplink's
     RaCommsBackend when RealAntennas is installed). So CommsConnectivity /
-    CommsSignalStrength / CommsControlState / CommsPath / CommsNetwork /
+    CommsSignal / CommsControl / CommsPath / CommsNetwork /
     CommsDelay / CommsLink, their nested CommsHop / CommsNetworkNode /
     CommsNetworkEdge, the four enums, and the ICommsBackend capability interface
     this Uplink IMPLEMENTS from outside are all core, and stay. Only the three

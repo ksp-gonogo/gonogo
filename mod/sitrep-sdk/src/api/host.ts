@@ -65,7 +65,7 @@ export interface GonogoHost {
    * The key must be a FIELD PATH the contract declares under a Topic, e.g.
    * `useTelemetry<number>("data", "vessel.control.throttle")`. A bare Topic id
    * resolves to nothing here: `resolveValueTopic` needs at least one field
-   * segment after the Topic, so `useTelemetry("data", "comms.signalStrength")`
+   * segment after the Topic, so `useTelemetry("data", "comms.signal")`
    * reads `undefined` for ever. Read a whole Topic through the canonical
    * one-arg form instead, which is what it is for.
    */

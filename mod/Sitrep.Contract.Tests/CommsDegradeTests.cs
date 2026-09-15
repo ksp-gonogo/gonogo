@@ -11,7 +11,7 @@ namespace Sitrep.Contract.Tests
     /// perfect.
     ///
     /// <para>The failure these replicate is the one already shipping under
-    /// <c>comms.signalStrength</c>: a bare 0..1 with no way to say "nobody
+    /// <c>comms.signal</c>: a bare 0..1 with no way to say "nobody
     /// measured this", read by a camera feed as <c>1 - value</c>. On an install
     /// whose backend cannot grade, the honest answer and the most alarming
     /// answer are the same number, and the feed blacks out a picture that is

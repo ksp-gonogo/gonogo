@@ -109,7 +109,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // renders it. What is unwrapped here is also the thing being CHECKED: the
   // 0..1 promise is re-kept on arrival, and doing it once here is the point: the
   // alternative is every consumer clamping at its own call site, which is the
-  // shape `1 - comms.signalStrength` already took.
+  // shape `1 - comms.signal.strength` already took.
   //
   // ONE, and only because `DegradeRating.level` is a plain number on the way
   // out. The non-finite check is `Value.isFinite()` and the clamp is

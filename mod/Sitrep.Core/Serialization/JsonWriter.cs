@@ -347,11 +347,11 @@ namespace Sitrep.Core.Serialization
                     // subscribed but got zero stream-data.
                     AppendCommsConnectivity(sb, connectivity);
                     break;
-                case Sitrep.Contract.CommsSignalStrength signalStrength:
-                    AppendCommsSignalStrength(sb, signalStrength);
+                case Sitrep.Contract.CommsSignal signal:
+                    AppendCommsSignal(sb, signal);
                     break;
-                case Sitrep.Contract.CommsControlState controlState:
-                    AppendCommsControlState(sb, controlState);
+                case Sitrep.Contract.CommsControl control:
+                    AppendCommsControl(sb, control);
                     break;
                 case Sitrep.Contract.CommsPath path:
                     AppendCommsPath(sb, path);
@@ -754,7 +754,7 @@ namespace Sitrep.Core.Serialization
         // Nullable-field writers for the reliability.* POCOs (nearly every field
         // is optional). Each is exactly the inline "HasValue / non-null ? value :
         // JSON null" idiom the sibling helpers already use (AppendCommsDelay's
-        // oneWaySeconds, AppendCommsControlState's reason): named so the two
+        // oneWaySeconds, AppendCommsControl's reason): named so the two
         // reliability writers below stay one line per field.
         private static void AppendNullableBool(StringBuilder sb, bool? value)
         {
@@ -1913,12 +1913,12 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        private static void AppendCommsSignalStrength(StringBuilder sb, Sitrep.Contract.CommsSignalStrength s)
+        private static void AppendCommsSignal(StringBuilder sb, Sitrep.Contract.CommsSignal s)
         {
             sb.Append('{');
-            AppendString(sb, "value");
+            AppendString(sb, "strength");
             sb.Append(':');
-            AppendNumber(sb, s.Value);
+            AppendNumber(sb, s.Strength);
             sb.Append(',');
             AppendString(sb, "meta");
             sb.Append(':');
@@ -1926,12 +1926,12 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        private static void AppendCommsControlState(StringBuilder sb, Sitrep.Contract.CommsControlState c)
+        private static void AppendCommsControl(StringBuilder sb, Sitrep.Contract.CommsControl c)
         {
             sb.Append('{');
-            AppendString(sb, "state");
+            AppendString(sb, "level");
             sb.Append(':');
-            AppendInteger(sb, (long)c.State);
+            AppendInteger(sb, (long)c.Level);
             sb.Append(',');
             AppendString(sb, "reason");
             sb.Append(':');

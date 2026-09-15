@@ -37,14 +37,14 @@ import type {
   CommandCentreSeparation,
   CommsCommandCentre,
   CommsConnectivity,
-  CommsControlState,
+  CommsControl,
   CommsDegrade,
   CommsDelay,
   CommsLink,
   CommsNetwork,
   CommsOcclusion,
   CommsPath,
-  CommsSignalStrength,
+  CommsSignal,
   ControlFrame,
   CrashReport,
   CrewRosterEntry,
@@ -117,14 +117,14 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.separation": CommandCentreSeparation;
   "comms.commandCentre": CommsCommandCentre;
   "comms.connectivity": CommsConnectivity;
-  "comms.controlState": CommsControlState;
+  "comms.control": CommsControl;
   "comms.degrade": CommsDegrade;
   "comms.delay": CommsDelay;
   "comms.link": CommsLink;
   "comms.network": CommsNetwork;
   "comms.occlusion": CommsOcclusion;
   "comms.path": CommsPath;
-  "comms.signalStrength": CommsSignalStrength;
+  "comms.signal": CommsSignal;
   "crash.lastCrash": CrashReport;
   "deployed.bases": DeployedEntry[];
   "dv.stages": StageDeltaVEntry[];
@@ -197,14 +197,14 @@ export const GENERATED_TOPIC_IDS = [
   "commandCentre.separation",
   "comms.commandCentre",
   "comms.connectivity",
-  "comms.controlState",
+  "comms.control",
   "comms.degrade",
   "comms.delay",
   "comms.link",
   "comms.network",
   "comms.occlusion",
   "comms.path",
-  "comms.signalStrength",
+  "comms.signal",
   "crash.lastCrash",
   "deployed.bases",
   "dv.stages",

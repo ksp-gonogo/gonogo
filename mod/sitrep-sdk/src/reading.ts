@@ -618,14 +618,15 @@ export type TopicCurrency<P, Rk = unknown> =
  * so the failure lands on whoever spells the field that way, with the topic,
  * the field and a stack.
  *
- * This exclusion stays only while `RtConfig.ReservedFieldNameDebt` is
- * non-empty. Four contract fields collide today, two of them core's own
- * (`comms.signalStrength.value` and `comms.controlState.state`) and two
- * declared by Uplink slices; that list names them. Each is a wire-visible
- * rename away from gone, which is a Major apiece. When the list empties, delete
- * the `Exclude` and this paragraph: nothing will be reaching a reserved name to
- * excuse. `styleguide-reserved-reading-keys.test.ts` keeps the two spellings of
- * the key list in step meanwhile.
+ * This exclusion stays only while a reserved-name debt list is non-empty. Two
+ * contract fields collide today, both declared by Uplink slices and both on
+ * those slices' own lists; core cleared its two at contract Major 17, renaming
+ * them to `comms.signal.strength` and `comms.control.level`, and
+ * `RtConfig.ReservedFieldNameDebt` is now empty. Each remaining one is a
+ * wire-visible rename away from gone, which is a Major apiece. When the lists
+ * empty, delete the `Exclude` and this paragraph: nothing will be reaching a
+ * reserved name to excuse. `styleguide-reserved-reading-keys.test.ts` keeps the
+ * two spellings of the key list in step meanwhile.
  *
  * An array payload is left alone entirely: mapping `keyof P` over one would
  * claim a `Reading` at `length`, `map` and every other array member. That is

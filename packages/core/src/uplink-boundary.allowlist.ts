@@ -1092,7 +1092,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * -- the client-side read of comms.degrade (2026-09-05). One prose
        * sentence names the two shipped backends, and it is the sentence that
        * tells an author why to use this helper instead of
-       * `1 - comms.signalStrength`: that field is a range fraction on one
+       * `1 - comms.signal.strength`: that field is a range fraction on one
        * install and rate-ladder headroom on the other, so the obvious
        * arithmetic is a different quality curve per save with nothing on the
        * wire saying so. Written generically it reads as caution rather than as
@@ -1362,12 +1362,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * -- CommsDegrade.cs (2026-09-05) is the third file of that same set, and
        * the one whose naming is most load-bearing of any of them. Its whole
-       * reason to exist is that comms.signalStrength is 0..1 and looks like the
+       * reason to exist is that comms.signal is 0..1 and looks like the
        * quality number a consumer wants, and is not: it holds a range fraction
        * under the stock backend and rate-ladder headroom under this one, with
        * nothing on the wire to tell them apart. Written generically that reads
-       * as a hypothetical, and the next author derives a quality from
-       * signalStrength again, which is what the shipped camera feed does today.
+       * as a hypothetical, and the next author derives a quality from the raw
+       * strength again, which is what the shipped camera feed does today.
        * Naming both quantities IS the argument for the channel. Text only: the
        * judgement lives on ICommsBackend.DegradeModel and each backend declares
        * its own rule, so this file computes nothing for either of them.

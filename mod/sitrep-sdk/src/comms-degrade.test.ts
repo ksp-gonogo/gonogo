@@ -26,7 +26,7 @@ const payloadOf = (
  * on, or nothing, with no third state and no substituted number.
  *
  * <p>The failure these replicate is what the camera feed does today over
- * `comms.signalStrength`: a bare 0..1 with no way to say "nobody measured
+ * `comms.signal`: a bare 0..1 with no way to say "nobody measured
  * this", read as `1 - value`. When the value never arrives the feed keeps
  * whatever degrade it had, and when it arrives as a zero from a backend that
  * could not grade, the feed blacks out a picture that is arriving perfectly.

@@ -167,7 +167,7 @@ namespace Sitrep.Host.Comms
         /// FULL. Nothing attenuates a link that is not modelled.
         ///
         /// <para>The honest answer is that there is no link budget to grade, so
-        /// the value is ABSENT, and <see cref="CommsSignalStrength.Value"/>
+        /// the value is ABSENT, and <see cref="CommsSignal.Strength"/>
         /// cannot say that: it is not nullable, and making it nullable is a
         /// retype the contract shape gate refuses without a Major bump. Of the
         /// two things it CAN say, 1 is the one that does not lie: 0 is what the
@@ -176,28 +176,28 @@ namespace Sitrep.Host.Comms
         /// that needs to know this is not a grading has
         /// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>.</para>
         /// </summary>
-        public CommsSignalStrength SignalStrength() => new CommsSignalStrength
+        public CommsSignal SignalStrength() => new CommsSignal
         {
-            Value = 1.0,
+            Strength = 1.0,
             Meta = Meta(),
         };
 
         /// <summary>
         /// The same control tier <see cref="Connectivity"/> reports.
         ///
-        /// <para><see cref="CommsControlState.Reason"/> never says "no
+        /// <para><see cref="CommsControl.Reason"/> never says "no
         /// connection to a command source" here, which would name a condition
         /// that does not exist: there is no connection MODEL, not a missing
         /// connection. An uncontrollable craft is uncontrollable for the one
         /// reason left, which is that nothing aboard it can be a command
         /// source.</para>
         /// </summary>
-        public CommsControlState ControlState()
+        public CommsControl ControlState()
         {
             var control = LocalControl();
-            return new CommsControlState
+            return new CommsControl
             {
-                State = control switch
+                Level = control switch
                 {
                     CommsControlSource.Full => CommsControlStateKind.Full,
                     CommsControlSource.Partial => CommsControlStateKind.PartialManoeuvre,

@@ -167,8 +167,8 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotNull(backend);
 
             Assert.True(backend!.Connectivity().Connected);
-            Assert.Equal(CommsControlStateKind.Full, backend.ControlState().State);
-            Assert.InRange(backend.SignalStrength().Value, 0.0, 1.0);
+            Assert.Equal(CommsControlStateKind.Full, backend.ControlState().Level);
+            Assert.InRange(backend.SignalStrength().Strength, 0.0, 1.0);
 
             var path = backend.Path();
             var hop = Assert.Single(path.Hops);

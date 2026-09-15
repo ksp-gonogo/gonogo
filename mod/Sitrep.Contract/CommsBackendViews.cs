@@ -181,8 +181,8 @@ public readonly struct CommsSubject
 /// payload is derived from, and nothing else.
 ///
 /// <para>One struct rather than three accessors because the three wire channels
-/// that come out of it (<c>comms.connectivity</c>, <c>comms.signalStrength</c>,
-/// <c>comms.controlState</c>) describe ONE tick of ONE link, and reading them
+/// that come out of it (<c>comms.connectivity</c>, <c>comms.signal</c>,
+/// <c>comms.control</c>) describe ONE tick of ONE link, and reading them
 /// separately is three chances to straddle a scene change and publish a
 /// connected flag beside a control level from the craft before it.</para>
 /// </summary>
@@ -204,7 +204,7 @@ public readonly struct CommsLinkState
     /// <summary>
     /// The backend's own 0..1 strength. KNOWN to mean two different things
     /// (stock: a range fraction; RealAntennas: a rate-ladder headroom fraction)
-    /// behind one field, which is a defect of <see cref="CommsSignalStrength"/>
+    /// behind one field, which is a defect of <see cref="CommsSignal"/>
     /// and not of this struct. It is carried through unchanged, deliberately:
     /// fixing it means either one normalised quantity or two honest fields, and
     /// either is a wire change with client work behind it.

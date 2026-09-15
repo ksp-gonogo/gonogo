@@ -1306,9 +1306,9 @@ export interface CommsConnectivity
 	meta: PayloadMeta;
 }
 /**
-* The `comms.signalStrength` payload: always-present, elected backend. 0..1.
-* CommNet gives a coarse range-fraction; RealAntennas gives a
-* link-budget-derived value.
+* The `comms.signal` payload: always-present, elected backend. 0..1. CommNet
+* gives a coarse range-fraction; RealAntennas gives a link-budget-derived
+* value.
 *
 * A save with the stock CommNet difficulty option off models no link budget at
 * all and reports 1 here: nothing attenuates a link that is not modelled. A
@@ -1316,25 +1316,25 @@ export interface CommsConnectivity
 * `CommsDelaySource.NoCommsModel` on `comms.delay`, which is the one
 * discriminator for the whole family rather than a second one per field.
 */
-export interface CommsSignalStrength
+export interface CommsSignal
 {
-	value: Value<"ratio">;
+	strength: Value<"ratio">;
 	meta: PayloadMeta;
 }
-/** Control-state kind for `CommsControlState`. */
+/** Control-state kind for `CommsControl`. */
 export enum CommsControlStateKind {
 	None = 0,
 	PartialManoeuvre = 1,
 	Full = 2
 }
 /**
-* The `comms.controlState` payload: always-present, elected backend.
-* `CommsControlState.reason` is a nullable annotation (absent = no
-* annotation), never an empty-string sentinel.
+* The `comms.control` payload: always-present, elected backend.
+* `CommsControl.reason` is a nullable annotation (absent = no annotation),
+* never an empty-string sentinel.
 */
-export interface CommsControlState
+export interface CommsControl
 {
-	state: CommsControlStateKind;
+	level: CommsControlStateKind;
 	reason?: string;
 	meta: PayloadMeta;
 }
@@ -1607,13 +1607,13 @@ export interface CommsCommandCentre
 * perfect" are opposite instructions to anything choosing a quality, so a
 * consumer must branch on the absence rather than default it to a number.
 *
-* **Read this rather than deriving a quality from `comms.signalStrength`.**
-* That field is 0..1 too, and it is a different quantity on a stock install
-* than on a RealAntennas one: a range fraction against an antenna curve versus
-* spare room on a data-rate ladder. Nothing on the wire distinguishes them, so
-* `1 - signalStrength` is two different quality curves on two saves. This
-* channel names its rule, so a consumer acting on the number can see which
-* grading produced it.
+* **Read this rather than deriving a quality from `comms.signal`.** That field
+* is 0..1 too, and it is a different quantity on a stock install than on a
+* RealAntennas one: a range fraction against an antenna curve versus spare
+* room on a data-rate ladder. Nothing on the wire distinguishes them, so `1 -
+* strength` is two different quality curves on two saves. This channel names
+* its rule, so a consumer acting on the number can see which grading produced
+* it.
 *
 * DELAYED, like the link observations it grades and unlike its always-live
 * `comms.delay` sibling. A rating is an observation of the craft's link, so an

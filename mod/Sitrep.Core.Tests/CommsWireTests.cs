@@ -12,7 +12,7 @@ namespace Sitrep.Core.Tests
     /// <see cref="JsonWriter.AppendValue"/> case, so a POPULATED payload threw
     /// <c>NotSupportedException</c> at the wire boundary and the frame was
     /// dropped: a client subscribed comms.connectivity / comms.path /
-    /// comms.network / comms.signalStrength but received only "subscribed" and
+    /// comms.network / comms.signal but received only "subscribed" and
     /// zero data. Same class of bug the <see cref="CommsDelay"/> /
     /// <see cref="KosProcessorInfo"/> flattens already fixed. These serialize
     /// through the real stream-data wire path and assert nothing throws plus the
@@ -64,32 +64,32 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void SignalStrengthSerializes()
+        public void SignalSerializes()
         {
-            var el = Write(new CommsSignalStrength { Value = 0.75, Meta = new PayloadMeta() });
-            Assert.Equal(0.75, el.GetProperty("value").GetDouble());
+            var el = Write(new CommsSignal { Strength = 0.75, Meta = new PayloadMeta() });
+            Assert.Equal(0.75, el.GetProperty("strength").GetDouble());
             Assert.Equal(JsonValueKind.Object, el.GetProperty("meta").ValueKind);
         }
 
         [Fact]
-        public void ControlStateReasonNullSerializesAsJsonNull()
+        public void ControlReasonNullSerializesAsJsonNull()
         {
-            var el = Write(new CommsControlState
+            var el = Write(new CommsControl
             {
-                State = CommsControlStateKind.Full,
+                Level = CommsControlStateKind.Full,
                 Reason = null,
                 Meta = new PayloadMeta(),
             });
-            Assert.Equal((int)CommsControlStateKind.Full, el.GetProperty("state").GetInt32());
+            Assert.Equal((int)CommsControlStateKind.Full, el.GetProperty("level").GetInt32());
             Assert.Equal(JsonValueKind.Null, el.GetProperty("reason").ValueKind);
         }
 
         [Fact]
-        public void ControlStateReasonPresentSerializesAsString()
+        public void ControlReasonPresentSerializesAsString()
         {
-            var el = Write(new CommsControlState
+            var el = Write(new CommsControl
             {
-                State = CommsControlStateKind.PartialManoeuvre,
+                Level = CommsControlStateKind.PartialManoeuvre,
                 Reason = "partial",
                 Meta = new PayloadMeta(),
             });
@@ -253,8 +253,8 @@ namespace Sitrep.Core.Tests
             // The capture bundles default-constructed payloads pre-election; each
             // must serialize (not throw) through the real wire path.
             Write(new CommsConnectivity());
-            Write(new CommsSignalStrength());
-            Write(new CommsControlState());
+            Write(new CommsSignal());
+            Write(new CommsControl());
             Write(new CommsPath());
             Write(new CommsNetwork());
             Write(new CommsCommandCentre());

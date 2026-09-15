@@ -295,8 +295,8 @@ namespace Sitrep.Core.Tests
             // went. Its own Uplink's tests own its coverage now.
             foreach (var name in new[]
                      {
-                         nameof(CommsConnectivity), nameof(CommsSignalStrength),
-                         nameof(CommsControlState), nameof(CommsPath), nameof(CommsNetwork),
+                         nameof(CommsConnectivity), nameof(CommsSignal),
+                         nameof(CommsControl), nameof(CommsPath), nameof(CommsNetwork),
                          nameof(CommsDelay), nameof(CommsOcclusion),
                      })
             {
@@ -306,8 +306,8 @@ namespace Sitrep.Core.Tests
 
             // And they serialize without throwing.
             SerializeThroughWire(new CommsConnectivity());
-            SerializeThroughWire(new CommsSignalStrength());
-            SerializeThroughWire(new CommsControlState());
+            SerializeThroughWire(new CommsSignal());
+            SerializeThroughWire(new CommsControl());
             SerializeThroughWire(new CommsPath());
             SerializeThroughWire(new CommsNetwork());
             SerializeThroughWire(new CommsDelay());

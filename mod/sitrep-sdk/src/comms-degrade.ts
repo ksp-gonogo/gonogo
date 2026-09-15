@@ -33,7 +33,7 @@ export interface DegradeRating {
  *
  * **This is the read to build a quality decision on, not `1 -
  * signalStrength`.** That expression is what a camera feed does today, and
- * `comms.signalStrength` is a range fraction against an antenna curve on a stock
+ * `comms.signal` is a range fraction against an antenna curve on a stock
  * install and spare room on a data-rate ladder on a RealAntennas one, with
  * nothing on the wire distinguishing them. The same arithmetic therefore
  * produces two different quality curves on two saves, and no consumer can tell
