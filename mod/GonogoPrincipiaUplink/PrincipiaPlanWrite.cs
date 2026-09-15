@@ -572,8 +572,22 @@ namespace GonogoPrincipiaUplink
                     + "accepts it and every burn duration in the plan is then poisoned by it.");
             }
 
+            // A GUARD, so an unreadable clock refuses. The comparison below is false
+            // at the 0.0 this used to collapse to, so every end instant a real career
+            // could name looked comfortably ahead of the start of the campaign and
+            // the create went through: the plan lands ending before it starts, which
+            // is the assertion failure this check exists to keep away from.
             var now = _session.Plugin.CurrentTime(handle);
-            if (finalTimeUt < now)
+            if (now == null)
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.GuardReadUnreadable,
+                    "Principia's own clock would not read off this build, so whether this plan "
+                    + "would end before it starts cannot be established. Nothing has been "
+                    + "created. A plan ending in the past is an assertion failure inside the "
+                    + "plugin rather than an error return, so the check is not one to guess at.");
+            }
+            if (finalTimeUt < now.Value)
             {
                 return PrincipiaWriteResult.Refused(
                     PrincipiaWriteRefusal.FinalTimeInPast,

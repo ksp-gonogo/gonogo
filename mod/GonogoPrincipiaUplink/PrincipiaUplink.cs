@@ -471,7 +471,13 @@ namespace GonogoPrincipiaUplink
             {
                 return;
             }
-            _planPublisher?.Publish(PlanBuilder.Build(observation), observation.SampledAtUt);
+            // The capture stamps the game's UT rather than Principia's, so the null
+            // arm belongs to a command receipt and cannot arrive on this path. Where
+            // it somehow does, the publish still needs an instant for the timeline
+            // and the game's clock is the honest one to take it from: the payload's
+            // own sampledAtUt stays null and goes on saying the reading was unstamped.
+            _planPublisher?.Publish(
+                PlanBuilder.Build(observation), observation.SampledAtUt ?? _host!.NowUt());
         }
 
         /// <summary>

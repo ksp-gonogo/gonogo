@@ -149,6 +149,11 @@ namespace GonogoPrincipiaUplink
             {
                 return Refusal(ArmCommand, requestId, UnknownVessel(vesselId), null);
             }
+            // A READING here, and the only one on this surface. Arming compares
+            // nothing against the clock: the instant is carried so the receipt can
+            // say which reading the operator is looking at, and a receipt that says
+            // it could not say is the honest one. Every write the arm permits reads
+            // the clock again on its own account and refuses without it.
             var now = frame.CurrentTime();
             if (!vessel.TryFlightPlan(out var plan))
             {
@@ -246,7 +251,7 @@ namespace GonogoPrincipiaUplink
         /// only after one.</para>
         /// </summary>
         private PlanObservation? ReadPlan(
-            PrincipiaSession session, PrincipiaFrame frame, string vesselGuid, double now) =>
+            PrincipiaSession session, PrincipiaFrame frame, string vesselGuid, double? now) =>
             _reader.ReadInFrame(session, frame, vesselGuid, now, _source()?.Celestials);
 
         /// <summary>Tunes one existing burn: time, the Dv triple, the attitude
@@ -628,7 +633,15 @@ namespace GonogoPrincipiaUplink
                 unreachable = NoPlugin();
                 return null;
             }
-            return frame.CurrentTime();
+            // Its own null arm, alongside the three above it. The method's whole
+            // contract is "the instant, or the reason there is none", and a clock
+            // that would not read is a fourth reason rather than a fourth instant.
+            var now = frame.CurrentTime();
+            if (now == null)
+            {
+                unreachable = ClockUnreadable();
+            }
+            return now;
         }
 
         private PrincipiaWriteResult? EnsurePlanExists(
@@ -677,8 +690,18 @@ namespace GonogoPrincipiaUplink
             // producer's own planner asks for when it is given nothing. A plan
             // ending before it starts is an assertion failure inside the plugin
             // rather than an error return.
+            //
+            // A GUARD, because the hour is measured FROM now and the create checks
+            // the result against now as well. At the 0.0 an unreadable clock used to
+            // collapse to, the default became UT 3600 and the check waved it through:
+            // a plan ending an hour into Year 1 Day 1, installed on a craft flying
+            // years later.
             var now = frame.CurrentTime();
-            var finalTime = desiredFinalTimeUt ?? now + 3600.0;
+            if (now == null)
+            {
+                return ClockUnreadable();
+            }
+            var finalTime = desiredFinalTimeUt ?? now.Value + 3600.0;
             var created = gate.Create(finalTime, massTons.Value);
             return created.Outcome == PrincipiaWriteOutcome.Written ? null : created;
         }
@@ -815,7 +838,18 @@ namespace GonogoPrincipiaUplink
                 return Refusal(CreateCommand, args.RequestId, UnknownVessel(args.VesselId), null);
             }
 
+            // A GUARD, for the same reason as the default an hour below it: the end
+            // instant this command writes is measured from now where the operator
+            // named none, and checked against now either way.
             var now = frame.CurrentTime();
+            if (now == null)
+            {
+                return Refusal(
+                    CreateCommand,
+                    args.RequestId,
+                    ClockUnreadable(),
+                    ReadPlan(session, frame, vessel.Guid, null));
+            }
             if (!vessel.TryPlanCreation(out var gate, out var refusal, out var detail))
             {
                 return Refusal(
@@ -828,7 +862,7 @@ namespace GonogoPrincipiaUplink
             // An hour, which is what Principia's own planner asks for when the
             // operator gives it nothing. Stated rather than left to a null: a plan
             // that ends before it starts is an assertion failure inside the plugin.
-            var finalTime = args.FinalTimeUt ?? now + 3600.0;
+            var finalTime = args.FinalTimeUt ?? now.Value + 3600.0;
             var massTons = _source()?.MassTonsOf(vessel.Guid);
             if (massTons == null || !(massTons.Value > 0))
             {
@@ -1100,7 +1134,19 @@ namespace GonogoPrincipiaUplink
                 return Refusal(command, requestId, UnknownVessel(vesselId), null);
             }
 
+            // A GUARD, and the one that matters most: this instant is what every
+            // write below compares its burn against. RejectExecuting asks whether
+            // the craft is under thrust right now and RejectRequestedIgnition asks
+            // whether the instant asked for has gone, and both of those comparisons
+            // are false at the 0.0 an unreadable clock used to collapse to. So a
+            // remove aimed at a burn mid ignition came back Written.
             var now = frame.CurrentTime();
+            if (now == null)
+            {
+                return Refusal(
+                    command, requestId, ClockUnreadable(),
+                    ReadPlan(session, frame, vessel.Guid, null));
+            }
             if (!vessel.TryFlightPlan(out var plan))
             {
                 return Refusal(
@@ -1120,7 +1166,7 @@ namespace GonogoPrincipiaUplink
                     ReadPlan(session, frame, vessel.Guid, now));
             }
 
-            var result = write(session, gate, now);
+            var result = write(session, gate, now.Value);
 
             // The re-read happens whatever the outcome, including a refusal that got
             // this far, because "what does the plan look like now" is the question a
@@ -1156,6 +1202,24 @@ namespace GonogoPrincipiaUplink
             PrincipiaWriteResult.Refused(
                 PrincipiaWriteRefusal.NoFlightPlan,
                 "The vessel has no flight plan. Create one first.");
+
+        /// <summary>
+        /// Principia's clock would not read, so no write on this surface can be
+        /// checked against "now".
+        ///
+        /// <para>Not <see cref="PrincipiaWriteRefusal.SurfaceUnavailable"/>, which
+        /// says the surface is not there. It is there and answering, and one answer
+        /// this build cannot decode; the guards are what stopped, so the refusal is
+        /// the one that says a guard could not answer.</para>
+        /// </summary>
+        private static PrincipiaWriteResult ClockUnreadable() =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.GuardReadUnreadable,
+                "Principia's own clock would not read off this build, so none of the checks that "
+                + "stand between this write and the game can answer: whether a burn is running "
+                + "right now, and whether the instant asked for has already passed. Nothing has "
+                + "been written. The clock used to fall back to universal time zero, which is "
+                + "Year 1 Day 1, and every one of those checks passes against it.");
 
         private static PrincipiaWriteResult UnknownVessel(string? vesselId) =>
             PrincipiaWriteResult.Refused(

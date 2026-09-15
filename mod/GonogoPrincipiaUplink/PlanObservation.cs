@@ -11,7 +11,16 @@ namespace GonogoPrincipiaUplink
     public sealed class PlanObservation
     {
         public string? VesselId;
-        public double SampledAtUt;
+
+        /// <summary>
+        /// The instant this reading was taken at, or null when the clock it would
+        /// have come off would not read.
+        ///
+        /// <para>Null only on a command receipt, where the instant is Principia's own
+        /// and a reflected read of it can fail. The tick that publishes this channel
+        /// stamps the game's UT, which is always readable.</para>
+        /// </summary>
+        public double? SampledAtUt;
 
         /// <summary>Whether the plugin says a plan exists. False is a positive
         /// observation of none, never a stand-in for "we did not ask".</summary>

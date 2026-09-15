@@ -43,7 +43,7 @@ namespace GonogoPrincipiaUplink.Tests
         /// with one thing about the plugin arranged.
         /// </summary>
         private static PlanObservation Read(
-            Action<FakePrincipiaPlugin> arrange, double nowUt = 1000.0)
+            Action<FakePrincipiaPlugin> arrange, double? nowUt = 1000.0)
         {
             var plugin = new FakePrincipiaPlugin();
             plugin.Add(Guid, hasFlightPlan: true, manoeuvres: 2);
@@ -113,6 +113,64 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(executing, described.Executing);
         }
 
+
+        /// <summary>
+        /// The CLOCK is the third thing the execution state needs, and it was the one
+        /// nobody checked. It used to collapse to 0.0 universal time, which is Year 1
+        /// Day 1, so the window comparison was false for every burn a real career can
+        /// hold and a plan mid ignition read as idle from end to end.
+        /// </summary>
+        [Fact]
+        public void AnUnreadableClockLeavesTheExecutionStateUnknown()
+        {
+            var described = PlanReader.Describe(
+                Ordinary(), 0, 1, 0, nowUt: null, celestials: null);
+
+            Assert.Null(described.Executing);
+        }
+
+        /// <summary>
+        /// What the coercion actually published, pinned so the fix is not resting on
+        /// the new behaviour alone: at UT 0 a burn ignited at 2000 and cutting off at
+        /// 3000 reads as not running, which is the sentence that hands out the edit
+        /// and remove controls for it.
+        /// </summary>
+        [Fact]
+        public void TheFabricatedZeroSaidThisBurnWasIdle()
+        {
+            var described = PlanReader.Describe(Ordinary(), 0, 1, 0, 0.0, celestials: null);
+
+            Assert.False(described.Executing);
+        }
+
+        /// <summary>
+        /// Through the reader: the instant travels to the observation as a null, and
+        /// nothing downstream is told a plan was read at the start of the campaign.
+        /// The next-burn index goes with it, because "which burn is next" is a
+        /// question about now.
+        /// </summary>
+        [Fact]
+        public void AnUnreadableClockReachesTheObservationAsAnUnstampedReading()
+        {
+            var plan = Read(_ => { }, nowUt: null);
+
+            Assert.Null(plan.SampledAtUt);
+            Assert.Null(plan.FirstFutureBurnIndex);
+            Assert.Equal(2, plan.Burns.Count);
+            Assert.All(plan.Burns, burn => Assert.Null(burn.Executing));
+        }
+
+        /// <summary>A clock that did read still answers both, so the reading has not
+        /// been turned into a blanket absence.</summary>
+        [Fact]
+        public void AReadableClockStillStampsTheReadingAndNamesTheNextBurn()
+        {
+            var plan = Read(_ => { }, nowUt: 1000.0);
+
+            Assert.Equal(1000.0, plan.SampledAtUt);
+            Assert.Equal(0, plan.FirstFutureBurnIndex);
+            Assert.All(plan.Burns, burn => Assert.False(burn.Executing));
+        }
 
         /// <summary>
         /// The frame extension is what the editable whitelist is checked against, so
@@ -403,6 +461,236 @@ namespace GonogoPrincipiaUplink.Tests
 
 
         /// <summary>
+        /// <b>The destructive one for the clock.</b> The burn IS under thrust at the
+        /// instant the game holds, and the remove is aimed straight at it.
+        ///
+        /// <para>The clock used to collapse to 0.0 when it would not decode, and
+        /// zero universal time is Year 1 Day 1, so <c>0 &lt; 2000</c> put the craft
+        /// comfortably before its own ignition: the guard returned "nothing is
+        /// wrong", the remove went through, and the receipt read Written for a burn
+        /// that was burning.</para>
+        /// </summary>
+        [Fact]
+        public void RemovingABurnMidIgnitionIsRefusedWhenTheClockWillNotRead()
+        {
+            var (plugin, commands) = Wire(p => p.CurrentTimeValue = 2500.0);
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+            Assert.True(armed.Success, Detail(armed));
+            plugin.CurrentTimeUnreadable = true;
+            plugin.Writes.Clear();
+
+            var refused = commands.RemoveBurn(
+                new PrincipiaBurnRemoveArgs
+                {
+                    VesselId = Guid, RequestId = "r-1", BurnIndex = 0,
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Refused, Outcome(refused));
+            Assert.Equal(PrincipiaWriteRefusal.GuardReadUnreadable, Refusal(refused));
+            Assert.Empty(plugin.Writes);
+            Assert.Equal(2, plugin.Known(Guid).Burns.Count);
+        }
+
+        /// <summary>
+        /// The same burn, the same instant, with the clock readable: refused as
+        /// BurnExecuting. So the guard still names the fact when it has one, and the
+        /// new code is not a blanket refusal wearing the old one's clothes.
+        /// </summary>
+        [Fact]
+        public void TheSameBurnWithAReadableClockIsRefusedAsExecuting()
+        {
+            var (plugin, commands) = Wire(p => p.CurrentTimeValue = 2500.0);
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+            Assert.True(armed.Success, Detail(armed));
+            plugin.Writes.Clear();
+
+            var refused = commands.RemoveBurn(
+                new PrincipiaBurnRemoveArgs
+                {
+                    VesselId = Guid, RequestId = "r-1", BurnIndex = 0,
+                });
+
+            Assert.Equal(PrincipiaWriteRefusal.BurnExecuting, Refusal(refused));
+            Assert.Empty(plugin.Writes);
+        }
+
+        /// <summary>
+        /// A burn the clock puts safely in the future is still removable, so an
+        /// ordinary edit has not been taken away.
+        /// </summary>
+        [Fact]
+        public void ABurnAheadOfAReadableClockIsStillRemoved()
+        {
+            var (plugin, commands) = Wire();
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+            Assert.True(armed.Success, Detail(armed));
+
+            var written = commands.RemoveBurn(
+                new PrincipiaBurnRemoveArgs
+                {
+                    VesselId = Guid, RequestId = "r-1", BurnIndex = 0,
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
+            Assert.Single(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
+        /// <b>The one that ends the game.</b> Creating a plan measures its end an
+        /// hour FROM now where the operator named none, and checks the result
+        /// AGAINST now; both of those readings were the same fabricated zero. So a
+        /// career at UT 120000 got a plan ending at UT 3600, and Principia asserts
+        /// on a plan that ends before it starts rather than returning an error.
+        ///
+        /// <para>The fake aborts on exactly that, which is what the failing-before
+        /// run showed: not a wrong receipt, a dead process.</para>
+        /// </summary>
+        [Fact]
+        public void CreatingAPlanIsRefusedWhenTheClockWillNotRead()
+        {
+            var (plugin, commands) = Wire(p =>
+            {
+                p.Add(Guid, hasFlightPlan: false);
+                p.CurrentTimeValue = 120_000.0;
+            });
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+            Assert.True(armed.Success, Detail(armed));
+            plugin.CurrentTimeUnreadable = true;
+            plugin.Writes.Clear();
+
+            var refused = commands.CreatePlan(
+                new PrincipiaPlanSlotArgs { VesselId = Guid, RequestId = "c-1" });
+
+            Assert.Equal(PrincipiaWriteOutcome.Refused, Outcome(refused));
+            Assert.Equal(PrincipiaWriteRefusal.GuardReadUnreadable, Refusal(refused));
+            Assert.Empty(plugin.Writes);
+            Assert.False(plugin.Known(Guid).HasFlightPlan);
+        }
+
+        /// <summary>The create still works with a clock, so the guard has not
+        /// removed the command.</summary>
+        [Fact]
+        public void CreatingAPlanWithAReadableClockStillLands()
+        {
+            var (plugin, commands) = Wire(p =>
+            {
+                p.Add(Guid, hasFlightPlan: false);
+                p.CurrentTimeValue = 120_000.0;
+            });
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+            Assert.True(armed.Success, Detail(armed));
+
+            var written = commands.CreatePlan(
+                new PrincipiaPlanSlotArgs { VesselId = Guid, RequestId = "c-1" });
+
+            Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
+            Assert.True(plugin.Known(Guid).HasFlightPlan);
+        }
+
+        /// <summary>
+        /// The gate's own unit, reached without a command. Belt and braces on
+        /// purpose: the command surface refuses first, and this is the check that
+        /// keeps a future caller of the gate from arriving at the abort by a route
+        /// nobody has written yet.
+        /// </summary>
+        [Fact]
+        public void ThePlanCreateGateRefusesDirectlyWhenTheClockWillNotRead()
+        {
+            var plugin = new FakePrincipiaPlugin();
+            plugin.Add(Guid, hasFlightPlan: false);
+            plugin.CurrentTimeValue = 120_000.0;
+            plugin.CurrentTimeUnreadable = true;
+            Assert.True(
+                PrincipiaSession.TryBind(
+                    plugin, new FakePluginHandle(plugin), out var session, out var reason),
+                reason);
+            session!.Writes.Arm(Guid);
+            Assert.True(session.TryBeginFrame(out var frame));
+            using (frame)
+            {
+                Assert.True(frame!.TryVessel(Guid, out var vessel));
+                Assert.True(vessel.TryPlanCreation(out var gate, out _, out _));
+
+                var refused = gate.Create(3600.0, massTons: 8.0);
+
+                Assert.Equal(PrincipiaWriteOutcome.Refused, refused.Outcome);
+                Assert.Equal(PrincipiaWriteRefusal.GuardReadUnreadable, refused.Refusal);
+            }
+
+            Assert.Empty(plugin.Writes);
+            Assert.False(plugin.Known(Guid).HasFlightPlan);
+        }
+
+        /// <summary>
+        /// A whole composed plan, which is the shape a command centre under signal
+        /// delay actually sends. Its ignitions are checked against the instant the
+        /// plan ARRIVED, and against a fabricated zero every future instant looks
+        /// ahead, so a plan whose burns had all passed installed itself.
+        /// </summary>
+        [Fact]
+        public void SendingAComposedPlanIsRefusedWhenTheClockWillNotRead()
+        {
+            var (plugin, commands) = Wire(p =>
+            {
+                p.Add(Guid, hasFlightPlan: false);
+                p.CurrentTimeValue = 120_000.0;
+            });
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+            Assert.True(armed.Success, Detail(armed));
+            plugin.CurrentTimeUnreadable = true;
+            plugin.Writes.Clear();
+
+            var refused = commands.SendPlan(
+                new PrincipiaPlanSendArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "s-1",
+                    DesiredFinalTimeUt = 40_000.0,
+                    Burns = new[]
+                    {
+                        new PrincipiaComposedBurn { IgnitionUt = 5000.0, DeltaVTangent = 90.0 },
+                    },
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Refused, Outcome(refused));
+            Assert.Equal(PrincipiaWriteRefusal.GuardReadUnreadable, Refusal(refused));
+            Assert.Empty(plugin.Writes);
+            Assert.False(plugin.Known(Guid).HasFlightPlan);
+        }
+
+        /// <summary>
+        /// Arming is the one place the instant is a READING rather than a guard, so
+        /// it goes through and the receipt says the reading is unstamped. Telling an
+        /// operator their plan was read at Year 1 Day 1 is the alternative, and the
+        /// burns' execution state goes with it.
+        /// </summary>
+        [Fact]
+        public void ArmingWithAnUnreadableClockSucceedsAndReportsAnUnstampedReading()
+        {
+            var (plugin, commands) = Wire(p => p.CurrentTimeValue = 2500.0);
+            plugin.CurrentTimeUnreadable = true;
+
+            var armed = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "arm-1" });
+
+            Assert.True(armed.Success, Detail(armed));
+            var plan = (Dictionary<string, object?>)Receipt(armed)["plan"]!;
+            Assert.Null(plan["sampledAtUt"]);
+            var burns = (List<object?>)plan["burns"]!;
+            Assert.NotEmpty(burns);
+            Assert.All(
+                burns,
+                burn => Assert.Null(((Dictionary<string, object?>)burn!)["executing"]));
+        }
+
+
+        /// <summary>
         /// The cap this Uplink cannot afford to overshoot: an eleventh plan makes
         /// Principia's own planner window throw on every layout pass, permanently,
         /// with the control that would delete it inside the part that stopped
@@ -457,6 +745,8 @@ namespace GonogoPrincipiaUplink.Tests
             internal static float FlightPlanGetActualFinalTime(IntPtr plugin, string vesselGuid) =>
                 8000f;
 
+            internal static float CurrentTime(IntPtr plugin) => 120_000f;
+
             internal static int HasVessel(IntPtr plugin, string vesselGuid) => 1;
         }
 
@@ -496,6 +786,19 @@ namespace GonogoPrincipiaUplink.Tests
             var plugin = Bound("FlightPlanGetActualFinalTime");
 
             Assert.Null(plugin.FlightPlanGetActualFinalTime(IntPtr.Zero, "v"));
+        }
+
+        /// <summary>
+        /// The clock, which is the double that mattered most. It had its own
+        /// <c>?? 0.0</c> on top of the decoder, so it answered the start of the
+        /// campaign where every other double already answered null.
+        /// </summary>
+        [Fact]
+        public void AnUnreadableClockDecodesToNullRatherThanTheStartOfTheCampaign()
+        {
+            var plugin = Bound("CurrentTime");
+
+            Assert.Null(plugin.CurrentTime(IntPtr.Zero));
         }
 
         /// <summary>

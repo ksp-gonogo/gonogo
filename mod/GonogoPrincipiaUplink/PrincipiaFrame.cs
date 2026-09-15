@@ -49,9 +49,15 @@ namespace GonogoPrincipiaUplink
             _generation = generation;
         }
 
-        /// <summary>Principia's own universal time, which is the clock every
-        /// instant on this surface is expressed against.</summary>
-        public double CurrentTime()
+        /// <summary>
+        /// Principia's own universal time, which is the clock every instant on this
+        /// surface is expressed against, or null when it would not read.
+        ///
+        /// <para>A caller that is stamping a reading may carry the null onward; a
+        /// caller about to compare a burn against "now" must refuse, because every
+        /// one of those comparisons is satisfiable by an instant nobody read.</para>
+        /// </summary>
+        public double? CurrentTime()
         {
             var handle = _session.Enter(_generation, "the plugin's current time");
             return _session.Plugin.CurrentTime(handle);
