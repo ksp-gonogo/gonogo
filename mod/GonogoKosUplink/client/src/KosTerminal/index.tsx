@@ -826,10 +826,14 @@ function KosTerminalScreen({
   //
   // `CommsDelay`, not a hand-written `{ oneWaySeconds: number | null }`. The
   // local shape said the field was a bare number and it never was: this hook
-  // hands back the WRAPPED payload, so `oneWaySeconds` is a `Value<"s">`. The
-  // old badge only worked because it reached the figure through `2 * x`, and
-  // multiplication coerces through `valueOf`; a comparison against the same
-  // field would silently have been comparing an object.
+  // hands back the WRAPPED payload, so `oneWaySeconds` is a `Value<"s">`, and
+  // under the real type TypeScript rejects arithmetic and relational operators
+  // on it outright. That refusal is what the lying `number` was throwing away,
+  // not the coercion: `valueOf` sits on the Value prototype, so `2 * x` and
+  // `x > 0` both compiled against the local shape and both read the magnitude
+  // correctly. What a declared `number` hides is the STRICT comparison, which
+  // does not coerce: `x === 0` tests an object against a number and is false
+  // for every delay there is, including the zero it is looking for.
   const commsDelay = useLatestValue<CommsDelay>("comms.delay");
 
   // The in-transit strip's PURE prediction fuel, scoped to this terminal's
