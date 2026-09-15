@@ -908,6 +908,138 @@ public static class RtConfig
     }
 
     /// <summary>
+    /// The names a <c>Reading</c>'s own currency members occupy, in the TS
+    /// spelling codegen emits. Mirrors <c>ReservedReadingKey</c> in
+    /// <c>mod/sitrep-sdk/src/reading.ts</c>; the two lists are short, stable and
+    /// in different languages, so a test holds them in step rather than one
+    /// generating the other.
+    /// </summary>
+    internal static readonly string[] ReservedReadingKeys =
+    {
+        "state",
+        "value",
+        "atUt",
+        "asOfUt",
+        "grade",
+        "reckoning",
+    };
+
+    /// <summary>
+    /// CORE's reserved-name collisions that already existed when this check was
+    /// written, as <c>"&lt;topic&gt;.&lt;field&gt;"</c>. SHRINK-ONLY: a new one
+    /// fails codegen, and an entry that has stopped colliding fails codegen too,
+    /// so the list cannot outlive what it excuses.
+    ///
+    /// <para>Neither rename is free. A renamed member on a wire-visible type is
+    /// breaking by definition (see <see cref="ContractVersion"/>), so clearing
+    /// either one costs a Major and a frozen shape. They are listed rather than
+    /// quietly tolerated so the bill is visible.</para>
+    ///
+    /// <para>An UPLINK slice's own collisions are not listed here. It passes
+    /// them to <see cref="EmitTopicMap"/> from its own <c>Configure</c>, so the
+    /// excuse sits beside the field it excuses and core's contract does not
+    /// learn the topic ids of slices it must not know about.</para>
+    /// </summary>
+    internal static readonly string[] ReservedFieldNameDebt =
+    {
+        // The pair this check was written for. A rename is ruled and blocked on
+        // the Major it costs, not on the naming.
+        "comms.controlState.state",
+        "comms.signalStrength.value",
+    };
+
+    /// <summary>
+    /// Refuses a payload field spelled like a <c>Reading</c> currency member.
+    ///
+    /// <para><b>Why codegen and not the type system.</b> A topic reading is
+    /// <c>TopicCurrency&lt;P&gt; &amp; TopicFields&lt;P&gt;</c>, so a field named
+    /// <c>state</c> lands on the same property as the currency's own discriminant
+    /// and the intersection collapses to <c>never</c>. The SDK dodges that with
+    /// <c>Exclude&lt;keyof P, ReservedReadingKey&gt;</c>, which is SILENT: the
+    /// field is simply not on the field-property surface, with no field reading
+    /// and no explanation for the author who went looking for one. Here the
+    /// collision has a name, a file and a line, at the moment someone writes it.
+    /// </para>
+    ///
+    /// <para><b>An array topic is exempt, and that is not laxity.</b>
+    /// <c>TopicFields</c> returns <c>unknown</c> for an array payload rather than
+    /// mapping over it (mapping would claim a <c>Reading</c> at <c>length</c> and
+    /// <c>map</c>), so an element field named <c>state</c> shadows nothing.
+    /// <c>alarm.scet</c>, <c>rp1.pads</c>, <c>rp1.programs</c>,
+    /// <c>realantennas.antennaChains</c> and <c>kerbalism.crew</c> each carry one
+    /// today and none of them is a defect.</para>
+    ///
+    /// <para>Scoped to ONE assembly, like everything else reflective here, so
+    /// each slice's codegen leg checks its own topics. That is also why the
+    /// shrink half only judges a debt entry whose topic this assembly declares:
+    /// core's run cannot see an Uplink's topic and must not read its own
+    /// blindness as a stale excuse.</para>
+    /// </summary>
+    internal static void CheckReservedFieldNames(Assembly assembly, string[] sliceDebt = null)
+    {
+        var reserved = new HashSet<string>(ReservedReadingKeys, StringComparer.Ordinal);
+        var excused = new HashSet<string>(ReservedFieldNameDebt, StringComparer.Ordinal);
+        foreach (var entry in sliceDebt ?? Array.Empty<string>())
+        {
+            excused.Add(entry);
+        }
+
+        var collisions = new List<string>();
+        var declaredTopics = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var type in assembly.GetTypes())
+        {
+            var attr = type.GetCustomAttribute<SitrepTopicAttribute>();
+            if (attr == null)
+            {
+                continue;
+            }
+
+            declaredTopics.Add(attr.TopicId);
+            if (attr.IsArray)
+            {
+                continue;
+            }
+
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var field = UnitDescriptor.CamelCase(prop.Name);
+                if (reserved.Contains(field))
+                {
+                    collisions.Add(attr.TopicId + "." + field);
+                }
+            }
+        }
+
+        collisions.Sort(StringComparer.Ordinal);
+        var offending = collisions.Where(c => !excused.Contains(c)).ToList();
+        if (offending.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "✖ codegen: a payload field may not be spelled like a Reading currency member, and these are:\n  " +
+                string.Join("\n  ", offending) +
+                "\n\nA topic reading is TopicCurrency<P> & TopicFields<P>, so a field named " +
+                string.Join(", ", ReservedReadingKeys) +
+                " lands on the currency's own member and the intersection collapses to `never`. " +
+                "The field cannot be reached as a field reading at all. Rename the property in the " +
+                "contract; an array topic's element fields are exempt and need no rename.");
+        }
+
+        var stale = excused
+            .Where(entry => declaredTopics.Contains(entry.Substring(0, entry.LastIndexOf('.'))))
+            .Where(entry => !collisions.Contains(entry))
+            .OrderBy(entry => entry, StringComparer.Ordinal)
+            .ToList();
+        if (stale.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "✖ codegen: ReservedFieldNameDebt excuses a collision that no longer exists:\n  " +
+                string.Join("\n  ", stale) +
+                "\n\nThe list is shrink-only. Delete the entry in the same commit as the rename that " +
+                "cleared it, or the next collision spelled that way is excused by a line nobody read.");
+        }
+    }
+
+    /// <summary>
     /// Writes the generated Topic -> payload map (<c>GeneratedTopicPayloadMap</c>
     /// + <c>GENERATED_TOPIC_IDS</c>) consumed by
     /// <c>mod/sitrep-sdk/src/topics.ts</c>. Each <c>[SitrepTopic]</c>-tagged
@@ -917,6 +1049,10 @@ public static class RtConfig
     /// array of the tagged element type). Every referenced interface is emitted
     /// into <c>./contract.ts</c> by the registrations above, so the map's imports
     /// always resolve.
+    ///
+    /// <para>It also runs <see cref="CheckReservedFieldNames"/>, because this is
+    /// the one leg every assembly that declares a Topic already goes through.
+    /// </para>
     /// </summary>
     /// <param name="outPath">Where to write the generated map.</param>
     /// <param name="assembly">
@@ -928,8 +1064,17 @@ public static class RtConfig
     /// per-assembly opt-in <see cref="ApplyUnitValueTypes"/> already
     /// established.
     /// </param>
-    public static void EmitTopicMap(string outPath, Assembly assembly = null)
+    /// <param name="reservedFieldDebt">
+    /// This slice's own entries for <see cref="CheckReservedFieldNames"/>, as
+    /// <c>"&lt;topic&gt;.&lt;field&gt;"</c>. A slice declares its own rather
+    /// than core listing every slice's, so the excuse sits beside the field and
+    /// core never names an Uplink's topic. Shrink-only the same way core's is:
+    /// an entry that has stopped colliding fails this leg.
+    /// </param>
+    public static void EmitTopicMap(string outPath, Assembly assembly = null, string[] reservedFieldDebt = null)
     {
+        CheckReservedFieldNames(assembly ?? typeof(RtConfig).Assembly, reservedFieldDebt);
+
         var entries = new List<KeyValuePair<string, string>>();
         var typeNames = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var type in (assembly ?? typeof(RtConfig).Assembly).GetTypes())

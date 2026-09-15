@@ -161,7 +161,17 @@ public static class RealAntennasRtConfig
         var topicMapOut = Environment.GetEnvironmentVariable("SITREP_REALANTENNAS_TOPICMAP_OUT");
         if (!string.IsNullOrEmpty(topicMapOut))
         {
-            Sitrep.Contract.RtConfig.EmitTopicMap(topicMapOut!, typeof(RealAntennasRtConfig).Assembly);
+            Sitrep.Contract.RtConfig.EmitTopicMap(
+                topicMapOut!,
+                typeof(RealAntennasRtConfig).Assembly,
+                // <see cref="CommsLinkQuality.Value"/> is spelled like a Reading
+                // currency member, so it cannot be reached as a field reading:
+                // see RtConfig.CheckReservedFieldNames. It is this slice's twin
+                // of core's comms.signalStrength and wants whatever rename that
+                // one gets; a renamed member on a wire-visible type is breaking,
+                // so it costs a Major. Shrink-only: delete this line in the same
+                // commit as the rename, or the codegen leg refuses it as stale.
+                new[] { "comms.linkQuality.value" });
         }
 
         // This slice declares commands as of the targeting surface, so it emits
