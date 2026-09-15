@@ -96,6 +96,10 @@ public static class RtConfig
                 typeof(CommandResult),
                 // eva.crew: the suit state of every kerbal currently outside
                 typeof(EvaCrew),
+                // system.bodies.statesAt: the elected provider's analytical answer
+                // for a body at instants a planning search chose
+                typeof(BodyStatesRequest),
+                typeof(BodyStatesReply),
                 // vessel.* channels
                 typeof(VesselAttitude),
                 typeof(VesselComms),
@@ -331,6 +335,8 @@ public static class RtConfig
                 typeof(CrewMember),
                 // eva.crew nested roster entry
                 typeof(EvaKerbal),
+                // system.bodies.statesAt reply entry
+                typeof(BodyState),
                 // science.instruments / science.sensors entries
                 typeof(InstrumentEntry),
                 typeof(SensorEntry),

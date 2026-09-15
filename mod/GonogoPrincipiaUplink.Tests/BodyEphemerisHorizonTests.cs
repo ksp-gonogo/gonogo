@@ -422,6 +422,45 @@ namespace GonogoPrincipiaUplink.Tests
                 RigGeometry.SampleUt + 86_400.0));
         }
 
+        /// <summary>
+        /// A century: far past anything this provider will vouch for as an
+        /// integrated path, and irrelevant to the question a body SOLVE answers.
+        /// </summary>
+        private const double ACentury = 100.0 * 365.0 * 24.0 * 3600.0;
+
+        /// <summary>
+        /// Propagating a body is unbounded however far ahead it is asked, even
+        /// though that same body's ephemeris IS bounded. The two answers are about
+        /// different things and must not converge.
+        ///
+        /// <para>An ephemeris horizon says how long a body's osculating elements
+        /// still stand in for an integrated path. A planning search does not claim
+        /// to be that path: it asks a two-body question about where a planet will
+        /// be, on purpose, because mission design is done in conics. Bounding the
+        /// solve would make a transfer to an outer planet unplannable on exactly
+        /// the installs where planning matters most.</para>
+        ///
+        /// <para>This pins <c>CanPropagate</c>'s vessel-only bound, which
+        /// <c>system.bodies.statesAt</c> relies on: a later change extending the
+        /// horizon to bodies fails here rather than silently emptying a porkchop.
+        /// The <c>BodySpanSeconds</c> assertion is the control: it proves this
+        /// provider does bound things, so the unbounded answer below is a decision
+        /// rather than a provider that bounds nothing at all.</para>
+        /// </summary>
+        [Fact]
+        public void ABodySolveIsUnboundedEvenThoughThatBodysEphemerisIsNot()
+        {
+            var provider = Provider();
+
+            Assert.NotNull(provider.BodySpanSeconds(RigGeometry.Mun, RigGeometry.SampleUt));
+
+            Assert.True(provider.CanPropagate(
+                PropagationTarget.Body(RigGeometry.Mun),
+                PropagationFrame.CentredOn(RigGeometry.Kerbin),
+                RigGeometry.SampleUt,
+                RigGeometry.SampleUt + ACentury));
+        }
+
         private static PrincipiaPropagationProvider Provider() =>
             new PrincipiaPropagationProvider(
                 new StockConics(), StockMasses, PerturbersAround, StockParents);

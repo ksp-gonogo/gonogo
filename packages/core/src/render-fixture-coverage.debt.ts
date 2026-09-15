@@ -68,6 +68,14 @@ export const COINCIDENTAL: readonly string[] = [
    * the topic reaches its fixtures through the shared stream.
    */
   "packages/components/src/ResourceOps#kind",
+  /*
+   * The `s.z` read in useBodyStatePropagators.ts: a component of one
+   * `BodyState` off the `system.bodies.statesAt` COMMAND reply, which no
+   * channel publishes and no fixture can carry. It collides with the `z` a
+   * body's position field has on `system.bodies`, a topic this widget does
+   * subscribe to and never reads a `z` off.
+   */
+  "packages/components/src/TransferWindow#z",
   // `ctx.arc(...)`, the canvas API
   "packages/components/src/MapView#arc",
   // `const { x, y } = project(poi.lat, poi.lon)`, screen coordinates

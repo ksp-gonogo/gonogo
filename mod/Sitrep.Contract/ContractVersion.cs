@@ -1724,7 +1724,22 @@ namespace Sitrep.Contract
         /// so this is additive to that craft's stream rather than a change to it: nothing
         /// reading the vessel channels sees a discontinuity when a kerbal steps
         /// outside.</para>
+        ///
+        /// <para><b>Bumped 14 -&gt; 15:</b> the <c>system.bodies.statesAt</c> command
+        /// (<see cref="BodyStatesRequest"/>, <see cref="BodyStatesReply"/>,
+        /// <see cref="BodyState"/>): where a body is at instants the CALLER chose,
+        /// answered by the elected propagation provider. Additive, nothing removed or
+        /// retyped, so an Uplink built against 16.14 is unaffected and the frozen
+        /// Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>A planning search picks departure and arrival times nobody has
+        /// reached, so nothing publishes an answer to it and a channel is the wrong
+        /// shape; it is a query, like <c>vessel.trajectory.forVantage</c>. It exists so
+        /// a transfer search reads the one analytical model the rest of the mod reads
+        /// rather than a second copy of two-body motion on the client. No horizon
+        /// applies: an ephemeris horizon bounds how long osculating elements stand in
+        /// for an INTEGRATED path, and a conic search is not claiming to be one.</para>
         /// </remarks>
-        public const int Minor = 14;
+        public const int Minor = 15;
     }
 }

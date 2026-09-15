@@ -592,6 +592,22 @@ namespace Sitrep.Host
         /// </summary>
         internal const string PlanForVantageCommand = "vessel.trajectory.forVantage";
 
+        /// <summary>
+        /// <c>system.bodies.statesAt</c>: where a body is at instants the CALLER
+        /// chose, from the elected propagation provider.
+        ///
+        /// <para>A command rather than a channel because nothing publishes an answer
+        /// to a question nobody has asked: the instants belong to a planning search
+        /// over times that have not happened.</para>
+        ///
+        /// <para>The vantage is ignored, and that is not an oversight. A body's
+        /// conic is a published fact rather than something one command centre knows
+        /// and another does not, and the elements it is solved from already reach
+        /// every client on <c>system.bodies</c>. There is nothing here for a vantage
+        /// to gate.</para>
+        /// </summary>
+        internal const string BodyStatesAtCommand = "system.bodies.statesAt";
+
         // The ground-side pending-uplink queue self-report channel (see
         // Sitrep.Contract.PendingUplink's doc comment for the prediction-only
         // invariant this carries). Same "engine declares/sources it directly"
@@ -1242,6 +1258,13 @@ namespace Sitrep.Host
             };
             _vantageCommandHandlers[PlanForVantageCommand] =
                 (args, vantage) => PlanForVantage(args, vantage);
+
+            _commandDeclarations[BodyStatesAtCommand] = new CommandDeclaration
+            {
+                Command = BodyStatesAtCommand,
+            };
+            _vantageCommandHandlers[BodyStatesAtCommand] =
+                (args, _) => BodyStatesAt(args);
 
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
@@ -3616,6 +3639,125 @@ namespace Sitrep.Host
             _network.SetDelay(MetaVantage, NodeFor(topic), 0.0);
             return MetaVantage;
         }
+
+        /// <summary>
+        /// Answer <see cref="BodyStatesAtCommand"/> from the ELECTED propagation
+        /// provider, so a planning search reads the same analytical model the rest
+        /// of the mod does rather than a second copy of two-body motion.
+        ///
+        /// <para><b>The model the request NAMES, not the one the provider would
+        /// pick.</b> Today's forwarding already gives the conic, so the check below
+        /// changes no answer; what it changes is what happens when the default
+        /// moves. A caller that asked for the analytical model keeps getting it,
+        /// and one that asked for something this seam cannot express is refused
+        /// rather than handed a conic wearing another name.</para>
+        ///
+        /// <para><b>No horizon is applied, deliberately.</b> An ephemeris horizon
+        /// bounds how long a body's osculating elements still stand in for an
+        /// INTEGRATED path; a transfer search is asking a two-body question on
+        /// purpose, and mission design is done in conics. An integrating provider
+        /// forwards a body solve to its conic solver for exactly this reason, and
+        /// its own <c>CanPropagate</c> bounds only vessel targets, so nothing here
+        /// has to opt out of a limit: there is none to opt out of.</para>
+        ///
+        /// <para>Batched through <see cref="IPropagationProvider.SolveMany"/>,
+        /// which every provider has because it is on the interface: a grid asks
+        /// about tens of instants for one body, and an integrating provider pays
+        /// per pass rather than per sample.</para>
+        /// </summary>
+        private object? BodyStatesAt(object? args)
+        {
+            var bound = BindCommandArgs(args, typeof(BodyStatesRequest)) as BodyStatesRequest;
+            if (bound == null)
+            {
+                return ToWire(BodyStatesReply.Refused("This request could not be read."));
+            }
+
+            var provider = Propagation.PropagationElection.Elected(_kernel);
+            if (provider == null)
+            {
+                return ToWire(BodyStatesReply.Refused(
+                    "No propagation provider is elected, so nothing can say where a body is."));
+            }
+
+            if (bound.Model != TrajectoryKind.Analytic)
+            {
+                // Named rather than defaulted, so a planning grid keeps the conic it
+                // was designed around whatever an install's provider would otherwise
+                // hand back. Integrated is refused rather than quietly served: every
+                // provider forwards a body solve to its conics, so a conic under that
+                // name would be a lie the client has no way to detect.
+                return ToWire(BodyStatesReply.Refused(
+                    bound.Model == TrajectoryKind.Unspecified
+                        ? "This request named no propagation model. Ask for the analytical one."
+                        : "Only the analytical model can answer where a body is."));
+            }
+
+            var uts = bound.Uts ?? new List<double>();
+            var frame = PropagationFrame.CentredOn(bound.CentreBodyIndex);
+            var target = PropagationTarget.Body(bound.BodyIndex);
+            var solved = new StateVector[uts.Count];
+            var states = new List<BodyState>(uts.Count);
+            try
+            {
+                provider.SolveMany(target, frame, uts, solved);
+                for (var i = 0; i < uts.Count; i++)
+                {
+                    var s = solved[i];
+                    states.Add(new BodyState
+                    {
+                        Ut = uts[i],
+                        X = s.Position.X,
+                        Y = s.Position.Y,
+                        Z = s.Position.Z,
+                        Vx = s.Velocity.X,
+                        Vy = s.Velocity.Y,
+                        Vz = s.Velocity.Z,
+                    });
+                }
+            }
+            catch (NotSupportedException ex)
+            {
+                // The provider says it cannot reach that frame from that body. A
+                // refusal rather than a throw: a search asking about a pair it
+                // cannot have gets told so, and draws nothing rather than an error
+                // card over a dashboard.
+                return ToWire(BodyStatesReply.Refused(ex.Message));
+            }
+
+            return ToWire(new BodyStatesReply
+            {
+                Solved = true,
+                States = states,
+                ProviderId = provider.ProviderId,
+            });
+        }
+
+        /// <summary>
+        /// The body-states reply's wire shape. A named method taking the type, for
+        /// the reason <see cref="ToWire(VantagePlanReply)"/> is one: the coverage
+        /// gate can read this shape and cannot read an inline flatten.
+        /// </summary>
+        private static Dictionary<string, object?> ToWire(BodyStatesReply reply) =>
+            new Dictionary<string, object?>
+            {
+                ["solved"] = reply.Solved,
+                ["states"] = reply.States.Select(ToWire).ToList<object?>(),
+                ["providerId"] = reply.ProviderId,
+                ["refusal"] = reply.Refusal,
+            };
+
+        private static Dictionary<string, object?> ToWire(BodyState state) =>
+            new Dictionary<string, object?>
+            {
+                ["ut"] = state.Ut,
+                ["x"] = state.X,
+                ["y"] = state.Y,
+                ["z"] = state.Z,
+                ["vx"] = state.Vx,
+                ["vy"] = state.Vy,
+                ["vz"] = state.Vz,
+            };
 
         private object? PlanForVantage(object? args, string vantage)
         {

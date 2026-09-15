@@ -37,6 +37,107 @@ export interface StreamBinary
 	meta: Meta;
 }
 /**
+* Args for `system.bodies.statesAt`: where is this body at each of these
+* instants, from whichever propagation provider the install elected.
+*
+* **Why a command and not a channel.** The instants are the caller's, not the
+* game's: a transfer search asks about departure and arrival times nobody has
+* reached and may never reach. Nothing publishes an answer to a question that
+* has not been asked, so this is a query, the same shape
+* `vessel.trajectory.forVantage` uses for the same reason.
+*
+* **No vantage field, for the reason the trajectory query gives:** a client
+* that could name one could name somebody else's and be shown what they can
+* see. It is resolved where the command enters instead.
+*
+* **A centre body IS named, and has to be.** The answer is expressed relative
+* to whatever body you name, and there is no default: a transfer search wants
+* both endpoints about the parent they share, and saying which body that is
+* also lets one request serve a moon system as readily as a solar one.
+*
+* **The model is ASKED FOR, never inherited.** A transfer search wants the
+* two-body answer because that is what it is designed around, and it wants it
+* whatever an install's provider would otherwise hand back. So
+* `BodyStatesRequest.model` is part of the question rather than a property of
+* whoever answers it, and a request that does not name one is refused: a
+* planning grid that silently changed model when a default moved underneath it
+* would look like the transfer changed.
+*
+* No horizon applies to the analytical answer, and that follows from what a
+* horizon IS: an ephemeris horizon bounds how long osculating elements still
+* stand in for an integrated path, and a conic search is not claiming to be
+* that path.
+*/
+export interface BodyStatesRequest
+{
+	/** The body, by its `system.bodies` index. */
+	bodyIndex: number;
+	/**
+	* The body the answer is expressed relative to, by the same index. For a
+	* transfer search this is the parent both endpoints orbit.
+	*/
+	centreBodyIndex: number;
+	/**
+	* The instants to solve for, in UT seconds. Answered in the order given, so a
+	* caller can zip the reply against its own grid without matching on a time it
+	* would have to compare as a float.
+	*/
+	uts: Value<"ut">[];
+	/**
+	* Which model the answer must come from. `TrajectoryKind.Unspecified` is
+	* refused rather than defaulted, for the reason that enum's own zero exists: a
+	* caller that says nothing gets told to say something, instead of silently
+	* inheriting whatever this install would otherwise have produced.
+	*/
+	model: TrajectoryKind;
+}
+/**
+* The answer, or why there is not one.
+*
+* `BodyStatesReply.solved` is the discriminator and is never inferred from an
+* empty list: a body the provider could not place and a caller that asked
+* about no instants are different facts, and a search that read them the same
+* would draw an empty plot for an install problem.
+*/
+export interface BodyStatesReply
+{
+	solved: boolean;
+	/** One state per requested instant, in the order asked. */
+	states: BodyState[];
+	/**
+	* Which provider answered, so a reading that looks wrong can be attributed
+	* without guessing at the install.
+	*/
+	providerId?: string;
+	/** Why there is no answer, when `BodyStatesReply.solved` is false. */
+	refusal?: string;
+	/**
+	* A refusal, said in words a reader can act on. The states list stays empty:
+	* an unsolved reply with points in it would be read as a partial answer, and
+	* there is no such thing here.
+	*/
+	Refused(why: string) : BodyStatesReply;
+}
+/**
+* One body's position and velocity at one instant, relative to the request's
+* centre body.
+*
+* Flat keys rather than nested vectors, matching `TrajectoryPoint`: these
+* arrive in bulk and the wire cost of a nested object per point is paid on
+* every cell of every grid.
+*/
+export interface BodyState
+{
+	/** The instant this state is at, echoing the request. */
+	ut: Value<"ut">;
+	x: Value<"m">;
+	y: Value<"m">;
+	z: Value<"m">;
+	vx: Value<"m/s">;
+	vy: Value<"m/s">;
+	vz: Value<"m/s">;
+}
+/**
 * `career.strategy.activate`'s args: the strategy's stable id plus the slider
 * fraction to activate it at. `ActivateStrategyArgs.strategyId` is
 * `StrategyConfig.Name` (e.g. `"OutsourceRnDStrategy"`): the exact same id the

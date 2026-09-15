@@ -1,4 +1,19 @@
 {
+  "BodyState.x": {
+    "rates": ["vx", "vy", "vz"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. Nothing should integrate it here: every state in a reply is SOLVED at an instant the caller named, by the elected propagation provider, so a reading taken between two of them is a straight line drawn across a conic. Asking for another instant costs one more entry in a list that is already batched, which is cheaper than the error.",
+    "verdict": "real-but-unmodelled"
+  },
+  "BodyState.y": {
+    "rates": ["vx", "vy", "vz"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. Nothing should integrate it here: every state in a reply is SOLVED at an instant the caller named, by the elected propagation provider, so a reading taken between two of them is a straight line drawn across a conic. Asking for another instant costs one more entry in a list that is already batched, which is cheaper than the error.",
+    "verdict": "real-but-unmodelled"
+  },
+  "BodyState.z": {
+    "rates": ["vx", "vy", "vz"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. Nothing should integrate it here: every state in a reply is SOLVED at an instant the caller named, by the elected propagation provider, so a reading taken between two of them is a straight line drawn across a conic. Asking for another instant costs one more entry in a list that is already batched, which is cheaper than the error.",
+    "verdict": "real-but-unmodelled"
+  },
   "CareerEconomy.funds": {
     "rates": [
       "subsidyMaxPerDay",

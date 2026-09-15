@@ -5,6 +5,7 @@ import {
   hohmannTransferTime,
   keplerTransferSolver,
   type PorkchopGrid,
+  type StateLike,
   type TransferSolution,
 } from "@ksp-gonogo/core";
 import { type OrbitElements, solve } from "@ksp-gonogo/sitrep-client";
@@ -145,6 +146,72 @@ export interface PorkchopBuildInput {
    * `departureUt`) to focus the chart on that window's Δv surface.
    */
   centerDepUt?: number;
+  /**
+   * Where each body is, at an instant on the grid's own axes. Both default to
+   * the client's Keplerian `solve` over elements rebuilt from `system.bodies`,
+   * which is what a screen with no stream mounted, and every test here, gets.
+   *
+   * The pair exists so the widget can inject `system.bodies.statesAt` instead:
+   * the game's elected propagation provider answering from the model the rest
+   * of the mod reads, rather than this package's second copy of two-body
+   * motion. Injected as functions rather than fetched here because the answer
+   * arrives over the wire and this build is synchronous.
+   */
+  propagateOrigin?: (ut: number) => StateLike;
+  propagateDest?: (ut: number) => StateLike;
+}
+
+/** The instants a grid built from this input will ask about. */
+export interface PorkchopAxes {
+  departureUts: number[];
+  arrivalUts: number[];
+  muParent: number;
+}
+
+/**
+ * The grid's two time axes, without solving anything on them.
+ *
+ * Split out of `buildTransferPorkchop` rather than duplicated because a caller
+ * that wants to pre-fetch the body states has to know which instants the grid
+ * will ask about BEFORE it builds one, and two copies of this geometry would
+ * drift into fetching one set of instants and plotting another.
+ */
+export function porkchopAxes(input: PorkchopBuildInput): PorkchopAxes | null {
+  const { origin, dest, bodies, nowUt } = input;
+  const muParent = parentMu(origin, bodies);
+  if (
+    muParent == null ||
+    origin.semiMajorAxis == null ||
+    dest.semiMajorAxis == null
+  ) {
+    return null;
+  }
+
+  const tHohmann = hohmannTransferTime(
+    muParent,
+    origin.semiMajorAxis,
+    dest.semiMajorAxis,
+  );
+  const depHalf = 0.4 * tHohmann;
+  const arrHalf = 0.4 * tHohmann;
+  const centerDep = input.centerDepUt ?? nowUt;
+  const centerArr = centerDep + tHohmann;
+
+  const depStart = Math.max(nowUt, centerDep - depHalf);
+  const depEnd = Math.max(depStart + 1, centerDep + depHalf);
+
+  const linspace = (a: number, b: number, n: number): number[] =>
+    Array.from({ length: n }, (_, k) => a + ((b - a) * k) / (n - 1));
+
+  return {
+    departureUts: linspace(depStart, depEnd, input.departureSamples ?? 32),
+    arrivalUts: linspace(
+      centerArr - arrHalf,
+      centerArr + arrHalf,
+      input.arrivalSamples ?? 32,
+    ),
+    muParent,
+  };
 }
 
 /**
@@ -167,49 +234,27 @@ export interface PorkchopBuildInput {
 export function buildTransferPorkchop(
   input: PorkchopBuildInput,
 ): PorkchopGrid | null {
-  const { origin, dest, bodies, nowUt } = input;
-  const departureSamples = input.departureSamples ?? 32;
-  const arrivalSamples = input.arrivalSamples ?? 32;
+  const { origin, dest, bodies } = input;
 
   const originEl = celestialToOrbitElements(origin, bodies);
   const destEl = celestialToOrbitElements(dest, bodies);
-  const muParent = parentMu(origin, bodies);
+  const axes = porkchopAxes(input);
   if (
     !originEl ||
     !destEl ||
-    muParent == null ||
-    origin.semiMajorAxis == null ||
-    dest.semiMajorAxis == null ||
+    !axes ||
     origin.period == null ||
     dest.period == null
   ) {
     return null;
   }
 
-  const tHohmann = hohmannTransferTime(
-    muParent,
-    origin.semiMajorAxis,
-    dest.semiMajorAxis,
-  );
-  const depHalf = 0.4 * tHohmann;
-  const arrHalf = 0.4 * tHohmann;
-  const centerDep = input.centerDepUt ?? nowUt;
-  const centerArr = centerDep + tHohmann;
-
-  const depStart = Math.max(nowUt, centerDep - depHalf);
-  const depEnd = Math.max(depStart + 1, centerDep + depHalf);
-  const arrStart = centerArr - arrHalf;
-  const arrEnd = centerArr + arrHalf;
-
-  const linspace = (a: number, b: number, n: number): number[] =>
-    Array.from({ length: n }, (_, k) => a + ((b - a) * k) / (n - 1));
-
   return buildPorkchop({
-    muParent,
-    propagateOrigin: (ut) => solve(originEl, ut),
-    propagateDest: (ut) => solve(destEl, ut),
-    departureUts: linspace(depStart, depEnd, departureSamples),
-    arrivalUts: linspace(arrStart, arrEnd, arrivalSamples),
+    muParent: axes.muParent,
+    propagateOrigin: input.propagateOrigin ?? ((ut) => solve(originEl, ut)),
+    propagateDest: input.propagateDest ?? ((ut) => solve(destEl, ut)),
+    departureUts: axes.departureUts,
+    arrivalUts: axes.arrivalUts,
   });
 }
 

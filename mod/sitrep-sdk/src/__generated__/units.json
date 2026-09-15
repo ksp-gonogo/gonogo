@@ -121,6 +121,26 @@
       "surfaceGravity": "g",
       "tidallyLocked": "flag"
     },
+    "BodyState": {
+      "ut": "ut",
+      "vx": "m/s",
+      "vy": "m/s",
+      "vz": "m/s",
+      "x": "m",
+      "y": "m",
+      "z": "m"
+    },
+    "BodyStatesReply": {
+      "providerId": "id",
+      "refusal": "text",
+      "solved": "flag"
+    },
+    "BodyStatesRequest": {
+      "bodyIndex": "id",
+      "centreBodyIndex": "id",
+      "model": "enum",
+      "uts": "ut"
+    },
     "CareerContract": {
       "agent": "text",
       "dateAccepted": "ut",
@@ -1963,6 +1983,9 @@
       "atmosphere": "AtmosphereEntry",
       "horizon": "PropagationHorizon",
       "orbit": "OrbitEntry"
+    },
+    "BodyStatesReply": {
+      "states": "BodyState[]"
     },
     "CapabilitySelection": {
       "descriptor": "CapabilityDescriptor",
