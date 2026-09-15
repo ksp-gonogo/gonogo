@@ -1,0 +1,358 @@
+{
+  "_meta": {
+    "capturedAt": "2026-09-15",
+    "body": "Kerbin",
+    "notes": "DERIVED, not captured, and that is the point: the flown orbit is the planned burn re-solved with the delta-v actually delivered, so the gap between the two conics is exactly what a real shortfall produces. Every captured conformance fixture carries a flown orbit unrelated to its delivery figure, which makes their corridor an artefact of the capture rather than a measurement, and reading a scale off one of those is how 'the gap is large' got claimed. A 300 m/s prograde burn at periapsis of a 100 km circular Kerbin orbit (v=2246.14 m/s) raises apoapsis to 657943 m; the same burn 4 m/s short (296, 99%) reaches 646959 m. So the corridor is a crescent: zero width at periapsis, which both orbits still share exactly, widening to 10985 m at apoapsis, which is 0.87% of the drawn extent. That is the tight case the framing question is actually about."
+  },
+  "o.argumentOfPeriapsis": 0,
+  "o.trueAnomaly": 150,
+  "o.maneuverNodes": [
+    {
+      "epoch": 43301.21875,
+      "period": 3238.539864,
+      "inclination": 0,
+      "eccentricity": 0.284964,
+      "referenceBody": "Kerbin",
+      "deltaV": [0, 0, 300],
+      "maae": 0,
+      "argumentOfPeriapsis": 0,
+      "orbitPatches": [
+        {
+          "semiMinorAxis": 938381.684977,
+          "sma": 978971.589918,
+          "lan": 0,
+          "argumentOfPeriapsis": 0,
+          "patchStartTransition": "MANEUVER",
+          "closestEncounterBody": null,
+          "eccentricAnomaly": 0.284964,
+          "epoch": 43301.21875,
+          "maae": 0,
+          "inclination": 0,
+          "eccentricity": 0.284964,
+          "semiLatusRectum": 899474.709755,
+          "endUT": 46539.758614,
+          "ApA": 657943.179836,
+          "PeA": 100000.0,
+          "referenceBody": "Kerbin",
+          "patchEndTransition": "FINAL",
+          "period": 3238.539864,
+          "startUT": 43301.21875
+        }
+      ],
+      "PeA": 100000.0,
+      "ApA": 657943.179836,
+      "closestEncounterBody": null,
+      "lan": 0,
+      "sma": 978971.589918
+    }
+  ],
+  "t.universalTime": 43362.21875,
+  "o.PeR": 700000.0,
+  "a.physicsMode": "patched_conics",
+  "o.referenceBody": "Kerbin",
+  "o.inclination": 0,
+  "o.sma": 973479.265252,
+  "o.lan": 0,
+  "o.radius": 1184936.782,
+  "dv.stages": [],
+  "o.ApR": 1246958.530503,
+  "o.eccentricity": 0.28093,
+  "o.timeToPe": 1163.533,
+  "o.timeToAp": 442.129,
+  "o.ApA": 646958.530503,
+  "o.PeA": 100000.0,
+  "o.orbitalSpeed": 1527.42,
+  "v.body": "Kerbin",
+  "_stream": {
+    "carriedChannels": ["vessel.maneuver", "vessel.orbit", "vessel.state"],
+    "pinnedUt": 43362.21875,
+    "emits": [
+      {
+        "channel": "vessel.maneuver",
+        "value": {
+          "nodes": [
+            {
+              "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3302",
+              "ut": {
+                "magnitude": 43301.21875,
+                "unit": "ut"
+              },
+              "dvRadial": {
+                "magnitude": 0,
+                "unit": "m/s"
+              },
+              "dvNormal": {
+                "magnitude": 0,
+                "unit": "m/s"
+              },
+              "dvPrograde": {
+                "magnitude": 300,
+                "unit": "m/s"
+              },
+              "dvTotal": {
+                "magnitude": 300.0,
+                "unit": "m/s"
+              },
+              "frame": 0,
+              "ignitionUt": {
+                "magnitude": 43277.21875,
+                "unit": "ut"
+              },
+              "cutoffUt": {
+                "magnitude": 43322.21875,
+                "unit": "ut"
+              },
+              "patches": [
+                {
+                  "sma": {
+                    "magnitude": 978971.589918,
+                    "unit": "m"
+                  },
+                  "ecc": {
+                    "magnitude": 0.284964,
+                    "unit": "1"
+                  },
+                  "inc": {
+                    "magnitude": 0,
+                    "unit": "°"
+                  },
+                  "lan": {
+                    "magnitude": 0,
+                    "unit": "°"
+                  },
+                  "argPe": {
+                    "magnitude": 0,
+                    "unit": "°"
+                  },
+                  "meanAnomalyAtEpoch": {
+                    "magnitude": 0,
+                    "unit": "rad"
+                  },
+                  "epoch": {
+                    "magnitude": 43301.21875,
+                    "unit": "ut"
+                  },
+                  "period": {
+                    "magnitude": 3238.539864,
+                    "unit": "s"
+                  },
+                  "startUt": {
+                    "magnitude": 43301.21875,
+                    "unit": "ut"
+                  },
+                  "endUt": {
+                    "magnitude": 46539.758614,
+                    "unit": "ut"
+                  },
+                  "apA": {
+                    "magnitude": 657943.179836,
+                    "unit": "m"
+                  },
+                  "peA": {
+                    "magnitude": 100000.0,
+                    "unit": "m"
+                  },
+                  "mu": {
+                    "magnitude": 3531600000000.0,
+                    "unit": "m³/s²"
+                  },
+                  "referenceBodyIndex": 1,
+                  "referenceBody": "Kerbin",
+                  "semiMinorAxis": {
+                    "magnitude": 938381.684977,
+                    "unit": "m"
+                  },
+                  "semiLatusRectum": {
+                    "magnitude": 899474.709755,
+                    "unit": "m"
+                  },
+                  "patchStartTransition": 4,
+                  "patchEndTransition": 1,
+                  "closestEncounterBody": null,
+                  "closestEncounterBodyIndex": null
+                }
+              ]
+            }
+          ],
+          "planner": "stock-patched-conic"
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": {
+            "magnitude": 973479.265252,
+            "unit": "m"
+          },
+          "ecc": {
+            "magnitude": 0.28093,
+            "unit": "1"
+          },
+          "inc": {
+            "magnitude": 0,
+            "unit": "°"
+          },
+          "lan": {
+            "magnitude": 0,
+            "unit": "°"
+          },
+          "argPe": {
+            "magnitude": 0,
+            "unit": "°"
+          },
+          "mu": {
+            "magnitude": 3531600000000.0,
+            "unit": "m3/s2"
+          },
+          "meanAnomalyAtEpoch": {
+            "magnitude": 2.276536578,
+            "unit": "rad"
+          },
+          "epoch": {
+            "magnitude": 43362.21875,
+            "unit": "ut"
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "patches": []
+        }
+      },
+      {
+        "channel": "vessel.state",
+        "value": {
+          "trueAnomaly": {
+            "magnitude": 150,
+            "unit": "°"
+          },
+          "orbitalSpeed": {
+            "magnitude": 1527.42,
+            "unit": "m/s"
+          },
+          "orbitalRadius": {
+            "magnitude": 1184936.782,
+            "unit": "m"
+          },
+          "period": {
+            "magnitude": 3211.324353,
+            "unit": "s"
+          },
+          "referenceBodyName": "Kerbin",
+          "parentBodyName": "Kerbin"
+        }
+      },
+      {
+        "channel": "vessel.maneuver",
+        "value": {
+          "nodes": [
+            {
+              "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3302",
+              "ut": {
+                "magnitude": 43301.21875,
+                "unit": "ut"
+              },
+              "dvRadial": {
+                "magnitude": 0,
+                "unit": "m/s"
+              },
+              "dvNormal": {
+                "magnitude": 0,
+                "unit": "m/s"
+              },
+              "dvPrograde": {
+                "magnitude": 4,
+                "unit": "m/s"
+              },
+              "dvTotal": {
+                "magnitude": 4.0,
+                "unit": "m/s"
+              },
+              "frame": 0,
+              "ignitionUt": {
+                "magnitude": 43277.21875,
+                "unit": "ut"
+              },
+              "cutoffUt": {
+                "magnitude": 43322.21875,
+                "unit": "ut"
+              },
+              "patches": [
+                {
+                  "sma": {
+                    "magnitude": 978971.589918,
+                    "unit": "m"
+                  },
+                  "ecc": {
+                    "magnitude": 0.284964,
+                    "unit": "1"
+                  },
+                  "inc": {
+                    "magnitude": 0,
+                    "unit": "°"
+                  },
+                  "lan": {
+                    "magnitude": 0,
+                    "unit": "°"
+                  },
+                  "argPe": {
+                    "magnitude": 0,
+                    "unit": "°"
+                  },
+                  "meanAnomalyAtEpoch": {
+                    "magnitude": 0,
+                    "unit": "rad"
+                  },
+                  "epoch": {
+                    "magnitude": 43301.21875,
+                    "unit": "ut"
+                  },
+                  "period": {
+                    "magnitude": 3238.539864,
+                    "unit": "s"
+                  },
+                  "startUt": {
+                    "magnitude": 43301.21875,
+                    "unit": "ut"
+                  },
+                  "endUt": {
+                    "magnitude": 46539.758614,
+                    "unit": "ut"
+                  },
+                  "apA": {
+                    "magnitude": 657943.179836,
+                    "unit": "m"
+                  },
+                  "peA": {
+                    "magnitude": 100000.0,
+                    "unit": "m"
+                  },
+                  "mu": {
+                    "magnitude": 3531600000000.0,
+                    "unit": "m³/s²"
+                  },
+                  "referenceBodyIndex": 1,
+                  "referenceBody": "Kerbin",
+                  "semiMinorAxis": {
+                    "magnitude": 938381.684977,
+                    "unit": "m"
+                  },
+                  "semiLatusRectum": {
+                    "magnitude": 899474.709755,
+                    "unit": "m"
+                  },
+                  "patchStartTransition": 4,
+                  "patchEndTransition": 1,
+                  "closestEncounterBody": null,
+                  "closestEncounterBodyIndex": null
+                }
+              ]
+            }
+          ],
+          "planner": "stock-patched-conic"
+        }
+      }
+    ]
+  }
+}

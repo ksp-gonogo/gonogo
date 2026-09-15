@@ -177,13 +177,15 @@ export function ConformancePlot({
             argPe={current.argPe}
             projected={planned}
             /*
-             * The gap between flown and planned as one shape rather than two
-             * lines, which is the whole subject of this plot. Conformance only:
-             * before the burn there is nothing flown to compare against, and on
-             * the Plan tab the second conic is a proposal rather than a
-             * measurement.
+             * ONLY under `deviance`, which is the one regime where the two
+             * conics are a flown-versus-planned comparison. The others all
+             * mean the opposite, in this file's own words: `intended-change`
+             * and `missed` say "the gap is the intended change" and
+             * `in-progress` says it "is closing as it burns". Filling those
+             * would colour the burn itself and call it conformance, which is
+             * the post-burn reading the ticket exists to give.
              */
-            corridor
+            corridor={regime === "deviance"}
             bodyRadius={bodyRadius ?? undefined}
             variant="mini"
           />
