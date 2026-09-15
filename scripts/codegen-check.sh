@@ -73,10 +73,12 @@ if [ -n "$MISSED" ]; then
 fi
 
 BEFORE="$(snapshot)"
-bash mod/codegen.sh
-node scripts/gen-unit-kinds.mjs
-node scripts/gen-delay-roles.mjs
-node scripts/asyncapi-doc.mjs
+# The SAME generator list `pnpm codegen` runs, so the two cannot disagree
+# about what a generated artifact is. They each held their own list until
+# 2026-09-15 and had drifted in both directions: this script hashed
+# test-theme.ts without ever regenerating it, so it compared a stale file
+# against itself and reported success.
+node scripts/run-codegen.mjs
 AFTER="$(snapshot)"
 
 if [ "$BEFORE" != "$AFTER" ]; then
