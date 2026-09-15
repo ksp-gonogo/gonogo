@@ -20,6 +20,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { kosSource } from "../dataSource/kos";
+import { KOS_FILES_SCRIPT } from "./scriptListingScript";
 import { useKosScriptListing } from "./useKosScriptListing";
 
 const CORE_ID = 11;
@@ -197,5 +198,81 @@ describe("useKosScriptListing", () => {
 
     await waitFor(() => expect(result.current.hint).not.toBeNull());
     expect(result.current.hint).toMatch(/no tagname/i);
+  });
+
+  /*
+   * The per-entry twin of the unreadable-listing case above. A volume with no
+   * ISFILE suffix reports no kind at all, which is not evidence the entry is a
+   * file: offering a DIRECTORY called `lib.ks` composes RUNPATH("0:/lib.ks")
+   * and the CPU errors out of it.
+   */
+  it("does not offer an entry whose kind the volume never reported", async () => {
+    const { answer } = harness();
+    const { result } = renderHook(() =>
+      useKosScriptListing(CORE_ID, CPU_TAG, true),
+    );
+
+    await answer([
+      listingOf([
+        { name: "lib.ks", size: 0, isDir: null },
+        { name: "boot.ks", size: 10, isDir: false },
+      ]),
+      listingOf([{ name: "backup.ks", size: 4 }]),
+    ]);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // Only the entry that positively reported ISFILE is runnable. An absent
+    // key is the same absence as an explicit null.
+    expect(result.current.paths).toEqual(["0:/boot.ks"]);
+  });
+
+  it("names the missing kind rather than reporting an empty drive when NOTHING reported one", async () => {
+    // Everything on both volumes is script-named and kind-less: an older kOS
+    // across the board. "No scripts found" would be a claim about the drive
+    // made on the strength of a field it never sent.
+    const { answer } = harness();
+    const { result } = renderHook(() =>
+      useKosScriptListing(CORE_ID, CPU_TAG, true),
+    );
+
+    await answer([
+      listingOf([{ name: "lib.ks", size: 0, isDir: null }]),
+      listingOf([{ name: "backup.ks", size: 4, isDir: null }]),
+    ]);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.paths).toEqual([]);
+    expect(result.current.hint).toMatch(/did not say which are files/i);
+  });
+
+  it("emits an ABSENT kind from the kerboscript, never a definite false", () => {
+    // The wire half of the same fix. There is no kOS interpreter here, so the
+    // default is read off the script source: what the volume could not tell
+    // us has to reach the caller as the JSON null literal. A FALSE there is a
+    // claim that the entry is a file, and it is the claim that put a
+    // directory in the picker.
+    const fallback = /LOCAL isDir IS (.+)\./.exec(KOS_FILES_SCRIPT)?.[1];
+    expect(fallback).toBe('"null"');
+  });
+
+  it("keeps quiet about a kind-less entry that was never a candidate anyway", async () => {
+    /*
+     * A `.txt` with no reported kind was not runnable whatever it is, so it
+     * earns no hint: the empty state must not cry absence over an entry the
+     * extension filter would have dropped regardless.
+     */
+    const { answer } = harness();
+    const { result } = renderHook(() =>
+      useKosScriptListing(CORE_ID, CPU_TAG, true),
+    );
+
+    await answer([
+      listingOf([{ name: "notes.txt", size: 2, isDir: null }]),
+      listingOf([]),
+    ]);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.paths).toEqual([]);
+    expect(result.current.hint).toBeNull();
   });
 });

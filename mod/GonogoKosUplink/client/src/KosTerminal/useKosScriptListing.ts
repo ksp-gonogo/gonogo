@@ -6,6 +6,7 @@ import {
   KOS_FILES_SCRIPT,
   KOS_FILES_SCRIPT_NAME,
   type KosFileEntry,
+  kosEntryKind,
 } from "./scriptListingScript";
 
 const SCRIPT_VERSION = hashKosScript(KOS_FILES_SCRIPT);
@@ -29,9 +30,11 @@ export interface KosScriptListingResult {
   loading: boolean;
   /**
    * Human hint for the empty state: no CPU tag, no connection, a dispatch
-   * error's message, or a reply whose listing could not be read. `null` only
-   * once at least one volume has returned a listing we could READ, even an
-   * empty one.
+   * error's message, a reply whose listing could not be read, or a listing
+   * that named script-shaped entries without saying which of them are files.
+   * `null` only once at least one volume has returned a listing we could
+   * READ, even an empty one, and nothing runnable was withheld for want of a
+   * kind.
    */
   hint: string | null;
 }
@@ -111,6 +114,15 @@ export function useKosScriptListing(
       let anyReadable = false;
       let dispatchProblem: string | null = null;
       let unreadableProblem: string | null = null;
+      /*
+       * A script-named entry whose KIND the volume did not report. Not
+       * offered, because "we could not tell" is not "it is a file": a
+       * directory called `lib.ks` composes a RUNPATH the CPU errors out of.
+       * Counted so the empty state can say that rather than claim the drive
+       * holds nothing, the same distinction `parseListing` draws one level up
+       * between an unreadable reply and an empty drive.
+       */
+      let anyUnknownKind = false;
       for (const outcome of settled) {
         if (outcome.status === "rejected") {
           dispatchProblem =
@@ -127,8 +139,13 @@ export function useKosScriptListing(
         }
         anyReadable = true;
         for (const entry of entries) {
-          if (entry.isDir) continue;
           if (!SCRIPT_FILE_RE.test(entry.name)) continue;
+          const kind = kosEntryKind(entry);
+          if (kind === "unknown") {
+            anyUnknownKind = true;
+            continue;
+          }
+          if (kind === "directory") continue;
           paths.push(`${volume}/${entry.name}`);
         }
       }
@@ -141,7 +158,9 @@ export function useKosScriptListing(
          * for a CPU with no local drive, and it lands last.
          */
         hint: anyReadable
-          ? null
+          ? paths.length === 0 && anyUnknownKind
+            ? "The drive listed script-named entries but did not say which are files, so none can be offered to run."
+            : null
           : (unreadableProblem ??
             dispatchProblem ??
             "Could not reach the CPU for a script listing."),

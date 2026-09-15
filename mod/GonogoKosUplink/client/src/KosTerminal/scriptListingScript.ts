@@ -65,15 +65,18 @@ IF op = "list" {
     SET first TO FALSE.
     LOCAL size IS 0.
     IF f:HASSUFFIX("SIZE") { SET size TO f:SIZE. }
-    // VolumeItems expose :ISFILE: false means a directory. Older kOS
-    // versions may not have the suffix, in which case we conservatively
-    // treat everything as a file.
-    LOCAL isDir IS FALSE.
-    IF f:HASSUFFIX("ISFILE") { SET isDir TO NOT f:ISFILE. }
+    // VolumeItems expose :ISFILE: false means a directory. An older kOS
+    // without the suffix has not told us which this is, and that goes on the
+    // wire as JSON null: an ABSENT kind. Writing false there instead is a
+    // definite claim, indistinguishable from a volume that positively
+    // reported ISFILE, which is how a directory named lib.ks reached the
+    // picker as a runnable script.
+    LOCAL isDir IS "null".
+    IF f:HASSUFFIX("ISFILE") { SET isDir TO (CHOOSE "true" IF NOT f:ISFILE ELSE "false"). }
     SET json TO json + "{"
       + quoteChar + "name" + quoteChar + ":" + quoteChar + f:NAME + quoteChar + ","
       + quoteChar + "size" + quoteChar + ":" + size + ","
-      + quoteChar + "isDir" + quoteChar + ":" + (CHOOSE "true" IF isDir ELSE "false")
+      + quoteChar + "isDir" + quoteChar + ":" + isDir
       + "}".
   }
   SET json TO json + "]".
@@ -105,8 +108,28 @@ IF op = "list" {
 export interface KosFileEntry {
   name: string;
   size: number;
-  /** True for subdirectories (kOS volumes that report ISDIR). */
-  isDir?: boolean;
+  /**
+   * The entry's kind, as three states rather than two: true for a
+   * subdirectory, false for a file, and null or absent when the volume could
+   * not say (an older kOS with no ISFILE suffix, or a listing written by an
+   * older copy of this script). Null is not a file, and a caller that treats
+   * it as one offers a directory as something to run.
+   */
+  isDir?: boolean | null;
+}
+
+/** What a listing entry is, once the two-state flag is read as three. */
+export type KosEntryKind = "file" | "directory" | "unknown";
+
+/**
+ * Which of the three an entry reported. Kept beside the script that emits the
+ * field so the encoding and the decoding cannot drift apart: only an explicit
+ * `false` is evidence the entry is a file.
+ */
+export function kosEntryKind(entry: KosFileEntry): KosEntryKind {
+  if (entry.isDir === true) return "directory";
+  if (entry.isDir === false) return "file";
+  return "unknown";
 }
 
 /** Default script path on the kOS Archive volume. */
