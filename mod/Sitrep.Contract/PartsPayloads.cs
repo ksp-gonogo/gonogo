@@ -269,10 +269,14 @@ public class ServoEntry
 /// parts present on THIS vessel, so it rides the delay clock (Delayed),
 /// whereas DLC presence is a ground-side TrueNow fact.
 ///
-/// <para><see cref="Available"/> is nullable to mirror
-/// <c>SnapshotDict.GetBool</c>'s null-on-absence rule: a snapshot recorded
-/// before this field existed reads as <c>null</c>; a live snapshot always
-/// carries a concrete <c>true</c>/<c>false</c>.</para>
+/// <para><see cref="Available"/> is three-state, and the third state is not
+/// only a historical one. <c>null</c> means the craft could not be surveyed:
+/// a snapshot recorded before this field existed, or a live one where a
+/// part's reflective read failed, since "no robotic parts" is a claim about
+/// every part and one of them did not answer. <c>false</c> is the definite
+/// "this craft carries none". A reader that treats null as false tells the
+/// operator there are no robotic parts on a craft that may be full of
+/// them.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
 /// <c>Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable</c>: see

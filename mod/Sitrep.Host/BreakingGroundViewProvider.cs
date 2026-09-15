@@ -32,7 +32,7 @@ namespace Sitrep.Host
     ///     "traverseVelocity", "currentRPM", "rpmLimit", "normalizedOutput",
     ///     "brakePercentage", "currentExtension", "targetExtension",
     ///     "counterClockwise", "maxTorque" (rotor entries only, null otherwise) }, ... ] | null
-    /// snapshot.Values["parts"]["roboticsAvailable"] = bool   // any Breaking Ground servo on THIS vessel
+    /// snapshot.Values["parts"]["roboticsAvailable"] = bool?  // any BG servo on THIS vessel, null if a part could not be read
     /// snapshot.Values["science"]["deployed"] = [ { "vesselName", "partName", "body", "situation",
     ///     "biome", "experimentId", "scienceCompletedPercentage",
     ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",

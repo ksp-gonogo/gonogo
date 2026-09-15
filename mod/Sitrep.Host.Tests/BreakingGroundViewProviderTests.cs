@@ -282,6 +282,35 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildRoboticsAvailableCarriesTheProducersUnsurveyedNullThrough()
+        {
+            /*
+             * The producer half of this pair (KspHost.BuildRoboticsAvailable)
+             * answers null when a part could not be read, so the key is PRESENT
+             * and explicitly null rather than absent. That is a different
+             * snapshot shape from the older-recording case above, and it has to
+             * reach the payload as null too: SnapshotDict.GetBool only accepts
+             * a boxed bool, so a null value can never become false here.
+             */
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["parts"] = new Dictionary<string, object?>
+                    {
+                        ["robotics"] = new List<object?>(),
+                        ["roboticsAvailable"] = null,
+                    },
+                },
+            };
+
+            var payload = Assert.IsType<Dictionary<string, object?>>(BreakingGroundViewProvider.BuildRoboticsAvailable(snapshot));
+            Assert.True(payload.ContainsKey("available"));
+            Assert.Null(payload["available"]);
+        }
+
+        [Fact]
         public void BuildRoboticsReturnsNullWhenSubGroupIsAbsentEvenThoughPartsKeyExists()
         {
             var snapshot = new KspSnapshot
