@@ -1696,7 +1696,29 @@ export function separatingDecimals(
       return decimals;
     }
   }
-  return MAX_SEPARATING_DECIMALS;
+  /*
+   * Widening ran out of room without separating them, so these readings differ
+   * by less than any precision here can express. Fall back to the kind's own
+   * default, which is what genuinely equal readings already get.
+   *
+   * Returning the maximum instead is what this did, and it spent six decimals
+   * to print the same figure twice: two adjacent doubles 7.3e-12 m apart
+   * rendered `65.286800 km - 65.286800 km`, while ends that were EXACTLY equal
+   * rendered `65.3 km`. Two indistinguishable inputs, two visibly different
+   * answers, and the wordier one reads as the more precise.
+   *
+   * The floor is "widening stopped working", detected rather than assumed:
+   * nothing here needs to know the unit's rung or pick a magnitude, and a band
+   * that genuinely separates still gains every digit it needs.
+   *
+   * It is also the consumer half of a rule the producer already follows. A fit
+   * whose residuals are its own arithmetic's rounding publishes no band at all
+   * (`atmospheric-reckoning.ts`, FLOAT_RESIDUE_ULPS): "every sample on one line
+   * is a DEGENERATE estimate, not evidence that an extrapolation is exact, and
+   * a zero-width band is read downstream as the second thing". A difference
+   * below the display rung is the same claim made in decimals.
+   */
+  return undefined;
 }
 
 // Last, so every table the registrations write to exists before the replay of
