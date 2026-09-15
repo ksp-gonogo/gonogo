@@ -218,6 +218,32 @@ namespace GonogoKosUplink.Tests
             Assert.False(h.Manager.Resize(7, "nope", 100, 40).Success);
         }
 
+        /// <summary>
+        /// <c>KosTerminalResizeArgs.Cols</c>/<c>Rows</c> are non-nullable ints,
+        /// so an omitted key, a null and a blank field all reach the mod as 0.
+        /// An ack would report a resize that never happened, to a client that
+        /// has no other way to learn its size request was unreadable.
+        /// </summary>
+        [Theory]
+        [InlineData(0, 24)]
+        [InlineData(80, 0)]
+        [InlineData(0, 0)]
+        [InlineData(-1, 24)]
+        [InlineData(80, -1)]
+        public void Resize_WithANonPositiveDimension_IsRefusedNotAcked(int cols, int rows)
+        {
+            var h = new Harness();
+            h.Manager.Open(7, "tokenA");
+            Assert.True(h.Manager.Resize(7, "tokenA", 80, 24).Success);
+
+            var r = h.Manager.Resize(7, "tokenA", cols, rows);
+
+            Assert.False(r.Success);
+            Assert.Equal(CommandErrorCode.Range, r.ErrorCode);
+            // The screen keeps the size it actually has.
+            Assert.Equal((80, 24), h.Screens[7].LastResize);
+        }
+
         [Fact]
         public void Close_ReleasesLease_SoAnotherTokenCanOpen()
         {

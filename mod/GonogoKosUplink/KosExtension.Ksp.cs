@@ -338,23 +338,14 @@ namespace Gonogo.KosUplink
                     return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
                 }
 
-                // Arm BEFORE typing: a trivial one-tick script could complete
-                // its [KOSDATA] block synchronously inside ProcessOneInputChar
-                // below (OnPrint runs inline inside kOS's PRINT), so the
-                // manager must already be expecting this request's result
-                // before any character reaches the interpreter.
-                if (!_runManager.TryArm(args.CoreId, args.RequestId))
-                {
-                    // Another kos.run is already in flight for this CPU. The
-                    // client's own per-CPU serialization (mirroring
-                    // KosComputeSession's FIFO queue) is expected to prevent
-                    // this in the steady state: reject rather than silently
-                    // clobbering the earlier request's correlation.
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
-                }
-
-                TypeCommand(proc, args.Command);
-                return CommandResult.Ok();
+                // Arming, typing, and disarming again when there was no window
+                // to type into all live in KosRunManager.ArmAndType, which is
+                // KSP-free and therefore testable: see its doc comment for the
+                // ordering and for why an untyped run must be left unarmed.
+                return _runManager.ArmAndType(
+                    args.CoreId,
+                    args.RequestId,
+                    () => TypeCommand(proc, args.Command));
             });
         }
 
@@ -374,13 +365,20 @@ namespace Gonogo.KosUplink
         /// (never double-submits): <c>Command</c> is caller-built kerboscript
         /// text, not raw keyboard bytes, so CRLF normalisation is the mod's
         /// job, not the caller's.
+        ///
+        /// <para>Returns false when the CPU has no terminal window and nothing
+        /// could be typed at all. That is the same condition
+        /// <see cref="KosProcessorScreen.TypeChars"/> already reports as a
+        /// failure on the <c>kos.keystroke</c> path, and the caller turns it
+        /// into the same refusal rather than acking a run that never
+        /// happened.</para>
         /// </summary>
-        private static void TypeCommand(kOSProcessor proc, string command)
+        private static bool TypeCommand(kOSProcessor proc, string command)
         {
             var window = proc.GetWindow();
             if (window == null)
             {
-                return;
+                return false;
             }
             foreach (var ch in command)
             {
@@ -394,6 +392,7 @@ namespace Gonogo.KosUplink
             {
                 window.ProcessOneInputChar('\r', null, true, true);
             }
+            return true;
         }
 
         private static kOSProcessor? FindProcessor(int coreId)
