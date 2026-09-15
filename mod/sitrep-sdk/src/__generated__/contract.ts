@@ -3609,10 +3609,13 @@ export interface ServoEntry
 * the delay clock (Delayed), whereas DLC presence is a ground-side TrueNow
 * fact.
 *
-* `RoboticsAvailability.available` is nullable to mirror
-* `SnapshotDict.GetBool`'s null-on-absence rule: a snapshot recorded before
-* this field existed reads as `null`; a live snapshot always carries a
-* concrete `true`/`false`.
+* `RoboticsAvailability.available` is three-state, and the third state is not
+* only a historical one. `null` means the craft could not be surveyed: a
+* snapshot recorded before this field existed, or a live one where a part's
+* reflective read failed, since "no robotic parts" is a claim about every part
+* and one of them did not answer. `false` is the definite "this craft carries
+* none". A reader that treats null as false tells the operator there are no
+* robotic parts on a craft that may be full of them.
 *
 * **Typing-only mirror** of
 * `Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable`: see

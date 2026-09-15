@@ -5153,7 +5153,18 @@ namespace Gonogo.KSP
                         // Resolved once and shared: the derived power state, the
                         // controller-attachment fact and the power balance are all
                         // facts about the CLUSTER, not the module.
-                        var cluster = ReflectMemberValue(type, module, "ScienceClusterData");
+                        // Read through TryMember, not ReflectMemberValue: this
+                        // is the one caller that has to tell "this experiment
+                        // has no cluster" (read fine, came back null) from "we
+                        // could not ask" (absent member, or the read threw).
+                        var clusterRead = BreakingGroundReads.TryMember(
+                            type, module, "ScienceClusterData", out var cluster, out var clusterFailure);
+                        if (!clusterRead)
+                        {
+                            Debug.LogWarning(
+                                "[Gonogo] deployed-science cluster unread, reporting power and controllerConnected as null: "
+                                + clusterFailure);
+                        }
                         var clusterType = cluster?.GetType();
                         list ??= new List<object?>();
                         list.Add(new Dictionary<string, object?>
@@ -5172,8 +5183,15 @@ namespace Gonogo.KSP
                             // derived fields below are what a client branches on.
                             ["powerState"] = ReflectString(type, module, "PowerState"),
                             ["connectionState"] = ReflectString(type, module, "ConnectionState"),
-                            ["power"] = (int?)DerivePowerState(type, module, cluster),
-                            ["controllerConnected"] = cluster != null,
+                            // Both null when the cluster read FAILED: a power
+                            // state derived from a cluster we could not read is
+                            // a guess, and DerivePowerState's first branch
+                            // would otherwise call it NotConnected.
+                            ["power"] = clusterRead
+                                ? (int?)DerivePowerState(type, module, cluster)
+                                : null,
+                            ["controllerConnected"] = BreakingGroundReads.ControllerConnected(
+                                clusterRead, cluster),
                             // Breaking Ground's own integral power units, summed
                             // over the cluster's parts. Null with no cluster to
                             // read: a zero here is a dark cluster, not an absent one.
@@ -5340,27 +5358,22 @@ namespace Gonogo.KSP
         /// reference statically. Field takes precedence over property (some
         /// members surfaced as one or the other across KSP versions).
         /// </summary>
+        /// <remarks>
+        /// Delegates to <see cref="BreakingGroundReads.TryMember"/> and drops
+        /// the success flag, which is right for every caller whose field is
+        /// nullable anyway: absent, threw and read-as-null are all "no value to
+        /// publish" for a string or a number. A caller that has to tell them
+        /// apart calls <c>TryMember</c> itself, as the cluster read does.
+        /// </remarks>
         private static object? ReflectMemberValue(Type type, object instance, string name)
         {
-            try
+            if (BreakingGroundReads.TryMember(type, instance, name, out var value, out var failure))
             {
-                var field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance);
-                if (field != null)
-                {
-                    return field.GetValue(instance);
-                }
-                var property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-                if (property != null && property.CanRead)
-                {
-                    return property.GetValue(instance);
-                }
-                return null;
+                return value;
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] reflective read of " + type.Name + "." + name + " failed, omitting: " + ex);
-                return null;
-            }
+
+            Debug.LogWarning("[Gonogo] reflective read failed, omitting: " + failure);
+            return null;
         }
 
         private static string? ReflectString(Type type, object instance, string name) =>
@@ -5411,11 +5424,12 @@ namespace Gonogo.KSP
             var entry = new Dictionary<string, object?>();
             TryBuildGroup(entry, "power", () => BuildPartsPower(vessel));
             TryBuildGroup(entry, "robotics", () => BuildPartsRobotics(vessel));
-            // Always-present availability flag (NOT a TryBuildGroup group -
-            // it must be a definite bool whenever there's an active vessel, so
-            // robotics.available can tell "vessel has no robotic parts"
-            // (false) apart from "no active vessel" (parts key omitted). See
-            // BuildRoboticsAvailable.
+            // Always-PRESENT availability flag (NOT a TryBuildGroup group), so
+            // robotics.available can tell "no active vessel" (parts key
+            // omitted) apart from an answer about a vessel. The answer itself
+            // is three-state: false for a craft that genuinely carries no
+            // robotic part, and null when a part could not be read, because
+            // "none" is a claim about every part. See BuildRoboticsAvailable.
             entry["roboticsAvailable"] = BuildRoboticsAvailable(vessel);
             return entry;
         }
@@ -5426,23 +5440,38 @@ namespace Gonogo.KSP
         /// <see cref="BaseServo"/> (<c>Expansions.Serenity</c>), so a single
         /// <c>GetModules&lt;BaseServo&gt;()</c> per part covers all three
         /// without enumerating the concrete subtypes. Powers the
-        /// <c>robotics.available</c> Topic. Each part's read is individually
-        /// try/caught so one bad part can't blank the flag; an absent Serenity
-        /// install just means no part reports a BaseServo, which reads as
-        /// false without any special-casing.
+        /// <c>robotics.available</c> Topic. An absent Serenity install just
+        /// means no part reports a BaseServo, which reads as false without any
+        /// special-casing.
+        ///
+        /// <para>Each part's read is individually try/caught so one bad part
+        /// cannot blank the flag, but a part that could not be read no longer
+        /// counts as a part carrying nothing: the verdict goes to
+        /// <see cref="BreakingGroundReads.RoboticsAvailable"/>, which answers
+        /// null in that case. A skipped part used to fall through to a definite
+        /// false, so a craft whose parts threw was reported as having no
+        /// robotic parts, and both robotics widgets said so.</para>
         /// </summary>
-        private static bool BuildRoboticsAvailable(Vessel vessel)
+        private static bool? BuildRoboticsAvailable(Vessel vessel)
         {
             var parts = vessel.parts;
-            if (parts == null || parts.Count == 0)
+            if (parts == null)
             {
-                return false;
+                // Not the same as an empty list: an unread part list supports
+                // no claim about what is on the craft.
+                return BreakingGroundReads.RoboticsAvailable(
+                    partListRead: false, anyServoFound: false, anyPartUnreadable: false);
             }
 
+            var anyPartUnreadable = false;
             foreach (var part in parts)
             {
                 if (part == null || part.Modules == null)
                 {
+                    // A part with no module collection is a part whose servos
+                    // cannot be enumerated, which is an unknown rather than a
+                    // no.
+                    anyPartUnreadable = true;
                     continue;
                 }
 
@@ -5456,11 +5485,13 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
+                    anyPartUnreadable = true;
                     Debug.LogWarning("[Gonogo] robotics.available read failed on a part, skipping: " + ex);
                 }
             }
 
-            return false;
+            return BreakingGroundReads.RoboticsAvailable(
+                partListRead: true, anyServoFound: false, anyPartUnreadable: anyPartUnreadable);
         }
 
         /// <summary>

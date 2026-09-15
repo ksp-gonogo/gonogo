@@ -29,6 +29,16 @@
        KSP/Unity types at all, so it needs no KspManaged gating either -
        same reasoning as KscLightTimeMath.cs above. -->
   <ItemGroup>
+    <!-- BreakingGroundReads.cs carries no KSP or Unity type either, and its
+         tests live at the project root rather than under Robotics\ for exactly
+         that reason: Robotics\ is Removed from the default glob below and
+         re-added only when UnityEngine.PhysicsModule.dll is present, so a test
+         placed there runs on no machine that lacks the reference assemblies
+         and reports nothing about it. These two readers decide whether an
+         unreadable part reaches the operator as "no robotic parts" and a
+         powered base as unpowered, which is not a thing to check only where
+         KSP is installed. -->
+    <Compile Include="..\Gonogo.KSP\BreakingGroundReads.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelayPolicy.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscLightTimeMath.cs" />
