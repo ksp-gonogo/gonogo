@@ -639,11 +639,23 @@ interface FamilySpec {
   /** Path prefixes this family does not apply to, each with why. */
   excludedRoots?: { prefix: string; reason: string }[];
   /**
-   * Source text this family MUST find a hit in. A regex that stops matching
-   * reports zero offenders and zero reads as a clean tree, so every run plants
-   * this and fails as blind if the scan cannot see it.
+   * Source text this family MUST find a hit in, one entry per SHAPE the app
+   * writes the declaration in. A regex that stops matching reports zero
+   * offenders and zero reads as a clean tree, so every run plants each of
+   * these and fails as blind if the scan cannot see one.
+   *
+   * Two shapes, because the app writes both and they travel through different
+   * code here. The css one goes through the kebab-case half of `properties`
+   * and reads its value bare; the style-object one goes through the camelCase
+   * half and arrives quoted with a trailing comma, which only `unquoteValue`
+   * and `bareNumber` undo. A single css plant proves neither of those, which
+   * is not hypothetical: gutting `unquoteValue` leaves all seven families
+   * finding their css plant and the whole suite green, while the scan is blind
+   * to every inline style in the tree. That is the shape of the miss
+   * `unquoteValue` was written for in the first place, 94 sites the census
+   * could not see.
    */
-  plant: string;
+  plants: { shape: "css" | "style object"; source: string }[];
 }
 
 /** px literals other than zero. `0px` needs no rung. */
@@ -812,7 +824,10 @@ const FAMILIES: Record<Family, FamilySpec> = {
     ],
     remedy: "use a --space-* rung (hair/2/4/6/8/10/12/16/24; 8 is the default)",
     hits: nonZeroPx,
-    plant: "  padding: 7px 13px;",
+    plants: [
+      { shape: "css", source: "  padding: 7px 13px;" },
+      { shape: "style object", source: '  paddingTop: "7px",' },
+    ],
   },
   radius: {
     label: "radius",
@@ -834,14 +849,20 @@ const FAMILIES: Record<Family, FamilySpec> = {
       ...nonZeroPx(value),
       ...(value.match(/\b\d*\.?\d+%/g) ?? []),
     ],
-    plant: "  border-radius: 9px;",
+    plants: [
+      { shape: "css", source: "  border-radius: 9px;" },
+      { shape: "style object", source: '  borderRadius: "9px",' },
+    ],
   },
   fontSize: {
     label: "font-size",
     properties: ["font-size", "fontSize"],
     remedy: "use --font-size-2xs/xs/sm/base/lg",
     hits: nonZeroPx,
-    plant: "  font-size: 13px;",
+    plants: [
+      { shape: "css", source: "  font-size: 13px;" },
+      { shape: "style object", source: '  fontSize: "13px",' },
+    ],
   },
   lineHeight: {
     label: "line-height",
@@ -852,7 +873,10 @@ const FAMILIES: Record<Family, FamilySpec> = {
       const bare = bareNumber(value);
       return bare === undefined ? nonZeroPx(value) : [bare];
     },
-    plant: "  line-height: 1.27;",
+    plants: [
+      { shape: "css", source: "  line-height: 1.27;" },
+      { shape: "style object", source: "  lineHeight: 1.27," },
+    ],
   },
   zIndex: {
     label: "z-index",
@@ -863,7 +887,10 @@ const FAMILIES: Record<Family, FamilySpec> = {
       const bare = bareNumber(value);
       return bare === undefined ? [] : [bare];
     },
-    plant: "  z-index: 37;",
+    plants: [
+      { shape: "css", source: "  z-index: 37;" },
+      { shape: "style object", source: "  zIndex: 37," },
+    ],
   },
   motion: {
     label: "motion",
@@ -886,7 +913,10 @@ const FAMILIES: Record<Family, FamilySpec> = {
     remedy:
       "use --duration-instant/fast/base/slow/entrance and --ease-standard/emphasis/linear/entrance; if the duration encodes something physical (a sample cadence, a 1Hz caret, an indicator whose period the operator reads) keep the literal, say so in a comment, and raise this baseline",
     hits: motionHits,
-    plant: "  transition: opacity 220ms ease-in;",
+    plants: [
+      { shape: "css", source: "  transition: opacity 220ms ease-in;" },
+      { shape: "style object", source: '  transitionDuration: "220ms",' },
+    ],
   },
   rawSpacingRung: {
     label: "raw spacing rung",
@@ -908,7 +938,10 @@ const FAMILIES: Record<Family, FamilySpec> = {
       },
     ],
     hits: rawRungHits,
-    plant: "  gap: var(--space-8);",
+    plants: [
+      { shape: "css", source: "  gap: var(--space-8);" },
+      { shape: "style object", source: '  rowGap: "var(--space-8)",' },
+    ],
   },
 };
 
@@ -1190,30 +1223,50 @@ describe("design-system: hardcoded design-token values", () => {
  * that a rename would quietly change. So every run plants one violation per
  * family through the same matcher and the same `hits` the scan uses, and fails
  * as BLIND rather than green when a plant comes back unseen.
+ *
+ * Per family and per SHAPE, because the two shapes the app writes travel
+ * through different code and a css plant grades only one of them. See the
+ * `plants` field for what a single css plant failed to notice.
  */
 describe("design-system: the ratchet can see a violation", () => {
   for (const [family, spec] of Object.entries(FAMILIES) as [
     Family,
     FamilySpec,
   ][]) {
-    it(`catches a planted ${spec.label} violation`, () => {
-      const planted: string[] = [];
-      const matcher = new RegExp(MATCHERS[family].source, "g");
-      for (const match of stripComments(spec.plant).matchAll(matcher)) {
-        const value = match[3];
-        const readable = spec.readsRaw
-          ? value
-          : stripFunctionalFallbacks(value);
-        planted.push(...spec.hits(readable, match[2]));
-      }
-      expect(
-        planted,
-        `the ${spec.label} scan is BLIND: it found nothing in ${JSON.stringify(
-          spec.plant,
-        )}, so a zero from it says nothing about the tree`,
-      ).not.toEqual([]);
-    });
+    for (const plant of spec.plants) {
+      it(`catches a planted ${spec.label} violation in a ${plant.shape}`, () => {
+        const planted: string[] = [];
+        const matcher = new RegExp(MATCHERS[family].source, "g");
+        for (const match of stripComments(plant.source).matchAll(matcher)) {
+          const value = match[3];
+          const readable = spec.readsRaw
+            ? value
+            : stripFunctionalFallbacks(value);
+          planted.push(...spec.hits(readable, match[2]));
+        }
+        expect(
+          planted,
+          `the ${spec.label} scan is BLIND to a ${plant.shape}: it found ` +
+            `nothing in ${JSON.stringify(plant.source)}, so a zero from it ` +
+            `says nothing about the tree`,
+        ).not.toEqual([]);
+      });
+    }
   }
+
+  // A shape that stops being planted is a hole that reopens silently, so the
+  // count is asserted rather than left to whoever edits FAMILIES next.
+  it("plants both shapes for every family", () => {
+    for (const [family, spec] of Object.entries(FAMILIES) as [
+      Family,
+      FamilySpec,
+    ][]) {
+      expect(
+        spec.plants.map((p) => p.shape).sort(),
+        `${family} must plant a css declaration AND a JS style object`,
+      ).toEqual(["css", "style object"]);
+    }
+  });
 });
 
 /**
