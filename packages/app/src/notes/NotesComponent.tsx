@@ -123,10 +123,7 @@ function NotesView({
       sections={
         <Section full gap="lg">
           {ordered.length === 0 ? (
-            <Empty>
-              No notes yet: add one below. Type {"{{"} in a note to insert a
-              variable.
-            </Empty>
+            <Empty>No notes yet. Type {"{{"} for live data.</Empty>
           ) : (
             ordered.map((note, idx) => (
               <NoteRow
@@ -469,7 +466,12 @@ const AddRow = styled.div`
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-xs);
-  padding: var(--space-12);
+  /* The tighter inset, and it is load-bearing at the minimum. The body scroller
+     there is 105px and holds 8px of its own inset, the 35px sticky title unit,
+     this box, and 12px more inset. At the twelve-a-side this used to carry, the
+     box is 52px and the total 107: a two-pixel overflow, which turns on a 44px
+     glow that then covers the whole message. This leaves 10px spare. */
+  padding: var(--inset-surface);
   text-align: center;
 `;
 
@@ -484,9 +486,15 @@ registerComponent({
     "Mission notes synced across all screens. Use {{key.path}} to embed live telemetry, values update as the data feed ticks.",
   tags: ["mission-control"],
   defaultSize: { w: 6, h: 8 },
-  // Six columns: the composer's field shares its row with the Add button, and
-  // any narrower leaves it too little room to show even "New note".
-  minSize: { w: 6, h: 4 },
+  /* Six columns: the composer's field shares its row with the Add button, and
+     any narrower leaves it too little room to show even "New note".
+
+     Five rows, not four, because four cannot show one note. Measured at 6x4:
+     the body scroller is 72px, of which the panel's own insets and its sticky
+     title unit take 55, leaving 17px for content against a note row's 22. Any
+     content at all therefore overflowed, and the bottom glow that overflow
+     turns on is 44px tall, so it covered whatever the widget had to say. */
+  minSize: { w: 6, h: 5 },
   component: NotesComponent,
   // Tags are dynamic per-note; we subscribe to whatever the body mentions
   // at render time rather than declaring fixed dataRequirements upfront.
