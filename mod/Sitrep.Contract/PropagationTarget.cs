@@ -21,7 +21,7 @@ namespace Sitrep.Contract
     /// entirely.</para>
     ///
     /// <para><see cref="Osculating"/> is nullable precisely so that "I have no conic
-    /// for this" is expressible. <see cref="KeplerProvider"/> declines such a target
+    /// for this" is expressible. <c>KeplerProvider</c> declines such a target
     /// rather than substituting anything.</para>
     /// </summary>
     public readonly struct PropagationTarget
@@ -90,7 +90,7 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// The frame an answer must be expressed in: centred on one body, non-rotating,
-    /// the same Z-up inertial convention <see cref="KeplerProvider"/> emits.
+    /// the same Z-up inertial convention <c>KeplerProvider</c> emits.
     ///
     /// <para>Making the frame an argument is what keeps hierarchy-walking inside a
     /// provider instead of in every caller. Callers that need a vessel's position

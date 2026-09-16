@@ -45,7 +45,7 @@ public enum FlightEndReason
 /// craft they stepped out of stays it for as long as that craft is in the
 /// world. <see cref="Phase"/> reuses
 /// <see cref="Situation"/> rather than inventing a parallel enum; see
-/// <see cref="FlightLifecycleSampler"/> doc reference in
+/// <c>FlightLifecycleSampler</c> doc reference in
 /// <c>Sitrep.Host.Flight</c> for the exact phase source.
 /// </summary>
 [SitrepContract]

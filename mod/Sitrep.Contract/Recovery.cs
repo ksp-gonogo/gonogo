@@ -15,7 +15,7 @@ namespace Sitrep.Contract;
 /// <para>TYPING/codegen marker only. The producer (<c>Gonogo.KSP.RecoveryUplink</c>)
 /// hand-flattens the live-KSP recovery into a <c>Dictionary&lt;string, object?&gt;</c>
 /// via <c>Sitrep.Host.Recovery.RecoveryPayload.Build</c> before publishing, so
-/// <see cref="Sitrep.Core.Serialization.JsonWriter"/> only ever sees the
+/// <c>JsonWriter</c> only ever sees the
 /// dictionary: this POCO exists solely so the TS SDK has a concrete payload
 /// type to name (it is on <c>WirePayloadCoverageTests</c>'s producer-flatten
 /// allowlist for exactly that reason).</para>

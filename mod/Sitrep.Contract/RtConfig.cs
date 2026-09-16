@@ -673,6 +673,8 @@ public static class RtConfig
     /// is a contract defect and throws rather than emitting something that would
     /// not compile.</para>
     /// </summary>
+    /// <param name="builder">The Reinforced.Typings configuration being built.</param>
+    /// <param name="exportedTypes">The types this pass retypes, from any assembly.</param>
     /// <param name="valueImportFrom">
     /// Where the emitted file should import <c>Value</c>/<c>Vec3Of</c> from.
     /// Defaults to the first party's own layout. An UPLINK passes the path
@@ -828,6 +830,8 @@ public static class RtConfig
     /// of its OWN calls this from its own <c>Configure</c> with its own types and
     /// its own import path, and gets the identical emission.</para>
     /// </summary>
+    /// <param name="builder">The Reinforced.Typings configuration being built.</param>
+    /// <param name="exportedTypes">The types this pass scans for a bag, from any assembly.</param>
     /// <param name="extensionsImportFrom">
     /// Where the emitted file should import <c>ProviderExtensions</c> from.
     /// Defaults to the first party's own layout; an Uplink passes the path that

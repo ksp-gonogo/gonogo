@@ -486,7 +486,7 @@ namespace Sitrep.Contract
         /// <remarks>
         /// <para>Major-3 history, Bumped 2 -&gt; 3 (Minor reset to 0): the
         /// Principia mod-seam revert. Removed
-        /// <see cref="VesselPhysicsMode.IsPrincipiaActive"/> from the
+        /// <c>VesselPhysicsMode.IsPrincipiaActive</c> from the
         /// wire-visible <see cref="VesselPhysicsMode"/> Value: core detecting
         /// a specific third-party mod (Principia) was a mod-seam violation;
         /// that awareness belongs to a future Principia Uplink instead. The
@@ -504,7 +504,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Bumped 1 -&gt; 2: additive-only Minor for the
         /// <c>scansat.anomalies.&lt;body&gt;</c> dynamic-namespace element type
-        /// (<see cref="ScanAnomalyEntry"/>: the scansat.anomalies P4c-b
+        /// (<c>ScanAnomalyEntry</c>: the scansat.anomalies P4c-b
         /// sign-off item, closing <c>ScansatUplink.cs</c>'s known gap 3). A
         /// brand-new type only: additive, so it cannot break an Uplink built
         /// against an older Minor. See
@@ -527,7 +527,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Bumped 1 -&gt; 2: additive-only Minor for the
         /// capture-on-main / handle-on-Courier seam
-        /// (<see cref="IUplinkHost.AddSampledSource"/>): a new method on
+        /// (<see cref="IUplinkHost.AddSampledSource(System.Func{KspSnapshot?, object?}, System.Action{object?})"/>): a new method on
         /// <see cref="IUplinkHost"/> (which an Uplink CONSUMES, never
         /// implements), so it cannot break any existing
         /// <see cref="ISitrepUplink"/> built against an older Minor. See
@@ -550,8 +550,8 @@ namespace Sitrep.Contract
         /// contract (U2: comms trio): the <see cref="CommsConnectivity"/>/
         /// <see cref="CommsSignal"/>/<see cref="CommsControl"/>/
         /// <see cref="CommsPath"/>/<see cref="CommsHop"/>/<see cref="CommsNetwork"/>
-        /// (+ node/edge)/<see cref="CommsDelay"/>/<see cref="CommsLinkQuality"/>/
-        /// <see cref="CommsDataRate"/>/<see cref="CommsLinkMargin"/> payloads and
+        /// (+ node/edge)/<see cref="CommsDelay"/>/<c>CommsLinkQuality</c>/
+        /// <c>CommsDataRate</c>/<c>CommsLinkMargin</c> payloads and
         /// their enums (<see cref="CommsControlSource"/>/
         /// <see cref="CommsControlStateKind"/>/<see cref="CommsHopKind"/>/
         /// <see cref="CommsDelaySource"/>). All brand-new types: additive, so it
@@ -590,8 +590,8 @@ namespace Sitrep.Contract
         ///
         /// <para>Major-4 line, Bumped 0 -&gt; 1: additive-only Minor for the
         /// kerbcast Uplink's CONTROL-plane wire types
-        /// (<see cref="KerbcastCameraEntry"/>, <see cref="KerbcastSetFieldOfViewArgs"/>,
-        /// <see cref="KerbcastSetPanArgs"/>): the <c>kerbcast.cameras</c>
+        /// (<c>KerbcastCameraEntry</c>, <c>KerbcastSetFieldOfViewArgs</c>,
+        /// <c>KerbcastSetPanArgs</c>): the <c>kerbcast.cameras</c>
         /// camera/capability/docking-port inventory plus its
         /// <c>kerbcast.setFieldOfView</c>/<c>kerbcast.setPan</c> commands.
         /// kerbcast's VIDEO deliberately stays on WebRTC; only the control
@@ -626,9 +626,9 @@ namespace Sitrep.Contract
         /// <para>Major-4 line, Bumped 3 -&gt; 4: additive-only Minor for the
         /// KerbalismUplink Domain and the reliability capability. New Topics
         /// <c>kerbalism.spaceweather</c>/<c>kerbalism.lifesupport</c>/<c>kerbalism.crew</c>/
-        /// <c>kerbalism.features</c> (<see cref="KerbalismSpaceWeather"/>,
-        /// <see cref="KerbalismLifeSupport"/>, <see cref="KerbalismCrewEntry"/>,
-        /// <see cref="KerbalismFeatures"/> + nested value shapes) and the
+        /// <c>kerbalism.features</c> (<c>KerbalismSpaceWeather</c>,
+        /// <c>KerbalismLifeSupport</c>, <c>KerbalismCrewEntry</c>,
+        /// <c>KerbalismFeatures</c> + nested value shapes) and the
         /// Domain-neutral <c>reliability.summary</c>/<c>reliability.parts</c>
         /// (<see cref="ReliabilitySummary"/>, <see cref="ReliabilityPartEntry"/>,
         /// elected via the <c>reliability</c> Kernel capability, see Reliability.cs).
@@ -637,7 +637,7 @@ namespace Sitrep.Contract
         /// <c>docs/superpowers/plans/2026-07-22-kerbalism-uplink.md</c>.</para>
         ///
         /// <para>Major-4 line, Bumped 4 -&gt; 5: additive-only Minor for the
-        /// <c>avionics.status</c> Topic (<see cref="AvionicsStatus"/>): the RP-1
+        /// <c>avionics.status</c> Topic (<c>AvionicsStatus</c>): the RP-1
         /// controllable-mass ascent go/no-go emitted by <c>GonogoAvionicsUplink</c>.
         /// A brand-new <c>[SitrepContract]</c> type only, nothing removed or
         /// retyped, so it cannot break an Uplink built against an older Minor. See
@@ -669,7 +669,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Bumped 0 -&gt; 1: PROVENANCE ONLY, no wire member added,
         /// removed, or retyped. Four units findings applied:
-        /// <see cref="PartsPayloads.ServoEntry.MaxTorque"/> retagged
+        /// <see cref="ServoEntry.MaxTorque"/> retagged
         /// <see cref="Units.Kilonewtons"/> (was <c>kN·m</c>, now deleted from
         /// the vocabulary); <see cref="ExperimentEntry.TransmitBonus"/>
         /// retagged <see cref="Units.Ratio"/> (was
@@ -775,15 +775,15 @@ namespace Sitrep.Contract
         /// <para><b>Bumped 7 -&gt; 8:</b> the SpaceWeather reframe's solar-vantage
         /// capture + the ShipSystems modifier-ledger completion (option a'), one
         /// additive Minor for both batches. Solar vantage: the new
-        /// <see cref="KerbalismSpaceWeather.Stars"/> (<see cref="KerbalismStarInfo"/>,
+        /// <c>KerbalismSpaceWeather.Stars</c> (<c>KerbalismStarInfo</c>,
         /// one entry per star Kerbalism enumerates, star-agnostic) and
-        /// <see cref="KerbalismSpaceWeather.Storms"/> (<see cref="KerbalismStormEntry"/>,
+        /// <c>KerbalismSpaceWeather.Storms</c> (<c>KerbalismStormEntry</c>,
         /// one entry per (this vessel's current SOI body, star) CME slot, gated on
         /// the fair-vs-cheating <c>storm_state</c> boundary: <c>storm_generation</c>
-        /// is never read) plus <see cref="KerbalismSpaceWeather.StormEjectionSpeed"/>.
-        /// Modifier ledger: the new <see cref="KerbalismProcessEntry.EnvModifier"/>
+        /// is never read) plus <c>KerbalismSpaceWeather.StormEjectionSpeed</c>.
+        /// Modifier ledger: the new <c>KerbalismProcessEntry.EnvModifier</c>
         /// (live <c>Modifiers.Evaluate</c> product per process instance, capacity
-        /// join token excluded) and <see cref="KerbalismLifeSupport.RuleEnvModifiers"/>
+        /// join token excluded) and <c>KerbalismLifeSupport.RuleEnvModifiers</c>
         /// (the same product per rule name, full modifier list). All brand-new
         /// members/types on existing or new <c>[SitrepContract]</c> shapes, nothing
         /// removed or retyped, so it cannot break an Uplink built against an older
@@ -1140,7 +1140,7 @@ namespace Sitrep.Contract
         /// new array defaults empty, so every command that exists is ungated and
         /// nothing changes behaviour until a requirement is declared.</para>
         ///
-        /// <para>A command declares its precondition beside <see cref="Delayed"/>
+        /// <para>A command declares its precondition beside <see cref="DelayRole.Delayed"/>
         /// and the engine does the rest: refuse before the handler runs, publish
         /// the argument-independent half as addressability, and let the client
         /// read it off the handle it already holds. The point is that no caller
@@ -1434,7 +1434,7 @@ namespace Sitrep.Contract
         /// it and put on the wire.</para>
         ///
         /// <para><b>Bumped 2 -&gt; 3: a planned burn names its own frame's
-        /// bodies.</b> <see cref="PrincipiaPlannedBurn"/> gains
+        /// bodies.</b> <c>PrincipiaPlannedBurn</c> gains
         /// <c>CentreBody</c>, <c>PrimaryBody</c>, <c>SecondaryBody</c>,
         /// <c>PrimaryBodies</c> and <c>SecondaryBodies</c>, all nullable,
         /// additive, nothing removed or retyped, so an Uplink built against 14.2
@@ -1445,7 +1445,7 @@ namespace Sitrep.Contract
         /// with the body slot still in it: the operator read
         /// "&lt;centre&gt;-Centred Inertial" on the commonest frame there is. The
         /// bodies were on the wire, on
-        /// <see cref="PrincipiaSettings.BurnFrames"/>, and unreachable in
+        /// <c>PrincipiaSettings.BurnFrames</c>, and unreachable in
         /// practice: that is a bare list a client would have to index into by
         /// position, and a manoeuvre whose frame cannot be read is dropped from it
         /// rather than held open, which shifts every later entry. Carrying the
