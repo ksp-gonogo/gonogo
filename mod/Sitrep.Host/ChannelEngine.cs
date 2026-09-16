@@ -851,6 +851,21 @@ namespace Sitrep.Host
         private readonly Dictionary<string, double> _subjectDarkSinceUt = new Dictionary<string, double>();
 
         /// <summary>
+        /// Which fleet vessels <see cref="SetVesselConnectivity"/> named during
+        /// THIS tick: the roster, arriving one call at a time.
+        ///
+        /// <para>The engine is never told a vessel was destroyed, and there is no
+        /// contract method that could tell it. What it has is the rule that the
+        /// ungated capture reports EVERY vessel on EVERY tick, which makes an id
+        /// missing from a tick the same fact. See
+        /// <see cref="ReleaseSubjectsGoneFromTheRoster"/>.</para>
+        ///
+        /// <para>Courier-thread-only, cleared at the top of each tick's handle
+        /// phase.</para>
+        /// </summary>
+        private readonly HashSet<string> _fleetVesselsThisTick = new HashSet<string>();
+
+        /// <summary>
         /// How many in-blackout samples the recorder holds PER TOPIC before the
         /// oldest are dropped to make room (see <see cref="Emit"/>).
         ///
@@ -2490,6 +2505,7 @@ namespace Sitrep.Host
             // subscribed is still on record for the first client to arrive; the
             // active vessel's link stays on SetConnectivitySource.
             // Courier-thread-only, like SetSubjectConnected's other caller.
+            _fleetVesselsThisTick.Add(vesselId);
             SetSubjectConnected(FleetNodePrefix + vesselId, connected, _clock.Now());
         }
 
@@ -5359,6 +5375,21 @@ namespace Sitrep.Host
             {
                 return;
             }
+            ForgetSubjectState(node);
+        }
+
+        /// <summary>
+        /// Drop every per-node and per-topic map entry this subject owns.
+        ///
+        /// <para>Shared by the unsubscribe sweep (<see cref="CleanUpSubjectIfGone"/>,
+        /// which decides WHETHER first) and by the roster sweep
+        /// (<see cref="ReleaseSubjectsGoneFromTheRoster"/>, for a craft that is
+        /// gone whether or not anyone is still watching its topics). Says nothing
+        /// about the link-down mark or the recording; those belong to the caller
+        /// that knows why the subject is being let go.</para>
+        /// </summary>
+        private void ForgetSubjectState(string node)
+        {
             _subjectConnected.Remove(node);
             _subjectConnectivityHistory.Remove(node);
             _subjectLastConnectedDelay.Remove(node);
@@ -5404,6 +5435,125 @@ namespace Sitrep.Host
             _subjectConnected.ContainsKey(node)
             || _subjectConnectivityHistory.ContainsKey(node)
             || _subjectLastConnectedDelay.ContainsKey(node);
+
+        /// <summary>Test hook: whether this subject is currently marked out of contact.</summary>
+        internal bool IsSubjectMarkedDark(string node) => _subjectDarkSinceUt.ContainsKey(node);
+
+        /// <summary>
+        /// Test hook: how many samples the recorder still holds on this subject's
+        /// topics. The quantity a blackout that never ends grows without bound.
+        /// </summary>
+        internal int RecordedCountForSubject(string node)
+        {
+            var held = 0;
+            foreach (var kv in _revealBuffer)
+            {
+                if (NodeFor(kv.Key) != node)
+                {
+                    continue;
+                }
+                foreach (var entry in kv.Value)
+                {
+                    if (double.IsInfinity(entry.Delay))
+                    {
+                        held++;
+                    }
+                }
+            }
+            return held;
+        }
+
+        /// <summary>
+        /// Let go of every dark fleet subject the roster no longer names: a craft
+        /// destroyed, recovered or otherwise removed from the save while out of
+        /// contact.
+        ///
+        /// <para><b>Why it is needed.</b> A subject's link-down mark is lifted by
+        /// the tick that reports it CONNECTED again, and a craft that no longer
+        /// exists is never reported again at all. So the mark stays, its recording
+        /// stays held behind an infinite reveal horizon waiting for a
+        /// reacquisition that cannot come, and both grow by one craft per mission
+        /// lost. A career that loses probes routinely accumulates them for the
+        /// life of the save.</para>
+        ///
+        /// <para><b>What happens to the held recording: it is DROPPED.</b> Those
+        /// samples are what the craft RECORDED and could not transmit; the model's
+        /// whole claim is that a recording does not travel until the link is back.
+        /// A destroyed craft has no transmitter and never will, so there is no
+        /// instant a dump could honestly be stamped as transmitted FROM, and
+        /// delivering it at any later moment would tell the operator things that
+        /// physically never reached them. That is the failure the delay model
+        /// exists to prevent, so the recording dies with the craft. What the
+        /// operator keeps is everything that got out BEFORE the blackout, and the
+        /// freeze-exempt contact/silence reports, which are not held here: they
+        /// ride their own last-known light-time and are already on their way.</para>
+        ///
+        /// <para><b>A tick that names no vessel at all is not evidence.</b> It
+        /// cannot be told apart from a capture that did not run, and reading it as
+        /// "the fleet is empty" would drop every dark craft's recording on one
+        /// skipped tick. So the sweep needs a roster to compare against. The cost
+        /// is that the LAST craft in a fleet, destroyed while dark, keeps its mark
+        /// until another craft exists; one stale entry is the cheaper mistake.</para>
+        /// </summary>
+        private void ReleaseSubjectsGoneFromTheRoster()
+        {
+            if (_fleetVesselsThisTick.Count == 0)
+            {
+                return;
+            }
+            foreach (var node in new List<string>(_subjectDarkSinceUt.Keys))
+            {
+                if (!node.StartsWith(FleetNodePrefix, StringComparison.Ordinal)
+                    || _fleetVesselsThisTick.Contains(node.Substring(FleetNodePrefix.Length)))
+                {
+                    continue;
+                }
+                DiscardInBlackoutBacklog(node);
+                _subjectDarkSinceUt.Remove(node);
+                _courier.MarkSubjectLinkUp(node);
+                ForgetSubjectState(node);
+            }
+        }
+
+        /// <summary>
+        /// Drop subject <paramref name="node"/>'s in-blackout recording unsent:
+        /// the counterpart of <see cref="ReplayInBlackoutBacklog"/> for a subject
+        /// that will never reacquire. Takes the same entries that method would
+        /// have dumped (infinite horizon, this subject's non-exempt topics) and
+        /// leaves the in-flight tail alone to mature on its own light-time,
+        /// because that tail was already transmitted.
+        /// </summary>
+        private void DiscardInBlackoutBacklog(string node)
+        {
+            foreach (var topic in new List<string>(_revealBuffer.Keys))
+            {
+                if (IsFreezeExempt(topic) || NodeFor(topic) != node)
+                {
+                    continue;
+                }
+                var list = _revealBuffer[topic];
+                var kept = 0;
+                for (var i = 0; i < list.Count; i++)
+                {
+                    if (!double.IsInfinity(list[i].Delay))
+                    {
+                        list[kept++] = list[i];
+                    }
+                }
+                if (kept < list.Count)
+                {
+                    list.RemoveRange(kept, list.Count - kept);
+                }
+                if (list.Count == 0)
+                {
+                    _revealBuffer.Remove(topic);
+                }
+                // The owed gap goes with the recording it described. Left behind,
+                // the next sample on this topic would claim a hole running back
+                // into a craft that no longer exists.
+                _pendingGapSinceUt.Remove(topic);
+            }
+        }
 
         /// <summary>
         /// Apply a CONNECTED/DISCONNECTED transition for ONE subject to the
@@ -5828,6 +5978,10 @@ namespace Sitrep.Host
             // throw (recorded main-side) via FailSoftSampledSource, and guard
             // the handle itself so an off-thread handle throw takes only its
             // own owning uplink inert rather than the Courier thread.
+            /* The roster is assembled from this tick's SetVesselConnectivity
+               calls, which arrive from the handles below, so it starts empty
+               here. See ReleaseSubjectsGoneFromTheRoster. */
+            _fleetVesselsThisTick.Clear();
             if (tick.Captures != null)
             {
                 foreach (var captured in tick.Captures)
@@ -5880,6 +6034,11 @@ namespace Sitrep.Host
             // hands the held recording to the Courier in time for this tick's
             // clock advance to schedule it). See RefreshConnectivityFromCapability.
             RefreshConnectivityFromCapability(tick);
+
+            // Immediately after it, because this is the first point at which the
+            // tick's whole fleet roster is known and the last before anything is
+            // scheduled off it.
+            ReleaseSubjectsGoneFromTheRoster();
 
             // The delay ledger is written LAST of the three, because holding a
             // dark subject's light-time needs this tick's connectivity, and both
