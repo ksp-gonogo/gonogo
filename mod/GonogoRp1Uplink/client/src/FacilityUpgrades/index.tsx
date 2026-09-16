@@ -85,7 +85,10 @@ export const RP1_FACILITY_UPGRADE_COMMAND = "rp1.facility.upgrade";
  */
 export function FacilityUpgrades() {
   const available = current(useTelemetry("rp1.available"));
-  const career = current(useTelemetry("career.status"));
+  // The READING, not the value under it: the readout below is handed the
+  // field's own reading so it can say whether the balance is current. Nothing
+  // here branches on the number, so nothing here asks `current()` for it.
+  const careerReading = useTelemetry("career.status");
   const stockTiers = current(useTelemetry("career.facilities"));
   const constructions = current(useTelemetry("rp1.constructions"));
   const facilityTiers = current(useTelemetry("rp1.facilities"));
@@ -182,7 +185,7 @@ export function FacilityUpgrades() {
           operator is already looking at rather than in a sentence about it. */}
       <Readout>
         <ReadoutCaption>Funds</ReadoutCaption>
-        <Unit value={career?.economy?.funds} />
+        <Unit value={careerReading.economy.funds} />
       </Readout>
 
       {rows.length === 0 ? (

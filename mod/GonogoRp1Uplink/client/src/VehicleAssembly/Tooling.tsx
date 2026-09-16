@@ -86,7 +86,12 @@ export const RP1_TOOLING_REFIT_COMMAND = "rp1.tooling.refit";
  */
 export function ToolingSection() {
   const available = current(useTelemetry("rp1.available"));
-  const tooling = current(useTelemetry("rp1.tooling"));
+  /*
+   * The reading beside the value: the cost below takes the field's own reading,
+   * so a price that is no longer current says so instead of reading live.
+   */
+  const toolingReading = useTelemetry("rp1.tooling");
+  const tooling = current(toolingReading);
 
   // Unconditional and above the early returns on purpose: a hook after one
   // would change count on the first frame RP-1 answers.
@@ -132,7 +137,7 @@ export function ToolingSection() {
             {tooling.toolAllCost == null ? (
               NULL_DISPLAY
             ) : (
-              <Unit value={tooling.toolAllCost} decimals={0} />
+              <Unit value={toolingReading.toolAllCost} decimals={0} />
             )}
           </Text>
           <CommandButton

@@ -400,12 +400,11 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   "mod/GonogoRealAntennasUplink/client/src/CommSignalRaAugment/index.tsx": 6,
-  "mod/GonogoRp1Uplink/client/src/FacilityUpgrades/index.tsx": 1,
-  "mod/GonogoRp1Uplink/client/src/ProgramDetail/index.tsx": 4,
-  "mod/GonogoRp1Uplink/client/src/ProgramStatus/index.tsx": 3,
-  "mod/GonogoRp1Uplink/client/src/StartResearch/index.tsx": 2,
-  "mod/GonogoRp1Uplink/client/src/VehicleAssembly/index.tsx": 2,
-  "mod/GonogoRp1Uplink/client/src/VehicleAssembly/Tooling.tsx": 1,
+  // The one RP-1 site no accessor can reach: `chosen` is an element of a
+  // FILTERED list, and a payload is addressed BY PATH, so an element selected
+  // by predicate has none. Filed as #310, and it will recur in the Targeting
+  // slices rather than being worked around here.
+  "mod/GonogoRp1Uplink/client/src/StartResearch/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 2,
   "packages/components/src/CareerEconomy/index.tsx": 8,
   "packages/components/src/CommSignal/index.tsx": 1,

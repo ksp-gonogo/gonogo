@@ -75,7 +75,13 @@ export const RP1_TECH_RESEARCH_COMMAND = "rp1.tech.research";
  */
 export function StartResearch() {
   const available = current(useTelemetry("rp1.available"));
-  const career = current(useTelemetry("career.status"));
+  /*
+   * The reading beside the value: the Science balance below takes the field's
+   * own reading, so a balance that is no longer current says so, while the
+   * tree walk and the affordability test still work on plain values.
+   */
+  const careerReading = useTelemetry("career.status");
+  const career = current(careerReading);
   const research = current(useTelemetry("rp1.research"));
 
   const [picked, setPicked] = useState<string | null>(null);
@@ -120,7 +126,7 @@ export function StartResearch() {
       <Cluster gap="md" justify="start" wrap>
         <Readout>
           <ReadoutCaption>Science</ReadoutCaption>
-          <Unit value={career?.economy?.science} />
+          <Unit value={careerReading.economy.science} />
         </Readout>
         <Text size="xs" tone="muted">
           Charged in full when the node is queued, not when it finishes.

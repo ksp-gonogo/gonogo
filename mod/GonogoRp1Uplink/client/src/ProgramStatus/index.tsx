@@ -40,12 +40,20 @@ import "../topics";
 export function ProgramStatus() {
   const available = current(useTelemetry("rp1.available"));
   const programs = current(useTelemetry("rp1.programs"));
-  const slots = current(useTelemetry("rp1.programSlots"));
+  /*
+   * The READING is kept beside the value it carries. Each figure below is
+   * handed the field's own reading, so one that is no longer current is drawn
+   * as such rather than passing for a live one, while the branching still
+   * compares a plain value through `current()`.
+   */
+  const slotsReading = useTelemetry("rp1.programSlots");
+  const slots = current(slotsReading);
   // Accepting a Program is the ONLY thing in RP-1 that spends Confidence, so
   // this is the one screen where the balance decides anything. Same rule the
   // repo already applies to funds: a price the operator has to leave the widget
   // to weigh is a price they will weigh wrong.
-  const confidence = current(useTelemetry("rp1.confidence"));
+  const confidenceReading = useTelemetry("rp1.confidence");
+  const confidence = current(confidenceReading);
 
   // Invisible without RP-1, rather than an empty section on a stock game.
   if (available !== true) {
@@ -63,8 +71,8 @@ export function ProgramStatus() {
         <Row wrap>
           <RowName>Slots</RowName>
           <Text>
-            <Unit value={slots?.usedSlots} /> of{" "}
-            <Unit value={slots?.maxSlots} /> used
+            <Unit value={slotsReading.usedSlots} /> of{" "}
+            <Unit value={slotsReading.maxSlots} /> used
             {isFull(slots?.freeSlots) && (
               <>
                 {" "}
@@ -76,7 +84,7 @@ export function ProgramStatus() {
         <Row wrap>
           <RowName>Confidence</RowName>
           <Text>
-            <Unit value={confidence?.confidence} />
+            <Unit value={confidenceReading.confidence} />
           </Text>
         </Row>
 
