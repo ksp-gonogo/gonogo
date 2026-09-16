@@ -79,7 +79,13 @@ export function VehicleAssembly() {
   const warehouse = current(useTelemetry("rp1.warehouse"));
   const queue = current(useTelemetry("rp1.buildQueue"));
   const complexes = current(useTelemetry("rp1.complexes"));
-  const career = current(useTelemetry("career.status"));
+  /*
+   * The reading beside the value: both balances below take their field's own
+   * reading, so a figure that is no longer current is drawn as such, while the
+   * branch deciding whether the credit exists at all reads a plain value.
+   */
+  const careerReading = useTelemetry("career.status");
+  const career = current(careerReading);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -105,7 +111,7 @@ export function VehicleAssembly() {
             balance shut in a disclosure. A body line wraps instead of
             hiding. */}
           <Text size="sm" title="Available funds" tone="muted">
-            Funds <Unit value={career?.economy?.funds} />
+            Funds <Unit value={careerReading.economy.funds} />
           </Text>
 
           {/* The unlock credit, where the career has one, drawn BESIDE the funds
@@ -128,7 +134,7 @@ export function VehicleAssembly() {
               title="Prepaid credit, spent before funds on the purchases it covers"
               tone="muted"
             >
-              Unlock credit <Unit value={career.economy.unlockCredit} />
+              Unlock credit <Unit value={careerReading.economy.unlockCredit} />
             </Text>
           )}
 

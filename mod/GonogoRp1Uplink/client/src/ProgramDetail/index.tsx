@@ -86,14 +86,21 @@ export const RP1_STRATEGY_ACTIVATE_COMMAND = "rp1.strategy.activate";
 export function ProgramDetail({ screenId }: { screenId: string }) {
   const available = current(useTelemetry("rp1.available"));
   const programs = current(useTelemetry("rp1.programs"));
-  const slots = current(useTelemetry("rp1.programSlots"));
+  /*
+   * The READING, not the value under it. Each balance below is handed the
+   * field's own reading, so a figure that is no longer current is drawn as
+   * such instead of passing for a live one. Nothing here branches on these
+   * numbers, so nothing here asks `current()` to strip them.
+   */
+  const slotsReading = useTelemetry("rp1.programSlots");
   const curves = current(useTelemetry("rp1.programFundingCurves"));
   // Both balances, because both are spent here. Confidence buys the Program and
   // funds are what it pays back, so an operator weighing an offer is comparing
   // a price they hold in one currency against income in another; making them
   // leave the widget for either half is making them weigh it wrong.
-  const confidence = current(useTelemetry("rp1.confidence"));
-  const career = current(useTelemetry("career.status"));
+  const confidenceReading = useTelemetry("rp1.confidence");
+  const confidence = current(confidenceReading);
+  const careerReading = useTelemetry("career.status");
 
   const [picked, setPicked] = useState<string | null>(null);
 
@@ -128,13 +135,14 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
           Confidence is what the Accept control below actually spends. */}
       <Cluster align="start" gap="md" justify="start" wrap>
         <Balance caption="Funds">
-          <Unit value={career?.economy?.funds} />
+          <Unit value={careerReading.economy.funds} />
         </Balance>
         <Balance caption="Confidence">
-          <Unit value={confidence?.confidence} />
+          <Unit value={confidenceReading.confidence} />
         </Balance>
         <Balance caption="Slots">
-          <Unit value={slots?.usedSlots} /> of <Unit value={slots?.maxSlots} />
+          <Unit value={slotsReading.usedSlots} /> of{" "}
+          <Unit value={slotsReading.maxSlots} />
         </Balance>
       </Cluster>
 

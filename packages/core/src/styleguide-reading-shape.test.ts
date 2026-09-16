@@ -152,6 +152,74 @@ function localNarrowers(text: string): string[] {
   return names;
 }
 
+/**
+ * The same narrowing, IMPORTED rather than declared beside its callers.
+ *
+ * A widget with its own rule writes a helper; several widgets sharing one rule
+ * import it, and the parameter type is what makes either safe. Reading only the
+ * calling file said otherwise: `GonogoRp1Uplink`'s `current(reading)` is typed
+ * `TopicReading<T>`, is used 77 times across 22 widgets, and was refused here
+ * purely for living in `shared/current.ts`. The alternative on offer was 22
+ * copies of one helper, which is the thing a gate exists to prevent.
+ *
+ * <b>Resolved to a DECLARATION, never matched by name.</b> A name list would
+ * bless every future `current` regardless of what it takes, which is the hole
+ * this is supposed to close rather than widen: the import is followed to its
+ * file, and the helper counts only if that file declares it taking a reading.
+ * The negative plant below is what holds that line.
+ */
+function importedNarrowers(
+  file: string,
+  text: string,
+  sources: ReadonlyMap<string, string>,
+): string[] {
+  const names: string[] = [];
+  const imports =
+    /import\s*\{([^}]*)\}\s*from\s*["'](\.[^"']*)["']|import\s*\{([^}]*)\}\s*from\s*["']([^."'][^"']*)["']/g;
+  let m: RegExpExecArray | null = imports.exec(text);
+  while (m !== null) {
+    const bindings = (m[1] ?? m[3] ?? "")
+      .split(",")
+      .map((b) =>
+        b
+          .trim()
+          .split(/\s+as\s+/)[0]
+          ?.trim(),
+      )
+      .filter((b): b is string => b !== undefined && b.length > 0);
+    const from = m[2];
+    if (from !== undefined) {
+      for (const candidate of resolveRelative(file, from)) {
+        const imported = sources.get(candidate);
+        if (imported === undefined) continue;
+        const declared = new Set(localNarrowers(imported));
+        for (const binding of bindings) {
+          if (declared.has(binding)) names.push(binding);
+        }
+        break;
+      }
+    }
+    m = imports.exec(text);
+  }
+  return names;
+}
+
+/**
+ * The files a relative specifier could mean, in the order a bundler would try
+ * them. Extensionless because the tree is written that way, and `index` last
+ * because a directory import is the rarer spelling here.
+ */
+function resolveRelative(from: string, specifier: string): string[] {
+  const base = join(dirname(from), specifier).replace(/\\/g, "/");
+  return [
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}/index.ts`,
+    `${base}/index.tsx`,
+    base,
+  ];
+}
+
 interface Suspect {
   at: string;
   variable: string;
@@ -189,8 +257,14 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
       // A widget with its own rule writes one rather than reaching for a shared
       // accessor, and the receiver being typed `TopicReading<T>` is exactly what makes it
       // safe: the hazard this scan exists for is a receiver that accepts anything.
+      // An IMPORTED one counts for the same reason, resolved to its declaration
+      // rather than trusted by name: see `importedNarrowers`.
+      const narrowers = [
+        ...localNarrowers(text),
+        ...importedNarrowers(file, text, sources),
+      ];
       if (
-        localNarrowers(text).some((fn) =>
+        narrowers.some((fn) =>
           new RegExp(`\\b${fn}\\(\\s*${variable}\\b`).test(rest),
         )
       ) {
@@ -366,6 +440,62 @@ describe("styleguide: a Reading is never handed on whole", () => {
       ],
     ]);
     expect(bareReadings(narrowed)).toEqual([]);
+  });
+
+  /**
+   * The widening for a SHARED narrower, with the plant that stops it becoming a
+   * blanket pass.
+   *
+   * Three files, one scan. The first imports a helper whose own file declares it
+   * taking a reading, and is clean. The second imports a helper of the same NAME
+   * from a file that declares it taking `unknown`, and must still be reported:
+   * that is the hazard, and a gate that trusted the name would wave it through.
+   * The third hands the read to a helper the tree never declares at all.
+   *
+   * Written as three at once because a gate wide enough to see the first is wide
+   * enough to start swallowing the other two, which is the failure this file
+   * exists to catch rather than to demonstrate.
+   */
+  it("accepts an imported narrower, and still refuses one that only shares its name", () => {
+    const tree = new Map([
+      [
+        "widget/shared/current.ts",
+        "export function current<T>(r: TopicReading<T>): T | undefined { return undefined; }",
+      ],
+      [
+        "widget/good.tsx",
+        [
+          'import { current } from "./shared/current";',
+          'const slots = topics.useTelemetry("rp1.programSlots");',
+          "const plain = current(slots);",
+        ].join("\n"),
+      ],
+      [
+        "other/shared/current.ts",
+        "export function current(raw: unknown): number | undefined { return undefined; }",
+      ],
+      [
+        "other/impostor.tsx",
+        [
+          'import { current } from "./shared/current";',
+          'const slots = topics.useTelemetry("rp1.programSlots");',
+          "const plain = current(slots);",
+        ].join("\n"),
+      ],
+      [
+        "nowhere/unresolved.tsx",
+        [
+          'import { current } from "./shared/current";',
+          'const slots = topics.useTelemetry("rp1.programSlots");',
+          "const plain = current(slots);",
+        ].join("\n"),
+      ],
+    ]);
+
+    expect(bareReadings(tree)).toEqual([
+      { at: "other/impostor.tsx:2", variable: "slots" },
+      { at: "nowhere/unresolved.tsx:2", variable: "slots" },
+    ]);
   });
 
   it("gates presence on hasAnswered, never on pending alone", () => {

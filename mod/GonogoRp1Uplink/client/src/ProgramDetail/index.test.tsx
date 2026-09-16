@@ -1,4 +1,4 @@
-import { kspCalendar, setKspCalendar } from "@ksp-gonogo/sitrep-sdk";
+import { kspCalendar, Staleness, setKspCalendar } from "@ksp-gonogo/sitrep-sdk";
 import {
   render,
   screen,
@@ -127,6 +127,41 @@ async function feed(
 }
 
 describe("ProgramDetail", () => {
+  it("marks a balance that is no longer current, instead of drawing it as live", async () => {
+    /*
+     * What handing the primitive the READING buys, and the only thing that
+     * changes on screen: the plain value under it answered the same number
+     * whether the channel was arriving or held, so a stale balance was drawn
+     * exactly like a live one and the operator could not tell a figure the
+     * space centre said a minute ago from one it is saying now.
+     *
+     * Held rather than blank on purpose. The last thing the space centre said
+     * is still the best answer there is, which is why this is a mark on the
+     * figure rather than a null token.
+     */
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", [program()]);
+    fixture.emit("rp1.programFundingCurves", [flatCurve()]);
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
+    fixture.emit("rp1.programSlots", slots());
+    fixture.emit(
+      "career.status",
+      { economy: { funds: 289_848 } },
+      { staleness: Staleness.HeldStale },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/PROGRAM DETAIL/)).toBeInTheDocument();
+    });
+    // Still drawn: a held balance is the last real answer, not an absent one.
+    expect(visibleText()).toContain("289,848");
+    // And marked, which the bare value it used to be handed could not carry.
+    expect(
+      document.querySelector("[data-not-current-mark]"),
+    ).toBeInTheDocument();
+  });
+
   it("renders nothing at all until RP-1 says it is there", async () => {
     const { fixture, view } = mount();
     fixture.emit("rp1.available", false);
