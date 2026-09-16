@@ -709,6 +709,35 @@ export class TimelineStore {
   >();
 
   /**
+   * The subscribe seam {@link holdSubjectTopic} uses, late-bound.
+   *
+   * A store is built BEFORE its client and outlives a client swap
+   * (`attachStore`/`subscribeStore` re-wire the same store to a new one), so a
+   * subscribe captured at construction would be a dead client's after the first
+   * swap. Set from the provider's effect and cleared on unmount, exactly as
+   * `setProcessorTopicSubscriber` does for the evaluator's own seam.
+   *
+   * The constructor option remains for a caller that has one up front, which is
+   * every test double.
+   */
+  private dynamicSubscriber?: (topic: string) => () => void;
+
+  /**
+   * Wire (or clear) the subscribe a per-subject dep's topic is held up with.
+   *
+   * Clearing releases what is currently held: those subscriptions belong to the
+   * client going away, and keeping their releases would call a dead client's.
+   */
+  setDynamicSubscriber(
+    subscribe: ((topic: string) => () => void) | undefined,
+  ): void {
+    this.dynamicSubscriber = subscribe;
+    if (subscribe !== undefined) return;
+    for (const entry of this.subjectSubscriptions.values()) entry.release();
+    this.subjectSubscriptions.clear();
+  }
+
+  /**
    * Per-`FrameToken` memoization cache, gives frame coherence: the same
    * `(token, topic)` read always returns the same result for that token's
    * lifetime. Keyed by token object identity via a `WeakMap` so it never
@@ -975,7 +1004,8 @@ export class TimelineStore {
       return;
     }
     held?.release();
-    const subscribe = this.options.subscribeDynamicTopic;
+    const subscribe =
+      this.dynamicSubscriber ?? this.options.subscribeDynamicTopic;
     if (!subscribe) {
       this.subjectSubscriptions.delete(reckonerTopic);
       return;
