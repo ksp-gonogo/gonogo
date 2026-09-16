@@ -1703,6 +1703,19 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 14,
         forFixtures: ["04-water-family"],
       },
+      /*
+       * The hover readout, which is where a part's own meters are drawn. Every
+       * mode above renders the diagram with no pointer on it, so the bars this
+       * widget's contribution slot exists to place, and the figures beside
+       * them, had never appeared in a render at all.
+       */
+      {
+        name: "hovered-tank-10x14",
+        w: 10,
+        h: 14,
+        hovers: [{ selector: 'g[aria-label^="FL-T400 Fuel Tank"]' }],
+        forFixtures: ["01-builtin-drainable-meters"],
+      },
     ],
   },
   /*
