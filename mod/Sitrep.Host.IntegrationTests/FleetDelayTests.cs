@@ -503,6 +503,110 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A craft destroyed while out of contact does not stay out of contact
+        /// for ever, and its unsent recording does not sit in the engine for the
+        /// life of the save.
+        ///
+        /// <para>The mark is lifted by the tick that reports the craft CONNECTED
+        /// again, and a craft that no longer exists is never reported again at
+        /// all. So the engine learns it is gone the only way it can: the ungated
+        /// capture names every vessel every tick, and this one stopped being
+        /// named.</para>
+        ///
+        /// <para>The held recording is DROPPED rather than delivered. A wreck has
+        /// no transmitter, so there is no instant a dump could honestly be
+        /// stamped as sent from, and handing it over later would tell the
+        /// operator things that never reached them.</para>
+        /// </summary>
+        [Fact]
+        public async Task AVesselDestroyedWhileDarkLetsGoOfItsMarkAndItsRecording()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.lost.orbit", Timeout);
+                await SubscribeAsync(client, "fleet.home.orbit", Timeout);
+
+                // Both in contact. "home" exists throughout and is the control:
+                // it keeps the roster non-empty after "lost" goes away, and its
+                // own state must survive the sweep untouched.
+                engine.TickAndWait(0.0, ConnFixture(0.0, ("lost", true), ("home", true)), Timeout);
+                engine.TickAndWait(1.0, ConnFixture(1.0, ("lost", true), ("home", true)), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                // "lost" goes dark at UT 2 and records through UT 3.
+                engine.TickAndWait(2.0, ConnFixture(2.0, ("lost", false), ("home", true)), Timeout);
+                engine.TickAndWait(3.0, ConnFixture(3.0, ("lost", false), ("home", true)), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+                Assert.True(engine.IsSubjectMarkedDark("fleet.lost"));
+                Assert.True(engine.RecordedCountForSubject("fleet.lost") > 0);
+
+                // Destroyed at UT 4: gone from the roster, never reported again.
+                for (var ut = 4.0; ut <= 8.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, ConnFixture(ut, ("home", true)), Timeout);
+                }
+                var after = await DrainAllStreamDataAsync(client, Quiet);
+
+                Assert.False(engine.IsSubjectMarkedDark("fleet.lost"));
+                Assert.Equal(0, engine.RecordedCountForSubject("fleet.lost"));
+                Assert.False(engine.HasFreezeStateForSubject("fleet.lost"));
+                // Dropped, not delivered: nothing the craft recorded while dark
+                // reaches the operator.
+                Assert.DoesNotContain(
+                    after,
+                    f => f.Topic == "fleet.lost.orbit" && f.Meta.ValidAt >= 2.0);
+                // The surviving craft is untouched by the sweep and still streams.
+                Assert.True(engine.HasFreezeStateForSubject("fleet.home"));
+                Assert.Contains(after, f => f.Topic == "fleet.home.orbit");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The sweep needs a roster to compare against. A tick that names NO
+        /// vessel cannot be told apart from a capture that did not run, and
+        /// reading it as "the fleet is empty" would drop a dark craft's recording
+        /// on one skipped tick, which is the opposite of the bug being fixed.
+        /// </summary>
+        [Fact]
+        public async Task ATickThatNamesNoVesselDoesNotReleaseADarkSubject()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.quiet.orbit", Timeout);
+
+                engine.TickAndWait(0.0, ConnFixture(0.0, ("quiet", true)), Timeout);
+                engine.TickAndWait(1.0, ConnFixture(1.0, ("quiet", false)), Timeout);
+                engine.TickAndWait(2.0, ConnFixture(2.0, ("quiet", false)), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+                var held = engine.RecordedCountForSubject("fleet.quiet");
+                Assert.True(held > 0);
+
+                // A tick whose capture produced nothing at all.
+                engine.TickAndWait(3.0, ConnFixture(3.0), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                Assert.True(engine.IsSubjectMarkedDark("fleet.quiet"));
+                Assert.Equal(held, engine.RecordedCountForSubject("fleet.quiet"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task FleetSubjectFreezeMapsAreCleanedWhenAVesselGoesAway()
         {
