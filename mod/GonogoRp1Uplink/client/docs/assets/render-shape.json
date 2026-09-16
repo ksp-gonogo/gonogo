@@ -193,8 +193,8 @@
       "text": "589de221"
     },
     "build-cost-absences-and-tech-gate--default.png": {
-      "hash": "540769cf77b92514",
-      "elements": 51,
+      "hash": "a0a12022a51b3333",
+      "elements": 52,
       "text": "47bff3a0"
     },
     "build-cost-mostly-surcharge--default.png": {
@@ -218,13 +218,13 @@
       "text": "1bd44075"
     },
     "buildable-blocked-and-buildable--default.png": {
-      "hash": "03f097acacbfa62f",
-      "elements": 61,
+      "hash": "c8e5822a3b9a96b5",
+      "elements": 62,
       "text": "fff155db"
     },
     "building-three-clocks--default.png": {
-      "hash": "c056fe3355fdebb3",
-      "elements": 91,
+      "hash": "db0132810973cb3b",
+      "elements": 92,
       "text": "b6c63acd"
     },
     "catalogue-picker--default.png": {
@@ -323,13 +323,13 @@
       "text": "8348fe0e"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "fce0d42bda32e3d7",
-      "elements": 34,
+      "hash": "648562f280813a60",
+      "elements": 35,
       "text": "206699b0"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "c2ac1e4dcb0abbd3",
-      "elements": 33,
+      "hash": "5dbc3f7648ab378e",
+      "elements": 34,
       "text": "a8239cff"
     },
     "crew-schedule-three-states--default.png": {
@@ -433,8 +433,8 @@
       "text": "0dc12c0e"
     },
     "research-queue-throttled-and-stalled--default.png": {
-      "hash": "36453cba3dae398d",
-      "elements": 63,
+      "hash": "1de015ef40da6382",
+      "elements": 64,
       "text": "a8b3e662"
     },
     "running-backloaded--default.png": {
@@ -453,8 +453,8 @@
       "text": "bad0110d"
     },
     "tooling-nothing-outstanding--default.png": {
-      "hash": "cfbaaa5d38e0f364",
-      "elements": 32,
+      "hash": "8e504dbde82bc653",
+      "elements": 33,
       "text": "9178446d"
     },
     "tooling-one-purchase-two-parts--default.png": {
@@ -508,8 +508,8 @@
       "text": "21d9408b"
     },
     "warehouse-three-places--default.png": {
-      "hash": "d9f6e8f0fdd282cf",
-      "elements": 86,
+      "hash": "5dc994ac14d87287",
+      "elements": 87,
       "text": "000c1a89"
     },
     "warp-fund-target-standing--default.png": {
