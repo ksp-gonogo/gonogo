@@ -442,6 +442,52 @@ describe("fixtures become scenes", () => {
     ).toThrow(/which IS the host/);
   });
 
+  /**
+   * A hostless contribution scene, which this file used to refuse outright
+   * though `render-probe.tsx` implements one.
+   *
+   * The line is whether the FRAMEWORK draws the slot or a host's own body does.
+   * `<id>.badges` is drawn by `Panel` for every host, so a stand-in renders it
+   * exactly as the real widget would; both of the refusals below were measured
+   * by running the real harness with the host removed, and each photographed a
+   * blank frame.
+   */
+  describe("a contribution scene with no host", () => {
+    const withContribution = (contributes: string): UplinkInventory => ({
+      ...INVENTORY,
+      contributions: [
+        { id: "entry-badges", contributes, deps: [], settings: [] },
+      ],
+    });
+
+    const build = (contributes: string) =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { contribution: "entry-badges" } }),
+        ),
+        withContribution(contributes),
+      );
+
+    it("builds on a badges slot, which the framework draws for every host", () => {
+      const [scene] = build("landing-status.badges");
+      expect(scene.host).toBeUndefined();
+      expect(scene.target).toEqual({
+        kind: "contribution",
+        id: "entry-badges",
+      });
+    });
+
+    it("is refused on a slot the host's own body draws", () => {
+      expect(() => build("ship-map.part-meters")).toThrow(
+        /"ship-map\.part-meters", which its host draws itself/,
+      );
+    });
+
+    it("is refused on a global slot, which belongs to no widget at all", () => {
+      expect(() => build("plots")).toThrow(/"plots", which its host draws/);
+    });
+  });
+
   it("carries _scene.paints through, and refuses one that asserts nothing", () => {
     const [scene] = buildScenes(
       resolveUplinkPackage(
