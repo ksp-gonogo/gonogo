@@ -406,7 +406,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   // slices rather than being worked around here.
   "mod/GonogoRp1Uplink/client/src/StartResearch/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 2,
-  "packages/components/src/CareerEconomy/index.tsx": 8,
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,

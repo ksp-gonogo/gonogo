@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -206,6 +206,46 @@ describe("CareerEconomy", () => {
 
     expect(
       await screen.findByText(/no career economy has arrived/i),
+    ).toBeInTheDocument();
+
+    await act(async () => {});
+  });
+
+  /**
+   * What the widget does once the career stops arriving, which is the reason
+   * every figure here is handed its own reading rather than a bare number.
+   *
+   * The two answers it used to give were incompatible: a caption saying the
+   * last rates were being shown, over a body saying no career economy had
+   * arrived and two null tokens where the balances were. Each figure now
+   * carries its own currency, so the numbers stay on screen and say what they
+   * are.
+   */
+  it("holds the figures and MARKS them once the career stops arriving", async () => {
+    const { container, fixture } = mount(OVERHAUL);
+    await screen.findByText("289,848");
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    /* Fifteen: the two balances, the four rates, the subsidy range's other end,
+       the net, and the seven upkeep sources. That is every figure the widget
+       draws, and the COUNT is the assertion, so a site that goes back to a
+       minted `Value` drops it rather than merely looking the same. */
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-not-current]").length).toBe(15);
+    });
+    /* The figures, not placeholders: the balance and the net are both still
+       readable, which is what a "last known" reading is for. */
+    expect(screen.getByText("289,848")).toBeInTheDocument();
+    expect(screen.getByText("259.8")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/no career economy has arrived/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/no longer current: these are the last rates/i),
     ).toBeInTheDocument();
 
     await act(async () => {});

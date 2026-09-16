@@ -1,5 +1,5 @@
-import type { CareerEconomy } from "@ksp-gonogo/sitrep-sdk";
-import { magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
+import type { CareerEconomy, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import { combineReadings, magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
@@ -20,6 +20,31 @@ export function netFundsPerDay(
   const subsidy = magnitudeOf(economy?.subsidyPerDay);
   const upkeep = magnitudeOf(economy?.upkeepPerDay);
   return subsidy !== null && upkeep !== null ? subsidy - upkeep : null;
+}
+
+/**
+ * The same rate as a READING, for a surface that DRAWS the figure.
+ *
+ * {@link netFundsPerDay} answers the question a caller BRANCHES on, and a bare
+ * number is the right shape for that. A caller that puts the rate on screen
+ * needs the other half back: a net worked out from a subsidy the link stopped
+ * carrying an hour ago draws exactly like a live one once the currency is off
+ * it, which is the drift ruling 8 of ticket 257 exists to stop.
+ *
+ * `combineReadings` enforces the both-halves rule on its own, so the two forms
+ * agree on absence by construction rather than by two copies of the same
+ * condition: a missing half is an input carrying no value, and the combination
+ * carries none either. `FundsDrain.test.tsx` pins them agreeing on the figure.
+ *
+ * SIGNED, as the subtraction leaves it. A caller that names the direction in
+ * words takes the magnitude off the result; one that has room for a sign keeps
+ * it.
+ */
+export function netFundsPerDayReading(
+  subsidy: Reading<Value<"f/day">>,
+  upkeep: Reading<Value<"f/day">>,
+): Reading<Value<"f/day">> {
+  return combineReadings([subsidy, upkeep], (paid, spent) => paid.minus(spent));
 }
 
 /**

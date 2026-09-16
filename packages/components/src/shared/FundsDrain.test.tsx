@@ -1,3 +1,4 @@
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { setKspCalendar, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -5,7 +6,11 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { FundsDrain, netFundsPerDay } from "./FundsDrain";
+import {
+  FundsDrain,
+  netFundsPerDay,
+  netFundsPerDayReading,
+} from "./FundsDrain";
 
 // Back to the stock Kerbin day after the one case that changes it. The
 // calendar is module state in the SDK, so a test that leaves it moved makes
@@ -39,6 +44,66 @@ describe("netFundsPerDay", () => {
 
   it("withholds a net when no economy arrived at all", () => {
     expect(netFundsPerDay(undefined)).toBe(null);
+  });
+});
+
+describe("netFundsPerDayReading", () => {
+  const observed = <V,>(v: V): Reading<V> => ({
+    state: "observed",
+    value: v,
+    atUt: value("ut", 1000),
+    reckoning: { status: "none" },
+  });
+
+  /**
+   * The two forms are one rate, so they are asserted against each other rather
+   * than each against its own expected number: a drift in either subtraction
+   * fails here even where both are self-consistent.
+   */
+  it("agrees with the bare form on the figure", () => {
+    const economy = {
+      subsidyPerDay: value("f/day", 1200),
+      upkeepPerDay: value("f/day", 2180),
+    };
+    const reading = netFundsPerDayReading(
+      observed(economy.subsidyPerDay),
+      observed(economy.upkeepPerDay),
+    );
+    expect(reading.state).toBe("observed");
+    expect(reading.value?.magnitude).toBe(netFundsPerDay(economy));
+  });
+
+  /**
+   * The both-halves rule, which `combineReadings` enforces rather than a second
+   * copy of the condition: an optional field the wire did not carry projects as
+   * `observed` with no value, and a net worked out from one half would report a
+   * drain the model never claimed.
+   */
+  it("withholds the net when a half carries no value, as the bare form does", () => {
+    const notCarried: Reading<Value<"f/day">> = {
+      state: "observed",
+      atUt: value("ut", 1000),
+      reckoning: { status: "none" },
+    };
+    const reading = netFundsPerDayReading(
+      notCarried,
+      observed(value("f/day", 2180)),
+    );
+    expect(reading.value).toBeUndefined();
+    expect(netFundsPerDay({ upkeepPerDay: value("f/day", 2180) })).toBe(null);
+  });
+
+  it("is stale when either half is, so the figure can be drawn as held", () => {
+    const held: Reading<Value<"f/day">> = {
+      state: "stale",
+      value: value("f/day", 1200),
+      asOfUt: value("ut", 900),
+      grade: "disconnected",
+      reckoning: { status: "none" },
+    };
+    const reading = netFundsPerDayReading(held, observed(value("f/day", 2180)));
+    expect(reading.state).toBe("stale");
+    expect(reading.value?.magnitude).toBe(-980);
   });
 });
 

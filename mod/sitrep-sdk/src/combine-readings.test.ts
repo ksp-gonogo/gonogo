@@ -127,6 +127,81 @@ describe("combineReadings on an input with no value", () => {
     });
     expect(ran).toBe(false);
   });
+
+  /**
+   * The shape the states alone get wrong, and the one a field reading hands
+   * over every day: `career.status.economy.subsidyPerDay` on a career that
+   * reports an upkeep and no subsidy is `observed` (the topic WAS observed)
+   * with no value (the field was not in it). Trusting `state` here handed
+   * `compute` an `undefined` and `CareerEconomy` threw on `.minus`.
+   */
+  it("treats an observed input that carries no value as one with none", () => {
+    const fieldNotCarried: Reading<number> = {
+      state: "observed",
+      atUt: at(100),
+      reckoning: { status: "none" },
+    };
+    let ran = false;
+    const r = combineReadings([observed(3, 100), fieldNotCarried], (a, b) => {
+      ran = true;
+      return a + b;
+    });
+    expect(ran).toBe(false);
+    expect(r.state).toBe("observed");
+    expect(r.value).toBeUndefined();
+  });
+
+  it("does the same for a stale input that carries no value", () => {
+    const heldNotCarried: Reading<number> = {
+      state: "stale",
+      asOfUt: at(90),
+      grade: "disconnected",
+      reckoning: { status: "none" },
+    };
+    const r = combineReadings(
+      [observed(3, 100), heldNotCarried],
+      (a, b) => a + b,
+    );
+    expect(r.state).toBe("stale");
+    expect(r.value).toBeUndefined();
+  });
+
+  /**
+   * The model half of the same fault. A field projection covered by a model can
+   * still find nothing at its path: `fieldReckoning` writes
+   * `walkField(reckoning.value, path)` into a slot typed `unknown`, so the
+   * `undefined` is reachable at runtime while `ReckoningAvailable.modelled`
+   * declares a value. Written here over `number | undefined`, which is the
+   * shape that says so without a cast.
+   */
+  it("carries no model when an available reckoning modelled nothing", () => {
+    const withModel: Reading<number> = {
+      state: "observed",
+      value: 3,
+      atUt: at(100),
+      reckoning: {
+        status: "available",
+        modelled: 3,
+        basis: "rate-integration",
+      },
+    };
+    const modelledNothing: Reading<number | undefined> = {
+      state: "observed",
+      value: 4,
+      atUt: at(100),
+      reckoning: {
+        status: "available",
+        modelled: undefined,
+        basis: "rate-integration",
+      },
+    };
+    const r = combineReadings(
+      [withModel, modelledNothing],
+      (a, b) => a + (b ?? 0),
+    );
+    expect(r.value).toBe(7);
+    expect(r.reckoning.status).toBe("none");
+  });
 });
 
 describe("combineReadings model", () => {
