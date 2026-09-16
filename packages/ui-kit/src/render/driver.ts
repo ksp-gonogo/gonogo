@@ -13,7 +13,7 @@ import type {
 import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
 import { buildProbePage } from "./page";
-import { RENDER_PROBE_GLOBAL } from "./probe-global";
+import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
 import { assertEveryWidgetCovered, buildScenes, type Scene } from "./scenes";
 import {
   ADMISSIBLE_PROPERTIES,
@@ -501,9 +501,29 @@ async function assertEveryPaintVisible(
   const failures: string[] = [];
   for (const text of scene.paints) {
     const matches = tab.locator("#root").getByText(text, { exact: false });
-    const count = await matches.count().catch(() => 0);
+    const found = await matches.count().catch(() => 0);
+    // Harness chrome does not count. A stand-in host's title is inside `#root`
+    // like everything else, and `paints: ["FUEL"]` was passing against
+    // "FUEL STATUS (stand-in host)" on a scene whose augment drew nothing.
+    const subject: Locator[] = [];
+    for (let i = 0; i < found; i++) {
+      const one = matches.nth(i);
+      const chrome = await one
+        .evaluate(
+          (el, attr) => el.closest(`[${attr}]`) !== null,
+          PROBE_CHROME_ATTR,
+        )
+        .catch(() => false);
+      if (!chrome) subject.push(one);
+    }
+    const count = subject.length;
     if (count === 0) {
-      failures.push(`"${text}" is not on the page at all`);
+      failures.push(
+        found === 0
+          ? `"${text}" is not on the page at all`
+          : `"${text}" is on the page ONLY in the harness's stand-in host ` +
+              `title, never in the ${scene.target.kind} itself`,
+      );
       continue;
     }
     // ANY readable instance passes, rather than the first. A hosted scene mounts
@@ -511,8 +531,8 @@ async function assertEveryPaintVisible(
     // "Funds" legitimately appears several times, and asking only the first
     // whether it survived is asking about an arbitrary one of them.
     const verdicts: string[] = [];
-    for (let i = 0; i < count; i++) {
-      const verdict = await readable(matches.nth(i));
+    for (const one of subject) {
+      const verdict = await readable(one);
       if (verdict === null) {
         verdicts.length = 0;
         break;
@@ -766,8 +786,11 @@ function assertFedRenderMeansSomething(
       throw new Error(
         `${scene.name}: "_scene.expectsEmpty" says this scene is an empty ` +
           `state ("${scene.expectsEmpty}"), but the render carries no visible ` +
-          "text at all. An empty state a reader can see is a render; a blank " +
-          "frame is not, and expectsEmpty is not a way to wave one through.",
+          "text of its own. An empty state a reader can see is a render; a " +
+          "blank frame is not, and expectsEmpty is not a way to wave one " +
+          "through. A stand-in host's title does not count towards this: it is " +
+          "the harness talking, and it reads the same whether the scene " +
+          "rendered anything or not.",
       );
     }
     return;

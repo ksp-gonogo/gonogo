@@ -8,6 +8,7 @@ import type {
   UplinkInventory,
 } from "../render-probe";
 import { display, readJson, type UplinkPackage } from "./context";
+import { HOST_DRAWN_CONTRIBUTION_SEGMENTS } from "./probe-global";
 
 /**
  * Fixtures, and the scene each one describes.
@@ -208,17 +209,23 @@ function oneScene(
         "contribution scene; this one names a widget, which IS the host.",
     );
   }
-  // A contribution is DATA its host renders, so with no host there is nothing
-  // to render it: the stand-in mounts an empty `Panel` and the scene
-  // photographs a blank frame with no error anywhere. That is the exact
-  // failure the host field exists to close for an overlay augment, and it is
-  // worse here, because an augment at least draws itself.
+  // A contribution is DATA somebody else draws, so a scene that names no host
+  // has to show that SOMETHING will draw it. The framework draws one segment
+  // for every host, `<id>.badges`, so the probe's stand-in renders a badge
+  // exactly as the real widget would; every other slot is drawn by a widget's
+  // own body, and a stand-in has none.
   if (scene.host === undefined && kind === "contribution") {
-    throw new Error(
-      `${where}: a contribution scene must name "_scene.host". A contribution ` +
-        "is data its host draws, so without one the render is a blank frame " +
-        "that reports success.",
-    );
+    const slot = contributionSlot(where, id, inventory);
+    if (!isHostDrawnSlot(slot)) {
+      throw new Error(
+        `${where}: this contribution goes on "${slot}", which its host draws ` +
+          'itself, so "_scene.host" must name a widget that declares it. ' +
+          "Without one there is nothing to draw the contribution and the " +
+          "render is a blank frame that reports success. The one exception is " +
+          `a "${HOST_DRAWN_CONTRIBUTION_SEGMENTS.join('" / "')}" segment, ` +
+          "which the framework renders for every host.",
+      );
+    }
   }
 
   return {
@@ -408,6 +415,33 @@ function hostWidget(
     );
   }
   return found;
+}
+
+/**
+ * Whether a stand-in host would actually draw this slot.
+ *
+ * The same test `render-probe.tsx` makes, from the same constant, and the two
+ * have to agree: a rule stricter here makes a scene the probe would have served
+ * unbuildable, and a rule looser here builds a scene the probe photographs
+ * blank.
+ */
+function isHostDrawnSlot(slot: string): boolean {
+  const segment = slot.slice(slot.indexOf(".") + 1);
+  return (
+    slot.includes(".") &&
+    (HOST_DRAWN_CONTRIBUTION_SEGMENTS as readonly string[]).includes(segment)
+  );
+}
+
+function contributionSlot(
+  where: string,
+  id: string,
+  inventory: UplinkInventory,
+): string {
+  const found = inventory.contributions.find((c) => c.id === id);
+  if (!found)
+    throw unknownTarget(where, { kind: "contribution", id }, inventory);
+  return found.contributes;
 }
 
 function unknownTarget(

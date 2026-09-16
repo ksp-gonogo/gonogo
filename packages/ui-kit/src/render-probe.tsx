@@ -56,7 +56,11 @@ import {
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { auditMinFit, type MinFitFinding } from "./render/minFit";
-import { RENDER_PROBE_GLOBAL } from "./render/probe-global";
+import {
+  HOST_DRAWN_CONTRIBUTION_SEGMENTS,
+  PROBE_CHROME_ATTR,
+  RENDER_PROBE_GLOBAL,
+} from "./render/probe-global";
 import {
   advanceSceneClock,
   closeSceneClock,
@@ -952,6 +956,16 @@ function isWidgetOwnedSlot(slot: string): boolean {
   return slot.includes(".");
 }
 
+/** Whether the stand-in below will actually draw this contribution slot.
+ *  See `HOST_DRAWN_CONTRIBUTION_SEGMENTS`; `scenes.ts` reads the same list. */
+function isHostDrawnSlot(slot: string): boolean {
+  const segment = slot.slice(slot.indexOf(".") + 1);
+  return (
+    isWidgetOwnedSlot(slot) &&
+    (HOST_DRAWN_CONTRIBUTION_SEGMENTS as readonly string[]).includes(segment)
+  );
+}
+
 function buildTree(scene: ScenePayload): ReactNode {
   if (scene.target.kind === "widget")
     return mountWidget(scene.target.id, scene);
@@ -999,6 +1013,19 @@ function buildTree(scene: ScenePayload): ReactNode {
         "run must supply that widget with --with <module that registers it>).",
     );
   }
+  // Widget-owned is not enough for a CONTRIBUTION, and that is the difference
+  // between a slot the framework draws and one a host's own body draws. The
+  // stand-in below has no body. `scenes.ts` refuses this before a browser ever
+  // starts; the check is here too because the probe is the thing that would
+  // photograph the blank frame.
+  if (scene.target.kind === "contribution" && !isHostDrawnSlot(slot)) {
+    throw new Error(
+      `render probe: this contribution goes on "${slot}", which its host ` +
+        "draws itself, so `_scene.host` must name a widget that declares it. " +
+        "A stand-in host renders no body of its own, so the picture would be " +
+        "an empty panel.",
+    );
+  }
 
   const hostWidgetId = slot.split(".")[0];
   const Slot = AugmentSlot as unknown as (props: {
@@ -1020,7 +1047,14 @@ function buildTree(scene: ScenePayload): ReactNode {
           harness fault. The panel's own mount is the one to keep, being where
           the augment lands in a real host. */}
       <Panel
-        panelTitle={`${hostLabelFor(slot)} (stand-in host)`}
+        /* Marked, because this title is the HARNESS talking and every check
+           that reads the page would otherwise read it as the subject's own
+           work. See `PROBE_CHROME_ATTR`. */
+        panelTitle={
+          <span {...{ [PROBE_CHROME_ATTR]: "" }}>
+            {`${hostLabelFor(slot)} (stand-in host)`}
+          </span>
+        }
         /* As a SECTION, which is where a host widget's own body puts its slots
            and where Panel mounts the universal one. Passing it as children put
            the augment somewhere no real host renders it.
@@ -1100,8 +1134,14 @@ function measure(host: HTMLElement): {
   // Screen-reader-only words, and anything a reader cannot read: xterm injects
   // its own stylesheet INTO the widget, so `textContent` otherwise opens with a
   // page of CSS selectors and the signature is mostly stylesheet.
+  //
+  // Harness chrome goes with them, and it is the same rule rather than a new
+  // one: this report is what the SUBJECT rendered, and a stand-in host's title
+  // is what the harness rendered. `expectsEmpty` asks whether a reader can see
+  // an empty state, and the stand-in's own title was answering yes for scenes
+  // that drew nothing at all.
   for (const hidden of clone.querySelectorAll(
-    "[data-unit-word], [data-unit-currency], style, script",
+    `[data-unit-word], [data-unit-currency], style, script, [${PROBE_CHROME_ATTR}]`,
   )) {
     hidden.remove();
   }
@@ -1113,6 +1153,10 @@ function measure(host: HTMLElement): {
   const parts: string[] = [visibleText];
   let boxCount = 0;
   for (const el of Array.from(host.querySelectorAll("*"))) {
+    // Same exclusion as the text above, and `boxCount` is why it has to reach
+    // the boxes too: a scene where nothing mounted is meant to fail as BLANK,
+    // and the stand-in's title box alone made `boxCount` nonzero.
+    if (el.closest(`[${PROBE_CHROME_ATTR}]`)) continue;
     const box = el.getBoundingClientRect();
     if (box.width < 0.5 || box.height < 0.5) continue;
     boxCount++;
