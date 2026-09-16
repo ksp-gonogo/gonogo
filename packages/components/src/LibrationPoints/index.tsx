@@ -217,12 +217,22 @@ function LibrationPointsComponent({
   // from a current reading or from a model that offers one, and otherwise from
   // nothing: the diagram simply draws no craft.
   const orbitReading = topics.useTelemetry("vessel.orbit");
+  /*
+   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
+   * is the phase. Written here rather than in a helper because the spread IS
+   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
+   * gets the moved fields and nothing else, which is not an orbit.
+   */
+  const orbitObserved =
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value
+      : undefined;
   const orbit =
-    orbitReading.reckoning.status === "available"
-      ? orbitReading.reckoning.value
-      : orbitReading.state === "observed"
-        ? orbitReading.value
-        : undefined;
+    orbitObserved === undefined
+      ? undefined
+      : orbitReading.reckoning.status === "available"
+        ? { ...orbitObserved, ...orbitReading.reckoning.value }
+        : orbitObserved;
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
     identityReading.state === "observed" || identityReading.state === "stale"

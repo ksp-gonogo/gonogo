@@ -384,12 +384,22 @@ function SystemViewComponent({
   // "just don't draw it" contract this diagram's own marker already follows
   // takes over. Same decision as MapView and FleetComms, for the same reason.
   const orbitReading = topics.useTelemetry("vessel.orbit");
+  /*
+   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
+   * is the phase. Written here rather than in a helper because the spread IS
+   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
+   * gets the moved fields and nothing else, which is not an orbit.
+   */
+  const orbitObserved =
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value
+      : undefined;
   const orbit =
-    orbitReading.reckoning.status === "available"
-      ? orbitReading.reckoning.value
-      : orbitReading.state === "observed"
-        ? orbitReading.value
-        : undefined;
+    orbitObserved === undefined
+      ? undefined
+      : orbitReading.reckoning.status === "available"
+        ? { ...orbitObserved, ...orbitReading.reckoning.value }
+        : orbitObserved;
   // An identity does not decay: a stale SOI index is still which body this craft
   // is around, and it only decides which FRAME the dot belongs in.
   const identityReading = topics.useTelemetry("vessel.identity");

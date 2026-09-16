@@ -126,12 +126,28 @@ function CurrentOrbitComponent({
   // and the diagram's own absent-value rendering takes over. Same decision as
   // MapView, SystemView and FleetComms.
   const orbitReading = useTelemetry("vessel.orbit");
+  /*
+   * The observation OVERLAID by whatever the conic moved, which for
+   * `vessel.orbit` is the phase: `meanAnomalyAtEpoch` and `epoch`. The elements
+   * beside them are constants of the orbit and no model moves them, so they
+   * come from the observation either way.
+   *
+   * Written here rather than hidden in a helper because the spread IS the
+   * judgement, as `ReckonableReading`'s own doc puts it. Picking one side or the
+   * other, which this did before, gets a two-field fragment whenever the model
+   * is available and drew the eccentricity and inclination as the absence
+   * placeholder.
+   */
+  const observedOrbit =
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value
+      : undefined;
   const orbit =
-    orbitReading.reckoning.status === "available"
-      ? orbitReading.reckoning.value
-      : orbitReading.state === "observed"
-        ? orbitReading.value
-        : undefined;
+    observedOrbit === undefined
+      ? undefined
+      : orbitReading.reckoning.status === "available"
+        ? { ...observedOrbit, ...orbitReading.reckoning.value }
+        : observedOrbit;
   const vesselState = useStream<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;

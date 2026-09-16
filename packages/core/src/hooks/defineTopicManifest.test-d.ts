@@ -69,8 +69,15 @@ type _AcOptional = ReturnType<
 export type _AcRequiredIsReading = Expect<
   Equal<_AcRequired, TopicReading<VesselResources>>
 >;
+// `vessel.orbit` gained a `[SitrepReckonable]` mark on 2026-09-16 (ticket 308), so it
+// resolves to the projecting form too. That is this file working as intended:
+// its own doc below says a Topic gaining a mark is exactly the kind of change
+// that would otherwise drift the manifest hook away from `useTelemetry`.
 export type _AcRequired2IsReading = Expect<
-  Equal<_AcRequired2, TopicReading<VesselOrbit>>
+  Equal<
+    _AcRequired2,
+    ReckonableReading<VesselOrbit, "meanAnomalyAtEpoch" | "epoch">
+  >
 >;
 /*
  * `comms.delay` is the optional Topic here AND a Topic whose contract marks a
@@ -174,7 +181,7 @@ export type _WireStillAcceptedArg = Expect<
 export type _DerivedWireReadIsReading = Expect<
   Equal<
     ReturnType<typeof derivedManifest.useTelemetry<"vessel.orbit">>,
-    TopicReading<VesselOrbit>
+    ReckonableReading<VesselOrbit, "meanAnomalyAtEpoch" | "epoch">
   >
 >;
 

@@ -199,7 +199,23 @@ function TransferWindowComponent({
    * a whole board that is otherwise live.
    */
   const orbitReading = topics.useTelemetry("vessel.orbit");
-  const orbit = stillTrue(orbitReading, undefined);
+  /*
+   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
+   * is the phase. `stillTrue` is the right read for an UNMARKED topic and this
+   * one carries a mark since ticket 308: a `ReckonableReading` is deliberately not
+   * assignable to `TopicReading`, so it cannot go through that helper at all,
+   * and taking `reckoning.value` alone gets the moved fields and nothing else,
+   * which is not an orbit. The spread is written here rather than in a helper
+   * because it IS the judgement; see `ReckonableReading`.
+   */
+  const observedOrbit =
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value
+      : undefined;
+  const orbit =
+    observedOrbit !== undefined && orbitReading.reckoning.status === "available"
+      ? { ...observedOrbit, ...orbitReading.reckoning.value }
+      : observedOrbit;
   const orbitNotCurrent = orbitReading.state === "stale";
   /**
    * "This vessel is not in an orbit" and "no orbit has reached us yet" are

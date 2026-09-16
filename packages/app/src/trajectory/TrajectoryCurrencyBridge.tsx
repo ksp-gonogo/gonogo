@@ -155,12 +155,22 @@ export function TrajectoryCurrencyBridge({
 function TrajectoryCurrencyContribution() {
   const reading = useTelemetry(TRAJECTORY_TOPIC);
   const viewUt = magnitudeOf(useViewUt());
+  /*
+   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
+   * is the phase. Written here rather than in a helper because the spread IS
+   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
+   * gets the moved fields and nothing else, which is not an orbit.
+   */
+  const observedOrbit =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : undefined;
   const orbit =
-    reading.reckoning.status === "available"
-      ? reading.reckoning.value
-      : reading.state === "observed"
-        ? reading.value
-        : undefined;
+    observedOrbit === undefined
+      ? undefined
+      : reading.reckoning.status === "available"
+        ? { ...observedOrbit, ...reading.reckoning.value }
+        : observedOrbit;
   const contribution =
     orbit === undefined || viewUt === null
       ? null

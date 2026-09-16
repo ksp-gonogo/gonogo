@@ -23,6 +23,16 @@ namespace Sitrep.Contract;
 /// KSP inconsistency deliberately KEPT, not "fixed":
 /// converting would desync from every
 /// KSP reference and the recorder's own raw values).
+///
+/// <internal>
+/// Only <see cref="MeanAnomalyAtEpoch"/> and <see cref="Epoch"/> are marked
+/// reckonable, because a coast changes the craft's PHASE and nothing else: the
+/// remaining elements are constants of the orbit and no model moves them.
+/// Marking them would hand a caller a whole payload labelled "modelled", which
+/// is the mistake <c>ReckonableReading</c>'s <c>Pick</c> exists to make
+/// impossible. A consumer wanting a whole orbit overlays the two on the
+/// observation itself, at the call site.
+/// </internal>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -55,10 +65,27 @@ public class VesselOrbit
 
     /// <summary>RADIANS, not degrees. The KSP-native degrees/radians split this record deliberately keeps (see the class doc comment) is exactly the kind of trap a machine-readable unit exists to defuse.</summary>
     [SitrepUnit(Units.Radians)]
+    // A coast moves the PHASE and nothing else: sma, ecc, inc, lan, argPe and mu
+    // are constants of the orbit, so this pair is the whole of what a conic
+    // advances. The inputs named are what the advance needs and the marked
+    // fields are not: the mean motion comes from sma and mu, horizon bounds how
+    // far the elements may be carried, and system.bodies carries the atmosphere
+    // interface the conic stops describing at.
+    //
+    // The mark is what makes the model's REFUSAL reachable. Under physics the
+    // elements are osculating and the conic withdraws, and without a mark here
+    // that withdrawal is erased to `reckoning: "none"` -- indistinguishable from
+    // "nobody models this topic" -- so a consumer would derive apsides from
+    // elements nobody stands behind.
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
     public double MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every other UT-typed field on this record (matches KSP's own <c>Orbit.epoch</c> units).</summary>
     [SitrepUnit(Units.UniversalTime)]
+    // Moves with MeanAnomalyAtEpoch above and by the same model: the pair is one
+    // statement of where the craft is on this orbit, and advancing one without
+    // the other would date the phase to the wrong instant.
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
     public double Epoch { get; set; }
 
     /// <summary>Parent body's standard gravitational parameter (GM): self-sufficient propagation, no separate body lookup required.</summary>

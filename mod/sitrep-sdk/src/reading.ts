@@ -840,6 +840,28 @@ export interface Reading<V> {
  * `{ ...reading.value, ...reading.reckoning.value }`, written at the call site
  * rather than hidden in a helper, because that spread IS the judgement and it
  * should be visible in review.
+ *
+ * ## The two mistakes this prevents, both made in one afternoon
+ *
+ * Written down because the rule above was in front of both of them and read
+ * past twice. `K` is what a model MOVES. It is not what the model returns, and
+ * it is not the payload it happens to have in hand.
+ *
+ * 1. **Returning the whole payload from `reckon`.** Tempting, because a
+ *    consumer wanting a whole orbit then gets one without doing anything. It
+ *    hands that consumer a payload labelled "modelled" whose every constant
+ *    field is a copy of an observation, which is the thing the `Pick` exists to
+ *    make impossible. Return the moved fields and nothing else
+ * 2. **Marking the fields you merely carry.** The mirror of the first: if the
+ *    model returns the whole payload, the marks have to cover it, and then
+ *    `reckoned` claims a conic moves a semi-major axis. A field that does not
+ *    move is not reckonable, however convenient it would be to read it off
+ *    `reckoned`
+ *
+ * The tell for both is a consumer that picks `reckoned.value` OR `value`
+ * instead of overlaying. When `vessel.orbit` gained a model, eight widgets in
+ * this tree were doing exactly that, having been written years earlier against
+ * a topic no model touched, and the projection caught all of them at once.
  */
 export type ReckonableReading<T, K extends keyof T> = TopicCurrency<
   T,
@@ -1821,6 +1843,53 @@ export interface ReckonerExemptions {
   readonly horizon?: string;
   /** Why this model's band may claim more than its inputs' bands do. */
   readonly band?: string;
+  /**
+   * The same opt-outs, but only for the models this registration produces on
+   * the named {@link ReckoningBasis}.
+   *
+   * ## Why a registration needs more than one answer
+   *
+   * A registration is not always one model. `vessel.flight` returns a CONIC
+   * above the atmosphere interface and an INTEGRATOR of the observed descent
+   * rate below it, chosen by the model itself per sample, and the two have
+   * genuinely different reaches: the conic cannot outlive the elements it came
+   * from, while the integrator carries a measured rate that already includes
+   * whatever the installed aerodynamics did and is precisely the model that
+   * takes over where the conic stopped.
+   *
+   * A registration-wide `horizon` opt-out cannot say that. Taking one would
+   * unbind the conic too, which is wrong in the other direction, and the
+   * mismatch only surfaced when `vessel.orbit` gained a model of its own and
+   * the input-horizon rule went live for the first time.
+   *
+   * ## Why by BASIS rather than on the returned model
+   *
+   * An opt-out attached to the model object would be invisible until the model
+   * ran, and `getReckonerExemptions` could no longer enumerate it: the whole
+   * set would stop being reviewable, which is the property the rest of this doc
+   * is about. A basis is DECLARED, so the set stays a list somebody can diff.
+   *
+   * ## Why the reason hangs off an INPUT
+   *
+   * "The horizon rule does not apply to me" is never a claim a model can
+   * honestly make. What it can say is "I do not derive from THIS input", and
+   * the two differ exactly where it matters: the air model above is not bounded
+   * by `vessel.orbit`, and IS bounded by `system.bodies`, because the
+   * atmosphere depth is what tells it which regime it is in. A wholesale
+   * opt-out would free it from both and let it answer past the point its own
+   * boundary is known.
+   *
+   * Same argument as the reason-string one level up, at the level where it is
+   * true: a rule-wide opt-out is a flag wearing the shape of a sentence.
+   */
+  readonly perBasis?: {
+    readonly [basis: string]: {
+      /** Why this model does not derive from each named input's own reach. */
+      readonly horizon?: { readonly [input: string]: string };
+      /** Why this model's band owes nothing to each named input's band. */
+      readonly band?: { readonly [input: string]: string };
+    };
+  };
 }
 
 /**

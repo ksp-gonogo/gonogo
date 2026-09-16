@@ -9,6 +9,7 @@ import {
 import { PerfBudget } from "../perf/PerfBudget";
 import { splitRawFieldSubtopic } from "../raw-field-split";
 import type {
+  AnyReckonerDefinition,
   BandKind,
   DepWindow,
   ModelledField,
@@ -2264,26 +2265,84 @@ export class TimelineStore {
       }
       resolved[index] = value;
     }
-    if (!definition.exempt?.horizon) {
-      const outOfReach = this.inputPastItsHorizon(
-        topic,
-        definition.deps,
-        token,
-      );
-      if (outOfReach) return { declined: outOfReach };
-    }
-
     const answer = definition.reckon(point, resolved, {
       grade,
       viewUt,
       history: own.points,
     });
     if ("declined" in answer) return { declined: answer.declined };
+
+    /*
+     * The input rules are applied AFTER the model is chosen, because a
+     * registration is not always one model: `vessel.flight` returns a conic
+     * above the atmosphere interface and an integrator of the observed descent
+     * rate below it, and only the model itself knows which sample is which.
+     * Asking the rule first meant asking it of both at once, so an opt-out
+     * true of one was necessarily taken for the other.
+     *
+     * `reckon` is documented as cheap ("it is asked whether a model exists and
+     * what it covers"), and the deps are already resolved above, so running it
+     * before the rules costs a selection rather than a solve.
+     */
+    const exempt = TimelineStore.exemptionsFor(definition, answer);
+    const bounding = definition.deps.filter((dep) => {
+      const depTopic = TimelineStore.depTopic(dep);
+      return depTopic === undefined || exempt.horizon[depTopic] === undefined;
+    });
+    const outOfReach = this.inputPastItsHorizon(topic, bounding, token);
+    if (outOfReach) return { declined: outOfReach };
     return {
       owner: elected.owner,
-      model: definition.exempt?.band
-        ? answer
-        : this.bandFlooredByInputs(topic, answer, definition.deps, token),
+      model: this.bandFlooredByInputs(
+        topic,
+        answer,
+        definition.deps.filter((dep) => {
+          const depTopic = TimelineStore.depTopic(dep);
+          return depTopic === undefined || exempt.band[depTopic] === undefined;
+        }),
+        token,
+      ),
+    };
+  }
+
+  /**
+   * The opt-outs in force for the model this registration just returned:
+   * whatever it declared registration-wide, plus whatever it declared for the
+   * BASIS this particular model was produced on.
+   *
+   * A registration-wide opt-out still means every model it returns, which is
+   * right where a registration really is one model. `perBasis` is what lets a
+   * registration that returns two say which of them the reason is true of.
+   */
+  private static exemptionsFor(
+    definition: AnyReckonerDefinition,
+    model: TopicModel<unknown, unknown>,
+  ): {
+    horizon: Record<string, string | undefined>;
+    band: Record<string, string | undefined>;
+  } {
+    const exempt = definition.exempt;
+    if (!exempt) return { horizon: {}, band: {} };
+    const basis = model.modelled[0]?.basis;
+    const byBasis = basis === undefined ? undefined : exempt.perBasis?.[basis];
+    /*
+     * A registration-wide opt-out still means every input of every model this
+     * registration returns, which is what it has always meant. The per-basis
+     * form narrows it twice: to the models produced on one basis, and to the
+     * inputs the reason is actually about.
+     */
+    const everyInput = (reason: string | undefined) =>
+      reason === undefined
+        ? {}
+        : Object.fromEntries(
+            definition.deps
+              .map((dep) => TimelineStore.depTopic(dep))
+              .filter((depTopic): depTopic is string => depTopic !== undefined)
+              .map((depTopic) => [depTopic, reason]),
+          );
+    return {
+      horizon: { ...everyInput(exempt.horizon), ...(byBasis?.horizon ?? {}) },
+      band: { ...everyInput(exempt.band), ...(byBasis?.band ?? {}) },
     };
   }
 

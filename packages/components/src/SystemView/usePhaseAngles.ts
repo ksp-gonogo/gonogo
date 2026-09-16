@@ -44,12 +44,22 @@ export function usePhaseAngles(
   // current reading (or a model, where one exists). A stale one would draw the
   // transfer window the craft was in, not the one it is in.
   const orbitReading = useTelemetry("vessel.orbit");
+  /*
+   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
+   * is the phase. Written here rather than in a helper because the spread IS
+   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
+   * gets the moved fields and nothing else, which is not an orbit.
+   */
+  const orbitObserved =
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value
+      : undefined;
   const orbit =
-    orbitReading.reckoning.status === "available"
-      ? orbitReading.reckoning.value
-      : orbitReading.state === "observed"
-        ? orbitReading.value
-        : undefined;
+    orbitObserved === undefined
+      ? undefined
+      : orbitReading.reckoning.status === "available"
+        ? { ...orbitObserved, ...orbitReading.reckoning.value }
+        : orbitObserved;
   /**
    * Unwrapped at the read: this widget threads the view time through geometry
    * and solver code typed on plain numbers, and the instant type earns nothing
