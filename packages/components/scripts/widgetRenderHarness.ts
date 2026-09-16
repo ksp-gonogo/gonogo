@@ -132,6 +132,13 @@ export interface SizeMode {
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
+   * Optional synthetic pointer entries, dispatched after the clicks. Captures
+   * a surface that only exists under the pointer, chiefly a hover tooltip, and
+   * a click cannot stand in for one: on a ship diagram a click SELECTS a part
+   * where a hover opens the readout beside it.
+   */
+  hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /**
    * Scroll the panel's body (`[data-panel-body]`) down by this many px after
    * mount + settle, before the screenshot. Captures scroll-position-only UI
    * that the at-rest probe never sees, chiefly the Panel title ghost, which
@@ -240,6 +247,7 @@ interface ProbePayload {
   instanceId?: string;
   series?: Record<string, readonly ProbeSeriesSample[]>;
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   profile?: string;
 }
 
@@ -992,6 +1000,7 @@ async function renderOneWidget(
         config: mode.config,
         series: seriesData,
         clicks: mode.clicks,
+        hovers: mode.hovers,
         profile,
       };
       try {

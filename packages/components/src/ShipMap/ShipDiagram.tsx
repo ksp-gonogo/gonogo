@@ -291,7 +291,6 @@ export function ShipDiagram({
               label={m.displayName}
               value={value("units", m.amount)}
               capacity={m.capacity > 0 ? value("units", m.capacity) : null}
-              valueLabel={`${m.amount.toFixed(1)} / ${m.capacity.toFixed(1)}`}
               fillColor={resourceColor(m.resource)}
               size="sm"
               style={
@@ -308,7 +307,9 @@ export function ShipDiagram({
             <div style={TOOLTIP_ROW} key={r.n}>
               <span>{r.n}</span>
               <span style={TOOLTIP_ROW_VALUE}>
-                {r.a.toFixed(0)} / {r.c.toFixed(0)}
+                <Unit value={value("units", r.a)} decimals={0} />
+                {" / "}
+                <Unit value={value("units", r.c)} decimals={0} />
               </span>
             </div>
           ))}

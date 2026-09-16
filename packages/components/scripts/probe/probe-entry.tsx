@@ -275,6 +275,18 @@ export interface ProbePayload {
    * surfaces the error so brittle fixtures get caught.
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /**
+   * Optional synthetic POINTER entries, for a surface that only exists while
+   * the pointer is over something: a hover tooltip, a hover-revealed control.
+   *
+   * Separate from `clicks` because the two reach different states and one
+   * cannot stand in for the other: a click on a part of a ship diagram selects
+   * it, where a pointer entering the same part opens the readout beside it. The
+   * probe dispatches `pointerenter` and `pointerover` on the match, which is
+   * what React's `onPointerEnter` listens for, then leaves the pointer there
+   * for the screenshot. Missing selectors throw, the same as a click's.
+   */
+  hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
 }
 
 /**
@@ -721,6 +733,24 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
         new MouseEvent("click", { bubbles: true, cancelable: true }),
       );
       await settle(c.awaitMs ?? 100);
+    }
+  }
+
+  // Hovers come after the clicks, so a mode may open a panel and then put the
+  // pointer on something inside it. Nothing moves the pointer away again: the
+  // hovered state IS what a hover mode is capturing.
+  if (payload.hovers && payload.hovers.length > 0) {
+    for (const h of payload.hovers) {
+      const el = document.querySelector(h.selector);
+      if (!el) {
+        throw new Error(`Probe: hover selector "${h.selector}" not found`);
+      }
+      for (const type of ["pointerover", "pointerenter"]) {
+        el.dispatchEvent(
+          new PointerEvent(type, { bubbles: type === "pointerover" }),
+        );
+      }
+      await settle(h.awaitMs ?? 100);
     }
   }
 

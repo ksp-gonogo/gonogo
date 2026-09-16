@@ -198,7 +198,7 @@ describe("ShipDiagram", () => {
         ],
       ],
     ]);
-    render(
+    const { container } = render(
       <ShipDiagram
         parts={PARTS}
         width={400}
@@ -212,14 +212,23 @@ describe("ShipDiagram", () => {
     // (ShipDiagramSvg's onFocus calls onPartHover too).
     fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
 
-    // The contributed meter: a real ui-kit <Meter>, named by its label,
-    // announcing the amount/capacity valueLabel (not a bare percentage).
-    expect(screen.getByRole("meter", { name: "LiquidFuel" })).toBeTruthy();
-    expect(screen.getByText("90.0 / 180.0")).toBeTruthy();
-    // Oxidizer has no contributed meter for this part: still shown as the
-    // plain raw row (full transparency isn't lost).
+    /*
+     * The contributed meter: a real ui-kit <Meter>, named by its label, with
+     * both halves written and spoken by `Unit` rather than by a `toFixed` pair
+     * that showed no unit and read aloud as two bare numbers.
+     */
+    const fuel = screen.getByRole("meter", { name: "LiquidFuel" });
+    expect(fuel.getAttribute("aria-valuetext")).toBe(
+      "90.0 units of 180.0 units",
+    );
+    expect(visibleText(container)).toContain("90.0 units / 180.0 units");
+    /*
+     * Oxidizer has no contributed meter for this part: still shown as the
+     * plain raw row (full transparency isn't lost), through `Unit` at the
+     * whole-units precision that row has always had.
+     */
     expect(screen.getByText("Oxidizer")).toBeTruthy();
-    expect(screen.getByText("100 / 220")).toBeTruthy();
+    expect(visibleText(container)).toContain("100 units / 220 units");
     // The part-meta row: a "text"-kind entry, not a Meter.
     expect(screen.getByText("Water Recycler")).toBeTruthy();
     expect(screen.getByText("running")).toBeTruthy();
