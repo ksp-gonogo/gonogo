@@ -70,6 +70,15 @@ namespace Sitrep.Contract
     /// </summary>
     public interface ICommandCentreSource : ISitrepProvider
     {
+        /// <summary>
+        /// Every command centre this source knows about right now.
+        ///
+        /// <para>Live read, main thread only, and the set changes between calls: a
+        /// caller enumerates when it needs the answer rather than holding onto one.
+        /// Never <c>null</c>: a source with nothing to report returns an empty
+        /// sequence, because a null would be indistinguishable from a source that
+        /// failed.</para>
+        /// </summary>
         IEnumerable<ICommandCentre> Enumerate();
     }
 }

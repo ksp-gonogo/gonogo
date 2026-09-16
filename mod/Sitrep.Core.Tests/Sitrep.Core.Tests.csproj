@@ -16,6 +16,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+    <!-- SeamIsGoodTests asks this assembly, by reflection, which seams it carries a
+         conformance assertion for. Referenced rather than read as text so the answer
+         comes from what actually compiles: a method deleted or renamed stops covering
+         its seam immediately, with no second list to update. -->
+    <ProjectReference Include="../Sitrep.Contract.TestSupport/Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- A fixture tree the Uplink walks are proved against (UplinkProjects.cs). It is read

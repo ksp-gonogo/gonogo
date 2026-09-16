@@ -12,9 +12,11 @@ namespace Sitrep.Core.Tests
     /// something in production that plugs into it.
     ///
     /// <para><b>The gap this sits in.</b>
-    /// <see cref="SeamHasAProductionImplementerTests"/> asks whether a seam has an
-    /// implementer, and stops there. That is one question short of the feature
-    /// running: an implementer that exists and is never constructed, or a settable
+    /// <see cref="SeamIsGoodTests"/> asks whether a seam is documented and carries a
+    /// conformance assertion, and, for an interface no Uplink can reference, whether
+    /// anything in production implements it. It stops there. That is one question
+    /// short of the feature running: an implementer that exists and is never
+    /// constructed, or a settable
     /// seam property nothing ever assigns, leaves the seam holding null on every
     /// live frame while the type graph looks complete. Both ratchets pass, every
     /// unit test of the code behind the seam passes, and the feature has never

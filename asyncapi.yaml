@@ -2442,19 +2442,14 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      Whatever knows what frame the game's navigation view is currently in.
+      `system.frame.set`'s args: the frame to put the view in.
 
-      A capability rather than a method on core, because the answer belongs to
-      whichever mod owns the view. Stock's answer is real and simple, a body and
-      inertial axes; an n-body producer's is one of five kinds over sets of
-      bodies. Core resolves the interface and never learns which is installed,
-      which is the whole of what makes this side stock-shaped rather than
-      producer-shaped.
-
-      Frame is null when nothing could be read. That is not a gap to fill with a
-      default: a substituted frame draws a trajectory that looks exactly like one
-      drawn in the frame the player is actually in, and nothing downstream could
-      tell them apart.
+      **A caller names the pair, not the sets.** Unlike `ControlFrame`, which
+      reports `PrimaryBodies` and `SecondaryBodies`, this carries only the two
+      heads. Which bodies fall on each side of a pulsating frame is decided by the
+      producer walking its own body tree, so a caller stating them would be
+      stating a conclusion it cannot reach, and a set that disagreed with the
+      producer's would name a frame nothing can select.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: false
@@ -16138,19 +16133,14 @@ components:
     SetControlFrameArgs:
       type: object
       description: |-
-        Whatever knows what frame the game's navigation view is currently in.
+        `system.frame.set`'s args: the frame to put the view in.
 
-        A capability rather than a method on core, because the answer belongs to
-        whichever mod owns the view. Stock's answer is real and simple, a body and
-        inertial axes; an n-body producer's is one of five kinds over sets of
-        bodies. Core resolves the interface and never learns which is installed,
-        which is the whole of what makes this side stock-shaped rather than
-        producer-shaped.
-
-        Frame is null when nothing could be read. That is not a gap to fill with a
-        default: a substituted frame draws a trajectory that looks exactly like one
-        drawn in the frame the player is actually in, and nothing downstream could
-        tell them apart.
+        **A caller names the pair, not the sets.** Unlike `ControlFrame`, which
+        reports `PrimaryBodies` and `SecondaryBodies`, this carries only the two
+        heads. Which bodies fall on each side of a pulsating frame is decided by the
+        producer walking its own body tree, so a caller stating them would be
+        stating a conclusion it cannot reach, and a set that disagreed with the
+        producer's would name a frame nothing can select.
       required:
         - kind
       properties:

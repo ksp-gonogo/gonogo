@@ -116,6 +116,15 @@ namespace Sitrep.Contract
     /// </summary>
     public interface IGravityModelSource : ISitrepProvider
     {
+        /// <summary>
+        /// The gravity model in force for the loaded game, or <c>null</c> when this
+        /// source cannot describe one.
+        ///
+        /// <para>Null means "I have no answer", never "there is no gravity": a caller
+        /// that substituted a default would draw a curve that looks exactly like a
+        /// real one. It changes on a load and not otherwise, so a caller may hold the
+        /// value for the life of a game and must re-read across one.</para>
+        /// </summary>
         GravityModel? Model { get; }
     }
 

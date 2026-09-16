@@ -559,13 +559,35 @@ public readonly struct CommsRouteHop
 /// </summary>
 public interface ICommsBackend : ISitrepProvider
 {
+    /// <summary>
+    /// Whether the active vessel is connected right now, and on which axis.
+    /// Live read, main thread only, like every accessor here.
+    /// </summary>
     CommsConnectivity Connectivity();
+
+    /// <summary>
+    /// How good the active vessel's link is right now. A backend that models no
+    /// signal strength still answers, saying so through the returned value rather
+    /// than by throwing: a caller cannot tell a thrown accessor from a broken one.
+    /// </summary>
     CommsSignal SignalStrength();
+
+    /// <summary>
+    /// What the active vessel can be commanded to do right now, which is not the
+    /// same question as <see cref="Connectivity"/>: a probe with no crew and no
+    /// link is connected to nothing AND uncontrollable, a crewed vessel out of
+    /// contact is uncontrollable remotely and fully controllable locally.
+    /// </summary>
     CommsControl ControlState();
 
     /// <summary>Ordered hops to KSC: the geometry SignalDelay reads for light-time (§3).</summary>
     CommsPath Path();
 
+    /// <summary>
+    /// The network as this backend sees it: the nodes and links a client draws.
+    /// Live read; the shape changes as craft move and ground stations rotate, so a
+    /// caller reads it per frame rather than caching it.
+    /// </summary>
     CommsNetwork Network();
 
     /// <summary>
