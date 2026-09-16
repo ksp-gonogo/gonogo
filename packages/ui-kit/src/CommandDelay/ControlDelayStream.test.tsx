@@ -552,6 +552,123 @@ describe("delivery decides the return leg and nothing else", () => {
     expect(at(VOICE_TAGS)).toEqual(at(AXIS_TAGS));
   });
 
+  /**
+   * The operator's ask (#133): "the fire and forget category faded just beyond
+   * the target boundary, so there's a sense of the signal really reaching the
+   * target". A leg that stopped dead on the divider read as the signal halting
+   * AT the target, which is the opposite of arriving.
+   */
+  describe("the trailing hint past the divider", () => {
+    it("continues the leg past the T divider and stops well short of 2T", () => {
+      const { container } = render(
+        <ControlDelayStream streams={[stream({ tags: VOICE_TAGS })]} />,
+      );
+      const tail = vertices(
+        container
+          .querySelector('[data-role="commanded-tail"]')
+          ?.getAttribute("d") ?? "",
+      );
+      const t = Number(
+        container.querySelector('[data-divider="t"]')?.getAttribute("x1"),
+      );
+      const twoT = Number(
+        container.querySelector('[data-divider="2t"]')?.getAttribute("x1"),
+      );
+      expect(tail.length).toBeGreaterThan(1);
+      expect(tail[0].x).toBeCloseTo(t, 1);
+      expect(tail[tail.length - 1].x).toBeGreaterThan(t);
+      expect(tail[tail.length - 1].x).toBeLessThan(twoT);
+    });
+
+    it("starts on the vertex the solid leg ends on, so the two read as one line", () => {
+      const { container } = render(
+        <ControlDelayStream streams={[stream({ tags: VOICE_TAGS })]} />,
+      );
+      const solid = vertices(
+        container.querySelector('[data-role="commanded"]')?.getAttribute("d") ??
+          "",
+      );
+      const tail = vertices(
+        container
+          .querySelector('[data-role="commanded-tail"]')
+          ?.getAttribute("d") ?? "",
+      );
+      const end = solid[solid.length - 1];
+      expect(tail[0].x).toBeCloseTo(end.x, 5);
+      expect(tail[0].y).toBeCloseTo(end.y, 5);
+    });
+
+    it("fades to nothing rather than ending at full strength", () => {
+      const { container } = render(
+        <ControlDelayStream streams={[stream({ tags: VOICE_TAGS })]} />,
+      );
+      const ref = container
+        .querySelector('[data-role="commanded-tail"]')
+        ?.getAttribute("stroke");
+      const id = /url\(#(.+)\)/.exec(ref ?? "")?.[1];
+      // By id rather than by selector: `useId()` spells one `:r4:`, which is a
+      // valid DOM id and not a valid CSS identifier.
+      const grad = Array.from(
+        container.querySelectorAll("linearGradient"),
+      ).find((g) => g.getAttribute("id") === id);
+      const stops = Array.from(grad?.querySelectorAll("stop") ?? []).map((s) =>
+        s.getAttribute("stop-opacity"),
+      );
+      expect(stops).toEqual(["0.40", "0"]);
+    });
+
+    it("leaves the dividers exactly where they were", () => {
+      const at = (tags: ControlStreamDatum["tags"]): string[] => {
+        const { container } = render(
+          <ControlDelayStream streams={[stream({ tags })]} variant="rail" />,
+        );
+        return Array.from(container.querySelectorAll("[data-divider]")).map(
+          (l) => l.getAttribute("x1") ?? "",
+        );
+      };
+      expect(at(VOICE_TAGS)).toEqual(at(AXIS_TAGS));
+    });
+
+    it("draws no tail for an acked entry, which has a real return leg instead", () => {
+      const { container } = render(
+        <ControlDelayStream streams={[stream({ tags: AXIS_TAGS })]} />,
+      );
+      expect(
+        container.querySelector('[data-role="commanded-tail"]'),
+      ).toBeNull();
+    });
+
+    it("moves no sample: x is still the age, read against the acked leg", () => {
+      const commanded = (tags: ControlStreamDatum["tags"]) => {
+        const { container } = render(
+          <ControlDelayStream streams={[stream({ tags })]} />,
+        );
+        return {
+          solid: vertices(
+            container
+              .querySelector('[data-role="commanded"]')
+              ?.getAttribute("d") ?? "",
+          ),
+          tail: vertices(
+            container
+              .querySelector('[data-role="commanded-tail"]')
+              ?.getAttribute("d") ?? "",
+          ),
+        };
+      };
+      const acked = commanded(AXIS_TAGS);
+      const fnf = commanded(VOICE_TAGS);
+      // Both legs start from the same sample at age 0, so it must land on the
+      // same x. A stretch of the fire-and-forget leg would have moved it.
+      expect(fnf.solid[0].x).toBeCloseTo(acked.solid[0].x, 5);
+      // Ascending, and never doubling back: a tail that ran the other way
+      // would be a return leg drawn under another name.
+      for (let i = 1; i < fnf.tail.length; i++) {
+        expect(fnf.tail[i].x).toBeGreaterThan(fnf.tail[i - 1].x);
+      }
+    });
+  });
+
   it("keeps an acked stream's echo and deviation untouched", () => {
     const { container } = render(
       <ControlDelayStream

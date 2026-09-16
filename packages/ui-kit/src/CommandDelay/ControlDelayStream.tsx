@@ -247,10 +247,10 @@ function clipToConfirmed(
  * Clip a line so it ENDS exactly at the outgoing-stage boundary (`oneWay`, the
  * same value the T divider is drawn from), the mirror of `clipToConfirmed`.
  *
- * What a `fire-and-forget` entry gets: the leg out, and then it stops. A sample
- * past the boundary has arrived and nothing answered it, so there is nothing
- * there to draw, and an interpolated vertex is placed on the boundary itself so
- * the line's end lands ON the divider rather than short of or past it.
+ * What a `fire-and-forget` entry gets for its SOLID leg. An interpolated vertex
+ * is placed on the boundary itself so the line's end lands ON the divider rather
+ * than short of or past it; what happens immediately past the divider is
+ * {@link OUTGOING_TAIL}'s business, and it is not this line.
  */
 function clipToOutgoing(
   samples: ControlStreamSample[],
@@ -274,6 +274,23 @@ function clipToOutgoing(
     },
   ];
 }
+
+/**
+ * How far past the T divider a fire-and-forget leg trails off, as a fraction of
+ * ONE light-time.
+ *
+ * A hard stop on the divider drew the signal as though it had halted at the
+ * target. It had not: a sample past the boundary is one that left more than a
+ * light-time ago and has therefore ARRIVED, and the operator asked to see that.
+ * So the samples this used to discard are drawn after all, fading to nothing
+ * over a quarter of a zone.
+ *
+ * A quarter, because the tail has to read as an ending rather than as a second
+ * leg. It stays well short of the 2T divider, where a return leg would begin,
+ * and the divider it crosses does not move: the zones are the rail's frame and a
+ * migrating boundary was the defect the one-rail ruling removed.
+ */
+const OUTGOING_TAIL = 0.25;
 
 /** Commanded value interpolated at `age` (local copy; ui-kit imports no model). */
 function commandedAt(
@@ -324,6 +341,7 @@ function StreamPaths({
   const uid = useId();
   const gradId = `cds-ramp-${uid}-${index}`;
   const fillId = `cds-fill-${uid}-${index}`;
+  const tailId = `cds-tail-${uid}-${index}`;
   /*
    * Whether this strip draws the entry at all, asked of the one renderer table
    * rather than assumed from which array it arrived in. A datum whose
@@ -344,9 +362,11 @@ function StreamPaths({
   /*
    * The DELIVERY axis, and only it. Acked, the line runs the whole strip and
    * the confirmed echo is drawn against it; fire-and-forget, it gets the leg
-   * out and stops on the T divider, because nothing is coming back to draw and
-   * a return leg would be the lie the axes exist to remove. The dividers stay
-   * where they are either way: the zones are the rail's frame, not the entry's.
+   * out plus the short dissolving tail past the divider that says it ARRIVED
+   * (see `OUTGOING_TAIL`), and nothing beyond that, because nothing is coming
+   * back to draw and a return leg would be the lie the axes exist to remove.
+   * The dividers stay where they are either way: the zones are the rail's
+   * frame, not the entry's.
    */
   const returnLeg = railDrawsReturnLeg(stream.tags);
   const outgoing = returnLeg
@@ -357,6 +377,31 @@ function StreamPaths({
     y: yAt(s.value),
   }));
   if (cmd.length === 0) return null;
+  /*
+   * The trailing hint past the divider, for a fire-and-forget entry only: the
+   * segment BETWEEN two boundaries, composed out of the two clips that already
+   * exist rather than a third one. `clipToConfirmed` puts an interpolated vertex
+   * on the divider, so the tail starts at the very vertex the solid leg ends on
+   * and the two read as one line; `clipToOutgoing` ends it a quarter-zone later.
+   *
+   * No sample moves. Both ends are interpolated onto the boundaries the dividers
+   * are already drawn from, and every vertex between them keeps the x its own age
+   * gives it, which is the rule the withdrawn stretch broke.
+   */
+  const tail = returnLeg
+    ? []
+    : clipToOutgoing(
+        clipToConfirmed(stream.inTransit, oneT),
+        oneT * (1 + OUTGOING_TAIL),
+      );
+  const tailPts = tail.map((s) => ({
+    x: xAt(s.age, span, padX),
+    y: yAt(s.value),
+  }));
+  /* A gradient with no extent paints one flat colour, which would leave the tail
+     at full strength: no width, no fade, no ending. */
+  const drawsTail =
+    tailPts.length > 1 && tailPts[tailPts.length - 1].x > tailPts[0].x;
 
   // Soft area fill under the commanded line: a little glow so the trace pops
   // (v3 round 6). A vertical gradient, brightest just under the line and fading
@@ -410,6 +455,24 @@ function StreamPaths({
           <stop offset="0" stopColor={colour} stopOpacity="0.22" />
           <stop offset="1" stopColor={colour} stopOpacity="0" />
         </linearGradient>
+        {/* The tail's dissolve, picking up at exactly the alpha the solid leg
+            reaches the divider with (the confidence ramp's right-hand stop) and
+            running out to nothing. In USER SPACE across the tail's own length,
+            not its bounding box: a quiet passage is a flat line whose box has no
+            height, and an objectBoundingBox ramp declines to paint one. */}
+        {drawsTail && (
+          <linearGradient
+            id={tailId}
+            gradientUnits="userSpaceOnUse"
+            x1={tailPts[0].x}
+            y1="0"
+            x2={tailPts[tailPts.length - 1].x}
+            y2="0"
+          >
+            <stop offset="0" stopColor={colour} stopOpacity="0.40" />
+            <stop offset="1" stopColor={colour} stopOpacity="0" />
+          </linearGradient>
+        )}
       </defs>
       <path
         data-role="area"
@@ -427,6 +490,18 @@ function StreamPaths({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+      {drawsTail && (
+        <path
+          data-role="commanded-tail"
+          data-stream={stream.id}
+          d={polyline(tailPts)}
+          fill="none"
+          stroke={`url(#${tailId})`}
+          strokeWidth="0.8"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      )}
       {confirmedPts.length > 0 && hasConfirmedPrefix && (
         <path
           data-role="echo"
