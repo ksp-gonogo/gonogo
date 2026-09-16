@@ -223,6 +223,18 @@ export function AlarmsModal({
    */
   const clocksReadAlike = timeContexts.scet === undefined;
 
+  /**
+   * Whether the vantage choice means anything for the draft's trigger kind.
+   *
+   * A UT alarm fires at the time itself, the same instant at every vantage, and
+   * names no craft (operator, 2026-09-15), so there is no clock to pick between
+   * and the control is greyed out rather than offering a choice that changes
+   * nothing. A threshold is the opposite case: a value crosses at one instant
+   * aboard the craft and at a later one wherever the news reaches, so which
+   * vantage is watching is the whole question.
+   */
+  const vantageApplies = kind !== "time";
+
   const offsetN = Number.parseFloat(offsetSeconds);
   const valueN = Number.parseFloat(thresholdValue);
   const trimmedName = name.trim();
@@ -278,22 +290,17 @@ export function AlarmsModal({
       // in quick succession (the modal re-renders on snapshot updates,
       // but a click handler closes over its render-time snapshot).
       const liveUt = snapshotRef.current.ut ?? 0;
-      /* "In n seconds" is n seconds of the OPERATOR's waiting either way. For a
-         command-vantage alarm that is n seconds on the view clock they are
-         reading; for a SCET one the instant has to be stated on the craft's
-         clock, which is a light-time ahead of it, or "in 60 seconds" would mean
-         an alarm that already passed. */
-      const ut =
-        vantage === "scet"
-          ? liveUt + timeContexts.owltSeconds + offsetN
-          : liveUt + offsetN;
+      /* "In n seconds" is n seconds of the operator's waiting, on the clock
+         they are reading. No vantage rides along: a UT is the same instant
+         wherever it is watched from, so the trigger carries the instant and
+         nothing about a place. */
+      const ut = liveUt + offsetN;
       const lead = Number.parseFloat(leadSeconds);
       trigger = {
         kind: "time",
         ut,
         leadSeconds:
           Number.isFinite(lead) && lead > 0 ? lead : DEFAULT_LEAD_SECONDS,
-        vantage,
       };
     } else {
       const sustain = Number.parseFloat(sustainSeconds);
@@ -401,8 +408,10 @@ export function AlarmsModal({
           />
         </Field>
 
-        {/* Both arms, not just the time one: a threshold on the craft's clock
-            is the case that genuinely cannot be evaluated here at all. */}
+        {/* The threshold arm's question, and only its own: a value crosses at
+            one instant aboard the craft and at a later one wherever the news
+            reaches, so which vantage is watching decides when the alarm comes
+            due. A UT alarm has no such gap, so the control is greyed for it. */}
         <Field>
           <FieldLabel as="span" id="alarm-vantage-label">
             Fires on
@@ -413,9 +422,14 @@ export function AlarmsModal({
                 key={option.vantage}
                 type="button"
                 role="radio"
-                aria-checked={vantage === option.vantage}
-                tabIndex={vantage === option.vantage ? 0 : -1}
-                $active={vantage === option.vantage}
+                disabled={!vantageApplies}
+                /* Neither option reads as chosen while the control is
+                   inapplicable. A greyed control still showing a selection
+                   would say the alarm is armed on that clock, and a UT alarm
+                   is armed on no clock but the game's own. */
+                aria-checked={vantageApplies && vantage === option.vantage}
+                tabIndex={vantageApplies && vantage === option.vantage ? 0 : -1}
+                $active={vantageApplies && vantage === option.vantage}
                 onClick={() => setVantage(option.vantage)}
                 onKeyDown={(e) => {
                   const step =
@@ -440,13 +454,15 @@ export function AlarmsModal({
             ))}
           </KindRow>
           <FieldHint>
-            {vantage === "scet"
-              ? "Armed on the craft's clock. The mod stops the warp for everybody when it comes due, and your readings stay a light-time behind."
-              : "Armed on the clock you are reading. The craft passed the moment one light-time earlier."}
+            {!vantageApplies
+              ? "A universal time is the same instant everywhere, so a UT alarm fires at the time itself and names no craft."
+              : vantage === "scet"
+                ? "Armed on the craft's clock. The mod stops the warp for everybody when it comes due, and your readings stay a light-time behind."
+                : "Armed on the clock you are reading. The craft passed the moment one light-time earlier."}
           </FieldHint>
           {/* The reading, not a ruling: the alarm is for whenever it comes due,
               and the craft may be much further out by then. */}
-          {clocksReadAlike && (
+          {vantageApplies && clocksReadAlike && (
             <FieldHint>
               Both clocks read the same right now, so either choice arms the
               same instant today. SCET is the one that stays right as the craft
@@ -472,23 +488,14 @@ export function AlarmsModal({
               {snapshot.ut !== null && (
                 <FieldHint>
                   UT at trigger:{" "}
-                  {/* An offset from the view clock lands on the view clock, so
-                      a command-vantage alarm is an arrival time and says so:
-                      the operator asked for "n seconds from now", and their now
-                      is the delayed one they are reading. A SCET alarm is the
-                      same interval stated on the craft's clock, which is where
-                      it will be evaluated. */}
+                  {/* An offset from the view clock lands on the view clock, and
+                      says so: the operator asked for "n seconds from now", and
+                      their now is the delayed one they are reading. */}
                   <MissionDate
                     value={
-                      snapshot.ut +
-                      (vantage === "scet" ? timeContexts.owltSeconds : 0) +
-                      Number.parseFloat(offsetSeconds || "0")
+                      snapshot.ut + Number.parseFloat(offsetSeconds || "0")
                     }
-                    context={
-                      vantage === "scet"
-                        ? timeContexts.scet
-                        : timeContexts.received
-                    }
+                    context={timeContexts.received}
                   />
                 </FieldHint>
               )}
@@ -1311,6 +1318,13 @@ const KindButton = styled.button<{ $active: boolean }>`
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  &:disabled:hover {
+    color: var(--color-text-muted);
   }
 `;
 

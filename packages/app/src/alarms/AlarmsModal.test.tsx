@@ -865,29 +865,52 @@ describe("AlarmsModal vantage choice", () => {
     return screen.getByRole("radiogroup", { name: /fires on/i });
   }
 
-  it("arms the chosen SCET vantage on a screen whose two clocks read alike", async () => {
+  /**
+   * A universal time is the same instant at every vantage and names no craft
+   * (operator, 2026-09-15), so a UT alarm has no clock to pick between. The
+   * control is greyed rather than removed, because the operator arriving from
+   * the threshold arm needs to see that the question they just answered does
+   * not apply here.
+   */
+  it("greys the vantage control out for a UT alarm and shows neither option chosen", () => {
+    const group = renderModal();
+    const [received, scet] = within(group).getAllByRole("radio");
+
+    expect(received).toBeDisabled();
+    expect(scet).toBeDisabled();
+    // Neither reads as the live choice: a greyed control still showing one
+    // would claim the alarm is armed on that clock.
+    expect(received).toHaveAttribute("aria-checked", "false");
+    expect(scet).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByText(/universal time is the same instant everywhere/i),
+    ).toBeInTheDocument();
+  });
+
+  it("arms a UT alarm with no vantage at all", async () => {
     // The precondition, asserted rather than assumed: this is the screen that
     // has nothing to LABEL, which is what used to remove the choice
     expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
 
     const user = userEvent.setup();
     const onAdd = vi.fn();
-    const group = renderModal(onAdd);
+    renderModal(onAdd);
 
     await user.type(screen.getByLabelText(/^name$/i), "Reaches the far side");
-    await user.click(within(group).getByRole("radio", { name: /^scet$/i }));
     await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
 
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
-      kind: "time",
-      vantage: "scet",
-    });
+    const { trigger } = onAdd.mock.calls[0][0];
+    expect(trigger).toMatchObject({ kind: "time" });
+    expect(trigger).not.toHaveProperty("vantage");
   });
 
   it("moves the vantage selection with arrow keys and keeps one tab stop", async () => {
     const user = userEvent.setup();
     const group = renderModal();
+    // The threshold arm, where the choice means something: a value crosses at
+    // one instant aboard the craft and at a later one wherever the news reaches.
+    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
     const [received, scet] = within(group).getAllByRole("radio");
 
     expect(received).toHaveAttribute("aria-checked", "true");
