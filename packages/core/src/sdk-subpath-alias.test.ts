@@ -316,8 +316,15 @@ describe("sdk subpath aliases", () => {
    * `globalThis`-backed registries stop being shared. A subpath that only build
    * tooling reads is never imported by a widget under test, so aliasing it in a
    * vitest config would be ceremony that teaches the next author nothing.
+   *
+   * `uplink-manifest` was on this list and has left it. Every Uplink now gates
+   * its generated page from its own suite, and `@ksp-gonogo/ui-kit/page-check`
+   * reads the manifest, so the one config that aliases the sdk could not run
+   * that test: the import failed inside `ui-kit/dist`, which reads as a stale
+   * dist rather than a missing alias. The same message this file was written
+   * for.
    */
-  const BUILD_ONLY_SUBPATHS = new Set(["uplink-externals", "uplink-manifest"]);
+  const BUILD_ONLY_SUBPATHS = new Set(["uplink-externals"]);
 
   it("aliases every sdk subpath wherever the bare specifier is aliased", () => {
     const subpaths = sdkSubpaths().filter(

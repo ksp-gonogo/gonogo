@@ -38,6 +38,10 @@ export default defineConfig({
         sdkPkgs,
         "src/testing/index.ts",
       ),
+      "@ksp-gonogo/sitrep-sdk/uplink-manifest": path.resolve(
+        sdkPkgs,
+        "src/uplink-manifest.ts",
+      ),
       "@ksp-gonogo/sitrep-sdk": path.resolve(sdkPkgs, "src/index.ts"),
     },
   },
