@@ -44,6 +44,12 @@ import type { Value } from "./unit-system/value";
  *   states alone get wrong, and it is the common one: a career reporting an
  *   upkeep and no subsidy crashed this function before the check existed,
  *   because the guard trusted `state` and handed `compute` an `undefined`
+ * - **`null` counts as no value too**, because that is how the wire spells an
+ *   absent field. `Sitrep.Contract` nulls a field whenever the raw value is
+ *   absent or non-finite, so a projected field reading of one is `observed`
+ *   with `null`, and a guard that only tested `undefined` let it through to
+ *   `compute`: `vessel.target.relativePosition` is null off a target with no
+ *   relative geometry, and that reached `bare()` and threw on `.x`
  *
  * ## The two axes stay separate, exactly as they do on a `Reading`
  *
@@ -59,16 +65,30 @@ import type { Value } from "./unit-system/value";
  * what the framework was ruled out of doing. A combination that deserves a band
  * deserves a model: publish one, and the band comes from the mathematics that
  * knows it.
+ *
+ * ## `compute` may answer `undefined`, and that is not the same as an absence
+ *
+ * Arithmetic has domains. A range rate needs a line of sight to project onto
+ * and has none at zero separation; a unit vector of a zero vector does not
+ * exist; an arccos outside [-1, 1] is not a number. Those cases have no answer
+ * rather than a wrong one, and the result says so by carrying no value while
+ * keeping the state and the instant its inputs earned: the inputs DID arrive,
+ * so reporting `absent` would be a claim about the wire instead of about the
+ * mathematics. `Reading`'s value is optional on every arm, which is what makes
+ * this expressible without a cast, and `Unit` draws it as the null token.
  */
 export function combineReadings<
   const Inputs extends readonly Reading<unknown>[],
   Result,
 >(
   inputs: Inputs,
-  compute: (...values: ReadingValues<Inputs>) => Result,
+  compute: (...values: ReadingValues<Inputs>) => Result | undefined,
 ): Reading<Result> {
   const missing = inputs.find(
-    (input) => !CARRIES_VALUE.has(input.state) || input.value === undefined,
+    (input) =>
+      !CARRIES_VALUE.has(input.state) ||
+      input.value === undefined ||
+      input.value === null,
   );
   if (missing) {
     return { state: missing.state, reckoning: { status: "none" } };
@@ -159,7 +179,7 @@ function combineReckonings<
   Result,
 >(
   inputs: Inputs,
-  compute: (...values: ReadingValues<Inputs>) => Result,
+  compute: (...values: ReadingValues<Inputs>) => Result | undefined,
 ): Reckoning<Result> {
   const declined = inputs.find(
     (input) => input.reckoning.status === "declined",
@@ -171,13 +191,19 @@ function combineReckonings<
   const modelled: unknown[] = [];
   for (const input of inputs) {
     if (input.reckoning.status !== "available") return { status: "none" };
-    if (input.reckoning.modelled === undefined) return { status: "none" };
+    if (
+      input.reckoning.modelled === undefined ||
+      input.reckoning.modelled === null
+    )
+      return { status: "none" };
     modelled.push(input.reckoning.modelled);
   }
 
-  return {
-    status: "available",
-    modelled: compute(...(modelled as ReadingValues<Inputs>)),
-    basis: "combination",
-  };
+  const combined = compute(...(modelled as ReadingValues<Inputs>));
+  /* The arithmetic had no answer for the modelled figures, so there is no
+     modelled figure to offer. Same rule the observation follows above, and it
+     keeps `modelled` the required value its own type declares. */
+  if (combined === undefined || combined === null) return { status: "none" };
+
+  return { status: "available", modelled: combined, basis: "combination" };
 }

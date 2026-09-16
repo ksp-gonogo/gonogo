@@ -37,8 +37,10 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   bare,
+  closingRateReading,
   deriveDockAngles,
   radialSpeed,
+  rangeReading,
   vecMagnitude,
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
@@ -283,6 +285,15 @@ function TargetingComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
+  /* The plain numbers above are what the mode machine and the guards branch on;
+     these are what the readouts DRAW, so a range carried over from the last
+     contact is marked rather than passing for a live one. Same derivation off
+     the same fields, shared with TargetPicker. */
+  const rangeR = rangeReading(targetReading.relativePosition);
+  const closingRateR = closingRateReading(
+    targetReading.relativePosition,
+    targetReading.relativeVelocity,
+  );
   const derivedDockAngles = dockRelPos
     ? deriveDockAngles(dockRelPos)
     : undefined;
@@ -578,7 +589,7 @@ function TargetingComponent({
             tone={outOfContact ? "muted" : "accent"}
             style={DISPLAY_VALUE_STYLE}
           >
-            <Unit value={value("m", tarDistance)} />
+            <Unit value={rangeR} />
           </Text>
         )}
         {/* The caveat belongs on the value, not in the panel chrome: a header
@@ -607,7 +618,7 @@ function TargetingComponent({
             tone="muted"
             style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
           >
-            Δv <Unit value={value("m/s", relVel as number)} decimals={2} />
+            Δv <Unit value={closingRateR} decimals={2} />
           </Text>
         )}
       </Stack>

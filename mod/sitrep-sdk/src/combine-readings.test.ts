@@ -202,6 +202,101 @@ describe("combineReadings on an input with no value", () => {
     expect(r.value).toBe(7);
     expect(r.reckoning.status).toBe("none");
   });
+
+  /**
+   * `null`, not `undefined`, because that is how the wire spells an absent
+   * field: `Sitrep.Contract` nulls one whenever the raw value is absent or
+   * non-finite. `vessel.target.relativePosition` is null off a target with no
+   * relative geometry, and a guard that only tested `undefined` let that
+   * through to `compute`, where `bare()` threw on `.x`.
+   */
+  it("treats a null value as no value, since null is how absence arrives", () => {
+    const nulled: Reading<{ x: number } | null> = {
+      state: "observed",
+      value: null,
+      atUt: at(100),
+      reckoning: { status: "none" },
+    };
+    let ran = false;
+    const r = combineReadings([nulled], (v) => {
+      ran = true;
+      return v?.x;
+    });
+    expect(ran).toBe(false);
+    expect(r.state).toBe("observed");
+    expect(r.value).toBeUndefined();
+  });
+});
+
+describe("combineReadings when the arithmetic has no answer", () => {
+  /**
+   * A domain limit, not an absence. The inputs arrived, so the state and the
+   * instant they earned are kept and only the value is missing: reporting
+   * `absent` here would be a claim about the wire rather than about the
+   * mathematics. `radialSpeed` at zero separation is the real case.
+   */
+  it("keeps the state and the instant, and carries no value", () => {
+    const r = combineReadings([observed(3, 100), observed(0, 90)], (a, b) =>
+      b === 0 ? undefined : a / b,
+    );
+    expect(r.state).toBe("observed");
+    expect(r.value).toBeUndefined();
+    expect(r.atUt?.magnitude).toBe(90);
+  });
+
+  it("is stale with no value where an input was stale", () => {
+    const r = combineReadings(
+      [observed(3, 100), stale(0, 60, "held-stale")],
+      (a, b) => (b === 0 ? undefined : a / b),
+    );
+    expect(r.state).toBe("stale");
+    expect(r.value).toBeUndefined();
+    expect(r.asOfUt?.magnitude).toBe(60);
+  });
+
+  /**
+   * The model half. `ReckoningAvailable.modelled` is a REQUIRED value, so a
+   * combination with no answer for the modelled figures has no model rather
+   * than an available one carrying nothing.
+   */
+  it("offers no model when the modelled figures have no answer either", () => {
+    const modelled = (v: number, m: number): Reading<number> => ({
+      state: "observed",
+      value: v,
+      atUt: at(100),
+      reckoning: {
+        status: "available",
+        modelled: m,
+        basis: "rate-integration",
+      },
+    });
+    const r = combineReadings([modelled(3, 5), modelled(2, 0)], (a, b) =>
+      b === 0 ? undefined : a / b,
+    );
+    expect(r.value).toBe(1.5);
+    expect(r.reckoning.status).toBe("none");
+  });
+
+  it("still offers a model where the modelled figures DO have one", () => {
+    const modelled = (v: number, m: number): Reading<number> => ({
+      state: "observed",
+      value: v,
+      atUt: at(100),
+      reckoning: {
+        status: "available",
+        modelled: m,
+        basis: "rate-integration",
+      },
+    });
+    const r = combineReadings([modelled(3, 6), modelled(0, 2)], (a, b) =>
+      b === 0 ? undefined : a / b,
+    );
+    // No observation (divided by a zero) and a model that divided by two.
+    expect(r.value).toBeUndefined();
+    expect(r.reckoning.status).toBe("available");
+    if (r.reckoning.status !== "available") throw new Error("unreachable");
+    expect(r.reckoning.modelled).toBe(3);
+  });
 });
 
 describe("combineReadings model", () => {
