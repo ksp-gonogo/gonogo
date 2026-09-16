@@ -44,24 +44,21 @@ name: Uplink pages
 # would be a hand-kept map of which file affects which page. Ten legs of the
 # matrix render in parallel, so the wall time is one leg either way.
 
-# NIGHTLY, not per-push, and the reason is a measured cost rather than a taste.
+# PER-PUSH ON `staging`, with the nightly kept as a floor, so a stale page is
+# repaired by the run that made it stale instead of sitting stale for up to a day.
 #
-# This job COMMITS regenerated pages back to the branch. Run on every push to
-# `staging` it moved the remote while a developer's pre-push hook was still
-# running (that hook is the full suite, minutes long), so the push was rejected
-# as non-fast-forward and the whole hook had to run again on the merge. Four
-# pushes were lost that way in one evening, and the fourth is what settled it:
-# a self-heal that costs more than the staleness it repairs is not paying.
+# THE COST OF PER-PUSH IS MEASURED, not hypothetical, so nobody has to rediscover
+# it: this job COMMITS regenerated pages back to the branch, and a commit landing
+# while a developer's pre-push hook is still running (that hook is the full suite,
+# minutes long) rejects that push as non-fast-forward and the hook runs again on
+# the merge. Four pushes were lost that way in one evening, which is what moved
+# this to nightly-only for a while. The nightly alone traded that race for pages
+# that could be stale all day, and since 2026-09-02 `uplink-staleness.yml` reports
+# rather than blocks, so nothing forces anyone to act on the red in between.
 #
-# Nightly keeps the repair and removes the race entirely: nothing commits to a
-# branch while anyone is pushing to it.
-#
-# WHAT THIS TRADES AWAY, stated so nobody has to rediscover it: a page can now be
-# stale for up to a day. `uplink-staleness.yml` still runs per push and will say
-# so, which is the right division: the CHECK is per-push because staleness should
-# be visible immediately, and the REPAIR is nightly because it writes. Since
-# 2026-09-02 that check reports rather than blocks, which widens the same trade:
-# a page can now stay stale past the nightly if nobody acts on the red.
+# The division stands either way: the CHECK is per-push because staleness should
+# be visible immediately, the REPAIR writes and so is the half that has to be
+# scheduled around people.
 #
 # The history: this read `[main]` alone while every branch merged to `staging`,
 # so the self-heal did not run once for the whole time development sat there,
