@@ -266,6 +266,72 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
  * Mutates in place, same as the wrap and for the same reason: the object came
  * off the transport and nobody else holds it.
  */
+/**
+ * Takes every quantity in a payload back down to the bare number the wire
+ * carries: the WRITE-side mirror of {@link wrapTopicPayload}.
+ *
+ * Command args travel the opposite way to telemetry, and until this existed
+ * nothing carried them across the same boundary. The generated args types
+ * declare quantities the same way a channel payload does
+ * (`VantagePlanRequest.toUt: Value<"ut">`), so a typed caller builds a `Value`,
+ * `JSON.stringify` reaches `Value.toJSON`, and `{"magnitude":80,"unit":"ut"}`
+ * arrives at a host binding a `double`. That is not a field the mod ignores:
+ * `ChannelEngine.BindCommandArgs` rejects an object bag for a numeric slot by
+ * design, the throw fail-softs the whole handler, and the command answers
+ * `null` having never run. The only reason no shipped widget hit it is that
+ * every call site had already worked around it with a bare object literal or a
+ * `WireOf<>` cast.
+ *
+ * ## Why it needs no unit map
+ *
+ * The wrap consults the generated field→unit map because a wire number says
+ * nothing about what it is. Going the other way, the value already knows: a
+ * `Value<"ut">` is the only thing assignable to a field declared `Value<"ut">`,
+ * so its magnitude IS the declared unit's magnitude and there is nothing to
+ * convert. That makes this a plain structural walk, like
+ * {@link hydratePayload} and unlike the wrap.
+ *
+ * ## COPIES, where the other two mutate
+ *
+ * The wrap and the hydrate own what they are given: it came off the transport
+ * and nobody else holds a reference. These args are the CALLER's object, very
+ * often a widget's own state, and rewriting a `Value` in it to a number would
+ * corrupt the state of whatever dispatched. So every container that contains a
+ * quantity is rebuilt, and one that contains none is passed through untouched.
+ */
+export function dehydrateArgs<T>(args: T): WireOf<T>;
+/* The implementation walks an untyped tree, so it cannot state the conditional
+   type the overload above promises. Declared as two signatures rather than
+   asserted at the `return`, because an assertion out of `unknown` is what the
+   unknown-cast scan exists to stop and the overload says the same thing without
+   one. */
+export function dehydrateArgs(args: unknown): unknown {
+  return dehydrate(args);
+}
+
+function dehydrate(args: unknown): unknown {
+  if (args === null || typeof args !== "object") return args;
+  /* A Value is the whole point of the walk, and it is checked before the array
+     and object arms because it is both: an object whose own keys would
+     otherwise be copied across as `magnitude` and `unit`. */
+  if (isValue(args)) return args.toWire();
+  if (Array.isArray(args)) {
+    const wire = args.map(dehydrate);
+    return wire.some((entry, i) => entry !== args[i]) ? wire : args;
+  }
+  const source = args as Record<string, unknown>;
+  let wire: Record<string, unknown> | undefined;
+  for (const key of Object.keys(source)) {
+    const converted = dehydrate(source[key]);
+    if (converted === source[key]) continue;
+    /* First change decides there is one, so a payload of plain numbers (which
+       is nearly every command) is handed straight back. */
+    wire ??= { ...source };
+    wire[key] = converted;
+  }
+  return wire ?? args;
+}
+
 export function hydratePayload<T>(payload: T): T {
   if (payload === null || typeof payload !== "object") {
     return payload;

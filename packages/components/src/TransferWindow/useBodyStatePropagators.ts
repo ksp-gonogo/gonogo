@@ -3,6 +3,7 @@ import { useBodyStates } from "@ksp-gonogo/sitrep-client";
 import {
   type BodyState,
   PropagationCertification,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
@@ -138,19 +139,25 @@ export function useBodyStatePropagators(
     const departureUts = axes.departureUts;
     const arrivalUts = axes.arrivalUts;
 
+    // The grid's axes are plain numbers because the whole porkchop arithmetic is,
+    // and the command declares its instants as `Value<"ut">`. This is the one
+    // place the two meet, so the lift happens here rather than making every cell
+    // of a 32x32 grid carry a unit it never computes with.
+    const asUts = (uts: number[]) => uts.map((ut) => value("ut", ut));
+
     const ask = async () => {
       try {
         const [originReply, destReply] = await Promise.all([
           solve({
             bodyIndex: originIndex,
             centreBodyIndex: centreIndex,
-            uts: departureUts,
+            uts: asUts(departureUts),
             certification: PropagationCertification.Unbounded,
           }),
           solve({
             bodyIndex: destIndex,
             centreBodyIndex: centreIndex,
-            uts: arrivalUts,
+            uts: asUts(arrivalUts),
             certification: PropagationCertification.Unbounded,
           }),
         ]);

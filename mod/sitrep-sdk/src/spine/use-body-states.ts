@@ -4,8 +4,6 @@ import type {
   BodyStatesRequest,
 } from "../__generated__/contract";
 import type { UseCommandResult } from "../api/types";
-import type { WireOf } from "../wrap-units";
-import { wrapTypePayload } from "../wrap-units";
 import { useCommand } from "./use-command";
 
 /** The command the engine registers for this. Not an Uplink's. */
@@ -27,7 +25,7 @@ export interface BodyStatesQuery {
    * left the browser is a network fact and not an answer about the solar
    * system.
    */
-  solve: (request: WireOf<BodyStatesRequest>) => Promise<BodyStatesReply>;
+  solve: (request: BodyStatesRequest) => Promise<BodyStatesReply>;
 
   /**
    * The dispatch handle, to hand to `usePanelDelay(handle)` in the widget body.
@@ -38,37 +36,29 @@ export interface BodyStatesQuery {
    * the rail and offers no opt-out, so a widget that calls `solve` without
    * passing this on will throw and say so.
    */
-  handle: UseCommandResult<WireOf<BodyStatesRequest>, WireOf<BodyStatesReply>>;
+  handle: UseCommandResult<BodyStatesRequest, BodyStatesReply>;
 }
 
 /**
  * The client half of `system.bodies.statesAt`.
  *
- * Both directions are stated in wire terms and only the reply is lifted out of
- * them, because a quantity crosses as a plain number each way and only one
- * side gets hydrated for free. Going OUT, a `Value` serialises as
- * `{magnitude, unit}` and would reach a host binding a `double`, so the
- * request is `WireOf<BodyStatesRequest>` and the untyped `useCommand` overload
- * is selected deliberately to say so. Coming BACK, nothing hydrates a command
- * reply the way the channel decode hydrates a payload, so this does it here:
- * the generated type promises `x: Value<"m">` and a caller reading `.magnitude`
- * off a bare number would get `undefined` rather than a type error.
+ * Plainly typed in both directions, which it was not until the client learned to
+ * carry units across the command boundary. It used to state both sides in wire
+ * terms and lift the reply back out by hand, because a `Value` arg serialised as
+ * `{magnitude, unit}` into a host binding a `double` and nothing hydrated a reply
+ * the way the channel decode hydrates a payload. `TelemetryClient.dispatch` now
+ * dehydrates args and `handleCommandResponse` wraps the reply, so the generated
+ * types are true at runtime and this hook is the ordinary shape again.
  */
 export function useBodyStates(): BodyStatesQuery {
-  const command = useCommand<
-    WireOf<BodyStatesRequest>,
-    WireOf<BodyStatesReply>
-  >(BODY_STATES_COMMAND);
+  const command = useCommand(BODY_STATES_COMMAND);
 
   // Keyed on `send`, which `useCommand` memoises, and NOT on the handle, which
   // is a fresh object on every render because it carries the command's live
   // status. See `useVantageTrajectory`, where the same shape looped an effect.
   const { send } = command;
   const solve = useCallback(
-    async (request: WireOf<BodyStatesRequest>): Promise<BodyStatesReply> => {
-      const wire = await send(request);
-      return wrapTypePayload<BodyStatesReply>("BodyStatesReply", wire);
-    },
+    (request: BodyStatesRequest): Promise<BodyStatesReply> => send(request),
     [send],
   );
 

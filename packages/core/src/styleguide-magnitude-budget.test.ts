@@ -487,6 +487,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
  */
 const WIRE_BUDGET: Record<string, number> = {
   /*
+   * 1: the command boundary itself. `dehydrateArgs` is what takes a typed
+   * command's quantities back down to the numbers the host binds, and it is the
+   * write-side mirror of the wrap that gives an inbound payload its units. One
+   * unwrap, in the walk, for the whole outbound command path.
+   */
+  "mod/sitrep-sdk/src/wrap-units.ts": 1,
+  /*
    * 2: a reckoned tail's band ends, written into `SeriesReckonedSpan`'s
    * `bandLo`/`bandHi`, which are declared `number` because the series crosses
    * to the chart and then over PeerJS to a station. Nothing computes with them
