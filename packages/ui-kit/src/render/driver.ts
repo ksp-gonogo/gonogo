@@ -33,6 +33,10 @@ import {
  * `Date.now`, `new Date()` with no arguments, `performance.now`, `Math.random`
  * and `crypto.randomUUID`. Doing it once in a published probe is cheaper than
  * each Uplink discovering the next one from a diff.
+ *
+ * That covers what the page can READ off a clock. WHEN a callback runs is the
+ * other half, and it belongs to a motion scene rather than to the page: see
+ * `./sceneClock`.
  */
 
 export type Engine = "chromium" | "firefox" | "webkit";
@@ -859,8 +863,8 @@ async function captureMotion(
         await tab.mouse.up();
         holding = false;
       }
-      // `waitMs` is divided, not repeated: the probe fires that much of the
-      // widget's own repeating timers per frame, the way `advanceUt` is.
+      // `waitMs` is divided, not repeated: the probe moves the scene clock that
+      // much per frame, the way `advanceUt` is divided.
       const perFrame: SceneStep =
         i === 0
           ? { ...step, frames: 1, waitMs: wait }

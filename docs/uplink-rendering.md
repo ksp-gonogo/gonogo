@@ -166,8 +166,8 @@ in a README on GitHub; `--frames` also keeps the numbered PNGs.
 
 A control whose behaviour is a HELD pointer needs two more steps. `hold` presses
 on a named control and drags it without letting go, `release` lets go, and
-`waitMs` runs the widget's own repeating timers for that many milliseconds,
-spread over the step's frames:
+`waitMs` runs the widget's own timers for that many milliseconds, spread over the
+step's frames:
 
 ```jsonc
 "steps": [
@@ -178,15 +178,25 @@ spread over the step's frames:
 
 `waitMs` is not a substitute for `advanceUt`: that one steps the pinned clock,
 which is what keeps a countdown reproducible, and this one reaches a control
-ticking on its own `setInterval`, which the pinned clock does not. Reach for it
-only when the control genuinely runs on elapsed time.
+ticking on its own `setInterval`, or a state the widget drops on a `setTimeout`,
+neither of which the pinned clock does. Reach for it only when the control
+genuinely runs on elapsed time.
 
-It is an AMOUNT of ticks, not a duration. The driver takes `setInterval` for the
-length of the scene and fires exactly what this many milliseconds are due, so the
-same fixture produces the same frames on a loaded machine as on an idle one. It
-was a real wait until 2026-09-13, and a real wait is a different number of ticks
-every run: the one scene using it hashed differently on each of five consecutive
+It is an AMOUNT of ticks, not a duration. A scene with a `waitMs` step runs on its
+own clock: `setInterval` and `setTimeout` are the harness's for the length of that
+scene, and a step fires exactly what this many milliseconds are due, so the same
+fixture produces the same frames on a loaded machine as on an idle one. It was a
+real wait until 2026-09-13, and a real wait is a different number of ticks every
+run: the one scene using it hashed differently on each of five consecutive
 regenerations, each one writing down the last one's noise as if it were a fact.
+`setTimeout` joined it on 2026-09-16, when a film driven by one produced three
+fingerprints from three renders of unchanged code.
+
+A `gonogo-render.setup.ts` keeps its real timers: the clock is live while the
+scene is being set up, so a hook can still `await` a real handshake, and seals
+once `afterMount` returns. A timeout the setup leaves pending is carried into the
+film at the delay it ASKED for, measured from the first frame, so "release the
+stick in 1400ms" means 1400ms of film however long the page took to settle.
 
 ## Naming text that has to be readable
 
