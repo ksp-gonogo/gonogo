@@ -544,54 +544,44 @@ function MeterBar({
         <Meter__Label>{label}</Meter__Label>
         <Meter__Value>{display}</Meter__Value>
       </Meter__Head>
-      <Meter__Track
-        $size={size}
-        $notCurrent={trackNotCurrent}
-        data-track-not-current={trackNotCurrent ? "" : undefined}
-        role="meter"
-        aria-label={label}
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuetext={spoken}
-      >
-        <Meter__Fill
-          $tone={tone}
-          $fillColor={fillColor}
-          style={{ width: `${pct}%` }}
-        />
+      <Meter__Bar>
+        <Meter__Track
+          $size={size}
+          $notCurrent={trackNotCurrent}
+          data-track-not-current={trackNotCurrent ? "" : undefined}
+          role="meter"
+          aria-label={label}
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuetext={spoken}
+        >
+          <Meter__Fill
+            $tone={tone}
+            $fillColor={fillColor}
+            style={{ width: `${pct}%` }}
+          />
+        </Meter__Track>
         {/* Decorative, and deliberately so: what the marks say is already in
             `aria-valuetext` above, in words, because a 2px line has no reading
             of its own and four of them announced separately would be noise. */}
-        {bounds !== null && (
-          <>
-            <Meter__Bound
-              aria-hidden="true"
-              data-bound="lo"
-              {...markAt(bounds.lo)}
-            />
-            <Meter__Bound
-              aria-hidden="true"
-              data-bound="hi"
-              {...markAt(bounds.hi)}
-            />
-          </>
+        {(bounds !== null || endBounds !== null) && (
+          <Meter__Marks $size={size} aria-hidden="true">
+            {bounds !== null && (
+              <>
+                <Meter__Bound data-bound="lo" {...markAt(bounds.lo)} />
+                <Meter__Bound data-bound="hi" {...markAt(bounds.hi)} />
+              </>
+            )}
+            {endBounds !== null && (
+              <>
+                <Meter__Bound data-end-bound="lo" {...markAt(endBounds.lo)} />
+                <Meter__Bound data-end-bound="hi" {...markAt(endBounds.hi)} />
+              </>
+            )}
+          </Meter__Marks>
         )}
-        {endBounds !== null && (
-          <>
-            <Meter__Bound
-              aria-hidden="true"
-              data-end-bound="lo"
-              {...markAt(endBounds.lo)}
-            />
-            <Meter__Bound
-              aria-hidden="true"
-              data-end-bound="hi"
-              {...markAt(endBounds.hi)}
-            />
-          </>
-        )}
-      </Meter__Track>
+      </Meter__Bar>
     </Meter__Root>
   );
 }
@@ -707,6 +697,30 @@ const SIZE_TRACK = {
   `,
 } as const;
 
+/**
+ * Where a bound mark's ends sit relative to the track's outer edge, per size,
+ * so that a mark is SIX PIXELS on either bar.
+ *
+ * A mark clipped to its own track was two pixels on the small size and six on
+ * the medium one: the same statement about a model, drawn a third as tall
+ * depending on a size the reader never chose and cannot see. That is what an
+ * operator asked about, having been shown the medium sheets.
+ *
+ * Six because it is what the medium bar has always drawn, and matching it is
+ * the whole of the request. The medium size therefore keeps its mark exactly
+ * where it was, inside the 1px border, and only the small one moves: it stands
+ * one pixel proud each way, which its own track cannot contain and is why the
+ * marks now sit in a layer of their own.
+ */
+const SIZE_MARK_OVERHANG = {
+  sm: css`
+    --meter-mark-overhang: -1px;
+  `,
+  md: css`
+    --meter-mark-overhang: 1px;
+  `,
+} as const;
+
 const Meter__Root = styled.div<{ $size: MeterSize }>`
   display: flex;
   flex-direction: column;
@@ -809,10 +823,34 @@ const Meter__Track = styled.div<{ $size: MeterSize; $notCurrent: boolean }>`
  * wrong: colour on a meter already means the fill's status, and a second
  * meaning in the same few pixels is how one visual language stops being one.
  */
+/* The layer the marks are drawn in, OVER the track rather than inside it.
+   Inside the track they were clipped to it, so a mark was exactly as tall as
+   its own track and the small size drew a two-pixel stub: the same mark that
+   reads clearly on an 8px bar was half that on the 4px one every WidgetMeters
+   stack uses, which is what an operator asked about. The track keeps its own
+   overflow, because that is what rounds the FILL's ends; the marks no longer
+   pay for it.
+
+   Horizontal containment is unaffected and never came from the clip: `markAt`
+   already tucks an end mark fully inside the track's width, which is why a
+   mark at 0% or 100% still sits on the bar rather than beside it. */
+const Meter__Marks = styled.div<{ $size: MeterSize }>`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  ${({ $size }) => SIZE_MARK_OVERHANG[$size]}
+`;
+
+/* The bar: the track and the marks over it, in one box the marks can be
+   positioned against. */
+const Meter__Bar = styled.div`
+  position: relative;
+`;
+
 const Meter__Bound = styled.div`
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: var(--meter-mark-overhang);
+  bottom: var(--meter-mark-overhang);
   width: 2px;
   background: var(--color-text-primary);
   /* The separation from a light or saturated fill. Inset as well as outset so

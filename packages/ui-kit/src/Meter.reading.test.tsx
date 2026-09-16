@@ -77,6 +77,54 @@ function endMarks(container: HTMLElement): HTMLElement[] {
   );
 }
 
+describe("Meter's bound marks, and the track that used to contain them", () => {
+  /**
+   * The defect an operator asked about (#246): a mark lived inside the track,
+   * whose `overflow: hidden` clipped it, so a mark was exactly as tall as its
+   * own track. On the small size every `WidgetMeters` stack draws, that was two
+   * pixels against the medium size's six: the same statement about a model,
+   * drawn a third as tall for a reason the reader never chose and cannot see.
+   *
+   * The structural fix is this: a mark is NOT inside the element that clips.
+   * Asserted on the DOM rather than on a computed height, because jsdom
+   * computes no layout and a height assertion here would pass whatever the
+   * styles said.
+   */
+  it("draws its marks outside the clipping track, so the track cannot shorten them", () => {
+    const { container } = render(
+      <Meter
+        label="Stress"
+        value={banded(value("ratio", 0.5), bandOf("ratio", 0.42, 0.5, 0.58))}
+      />,
+    );
+    const meter = screen.getByRole("meter", { name: "Stress" });
+
+    const drawn = marks(container);
+    expect(drawn).toHaveLength(2);
+    for (const mark of drawn) {
+      expect(meter.contains(mark)).toBe(false);
+    }
+  });
+
+  /**
+   * The fill still belongs to the track, and must: the track's overflow is what
+   * rounds the fill's ends into the pill. Only the marks moved.
+   */
+  it("leaves the fill inside the track it is clipped by", () => {
+    const { container } = render(
+      <Meter
+        label="Stress"
+        value={banded(value("ratio", 0.5), bandOf("ratio", 0.42, 0.5, 0.58))}
+      />,
+    );
+    const meter = screen.getByRole("meter", { name: "Stress" });
+
+    const fill = container.querySelector<HTMLElement>("[data-fill], div > div");
+    expect(fill).not.toBeNull();
+    expect(meter.children.length).toBe(1);
+  });
+});
+
 describe("Meter, given a reading of a fraction", () => {
   it("draws the fraction, so an unbanded reading is the bare quantity's bar", () => {
     render(<Meter label="Stress" value={banded(value("ratio", 0.34))} />);

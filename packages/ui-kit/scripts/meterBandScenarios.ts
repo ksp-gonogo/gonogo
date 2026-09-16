@@ -204,4 +204,36 @@ export const SHEETS: MeterSheet[] = [
       },
     ],
   },
+  {
+    id: "ends-small",
+    title: "An end mark on the SMALL track",
+    blurb:
+      "The question a taller mark had to answer: one pinned at 0% or 100% must " +
+      "stay on the bar rather than beside it. The small size is the one every " +
+      "WidgetMeters stack draws, and the one the marks were shortest on.",
+    size: "sm",
+    width: 360,
+    cases: [
+      {
+        label: "Against the ceiling",
+        fraction: 0.95,
+        band: { lo: 0.9, hi: 1.08, kind: "sigma1" },
+        tone: "warn",
+        note: "the high end is past full, so its mark pins at 100%",
+      },
+      {
+        label: "Against the floor",
+        fraction: 0.04,
+        band: { lo: -0.05, hi: 0.1, kind: "sigma1" },
+        tone: "info",
+        note: "the low end is past empty, so its mark pins at 0%",
+      },
+      {
+        label: "Mid-track",
+        fraction: 0.5,
+        band: { lo: 0.42, hi: 0.58, kind: "sigma1" },
+        note: "for comparison: neither mark is against an end",
+      },
+    ],
+  },
 ];
