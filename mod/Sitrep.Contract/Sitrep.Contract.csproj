@@ -3,6 +3,24 @@
     <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- The doc comments ARE the contract's documentation: an Uplink author
+         hovering a channel type is reading these, the same prose
+         `scripts/asyncapi/prose-hygiene.mjs` keeps client-facing. Shipping the
+         XML beside the assembly is what makes that hover work outside this
+         repo; `KspGonogo.Sitrep.Contract` packs it into every lib folder.
+         CS1591 stays off: this is not a fully-documented-or-fail ratchet, and
+         turning one on here would be a different decision from shipping the
+         prose that already exists. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- SourceLink, so a stepped-into contract type resolves to the commit it
+         was built from. The .NET SDK has carried Microsoft.SourceLink.GitHub
+         since 8.0, so these properties are the whole wiring and no
+         PackageReference is added: see this file's Reinforced.Typings header
+         for why a reference here is never casual. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
     <!-- Sitrep.Contract is the public Uplink surface, and MIT like the rest
          of gonogo (see LICENSING.md). Third-party Uplinks under ANY license
          (GPL, proprietary, ARR, etc.) can reference the contract; MIT's only

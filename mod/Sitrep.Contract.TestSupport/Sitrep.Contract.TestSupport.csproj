@@ -19,6 +19,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- Same reasoning as Sitrep.Contract: the assertions' doc comments are
+         what an author sees when they hover one, and this assembly ships in
+         KspGonogo.Sitrep.Contract's net10.0 group. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
+    <!-- IsPackable=false because this project is not packed BY ITSELF. Its
+         output ships inside KspGonogo.Sitrep.Contract's net10.0 group, placed
+         there by Sitrep.Contract.Package; the ruling (#272) is one package, not
+         two, so a second package id must never appear. -->
     <IsPackable>false</IsPackable>
     <AssemblyName>Sitrep.Contract.TestSupport</AssemblyName>
     <RootNamespace>Sitrep.Contract.TestSupport</RootNamespace>
