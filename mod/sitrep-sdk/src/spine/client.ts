@@ -15,6 +15,7 @@ import { PerfBudget } from "../perf/PerfBudget";
 import { dehydrateArgs } from "../wrap-units";
 import { warnChannelError } from "./channel-error-warning";
 import { type Clock, RealTimeClock } from "./clock";
+import { warnConnectionError } from "./connection-error-warning";
 import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
 import { type TopicOwnership, TopicOwnershipTracker } from "./topic-ownership";
@@ -261,6 +262,8 @@ export class TelemetryClient {
   private readonly unownedListeners = new Set<(topic: string) => void>();
   /** Topic+code pairs already reported by `warnChannelError`, once per session. */
   private readonly channelErrorsWarned = new Set<string>();
+  /** Codes already reported by `warnConnectionError`, once per session. */
+  private readonly connectionErrorsWarned = new Set<string>();
 
   /**
    * Which widgets are reading each topic, refcounted, so the unowned warning
@@ -840,6 +843,18 @@ export class TelemetryClient {
         );
         return;
       }
+      // Neither a command's reply nor a channel's fault: a refusal about the
+      // CONNECTION, which correlates to nothing and so used to die one line
+      // below, on `handleCommandError`'s `if (!requestId) return`. See
+      // `connection-error-warning.ts` for the two producers.
+      if (!message.requestId) {
+        warnConnectionError(
+          this.connectionErrorsWarned,
+          message.code,
+          message.message,
+        );
+        return;
+      }
       this.handleCommandError(message.requestId, message.code, message.message);
       return;
     }
@@ -962,12 +977,16 @@ export class TelemetryClient {
     this.notifyStore();
   }
 
+  /**
+   * An `error` frame that names the request it answers. The uncorrelated case
+   * is routed to `warnConnectionError` before this is reached, so a missing
+   * requestId can no longer arrive here and be silently dropped.
+   */
   private handleCommandError(
-    requestId: string | undefined,
+    requestId: string,
     code: string,
     message: string,
   ): void {
-    if (!requestId) return;
     const pending = this.commands.get(requestId);
     if (!pending) return;
     // Same exception as `handleCommandResponse`, and it is not a lesser case: an
