@@ -56,6 +56,15 @@ import { useWidgetMeta } from "./WidgetMetaContext";
 // that slot is aggregated. Each still self-registers into PerfBudget's own
 // global registry (its constructor does that), so the dashboard's "Perf
 // Budgets" widget picks every one of them up automatically.
+//
+// What it counts is entry sets that actually MOVED, not aggregation passes.
+// The pipeline runs once per frame by design, on a `requestAnimationFrame`
+// clock, so counting passes measured the frame clock: 60/sec against a
+// threshold of 30 on a widget that was doing nothing at all, universal
+// segments with no contributions registered included. That is a budget that
+// fires on every widget, and it went red in CI on one whose only crime was
+// being slow. Steady state for a real recompute is the WIRE sample rate
+// (~10/sec), so 30 is the usual 3x headroom over the load that exists.
 // ---------------------------------------------------------------------------
 const slotBudgets = new Map<string, PerfBudget>();
 function getSlotPerfBudget(slot: string): PerfBudget {
@@ -101,14 +110,51 @@ function getContributionsForSlotCached(slot: string): AnyContribution[] {
   return cached;
 }
 
-/** Element-wise reference equality: true when every entry is the SAME value as before. */
+/**
+ * True when the two entries carry the same value: the same reference, or two
+ * objects shallow-equal over their own keys.
+ *
+ * Reference equality alone was never satisfiable for an object entry. The
+ * aggregation stamps provenance onto every row it collects (`{...entry,
+ * contributionId, owner}`), so even a `compute` returning one frozen constant
+ * hands back a FRESH object every frame, and the guard below said "changed" on
+ * every frame of every widget that contributes a row: the store was rewritten
+ * and every consumer of the slot re-rendered at 60 Hz for a value that had not
+ * moved.
+ *
+ * Shallow, not deep: the rows are flat, and a deep walk per frame would trade
+ * the re-render for a traversal proportional to entry size. An entry holding a
+ * nested object rebuilt per frame still reads as changed, which is honest, its
+ * consumers do re-render.
+ */
+function entryUnchanged(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object") return false;
+  if (a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) return false;
+  for (const key of aKeys) {
+    if (
+      !Object.is(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+      )
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Element-wise: true when every entry holds the same value as before. */
 function entriesUnchanged(
   a: readonly unknown[],
   b: readonly unknown[],
 ): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
+    if (!entryUnchanged(a[i], b[i])) return false;
   }
   return true;
 }
@@ -282,9 +328,11 @@ function SlotAggregator({
         reportContributionThrew(def.id, err);
       }
     }
-    budget.record();
     const current = store.getSnapshot().find((e) => e.id === slot);
     if (current && entriesUnchanged(current.entries, collected)) return;
+    // After the guard, so one record is one entry set that genuinely moved and
+    // reached the slot's consumers. See `getSlotPerfBudget`.
+    budget.record();
     store.update(slot, { entries: collected });
     // register() is a no-op-safe upsert on first write: update() alone
     // returns early on an unknown id, so seed the entry once.
