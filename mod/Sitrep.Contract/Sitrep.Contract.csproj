@@ -8,17 +8,30 @@
          `scripts/asyncapi/prose-hygiene.mjs` keeps client-facing. Shipping the
          XML beside the assembly is what makes that hover work outside this
          repo; `KspGonogo.Sitrep.Contract` packs it into every lib folder.
-         The compiler's doc warnings stay off. Generating the XML is a
-         PACKAGING change, and turning on a documentation-completeness ratchet
-         as a side effect of it would be a different decision made by accident;
-         the ratchet this prose actually answers to is
-         `scripts/asyncapi/prose-hygiene.mjs`. CS1574/CS0419 would also be
-         wrong here specifically: this assembly is the bottom of the dependency
-         graph, so an `<internal>` note naming Sitrep.Host's ChannelEngine or an
-         Uplink's payload type cannot resolve its cref by construction, and 120
-         of them do. -->
+
+         ONLY CS1591 (missing doc on a public member) is suppressed. A
+         completeness ratchet over ~700 public members is a separate decision
+         from packaging the XML, and `scripts/asyncapi/prose-hygiene.mjs` is the
+         ratchet this prose actually answers to.
+
+         Everything else is ON, which buys the thing a rename sweep structurally
+         cannot see: a cref to a member that is removed or renamed becomes a
+         warning in the same commit that removes it. Three such defects were
+         sitting in the published contract when the family was first turned on,
+         one of them pointing an Uplink author at a retired interface.
+
+         THE RULE THAT COMES WITH IT: name anything BELOW this assembly in the
+         dependency graph with `<c>Name</c>`, never `<see cref="Name"/>`.
+         Sitrep.Contract is the bottom of the graph, so a cref to Sitrep.Host's
+         ChannelEngine, Sitrep.Core's Courier, Sitrep.Propagation's
+         KeplerProvider, or an Uplink's payload type cannot resolve BY
+         CONSTRUCTION. It has never been a link for anybody, and `<c>` renders
+         the same. Without this rule the next perfectly good `<internal>`
+         paragraph reintroduces a warning by construction. The same goes for a
+         changelog entry naming a type that has since left the contract: it
+         documents history, so it takes `<c>` too. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1570;1571;1572;1573;1574;1591;1734;0419</NoWarn>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <!-- SourceLink, so a stepped-into contract type resolves to the commit it
          was built from. The .NET SDK has carried Microsoft.SourceLink.GitHub
          since 8.0, so these properties are the whole wiring and no

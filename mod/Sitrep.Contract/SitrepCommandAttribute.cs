@@ -12,7 +12,7 @@ namespace Sitrep.Contract
     /// this tag the SDK named nine commands out of a hundred and typed
     /// <c>send</c> as <c>(args?: unknown) =&gt; Promise&lt;unknown&gt;</c>.
     ///
-    /// <para><see cref="AllowMultiple"/> is on because one args shape routinely
+    /// <para><c>AllowMultiple</c> is on because one args shape routinely
     /// serves several commands: <see cref="SetEnabledArgs"/> carries six
     /// (<c>setSas</c>/<c>setRcs</c>/<c>setGear</c>/<c>setBrakes</c>/
     /// <c>setLights</c>/<c>setAbort</c>), and a command that took its own

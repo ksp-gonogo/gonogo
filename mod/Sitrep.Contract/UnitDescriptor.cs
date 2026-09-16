@@ -78,25 +78,7 @@ namespace Sitrep.Contract
             return ToJson(Collect(assembly: assembly));
         }
 
-        /// <summary>
-        /// Reflects over every <c>[SitrepUnit]</c>-tagged property in this
-        /// assembly.
-        /// </summary>
-        /// <param name="validateVocabulary">
-        /// When true, a token outside the <see cref="Units"/> catalog throws.
-        /// That is right for CODEGEN, where everything reflected is compiled
-        /// into this assembly and a typo is drift. It is wrong at RUNTIME
-        /// inside KSP, where throwing would take the mod down over a
-        /// descriptor nobody asked for; there the offending field is simply
-        /// carried as-is and a consumer sees an unknown token, which the
-        /// open `SitrepUnit` union already allows for.
-        /// </param>
-        /// <param name="assembly">
-        /// Which assembly to reflect over. Defaults to this one. An Uplink's
-        /// own contract assembly works exactly as well: nothing here is
-        /// specific to the first-party contract except the default.
-        /// </param>
-        /// <summary>Copy every public string constant on a type into <paramref name="into"/>.</summary>
+        /// <summary>Copy every public string constant on <paramref name="source"/> into <paramref name="into"/>.</summary>
         private static void AddStringConstants(Type source, SortedSet<string> into)
         {
             if (source == null) return;
@@ -167,6 +149,24 @@ namespace Sitrep.Contract
             return vocabulary.Contains(numerator) && vocabulary.Contains(denominator);
         }
 
+        /// <summary>
+        /// Reflects over every <c>[SitrepUnit]</c>-tagged property in this
+        /// assembly.
+        /// </summary>
+        /// <param name="validateVocabulary">
+        /// When true, a token outside the <see cref="Units"/> catalog throws.
+        /// That is right for CODEGEN, where everything reflected is compiled
+        /// into this assembly and a typo is drift. It is wrong at RUNTIME
+        /// inside KSP, where throwing would take the mod down over a
+        /// descriptor nobody asked for; there the offending field is simply
+        /// carried as-is and a consumer sees an unknown token, which the
+        /// open `SitrepUnit` union already allows for.
+        /// </param>
+        /// <param name="assembly">
+        /// Which assembly to reflect over. Defaults to this one. An Uplink's
+        /// own contract assembly works exactly as well: nothing here is
+        /// specific to the first-party contract except the default.
+        /// </param>
         public static Maps Collect(bool validateVocabulary = false, Assembly assembly = null)
         {
             var vocabulary = new SortedSet<string>(StringComparer.Ordinal);

@@ -5,6 +5,15 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
+// The one unresolvable cref left in this assembly, and the only reason CS1574 is
+// not on everywhere. `ReliabilitySummary.Unmodeled` was replaced by `Coverage`
+// (one of `ReliabilityCoverage`), and whether that is the comparison this
+// paragraph wants is an open question on Saga #272: `Coverage` answers "is
+// anyone modelling this at all", where `ValueModel` answers "by whose model was
+// this computed", which is nearer `ReliabilitySummary.Source`. Lift the pragma
+// with the rewrite, do not widen the project's NoWarn again.
+#pragma warning disable 1574
+
 /// <summary>
 /// The vocabulary for the <c>valueModel</c> discriminator that the value-bearing
 /// <c>science.*</c> payloads carry (<see cref="ExperimentEntry.ValueModel"/>,
@@ -29,6 +38,7 @@ namespace Sitrep.Contract;
 /// consumer must treat an unrecognised token as "a model I do not know", never as
 /// stock.</para>
 /// </summary>
+#pragma warning restore 1574
 public static class ScienceValueModels
 {
     /// <summary>
@@ -494,7 +504,7 @@ public class SensorEntry
 
 /// <summary>
 /// One entry in the <c>science.experimentBreakdown</c> channel payload, a
-/// per-SUBJECT rollup of the same stored <see cref="ScienceData"/> rows
+/// per-SUBJECT rollup of the same stored <c>ScienceData</c> rows
 /// <c>science.experiments</c> lists one-row-per-blob, the new home for the old
 /// GonogoTelemetry-only <c>sci.experimentBreakdown</c> enrichment (which had
 /// no equivalent on the base wire until now). <see cref="Biome"/>/

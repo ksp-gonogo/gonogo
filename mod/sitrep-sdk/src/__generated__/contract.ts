@@ -1882,8 +1882,8 @@ export interface SetControlFrameArgs
 *
 * TYPING/codegen marker only. The producer (`Gonogo.KSP.CrashUplink`)
 * hand-flattens the live-KSP crash into a `Dictionary<string, object?>` via
-* `Sitrep.Host.Crash.CrashPayload.Build` before publishing, so JsonWriter only
-* ever sees the dictionary: this POCO exists solely so the TS SDK has a
+* `Sitrep.Host.Crash.CrashPayload.Build` before publishing, so `JsonWriter`
+* only ever sees the dictionary: this POCO exists solely so the TS SDK has a
 * concrete payload type to name (it is on `WirePayloadCoverageTests`'s
 * producer-flatten allowlist for exactly that reason).
 */
@@ -2601,7 +2601,7 @@ export enum FlightEndReason {
 * flying, with one exception: a kerbal on EVA does not become the subject of
 * this reading, the craft they stepped out of stays it for as long as that
 * craft is in the world. `FlightCurrent.phase` reuses `Situation` rather than
-* inventing a parallel enum; see FlightLifecycleSampler doc reference in
+* inventing a parallel enum; see `FlightLifecycleSampler` doc reference in
 * `Sitrep.Host.Flight` for the exact phase source.
 */
 export interface FlightCurrent
@@ -3117,14 +3117,14 @@ export interface Meta
 	staleness: Staleness;
 	/**
 	* Generation counter for the current timeline: 0 at boot, incremented once for
-	* every quickload/rewind (ResetTimeline). Stamped on EVERY envelope `Meta`
-	* (streams AND command responses) by `Courier.MakeMeta`: see that method's doc
-	* comment for why this had to be added now rather than retrofitted later: once
-	* recordings/stations exist, a sample with no epoch can never be told apart
-	* from one on an abandoned pre-rewind timeline. A client compares this against
-	* its own last-seen epoch to detect a rewind atomically, without re-deriving
-	* it from a backward `validAt` jump (which a reordered/coalesced delivery
-	* could mask).
+	* every quickload/rewind (`Courier.ResetTimeline`). Stamped on EVERY envelope
+	* `Meta` (streams AND command responses) by `Courier.MakeMeta`: see that
+	* method's doc comment for why this had to be added now rather than
+	* retrofitted later: once recordings/stations exist, a sample with no epoch
+	* can never be told apart from one on an abandoned pre-rewind timeline. A
+	* client compares this against its own last-seen epoch to detect a rewind
+	* atomically, without re-deriving it from a backward `validAt` jump (which a
+	* reordered/coalesced delivery could mask).
 	*/
 	timelineEpoch: number;
 	/**
@@ -3630,8 +3630,8 @@ export interface RoboticsAvailability
 * TYPING/codegen marker only. The producer (`Gonogo.KSP.RecoveryUplink`)
 * hand-flattens the live-KSP recovery into a `Dictionary<string, object?>` via
 * `Sitrep.Host.Recovery.RecoveryPayload.Build` before publishing, so
-* JsonWriter only ever sees the dictionary: this POCO exists solely so the TS
-* SDK has a concrete payload type to name (it is on
+* `JsonWriter` only ever sees the dictionary: this POCO exists solely so the
+* TS SDK has a concrete payload type to name (it is on
 * `WirePayloadCoverageTests`'s producer-flatten allowlist for exactly that
 * reason).
 */
@@ -4724,10 +4724,10 @@ export interface SensorEntry
 }
 /**
 * One entry in the `science.experimentBreakdown` channel payload, a
-* per-SUBJECT rollup of the same stored ScienceData rows `science.experiments`
-* lists one-row-per-blob, the new home for the old GonogoTelemetry-only
-* `sci.experimentBreakdown` enrichment (which had no equivalent on the base
-* wire until now). `ExperimentBreakdownEntry.biome`/
+* per-SUBJECT rollup of the same stored `ScienceData` rows
+* `science.experiments` lists one-row-per-blob, the new home for the old
+* GonogoTelemetry-only `sci.experimentBreakdown` enrichment (which had no
+* equivalent on the base wire until now). `ExperimentBreakdownEntry.biome`/
 * `ExperimentBreakdownEntry.situation` are parsed straight off
 * `ScienceData.subjectID` via KSP's own
 * `ScienceUtil.GetExperimentFieldsFromScienceID` (confirmed via decompile:

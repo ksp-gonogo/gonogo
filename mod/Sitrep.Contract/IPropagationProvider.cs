@@ -11,7 +11,7 @@ namespace Sitrep.Contract
     /// every tick.
     ///
     /// <para>Deliberately an interface, not a static method: propagation is a
-    /// swappable capability. <see cref="KeplerProvider"/> is the two-body analytic
+    /// swappable capability. <c>KeplerProvider</c> is the two-body analytic
     /// solver used by default; a provider backed by a different physics is a second
     /// implementation of this same contract.</para>
     ///

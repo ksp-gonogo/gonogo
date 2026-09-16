@@ -30,7 +30,7 @@ namespace Sitrep.Contract;
 /// reveal-UT is derived.
 ///
 /// <para>Deliberately primitives-only. The implementation resolves the vessel
-/// itself, from <paramref name="vesselId"/>, because only a LIVE vessel has a
+/// itself, from the <c>vesselId</c> it is handed, because only a LIVE vessel has a
 /// CommNet route and a route is the only thing that produces a delay: a handle
 /// to a vessel the caller happens to hold says nothing about routability. An
 /// earlier signature took a stock <c>ProtoVessel</c> alongside the id and

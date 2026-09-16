@@ -9,7 +9,7 @@ namespace Sitrep.Contract
     /// <summary>
     /// Which outbox lane a channel's samples ride, per
     /// <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c> §1.1.
-    /// <see cref="LossyLatest"/> is the <see cref="Sitrep.Host.ChannelEngine"/>'s default:
+    /// <see cref="LossyLatest"/> is the <c>ChannelEngine</c>'s default:
     /// the outbox coalesces to the freshest sample per topic (the shape
     /// <c>GonogoBodiesServer</c>'s <c>GonogoOutbox._latestByTopic</c> already
     /// implemented). <see cref="ReliableOrdered"/> rides the outbox's FIFO
@@ -53,7 +53,7 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// One channel an uplink declares in its <see cref="UplinkManifest"/>,
-    /// the wire-visible metadata <see cref="Sitrep.Host.ChannelEngine.AddChannelSource"/>
+    /// the wire-visible metadata <c>ChannelEngine.AddChannelSource</c>
     /// looks up by <see cref="Topic"/> when an uplink calls it during
     /// <see cref="ISitrepUplink.Register"/>. Declaring a channel here
     /// BEFORE registering its mapper is the manifest-first rule the design
@@ -70,7 +70,7 @@ namespace Sitrep.Contract
         /// Defaults to <see cref="DelayRole.Delayed"/>: the same default a
         /// command takes on <see cref="SitrepCommandAttribute.Delay"/>, and the
         /// contract-conservative choice: nothing in
-        /// <see cref="Sitrep.Host.ChannelEngine"/> branches on this value
+        /// <c>ChannelEngine</c> branches on this value
         /// today (it is purely declarative, feeding the SDK/client's future
         /// delay routing), so EVERY existing bundled channel's host-observable
         /// behavior is unchanged regardless of what this defaults to; see
@@ -90,7 +90,7 @@ namespace Sitrep.Contract
         /// with no crew aboard): a real, present subject whose value can
         /// simply be null, as opposed to "no subject yet" (main menu, before
         /// <c>FlightGlobals</c> is ready). Defaults to <c>false</c>, which
-        /// preserves the pre-existing behavior: <see cref="Sitrep.Host.ChannelEngine.ProcessTick"/>'s
+        /// preserves the pre-existing behavior: <c>ChannelEngine.ProcessTick</c>'s
         /// birth-gate skips a null mapper result for a channel that has
         /// never emitted a real value, so the client never learns the
         /// channel is absent and shows "SYNCING" forever. Setting this
@@ -156,11 +156,11 @@ namespace Sitrep.Contract
         /// channel whose samples are a CURSOR-RELATIVE DIFF STREAM (e.g. the
         /// kOS terminal's full-repaint-or-incremental-diff frames) rather
         /// than a sequence of independently-meaningful discrete events (e.g.
-        /// <c>crash.lastCrash</c>). When set, <see cref="Sitrep.Host.ChannelEngine"/>
+        /// <c>crash.lastCrash</c>). When set, <c>ChannelEngine</c>
         /// tracks the last REVEALED (i.e. already past the reveal gate; see
         /// <c>ChannelEngine.FlushReveal</c>) sample for which this predicate
         /// returns <c>true</c> as a per-topic sticky catch-up baseline (see
-        /// <see cref="Sitrep.Core.Courier"/>'s sticky-keyframe cache). A
+        /// <c>Courier</c>'s sticky-keyframe cache). A
         /// late or returning subscriber's synchronous catch-up then always
         /// resolves to that self-contained keyframe instead of Courier's
         /// plain "whatever's latest in the archive" read, which, for a diff
@@ -720,7 +720,7 @@ namespace Sitrep.Contract
     /// <see cref="IUplinkHost.AddChannelSource"/> mapper. Obtained via
     /// <see cref="IUplinkHost.Publisher"/>; <see cref="Publish"/> is safe
     /// to call from the main thread only (it hands off to the engine's own
-    /// job queue, same as <see cref="Sitrep.Host.ChannelEngine.Tick"/>).
+    /// job queue, same as <c>ChannelEngine.Tick</c>).
     /// </summary>
     public interface IChannelPublisher
     {
@@ -746,7 +746,7 @@ namespace Sitrep.Contract
     /// GonogoScansatUplink report flagged as missing (see
     /// <c>.superpowers/sdd/u1-scansat-uplink-report.md</c>'s "Known,
     /// disclosed gap"). Each concrete <c>prefix + subTopic</c> gets its own
-    /// independent <see cref="Sitrep.Host.ChannelEmitter"/>
+    /// independent <c>ChannelEmitter</c>
     /// keyframe-on-change/lossy-latest-value state, exactly as though it had
     /// been declared as an ordinary fixed <see cref="ChannelDeclaration"/>,
     /// the ENGINE materializes that declaration (cloned from the
@@ -791,7 +791,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// What <see cref="Sitrep.Host.ChannelEngine"/> hands an <see cref="ISitrepUplink"/>
+    /// What <c>ChannelEngine</c> hands an <see cref="ISitrepUplink"/>
     /// during <see cref="ISitrepUplink.Register"/>: see the design doc
     /// §1.2. Uplinks register PURE pieces here; they never touch the
     /// transport, the Courier, or threading directly: the engine runs
@@ -809,7 +809,7 @@ namespace Sitrep.Contract
         /// </summary>
         double NowUt();
 
-        /// <summary>Contribute a sampler that augments the snapshot handed to <see cref="Sitrep.Host.ChannelEngine.Tick"/>. See <see cref="ISnapshotSampler"/>.</summary>
+        /// <summary>Contribute a sampler that augments the snapshot handed to <c>ChannelEngine.Tick</c>. See <see cref="ISnapshotSampler"/>.</summary>
         void AddSampler(ISnapshotSampler sampler);
 
         /// <summary>
@@ -1050,7 +1050,7 @@ namespace Sitrep.Contract
         /// <para><b>Why this exists as a first-class seam:</b> the bundled
         /// comms uplink publishes <c>comms.delay</c> through a
         /// <see cref="Publisher"/> fed by a capture-on-main /
-        /// handle-on-Courier <see cref="AddSampledSource"/> (live KSP reads must
+        /// handle-on-Courier <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/> (live KSP reads must
         /// stay on the main thread). That is NOT the pull-style
         /// <see cref="AddChannelSource"/> shape the engine's per-tick delay
         /// refresh could read, and the publish path is subscription-gated, so
@@ -1074,7 +1074,7 @@ namespace Sitrep.Contract
         /// (Plan 2): the vessel's <c>fleet.&lt;vesselId&gt;.*</c> topics are
         /// delayed by this from the single KSC observer. Call it per vessel each
         /// fleet-capture tick (from the handle-on-Courier half of a gated
-        /// <see cref="AddSampledSource"/>). Unlike <see cref="SetSignalDelaySource"/>
+        /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>). Unlike <see cref="SetSignalDelaySource"/>
         /// (the active vessel's global authority), this is a per-subject node
         /// delay: freeze stays global in Plan 2 (the reveal gate is unchanged).
         /// </summary>
@@ -1245,7 +1245,7 @@ namespace Sitrep.Contract
         /// genuine 0→1 subscribe transition already uses (see
         /// <c>ChannelEmitter.NotifySubscribed</c>). The load-bearing use
         /// case is a subject-provenance epoch (see
-        /// <see cref="Sitrep.Host.VesselEpochSampler"/>): when the thing a channel
+        /// <c>VesselEpochSampler</c>): when the thing a channel
         /// describes changes identity mid-stream, the NEXT sample must be
         /// an unconditional keyframe, not something a deadband/cadence gate
         /// can suppress or delay. MUST be called only from within a
@@ -1264,7 +1264,7 @@ namespace Sitrep.Contract
         /// touching the emitter's force-keyframe state (compare
         /// <see cref="ForceKeyframe"/>, which this is meant to be called
         /// ALONGSIDE, not instead of). The M2 subject-scoped-birth seam: a
-        /// subject switch (see <see cref="Sitrep.Host.VesselEpochSampler"/>) calls this
+        /// subject switch (see <c>VesselEpochSampler</c>) calls this
         /// for every topic it owns so a channel the NEW subject has never
         /// populated goes back to "not yet a subject", rather than
         /// inheriting the PREVIOUS subject's birth state and emitting a
@@ -1320,7 +1320,7 @@ namespace Sitrep.Contract
         UplinkManifest Manifest { get; }
 
         /// <summary>
-        /// Called once, on the main thread, by <see cref="Sitrep.Host.ChannelEngine.RegisterUplink"/>.
+        /// Called once, on the main thread, by <c>ChannelEngine.RegisterUplink</c>.
         /// Throwing here (or calling <see cref="IUplinkHost.SetAvailability"/>
         /// with an unavailable status) fail-softs THIS uplink only, every
         /// other registered uplink is unaffected.
@@ -1395,8 +1395,8 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Coarse self-reported health for one <see cref="ISitrepUplink"/>; see
-    /// <see cref="IUplinkHealthReporter"/>.
+    /// Coarse self-reported health for one <see cref="ISitrepUplink"/>, as
+    /// answered by <see cref="ISitrepUplink.Health"/>.
     /// </summary>
     public enum UplinkHealthState
     {
@@ -1438,7 +1438,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One <see cref="IUplinkHealthReporter.Health"/> result: a coarse
+    /// One <see cref="ISitrepUplink.Health"/> result: a coarse
     /// <see cref="State"/> plus an OPTIONAL uplink-authored <see cref="Detail"/>
     /// string explaining what "ready" means for THIS uplink (e.g. "no active
     /// CPU selected" for kOS, "no comms backend elected" for comms). The

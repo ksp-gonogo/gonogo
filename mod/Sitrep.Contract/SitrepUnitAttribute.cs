@@ -16,7 +16,7 @@ namespace Sitrep.Contract
     /// type would have meant an Uplink could never declare a unit at all. It
     /// declares a plain string instead and teaches the client what the symbol
     /// means with <c>registerUnit</c>. The catalog check in
-    /// <see cref="RtConfig"/> therefore applies to first-party payloads only,
+    /// <c>RtConfig</c> therefore applies to first-party payloads only,
     /// which is exactly the set it can see.</para>
     ///
     /// <para>Spellings are the OPERATOR-FACING symbols already used by the

@@ -101,7 +101,7 @@ public class Meta
 
     /// <summary>
     /// Generation counter for the current timeline: 0 at boot, incremented
-    /// once for every quickload/rewind (<see cref="Sitrep.Core.Courier.ResetTimeline"/>).
+    /// once for every quickload/rewind (<c>Courier.ResetTimeline</c>).
     /// Stamped on EVERY envelope <see cref="Meta"/> (streams AND command
     /// responses) by <c>Courier.MakeMeta</c>: see that method's doc
     /// comment for why this had to be added now rather than retrofitted

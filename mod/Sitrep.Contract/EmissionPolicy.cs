@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Why a given <see cref="ChannelEmitter.Decide"/> call chose to emit.
+    /// Why a given <c>ChannelEmitter.Decide</c> call chose to emit.
     /// <see cref="None"/> is only ever seen on a skipped decision (see
     /// <see cref="EmissionDecision.ShouldEmit"/>): it is never the reason on
     /// an emitted one.
@@ -80,11 +80,11 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Per-channel emission configuration for <see cref="ChannelEmitter"/>.
+    /// Per-channel emission configuration for <c>ChannelEmitter</c>.
     /// Every interval is expressed in UT seconds (never wall-clock) because
     /// the whole point of this policy is to scale sampling/emission cost with
     /// how fast the underlying value actually changes in game time, not with
-    /// how often the host happens to call <see cref="ChannelEmitter.Decide"/>
+    /// how often the host happens to call <c>ChannelEmitter.Decide</c>
     /// (which, under time-warp, can be every physics tick regardless of UT
     /// throughput).
     /// </summary>
@@ -93,8 +93,8 @@ namespace Sitrep.Contract
         /// <summary>
         /// Don't even consider (sample) this channel more often than this
         /// many UT seconds since it was last considered, the OUTER-most gate
-        /// within <see cref="ChannelEmitter.Decide"/> itself (distinct from
-        /// <see cref="SubscriptionRegistry"/>, which gates whether Decide is
+        /// within <c>ChannelEmitter.Decide</c> itself (distinct from
+        /// <c>SubscriptionRegistry</c>, which gates whether Decide is
         /// called at all). <c>0</c> disables this gate (every call is
         /// considered).
         /// </summary>
@@ -151,7 +151,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Result of one <see cref="ChannelEmitter.Decide"/> call. A value type,
+    /// Result of one <c>ChannelEmitter.Decide</c> call. A value type,
     /// this is the hot-path return, called at up to physics-tick rate per
     /// channel, so it's kept allocation-free rather than a class.
     /// </summary>
@@ -185,11 +185,11 @@ namespace Sitrep.Contract
     /// Per-channel emission-rate visibility, exposed so a mis-tuned channel
     /// (quantum too tight, keyframe interval too short) shows up as a number
     /// somewhere rather than silently tar-pitting the host. See
-    /// <see cref="ChannelEmitter.CountersFor"/>.
+    /// <c>ChannelEmitter.CountersFor</c>.
     /// </summary>
     public readonly struct EmissionCounters
     {
-        /// <summary>Total <see cref="ChannelEmitter.Decide"/> calls for this channel, emitted or not.</summary>
+        /// <summary>Total <c>ChannelEmitter.Decide</c> calls for this channel, emitted or not.</summary>
         public long Considered { get; }
 
         /// <summary>Of those, how many actually emitted.</summary>
