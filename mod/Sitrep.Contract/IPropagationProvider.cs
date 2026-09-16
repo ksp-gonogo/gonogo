@@ -56,6 +56,23 @@ namespace Sitrep.Contract
         public const string Id = "propagation";
     }
 
+    /// <summary>
+    /// Whatever can say where something will be: the one authority on a trajectory
+    /// for this install, elected under <see cref="PropagationCapability.Id"/>.
+    ///
+    /// <para>An implementation answers for a <see cref="PropagationTarget"/> in a
+    /// <see cref="PropagationFrame"/> at a UT, and every answer must be
+    /// DETERMINISTIC (same inputs, same outputs, no wall-clock and no randomness),
+    /// because callers cache results, compare two of them, and draw the difference.
+    /// What is not supported is declined through
+    /// <see cref="CanPropagate(PropagationTarget, PropagationFrame, double, double)"/>
+    /// rather than approximated: a two-body answer to an n-body question looks
+    /// exactly like a right one on screen.</para>
+    ///
+    /// <para>A stock install has a provider and so does an n-body one; core resolves
+    /// this interface and never learns which is installed, which is what keeps the
+    /// rest of the mod free of any particular physics.</para>
+    /// </summary>
     public interface IPropagationProvider : ISitrepProvider
     {
         /// <summary>

@@ -566,6 +566,19 @@ namespace Sitrep.Contract
         /// <summary>The <see cref="CommandRequirement.Kind"/> this answers.</summary>
         string Kind { get; }
 
+        /// <summary>
+        /// Decide whether <paramref name="requirement"/> is met, reading whatever it
+        /// needs out of <paramref name="arguments"/>.
+        ///
+        /// <para>Called only for a requirement whose <see cref="CommandRequirement.Kind"/>
+        /// equals this evaluator's <see cref="Kind"/>, and only once the host has
+        /// established that the arguments it names are present, so there is no
+        /// "cannot answer" case: see the remarks on this interface for why
+        /// <see cref="GateOutcome.Abstain"/> is never a legal return. Throwing
+        /// refuses the command and is reported as a fault in the evaluator, not in
+        /// the caller's request; return a refusing <see cref="GateVerdict"/>
+        /// instead.</para>
+        /// </summary>
         GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments);
     }
 
@@ -689,6 +702,15 @@ namespace Sitrep.Contract
     /// </summary>
     public interface ISnapshotSampler
     {
+        /// <summary>
+        /// Add this uplink's data to <paramref name="snapshot"/>, in place, once per
+        /// tick, before any channel source reads it.
+        ///
+        /// <para>Called on the main thread, so it may touch the game. It must not
+        /// REMOVE or overwrite a key another sampler put there: samplers run in an
+        /// order nobody controls, so a sampler that takes something away produces a
+        /// snapshot whose contents depend on registration order.</para>
+        /// </summary>
         void Sample(KspSnapshot snapshot);
     }
 
@@ -702,6 +724,15 @@ namespace Sitrep.Contract
     /// </summary>
     public interface IChannelPublisher
     {
+        /// <summary>
+        /// Offer <paramref name="payload"/> as this topic's value at
+        /// <paramref name="ut"/> (UT seconds).
+        ///
+        /// <para>Offer, not send: the engine change-gates what it is given, so
+        /// publishing the same value twice puts one sample on the wire. Main thread
+        /// only. A <c>null</c> payload is a legitimate value, meaning the source has
+        /// nothing right now, and is not a way to withdraw an earlier one.</para>
+        /// </summary>
         void Publish(object? payload, double ut);
     }
 
@@ -768,6 +799,14 @@ namespace Sitrep.Contract
     /// </summary>
     public interface IUplinkHost
     {
+        /// <summary>
+        /// The game's current universal time, in seconds.
+        ///
+        /// <para>Ask the host rather than the game directly: this is the same clock
+        /// every sample and every command on this tick is stamped with, so a payload
+        /// built from it agrees with the one beside it. It moves under warp, and it
+        /// jumps backwards on a load.</para>
+        /// </summary>
         double NowUt();
 
         /// <summary>Contribute a sampler that augments the snapshot handed to <see cref="Sitrep.Host.ChannelEngine.Tick"/>. See <see cref="ISnapshotSampler"/>.</summary>
@@ -1269,6 +1308,15 @@ namespace Sitrep.Contract
     /// </summary>
     public interface ISitrepUplink
     {
+        /// <summary>
+        /// Everything this Uplink declares: its id, its channels, its commands.
+        ///
+        /// <para>Read BEFORE <see cref="Register"/> and treated as fixed from then
+        /// on, so it must not depend on game state. A channel published or a command
+        /// handled that this manifest does not declare is refused at registration,
+        /// which is what keeps a client's picture of an Uplink and the Uplink's own
+        /// behaviour from diverging.</para>
+        /// </summary>
         UplinkManifest Manifest { get; }
 
         /// <summary>

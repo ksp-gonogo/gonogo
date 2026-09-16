@@ -122,21 +122,6 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Whatever knows what frame the game's navigation view is currently in.
-    ///
-    /// <para>A capability rather than a method on core, because the answer belongs
-    /// to whichever mod owns the view. Stock's answer is real and simple, a body
-    /// and inertial axes; an n-body producer's is one of five kinds over sets of
-    /// bodies. Core resolves the interface and never learns which is installed,
-    /// which is the whole of what makes this side stock-shaped rather than
-    /// producer-shaped.</para>
-    ///
-    /// <para><see cref="Frame"/> is null when nothing could be read. That is not a
-    /// gap to fill with a default: a substituted frame draws a trajectory that
-    /// looks exactly like one drawn in the frame the player is actually in, and
-    /// nothing downstream could tell them apart.</para>
-    /// </summary>
-    /// <summary>
     /// <c>system.frame.set</c>'s args: the frame to put the view in.
     ///
     /// <para><b>A caller names the pair, not the sets.</b> Unlike
@@ -177,8 +162,26 @@ namespace Sitrep.Contract
         public bool? TargetFrameSelected { get; set; }
     }
 
+    /// <summary>
+    /// Whatever knows what frame the game's navigation view is currently in.
+    ///
+    /// <para>A capability rather than a method on core, because the answer belongs
+    /// to whichever mod owns the view. Stock's answer is real and simple, a body
+    /// and inertial axes; an n-body producer's is one of five kinds over sets of
+    /// bodies. Core resolves the interface and never learns which is installed,
+    /// which is the whole of what makes this side stock-shaped rather than
+    /// producer-shaped.</para>
+    /// </summary>
     public interface IControlFrameSource : ISitrepProvider
     {
+        /// <summary>
+        /// The frame the navigation view is in right now, or <c>null</c> when
+        /// nothing could be read.
+        ///
+        /// <para>Null is not a gap to fill with a default: a substituted frame draws
+        /// a trajectory that looks exactly like one drawn in the frame the player is
+        /// actually in, and nothing downstream could tell them apart.</para>
+        /// </summary>
         ControlFrame? Frame { get; }
 
         /// <summary>
