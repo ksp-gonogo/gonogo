@@ -1,4 +1,9 @@
-import type { Dep, ProcessorHandle, ReadingDep } from "./spine/processors";
+import type {
+  Dep,
+  ProcessorHandle,
+  ReadingDep,
+  SubjectDep,
+} from "./spine/processors";
 import type { TimelinePoint } from "./timeline";
 import type { TopicId, TopicPayload } from "./topics";
 import { isUnit } from "./unit-system/guards";
@@ -1586,9 +1591,19 @@ type ResolvedReckonerDep<D extends Dep> =
     ? R
     : D extends ReadingDep<infer T>
       ? Reading<TopicPayload<T>>
-      : D extends TopicId
-        ? TimelinePoint<TopicPayload<D>> | undefined
-        : never;
+      : /*
+         * A subject dep resolves to the same `TimelinePoint | undefined` a plain
+         * Topic id does, so a model destructures both the same way and nothing
+         * inside it has to know which kind it was handed. The payload comes from
+         * the dep's own parameter rather than from `TopicPayload`: the topic is
+         * computed per subject, so it has no member in the generated map to look
+         * up, exactly as a dynamic `useStream<T>` read states its own type.
+         */
+        D extends SubjectDep<infer P>
+        ? TimelinePoint<P> | undefined
+        : D extends TopicId
+          ? TimelinePoint<TopicPayload<D>> | undefined
+          : never;
 
 /**
  * How much of its OWN topic's record a reckoner is handed, bounded both ways.

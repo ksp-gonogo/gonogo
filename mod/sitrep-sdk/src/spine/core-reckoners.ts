@@ -1,3 +1,4 @@
+import type { TopicPayload } from "../index";
 import { magnitudeOr } from "../magnitude";
 import type { ModelledField, ReckoningDecline, StaleGrade } from "../reading";
 import type { TimelinePoint } from "../timeline";
@@ -14,13 +15,18 @@ import {
 } from "./atmospheric-reckoning";
 import { deriveCelestialFacts } from "./celestial-facts";
 import { commsDelaySecondsAt, fitCommsDelay } from "./comms-delay-reckoning";
-import { firstHopPeer, locateCommsPeer } from "./comms-path-geometry";
+import {
+  type CommsPeerOrbit,
+  firstHopPeer,
+  locateCommsPeer,
+} from "./comms-path-geometry";
 import {
   advanceByVelocity,
   keplerAdmissibility,
   magnitude,
   propagateVesselOrbit,
 } from "./kepler-reckoning";
+import type { SubjectDep } from "./processors";
 import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
 
 /**
@@ -418,7 +424,28 @@ function registerFlightReckoner(): void {
  * `locateCommsPeer` takes one and a lambda returning nothing says the true
  * thing about what this caller holds.
  */
-const NO_FLEET_ORBITS = () => undefined;
+/**
+ * Where the first hop's relay is, when the route home starts at one.
+ *
+ * The guid is in the route and nowhere else, so this is the input that could
+ * not be declared before per-subject deps existed: `fleet.<guid>.orbit` names a
+ * vessel nobody knows about until `comms.path` arrives. The selector reads it
+ * off the resolved `comms.path` point sitting at index 0 of this model's deps.
+ *
+ * A route straight home has no relay and yields NO subject, which resolves this
+ * dep to `undefined` rather than declining: the direct case is the common one
+ * and it wants no fleet orbit at all.
+ */
+const RELAY_ORBIT: SubjectDep<
+  CommsPeerOrbit,
+  readonly [TimelinePoint<TopicPayload<"comms.path">> | undefined]
+> = {
+  forSubject: (id) => `fleet.${id}.orbit`,
+  subject: (_point, [pathPoint]) => {
+    const peer = firstHopPeer(pathPoint?.payload?.hops);
+    return peer !== null && !peer.isHome ? peer.id : undefined;
+  },
+};
 
 /**
  * `comms.delay.oneWaySeconds`, by re-measuring the FIRST hop of the observed
@@ -469,10 +496,11 @@ function registerCommsDelayReckoner(): void {
       "vessel.orbit",
       "system.bodies",
       "commandCentre.roster",
+      RELAY_ORBIT,
     ],
     reckon(
       point,
-      [pathPoint, orbitPoint, bodiesPoint, rosterPoint],
+      [pathPoint, orbitPoint, bodiesPoint, rosterPoint, relayOrbitPoint],
       { viewUt },
     ) {
       const observed = point.payload;
@@ -507,27 +535,36 @@ function registerCommsDelayReckoner(): void {
           },
         };
       }
-      if (!peer.isHome) {
-        return {
-          declined: {
-            reason: "input-absent",
-            input: `@fleet.${peer.id}.orbit`,
-            note: "the route home starts at a relay, and where that relay is now is not published anywhere this model can read",
-          },
-        };
-      }
+      /*
+       * A relay's elements come from the per-subject dep, which resolved
+       * `fleet.<peer.id>.orbit` for this very peer, so the lookup answers for
+       * that id and nothing else. A station endpoint never reaches it:
+       * `locateCommsPeer` joins those to the roster by display name.
+       */
+      const relayOrbit = relayOrbitPoint?.payload ?? undefined;
       const located = locateCommsPeer(
         peer,
         rosterPoint?.payload ?? undefined,
-        NO_FLEET_ORBITS,
+        (vesselId) => (vesselId === peer.id ? relayOrbit : undefined),
       );
       if (located === null) {
+        /*
+         * Which channel failed depends on which kind of endpoint it is, and
+         * saying the wrong one sends a reader to the wrong place: a station is
+         * placed from the roster, a relay from its own fleet orbit.
+         */
         return {
-          declined: {
-            reason: "input-absent",
-            input: "@commandCentre.roster",
-            note: `the roster carries no position for ${peer.id}`,
-          },
+          declined: peer.isHome
+            ? {
+                reason: "input-absent",
+                input: "@commandCentre.roster",
+                note: `the roster carries no position for ${peer.id}`,
+              }
+            : {
+                reason: "input-absent",
+                input: `@fleet.${peer.id}.orbit`,
+                note: `the route home starts at ${peer.id}, whose orbit has not arrived`,
+              },
         };
       }
       const fit = fitCommsDelay({

@@ -142,7 +142,14 @@ function point<T>(validAt: number, payload: T): TimelinePoint<T> {
  */
 function scene(
   hops: readonly CommsHop[],
-  options: { source?: CommsDelaySource; observedAt?: number } = {},
+  options: {
+    source?: CommsDelaySource;
+    observedAt?: number;
+    /** Publish the relay's own elements on its per-vessel dynamic topic. */
+    relayOrbit?: boolean;
+    /** Record what the store asks to be held up, and what it lets go. */
+    held?: string[];
+  } = {},
 ) {
   const { source = CommsDelaySource.SignalDelay, observedAt = 0 } = options;
   let wall = observedAt;
@@ -152,12 +159,23 @@ function scene(
     delaySeconds: () => 0,
   });
   clock.setMode("predicted");
-  const store = new TimelineStore(clock);
+  const store = new TimelineStore(clock, {
+    subscribeDynamicTopic: (topic) => {
+      options.held?.push(`+${topic}`);
+      return () => options.held?.push(`-${topic}`);
+    },
+  });
   store.setTransportConnected(false);
   store.ingest("system.bodies", point(observedAt, SYSTEM));
   store.ingest("commandCentre.roster", point(observedAt, ROSTER));
   store.ingest("vessel.orbit", point(observedAt, circularOrbit(CRAFT_SMA)));
   store.ingest("comms.path", point(observedAt, { hops: [...hops] }));
+  if (options.relayOrbit) {
+    store.ingest(
+      `fleet.${RELAY_GUID}.orbit`,
+      point(observedAt, circularOrbit(RELAY_SMA)),
+    );
+  }
   store.ingest(
     "comms.delay",
     point(observedAt, {
@@ -171,6 +189,11 @@ function scene(
     repeatRoute(at: number) {
       wall = at;
       store.ingest("comms.path", point(at, { hops: [...hops] }));
+    },
+    /** Re-route straight to the station, so the model names no subject at all. */
+    goDirect(at: number) {
+      wall = at;
+      store.ingest("comms.path", point(at, { hops: [...DIRECT_HOPS] }));
     },
     at(viewUt: number): TopicReading<DelaySample> {
       wall = viewUt;
@@ -262,14 +285,15 @@ describe("a direct link to a ground station", () => {
 });
 
 describe("a relayed link", () => {
-  it("withdraws, naming the per-vessel orbit topic a reckoner cannot declare", () => {
+  it("withdraws when the relay's own orbit has not arrived", () => {
     const s = scene(RELAYED_HOPS);
     const reading = s.at(HALF_ORBIT);
 
     // The relay's elements ride `fleet.<guid>.orbit`, a per-vessel dynamic
-    // topic. A reckoner's inputs are declared once at registration, so there is
-    // no dep that names it and no honest way to place the relay. The refusal
-    // says which input, spelled as the wire spells it.
+    // topic whose guid is only known once the route arrives. The model NAMES it
+    // now (see the per-subject dep), so this is the ordinary "declared input
+    // has not arrived" refusal rather than the old "no dep can name it", and it
+    // is spelled the way the wire spells it.
     expect(reading.reckoning.status).toBe("declined");
     expect(reading.reckoning).toMatchObject({
       status: "declined",
@@ -278,5 +302,52 @@ describe("a relayed link", () => {
         input: `@fleet.${RELAY_GUID}.orbit`,
       },
     });
+  });
+
+  /**
+   * At half a craft period the craft is at 180° and the relay, orbiting half as
+   * often, is at 90°, so the re-measured first hop is the hypotenuse of the two
+   * radii. Only that hop moves: the relay-to-station leg joins two things whose
+   * separation the mod already measured, and it carries forward as the length
+   * it was.
+   *
+   * Written down rather than recomputed, which is the whole point of the
+   * fixture's chosen periods.
+   */
+  it("re-measures the craft-to-relay hop once the relay's orbit arrives", () => {
+    const s = scene(RELAYED_HOPS, { relayOrbit: true });
+    const reading = s.at(HALF_ORBIT);
+
+    const firstHopNow = Math.sqrt(CRAFT_SMA ** 2 + RELAY_SMA ** 2);
+    const carried = RELAY_SMA - PLANET_RADIUS;
+    expect(reading.reckoning.status).toBe("available");
+    expect(reckonedSeconds(reading)).toBeCloseTo(
+      (firstHopNow + carried) / C,
+      9,
+    );
+  });
+
+  /**
+   * The half of option 1 that nothing else can do. The subject is not known at
+   * subscribe time, so the read's own set cannot contain this topic and the
+   * store is what has to hold it up; without this the model would name an input
+   * that nothing anywhere asked the wire for and decline on it for ever.
+   */
+  it("holds up the relay's orbit, and lets go when the route goes direct", () => {
+    const held: string[] = [];
+    const s = scene(RELAYED_HOPS, { relayOrbit: true, held });
+    s.at(HALF_ORBIT);
+    expect(held).toEqual([`+fleet.${RELAY_GUID}.orbit`]);
+
+    // A route straight home names no subject, so the hold is not re-asserted
+    // and the sweep drops it. Two frames: the sweep runs before a frame's
+    // reads, so the frame that stops asserting is the one that earns release.
+    s.goDirect(HALF_ORBIT);
+    s.at(HALF_ORBIT);
+    s.at(HALF_ORBIT);
+    expect(held).toEqual([
+      `+fleet.${RELAY_GUID}.orbit`,
+      `-fleet.${RELAY_GUID}.orbit`,
+    ]);
   });
 });
