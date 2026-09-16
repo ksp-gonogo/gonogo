@@ -17,7 +17,10 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  combineReadings,
+  type Reading,
   RosterCommsControlSource,
+  type Value,
   VesselType,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -172,13 +175,28 @@ function rosterCommsLink(
 }
 
 /**
+ * A link that carries commands, which is what coverage counts.
+ *
+ * Shared by the badge rollup and the coverage reading so the two cannot come to
+ * disagree about what "linked" means: they are the same number shown twice, one
+ * as a count and one as a share.
+ */
+function isLinked(link: CommsLink): boolean {
+  return link === "connected" || link === "relay";
+}
+
+/**
  * `system.vessels` -> the widget's row shape. `known` distinguishes "the
  * topic has never delivered a sample" from "it delivered one, and the fleet
  * is genuinely empty", the same distinction the FleetRoster stub fix
  * established, now against the real Topic instead of the retired
  * `fleet.vessels` key.
  */
-function useFleet(): { known: boolean; vessels: FleetVessel[] } {
+function useFleet(): {
+  known: boolean;
+  vessels: FleetVessel[];
+  coverage: Reading<Value<"ratio">>;
+} {
   // FAIL-OPEN FIX, not merely a migration. `known` was `system !== undefined`,
   // and a `Reading` is never undefined, so the roster would have reported itself
   // KNOWN before a single frame arrived: an empty fleet presented as a confirmed
@@ -225,7 +243,39 @@ function useFleet(): { known: boolean; vessels: FleetVessel[] } {
     [system, nameByIndex],
   );
 
-  return { known: system !== undefined, vessels };
+  /**
+   * Comms coverage as a reading rather than a bare figure.
+   *
+   * The share is arithmetic the WIDGET does, so before the combinator it was a
+   * `Value` with no currency at all: nothing on it said whether the roster it
+   * counted was live, held or never delivered, and the bar drew the same at a
+   * confirmed 40% as at a 40% remembered from two minutes ago.
+   *
+   * Computed from `system.vessels` alone, which is the whole of what it
+   * depends on: `system.bodies` supplies body NAMES for the table and the
+   * rollup never reads one. So the coverage is exactly as current as the
+   * roster, which is the honest answer and the one the combinator's rule
+   * gives.
+   *
+   * Consistent with this hook's own note above that a stale roster still
+   * counts as KNOWN: the currency belongs on the figure derived from the list,
+   * not on each vessel's own link, which is rendered from its own field.
+   */
+  const coverage = useMemo(
+    () =>
+      combineReadings([systemReading.vessels], (entries) => {
+        const roster = (entries ?? []).filter((v) =>
+          isRosterCraft(v.vesselType),
+        );
+        const linked = roster.filter((v) =>
+          isLinked(rosterCommsLink(v.commsControlSource)),
+        ).length;
+        return value("ratio", roster.length > 0 ? linked / roster.length : 0);
+      }),
+    [systemReading],
+  );
+
+  return { known: system !== undefined, vessels, coverage };
 }
 
 // ---------------------------------------------------------------------------
@@ -287,9 +337,7 @@ function commsRollup(vessels: FleetVessel[]): {
   badgeLabel: string;
   tone: Tone;
 } {
-  const linked = vessels.filter(
-    (v) => v.comms === "connected" || v.comms === "relay",
-  ).length;
+  const linked = vessels.filter((v) => isLinked(v.comms)).length;
   const none = vessels.filter((v) => v.comms === "none").length;
   const unknown = vessels.filter((v) => v.comms === "unknown").length;
 
@@ -584,7 +632,7 @@ const EMPTY_FLEET = { vessels: [] as never[] };
 function FleetRosterComponent({
   w,
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
-  const { known, vessels } = useFleet();
+  const { known, vessels, coverage } = useFleet();
   const rollup = commsRollup(vessels);
   // Whose light-time the per-vessel delays are computed from: the selected
   // command centre (Plan 3), or before this screen chooses, the one the mod put
@@ -630,7 +678,7 @@ function FleetRosterComponent({
       panelFooter={
         <Meter
           label="Comms coverage"
-          value={value("ratio", total > 0 ? rollup.linked / total : 0)}
+          value={coverage}
           tone={rollup.tone}
           valueLabel={`${rollup.linked} linked · ${rollup.none} no link${
             rollup.unknown > 0 ? ` · ${rollup.unknown} unknown` : ""
