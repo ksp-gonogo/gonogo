@@ -735,6 +735,18 @@ build_gonogo() {
     cp "$dll" "$install_dir/"
     deployed+=("$(basename "$dll")")
   done
+  # Same stamp every Uplink target writes, and written here BEFORE the
+  # verification below rather than after it: the DLLs are already copied by this
+  # point, so the file's job is to name the tree those bytes came from whatever
+  # the verdict turns out to be. Core was the one target without it, which left
+  # its build-info.txt hand-maintained and free to disagree with the DLLs beside
+  # it; the copy found on the deck named a sha three days older than the
+  # assemblies it sat next to.
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
   # Prove the bytes that landed hold this build's code, the same way every
   # Uplink deploy does. Core had no such check, and core is where the seams the
   # Uplinks register into live: a stale Gonogo.dll answers every capability
@@ -751,8 +763,16 @@ build_gonogo() {
   #                                compiles across
   #   NotAttempted                 the refusal enum's zero value; its old
   #                                spelling reads as "nothing was refused"
-  #   ElectedIntegrates            the election's own type check, in the
-  #                                assembly the KSP layer calls it from
+  #   ElectedIntegrates            the election's own type check, in Sitrep.Host,
+  #                                which defines it. NOT asked of Gonogo.dll:
+  #                                the KSP layer's last call to it went in
+  #                                77dd519ac, so the requirement outlived its
+  #                                subject and failed every successful deploy
+  #   BodyHorizonFor               what the KSP layer asks the election for now
+  #                                (SystemUplink), and the youngest of the four
+  #                                election calls it makes, so its presence is
+  #                                the strongest available "these bytes are a
+  #                                current Gonogo.KSP"
   #   Reinforced.Typings           the codegen dependency, which once flowed 29
   #                                copies deep and hid a dispatch bug for a month
   echo "=== verifying deployed bytes ==="
@@ -775,7 +795,7 @@ build_gonogo() {
   python3 "$ROOT/scripts/verify_deployed_symbols.py" \
     "$install_dir/Gonogo.dll" \
     --control mscorlib \
-    --require ElectedIntegrates \
+    --require BodyHorizonFor \
     --require KspPerturbers \
     --absent Reinforced.Typings || ksp_rc=$?
   if [ "$contract_rc" -ne 0 ] || [ "$host_rc" -ne 0 ] || [ "$ksp_rc" -ne 0 ]; then
