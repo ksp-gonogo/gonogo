@@ -19,11 +19,9 @@ import type { ModelledField } from "./client-reading";
 import type { OrbitElements, PropagationHorizonLike, Vector3 } from "./kepler";
 import {
   buildElements,
-  isHyperbolic,
   keplerAdmissibility,
   magnitude,
   trySolve,
-  trySolveAnomalies,
 } from "./kepler-reckoning";
 import {
   findImpactPoint,
@@ -32,6 +30,7 @@ import {
   type OrbitPatchWirePayload,
   ROTATION_PERIOD_SECONDS,
 } from "./orbit-patches";
+import { solveOrbit } from "./orbital-solve";
 import { STANDARD_GRAVITY } from "./propagation";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
@@ -817,16 +816,6 @@ export {
   type WireOrbitElements,
 } from "./kepler-reckoning";
 
-function radToDeg(rad: number): number {
-  return (rad * 180) / Math.PI;
-}
-
-/** Wraps a degree value into [0, 360), the KSP widget-facing angle convention (contrast `kepler.ts`'s internal [0, 2π) radian wrap). */
-function wrapDegrees360(deg: number): number {
-  const wrapped = deg % 360;
-  return wrapped < 0 ? wrapped + 360 : wrapped;
-}
-
 /** `x` if finite, else `null`: the discipline every new derived scalar field in this file follows (never a NaN/Infinity escapes onto `VesselState`). */
 /**
  * A wire quantity's magnitude, or `NaN` when the field is absent.
@@ -855,83 +844,6 @@ function mag(v: Quantityish): number {
 
 function finiteOrNull(x: number): number | null {
   return Number.isFinite(x) ? x : null;
-}
-
-/**
- * Seconds from `meanAnomaly` (radians) until the mean anomaly next reaches
- * `targetMeanAnomaly` (radians), wrapped forward to `[0, period)`, 0 when
- * already there. `null` for a non-finite or non-positive `meanMotion` (never
- * divide by zero/negative: a degenerate orbit has no well-defined period to
- * count down within).
- */
-function timeToMeanAnomaly(
-  meanAnomaly: number,
-  targetMeanAnomaly: number,
-  meanMotion: number,
-): number | null {
-  if (
-    !Number.isFinite(meanAnomaly) ||
-    !Number.isFinite(targetMeanAnomaly) ||
-    !Number.isFinite(meanMotion) ||
-    meanMotion <= 0
-  ) {
-    return null;
-  }
-  const twoPi = 2 * Math.PI;
-  let delta = (targetMeanAnomaly - meanAnomaly) % twoPi;
-  if (delta < 0) delta += twoPi;
-  return delta / meanMotion;
-}
-
-/**
- * The apoapsis/periapsis altitude pair; needs the reference body's mean
- * radius from `system.bodies`, looked up by `orbit.referenceBodyIndex`
- * (`SystemBodyPayload.index`, the STABLE id, never array position). Kept as
- * its own function so `deriveVesselState`'s OnRails branch reads as a flat
- * list of field computations rather than an inline `system.bodies`-walking
- * block.
- *
- * `undefined` (not whole yet: "still resyncing") both when `system.bodies`
- * itself hasn't arrived and when it HAS arrived but the referenced body (or
- * its radius specifically) isn't in it yet, neither is a confirmed absence.
- * `null` only when `system.bodies` is an outright tombstone (the channel's
- * own confirmed-absent case, per the class-level `undefined`-vs-`null`
- * discipline applied here at the field level).
- */
-function deriveApsides(
-  get: DerivedGet,
-  orbit: VesselOrbitPayload,
-): {
-  apoapsisAlt: number | null | undefined;
-  periapsisAlt: number | null | undefined;
-} {
-  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
-  if (!bodiesPoint) {
-    return { apoapsisAlt: undefined, periapsisAlt: undefined };
-  }
-  if (bodiesPoint.payload === null) {
-    return { apoapsisAlt: null, periapsisAlt: null };
-  }
-
-  const body = bodiesPoint.payload.bodies.find(
-    (b) => b.index === orbit.referenceBodyIndex,
-  );
-  const radius = body?.radius;
-  if (radius == null) {
-    return { apoapsisAlt: undefined, periapsisAlt: undefined };
-  }
-
-  return {
-    // Apoapsis doesn't exist on a hyperbolic orbit (ecc >= 1), sma < 0 there
-    // makes `sma·(1+ecc) - radius` a finite but MEANINGLESS number, which
-    // `finiteOrNull` can't catch, so this is an explicit check, not a
-    // by-product of the finite guard. Periapsis stays valid: sma < 0,
-    // ecc > 1 makes `sma·(1-ecc)` a positive radius, same formula either way.
-    apoapsisAlt: isHyperbolic(mag(orbit.ecc))
-      ? null
-      : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc)) - radius),
-    periapsisAlt: finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc)) - radius),
-  };
 }
 
 /**
@@ -1174,52 +1086,25 @@ function deriveTargetOrbit(
     };
   }
 
-  const elements = buildElements(orbit);
-  // A hyperbolic target (ecc >= 1) is real, an escaping or flyby target vessel
-  // or body. Solving its anomalies degrades to null instead of throwing, and
-  // targetPeriapsisAlt below stays valid regardless (see isHyperbolic's doc).
-  const anomalies = trySolveAnomalies(elements, viewUt);
+  /*
+   * The SAME solve the craft's own orbit goes through, which is the point:
+   * this used to re-derive the period, the true anomaly and the periapsis
+   * altitude that `deriveVesselState` had already derived a few lines above,
+   * from the same elements at the same instant. A hyperbolic target (ecc >= 1)
+   * is real, an escaping or flyby vessel or body, and degrades to `null` in
+   * step rather than throwing; see `solveOrbit`'s own doc.
+   */
+  const solved = solveOrbit(
+    orbit,
+    viewUt,
+    resolveBodyRadius(get, orbit.referenceBodyIndex),
+  );
 
-  const targetPeriod =
-    anomalies == null
-      ? null
-      : finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
-  const targetTrueAnomaly =
-    anomalies == null
-      ? null
-      : finiteOrNull(wrapDegrees360(radToDeg(anomalies.trueAnomaly)));
-
-  const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
-  const targetPeriapsisAlt =
-    radius == null
-      ? radius
-      : finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc)) - radius);
-
-  return { targetPeriapsisAlt, targetPeriod, targetTrueAnomaly };
-}
-
-/**
- * Which apsis comes next (`vessel.state.nextApsisType`, old
- * `o.nextApsisType`: `1` = Ap, `-1` = Pe) and the seconds until it
- * (`timeToNextApsis`, old `o.timeToNextApsis`): picked as whichever of the
- * already-derived `timeToAp`/`timeToPe` countdowns is the smaller non-`null`
- * value. `{ null, null }` when neither countdown is available (both `null`,
- * e.g. the "measured" basis, where the orbital countdowns aren't derived).
- * Never emits the legacy `0`/N-A sentinel: an unavailable next-apsis is
- * `null`, which the consuming chip treats identically (it renders only for a
- * `±1` type with a finite time).
- */
-function deriveNextApsis(
-  timeToAp: number | null,
-  timeToPe: number | null,
-): { nextApsisType: number | null; timeToNextApsis: number | null } {
-  if (timeToAp != null && (timeToPe == null || timeToAp <= timeToPe)) {
-    return { nextApsisType: 1, timeToNextApsis: timeToAp };
-  }
-  if (timeToPe != null) {
-    return { nextApsisType: -1, timeToNextApsis: timeToPe };
-  }
-  return { nextApsisType: null, timeToNextApsis: null };
+  return {
+    targetPeriapsisAlt: solved.periapsisAlt,
+    targetPeriod: solved.period,
+    targetTrueAnomaly: solved.trueAnomaly,
+  };
 }
 
 /**
@@ -1862,36 +1747,27 @@ export function deriveVesselState(
   if (quality === Quality.OnRails) {
     const elements: OrbitElements = buildElements(orbit);
     // A hyperbolic orbit (ecc >= 1, real on a fast escape/flyby while
-    // time-warping) can't go through kepler's elliptical-only solver,
-    // trySolve/trySolveAnomalies degrade to null instead of throwing, and
-    // every field below that depends on them degrades to null in step
-    // (never a bogus number). Full hyperbolic anomaly support is out of
-    // scope; see `isHyperbolic`'s doc.
+    // time-warping) can't go through kepler's elliptical-only solver, so
+    // `trySolve` degrades to null instead of throwing and the position and
+    // velocity below degrade with it. The orbital scalars take the same
+    // degradation inside `solveOrbit`, which is where that reasoning now
+    // lives in full.
     const solved = trySolve(elements, viewUt);
-    const anomalies = trySolveAnomalies(elements, viewUt);
     const position = solved?.position ?? null;
     const velocity = solved?.velocity ?? null;
 
-    const period =
-      anomalies == null
-        ? null
-        : finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
-    const trueAnomaly =
-      anomalies == null
-        ? null
-        : finiteOrNull(wrapDegrees360(radToDeg(anomalies.trueAnomaly)));
-    const timeToAp =
-      anomalies == null
-        ? null
-        : timeToMeanAnomaly(
-            anomalies.meanAnomaly,
-            Math.PI,
-            anomalies.meanMotion,
-          );
-    const timeToPe =
-      anomalies == null
-        ? null
-        : timeToMeanAnomaly(anomalies.meanAnomaly, 0, anomalies.meanMotion);
+    /*
+     * One solve, shared with the target's orbit a few functions down
+     * (`deriveTargetOrbit`). The body radius is resolved here rather than in
+     * there because the three-way discipline over `system.bodies` belongs to
+     * this channel; the mathematics does not need to know about it.
+     */
+    const orbitals = solveOrbit(
+      orbit,
+      viewUt,
+      resolveBodyRadius(get, orbit.referenceBodyIndex),
+    );
+    const { period, trueAnomaly, timeToAp, timeToPe } = orbitals;
 
     // A secondary input: its own absence nulls ONLY `met`, not the whole
     // record. Contrast `vessel.orbit` and `vessel.flight` above, whose absence
@@ -1903,7 +1779,7 @@ export function deriveVesselState(
         : null;
     const met = launchUt == null ? null : finiteOrNull(viewUt - launchUt);
 
-    const { apoapsisAlt, periapsisAlt } = deriveApsides(get, orbit);
+    const { apoapsisAlt, periapsisAlt } = orbitals;
 
     const parentBodyIndex =
       identityPoint && identityPoint.payload !== null
@@ -1917,8 +1793,7 @@ export function deriveVesselState(
       orbit.referenceBodyIndex,
     );
 
-    const orbitalRadius =
-      position == null ? null : finiteOrNull(magnitude(position));
+    const orbitalRadius = orbitals.orbitalRadius;
 
     return {
       position,
@@ -1958,17 +1833,11 @@ export function deriveVesselState(
       referenceBodyRadius,
       ...deriveEncounter(get, orbit),
       targetRelativeSpeed: deriveTargetRelativeSpeed(get),
-      // Radii straight off the elements (no body table); always finite here.
-      // Apoapsis doesn't exist on a hyperbolic orbit (see isHyperbolic's
-      // doc): explicit check, not a by-product of finiteOrNull, since
-      // sma·(1+ecc) is still a finite (just meaningless) number there.
-      // Periapsis stays valid: sma·(1-ecc) is a positive radius either way.
-      apoapsisRadius: isHyperbolic(mag(orbit.ecc))
-        ? null
-        : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc))),
-      periapsisRadius: finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc))),
+      apoapsisRadius: orbitals.apoapsisRadius,
+      periapsisRadius: orbitals.periapsisRadius,
       orbitalRadius,
-      ...deriveNextApsis(timeToAp, timeToPe),
+      nextApsisType: orbitals.nextApsisType,
+      timeToNextApsis: orbitals.timeToNextApsis,
       // Surface-frame horizontal speed is a MEASURED quantity, null in the
       // propagated basis, exactly like surfaceSpeed/verticalSpeed above.
       horizontalSpeed: null,
