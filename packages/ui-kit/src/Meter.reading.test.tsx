@@ -81,9 +81,10 @@ describe("Meter's bound marks, and the track that used to contain them", () => {
   /**
    * The defect an operator asked about (#246): a mark lived inside the track,
    * whose `overflow: hidden` clipped it, so a mark was exactly as tall as its
-   * own track. On the small size every `WidgetMeters` stack draws, that was two
-   * pixels against the medium size's six: the same statement about a model,
-   * drawn a third as tall for a reason the reader never chose and cannot see.
+   * own track. Back when a meter had two track heights that made the same
+   * statement about a model two pixels tall on one and six on the other. The
+   * size axis is gone now, but the marks stay out of the clip: their height is
+   * the track's business only if they live in it.
    *
    * The structural fix is this: a mark is NOT inside the element that clips.
    * Asserted on the DOM rather than on a computed height, because jsdom

@@ -18,7 +18,6 @@ import {
 } from "./units";
 
 export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
-export type MeterSize = "sm" | "md";
 
 /**
  * What either half of a meter may be handed: the quantity on its own, or the
@@ -68,7 +67,6 @@ interface MeterCommonProps
    * accessibility tree.
    */
   valueLabelNode?: ReactNode;
-  size?: MeterSize;
 }
 
 /**
@@ -199,7 +197,6 @@ export function Meter<U extends string = string>({
   fillColor,
   valueLabel,
   valueLabelNode,
-  size = "md",
   ...rest
 }: MeterProps<U>) {
   // Unpacked first, so each half's figure and the statements about it go
@@ -212,7 +209,7 @@ export function Meter<U extends string = string>({
   );
   if (fraction === null) {
     return (
-      <Meter__Root $size={size} {...rest}>
+      <Meter__Root {...rest}>
         <Meter__Head>
           <Meter__Label>{label}</Meter__Label>
           <Meter__Value>
@@ -221,7 +218,7 @@ export function Meter<U extends string = string>({
         </Meter__Head>
         {/* Decorative: the track carries no reading, so the label and the
             placeholder beside it are the whole accessible content. */}
-        <Meter__Track $size={size} $notCurrent={false} aria-hidden="true" />
+        <Meter__Track $notCurrent={false} aria-hidden="true" />
       </Meter__Root>
     );
   }
@@ -233,7 +230,6 @@ export function Meter<U extends string = string>({
     pct: Math.round(clamped * 100),
     tone,
     fillColor,
-    size,
     // A capacity that has stopped being current marks the TRACK. The fill is
     // still the reading it always was; what is no longer known is the axis it
     // is drawn against, and marking the bar would say the wrong half aged.
@@ -504,7 +500,6 @@ interface MeterBarProps
   pct: number;
   tone: MeterTone;
   fillColor?: string;
-  size: MeterSize;
   /** Whether the AXIS has stopped being current. See `Meter__Track`. */
   trackNotCurrent: boolean;
   /** The value for the eye, as markup. */
@@ -530,7 +525,6 @@ function MeterBar({
   pct,
   tone,
   fillColor,
-  size,
   trackNotCurrent,
   display,
   spoken,
@@ -539,14 +533,13 @@ function MeterBar({
   ...rest
 }: MeterBarProps) {
   return (
-    <Meter__Root $size={size} {...rest}>
+    <Meter__Root {...rest}>
       <Meter__Head>
         <Meter__Label>{label}</Meter__Label>
         <Meter__Value>{display}</Meter__Value>
       </Meter__Head>
       <Meter__Bar>
         <Meter__Track
-          $size={size}
           $notCurrent={trackNotCurrent}
           data-track-not-current={trackNotCurrent ? "" : undefined}
           role="meter"
@@ -566,7 +559,7 @@ function MeterBar({
             `aria-valuetext` above, in words, because a 2px line has no reading
             of its own and four of them announced separately would be noise. */}
         {(bounds !== null || endBounds !== null) && (
-          <Meter__Marks $size={size} aria-hidden="true">
+          <Meter__Marks aria-hidden="true">
             {bounds !== null && (
               <>
                 <Meter__Bound data-bound="lo" {...markAt(bounds.lo)} />
@@ -688,40 +681,27 @@ const TONE_FILL = {
   `,
 } as const;
 
-const SIZE_TRACK = {
-  sm: css`
-    height: 4px;
-  `,
-  md: css`
-    height: 8px;
-  `,
-} as const;
-
 /**
- * Where a bound mark's ends sit relative to the track's outer edge, per size,
- * so that a mark is SIX PIXELS on either bar.
+ * The one track height a meter has, and the one mark height that goes with it.
  *
- * A mark clipped to its own track was two pixels on the small size and six on
- * the medium one: the same statement about a model, drawn a third as tall
- * depending on a size the reader never chose and cannot see. That is what an
- * operator asked about, having been shown the medium sheets.
+ * There used to be two, a four-pixel `sm` and an eight-pixel `md`, chosen by a
+ * `size` prop. Nothing about a bar's meaning changed between them, so a reader
+ * met the same statement drawn at two heights with no way to tell which they
+ * were looking at, and the axis was carrying a density preference rather than
+ * anything a meter says. Eight is the survivor because it is the height every
+ * direct caller already got: `size` defaulted to `md`, and only `WidgetMeters`
+ * defaulted the other way.
  *
- * Six because it is what the medium bar has always drawn, and matching it is
- * the whole of the request. The medium size therefore keeps its mark exactly
- * where it was, inside the 1px border, and only the small one moves: it stands
- * one pixel proud each way, which its own track cannot contain and is why the
- * marks now sit in a layer of their own.
+ * A mark sits one pixel inside each edge, which is six pixels of tick on an
+ * eight-pixel track (the box is border-box, so the 1px border is inside the
+ * eight). The marks are still a layer of their own rather than children of the
+ * track: the track's `overflow: hidden` is what rounds the FILL's ends, and a
+ * mark inside it would be clipped to the track's own height.
  */
-const SIZE_MARK_OVERHANG = {
-  sm: css`
-    --meter-mark-overhang: -1px;
-  `,
-  md: css`
-    --meter-mark-overhang: 1px;
-  `,
-} as const;
+const TRACK_HEIGHT = "8px";
+const MARK_INSET = "1px";
 
-const Meter__Root = styled.div<{ $size: MeterSize }>`
+const Meter__Root = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -785,33 +765,33 @@ const Meter__Value = styled.span`
    is how one visual language stops being one. A dash reads as provisional
    whether or not the reader can separate the two greys (WCAG 1.4.1), and the
    words are in `aria-valuetext`. */
-const Meter__Track = styled.div<{ $size: MeterSize; $notCurrent: boolean }>`
+const Meter__Track = styled.div<{ $notCurrent: boolean }>`
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   border: 1px ${({ $notCurrent }) => ($notCurrent ? "dashed" : "solid")}
     var(--color-border-subtle);
   overflow: hidden;
-  /* The frame the bound marks are placed against. They live INSIDE the track
-     rather than over it so the same overflow that rounds the fill's ends keeps
-     a mark at 0% or 100% inside the pill. */
+  /* Positioned for the fill, which is its only child. The bound marks are NOT
+     in here: this overflow rounds the fill's ends, and it would take a mark's
+     height with it. */
   position: relative;
-  ${({ $size }) => SIZE_TRACK[$size]}
+  height: ${TRACK_HEIGHT};
 `;
 
 /**
  * One end of the model's interval: a tick across the track at that end's own
  * place along it.
  *
- * Two pixels, full track height, and nothing else. Every part of that is the
+ * Two pixels wide, six tall, and nothing else. Every part of that is the
  * "readable if you are looking for it, not in your face" the shape was asked
  * for:
  *
  * - it sits ON the track rather than beside it, so the distance the eye reads
  *   is the distance from the bar's end and needs no second axis to be measured
  *   against
- * - two pixels rather than one because the smaller track is four pixels tall,
- *   where a hairline is not a mark, it is dust
+ * - two pixels wide rather than one, because a hairline on a bar this short is
+ *   not a mark, it is dust
  *
  * **Neutral and two-toned, because a mark has to cross the fill.** A bound
  * below the value falls INSIDE the bar, so a single flat colour is a mark that
@@ -823,22 +803,17 @@ const Meter__Track = styled.div<{ $size: MeterSize; $notCurrent: boolean }>`
  * wrong: colour on a meter already means the fill's status, and a second
  * meaning in the same few pixels is how one visual language stops being one.
  */
-/* The layer the marks are drawn in, OVER the track rather than inside it.
-   Inside the track they were clipped to it, so a mark was exactly as tall as
-   its own track and the small size drew a two-pixel stub: the same mark that
-   reads clearly on an 8px bar was half that on the 4px one every WidgetMeters
-   stack uses, which is what an operator asked about. The track keeps its own
-   overflow, because that is what rounds the FILL's ends; the marks no longer
-   pay for it.
+/* The layer the marks are drawn in, OVER the track rather than inside it. The
+   track keeps its own overflow, because that is what rounds the FILL's ends;
+   the marks no longer pay for it with their height.
 
    Horizontal containment is unaffected and never came from the clip: `markAt`
    already tucks an end mark fully inside the track's width, which is why a
    mark at 0% or 100% still sits on the bar rather than beside it. */
-const Meter__Marks = styled.div<{ $size: MeterSize }>`
+const Meter__Marks = styled.div`
   position: absolute;
   inset: 0;
   pointer-events: none;
-  ${({ $size }) => SIZE_MARK_OVERHANG[$size]}
 `;
 
 /* The bar: the track and the marks over it, in one box the marks can be
@@ -849,8 +824,8 @@ const Meter__Bar = styled.div`
 
 const Meter__Bound = styled.div`
   position: absolute;
-  top: var(--meter-mark-overhang);
-  bottom: var(--meter-mark-overhang);
+  top: ${MARK_INSET};
+  bottom: ${MARK_INSET};
   width: 2px;
   background: var(--color-text-primary);
   /* The separation from a light or saturated fill. Inset as well as outset so

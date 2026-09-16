@@ -247,7 +247,6 @@ function EvaSuitReadout({
     <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
       {oxygen && (
         <Meter
-          size="sm"
           label="O2"
           value={oxygen.amount}
           capacity={oxygen.capacity}
@@ -256,7 +255,6 @@ function EvaSuitReadout({
       )}
       {electricCharge && (
         <Meter
-          size="sm"
           label="EC"
           value={electricCharge.amount}
           capacity={electricCharge.capacity}

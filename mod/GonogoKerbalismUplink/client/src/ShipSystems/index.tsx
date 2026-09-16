@@ -454,7 +454,6 @@ function ShipSystemsBody({
             tone={toneForRow(ecRow)}
             valueLabel={rowValueLabel(ecRow)}
             valueLabelNode={<RowValueDisplay row={ecRow} />}
-            size="md"
           />
         )
       }
@@ -564,7 +563,6 @@ function ShipSystemsBody({
                   value={fill(w.fraction)}
                   tone={wearTone(w)}
                   valueLabel={wearValueLabel(w)}
-                  size="sm"
                 />
               ))}
             </MeterStack>
@@ -594,19 +592,16 @@ function ShipSystemsBody({
               label="Comfort"
               value={fill(comfort)}
               tone={comfort !== null && comfort < 0.25 ? "warn" : "neutral"}
-              size="sm"
             />
             <Meter
               label="Living space"
               value={fill(magnitudeOf(habitat?.livingSpace))}
               tone="neutral"
-              size="sm"
             />
             <Meter
               label="CO2 poisoning"
               value={fill(poisoning)}
               tone={poisoning !== null && poisoning >= 0.5 ? "nogo" : "neutral"}
-              size="sm"
             />
           </Grid>
         </Section>,
@@ -725,7 +720,6 @@ function ResourceLedgerRow({
           tone={toneForRow(row)}
           valueLabel={rowValueLabel(row)}
           valueLabelNode={<RowValueDisplay row={row} />}
-          size="sm"
         />
         {row.role === "downstream" && row.blockedBy.length > 0 && (
           // `tone="warn"` alone renders --color-status-warning-fg, a

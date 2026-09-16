@@ -2,9 +2,9 @@
  * The meters the band sheets are drawn from, as DATA.
  *
  * Separate from the entry that renders them so the before/after pair differs
- * only in what is handed to `<Meter>`: the sheets, their order, their captions
- * and their sizes are the same file on both sides, which is what makes the two
- * PNGs comparable at all.
+ * only in what is handed to `<Meter>`: the sheets, their order and their
+ * captions are the same file on both sides, which is what makes the two PNGs
+ * comparable at all.
  */
 export type Tone = "neutral" | "go" | "warn" | "nogo" | "info";
 
@@ -37,7 +37,6 @@ export interface MeterSheet {
   id: string;
   title: string;
   blurb: string;
-  size: "sm" | "md";
   width: number;
   cases: MeterCase[];
 }
@@ -50,7 +49,6 @@ export const SHEETS: MeterSheet[] = [
       "Jebediah's dose and stress accumulators are carried forward by a model " +
       "that will bound them; his pressure rule is not. Bill's whole row is a " +
       "plain observation. The treatment is absent where there is nothing to say.",
-    size: "sm",
     width: 360,
     cases: [
       {
@@ -89,7 +87,6 @@ export const SHEETS: MeterSheet[] = [
       "The same figure at 62%, under models of increasing doubt, then two that " +
       "run off the end of the track. Subtle enough to ignore, readable when " +
       "looked for.",
-    size: "md",
     width: 360,
     cases: [
       {
@@ -143,7 +140,6 @@ export const SHEETS: MeterSheet[] = [
       "Amount over capacity, where the fill carries a resource's own colour " +
       "rather than a status. The marks have to stay legible on both halves of " +
       "the track.",
-    size: "md",
     width: 360,
     cases: [
       {
@@ -177,7 +173,6 @@ export const SHEETS: MeterSheet[] = [
       "A stale bar is the last real observation and is marked as one. The marks " +
       "are the model's interval for NOW, so the gap between the bar's end and " +
       "the pair is how far the model has carried the number since.",
-    size: "md",
     width: 360,
     cases: [
       {
@@ -205,13 +200,12 @@ export const SHEETS: MeterSheet[] = [
     ],
   },
   {
-    id: "ends-small",
-    title: "An end mark on the SMALL track",
+    id: "ends",
+    title: "An end mark, pinned at 0% and at 100%",
     blurb:
-      "The question a taller mark had to answer: one pinned at 0% or 100% must " +
-      "stay on the bar rather than beside it. The small size is the one every " +
-      "WidgetMeters stack draws, and the one the marks were shortest on.",
-    size: "sm",
+      "The question moving the marks out of the track had to answer: one " +
+      "pinned at either end must stay ON the bar rather than beside it. The " +
+      "containment is horizontal and comes from markAt, not from the clip.",
     width: 360,
     cases: [
       {
