@@ -145,6 +145,110 @@ export interface FeedScan {
  */
 const CURRENCY_MEMBERS = ["state", "reckoning"] as const;
 
+/**
+ * The reading members a figure may be taken off WITHOUT the rule counting it.
+ *
+ * `value` is deliberately absent: taking the value off a reading is the whole
+ * fault this file looks for. Everything else on a reading is about the reading
+ * rather than about the quantity it carries, and reaching one is a deliberate
+ * act with the reading still in hand, which is what the rule at the top of
+ * this file already says does not count.
+ *
+ * ## An age handed its own reading would MAKE THE WIDGET LIE
+ *
+ * This is not a tidiness exemption, and `Targeting`'s two age readouts are why.
+ * An age is `viewUt.minus(observedAt(reading))`: recomputed against the current
+ * frame on every render, so it is exactly current at the instant it is drawn,
+ * and its entire job is to say that something ELSE is old. Hand it the reading
+ * it measured and `Unit` marks it not-current, which is self-refuting: the one
+ * figure on the panel that is certainly current, drawn as stale, beside the
+ * value it exists to caveat. A gate that forces that is a gate that produces
+ * the defect it was written to prevent.
+ *
+ * ## Why this belongs in the walk and not only in `unwrapOf`
+ *
+ * `unwrapOf` already honours it, by matching the name `value` and nothing else.
+ * The walk did not, so the exemption held for `reading.reckoning.x` and
+ * evaporated for `f(reading.reckoning.x)`. A rule that survives a direct access
+ * and not one hop is not a rule; it is an accident of which function got there
+ * first.
+ */
+const EXEMPT_READING_MEMBERS: ReadonlySet<string> = new Set([
+  "state",
+  "reckoning",
+  "atUt",
+  "asOfUt",
+  "grade",
+]);
+
+/**
+ * Functions that take a reading and answer about its CURRENCY, never its value.
+ *
+ * The member exemption above cannot cover these, because they reach the
+ * currency inside their own body and the walk deliberately never enters a
+ * callee's body. `observedAt(reading)` arrives at the walk as a call whose
+ * argument is reading-shaped, which is indistinguishable at the call site from
+ * `current(reading)` handing the payload straight back.
+ *
+ * ## Why a type-level rule was rejected rather than not tried
+ *
+ * The tempting rule is "exempt a callee whose declared return type references
+ * none of its own type parameters": `observedAt<T>(r: TopicCurrency<T>):
+ * Value<"ut"> | undefined` passes it and `current<T>(r: TopicReading<T>): T |
+ * undefined` fails it, which looks like exactly the discrimination wanted. It
+ * has a hole big enough to drive the fault through: a NON-GENERIC laundering
+ * helper, `function fundsOf(r: Reading<Career>): number`, references no type
+ * parameter either and would be exempted while doing the very thing this file
+ * exists to catch. So the rule is a closed list, because the alternative that
+ * is not a list is unsound.
+ *
+ * ## Resolved by DECLARATION, never by name
+ *
+ * Membership is the declaring FILE plus the name, so a local helper a widget
+ * happens to call `observedAt` is not exempted by sharing a spelling. That is
+ * the same mistake `styleguide-reading-shape` avoided when it learned to see an
+ * imported narrower: keying on the name would reopen the hole for the next
+ * helper that borrows it.
+ */
+const CURRENCY_ACCESSORS: ReadonlySet<string> = new Set([
+  "observedAt",
+  "hasAnswered",
+]);
+
+/** The module those accessors are declared in, matched however it resolved. */
+const CURRENCY_ACCESSOR_MODULE =
+  /[/\\]sitrep-sdk[/\\](src|dist)[/\\]reading\.(ts|d\.ts)$/;
+
+/**
+ * Whether this call is one of the currency accessors, asked of its DECLARATION.
+ *
+ * A callee with no resolvable declaration answers `false`, so an unresolved
+ * import is treated as capable of leaking the value rather than assumed safe:
+ * this gate's failure direction is to report, never to wave through.
+ */
+function isCurrencyAccessor(
+  checker: ts.TypeChecker,
+  callee: ts.Expression,
+): boolean {
+  const name = ts.isPropertyAccessExpression(callee)
+    ? callee.name.text
+    : ts.isIdentifier(callee)
+      ? callee.text
+      : undefined;
+  if (name === undefined || !CURRENCY_ACCESSORS.has(name)) return false;
+
+  let symbol = checker.getSymbolAtLocation(callee);
+  if (symbol && symbol.flags & ts.SymbolFlags.Alias) {
+    symbol = checker.getAliasedSymbol(symbol);
+  }
+  const declarations = symbol?.declarations ?? [];
+  return declarations.some((declaration) =>
+    CURRENCY_ACCESSOR_MODULE.test(
+      declaration.getSourceFile().fileName.replace(/\\/g, "/"),
+    ),
+  );
+}
+
 /** Whether `type`, or any arm of it, is a reading. */
 export function isReadingShaped(
   checker: ts.TypeChecker,
@@ -257,7 +361,21 @@ function derivedFromReading(
   const recur = (child: ts.Expression) =>
     derivedFromReading(checker, child, depth + 1, seen);
 
-  if (ts.isPropertyAccessExpression(node)) return recur(node.expression);
+  if (ts.isPropertyAccessExpression(node)) {
+    /*
+     * A member of the READING rather than of the quantity it carries: the
+     * provenance stops here, for the reasons on `EXEMPT_READING_MEMBERS`. Asked
+     * of the object's TYPE, so a payload field that merely happens to be
+     * spelled `grade` is not exempted by its name.
+     */
+    if (
+      EXEMPT_READING_MEMBERS.has(node.name.text) &&
+      isReadingShaped(checker, checker.getTypeAtLocation(node.expression))
+    ) {
+      return false;
+    }
+    return recur(node.expression);
+  }
   if (ts.isElementAccessExpression(node)) return recur(node.expression);
   if (ts.isNonNullExpression(node) || ts.isAsExpression(node))
     return recur(node.expression);
@@ -265,7 +383,23 @@ function derivedFromReading(
   if (ts.isConditionalExpression(node))
     return recur(node.whenTrue) || recur(node.whenFalse);
   if (ts.isPrefixUnaryExpression(node)) return recur(node.operand);
-  if (ts.isCallExpression(node)) return node.arguments.some(recur);
+  if (ts.isCallExpression(node)) {
+    /*
+     * A currency accessor's result is about the reading, not about the quantity
+     * it carries, so the reading it was handed contributes no provenance. See
+     * `CURRENCY_ACCESSORS`: the age readouts this unblocks would otherwise be
+     * forced to draw themselves as not-current.
+     */
+    if (isCurrencyAccessor(checker, node.expression)) return false;
+    /*
+     * The CALLEE as well as the arguments, because a method called ON a value
+     * is a derivation too and the callee is where its object lives:
+     * `reading.value.times(2)` puts the reading nowhere in the argument list.
+     * Found by trying to plant that shape as this exemption's control and
+     * watching it not be reported.
+     */
+    return recur(node.expression) || node.arguments.some(recur);
+  }
 
   if (ts.isIdentifier(node)) {
     const declaration = checker

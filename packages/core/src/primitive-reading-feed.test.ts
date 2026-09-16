@@ -205,13 +205,38 @@ describe("the gate can see a plant written against the REAL types", () => {
       "const",
       "derived",
       "derived",
+      "derived",
+      "derived",
       "direct",
     ]);
   });
 
   it("leaves the reading passed whole alone", () => {
-    expect(scan.sites).toHaveLength(4);
-    expect(scan.readingProps).toBe(5);
+    expect(scan.sites).toHaveLength(6);
+    expect(scan.readingProps).toBe(10);
+  });
+
+  /**
+   * The exemptions, asserted by WHICH plant is reported rather than by how
+   * many. A count alone passes an exemption that swallows the fault beside it,
+   * which is the failure mode the whole fixture is arranged to expose: each
+   * exempt shape sits one hop from a real unwrap of the same reading.
+   */
+  it("exempts the currency and the model, and still catches the value", () => {
+    const reported = scan.sites.map((s) => s.text).join("\n");
+
+    // The age through the accessor, the instant as a member, the model's figure.
+    expect(reported).not.toContain("ageSec");
+    expect(reported).not.toContain("stampSec");
+    expect(reported).not.toContain("modelled");
+
+    /*
+     * The value derived through a METHOD CALL on it, and a local helper that
+     * merely borrows the accessor's NAME. Both sit on the same reading as the
+     * exemptions above, so an exemption that over-reached would swallow them.
+     */
+    expect(reported).toContain("doubled");
+    expect(reported).toContain("observedAt(altitude)");
   });
 
   it("resolved ui-kit and the sdk, so the verdict is about the types", () => {
@@ -404,35 +429,28 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   // FILTERED list, and a payload is addressed BY PATH, so an element selected
   // by predicate has none. Filed as #310, and it will recur in the Targeting
   // slices rather than being worked around here.
+  /*
+   * Newly VISIBLE rather than newly written: the walk followed a call's
+   * ARGUMENTS and not its callee, so `offered.find(...)` put the list nowhere
+   * it looked. Closed by the commit that added the currency exemption, since
+   * the shape turned up while planting that exemption's control.
+   *
+   * And it is #310 again: `selected` is an element chosen by PREDICATE, so the
+   * payload has no path for the accessor to address. Stays for the same reason
+   * `StartResearch` does.
+   */
+  "mod/GonogoRp1Uplink/client/src/CrewSchedule/enrolment.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/StartResearch/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 2,
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
   "packages/components/src/Experiments/index.tsx": 1,
-  "packages/components/src/LandingStatus/index.tsx": 3,
+  "packages/components/src/LandingStatus/index.tsx": 2,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/MapView/index.tsx": 2,
-  "packages/components/src/Navball/index.tsx": 2,
-  "packages/components/src/SemiMajorAxis/index.tsx": 1,
-  "packages/components/src/SpaceCenterStatus/index.tsx": 2,
-  /*
-   * Three sites, all ONE gate bug rather than three judgements, and all three
-   * are shapes this file's own rule says do not count.
-   *
-   * Two are ages (`viewUt.minus(observedAt(reading))`) and one is a modelled
-   * range off `reading.reckoning.value`. Neither is derived from the reading's
-   * VALUE: the first comes from its currency (`atUt` / `asOfUt`) and the second
-   * from its model. `unwrapOf` exempts both, exactly as the scan's doc says it
-   * does; `derivedFromReading` does not, so the exemption is lost the moment
-   * the figure passes through one more hop. An age handed its reading would be
-   * marked not-current, which is self-refuting: the age is computed against the
-   * current frame and its whole job is to say that something ELSE is old.
-   *
-   * Filed rather than worked around, since the fix is to the walk and belongs
-   * beside #313.
-   */
-  "packages/components/src/Targeting/index.tsx": 3,
+  "packages/components/src/Navball/index.tsx": 1,
+  "packages/components/src/SpaceCenterStatus/index.tsx": 1,
 };
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {
