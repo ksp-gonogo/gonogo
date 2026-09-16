@@ -75,6 +75,7 @@ export {
   getActiveCarriedChannels,
   getActiveTelemetryClient,
   getContractsActive,
+  getSystemBodies,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
@@ -474,7 +475,9 @@ export { useTimelineStream } from "./use-timeline-stream";
 export { CLIENT_VERSION } from "./version.generated";
 export type {
   ActionGroupStatePayload,
+  BodyRadiusTable,
   ControlStateName,
+  OrbitalSolve,
   SasModeName,
   SituationName,
   TargetKindName,
@@ -485,10 +488,12 @@ export type {
   WireOrbitElements,
 } from "./vessel-state";
 export {
+  bodyRadiusOf,
   buildElements,
   collapseControlStateLevel,
   deriveVesselState,
   deriveVesselStateStatus,
+  solveOrbit,
   vesselStateChannel,
 } from "./vessel-state";
 export type {

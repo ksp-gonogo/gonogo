@@ -8,9 +8,12 @@ import {
 } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import {
+  type BodyRadiusTable,
+  bodyRadiusOf,
   DELTA_V_BUDGET,
   type OrbitTrajectory,
   type ReckonableReading,
+  solveOrbit,
   type TopicReading,
   useCommand,
   useOrbitTrajectory,
@@ -272,13 +275,25 @@ function ManeuverPlannerComponent({
   const targetInclinationLive = magnitudeOf(target?.orbit?.inc) ?? undefined;
   const targetLanLive = magnitudeOf(target?.orbit?.lan) ?? undefined;
   const targetSma = target?.orbit?.sma;
-  const targetPeA =
-    useStream<VesselState>("vessel.state")?.targetPeriapsisAlt ?? undefined;
   const targetArgPe = target?.orbit?.argPe;
-  const targetTrueAnomaly =
-    useStream<VesselState>("vessel.state")?.targetTrueAnomaly ?? undefined;
-  const targetPeriod =
-    useStream<VesselState>("vessel.state")?.targetPeriod ?? undefined;
+  /*
+   * The target's own orbit, solved from the elements this widget already holds
+   * rather than read back off `vessel.state.target*`. The altitude needs the
+   * TARGET's reference body, not the craft's, so the radius comes from its own
+   * `referenceBodyIndex`.
+   */
+  const bodies = useStream<BodyRadiusTable>("system.bodies");
+  const targetSolved =
+    target?.orbit == null || currentUT === undefined
+      ? undefined
+      : solveOrbit(
+          target.orbit,
+          currentUT,
+          bodyRadiusOf(bodies, target.orbit.referenceBodyIndex),
+        );
+  const targetPeA = targetSolved?.periapsisAlt ?? undefined;
+  const targetTrueAnomaly = targetSolved?.trueAnomaly ?? undefined;
+  const targetPeriod = targetSolved?.period ?? undefined;
   const lan = orbit?.lan;
 
   const period = useStream<VesselState>("vessel.state")?.period ?? undefined;
@@ -995,8 +1010,9 @@ registerComponent<ManeuverPlannerConfig>({
   component: ManeuverPlannerComponent,
   // A body `sections` slot for alternate-transfer-strategy comparisons, empty until an augment binds.
   augmentSlots: ["maneuver-planner.sections"],
-  // The target's reads split by kind: the three quantities propagated to the
-  // same view-UT as the self vessel are derived `vessel.state` fields.
+  // The target's quantities are SOLVED here, from the elements on
+  // `vessel.target` at the frame's view time (`solveOrbit`), so there is no
+  // derived `vessel.state.target*` field to declare any more.
   //
   // The raw target-orbit field subtopics are deliberately not named. Nothing
   // targeted is the common case, and the wire tombstones the whole
@@ -1022,9 +1038,6 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.state.parentBodyName",
     "vessel.maneuver.nodes",
     "dv.stages",
-    "vessel.state.targetPeriapsisAlt",
-    "vessel.state.targetTrueAnomaly",
-    "vessel.state.targetPeriod",
   ],
   defaultConfig: { defaultPreset: "circularize-apo" },
   actions: maneuverActions,

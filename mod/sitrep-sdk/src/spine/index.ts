@@ -80,6 +80,7 @@ export * from "./map-topic";
 export * from "./never-reckonable";
 export * from "./orbit-patches";
 export * from "./orbit-trajectory";
+export * from "./orbital-solve";
 export * from "./own-craft-vantage";
 export * from "./past-track";
 export * from "./processorEvaluator";

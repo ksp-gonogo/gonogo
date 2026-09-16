@@ -10,6 +10,7 @@ import {
 } from "react";
 import type {
   CareerContract,
+  SystemBodies,
   VesselIdentity,
   VesselOrbit,
   VesselTarget,
@@ -910,6 +911,20 @@ export function getVesselTarget(): VesselTarget | undefined {
  */
 export function getVesselIdentity(): VesselIdentity | undefined {
   return sampleActiveTopic<VesselIdentity>("vessel.identity");
+}
+
+/**
+ * Non-React equivalent of `useTelemetry("system.bodies")`: the body tree, by
+ * STABLE index.
+ *
+ * Wanted by anything turning an orbital radius into an ALTITUDE, which needs
+ * the reference body's own radius, and by the body-name display maps. A plain
+ * class reaching for those had no route to this channel and read them off
+ * `vessel.state` instead, which is the coupling `vessel.state`'s retirement
+ * removes.
+ */
+export function getSystemBodies(): SystemBodies | undefined {
+  return sampleActiveTopic<SystemBodies>("system.bodies");
 }
 
 /**

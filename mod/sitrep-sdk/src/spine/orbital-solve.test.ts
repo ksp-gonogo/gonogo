@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WireOrbitElements } from "./kepler-reckoning";
-import { solveOrbit } from "./orbital-solve";
+import { bodyRadiusOf, solveOrbit } from "./orbital-solve";
 
 /**
  * The orbital solve, pinned as a pure function before anything is wired to it.
@@ -123,5 +123,35 @@ describe("solveOrbit", () => {
       6,
     );
     expect(target.periapsisAlt).toBeCloseTo(SMA * 2 - BODY_RADIUS, 6);
+  });
+});
+
+describe("bodyRadiusOf", () => {
+  const table = {
+    bodies: [
+      { index: 1, radius: BODY_RADIUS },
+      { index: 4, radius: null },
+    ],
+  };
+
+  it("finds a body by its STABLE index, not its array position", () => {
+    expect(bodyRadiusOf(table, 1)).toBe(BODY_RADIUS);
+  });
+
+  /**
+   * The three-way discipline, which is the whole reason this is not a plain
+   * lookup: four different absences, and only one of them is a confirmed one.
+   */
+  it("tells a confirmed absence from every other kind", () => {
+    // The channel itself is a tombstone: confirmed absent.
+    expect(bodyRadiusOf(null, 1)).toBeNull();
+    // Not arrived yet.
+    expect(bodyRadiusOf(undefined, 1)).toBeUndefined();
+    // Arrived, but this body is not in it yet.
+    expect(bodyRadiusOf(table, 99)).toBeUndefined();
+    // Arrived, body present, but it has not reported a radius.
+    expect(bodyRadiusOf(table, 4)).toBeUndefined();
+    // Nothing to resolve.
+    expect(bodyRadiusOf(table, null)).toBeUndefined();
   });
 });

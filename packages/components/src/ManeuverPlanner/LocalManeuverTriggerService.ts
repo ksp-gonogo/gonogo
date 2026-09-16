@@ -1,6 +1,8 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
+  bodyRadiusOf,
   dispatchActiveCommandTopic,
+  getSystemBodies,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
@@ -8,6 +10,7 @@ import {
   getVesselTarget,
   getViewUt,
   onActiveTimelineFrame,
+  solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
 import { magnitudeOf } from "../shared/magnitude";
 import {
@@ -165,6 +168,22 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
+    /*
+     * The target's own orbit, solved here rather than read off
+     * `vessel.state.target*`: the same `solveOrbit` the craft's orbit goes
+     * through, on the target's elements at the same view time. The altitude
+     * needs the TARGET's reference body, not the craft's, which is why the
+     * radius is resolved from its own `referenceBodyIndex`.
+     */
+    const currentUT = getViewUt();
+    const targetSolved =
+      targetOrbit == null || currentUT === undefined
+        ? undefined
+        : solveOrbit(
+            targetOrbit,
+            currentUT,
+            bodyRadiusOf(getSystemBodies(), targetOrbit.referenceBodyIndex),
+          );
     const sma = orbit?.sma;
     const orbitalSpeed = state?.orbitalSpeed ?? undefined;
     const radius = state?.orbitalRadius ?? undefined;
@@ -181,7 +200,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       // Not a data-source key: `t.universalTime` was DROPPED, this is the
       // SDK's own view time (`getViewUt`, the non-hook `useViewUt`
       // equivalent plain classes need), never a legacy `"data"` read.
-      currentUT: getViewUt(),
+      currentUT,
       mu: computeMu(orbitalSpeed, radius, sma?.magnitude, period),
       trueAnomaly: state?.trueAnomaly ?? undefined,
       argPe: orbit?.argPe?.magnitude,
@@ -190,10 +209,10 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       targetInclinationLive: targetOrbit?.inc?.magnitude,
       targetLanLive: targetOrbit?.lan?.magnitude,
       targetSma: targetOrbit?.sma?.magnitude,
-      targetPeA: state?.targetPeriapsisAlt ?? undefined,
+      targetPeA: targetSolved?.periapsisAlt ?? undefined,
       targetArgPe: targetOrbit?.argPe?.magnitude,
-      targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
-      targetPeriod: state?.targetPeriod ?? undefined,
+      targetTrueAnomaly: targetSolved?.trueAnomaly ?? undefined,
+      targetPeriod: targetSolved?.period ?? undefined,
       bodyRadius: this.readBodyRadius(state),
     };
   }
