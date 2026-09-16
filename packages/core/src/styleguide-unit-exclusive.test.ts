@@ -79,19 +79,17 @@ const UNIT_IMPL = new Set([
 /**
  * Files outside `UNIT_IMPL` that still name a kit formatter, with the reason.
  * Shrink-only: an entry may be deleted, never added or raised.
+ *
+ * EMPTY since 2026-09-16, so the gate fails on the first reach any file makes.
+ * The last entry was `ReadOnlyField`'s bare-`number` branch, and it closed the
+ * way every entry here has to: not by finding another formatter but by removing
+ * the number from the published union, so a caller hands over a `Value` and the
+ * field has a unit to render. A genuinely unitless reading has `value("1", x)`
+ * and a quantity of things has `value("count", n)`, both of which `<Unit>`
+ * renders, so there is no longer a shape this component can be handed that
+ * `<Unit>` cannot write.
  */
-const FORMATTER_REACH_DEBT: Record<string, { count: number; why: string }> = {
-  // The DIMENSIONLESS branch, and the one case `<Unit>` cannot express by
-  // construction: a bare `number` carries no unit, so there is no `Value` to
-  // hand it. The line directly above already sends a real `Value` to `<Unit>`,
-  // which is the split this file exists to make once instead of at four call
-  // sites. Closing it means the callers declaring units for these fields, not
-  // this file reaching for something else.
-  "packages/ui-kit/src/ReadOnlyField.tsx": {
-    count: 2,
-    why: "the unitless branch: a bare number has no Value for <Unit> to take",
-  },
-};
+const FORMATTER_REACH_DEBT: Record<string, { count: number; why: string }> = {};
 
 /**
  * Every `format*` declaration outside `UNIT_IMPL`, with what it renders.
