@@ -9,8 +9,10 @@ import {
   COMMAND_UNDELIVERED,
 } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
+import { wrapCommandReply } from "../command-reply-units";
 import type { ServerMessage } from "../envelope";
 import { PerfBudget } from "../perf/PerfBudget";
+import { dehydrateArgs } from "../wrap-units";
 import { warnChannelError } from "./channel-error-warning";
 import { type Clock, RealTimeClock } from "./clock";
 import { CommandError, type CommandStatus } from "./lifecycle";
@@ -676,6 +678,11 @@ export class TelemetryClient {
        subject is how often this client was ASKED to send, not how many sends
        survived. */
     COMMAND_DISPATCH_BUDGET.record();
+    // Quantities down to the numbers the host binds, ONCE, here, because this is
+    // the one funnel every command goes through and the mod rejects an object in
+    // a numeric slot outright. Kept for the in-flight record too: a refusal names
+    // what was SENT, and the wire form is what was sent.
+    const wireArgs = dehydrateArgs(args);
     const requestId = `c${this.nextRequestId++}`;
     // Where the round trip comes from, and why in THIS order.
     //
@@ -711,7 +718,7 @@ export class TelemetryClient {
     const result = new Promise<unknown>((resolve, reject) => {
       this.commands.set(requestId, {
         command,
-        args,
+        args: wireArgs,
         label: label ?? "",
         status: { phase: "in-flight", requestId, etaConfirm },
         resolve,
@@ -738,7 +745,7 @@ export class TelemetryClient {
       // Per-call vantage override (delay-UX): "" ⇒ the server uses the session
       // vantage; "meta" pins a program-meta command to instant dispatch.
       vantage: vantage ?? "",
-      args,
+      args: wireArgs,
       sentAt: 0,
     });
     return { requestId, result };
@@ -885,9 +892,15 @@ export class TelemetryClient {
     this.notifyStore();
   }
 
-  private handleCommandResponse(requestId: string, result: unknown): void {
+  private handleCommandResponse(requestId: string, rawResult: unknown): void {
     const pending = this.commands.get(requestId);
     if (!pending) return;
+    // A reply's units, here rather than in `parseServerMessage`, because the
+    // envelope names a requestId and no type: the command that was dispatched is
+    // the only route back to one, and this is the first point that knows it.
+    // Above the `found` branch too, so a reply that arrives after a loss is the
+    // same shape as one that arrives on time.
+    const result = wrapCommandReply(pending.command, rawResult);
     // No live resolve(): the command already settled, so a duplicate must not
     // clobber the terminal status already recorded. With ONE exception, which is
     // the whole of `found`: a command settled as `lost` was never decided, and a

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { describe, expect, it } from "vitest";
+import type { VantagePlanRequest } from "../__generated__/contract";
 import { act, render, renderHook, setupStreamFixture } from "../testing";
 import { value } from "../unit-system/value";
 import {
@@ -41,7 +42,11 @@ describe("asking where a craft goes from this command centre", () => {
     // The property that must not exist. A client able to name its own vantage
     // could name somebody else's and be shown what they can see, which is the
     // whole delay model defeated by a string field.
-    const request = { topic: "vessel.orbit", toUt: 2000, maxPoints: 128 };
+    const request: VantagePlanRequest = {
+      topic: "vessel.orbit",
+      toUt: value("ut", 2000),
+      maxPoints: value("count", 128),
+    };
 
     expect(Object.keys(request)).not.toContain("vantage");
   });
@@ -127,5 +132,12 @@ describe("solve is safe to call from an effect", () => {
 
     expect(runs).toBe(1);
     expect(stream.transport.sentCommands).toHaveLength(1);
+    // The typed args, as the mod will actually read them. A `Value` here is a
+    // `{magnitude, unit}` bag to `BindCommandArgs`, which refuses it for a
+    // `double` and fail-softs the handler, so the command answers null having
+    // never run.
+    expect(
+      JSON.parse(JSON.stringify(stream.transport.sentCommands[0].args)),
+    ).toEqual({ topic: "vessel.orbit", toUt: 2000, maxPoints: 128 });
   });
 });

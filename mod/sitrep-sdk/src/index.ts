@@ -550,6 +550,7 @@ export {
 // outside a test needs it: `fleet-position` reads an unwrapped dynamic topic.
 export type { WireOf } from "./wrap-units";
 export {
+  dehydrateArgs,
   hydratePayload,
   wrapTopicPayload,
   wrapTypePayload,
