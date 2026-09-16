@@ -5,7 +5,7 @@ import {
   PropagationCertification,
 } from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PorkchopAxes } from "./transferData";
 
 /**
@@ -118,14 +118,6 @@ export function useBodyStatePropagators(
   usePanelDelay(handle);
   const [resolved, setResolved] = useState<BodyStatePropagators | null>(null);
 
-  // `solve` is keyed on the command handle, which `useCommand` rebuilds every
-  // render, so an effect depending on it would fire on every render, land a
-  // reply, re-render, and fire again: a pair of commands per frame, forever.
-  // Held by ref so the dispatch always uses the current one while the effect
-  // keys only on what was actually asked.
-  const solveRef = useRef(solve);
-  solveRef.current = solve;
-
   const originIndex = origin?.index ?? null;
   const destIndex = dest?.index ?? null;
   const centreIndex =
@@ -148,15 +140,14 @@ export function useBodyStatePropagators(
 
     const ask = async () => {
       try {
-        const dispatch = solveRef.current;
         const [originReply, destReply] = await Promise.all([
-          dispatch({
+          solve({
             bodyIndex: originIndex,
             centreBodyIndex: centreIndex,
             uts: departureUts,
             certification: PropagationCertification.Unbounded,
           }),
-          dispatch({
+          solve({
             bodyIndex: destIndex,
             centreBodyIndex: centreIndex,
             uts: arrivalUts,
@@ -195,7 +186,7 @@ export function useBodyStatePropagators(
     return () => {
       live = false;
     };
-  }, [originIndex, destIndex, centreIndex, axes]);
+  }, [originIndex, destIndex, centreIndex, axes, solve]);
 
   return resolved;
 }

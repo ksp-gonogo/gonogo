@@ -3,6 +3,7 @@ import type {
   VantagePlanReply,
   VantagePlanRequest,
 } from "../__generated__/contract";
+import type { UseCommandResult } from "../api/types";
 import { useCommand } from "./use-command";
 
 /** The command the engine registers for this. Not an Uplink's. */
@@ -24,6 +25,19 @@ export interface VantageTrajectory {
 
   /** True while a solve is outstanding. */
   pending: boolean;
+
+  /**
+   * The dispatch handle, to hand to `usePanelDelay(handle)` in the widget body.
+   *
+   * Exposed rather than consumed here because `usePanelDelay` lives in
+   * `ui-kit`, which sits ABOVE the spine and which the spine therefore cannot
+   * import. `useCommand` asserts in dev that every dispatching handle reaches
+   * the rail and offers no opt-out, so until this was exposed, pressing a
+   * control wired to `solve` threw in every build but production: there was no
+   * handle to pass on, and the only widget calling it never dispatched under
+   * test. Same shape as `useBodyStates`, for the same reason.
+   */
+  handle: UseCommandResult<VantagePlanRequest, VantagePlanReply>;
 }
 
 /**
@@ -63,11 +77,17 @@ export function useVantageTrajectory(): VantageTrajectory {
   const [reply, setReply] = useState<VantagePlanReply | null>(null);
   const [pending, setPending] = useState(false);
 
+  // Keyed on `send`, which `useCommand` memoises, and NOT on the handle, which
+  // is a fresh object on every render because it carries the command's live
+  // status. Keyed on the handle, `solve` was a new function every render, so an
+  // effect depending on it re-ran forever: one dispatch, a `setPending`, a
+  // render, a new `solve`, the same effect again.
+  const { send } = command;
   const solve = useCallback(
     async (request: VantagePlanRequest) => {
       setPending(true);
       try {
-        const result = await command.send(request);
+        const result = await send(request);
         setReply((result ?? null) as VantagePlanReply | null);
       } catch (error) {
         setReply(refusalFromError(error));
@@ -75,8 +95,8 @@ export function useVantageTrajectory(): VantageTrajectory {
         setPending(false);
       }
     },
-    [command],
+    [send],
   );
 
-  return { solve, reply, pending };
+  return { solve, reply, pending, handle: command };
 }

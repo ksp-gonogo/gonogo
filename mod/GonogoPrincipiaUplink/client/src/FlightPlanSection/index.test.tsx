@@ -516,6 +516,25 @@ describe("plotting the trajectory from this command centre", () => {
     });
     expect(button).toBeInTheDocument();
   });
+
+  it("dispatches the request when the button is pressed", async () => {
+    // The press had never been exercised, and it threw: `useCommand` asserts in
+    // dev that every dispatching handle reaches the delay rail, and this hook
+    // did not expose one to pass on. Every build but production, the operator
+    // got an error boundary instead of a trajectory.
+    const stream = mount();
+
+    emitPlan(stream);
+    await screen.findByText("#1");
+
+    await act(async () => {
+      screen.getByRole("button", { name: /PLOT NEXT HOUR FROM HERE/i }).click();
+    });
+
+    expect(stream.transport.sentCommands.map((c) => c.command)).toStrictEqual([
+      "vessel.trajectory.forVantage",
+    ]);
+  });
 });
 
 describe("what a completed vantage solve says", () => {

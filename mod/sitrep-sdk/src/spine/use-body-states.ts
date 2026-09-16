@@ -60,12 +60,16 @@ export function useBodyStates(): BodyStatesQuery {
     WireOf<BodyStatesReply>
   >(BODY_STATES_COMMAND);
 
+  // Keyed on `send`, which `useCommand` memoises, and NOT on the handle, which
+  // is a fresh object on every render because it carries the command's live
+  // status. See `useVantageTrajectory`, where the same shape looped an effect.
+  const { send } = command;
   const solve = useCallback(
     async (request: WireOf<BodyStatesRequest>): Promise<BodyStatesReply> => {
-      const wire = await command.send(request);
+      const wire = await send(request);
       return wrapTypePayload<BodyStatesReply>("BodyStatesReply", wire);
     },
-    [command],
+    [send],
   );
 
   return { solve, handle: command };

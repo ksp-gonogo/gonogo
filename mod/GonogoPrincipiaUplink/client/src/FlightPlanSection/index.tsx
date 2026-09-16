@@ -26,6 +26,7 @@ import {
   Stack,
   Text,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import type {
@@ -309,7 +310,13 @@ export function TrajectoryResult({
 }
 
 function VantageTrajectoryRow({ viewUt }: { viewUt: number | null }) {
-  const { solve, reply, pending } = useVantageTrajectory();
+  const { solve, reply, pending, handle } = useVantageTrajectory();
+  /*
+   * `useCommand` asserts in dev that every dispatching handle reaches the delay
+   * rail and offers no opt-out, so without this the button threw on press in
+   * every build but production.
+   */
+  usePanelDelay(handle);
   const horizon = viewUt === null ? null : viewUt + ONE_HOUR_SECONDS;
 
   return (
