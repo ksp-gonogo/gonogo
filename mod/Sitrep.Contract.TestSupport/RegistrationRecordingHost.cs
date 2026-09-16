@@ -40,7 +40,7 @@ namespace Sitrep.Contract.TestSupport
         }
 
         public void AddVantageCommandHandler<TArgs, TResult>(
-            string command, Func<TArgs, string?, TResult> handler) => HandlersRegistered.Add(command);
+            string command, Func<TArgs, string, TResult> handler) => HandlersRegistered.Add(command);
 
         public void AddGateEvaluator(ICommandGateEvaluator evaluator) =>
             GateEvaluatorsRegistered.Add(evaluator.GetType().Name);

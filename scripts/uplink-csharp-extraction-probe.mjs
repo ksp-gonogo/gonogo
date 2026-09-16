@@ -40,29 +40,35 @@
  *
  * A Tests project does travel with its Uplink, and on 2026-08-30 the reference
  * gate was extended to say so: `TestProjectReferenceDebt` in
- * `UplinkIsolationTests.cs` now carries ten Uplinks whose tests reach a private
- * assembly. The obvious next move is to bring the Tests project into this probe,
- * and it is the wrong one for now, for two reasons.
+ * `UplinkIsolationTests.cs` carried ten Uplinks whose tests reached a private
+ * assembly. It is down to four, and both reasons this probe gave for leaving the
+ * Tests project out have weakened since.
  *
- * The first is that it is not a copy, it is a second design. This probe repoints
- * the contract reference at `Sitrep.Contract.dll` as GonogoCore installs it: one
- * build, `net472`. Every Tests project is `net10.0` and consumes the contract's
- * `netstandard2.0` leg through a ProjectReference. Making them build against the
- * shipped assembly means choosing which framework's DLL an out-of-repo test suite
- * is supposed to bind to, and that question has no answer in this repo yet.
+ * The first was that it is not a copy but a second design: this probe repoints the
+ * contract reference at `Sitrep.Contract.dll` as GonogoCore installs it, one build,
+ * `net472`, while every Tests project is `net10.0` and consumes the contract's
+ * `netstandard2.0` leg. Which DLL an out-of-repo test suite binds to now has an
+ * answer: `scripts/vendor-uplinks-reference-set.sh` ships
+ * `vendor/contract/netstandard2.0/Sitrep.Contract.dll` for exactly that, and the
+ * `KspGonogo.Sitrep.Contract` package's `net10.0` group resolves the same
+ * assembly. So the design question is answered; the second reference set is still
+ * to be wired into this script.
  *
- * The second is that the result would carry no information. Ten of the twelve
- * would fail immediately on a missing `Sitrep.Contract.TestSupport`, which the
- * debt list already names, per Uplink, with the reason. Trading a shrink-only list
- * of ten entries for ten red builds saying the same thing loses the ratchet and
- * gains nothing readable.
+ * The second was that the result would carry no information, because ten of the
+ * twelve would fail immediately on a missing `Sitrep.Contract.TestSupport`. That
+ * stopped being true on 2026-09-15 (#29): TestSupport ships to a Tests project as
+ * `vendor/devkit/Sitrep.Contract.TestSupport.dll` and in the contract package's
+ * `net10.0` group, those ten debt entries cleared, and the gate now reads it as
+ * private to a PLUGIN and shipped to a Tests project. A copied-out Tests project
+ * would fail on it only because this probe does not yet bring the devkit in.
  *
- * The sequencing this implies: the gate holds the line now, and the Tests project
- * joins the probe once `TestProjectReferenceDebt` is empty. At that point the only
- * question left is the one a reference scan structurally cannot ask, a
- * `<Compile Include>` reaching sideways or a property arriving from
- * `Directory.Build.props`, and the leg can be green on the day it lands rather
- * than being born red.
+ * The sequencing this implies is unchanged in shape: the gate holds the line now,
+ * and the Tests project joins the probe once `TestProjectReferenceDebt` is empty,
+ * bringing `vendor/contract/netstandard2.0` and `vendor/devkit` rather than the
+ * `net472` set. At that point the only question left is the one a reference scan
+ * structurally cannot ask, a `<Compile Include>` reaching sideways or a property
+ * arriving from `Directory.Build.props`, and the leg can be green on the day it
+ * lands rather than being born red.
  *
  * ## The self-test, which runs first and is not optional
  *
