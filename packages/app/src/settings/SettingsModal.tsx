@@ -17,7 +17,7 @@ import type {
   UplinkHealthStateName,
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { isValue } from "@ksp-gonogo/sitrep-sdk";
+import { isValue, value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import {
   GhostButton,
   Placeholder,
@@ -31,6 +31,7 @@ import {
   Input,
   NULL_DISPLAY,
   ReadOnlyField,
+  type ReadOnlyFieldValue,
   SectionTitle,
   Stack,
 } from "@ksp-gonogo/ui-kit";
@@ -481,6 +482,23 @@ function CategoryRows({ items }: { items: SettingDefinition[] }) {
   );
 }
 
+/**
+ * What a read-only row hands to `ReadOnlyField`, which does not take a bare
+ * number.
+ *
+ * A registered row may declare `type: "number"` and answer with a plain number,
+ * and a plain number has lost the one thing that says how to write it. The row
+ * still has to render, so the number is wrapped in a value whose unit is the
+ * EMPTY one, which is the model's way of saying nobody declared a unit: `Unit`
+ * writes it bare and claims nothing, exactly as the formatter this replaced
+ * did. What changes is where the claim is made. A row that means metres says
+ * `value("m", x)` in its own `select` and gets metres drawn and announced; this
+ * is the fallback for the rows that have not, not a unit invented for them.
+ */
+function readOnlyValueOf(v: SettingValue | undefined): ReadOnlyFieldValue {
+  return typeof v === "number" ? quantity("", v) : v;
+}
+
 function SettingRow({ def }: { def: SettingDefinition }) {
   // Split by BACKING at the component boundary (not a conditional hook): a
   // source-backed row reads/writes a DataSource via useSyncExternalStore, a
@@ -510,7 +528,11 @@ function StreamBackedRow({ def }: { def: StreamBackedSetting }) {
       <ReadOnlyField
         label={def.label}
         description={def.description}
-        value={payload === undefined ? undefined : def.select(payload)}
+        value={
+          payload === undefined
+            ? undefined
+            : readOnlyValueOf(def.select(payload) ?? undefined)
+        }
       />
     </SettingReadOnlyLine>
   );
@@ -543,7 +565,7 @@ function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
         <ReadOnlyField
           label={def.label}
           description={def.description}
-          value={value}
+          value={readOnlyValueOf(value)}
         />
       </SettingReadOnlyLine>
     );
@@ -599,7 +621,7 @@ function ClientPrefRow({
         <ReadOnlyField
           label={def.label}
           description={def.description}
-          value={value}
+          value={readOnlyValueOf(value)}
         />
       </SettingReadOnlyLine>
     );
