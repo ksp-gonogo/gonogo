@@ -74,6 +74,18 @@ export function NodeRow({
         <NodeMeta>
           {completed ? (
             "Removing in 10 s"
+          ) : timeTo !== null && timeTo < 0 ? (
+            /*
+             * A node the clock has passed. `Countdown` renders unsigned by
+             * default, so the elapsed case read "burn in 1min 1s" for a burn
+             * that happened a minute AGO, and a node with delta-v still owed
+             * legitimately outlives its own instant: a burn stopped short
+             * keeps its node. Past tense rather than a `T+` prefix, because
+             * this sits next to prose rather than on a launch clock.
+             */
+            <>
+              burn was <Countdown value={-timeTo} /> ago
+            </>
           ) : (
             <>
               burn in <Countdown value={timeTo} />

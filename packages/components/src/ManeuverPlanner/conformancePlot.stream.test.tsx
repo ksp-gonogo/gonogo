@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
@@ -104,10 +105,13 @@ function emitNode(
   });
 }
 
-async function mountOnConformance(patches: unknown[]) {
+async function mountOnConformance(
+  patches: unknown[],
+  opts: { pinnedUt?: number } = {},
+) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
-    pinnedUt: 1_000_000,
+    pinnedUt: opts.pinnedUt ?? 1_000_000,
     suspendFrames: true,
   });
 
@@ -178,6 +182,26 @@ describe("ManeuverPlanner: the conformance plot's planned conic", () => {
       ).not.toBeNull();
       expect(plannedConics(view.container)).toBeGreaterThan(0);
     });
+  });
+
+  /**
+   * The node card outlives the node's own instant: a burn stopped short keeps
+   * its node while delta-v is still owed, which is exactly the conformance
+   * case. `Countdown` renders unsigned, so the elapsed reading used to say
+   * "burn in 1min 1s" about a burn a minute in the PAST, next to a panel
+   * reporting what was flown.
+   */
+  it("says a passed burn is past, not that it is still to come", async () => {
+    const view = await mountOnConformance([], { pinnedUt: 1_000_181 });
+    await waitFor(() => {
+      expect(
+        view.container.querySelector("[data-conformance-plot]"),
+      ).not.toBeNull();
+    });
+
+    const text = visibleText(view.container);
+    expect(text).toContain("burn was");
+    expect(text).not.toContain("burn in");
   });
 
   it("draws NO planned conic when the patch chain is empty", async () => {
