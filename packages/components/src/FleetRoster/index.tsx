@@ -683,7 +683,6 @@ function FleetRosterComponent({
           valueLabel={`${rollup.linked} linked · ${rollup.none} no link${
             rollup.unknown > 0 ? ` · ${rollup.unknown} unknown` : ""
           }`}
-          size={compact ? "sm" : "md"}
         />
       }
       sections={[

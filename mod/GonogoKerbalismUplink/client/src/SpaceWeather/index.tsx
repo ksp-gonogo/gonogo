@@ -1247,7 +1247,6 @@ function SpaceWeatherComponent({
                       : "nogo"
               }
               valueLabel={shielding?.label}
-              size={compact ? "sm" : "md"}
             />
             {!compact && (
               <div style={ENV_ROW}>

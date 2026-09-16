@@ -477,7 +477,6 @@ export {
 export {
   Meter,
   type MeterProps,
-  type MeterSize,
   MeterStack,
   type MeterTone,
   type MeterValue,

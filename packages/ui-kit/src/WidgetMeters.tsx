@@ -32,8 +32,6 @@ export interface WidgetMetersProps {
    * because the host forgot to name a row.
    */
   row?: string;
-  /** Bar size, forwarded to every meter so one stack stays uniform. */
-  size?: "sm" | "md";
   /**
    * Layout for the stack (an indent under a row, a max width). On the stack
    * rather than on a wrapper the host renders, so an empty stack still renders
@@ -56,7 +54,7 @@ export interface WidgetMetersProps {
  * one lookup, one treatment, and the same picture of doubt whichever Uplink
  * sent the entry.
  */
-export function WidgetMeters({ row, size = "sm", style }: WidgetMetersProps) {
+export function WidgetMeters({ row, style }: WidgetMetersProps) {
   const entries = useContributions("meters") as readonly MeterEntry[];
   const mine = entries.filter((entry) => entry.row === row);
   if (mine.length === 0) return null;
@@ -66,7 +64,6 @@ export function WidgetMeters({ row, size = "sm", style }: WidgetMetersProps) {
       {mine.map((entry) => (
         <Meter
           key={entry.id}
-          size={size}
           label={entry.label}
           value={entry.value}
           tone={entry.tone}

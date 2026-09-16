@@ -82,7 +82,7 @@ describe("Meter", () => {
         />
         <Meter label="Warn" value={value("ratio", 0.6)} tone="warn" />
         <Meter label="Nogo" value={value("ratio", 0.1)} tone="nogo" />
-        <Meter label="Info" value={value("ratio", 0.5)} tone="info" size="sm" />
+        <Meter label="Info" value={value("ratio", 0.5)} tone="info" />
       </>,
     );
     await expectNoA11yViolations(container);

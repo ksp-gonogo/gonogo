@@ -292,7 +292,6 @@ export function ShipDiagram({
               value={value("units", m.amount)}
               capacity={m.capacity > 0 ? value("units", m.capacity) : null}
               fillColor={resourceColor(m.resource)}
-              size="sm"
               style={
                 m.status
                   ? {
@@ -320,7 +319,6 @@ export function ShipDiagram({
                 label={m.label}
                 value={m.value == null ? null : value("ratio", m.value)}
                 tone={m.tone}
-                size="sm"
               />
             ) : (
               <div style={TOOLTIP_ROW} key={`meta-${m.label}`}>

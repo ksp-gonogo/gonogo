@@ -75,14 +75,13 @@ function bandOf(
   };
 }
 
-function Case({ c, size }: { c: MeterCase; size: "sm" | "md" }) {
+function Case({ c }: { c: MeterCase }) {
   const tank = tankOf(c);
   return (
     <figure style={{ margin: 0, display: "grid", gap: 4 }}>
       {tank ? (
         <Meter
           label={c.label}
-          size={size}
           value={readingOfCase(
             c,
             tank.amount,
@@ -95,7 +94,6 @@ function Case({ c, size }: { c: MeterCase; size: "sm" | "md" }) {
       ) : (
         <Meter
           label={c.label}
-          size={size}
           value={readingOfCase(
             c,
             value("ratio", c.fraction),
@@ -154,7 +152,7 @@ function Sheet({ sheet }: { sheet: MeterSheet }) {
       </p>
       <MeterStack style={{ gap: 14 }}>
         {sheet.cases.map((c) => (
-          <Case key={c.label} c={c} size={sheet.size} />
+          <Case key={c.label} c={c} />
         ))}
       </MeterStack>
     </div>
