@@ -23,7 +23,7 @@
          what an author sees when they hover one, and this assembly ships in
          KspGonogo.Sitrep.Contract's net10.0 group. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>$(NoWarn);1570;1571;1572;1573;1574;1591;1734;0419</NoWarn>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugType>portable</DebugType>
