@@ -644,11 +644,67 @@ export type TopicCurrency<P, Rk = unknown> =
  * reserved name on their ELEMENT (`alarm.scet` is core's) and none of them
  * shadows anything.
  */
-export type TopicFields<P> = P extends readonly unknown[]
+export type TopicFields<P> = P extends Quantityish
   ? unknown
-  : P extends object
-    ? { readonly [K in Exclude<keyof P, ReservedReadingKey>]: Reading<P[K]> }
-    : unknown;
+  : P extends readonly (infer Element)[]
+    ? { readonly [index: number]: FieldReading<Element> }
+    : P extends (...args: never[]) => unknown
+      ? unknown
+      : P extends object
+        ? {
+            readonly [K in Exclude<
+              keyof P,
+              ReservedReadingKey
+            >]-?: FieldReading<NonNullable<P[K]>>;
+          }
+        : unknown;
+
+/**
+ * A field's own reading, and the way to the fields underneath it.
+ *
+ * The whole of the collection-indexed accessor #38 asked for, and it is one
+ * line because the runtime was already there: `projectField` has always taken a
+ * DOTTED path and `walkField` has always split it, so `bands["..."]` was
+ * already keyed the way a model writes it. What was missing was reach. The
+ * proxy stopped after one segment and the type described one level, so
+ * `crew[kerbal].rules[index].value` had nowhere to go and the only thing that
+ * reached it was `bandFor(reckoned, "<path>")`, the runtime string lookup this
+ * replaces.
+ *
+ * ## Where it stops, and why each stop is deliberate
+ *
+ * - **A quantity is a LEAF.** `Value` is an object with `magnitude`, `unit` and
+ *   a dozen methods, and recursing into one would claim a `Reading` at `abs`
+ *   and `max`. That exact nonsense compiled for a week when `Unit` and `Meter`
+ *   were typed over `TopicReading<Value<U>>`, so it is named rather than left
+ *   to the `object` branch to get right by luck
+ * - **A function is a leaf**, for the same reason one step further out
+ * - **An array is INDEXED, never mapped.** Mapping `keyof` over one would claim
+ *   a reading at `length` and `map`. An index signature reaches the elements
+ *   and nothing else, which is what a collection-keyed model addresses
+ *
+ * ## The one thing it cannot reach, and it is not new
+ *
+ * An element field spelled like a currency member stays excluded, so on an
+ * array channel carrying one (`alarm.scet` is core's; a handful of Uplink
+ * slices have their own) that one field is unreachable THROUGH the accessor.
+ * It was unreachable before too, because the whole array was `unknown`; this
+ * narrows the gap rather than opening it. What does change is
+ * `RtConfig.CheckReservedFieldNames`'s stated reason for exempting an array
+ * topic: the premise was that arrays are not mapped at all, and now they are
+ * indexed. Each slice's own codegen leg reports its own, which is why no list
+ * of them belongs here.
+ */
+export type FieldReading<V> = Reading<V> & TopicFields<V>;
+
+/**
+ * The structural shape of a quantity, which recursion stops at.
+ *
+ * Structural rather than an import of `Value` so this file stays under the
+ * unit system rather than beside it, and so a quantity arriving through an
+ * alias or a re-export is still recognised as a leaf.
+ */
+type Quantityish = { readonly magnitude: number; readonly unit: string };
 
 /** A currency member's name: what {@link TopicFields} may not shadow. */
 export type ReservedReadingKey =
@@ -1196,18 +1252,78 @@ export function topicReading<P>(
     get(target, prop, receiver) {
       if (typeof prop !== "string" || prop in target)
         return Reflect.get(target, prop, receiver);
-      let projected = cache.get(prop);
-      if (!projected) {
-        projected = projectField(
-          target as TopicCurrency<unknown, TopicReckoning<unknown>>,
-          prop,
-        );
-        cache.set(prop, projected);
-      }
-      return projected;
+      return fieldReading(
+        target as TopicCurrency<unknown, TopicReckoning<unknown>>,
+        prop,
+        cache,
+      );
     },
   }) as TopicReading<P>;
 }
+
+/**
+ * One field's reading, itself navigable to the fields under it.
+ *
+ * The recursion is what makes `crew[kerbal].rules[index].value` reach a band:
+ * each step composes the DOTTED path the model already keys its bands by, so
+ * the leaf's `reckoning.band` is the entry the reckoner wrote at exactly that
+ * string. Nothing parses a path and no consumer writes one.
+ *
+ * A map key and an array index arrive at the trap identically, as string
+ * property names, so `crew.Bill`, `crew["Bill"]` and `rules[0]` are one
+ * mechanism rather than three.
+ *
+ * Cached by FULL path on the topic reading's own map, so two reads of one leaf
+ * are one projection and the reading a caller holds keeps its identity across
+ * a render. The intermediate steps are cached too, which is what stops a deep
+ * read re-walking its own prefix.
+ *
+ * A property already ON the projected reading wins, which is the currency
+ * itself: `.state`, `.value`, `.reckoning` answer about the field, never about
+ * a payload member of the same name. That is the reserved-name collision, and
+ * it is why the codegen check refuses those spellings.
+ */
+function fieldReading(
+  currency: TopicCurrency<unknown, TopicReckoning<unknown>>,
+  path: string,
+  cache: Map<string, Reading<unknown>>,
+): Reading<unknown> {
+  const cached = cache.get(path);
+  if (cached) return cached;
+  const projected = new Proxy(projectField(currency, path), {
+    get(target, prop, receiver) {
+      if (typeof prop !== "string" || prop in CURRENCY_MEMBERS)
+        return Reflect.get(target, prop, receiver);
+      return fieldReading(currency, `${path}.${prop}`, cache);
+    },
+  });
+  cache.set(path, projected);
+  return projected;
+}
+
+/**
+ * The currency's own member names, which a path step may never be.
+ *
+ * `prop in target` is the obvious guard and it is WRONG, which a
+ * `sitrep-client` test caught: a reading's optional members are simply absent
+ * on the arms that do not carry them, so `.value` on a `pending` field reading
+ * found no own property, fell through to path composition, and answered with a
+ * nested reading for `"<path>.value"` instead of `undefined`. The guard has to
+ * be the NAME, not whether this arm happens to carry it.
+ *
+ * `satisfies Record<ReservedReadingKey, true>` is what keeps this honest: a
+ * member added to the type and forgotten here is a compile error, so the type
+ * stays the single source and this is checked against it rather than being a
+ * second list to keep in step.
+ */
+const CURRENCY_MEMBERS = {
+  state: true,
+  value: true,
+  atUt: true,
+  asOfUt: true,
+  grade: true,
+  reckoning: true,
+} satisfies Record<ReservedReadingKey, true>;
 
 /**
  * The band a reckoning offers for one path, or `undefined` where it offers
