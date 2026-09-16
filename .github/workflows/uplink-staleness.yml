@@ -52,11 +52,23 @@ name: Uplink page staleness
 # content is pictures, and Vehicle Assembly's showed a layout the code had
 # stopped producing for five commits with every run agreeing.
 #
-# `uplink-docs.yml` is the repair and stays nightly. Making it per-push was tried
-# and cost four lost pushes in one evening: it commits, and a commit landing while
-# a developer's pre-push hook is still running rejects that push as
-# non-fast-forward. The division is deliberate: the CHECK is per-push because
-# staleness should be visible immediately, the REPAIR is nightly because it writes.
+# ## The heal sequence, and the one thing it cannot do
+#
+# `uplink-docs.yml` is the repair. It runs on every push to `staging`, nightly,
+# and on dispatch, and it COMMITS the regenerated pages back. So a push that
+# stales a page goes: push P (this check runs, red) → `uplink-docs.yml` at P
+# regenerates and commits C → the tree is healed at C.
+#
+# C is pushed with `GITHUB_TOKEN`, and such a push triggers no workflow, so C
+# gets no run of this check. P's run is red and stays red, and the LATEST run on
+# `staging` remains that red one until the next human push. The branch is not
+# permanently stale, only permanently RED AT P: the next push runs against the
+# healed tree and is green. That asymmetry is exactly why this reports rather
+# than gates; as a gate it would have failed a commit that nothing could turn
+# green.
+#
+# `gh workflow run uplink-staleness.yml --ref staging` gives the healed tip its
+# own run if the red is in the way before then.
 
 on:
   push:
@@ -78,20 +90,6 @@ concurrency:
 jobs:
   staleness:
     runs-on: ubuntu-latest
-    # TEMPORARILY DISABLED, 2026-09-05, at the operator's instruction, alongside
-    # the `visual` job in ci.yml and for the same reason.
-    #
-    # RESTORE THIS BEFORE THE MAIN MERGE. The pages are derived and the only
-    # sanctioned regeneration is `uplink-docs.yml`, so this check goes red
-    # whenever a contract edit lands ahead of the nightly, heals itself, and goes
-    # red again. It never blocked anything. What it cost was attention: a job
-    # that is red most of the time is a job people stop reading, and the habit
-    # generalises to the whole run.
-    #
-    # Nothing is lost while it is off that the nightly does not already fix. What
-    # IS lost is the signal on a pull request, which is the reason it exists, so
-    # this comes back on before anything merges to main.
-    if: false
     steps:
       - uses: actions/checkout@v5
 
