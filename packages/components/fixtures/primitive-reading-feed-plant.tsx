@@ -24,7 +24,7 @@
  */
 
 import { useTelemetry } from "@ksp-gonogo/core";
-import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import { observedAt, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
 
 export function PlantedUnwrap() {
@@ -76,4 +76,81 @@ export function PlantedIndirectUnwrap() {
 /** Stands in for `fill(magnitudeOf(x))`: a magnitude, two calls deep. */
 function ratioOf(q: { magnitude: number } | undefined): Value<"ratio"> {
   return value("ratio", (q?.magnitude ?? 0) / 70_000);
+}
+
+/**
+ * The exemptions, and the controls that keep each one honest.
+ *
+ * A figure taken off a reading's CURRENCY or its MODEL is not the accidental
+ * discard this gate looks for: the rule at the top of the scan has always said
+ * so, and `unwrapOf` has always honoured it. The walk did not, so the exemption
+ * survived `reading.reckoning.x` and evaporated for `f(reading.reckoning.x)`.
+ *
+ * The age is the case that makes it a correctness matter rather than a tidiness
+ * one. `viewUt.minus(observedAt(reading))` is recomputed against the current
+ * frame on every render, so it is exactly current when it is drawn, and its
+ * whole job is to say that something ELSE is old. Forced to carry its reading
+ * it would draw itself not-current, which is the one figure on the panel that
+ * certainly is not.
+ *
+ * Each exemption is planted beside the real fault one hop away, because an
+ * exemption that also swallows the fault is worse than no exemption.
+ */
+export function PlantedCurrencyExemptions() {
+  const flight = useTelemetry("vessel.flight");
+  const altitude = flight.altitudeAsl;
+  const viewUt = value("ut", 1000);
+  const observedUt = observedAt(altitude) ?? viewUt;
+
+  /*
+   * EXEMPT: an age, off the instant the observation was made. Written in the
+   * algebra the sdk's own `observedAt` doc prescribes (an instant minus an
+   * instant IS a duration), so no magnitude is unwrapped to build it and the
+   * provenance runs entirely through the accessor.
+   */
+  const ageSec = viewUt.minus(observedUt);
+
+  // EXEMPT: the same instant reached as a member rather than through the accessor.
+  const stampSec = viewUt.minus(altitude.atUt ?? viewUt);
+
+  // EXEMPT: the MODEL's figure, one hop away from `reading.reckoning`.
+  const modelled =
+    altitude.reckoning.status === "available"
+      ? altitude.reckoning.modelled
+      : undefined;
+
+  // PLANT: the value itself, derived one hop away. The exemptions above sit on
+  // the SAME reading, so one that over-reached would swallow this.
+  const doubled = altitude.value?.times(2);
+
+  return (
+    <>
+      <Unit value={ageSec} />
+      <Unit value={stampSec} />
+      <Unit value={modelled ?? null} />
+      <Unit value={doubled ?? null} />
+    </>
+  );
+}
+
+/**
+ * The name-versus-declaration control, in its own scope so it can SHADOW the
+ * import rather than approximate it.
+ *
+ * A local `observedAt` that hands back the value is the whole reason membership
+ * is the declaring module: a gate keyed on the spelling would exempt this and
+ * report a clean tree over a live unwrap. `styleguide-reading-shape` learned the
+ * same lesson resolving an imported narrower by its declaration.
+ */
+export function PlantedBorrowedAccessorName() {
+  const flight = useTelemetry("vessel.flight");
+  const altitude = flight.altitudeAsl;
+
+  function observedAt<T>(reading: { value?: T }): T | undefined {
+    return reading.value;
+  }
+
+  // PLANT: same spelling as the sdk's accessor, different declaration, and it
+  // launders the VALUE.
+  return <Unit value={observedAt(altitude) ?? null} />;
 }
