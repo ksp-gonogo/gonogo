@@ -112,13 +112,25 @@ describe("FleetRoster: nothing has arrived at all", () => {
     expect(screen.queryByText("Crew")).toBeNull();
     expect(screen.queryByText("Link")).toBeNull();
 
-    // The footer meter is NOT gated on `known`, so an un-fed widget publishes
-    // a fleet-wide comms verdict of "nothing is linked" beside the sentence
-    // saying there is no data. Pinned because the migration reassigns exactly
-    // this "no data" case.
-    const meter = screen.getByRole("meter", { name: "Comms coverage" });
-    expect(meter).toHaveAttribute("aria-valuenow", "0");
-    expect(visibleText()).toContain("0 linked · 0 no link");
+    /*
+     * REASSIGNED, which this test anticipated in its own words: the footer
+     * meter used to publish a fleet-wide verdict of "nothing is linked" beside
+     * the sentence saying there is no data, because the share was a bare
+     * `Value` computed from an empty list.
+     *
+     * The coverage is now a `Reading` combined from `system.vessels`, so
+     * before a frame lands it is `pending` and `Meter` draws its ABSENT form:
+     * no `role="meter"` at all, because a meter asserts a fill fraction and
+     * there is no fraction to assert. "Nobody has said" and "nothing is
+     * linked" are different claims and the widget no longer conflates them.
+     */
+    expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
+    /*
+     * The count line goes with it, and that is the same correction rather than
+     * collateral: "0 linked · 0 no link" is a tally of a roster that was never
+     * delivered, so it asserted the same thing the bar did, in words.
+     */
+    expect(visibleText()).not.toContain("0 linked");
     // `commsRollup([])`'s own branch, distinct from "No Link".
     expect(screen.getByText("No Vessels")).toBeInTheDocument();
     expect(screen.queryByText("No Link")).toBeNull();
@@ -152,9 +164,9 @@ describe("FleetRoster: nothing has arrived at all", () => {
       screen.getByText("Fleet data not available yet."),
     ).toBeInTheDocument();
     expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("meter", { name: "Comms coverage" }),
-    ).toHaveAttribute("aria-valuenow", "0");
+    // Same reassignment as above: no stream is a `pending` coverage reading,
+    // which draws the absent form rather than a confident zero.
+    expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
   });
 });
 
