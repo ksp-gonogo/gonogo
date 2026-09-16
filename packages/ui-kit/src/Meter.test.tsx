@@ -108,6 +108,8 @@ describe("Meter, given a capacity to divide by", () => {
   it("settles ONE rung across the pair rather than laddering each half", () => {
     // Two independent ladders write this tank as "999 m / 1.0 km": one tank,
     // two units, and a fill the reader has to convert before they can see it.
+    // The pair settles on the capacity's kilometres, and the last 0.1% of the
+    // fill is left to the track to show.
     const { container } = render(
       <Meter
         label="Range"
@@ -115,9 +117,8 @@ describe("Meter, given a capacity to divide by", () => {
         capacity={value("m", 1000)}
       />,
     );
-    expect(container.textContent).toContain("999");
-    expect(container.textContent).toContain("1000");
-    expect(container.textContent).not.toContain("km");
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
+    expect(container.textContent).not.toContain("999");
   });
 
   it("names the same unit to the eye and to the ear", () => {
@@ -125,8 +126,8 @@ describe("Meter, given a capacity to divide by", () => {
      * The whole reason the scope encloses the track rather than just the
      * header. `aria-valuetext` is an attribute holding a string, so it can
      * never report into the group the way a rendered `<Unit>` does; left to
-     * choose its own rung it would say "one kilowatt" beside a shown
-     * "1000 W", and neither reader could tell.
+     * choose its own rung it would say "five hundred watts" beside a shown
+     * "0.5 kW", and neither reader could tell.
      */
     const { container } = render(
       <Meter label="Power" value={value("W", 500)} capacity={value("kW", 1)} />,
@@ -134,10 +135,9 @@ describe("Meter, given a capacity to divide by", () => {
     const spoken = screen
       .getByRole("meter", { name: "Power" })
       .getAttribute("aria-valuetext");
-    expect(container.textContent).toContain("1000");
-    expect(container.textContent).not.toContain("kW");
-    expect(spoken).toContain("1000.0 watts");
-    expect(spoken).not.toContain("kilowatt");
+    expect(container.textContent).toContain("0.5");
+    expect(screen.queryAllByText("kilowatts")).toHaveLength(2);
+    expect(spoken).toBe("0.5 kilowatts of 1.0 kilowatts");
   });
 
   it("still lets a caller pin the rung both halves are written at", () => {
