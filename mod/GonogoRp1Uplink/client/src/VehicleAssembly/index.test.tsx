@@ -71,7 +71,7 @@ const PADS = [
     lcId: "lc-1",
     name: "LaunchPad",
     padId: "pad-1",
-    state: "Free",
+    status: "Free",
   },
 ];
 
@@ -430,7 +430,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", [{ ...COMPLEXES[0], isRushing: true }]);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Rollout" }]);
       fixture.emit("rp1.operations", [operation()]);
       fixture.emit("rp1.warehouse", [built()]);
       fixture.emit("rp1.buildQueue", [integrating()]);
@@ -699,7 +699,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollback" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Rollback" }]);
       fixture.emit("rp1.operations", [operation({ type: "Rollback" })]);
       fixture.emit("rp1.warehouse", [built()]);
       fixture.emit("rp1.buildQueue", []);
@@ -761,7 +761,7 @@ describe("VehicleAssembly", () => {
           lcId: "lc-1",
           name: "LaunchPad 2",
           padId: "pad-2",
-          state: "Free",
+          status: "Free",
         },
       ]);
       fixture.emit("rp1.operations", []);
@@ -797,7 +797,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Rollout" }]);
       fixture.emit("rp1.operations", [operation()]);
       fixture.emit("rp1.warehouse", [built()]);
       fixture.emit("rp1.buildQueue", []);
@@ -830,7 +830,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Rollout" }]);
       fixture.emit("rp1.operations", [
         operation({ progress: 1000, progressRatio: 1, timeLeftSeconds: null }),
       ]);
@@ -857,7 +857,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Rollout" }]);
       fixture.emit("rp1.operations", [operation()]);
       fixture.emit("rp1.warehouse", [built()]);
       fixture.emit("rp1.buildQueue", []);
@@ -887,7 +887,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollback" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Rollback" }]);
       fixture.emit("rp1.operations", [operation({ type: "Rollback" })]);
       fixture.emit("rp1.warehouse", [built()]);
       fixture.emit("rp1.buildQueue", []);
@@ -947,7 +947,7 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Reconditioning" }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], status: "Reconditioning" }]);
       // Reconditioning belongs to a PAD and carries no vehicle, so RP-1 stamps
       // it with the pad's id. A card that matched it would report a pad's
       // maintenance as a vehicle moving.
@@ -1134,7 +1134,7 @@ describe("VehicleAssembly", () => {
         {
           ...PADS[0],
           hasVesselWaiting: true,
-          state: "Free",
+          status: "Free",
           waitingVesselName: "Vanguard",
         },
       ]);
@@ -1146,7 +1146,7 @@ describe("VehicleAssembly", () => {
     await waitFor(() => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
-    // A client reading `state` alone would draw this button and be refused.
+    // A client reading `status` alone would draw this button and be refused.
     expect(
       screen.queryByRole("button", { name: /^Roll Atlas · LC-1 out/ }),
     ).not.toBeInTheDocument();

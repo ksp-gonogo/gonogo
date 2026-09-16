@@ -23,7 +23,7 @@ function program(overrides: Record<string, unknown> = {}) {
   return {
     name: "EarlyXPlanes",
     title: "X-Plane Research",
-    state: "active",
+    status: "active",
     speed: "Normal",
     slots: 2,
     isHumanSpaceflight: true,
@@ -171,7 +171,7 @@ describe("ProgramStatus", () => {
       program({
         name: "EarlySatellites",
         title: "Early Satellites",
-        state: "offerable",
+        status: "offerable",
         acceptedUt: null,
         deadlineUt: null,
         lastPaymentUt: null,
@@ -200,11 +200,11 @@ describe("ProgramStatus", () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", [
-      program({ name: "CrewedOrbit", title: "Crewed Orbit", state: "locked" }),
+      program({ name: "CrewedOrbit", title: "Crewed Orbit", status: "locked" }),
       program({
         name: "CrewedOrbitEarly",
         title: "Crewed Orbit (Early)",
-        state: "disabled",
+        status: "disabled",
       }),
     ]);
     fixture.emit("rp1.programSlots", slots({ usedSlots: 0, freeSlots: 3 }));
@@ -267,7 +267,7 @@ describe("ProgramStatus", () => {
       program({
         name: "EarlySatellites",
         title: "Early Satellites",
-        state: "offerable",
+        status: "offerable",
         acceptedUt: null,
         deadlineUt: null,
         lastPaymentUt: null,
@@ -302,7 +302,7 @@ describe("ProgramStatus", () => {
       program({
         name: "EarlySatellites",
         title: "Early Satellites",
-        state: "offerable",
+        status: "offerable",
         acceptedUt: null,
         deadlineUt: null,
         lastPaymentUt: null,

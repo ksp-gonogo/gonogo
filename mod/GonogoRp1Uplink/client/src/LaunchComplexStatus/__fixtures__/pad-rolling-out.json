@@ -129,7 +129,7 @@
             "launchSiteName": "Cape_Canaveral_LC1",
             "level": 2,
             "fractionalLevel": 0.5,
-            "state": "Rollout",
+            "status": "Rollout",
             "hasVesselWaiting": false,
             "waitingVesselName": null
           },
@@ -142,7 +142,7 @@
             "launchSiteName": "Cape_Canaveral_LC5",
             "level": 1,
             "fractionalLevel": 0.25,
-            "state": "Free",
+            "status": "Free",
             "hasVesselWaiting": false,
             "waitingVesselName": null
           }

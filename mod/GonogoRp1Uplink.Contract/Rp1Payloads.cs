@@ -721,9 +721,16 @@ public sealed class Rp1PadEntry
     /// RP-1's <c>LaunchPadState</c> name: "Destroyed", "Nonoperational",
     /// "Rollout", "Rollback", "Reconditioning", "Free", or "None". Anything but
     /// "Free" means a launch aimed here will not work.
+    ///
+    /// <internal>
+    /// Named `status` rather than `state` because `state` is a RESERVED
+    /// READING KEY: a payload field spelled like a currency member cannot be
+    /// reached through the field accessor at all, so the one field a caller
+    /// most needs off a pad was the one field the accessor could not address.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
-    public string? State { get; set; }
+    public string? Status { get; set; }
 
     /// <summary>
     /// The pad is in service, as opposed to still being built.
@@ -1359,9 +1366,15 @@ public sealed class Rp1ProgramEntry
     /// <c>offerable</c> (requirements met, could be accepted now),
     /// <c>locked</c> (requirements not met) or <c>disabled</c> (RP-1 has ruled
     /// it out, usually because accepting a rival Program closed it off).
+    ///
+    /// <internal>
+    /// Named `status` rather than `state` for the reason `Rp1PadEntry.Status`
+    /// carries: `state` is a RESERVED READING KEY, so a field spelled that way
+    /// is unreachable through the field accessor.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
-    public string? State { get; set; }
+    public string? Status { get; set; }
 
     /// <summary>
     /// RP-1's <c>Program.Speed</c> name: "Slow", "Normal" or "Fast". Speed is

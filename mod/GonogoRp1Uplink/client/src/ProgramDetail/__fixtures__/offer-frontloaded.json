@@ -34,7 +34,7 @@
           {
             "name": "EarlyXPlanes",
             "title": "Early X-Planes",
-            "state": "offerable",
+            "status": "offerable",
             "speed": "Normal",
             "slots": 2,
             "isHumanSpaceflight": false,

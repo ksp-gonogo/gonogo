@@ -63,7 +63,7 @@ export interface Rp1RolloutArgs
 	* The client is where the convenience belongs: it may PRESELECT the only
 	* eligible pad so a one-pad complex is still a single press, but the command
 	* it sends carries the name explicitly. Eligibility is on the wire for it to
-	* do that with, as `rp1.pads[].state` plus `rp1.pads[].hasVesselWaiting` for
+	* do that with, as `rp1.pads[].status` plus `rp1.pads[].hasVesselWaiting` for
 	* the pad half and `rp1.warehouse[].rolloutRefusals` for the vehicle half.
 	*/
 	pad?: string;
@@ -1246,11 +1246,11 @@ export interface Rp1WarehouseItemEntry
 	*
 	* **Why this is on the wire rather than computed by the client.** Eligibility
 	* has two halves and they live at different levels. The pad half is per-pad
-	* and is `Rp1PadEntry.state` plus `Rp1PadEntry.hasVesselWaiting`. This is the
-	* VEHICLE half, and it is per-COMPLEX rather than per-pad: the same answer for
-	* every pad the complex owns, because what it measures is the vehicle against
-	* the complex's envelope. Publishing it per (vehicle, pad) pair would be an
-	* N-by-M matrix restating one fact.
+	* and is State plus `Rp1PadEntry.hasVesselWaiting`. This is the VEHICLE half,
+	* and it is per-COMPLEX rather than per-pad: the same answer for every pad the
+	* complex owns, because what it measures is the vehicle against the complex's
+	* envelope. Publishing it per (vehicle, pad) pair would be an N-by-M matrix
+	* restating one fact.
 	*
 	* It could ALMOST be derived client-side, and that is the trap. Mass, the
 	* complex's ceiling and floor and its human rating are all already published,
@@ -1294,9 +1294,9 @@ export interface Rp1WarehouseItemEntry
 	projectType?: string;
 }
 /**
-* One launch pad. `Rp1PadEntry.state` is the direct answer to "may I launch
-* from here", which is why this payload subsumes what a separate rollout queue
-* used to be read for.
+* One launch pad. State is the direct answer to "may I launch from here",
+* which is why this payload subsumes what a separate rollout queue used to be
+* read for.
 */
 export interface Rp1PadEntry
 {
@@ -1313,11 +1313,11 @@ export interface Rp1PadEntry
 	* "Rollback", "Reconditioning", "Free", or "None". Anything but "Free" means a
 	* launch aimed here will not work.
 	*/
-	state?: string;
+	status?: string;
 	/**
 	* The pad is in service, as opposed to still being built.
 	*
-	* **Not derivable from `Rp1PadEntry.state`, which is why it is here.** RP-1's
+	* **Not derivable from State, which is why it is here.** RP-1's
 	* `LaunchPadState` reports `Destroyed` BEFORE it consults the service flag,
 	* and a pad can be both destroyed and in service, and that is exactly the pad
 	* awaiting reconditioning after its own launch. So a pad reading "Destroyed"
@@ -1336,12 +1336,12 @@ export interface Rp1PadEntry
 	* A craft is already standing on this pad in `PRELAUNCH`, so nothing else may
 	* be rolled out to it.
 	*
-	* **The one condition `Rp1PadEntry.state` cannot express, and the reason this
-	* field had to exist.** That property derives its answer from the OPERATIONS
-	* on the pad, and a vehicle already sent to the launch site has no operation
-	* left: it simply sits there. So a pad in exactly this state reports "Free"
-	* and refuses a rollout, and a client choosing from state alone would offer a
-	* pad the mod can only reject. RP-1 asks the same question separately, through
+	* **The one condition State cannot express, and the reason this field had to
+	* exist.** That property derives its answer from the OPERATIONS on the pad,
+	* and a vehicle already sent to the launch site has no operation left: it
+	* simply sits there. So a pad in exactly this state reports "Free" and refuses
+	* a rollout, and a client choosing from state alone would offer a pad the mod
+	* can only reject. RP-1 asks the same question separately, through
 	* `LCLaunchPad.HasVesselWaitingToBeLaunched`.
 	*
 	* Null when the question could not be answered, which is not the same as
@@ -1739,11 +1739,11 @@ export interface Rp1Confidence
 * subsidy sees the smaller half of their income and none of the obligation
 * attached to the larger half.
 *
-* ONE ROW SHAPE FOR EVERY STATE, discriminated by `Rp1ProgramEntry.state`,
-* rather than one Topic per state. RP-1's own Administration building shows
-* one list; the fields that only an accepted Program has are absent on the
-* others, which is the same distinction `Rp1WarehouseItemEntry` already draws
-* against a build-queue row.
+* ONE ROW SHAPE FOR EVERY STATE, discriminated by State, rather than one Topic
+* per state. RP-1's own Administration building shows one list; the fields
+* that only an accepted Program has are absent on the others, which is the
+* same distinction `Rp1WarehouseItemEntry` already draws against a build-queue
+* row.
 */
 export interface Rp1ProgramEntry
 {
@@ -1760,7 +1760,7 @@ export interface Rp1ProgramEntry
 	* (RP-1 has ruled it out, usually because accepting a rival Program closed it
 	* off).
 	*/
-	state?: string;
+	status?: string;
 	/**
 	* RP-1's `Program.Speed` name: "Slow", "Normal" or "Fast". Speed is chosen at
 	* accept time and fixes both the duration and the Confidence price, so on an

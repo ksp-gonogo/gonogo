@@ -88,7 +88,7 @@ export function LaunchComplexStatus({
           {padHeadline(pad, operation)}
         </Badge>{" "}
         {standing ??
-          PAD_STATE_MEANING[pad.state ?? "None"] ??
+          PAD_STATE_MEANING[pad.status ?? "None"] ??
           "state not recognised"}
       </Line>
     );
@@ -113,7 +113,7 @@ export function LaunchComplexStatus({
             <Badge severity={padSeverity(pad, operation)}>
               {padHeadline(pad, operation)}
             </Badge>{" "}
-            {PAD_STATE_MEANING[pad.state ?? "None"] ?? "state not recognised"}
+            {PAD_STATE_MEANING[pad.status ?? "None"] ?? "state not recognised"}
           </Text>
         </Row>
 
@@ -224,7 +224,7 @@ function padHeadline(
   if (pad.hasVesselWaiting === true) return "AT PAD";
   if (operation?.type === "Rollout") return "ROLLING OUT";
   if (operation?.type === "Rollback") return "ROLLING BACK";
-  return (pad.state ?? "None").toUpperCase();
+  return (pad.status ?? "None").toUpperCase();
 }
 
 /** Nominal only for a pad a launch would actually work from. */
@@ -234,7 +234,7 @@ function padSeverity(
 ): "nominal" | "caution" {
   if (pad.hasVesselWaiting === true) return "nominal";
   if (operation !== undefined) return "caution";
-  return pad.state === "Free" ? "nominal" : "caution";
+  return pad.status === "Free" ? "nominal" : "caution";
 }
 
 /**

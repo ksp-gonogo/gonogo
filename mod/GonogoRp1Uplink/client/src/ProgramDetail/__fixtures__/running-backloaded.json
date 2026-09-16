@@ -32,7 +32,7 @@
           {
             "name": "SuborbRocketDev",
             "title": "Sounding Rocket Development",
-            "state": "active",
+            "status": "active",
             "speed": "Normal",
             "slots": 1,
             "isHumanSpaceflight": false,

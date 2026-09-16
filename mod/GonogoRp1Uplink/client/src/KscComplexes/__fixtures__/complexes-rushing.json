@@ -190,7 +190,7 @@
             "launchSiteName": "LaunchPad",
             "level": 1,
             "fractionalLevel": 1,
-            "state": "Free",
+            "status": "Free",
             "hasVesselWaiting": false
           },
           {
@@ -202,7 +202,7 @@
             "launchSiteName": "LaunchPad",
             "level": 1,
             "fractionalLevel": 1,
-            "state": "Free",
+            "status": "Free",
             "hasVesselWaiting": false
           },
           {
@@ -214,7 +214,7 @@
             "launchSiteName": "LaunchPad",
             "level": 2,
             "fractionalLevel": 2,
-            "state": "Free",
+            "status": "Free",
             "hasVesselWaiting": false
           }
         ]

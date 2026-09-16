@@ -116,7 +116,7 @@ export function eligiblePadNames(
       name !== undefined &&
       name !== null &&
       name !== "" &&
-      pad.state === "Free" &&
+      pad.status === "Free" &&
       pad.hasVesselWaiting !== true
     ) {
       names.push(name);
@@ -139,13 +139,13 @@ export function noPadReason(pads: readonly Rp1PadEntry[]): string {
     const who = occupied.waitingVesselName ?? "another vessel";
     return `${who} is on ${occupied.name ?? "the pad"}, waiting to launch`;
   }
-  if (pads.some((p) => p.state === "Reconditioning")) {
+  if (pads.some((p) => p.status === "Reconditioning")) {
     return "the pad is being reconditioned after a launch";
   }
-  if (pads.some((p) => p.state === "Destroyed")) {
+  if (pads.some((p) => p.status === "Destroyed")) {
     return "the pad is destroyed and needs repairing";
   }
-  if (pads.some((p) => p.state === "Nonoperational")) {
+  if (pads.some((p) => p.status === "Nonoperational")) {
     return "the pad has not been built yet";
   }
   return "no pad is free";

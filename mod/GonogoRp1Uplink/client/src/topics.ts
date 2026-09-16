@@ -144,7 +144,7 @@ export const RP1_CONFIDENCE_TOPIC = "rp1.confidence";
 
 /**
  * Every Program RP-1 knows about, running, finished or on offer, discriminated
- * by `state`. Absent rather than empty when RP-1's handler is not live: its
+ * by `status`. Absent rather than empty when RP-1's handler is not live: its
  * catalogue is never empty, so an empty list would be a claim about the career.
  */
 export const RP1_PROGRAMS_TOPIC = "rp1.programs";

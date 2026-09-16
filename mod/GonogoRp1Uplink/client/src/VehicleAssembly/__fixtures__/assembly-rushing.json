@@ -70,7 +70,7 @@
             "launchSiteName": "LaunchPad",
             "level": 2,
             "fractionalLevel": 2,
-            "state": "Rollout",
+            "status": "Rollout",
             "hasVesselWaiting": false,
             "waitingVesselName": null
           }

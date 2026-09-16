@@ -291,7 +291,7 @@ describe("the constructions channel", () => {
 });
 
 describe("the programs channel", () => {
-  it("hydrates the money and the dates, and leaves state and speed bare", async () => {
+  it("hydrates the money and the dates, and leaves status and speed bare", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [RP1_PROGRAMS_TOPIC],
     });
@@ -307,7 +307,7 @@ describe("the programs channel", () => {
       {
         name: "EarlyXPlanes",
         title: "X-Plane Research",
-        state: "active",
+        status: "active",
         speed: "Normal",
         slots: 2,
         isHumanSpaceflight: true,
@@ -364,7 +364,7 @@ describe("the programs channel", () => {
       unit: "s",
     });
     // Enumerations and text are non-quantity tokens: bare, never wrapped.
-    expect(row?.state).toBe("active");
+    expect(row?.status).toBe("active");
     expect(row?.speed).toBe("Normal");
     expect(row?.fundingCurve).toBe("BimodalBackloaded");
     // A Program inside its deadline has genuinely lost nothing, and that zero
@@ -375,6 +375,43 @@ describe("the programs channel", () => {
     });
     // An offer that has never paid is absent here rather than zero.
     expect(row?.objectivesCompletedUt ?? null).toBeNull();
+  });
+
+  /**
+   * What the `state` -> `status` rename was FOR, and the only assertion that
+   * earns it.
+   *
+   * `state` is a currency member, and a property already on the projected
+   * reading wins over a payload field of the same name. So a caller reaching
+   * `programs[0].state` got the READING's state and had no way at all to reach
+   * the Program's, which is the one field a catalogue row is chosen by. Both
+   * halves are asserted here: the currency still answers at `.state`, and the
+   * Program's own answer is now reachable beside it, carrying currency of its
+   * own rather than arriving as a bare string.
+   */
+  it("reaches a Program's status THROUGH the field accessor, beside the currency", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [RP1_PROGRAMS_TOPIC],
+    });
+    const { result } = renderHook(() => useTelemetry(RP1_PROGRAMS_TOPIC), {
+      wrapper: fixture.Provider,
+    });
+
+    fixture.emit(RP1_PROGRAMS_TOPIC, [
+      {
+        name: "EarlyXPlanes",
+        title: "X-Plane Research",
+        status: "active",
+        speed: "Normal",
+      },
+    ]);
+
+    await waitFor(() => expect(result.current.state).toBe("observed"));
+
+    const row = result.current[0];
+    expect(row.status.value).toBe("active");
+    expect(row.status.state).toBe("observed");
+    expect(row.state).toBe("observed");
   });
 
   it("carries the offer's absences through as absences", async () => {
@@ -393,7 +430,7 @@ describe("the programs channel", () => {
       {
         name: "CrewedOrbit",
         title: "Crewed Orbit",
-        state: "locked",
+        status: "locked",
         speed: "Normal",
         slots: 3,
         isHumanSpaceflight: true,

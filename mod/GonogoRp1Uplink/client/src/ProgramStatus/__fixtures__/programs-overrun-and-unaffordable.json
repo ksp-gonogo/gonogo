@@ -57,7 +57,7 @@
           {
             "name": "EarlyOrbital",
             "title": "Early Orbital Program",
-            "state": "active",
+            "status": "active",
             "speed": "Normal",
             "slots": 1,
             "isHumanSpaceflight": false,
@@ -81,7 +81,7 @@
           {
             "name": "CrewedOrbital",
             "title": "Crewed Orbital Program",
-            "state": "offerable",
+            "status": "offerable",
             "speed": "Normal",
             "slots": 1,
             "isHumanSpaceflight": true,
@@ -96,7 +96,7 @@
           {
             "name": "EarlySounding",
             "title": "Early Sounding Rocket Program",
-            "state": "complete",
+            "status": "complete",
             "speed": "Normal",
             "slots": 1,
             "totalFunding": 120000,

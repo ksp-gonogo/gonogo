@@ -286,7 +286,7 @@ function ProgramCatalogue({
      is the word its own badge shows, so it narrows without a second control
      above a list already capped at 16rem. */
   const shown = ordered(programs).filter((program) =>
-    filter.matches(`${label(program)} ${program.state ?? ""}`),
+    filter.matches(`${label(program)} ${program.status ?? ""}`),
   );
 
   return (
@@ -311,8 +311,8 @@ function ProgramCatalogue({
             >
               <SubjectHeading
                 status={
-                  <Badge severity={severityOf(program.state)}>
-                    {(program.state ?? NULL_DISPLAY).toUpperCase()}
+                  <Badge severity={severityOf(program.status)}>
+                    {(program.status ?? NULL_DISPLAY).toUpperCase()}
                   </Badge>
                 }
               >
@@ -359,8 +359,8 @@ function ChosenProgram({
           item. */}
       <SubjectHeading
         status={
-          <Badge severity={severityOf(program.state)}>
-            {(program.state ?? NULL_DISPLAY).toUpperCase()}
+          <Badge severity={severityOf(program.status)}>
+            {(program.status ?? NULL_DISPLAY).toUpperCase()}
           </Badge>
         }
       >
@@ -756,7 +756,7 @@ function PaymentSchedule({ program }: Readonly<{ program: Rp1ProgramEntry }>) {
     // loud, because drawing nothing here is how a COMPLETED Program looks and
     // those are opposite facts.
     if (
-      program.state === "active" &&
+      program.status === "active" &&
       (magnitudeOf(program.fundsPaidOut) === null ||
         magnitudeOf(program.fracElapsed) === null)
     ) {
@@ -923,7 +923,7 @@ function choose(
 ): Rp1ProgramEntry | undefined {
   const named = rows.find((p) => p.name === wanted && wanted !== "");
   if (named !== undefined) return named;
-  return rows.find((p) => p.state === "active") ?? ordered(rows)[0];
+  return rows.find((p) => p.status === "active") ?? ordered(rows)[0];
 }
 
 /**
@@ -932,14 +932,15 @@ function choose(
  * locked Program from the 1980s above the one paying the career today.
  */
 function ordered(rows: readonly Rp1ProgramEntry[]): Rp1ProgramEntry[] {
-  const rank = (state: Rp1ProgramEntry["state"]) => {
-    if (state === "active") return 0;
-    if (state === "offerable") return 1;
-    if (state === "completed") return 2;
+  const rank = (status: Rp1ProgramEntry["status"]) => {
+    if (status === "active") return 0;
+    if (status === "offerable") return 1;
+    if (status === "completed") return 2;
     return 3;
   };
   return [...rows].sort(
-    (a, b) => rank(a.state) - rank(b.state) || label(a).localeCompare(label(b)),
+    (a, b) =>
+      rank(a.status) - rank(b.status) || label(a).localeCompare(label(b)),
   );
 }
 
@@ -991,10 +992,10 @@ function present<T>(field: T | null | undefined): T | undefined {
   return field ?? undefined;
 }
 
-/** How a state reads at a glance. */
-function severityOf(state: Rp1ProgramEntry["state"]): Severity {
-  if (state === "active") return "info";
-  if (state === "disabled") return "caution";
+/** How a Program's standing reads at a glance. */
+function severityOf(status: Rp1ProgramEntry["status"]): Severity {
+  if (status === "active") return "info";
+  if (status === "disabled") return "caution";
   return "nominal";
 }
 

@@ -206,7 +206,7 @@ namespace GonogoRp1Uplink
                     ["launchSiteName"] = p.LaunchSiteName,
                     ["level"] = p.Level,
                     ["fractionalLevel"] = p.FractionalLevel,
-                    ["state"] = p.State,
+                    ["status"] = p.State,
                     ["isOperational"] = p.IsOperational,
                     ["hasVesselWaiting"] = p.HasVesselWaiting,
                     ["waitingVesselName"] = p.WaitingVesselName,
