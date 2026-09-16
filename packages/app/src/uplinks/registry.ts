@@ -105,7 +105,33 @@ export async function fetchRegistry(
       `registry fetch failed: HTTP ${res.status} for ${source.url}`,
     );
   }
-  const json = (await res.json()) as RegistryIndex;
+  let json: RegistryIndex;
+  try {
+    json = (await res.json()) as RegistryIndex;
+  } catch (err) {
+    /*
+     * A 200 that is not JSON means the index is ABSENT, not malformed. The dev
+     * server answers any unknown path with the SPA shell rather than a 404, so
+     * a tree that has never been built returns `<!DOCTYPE html>` here with a
+     * perfectly healthy status code. Reported as the JSON parse error it
+     * literally is ("Unexpected token '<'"), it named neither the cause nor
+     * the fix, and the Uplinks all quarantined behind a sentence about syntax.
+     */
+    const contentType = res.headers?.get?.("content-type") ?? "";
+    if (contentType.includes("html")) {
+      throw new Error(
+        `no Uplink index at ${source.url}: the server answered with the app ` +
+          "shell, which is what a dev server does for a path that does not " +
+          "exist. `pnpm dev` does not build Uplink client bundles; run `pnpm " +
+          "--filter @ksp-gonogo/app build` and serve it with `vite preview`.",
+      );
+    }
+    throw new Error(
+      `registry at ${source.url} could not be read as JSON: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
   if (!json || !Array.isArray(json.uplinks)) {
     throw new Error(`registry at ${source.url} is not a valid index`);
   }

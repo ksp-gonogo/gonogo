@@ -10,6 +10,7 @@ import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import browserslistToEsbuild from "browserslist-to-esbuild";
 import { defineConfig, type PluginOption } from "vite";
+import { uplinkDevNotices } from "./src/uplinks/devNotice";
 import { UPLINK_EXTERNAL_ENTRIES } from "./src/uplinks/externals/entries";
 import { buildUplinkClientBundle } from "./uplink-bundle";
 import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
@@ -242,6 +243,36 @@ const uplinkBundles = (): PluginOption => ({
   },
 });
 
+/*
+ * Say, once and at the terminal, what `pnpm dev` does about Uplinks.
+ *
+ * The two plugins above are `apply: "build"` and the loader has no way to know
+ * it. An absent `public/uplinks/` reaches the operator as a JSON syntax error
+ * (the dev server answers a missing path with the SPA shell, HTTP 200) and a
+ * stale one as ten separate contract MISMATCHes, so the one true sentence
+ * belongs here, where the fix can be named.
+ */
+const uplinkDevNotice = (): PluginOption => ({
+  name: "gonogo-uplink-dev-notice",
+  apply: "serve",
+  configureServer(server) {
+    const notices = uplinkDevNotices(
+      resolve(__dirname, "public/uplinks/registry.local.json"),
+      {
+        apiVersion: HOST_API_VERSION,
+        uiKitVersion: HOST_UIKIT_VERSION,
+        contractMajor: HOST_CONTRACT_MAJOR,
+        contractMinor: HOST_CONTRACT_MINOR,
+      },
+    );
+    server.httpServer?.once("listening", () => {
+      for (const notice of notices) {
+        server.config.logger[notice.level](`[uplinks] ${notice.message}`);
+      }
+    });
+  },
+});
+
 // Bake a native <script type="importmap"> into index.html at build time, mapping
 // each Uplink-external bare specifier to its emitted external-entry chunk URL.
 // Follows the exact `versionMeta()` transformIndexHtml precedent below; only runs
@@ -312,6 +343,7 @@ export default defineConfig({
     versionMeta(),
     uplinkBundles(),
     uplinkImportMap(),
+    uplinkDevNotice(),
     spaFallback(),
   ],
   resolve: { alias: workspaceAlias },
