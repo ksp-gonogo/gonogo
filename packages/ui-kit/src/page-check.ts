@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { readInventory } from "@ksp-gonogo/ui-kit/render-probe";
 import { display, resolveUplinkPackage } from "./render/context";
 import { buildManifest, buildReadme } from "./render/docs";
@@ -140,6 +141,32 @@ function compare(
       `      committed: ${JSON.stringify(committedLines[at] ?? "(end of file)")}\n` +
       `      generated: ${JSON.stringify(expectedLines[at] ?? "(end of file)")}`,
   );
+}
+
+/**
+ * Import every module this Uplink's `gonogo.renderWith` names, so the scenes
+ * that draw inside a host widget can find it.
+ *
+ * The renderer bundles that list into its browser entry; a test has no bundler,
+ * so it has to import them itself. Through the DECLARATION rather than by
+ * writing the path into the test, for the reason the declaration exists: a host
+ * widget ships with the app, in a package no Uplink may name, and a relative
+ * path climbing out of the client would leave the package unextractable (the
+ * extraction probe typechecks `src` outside the workspace, where that path does
+ * not exist). A runtime import of a resolved path is invisible to that
+ * typecheck and to the isolation ratchet's specifier denylist alike, which is
+ * the same latitude `renderWith` already takes.
+ *
+ * Await it before {@link expectUplinkPageCurrent} in an Uplink whose fixtures
+ * name `_scene.host`. It is a no-op for one that declares no hosts.
+ */
+export async function loadRenderHosts(
+  options: PageCheckOptions = {},
+): Promise<void> {
+  const pkg = resolveUplinkPackage(options.root ?? process.cwd());
+  for (const host of pkg.renderWith) {
+    await import(/* @vite-ignore */ pathToFileURL(host).href);
+  }
 }
 
 /** {@link checkUplinkPage}, throwing the differences. For a test body. */
