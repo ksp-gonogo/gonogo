@@ -347,6 +347,16 @@ export function TelemetryProvider({
     setProcessorTopicSubscriber((topic) => client.subscribe(topic, () => {}));
     return () => setProcessorTopicSubscriber(undefined);
   }, [client]);
+  // The same seam for a reckoner's PER-SUBJECT dep, and it has to be here for
+  // the same reason: the subject is not known when a read subscribes, so
+  // `subscribeTopicRead`'s set cannot contain `fleet.<guid>.orbit` and only the
+  // store, which resolved the subject, can hold it up. Without this wiring the
+  // model names an input nothing asked the wire for and declines on it for
+  // ever, which is #193/#195 again.
+  useEffect(() => {
+    store.setDynamicSubscriber((topic) => client.subscribe(topic, () => {}));
+    return () => store.setDynamicSubscriber(undefined);
+  }, [client, store]);
   // Registers the client itself as `getActiveTelemetryClient()`'s source,
   // the plain-class (non-hook) command-dispatch equivalent of
   // `useTelemetryClientOptional()`, same rationale as `activeViewClock`/
