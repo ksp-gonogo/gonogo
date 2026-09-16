@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "notes": "An economy overhaul's answer, arriving: reputation decays, the programme draws a subsidy against it, and a per-day upkeep runs underneath. Every figure is current, so nothing is marked. The paired scene is overhaul-stopped-arriving, which is this same wire with the link dropped.",
+    "scenario": "overhaul-arriving"
+  },
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 142.6,
+            "science": 145,
+            "economyModel": "rp1",
+            "reputationDecayPerDay": 0.0634,
+            "subsidyPerDay": 1240.2,
+            "subsidyMinPerDay": 400,
+            "subsidyMaxPerDay": 3000,
+            "upkeepPerDay": 980.4,
+            "upkeep": {
+              "facilities": 300,
+              "launchComplexes": 250.4,
+              "researchSalary": 180,
+              "training": 60,
+              "crewBase": 100,
+              "crewInFlight": 40,
+              "integrationSalary": 50
+            }
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ]
+  }
+}

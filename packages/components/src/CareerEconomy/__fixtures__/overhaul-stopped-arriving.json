@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "notes": "The same overhauled economy as overhaul-arriving, after the career stops arriving. The wire is identical and the link then drops, so every figure is HELD and marked: the numbers stay readable where a null token would have been, under the caption saying these are the last rates. Rendering the two side by side is what shows the mark at all.",
+    "scenario": "overhaul-stopped-arriving"
+  },
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "pinnedUt": 10,
+    "stopsArriving": true,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 142.6,
+            "science": 145,
+            "economyModel": "rp1",
+            "reputationDecayPerDay": 0.0634,
+            "subsidyPerDay": 1240.2,
+            "subsidyMinPerDay": 400,
+            "subsidyMaxPerDay": 3000,
+            "upkeepPerDay": 980.4,
+            "upkeep": {
+              "facilities": 300,
+              "launchComplexes": 250.4,
+              "researchSalary": 180,
+              "training": 60,
+              "crewBase": 100,
+              "crewInFlight": 40,
+              "integrationSalary": 50
+            }
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ]
+  }
+}

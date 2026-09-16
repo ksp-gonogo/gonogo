@@ -53,6 +53,10 @@
  * the comment claims.
  */
 export const COINCIDENTAL: readonly string[] = [
+  /* `careerReading.state === "observed" || careerReading.state === "stale"`,
+     the SDK Reading discriminant the widget branches its whole answer on, not a
+     field of `career.status`. */
+  "packages/components/src/CareerEconomy#state",
   // `slice.points`, the cross-section geometry the widget builds itself
   "packages/components/src/LandingStatus#points",
   // `reading.state`, the SDK Reading discriminant, not a payload field

@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "notes": "The model could not price its own discounts, so it breaks the upkeep out at list price and sends only upkeepBeforeModifiers. The heading says so, because a breakdown that does not add up to the total beside it has to name why rather than quietly disagree with itself.",
+    "scenario": "overhaul-before-discounts"
+  },
+  "_stream": {
+    "carriedChannels": ["career.status"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 142.6,
+            "science": 145,
+            "economyModel": "rp1",
+            "reputationDecayPerDay": 0.0634,
+            "subsidyPerDay": 1240.2,
+            "subsidyMinPerDay": 400,
+            "subsidyMaxPerDay": 3000,
+            "upkeepPerDay": 980.4,
+            "upkeepBeforeModifiers": {
+              "facilities": 340,
+              "launchComplexes": 278.2,
+              "researchSalary": 200,
+              "training": 66,
+              "crewBase": 112,
+              "crewInFlight": 44,
+              "integrationSalary": 56
+            }
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ]
+  }
+}
