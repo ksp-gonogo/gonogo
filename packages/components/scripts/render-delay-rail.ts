@@ -14,6 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   railTagsForCommand,
   railTagsForControlAxis,
+  railTagsForTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { build } from "esbuild";
 import { chromium } from "playwright";
@@ -46,6 +47,10 @@ const FBW_AXIS_TAGS = railTagsForControlAxis("vessel.control.setAxes");
    of it is, rather than what holding it is. The two derivations disagreeing on
    the same id is the point of keeping both shots. */
 const PRESSED_AXIS_TAGS = railTagsForCommand("vessel.control.setAxes");
+/* Fire-and-forget: a continuous push with no reply channel at all. The only
+   combination whose leg ENDS inside the graph, which is what makes it the shot
+   the trailing-tail question is settled on. */
+const FIRE_AND_FORGET_TAGS = railTagsForTelemetry("continuous");
 
 // Hand-built CommandDelayHandle scenarios. Plain data (no spine), the same
 // shape `useCommand(...)` returns, so the rail draws exactly as it would for a
@@ -348,6 +353,28 @@ const SCENARIOS: ReadonlyArray<{
         ],
         tags: PRESSED_AXIS_TAGS,
         effectiveDelaySeconds: 6,
+      },
+    ],
+  },
+  {
+    name: "09-fire-and-forget-stream",
+    panelTitle: "DOWNLINK",
+    /*
+     * A continuous push nothing answers. Its leg ends at the T divider and then
+     * trails off a quarter-zone past it: the operator asked for "a sense of the
+     * signal really reaching the target", and a line stopping dead on the
+     * divider said the opposite.
+     *
+     * The SAME samples as the throttle axis above, so the two shots differ only
+     * in what the entry IS. Anything else moving between them would be delivery
+     * reaching a second visual property.
+     */
+    handles: [
+      {
+        inFlight: [],
+        tags: FIRE_AND_FORGET_TAGS,
+        effectiveDelaySeconds: 1.6,
+        streams: [{ ...THROTTLE_STREAM, tags: FIRE_AND_FORGET_TAGS }],
       },
     ],
   },
