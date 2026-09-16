@@ -5,10 +5,10 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
+import { combineReadings } from "@ksp-gonogo/sitrep-sdk";
+import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import { netFundsPerDay } from "../shared/FundsDrain";
+import { netFundsPerDay, netFundsPerDayReading } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
@@ -62,18 +62,26 @@ const UPKEEP_SOURCES = [
  */
 function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   const careerReading = useTelemetry("career.status");
-  /* Every number below is a rate or a balance that moves on its own, so a
-     stale one is not an answer to "what is my programme costing now" and the
-     observation is the only thing worth drawing a verdict from. `career.status`
-     declares no reckonable value, so there is no model to fall back to. */
+  /*
+   * Every number below is a rate or a balance that moves on its own, so how
+   * current each one is belongs ON the figure: the field readings below carry
+   * that, and `Unit` marks a value the link stopped carrying rather than
+   * drawing it as though it had just arrived. `career.status` declares no
+   * reckonable value, so there is no model to fall back to and the mark is the
+   * whole of the answer.
+   *
+   * The PAYLOAD is read on `stale` as well, for the structure only: which rows
+   * exist, which sources the model broke out. Withholding it there left the
+   * widget saying "no career economy has arrived" under a caption explaining
+   * that the last one had, which is two answers to one question.
+   */
+  const economyReading = careerReading.economy;
   const economy =
-    careerReading.state === "observed"
+    careerReading.state === "observed" || careerReading.state === "stale"
       ? careerReading.value.economy
       : undefined;
   const stale = careerReading.state === "stale";
 
-  const funds = magnitudeOf(economy?.funds);
-  const reputation = magnitudeOf(economy?.reputation);
   const model = economy?.economyModel;
   const decay = magnitudeOf(economy?.reputationDecayPerDay);
   const subsidy = magnitudeOf(economy?.subsidyPerDay);
@@ -88,10 +96,18 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
      pair of fields exists to stop. */
   const breakdown = economy?.upkeep ?? economy?.upkeepBeforeModifiers;
   const beforeModifiers = economy?.upkeep === undefined;
+  const breakdownReading = beforeModifiers
+    ? economyReading.upkeepBeforeModifiers
+    : economyReading.upkeep;
 
+  /* The magnitude decides whether the row EXISTS (a source the model does not
+     break out is not a source costing nothing), and the reading is what the row
+     draws. Addressable because the seven keys are this file's own table and not
+     a selection off the wire, so each has a path the accessor can walk. */
   const sources = UPKEEP_SOURCES.flatMap((source) => {
     const amount = magnitudeOf(breakdown?.[source.key]);
-    return amount === null ? [] : [{ label: source.label, amount }];
+    if (amount === null) return [];
+    return [{ label: source.label, reading: breakdownReading[source.key] }];
   });
 
   // A model that reports every rate as zero and offers no breakdown is saying
@@ -108,6 +124,19 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   // funds-spending widget carries, so the two cannot disagree about what this
   // career is costing.
   const net = netFundsPerDay(economy);
+  /* The figure the row draws, unsigned: the label carries the direction, so the
+     magnitude is taken off the combination rather than off its inputs, which is
+     what keeps the currency on a net worked out from a subsidy that is no
+     longer current. */
+  const netSize = combineReadings(
+    [
+      netFundsPerDayReading(
+        economyReading.subsidyPerDay,
+        economyReading.upkeepPerDay,
+      ),
+    ],
+    (rate) => rate.abs(),
+  );
 
   const bucket = getSizeBucket(w, h);
   const compact = bucket === "tiny" || (w ?? 6) < 4;
@@ -124,21 +153,13 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
             <Balance>
               <BalanceLabel>Funds</BalanceLabel>
               <BalanceValue>
-                {funds !== null ? (
-                  <Unit value={value("funds", funds)} />
-                ) : (
-                  NULL_DISPLAY
-                )}
+                <Unit value={economyReading.funds} />
               </BalanceValue>
             </Balance>
             <Balance>
               <BalanceLabel>Reputation</BalanceLabel>
               <BalanceValue>
-                {reputation !== null ? (
-                  <Unit value={value("rep", reputation)} />
-                ) : (
-                  NULL_DISPLAY
-                )}
+                <Unit value={economyReading.reputation} />
               </BalanceValue>
             </Balance>
           </Balances>
@@ -164,7 +185,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 <Rate>
                   <RateLabel>Reputation decay</RateLabel>
                   <RateValue>
-                    <Unit value={value("rep/day", decay)} />
+                    <Unit value={economyReading.reputationDecayPerDay} />
                   </RateValue>
                 </Rate>
               )}
@@ -172,12 +193,12 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 <Rate>
                   <RateLabel>Subsidy</RateLabel>
                   <RateValue>
-                    <Unit value={value("f/day", subsidy)} />
+                    <Unit value={economyReading.subsidyPerDay} />
                   </RateValue>
                   {subsidyMin !== null && subsidyMax !== null && (
                     <RateRange>
-                      of <Unit value={value("f/day", subsidyMin)} /> to{" "}
-                      <Unit value={value("f/day", subsidyMax)} />
+                      of <Unit value={economyReading.subsidyMinPerDay} /> to{" "}
+                      <Unit value={economyReading.subsidyMaxPerDay} />
                     </RateRange>
                   )}
                 </Rate>
@@ -186,7 +207,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 <Rate>
                   <RateLabel>Upkeep</RateLabel>
                   <RateValue>
-                    <Unit value={value("f/day", upkeep)} />
+                    <Unit value={economyReading.upkeepPerDay} />
                   </RateValue>
                 </Rate>
               )}
@@ -197,7 +218,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                     often as it is read as a direction. */}
                   <RateLabel>{net < 0 ? "Net drain" : "Net gain"}</RateLabel>
                   <RateValue>
-                    <Unit value={value("f/day", Math.abs(net))} />
+                    <Unit value={netSize} />
                   </RateValue>
                 </Rate>
               )}
@@ -219,7 +240,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 <BreakdownRow key={source.label}>
                   <dt>{source.label}</dt>
                   <dd>
-                    <Unit value={value("f/day", source.amount)} />
+                    <Unit value={source.reading} />
                   </dd>
                 </BreakdownRow>
               ))}

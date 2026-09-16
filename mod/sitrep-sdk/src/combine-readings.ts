@@ -34,6 +34,16 @@ import type { Value } from "./unit-system/value";
  *   taking the **first such input in argument order**. There is no meaningful
  *   ranking between those three, so the rule is positional and written down
  *   rather than invented per call
+ * - an input carrying **no value** gives its own state with no value, by the
+ *   same positional rule, even where that state is `observed` or `stale`. A
+ *   field reading projected off an OPTIONAL payload field the wire did not
+ *   carry is `observed` with no value: the topic WAS observed and the field was
+ *   simply not in it, so the state is right and there is still nothing to
+ *   compute from. Passing the state through says exactly that, and avoids
+ *   inventing the `atUt` an `absent` arm would need. It is the one shape the
+ *   states alone get wrong, and it is the common one: a career reporting an
+ *   upkeep and no subsidy crashed this function before the check existed,
+ *   because the guard trusted `state` and handed `compute` an `undefined`
  *
  * ## The two axes stay separate, exactly as they do on a `Reading`
  *
@@ -57,13 +67,16 @@ export function combineReadings<
   inputs: Inputs,
   compute: (...values: ReadingValues<Inputs>) => Result,
 ): Reading<Result> {
-  const missing = inputs.find((input) => !CARRIES_VALUE.has(input.state));
+  const missing = inputs.find(
+    (input) => !CARRIES_VALUE.has(input.state) || input.value === undefined,
+  );
   if (missing) {
     return { state: missing.state, reckoning: { status: "none" } };
   }
 
-  // Past the guard every input is `observed` or `stale`, so each has a value
-  // and an instant. The cast is that fact, not an assumption about the caller.
+  // Past the guard every input is `observed` or `stale` AND carries a value, so
+  // each has one and an instant. The cast is that fact, not an assumption about
+  // the caller.
   const values = inputs.map((input) => input.value) as ReadingValues<Inputs>;
   const oldest = oldestSpoken(inputs);
   const stale = inputs.some((input) => input.state === "stale");
@@ -135,6 +148,11 @@ function oldestSpoken(inputs: readonly Reading<unknown>[]): {
  * reading the decline learns which input stopped it rather than that something
  * did. The first declining input in argument order is the one reported, the
  * same positional rule the absent states use.
+ *
+ * An `available` reckoning whose modelled value is MISSING is no model here,
+ * for the reason the value guard above gives: a field projection covered by a
+ * model can still find nothing at its path, and `compute` cannot be handed an
+ * `undefined` to multiply.
  */
 function combineReckonings<
   const Inputs extends readonly Reading<unknown>[],
@@ -153,6 +171,7 @@ function combineReckonings<
   const modelled: unknown[] = [];
   for (const input of inputs) {
     if (input.reckoning.status !== "available") return { status: "none" };
+    if (input.reckoning.modelled === undefined) return { status: "none" };
     modelled.push(input.reckoning.modelled);
   }
 
