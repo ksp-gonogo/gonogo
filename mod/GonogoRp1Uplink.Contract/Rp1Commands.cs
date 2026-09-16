@@ -79,7 +79,7 @@ public class Rp1RolloutArgs
     /// <para>The client is where the convenience belongs: it may PRESELECT the
     /// only eligible pad so a one-pad complex is still a single press, but the
     /// command it sends carries the name explicitly. Eligibility is on the wire
-    /// for it to do that with, as <c>rp1.pads[].state</c> plus
+    /// for it to do that with, as <c>rp1.pads[].status</c> plus
     /// <c>rp1.pads[].hasVesselWaiting</c> for the pad half and
     /// <c>rp1.warehouse[].rolloutRefusals</c> for the vehicle half.</para>
     /// </summary>

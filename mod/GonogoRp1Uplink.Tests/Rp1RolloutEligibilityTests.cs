@@ -100,7 +100,7 @@ namespace GonogoRp1Uplink.Tests
 
             var pad = PadRow();
 
-            Assert.Equal("Free", pad["state"]);
+            Assert.Equal("Free", pad["status"]);
             Assert.Equal(false, pad["hasVesselWaiting"]);
             Assert.Null(pad["waitingVesselName"]);
         }
@@ -114,11 +114,11 @@ namespace GonogoRp1Uplink.Tests
 
             var pad = PadRow();
 
-            // THE WHOLE REASON THIS FIELD EXISTS. State derives its answer from
+            // THE WHOLE REASON THIS FIELD EXISTS. Status derives its answer from
             // the pad's OPERATIONS, and a craft already sent to the launch site
             // has none left, so the pad still reports Free. A client choosing from
-            // state alone would offer this pad and be refused.
-            Assert.Equal("Free", pad["state"]);
+            // status alone would offer this pad and be refused.
+            Assert.Equal("Free", pad["status"]);
             Assert.Equal(true, pad["hasVesselWaiting"]);
             Assert.Equal("Vanguard", pad["waitingVesselName"]);
         }

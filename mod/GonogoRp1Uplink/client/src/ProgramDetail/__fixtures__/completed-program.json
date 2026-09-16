@@ -25,7 +25,7 @@
           {
             "name": "SuborbRocketDev",
             "title": "Sounding Rocket Development",
-            "state": "completed",
+            "status": "completed",
             "speed": "Normal",
             "slots": 1,
             "isHumanSpaceflight": false,

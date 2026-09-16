@@ -61,8 +61,8 @@ export function ProgramStatus() {
   }
 
   const rows = programs ?? [];
-  const active = rows.filter((p) => p.state === "active");
-  const offerable = rows.filter((p) => p.state === "offerable");
+  const active = rows.filter((p) => p.status === "active");
+  const offerable = rows.filter((p) => p.status === "offerable");
 
   return (
     <Section>

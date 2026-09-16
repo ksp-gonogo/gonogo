@@ -39,7 +39,7 @@ namespace GonogoRp1Uplink
                 {
                     ["name"] = p.Name,
                     ["title"] = p.Title,
-                    ["state"] = p.State,
+                    ["status"] = p.State,
                     ["speed"] = p.Speed,
                     ["slots"] = p.Slots,
                     ["isHumanSpaceflight"] = p.IsHumanSpaceflight,

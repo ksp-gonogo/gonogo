@@ -48,7 +48,7 @@ function program(overrides: Record<string, unknown> = {}) {
   return {
     name: "EarlyXPlanes",
     title: "X-Plane Research",
-    state: "active",
+    status: "active",
     speed: "Normal",
     slots: 2,
     isHumanSpaceflight: true,
@@ -202,7 +202,7 @@ describe("ProgramDetail", () => {
       program({
         name: "Aeronautics",
         title: "Aeronautics",
-        state: "locked",
+        status: "locked",
         objectivesText: "Break the sound barrier.",
       }),
       program(),
@@ -234,7 +234,7 @@ describe("ProgramDetail", () => {
   it("stands the catalogue open beside the detail rather than hiding it", async () => {
     const { fixture } = mount();
     await feed(fixture, [
-      program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
+      program({ name: "Aeronautics", title: "Aeronautics", status: "locked" }),
       program(),
     ]);
 
@@ -295,7 +295,7 @@ describe("ProgramDetail", () => {
       program({
         name: "Aeronautics",
         title: "Aeronautics",
-        state: "locked",
+        status: "locked",
         objectivesText: "Break the sound barrier.",
       }),
       program(),
@@ -342,7 +342,7 @@ describe("ProgramDetail", () => {
   it("says why a running Program has no funding summary", async () => {
     const { fixture } = mount();
     await feed(fixture, [
-      program({ state: "active", fundsPaidOut: null, fundingPayments: null }),
+      program({ status: "active", fundsPaidOut: null, fundingPayments: null }),
     ]);
 
     await waitFor(() => {
@@ -361,7 +361,7 @@ describe("ProgramDetail", () => {
     const { fixture } = mount();
     await feed(fixture, [
       program({
-        state: "completed",
+        status: "completed",
         completedUt: 200_000,
         fundingPayments: null,
       }),
@@ -459,7 +459,7 @@ describe("ProgramDetail", () => {
     const { fixture } = mount();
     await feed(fixture, [
       program({
-        state: "completed",
+        status: "completed",
         completedUt: 300_000_000,
         fundingPayments: null,
       }),
@@ -488,7 +488,7 @@ describe("ProgramDetail", () => {
     const { fixture } = mount();
     await feed(fixture, [
       program({
-        state: "offerable",
+        status: "offerable",
         programsToDisableOnAccept: ["CrewedOrbit", "Munar"],
       }),
     ]);
@@ -558,7 +558,7 @@ describe("ProgramDetail", () => {
     const { fixture } = mount();
     await feed(fixture, [
       program({
-        state: "offerable",
+        status: "offerable",
         canAccept: true,
         acceptedUt: null,
         fundsPaidOut: null,
@@ -585,7 +585,7 @@ describe("ProgramDetail", () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", [
-      program({ state: "offerable", canAccept: true, confidenceCost: 900 }),
+      program({ status: "offerable", canAccept: true, confidenceCost: 900 }),
     ]);
     fixture.emit("rp1.programSlots", slots());
     fixture.emit("rp1.programFundingCurves", [flatCurve()]);
@@ -610,7 +610,7 @@ describe("ProgramDetail", () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", [
-      program({ state: "offerable", canAccept: true, confidenceCost: 900 }),
+      program({ status: "offerable", canAccept: true, confidenceCost: 900 }),
     ]);
     fixture.emit("rp1.programSlots", slots());
     fixture.emit("rp1.programFundingCurves", [flatCurve()]);
@@ -664,13 +664,13 @@ describe("ProgramDetail", () => {
         program({
           name: "Aeronautics",
           title: "Aeronautics",
-          state: "locked",
+          status: "locked",
           objectivesText: "Break the sound barrier.",
         }),
         program({
           name: "CrewedOrbital",
           title: "Crewed Orbital Program",
-          state: "offerable",
+          status: "offerable",
         }),
         program(),
       ]);

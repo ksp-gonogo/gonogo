@@ -27,7 +27,7 @@ const SLOT_PROPS = {
   funds: 289_848,
 };
 
-function pad(state: string, overrides: Record<string, unknown> = {}) {
+function pad(status: string, overrides: Record<string, unknown> = {}) {
   return [
     {
       kscName: "Cape",
@@ -37,7 +37,7 @@ function pad(state: string, overrides: Record<string, unknown> = {}) {
       launchSiteName: "Cape Canaveral",
       level: 2,
       fractionalLevel: null,
-      state,
+      status,
       hasVesselWaiting: false,
       waitingVesselName: null,
       ...overrides,

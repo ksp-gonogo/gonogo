@@ -68,7 +68,7 @@
             "launchSiteName": "LaunchPad",
             "level": 2,
             "fractionalLevel": 2,
-            "state": "Free",
+            "status": "Free",
             "hasVesselWaiting": false,
             "waitingVesselName": null
           }

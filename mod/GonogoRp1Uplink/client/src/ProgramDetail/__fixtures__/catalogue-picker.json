@@ -32,7 +32,7 @@
           {
             "name": "MunarProgram",
             "title": "Munar Program",
-            "state": "locked",
+            "status": "locked",
             "speed": "Normal",
             "slots": 1,
             "isHumanSpaceflight": false,
@@ -65,7 +65,7 @@
           {
             "name": "SuborbRocketDev",
             "title": "Sounding Rocket Development",
-            "state": "completed",
+            "status": "completed",
             "speed": "Normal",
             "slots": 1,
             "isHumanSpaceflight": false,
@@ -98,7 +98,7 @@
           {
             "name": "EarlyOrbital",
             "title": "Early Orbital Program",
-            "state": "active",
+            "status": "active",
             "speed": "Normal",
             "slots": 2,
             "isHumanSpaceflight": false,
@@ -168,7 +168,7 @@
           {
             "name": "CrewedOrbit",
             "title": "Crewed Orbital Program",
-            "state": "offerable",
+            "status": "offerable",
             "speed": "Normal",
             "slots": 2,
             "isHumanSpaceflight": false,
@@ -201,7 +201,7 @@
           {
             "name": "EarlyXPlanes",
             "title": "Early X-Planes",
-            "state": "offerable",
+            "status": "offerable",
             "speed": "Normal",
             "slots": 2,
             "isHumanSpaceflight": false,

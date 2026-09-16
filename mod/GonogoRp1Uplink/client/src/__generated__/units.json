@@ -340,7 +340,7 @@
       "level": "count",
       "name": "text",
       "padId": "id",
-      "state": "enum",
+      "status": "enum",
       "waitingVesselName": "text"
     },
     "Rp1PadNewArgs": {
@@ -393,7 +393,7 @@
       "requirementsText": "text",
       "slots": "count",
       "speed": "enum",
-      "state": "enum",
+      "status": "enum",
       "title": "text",
       "totalFunding": "funds"
     },
@@ -709,7 +709,7 @@
       "level": "count",
       "name": "text",
       "padId": "id",
-      "state": "enum",
+      "status": "enum",
       "waitingVesselName": "text"
     },
     "rp1.personnel": {
@@ -760,7 +760,7 @@
       "requirementsText": "text",
       "slots": "count",
       "speed": "enum",
-      "state": "enum",
+      "status": "enum",
       "title": "text",
       "totalFunding": "funds"
     },
