@@ -200,13 +200,18 @@ describe("the gate can see a plant written against the REAL types", () => {
     );
   })();
 
-  it("reports both spellings against the sdk's own Reading", () => {
-    expect(scan.sites.map((s) => s.via).sort()).toEqual(["const", "direct"]);
+  it("reports every spelling against the sdk's own Reading", () => {
+    expect(scan.sites.map((s) => s.via).sort()).toEqual([
+      "const",
+      "derived",
+      "derived",
+      "direct",
+    ]);
   });
 
   it("leaves the reading passed whole alone", () => {
-    expect(scan.sites).toHaveLength(2);
-    expect(scan.readingProps).toBe(3);
+    expect(scan.sites).toHaveLength(4);
+    expect(scan.readingProps).toBe(5);
   });
 
   it("resolved ui-kit and the sdk, so the verdict is about the types", () => {
@@ -355,10 +360,81 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
    * Held to zero with no debt list. The tree has never had one of these, so
    * there is nothing to excuse, and a list seeded empty is a list that invites
    * the first entry.
+   *
+   * This is the UNWRAP, and only the unwrap: `<Unit value={reading.value} />`
+   * in the two spellings it can be written in. The weaker relative, a figure
+   * whose provenance is a reading but which arrived through arithmetic or a
+   * helper, is a different fault with a different fix and is held separately
+   * below. Folding the two together would have left this assertion at 56 on
+   * the day it was written, which is another way of saying it would have been
+   * deleted.
    */
   it("has no unwrapped feed anywhere", () => {
     expect(
-      SITES.map((s) => `${s.file}:${s.line} <${s.element} ${s.text}`),
+      SITES.filter((s) => s.via !== "derived").map(
+        (s) => `${s.file}:${s.line} <${s.element} ${s.text}`,
+      ),
     ).toEqual([]);
+  });
+});
+
+/**
+ * Per file, how many primitives are fed a figure that CAME from a reading with
+ * the currency dropped on the way: `value("funds", careerFunds)` where the
+ * funds were read, `career?.economy?.funds` reached off a payload, or a
+ * `describeReckonable(reading)` helper that hands back bare values.
+ *
+ * Seeded from the walk on 2026-09-16, not typed out: 56 sites over 23 files.
+ * It is a CEILING and an exact one, because unlike the act-warning counts this
+ * number comes from a deterministic static walk rather than from a race, so a
+ * file that drops below its entry can and must tighten it in the same commit.
+ * An approximate ceiling on an exact measurement is just a place to hide.
+ *
+ * Three different fixes, which is why this is a survey rather than a task:
+ * a minted `Value` goes through `combineReadings`, a payload field moves onto
+ * the field property, and a laundering helper has to return readings itself.
+ * Which of them each site wants is the operator's to schedule; what this list
+ * does is stop the number growing while that decision is open.
+ */
+const DERIVED_FEED_DEBT: Record<string, number> = {
+  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
+  "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
+  "mod/GonogoRealAntennasUplink/client/src/CommSignalRaAugment/index.tsx": 6,
+  "mod/GonogoRp1Uplink/client/src/FacilityUpgrades/index.tsx": 1,
+  "mod/GonogoRp1Uplink/client/src/ProgramDetail/index.tsx": 4,
+  "mod/GonogoRp1Uplink/client/src/ProgramStatus/index.tsx": 3,
+  "mod/GonogoRp1Uplink/client/src/StartResearch/index.tsx": 2,
+  "mod/GonogoRp1Uplink/client/src/VehicleAssembly/index.tsx": 2,
+  "mod/GonogoRp1Uplink/client/src/VehicleAssembly/Tooling.tsx": 1,
+  "packages/components/src/AstronautComplex/index.tsx": 2,
+  "packages/components/src/CareerEconomy/index.tsx": 8,
+  "packages/components/src/CommSignal/index.tsx": 1,
+  "packages/components/src/CrewStatus/index.tsx": 2,
+  "packages/components/src/CurrentOrbit/index.tsx": 2,
+  "packages/components/src/Experiments/index.tsx": 1,
+  "packages/components/src/LandingStatus/index.tsx": 3,
+  "packages/components/src/LaunchDirector/index.tsx": 1,
+  "packages/components/src/MapView/index.tsx": 2,
+  "packages/components/src/Navball/index.tsx": 2,
+  "packages/components/src/SemiMajorAxis/index.tsx": 1,
+  "packages/components/src/SpaceCenterStatus/index.tsx": 2,
+  "packages/components/src/Targeting/index.tsx": 5,
+  "packages/components/src/TargetPicker/index.tsx": 3,
+};
+
+describe("no primitive is fed a figure a reading's currency was dropped from", () => {
+  const derived = SITES.filter((s) => s.via === "derived");
+  const counted = derived.reduce<Record<string, number>>((by, s) => {
+    by[s.file] = (by[s.file] ?? 0) + 1;
+    return by;
+  }, {});
+
+  it("matches the seeded survey exactly, file by file", () => {
+    expect(
+      counted,
+      "a file above its entry has added a site: pass the reading, or combine. " +
+        "A file below its entry has fixed one: lower the number here in the " +
+        "same commit, or the next site to appear inherits the allowance.",
+    ).toEqual(DERIVED_FEED_DEBT);
   });
 });

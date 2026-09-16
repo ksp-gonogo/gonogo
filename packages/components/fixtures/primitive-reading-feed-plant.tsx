@@ -24,6 +24,7 @@
  */
 
 import { useTelemetry } from "@ksp-gonogo/core";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
 
 export function PlantedUnwrap() {
@@ -40,4 +41,39 @@ export function PlantedUnwrap() {
       <Unit value={altitude} />
     </>
   );
+}
+
+/**
+ * The two shapes the guard must learn, and which NEITHER existing gate sees.
+ *
+ * `styleguide-primitive-inputs`'s gate B is textual: it refuses arithmetic, a
+ * bare magnitude or a cast written IN the prop, and both of these are written
+ * somewhere else. `primitive-reading-feed` keys on a property literally named
+ * `value` on a reading-shaped object, and neither of these is that: the first
+ * divides two payload numbers, the second takes a magnitude two calls deep.
+ *
+ * Both are the same fault the file's header describes, one hop further back:
+ * a figure derived from a reading, handed over with the currency stripped off.
+ */
+export function PlantedIndirectUnwrap() {
+  const flight = useTelemetry("vessel.flight");
+  const payload = flight.value;
+
+  // PLANT: arithmetic over reading-derived numbers, named on a previous line.
+  const share = (payload?.altitudeAsl?.magnitude ?? 0) / 70_000;
+
+  // PLANT: an unwrap laundered through a helper, so the prop holds a call.
+  const asRatio = ratioOf(payload?.altitudeAsl);
+
+  return (
+    <>
+      <Unit value={value("ratio", share)} />
+      <Unit value={asRatio} />
+    </>
+  );
+}
+
+/** Stands in for `fill(magnitudeOf(x))`: a magnitude, two calls deep. */
+function ratioOf(q: { magnitude: number } | undefined): Value<"ratio"> {
+  return value("ratio", (q?.magnitude ?? 0) / 70_000);
 }
