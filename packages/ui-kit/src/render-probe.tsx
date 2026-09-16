@@ -532,7 +532,18 @@ export interface RenderSetup {
     scene: ScenePayload;
     starve: boolean;
   }) => void | Promise<void>;
-  /** Run after each capture. Unregister and dispose. */
+  /**
+   * Unwind what `beforeScene` set up, once per mount.
+   *
+   * It runs at the START of the next mount rather than the instant the shot is
+   * taken: the page has no end-of-scene call, and this way the pairing with
+   * `beforeScene` is structural (see `renderScene`). What that costs is the
+   * last mount of a run, which gets no `afterScene` because nothing follows it
+   * to carry one; the page closes there.
+   *
+   * The ctx names the scene being UNWOUND, which is the previous one, not the
+   * one about to render.
+   */
   afterScene?: (ctx: { scene: ScenePayload }) => void | Promise<void>;
   /** Wrap the scene's tree in extra providers, inside the theme and stream. */
   wrap?: (children: ReactNode, ctx: { scene: ScenePayload }) => ReactNode;
@@ -696,7 +707,43 @@ function hostLabelFor(slot: string): string {
 }
 
 async function renderScene(scene: ScenePayload): Promise<SceneReport> {
+  /*
+   * The author's half of `teardown`, for the mount that just finished.
+   *
+   * Paired with `beforeScene` by construction rather than by a caller
+   * remembering: both run in this function, so every setup that was run is
+   * unwound exactly once before the next one runs, across the starved mount and
+   * each mode's fed mount alike. The driver has no end-of-scene call to hang it
+   * on, and giving it one would put the pairing in the caller, which is where a
+   * motion scene's early `continue` would drop it. Kept inline here rather than
+   * in a helper for the same reason the gate on this file reads this function's
+   * body: a hook called from somewhere nothing reaches is the defect.
+   *
+   * It runs before `teardown` and before `closeSceneClock`, so a setup unwinding
+   * its own work still sees the page it built it on: its data source is still
+   * registered, its DOM is still mounted, and a timer it took out on the scene
+   * clock is still the scene clock's.
+   *
+   * The one mount that gets no `afterScene` is the last of a run, which is the
+   * same mount `teardown` never reaches, and the page is closed immediately
+   * after. A throw is not swallowed: a teardown that failed silently would leave
+   * its stubs standing for whatever renders next, which is the defect this call
+   * closes rather than one to reopen.
+   */
+  const finished = currentScene;
   currentScene = scene;
+  if (finished) {
+    try {
+      await activeSetup.afterScene?.({ scene: finished });
+    } catch (cause) {
+      throw new Error(
+        `render probe: the setup's afterScene threw after scene "${finished.fixture}". ` +
+          "It runs at the start of the NEXT mount, so the scene named here is the " +
+          "one it was unwinding, not the one that was about to render.",
+        { cause },
+      );
+    }
+  }
   teardown();
   // Before the mount, because a scene whose steps wait needs its widget's own
   // timers to register on the scene clock rather than on the page's.

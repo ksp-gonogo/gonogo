@@ -461,6 +461,17 @@ export default defineRenderSetup({
 });
 ```
 
+`beforeScene` and `afterScene` run once per MOUNT, and a scene is mounted
+several times: once starved, then once per tile size. So unwind in `afterScene`
+whatever `beforeScene` set up, rather than assuming one setup per scene.
+
+`afterScene` runs at the start of the next mount, not the instant the shot is
+taken, because the page has no end-of-scene call. Two things follow. The ctx
+names the scene being unwound, which is the previous one. And the last mount of
+a run gets no `afterScene` at all: nothing follows it to carry one, and the page
+closes there, so do not put anything in it that has to happen for the run's sake
+rather than for the next scene's.
+
 ## Mounting an augment in its real host
 
 By default an augment renders inside a STAND-IN panel. The section's own layout is

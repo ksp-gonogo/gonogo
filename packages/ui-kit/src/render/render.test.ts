@@ -8,6 +8,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -157,6 +158,76 @@ describe("one copy per page", () => {
     for (const specifier of Object.keys(alias)) {
       expect(["react", "react-dom", "styled-components"]).toContain(specifier);
     }
+  });
+});
+
+/**
+ * Every hook `RenderSetup` offers an author is a hook the probe actually calls.
+ *
+ * `afterScene` was declared and never called for the life of the harness, so
+ * every scene's teardown had never run. The one setup that writes a real one
+ * restores `globalThis.fetch`, cancels a held-input timer and disconnects its
+ * source, and each scene had been leaving all three standing for whatever
+ * rendered next. Nothing reported it, because a declared-and-uncalled hook is
+ * not a type error, not an unused export, and not visible in any render. An
+ * author reading the interface has no way to tell the difference either.
+ *
+ * Source text rather than behaviour, deliberately: the call site is in the
+ * BROWSER half, which this node realm cannot mount, and the defect is
+ * structural rather than conditional. Both halves are read off the file rather
+ * than typed here, so a fifth hook added to the interface and not called fails
+ * without anyone editing this test.
+ *
+ * It reads `renderScene`'s OWN BODY and not the whole file, which is the
+ * difference between a check and a decoration. The first draft asked whether
+ * the file MENTIONED each hook, and removing the call passed it: the mention
+ * had moved into a helper that nothing called any more, which is the same shape
+ * as the bug. `renderScene` is what the driver invokes, so a call in its body
+ * is one that runs.
+ */
+describe("the setup hooks the probe offers", () => {
+  const probeSource = readFileSync(
+    join(__dirname, "..", "render-probe.tsx"),
+    "utf8",
+  );
+
+  /** The optional hook names declared on `RenderSetup`, read off the block. */
+  function declaredHooks(): string[] {
+    const block = probeSource.match(
+      /export interface RenderSetup \{([\s\S]*?)\n\}/,
+    );
+    if (!block) throw new Error("RenderSetup interface not found");
+    return [...block[1].matchAll(/^ {2}(\w+)\?:/gm)].map((m) => m[1]);
+  }
+
+  /** `renderScene`, from its signature to its closing brace at column zero. */
+  function renderSceneBody(): string {
+    const body = probeSource.match(
+      /\nasync function renderScene\([\s\S]*?\n\}\n/,
+    );
+    if (!body) throw new Error("renderScene not found");
+    return body[0];
+  }
+
+  it("reads a real interface and a real function body", () => {
+    /* Both extractors, because either one silently matching nothing reports a
+       clean tree: an empty hook list has no uncalled member, and an empty body
+       is only caught by the assertion above it. */
+    expect(declaredHooks().sort()).toEqual([
+      "afterMount",
+      "afterScene",
+      "beforeScene",
+      "wrap",
+    ]);
+    expect(renderSceneBody().length).toBeGreaterThan(1000);
+  });
+
+  it("calls every hook it declares, from the function the driver invokes", () => {
+    const body = renderSceneBody();
+    const uncalled = declaredHooks().filter(
+      (hook) => !body.includes(`activeSetup.${hook}`),
+    );
+    expect(uncalled).toEqual([]);
   });
 });
 
