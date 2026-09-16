@@ -59,8 +59,23 @@ function newFixture() {
   });
 }
 
+/** The same fixture with `vessel.resources` carried, for the suit meters. */
+function newEvaFixture() {
+  return setupStreamFixture({
+    carriedChannels: [
+      "vessel.crew",
+      "vessel.state",
+      "vessel.identity",
+      "vessel.orbit",
+      "vessel.resources",
+    ],
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
+}
+
 function renderCrew(
-  fixture: ReturnType<typeof newFixture>,
+  fixture: ReturnType<typeof newFixture> | ReturnType<typeof newEvaFixture>,
   meters: readonly unknown[] = [],
 ) {
   const { unmount } = render(
@@ -236,6 +251,68 @@ describe("CrewStatusComponent", () => {
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     });
     await waitFor(() => expect(screen.getByText(/EVA/)).toBeInTheDocument());
+  });
+
+  /**
+   * The suit meters had exactly one assertion in the tree and it was the
+   * negative one, so nothing rendered them and nothing would have noticed if
+   * they stopped rendering. These are the two halves of what the keyed field
+   * property is supposed to do, stated as behaviour rather than as a shape.
+   */
+  describe("EVA suit meters", () => {
+    function evaOnSuit(fixture: ReturnType<typeof newEvaFixture>) {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+      fixture.emit("vessel.orbit", ORBIT);
+      fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
+    }
+
+    it("draws the O2 tank from the figures under its own keyed path", async () => {
+      const fixture = newEvaFixture();
+      renderCrew(fixture);
+      act(() => {
+        evaOnSuit(fixture);
+        fixture.emit("vessel.resources", {
+          resources: { Oxygen: { current: 3, max: 12 } },
+        });
+      });
+
+      await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
+      // A real meter with a fraction to assert: the projection carried both
+      // halves through, and the kit divided them.
+      const o2 = screen.getByRole("meter", { name: "O2" });
+      expect(o2).toHaveAttribute("aria-valuenow", "25");
+    });
+
+    /**
+     * The one behaviour this migration deliberately changed.
+     *
+     * Reaching the halves off the payload meant an unreported level dropped the
+     * whole meter, so "this craft has no O2 tank" and "nobody has said what is
+     * in the O2 tank" drew the same nothing. The key's presence is structural
+     * per the contract, so the row now stands and the figure reads as absent,
+     * which is the distinction an operator on EVA actually needs.
+     */
+    it("keeps the row but draws no fraction when the level is unreported", async () => {
+      const fixture = newEvaFixture();
+      renderCrew(fixture);
+      act(() => {
+        evaOnSuit(fixture);
+        fixture.emit("vessel.resources", {
+          resources: { Oxygen: { max: 12 } },
+        });
+      });
+
+      await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
+      // No `role="meter"`: a meter asserts an `aria-valuenow` and there is no
+      // fraction to assert.
+      expect(
+        screen.queryByRole("meter", { name: "O2" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("renders the per-crew badges slot with no bound augment (empty is fine)", async () => {

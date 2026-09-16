@@ -11,7 +11,7 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import type { ResourceAmount, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, Value, VesselResources } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
@@ -149,17 +149,32 @@ type CrewStatusConfig = Record<string, never>;
 // lookups, no mod-specific shape, and an install whose profile puts neither
 // on the suit simply renders nothing.
 
-/** Extracts a `{current, max}` pair off a `vessel.resources` entry, or
- *  `undefined` when the resource is absent or has no usable capacity.
+/**
+ * Both halves of a `vessel.resources` entry as READINGS under their own keyed
+ * path, or `undefined` when the vessel carries no such resource.
  *
- *  The pair stays as the contract declared it, `Value<"units">` on both
- *  halves: it goes straight into a `Meter`, which does the division and writes
- *  both figures itself, so there is nothing here for a bare number to be. */
-function toSuitResourceReadout(
-  entry: ResourceAmount | undefined,
+ * The presence question and the figure question are separate here, and the
+ * contract is what separates them: a key ABSENT from the map is structural, it
+ * means this vessel has no tank for the resource and changes only on staging
+ * or docking, so it is the one case that should render no meter at all. Every
+ * other case (never reported, gone stale, present and empty) is a figure the
+ * `Meter` already draws honestly, which is why nothing else is gated here.
+ *
+ * The two halves are reached through the field property rather than pulled off
+ * the payload, so each arrives carrying the currency the channel read with.
+ * Taking `entry.current` off `reading.value` would hand the meter a number
+ * with no way to say how old it is.
+ */
+function suitTank(
+  reading: TopicReading<VesselResources>,
+  name: string,
 ): SuitTank | undefined {
-  if (!entry?.current || !entry.max) return undefined;
-  if (!entry.max.isPositive()) return undefined;
+  const carried =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value?.resources?.[name]
+      : undefined;
+  if (!carried) return undefined;
+  const entry = reading.resources[name];
   return { amount: entry.current, capacity: entry.max };
 }
 
@@ -173,19 +188,26 @@ function toSuitResourceReadout(
  * over, and nothing outside this file ever sees it.
  */
 interface SuitTank {
-  amount: Value<"units">;
-  capacity: Value<"units">;
+  amount: Reading<Value<"units">>;
+  capacity: Reading<Value<"units">>;
 }
 
 /** Tone for what is left in a suit tank: a full tank is calm, an empty one is
  *  alarming, the inverse of a "toward fatal" accumulator reading.
  *
+ *  `undefined` where either half carries no figure, rather than a tone chosen
+ *  for a fraction nobody could compute. `Meter` draws the absent form in that
+ *  case and a tone would be colouring an empty track.
+ *
  *  `dividedBy` is what checks the two halves are the same kind, and its
  *  quotient is dimensionless by construction, so the `.magnitude` is on a
  *  number that has already stopped being a quantity. It is compared against
  *  two thresholds and never shown. */
-function suitResourceTone(pair: SuitTank): MeterTone {
-  const fraction = pair.amount.dividedBy(pair.capacity).magnitude;
+function suitResourceTone(pair: SuitTank): MeterTone | undefined {
+  const amount = pair.amount.value;
+  const capacity = pair.capacity.value;
+  if (!amount || !capacity?.isPositive()) return undefined;
+  const fraction = amount.dividedBy(capacity).magnitude;
   if (fraction <= 0.15) return "nogo";
   if (fraction <= 0.4) return "warn";
   return "go";
@@ -463,8 +485,6 @@ function CrewStatusComponent({
    * whether a kerbal outside the craft has time to get back in.
    */
   const resourcesReading = topics.useTelemetry("vessel.resources");
-  const resources =
-    resourcesReading.state === "observed" ? resourcesReading.value : undefined;
   /*
    * `EvaSuitReadout` returns early on this flag and drops both meters, so it
    * has to mean "there is nothing to meter". `vessel.resources` declares no
@@ -472,11 +492,9 @@ function CrewStatusComponent({
    * meters and a held reading is exactly the case where nothing was drawn.
    */
   const suitReadingsNotCurrent = resourcesReading.state === "stale";
-  const suitOxygen = isEVA
-    ? toSuitResourceReadout(resources?.resources?.Oxygen)
-    : undefined;
+  const suitOxygen = isEVA ? suitTank(resourcesReading, "Oxygen") : undefined;
   const suitElectricCharge = isEVA
-    ? toSuitResourceReadout(resources?.resources?.ElectricCharge)
+    ? suitTank(resourcesReading, "ElectricCharge")
     : undefined;
 
   // Avatar cell width tracks the roster's own measured content width (see
