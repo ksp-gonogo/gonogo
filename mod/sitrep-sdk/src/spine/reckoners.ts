@@ -90,15 +90,61 @@ export function registerReckoner<
   owner: string,
   reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
 ): void {
-  for (const [rule, reason] of Object.entries(reckoner.exempt ?? {})) {
-    if (typeof reason !== "string" || reason.trim() === "") {
+  const requireReason = (
+    rule: string,
+    reason: string | undefined,
+    where: string,
+    present: boolean,
+  ) => {
+    if (present && (reason === undefined || reason.trim() === "")) {
       throw new Error(
-        `registerReckoner("${topic}", "${owner}"): the ${rule} exemption carries no reason.\n\n` +
+        `registerReckoner("${topic}", "${owner}"): the ${rule} exemption${where} carries no reason.\n\n` +
           "The store applies the input rules to every model by default, and an " +
           "opt-out is only reviewable if it says what makes it sound. Write the " +
           "reason as the value:\n" +
           `  exempt: { ${rule}: "this input only seeds the integration and is never read again" }`,
       );
+    }
+  };
+  const exempt = reckoner.exempt;
+  if (exempt) {
+    requireReason("horizon", exempt.horizon, "", exempt.horizon !== undefined);
+    requireReason("band", exempt.band, "", exempt.band !== undefined);
+    /*
+     * `perBasis` holds one opt-out SET per basis rather than a reason of its
+     * own, so its reasons are two levels down: basis, then rule, then input.
+     * Walked with the typed shape rather than `Object.entries` over the whole
+     * `exempt` object, which could only see its values as `unknown`.
+     */
+    const declaredInputs = new Set<string>();
+    for (const dep of reckoner.deps) {
+      if (typeof dep === "string") declaredInputs.add(dep);
+      else if ("reading" in dep) declaredInputs.add(dep.reading);
+    }
+    for (const [basis, scoped] of Object.entries(exempt.perBasis ?? {})) {
+      for (const rule of ["horizon", "band"] as const) {
+        for (const [input, reason] of Object.entries(scoped?.[rule] ?? {})) {
+          requireReason(
+            rule,
+            reason,
+            ` for ${input} on the ${basis} basis`,
+            true,
+          );
+          /*
+           * An opt-out naming an input the model never declared is the failure
+           * this layer introduces: it reads as a reviewed decision, exempts
+           * nothing, and goes on reading that way after the dep it was written
+           * for is renamed or dropped.
+           */
+          if (!declaredInputs.has(input)) {
+            throw new Error(
+              `registerReckoner("${topic}", "${owner}"): the ${rule} exemption on the ${basis} basis names "${input}", which is not one of this model's declared inputs.\n\n` +
+                `Declared: ${[...declaredInputs].sort().join(", ") || "(none)"}\n` +
+                "An exemption can only be from an input the model actually takes. One naming anything else exempts nothing and reads as a decision somebody made.",
+            );
+          }
+        }
+      }
     }
   }
   const byOwner =
@@ -113,6 +159,10 @@ export interface ReckonerExemption {
   readonly owner: string;
   readonly rule: ReckonerInputRule;
   readonly reason: string;
+  /** Present where the opt-out is narrowed to models produced on one basis. */
+  readonly basis?: string;
+  /** Present where it is narrowed to one declared input, which is the honest form. */
+  readonly input?: string;
 }
 
 /**
@@ -134,9 +184,25 @@ export function getReckonerExemptions(): ReckonerExemption[] {
   const rows: ReckonerExemption[] = [];
   for (const [topic, byOwner] of reckoners) {
     for (const [owner, definition] of byOwner) {
-      for (const [rule, reason] of Object.entries(definition.exempt ?? {})) {
-        if (typeof reason !== "string" || reason.trim() === "") continue;
-        rows.push({ topic, owner, rule: rule as ReckonerInputRule, reason });
+      const exempt = definition.exempt;
+      if (!exempt) continue;
+      if (exempt.horizon !== undefined) {
+        rows.push({ topic, owner, rule: "horizon", reason: exempt.horizon });
+      }
+      if (exempt.band !== undefined) {
+        rows.push({ topic, owner, rule: "band", reason: exempt.band });
+      }
+      /*
+       * The narrowed form, listed with the rest: a reviewable set that silently
+       * omitted it would report "no exemptions" while one was declared, which
+       * is the inert-rule shape this whole mechanism exists to avoid.
+       */
+      for (const [basis, scoped] of Object.entries(exempt.perBasis ?? {})) {
+        for (const rule of ["horizon", "band"] as const) {
+          for (const [input, reason] of Object.entries(scoped?.[rule] ?? {})) {
+            rows.push({ topic, owner, rule, reason, basis, input });
+          }
+        }
       }
     }
   }

@@ -52,9 +52,24 @@ type _OrbitTruthFields = Expect<
   Equal<ReckonableFields<"vessel.orbit.truth">, "position" | "velocity">
 >;
 
+// A coast moves the PHASE and nothing else, so these two are the whole of what
+// `vessel.orbit`'s conic advances; the remaining elements are constants of the
+// orbit. The mark is also what makes that model's REFUSAL reachable, which is
+// why it exists at all: see `VesselOrbit.MeanAnomalyAtEpoch`.
+type _OrbitFields = Expect<
+  Equal<ReckonableFields<"vessel.orbit">, "meanAnomalyAtEpoch" | "epoch">
+>;
+
 // An unmarked Topic answers `never`, which is what makes the conditional in
 // `useTelemetry` safe to write over every `TopicId`.
-type _UnmarkedIsNever = Expect<Equal<ReckonableFields<"vessel.orbit">, never>>;
+//
+// `system.bodies` rather than `vessel.orbit`, which used to stand here and was
+// marked on 2026-09-16. This one is principled rather than merely unmarked
+// today: it is a CATALOGUE, not a reading of anything, so there is nothing for a
+// model to move. The tree changes once a session and is permanently stale, and
+// a hold-last is the right reading of it, which is why the input-horizon rule
+// says an unmodelled input "makes no claim about how far it reaches".
+type _UnmarkedIsNever = Expect<Equal<ReckonableFields<"system.bodies">, never>>;
 
 // Each declared field is a real key of its real payload. This is the assertion
 // that turns a codegen typo into a compile error rather than an empty `Pick`.

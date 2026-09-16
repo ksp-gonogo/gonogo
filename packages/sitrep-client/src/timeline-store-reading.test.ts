@@ -29,12 +29,22 @@ function store(): TimelineStore {
 }
 
 /**
- * The fixture topic is `vessel.orbit`, which the contract declares NOTHING
+ * The fixture topic is `system.bodies`, which the contract declares NOTHING
  * reckonable on, and that is deliberate: these tests are about the store's
  * identity, staleness and tombstone mechanics, and a topic carrying a
  * `[SitrepReckonable]` mark answers its value-bearing `"none"` arms with a
  * `declined` that would appear in every shape assertion below without being
  * what any of them is asking about. The decline has its own describe block.
+ *
+ * It was `vessel.orbit` until 2026-09-16, when that topic was marked so its
+ * conic could REFUSE reachably (ticket 308). `system.bodies` is a better fixture than
+ * "whatever is unmarked today": it is a catalogue rather than a reading of
+ * anything, so there is nothing for a model to move and nothing should ever
+ * mark it.
+ *
+ * **If #312 lands**, registering a model on an unmarked topic may be refused
+ * outright, and this file is one of the places that will notice: it wants a
+ * topic that is unmarked AND unmodelled, which is what this one is.
  */
 describe("TimelineStore.sampleReading", () => {
   it("returns the SAME object for repeat reads within one frame", () => {
@@ -43,23 +53,23 @@ describe("TimelineStore.sampleReading", () => {
     // a wasted allocation. This is the property that makes the union usable
     // from a hook at all.
     const s = store();
-    s.ingest("vessel.orbit", point(10, 5));
+    s.ingest("system.bodies", point(10, 5));
     s.beginFrame();
 
-    const first = s.sampleReading("vessel.orbit");
-    const second = s.sampleReading("vessel.orbit");
+    const first = s.sampleReading("system.bodies");
+    const second = s.sampleReading("system.bodies");
     expect(second).toBe(first);
   });
 
   it("builds a fresh reading once the frame advances", () => {
     const s = store();
-    s.ingest("vessel.orbit", point(10, 5));
+    s.ingest("system.bodies", point(10, 5));
     s.beginFrame();
-    const first = s.sampleReading("vessel.orbit");
+    const first = s.sampleReading("system.bodies");
 
-    s.ingest("vessel.orbit", point(11, 6));
+    s.ingest("system.bodies", point(11, 6));
     s.beginFrame();
-    const second = s.sampleReading("vessel.orbit");
+    const second = s.sampleReading("system.bodies");
 
     expect(second).not.toBe(first);
     expect(second).toEqual({
@@ -72,23 +82,23 @@ describe("TimelineStore.sampleReading", () => {
 
   it("agrees with the value and status reads for the same frame", () => {
     const s = store();
-    s.ingest("vessel.orbit", point(10, 5));
+    s.ingest("system.bodies", point(10, 5));
     s.beginFrame();
 
     const frame = s.currentFrame();
-    expect(s.sampleReading("vessel.orbit", frame)).toEqual({
+    expect(s.sampleReading("system.bodies", frame)).toEqual({
       state: "observed",
       reckoning: { status: "none" },
-      value: s.sample<number>("vessel.orbit", frame)?.payload,
+      value: s.sample<number>("system.bodies", frame)?.payload,
       atUt: value("ut", 10),
     });
-    expect(s.sampleStatus("vessel.orbit", frame)).toBe("live");
+    expect(s.sampleStatus("system.bodies", frame)).toBe("live");
   });
 
   it("is pending for a topic that has never produced a point", () => {
     const s = store();
     s.beginFrame();
-    expect(s.sampleReading("vessel.orbit")).toEqual({
+    expect(s.sampleReading("system.bodies")).toEqual({
       state: "pending",
       reckoning: { status: "none" },
     });
@@ -96,9 +106,9 @@ describe("TimelineStore.sampleReading", () => {
 
   it("reports the link going down as stale, keeping the last value", () => {
     const s = store();
-    s.ingest("vessel.orbit", point(10, 5));
+    s.ingest("system.bodies", point(10, 5));
     s.beginFrame();
-    expect(s.sampleReading("vessel.orbit")).toEqual({
+    expect(s.sampleReading("system.bodies")).toEqual({
       state: "observed",
       reckoning: { status: "none" },
       value: 5,
@@ -107,7 +117,7 @@ describe("TimelineStore.sampleReading", () => {
 
     s.setTransportConnected(false);
     s.beginFrame();
-    expect(s.sampleReading("vessel.orbit")).toEqual({
+    expect(s.sampleReading("system.bodies")).toEqual({
       state: "stale",
       reckoning: { status: "none" },
       grade: "disconnected",
@@ -118,9 +128,9 @@ describe("TimelineStore.sampleReading", () => {
 
   it("reports a tombstone as a confirmed absence, with its own age", () => {
     const s = store();
-    s.ingest("vessel.orbit", point(10, null));
+    s.ingest("system.bodies", point(10, null));
     s.beginFrame();
-    expect(s.sampleReading("vessel.orbit")).toEqual({
+    expect(s.sampleReading("system.bodies")).toEqual({
       state: "absent",
       reckoning: { status: "none" },
       atUt: value("ut", 10),
@@ -196,10 +206,10 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
 
   it("leaves a topic the contract declares nothing about untouched", () => {
     const s = store();
-    s.ingest("vessel.orbit", point(10, 5));
+    s.ingest("system.bodies", point(10, 5));
     s.beginFrame();
 
-    expect(s.sampleReading("vessel.orbit")).not.toHaveProperty("declined");
+    expect(s.sampleReading("system.bodies")).not.toHaveProperty("declined");
   });
 
   it("leaves it untouched even when a registered model declines on it", () => {
@@ -211,15 +221,15 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
      * silent drop the decline exists to end, wearing the decline's own clothes.
      */
     clearReckoners();
-    registerReckoner("vessel.orbit", "some-uplink", {
+    registerReckoner("system.bodies", "some-uplink", {
       deps: [],
       reckon: () => ({ declined: { reason: "model-inapplicable" as const } }),
     });
     const s = store();
-    s.ingest("vessel.orbit", point(10, 5));
+    s.ingest("system.bodies", point(10, 5));
     s.beginFrame();
 
-    expect(s.sampleReading("vessel.orbit")).not.toHaveProperty("declined");
+    expect(s.sampleReading("system.bodies")).not.toHaveProperty("declined");
     clearReckoners();
     registerCoreReckoners();
   });

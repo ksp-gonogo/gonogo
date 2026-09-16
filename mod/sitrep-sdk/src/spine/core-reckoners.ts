@@ -22,9 +22,11 @@ import {
 } from "./comms-path-geometry";
 import {
   advanceByVelocity,
+  buildElements,
   keplerAdmissibility,
   magnitude,
   propagateVesselOrbit,
+  trySolveAnomalies,
 } from "./kepler-reckoning";
 import type { SubjectDep } from "./processors";
 import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
@@ -291,6 +293,27 @@ function registerFlightReckoner(): void {
   registerReckoner("vessel.flight", CORE_RECKONER_OWNER, {
     deps: ["vessel.orbit", "system.bodies"],
     window: DESCENT_WINDOW,
+    /*
+     * The opt-out is scoped to the AIR model and not to this registration,
+     * because the registration returns two models and the reason is true of
+     * only one of them.
+     *
+     * It became necessary the day `vessel.orbit` gained a model of its own and
+     * the input-horizon rule went live for the first time. The conic branch is
+     * rightly bound by it: a conic cannot outlive the elements it came from.
+     * The rate-integration branch is not, and bounding it refused the reading
+     * in the exact regime it exists to serve.
+     */
+    exempt: {
+      perBasis: {
+        "rate-integration": {
+          horizon: {
+            "vessel.orbit":
+              "this model integrates the OBSERVED descent rate, which already carries whatever the installed aerodynamics did, so it does not derive from the conic and the conic running out says nothing about how far it reaches. It is the model that takes over WHERE the conic has stopped. It stays bound by `system.bodies`, whose atmosphere depth is the boundary between the two models.",
+          },
+        },
+      },
+    },
     reckon(point, [orbitPoint, bodiesPoint], { grade, viewUt, history }) {
       const bodies = bodiesPoint?.payload ?? undefined;
       /*
@@ -682,10 +705,90 @@ function registerOrbitTruthReckoner(): void {
  * result is at the top of this file: it no longer imports a single payload type
  * from the contract, because the topic string carries them.
  */
+/**
+ * `vessel.orbit`, advanced along its own conic to the view time.
+ *
+ * ## What it models, and what it deliberately does not
+ *
+ * A coast changes the craft's PHASE and nothing else: `sma`, `ecc`, `inc`,
+ * `lan`, `argPe` and `mu` are constants of the orbit, and the only thing that
+ * moves is where on it the craft is. So this claims `meanAnomalyAtEpoch` and
+ * `epoch`, and a consumer solving apsides or a countdown from the result gets
+ * the orbit AT the instant it asked about rather than at the instant the
+ * elements were published.
+ *
+ * ## The withdrawal is the point of it
+ *
+ * `keplerAdmissibility` is the same check `vessel.flight`'s conic makes, and
+ * the branch that matters here is `meta.quality !== Quality.OnRails`: under
+ * physics the elements are osculating, "not a coast a conic can advance". That
+ * fact lives on the POINT, so only a model can see it: a `Reading` carries no
+ * meta and no consumer in this tree reads one. Before this existed, the
+ * OnRails/Loaded split had exactly one home, the `vessel.state` derived
+ * channel, which is why deleting that channel could not move the safety rule
+ * with everything else.
+ *
+ * ## PropagationCertification (#282) is already answered, not skipped
+ *
+ * That enum lets a CALLER choose between answering anywhere and answering only
+ * across spans the provider vouches for. An operational prediction is the case
+ * its own doc says wants `CertifiedOnly`, and `keplerAdmissibility` already
+ * enforces exactly that: it declines `beyond-horizon` "past the reach the
+ * propagation provider states for these elements", at the SOI transition, and
+ * below the atmosphere interface. Offering the choice here would let a widget
+ * read a conic past the point anybody stands behind it, which is the one thing
+ * this must not do.
+ */
+function registerOrbitReckoner(): void {
+  registerReckoner("vessel.orbit", CORE_RECKONER_OWNER, {
+    deps: ["system.bodies"],
+    reckon(point, [bodiesPoint], { viewUt }) {
+      const admissible = keplerAdmissibility(
+        point,
+        bodiesPoint?.payload ?? undefined,
+        viewUt,
+      );
+      if ("declined" in admissible) return admissible;
+      const orbit = point.payload;
+      if (orbit == null) {
+        return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      }
+      const elements = buildElements(orbit);
+      return {
+        modelled: movedFields(
+          "kepler-propagation",
+          "meanAnomalyAtEpoch",
+          "epoch",
+        ),
+        reckon: (at) => {
+          const anomalies = trySolveAnomalies(elements, at);
+          /*
+           * The two moved fields and NOTHING else. `ReckonableReading`'s
+           * `Pick<T, K>` is what makes that the shape: returning the whole
+           * payload would hand a caller "a whole payload labelled modelled",
+           * which is the mistake that projection exists to make impossible.
+           * A consumer wanting a whole orbit overlays them on the observation
+           * itself, `{ ...reading.value, ...reading.reckoning.value }`, at the
+           * call site, because that spread IS the judgement.
+           */
+          return {
+            meanAnomalyAtEpoch: value(
+              "rad",
+              anomalies?.meanAnomaly ?? Number.NaN,
+            ),
+            epoch: value("ut", at),
+          };
+        },
+      };
+    },
+  });
+}
+
 export function registerCoreReckoners(): void {
   registerTargetReckoner();
   registerDockReckoner();
   registerFlightReckoner();
+  registerOrbitReckoner();
   registerOrbitTruthReckoner();
   registerCommsDelayReckoner();
 }

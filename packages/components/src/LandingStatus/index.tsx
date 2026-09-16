@@ -569,7 +569,12 @@ function LandingStatusComponent({
   const flight = describeReckonable(flightReading);
   const surface = describe(surfaceReading);
   const propulsion = describe(propulsionReading);
-  const orbit = describe(orbitReading);
+  /*
+   * `vessel.orbit` carries a mark since ticket 308, so it takes the OVERLAYING read
+   * like `vessel.flight` beside it: the conic moves the phase and says nothing
+   * about the elements, and `reckoned.value` alone is not an orbit.
+   */
+  const orbit = describeReckonable(orbitReading);
   const landing = describe(landingReading);
   /*
    * The parent body, resolved off `system.bodies` by INDEX rather than looked

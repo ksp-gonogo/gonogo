@@ -92,24 +92,8 @@ declare module "@ksp-gonogo/core" {
 }
 
 /**
- * A measurement this widget can present with its age attached, and whether it needs
- * that label. The reckoned value needs none: it IS the current one.
- */
-function dateable<T>(reading: TopicReading<T>): {
-  value: T | undefined;
-  needsDating: boolean;
-} {
-  if (reading.reckoning.status === "available")
-    return { value: reading.reckoning.value, needsDating: false };
-  if (reading.state === "observed")
-    return { value: reading.value, needsDating: false };
-  if (reading.state === "stale")
-    return { value: reading.value, needsDating: true };
-  return { value: undefined, needsDating: false };
-}
-
-/**
- * The same, for a topic the CONTRACT declares reckonable, where the model moves
+ * A measurement this widget can present with its age attached, and whether it
+ * needs that label, for a topic the CONTRACT declares reckonable, where the model moves
  * only the named fields.
  *
  * `vessel.target` publishes a relative position a velocity carries forward and,
@@ -197,10 +181,10 @@ function ManeuverPlannerComponent({
    * committing. A plan computed from elements a few seconds old is still a good
    * plan, so this widget dates its inputs rather than withholding them.
    *
-   * `dateable` prefers the modelled value where a reckoner exists, and an orbit is
-   * propagatable, so in the common case the elements are current rather than dated
-   * and `needsDating` is false. The caption only appears when nothing could model
-   * them forward.
+   * `dateableReckonable` overlays the modelled fields on the observation where a
+   * reckoner has one to offer, and an orbit is propagatable, so in the common
+   * case the elements are current rather than dated and `needsDating` is false.
+   * The caption only appears when nothing could model them forward.
    *
    * This answers the caption that was OWED here. Note the warning that came with
    * it, which still stands: do NOT compute the age as `viewUt - orbit.epoch`.
@@ -211,8 +195,13 @@ function ManeuverPlannerComponent({
    */
   const orbitReading = useTelemetry("vessel.orbit");
   const targetReading = useTelemetry("vessel.target");
+  /*
+   * `vessel.orbit` carries a mark since ticket 308, so it takes the OVERLAYING read
+   * like `vessel.target` below: the conic moves the phase and says nothing about
+   * the elements, and `reckoned.value` alone is not an orbit.
+   */
   const { value: orbit, needsDating: orbitNeedsDating } =
-    dateable(orbitReading);
+    dateableReckonable(orbitReading);
   const { value: target, needsDating: targetNeedsDating } =
     dateableReckonable(targetReading);
   const elementsNeedDating = orbitNeedsDating || targetNeedsDating;

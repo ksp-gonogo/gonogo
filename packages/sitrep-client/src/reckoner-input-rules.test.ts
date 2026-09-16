@@ -351,6 +351,84 @@ describe("an exemption is declared, reasoned and listed", () => {
     ).toThrow(/reason/);
   });
 
+  /**
+   * The per-basis, per-input form, and the two ways it can be written wrongly.
+   *
+   * A layer added without its own negative plants is the inert-rule problem
+   * again: a check nothing exercises reports clean forever and reads as
+   * working.
+   */
+  it("refuses a basis-scoped exemption whose input carries no reason", () => {
+    expect(() =>
+      registerReckoner("test.contact", UPLINK, {
+        deps: [INPUT],
+        exempt: {
+          perBasis: { "rate-integration": { horizon: { [INPUT]: "  " } } },
+        },
+        reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+      }),
+    ).toThrow(/reason/);
+  });
+
+  /**
+   * The failure this layer introduces. An opt-out from an input the model never
+   * declared exempts nothing, reads as a reviewed decision, and goes on reading
+   * that way after the dep it was written for is renamed or dropped.
+   */
+  it("refuses a basis-scoped exemption naming an input the model does not take", () => {
+    expect(() =>
+      registerReckoner("test.contact", UPLINK, {
+        deps: [INPUT],
+        exempt: {
+          perBasis: {
+            "rate-integration": {
+              horizon: {
+                "vessel.orbit": "a reason that names the wrong input",
+              },
+            },
+          },
+        },
+        reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+      }),
+    ).toThrow(/not one of this model's declared inputs/);
+  });
+
+  /**
+   * The enumeration has to SEE every declared opt-out, and that is worth its own
+   * assertion rather than a neighbour's luck.
+   *
+   * The per-basis form was invisible to `getReckonerExemptions` when it was
+   * first written, so "core declares no exemptions" went on passing while core
+   * declared one, inside the very change meant to cure rules that report clean
+   * because nothing exercises them. It was caught only because another test was
+   * red beside it. A reviewable set that silently omits an entry is worse than
+   * no set, because it reads as a reviewed empty.
+   */
+  it("enumerates a narrowed opt-out, not just a registration-wide one", () => {
+    registerReckoner(INPUT, UPLINK, {
+      deps: [INPUT],
+      exempt: {
+        perBasis: {
+          "rate-integration": {
+            horizon: { [INPUT]: "the seed is read once and never again" },
+          },
+        },
+      },
+      reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+    });
+
+    expect(getReckonerExemptions()).toEqual([
+      {
+        topic: INPUT,
+        owner: UPLINK,
+        rule: "horizon",
+        basis: "rate-integration",
+        input: INPUT,
+        reason: "the seed is read once and never again",
+      },
+    ]);
+  });
+
   it("lists every exemption with its topic, owner, rule and reason", () => {
     registerReckoner(INPUT, UPLINK, {
       deps: [],
