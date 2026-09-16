@@ -3,7 +3,12 @@ import styled from "styled-components";
 import { magnitudeOf } from "./magnitude";
 import { NULL_DISPLAY } from "./NullValue";
 import { Unit, type UnitProps } from "./Unit";
-import { UnitSharedFormat } from "./UnitSharedFormat";
+import {
+  UnitSharedFormat,
+  useReadsAsOneFigure,
+  useSharedFormat,
+} from "./UnitSharedFormat";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 export interface BandProps<U extends string = string>
   extends Pick<UnitProps<U>, "decimals" | "format" | "as"> {
@@ -84,12 +89,74 @@ export function Band<U extends string = string>({
   // nothing to get its pins checked.
   return (
     <UnitSharedFormat of={min.unit} separate {...pins}>
-      <Band__Body className={className}>
-        <Unit value={min} />
-        <Band__Dash aria-hidden="true">–</Band__Dash>
-        <Unit value={max} />
-      </Band__Body>
+      <BandEnds min={min} max={max} className={className} pins={pins} />
     </UnitSharedFormat>
+  );
+}
+
+/**
+ * The ends, drawn once the group has settled how both of them are written.
+ *
+ * <p><b>Two ends that come out as the same text are drawn ONCE, marked
+ * approximate.</b> `65.3 km – 65.3 km` offers a width and then prints none:
+ * the reader is shown two numbers, told they are different, and cannot see any
+ * difference. `~65.3 km` says the one thing that is true, which is that the
+ * band is about this figure and its width is below what this display can
+ * show.</p>
+ *
+ * <p><b>The rule is "the display cannot tell them apart", not a tolerance.</b>
+ * The GROUP answers it, having just settled how both ends are written, and
+ * this renderer only asks: nothing here formats a quantity or compares
+ * magnitudes, which is the same reason `<Band>` has never chosen its own
+ * digits. Ends that are exactly equal fall into it for free, and so does float
+ * residue, without either being named as a case. A threshold would be a number
+ * someone has to defend later, and the ladder declined one for that reason.</p>
+ *
+ * <p>Both ends report to the group here, in every branch, and that redundancy
+ * with the `<Unit>`s below is deliberate. The group's answer must not depend
+ * on which branch this chose FROM that answer, or the two would chase each
+ * other: see `UnitSharedFormat`'s header on a report that depends on what it
+ * gets back. Reporting the same reading twice cannot move the answer, because
+ * the ladder only ever compares readings that differ.</p>
+ */
+function BandEnds<U extends string = string>({
+  min,
+  max,
+  className,
+  pins,
+}: {
+  min: Value<U>;
+  max: Value<U>;
+  className?: string;
+  pins: Pick<UnitProps<U>, "decimals" | "format" | "as">;
+}) {
+  useSharedFormat(min, pins);
+  useSharedFormat(max, pins);
+  const oneFigure = useReadsAsOneFigure(min, pins);
+
+  if (oneFigure) {
+    return (
+      <Band__Body className={className}>
+        <Band__Approximate>
+          {/* The mark carries no word of its own: a screen reader saying
+              "tilde sixty-five point three" is not what a reader hears when
+              they see it, so the word beside it is the one that is spoken. */}
+          <span aria-hidden="true">~</span>
+          <VisuallyHidden>approximately </VisuallyHidden>
+          {/* Either end: they render identically, which is the whole reason
+              this branch was taken, so the choice cannot change the text. */}
+          <Unit value={min} />
+        </Band__Approximate>
+      </Band__Body>
+    );
+  }
+
+  return (
+    <Band__Body className={className}>
+      <Unit value={min} />
+      <Band__Dash aria-hidden="true">–</Band__Dash>
+      <Unit value={max} />
+    </Band__Body>
   );
 }
 
@@ -103,4 +170,14 @@ const Band__Body = styled.span`
 
 const Band__Dash = styled.span`
   color: var(--color-text-faint);
+`;
+
+/* The tilde and the figure are one phrase, so they sit in one flex item and
+   take no gap between them: `~65.3 km`, never `~ 65.3 km`, which reads as a
+   mark that lost its number. Baseline-aligned for the same reason the body is:
+   the mark is part of the figure's line, not a superscript on it. */
+const Band__Approximate = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
 `;

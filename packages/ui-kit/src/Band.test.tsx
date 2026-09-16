@@ -73,6 +73,71 @@ describe("Band", () => {
   });
 
   /**
+   * The operator's rule, 2026-09-15: "anytime we'd shown the same numbers on
+   * each side, we show a single value with a tilde instead". Two ends that
+   * come out as the same text offer a width and then print none, and the
+   * reader cannot see the difference they are being shown.
+   */
+  it("draws ONE approximate figure when both ends would print the same text", () => {
+    const { container } = render(
+      <Band min={value("m", 6_700_000)} max={value("m", 6_700_000)} />,
+    );
+
+    expect(container.textContent).toContain("~");
+    expect(container.textContent).not.toContain("–");
+    // Once, not twice: the whole point is that the second figure said nothing.
+    expect(container.textContent?.match(/6\.7/g)).toHaveLength(1);
+  });
+
+  /**
+   * The same rendering for float residue, which is what the ladder's floor
+   * (#253) already treats as indistinguishable. Two ends one ULP apart are
+   * genuinely different doubles and no decimal count here can show it, so the
+   * rule catches them without naming them as a case.
+   */
+  it("draws one approximate figure for ends a single ULP apart", () => {
+    const nextAfter = (v: number): number => {
+      const buf = new Float64Array([v]);
+      new BigUint64Array(buf.buffer)[0] += 1n;
+      return buf[0];
+    };
+    const low = 65_286.8;
+
+    const { container } = render(
+      <Band min={value("m", low)} max={value("m", nextAfter(low))} />,
+    );
+
+    expect(container.textContent).toContain("~");
+    expect(container.textContent).not.toContain("–");
+    expect(container.textContent).not.toContain("65.286800");
+  });
+
+  it("leaves a band whose ends print differently completely alone", () => {
+    const { container } = render(
+      <Band min={value("m", 6_700_000)} max={value("m", 6_710_000)} />,
+    );
+
+    expect(container.textContent).not.toContain("~");
+    expect(container.textContent).toContain("6.70");
+    expect(container.textContent).toContain("6.71");
+  });
+
+  /**
+   * The mark is a mark: a screen reader announcing "tilde" is not what a
+   * sighted reader takes from it, so the tilde is hidden and the word beside
+   * it is what is spoken.
+   */
+  it("says the approximation in words for the accessibility tree", () => {
+    const { container } = render(
+      <Band min={value("m", 6_700_000)} max={value("m", 6_700_000)} />,
+    );
+
+    expect(container.textContent).toContain("approximately");
+    const hidden = container.querySelector('[aria-hidden="true"]');
+    expect(hidden?.textContent).toBe("~");
+  });
+
+  /**
    * One end alone reads as a scalar, and a scalar is the one thing an operator
    * must not take away from an interval whose other end could not be read.
    */
