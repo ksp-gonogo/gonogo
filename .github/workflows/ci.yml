@@ -689,6 +689,30 @@ jobs:
           bash codegen.sh
           git diff --exit-code -- sitrep-sdk/src/__generated__
 
+      # The NuGet half of the Uplink surface. Packing on every push, and gating
+      # the packed file rather than the project, is the only way the three things
+      # that go wrong here surface before somebody else's `dotnet restore`: a
+      # private dependency escaping, xunit reaching the framework group a KSP
+      # plugin resolves, and <internal> maintainer prose shipping in the XML docs.
+      # The gate's own header has the reasoning; it plants eight violations per
+      # run and fails as BLIND if it cannot see one.
+      #
+      # Nothing is published here. Publishing is bound to `release.yml` by the
+      # nuget.org trusted-publishing policy and happens there (#276).
+      - name: Pack and gate KspGonogo.Sitrep.Contract
+        run: |
+          set -euo pipefail
+          dotnet pack mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj \
+            -c Release -o "$RUNNER_TEMP/nuget" --nologo
+          node scripts/nuget-contract-package-gate.mjs "$RUNNER_TEMP"/nuget/*.nupkg
+
+      - name: Upload the NuGet package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-sitrep-contract
+          path: ${{ runner.temp }}/nuget/*
+          retention-days: 7
+
   e2e:
     runs-on: ubuntu-latest
     strategy:

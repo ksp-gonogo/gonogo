@@ -1,0 +1,189 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Builds the `KspGonogo.Sitrep.Contract` NuGet package and nothing else. It
+    has no sources of its own: `_PackContractAssemblies` below discards the
+    empty assembly the SDK compiles here and places the real ones into the lib
+    folders by hand.
+
+    WHY A SEPARATE PROJECT. The package carries TWO assemblies in its net10.0
+    group, and `Sitrep.Contract.TestSupport` references `Sitrep.Contract`. A
+    ProjectReference the other way round, so that `Sitrep.Contract` could pack
+    TestSupport's output, is a cycle and MSBuild refuses it. Packing from a
+    third project that references both is the way out that keeps
+    `Sitrep.Contract.csproj` free of any mention of xunit: the contract
+    assembly KSP loads must not carry a metadata reference to a test framework,
+    and the cheapest way to guarantee that is for its csproj never to name one.
+    (The Reinforced.Typings incident in that file's own header is the same
+    lesson learned the expensive way.)
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net472;net10.0</TargetFrameworks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <!-- Nothing consumes this project; only `dotnet pack` ever asks for it. -->
+    <AssemblyName>Sitrep.Contract.Package</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    THE VERSION IS THE CONTRACT'S OWN VERSION, read out of the same
+    `public const int` pair every other mirror of it is held to
+    (`packages/core/src/contract-version-parity.test.ts` reads these exact
+    declarations to hold `compat-versions.ts` honest).
+
+    So there is no package number to bump, and a PackageReference range says
+    something true about the wire: `[17.0.0, 18.0.0)` is "any additive contract
+    on the Major 17 line", because that is exactly what a Minor bump means
+    (see ContractVersion.cs). A hand-maintained package version would be a
+    fourth mirror of a number that already has three, and the app advertising
+    contract 5.0 against a contract at 12.22 is how the last unchecked mirror
+    went.
+
+    The regex is nested INSIDE the ReadAllText call deliberately: the file is
+    120KB of doc comments, and storing it in an MSBuild property would hand
+    that text to the property expander. Only the digits ever become a property.
+
+    `scripts/nuget-contract-package-gate.mjs` reads the same two declarations
+    out of the C# and fails if the PACKED version disagrees, so the derivation
+    is checked against the package rather than against itself.
+  -->
+  <PropertyGroup>
+    <_ContractVersionCs>$(MSBuildThisFileDirectory)..\Sitrep.Contract\ContractVersion.cs</_ContractVersionCs>
+    <ContractMajor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Major\s*=\s*)\d+`).Value)</ContractMajor>
+    <ContractMinor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Minor\s*=\s*)\d+`).Value)</ContractMinor>
+    <Version>$(ContractMajor).$(ContractMinor).0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>KspGonogo.Sitrep.Contract</PackageId>
+    <Title>Gonogo Uplink contract</Title>
+    <Authors>ksp-gonogo</Authors>
+    <Company>ksp-gonogo</Company>
+    <Description>The C# Uplink surface for Gonogo, a mission-control dashboard for Kerbal Space Program: the attributes, descriptors and payload types a KSP mod implements to publish telemetry to a Gonogo host, and the contract version stamp the host loads it against. The TypeScript half of the same contract is @ksp-gonogo/sitrep-sdk.</Description>
+    <PackageTags>ksp;kerbal-space-program;gonogo;sitrep;telemetry;uplink;modding</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://ksp-gonogo.github.io/uplink-dev-docs/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ksp-gonogo/gonogo</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Copyright>Copyright (c) ksp-gonogo contributors</Copyright>
+    <!-- Every release is a contract release, so the release note that matters
+         is the contract's own changelog rather than a per-package one. -->
+    <PackageReleaseNotes>Contract version $(ContractMajor).$(ContractMinor). A Major bump is breaking for an Uplink; a Minor bump is additive and an Uplink built against an older Minor of the same Major still loads.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <!-- SourceLink. The .NET SDK has carried Microsoft.SourceLink.GitHub since
+       8.0, so this needs no PackageReference: setting these properties is the
+       whole wiring. The symbols ride in a .snupkg beside the .nupkg, which is
+       what nuget.org's symbol server accepts. -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Sitrep.Contract\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!--
+    PrivateAssets="all" on both: these are the assemblies being PACKED, not
+    dependencies of the package, so nothing about them may flow into the
+    nuspec's dependency groups. The net472 and netstandard2.0 groups must come
+    out EMPTY, and `scripts/nuget-contract-package-gate.mjs` fails the build if
+    they do not.
+
+    Which leg of Sitrep.Contract each TFM resolves is NuGet's own choice and it
+    is the right one: net472 takes the net472 build, netstandard2.0 and net10.0
+    both take the netstandard2.0 build. That is already what every net10.0 test
+    project in this repo compiles against, so the packaged net10.0 assets are
+    the same assembly the in-repo suites exercise.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" PrivateAssets="all" />
+    <ProjectReference Condition="'$(TargetFramework)' == 'net10.0'"
+                      Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    The ONE real dependency, and only in the net10.0 group: TestSupport calls
+    xunit's Assert. A net48 Uplink plugin resolves the net472 assets, sees no
+    TestSupport and restores no xunit, which is the point of the split.
+
+    Declared here rather than inherited from TestSupport's own PackageReference
+    because that reference is suppressed by PrivateAssets="all" above, along
+    with everything else TestSupport might ever pull in. Naming the dependency
+    explicitly means a new private dependency over there cannot leak into the
+    published package by accident.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="xunit.assert" Version="2.9.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_PackContractAssemblies</TargetsForTfmSpecificBuildOutput>
+    <TargetsForTfmSpecificDebugSymbolsInPackage>$(TargetsForTfmSpecificDebugSymbolsInPackage);_PackContractSymbols</TargetsForTfmSpecificDebugSymbolsInPackage>
+  </PropertyGroup>
+
+  <!--
+    Swaps this project's own (empty) build output for the assemblies actually
+    being shipped.
+
+    `IncludeBuildOutput=false` would have been the obvious way to drop the stub
+    assembly, and it cannot be used: NuGet skips `_GetBuildOutputFilesWithTfm`
+    AND `_GetDebugSymbolsWithTfm` wholesale when it is false, so the lib folders
+    come out empty (NU5128) and the .snupkg is never built. The hooks below run
+    as `DependsOnTargets` of those two targets, BEFORE each adds its own default
+    items, which is what makes clearing them here work.
+
+    The include filters by assembly name rather than taking all of
+    @(ReferenceCopyLocalPaths): on net10.0 that item also holds xunit.assert.dll,
+    which is a DEPENDENCY and must not be packed as content, or a consumer would
+    resolve two copies from two places.
+  -->
+  <Target Name="_PackContractAssemblies" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuiltProjectOutputGroupOutput Remove="@(BuiltProjectOutputGroupOutput)" />
+      <DocumentationProjectOutputGroupOutput Remove="@(DocumentationProjectOutputGroupOutput)" />
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+                            Condition="('%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract'
+                                        Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport')
+                                       And '%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
+      <!-- The XML doc files go through the stylesheet rather than straight in:
+           they carry the <internal> maintainer prose that must not reach a
+           published surface. See strip-internal-doc-prose.xslt. -->
+      <_ContractXmlDoc Include="@(ReferenceCopyLocalPaths)"
+                       Condition="('%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract'
+                                   Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport')
+                                  And '%(ReferenceCopyLocalPaths.Extension)' == '.xml'">
+        <PublicPath>$(IntermediateOutputPath)public-docs\%(Filename).xml</PublicPath>
+      </_ContractXmlDoc>
+    </ItemGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)public-docs" />
+    <XslTransformation XmlInputPaths="%(_ContractXmlDoc.Identity)"
+                       XslInputPath="$(MSBuildThisFileDirectory)strip-internal-doc-prose.xslt"
+                       OutputPaths="%(_ContractXmlDoc.PublicPath)" />
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(_ContractXmlDoc->'%(PublicPath)')" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_PackContractSymbols" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <DebugSymbolsProjectOutputGroupOutput Remove="@(DebugSymbolsProjectOutputGroupOutput)" />
+      <TfmSpecificDebugSymbolsFile Include="@(ReferenceCopyLocalPaths)"
+                                   Condition="('%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract'
+                                               Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport')
+                                              And '%(ReferenceCopyLocalPaths.Extension)' == '.pdb'">
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+      </TfmSpecificDebugSymbolsFile>
+    </ItemGroup>
+  </Target>
+
+</Project>
