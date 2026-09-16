@@ -14,6 +14,7 @@ import {
   type Value as Quantity,
   readingOf,
   Situation,
+  type Vec3Of,
   type VesselFlight,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -40,6 +41,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PlotBoard } from "../Plots/PlotBoard";
+import { bare, vecMagnitude } from "../shared/dockAngles";
 import { bodyAtIndex } from "../shared/streamBody";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
@@ -488,6 +490,18 @@ function LandingStatusComponent({
   const [measureScroller, scrollerHeight] = useScrollerHeight();
 
   const vs = useStream<VesselState>("vessel.state");
+  /*
+   * Range to the target, off `vessel.target`'s own relative position rather
+   * than the `vessel.state.targetDistance` copy of it. `bare`/`vecMagnitude`
+   * are the pair `Targeting` already measures its range with, so the two
+   * widgets cannot drift on the same figure.
+   */
+  const targetStream = useStream<{ relativePosition?: Vec3Of<"m"> }>(
+    "vessel.target",
+  );
+  const targetRange = targetStream?.relativePosition
+    ? vecMagnitude(bare(targetStream.relativePosition))
+    : undefined;
   const bodyName = vs?.parentBodyName ?? undefined;
 
   const identityReading = useTelemetry("vessel.identity");
@@ -918,9 +932,9 @@ function LandingStatusComponent({
             <Countdown value={solution.timeToImpact} precise />
           )}
         </StackedField>
-        {vs?.targetDistance != null && (
+        {targetRange !== undefined && (
           <StackedField label="Target range">
-            {<Metres m={vs.targetDistance} />}
+            {<Metres m={targetRange} />}
           </StackedField>
         )}
         {scopeShown && descentHistory.length >= 2 && (
@@ -1053,12 +1067,12 @@ function LandingStatusComponent({
   ) : null;
 
   const divertEl =
-    !landed && !noLandingVector && vs?.targetDistance != null ? (
+    !landed && !noLandingVector && targetRange !== undefined ? (
       <Section>
         <SectionTitle>Divert</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
           <GridCellPair label="Target range">
-            {<Metres m={vs.targetDistance} />}
+            {<Metres m={targetRange} />}
           </GridCellPair>
         </Grid>
       </Section>

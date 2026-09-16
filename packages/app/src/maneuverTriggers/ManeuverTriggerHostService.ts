@@ -15,7 +15,9 @@ import {
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import {
+  bodyRadiusOf,
   dispatchActiveCommandTopic,
+  getSystemBodies,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
@@ -23,6 +25,7 @@ import {
   getVesselTarget,
   getViewUt,
   onActiveTimelineFrame,
+  solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -262,6 +265,22 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
+    /*
+     * The target's own orbit, solved here rather than read off
+     * `vessel.state.target*`: the same `solveOrbit` the craft's orbit goes
+     * through, on the target's elements at the same view time. The altitude
+     * needs the TARGET's reference body, not the craft's, which is why the
+     * radius is resolved from its own `referenceBodyIndex`.
+     */
+    const currentUT = getViewUt();
+    const targetSolved =
+      targetOrbit == null || currentUT === undefined
+        ? undefined
+        : solveOrbit(
+            targetOrbit,
+            currentUT,
+            bodyRadiusOf(getSystemBodies(), targetOrbit.referenceBodyIndex),
+          );
     const sma = solverInput(orbit?.sma);
     const orbitalSpeed = state?.orbitalSpeed ?? undefined;
     const radius = state?.orbitalRadius ?? undefined;
@@ -278,7 +297,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       // Not a data-source key: `t.universalTime` was DROPPED, this is the
       // SDK's own view time, read via the non-hook `getViewUt` accessor rather
       // than the legacy telemetry reader.
-      currentUT: getViewUt(),
+      currentUT,
       mu: computeMu(orbitalSpeed, radius, sma, period),
       trueAnomaly: state?.trueAnomaly ?? undefined,
       argPe: solverInput(orbit?.argPe),
@@ -287,10 +306,10 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       targetInclinationLive: solverInput(targetOrbit?.inc),
       targetLanLive: solverInput(targetOrbit?.lan),
       targetSma: solverInput(targetOrbit?.sma),
-      targetPeA: state?.targetPeriapsisAlt ?? undefined,
+      targetPeA: targetSolved?.periapsisAlt ?? undefined,
       targetArgPe: solverInput(targetOrbit?.argPe),
-      targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
-      targetPeriod: state?.targetPeriod ?? undefined,
+      targetTrueAnomaly: targetSolved?.trueAnomaly ?? undefined,
+      targetPeriod: targetSolved?.period ?? undefined,
       /*
        * Off the wire, by index, never by name against the bundled stock
        * bodies: under a planet pack the names do not match, the lookup

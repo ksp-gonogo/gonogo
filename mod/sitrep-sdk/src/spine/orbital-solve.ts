@@ -1,4 +1,4 @@
-import { magnitudeOr, type Quantityish } from "../magnitude";
+import { magnitudeOf, magnitudeOr, type Quantityish } from "../magnitude";
 import type { OrbitElements } from "./kepler";
 import {
   buildElements,
@@ -198,4 +198,45 @@ export function solveOrbit(
     periapsisAlt: altitude(periapsisRadius),
     ...nextApsis(timeToAp, timeToPe),
   };
+}
+
+/**
+ * The `system.bodies` shape this needs: the stable-index body list, nothing
+ * else.
+ *
+ * `radius` is `Quantityish` rather than a number because the same field has two
+ * shapes in this tree. The store WRAPS every declared quantity on decode, so a
+ * topic read hands back a `Value<"m">`; the client-side `SystemBodiesPayload`
+ * the derived channel is typed against declares a plain `number`. Accepting
+ * both is honest about that, and `magnitudeOf` is the one place that decides
+ * what an absent or non-finite magnitude means.
+ */
+export interface BodyRadiusTable {
+  bodies: readonly { index: number; radius?: Quantityish }[];
+}
+
+/**
+ * The mean radius of the body at `index`, with the three-way discipline every
+ * `system.bodies` lookup in this tree follows.
+ *
+ * - `undefined` where it cannot be resolved YET: no index to resolve, the
+ *   channel has not arrived, or it has arrived and this body (or its radius
+ *   specifically) is not in it. None of those is a confirmed absence
+ * - `null` only when the channel itself is a confirmed tombstone
+ *
+ * Pure, and deliberately takes the payload rather than reading the topic:
+ * {@link solveOrbit} wants it for an altitude, and the caller is the only one
+ * that knows which of the two absences it is looking at. Indexed by
+ * `SystemBodyPayload.index`, the STABLE id, never array position.
+ */
+export function bodyRadiusOf(
+  bodies: BodyRadiusTable | null | undefined,
+  index: number | null | undefined,
+): number | null | undefined {
+  if (index == null) return undefined;
+  if (bodies === null) return null;
+  if (bodies === undefined) return undefined;
+  const found = bodies.bodies.find((b) => b.index === index);
+  if (found === undefined) return undefined;
+  return magnitudeOf(found.radius) ?? undefined;
 }

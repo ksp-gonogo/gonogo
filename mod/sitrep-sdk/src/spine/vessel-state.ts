@@ -30,7 +30,7 @@ import {
   type OrbitPatchWirePayload,
   ROTATION_PERIOD_SECONDS,
 } from "./orbit-patches";
-import { solveOrbit } from "./orbital-solve";
+import { bodyRadiusOf, solveOrbit } from "./orbital-solve";
 import { STANDARD_GRAVITY } from "./propagation";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
@@ -957,9 +957,10 @@ function resolveBodyRadius(
   if (index == null) return undefined;
   const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
   if (!bodiesPoint) return undefined;
-  if (bodiesPoint.payload === null) return null;
-  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
-  return body?.radius ?? undefined;
+  // The lookup and its three-way discipline live beside `solveOrbit`, which is
+  // the other thing that needs a body radius. This is the part that reads the
+  // topic, which is the only part that belongs to this channel.
+  return bodyRadiusOf(bodiesPoint.payload, index);
 }
 
 /**

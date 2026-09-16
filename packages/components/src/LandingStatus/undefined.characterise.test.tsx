@@ -445,10 +445,10 @@ describe("LandingStatus: what undefined means today", () => {
   });
 
   it("drops the Divert section entirely while no target range is on the wire", async () => {
-    // `vs?.targetDistance != null` guards both the Divert section and the
-    // Target range readout. Absence is rendered as the section not existing, so
-    // there is nothing on screen to distinguish "no target selected" from "the
-    // target channel has not arrived yet".
+    // The target's own `relativePosition` guards both the Divert section and
+    // the Target range readout. Absence is rendered as the section not
+    // existing, so there is nothing on screen to distinguish "no target
+    // selected" from "the target channel has not arrived yet".
     renderWidget();
 
     act(() => {
@@ -462,5 +462,34 @@ describe("LandingStatus: what undefined means today", () => {
     );
     expect(screen.queryByText("Divert")).toBeNull();
     expect(screen.queryByText("Target range")).toBeNull();
+  });
+
+  /**
+   * The present case, which had no test at all: the absence test above passes
+   * whether the range is computed correctly or not computed at all.
+   *
+   * The range is now the magnitude of `vessel.target.relativePosition`, taken
+   * with the same `bare`/`vecMagnitude` pair `Targeting` measures with, rather
+   * than the `vessel.state.targetDistance` copy of it. A 3-4-5 triangle scaled
+   * by 1000 makes the expected figure one anybody can check: 5 km.
+   */
+  it("shows the Divert section and the range once a target is on the wire", async () => {
+    renderWidget();
+
+    act(() => {
+      emitMunDescent();
+      stream.emit("vessel.target", {
+        name: "Target",
+        kind: 1,
+        relativePosition: { x: 3_000, y: 4_000, z: 0 },
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByText("Target range").length).toBeGreaterThan(0),
+    );
+    // 3-4-5 scaled by 1000: 5 km, rendered by `Metres` as "5.00 km" with the
+    // figure and its unit in separate elements, hence the number alone.
+    expect(screen.getAllByText("5.00").length).toBeGreaterThan(0);
   });
 });
