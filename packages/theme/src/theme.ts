@@ -82,23 +82,20 @@ export interface ThemeTypography {
 }
 
 /**
- * The handles a widget reaches for through `gap="sm"` and friends.
+ * The handles a layout primitive resolves a size prop against.
  *
- * Seven, not five. The ladder in `tokens.css` has nine rungs and this table
- * exposed five of them, skipping 6 and 10; 6 is the single most-used gap rung
- * in the app, so the layer widgets are steered towards could not express the
- * commonest spacing in it, and one step up from `sm` was a doubling to `md`.
- * The two `+` handles are that missing half-step, in the only spelling that
- * cannot be mistaken for a new peer size.
+ * Five. It briefly had seven: `sm+` and `md+` were added to reach the 6 and 10
+ * rungs, on the reasoning that the layer widgets are steered towards should be
+ * able to name the commonest gap in the app. Needing a half-step says the
+ * ladder being aliased is not the ladder the design uses, and the handles are
+ * not where that gets fixed: spacing a widget cannot express belongs to the
+ * semantic layer over panels, cards and containers, which resolves by context
+ * rather than by size. Neither `+` handle ever had a call site.
  */
 export interface ThemeSpace {
   xs: string;
   sm: string;
-  /** Half a step above `sm`: the dense row and card inset (`--space-6`). */
-  "sm+": string;
   md: string;
-  /** Half a step above `md`: the roomier card and pill inset (`--space-10`). */
-  "md+": string;
   lg: string;
   xl: string;
 }
