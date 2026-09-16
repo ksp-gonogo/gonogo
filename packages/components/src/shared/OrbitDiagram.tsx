@@ -100,6 +100,18 @@ export interface OrbitDiagramProps {
    * area means nothing.</p>
    */
   corridor?: boolean;
+  /**
+   * Frame a neighbourhood of the orbit instead of the whole of it, in the
+   * diagram's own units: centre plus half-extent.
+   *
+   * <p>For a difference too small to see against the orbit that contains it.
+   * Nothing is redrawn and nothing is scaled up relative to anything else:
+   * the same curves are framed more closely, so every distance inside the
+   * frame stays in true proportion to every other. A caller deriving the
+   * half-extent FROM the difference gets a frame that reads at whatever size
+   * the difference happens to be.</p>
+   */
+  focus?: { x: number; y: number; halfExtent: number } | null;
   /** Interactive prograde/radial drag handles at the burn point. */
   maneuverHandles?: ManeuverHandleProps | null;
   /**
@@ -242,6 +254,7 @@ export function OrbitDiagram({
   trailPath = null,
   trajectoryFarEnd = null,
   corridor = false,
+  focus = null,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
@@ -315,8 +328,16 @@ export function OrbitDiagram({
     : 0;
   const scaleRef = Math.max(mainExtent, projExtent, sec2Extent);
   const padding = scaleRef * cfg.padding;
-  const strokeW = scaleRef * cfg.strokeW;
-  const dotR = scaleRef * cfg.dotR;
+  /*
+   * Stroke and marker sizes follow the FRAME, not the orbit. They are
+   * fractions of whatever is on screen, so under a focus frame the orbit's own
+   * extent is the wrong reference by exactly the magnification: a stroke sized
+   * for a 1250 km orbit drawn into an 11 km frame is a band wider than the
+   * separation it is meant to let you see.
+   */
+  const frameRef = focus ? focus.halfExtent : scaleRef;
+  const strokeW = frameRef * cfg.strokeW;
+  const dotR = frameRef * cfg.dotR;
 
   // Track the rendered container size so we can pad the viewBox to its
   // aspect (avoids letterboxing) AND convert px-based label sizes back
@@ -401,10 +422,23 @@ export function OrbitDiagram({
   //       a square frame when unmeasured to match pre-aspect-aware behaviour.
   // mini: orbit-centred (orbit edge-to-edge) + aspect fit when measured;
   //       leaves the bbox tight when unmeasured.
+  /*
+   * A focus frame replaces the fitted bbox rather than adjusting it: the
+   * caller has asked for a specific neighbourhood, and unioning that with the
+   * orbit's own extent would put the whole orbit back and undo the framing.
+   */
+  const framedBox = focus
+    ? {
+        xMin: focus.x - focus.halfExtent,
+        xMax: focus.x + focus.halfExtent,
+        yMin: focus.y - focus.halfExtent,
+        yMax: focus.y + focus.halfExtent,
+      }
+    : paddedBox;
   const vb = toViewBox(
-    variant === "full"
-      ? fitToAspect(symmetriseAroundOrigin(paddedBox), containerAspect ?? 1)
-      : fitToAspect(paddedBox, containerAspect),
+    variant === "full" && !focus
+      ? fitToAspect(symmetriseAroundOrigin(framedBox), containerAspect ?? 1)
+      : fitToAspect(framedBox, containerAspect),
   );
 
   const orbitStroke = isOrbiting
