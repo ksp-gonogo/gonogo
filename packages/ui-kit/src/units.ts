@@ -1721,6 +1721,44 @@ export function separatingDecimals(
   return undefined;
 }
 
+/**
+ * Whether a group reads as ONE figure: every member comes out as the same text
+ * at the format the group has settled on.
+ *
+ * <p>This is what a band asks before it decides to draw two ends. Two readings
+ * it cannot tell apart offer a width and then print none: `65.3 km – 65.3 km`
+ * shows the reader two numbers, tells them they differ, and shows no
+ * difference. One figure marked approximate says the true thing instead, and
+ * the operator's rule for when to do it is exactly this question: "anytime
+ * we'd shown the same numbers on each side".</p>
+ *
+ * <p><b>No tolerance, and nothing to tune.</b> It compares the rendered text
+ * rather than the magnitudes, so ends that are exactly equal, ends a single
+ * ULP apart and ends below the rung all answer true without being named as
+ * cases, and a pair the ladder did separate answers false. A gap threshold
+ * would be a number someone has to defend later, which is what
+ * {@link separatingDecimals} declined to introduce for the same question.</p>
+ *
+ * <p>Asked with the SETTLED options, after the ladder has run: the figures it
+ * compares have to be the ones that will be drawn, or it is answering about a
+ * rendering nobody sees.</p>
+ */
+export function readsAsOneFigure(
+  members: readonly FormatMember[],
+  opts: { format?: string; as?: string; decimals?: number } = {},
+): boolean {
+  if (members.length < 2) {
+    return false;
+  }
+  const shown = members.map((member) =>
+    formatQuantity(member.reading, member.unit, opts),
+  );
+  const first = shown[0];
+  return shown.every(
+    (other) => other.value === first.value && other.rung === first.rung,
+  );
+}
+
 // Last, so every table the registrations write to exists before the replay of
 // the ones an Uplink made before this module loaded.
 onUnitRegistered(applyRegisteredUnit);

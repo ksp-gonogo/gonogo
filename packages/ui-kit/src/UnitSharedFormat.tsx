@@ -21,6 +21,7 @@ import {
   type PresentableAs,
   type PresentableAsKind,
   pinGroupKey,
+  readsAsOneFigure,
   separatingDecimals,
   type UnitGroupKey,
   unitScaleKey,
@@ -297,6 +298,13 @@ interface Scope {
   hold(key: string, id: string, report: Report | undefined): void;
   /** What `key` settled on, or undefined while the group has no opinion. */
   settled(key: string): SharedFormat | undefined;
+  /**
+   * Whether `key`'s members all come out as the same text at what it settled
+   * on. Kept beside the format rather than inside it: it is a fact about the
+   * GROUP, and a format record that carried it would hand a non-format field
+   * to the formatter every time a member drew itself.
+   */
+  readsAsOneFigure(key: string): boolean;
   /** State what this scope was asked for. Its own props, never an answer. */
   setPolicy(next: Policy): void;
   /** Recompute this scope's answer for `key`. True when it moved. */
@@ -407,6 +415,12 @@ function createRoot(): Root {
 function createScope(parent: Scope | undefined): Scope {
   const held = new Map<string, Map<string, Report>>();
   const settled = new Map<string, SharedFormat>();
+  /**
+   * The keys whose members all come out as one figure. A set rather than a
+   * field on the settled record, so nothing that formats a member can be
+   * handed a fact that is not a format.
+   */
+  const oneFigure = new Set<string>();
   const root = parent?.root ?? createRoot();
   let policy = NO_POLICY;
 
@@ -447,6 +461,8 @@ function createScope(parent: Scope | undefined): Scope {
 
     settled: (key) => settled.get(key),
 
+    readsAsOneFigure: (key) => oneFigure.has(key),
+
     setPolicy(next) {
       if (samePolicy(policy, next)) return;
       policy = next;
@@ -479,7 +495,19 @@ function createScope(parent: Scope | undefined): Scope {
               ...(as !== undefined && { as }),
               ...(decimals !== undefined && { decimals }),
             };
-      if (sameFormat(settled.get(key), next)) return false;
+      /*
+       * Asked AFTER the ladder, with what it settled on, because the question
+       * is about the figures that will actually be drawn: a group the ladder
+       * separated reads as two, and one it could not reads as one. Only a
+       * scope asked to `separate` has any business answering it, since that is
+       * the scope that promised its members would read differently.
+       */
+      const oneFigureNow =
+        policy.separate && readsAsOneFigure(members, { format, as, decimals });
+      const oneFigureMoved = oneFigureNow !== oneFigure.has(key);
+      if (oneFigureNow) oneFigure.add(key);
+      else oneFigure.delete(key);
+      if (sameFormat(settled.get(key), next)) return oneFigureMoved;
       if (next === undefined) settled.delete(key);
       else settled.set(key, next);
       return true;
@@ -511,6 +539,7 @@ const NO_SCOPE: Scope = {
   depth: 0,
   hold: () => {},
   settled: () => undefined,
+  readsAsOneFigure: () => false,
   setPolicy: () => {},
   resettle: () => false,
   attach: () => {},
@@ -703,5 +732,43 @@ export function useSharedFormat<U extends string = string>(
     scope.root.subscribe,
     () => (key === undefined ? undefined : scope.settled(key)),
     () => undefined,
+  );
+}
+
+/**
+ * Whether the group this value belongs to reads as ONE figure: every member
+ * comes out as the same text at the format the group settled on.
+ *
+ * Only a scope asked to `separate` ever answers true, because only that scope
+ * promised its members would read differently; anywhere else, and outside a
+ * scope entirely, this is false and a caller renders what it always did.
+ *
+ * READ-ONLY, unlike {@link useSharedFormat}: it reports nothing. A caller that
+ * decides what to draw from this answer must keep reporting whatever it
+ * reported before, or the group's membership becomes a function of the group's
+ * own verdict and the two chase each other. `<Band>` holds both of its ends in
+ * the group for exactly that reason, in the branch that draws one figure as
+ * well as the branch that draws two.
+ */
+export function useReadsAsOneFigure<U extends string = string>(
+  value: Value<U> | null | undefined,
+  opts: FormatQuantityOptions = {},
+): boolean {
+  const scope = useContext(ScopeContext);
+  const decided =
+    opts.format !== undefined ||
+    opts.as !== undefined ||
+    (opts.scale !== undefined && opts.scale !== "auto");
+  const key =
+    decided ||
+    magnitudeOf(value) === null ||
+    value === null ||
+    value === undefined
+      ? undefined
+      : formatGroupKey(value.unit);
+  return useSyncExternalStore(
+    scope.root.subscribe,
+    () => (key === undefined ? false : scope.readsAsOneFigure(key)),
+    () => false,
   );
 }
