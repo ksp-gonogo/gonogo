@@ -262,7 +262,7 @@ describe("Unit: a reading that is not current", () => {
         <Unit value={metres(4_000)} />
       </UnitSharedFormat>,
     );
-    expect(visibleText(container)).toBe("999.0 m4000.0 m");
+    expect(visibleText(container)).toBe("1.0 km4.0 km");
   });
 });
 

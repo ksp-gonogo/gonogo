@@ -74,18 +74,23 @@ import {
  * one of. {@link SharedFormat} is therefore open: what a group settles can grow
  * without a caller learning anything new.
  *
- * ## The rung is the SMALLEST member's, not the largest
+ * ## The rung is the LARGEST member's
  *
- * A group rung may not round a member away. `999 m` and `1000 m` settle on
- * metres and read `999 m – 1000 m`; settling on kilometres instead would print
- * the interval as `1.0 km – 1.0 km` and need decimals bolted back on to say
- * anything at all. Taken to a column, the largest member's rung is worse still:
- * one 3.4 Mm reading would render a 500 m one as `0.0 Mm`, which is not a
- * reading.
+ * A group reads at the size of the thing it describes. A column whose biggest
+ * reading is 3.4 Mm is a column about megametres, and writing it in metres
+ * because one row happens to be small hands the reader six digits of the wrong
+ * question in every other row.
  *
- * A member of exactly zero is unharmed by any rung and is left out of the
- * choice. Otherwise a single zero, which is a common reading rather than a rare
- * one, would drag every group it appeared in to the bottom of its ladder.
+ * It costs the small end, and the operator accepted that cost (2026-09-13):
+ * `999 m` beside `1000 m` settles on kilometres and reads `1.0 km – 1.0 km`,
+ * and a 500 m member of a group holding 3.4 Mm reads `0.0 Mm`. Both need the
+ * two ends of one ladder to meet inside one group, which the readings this
+ * renders rarely do, and a group that must tell its members apart says
+ * `separate` and is given the digits to do it.
+ *
+ * A member of exactly zero needs no clause of its own. It is the smallest
+ * reading there is, so it can only carry the vote when every member is zero,
+ * and a group of zeros reads the same at any rung.
  *
  * ## One format per KIND, and a PIN is addressed to one of them
  *
@@ -424,13 +429,13 @@ function createScope(parent: Scope | undefined): Scope {
   const root = parent?.root ?? createRoot();
   let policy = NO_POLICY;
 
-  /** The rung of the smallest non-zero member, the one no member loses by. */
+  /** The rung of the LARGEST member, the one the group is a group about. */
   const ownRung = (members: Iterable<Report>): string | undefined => {
     let winner: LadderPosition | undefined;
     for (const member of members) {
       const position = member.position;
-      if (position === undefined || position.base === 0) continue;
-      if (winner === undefined || position.base < winner.base)
+      if (position === undefined) continue;
+      if (winner === undefined || position.base > winner.base)
         winner = position;
     }
     return winner?.rung;

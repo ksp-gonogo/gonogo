@@ -48,9 +48,11 @@ describe("Band", () => {
     const { container } = render(
       <Band min={value("m", 999)} max={value("m", 1000)} />,
     );
-    expect(container.textContent).toContain("999.0");
-    expect(container.textContent).toContain("1000.0");
-    expect(container.textContent).not.toContain("km");
+    // The larger end's rung, and a band separates its own two ends, so the
+    // digits come back to say what the shared kilometres would have flattened.
+    expect(container.textContent).toContain("0.999");
+    expect(container.textContent).toContain("1.000");
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
   });
 
   it("leaves the kind's own precision alone when the ends already differ", () => {

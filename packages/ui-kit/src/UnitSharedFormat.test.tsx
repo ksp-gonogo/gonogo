@@ -19,31 +19,32 @@ describe("UnitSharedFormat", () => {
         <Unit value={value("m", 1000)} />
       </UnitSharedFormat>,
     );
-    expect(container.textContent).toContain("999.0");
-    expect(container.textContent).toContain("1000.0");
-    expect(container.textContent).not.toContain("km");
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
+    expect(container.textContent).not.toContain("999");
   });
 
   /**
-   * The rung the SMALLEST member would pick, because a group rung may not round
-   * a member away: on kilometres the 500 m reading below is `0.5 km` and a
-   * 5 m one would be `0.0 km`, which is not a reading.
+   * The rung the LARGEST member would pick (operator, 2026-09-13), because the
+   * group is a group about its biggest reading: 3400 m reads `3.4 km`, so the
+   * 500 m beside it reads `0.5 km` rather than dragging the pair down to a
+   * four-digit `3400.0 m`.
    */
-  it("takes the smallest member's rung rather than the largest", () => {
+  it("takes the largest member's rung rather than the smallest", () => {
     const { container } = render(
       <UnitSharedFormat>
         <Unit value={value("m", 500)} />
         <Unit value={value("m", 3400)} />
       </UnitSharedFormat>,
     );
-    expect(container.textContent).toContain("500.0");
-    expect(container.textContent).toContain("3400.0");
+    expect(container.textContent).toContain("0.5");
+    expect(container.textContent).toContain("3.4");
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
   });
 
   /**
-   * A zero is a reading and keeps its zero at every rung, so it has no stake in
-   * the choice. Counting it would drag every group holding one to the bottom of
-   * its ladder, and a zero reading is common rather than rare.
+   * A zero is the smallest reading there is, so the largest-member rule leaves
+   * it out of the choice on its own: no clause excludes it, and it still cannot
+   * drag a group to the bottom of its ladder.
    */
   it("does not let a zero member drag the group to the base unit", () => {
     const { container } = render(
@@ -54,6 +55,25 @@ describe("UnitSharedFormat", () => {
     );
     expect(container.textContent).toContain("3.4");
     expect(container.textContent).toContain("Mm");
+    expect(screen.queryAllByText("megametres")).toHaveLength(2);
+  });
+
+  /**
+   * The case the deleted zero-exclusion clause used to reach, and the reason it
+   * could go: a group of nothing but zeros has a winner like any other, and its
+   * members read alike because a zero is a zero at every rung. Excluding them
+   * left the group unsettled and each member answering for itself, so two
+   * readings of the same nothing printed in two units.
+   */
+  it("settles a group whose every member is zero", () => {
+    render(
+      <UnitSharedFormat>
+        <Unit value={value("km", 0)} />
+        <Unit value={value("m", 0)} />
+      </UnitSharedFormat>,
+    );
+    expect(screen.queryAllByText("metres")).toHaveLength(2);
+    expect(screen.queryAllByText("kilometres")).toHaveLength(0);
   });
 
   /**
@@ -137,15 +157,15 @@ describe("UnitSharedFormat", () => {
   });
 
   it("lets the scope pin the rung the group would have settled", () => {
-    // The group would have said metres, because 999 m is the smaller member.
+    // The group would have said kilometres, 1000 m being the larger member.
     render(
-      <UnitSharedFormat of="m" format="km">
+      <UnitSharedFormat of="m" format="m">
         <Unit value={value("m", 999)} />
         <Unit value={value("m", 1000)} />
       </UnitSharedFormat>,
     );
-    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
-    expect(screen.queryAllByText("metres")).toHaveLength(0);
+    expect(screen.queryAllByText("metres")).toHaveLength(2);
+    expect(screen.queryAllByText("kilometres")).toHaveLength(0);
   });
 
   /**
@@ -158,15 +178,15 @@ describe("UnitSharedFormat", () => {
    * shared format is for.
    */
   it("leaves a group the pin does not name settling for itself", () => {
-    const { container } = render(
+    render(
       <UnitSharedFormat of="m" format="km">
         <Unit value={value("kg", 500)} />
         <Unit value={value("kg", 1_000_000)} />
       </UnitSharedFormat>,
     );
-    expect(container.textContent).toContain("500.00");
-    expect(container.textContent).toContain("1,000,000.00");
-    expect(screen.queryAllByText("kilotonnes")).toHaveLength(0);
+    // One unit across the pair, and the mass group is the one that chose it.
+    expect(screen.queryAllByText("kilotonnes")).toHaveLength(2);
+    expect(screen.queryAllByText("kilograms")).toHaveLength(0);
   });
 
   /**
@@ -192,7 +212,7 @@ describe("UnitSharedFormat", () => {
    * which is what makes the map the whole statement a mixed scope has to make.
    */
   it("leaves a group the pin map omits settling for itself", () => {
-    const { container } = render(
+    render(
       <UnitSharedFormat pins={{ length: { format: "km" } }}>
         <Unit value={value("m", 999)} />
         <Unit value={value("kg", 500)} />
@@ -200,8 +220,7 @@ describe("UnitSharedFormat", () => {
       </UnitSharedFormat>,
     );
     expect(screen.queryAllByText("kilometres")).toHaveLength(1);
-    expect(container.textContent).toContain("500.00");
-    expect(container.textContent).toContain("1,000,000.00");
+    expect(screen.queryAllByText("kilotonnes")).toHaveLength(2);
   });
 
   /**
@@ -244,25 +263,25 @@ describe("UnitSharedFormat", () => {
    */
   it("re-settles when the member that was holding the rung unmounts", async () => {
     function Pair() {
-      const [showSmall, setShowSmall] = useState(true);
+      const [showLarge, setShowLarge] = useState(true);
       return (
         <UnitSharedFormat>
-          {showSmall && <Unit value={value("m", 500)} />}
-          <Unit value={value("m", 3400)} />
-          <button type="button" onClick={() => setShowSmall(false)}>
+          <Unit value={value("m", 500)} />
+          {showLarge && <Unit value={value("m", 3400)} />}
+          <button type="button" onClick={() => setShowLarge(false)}>
             drop
           </button>
         </UnitSharedFormat>
       );
     }
     const { container } = render(<Pair />);
-    expect(container.textContent).toContain("3400.0");
+    expect(container.textContent).toContain("0.5");
 
     await act(async () => {
       screen.getByRole("button", { name: "drop" }).click();
     });
-    expect(container.textContent).toContain("3.4");
-    expect(container.textContent).toContain("km");
+    expect(container.textContent).toContain("500.0");
+    expect(container.textContent).not.toContain("km");
   });
 
   it("leaves a Unit with no scope above it on its own ladder", () => {
@@ -309,8 +328,8 @@ describe("UnitSharedFormat", () => {
         <Unit value={value("m", 1000)} />
       </UnitSharedFormat>,
     );
-    expect(screen.queryAllByText("kilometres")).toHaveLength(0);
-    expect(screen.queryAllByText("metres")).toHaveLength(2);
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
+    expect(screen.queryAllByText("metres")).toHaveLength(0);
   });
 
   /**
@@ -369,13 +388,16 @@ describe("UnitSharedFormat", () => {
   it("takes the rung from the outermost scope rather than starting a new one", () => {
     const { container } = render(
       <UnitSharedFormat>
-        <Unit value={value("m", 999)} />
+        <Unit value={value("m", 3400)} />
         <UnitSharedFormat>
-          <Unit value={value("m", 1000)} />
+          <Unit value={value("m", 500)} />
         </UnitSharedFormat>
       </UnitSharedFormat>,
     );
-    expect(container.textContent).not.toContain("km");
+    // Alone the inner member reads `500.0 m`; in the column it reads the
+    // column's kilometres.
+    expect(screen.queryAllByText("kilometres")).toHaveLength(2);
+    expect(container.textContent).not.toContain("500.0");
   });
 
   /**
