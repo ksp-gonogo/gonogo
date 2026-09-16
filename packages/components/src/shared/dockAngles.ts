@@ -16,8 +16,8 @@
  * widgets render), and both Targeting and TargetPicker need the
  * identical mapping so a current-target's kind reads the same everywhere.
  */
-import type { Vec3Of } from "@ksp-gonogo/sitrep-sdk";
-import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, Value, Vec3Of } from "@ksp-gonogo/sitrep-sdk";
+import { combineReadings, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * `{x,y,z}`: the wire shape of every `vessel.target`/`vessel.dock` Vec3
@@ -66,6 +66,48 @@ export function radialSpeed(
   const dot =
     position.x * velocity.x + position.y * velocity.y + position.z * velocity.z;
   return dot / distance;
+}
+
+/**
+ * Range to a target as a READING, off the separation vector it is derived from.
+ *
+ * A range worked out client-side is a distance nobody observed: nothing on the
+ * bare number says how current the vector behind it is, and a range held over
+ * from the last contact draws exactly like a live one. `combineReadings` gives
+ * it back the currency, and the arithmetic stays {@link vecMagnitude}'s.
+ *
+ * Both Targeting and TargetPicker draw this same range off the same field, so
+ * it lives here for the reason the rest of this module does: one derivation, so
+ * the two surfaces cannot disagree about how far away the target is.
+ */
+export function rangeReading(
+  relativePosition: Reading<Vec3Of<"m">>,
+): Reading<Value<"m">> {
+  return combineReadings([relativePosition], (separation) =>
+    value("m", vecMagnitude(bare(separation))),
+  );
+}
+
+/**
+ * Signed range-rate as a READING, off the two vectors together.
+ *
+ * Carries NO value where {@link radialSpeed} has no answer, which is the
+ * coincident case: with no separation there is no line of sight to project the
+ * velocity onto, so the rate is unknown rather than zero. An observed reading
+ * carrying no value is the shape `combineReadings` documents, and `Unit` draws
+ * it as the null token.
+ */
+export function closingRateReading(
+  relativePosition: Reading<Vec3Of<"m">>,
+  relativeVelocity: Reading<Vec3Of<"m/s">>,
+): Reading<Value<"m/s">> {
+  return combineReadings(
+    [relativePosition, relativeVelocity],
+    (separation, motion) => {
+      const rate = radialSpeed(bare(separation), bare(motion));
+      return rate === undefined ? undefined : value("m/s", rate);
+    },
+  );
 }
 
 /**

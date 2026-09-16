@@ -416,8 +416,23 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/Navball/index.tsx": 2,
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
   "packages/components/src/SpaceCenterStatus/index.tsx": 2,
-  "packages/components/src/Targeting/index.tsx": 5,
-  "packages/components/src/TargetPicker/index.tsx": 3,
+  /*
+   * Three sites, all ONE gate bug rather than three judgements, and all three
+   * are shapes this file's own rule says do not count.
+   *
+   * Two are ages (`viewUt.minus(observedAt(reading))`) and one is a modelled
+   * range off `reading.reckoning.value`. Neither is derived from the reading's
+   * VALUE: the first comes from its currency (`atUt` / `asOfUt`) and the second
+   * from its model. `unwrapOf` exempts both, exactly as the scan's doc says it
+   * does; `derivedFromReading` does not, so the exemption is lost the moment
+   * the figure passes through one more hop. An age handed its reading would be
+   * marked not-current, which is self-refuting: the age is computed against the
+   * current frame and its whole job is to say that something ELSE is old.
+   *
+   * Filed rather than worked around, since the fix is to the walk and belongs
+   * beside #313.
+   */
+  "packages/components/src/Targeting/index.tsx": 3,
 };
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {

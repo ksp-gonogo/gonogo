@@ -39,7 +39,9 @@ import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   bare,
+  closingRateReading,
   radialSpeed,
+  rangeReading,
   targetKindLabel,
   vecMagnitude,
 } from "../shared/dockAngles";
@@ -233,10 +235,8 @@ function TargetPickerComponent({
    * beside a name is the confident-wrong picture the reading type exists to
    * prevent.
    */
-  const target = stillTrue(
-    withoutReckoning(topics.useTelemetry("vessel.target")),
-    undefined,
-  );
+  const targetReading = topics.useTelemetry("vessel.target");
+  const target = stillTrue(withoutReckoning(targetReading), undefined);
   const tarName = target?.name;
   const tarType = targetKindLabel(target?.kind);
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
@@ -247,6 +247,14 @@ function TargetPickerComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
+  /* The plain numbers above decide whether a row EXISTS; these are what the
+     rows draw, so a range held over from the last contact is marked rather than
+     passing for a live one. Same derivation, off the same fields. */
+  const rangeR = rangeReading(targetReading.relativePosition);
+  const closingRateR = closingRateReading(
+    targetReading.relativePosition,
+    targetReading.relativeVelocity,
+  );
   /**
    * Setting or clearing the target is dispatched to the craft and so is subject
    * to signal delay, which is why both ride `useCommand`. A body, a vessel and
@@ -434,7 +442,7 @@ function TargetPickerComponent({
                   {typeof tarDistance === "number" &&
                     Number.isFinite(tarDistance) && (
                       <CompactDistance>
-                        <Unit value={value("m", tarDistance)} />
+                        <Unit value={rangeR} />
                       </CompactDistance>
                     )}
                 </>
@@ -497,7 +505,7 @@ function TargetPickerComponent({
                   {typeof tarDistance === "number" &&
                     Number.isFinite(tarDistance) && (
                       <CurrentSummaryDistance>
-                        <Unit value={value("m", tarDistance)} />
+                        <Unit value={rangeR} />
                       </CurrentSummaryDistance>
                     )}
                 </CurrentSummaryTop>
@@ -506,7 +514,7 @@ function TargetPickerComponent({
                   {typeof tarRelVel === "number" &&
                     Number.isFinite(tarRelVel) && (
                       <span>
-                        Δv <Unit value={value("m/s", tarRelVel)} decimals={2} />
+                        Δv <Unit value={closingRateR} decimals={2} />
                       </span>
                     )}
                   <Button onClick={clearTarget} type="button">

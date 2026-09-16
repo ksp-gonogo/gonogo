@@ -138,6 +138,26 @@ describe("Targeting: stale renders the last observation as an observation", () =
     // The last REAL value stays reachable: it is the same reading, never a
     // second channel the operator has to go and find.
     expect(visibleText()).toContain("10.0 km");
+    /*
+     * And the MARK is on the figure, not only in the caption beside it. The
+     * range is derived client-side off the separation vector, so it only gets
+     * one by being combined rather than re-minted: before it was, a held range
+     * drew identically to a live one and the caption was the sole tell.
+     */
+    /*
+     * The mark is on the FIGURES, asserted by which figures carry one rather
+     * than by a count: both the range and the closing rate are derived
+     * client-side off the separation vector, so each only gets a mark by being
+     * combined instead of re-minted. Counting alone would have passed with the
+     * range reverted, because its sibling supplies a mark of its own.
+     */
+    const marked = [...document.querySelectorAll("[data-not-current]")].map(
+      /* Whitespace normalised: `Unit` sets the figure from its unit with a thin
+         space, so a plain-space needle never matches the DOM's own text. */
+      (el) => (el.textContent ?? "").replace(/\s+/g, " "),
+    );
+    expect(marked.some((text) => text.includes("10.0 km"))).toBe(true);
+    expect(marked.some((text) => text.includes("50.00 m/s"))).toBe(true);
     // And it is not passed off as current.
     expect(screen.queryByText("No target set in KSP")).toBeNull();
     expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
