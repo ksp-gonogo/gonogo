@@ -5,6 +5,7 @@ import {
   type AnyProcessorDefinition,
   type Dep,
   getProcessor,
+  isSubjectDep,
   type ReadingDep,
 } from "./processors";
 import { subscribeTopicRead } from "./subscribe-read";
@@ -253,7 +254,10 @@ function collectRawTopicDeps(id: string): string[] {
       // failure mode `stub-transport`'s subscribed-only delivery exists to
       // surface.
       if (isReadingDep(dep)) topics.add(dep.reading);
-      else if (!isHandle(dep)) topics.add(dep);
+      // A subject dep names no topic until a reckon resolves its subject, and a
+      // processor never will: `resolveDep` throws on one. Skipped here so the
+      // refusal is that throw rather than a dep object landing in a topic set.
+      else if (!isHandle(dep) && !isSubjectDep(dep)) topics.add(dep);
     }
   }
   return [...topics];
@@ -330,6 +334,20 @@ function resolveDep(dep: Dep, token: { generation: number }): unknown {
     // consumers rendered the result as current.
     if (!activeStore) return { state: "pending" };
     return activeStore.sampleReading(dep.reading, activeStore.currentFrame());
+  }
+  /*
+   * A subject dep is a RECKONER's, and a processor has no point to take a
+   * subject from. Thrown rather than resolved to `undefined`, which is what the
+   * line below would do with an object where a topic id belongs: `undefined` is
+   * the spelling of an absent input, so a processor declaring one would derive
+   * from nothing for ever and report it as data that had not arrived.
+   */
+  if (isSubjectDep(dep)) {
+    throw new Error(
+      "A processor cannot declare a per-subject dep: the subject is read from " +
+        "a reckoner's point, and a processor has none. Resolve the subject in " +
+        "the reckoner that owns it and declare the resulting topic here.",
+    );
   }
   if (!activeStore) return undefined;
   const point = activeStore.sample(dep, activeStore.currentFrame());

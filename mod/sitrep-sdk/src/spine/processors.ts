@@ -1,4 +1,5 @@
 import type { TopicId, TopicPayload } from "../index";
+import type { TimelinePoint } from "../timeline";
 import type { TopicReading } from "./client-reading";
 
 // ---------------------------------------------------------------------------
@@ -74,8 +75,81 @@ export interface ReadingDep<T extends TopicId = TopicId> {
   readonly reading: T;
 }
 
-/** A processor dependency: a raw Topic id, a Topic's reading, or another processor's handle. */
-export type Dep = TopicId | ReadingDep | ProcessorHandle<unknown>;
+/**
+ * A dep whose topic is only known once the FIXED deps have resolved: "the orbit
+ * of whichever vessel this route names", not a topic id anyone can write down.
+ *
+ * ## Why a fixed list cannot express it
+ *
+ * `comms.delay`'s model refuses a relayed route outright, and its own decline
+ * says why: the route home starts at a relay, and where that relay is now sits
+ * on `fleet.<guid>.orbit`, whose guid arrives IN the route. The model has the
+ * guid in hand at reckon time; what it has no way to say is "subscribe that".
+ * Every other dep variety names its topic at declaration time, which is exactly
+ * the thing a subject cannot do.
+ *
+ * ## The payload type is stated, not looked up
+ *
+ * `P` is the payload the resolved topic carries, and the author gives it, the
+ * same way `useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`)`
+ * already does at every other dynamic read in the tree. A dynamic topic has no
+ * member in `TopicPayloadMap` to infer from: the ids are computed at runtime,
+ * which is the same reason `dynamicWholeTopicPrefixes` exists rather than a
+ * generated list.
+ *
+ * ## An undeclared subject declines, it does not guess
+ *
+ * `subject` returning `undefined` resolves the dep to `undefined`, which the
+ * store already turns into the `input-absent` decline every other unmet dep
+ * gets. A model that cannot name its subject has not got its input, and saying
+ * so is the same answer as an absent channel rather than a new one.
+ */
+export interface SubjectDep<
+  P = unknown,
+  Fixed extends readonly unknown[] = readonly unknown[],
+> {
+  /** The topic to read, given the subject id: `` (id) => `fleet.${id}.orbit` ``. */
+  forSubject(subjectId: string): string;
+  /**
+   * Which subject this reckon is about, read from the point and the fixed deps
+   * resolved beside it. `undefined` means this reckon has no subject, which is
+   * not the same as a missing input: the dep resolves to `undefined` and the
+   * model decides.
+   *
+   * `Fixed` is the prefix of the model's own deps this selector reads, declared
+   * so it destructures typed. Without it `resolved` is `readonly unknown[]` and
+   * every selector opens with an assertion out of `unknown`, which is the thing
+   * `unknown-cast` exists to stop. Declared as a METHOD rather than a property
+   * so the bivariance lets a selector over a narrow tuple still satisfy the
+   * `SubjectDep<unknown>` the `Dep` union carries.
+   */
+  subject(point: TimelinePoint<unknown>, resolved: Fixed): string | undefined;
+  /** Phantom: the payload the resolved topic carries. Never read at runtime. */
+  readonly __payloadType?: P;
+}
+
+/**
+ * A processor dependency: a raw Topic id, a Topic's reading, another
+ * processor's handle, or a per-subject topic resolved at reckon time.
+ *
+ * The last is a RECKONER's to declare. It is in this union rather than in a
+ * second one because a reckoner's inputs are the same kind of thing a
+ * processor's are, and the alternative is two vocabularies to keep in step (see
+ * `ResolvedReckonerDep`, which says the same about resolution). A processor
+ * handed one is refused out loud by the evaluator: a processor has no point to
+ * take a subject from, and resolving it to `undefined` there would be
+ * indistinguishable from an absent input.
+ */
+export type Dep =
+  | TopicId
+  | ReadingDep
+  | ProcessorHandle<unknown>
+  | SubjectDep<unknown>;
+
+/** Whether this dep's topic is computed per subject rather than declared. */
+export function isSubjectDep(dep: Dep): dep is SubjectDep<unknown> {
+  return typeof dep === "object" && dep !== null && "forSubject" in dep;
+}
 
 /**
  * The resolved value for one dependency: a nested processor resolves to its

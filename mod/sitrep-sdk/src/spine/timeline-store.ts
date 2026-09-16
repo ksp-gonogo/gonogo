@@ -42,7 +42,7 @@ import {
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
 import { getProcessorValue } from "./processorEvaluator";
-import type { Dep } from "./processors";
+import { type Dep, isSubjectDep, type SubjectDep } from "./processors";
 import {
   CORE_RECKONER_OWNER,
   getReckoner,
@@ -137,6 +137,25 @@ export interface TimelineStoreOptions {
    * (`default-carried-topics.ts`) for the Uplink per-(body,type) namespaces.
    */
   dynamicWholeTopicPrefixes?: readonly string[];
+  /**
+   * How the store holds up a topic a {@link SubjectDep} resolved, for as long
+   * as that subject stands. Returns its own release.
+   *
+   * The store owns this lifetime and nothing else can: the subject is not known
+   * at subscribe time, so the read's own set (`subscribeTopicRead`, resolved
+   * once when the read mounts) cannot contain it, and a model declaring a
+   * per-subject input without this would decline `input-absent` for ever while
+   * nothing anywhere held the topic up. That is not a hypothetical failure
+   * mode, it is #193/#195 exactly, where a declared-but-unsubscribed dep made
+   * one widget decline while the widget beside it reckoned fine.
+   *
+   * Injected rather than a client, for the same reason the processor evaluator
+   * takes an injected subscribe: this store is mod-agnostic and holds no
+   * transport. Absent, a subject dep still RESOLVES against whatever is already
+   * flowing and simply never holds anything up itself, which is the honest
+   * degradation for a test double that wires no subscriber.
+   */
+  subscribeDynamicTopic?: (topic: string) => () => void;
 }
 
 /**
@@ -674,6 +693,22 @@ export class TimelineStore {
   private generation = 0;
 
   /**
+   * The topic each reckoner's {@link SubjectDep} currently holds up, keyed by
+   * the reckoner's own topic.
+   *
+   * One entry per reckoner topic, not per subject: a model has one subject at a
+   * time, and a route that moves to a different relay should stop holding up
+   * the old relay's orbit rather than accumulate both. The entry is replaced
+   * (old released first) when the subject changes, and swept when the reckon
+   * stops happening at all, which is what "the last reader goes" looks like
+   * from in here: nothing reads, nothing reckons, nothing touches the entry.
+   */
+  private readonly subjectSubscriptions = new Map<
+    string,
+    { topic: string; release: () => void; generation: number }
+  >();
+
+  /**
    * Per-`FrameToken` memoization cache, gives frame coherence: the same
    * `(token, topic)` read always returns the same result for that token's
    * lifetime. Keyed by token object identity via a `WeakMap` so it never
@@ -902,9 +937,54 @@ export class TimelineStore {
    */
   beginFrame(): FrameToken {
     this.generation++;
+    this.releaseUntouchedSubjects();
     this.currentToken = mintToken(this.clock, this.generation);
     for (const listener of this.frameListeners) listener();
     return this.currentToken;
+  }
+
+  /**
+   * Drop the dynamic subscription of any reckoner that did not reckon on the
+   * previous frame.
+   *
+   * A mounted read samples every frame, so a live subject is touched every
+   * frame and survives. One frame of grace rather than zero, because the sweep
+   * runs BEFORE this frame's reads: judging on the frame just begun would
+   * release every entry before anything had a chance to touch it.
+   */
+  private releaseUntouchedSubjects(): void {
+    for (const [topic, entry] of this.subjectSubscriptions) {
+      if (entry.generation >= this.generation - 1) continue;
+      entry.release();
+      this.subjectSubscriptions.delete(topic);
+    }
+  }
+
+  /**
+   * Hold up `subjectTopic` for `reckonerTopic`, replacing whatever that
+   * reckoner was holding up before.
+   *
+   * Marked with the current generation on every call, including when the topic
+   * is unchanged: the mark is what {@link releaseUntouchedSubjects} reads, so a
+   * standing subject has to re-assert itself each frame to stay held.
+   */
+  private holdSubjectTopic(reckonerTopic: string, subjectTopic: string): void {
+    const held = this.subjectSubscriptions.get(reckonerTopic);
+    if (held?.topic === subjectTopic) {
+      held.generation = this.generation;
+      return;
+    }
+    held?.release();
+    const subscribe = this.options.subscribeDynamicTopic;
+    if (!subscribe) {
+      this.subjectSubscriptions.delete(reckonerTopic);
+      return;
+    }
+    this.subjectSubscriptions.set(reckonerTopic, {
+      topic: subjectTopic,
+      release: subscribe(subjectTopic),
+      generation: this.generation,
+    });
   }
 
   /** The token minted by the most recent `beginFrame()` call. What every reactive read uses; never recomputed per read. */
@@ -1978,6 +2058,13 @@ export class TimelineStore {
    */
   private static inputSpelling(topic: string, dep: Dep): string {
     if (typeof dep !== "string") {
+      /*
+       * A subject dep names no topic until a subject is in hand, and the two
+       * callers that reach here (the absent-input and the horizon declines)
+       * both run where one is not. The resolve loop names the RESOLVED topic
+       * itself when it has one, so this is only the un-subjected spelling.
+       */
+      if (isSubjectDep(dep)) return "@<per-subject>";
       return "reading" in dep ? `@${dep.reading}` : dep.id;
     }
     const declared = reckonableValuesOf(topic)
@@ -1986,9 +2073,14 @@ export class TimelineStore {
     return declared ? reckonableInputSpelling(declared) : `@${dep}`;
   }
 
-  /** The Topic a dep names, or `undefined` for a processor handle, which names none. */
+  /**
+   * The Topic a dep names, or `undefined` for a processor handle, which names
+   * none, and for a subject dep, whose topic is not known until a reckon
+   * resolves its subject.
+   */
   private static depTopic(dep: Dep): string | undefined {
     if (typeof dep === "string") return dep;
+    if (isSubjectDep(dep)) return undefined;
     return "reading" in dep ? dep.reading : undefined;
   }
 
@@ -2008,6 +2100,15 @@ export class TimelineStore {
     if (typeof dep === "string") return this.sample<unknown>(dep, token);
     if ("reading" in dep)
       return this.sampleReading<unknown>(dep.reading, token);
+    /*
+     * A subject dep is resolved by the second pass in `registeredReckoning`,
+     * which is the only place the subject exists, so it never arrives here.
+     * Narrowed rather than left to the fallthrough below: the compiler caught
+     * that this function would otherwise have read `.id` off it and asked the
+     * processor registry for `undefined`, which answers `undefined`, which is
+     * spelled the same as an absent input.
+     */
+    if (isSubjectDep(dep)) return undefined;
     return getProcessorValue(dep.id);
   }
 
@@ -2067,8 +2168,17 @@ export class TimelineStore {
       return { declined: TimelineStore.tooLittleHistory(own, floor) };
     }
 
-    const resolved: unknown[] = [];
-    for (const dep of definition.deps) {
+    /*
+     * Two passes, because a subject dep's topic is a function of the others. The
+     * fixed deps resolve first, positionally, and the subject selector is then
+     * handed that array: `comms.delay` reads its relay's guid out of the
+     * `comms.path` point sitting at index 0. Pre-sized rather than pushed so a
+     * subject dep's own slot is filled in place and every fixed dep keeps the
+     * index the model destructures it at.
+     */
+    const resolved: unknown[] = new Array(definition.deps.length);
+    for (const [index, dep] of definition.deps.entries()) {
+      if (isSubjectDep(dep)) continue;
       if (typeof dep === "string") {
         const depWindow = definition.depWindows?.[dep];
         if (depWindow) {
@@ -2082,7 +2192,7 @@ export class TimelineStore {
           if (points.length === 0) {
             return { declined: TimelineStore.absentInput(topic, dep) };
           }
-          resolved.push(points);
+          resolved[index] = points;
           continue;
         }
       }
@@ -2090,7 +2200,39 @@ export class TimelineStore {
       if (value === undefined) {
         return { declined: TimelineStore.absentInput(topic, dep) };
       }
-      resolved.push(value);
+      resolved[index] = value;
+    }
+    for (const [index, dep] of definition.deps.entries()) {
+      if (!isSubjectDep(dep)) continue;
+      const subjectId = dep.subject(point, resolved);
+      /*
+       * NO SUBJECT IS NOT A MISSING INPUT, and conflating the two would break
+       * the commonest case. A `comms.delay` route straight home has no relay,
+       * so there is no vessel whose orbit is wanted and the model runs exactly
+       * as it does today; declining here would refuse every direct route to fix
+       * the relayed one. The dep resolves to `undefined`, which is what its
+       * declared type already says it can be, and the model branches.
+       */
+      if (subjectId === undefined) {
+        resolved[index] = undefined;
+        continue;
+      }
+      const subjectTopic = dep.forSubject(subjectId);
+      /*
+       * Held BEFORE it is sampled, and deliberately not after: the first reckon
+       * is the one that discovers the subject, so sampling first would decline
+       * on a topic nobody had asked the wire for yet and only hold it up as a
+       * consequence of that decline. Holding first means the decline below is
+       * the honest "it has not arrived YET", and the next frame has it.
+       */
+      this.holdSubjectTopic(topic, subjectTopic);
+      const value = this.sample<unknown>(subjectTopic, token);
+      if (value === undefined) {
+        return {
+          declined: { reason: "input-absent", input: `@${subjectTopic}` },
+        };
+      }
+      resolved[index] = value;
     }
     if (!definition.exempt?.horizon) {
       const outOfReach = this.inputPastItsHorizon(
