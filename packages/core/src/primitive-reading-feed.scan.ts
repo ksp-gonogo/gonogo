@@ -94,8 +94,13 @@ export interface UnwrappedFeedSite {
   element: string;
   /** The attribute that was handed the unwrapped value, e.g. `value`. */
   prop: string;
-  /** Whether the unwrap was written inline or reached through a `const`. */
-  via: "direct" | "const";
+  /**
+   * How the figure lost its currency: unwrapped inline, unwrapped through a
+   * `const`, or DERIVED from a reading further back (arithmetic named on an
+   * earlier line, a magnitude taken through a helper). The three want
+   * different fixes, so the report distinguishes them.
+   */
+  via: "direct" | "const" | "derived";
   /** The attribute as written, whitespace collapsed, for the failure message. */
   text: string;
 }
@@ -195,6 +200,84 @@ function unwrapOf(
 }
 
 /**
+ * How far back the derivation walk follows a value before giving up.
+ *
+ * Twelve rather than a smaller round number, measured rather than chosen. The
+ * plant named `PlantedIndirectUnwrap` mints a ratio from a payload quantity
+ * defaulted with `??` and divided by a literal: that is SEVEN hops from the
+ * prop back to the reading (call, identifier, two binaries, two optional
+ * property accesses, identifier), and a cap of six caught its sibling at
+ * exactly six while missing it. A real call site nests further than a
+ * written-out example suggests, so the cap sits well clear of the deepest
+ * shape the tree actually contains rather than against its edge.
+ *
+ * It is a bound on WORK, not a rule about what counts: every path that
+ * terminates does so at a reading or at a literal, and the `seen` set is what
+ * stops a cycle.
+ */
+const DERIVATION_DEPTH = 12;
+
+/**
+ * Whether this expression's value was DERIVED from a reading, however far back.
+ *
+ * The direct unwrap above is one shape of a bigger fault, and the other shapes
+ * defeat both of the tree's existing checks. `styleguide-primitive-inputs` is
+ * textual and refuses arithmetic written IN the prop, so a quotient named on
+ * the previous line walks through it. This file's own rule keys on a property
+ * literally spelled `value`, so a magnitude taken two calls deep walks through
+ * that. Both hand a primitive a figure that came off a reading with the
+ * currency stripped, which is the thing the combinator exists to stop.
+ *
+ * So the question is PROVENANCE rather than shape: does the data flow behind
+ * this expression reach something reading-typed. It follows operands, call
+ * ARGUMENTS (never a callee's body, which would be a whole-program analysis),
+ * property objects and one `const` hop per identifier.
+ *
+ * It deliberately does NOT flag ruling 7's legitimate case. A literal, a
+ * constant, a prop the widget was handed: none of those reach a reading, so
+ * none of them is reported. The discriminator is where the number CAME FROM,
+ * not what it looks like on arrival, and a rule that cannot tell those apart
+ * is one that gets switched off in a week.
+ */
+function derivedFromReading(
+  checker: ts.TypeChecker,
+  expr: ts.Expression,
+  depth = 0,
+  seen = new Set<ts.Node>(),
+): boolean {
+  if (depth > DERIVATION_DEPTH) return false;
+  const node = skipParens(expr);
+  if (seen.has(node)) return false;
+  seen.add(node);
+
+  // The base case: this expression IS a reading, so anything taken off it is
+  // reading-derived by construction.
+  if (isReadingShaped(checker, checker.getTypeAtLocation(node))) return true;
+
+  const recur = (child: ts.Expression) =>
+    derivedFromReading(checker, child, depth + 1, seen);
+
+  if (ts.isPropertyAccessExpression(node)) return recur(node.expression);
+  if (ts.isElementAccessExpression(node)) return recur(node.expression);
+  if (ts.isNonNullExpression(node) || ts.isAsExpression(node))
+    return recur(node.expression);
+  if (ts.isBinaryExpression(node)) return recur(node.left) || recur(node.right);
+  if (ts.isConditionalExpression(node))
+    return recur(node.whenTrue) || recur(node.whenFalse);
+  if (ts.isPrefixUnaryExpression(node)) return recur(node.operand);
+  if (ts.isCallExpression(node)) return node.arguments.some(recur);
+
+  if (ts.isIdentifier(node)) {
+    const declaration = checker
+      .getSymbolAtLocation(node)
+      ?.declarations?.find(ts.isVariableDeclaration);
+    return declaration?.initializer ? recur(declaration.initializer) : false;
+  }
+
+  return false;
+}
+
+/**
  * The verdict on one JSX attribute, or null when there is nothing to report.
  *
  * Exported so the blindness check drives the live predicate rather than a
@@ -204,7 +287,7 @@ export function classifyAttribute(
   checker: ts.TypeChecker,
   attr: ts.JsxAttribute,
 ):
-  | { prop: string; via: "direct" | "const"; counted: true }
+  | { prop: string; via: "direct" | "const" | "derived"; counted: true }
   | "error-typed"
   | "not-a-reading-prop"
   | null {
@@ -231,7 +314,25 @@ export function classifyAttribute(
   if (isReadingShaped(checker, passed)) return null;
 
   const unwrap = unwrapOf(checker, expression);
-  if (!unwrap) return null;
+  if (!unwrap) {
+    /*
+     * Not a direct `<reading>.value`, but the figure may still have come off
+     * one further back: a quotient named on the previous line, a magnitude
+     * taken two calls deep. Reported as its own `via` so the two faults stay
+     * distinguishable in the message, since they want different fixes: the
+     * direct unwrap passes the reading instead, this one goes through the
+     * combinator or the field property.
+     */
+    return derivedFromReading(checker, expression)
+      ? {
+          prop: ts.isIdentifier(attr.name)
+            ? attr.name.text
+            : attr.name.getText(),
+          via: "derived",
+          counted: true,
+        }
+      : null;
+  }
 
   return {
     prop: ts.isIdentifier(attr.name) ? attr.name.text : attr.name.getText(),

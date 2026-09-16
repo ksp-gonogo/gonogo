@@ -108,7 +108,7 @@ const READ_ASSIGNMENT =
 const READ_BINDING = /const (\w+)\s*=\s*(?:\w+\.)?useTelemetry\(/;
 
 /**
- * The one sanctioned exception, with its reason.
+ * The two sanctioned exceptions, with their reasons.
  *
  * The probe render harness feeds widgets from recorded fixtures and reads
  * `<domain>.available` generically, by template-built topic id, for whatever domain a
@@ -116,8 +116,18 @@ const READ_BINDING = /const (\w+)\s*=\s*(?:\w+\.)?useTelemetry\(/;
  * `staging` for an unrelated reason, and it is the one place where the read is
  * genuinely untyped by construction. Listed rather than silently skipped so that
  * "the harness is exempt" stays a decision someone made.
+ *
+ * The second is the primitive-reading-feed gate's planted violation. It holds a
+ * bare read on purpose, because that gate's whole subject is what happens to a
+ * reading between the read and the prop: narrowing it at the read, which is
+ * what this rule would otherwise ask for, deletes the thing being measured.
+ * The file is in no tsconfig, is compiled only by that gate's own test, and
+ * ships nowhere.
  */
-const ALLOWED = new Set(["packages/components/scripts/probe/probe-entry.tsx"]);
+const ALLOWED = new Set([
+  "packages/components/scripts/probe/probe-entry.tsx",
+  "packages/components/fixtures/primitive-reading-feed-plant.tsx",
+]);
 
 /**
  * Names of functions declared in this file that take a reading. Calling one is a

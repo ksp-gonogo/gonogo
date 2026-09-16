@@ -198,6 +198,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/app/src/commcast/CommcastComponent.tsx": 1,
   "packages/app/src/commcast/CommcastContext.tsx": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,
+  /*
+   * 2, and they are the subject rather than a use. This file is the planted
+   * violation for the primitive-reading-feed gate: both unwraps exist so that
+   * gate can be seen to catch a magnitude taken off a payload and a magnitude
+   * taken two calls deep. Fixing them would blind the gate that finds them
+   * everywhere else, which is the one case where the algebra is not the
+   * answer. It is in no tsconfig and ships nowhere.
+   */
+  "packages/components/fixtures/primitive-reading-feed-plant.tsx": 2,
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/ContractManager/index.tsx": 2,
   "packages/components/src/CrewStatus/badge.ts": 2,
