@@ -118,6 +118,46 @@ export interface ConformancePlotProps {
   bodyRadius?: number | null;
 }
 
+/**
+ * Where the two conics are furthest apart, and how far apart they are there.
+ *
+ * <p>Apoapsis, for the reason the geometry gives: a burn changes the orbit
+ * most at the apsis OPPOSITE the point it was made at, and a maneuver node's
+ * own instant is where the two conics still touch. So the widest part of the
+ * gap is the far apsis, and its width is the difference of the two apoapsis
+ * radii.</p>
+ *
+ * <p>Null when either conic is unbounded, or when the two coincide: a frame
+ * around a gap of zero has no extent to choose and nothing to show.</p>
+ */
+function widestSeparation(
+  current: { sma: number; ecc: number; argPe: number },
+  planned: ProjectedOrbit,
+): { x: number; y: number; gap: number } | null {
+  if (current.ecc >= 1 || current.sma <= 0) return null;
+  if (planned.ecc >= 1 || planned.sma <= 0) return null;
+
+  const currentApR = current.sma * (1 + current.ecc);
+  const plannedApR = planned.sma * (1 + planned.ecc);
+  const gap = Math.abs(plannedApR - currentApR);
+  if (!(gap > 0)) return null;
+
+  // Apoapsis sits opposite the focus, and the diagram rotates by -argPe.
+  const theta = (-current.argPe * Math.PI) / 180;
+  return {
+    x: -currentApR * Math.cos(theta),
+    y: -currentApR * Math.sin(theta),
+    gap,
+  };
+}
+
+/**
+ * How much room to give the gap in the inset. Six half-gaps puts the two
+ * curves roughly a third of the frame apart, which reads as a separation
+ * rather than as two curves that happen not to touch.
+ */
+const INSET_GAP_MULTIPLE = 6;
+
 export function ConformancePlot({
   current,
   currentTrajectory,
@@ -128,6 +168,15 @@ export function ConformancePlot({
   bodyRadius,
 }: ConformancePlotProps) {
   const r = REGIME[regime];
+  /*
+   * Only where there is a flown-versus-planned gap to look closely AT. The
+   * corridor's own regime gate applies here for the same reason, and a gap of
+   * zero gets no frame rather than an infinitely magnified one.
+   */
+  const inset =
+    regime === "deviance" && current && planned
+      ? widestSeparation(current, planned)
+      : null;
   const attributable = devianceIsAttributable(residual);
   const withheld =
     currentTrajectory !== null && currentTrajectory.shape === "withheld"
@@ -189,6 +238,44 @@ export function ConformancePlot({
             bodyRadius={bodyRadius ?? undefined}
             variant="mini"
           />
+        </div>
+      ) : null}
+      {inset && current ? (
+        <div style={{ opacity: currentIsObserved ? 1 : 0.55 }}>
+          {/*
+            The same two curves, framed on the widest part of the gap instead
+            of on the orbit that contains it. Nothing is redrawn and nothing is
+            stretched: every distance inside this frame is in true proportion
+            to every other, which is what separates a closer look from an
+            exaggeration. The frame's SIZE is derived from the gap, so it reads
+            whether the burn missed by kilometres or by metres.
+          */}
+          <OrbitDiagram
+            sma={current.sma}
+            ecc={current.ecc}
+            apoapsis={current.apoapsis}
+            periapsis={current.periapsis}
+            trueAnomaly={current.trueAnomaly}
+            argPe={current.argPe}
+            projected={planned}
+            corridor
+            /*
+             * The apsis markers are suppressed here: at this framing the
+             * apoapsis dot sits exactly where the separation is, and a marker
+             * scaled to the frame covers the thing the frame exists to show.
+             */
+            showMarkers={false}
+            focus={{
+              x: inset.x,
+              y: inset.y,
+              halfExtent: inset.gap * INSET_GAP_MULTIPLE,
+            }}
+            variant="mini"
+          />
+          <span style={CAPTION}>
+            at apoapsis, flown vs planned:{" "}
+            <Unit value={value("m", inset.gap)} decimals={0} /> apart
+          </span>
         </div>
       ) : (
         <span style={CAPTION}>{NULL_DISPLAY} no current orbit</span>
