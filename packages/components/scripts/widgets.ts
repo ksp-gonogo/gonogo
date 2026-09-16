@@ -1766,6 +1766,19 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "compact-5x7", w: 5, h: 7 },
     ],
   },
+  {
+    widgetId: "career-economy",
+    fixturesPath: "CareerEconomy/__fixtures__",
+    outPath: "renders/career-economy-widget",
+    modes: [
+      // Registered default: every rate and the whole upkeep breakdown fit.
+      { name: "default-6x9", w: 6, h: 9 },
+      /* Below the breakdown's own width floor (compact drops it), so this is
+         where the balances and rates carry the whole answer on their own, marks
+         included. */
+      { name: "compact-4x7", w: 4, h: 7 },
+    ],
+  },
 ];
 
 /**

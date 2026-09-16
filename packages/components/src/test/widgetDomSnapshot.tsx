@@ -175,6 +175,18 @@ interface StreamFixtureBlock {
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ channel: string; value: unknown; meta?: Partial<Meta> }>;
   /**
+   * Stage the scene as NOT CURRENT: drop the transport once every emit has
+   * landed, so the widget is captured holding figures that have stopped
+   * arriving. See the probe's copy of this field for why the drop is the lever.
+   *
+   * Read here as well as in the probe because the two harnesses read ONE
+   * fixture format, and a knob only one of them honours is how a widget
+   * migrated to `_stream` came to have its empty state written down as a
+   * committed snapshot (see {@link buildStreamWrap}). A stale scene ignored
+   * here would snapshot as its live twin under the stale scene's name.
+   */
+  stopsArriving?: boolean;
+  /**
    * The install profiles this scene is interesting under
    * (`test/installProfile.ts`), by id. The scene names them so the matrix stays
    * a scene's own decision: a crew widget cares about the crew-standing
@@ -280,6 +292,13 @@ interface StreamWrap {
    * frames to pass. A no-op for a fixture with no `_stream` block.
    */
   replayStreamBlock: () => Promise<void>;
+  /**
+   * Drops the transport when the fixture declared `_stream.stopsArriving`, so
+   * every confirmed topic reads as no longer current. A no-op otherwise. The
+   * frame that publishes the new status is the caller's, via
+   * {@link flushProviderFrame}.
+   */
+  dropTransport: () => void;
   /**
    * Mints one view-clock frame, the harness's only frame source: the fixture
    * clock is built with its animation-frame loop suspended (see
@@ -431,6 +450,11 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
          */
         beginPhase("replay-stream act-settle");
       },
+      dropTransport: () => {
+        if (streamBlock.stopsArriving === true) {
+          stream.store.setTransportConnected(false);
+        }
+      },
       emitFrame: () => stream.emitFrame(),
     };
   }
@@ -454,6 +478,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       emitVesselParts: () => {},
       emitVesselControl: () => {},
       replayStreamBlock: async () => {},
+      dropTransport: () => {},
       emitFrame: () => {},
     };
   }
@@ -491,6 +516,9 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       }
     },
     replayStreamBlock: async () => {},
+    // The legacy-reshape path reads no `_stream` block, so there is nothing to
+    // declare the drop on.
+    dropTransport: () => {},
     emitFrame: () => stream.emitFrame(),
   };
 }
@@ -702,6 +730,7 @@ export async function snapshotWidgetMode<
       emitVesselParts,
       emitVesselControl,
       replayStreamBlock,
+      dropTransport,
       emitFrame,
     } = buildStreamWrap(opts.fixture, opts.profile);
     beginPhase("render");
@@ -753,6 +782,13 @@ export async function snapshotWidgetMode<
     });
     beginPhase("flush-resize-observers");
     await flushResizeObservers();
+
+    // Last, after the tree has settled live, so a scene staged as not-current
+    // is the same scene as its live twin plus the drop, and the two snapshots
+    // differ only by what the drop does. Matches the probe's ordering.
+    beginPhase("stops-arriving");
+    dropTransport();
+    await flushProviderFrame(providerMounted, emitFrame);
 
     beginPhase("done");
     return stripVolatile(container.innerHTML);
@@ -816,6 +852,7 @@ export async function renderWidgetMode<
     emitVesselParts,
     emitVesselControl,
     replayStreamBlock,
+    dropTransport,
     emitFrame,
   } = buildStreamWrap(opts.fixture, opts.profile);
   beginPhase("render");
@@ -859,6 +896,9 @@ export async function renderWidgetMode<
   });
   beginPhase("flush-resize-observers");
   await flushResizeObservers();
+  beginPhase("stops-arriving");
+  dropTransport();
+  await flushProviderFrame(providerMounted, emitFrame);
   beginPhase("done");
   disarm();
   restoreResizeObserver();

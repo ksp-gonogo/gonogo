@@ -27,12 +27,15 @@ import { renderWidgetMode, snapshotWidgetMode } from "./widgetDomSnapshot";
  *  - the widget's REGISTERED `defaultConfig` never applied, so a mode with no
  *    config overlay rendered the not-configured placeholder (24 of ActionGroup's
  *    48)
+ *  - a scene staged as NOT CURRENT captured live, so the mark, the held figure
+ *    and the caption, which is the whole visible product of the reckoning work,
+ *    were absent from a render named after them
  *
  * To check this file still works, break the thing it names: delete the
  * `resolveStreamBlock` branch from `buildStreamWrap`, or the
- * `installSizedResizeObserver` call, or the `baselineConfig` fallback, and the
- * matching test must go red. It does; that is why they assert on rendered text
- * rather than on the harness's internals.
+ * `installSizedResizeObserver` call, or the `baselineConfig` fallback, or the
+ * `dropTransport` call, and the matching test must go red. It does; that is why
+ * they assert on rendered text rather than on the harness's internals.
  */
 
 const MODE = { name: "probe", w: 8, h: 8 };
@@ -44,6 +47,24 @@ function StreamProbe() {
   const { sas } = reading.value;
   if (sas === undefined) return null;
   return <span>{`sas=${String(sas)}`}</span>;
+}
+
+/**
+ * Renders how current the reading is, and the value with it.
+ *
+ * Both halves matter: a scene staged as not-current has to reach the widget as
+ * `stale` AND still hand it the figure, which is the whole shape the mark and
+ * the held value are drawn from. A probe asserting only the state would pass on
+ * a harness that dropped the transport and lost the payload with it.
+ */
+function CurrencyProbe() {
+  const reading = useTelemetry("vessel.control");
+  if (reading.state !== "observed" && reading.state !== "stale") {
+    return <span>{`state=${reading.state}`}</span>;
+  }
+  return (
+    <span>{`state=${reading.state} sas=${String(reading.value.sas)}`}</span>
+  );
 }
 
 /** Renders its observed width, and nothing until something reports one. */
@@ -104,6 +125,16 @@ const STREAM_ONLY_FIXTURE = {
   },
 };
 
+/**
+ * The same wire, staged as no longer arriving. Identical to
+ * {@link STREAM_ONLY_FIXTURE} but for the one flag, because the pair is the
+ * assertion: two scenes that differ only by the drop must not render the same.
+ */
+const STOPPED_ARRIVING_FIXTURE = {
+  ...STREAM_ONLY_FIXTURE,
+  _stream: { ...STREAM_ONLY_FIXTURE._stream, stopsArriving: true },
+};
+
 describe("widget DOM harness feeds the widget", () => {
   it("delivers a fixture's own _stream emits", async () => {
     const html = await snapshotWidgetMode({
@@ -122,6 +153,48 @@ describe("widget DOM harness feeds the widget", () => {
     });
     try {
       expect(container.textContent).toContain("sas=true");
+    } finally {
+      teardown();
+    }
+  });
+
+  /**
+   * A scene the reckoning work is ABOUT: the mark, the held figure and the
+   * caption are all a widget's answer to a reading that is no longer current,
+   * and until `stopsArriving` existed no harness could stage one. Measured on
+   * CareerEconomy at the time: a fixture declaring the state and its live twin
+   * produced the same md5, so every render of that work pictured nothing.
+   *
+   * The two cases are a pair on purpose. The first pins what the flag's absence
+   * means, so a harness that dropped the transport unconditionally fails here
+   * rather than making every scene look stale.
+   */
+  it("leaves a scene current when it does not ask to stop arriving", async () => {
+    const html = await snapshotWidgetMode({
+      Widget: CurrencyProbe,
+      fixture: STREAM_ONLY_FIXTURE,
+      mode: MODE,
+    });
+    expect(html).toContain("state=observed sas=true");
+  });
+
+  it("stages a scene as no longer current, holding its figures", async () => {
+    const html = await snapshotWidgetMode({
+      Widget: CurrencyProbe,
+      fixture: STOPPED_ARRIVING_FIXTURE,
+      mode: MODE,
+    });
+    expect(html).toContain("state=stale sas=true");
+  });
+
+  it("stages a not-current scene on the live-render path too", async () => {
+    const { container, teardown } = await renderWidgetMode({
+      Widget: CurrencyProbe,
+      fixture: STOPPED_ARRIVING_FIXTURE,
+      mode: MODE,
+    });
+    try {
+      expect(container.textContent).toContain("state=stale sas=true");
     } finally {
       teardown();
     }
