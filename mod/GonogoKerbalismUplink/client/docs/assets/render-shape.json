@@ -8,28 +8,28 @@
       "text": "f6a1f5a9"
     },
     "binary--default.png": {
-      "hash": "1aa9575178cc1417",
-      "elements": 103,
+      "hash": "2e9788438cbbb689",
+      "elements": 104,
       "text": "52c0d842"
     },
     "dose-band-from-a-fitted-rate--default.png": {
-      "hash": "2a7d5e49acaebccb",
-      "elements": 56,
+      "hash": "b881f833130d7731",
+      "elements": 61,
       "text": "d97157a2"
     },
     "dose-band-the-model-declines--default.png": {
-      "hash": "c01a00f33c318753",
-      "elements": 52,
+      "hash": "09fe6f33e7f465be",
+      "elements": 55,
       "text": "d97157a2"
     },
     "ec-shortage-limits-water--default.png": {
-      "hash": "e6db879c97014fd0",
-      "elements": 161,
+      "hash": "d8e0e2c75a7c3a4b",
+      "elements": 171,
       "text": "ca2969e0"
     },
     "ec-shortage-limits-water--min.png": {
-      "hash": "adfaaf29d59bcc12",
-      "elements": 161,
+      "hash": "3815473dc2ca9f46",
+      "elements": 171,
       "text": "ca2969e0"
     },
     "file-and-sample-on-one-subject--default.png": {
@@ -38,18 +38,18 @@
       "text": "1f3d9756"
     },
     "greenhouse-halted-in-the-dark--default.png": {
-      "hash": "50d7438ace861ccf",
-      "elements": 110,
+      "hash": "53348ba2a2cedfee",
+      "elements": 116,
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "64378e726117c2be",
-      "elements": 78,
+      "hash": "3d59d6a3fc546bec",
+      "elements": 79,
       "text": "2e0d06fc"
     },
     "interplanetary--default.png": {
-      "hash": "890aad0cc806f2b0",
-      "elements": 92,
+      "hash": "ed176dcf2e7ae6d3",
+      "elements": 93,
       "text": "5db7f31e"
     },
     "no-profile-for-this-vessel--default.png": {
@@ -58,28 +58,28 @@
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "9e179d917ff6af10",
-      "elements": 77,
+      "hash": "0e61e9cc463325b1",
+      "elements": 78,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "f7b34af5f87d1688",
-      "elements": 66,
+      "hash": "affb9cfbb58127f8",
+      "elements": 67,
       "text": "970d0f26"
     },
     "radiation-dose-critical--default.png": {
-      "hash": "84f30b7cf00281de",
-      "elements": 104,
+      "hash": "5097387a7e3f80c2",
+      "elements": 114,
       "text": "806f8490"
     },
     "storm-inbound--default.png": {
-      "hash": "a511acd4fe200f10",
-      "elements": 92,
+      "hash": "79470e0e8093b358",
+      "elements": 93,
       "text": "e04b2f39"
     },
     "storm-peak--default.png": {
-      "hash": "5f2798d313e7a8cc",
-      "elements": 93,
+      "hash": "cc25af7d5afcf010",
+      "elements": 94,
       "text": "78bd6f8c"
     },
     "supply-tank-meters--default.png": {
