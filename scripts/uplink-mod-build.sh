@@ -121,18 +121,25 @@ fi
 # same shape as a compile nothing runs: a green build that is not checking what it
 # claims to check.
 #
-# It is live right now. Ten csprojs reference Assembly-CSharp-firstpass, the local
-# dev reference directory has it and ksp-gonogo/ksp-managed does not, so every
-# local build resolves it and every CI build silently does not.
-#
 # Same contract as EXEMPT above: named, with a reason, and it EXPIRES BY ITSELF the
 # moment the assembly appears in the reference set.
-UNRESOLVED_OK=(
-  "Assembly-CSharp-firstpass|KSP's own second compilation unit, the sibling of Assembly-CSharp.dll that ksp-managed already vendors. No source in the repo uses a type from it today, which is why nothing is red. Vendor KSP_Data/Managed/Assembly-CSharp-firstpass.dll into ksp-gonogo/ksp-managed (no new licence question: identical status to Assembly-CSharp.dll, same private repo) so the CI and local reference sets agree, then delete this line. Dropping the ten references instead also works and also deletes this line."
-)
+#
+# EMPTY, and it emptied itself exactly as designed. The one entry was
+# Assembly-CSharp-firstpass, referenced by ten csprojs and present in the local
+# dev reference set but not in ksp-gonogo/ksp-managed, so every local build
+# resolved it and every CI build silently did not. Its own line said to vendor
+# the dll and then delete the entry; the dll was vendored (ksp-managed 3f1b595)
+# and this build went red on the next run naming the stale excuse. That red is
+# what an expiring exemption looks like when it works: nobody had to remember.
+UNRESOLVED_OK=()
 
 unresolved_allowed() {
   local asm="$1" entry
+  # The list is empty today, and this script runs under `set -u`, where bash
+  # before 4.4 (macOS ships 3.2) treats "${empty[@]}" as an unbound variable
+  # rather than as nothing. CI's bash 5 would not have noticed; a local run
+  # would have died on the line that exists to say "no exemptions".
+  [ ${#UNRESOLVED_OK[@]} -eq 0 ] && return 1
   for entry in "${UNRESOLVED_OK[@]}"; do
     [ "${entry%%|*}" = "$asm" ] && return 0
   done
@@ -147,7 +154,11 @@ unresolved_allowed() {
 # routinely MORE complete than CI's, and failing there blocked every local build of
 # every Uplink on a discrepancy the developer cannot act on: deleting the entry to
 # unblock themselves would break CI, which still lacks the assembly.
-for entry in "${UNRESOLVED_OK[@]}"; do
+# Guarded for the same reason `unresolved_allowed` is: `set -u` plus bash before
+# 4.4 makes "${empty[@]}" an unbound variable, and this loop is the one a LOCAL
+# run reaches first. CI's bash 5 expands it to nothing and would never have said
+# so, which is the worse way round: green there, dead on anyone's macOS.
+for entry in ${UNRESOLVED_OK[@]+"${UNRESOLVED_OK[@]}"}; do
   asm="${entry%%|*}"
   if [ -f "$KSP_MANAGED/$asm.dll" ] && [ -z "${CI:-}" ]; then
     echo "note: $asm is present here but absent from CI's reference set, so its"
