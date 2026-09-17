@@ -209,6 +209,38 @@ Both directions are enforced now: `DECLARED_DEPENDENCY_DEBT` covers the
 declarations, and a separate check derives staleness from the two scans, so it
 needs no list of its own and cannot itself go out of date.
 
+### `@ksp-gonogo/render-hosts` is the one package where the POSITION is the rule
+
+Every other rule on this page works because the package is unpublished, so an
+outside author simply cannot install it. `@ksp-gonogo/render-hosts` is
+published, because it has to be: it carries the app's own widgets so an Uplink's
+docs page can draw an augment inside the real host it extends, instead of a
+stand-in that renders the host's body as nothing. So the question is not whether
+you may name it, but where.
+
+| where | allowed | why |
+|---|---|---|
+| `devDependencies` | **yes** | it runs at docs-render time and never ships |
+| `gonogo.renderWith` | **yes** | that is what it is for |
+| `dependencies` | **no** | a runtime dependency means your Uplink ships the app's whole widget library to its users |
+| any `import` in client source | **no** | there is nothing in it to import; it exports no symbols, only the side effect of registration |
+
+From the ruling that created it:
+
+> "typically pulling the widgets into the UI kit is only for the docs page,
+> right? It's not for anything else."
+
+That is why it is a package of its own rather than a subpath of
+`@ksp-gonogo/ui-kit`. The kit is a runtime dependency you already have, so a
+subpath would put the app's widgets inside something you import for real and the
+docs-only intent would live in a doc comment. Here it is a fact about the
+dependency graph, and `uplink-isolation.test.ts` fails the build on either
+forbidden position.
+
+If you want a component out of it for real use, that is a request to move that
+component into `@ksp-gonogo/ui-kit`, which is the same answer as everywhere else
+on this page.
+
 ### Which of them end up IN your bundle, and which the app hands you
 
 Declaring a dependency and shipping a copy of it are different questions, and the
