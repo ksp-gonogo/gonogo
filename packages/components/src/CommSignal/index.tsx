@@ -9,6 +9,7 @@ import {
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   Cluster,
   Countdown,
   EmptyState,
@@ -158,6 +159,17 @@ function CommSignalComponent({
       : undefined;
   const linkNotCurrent =
     linkReading.state === "stale" || commsReading.state === "stale";
+  /*
+   * The FIGURES read through their own field readings, while the verdicts above
+   * stay observation-only. The split is the paragraph above this one taken at
+   * its word: a bar count and a pill are judgements about now and cannot be
+   * dated, but a percentage and a light-time are measurements, and a
+   * measurement whose instant has passed is still the best number there is.
+   *
+   * `.in("%")` rather than `* 100`: strength is a declared ratio and `%` is
+   * declared at `ratio: 0.01`, so the conversion is the unit system's and
+   * nothing here unwraps a magnitude to do it.
+   */
   const vesselState = useStream<VesselState>("vessel.state");
   // Collapse the derived channel's `null` (comms unknown this tick) to
   // `undefined` so the empty-state + `describeControl` semantics match the
@@ -222,22 +234,49 @@ function CommSignalComponent({
     return map;
   }, [hopRateEntries]);
 
-  const hasData =
-    connected !== undefined ||
-    strength !== undefined ||
-    controlState !== undefined;
+  /*
+   * The whole panel's answer when the link state has stopped arriving: every
+   * line nulls and one badge carries the reason.
+   *
+   * Named for what the operator calls it rather than for the reading's state.
+   * "not current" is wording they objected to specifically, and it was never
+   * the right frame here anyway: the subject of this widget IS the link, so a
+   * link that has stopped reporting is the widget reporting its subject, not
+   * apologising for its data.
+   */
+  const noSignal = linkNotCurrent;
+  const nothingHasArrived =
+    connected === undefined &&
+    strength === undefined &&
+    controlState === undefined;
 
-  if (!hasData) {
+  /*
+   * The collapse survives for NEVER-ARRIVED and dies for NOT-CURRENT, which is
+   * the whole of the change here.
+   *
+   * Operator's ruling, 2026-09-17: "any widget defaulting to 'CAN'T SHOW THIS
+   * NOW' IMO is a stale widget not using current style". That is about a panel
+   * that HAS something and hides it: this one used to replace itself with "Link
+   * state no longer current" the moment its verdicts went stale, taking the
+   * held percentage, the light-time and the whole route with them, while
+   * whatever an Uplink had contributed to the segment underneath withheld in
+   * parallel for the same reason. Now the panel renders, the figures are drawn
+   * held and marked, and the verdicts say so beside themselves.
+   *
+   * Never-arrived is a different statement and keeps its empty state: there is
+   * no figure to hold, and a panel of null tokens reads as a fault rather than
+   * as "nothing yet". A `vessel.comms` TOMBSTONE renders here too, which
+   * `undefined.characterise.test.tsx` pins as a known conflation of "confirmed
+   * no comms" with "nothing has come through"; that conflation is untouched by
+   * this change and is not mine to resolve.
+   */
+  if (nothingHasArrived && !noSignal) {
     return (
       <Panel
         panelTitle="COMMNET"
         sections={
           <Section>
-            <EmptyState>
-              {linkNotCurrent
-                ? "Link state no longer current"
-                : "No signal data"}
-            </EmptyState>
+            <EmptyState>No signal data</EmptyState>
           </Section>
         }
       />
@@ -261,7 +300,18 @@ function CommSignalComponent({
     typeof raw === "number" && Number.isFinite(raw) && raw > 0;
   const pct = strengthValid ? Math.max(0, Math.min(1, raw)) : null;
   let bars: number;
-  if (connected === false) {
+  if (noSignal) {
+    /*
+     * WITHHELD, not zero-as-a-verdict. The bar count is a judgement and the
+     * caption below says it cannot be made, so the glyph must not go on
+     * asserting one: `controlState` rides the DERIVED `vessel.state`, which
+     * never goes stale, so without this the bars painted a confident "Full"
+     * directly above the caption saying the verdict was not current. Caught in
+     * the render, not the suite, because the fixture the test uses carries no
+     * `vessel.state` and so drew zero bars for an unrelated reason.
+     */
+    bars = 0;
+  } else if (connected === false) {
     bars = 0;
   } else if (pct !== null) {
     bars = Math.max(1, Math.ceil(pct * 4));
@@ -304,14 +354,26 @@ function CommSignalComponent({
   // sizes where subtitle + detail grid are suppressed. Without this
   // split, an occluded vessel and a connection-lost probe looked
   // identical in the min-3x3 mode.
-  const headline =
-    connected === false ? (
-      "LOS"
-    ) : pct !== null ? (
-      <Unit value={value("%", pct * 100)} decimals={0} />
-    ) : (
-      control.label
-    );
+  /*
+   * NULLED when the link is not current, and that includes NOT falling back to
+   * `control.label`: the control state rides the DERIVED `vessel.state`, which
+   * never goes stale, so that fallback printed a confident "Full" for a link
+   * that had stopped arriving.
+   *
+   * Operator's ruling on ticket 337: every line shows its null state, because
+   * "there's no value in seeing what the link was". A not-current mark does not
+   * withdraw what a number asserts, which is the objection this widget's own
+   * source had already written down.
+   */
+  const headline = noSignal ? (
+    NULL_DISPLAY
+  ) : connected === false ? (
+    "LOS"
+  ) : pct !== null ? (
+    <Unit value={value("%", pct * 100)} decimals={0} />
+  ) : (
+    control.label
+  );
 
   // A11y: the visible readout updates on every telemetry tick (percentage,
   // bar count), so it must NOT be a live region, that would flood the screen
@@ -348,22 +410,52 @@ function CommSignalComponent({
                 letterSpacing: "0.04em",
               }}
             >
-              {connected === false
-                ? "No signal"
-                : `Signal to ${centreLabel}${hopHint}`}
+              {/*
+                "Signal to <centre>" ASSERTS a signal, so it cannot stand for a
+                link that has stopped reporting: the caption nulls with every
+                other line and the badge carries the reason. The
+                `connected === false` wording is untouched, because a CONFIRMED
+                disconnection is an observation rather than an absence.
+              */}
+              {noSignal
+                ? NULL_DISPLAY
+                : connected === false
+                  ? "No signal"
+                  : `Signal to ${centreLabel}${hopHint}`}
             </span>
           )}
         </Section>,
         <Section key="signal">
           <Cluster justify="start" wrap>
-            <SignalBars bars={bars} tone={control.tone} />
+            <SignalBars
+              bars={bars}
+              tone={noSignal ? "neutral" : control.tone}
+              noSignal={noSignal}
+            />
             <SignalHeadline headline={headline} lost={connected === false} />
           </Cluster>
+          {/*
+            ONE badge for the whole panel, in the BODY rather than the header
+            aside: an aside collapses at narrow widths and would take the
+            explanation with it, which has already hidden a readout in this
+            repo once.
+            `role="status"` because this is a change of link state, which is
+            what the accessibility rules reserve a polite live region for.
+          */}
+          {noSignal && (
+            <div role="status">
+              <Badge severity="warning">No signal</Badge>
+            </div>
+          )}
         </Section>,
         showDetailGrid && (
           <Section key="detail">
             <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
-              <CommSignalDetailRows control={control} delay={delay} />
+              <CommSignalDetailRows
+                control={control}
+                delay={delay}
+                noSignal={noSignal}
+              />
             </Grid>
           </Section>
         ),
@@ -674,11 +766,23 @@ const BAR_HEIGHT_PCT = [30, 50, 75, 100];
  * import, same pixel values (6px bars, 24px height) the original off-scale
  * styled.div/span pair used.
  */
-function SignalBars({ bars, tone }: { bars: number; tone: Tone }) {
+function SignalBars({
+  bars,
+  tone,
+  noSignal,
+}: {
+  bars: number;
+  tone: Tone;
+  noSignal?: boolean;
+}) {
   return (
     <div
       role="img"
-      aria-label={`Signal ${bars} of 4`}
+      /* "0 of 4" is itself a verdict, so a withheld glyph must not announce
+         one. An aria-label IS operator-facing copy, so it uses the ruled words
+         rather than the "not current" wording the operator objected to, and it
+         matches the badge a sighted reader sees. */
+      aria-label={noSignal ? "No signal" : `Signal ${bars} of 4`}
       style={{
         display: "flex",
         alignItems: "flex-end",
@@ -740,9 +844,18 @@ function SignalHeadline({
 function CommSignalDetailRows({
   control,
   delay,
+  noSignal,
 }: {
   control: { label: string; tone: Tone };
   delay: Parameters<typeof Countdown>[0]["value"];
+  /*
+   * The CONTROL row is a verdict like the bars, and it rides the DERIVED
+   * `vessel.state`, which never goes stale: left alone it painted a bright
+   * green "Full" directly under the caption saying the verdict was not
+   * current. Same defect as the bars, one row over, and the render is what
+   * showed both.
+   */
+  noSignal?: boolean;
 }) {
   const labelStyle = {
     color: "var(--color-text-dim)",
@@ -757,9 +870,11 @@ function CommSignalDetailRows({
       <Text
         tone="default"
         size="sm"
-        style={{ color: TONE_TEXT_COLOR[control.tone] }}
+        style={{
+          color: noSignal ? undefined : TONE_TEXT_COLOR[control.tone],
+        }}
       >
-        {control.label}
+        {noSignal ? NULL_DISPLAY : control.label}
       </Text>
       <Text tone="muted" size="xs" style={labelStyle}>
         Delay

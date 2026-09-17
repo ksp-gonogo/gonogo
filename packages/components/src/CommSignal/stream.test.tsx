@@ -115,6 +115,75 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
 
+  /**
+   * The ruled shape for a link that has stopped arriving (#337, operator
+   * 2026-09-17), asserted rather than described.
+   *
+   * > "show every line of the widget but with a null/empty state, not stale or
+   * > reckoned values, and to add a 'no signal' warning badge"
+   *
+   * Three claims, and each is asserted because getting any one of them alone
+   * would be a worse panel than the collapse this replaced: the panel STAYS,
+   * every figure NULLS, and ONE badge carries the reason. The held-and-marked
+   * shape this file asserted until 2026-09-17 was option B on #337 and the
+   * operator ruled against it: a mark does not withdraw what a number asserts,
+   * and for a link "there's no value in seeing what the link was".
+   */
+  it("nulls every line and shows one No signal badge once the link stops arriving", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.comms"],
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    const { container } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "comm-nosig" }}>
+          <CommSignalComponent id="comm-nosig" w={6} h={5} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
+    });
+    await waitFor(() => expect(visibleText()).toContain("87 %"));
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    // 1. The panel STAYS: no collapse to a single sentence.
+    await waitFor(() =>
+      expect(screen.queryByText("Link state no longer current")).toBeNull(),
+    );
+    expect(screen.queryByText("No signal data")).toBeNull();
+    expect(screen.getByText("Control")).toBeTruthy();
+    expect(screen.getByText("Delay")).toBeTruthy();
+
+    // 2. Every figure NULLS. Not held, not marked, not reckoned.
+    expect(visibleText()).not.toContain("87");
+    expect(container.querySelectorAll("[data-not-current]").length).toBe(0);
+    /* And the derived control state does not stand in for it either: that rides
+       `vessel.state`, which never goes stale, so the old fallback printed a
+       confident "Full" for a link that had stopped reporting. */
+    expect(visibleText()).not.toContain("Full");
+    /* The bars withhold their count, and their aria-label uses the ruled words
+       too: a screen-reader message is operator-facing copy. */
+    expect(screen.getByLabelText("No signal")).toBeTruthy();
+    expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
+    expect(screen.queryByLabelText(/not current/i)).toBeNull();
+
+    // 3. ONE badge carries the reason, and none of the wording the operator
+    //    objected to survives anywhere on the panel.
+    expect(screen.getAllByText("No signal")).toHaveLength(1);
+    expect(visibleText()).not.toMatch(/not current/i);
+    expect(visibleText()).not.toMatch(/no longer current/i);
+    expect(visibleText()).not.toMatch(/stale/i);
+
+    await act(async () => {});
+  });
+
   it(
     "reflects a signal-loss transition (connected True->False->True) as LOS, " +
       "never a stuck-stale 'connected' readout",
