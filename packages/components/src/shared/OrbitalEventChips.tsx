@@ -34,12 +34,14 @@ export function OrbitalEventChips() {
    * Every chip below is a claim about what happens NEXT, so they all withhold
    * together when the channel that feeds them stops.
    *
-   * `vessel.state` is derived and carries no `Reading`, so these drew as
-   * confidently as live ones and nothing in the reading system could mark them
-   * (ticket 346). `useTopicStatus` reads the currency its channel definition
-   * has always computed, at the same frame as the value. An encounter chip is
-   * the sharpest case: "Mun in 20m" held over from a dropped link is an
-   * instruction about a rendezvous that may already have happened.
+   * `vessel.state` is derived and carries no `Reading`, so only the currency
+   * its channel definition computes can tell a current chip from a held-over
+   * one; without it they all draw as confidently as live ones. An encounter
+   * chip is the sharpest case: "Mun in 20m" held over from a dropped link is
+   * an instruction about a rendezvous that may already have happened.
+   *
+   * Read at the same frame as the value, so the pair cannot disagree about
+   * which frame it describes.
    */
   const stateCurrent = useTopicStatus("vessel.state") === "live";
   const enc = stateCurrent ? vesselState?.encounterExists : undefined;

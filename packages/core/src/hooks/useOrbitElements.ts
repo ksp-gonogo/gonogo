@@ -41,11 +41,11 @@ export interface OrbitElements {
    * come off one derived channel and share its frame.
    *
    * These are derived values, so they carry no `Reading` and nothing in the
-   * reading system can mark them: `vessel.state` computes its currency through
-   * `deriveStatus` on its own channel definition, and until ticket 346 no
-   * caller read it. A widget that draws these figures beside reading-backed
-   * ones nulled the readings when they went stale and left these drawing
-   * confidently in the same column; `CurrentOrbit` ships exactly that today.
+   * reading system can mark them: `vessel.state` computes its currency
+   * through `deriveStatus` on its own channel definition, and this is what
+   * makes that reachable from a drawing site. Without it a widget mixing
+   * these figures with reading-backed ones nulls the readings when they go
+   * stale and leaves these drawing confidently in the same column.
    *
    * `"resyncing"` until a provider is mounted and the channel has produced,
    * which is the honest floor rather than `"live"`.
@@ -68,8 +68,8 @@ export function useOrbitElements(): OrbitElements {
   /*
    * Read at the same frame as the value above, because both resolve through
    * `store.currentFrame()`: a pair read in one render cannot disagree about
-   * which frame it describes. That is the property the sibling-channel
-   * inferences this replaces could not offer.
+   * which frame it describes. Inferring staleness from a sibling channel
+   * cannot offer that.
    */
   const status = useTopicStatus("vessel.state");
 

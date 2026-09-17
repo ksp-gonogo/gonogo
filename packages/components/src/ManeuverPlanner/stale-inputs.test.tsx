@@ -9,16 +9,18 @@ import { ManeuverPlannerComponent } from "./index";
  * What the planner does when the channel its apsis inputs ride stops arriving.
  *
  * `ApR`, `PeR`, `timeToAp` and `timeToPe` come off derived `vessel.state`, which
- * carries no `Reading`, so nothing here could tell a current figure from one
- * that had stopped arriving and `computePlan` took them either way. Ticket 346.
+ * carries no `Reading`, so only the channel's own currency can tell a current
+ * figure from one that has stopped arriving; without it `computePlan` takes
+ * them either way.
  *
- * The ruling (operator, 2026-09-17) is that the plan is WITHHELD: a plan built
- * on inputs that stopped arriving is wrong rather than stale, and it does not
- * look wrong: it renders as a confident burn for a position the craft has
- * left. The boundary attached to it is that gating may govern this ADDITIONAL
- * reasoning and must not reach the diagram's own reckoning of basic motion,
- * which it does not: the diagram is `useOrbitTrajectory(orbit)`, fed from the
- * `vessel.orbit` reading rather than from any of these four.
+ * The plan is WITHHELD rather than marked: a plan built on inputs that stopped
+ * arriving is wrong rather than stale, and it does not look wrong. It renders
+ * as a confident burn for a position the craft has left.
+ *
+ * The gating governs this ADDITIONAL reasoning only and must not reach the
+ * diagram's own reckoning of basic motion, which it does not: the diagram is
+ * `useOrbitTrajectory(orbit)`, fed from the `vessel.orbit` reading rather than
+ * from any of these four.
  */
 const CARRIED = [
   "vessel.orbit",
