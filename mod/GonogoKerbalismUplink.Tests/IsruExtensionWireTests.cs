@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Gonogo.KerbalismUplink;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoKerbalismUplink.Tests
@@ -16,8 +16,8 @@ namespace GonogoKerbalismUplink.Tests
     /// payload's extension bag, with the REAL wire writer carrying it.
     ///
     /// <para><b>Why the real codec.</b> The claim is about the wire, so these go
-    /// through <see cref="EnvelopeCodec.WriteStreamData"/>, the same call the courier
-    /// makes. Asserting on <see cref="KerbalismIsruMap"/>'s output would restate the
+    /// through <c>WirePayload</c>, which serialises with the same codec the courier
+    /// uses. Asserting on <see cref="KerbalismIsruMap"/>'s output would restate the
     /// producer and prove nothing about serialisation, which matters more here than
     /// usual: <c>isru.*</c> publishes typed POCOs, so the bag has to survive a
     /// hand-written flattener rather than a generic dictionary walk.</para>
@@ -152,12 +152,7 @@ namespace GonogoKerbalismUplink.Tests
         };
 
         private static string Write(string topic, object? payload) =>
-            EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = topic,
-                Payload = payload,
-                Meta = FixedMeta(),
-            });
+            WirePayload.Envelope(payload, topic, FixedMeta());
 
         private static string Drills() => Write("isru.drills", KerbalismIsruMap.Drills(Harvesters()));
 

@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Gonogo.RealAntennasUplink;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoRealAntennasUplink.Tests
 {
     /// <summary>
     /// The wire shape of <c>realantennas.antennas</c>, through the REAL
-    /// <c>EnvelopeCodec.WriteStreamData</c> path so the bytes are asserted rather
+    /// codec, via <c>WirePayload</c>, so the bytes are asserted rather
     /// than the builder. Same regression as <see cref="RaWireTests"/> guards for
     /// the other channels: a payload with no route through <c>AppendValue</c>
     /// throws at the wire boundary and the frame is dropped, so a subscribed
@@ -17,29 +17,8 @@ namespace GonogoRealAntennasUplink.Tests
     /// </summary>
     public class RaAntennaWireTests
     {
-        private static JsonElement Write(object? value)
-        {
-            var msg = new StreamData<object?>
-            {
-                Type = "stream-data",
-                Topic = "realantennas.antennas",
-                Payload = value,
-                Meta = new Meta
-                {
-                    Source = "vessel:1",
-                    ValidAt = 0,
-                    Seq = 1,
-                    DeliveredAt = 0,
-                    Vantage = "v",
-                    Quality = Quality.Loaded,
-                    Active = true,
-                    Staleness = Staleness.Fresh,
-                    TimelineEpoch = 0,
-                },
-            };
-            using var doc = JsonDocument.Parse(EnvelopeCodec.WriteStreamData(msg));
-            return doc.RootElement.GetProperty("payload").Clone();
-        }
+        private static JsonElement Write(object? value) =>
+            WirePayload.Of(value, "realantennas.antennas");
 
         private static RealAntennasAntennaState Dish() => new RealAntennasAntennaState
         {

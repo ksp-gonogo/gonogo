@@ -161,12 +161,6 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
             new(StringComparer.Ordinal)
             {
-                // Sitrep.Core for EnvelopeCodec, to assert what an extension puts
-                // on the wire. An author outside this repo has no encoder to
-                // assert against, so these are wire tests that cannot travel.
-                ["GonogoKerbalismUplink.Tests"] = new[] { "Sitrep.Core" },
-                ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Core" },
-
                 // Sitrep.Host for the extension-discovery and headless-terminal
                 // harnesses, Sitrep.Core for the courier/reveal internals, and the
                 // rest transitively behind Host.
@@ -222,13 +216,11 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectImportDebt =
             new(StringComparer.Ordinal)
             {
-                ["GonogoKerbalismUplink.Tests"] = new[] { "Sitrep.Contract.Serialization" },
                 ["GonogoKosUplink.Tests"] = new[]
                 {
                     "Sitrep.Core",
                     "Sitrep.Host",
                 },
-                ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Contract.Serialization" },
             };
 
         /// <summary>

@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Gonogo.KerbalismUplink;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoKerbalismUplink.Tests
@@ -17,8 +17,8 @@ namespace GonogoKerbalismUplink.Tests
     /// it.
     ///
     /// <para><b>Why the real codec.</b> The claim is about the wire, so these go
-    /// through <see cref="EnvelopeCodec.WriteStreamData"/>, the same call the courier
-    /// makes. Asserting on <see cref="KerbalismScienceMap"/>'s dictionary would
+    /// through <c>WirePayload</c>, which serialises with the same codec the courier
+    /// uses. Asserting on <see cref="KerbalismScienceMap"/>'s dictionary would
     /// restate the producer and prove nothing about serialisation.</para>
     ///
     /// <para><b>The fixture is the handoff to the client.</b> The JSON asserted here
@@ -160,12 +160,7 @@ namespace GonogoKerbalismUplink.Tests
         };
 
         private static string Write(string topic, object? payload) =>
-            EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = topic,
-                Payload = payload,
-                Meta = FixedMeta(),
-            });
+            WirePayload.Envelope(payload, topic, FixedMeta());
 
         /// <summary>
         /// End to end, server side: the provider's own map fills

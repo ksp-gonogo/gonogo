@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Gonogo.RealAntennasUplink;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoRealAntennasUplink.Tests
@@ -18,7 +18,7 @@ namespace GonogoRealAntennasUplink.Tests
     /// raw. A core serializer cannot reference an Uplink assembly, so the flatten
     /// moved to the producer (<see cref="RaWire"/>), the same publish-boundary
     /// pattern every other Uplink in this repository already used. These tests
-    /// still go through the REAL <c>EnvelopeCodec.WriteStreamData</c> path, so
+    /// still go through the REAL codec, via <c>WirePayload</c>, so
     /// they prove the bytes rather than the builder: what a subscriber receives is
     /// what is asserted.</para>
     ///
@@ -32,30 +32,8 @@ namespace GonogoRealAntennasUplink.Tests
     /// </summary>
     public class RaWireTests
     {
-        private static JsonElement Write(object? value)
-        {
-            var msg = new StreamData<object?>
-            {
-                Type = "stream-data",
-                Topic = "comms",
-                Payload = value,
-                Meta = new Meta
-                {
-                    Source = "comms",
-                    ValidAt = 0,
-                    Seq = 1,
-                    DeliveredAt = 0,
-                    Vantage = "v",
-                    Quality = Quality.OnRails,
-                    Active = true,
-                    Staleness = Staleness.Fresh,
-                    TimelineEpoch = 0,
-                },
-            };
-            var json = EnvelopeCodec.WriteStreamData(msg);
-            using var doc = JsonDocument.Parse(json);
-            return doc.RootElement.GetProperty("payload").Clone();
-        }
+        private static JsonElement Write(object? value) =>
+            WirePayload.Of(value, "comms");
 
         [Fact]
         public void LinkQualitySerializesToItsCamelCaseWireShape()

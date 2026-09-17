@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Gonogo.RealAntennasUplink;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoRealAntennasUplink.Tests
 {
     /// <summary>
     /// The wire shape of <c>realantennas.antennaChains</c>, through the REAL
-    /// <c>EnvelopeCodec.WriteStreamData</c> path so the bytes are asserted rather
+    /// codec, via <c>WirePayload</c>, so the bytes are asserted rather
     /// than the builder.
     ///
     /// <para>It matters more here than for this Uplink's flat channels because
@@ -21,29 +21,8 @@ namespace GonogoRealAntennasUplink.Tests
     /// </summary>
     public class RaChainWireTests
     {
-        private static JsonElement Write(object? value)
-        {
-            var msg = new StreamData<object?>
-            {
-                Type = "stream-data",
-                Topic = "realantennas.antennaChains",
-                Payload = value,
-                Meta = new Meta
-                {
-                    Source = "vessel:1",
-                    ValidAt = 0,
-                    Seq = 1,
-                    DeliveredAt = 0,
-                    Vantage = "v",
-                    Quality = Quality.Loaded,
-                    Active = true,
-                    Staleness = Staleness.Fresh,
-                    TimelineEpoch = 0,
-                },
-            };
-            using var doc = JsonDocument.Parse(EnvelopeCodec.WriteStreamData(msg));
-            return doc.RootElement.GetProperty("payload").Clone();
-        }
+        private static JsonElement Write(object? value) =>
+            WirePayload.Of(value, "realantennas.antennaChains");
 
         private static RealAntennasAntennaChain Chain() => new RealAntennasAntennaChain
         {
