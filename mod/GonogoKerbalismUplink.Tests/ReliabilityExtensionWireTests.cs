@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Gonogo.KerbalismUplink;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoKerbalismUplink.Tests
@@ -20,8 +20,8 @@ namespace GonogoKerbalismUplink.Tests
     /// a payload nobody extended is unchanged. Asserting on
     /// <c>KerbalismReliabilityMap</c>'s return value would restate the producer and
     /// prove neither. So these go through
-    /// <see cref="EnvelopeCodec.WriteStreamData"/>, the same call the courier
-    /// makes.</para>
+    /// <c>WirePayload</c>, which serialises with the same codec the courier
+    /// uses.</para>
     ///
     /// <para><b>The fixture is the handoff to the client.</b> The JSON asserted here
     /// is committed as <c>mod/golden-fixtures/reliability-extensions.json</c> and
@@ -110,12 +110,10 @@ namespace GonogoKerbalismUplink.Tests
         };
 
         private static string WriteSummary(ReliabilitySummary summary) =>
-            EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = "reliability.summary",
-                Payload = summary,
-                Meta = FixedMeta(),
-            });
+            WirePayload.Envelope(summary, "reliability.summary", FixedMeta());
+
+        private static string WriteParts(object? parts) =>
+            WirePayload.Envelope(parts, "reliability.parts", FixedMeta());
 
         /// <summary>
         /// End to end, server side: the provider's own map fills
@@ -206,10 +204,7 @@ namespace GonogoKerbalismUplink.Tests
         [Fact]
         public void ThePerPartBagRidesTheWireToo()
         {
-            var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = "reliability.parts",
-                Payload = new List<ReliabilityPartEntry>
+            var json = WriteParts(new List<ReliabilityPartEntry>
                 {
                     new()
                     {
@@ -220,9 +215,7 @@ namespace GonogoKerbalismUplink.Tests
                             ["someprovider"] = new Dictionary<string, object?> { ["depth"] = 3.5 },
                         },
                     },
-                },
-                Meta = FixedMeta(),
-            });
+                });
 
             // The bag is LAST, after every declared field, which is what makes
             // adjacency the right assertion here: it pins the position rather than
@@ -251,10 +244,7 @@ namespace GonogoKerbalismUplink.Tests
         [Fact]
         public void ARepairCostRidesTheWireAndAnAbsentOneIsExplicitlyNull()
         {
-            var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = "reliability.parts",
-                Payload = KerbalismReliabilityMap.Parts(
+            var json = WriteParts(KerbalismReliabilityMap.Parts(
                     new ReliabilityRaw
                     {
                         Ut = 1_000_000,
@@ -273,9 +263,7 @@ namespace GonogoKerbalismUplink.Tests
                         },
                     },
                     ReliabilityCoverage.Modeled,
-                    Prefs().RequireRepairKits),
-                Meta = FixedMeta(),
-            });
+                    Prefs().RequireRepairKits));
 
             Assert.Contains(
                 "\"repairCost\":[{\"name\":\"evaRepairKit\",\"quantity\":2}]",
@@ -295,10 +283,7 @@ namespace GonogoKerbalismUplink.Tests
         [Fact]
         public void ARepairCostIsAbsentWhenTheInstallDoesNotRequireKits()
         {
-            var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = "reliability.parts",
-                Payload = KerbalismReliabilityMap.Parts(
+            var json = WriteParts(KerbalismReliabilityMap.Parts(
                     new ReliabilityRaw
                     {
                         Ut = 1_000_000,
@@ -312,9 +297,7 @@ namespace GonogoKerbalismUplink.Tests
                         },
                     },
                     ReliabilityCoverage.Modeled,
-                    requireRepairKits: false),
-                Meta = FixedMeta(),
-            });
+                    requireRepairKits: false));
 
             Assert.Contains("\"repairCost\":null", json);
             Assert.DoesNotContain("evaRepairKit", json);
@@ -328,10 +311,7 @@ namespace GonogoKerbalismUplink.Tests
         [Fact]
         public void ABudgetListRidesTheWireAsObjectsInOrder()
         {
-            var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = "reliability.parts",
-                Payload = KerbalismReliabilityMap.Parts(
+            var json = WriteParts(KerbalismReliabilityMap.Parts(
                     new ReliabilityRaw
                     {
                         Ut = 1_000_000,
@@ -345,9 +325,7 @@ namespace GonogoKerbalismUplink.Tests
                         },
                     },
                     ReliabilityCoverage.Modeled,
-                    Prefs().RequireRepairKits),
-                Meta = FixedMeta(),
-            });
+                    Prefs().RequireRepairKits));
 
             Assert.Contains(
                 "\"budgets\":[{\"id\":\"service\",\"label\":\"service\",\"kind\":\"schedule\"," +

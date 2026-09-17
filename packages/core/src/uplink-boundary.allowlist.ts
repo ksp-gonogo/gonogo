@@ -1078,17 +1078,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/comms-degrade.ts",
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
        * by construction and there is nowhere else for it to live. Permanent for
@@ -2452,7 +2441,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
     "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
     "mod/sitrep-kernel/src/registry.test.ts",
     "packages/components/src/FleetReliability/install-profiles.test.tsx",
@@ -2517,7 +2505,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
     "packages/components/src/CrewStatus/index.test.tsx",
     "packages/components/src/FleetReliability/coverage-matrix.test.tsx",

@@ -145,11 +145,6 @@
          UnitCoverageAssertion's own doc comment). The [Fact]s stay here, naming
          this Uplink's own types. -->
     <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
-    <!-- Sitrep.Core: the real JsonWriter, so the wire-shape tests that used to
-         live in Sitrep.Core.Tests/CommsWireTests.cs can follow their payloads
-         here and keep asserting through the production serializer rather than a
-         hand-rolled stand-in. -->
-    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" />
   </ItemGroup>
 
 </Project>

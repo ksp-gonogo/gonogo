@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoRealAntennasUplink.Tests
@@ -13,8 +13,8 @@ namespace GonogoRealAntennasUplink.Tests
     /// its own namespace of a hop's bag and the REAL wire writer carries it, riding
     /// the core <c>comms.path</c> channel.
     ///
-    /// <para>Goes through <see cref="EnvelopeCodec.WriteStreamData"/>, the same call
-    /// the courier makes, because the claim is about the WIRE: a namespaced sub-tree
+    /// <para>Goes through <c>WirePayload</c>, which serialises with the same codec
+    /// the courier does, because the claim is about the WIRE: a namespaced sub-tree
     /// core has never heard of survives serialisation, and a hop nobody extended is
     /// byte-for-byte unchanged. The committed fixture
     /// <c>mod/golden-fixtures/commshop-extensions.json</c> is what the client's
@@ -86,13 +86,11 @@ namespace GonogoRealAntennasUplink.Tests
             Meta = new PayloadMeta { Source = "vessel:1", Quality = Quality.Loaded },
         };
 
+        // The committed fixture holds a WHOLE serialised frame, so the envelope's
+        // meta is part of what is being compared and has to be the one the bytes
+        // were generated from.
         private static string WritePath(CommsPath path) =>
-            EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Topic = "comms.path",
-                Payload = path,
-                Meta = FixedMeta(),
-            });
+            WirePayload.Envelope(path, "comms.path", FixedMeta());
 
         [Fact]
         public void TheRealAntennasNamespaceReachesTheWireThroughTheRealCodec()
