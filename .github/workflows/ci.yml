@@ -616,7 +616,6 @@ jobs:
             GonogoRealAntennasUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
-            GonogoPrincipiaUplink.Tests
             Gonogo.KSP.Tests
           )
           # THE OMISSION MODE HERE IS SILENT, so read this before adding a test

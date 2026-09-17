@@ -217,16 +217,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
-       * -- WORKER FEASIBILITY citation (2026-08-23): the Principia Uplink's
-       * worker doc names `kerbcast-sidecar` as the evidence that a KSP plugin
-       * can start a child process inside the pressure-vessel container, which
-       * was recorded twice as an unanswered blocker. Naming the process is what
-       * makes it checkable: "another mod does it" is an assertion, a named ELF
-       * at a known path running right now is a measurement. Text-only mention
-       * in a doc comment, no import and no coupling.
-       */
-      "mod/GonogoPrincipiaUplink/PrincipiaWorkerHost.cs",
-      /*
        * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
@@ -2262,19 +2252,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/unknown-cast.test.ts",
       /*
-       * -- PLUGIN-VERSION PARITY ratchet: compares the mod's
-       * `PrincipiaSession.AnalysedPluginVersion` against every `pluginVersion`
-       * fixture literal, so it has to name both the C# file it reads and the
-       * mod whose build string it is checking. Reads files off disk and
-       * imports nothing but `node:fs`/`node:path`/vitest, so there is no
-       * coupling here to shrink: it is the same shape as
-       * `contract-version-parity.test.ts`, and core is where this repo keeps
-       * cross-package ratchets because neither package being compared can
-       * reach the C#. It exists because the two client fixtures sat eleven
-       * days behind the mod's pin with nothing comparing them.
-       */
-      "packages/core/src/principia-plugin-version-parity.test.ts",
-      /*
        * -- PRODUCER FIELD PARITY gate: names Principia in its own worked
        * example. The five burn-profile fields that reached the wire as null on
        * every Principia plan are WHY this gate exists, so the doc comment cites
@@ -2283,13 +2260,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * shape as the unknown-cast entry above. No import, no topic read.
        */
       "mod/Sitrep.Core.Tests/ProducerFieldParityTests.cs",
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
-      // data: an entry in the bundle registry.
-      "packages/app/uplink-bundle-targets.ts",
       // The declaration-reachability ratchet's debt list: an inventory of
       // declared Topics/commands with no client consumer, so it names the wire
       // ids of every Uplink that has one. Inventory, not coupling: nothing here
@@ -2321,13 +2291,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/render-fixture-coverage.debt.ts",
       "packages/core/src/render-fixture-coverage.test.ts",
       /*
-       * The comment-stack ratchet's own inventory: a path-keyed debt list over
-       * every hand-written JS/TS file in the repo names Uplink paths by
-       * construction, and there is nowhere else for it to live. A gate placed
-       * inside an Uplink is one a third-party author could not run.
-       */
-      "packages/core/src/comment-stacks.allowlist.ts",
-      /*
        * -- CI gating ratchet (2026-08-20): names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
@@ -2336,10 +2299,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
       /*
-       * Everything below is a HISTORICAL RECORD of a decision that removed
-       * Principia awareness from core, or documentation of an external format
-       * that named it. You cannot record "we deliberately deleted detection of
-       * this mod" without naming the mod, and rewriting a ledger to hide the
+       * HISTORICAL RECORD of a decision that removed Principia awareness from
+       * core. You cannot record "we deliberately deleted detection of this
+       * mod" without naming the mod, and rewriting a ledger to hide the
        * subject would defeat the ledger. Every FORWARD-LOOKING mention ("a
        * future Principia provider will...") has been de-named instead: those
        * were the anticipation pattern this token exists to catch, and the
@@ -2351,23 +2313,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * a Major "cannot rewrite what it inherited".
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      /*
-       * The three client-side records of that same revert: they exist to explain
-       * why a.physicsMode is neither mapped nor gapped, which is unanswerable
-       * without naming what was removed.
-       * truenow-allowlist.test.ts: the sibling architectural ratchet, listed here
-       * for the same reason it is under the other tokens. It is a path-keyed
-       * allowlist over every Uplink's .cs files, so it necessarily names them all.
-       * A path string in a ratchet, not a dependency.
-       */
-      "packages/core/src/truenow-allowlist.test.ts",
-      /*
-       * The `.magnitude` budget ratchet, listed here for the same reason it is
-       * under the other tokens: the budget is keyed by file path, so it names
-       * every Uplink that unwraps a Value. Ratchet-inventory file, the case
-       * this bucket documents.
-       */
-      "packages/core/src/styleguide-magnitude-budget.test.ts",
     ],
   },
 
@@ -2592,38 +2537,20 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/use-route-commands.test.tsx",
   ],
   principia: [
-    // -- UNKNOWN-CAST ratchet inventory (2026-09-04): the mod name as DATA, one
-    // per-file ceiling key per file still asserting out of `unknown`. Generated
-    // by `scripts/unknown-cast-debt.mjs`; the key goes when that file's last
-    // escape does.
-    "packages/core/src/unknown-cast.debt.ts",
-    // -- UNKNOWN-CAST gate: the path of the worked example the failure message
-    // sends a reader to, `planWrite.ts`, inside the message string itself. The
-    // whole value of the message is that it names a real fix to read, so the
-    // path has to survive into the string. No import, no topic read.
-    "packages/core/src/unknown-cast.test.ts",
-    // -- PLUGIN-VERSION PARITY gate: the mod name as DATA in two forms, both
-    // path strings. It reads `mod/GonogoPrincipiaUplink/PrincipiaSession.cs`
-    // off disk for the `AnalysedPluginVersion` constant, and walks
-    // `mod/GonogoPrincipiaUplink/client/src` for the fixtures that must mirror
-    // it. No import of the Uplink's package, no topic read: the only thing
-    // crossing the boundary is a filesystem path.
-    "packages/core/src/principia-plugin-version-parity.test.ts",
-    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
-    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
-    // a vitest alias) or, where noted in the entry's own line above, a real
-    // import that is recorded in domainDebt and shrinks from there.
-    "packages/app/uplink-bundle-targets.ts",
     /*
-     * `declaration-reachability.allowlist.ts` was here, and it is gone because
-     * the five `principia.plan.*` write commands it listed as unreached now have
-     * a consumer. What survived the comment strip was the wire ids as DATA; with
-     * the entries deleted the file names Principia only in prose, so the
-     * exemption is stale rather than merely unused.
+     * `unknown-cast.debt.ts`, `unknown-cast.test.ts`,
+     * `principia-plugin-version-parity.test.ts`, `uplink-bundle-targets.ts`,
+     * `comment-stacks.allowlist.ts`, `styleguide-magnitude-budget.test.ts` and
+     * `truenow-allowlist.test.ts` were here, and are gone because the Uplink
+     * left for gonogo-uplinks: `depart-uplink.mjs` and a
+     * `unknown-cast-debt.mjs --update` regeneration removed the data entries
+     * each one carried, and what survived the comment strip was that data, not
+     * prose. With the entries gone each file names Principia only in prose
+     * (or, for `principia-plugin-version-parity.test.ts`, not at all: the
+     * check itself moved with the Uplink), so the exemptions are stale rather
+     * than merely unused. Same shape as the `declaration-reachability
+     * .allowlist.ts` removal recorded here before.
      */
-    "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/styleguide-magnitude-budget.test.ts",
-    "packages/core/src/truenow-allowlist.test.ts",
   ],
   scansat: [
     // -- UNKNOWN-CAST ratchet inventory (2026-09-04): the mod name as DATA, one

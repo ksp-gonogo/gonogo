@@ -403,7 +403,6 @@ describe("no new assertion escapes unknown", () => {
     "",
     "  - check the fields you are about to read and return `null` when they are",
     "    absent, rather than defaulting. `planWriteReceipt` in",
-    "    mod/GonogoPrincipiaUplink/client/src/planWrite.ts is the worked example",
     "  - a type predicate (`value is Receipt`) when more than one caller needs",
     "    the same narrow",
     "  - the generated contract map, when the shape is one the contract already",
