@@ -167,7 +167,7 @@ function nodeModulesChain(dir: string): string[] {
 /**
  * The package name at the head of a specifier, subpath dropped.
  *
- * `@ksp-gonogo/ui-kit/render-probe` is the package `@ksp-gonogo/ui-kit`: a
+ * `@ksp-gonogo/uplink-tools/render-probe` is the package `@ksp-gonogo/uplink-tools`: a
  * scope carries a slash of its own, so the split is at the second slash when
  * the name is scoped and at the first when it is not.
  */

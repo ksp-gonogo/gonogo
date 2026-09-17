@@ -9,7 +9,7 @@
 // nobody composed.
 
 import { clearPlanDrafts } from "@ksp-gonogo/sitrep-sdk/testing";
-import { defineRenderSetup } from "@ksp-gonogo/ui-kit/render-probe";
+import { defineRenderSetup } from "@ksp-gonogo/uplink-tools/render-probe";
 
 export default defineRenderSetup({
   beforeScene() {

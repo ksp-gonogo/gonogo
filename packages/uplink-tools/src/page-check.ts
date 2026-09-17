@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { readInventory } from "@ksp-gonogo/ui-kit/render-probe";
+import { readInventory } from "@ksp-gonogo/uplink-tools/render-probe";
 import { display, resolveUplinkPackage } from "./render/context";
 import { buildManifest, buildReadme } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
@@ -21,7 +21,7 @@ import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
  * So this is the same check minus the pictures, callable from a test:
  *
  * ```ts
- * import { expectUplinkPageCurrent } from "@ksp-gonogo/ui-kit/page-check";
+ * import { expectUplinkPageCurrent } from "@ksp-gonogo/uplink-tools/page-check";
  * import "../index";  // the client, so its registrations happen
  *
  * it("the generated page still describes this Uplink", () => {

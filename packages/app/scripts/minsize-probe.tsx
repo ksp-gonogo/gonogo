@@ -21,7 +21,7 @@ import {
   StatusPill,
   Textarea,
 } from "@ksp-gonogo/ui-kit";
-import { defineRenderSetup } from "@ksp-gonogo/ui-kit/render-probe";
+import { defineRenderSetup } from "@ksp-gonogo/uplink-tools/render-probe";
 import { NotesHostProvider } from "../src/notes/NotesHostContext";
 import { NotesHostService } from "../src/notes/NotesHostService";
 

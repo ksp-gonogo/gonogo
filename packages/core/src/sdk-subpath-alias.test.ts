@@ -318,7 +318,7 @@ describe("sdk subpath aliases", () => {
    * vitest config would be ceremony that teaches the next author nothing.
    *
    * `uplink-manifest` was on this list and has left it. Every Uplink now gates
-   * its generated page from its own suite, and `@ksp-gonogo/ui-kit/page-check`
+   * its generated page from its own suite, and `@ksp-gonogo/uplink-tools/page-check`
    * reads the manifest, so the one config that aliases the sdk could not run
    * that test: the import failed inside `ui-kit/dist`, which reads as a stale
    * dist rather than a missing alias. The same message this file was written

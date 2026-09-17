@@ -29,18 +29,6 @@
     "./guards": {
       "types": "./dist/guards.d.ts",
       "import": "./dist/guards.js"
-    },
-    "./render-probe": {
-      "types": "./dist/render-probe.d.ts",
-      "import": "./dist/render-probe.js"
-    },
-    "./render": {
-      "types": "./dist/render.d.ts",
-      "import": "./dist/render.js"
-    },
-    "./page-check": {
-      "types": "./dist/page-check.d.ts",
-      "import": "./dist/page-check.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -63,28 +51,27 @@
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/theme": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
-    "@types/node": "^22.0.0",
-    "esbuild": "^0.28.0",
-    "gifenc": "^1.0.3",
-    "playwright": "^1.60.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest-axe": "^3.5.9",
+    "@types/node": "^22.0.0",
     "@types/react": "^18.0.0",
+    "esbuild": "^0.28.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
     "lucide-react": "^1.14.0",
+    "playwright": "^1.60.0",
     "tsup": "^8.5.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "styled-components": "^6.0.0",
-    "jest-axe": "^10.0.0",
+    "@fontsource/jetbrains-mono": "^5.0.0",
     "esbuild": "^0.25.0 || ^0.28.0",
+    "jest-axe": "^10.0.0",
     "playwright": "^1.50.0",
-    "@fontsource/jetbrains-mono": "^5.0.0"
+    "react": "^18.0.0",
+    "styled-components": "^6.0.0"
   },
   "peerDependenciesMeta": {
     "jest-axe": {

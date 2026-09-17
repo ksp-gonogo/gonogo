@@ -1,5 +1,5 @@
 /**
- * `@ksp-gonogo/ui-kit/render`: the NODE half of the Uplink render harness.
+ * `@ksp-gonogo/uplink-tools`: the NODE half of the Uplink render harness.
  *
  * esbuild, Playwright, the filesystem, the GIF encoder and the markdown
  * generator. Never reachable from a browser bundle, exactly as `./testing` is
@@ -22,7 +22,12 @@
 
 /** The grid geometry a harness needs to size its mount box, re-exported here so
  *  a Node-side driver never has to import the browser half of the kit for it. */
-export { COL_WIDTH, GRID_MARGIN, gridToPixels, ROW_HEIGHT } from "./gridUnits";
+export {
+  COL_WIDTH,
+  GRID_MARGIN,
+  gridToPixels,
+  ROW_HEIGHT,
+} from "@ksp-gonogo/ui-kit";
 export {
   type ChannelDisposition,
   readChannelDispositions,

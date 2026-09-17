@@ -3,7 +3,7 @@ import { css } from "styled-components";
 /**
  * Declare that this box's own EDGES are content, not decoration.
  *
- * The min-fit audit (`@ksp-gonogo/ui-kit/render`, `auditMinFit`) reports text
+ * The min-fit audit (`@ksp-gonogo/uplink-tools`, `auditMinFit`) reports text
  * that a tile cuts off, and by default says nothing about boxes: a gauge arc, a
  * gradient bleed and a graph's plot area are all drawn oversized inside a
  * clipping parent on purpose, and nothing about their geometry tells them apart

@@ -86,7 +86,7 @@ import {
  * report any of them. One harness, resolving everything through published
  * specifiers, is the fix that a fifth scanner is not.
  *
- * The Node half is `@ksp-gonogo/ui-kit/render`, and the two are shipped together
+ * The Node half is `@ksp-gonogo/uplink-tools`, and the two are shipped together
  * deliberately: the generated entry, the page it is injected into and the
  * `window` global it installs are one contract.
  *
