@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Sitrep.Contract;
 
-namespace Sitrep.Core.Serialization
+namespace Sitrep.Contract.Serialization
 {
     /// <summary>
     /// Reader/writer for the <see cref="BinaryLane"/> wire frame: the four

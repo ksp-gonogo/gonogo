@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Sitrep.Host.Tests;
 using Xunit;

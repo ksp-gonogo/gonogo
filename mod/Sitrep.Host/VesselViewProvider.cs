@@ -29,7 +29,7 @@ namespace Sitrep.Host
     /// never touches the emitter.</para>
     ///
     /// <para><b>Wire adapter (the <c>*Wire</c> methods):</b>
-    /// <see cref="Sitrep.Core.Serialization.JsonWriter.AppendValue"/> only
+    /// <see cref="Sitrep.Contract.Serialization.JsonWriter.AppendValue"/> only
     /// knows how to serialize <c>null</c>/bool/numeric/string/
     /// <c>IDictionary&lt;string, object?&gt;</c>/<c>IEnumerable</c>: an
     /// arbitrary typed POCO (like <see cref="VesselIdentity"/>) falls through

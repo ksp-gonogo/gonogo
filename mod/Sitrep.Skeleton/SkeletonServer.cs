@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using Sitrep.Contract;
 using Sitrep.Core;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Transport;
 
 using StreamData = Sitrep.Contract.StreamData<object?>;

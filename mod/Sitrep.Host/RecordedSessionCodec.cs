@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 
 namespace Sitrep.Host
 {

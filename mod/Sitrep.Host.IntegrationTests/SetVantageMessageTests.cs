@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Xunit;

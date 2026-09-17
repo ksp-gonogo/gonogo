@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Xunit;
 
 namespace Sitrep.Core.Tests

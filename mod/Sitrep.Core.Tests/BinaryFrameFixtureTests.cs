@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Xunit;
 
 namespace Sitrep.Core.Tests

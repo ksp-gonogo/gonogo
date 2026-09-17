@@ -1,6 +1,6 @@
 using System;
 
-namespace Sitrep.Core.Serialization
+namespace Sitrep.Contract.Serialization
 {
     /// <summary>
     /// THE single definition of the NaN/Infinity wire-format sentinel policy

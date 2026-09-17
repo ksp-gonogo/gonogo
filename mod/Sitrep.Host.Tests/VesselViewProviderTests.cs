@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Xunit;
 

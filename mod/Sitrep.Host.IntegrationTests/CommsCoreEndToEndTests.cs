@@ -31,7 +31,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </list>
     ///
     /// <para>Only <c>comms.delay</c> travels the wire here: it is the single
-    /// <c>comms.*</c> payload <see cref="Sitrep.Core.Serialization.JsonWriter"/>
+    /// <c>comms.*</c> payload <see cref="Sitrep.Contract.Serialization.JsonWriter"/>
     /// flattens today. The remaining shared readouts
     /// (<see cref="ICommsBackend.Connectivity"/> / <c>SignalStrength</c> /
     /// <c>ControlState</c> / <c>Path</c> / <c>Network</c>) are proven at the

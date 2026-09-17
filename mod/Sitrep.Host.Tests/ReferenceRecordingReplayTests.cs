@@ -258,7 +258,7 @@ namespace Sitrep.Host.Tests
                     Staleness = Sitrep.Contract.Staleness.Fresh,
                 },
             };
-            var wireJson = Sitrep.Core.Serialization.EnvelopeCodec.WriteStreamData(streamData);
+            var wireJson = Sitrep.Contract.Serialization.EnvelopeCodec.WriteStreamData(streamData);
             Assert.DoesNotContain("eccentricAnomaly", wireJson);
 
             // A KSP "vessel-change" GameEvents callback fires on more than

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Xunit;
 
@@ -19,7 +19,7 @@ namespace Sitrep.Host.Tests
     /// fields → null (never a sentinel), no <c>eccentricAnomaly</c> key
     /// anywhere, and the payload serializing cleanly through the REAL
     /// production path: <c>StreamData&lt;object?&gt;.Payload</c> via
-    /// <c>Sitrep.Core.Serialization.EnvelopeCodec.WriteStreamData</c>/
+    /// <c>Sitrep.Contract.Serialization.EnvelopeCodec.WriteStreamData</c>/
     /// <c>ParseStreamData</c>: round-tripping to an equivalent tree.
     /// </summary>
     [Collection("SystemViewProviderStatics")]

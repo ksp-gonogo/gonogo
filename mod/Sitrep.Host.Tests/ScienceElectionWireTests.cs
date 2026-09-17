@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host.Science;
 using Xunit;
 

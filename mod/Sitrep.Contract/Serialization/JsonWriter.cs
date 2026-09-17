@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace Sitrep.Core.Serialization
+namespace Sitrep.Contract.Serialization
 {
     /// <summary>
     /// Hand-written, allocation-conscious JSON writer: no Json.NET, no

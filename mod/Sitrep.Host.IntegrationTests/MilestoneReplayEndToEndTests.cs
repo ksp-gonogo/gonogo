@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Sitrep.Host.Tests;
 using Xunit;
@@ -380,7 +380,7 @@ namespace Sitrep.Host.IntegrationTests
         /// No-wart scan over the RAW wire JSON text (before parsing) -- the
         /// most direct proof that these strings genuinely never reach the
         /// wire, matching how <see cref="ReferenceRecordingReplayTests"/>'s
-        /// O-1 assertion scans <c>wireJson</c> directly. <see cref="Sitrep.Core.Serialization.JsonWriter"/>'s
+        /// O-1 assertion scans <c>wireJson</c> directly. <see cref="Sitrep.Contract.Serialization.JsonWriter"/>'s
         /// NaN/Infinity sentinel policy (see its own doc comment) means these
         /// should never appear; this is the regression guard proving that
         /// holds across the WHOLE real session, not just one hand-built

@@ -14,7 +14,7 @@ namespace Sitrep.Contract
     /// payload type.
     ///
     /// <para>This is a TYPING/codegen marker only, it does NOT change the
-    /// wire. The wire bytes are produced by <c>Sitrep.Core.Serialization.
+    /// wire. The wire bytes are produced by <c>Sitrep.Contract.Serialization.
     /// JsonWriter</c> walking the provider's live value tree, entirely
     /// independent of these contract POCOs; the tagged type just mirrors that
     /// existing serialized shape so codegen has something concrete to name.</para>

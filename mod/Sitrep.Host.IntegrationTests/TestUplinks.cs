@@ -557,7 +557,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </list>
     ///
     /// <para>Only <c>comms.delay</c> is declared here: it is the single
-    /// <c>comms.*</c> payload <see cref="Sitrep.Core.Serialization.JsonWriter"/>
+    /// <c>comms.*</c> payload <see cref="Sitrep.Contract.Serialization.JsonWriter"/>
     /// can serialize to the wire today (the other comms payload POCOs,
     /// <see cref="CommsConnectivity"/> etc.: have no wire flatten and are
     /// covered at the contract/election level, see
