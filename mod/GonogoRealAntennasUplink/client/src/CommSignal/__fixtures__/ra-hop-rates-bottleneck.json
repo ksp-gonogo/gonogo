@@ -5,7 +5,7 @@
   },
   "_scene": {
     "contribution": "realantennas:comm-signal-hop-rates",
-    "host": "comm-signal",
+    "hostWidget": "comm-signal",
     "caption": "Per-hop bitrates joined onto CommSignal's route, with the slow middle leg flagged as the bottleneck",
     "modes": ["default"],
     "size": { "w": 9, "h": 14 },

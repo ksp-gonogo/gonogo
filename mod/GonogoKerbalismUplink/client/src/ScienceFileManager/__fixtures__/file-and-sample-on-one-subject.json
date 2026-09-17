@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "science-data-aboard-row-file-manager",
-    "host": "science-data",
+    "hostWidget": "science-data",
     "caption": "File Manager controls under a Science Data Aboard row: one subject carrying a file and a sample, so every verb the augment knows renders at once",
     "modes": ["default"],
     "size": { "w": 10, "h": 12 },

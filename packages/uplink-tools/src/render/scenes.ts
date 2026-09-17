@@ -37,7 +37,7 @@ interface RawScene {
    * The scene is then sized and fed as the host, since that is what is on
    * screen.
    */
-  host?: string;
+  hostWidget?: string;
   caption?: string;
   config?: Record<string, unknown>;
   slotProps?: Record<string, unknown>;
@@ -176,6 +176,13 @@ function oneScene(
   scene: RawScene,
   inventory: UplinkInventory,
 ): Scene {
+  if ("host" in scene) {
+    throw new Error(
+      `${where}: "_scene.host" is not read any more; the key was renamed to ` +
+        '"_scene.hostWidget". Rename the key in this fixture.',
+    );
+  }
+
   const named = (["widget", "augment", "contribution"] as const).filter(
     (k) => scene[k] !== undefined,
   );
@@ -206,27 +213,29 @@ function oneScene(
     dataSources[scene.dataSourceId ?? "data"] = legacy;
   }
 
-  if (scene.host !== undefined && kind === "widget") {
+  if (scene.hostWidget !== undefined && kind === "widget") {
     throw new Error(
-      `${where}: "_scene.host" is only meaningful for an augment or a ` +
-        "contribution scene; this one names a widget, which IS the host.",
+      `${where}: "_scene.hostWidget" is only meaningful for an augment or a ` +
+        "contribution scene, which are drawn INSIDE another widget. This one " +
+        "names a widget, so there is nothing for it to be drawn inside.",
     );
   }
   // A contribution is DATA somebody else draws, so a scene that names no host
-  // has to show that SOMETHING will draw it. The framework draws one segment
-  // for every host, `<id>.badges`, so the probe's stand-in renders a badge
-  // exactly as the real widget would; every other slot is drawn by a widget's
-  // own body, and a stand-in has none.
-  if (scene.host === undefined && kind === "contribution") {
+  // widget has to show that SOMETHING will draw it. The framework draws one
+  // segment for every widget, `<id>.badges`, so the probe's stand-in renders a
+  // badge exactly as the real widget would; every other slot is drawn by a
+  // widget's own body, and a stand-in has none.
+  if (scene.hostWidget === undefined && kind === "contribution") {
     const slot = contributionSlot(where, id, inventory);
     if (!isHostDrawnSlot(slot)) {
       throw new Error(
-        `${where}: this contribution goes on "${slot}", which its host draws ` +
-          'itself, so "_scene.host" must name a widget that declares it. ' +
-          "Without one there is nothing to draw the contribution and the " +
-          "render is a blank frame that reports success. The one exception is " +
-          `a "${HOST_DRAWN_CONTRIBUTION_SEGMENTS.join('" / "')}" segment, ` +
-          "which the framework renders for every host.",
+        `${where}: this contribution goes on "${slot}", which its host ` +
+          'widget draws itself, so "_scene.hostWidget" must name a widget ' +
+          "that declares it. Without one there is nothing to draw the " +
+          "contribution and the render is a blank frame that reports " +
+          `success. The one exception is a ` +
+          `"${HOST_DRAWN_CONTRIBUTION_SEGMENTS.join('" / "')}" segment, ` +
+          "which the framework renders for every widget.",
       );
     }
   }
@@ -235,7 +244,7 @@ function oneScene(
     file,
     name: basename(file, ".json"),
     target,
-    host: scene.host,
+    host: scene.hostWidget,
     caption: scene.caption,
     expectsEmpty: scene.expectsEmpty,
     paints: paintsFor(where, scene),
@@ -246,7 +255,7 @@ function oneScene(
     config: scene.config ?? {},
     slotProps: scene.slotProps ?? {},
     dataSources,
-    carriedChannels: carriedFor(where, target, inventory, scene.host),
+    carriedChannels: carriedFor(where, target, inventory, scene.hostWidget),
     modes: modesFor(where, scene, target, inventory),
     steps: scene.steps,
     motion: {
@@ -406,10 +415,12 @@ function hostWidget(
     inventory.widgets.find((w) => w.id === host);
   if (!found) {
     throw new Error(
-      `${where}: "_scene.host" names "${host}", which no widget in this ` +
-        "bundle registers. A host that ships with the app has to be supplied " +
-        "to the run " +
-        "with --with <module that registers it>. Widgets in the bundle: " +
+      `${where}: "_scene.hostWidget" names "${host}", which no widget in ` +
+        "this bundle registers. A widget that ships with the app has to be " +
+        'supplied to the run: declare "@ksp-gonogo/uplink-tools/widgets" in ' +
+        `package.json's "gonogo.renderWith", or pass ` +
+        "--with <module that registers it> for a one-off. " +
+        "Widgets in the bundle: " +
         `${
           [...inventory.hosts, ...inventory.widgets]
             .map((w) => w.id)
@@ -479,8 +490,8 @@ function modesFor(
     const def = inventory.widgets.find((w) => w.id === target.id);
     if (!def) throw unknownTarget(where, target, inventory);
     all = def.modes;
-  } else if (scene.host) {
-    const host = hostWidget(where, scene.host, inventory);
+  } else if (scene.hostWidget) {
+    const host = hostWidget(where, scene.hostWidget, inventory);
     // The host's own sizes, because the host is what is on screen. A stand-in
     // tile would render the real widget at a shape nobody ever sees it in.
     //

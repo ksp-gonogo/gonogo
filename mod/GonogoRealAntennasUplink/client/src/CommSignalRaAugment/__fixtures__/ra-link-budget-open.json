@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "realantennas-comm-signal-section",
-    "host": "comm-signal",
+    "hostWidget": "comm-signal",
     "caption": "Link budget that does NOT close: a negative margin marked '(open)' rather than left to colour alone",
     "modes": ["default"],
     "size": { "w": 8, "h": 12 },

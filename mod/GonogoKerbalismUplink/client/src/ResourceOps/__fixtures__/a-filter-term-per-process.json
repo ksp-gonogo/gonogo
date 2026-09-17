@@ -5,7 +5,7 @@
   },
   "_scene": {
     "contribution": "kerbalism:resource-ops-processes",
-    "host": "resource-ops",
+    "hostWidget": "resource-ops",
     "caption": "One filter term per running Kerbalism process, contributed into Resource Ops beside its built-in by-resource filters",
     "modes": ["default"],
     "size": {

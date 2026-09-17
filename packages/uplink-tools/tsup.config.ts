@@ -103,7 +103,7 @@ export default defineConfig([
      * survive duplication, but its `createContext` spine does not, so a second
      * copy is a host widget that reads no telemetry and draws an empty frame).
      */
-    entry: ["src/hosts.ts"],
+    entry: ["src/widgets.ts"],
     platform: "browser",
     clean: false,
     splitting: false,

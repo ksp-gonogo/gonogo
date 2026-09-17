@@ -6,7 +6,7 @@
  *
  * An Uplink's docs page shows its widgets, and some of those widgets are an
  * AUGMENT or a CONTRIBUTION into a widget that ships with the app. To draw one
- * honestly you need the host around it. The operator's ruling on ticket 221 is what
+ * honestly you need the host widget around it. The operator's ruling on ticket 221
  * this package is:
  *
  * > "if it's for the production of the docs page for each uplink that will show
@@ -31,26 +31,26 @@
  *
  * The widgets are not re-exported. Nothing here has an API: importing the
  * module runs `@ksp-gonogo/components`' own `registerComponent` calls, which is
- * all the render harness needs to resolve a scene's `_scene.host`. There is
+ * all the render harness needs to resolve a scene's `_scene.hostWidget`. There is
  * deliberately nothing to `import {}` from it.
  *
  * ## How the harness reaches it
  *
  * An Uplink names it in its client `package.json`:
  *
- *     "gonogo": { "renderWith": ["@ksp-gonogo/uplink-tools/hosts"] }
+ *     "gonogo": { "renderWith": ["@ksp-gonogo/uplink-tools/widgets"] }
  *
  * In-repo Uplinks name a path instead
  * (`../../../packages/components/src/index.ts`), which is the same
  * registrations reached the short way. Both end up as one `await import(...)`
  * in the page the harness generates, ahead of the Uplink's own entry, because
- * the host has to exist before the augment registers against it.
+ * the host widget has to exist before the augment registers against it.
  *
  * ## Why a stand-in is not enough, so this has to be the real widgets
  *
- * `render-probe.tsx`'s `standInHost` already synthesises a host for a scene
+ * `render-probe.tsx`'s `standInHostWidget` already synthesises a host for a scene
  * that names none, and it serves more cases than it looks like it should: an
- * augment mounts in its `Panel`, and `Panel` draws every host's `<id>.badges`
+ * augment mounts in its `Panel`, and `Panel` draws every widget's `<id>.badges`
  * itself, so a badge contribution lands in a stand-in exactly as it lands in
  * the real widget. That is the whole of
  * `HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"]`.
@@ -62,6 +62,6 @@
  * blank frame that reports success, which is measured (ticket 317) rather than
  * argued, and is why the refusal in `render/scenes.ts` stays where it is.
  *
- * A real host body is the only thing that draws them. That is this package.
+ * A real widget's own body is the only thing that draws them. That is this package.
  */
 import "@ksp-gonogo/components";

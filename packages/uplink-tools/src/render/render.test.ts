@@ -297,21 +297,21 @@ describe("the generated browser entry", () => {
    * A specifier was refused outright until ticket 221, because the only host module
    * was `packages/components`, which is unpublished: naming it by specifier
    * would have meant a dependency the isolation rules forbid. Publishing
-   * `@ksp-gonogo/uplink-tools/hosts` is what changed that, and it is the only way an
-   * Uplink that has LEFT this repo can draw a scene that names `_scene.host`.
+   * `@ksp-gonogo/uplink-tools/widgets` is what changed that, and it is the only way an
+   * Uplink that has LEFT this repo can draw a scene that names `_scene.hostWidget`.
    */
   it("takes an installed specifier and hands it to esbuild as written", () => {
     const dir = fakePackage({
       "package.json": JSON.stringify({
         name: "@example/uplink",
         version: "1.2.3",
-        gonogo: { renderWith: ["@ksp-gonogo/uplink-tools/hosts"] },
+        gonogo: { renderWith: ["@ksp-gonogo/uplink-tools/widgets"] },
       }),
       // Presence is the check, so a directory in the node_modules chain is an
       // install. Its contents are esbuild's problem, not the resolver's.
-      "node_modules/@ksp-gonogo/uplink-tools/hosts/package.json":
+      "node_modules/@ksp-gonogo/uplink-tools/widgets/package.json":
         JSON.stringify({
-          name: "@ksp-gonogo/uplink-tools/hosts",
+          name: "@ksp-gonogo/uplink-tools/widgets",
           version: "0.1.0",
         }),
     });
@@ -321,9 +321,9 @@ describe("the generated browser entry", () => {
     // `require` picks, and the kit, the sdk and this package all publish an
     // `import`-only exports map; esbuild resolves it from the client directory
     // with the right condition when it builds the page.
-    expect(pkg.renderWith).toEqual(["@ksp-gonogo/uplink-tools/hosts"]);
+    expect(pkg.renderWith).toEqual(["@ksp-gonogo/uplink-tools/widgets"]);
     expect(generateEntry(pkg, pkg.renderWith)).toContain(
-      'await import("@ksp-gonogo/uplink-tools/hosts")',
+      'await import("@ksp-gonogo/uplink-tools/widgets")',
     );
   });
 
@@ -332,7 +332,7 @@ describe("the generated browser entry", () => {
       "package.json": JSON.stringify({
         name: "@example/uplink",
         version: "1.2.3",
-        gonogo: { renderWith: ["@ksp-gonogo/uplink-tools/hosts"] },
+        gonogo: { renderWith: ["@ksp-gonogo/uplink-tools/widgets"] },
       }),
     });
     // The failure an author actually gets is a missing devDependency, so the
@@ -455,7 +455,7 @@ describe("fixtures become scenes", () => {
   it("sizes and feeds a hosted augment scene as its HOST", () => {
     const pkg = resolveUplinkPackage(
       fixture({
-        _scene: { augment: "reactor-badge", host: "console" },
+        _scene: { augment: "reactor-badge", hostWidget: "console" },
         _stream: { emits: [{ topic: "example.reactor", payload: {} }] },
       }),
     );
@@ -477,7 +477,7 @@ describe("fixtures become scenes", () => {
         fixture({
           _scene: {
             augment: "reactor-badge",
-            host: "console",
+            hostWidget: "console",
             size: { w: 13, h: 14 },
           },
         }),
@@ -493,22 +493,24 @@ describe("fixtures become scenes", () => {
     expect(() =>
       buildScenes(
         resolveUplinkPackage(
-          fixture({ _scene: { augment: "reactor-badge", host: "dashboard" } }),
+          fixture({
+            _scene: { augment: "reactor-badge", hostWidget: "dashboard" },
+          }),
         ),
         INVENTORY,
       ),
     ).toThrow(/--with/);
   });
 
-  it("refuses a host on a WIDGET scene, which is its own host", () => {
+  it("refuses a host widget on a WIDGET scene, which is drawn on its own", () => {
     expect(() =>
       buildScenes(
         resolveUplinkPackage(
-          fixture({ _scene: { widget: "reactor", host: "console" } }),
+          fixture({ _scene: { widget: "reactor", hostWidget: "console" } }),
         ),
         INVENTORY,
       ),
-    ).toThrow(/which IS the host/);
+    ).toThrow(/nothing for it to be drawn inside/);
   });
 
   /**
@@ -546,14 +548,16 @@ describe("fixtures become scenes", () => {
       });
     });
 
-    it("is refused on a slot the host's own body draws", () => {
+    it("is refused on a slot the host widget's own body draws", () => {
       expect(() => build("ship-map.part-meters")).toThrow(
-        /"ship-map\.part-meters", which its host draws itself/,
+        /"ship-map\.part-meters", which its host widget draws itself/,
       );
     });
 
     it("is refused on a global slot, which belongs to no widget at all", () => {
-      expect(() => build("plots")).toThrow(/"plots", which its host draws/);
+      expect(() => build("plots")).toThrow(
+        /"plots", which its host widget draws/,
+      );
     });
   });
 

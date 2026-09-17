@@ -1,6 +1,6 @@
 import {
   expectUplinkPageCurrent,
-  loadRenderHosts,
+  loadHostWidgets,
 } from "@ksp-gonogo/uplink-tools/page-check";
 import { describe, it } from "vitest";
 // The client itself, so its registrations happen. The check reads the same
@@ -20,7 +20,7 @@ import "./index";
  */
 describe("the generated Uplink page", () => {
   it("still describes what this Uplink registers", async () => {
-    await loadRenderHosts();
+    await loadHostWidgets();
     expectUplinkPageCurrent();
   });
 });

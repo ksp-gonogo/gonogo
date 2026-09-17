@@ -11,16 +11,16 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { loadRenderHosts } from "./page-check";
+import { loadHostWidgets } from "./page-check";
 
 /**
- * `loadRenderHosts` is the THIRD consumer of `gonogo.renderWith`, and the only
+ * `loadHostWidgets` is the THIRD consumer of `gonogo.renderWith`, and the only
  * one that has to turn a value back into a file itself: the render path hands
  * the list to esbuild and `--with` goes through the same resolver, but a test
  * suite has no bundler.
  *
  * It was a bare `pathToFileURL(host)`, which is right for the relative form and
- * produces `<client dir>/@ksp-gonogo/uplink-tools/hosts` (the client directory
+ * produces `<client dir>/@ksp-gonogo/uplink-tools/widgets` (the client directory
  * with the package name glued on the end) the moment a bare specifier became
  * legal. Nothing caught it, because the render path and this path had different
  * coverage: the specifier was tested through `resolveUplinkPackage` and
@@ -62,12 +62,12 @@ const writesMarker = (marker: string) =>
   `import { writeFileSync } from "node:fs";\n` +
   `writeFileSync(${JSON.stringify(marker)}, "yes");\n`;
 
-describe("loadRenderHosts imports what renderWith names", () => {
+describe("loadHostWidgets imports what renderWith names", () => {
   it("loads a RELATIVE path entry", async () => {
     const { dir, marker } = client(["./hosts.mjs"]);
     writeFileSync(join(dir, "hosts.mjs"), writesMarker(marker));
 
-    await loadRenderHosts({ root: dir });
+    await loadHostWidgets({ root: dir });
 
     expect(existsSync(marker)).toBe(true);
   });
@@ -89,20 +89,20 @@ describe("loadRenderHosts imports what renderWith names", () => {
     );
     writeFileSync(join(pkgDir, "dist", "hosts.js"), writesMarker(marker));
 
-    await loadRenderHosts({ root: dir });
+    await loadHostWidgets({ root: dir });
 
     expect(existsSync(marker)).toBe(true);
   });
 
   it("names the package when a specifier's package is not installed", async () => {
     const { dir } = client(["@example/absent/hosts"]);
-    await expect(loadRenderHosts({ root: dir })).rejects.toThrow(
+    await expect(loadHostWidgets({ root: dir })).rejects.toThrow(
       /@example\/absent.*not installed/s,
     );
   });
 
-  it("is a no-op for an Uplink that declares no hosts", async () => {
+  it("is a no-op for an Uplink that declares no host widgets", async () => {
     const { dir } = client([]);
-    await expect(loadRenderHosts({ root: dir })).resolves.toBeUndefined();
+    await expect(loadHostWidgets({ root: dir })).resolves.toBeUndefined();
   });
 });

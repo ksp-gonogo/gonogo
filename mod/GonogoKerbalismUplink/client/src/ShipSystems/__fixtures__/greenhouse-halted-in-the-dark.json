@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "life-support-greenhouse",
-    "host": "ship-systems",
+    "hostWidget": "ship-systems",
     "caption": "Greenhouse halted in shadow: the growth rate stops and the row names the reason, while the reason named underneath rather than left to a stopped rate",
     "modes": ["default"],
     "paints": ["Greenhouse", "insufficient lighting"]

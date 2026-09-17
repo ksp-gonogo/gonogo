@@ -5,7 +5,7 @@
   },
   "_scene": {
     "contribution": "kerbalism:crew-survival-meters",
-    "host": "crew-status",
+    "hostWidget": "crew-status",
     "caption": "A reckoned one-sigma band drawn on the meter it is about: one mark per bound, at that bound's own distance from the bar's end",
     "modes": ["default"],
     "size": { "w": 14, "h": 10 },
