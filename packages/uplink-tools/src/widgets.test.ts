@@ -1,17 +1,17 @@
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 /**
  * The package's whole contract is a side effect, so the test is that the side
  * effect happened. There is no API to assert on, which is the point.
  *
- * Held to the hosts that ticket 221 was FILED about rather than to a count, for the
+ * Held to the widgets that ticket 221 was FILED about rather than to a count, for the
  * reason the sdk's own command scan was rewritten the same way: a count turns
  * "a widget was deleted" and "a widget was added" into the same failure, and
  * neither is what this guards. These four are the ones an Uplink outside this
  * repo could not draw its scene inside.
  */
-const HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE = [
+const WIDGETS_THAT_BLOCKED_AN_UPLINK_PAGE = [
   /**
    * Three contributions a stand-in cannot draw, because `strategies.screens`,
    * `space-center-status.facilities` and `astronaut-complex.readouts` are each
@@ -22,22 +22,41 @@ const HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE = [
   "astronaut-complex",
   /**
    * Draws `landing-status.badges`, and mounts `PlotBoard` in its body, so it is
-   * also the host that draws a contribution on the app-wide `plots` slot.
+   * also the widget that draws a contribution on the app-wide `plots` slot.
    */
   "landing-status",
 ];
 
 describe("@ksp-gonogo/uplink-tools/widgets", () => {
-  it("registers the hosts an out-of-repo Uplink names in _scene.hostWidget", async () => {
+  /**
+   * Warmed once, with its own budget, because the whole cost of this file is
+   * ONE cold import and it lands on whichever test runs first. Measured: the
+   * first test 2110ms and the second 1ms, which is not two tests of different
+   * weight.
+   *
+   * The budget is generous because the import transforms the app's entire
+   * widget graph through vite, and `test` runs every package in parallel under
+   * turbo, so it is paid on a contended machine. It timed out at the 30s
+   * default there while passing in 2s locally. That is a transform cost under
+   * contention rather than a slow module: the same import through
+   * `loadHostWidgets` is what every in-repo Uplink's `uplink-page.test.ts`
+   * already does, and one measured at 1356ms for it and passes in CI.
+   *
+   * Here rather than on each test so that the cost is attributed where it
+   * occurs and a genuinely slow ASSERTION still fails on the default.
+   */
+  beforeAll(async () => {
     await import("./widgets");
+  }, 120_000);
+
+  it("registers the widgets an out-of-repo Uplink names in _scene.hostWidget", () => {
     const registered = new Set(getComponents().map((c) => c.id));
     expect(
-      HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE.filter((id) => !registered.has(id)),
+      WIDGETS_THAT_BLOCKED_AN_UPLINK_PAGE.filter((id) => !registered.has(id)),
     ).toEqual([]);
   });
 
-  it("registers a host with a BODY, which is the whole difference from a stand-in", async () => {
-    await import("./widgets");
+  it("registers a widget with a BODY, which is the whole difference from a stand-in", () => {
     const strategies = getComponents().find((c) => c.id === "strategies");
     /**
      * `standInHostWidget` synthesises `{ component: () => null, description:
