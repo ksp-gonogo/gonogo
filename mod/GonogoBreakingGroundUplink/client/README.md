@@ -46,9 +46,11 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | Actions | `targetUp`, `targetDown`, `toggleMotor`, `toggleLock` |
 | Only while present | `flight` |
 | Default size | 5 × 8 |
-| Scenes | 2 |
+| Scenes | 3 |
 
 ![Breaking Ground not installed: the console names the missing DLC rather than reporting a craft with no joints on it](docs/assets/robotics-dlc-absent--default.png)
+
+![The same joints after the link drops: measured angles withheld, the roster and every commanded target held](docs/assets/servos-link-lost--default.png)
 
 ![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](docs/assets/servos--default.png)
 
@@ -65,9 +67,11 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | Actions | `rpmUp`, `rpmDown`, `toggleMotor`, `toggleLock`, `reverse` |
 | Only while present | `flight` |
 | Default size | 6 × 10 |
-| Scenes | 2 |
+| Scenes | 3 |
 
 ![Breaking Ground not installed: the dial is withheld entirely rather than drawn at zero RPM](docs/assets/rotors-dlc-absent--default.png)
+
+![The same rotors after the link drops: the needle withheld, the cap and every setting held](docs/assets/rotors-link-lost--default.png)
 
 ![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](docs/assets/rotors--default.png)
 
