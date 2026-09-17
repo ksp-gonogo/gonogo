@@ -27,9 +27,9 @@ const HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE = [
   "landing-status",
 ];
 
-describe("@ksp-gonogo/render-hosts", () => {
+describe("@ksp-gonogo/uplink-tools/hosts", () => {
   it("registers the hosts an out-of-repo Uplink names in _scene.host", async () => {
-    await import("./index");
+    await import("./hosts");
     const registered = new Set(getComponents().map((c) => c.id));
     expect(
       HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE.filter((id) => !registered.has(id)),
@@ -37,7 +37,7 @@ describe("@ksp-gonogo/render-hosts", () => {
   });
 
   it("registers a host with a BODY, which is the whole difference from a stand-in", async () => {
-    await import("./index");
+    await import("./hosts");
     const strategies = getComponents().find((c) => c.id === "strategies");
     /**
      * `standInHost` synthesises `{ component: () => null, description:

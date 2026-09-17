@@ -33,6 +33,7 @@ export const SCANNED_PACKAGE_ROOTS = [
   "packages/theme/src",
   "packages/ui/src",
   "packages/ui-kit/src",
+  "packages/uplink-tools/src",
 ];
 
 /**
@@ -57,11 +58,6 @@ export const UNSCANNED_PACKAGE_ROOTS: { path: string; reason: string }[] = [
     path: "packages/test-utils/src",
     reason:
       "Test harness only (a themed render/renderHook wrapper). Ships in no bundle and declares no styles of its own.",
-  },
-  {
-    path: "packages/render-hosts/src",
-    reason:
-      "One side-effect import of @ksp-gonogo/components and nothing else: it publishes the app's widgets for an Uplink's docs render and writes no UI of its own. Every widget it carries is scanned at packages/components/src, so scanning it here would grade the same code twice and the import line besides.",
   },
 ];
 

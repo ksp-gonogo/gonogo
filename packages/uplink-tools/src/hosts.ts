@@ -38,7 +38,7 @@
  *
  * An Uplink names it in its client `package.json`:
  *
- *     "gonogo": { "renderWith": ["@ksp-gonogo/render-hosts"] }
+ *     "gonogo": { "renderWith": ["@ksp-gonogo/uplink-tools/hosts"] }
  *
  * In-repo Uplinks name a path instead
  * (`../../../packages/components/src/index.ts`), which is the same
