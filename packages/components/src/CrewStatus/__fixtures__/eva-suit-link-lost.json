@@ -1,0 +1,123 @@
+{
+  "_meta": {
+    "scenario": "eva-suit-link-lost",
+    "notes": "The same EVA as eva-suit-low-o2, after the suit resources stop arriving. The wire is identical and the link then drops, so both suit meters are HELD and marked rather than coming off the screen. Rendering the two side by side is what shows the mark at all. Before this the readout returned early and replaced both meters with the sentence 'Suit resources no longer current', discarding the two figures that decide whether a kerbal outside the craft has time to get back in.",
+    "inheritsFrom": "eva-suit-low-o2.json, whose _meta records the Kerbalism sourcing for every value here"
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.crew",
+      "vessel.identity",
+      "vessel.orbit",
+      "kerbalism.crew",
+      "vessel.resources"
+    ],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 1,
+          "capacity": 1,
+          "crew": [
+            {
+              "name": "Jebediah Kerman",
+              "trait": "Pilot"
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Jebediah Kerman",
+          "name": "Jebediah Kerman",
+          "vesselType": 7,
+          "situation": 3,
+          "parentBodyIndex": 0
+        }
+      },
+      {
+        "channel": "kerbalism.crew",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "rules": [
+              {
+                "name": "radiation",
+                "value": 1.0,
+                "fatalThreshold": 50.0
+              },
+              {
+                "name": "stress",
+                "value": 0.05,
+                "fatalThreshold": 1.0
+              },
+              {
+                "name": "eating",
+                "value": 0.02,
+                "fatalThreshold": 1.0
+              },
+              {
+                "name": "drinking",
+                "value": 0.02,
+                "fatalThreshold": 1.0
+              },
+              {
+                "name": "breathing",
+                "value": 0.85,
+                "fatalThreshold": 1.0
+              },
+              {
+                "name": "climatization",
+                "value": 0.03,
+                "fatalThreshold": 1.0
+              },
+              {
+                "name": "co2 poisoning",
+                "value": 0.0,
+                "fatalThreshold": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "Oxygen": {
+              "current": 1.9,
+              "max": 12.5,
+              "active": true
+            },
+            "ElectricCharge": {
+              "current": 6.1,
+              "max": 33.0,
+              "active": true
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 0,
+          "sma": 687100,
+          "ecc": 0.001,
+          "inc": 0,
+          "argPe": 0,
+          "mu": 3531600000000.0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}
