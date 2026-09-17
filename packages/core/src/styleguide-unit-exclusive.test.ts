@@ -392,6 +392,39 @@ function grade(
 
 const REPO_ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
+/**
+ * What a file reaching a kit formatter is told to do instead.
+ *
+ * Named rather than inline so the guidance can be asserted. A ratchet's message
+ * is the only part of it nothing else checks, so it is the part that rots: one
+ * that stopped naming `<Unit>` would still fail the build, just uselessly.
+ */
+function formatterReachMessage(lines: readonly string[]): string {
+  return (
+    `A kit string formatter is reachable outside \`Unit\`:\n${lines.join("\n")}\n\n` +
+    `Render \`<Unit value={value("s", seconds)} />\`. It runs the SAME ladder ` +
+    `(formatQuantity delegates the \`time\` kind to formatDuration), so the ` +
+    `text does not change. Where a node genuinely cannot go (an SVG <text>, ` +
+    `a contribution \`label\` string, an aria-label) use \`writeQuantity\` or ` +
+    `\`speakQuantity\`, which are the two sanctioned string escapes.\n\n` +
+    `If the value is not a quantity Unit can express, say so in ` +
+    `FORMATTER_REACH_DEBT with the gap it would need closed.`
+  );
+}
+
+/** The same, for a locally-declared `format*` helper. */
+function localFormatterMessage(lines: readonly string[]): string {
+  return (
+    `A new \`format*\` helper appeared:\n${lines.join("\n")}\n\n` +
+    `If it renders a QUANTITY it must not exist: hand it to \`<Unit>\`, or ` +
+    `to \`writeQuantity\`/\`speakQuantity\` where a node cannot go. A ladder ` +
+    `written locally is how four copies of the duration ladder existed ` +
+    `before it was extracted.\n\n` +
+    `If it is genuinely not a quantity (an accessible name, a script ` +
+    `argument, a status word), add a line to LOCAL_FORMATTER_DEBT saying so.`
+  );
+}
+
 describe("Unit is the only unit renderer", () => {
   it("gate A: nothing outside Unit's implementation reaches a kit formatter", () => {
     const { reach } = scan(REPO_ROOT);
@@ -404,16 +437,7 @@ describe("Unit is the only unit renderer", () => {
           ? `  ${f}: names a kit formatter ${reach[f]}x, no debt entry`
           : `  ${f}: seeded ${seeded.count}, found ${reach[f]}`;
       });
-      throw new Error(
-        `A kit string formatter is reachable outside \`Unit\`:\n${lines.join("\n")}\n\n` +
-          `Render \`<Unit value={value("s", seconds)} />\`. It runs the SAME ladder ` +
-          `(formatQuantity delegates the \`time\` kind to formatDuration), so the ` +
-          `text does not change. Where a node genuinely cannot go (an SVG <text>, ` +
-          `a contribution \`label\` string, an aria-label) use \`writeQuantity\` or ` +
-          `\`speakQuantity\`, which are the two sanctioned string escapes.\n\n` +
-          `If the value is not a quantity Unit can express, say so in ` +
-          `FORMATTER_REACH_DEBT with the gap it would need closed.`,
-      );
+      throw new Error(formatterReachMessage(lines));
     }
     if (stale.length > 0) {
       throw new Error(
@@ -436,15 +460,7 @@ describe("Unit is the only unit renderer", () => {
           ? `  ${f}: declares ${local[f]} format* helper(s), no debt entry`
           : `  ${f}: seeded ${seeded.count}, found ${local[f]}`;
       });
-      throw new Error(
-        `A new \`format*\` helper appeared:\n${lines.join("\n")}\n\n` +
-          `If it renders a QUANTITY it must not exist: hand it to \`<Unit>\`, or ` +
-          `to \`writeQuantity\`/\`speakQuantity\` where a node cannot go. A ladder ` +
-          `written locally is how four copies of the duration ladder existed ` +
-          `before it was extracted.\n\n` +
-          `If it is genuinely not a quantity (an accessible name, a script ` +
-          `argument, a status word), add a line to LOCAL_FORMATTER_DEBT saying so.`,
-      );
+      throw new Error(localFormatterMessage(lines));
     }
     if (stale.length > 0) {
       throw new Error(
@@ -454,6 +470,32 @@ describe("Unit is the only unit renderer", () => {
     }
     expect(newOrChanged).toEqual([]);
     expect(stale).toEqual([]);
+  });
+
+  /**
+   * Both failures NAME THE FIX, and name the file that has to change.
+   *
+   * Pinned because guidance is the half of a ratchet nothing else exercises:
+   * these messages are built only on the failing path, so every run of a green
+   * tree leaves them unread.
+   */
+  it("tells a formatter-reaching file what to do instead", () => {
+    const reach = formatterReachMessage([
+      "  packages/components/src/Example/index.tsx: names a kit formatter 2x, no debt entry",
+    ]);
+    expect(reach).toContain("<Unit");
+    expect(reach).toContain("writeQuantity");
+    expect(reach).toContain("speakQuantity");
+    expect(reach).toContain("FORMATTER_REACH_DEBT");
+    expect(reach).toContain("packages/components/src/Example/index.tsx");
+
+    const local = localFormatterMessage([
+      "  packages/components/src/Example/index.tsx: declares 1 format* helper(s), no debt entry",
+    ]);
+    expect(local).toContain("<Unit>");
+    expect(local).toContain("writeQuantity");
+    expect(local).toContain("LOCAL_FORMATTER_DEBT");
+    expect(local).toContain("packages/components/src/Example/index.tsx");
   });
 
   /**
