@@ -298,7 +298,7 @@ export const SNAPSHOT = {
     meta: payloadMeta,
   },
 
-  // Mod-side Uplink self-report (Sitrep.Contract.IUplinkHealthReporter,
+  // Mod-side Uplink self-report (Sitrep.Contract.ISitrepUplink.Health(),
   // aggregated by ChannelEngine: see @ksp-gonogo/sitrep-client's
   // uplink-health.ts). Reports "kos" installed + healthy + available, which
   // is what the Data Sources tab's Uplink health list reads. Only "kos":
