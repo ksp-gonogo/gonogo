@@ -33,6 +33,21 @@ namespace Sitrep.Contract
     // breakdown, so that stays absent rather than arriving as a bag of zeros.
     // ─────────────────────────────────────────────────────────────────────────
 
+    /// <summary>The exclusive capability id every economy backend competes for.</summary>
+    /// <remarks>
+    /// An id both halves must spell identically belongs where both halves can
+    /// reach it, and this was the last one that did not. The election declared it
+    /// in the unpublished <c>Sitrep.Host</c>, so the career-overhaul uplink that
+    /// registers against it had no declaration to reach and spelled
+    /// <c>"economy"</c> as a literal instead. <see cref="CrewStandingCapability"/>
+    /// and <see cref="ActionGroupsCapability"/> are the shape this now follows.
+    /// </remarks>
+    public static class EconomyCapability
+    {
+        /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
+        public const string Id = "economy";
+    }
+
     /// <summary>
     /// One backend's reading of what a career's money is doing. Plain data, no
     /// KSP and no game types, so this assembly stays KSP-free and a backend can

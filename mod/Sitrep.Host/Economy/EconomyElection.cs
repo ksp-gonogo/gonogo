@@ -37,8 +37,14 @@ namespace Sitrep.Host.Economy
     /// </summary>
     public static class EconomyElection
     {
-        /// <summary>The exclusive capability id every economy backend competes for.</summary>
-        public const string CapabilityId = "economy";
+        /// <summary>
+        /// The exclusive capability id every economy backend competes for, aliased
+        /// from the CONTRACT's own declaration rather than spelled again here: an
+        /// Uplink cannot reference this assembly, and an id both halves must spell
+        /// identically belongs where both halves can reach it. See
+        /// <see cref="EconomyCapability"/>.
+        /// </summary>
+        public const string CapabilityId = EconomyCapability.Id;
 
         /// <summary>
         /// Registers the exclusive <c>"economy"</c> capability with
