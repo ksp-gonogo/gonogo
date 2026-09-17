@@ -28,6 +28,7 @@ import {
  *   gonogo-uplink render --scene <name>
  *   gonogo-uplink docs                      README.md + gonogo-uplink.json + assets
  *   gonogo-uplink docs --check              CI gate: fail on drift
+ *   gonogo-uplink docs --no-assets          rewrite the two text documents, leaving every PNG alone
  *
  * Zero required `package.json` script lines. An Uplink that wants
  * `pnpm ... render` adds one alias.
@@ -47,6 +48,7 @@ interface Args {
   bundle?: string;
   frames: boolean;
   check: boolean;
+  noAssets: boolean;
   withModules: string[];
 }
 
@@ -58,6 +60,7 @@ function parseArgs(argv: readonly string[]): Args {
     assetDir: "docs/assets",
     frames: false,
     check: false,
+    noAssets: false,
     withModules: [],
   };
   for (let i = 1; i < argv.length; i++) {
@@ -108,6 +111,9 @@ function parseArgs(argv: readonly string[]): Args {
       case "--check":
         args.check = true;
         break;
+      case "--no-assets":
+        args.noAssets = true;
+        break;
       default:
         throw new Error(`unknown flag "${flag}"`);
     }
@@ -120,6 +126,9 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   render                 render every fixture to ./renders/
   docs                   write README.md, gonogo-uplink.json and docs/assets/
   docs --check           regenerate in memory and fail on any difference
+  docs --no-assets       rewrite README.md + gonogo-uplink.json and leave
+                         docs/assets alone. For adding or renaming a scene
+                         without re-rendering every image on the wrong platform
 
   --root <dir>           the Uplink client package (default: cwd)
   --entry <file>         the client entry to bundle (default: src/index.ts)
@@ -177,9 +186,23 @@ async function main(argv: readonly string[]): Promise<void> {
     throw new Error(`unknown verb "${args.verb}"\n\n${USAGE}`);
   }
 
-  const assetOut = args.check
-    ? await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"))
-    : resolve(pkg.dir, args.assetDir);
+  /* `--no-assets` renders to a temp directory, exactly as `--check` does, and
+     that is deliberate rather than a shortcut.
+
+     The registry this page is generated FROM is populated by loading the
+     Uplink's client, and the CLI only ever does that inside the browser page.
+     So there is no browserless route to the inventory here, and a mode that
+     skipped the render would have nothing to describe. What it can skip is
+     WRITING the pictures, which is the half that actually hurts: regenerating
+     the prose used to rewrite every PNG in the package through whatever font
+     rasteriser the author happens to have, so adding one scene rewrote images
+     the change never touched, and the only safe move was to hand-edit the
+     markdown until the gate stopped complaining. A workflow that punishes doing
+     it properly is one that eventually gets `--no-verify` instead. */
+  const writesAssets = !args.check && !args.noAssets;
+  const assetOut = writesAssets
+    ? resolve(pkg.dir, args.assetDir)
+    : await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"));
   const result = await renderUplink(pkg, {
     engine: args.engine,
     outDir: assetOut,
@@ -221,14 +244,30 @@ async function main(argv: readonly string[]): Promise<void> {
   if (!args.check) {
     await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
     await writeFile(readmePath, readme, "utf8");
-    await writeFile(manifestPath, manifestJson, "utf8");
+    await writeFile(
+      manifestPath,
+      args.noAssets
+        ? await withCommittedIntegrity(manifestPath, manifestJson)
+        : manifestJson,
+      "utf8",
+    );
+    console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
+    console.log(`wrote ${display(pkg.dir, manifestPath)}`);
+    if (!writesAssets) {
+      /* Said out loud, because what this mode does NOT do is the reason to use
+         it and a quiet success looks identical to a full run. */
+      console.log(
+        `nothing under ${args.assetDir}/ was touched, and the shape record is ` +
+          "unchanged.\n  A scene added or renamed here has no picture until a " +
+          "full `gonogo-uplink docs` runs, which CI does on Linux.",
+      );
+      return;
+    }
     await writeShapeRecord(assetOut, {
       version: SHAPE_RECORD_VERSION,
       engine: args.engine,
       assets: Object.fromEntries(shapes),
     });
-    console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
-    console.log(`wrote ${display(pkg.dir, manifestPath)}`);
     console.log(`wrote ${result.assets.length} asset(s) → ${args.assetDir}/`);
     console.log(`wrote ${args.assetDir}/${SHAPE_RECORD_FILE}`);
     return;
@@ -302,6 +341,46 @@ async function main(argv: readonly string[]): Promise<void> {
     );
   }
   console.log("\ndocs --check: the committed page matches the code.");
+}
+
+/**
+ * The generated manifest, carrying forward a released `integrity` if one is
+ * committed.
+ *
+ * <p>`integrity` is the sha256 of the file an author distributes, stamped at
+ * release time with `--bundle`, so it is a fact about a release artifact rather
+ * than about the page. A `--no-assets` run is a prose edit and has no bundle in
+ * hand, so regenerating the manifest without this would silently strip a
+ * released Uplink's hash, and the gate would not notice because it compares
+ * manifests with `integrity` removed.</p>
+ */
+async function withCommittedIntegrity(
+  manifestPath: string,
+  generated: string,
+): Promise<string> {
+  let committedRaw: string;
+  try {
+    committedRaw = await readFile(manifestPath, "utf8");
+  } catch {
+    return generated;
+  }
+  /* Narrowed rather than asserted, both ends. An `as Record<string, unknown>`
+     here would be two more assertions out of `unknown` in a file the gate holds
+     at one, and the shape genuinely is unknown: this is a file on disk. */
+  const committed: unknown = JSON.parse(committedRaw);
+  if (
+    typeof committed !== "object" ||
+    committed === null ||
+    !("integrity" in committed)
+  ) {
+    return generated;
+  }
+  const integrity = committed.integrity;
+  if (typeof integrity !== "string" || integrity === "") return generated;
+
+  const next: unknown = JSON.parse(generated);
+  if (typeof next !== "object" || next === null) return generated;
+  return `${JSON.stringify({ ...next, integrity }, null, 2)}\n`;
 }
 
 /**

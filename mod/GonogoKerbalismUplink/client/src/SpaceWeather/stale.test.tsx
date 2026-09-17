@@ -158,13 +158,24 @@ describe("SpaceWeather when its readings are not current", () => {
   });
 
   it("withholds the verdict even when a held FIGURE would fire an arm on its own", async () => {
-    /* The defect a render caught and this file did not. `emitSheltered` is a
-       low-dose vessel, so every case above exercises the "Sheltered" arm. The
-       FIRST arm of `statusFor` fires on a dose of 3 rad/h alone, independent of
-       the storm state, so a board whose belts had gone dark and whose storm
-       state had gone unknown still wore a red "Storm in progress" off a held
-       figure. Withholding through the record's own fields could never reach it;
-       the badge is gated on the reading instead. */
+    /* THE CASE FOR RENDERING, written at the site because this is the evidence
+       for it.
+
+       This file was 7-for-7 green on a build that drew a red "STORM IN PROGRESS"
+       badge over a dead link. `statusFor`'s FIRST arm fires on a dose of
+       3 rad/h alone, independent of the storm state, so holding the dose kept
+       the verdict alive: a board whose belts had gone dark and whose storm state
+       had gone unknown still wore the badge. No amount of withholding inside the
+       record could reach it, because the arm does not consult the fields that
+       were withheld. The badge is gated on the reading itself instead.
+
+       The suite could not have caught it. Every case above emits
+       `emitSheltered`, a vessel at 0.014 rad/h, which never reaches that arm, so
+       the tests were exercising the "Sheltered" branch and proving it withheld
+       correctly while the branch beside it did not. The defect was found by
+       opening the picture. That is why a render is required evidence here and
+       not a courtesy: a green suite is a statement about the cases someone
+       thought to write, and a render is a statement about what is on screen. */
     const { container } = mount();
     act(() => {
       stream.emit(TOPIC, {
