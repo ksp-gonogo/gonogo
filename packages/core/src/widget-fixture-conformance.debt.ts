@@ -34,7 +34,6 @@ export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
    * to. A refusal shown against a queued build is a refusal the mod reports
    * about a finished, warehoused vehicle.
    */
-  "mod/GonogoRp1Uplink/client/src/VehicleAssembly#rp1.buildQueue.rolloutRefusals",
   /*
    * `ScienceInstrumentEntry` declares `partName` / `experimentId` /
    * `dataIsCollectable`. The second of the five defects, still in four

@@ -46,12 +46,12 @@ namespace Sitrep.Core.Tests
     /// comment is a reach the boundary ratchet counts. A per-project assertion
     /// is the thing that gets forgotten; a walk enrols an Uplink by existing.</para>
     ///
-    /// <para><b>The runtime form is still the stronger one where it runs.</b>
-    /// <c>Rp1UplinkStartsTests</c> keeps it: that project compiles stand-in RP-1
-    /// types, so its <c>Register</c> really executes and it can also assert the
-    /// structural half a source walk cannot see, that one registration failing
-    /// does not skip the rest. This walk is the floor under every Uplink, not a
-    /// replacement for that.</para>
+    /// <para><b>The runtime form is still the stronger one where it runs.</b> An
+    /// Uplink whose Tests project compiles stand-in types for the mod it wraps
+    /// gets its <c>Register</c> really executed, and can assert the structural
+    /// half a source walk cannot see: that one registration failing does not skip
+    /// the rest. Those assertions live with their Uplink and move with it. This
+    /// walk is the floor under every Uplink, not a replacement for them.</para>
     ///
     /// <para><b>Why source rather than loaded assemblies.</b> No project here may
     /// reference every Uplink (<c>UplinkIsolationTests</c> exists to prevent that

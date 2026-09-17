@@ -139,13 +139,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   realsolarsystem: {
     permanent: [
       /*
-       * Prose, inside the Uplink that legitimately depends on the pack: RP-1
-       * ships on it, and the render setup says so to explain why every duration
-       * in an RP-1 career is long. Naming a dependency in a comment is text, not
-       * coupling.
-       */
-      "mod/GonogoRp1Uplink/client/gonogo-render.setup.ts",
-      /*
        * Prose, citing PROVENANCE: the pressure-profile test measures its
        * reconstruction error against the real curve the pack ships for Earth,
        * and its doc comment names the config file that came from. A test that

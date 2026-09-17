@@ -13,8 +13,8 @@ name: Publish mod zips
 # reason. scripts/uplink-mod-build.sh's exemption list is empty as a result, so
 # nothing here is waiting on a build that cannot happen.
 #
-# The Uplinks with no .netkan (Avionics, Kerbalism, Rp1, TestFlight) are not
-# omitted for a build reason: all four compile. They have declared no CKAN
+# The Uplinks with no .netkan (Avionics, Kerbalism, TestFlight) are not
+# omitted for a build reason: all three compile. They have declared no CKAN
 # identity yet, so there is nothing to publish them AS. Give one a .netkan and
 # it earns a leg here.
 #

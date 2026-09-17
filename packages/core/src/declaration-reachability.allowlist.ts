@@ -90,7 +90,6 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
      */
     "topic comms.linkQuality",
   ],
-  GonogoRp1Uplink: ["topic rp1.careerEvents"],
 };
 
 /**
