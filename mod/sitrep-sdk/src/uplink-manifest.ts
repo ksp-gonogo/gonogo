@@ -7,9 +7,8 @@
  * emitted thirteen fields beside the bundle it had just built; `docs` emitted
  * nine beside the client, and nothing anywhere said which one the loader
  * honours. An author who ran both got two manifests and no way to tell them
- * apart by reading either. The operator's ruling was to promote `bundle`'s shape
- * and make `docs` an alias, so this is that shape and this is the only code that
- * builds it.
+ * apart by reading either. `bundle`'s shape is promoted and `docs` is made an
+ * alias of it, so this is that shape and this is the only code that builds it.
  *
  * It lives in the sdk because the sdk is the one package both writers can reach:
  * `bundle` runs from here, `docs` runs in `@ksp-gonogo/ui-kit`, and ui-kit

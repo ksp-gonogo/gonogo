@@ -7,9 +7,9 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
 /**
  * The two primitives that take a `Reading` are FED readings, enforced.
  *
- * Operator ruling (#257, 8): *"Waste of time having Meter support Reading if
- * it's not going to be enforced."* `<Unit>` and `<Meter>` each say, in their
- * declared prop types, that they will draw how current a number is and how well
+ * There's no point in `<Meter>` supporting `Reading` if it isn't enforced.
+ * `<Unit>` and `<Meter>` each say, in their declared prop types, that they
+ * will draw how current a number is and how well
  * it is known. A call site that hands one a bare fraction it divided itself gets
  * a bar with neither, and it gets it silently: the picture is identical to a
  * healthy reading's, so nothing on screen says the currency and the band went

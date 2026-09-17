@@ -24,10 +24,9 @@ describe("UnitSharedFormat", () => {
   });
 
   /**
-   * The rung the LARGEST member would pick (operator, 2026-09-13), because the
-   * group is a group about its biggest reading: 3400 m reads `3.4 km`, so the
-   * 500 m beside it reads `0.5 km` rather than dragging the pair down to a
-   * four-digit `3400.0 m`.
+   * The rung the LARGEST member would pick, because the group is a group about
+   * its biggest reading: 3400 m reads `3.4 km`, so the 500 m beside it reads
+   * `0.5 km` rather than dragging the pair down to a four-digit `3400.0 m`.
    */
   it("takes the largest member's rung rather than the smallest", () => {
     const { container } = render(

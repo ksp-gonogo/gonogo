@@ -9,12 +9,11 @@ import { modClientRoots } from "./styleguideScanRoots";
  * Design-system guard: a status badge never reads before the thing it is a
  * status OF.
  *
- * The operator's ruling, off a render of the Administration Building's Program
- * detail pane: "status badges ideally should always be above, or aligned to the
- * right. Badge then title doesn't read well because the state comes before the
- * subject." It is a general rule rather than a fix to one pane, which is what
- * this file makes it: order in the SOURCE is order in the DOM, and order in the
- * DOM is what a screen reader walks and an eye scans.
+ * Status badges belong above the subject, or aligned to its right: a badge
+ * before the title reads badly because the state arrives before the subject
+ * it describes. It is a general rule rather than a fix to one pane, which is
+ * what this file makes it: order in the SOURCE is order in the DOM, and order
+ * in the DOM is what a screen reader walks and an eye scans.
  *
  * `SubjectHeading` in `@ksp-gonogo/ui-kit` is the sanctioned way to build one of
  * these lines, and it takes its status through a prop rather than as a child, so

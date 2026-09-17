@@ -6,15 +6,11 @@
  *
  * An Uplink's docs page shows its widgets, and some of those widgets are an
  * AUGMENT or a CONTRIBUTION into a widget that ships with the app. To draw one
- * honestly you need the host widget around it. The operator's ruling on ticket 221
- * this package is:
- *
- * > "if it's for the production of the docs page for each uplink that will show
- * > the widgets and where any of the extensions sit, then I think that makes
- * > sense. But let's just make sure it's under its own specific export, because
- * > typically pulling the widgets into the UI kit is only for the docs page,
- * > right? It's not for anything else. So I think we should try and make sure
- * > that's a separate named export path."
+ * honestly you need the host widget around it, so producing the docs page for
+ * each Uplink, showing its widgets and where any extensions sit, is a
+ * reasonable use, as long as it stays under its own specific named export:
+ * pulling the widgets into the UI kit is only for the docs page, not for
+ * anything else.
  *
  * So: **this exists for the docs page and for nothing else.** It must not
  * become the route by which an Uplink starts importing the app's widgets for

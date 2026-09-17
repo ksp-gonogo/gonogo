@@ -226,10 +226,10 @@ export function AlarmsModal({
   /**
    * Whether the vantage choice means anything for the draft's trigger kind.
    *
-   * A UT alarm fires at the time itself, the same instant at every vantage, and
-   * names no craft (operator, 2026-09-15), so there is no clock to pick between
-   * and the control is greyed out rather than offering a choice that changes
-   * nothing. A threshold is the opposite case: a value crosses at one instant
+   * A UT alarm fires at the time itself, the same instant at every vantage,
+   * and names no craft, so there is no clock to pick between and the control
+   * is greyed out rather than offering a choice that changes nothing. A
+   * threshold is the opposite case: a value crosses at one instant
    * aboard the craft and at a later one wherever the news reaches, so which
    * vantage is watching is the whole question.
    */

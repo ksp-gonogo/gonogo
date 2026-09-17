@@ -81,10 +81,10 @@ import {
  * because one row happens to be small hands the reader six digits of the wrong
  * question in every other row.
  *
- * It costs the small end, and the operator accepted that cost (2026-09-13):
- * `999 m` beside `1000 m` settles on kilometres and reads `1.0 km – 1.0 km`,
- * and a 500 m member of a group holding 3.4 Mm reads `0.0 Mm`. Both need the
- * two ends of one ladder to meet inside one group, which the readings this
+ * It costs the small end: `999 m` beside `1000 m` settles on kilometres and
+ * reads `1.0 km – 1.0 km`, and a 500 m member of a group holding 3.4 Mm reads
+ * `0.0 Mm`. Both need the two ends of one ladder to meet inside one group,
+ * which the readings this
  * renders rarely do, and a group that must tell its members apart says
  * `separate` and is given the digits to do it.
  *

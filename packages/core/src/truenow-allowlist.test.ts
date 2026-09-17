@@ -133,8 +133,8 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // this reason.
   //
   // This entry is a LOOSENING, not a ratchet-down: VesselUplink had no entry
-  // before, and the channel was Delayed. Operator ruling, 2026-09-11: "warp has
-  // to be truenow. It's a meta state, effectively scene 'changing'."
+  // before, and the channel was Delayed. Warp has to be truenow: it's a meta
+  // state, effectively scene "changing".
   //
   // Declared through the file's own WarpChannel() helper rather than the shared
   // Channel() one, so the count stays honest: a second delay-bypassing channel
@@ -148,13 +148,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // and never travelled down a link. Same class as commandCentre.roster below.
   //
   // The FIRE NOTICE is the deliberate exception, and the only one this feature
-  // makes. Operator ruling, 2026-09-11: a SCET alarm stops the warp universally,
-  // because warp is a meta-game concept, and the operator accepted in writing
-  // that their readings will still show the craft a light-time ago when it does
-  // ("an alarm for SCET 100km altitude could trigger and show the command centre
-  // altitude as 82km"). For them to observe that mismatch at all the notice has
-  // to arrive WITH the stop; delayed, the warp would halt and nothing on screen
-  // would say why for minutes.
+  // makes. A SCET alarm stops the warp universally, because warp is a
+  // meta-game concept, and an operator's readings will still show the craft a
+  // light-time ago when it does (an alarm for SCET at 100km altitude could
+  // trigger and show the command centre altitude as 82km). For them to
+  // observe that mismatch at all the notice has to arrive WITH the stop;
+  // delayed, the warp would halt and nothing on screen would say why for
+  // minutes.
   //
   // What keeps that from being a telemetry leak is the PAYLOAD, not the role:
   // ScetAlarmFired carries the alarm's own id and the instant it fired, and

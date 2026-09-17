@@ -1340,7 +1340,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       ensureConsent: async () => true,
       fetchBytes,
       // manifest self-declares a DIFFERENT integrity than the mod vouched,
-      // a real fault since mod + client release together (operator ruling).
+      // a real fault since mod + client release together.
       fetchManifest: async () =>
         manifestFor({ integrity: "sha256-manifest-disagrees" }),
       importBundle,

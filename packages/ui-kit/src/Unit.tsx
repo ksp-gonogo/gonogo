@@ -414,9 +414,9 @@ function lastValidAt(asOfUt: Value<"ut"> | undefined): string | null {
 /**
  * What the mark says in words: the grade, and how far back the number is from.
  *
- * Two levels, and the split is the operator ruling that shaped this. HOW stale
- * a reading is is most of what staleness means, and a glance at a wall of cells
- * is not where it belongs: a date in every cell is a date nobody reads. So the
+ * Two levels: HOW stale a reading is is most of what staleness means, and a
+ * glance at a wall of cells is not where it belongs: a date in every cell is
+ * a date nobody reads. So the
  * dot answers the yes-or-no question at a glance, and this answers the
  * follow-up on demand, in the hover and in the accessibility tree.
  *
