@@ -9,7 +9,6 @@ import {
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
   Cluster,
   Countdown,
   EmptyState,
@@ -23,6 +22,7 @@ import {
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment, type ReactNode, useMemo } from "react";
+import "./badge";
 import {
   buildCommsRouteNodes,
   type CommsRouteNode,
@@ -432,19 +432,6 @@ function CommSignalComponent({
             />
             <SignalHeadline headline={headline} lost={connected === false} />
           </Cluster>
-          {/*
-            ONE badge for the whole panel, in the BODY rather than the header
-            aside: an aside collapses at narrow widths and would take the
-            explanation with it, which has already hidden a readout in this
-            repo once.
-            `role="status"` because this is a change of link state, which is
-            what the accessibility rules reserve a polite live region for.
-          */}
-          {noSignal && (
-            <div role="status">
-              <Badge severity="warning">No signal</Badge>
-            </div>
-          )}
         </Section>,
         showDetailGrid && (
           <Section key="detail">

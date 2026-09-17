@@ -26,6 +26,7 @@
     "render-provenance-card": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-provenance-card.ts",
     "render-delay-rail": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-delay-rail.ts",
     "render-crew-status-panel-badge": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-panel-badge.ts",
+    "render-comm-signal-badge-slot": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-comm-signal-badge-slot.ts",
     "render-crew-status-avatar": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-avatar.ts",
     "render-cross-browser": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-cross-browser.ts",
     "render-systemview-traffic-video": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-systemview-traffic-video.ts",

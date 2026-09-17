@@ -124,12 +124,14 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
    *
    * Three claims, and each is asserted because getting any one of them alone
    * would be a worse panel than the collapse this replaced: the panel STAYS,
-   * every figure NULLS, and ONE badge carries the reason. The held-and-marked
-   * shape this file asserted until 2026-09-17 was option B on #337 and the
-   * operator ruled against it: a mark does not withdraw what a number asserts,
-   * and for a link "there's no value in seeing what the link was".
+   * every figure NULLS, and ONE badge carries the reason. The badge itself is
+   * a `comm-signal.badges` contribution, asserted in `./panel-badge.test.tsx`.
+   * The held-and-marked shape this file asserted until 2026-09-17 was option B
+   * on #337 and the operator ruled against it: a mark does not withdraw what a
+   * number asserts, and for a link "there's no value in seeing what the link
+   * was".
    */
-  it("nulls every line and shows one No signal badge once the link stops arriving", async () => {
+  it("nulls every line once the link stops arriving", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
       pinnedUt: 10,
@@ -174,9 +176,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
     expect(screen.queryByLabelText(/not current/i)).toBeNull();
 
-    // 3. ONE badge carries the reason, and none of the wording the operator
-    //    objected to survives anywhere on the panel.
-    expect(screen.getAllByText("No signal")).toHaveLength(1);
+    // 3. None of the disallowed wording survives anywhere on the panel.
     expect(visibleText()).not.toMatch(/not current/i);
     expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).not.toMatch(/stale/i);
