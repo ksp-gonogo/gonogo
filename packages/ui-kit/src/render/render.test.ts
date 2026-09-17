@@ -294,7 +294,7 @@ describe("the generated browser entry", () => {
   });
 
   /**
-   * A specifier was refused outright until #221, because the only host module
+   * A specifier was refused outright until ticket 221, because the only host module
    * was `packages/components`, which is unpublished: naming it by specifier
    * would have meant a dependency the isolation rules forbid. Publishing
    * `@ksp-gonogo/render-hosts` is what changed that, and it is the only way an
@@ -341,7 +341,7 @@ describe("the generated browser entry", () => {
     // This assertion is load-bearing beyond its wording. `require.resolve.paths`
     // is the obvious way to find the node_modules chain and it appends
     // `NODE_PATH`, which VITEST sets to pnpm's private
-    // `node_modules/.pnpm/node_modules` — where every package in the monorepo
+    // `node_modules/.pnpm/node_modules`, where every package in the monorepo
     // is present. Written that way the resolver answered "installed" here and
     // this test was the only thing that said so.
     expect(() => resolveUplinkPackage(dir)).toThrow(

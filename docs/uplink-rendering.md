@@ -500,7 +500,7 @@ A host widget ships with the APP, so the run has to be told which module
 registers it. Declare that once, beside `minAppVersion`. **Which of the two
 forms you write is decided by where your Uplink lives, not by preference.**
 
-Outside this repo — install `@ksp-gonogo/render-hosts` as a **devDependency** and
+Outside this repo: install `@ksp-gonogo/render-hosts` as a **devDependency** and
 name it:
 
 ```jsonc
@@ -513,9 +513,9 @@ That package is the app's own widgets, prebuilt, published for this and for
 nothing else. It is a devDependency because you never import it: there is
 nothing in it to import, only the side effect of registering the widgets. Moving
 it to `dependencies`, or importing it anywhere in your client, fails the
-isolation gate — see [uplink-isolation.md](uplink-isolation.md).
+isolation gate (see [uplink-isolation.md](uplink-isolation.md)).
 
-Inside this repo — name the source path instead, relative to your client
+Inside this repo, name the source path instead, relative to your client
 package, because it needs no install and tracks your edits without a rebuild:
 
 ```jsonc

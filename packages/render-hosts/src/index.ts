@@ -6,7 +6,7 @@
  *
  * An Uplink's docs page shows its widgets, and some of those widgets are an
  * AUGMENT or a CONTRIBUTION into a widget that ships with the app. To draw one
- * honestly you need the host around it. The operator's ruling on #221 is what
+ * honestly you need the host around it. The operator's ruling on ticket 221 is what
  * this package is:
  *
  * > "if it's for the production of the docs page for each uplink that will show
@@ -59,7 +59,7 @@
  * stand-in's body is `() => null`. `strategies.screens`,
  * `space-center-status.facilities` and `astronaut-complex.readouts` are each a
  * `useContributions(...)` inside the widget. Standing in for those produces a
- * blank frame that reports success, which is measured (#317) rather than
+ * blank frame that reports success, which is measured (ticket 317) rather than
  * argued, and is why the refusal in `render/scenes.ts` stays where it is.
  *
  * A real host body is the only thing that draws them. That is this package.

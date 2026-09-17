@@ -832,7 +832,7 @@ describe("uplink subpath isolation", () => {
  * exactly what makes it dangerous: every other rule in this file works by a
  * package being unpublished, and this one cannot.
  *
- * The operator's ruling on #221 is the rule:
+ * The operator's ruling on ticket 221 is the rule:
  *
  * > "typically pulling the widgets into the UI kit is only for the docs page,
  * > right? It's not for anything else."
@@ -842,8 +842,8 @@ describe("uplink subpath isolation", () => {
  *   - `devDependencies` and `gonogo.renderWith`: yes. That is the whole purpose
  *   - `dependencies`: no. A runtime dependency is the Uplink shipping the app's
  *     widget library to its users
- *   - any `import` in client source: no. There is nothing to import — the
- *     package exports no symbols, only the side effect of registration — so an
+ *   - any `import` in client source: no. There is nothing to import: the
+ *     package exports no symbols, only the side effect of registration, so an
  *     import is someone reaching past the exports map for a widget
  *
  * Position is the whole check, which is why this cannot be an entry in
@@ -859,7 +859,7 @@ describe("render-hosts is a render-time module, not an import", () => {
    * `m` but deliberately NOT `g`: this one is used with `.test()`, and a global
    * regex carries `lastIndex` between calls, so testing a second file starts
    * partway through it and can miss a match the file plainly contains. Clean,
-   * that is invisible — nothing matches, `lastIndex` stays 0 — and it only
+   * that is invisible (nothing matches, `lastIndex` stays 0) and it only
    * shows once TWO files are in violation, which is the worst time to find out.
    */
   const RENDER_HOSTS_IMPORT_RE = new RegExp(
@@ -867,17 +867,30 @@ describe("render-hosts is a render-time module, not an import", () => {
     "m",
   );
 
+  /**
+   * Does this manifest TEXT declare the package as a runtime dependency?
+   *
+   * Takes the source rather than a path so the instrument check below can feed
+   * it a planted manifest and exercise this exact reader, instead of asserting
+   * that a separate copy of the same lookup behaves the same way.
+   *
+   * Narrowed rather than cast: `JSON.parse` hands back `any`, and an `as` here
+   * would assert the shape this is trying to establish. `unknown-cast.test.ts`
+   * holds this file to a ceiling for that reason.
+   */
+  function declaresItAtRuntime(manifestSource: string): boolean {
+    const parsed: unknown = JSON.parse(manifestSource);
+    if (typeof parsed !== "object" || parsed === null) return false;
+    if (!("dependencies" in parsed)) return false;
+    const deps = parsed.dependencies;
+    if (typeof deps !== "object" || deps === null) return false;
+    return RENDER_HOSTS in deps;
+  }
+
   function manifestsDeclaringItAsARuntimeDependency(): string[] {
-    const offenders: string[] = [];
-    for (const manifest of uplinkManifests()) {
-      const pkg = JSON.parse(readFileSync(manifest, "utf8")) as {
-        dependencies?: Record<string, string>;
-      };
-      if (pkg.dependencies?.[RENDER_HOSTS] !== undefined) {
-        offenders.push(relative(REPO_ROOT, manifest).split("\\").join("/"));
-      }
-    }
-    return offenders;
+    return uplinkManifests()
+      .filter((manifest) => declaresItAtRuntime(readFileSync(manifest, "utf8")))
+      .map((manifest) => relative(REPO_ROOT, manifest).split("\\").join("/"));
   }
 
   function sourceFilesImportingIt(): string[] {
@@ -923,16 +936,24 @@ describe("render-hosts is a render-time module, not an import", () => {
       "The import pattern matched something that is not an import. The renderWith entry is the case that matters: it names the package in the manifest on purpose, and a pattern that reads it as an import fails the very thing it is meant to permit.",
     ).toEqual([]);
 
-    // The manifest scanner, planted the same way: a real manifest shape, read
-    // through the same field the check reads, rather than trusting that a
-    // `dependencies` lookup does what it looks like it does.
-    const planted = JSON.parse(
-      `{"dependencies":{"${RENDER_HOSTS}":"^0.1.0"},"devDependencies":{}}`,
-    ) as { dependencies?: Record<string, string> };
+    /**
+     * The manifest scanner, graded through the reader the check itself uses:
+     * forbidden in `dependencies`, permitted in `devDependencies`. The
+     * permitted position is the one worth planting, because a reader that
+     * reported BOTH would fail every correctly-written Uplink.
+     */
     expect(
-      planted.dependencies?.[RENDER_HOSTS],
-      "The manifest check reads a field that a runtime declaration does not land in.",
-    ).toBeDefined();
+      declaresItAtRuntime(
+        `{"dependencies":{"${RENDER_HOSTS}":"^0.1.0"},"devDependencies":{}}`,
+      ),
+      "The manifest reader cannot see a runtime declaration.",
+    ).toBe(true);
+    expect(
+      declaresItAtRuntime(
+        `{"devDependencies":{"${RENDER_HOSTS}":"^0.1.0"},"dependencies":{}}`,
+      ),
+      "The manifest reader flags the devDependency, which is the position this package is FOR.",
+    ).toBe(false);
   });
 
   it("no Uplink client declares render-hosts as a runtime dependency", () => {

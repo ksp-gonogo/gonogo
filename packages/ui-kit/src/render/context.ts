@@ -119,7 +119,7 @@ function findFixtures(root: string): string[] {
  * Uplink that has left names `@ksp-gonogo/render-hosts`, the package that
  * carries the app's widgets prebuilt for exactly this.
  *
- * A specifier was refused until #221, on the ground that reaching a host would
+ * A specifier was refused until ticket 221, on the ground that reaching a host would
  * mean a dependency the isolation rules forbid. That was true while the only
  * module was `packages/components`, which is `private: true` and unpublished.
  * It stopped being true when `@ksp-gonogo/render-hosts` shipped: a published
@@ -215,7 +215,7 @@ export function resolveRenderModule(
   // here, measured rather than reasoned: it appends `NODE_PATH`, and vitest
   // sets `NODE_PATH` to pnpm's private `node_modules/.pnpm/node_modules`. Every
   // package in the monorepo is present there, so the check answered "installed"
-  // for a package the Uplink had never declared — the same hoisting that
+  // for a package the Uplink had never declared, the same hoisting that
   // `uplink-isolation.test.ts` exists to stop anyone relying on. A check that
   // passes because of the store it happens to be run beside is not a check.
   const pkg = packageNameOf(entry);

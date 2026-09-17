@@ -188,7 +188,7 @@ if (manifest.private === true) {
 // Through `scopePackages`, for the reason that map exists: the question is
 // whether a consumer can INSTALL the named package, not whether the name is in
 // our scope. Check 3 already asks it that way about the emitted specifiers, and
-// asking it differently here was a real hole in both directions — it passed a
+// asking it differently here was a real hole in both directions: it passed a
 // private package that a `.d.ts` reached by another route, and it refused
 // `@ksp-gonogo/ui-kit` as a peer, which is the one correct way to declare a
 // package that MUST resolve to the consumer's own copy rather than a second one
