@@ -104,7 +104,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
      * `Reading`, so they went on showing figures after the orbit stopped
      * arriving: the same falsehood by a different route, in the same column.
      * The comment here used to say "no change to the reading path can fix it",
-     * and that was right — the fix was not in the reading path. `vessel.state`
+     * and that was right: the fix was not in the reading path. `vessel.state`
      * computes its own currency through `deriveStatus` on its channel
      * definition, and nothing read it (ticket 346); `useOrbitElements` now
      * reports it and `CurrentOrbit` nulls these rows on it.
