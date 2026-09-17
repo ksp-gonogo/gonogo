@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "scenario": "reentry-link-lost",
+    "notes": "The same reentry as reentry-warning, after the thermal record stops arriving. The wire is identical and the link then drops, so every temperature is HELD and the panel says so, while the band tags and the summary pill go to unknown because a band is read as the situation now. Rendering the two side by side is what shows the split at all. Before this the whole panel collapsed to one sentence and the heat-shield reading went with it."
+  },
+  "therm.hottestPartName": "Heat Shield (2.5m)",
+  "therm.hottestPartTemp": 1670.9,
+  "therm.hottestPartMaxTemp": 2400,
+  "therm.hottestPartTempRatio": 0.81,
+  "therm.hottestEngineTemp": 350.0,
+  "therm.hottestEngineMaxTemp": 2273,
+  "therm.hottestEngineTempRatio": 0.15,
+  "therm.anyEnginesOverheating": false,
+  "therm.heatShieldTemp": 1553.15,
+  "therm.heatShieldFlux": 3250.4,
+  "_stream": {
+    "carriedChannels": ["vessel.thermal"],
+    "emits": [
+      {
+        "channel": "vessel.thermal",
+        "value": {
+          "maxSkinTempRatio": 0.81,
+          "maxInternalTempRatio": 0.81,
+          "hottestPart": {
+            "internalTemp": 1670.9,
+            "maxTemp": 2400,
+            "skinTemp": 1670.9,
+            "skinMaxTemp": 2400,
+            "name": "Heat Shield (2.5m)"
+          },
+          "heatShieldTemp": 1553.15,
+          "heatShieldFlux": 3250.4,
+          "hottestEngineTemp": 350.0,
+          "hottestEngineMaxTemp": 2273,
+          "hottestEngineTempRatio": 0.15,
+          "anyEnginesOverheating": false
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}
