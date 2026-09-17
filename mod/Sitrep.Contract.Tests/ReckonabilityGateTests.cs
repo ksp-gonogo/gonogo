@@ -186,13 +186,51 @@ namespace Sitrep.Contract.Tests
         [Fact]
         public void MarkedValuesAreSortedAndFreeOfDuplicates()
         {
-            var keys = ReckonabilityAssertion.Marks(ContractTypes())
-                .Select(m => m.Topic + "/" + m.Field + "/" + m.Declaration.Basis)
-                .ToList();
+            var marks = ReckonabilityAssertion.Marks(ContractTypes()).ToList();
 
-            Assert.Equal(keys.OrderBy(k => k, StringComparer.Ordinal).ToList(), keys);
+            // The ORDER is asserted on the same three-part key `Marks` sorts by, NOT on the
+            // joined string. Joining with "/" puts the separator into the comparison, and it
+            // then disagrees with the tuple wherever one topic is a PREFIX of another: "." is
+            // 0x2E and "/" is 0x2F, so `vessel.orbit.truth/position` sorts BEFORE
+            // `vessel.orbit/epoch` as a string, while the tuple puts the shorter topic
+            // `vessel.orbit` first. Both spellings agreed until `vessel.orbit` gained its first
+            // mark alongside the pre-existing `vessel.orbit.truth`, and the joined form then
+            // failed a correctly sorted list. The real contract now holds that prefix pair, so
+            // this assertion is its own regression guard: reverting to the joined key fails here.
+            Assert.Equal(
+                marks
+                    .OrderBy(m => m.Topic, StringComparer.Ordinal)
+                    .ThenBy(m => m.Field, StringComparer.Ordinal)
+                    .ThenBy(m => m.Declaration.Basis, StringComparer.Ordinal)
+                    .Select(JoinedKey)
+                    .ToList(),
+                marks.Select(JoinedKey).ToList());
+
+            // Distinctness is safe on the joined form: no topic, field or basis contains "/",
+            // so a triple is unique exactly when its joined spelling is.
+            var keys = marks.Select(JoinedKey).ToList();
             Assert.Equal(keys.Distinct(StringComparer.Ordinal).Count(), keys.Count);
         }
+
+        /// <summary>
+        /// The joined key is for READING a failure, never for ordering one. Pinned because the
+        /// two spellings agree on almost every pair, so a future simplification back to
+        /// <c>OrderBy(joined)</c> would look harmless and pass until the next prefix pair.
+        /// </summary>
+        [Fact]
+        public void JoiningTheKeyReordersAPrefixPair()
+        {
+            var tupleOrder = new[] { ("vessel.orbit", "epoch"), ("vessel.orbit.truth", "position") };
+            var joined = tupleOrder.Select(t => t.Item1 + "/" + t.Item2).ToList();
+
+            Assert.Equal(
+                tupleOrder.OrderBy(t => t.Item1, StringComparer.Ordinal).ToList(),
+                tupleOrder.ToList());
+            Assert.NotEqual(joined.OrderBy(k => k, StringComparer.Ordinal).ToList(), joined);
+        }
+
+        private static string JoinedKey(ReckonabilityAssertion.ReckonableMark m) =>
+            m.Topic + "/" + m.Field + "/" + m.Declaration.Basis;
 
         /// <summary>
         /// The gate can see BOTH answers, on planted fixtures.
