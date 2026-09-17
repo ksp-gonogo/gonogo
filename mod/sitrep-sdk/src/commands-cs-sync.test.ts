@@ -118,8 +118,29 @@ describe("command map to C# sync", () => {
     ).toEqual([]);
   }, 30_000);
 
-  /** The scan finding nothing reports a clean pass, so the floor is asserted. */
+  /**
+   * The scan finding nothing reports a clean pass, so its reach is asserted.
+   *
+   * Asserted against CORE commands by name rather than against a count. A count
+   * is a floor on how many Uplinks happen to live in this repo today, so every
+   * Uplink that departs breaks it: RP-1 leaving took the total from over 90 to
+   * 77 and turned staging red for a scan that was working perfectly. Four more
+   * Uplinks are due to leave, so a number here would have to be lowered four
+   * more times, and each of those edits looks exactly like weakening a gate.
+   *
+   * Both are declared in `Sitrep.Contract` itself, which no Uplink move can
+   * take away, so the assertion says what it means: the scan can still see the
+   * C# it is scanning. A dead regex or a moved source root fails it.
+   *
+   * Pick sentinels from `Sitrep.Contract` ONLY. A command declared in a
+   * departing Uplink's own contract slice was in this list for one draft, and
+   * would have rebuilt the exact fragility this change exists to remove.
+   */
   it("the C# scan finds the commands it is scanning for", () => {
-    expect(declaredCommands().size).toBeGreaterThan(90);
+    const found = declaredCommands();
+    expect(found.size).toBeGreaterThan(0);
+    for (const core of ["vessel.trajectory.forVantage", "ksp.launch"]) {
+      expect([...found], `the C# scan no longer sees ${core}`).toContain(core);
+    }
   }, 30_000);
 });
