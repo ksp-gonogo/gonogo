@@ -34,11 +34,13 @@ const PEERS = [
 export default defineConfig([
   {
     ...shared,
-    // The BROWSER half, built as a CONSUMER of the kit rather than as part of
-    // it: `@ksp-gonogo/ui-kit` and its subpaths stay external, so this file
-    // shares no chunk with them and there is exactly one copy of the augment
-    // registry once an Uplink's probe bundle resolves both. `splitting` is off
-    // because there is nothing left to share.
+    /**
+     * The BROWSER half, built as a CONSUMER of the kit rather than as part of
+     * it: `@ksp-gonogo/ui-kit` and its subpaths stay external, so this file
+     * shares no chunk with them and there is exactly one copy of the augment
+     * registry once an Uplink's probe bundle resolves both. `splitting` is off
+     * because there is nothing left to share.
+     */
     entry: ["src/render-probe.tsx"],
     clean: true,
     splitting: false,

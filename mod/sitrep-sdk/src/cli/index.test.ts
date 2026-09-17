@@ -97,51 +97,55 @@ describe("every command answers --help", () => {
 });
 
 /**
- * The browser verbs are forwarded to ui-kit, and WHOSE ui-kit is the whole
- * question.
+ * The browser verbs are forwarded to `@ksp-gonogo/uplink-tools`, and WHOSE copy
+ * of it is the whole question.
  *
- * A bare `await import("@ksp-gonogo/uplink-tools")` inside this package
- * resolves against THIS package's own directory, and this package deliberately
- * does not depend on ui-kit (it would be a cycle). Under npm's flat layout an
- * author gets away with it, because both packages sit side by side at the top of
- * `node_modules` and Node's walk-up finds one from the other. Under pnpm they
- * are in separate isolated stores and it can never resolve, so `docs` and
- * `render` failed for every author on pnpm with the message that says ui-kit is
- * not installed while it sat installed in their client.
+ * A bare `await import("@ksp-gonogo/uplink-tools")` inside this package resolves
+ * against THIS package's own directory, and this package deliberately does not
+ * depend on it (it would be a cycle: it depends on the sdk). Under npm's flat
+ * layout an author gets away with it, because both packages sit side by side at
+ * the top of `node_modules` and Node's walk-up finds one from the other. Under
+ * pnpm they are in separate isolated stores and it can never resolve, so `docs`
+ * and `render` failed for every author on pnpm with a message saying the package
+ * was not installed while it sat installed in their client.
  *
- * The fixture builds an author package the way pnpm would: ui-kit reachable from
- * the AUTHOR and unreachable from the sdk. It also gives its fake ui-kit an
- * `exports` map with no `require` condition, which is what ui-kit really ships
- * and what makes `createRequire().resolve` the wrong instrument here.
+ * The fixture builds an author package the way pnpm would: the tools package
+ * reachable from the AUTHOR and unreachable from the sdk. It also gives it an
+ * `exports` map with no `require` condition, which is what it really ships and
+ * what makes `createRequire().resolve` the wrong instrument here.
+ *
+ * It was ui-kit until ticket 221 moved the harness out. The fixture names the
+ * package the CLI actually looks for: a stale one here would pass by planting
+ * the wrong thing and prove nothing about what an author has installed.
  */
-describe("gonogo-uplink forwards a browser verb to the AUTHOR's ui-kit", () => {
+describe("gonogo-uplink forwards a browser verb to the AUTHOR's tools", () => {
   const author = () => {
     const dir = workdir();
     writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({ name: "an-uplink-client", private: true }),
     );
-    const kit = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
-    mkdirSync(kit, { recursive: true });
+    const tools = join(dir, "node_modules", "@ksp-gonogo", "uplink-tools");
+    mkdirSync(tools, { recursive: true });
     writeFileSync(
-      join(kit, "package.json"),
+      join(tools, "package.json"),
       JSON.stringify({
-        name: "@ksp-gonogo/ui-kit",
+        name: "@ksp-gonogo/uplink-tools",
         type: "module",
         version: "9.9.9",
         exports: {
-          "./render": {
-            types: "./dist/render.d.ts",
-            import: "./dist/render.js",
+          ".": {
+            types: "./dist/index.d.ts",
+            import: "./dist/index.js",
           },
         },
       }),
     );
-    mkdirSync(join(kit, "dist"), { recursive: true });
+    mkdirSync(join(tools, "dist"), { recursive: true });
     writeFileSync(
-      join(kit, "dist", "render.js"),
+      join(tools, "dist", "index.js"),
       "export async function run(argv) {\n" +
-        '  console.log("REACHED ui-kit 9.9.9 with " + argv.join(" "));\n' +
+        '  console.log("REACHED uplink-tools 9.9.9 with " + argv.join(" "));\n' +
         "  return 0;\n" +
         "}\n",
     );
@@ -155,7 +159,7 @@ describe("gonogo-uplink forwards a browser verb to the AUTHOR's ui-kit", () => {
       [BIN, "docs", "--root", dir, "--check"],
       { encoding: "utf8" },
     );
-    expect(out).toContain("REACHED ui-kit 9.9.9 with docs --root");
+    expect(out).toContain("REACHED uplink-tools 9.9.9 with docs --root");
   });
 
   it("resolves it from the working directory when no --root is given", () => {
@@ -164,14 +168,14 @@ describe("gonogo-uplink forwards a browser verb to the AUTHOR's ui-kit", () => {
       cwd: dir,
       encoding: "utf8",
     });
-    expect(out).toContain("REACHED ui-kit 9.9.9 with render");
+    expect(out).toContain("REACHED uplink-tools 9.9.9 with render");
   });
 
-  it("still says ui-kit is missing when it really is", () => {
+  it("still says the tools package is missing when it really is", () => {
     const dir = workdir();
     writeFileSync(
       join(dir, "package.json"),
-      JSON.stringify({ name: "no-kit-here", private: true }),
+      JSON.stringify({ name: "no-tools-here", private: true }),
     );
     let combined = "";
     expect(() => {
@@ -186,7 +190,7 @@ describe("gonogo-uplink forwards a browser verb to the AUTHOR's ui-kit", () => {
         throw err;
       }
     }).toThrow();
-    expect(combined).toContain("@ksp-gonogo/ui-kit");
-    expect(combined).toContain("npm i -D @ksp-gonogo/ui-kit playwright");
+    expect(combined).toContain("@ksp-gonogo/uplink-tools");
+    expect(combined).toContain("npm i -D @ksp-gonogo/uplink-tools playwright");
   });
 });

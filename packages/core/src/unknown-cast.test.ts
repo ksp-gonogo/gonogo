@@ -547,24 +547,66 @@ describe("the debt list only ever shrinks", () => {
     return out;
   }
 
+  /**
+   * Growth is refused two different ways, because a moved file and a new
+   * violation look identical to a per-file comparison.
+   *
+   * An EXISTING entry may only fall. That is the strict half and it never
+   * bends: a file that gains an assertion has gained a defect.
+   *
+   * A NEW entry is allowed only when the repo-wide total did not rise. That is
+   * what a relocation looks like: the same assertions under a different path,
+   * keys removed and keys added, total unchanged. Without this the gate fails
+   * on every file move and the only way past is to raise a ceiling or delete
+   * the check, which is how a ratchet gets muted.
+   *
+   * It is not a hole. New assertions cannot enter under it, because entering
+   * raises the total; the most it permits is carrying existing debt from one
+   * file to another, which leaves the population exactly as large as it was.
+   *
+   * Lifted from `styleguide-comment-stacks.test.ts`, which had already met this
+   * and solved it the same way. Both were needed by the same change: moving the
+   * Uplink render harness out of `ui-kit` into `@ksp-gonogo/uplink-tools` moved
+   * eight listed files, and this gate read all eight as new debt.
+   */
   function grade(
     now: Record<string, number>,
     before: Record<string, number>,
     ref: string,
     what: string,
   ): void {
-    const grown = Object.entries(now)
-      .filter(([file, count]) => count > (before[file] ?? 0))
-      .map(([file, count]) => `  ${file}: ${before[file] ?? 0} -> ${count}`);
+    const sum = (list: Record<string, number>): number =>
+      Object.values(list).reduce((a, b) => a + b, 0);
+    const totalBefore = sum(before);
+    const totalNow = sum(now);
+
+    const raised: string[] = [];
+    const arrived: string[] = [];
+    for (const [file, count] of Object.entries(now)) {
+      const was = before[file];
+      if (was === undefined) arrived.push(`  ${file} (${count})`);
+      else if (count > was) raised.push(`  ${file}: ${was} -> ${count}`);
+    }
+
     expect(
-      grown.join("\n"),
+      raised.join("\n"),
       [
-        `The ${what} debt grew against ${ref}. Entries may be lowered or`,
-        "deleted, never added or raised; a file that newly asserts out of",
-        "`unknown` is the regression this gate exists to stop.",
+        `A listed file gained ${what} debt, vs ${ref}. An entry may only fall.`,
         "",
         "Narrow the value instead. See the failure message on the ceiling check",
         "for the three ways out.",
+      ].join("\n"),
+    ).toBe("");
+
+    expect(
+      totalNow > totalBefore ? arrived.join("\n") : "",
+      [
+        `New ${what} entries raised the repo-wide total, vs ${ref}:`,
+        `  ${totalBefore} -> ${totalNow}`,
+        "",
+        "A new entry is only allowed when the total holds, which is what a file",
+        "MOVE looks like. A rising total means an assertion was written rather",
+        "than carried, and that is the regression this gate exists to stop.",
       ].join("\n"),
     ).toBe("");
   }

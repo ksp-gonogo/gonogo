@@ -112,21 +112,25 @@ export const RUNTIME_IMPORT_EXEMPT = {
   "@ksp-gonogo/uplink-tools/hosts":
     "bundles the app's widget graph, which evaluates styled.span at module scope for the same reason the kit does",
   /*
-   * Peer-CONDITIONAL, and that distinction is not pedantry. Every entry above
-   * is a property of the package: the kit evaluates `styled.span` wherever it is
-   * loaded from, so the exemption holds for any consumer. This one is a property
-   * of the CONSUMER, and `uplinkindep` measured the difference on 2026-08-27:
-   * the harness root loads fine in the Uplink client that installs `playwright`
-   * and cannot in the one that does not, so a flat entry is load-bearing in one
-   * tree and STALE in the next while reading identically in both.
+   * FLAT, not peer-conditional, and that is a change from what this entry said
+   * when the harness was `@ksp-gonogo/ui-kit/render`.
    *
-   * So it declares the peer it is conditional on, and the probe honours it only
-   * while that peer is genuinely absent. With `playwright` installed, a failure
-   * here is a real finding again.
+   * It used to declare `whileMissingPeer: "playwright"`, because `uplinkindep`
+   * measured on 2026-08-27 that `/render` loaded fine in the Uplink client that
+   * installs `playwright` and could not in the one that does not. That was a
+   * property of the CONSUMER, so a flat entry would have been load-bearing in
+   * one tree and stale in the next while reading identically in both.
+   *
+   * It is no longer conditional, because the failure now happens EARLIER and
+   * for a different reason. This package's root imports the kit at module
+   * scope, so it dies on `styled.span is not a function` before Playwright is
+   * ever reached, with or without the peer installed. `rp1move` measured all
+   * four entry points failing that way in an installed client on 2026-09-17,
+   * which is the only place the answer is real.
+   *
+   * If the styled-components cause is ever fixed, the playwright condition
+   * comes back rather than the entry simply being deleted.
    */
-  "@ksp-gonogo/uplink-tools": {
-    reason:
-      "needs the `playwright` optional peer, whose postinstall downloads browsers; too heavy for this probe to install to answer a resolution question",
-    whileMissingPeer: "playwright",
-  },
+  "@ksp-gonogo/uplink-tools":
+    "imports the kit at module scope, so it evaluates the same styled.span before it reaches anything of its own",
 };

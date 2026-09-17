@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 /**
  * Where the tool is running and what it found there. Everything resolved once,
@@ -363,4 +363,59 @@ export function jetbrainsMonoFace(): FontFace {
 /** A path as it should appear in a message: relative to the package, POSIX. */
 export function display(dir: string, file: string): string {
   return relative(dir, file).split("\\").join("/");
+}
+
+/**
+ * A resolved `renderWith` value as a URL something can `import()`.
+ *
+ * `renderWith` carries two shapes, and this is where the second one has to be
+ * turned back into a file. A relative entry arrived here already resolved to an
+ * absolute PATH; a bare SPECIFIER was deliberately left as written, because the
+ * render path hands it to esbuild, which resolves it from the client directory.
+ *
+ * **`page-check` has no bundler**, so it resolves the specifier itself, and
+ * `pathToFileURL` alone is wrong for it: given `@ksp-gonogo/uplink-tools/hosts`
+ * it produces `<client dir>/@ksp-gonogo/uplink-tools/hosts`, the client
+ * directory with the package name glued on the end. That was the defect, and it
+ * only appeared once a specifier became legal.
+ *
+ * Resolved from `dir`, the CLIENT, and never from this module: a bare
+ * `import()` here would resolve against the tools package's own directory,
+ * which is right by accident for this package's own `/hosts` and wrong for
+ * everything else.
+ *
+ * The exports map is read rather than guessed, and `require.resolve` is not
+ * used, for the reason stated throughout this file: these packages publish an
+ * `import`-only map and a CJS resolver refuses it outright.
+ */
+export function renderModuleUrl(dir: string, entry: string): string {
+  if (!isBareSpecifier(entry)) return pathToFileURL(entry).href;
+
+  const pkg = packageNameOf(entry);
+  const subpath = entry === pkg ? "." : `.${entry.slice(pkg.length)}`;
+  for (const root of nodeModulesChain(dir)) {
+    const pkgDir = join(root, pkg);
+    const manifest = join(pkgDir, "package.json");
+    if (!exists(manifest)) continue;
+    const exported = readJson<{
+      exports?: Record<string, string | Record<string, string>>;
+      main?: string;
+    }>(manifest);
+    const entryPoint = exported.exports?.[subpath];
+    const file =
+      typeof entryPoint === "string"
+        ? entryPoint
+        : (entryPoint?.import ?? entryPoint?.default);
+    if (!file) {
+      throw new Error(
+        `gonogo-uplink: ${pkg} at ${pkgDir} exports no "${subpath}", so ` +
+          `"${entry}" cannot be loaded. Upgrade it:\n  npm i -D ${pkg}@latest`,
+      );
+    }
+    return pathToFileURL(join(pkgDir, file)).href;
+  }
+  throw new Error(
+    `gonogo-uplink: "${entry}" names "${pkg}", which is not installed under ` +
+      `${dir}. Add it to devDependencies.`,
+  );
 }
