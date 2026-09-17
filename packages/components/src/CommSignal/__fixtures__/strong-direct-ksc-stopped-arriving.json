@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "scenario": "strong-direct-ksc-stopped-arriving",
+    "notes": "The same strong direct link as strong-direct-ksc, after it stops arriving. The panel used to replace itself with one sentence and take the percentage, the light-time and the route down with it. Ruled shape (#337, operator 2026-09-17): the panel STAYS and shows every line, each line renders its NULL state rather than a held or reckoned value, and one \"No signal\" warning badge carries the reason. Rendering this beside strong-direct-ksc is what shows that the healthy case is untouched."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.87,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 0.0004,
+  "_stream": {
+    "carriedChannels": [
+      "comms.link",
+      "comms.delay",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 0.0004
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 0.87,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0,
+    "stopsArriving": true
+  }
+}

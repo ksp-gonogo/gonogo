@@ -428,6 +428,23 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
      and dating the two measured figures replaced that accessor, and the walk
      finds nothing to report there now. */
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
+  /*
+   * SIX, and none of them is migratable, which makes this entry a different
+   * kind of thing from the rest of this list.
+   *
+   * Four are the provider-extension boundary: `CommsHop.extensions` is
+   * `ProviderExtensions`, a record of `unknown` opaque BY CONSTRUCTION because
+   * core cannot know a provider's shape, so a field reading there is
+   * `FieldReading<unknown>` and `Unit` refuses it. Its own ticket, because it
+   * recurs for every Uplink augment that reads an extension bag.
+   *
+   * The other two are ordinary field properties and were migrated on
+   * 2026-09-17, then REVERTED the same day: #337 ruled that a comms figure must
+   * null when the link stops arriving rather than draw held, and a field
+   * reading exists precisely to carry that currency to the screen. So the
+   * observed-only read is the ruled behaviour here and the gate's premise does
+   * not apply. Not debt a migration can pay.
+   */
   "mod/GonogoRealAntennasUplink/client/src/CommSignalRaAugment/index.tsx": 6,
   // The one RP-1 site no accessor can reach: `chosen` is an element of a
   // FILTERED list, and a payload is addressed BY PATH, so an element selected
@@ -444,6 +461,14 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * `StartResearch` does.
    */
   "packages/components/src/AstronautComplex/index.tsx": 2,
+  /*
+   * Migrated on 2026-09-17 and REVERTED the same day, for the reason on the
+   * RealAntennas entry below: #337 ruled that a comms figure NULLS when the
+   * link stops arriving rather than drawing held, and a field reading exists to
+   * carry that currency to the screen. The observed-only read plus a minted
+   * `Value` is the ruled behaviour, so this site is not debt a migration can
+   * pay. Revisit only if that ruling changes.
+   */
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
