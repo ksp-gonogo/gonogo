@@ -56,20 +56,20 @@ export interface KerbalismIsruDrillExtension
 	* running still costs this even where there is nothing to extract, which is
 	* exactly the case an operator wants to catch.
 	*/
-	ecRate?: Value<"units/s">;
+	ecRate?: Value<"units/s"> | null;
 	/**
 	* Asteroid/comet mining only: remaining rock mass. Null for surface, ocean and
 	* atmospheric harvesters, where abundance is a property of the environment
 	* rather than of a finite source.
 	*/
-	sourceMassRemaining?: Value<"t">;
+	sourceMassRemaining?: Value<"t"> | null;
 	/**
 	* Asteroid/comet mining only: the depletion threshold below which the source
 	* is exhausted. Paired with `KerbalismIsruDrillExtension.sourceMassRemaining`,
 	* this is what lets a reader show how much of the rock is actually still
 	* minable rather than how much of it is left.
 	*/
-	sourceMassThreshold?: Value<"t">;
+	sourceMassThreshold?: Value<"t"> | null;
 }
 /**
 * Kerbalism's `extensions["kerbalism"]` sub-tree of one `isru.converters`
@@ -110,18 +110,18 @@ export interface KerbalismIsruConverterExtension
 	* numbers, surfaced so a reader can tell a half-capacity plant from a
 	* half-starved one.
 	*/
-	capacity?: Value<"units">;
+	capacity?: Value<"units"> | null;
 	/**
 	* Distinct from the shared `running` flag: a part-integrity failure, not
 	* merely toggled off. A broken plant cannot be started until it is repaired.
 	*/
-	broken?: boolean;
+	broken?: boolean | null;
 	/**
 	* Active dump-valve index: which outputs vent overboard rather than being
 	* captured. Live per-part state that changes what the shared shape's outputs
 	* actually MEAN for this instance, which is why it belongs next to them.
 	*/
-	valveIndex?: Value<"count">;
+	valveIndex?: Value<"count"> | null;
 }
 /**
 * Space-weather situation for the active vessel, radiation, magnetic belts,
@@ -149,21 +149,21 @@ export interface KerbalismSpaceWeather
 	* `EnvHabitatRadiation * 3600.0`, the same per-second-to-per-hour factor the
 	* client applies here).
 	*/
-	radiationRadPerSecond?: Value<"rad/s">;
-	habitatRadiationRadPerSecond?: Value<"rad/s">;
-	magnetosphere?: boolean;
-	innerBelt?: boolean;
-	outerBelt?: boolean;
-	stormIncoming?: boolean;
-	stormInProgress?: boolean;
-	blackout?: boolean;
-	inSunlight?: boolean;
+	radiationRadPerSecond?: Value<"rad/s"> | null;
+	habitatRadiationRadPerSecond?: Value<"rad/s"> | null;
+	magnetosphere?: boolean | null;
+	innerBelt?: boolean | null;
+	outerBelt?: boolean | null;
+	stormIncoming?: boolean | null;
+	stormInProgress?: boolean | null;
+	blackout?: boolean | null;
+	inSunlight?: boolean | null;
 	/**
 	* Shielding resource amount/capacity (0 in the default profile; present under
 	* RO/Habitat).
 	*/
-	shieldingAmount?: Value<"units">;
-	shieldingCapacity?: Value<"units">;
+	shieldingAmount?: Value<"units"> | null;
+	shieldingCapacity?: Value<"units"> | null;
 	/**
 	* One entry per star Kerbalism enumerates (`Sim.suns`, populated from
 	* Kopernicus `LightShifter` bodies, or the stock single sun when none are
@@ -189,7 +189,7 @@ export interface KerbalismSpaceWeather
 	* never per-storm (confirmed against Kerbalism source: `Storm.Time_to_impact`
 	* reads the same global preference for every call).
 	*/
-	stormEjectionSpeed?: Value<"m/s">;
+	stormEjectionSpeed?: Value<"m/s"> | null;
 }
 /**
 * One star's vantage from the active vessel (Kerbalism's
@@ -204,7 +204,7 @@ export interface KerbalismStarInfo
 	/** Normalized vessel-to-sun direction, `VesselData.SunInfo.Direction`. */
 	direction?: Vec3Of<"1">;
 	/** Vessel-to-sun-surface distance, `VesselData.SunInfo.Distance`. */
-	distance?: Value<"m">;
+	distance?: Value<"m"> | null;
 }
 /** What a CME is aimed at: a celestial body, or one vessel on its own. */
 export enum KerbalismStormTargetKind {
@@ -262,7 +262,7 @@ export interface KerbalismStormEntry
 	* state, so it is outside the fair-vs-cheating boundary below and carries even
 	* when `KerbalismStormEntry.stormState` is 0).
 	*/
-	targetKind?: KerbalismStormTargetKind;
+	targetKind?: KerbalismStormTargetKind | null;
 	/**
 	* The target's name: the body's `CelestialBody.bodyName` when
 	* `KerbalismStormEntry.targetKind` is `KerbalismStormTargetKind.Body`, the
@@ -274,17 +274,17 @@ export interface KerbalismStormEntry
 	* `StormData.storm_state`: 0 none, 1 inbound (in transit), 2 in progress
 	* (arrived).
 	*/
-	stormState?: Value<"count">;
+	stormState?: Value<"count"> | null;
 	/**
 	* Arrival UT, `StormData.storm_time`. Null when
 	* `KerbalismStormEntry.stormState` is 0.
 	*/
-	stormTime?: Value<"ut">;
+	stormTime?: Value<"ut"> | null;
 	/**
 	* Storm duration once it hits, `StormData.storm_duration`. Null when
 	* `KerbalismStormEntry.stormState` is 0.
 	*/
-	stormDuration?: Value<"s">;
+	stormDuration?: Value<"s"> | null;
 	/**
 	* Live sun-to-body distance (`Vector3d.Distance(body.position,
 	* star.position)`, the identical geometry `Storm.Update` itself computes).
@@ -294,7 +294,7 @@ export interface KerbalismStormEntry
 	* negligible at interplanetary scale. Null when
 	* `KerbalismStormEntry.stormState` is 0.
 	*/
-	dist?: Value<"m">;
+	dist?: Value<"m"> | null;
 }
 /**
 * One life-support consumable: amount, capacity, signed net rate (units/s,
@@ -302,9 +302,9 @@ export interface KerbalismStormEntry
 */
 export interface KerbalismResource
 {
-	amount?: Value<"units">;
-	capacity?: Value<"units">;
-	rate?: Value<"units/s">;
+	amount?: Value<"units"> | null;
+	capacity?: Value<"units"> | null;
+	rate?: Value<"units/s"> | null;
 }
 /**
 * Habitat scalars from `KERBALISM.API` (all 0..1 factors except
@@ -312,13 +312,13 @@ export interface KerbalismResource
 */
 export interface KerbalismHabitat
 {
-	pressure?: Value<"ratio">;
-	poisoning?: Value<"ratio">;
-	shielding?: Value<"ratio">;
-	livingSpace?: Value<"ratio">;
-	comfort?: Value<"ratio">;
-	volume?: Value<"m³">;
-	surface?: Value<"m²">;
+	pressure?: Value<"ratio"> | null;
+	poisoning?: Value<"ratio"> | null;
+	shielding?: Value<"ratio"> | null;
+	livingSpace?: Value<"ratio"> | null;
+	comfort?: Value<"ratio"> | null;
+	volume?: Value<"m³"> | null;
+	surface?: Value<"m²"> | null;
 }
 /** One ProcessController process (scrubber / recycler / fuel cell). */
 export interface KerbalismProcessEntry
@@ -337,9 +337,9 @@ export interface KerbalismProcessEntry
 	* matched `KerbalismProcessDef` by this, so `profileRate * capacity` is this
 	* instance's contribution and the unit the per-source ledger is built from.
 	*/
-	capacity?: Value<"units">;
-	running?: boolean;
-	broken?: boolean;
+	capacity?: Value<"units"> | null;
+	running?: boolean | null;
+	broken?: boolean | null;
 	/**
 	* Host part, as KSP's `Part.flightID`: matches `ShipMapPart.flightId` exactly,
 	* so a ledger row joins straight onto a part in the ship diagram. flightID and
@@ -348,14 +348,14 @@ export interface KerbalismProcessEntry
 	* identical pods into one row. Without this field the ledger can say WHAT is
 	* consuming but never WHERE.
 	*/
-	flightId?: number;
+	flightId?: number | null;
 	/**
 	* Active dump valve, indexing `KerbalismProcessDef.dumpValves`
 	* (`ProcessController.valve_i`). Which outputs are vented rather than stored
 	* is live per-part state and changes what the ledger means, the profile only
 	* lists the possible combinations.
 	*/
-	valveIndex?: Value<"count">;
+	valveIndex?: Value<"count"> | null;
 	/**
 	* The live modifier product k, Kerbalism's own `Modifiers.Evaluate(vessel,
 	* vesselData, vesselResources, modifiers)`, evaluated over the matched
@@ -368,7 +368,7 @@ export interface KerbalismProcessEntry
 	* be resolved; a consumer should treat null as 1.0 (no correction applied),
 	* same as an absent term elsewhere on this contract.
 	*/
-	envModifier?: Value<"1">;
+	envModifier?: Value<"1"> | null;
 }
 /**
 * Static facts about one resource the loaded profile touches, from KSP's own
@@ -403,23 +403,23 @@ export interface KerbalismResourceDef
 	* `null` when the resource definition could not be read at all, the same case
 	* that already leaves `KerbalismResourceDef.flowMode` null.
 	*/
-	flowModeOrdinal?: number;
+	flowModeOrdinal?: number | null;
 	/**
 	* Localised display name from the KSP resource definition, when it differs
 	* from the key.
 	*/
 	displayName?: string;
-	density?: Value<"kg/m³">;
+	density?: Value<"kg/m³"> | null;
 	/**
 	* True when the profile declares a `Supply` for this resource, i.e. it is life
 	* support rather than a propellant some process merely touches.
 	*/
-	isSupply?: boolean;
+	isSupply?: boolean | null;
 	/**
 	* Kerbalism's own warning level (`Supply.low_threshold`). Null when not a
 	* Supply.
 	*/
-	lowThreshold?: Value<"ratio">;
+	lowThreshold?: Value<"ratio"> | null;
 }
 /**
 * One `Profile.rules[]` entry: a PER-KERBAL consumption, not a vessel process.
@@ -449,25 +449,25 @@ export interface KerbalismRuleDef
 	* has no interval and genuinely IS per second, which is why the mistake
 	* survives the one resource anybody sanity-checks first.
 	*/
-	ratePerSecond?: Value<"units/s">;
+	ratePerSecond?: Value<"units/s"> | null;
 	/**
 	* Raw `Profile.rules[].rate`, for fidelity. NOT a per-second figure unless
 	* `KerbalismRuleDef.interval` is 0.
 	*/
-	rate?: Value<"units">;
+	rate?: Value<"units"> | null;
 	/**
 	* `Profile.rules[].interval`, seconds: the rule fires once per interval. 0
 	* means continuous, in which case `KerbalismRuleDef.ratePerSecond` equals
 	* `KerbalismRuleDef.rate`.
 	*/
-	interval?: Value<"s">;
-	degeneration?: Value<"units/s">;
-	fatalThreshold?: Value<"units">;
+	interval?: Value<"s"> | null;
+	degeneration?: Value<"units/s"> | null;
+	fatalThreshold?: Value<"units"> | null;
 	/**
 	* When true, reaching fatal redirects to a recoverable breakdown event instead
 	* of killing the kerbal.
 	*/
-	breakdown?: boolean;
+	breakdown?: boolean | null;
 	/**
 	* Raw modifier keyword tokens, deliberately unparsed. See
 	* `KerbalismProcessDef.modifiers`.
@@ -552,40 +552,40 @@ export interface KerbalismGreenhouseEntry
 	* Derived continuous production rate, units/s (crop_size * crop_rate when
 	* active and lit; 0 when blocked).
 	*/
-	foodRatePerSec?: Value<"units/s">;
+	foodRatePerSec?: Value<"units/s"> | null;
 	/**
 	* Natural light flux reaching the greenhouse, W/m^2
 	* (`Greenhouse.Data.natural`).
 	*/
-	natural?: Value<"W/m²">;
+	natural?: Value<"W/m²"> | null;
 	/** Supplemental lamp light flux, W/m^2 (`Greenhouse.Data.artificial`). */
-	artificial?: Value<"W/m²">;
+	artificial?: Value<"W/m²"> | null;
 	/**
 	* Persisted on/off KSPField, the player's own toggle, independent of whether
 	* it is currently producing.
 	*/
-	active?: boolean;
+	active?: boolean | null;
 	/**
 	* Blocking reason string (`Greenhouse.Data.issue`), e.g. the localized
 	* "insufficient lighting". Empty when growing normally.
 	*/
 	issue?: string;
 	/** Part config: max lamp EC draw, units/s (`ec_rate`). */
-	ecRateMaxPerSec?: Value<"units/s">;
+	ecRateMaxPerSec?: Value<"units/s"> | null;
 	/**
 	* Derived actual lamp EC draw this tick, units/s (0 when lamps are off or
 	* fully unlit by the sun).
 	*/
-	lampEcDrawPerSec?: Value<"units/s">;
+	lampEcDrawPerSec?: Value<"units/s"> | null;
 	/** Part config: total light flux needed to grow, W/m^2 (`light_tolerance`). */
-	lightToleranceWm2?: Value<"W/m²">;
+	lightToleranceWm2?: Value<"W/m²"> | null;
 	/**
 	* Part config: minimum habitat pressure fraction required
 	* (`pressure_tolerance`).
 	*/
-	pressureTolerance?: Value<"ratio">;
+	pressureTolerance?: Value<"ratio"> | null;
 	/** Part config: max radiation tolerated, rad/s (`radiation_tolerance`). */
-	radiationToleranceRadPerSec?: Value<"rad/s">;
+	radiationToleranceRadPerSec?: Value<"rad/s"> | null;
 }
 /** Vessel life-support ledger: consumables, habitat, and the process list. */
 export interface KerbalismLifeSupport
@@ -672,7 +672,7 @@ export interface KerbalismLifeSupport
 	* a statement of ignorance and never a substituted capture time: stamping the
 	* read time would claim a freshness we did not measure.
 	*/
-	asOfUt?: Value<"ut">;
+	asOfUt?: Value<"ut"> | null;
 }
 /**
 * One survival rule for a kerbal: the current accumulator value (from
@@ -683,21 +683,21 @@ export interface KerbalismCrewRule
 {
 	name?: string;
 	/** Current accumulator value ("problem") from KerbalData.rules. */
-	value?: Value<"units">;
+	value?: Value<"units"> | null;
 	/**
 	* Per-rule degeneration rate (units/s) from Profile.rules[].degeneration.
 	* Stage-2 death-clock input. Confirmed against Kerbalism source:
 	* `Rule.degeneration` is a public double field (Profile/Rule.cs); values are
 	* set per-rule in GameData/KerbalismConfig/Profiles/Default.cfg.
 	*/
-	degenPerSec?: Value<"units/s">;
+	degenPerSec?: Value<"units/s"> | null;
 	/**
 	* Fatal accumulator threshold from Profile.rules[].fatal_threshold. Confirmed
 	* against Kerbalism source (Profile/Rule.cs ctor defaults this to 1.0; the
 	* default profile overrides it only for the radiation rule, to 50.0,
 	* GameData/KerbalismConfig/Profiles/Default.cfg's radiation Rule block).
 	*/
-	fatalThreshold?: Value<"units">;
+	fatalThreshold?: Value<"units"> | null;
 }
 /** Per-kerbal survival state (dose is the rule named "radiation"). */
 export interface KerbalismCrewEntry
@@ -753,7 +753,7 @@ export interface KerbalismCrewEntry
 	* a deadline should read that list once and say "not modelled" rather than
 	* "stable".
 	*/
-	deathClockUt?: Value<"ut">;
+	deathClockUt?: Value<"ut"> | null;
 	/**
 	* The UT this kerbal's rule accumulators were last ADVANCED at, which for a
 	* kerbal aboard a background craft can be well behind the read time: the
@@ -763,7 +763,7 @@ export interface KerbalismCrewEntry
 	* rather than on the list because two kerbals can be on different craft with
 	* different turns.
 	*/
-	asOfUt?: Value<"ut">;
+	asOfUt?: Value<"ut"> | null;
 }
 /**
 * Kerbalism feature toggles (auto-detected from the loaded profile). Drives
@@ -772,19 +772,19 @@ export interface KerbalismCrewEntry
 */
 export interface KerbalismFeatures
 {
-	reliability?: boolean;
-	radiation?: boolean;
-	spaceWeather?: boolean;
-	shielding?: boolean;
-	livingSpace?: boolean;
-	comfort?: boolean;
-	poisoning?: boolean;
-	pressure?: boolean;
-	habitat?: boolean;
-	supplies?: boolean;
-	science?: boolean;
-	automation?: boolean;
-	deploy?: boolean;
+	reliability?: boolean | null;
+	radiation?: boolean | null;
+	spaceWeather?: boolean | null;
+	shielding?: boolean | null;
+	livingSpace?: boolean | null;
+	comfort?: boolean | null;
+	poisoning?: boolean | null;
+	pressure?: boolean | null;
+	habitat?: boolean | null;
+	supplies?: boolean | null;
+	science?: boolean | null;
+	automation?: boolean | null;
+	deploy?: boolean | null;
 }
 /**
 * Kerbalism's vessel-level reliability rollup: the `extensions["kerbalism"]`
@@ -806,40 +806,40 @@ export interface KerbalismReliabilityExt
 	* part read 21,600,000 h. Null when no part on the vessel is modelled as
 	* failing over time.
 	*/
-	worstMtbfSeconds?: Value<"s">;
+	worstMtbfSeconds?: Value<"s"> | null;
 	/** How many modelled parts are currently broken. */
-	brokenPartCount?: Value<"count">;
+	brokenPartCount?: Value<"count"> | null;
 	/**
 	* How many not-yet-broken parts report `NeedsMaintenance`: the engineer's
 	* preventive work list. Kerbalism calls this state "needs service" and keeps
 	* it distinct from "needs repair" (broken, not critical), which is why this
 	* counts only parts that have NOT failed.
 	*/
-	serviceDuePartCount?: Value<"count">;
+	serviceDuePartCount?: Value<"count"> | null;
 	/**
 	* Save-wide: given a failure happens, the chance it is the more severe class.
 	* A difficulty setting (`PreferencesReliability.criticalChance`), never a
 	* per-part probability, and there is no per-part probability in Kerbalism to
 	* confuse it with.
 	*/
-	criticalChance?: Value<"ratio">;
+	criticalChance?: Value<"ratio"> | null;
 	/**
 	* Save-wide: given a failure falls due on an uncrewed vessel, the chance it is
 	* absorbed as a safe-mode reset instead of a break. This is why crossing a
 	* Kerbalism maintenance clock is a coin flip rather than a deadline.
 	*/
-	safeModeChance?: Value<"ratio">;
+	safeModeChance?: Value<"ratio"> | null;
 	/**
 	* Whether a repair consumes EVA repair kits, which decides whether a failure
 	* is fixable with what is aboard.
 	*/
-	requireRepairKits?: boolean;
+	requireRepairKits?: boolean | null;
 	/**
 	* Whether a part's redundancy siblings get their life extended when it breaks.
 	* Relevant because it moves the maintenance clock with no event the operator
 	* saw.
 	*/
-	incentiveRedundancy?: boolean;
+	incentiveRedundancy?: boolean | null;
 }
 /**
 * Kerbalism's `extensions["kerbalism"]` sub-tree of one `science.experiments`
@@ -859,7 +859,7 @@ export interface KerbalismScienceExperimentExt
 	* `ExperimentEntry.DataAmount` would have held if the unit could vary by
 	* provider. It cannot, so core's field is null and this is the real figure.
 	*/
-	dataSizeMB?: Value<"MB">;
+	dataSizeMB?: Value<"MB"> | null;
 	/**
 	* Science per megabyte for this subject (Kerbalism's `SciencePerMB`): LINEAR,
 	* no diminishing-returns curve, which is why the entry is tagged `valueModel:
@@ -868,7 +868,7 @@ export interface KerbalismScienceExperimentExt
 	* answers under stock and which Kerbalism leaves null rather than filling with
 	* the hardcoded 1.0/0.0 its stock-interop bridge uses.
 	*/
-	sciencePerMB?: Value<"science/MB">;
+	sciencePerMB?: Value<"science/MB"> | null;
 	/**
 	* `"file"` (transmissible) or `"sample"` (physical, needs analysis or return).
 	* Stock has no type tag: every result is implicitly transmissible at some
@@ -877,33 +877,33 @@ export interface KerbalismScienceExperimentExt
 	*/
 	kind?: string;
 	/** Physical mass of a sample. Null for a file (a file weighs nothing). */
-	sampleMass?: Value<"t">;
+	sampleMass?: Value<"t"> | null;
 	/**
 	* Whether Kerbalism has this sample flagged for lab analysis
 	* (`Sample.analyze`). Null for a file.
 	*/
-	analyze?: boolean;
+	analyze?: boolean | null;
 	/**
 	* Total file capacity of the drive holding this result. Null when the drive is
 	* unlimited (Kerbalism's `-1` sentinel), which is a real state and must not
 	* arrive as a negative number.
 	*/
-	storageCapacityMB?: Value<"MB">;
+	storageCapacityMB?: Value<"MB"> | null;
 	/** Megabytes of that drive currently used by files. */
-	storageUsedMB?: Value<"MB">;
+	storageUsedMB?: Value<"MB"> | null;
 	/** Sample slots on that drive. Null when unlimited. */
-	sampleSlotsTotal?: Value<"count">;
+	sampleSlotsTotal?: Value<"count"> | null;
 	/** Sample slots currently occupied on that drive. */
-	sampleSlotsUsed?: Value<"count">;
+	sampleSlotsUsed?: Value<"count"> | null;
 	/**
 	* Live transmission rate for this result. Zero (not null) when transmission is
 	* gated off: no link, no EC, or a higher-value file ahead of it in the queue.
 	* Kerbalism drains files highest-`SciencePerMB`-first, so a `transmitting:
 	* false` file on a connected vessel is normal, not a fault.
 	*/
-	transmitRateMBps?: Value<"MB/s">;
+	transmitRateMBps?: Value<"MB/s"> | null;
 	/** Whether this result is being sent right now. */
-	transmitting?: boolean;
+	transmitting?: boolean | null;
 	/**
 	* Whether this file is flagged for transmission (`Drive.GetFileSend`), which
 	* is true even when nothing is currently flowing: no link, no EC, or a
@@ -912,7 +912,7 @@ export interface KerbalismScienceExperimentExt
 	* `KerbalismScienceExperimentExt.transmitting`. Null for a sample, which has
 	* no send flag.
 	*/
-	sendFlagged?: boolean;
+	sendFlagged?: boolean | null;
 }
 /**
 * Kerbalism's sub-tree of one `science.instruments` entry: the running-state
@@ -969,19 +969,19 @@ export interface KerbalismScienceInstrumentExt
 	* process rather than an instant: stock has no "how far through this run" idea
 	* at all.
 	*/
-	dataRateMBps?: Value<"MB/s">;
+	dataRateMBps?: Value<"MB/s"> | null;
 	/**
 	* Kerbalism's `prodFactor`, 0..1: the fraction of nominal rate actually
 	* achieved last tick (resource starvation scales it down). 0 with no
 	* `KerbalismScienceInstrumentExt.issue` means throttled, not stopped.
 	*/
-	prodFactor?: Value<"ratio">;
+	prodFactor?: Value<"ratio"> | null;
 	/**
 	* Sample material left in a finite-sample experiment. Null for an experiment
 	* that takes no material; 0 means depleted, which is Kerbalism's version of
 	* stock's `Inoperable`.
 	*/
-	remainingSampleMass?: Value<"t">;
+	remainingSampleMass?: Value<"t"> | null;
 	/**
 	* SCANNER ONLY. Whether SCANsat is sweeping right now. A scanner produces data
 	* as a side effect of coverage growing, so this is the closest thing it has to
@@ -989,26 +989,26 @@ export interface KerbalismScienceInstrumentExt
 	* such flag: `KerbalismScienceInstrumentExt.powerDisabled` is then the only
 	* state available.
 	*/
-	scanning?: boolean;
+	scanning?: boolean | null;
 	/**
 	* SCANNER ONLY. Kerbalism cut this scanner for want of EC and will restart it
 	* once the vessel is back above a quarter charge. Distinct from an operator
 	* switching it off, which this stays false for.
 	*/
-	powerDisabled?: boolean;
+	powerDisabled?: boolean | null;
 	/**
 	* SCANNER ONLY. How much of the current body this sensor type has covered. The
 	* number the produced data is a function of: coverage rising is the event that
 	* writes a file, so a stalled percentage explains a scanner that is on and
 	* yielding nothing.
 	*/
-	bodyCoveragePercent?: Value<"%">;
+	bodyCoveragePercent?: Value<"%"> | null;
 	/**
 	* SCANNER ONLY. The EC draw Kerbalism bills for this scanner, loaded or in the
 	* background. Zero means the part was patched without a rate rather than that
 	* scanning is free.
 	*/
-	ecRate?: Value<"units/s">;
+	ecRate?: Value<"units/s"> | null;
 }
 /**
 * Kerbalism's sub-tree of one `science.lab` entry. The lab is the payload
@@ -1022,14 +1022,14 @@ export interface KerbalismScienceInstrumentExt
 export interface KerbalismScienceLabExt
 {
 	/** Configured analysis rate for the lab part. */
-	analysisRateMBps?: Value<"MB/s">;
+	analysisRateMBps?: Value<"MB/s"> | null;
 	/**
 	* The rate actually in effect, with the researcher's experience level already
 	* multiplied in. Kerbalism exposes the OUTPUT of its crew bonus, not the
 	* headcount input stock's `ScientistCount` carries, so the two are not two
 	* views of one number and both are worth having.
 	*/
-	effectiveRateMBps?: Value<"MB/s">;
+	effectiveRateMBps?: Value<"MB/s"> | null;
 	/**
 	* Kerbalism's lab status: `DISABLED` | `NO_EC` | `NO_STORAGE` | `NO_SAMPLE` |
 	* `NO_RESEARCHER` | `RUNNING`. A typed reason where core's `StatusText` is a
@@ -1050,18 +1050,18 @@ export interface KerbalismScienceLabExt
 export interface KerbalismScienceBreakdownExt
 {
 	/** Science still recoverable from this subject across all runs. */
-	scienceRemainingTotal?: Value<"science">;
+	scienceRemainingTotal?: Value<"science"> | null;
 	/**
 	* Fraction of this subject's total science already collected, 0..1. A ratio,
 	* not a percent: core's `DeployedEntry` percentages are the one place the mod
 	* carries hundredths, and copying that here would invite the mistake.
 	*/
-	percentCollectedTotal?: Value<"ratio">;
+	percentCollectedTotal?: Value<"ratio"> | null;
 	/**
 	* Science collected but not yet retrieved: aboard the vessel, not yet in R&D.
 	* Stock has no in-flight-versus-banked split.
 	*/
-	scienceCollectedInFlight?: Value<"science">;
+	scienceCollectedInFlight?: Value<"science"> | null;
 	/** How many times this subject has been completed. */
-	timesCompleted?: Value<"count">;
+	timesCompleted?: Value<"count"> | null;
 }

@@ -33,7 +33,11 @@
  */
 export function emptyStateText(
   breakingGround: boolean | undefined,
-  available: boolean | undefined,
+  // `null` as well as absent: `RoboticsAvailable.Available` is a `bool?` and the
+  // wire keeps the key, so "the backend could not tell" arrives as a null here.
+  // It falls through to the waiting rung on purpose, which is the same rung
+  // "nothing has landed yet" takes: neither is a claim about the craft.
+  available: boolean | null | undefined,
   listObserved: boolean,
   parts: "rotors" | "robotic parts",
 ): string {

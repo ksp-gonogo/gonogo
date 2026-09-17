@@ -98,7 +98,10 @@ export function ruleReadings(reading: TopicReading<Crew>): RuleReadings {
     entry.rules?.forEach((rule, index) => {
       const fraction = ruleFraction(rule);
       const threshold = rule.fatalThreshold;
-      if (fraction === null || threshold === undefined) return;
+      /* `threshold == null`: `fatalThreshold` is a `double?` and the wire keeps
+         the key, so a rule whose threshold nobody could read arrives as an
+         explicit null and the strict form let it through. */
+      if (fraction === null || threshold == null) return;
       if (entry.name == null || rule.name == null) return;
       const key = ruleKey(entry.name, rule.name);
       if (Object.hasOwn(readings, key)) return;
@@ -190,7 +193,7 @@ function fractionReckoning(
   return {
     status: "available",
     modelled:
-      carried === undefined || magnitudeOf(carried) === null
+      carried == null || magnitudeOf(carried) === null
         ? value("ratio", 0)
         : onFatalAxis(carried, threshold),
     // The basis of the entry covering THIS rule, not the one covering the

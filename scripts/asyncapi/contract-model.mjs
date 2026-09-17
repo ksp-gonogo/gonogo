@@ -102,6 +102,27 @@ export function parseTypeNode(node, owner) {
     return { k: "array", of: parseTypeNode(node.elementType, owner) };
   }
 
+  // `T | null`, which is how a nullable VALUE type is emitted: the wire keeps
+  // the key and writes an explicit null, so the published type has to be able
+  // to hold it (see `RtConfig.NullUnionApplies`). The null arm is dropped
+  // rather than modelled, because this document already says the same thing
+  // through the field's `optional` flag: `JsonSchema.decorate` turns an
+  // optional into `type: [T, "null"]`. Modelling it here as well would emit
+  // `["boolean","null","null"]`. Only that exact shape is accepted; any other
+  // union falls through to the throw below.
+  if (ts.isUnionTypeNode(node)) {
+    const arms = node.types.filter(
+      (arm) =>
+        !(
+          ts.isLiteralTypeNode(arm) &&
+          arm.literal.kind === ts.SyntaxKind.NullKeyword
+        ),
+    );
+    if (arms.length === 1 && arms.length < node.types.length) {
+      return parseTypeNode(arms[0], owner);
+    }
+  }
+
   if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal)) {
     return { k: "literal", v: node.literal.text };
   }

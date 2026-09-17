@@ -130,6 +130,22 @@ const TRANSPORT_ONLY = new Set([
   "CommandResultOf",
 ]);
 
+/**
+ * The emitted type with its null union taken off, so a unit assertion asks
+ * about the unit and nothing else.
+ *
+ * A nullable value type emits `T | null` because the wire sends `"key":null`
+ * with the key kept (see `RtConfig.NullUnionApplies`), and the two rules
+ * compose: `heatShieldFlux` is a `double?` carrying `kW` and emits as
+ * `Value<"kW"> | null`. Asserting on the joined string would make every unit
+ * check here a second, accidental assertion about nullability, and the unit
+ * walk below is exhaustive over hundreds of fields. The null half has its own
+ * ratchet: `packages/core/src/styleguide-generated-null-unions.test.ts`.
+ */
+function withoutNull(tsType: string | undefined): string | undefined {
+  return tsType?.replace(/ \| null$/, "");
+}
+
 /** `{ InterfaceName: { fieldName: tsType } }`, parsed out of the emitted source. */
 function parseInterfaces(
   source: string,
@@ -181,13 +197,13 @@ describe("generated contract.ts unit types", () => {
         // against that and skip the leaves.
         if (field.includes(".")) {
           const parent = field.slice(0, field.indexOf("."));
-          const parentType = emitted[parent];
+          const parentType = withoutNull(emitted[parent]);
           if (parentType !== undefined && parentType !== `Vec3Of<"${token}">`) {
             wrong.push(`${typeName}.${parent}: ${token} -> ${parentType}`);
           }
           continue;
         }
-        const tsType = emitted[field];
+        const tsType = withoutNull(emitted[field]);
         if (tsType === undefined) {
           continue;
         }
@@ -232,14 +248,23 @@ describe("generated contract.ts unit types", () => {
   // editing this file.
 
   it("keeps optionality alongside the wrapped type", () => {
-    expect(src).toMatch(/heatShieldFlux\?: Value<"kW">;/);
+    /* `double?` carrying a unit, so both rules land on it: the `?` from
+       AutoOptionalProperties, the wrap from the unit, and the `| null` because
+       the wire sends the key with a null in it. */
+    expect(src).toMatch(/heatShieldFlux\?: Value<"kW"> \| null;/);
   });
 
   it("leaves non-quantities bare", () => {
+    // `state` reads `boolean | null` rather than `boolean`, and that is the
+    // point rather than a regression: the C# is `bool?`, and null there means
+    // the backend knows the group exists but could not read whether it is
+    // engaged. The wire sends `"state":null` with the key kept, so the type has
+    // to be able to hold it. "Bare" here means "carries no Value<> wrap",
+    // which is what the [SitrepUnit("flag")] token is about.
     expect(interfaces.ActionGroupState).toMatchObject({
       index: "number", // "id": arithmetic on it is meaningless
       name: "string", // "text"
-      state: "boolean", // "flag"
+      state: "boolean | null", // "flag", and three-valued
     });
   });
 

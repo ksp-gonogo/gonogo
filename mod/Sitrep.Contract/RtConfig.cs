@@ -672,6 +672,14 @@ public static class RtConfig
     /// magnitude it does not have cannot be wrapped, so a quantity token on one
     /// is a contract defect and throws rather than emitting something that would
     /// not compile.</para>
+    ///
+    /// <para><b>The same pass also widens a nullable value type to
+    /// <c>T | null</c></b>, since both rules answer the same question (what does
+    /// the emitted TYPE have to say about this wire value) and both want the one
+    /// <c>Type(string)</c> call per property: two passes would fight over it,
+    /// last writer winning. A quantity that is also nullable composes, giving
+    /// <c>Value&lt;U&gt; | null</c>. See <see cref="NullUnionApplies"/> for the
+    /// wire rule behind it and for what is deliberately left alone.</para>
     /// </summary>
     /// <param name="builder">The Reinforced.Typings configuration being built.</param>
     /// <param name="exportedTypes">The types this pass retypes, from any assembly.</param>
@@ -704,29 +712,46 @@ public static class RtConfig
 
         var retyped = 0;
         var vectors = 0;
+        var nulled = 0;
         foreach (var type in exportedTypes)
         {
+            // A COMMAND ARGS type is a wire-WRITE, and both rules below are
+            // inbound only. A widget builds these and they go straight to
+            // JSON.stringify, so a Value would serialise as
+            // {"magnitude":80,"unit":"count"} and the mod's deserialiser
+            // would reject it. There is no unwrap step on the way out, and
+            // adding one would put a conversion between a slider and the
+            // command it fires for no reading anyone takes. The null union is
+            // skipped for the matching reason from the other direction: a
+            // client leaves an argument it is not setting OUT, and a type
+            // offering `| null` invites it to transmit an absence instead.
+            //
+            // Same rule as the envelope, from the same direction: both describe
+            // what the client RECEIVES.
+            if (type.Name.EndsWith("Args", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             var targets = new List<KeyValuePair<PropertyInfo, string>>();
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
+                // A nullable VALUE type reaches a client as `"key":null` with
+                // the key kept, so the emitted type has to be able to hold the
+                // null; see NullUnionApplies.
+                var nullable = NullUnionApplies(prop);
+
                 var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
                 if (unit == null || NonQuantityUnits.Contains(unit.Unit))
                 {
-                    continue;
-                }
+                    // No quantity to wrap. Still retyped when the null union
+                    // applies, over whatever bare type rtcli would have emitted.
+                    if (nullable)
+                    {
+                        nulled++;
+                        targets.Add(new KeyValuePair<PropertyInfo, string>(prop, BareTsType(type, prop) + " | null"));
+                    }
 
-                // A COMMAND ARGS type is a wire-WRITE, and the wrap is
-                // inbound only. A widget builds these and they go straight to
-                // JSON.stringify, so a Value would serialise as
-                // {"magnitude":80,"unit":"count"} and the mod's deserialiser
-                // would reject it. There is no unwrap step on the way out, and
-                // adding one would put a conversion between a slider and the
-                // command it fires for no reading anyone takes.
-                //
-                // Same rule as the envelope, from the same direction: the unit
-                // system describes what the client RECEIVES.
-                if (type.Name.EndsWith("Args", StringComparison.Ordinal))
-                {
                     continue;
                 }
 
@@ -781,6 +806,16 @@ public static class RtConfig
                         "or make the property numeric.");
                 }
 
+                if (nullable)
+                {
+                    // Only the scalar branch can be reached here: an array, a
+                    // Vec3 and a dictionary are all REFERENCE types, so
+                    // Nullable.GetUnderlyingType finds nothing on them.
+                    nulled++;
+                    tsType += " | null";
+                }
+
+                retyped++;
                 targets.Add(new KeyValuePair<PropertyInfo, string>(prop, tsType));
             }
 
@@ -789,7 +824,6 @@ public static class RtConfig
                 continue;
             }
 
-            retyped += targets.Count;
             builder.ExportAsInterfaces(
                 new[] { type },
                 c =>
@@ -807,6 +841,79 @@ public static class RtConfig
         Console.WriteLine(
             "codegen (unit types) -> " + retyped + " properties carry their unit (" +
             vectors + " as Vec3Of<...>)");
+        Console.WriteLine(
+            "codegen (null unions) -> " + nulled + " nullable value-type properties can hold the null the wire sends");
+    }
+
+    /// <summary>
+    /// True when a property's emitted TypeScript must be able to hold an
+    /// explicit <c>null</c>, rather than only the <c>?</c> that says "absent".
+    ///
+    /// <para><b>On this wire the two are the same event and the key is kept.</b>
+    /// <c>JsonWriter.AppendObject</c> walks every pair of a payload dictionary
+    /// and calls <c>AppendValue</c> unconditionally, and <c>AppendValue</c>'s
+    /// <c>case null:</c> writes the four bytes <c>null</c>. So a reading nobody
+    /// could take arrives as <c>"key":null</c>, and a type that says
+    /// <c>T | undefined</c> makes the correct guard (<c>=== null</c>) a compile
+    /// error while the substitution (<c>?? false</c>) compiles clean.</para>
+    ///
+    /// <para>Scoped to nullable VALUE types, which is where the C# declaration
+    /// is a deliberate three-valued choice. A nullable REFERENCE type
+    /// (<c>string?</c>, <c>T[]?</c>, a POCO) crosses the same wire the same way
+    /// and is NOT widened here; that half is unfixed on purpose rather than
+    /// overlooked.</para>
+    ///
+    /// <para><see cref="SitrepOmittedWhenNullAttribute"/> opts a property back
+    /// out, for the few whose key a flattener leaves out entirely.</para>
+    /// </summary>
+    private static bool NullUnionApplies(PropertyInfo prop)
+    {
+        return Nullable.GetUnderlyingType(prop.PropertyType) != null
+            && prop.GetCustomAttribute<SitrepOmittedWhenNullAttribute>() == null;
+    }
+
+    /// <summary>
+    /// The TypeScript rtcli would emit for a nullable value-type property that
+    /// carries no quantity token, so the <c>| null</c> can be appended to it.
+    ///
+    /// <para>Reinforced.Typings resolves the type itself and offers no way to
+    /// ask what it decided, so this mirrors the three cases a nullable value
+    /// type can actually be in these contracts and THROWS on anything else.
+    /// A fourth case would otherwise emit a type that does not compile, or
+    /// worse, one that does and is wrong.</para>
+    /// </summary>
+    private static string BareTsType(Type declaringType, PropertyInfo prop)
+    {
+        var underlying = Nullable.GetUnderlyingType(prop.PropertyType)!;
+        if (underlying == typeof(bool))
+        {
+            return "boolean";
+        }
+
+        if (underlying.IsEnum)
+        {
+            // An enum declared in the assembly being exported is emitted into
+            // the same file under its plain C# name (nothing in any RtConfig
+            // overrides an enum's name), so the name resolves. An enum declared
+            // ELSEWHERE is not emitted into this file at all and rtcli falls
+            // back to its ordinal, which is why an Uplink slice reading one of
+            // core's enums gets `number`: naming it here would emit an
+            // identifier the generated file never declares. Measured, not
+            // assumed: KerbalismResource.flowModeOrdinal and
+            // Rp1BuildableCraftEntry.facility are both core enums seen from an
+            // Uplink and both emit as `number` today.
+            return underlying.Assembly == declaringType.Assembly ? underlying.Name : "number";
+        }
+
+        if (IsNumeric(underlying))
+        {
+            return "number";
+        }
+
+        throw new InvalidOperationException(
+            declaringType.Name + "." + prop.Name + " is a nullable " + underlying.Name +
+            ", which this pass has no TypeScript spelling for. Add the case to " +
+            nameof(BareTsType) + " rather than letting the property emit without its null.");
     }
 
     /// <summary>

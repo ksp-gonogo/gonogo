@@ -64,10 +64,15 @@ describe("generated contract.ts: Value/Vec3Of usage resolves to core", () => {
 
     // The per-kerbal dose and its two death-clock constants: the deepest
     // quantities on the crew surface, and what topics.test.ts asserts decodes.
-    expect(src).toMatch(/value\?:\s*Value<"units">;/);
-    expect(src).toMatch(/degenPerSec\?:\s*Value<"units\/s">;/);
+    //
+    // Each carries `| null` as well as the `?`, because each is a `double?` and
+    // the wire keeps the key: a figure Kerbalism could not read arrives as an
+    // explicit null. What these assertions are about is the `Value<>` wrap; the
+    // union rides alongside it.
+    expect(src).toMatch(/value\?:\s*Value<"units"> \| null;/);
+    expect(src).toMatch(/degenPerSec\?:\s*Value<"units\/s"> \| null;/);
     // A star's distance, reached only through spaceweather's `stars` array.
-    expect(src).toMatch(/distance\?:\s*Value<"m">;/);
+    expect(src).toMatch(/distance\?:\s*Value<"m"> \| null;/);
   });
 
   // A Vec3 on a NESTED type, which no earlier relocated slice carried at all.

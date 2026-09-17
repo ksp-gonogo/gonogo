@@ -68,7 +68,12 @@ function comparison(
   breach: LimitBreach,
 ): string | null {
   const { limit, actual, unit } = breach;
-  if (limit === undefined || actual === undefined) return null;
+  /* `== null` rather than `=== undefined`: both are `double?` in the contract
+     and `JsonWriter.AppendLimitBreach` writes an explicit JSON null for either
+     when the refusal has no numbers, so the key ARRIVES and the strict form let
+     it past. `quantity(null, "funds")` renders "null f" beside a control the
+     operator is deciding on. */
+  if (limit == null || actual == null) return null;
 
   switch (errorCode) {
     case CommandErrorCode.LimitReached: {

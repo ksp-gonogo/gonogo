@@ -44,7 +44,11 @@ describe("generated contract.ts: Value usage resolves to core", () => {
   // vacuous. If this slice ever gains a second quantity, this is where it is
   // recorded.
   it("keeps the slice's one declared quantity typed as a Value", () => {
-    expect(source()).toMatch(/lastGoodAt\?:\s*Value<"ut">;/);
+    // `| null` as well as optional, because `LastGoodAt` is a `double?` and the
+    // wire keeps the key: a status with no good sample yet arrives as an
+    // explicit null. What this assertion is about is the `Value<"ut">` wrap,
+    // and the union rides alongside it.
+    expect(source()).toMatch(/lastGoodAt\?:\s*Value<"ut"> \| null;/);
   });
 
   // The other side of the accounting, asserted rather than left as prose,

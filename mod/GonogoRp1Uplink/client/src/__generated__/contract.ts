@@ -843,20 +843,20 @@ export interface Rp1CentreEntry
 	*/
 	kscDisplayName?: string;
 	/** This is the centre RP-1 currently considers active. */
-	isActive?: boolean;
+	isActive?: boolean | null;
 	/** Engineers hired at this centre, assigned and unassigned together. */
-	engineers?: Value<"count">;
+	engineers?: Value<"count"> | null;
 	/** Engineers not currently assigned to any launch complex, so idle. */
-	unassignedEngineers?: Value<"count">;
+	unassignedEngineers?: Value<"count"> | null;
 	/** Operational launch complexes at this centre. */
-	launchComplexCount?: Value<"count">;
+	launchComplexCount?: Value<"count"> | null;
 	/**
 	* At least one launch complex BEYOND the hangar is operational, mirroring
 	* RP-1's own reading: its loop deliberately skips index 0, which is always the
 	* hangar, so this answers "is there a pad-side complex to work with" rather
 	* than "does this centre exist".
 	*/
-	anyOperational?: boolean;
+	anyOperational?: boolean | null;
 	/**
 	* The ground station this centre is associated with, for a future join against
 	* the command-centre roster. Null when KSCSwitcher is not installed, which is
@@ -869,19 +869,19 @@ export interface Rp1CentreEntry
 	* and a rushing complex's working crew counts at the rush multiplier (see
 	* `Rp1RushTerms.salaryMult`), so this is not headcount times a rate.
 	*/
-	salaryPerDay?: Value<"f/day">;
+	salaryPerDay?: Value<"f/day"> | null;
 	/**
 	* The part of `Rp1CentreEntry.salaryPerDay` that buys no work: what this
 	* centre's unassigned engineers draw, at RP-1's idle fraction (see
 	* `Rp1Personnel.idleSalaryMult`).
 	*/
-	idleSalaryPerDay?: Value<"f/day">;
+	idleSalaryPerDay?: Value<"f/day"> | null;
 	/**
 	* What this centre's launch complexes cost per day to keep, the sum of
 	* `Rp1ComplexEntry.upkeepPerDay` across them. The facilities' own upkeep is
 	* not in it: those are one set per career rather than per centre.
 	*/
-	upkeepPerDay?: Value<"f/day">;
+	upkeepPerDay?: Value<"f/day"> | null;
 }
 /**
 * One launch complex: the layer stock KSP and standalone KCT have no
@@ -906,21 +906,21 @@ export interface Rp1ComplexEntry
 	name?: string;
 	/** RP-1's `LaunchComplexType` name: "Pad" or "Hangar". */
 	lcType?: string;
-	isOperational?: boolean;
+	isOperational?: boolean | null;
 	/**
 	* Rushing: work goes faster and salaries cost more, set per COMPLEX under
 	* RP-1.
 	*/
-	isRushing?: boolean;
-	engineers?: Value<"count">;
-	maxEngineers?: Value<"count">;
+	isRushing?: boolean | null;
+	engineers?: Value<"count"> | null;
+	maxEngineers?: Value<"count"> | null;
 	/**
 	* How good this complex's crew currently is, 0..1. Null when RP-1 has no
 	* efficiency record for the complex yet: it builds one the first time the
 	* complex is worked, and a miss is a genuine "not established", never a
 	* zero-rated crew.
 	*/
-	efficiency?: Value<"ratio">;
+	efficiency?: Value<"ratio"> | null;
 	/**
 	* The OTHER complexes whose crew rating is the same record as this one's, by
 	* their `Rp1ComplexEntry.lcId`, sorted, this complex excluded.
@@ -944,14 +944,14 @@ export interface Rp1ComplexEntry
 	* Integration can proceed: no blocking rollout, rollback or repair is
 	* occupying the complex. False here is why a queue item's rate is zero.
 	*/
-	canIntegrate?: boolean;
+	canIntegrate?: boolean | null;
 	/** The complex's base build rate before efficiency and rushing are applied. */
-	rate?: Value<"bp/s">;
+	rate?: Value<"bp/s"> | null;
 	/**
 	* Rated to build crewed vehicles, which costs more and caps the engineer count
 	* differently.
 	*/
-	humanRated?: boolean;
+	humanRated?: boolean | null;
 	/**
 	* How many of this complex's pads are OPERATIONAL, RP-1's own
 	* `LaunchPadCount`, and the number the pad-dismantle rule is stated against:
@@ -967,7 +967,7 @@ export interface Rp1ComplexEntry
 	* construction has pads and none of them operational, which is the state that
 	* makes it unusable.
 	*/
-	launchPadCount?: Value<"count">;
+	launchPadCount?: Value<"count"> | null;
 	/**
 	* The LIGHTEST vehicle this complex will accept, RP-1's `floor(massMax *
 	* lcMassMinFraction)`.
@@ -977,9 +977,9 @@ export interface Rp1ComplexEntry
 	* trap of this payload: three tonnage figures, one of which is about vehicles
 	* and two of which are about the complex.
 	*/
-	massMin?: Value<"t">;
+	massMin?: Value<"t"> | null;
 	/** Upper mass limit, or null for a complex with no limit (the hangar). */
-	massMax?: Value<"t">;
+	massMax?: Value<"t"> | null;
 	/**
 	* The tonnage this complex was ORIGINALLY built at, and the only thing that
 	* bounds renovating it. RP-1 refuses a modify unless the new
@@ -1002,21 +1002,21 @@ export interface Rp1ComplexEntry
 	* computes an envelope of 3t to 1t, which is a confident wrong answer where
 	* absence is a readable one.
 	*/
-	massOrig?: Value<"t">;
+	massOrig?: Value<"t"> | null;
 	/**
 	* The tallest vehicle this complex will take, RP-1's `sizeMax.y`. Null for an
 	* unlimited complex, on the same rule `Rp1ComplexEntry.massMax` follows.
 	*/
-	sizeMaxHeight?: Value<"m">;
+	sizeMaxHeight?: Value<"m"> | null;
 	/** The complex's footprint limit across, RP-1's `sizeMax.x`. */
-	sizeMaxWidth?: Value<"m">;
+	sizeMaxWidth?: Value<"m"> | null;
 	/**
 	* The complex's footprint limit the other way, RP-1's `sizeMax.z`.
 	*
 	* Three fields rather than one, because RP-1 keeps three and they are free to
 	* differ. Its own tooltip prints them depth, width, height.
 	*/
-	sizeMaxDepth?: Value<"m">;
+	sizeMaxDepth?: Value<"m"> | null;
 	/**
 	* The resources this complex can load, by RP-1's own resource names, sorted.
 	*
@@ -1095,7 +1095,7 @@ export interface Rp1ComplexEntry
 	* `Rp1RushTerms.salaryMult`), and a complex nothing is active in pays its
 	* whole crew at the idle fraction.
 	*/
-	salaryPerDay?: Value<"f/day">;
+	salaryPerDay?: Value<"f/day"> | null;
 	/**
 	* What rushing this complex ADDS to its daily crew bill: the difference
 	* between what the crew draws rushing and what the same crew draws not
@@ -1114,14 +1114,14 @@ export interface Rp1ComplexEntry
 	* where the two differ. Null when the split could not be resolved, which is
 	* not zero.
 	*/
-	rushSalaryDeltaPerDay?: Value<"f/day">;
+	rushSalaryDeltaPerDay?: Value<"f/day"> | null;
 	/**
 	* What the complex itself costs per day, crew aside: RP-1's launch-complex
 	* maintenance, scaled by the number of pads it has. A complex still being
 	* built pays it in proportion to how far the construction has got, which is
 	* RP-1's own rule and not a smoothing applied here.
 	*/
-	upkeepPerDay?: Value<"f/day">;
+	upkeepPerDay?: Value<"f/day"> | null;
 	/**
 	* What ONE more launch pad at this complex would cost, which is the price
 	* `rp1.pad.new` commits the career to.
@@ -1142,7 +1142,7 @@ export interface Rp1ComplexEntry
 	* slower build rather than a refusal, so this is a total committed and not a
 	* debit.
 	*/
-	newPadCost?: Value<"funds">;
+	newPadCost?: Value<"funds"> | null;
 }
 /**
 * One vehicle being integrated, from a launch complex's build list. The rate
@@ -1187,31 +1187,31 @@ export interface Rp1BuildItemEntry
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;
-	progress?: Value<"bp">;
-	totalPoints?: Value<"bp">;
+	progress?: Value<"bp"> | null;
+	totalPoints?: Value<"bp"> | null;
 	/** Null rather than NaN on a project with no build points at all. */
-	progressRatio?: Value<"ratio">;
+	progressRatio?: Value<"ratio"> | null;
 	/**
 	* Effective rate: base rate, efficiency and the rush multiplier together, zero
 	* while the complex cannot integrate. Null until RP-1 has costed the project,
 	* which it does the first time the item progresses.
 	*/
-	rate?: Value<"bp/s">;
+	rate?: Value<"bp/s"> | null;
 	/**
 	* Seconds to completion at the current rate, adjusted for the crew getting
 	* better during a long build the way RP-1's own estimate is. Null at an absent
 	* or zero rate, where RP-1's own answer is an infinity.
 	*/
-	timeLeftSeconds?: Value<"s">;
+	timeLeftSeconds?: Value<"s"> | null;
 	/**
 	* The rate resolved and is zero: this is costed and going nowhere. A different
 	* fact from a null `Rp1BuildItemEntry.rate`, and the only one of the two worth
 	* raising with an operator.
 	*/
-	stalled?: boolean;
-	cost?: Value<"funds">;
-	mass?: Value<"t">;
-	humanRated?: boolean;
+	stalled?: boolean | null;
+	cost?: Value<"funds"> | null;
+	mass?: Value<"t"> | null;
+	humanRated?: boolean | null;
 	/**
 	* The launch site the vehicle is destined for, joining
 	* `rp1.pads[].launchSiteName`.
@@ -1270,7 +1270,7 @@ export interface Rp1WarehouseItemEntry
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;
-	cost?: Value<"funds">;
+	cost?: Value<"funds"> | null;
 	/**
 	* What moving this vehicle to a pad will cost, RP-1's own price for THIS
 	* vehicle at the complex holding it.
@@ -1287,9 +1287,9 @@ export interface Rp1WarehouseItemEntry
 	* absent when RP-1 would not price it: outside a career, or when the call
 	* could not be made. Absent is not free.
 	*/
-	rolloutCost?: Value<"funds">;
-	mass?: Value<"t">;
-	humanRated?: boolean;
+	rolloutCost?: Value<"funds"> | null;
+	mass?: Value<"t"> | null;
+	humanRated?: boolean | null;
 	launchSite?: string;
 	projectType?: string;
 }
@@ -1306,8 +1306,8 @@ export interface Rp1PadEntry
 	name?: string;
 	/** Joins `spaceCenter.launchSites[].name` client-side. */
 	launchSiteName?: string;
-	level?: Value<"count">;
-	fractionalLevel?: Value<"ratio">;
+	level?: Value<"count"> | null;
+	fractionalLevel?: Value<"ratio"> | null;
 	/**
 	* RP-1's `LaunchPadState` name: "Destroyed", "Nonoperational", "Rollout",
 	* "Rollback", "Reconditioning", "Free", or "None". Anything but "Free" means a
@@ -1331,7 +1331,7 @@ export interface Rp1PadEntry
 	* Null when the question could not be asked, which is not false: the command
 	* re-checks it at the press.
 	*/
-	isOperational?: boolean;
+	isOperational?: boolean | null;
 	/**
 	* A craft is already standing on this pad in `PRELAUNCH`, so nothing else may
 	* be rolled out to it.
@@ -1349,7 +1349,7 @@ export interface Rp1PadEntry
 	* let the command decide, because the mod re-checks it at the moment of the
 	* press.
 	*/
-	hasVesselWaiting?: boolean;
+	hasVesselWaiting?: boolean | null;
 	/**
 	* The vessel already standing on the pad, by name, for a client that wants to
 	* say WHICH craft is in the way. Null whenever `Rp1PadEntry.hasVesselWaiting`
@@ -1374,36 +1374,36 @@ export interface Rp1OperationEntry
 	* an air-launched programme as unknown.
 	*/
 	type?: string;
-	progress?: Value<"bp">;
-	totalPoints?: Value<"bp">;
+	progress?: Value<"bp"> | null;
+	totalPoints?: Value<"bp"> | null;
 	/**
 	* Fraction done, counting the right way round for a reversed operation: a
 	* rollback and an air-launch unmount run progress DOWN to zero.
 	*/
-	progressRatio?: Value<"ratio">;
+	progressRatio?: Value<"ratio"> | null;
 	/**
 	* Effective rate, including this operation's share of the complex when several
 	* blocking operations run at once. Negative for a reversed operation, because
 	* that is the direction progress moves.
 	*/
-	rate?: Value<"bp/s">;
+	rate?: Value<"bp/s"> | null;
 	/**
 	* Seconds to completion, SEQUENCED against the other blocking operations on
 	* this complex rather than divided out of this one's share: each survivor
 	* speeds up as its neighbours finish, so the share division alone answers
 	* early. Absent when the sequence cannot be computed, never the early figure.
 	*/
-	timeLeftSeconds?: Value<"s">;
+	timeLeftSeconds?: Value<"s"> | null;
 	/** The rate resolved and is zero, as distinct from not yet costed. */
-	stalled?: boolean;
+	stalled?: boolean | null;
 	/**
 	* How many OTHER blocking operations are sharing this complex. They run at
 	* once, each taking the fraction of the complex its build points earn it, so a
 	* peer is why this is slower than it looks and is what an operator reads when
 	* `Rp1OperationEntry.timeLeftSeconds` is absent.
 	*/
-	blockingPeers?: Value<"count">;
-	cost?: Value<"funds">;
+	blockingPeers?: Value<"count"> | null;
+	cost?: Value<"funds"> | null;
 	/**
 	* The part of `Rp1OperationEntry.cost` nothing has been billed for yet: the
 	* share the progress still to be made will draw.
@@ -1419,7 +1419,7 @@ export interface Rp1OperationEntry
 	* exactly what an operator turning a rollback round is about to spend. Absent
 	* when RP-1 has not costed the project in build points, which is not zero.
 	*/
-	costRemaining?: Value<"funds">;
+	costRemaining?: Value<"funds"> | null;
 	/** The vehicle this operation is moving, or null for reconditioning. */
 	associatedVesselId?: string;
 }
@@ -1480,27 +1480,27 @@ export interface Rp1ConstructionEntry
 	*/
 	facilityType?: string;
 	/** The level the facility is at now. FacilityUpgrade rows only. */
-	currentLevel?: Value<"count">;
+	currentLevel?: Value<"count"> | null;
 	/** The level it is being taken to. FacilityUpgrade rows only. */
-	targetLevel?: Value<"count">;
+	targetLevel?: Value<"count"> | null;
 	/**
 	* This is a MODIFICATION of an existing launch complex rather than a new one.
 	* LaunchComplex rows only, and the distinction is what an operator plans
 	* around: a modify takes the complex out of service while it runs.
 	*/
-	isModify?: boolean;
+	isModify?: boolean | null;
 	/**
 	* Engineers RP-1 will put back on the complex when the work finishes. They are
 	* off it for the duration, which is why the centre's unassigned count rises
 	* the moment a modify is queued. LaunchComplex rows only.
 	*/
-	engineersToReadd?: Value<"count">;
+	engineersToReadd?: Value<"count"> | null;
 	/** The pad being built, joining `rp1.pads[].padId`. Pad rows only. */
 	padId?: string;
-	progress?: Value<"bp">;
-	totalPoints?: Value<"bp">;
+	progress?: Value<"bp"> | null;
+	totalPoints?: Value<"bp"> | null;
 	/** Null rather than NaN on a project with no build points at all. */
-	progressRatio?: Value<"ratio">;
+	progressRatio?: Value<"ratio"> | null;
 	/**
 	* The operator's own throttle on this construction, 0 to 1.5. Above 1 is
 	* RUSHING, which buys speed at a higher daily cost.
@@ -1512,28 +1512,28 @@ export interface Rp1ConstructionEntry
 	* stored field and is the fact that says a construction is being rushed at
 	* all.
 	*/
-	workRate?: Value<"ratio">;
+	workRate?: Value<"ratio"> | null;
 	/**
 	* Effective rate: the costed base rate times the throttle. Null until RP-1 has
 	* costed the project, which it does when the construction queue changes or the
 	* career's own rate modifiers move, so a freshly loaded save can legitimately
 	* answer nothing here.
 	*/
-	rate?: Value<"bp/s">;
+	rate?: Value<"bp/s"> | null;
 	/**
 	* Seconds to completion at the current rate. No efficiency ramp, unlike a
 	* vehicle: a construction's rate does not improve with the crew, because it
 	* has no crew.
 	*/
-	timeLeftSeconds?: Value<"s">;
+	timeLeftSeconds?: Value<"s"> | null;
 	/**
 	* The rate resolved and is zero: costed and going nowhere, which under RP-1
 	* means the throttle is at zero. A different fact from a null
 	* `Rp1ConstructionEntry.rate`.
 	*/
-	stalled?: boolean;
+	stalled?: boolean | null;
 	/** The whole price of the work, quoted when it was queued. */
-	cost?: Value<"funds">;
+	cost?: Value<"funds"> | null;
 	/**
 	* Paid so far. A construction is billed AS IT PROGRESSES rather than up front,
 	* so this and `Rp1ConstructionEntry.cost` together are the only place a
@@ -1546,12 +1546,12 @@ export interface Rp1ConstructionEntry
 	* includes leader effects this Uplink will not evaluate. What is here are the
 	* two stored quantities, unmodified.
 	*/
-	spentCost?: Value<"funds">;
+	spentCost?: Value<"funds"> | null;
 	/**
 	* Of what has been paid, how much went on rushing. Equal to
 	* `Rp1ConstructionEntry.spentCost` on a construction that was never rushed.
 	*/
-	spentRushCost?: Value<"funds">;
+	spentRushCost?: Value<"funds"> | null;
 }
 /**
 * One node on RP-1's research queue. Global across centres, so no centre key:
@@ -1561,21 +1561,21 @@ export interface Rp1ResearchEntry
 {
 	techId?: string;
 	techName?: string;
-	scienceCost?: Value<"count">;
-	progress?: Value<"count">;
-	progressRatio?: Value<"ratio">;
+	scienceCost?: Value<"count"> | null;
+	progress?: Value<"count"> | null;
+	progressRatio?: Value<"ratio"> | null;
 	/** The operator's own throttle on this node, 0..1. */
-	workRate?: Value<"ratio">;
+	workRate?: Value<"ratio"> | null;
 	/** Science points per second. Null until RP-1 has costed the node. */
-	rate?: Value<"count">;
-	timeLeftSeconds?: Value<"s">;
-	stalled?: boolean;
+	rate?: Value<"count"> | null;
+	timeLeftSeconds?: Value<"s"> | null;
+	stalled?: boolean | null;
 	/**
 	* The calendar year this node's technology becomes cheap to research, from
 	* RP-1's era-based rate model. Absent in stock and in standalone KCT.
 	*/
-	startYear?: Value<"count">;
-	endYear?: Value<"count">;
+	startYear?: Value<"count"> | null;
+	endYear?: Value<"count"> | null;
 }
 /**
 * RP-1's labour model: who is on the payroll. No stock or KCT counterpart, and
@@ -1584,32 +1584,32 @@ export interface Rp1ResearchEntry
 export interface Rp1Personnel
 {
 	/** Engineers across every centre. */
-	totalEngineers?: Value<"count">;
-	researchers?: Value<"count">;
+	totalEngineers?: Value<"count"> | null;
+	researchers?: Value<"count"> | null;
 	/** Applicants waiting to be hired. */
-	applicants?: Value<"count">;
+	applicants?: Value<"count"> | null;
 	/**
 	* What every engineer on the books draws per day, across all centres, at
 	* RP-1's own effective count. Higher than the sum of the assigned crews
 	* whenever engineers sit unassigned, and higher again while a complex rushes.
 	*/
-	engineerSalaryPerDay?: Value<"f/day">;
+	engineerSalaryPerDay?: Value<"f/day"> | null;
 	/**
 	* What the researchers draw per day. Paid at the idle fraction while the
 	* research queue is empty, which is RP-1's rule and the reason this is not
 	* headcount times the yearly rate.
 	*/
-	researcherSalaryPerDay?: Value<"f/day">;
+	researcherSalaryPerDay?: Value<"f/day"> | null;
 	/** One engineer's full salary for a year, before any multiplier. */
-	engineerSalaryPerYear?: Value<"funds">;
+	engineerSalaryPerYear?: Value<"funds"> | null;
 	/** One researcher's full salary for a year, before any multiplier. */
-	researcherSalaryPerYear?: Value<"funds">;
+	researcherSalaryPerYear?: Value<"funds"> | null;
 	/**
 	* The fraction of a full salary an engineer draws while assigned to nothing.
 	* The number that makes an idle pool a standing cost rather than a free
 	* reserve, so it is published even though a client could not derive it.
 	*/
-	idleSalaryMult?: Value<"ratio">;
+	idleSalaryMult?: Value<"ratio"> | null;
 	/**
 	* The standing instruction to hire up to a number, null when RP-1's state
 	* could not be read at all. Lives on the personnel Topic because it is a fact
@@ -1658,7 +1658,7 @@ export interface Rp1LcPricing
 	* a client cannot do on a null is present them as the career's own figure. Say
 	* the multiplier is the shipped default rather than quoting it as read.
 	*/
-	additionalPadCostMult?: Value<"ratio">;
+	additionalPadCostMult?: Value<"ratio"> | null;
 	/**
 	* The fluids a complex can be built to handle, and what each costs per unit.
 	*
@@ -1692,7 +1692,7 @@ export interface Rp1LcResourcePrice
 	* resources is a renovation, and there is no control for one. Publish the twin
 	* the day that control exists, not before.
 	*/
-	padCostPerUnit?: Value<"funds">;
+	padCostPerUnit?: Value<"funds"> | null;
 }
 /**
 * What rushing a launch complex costs, career-wide.
@@ -1709,9 +1709,9 @@ export interface Rp1LcResourcePrice
 export interface Rp1RushTerms
 {
 	/** How much faster a rushing complex works. */
-	rateMult?: Value<"ratio">;
+	rateMult?: Value<"ratio"> | null;
 	/** How much more a rushing complex's crew draws. */
-	salaryMult?: Value<"ratio">;
+	salaryMult?: Value<"ratio"> | null;
 }
 /**
 * RP-1's Confidence. A different quantity from reputation rather than a
@@ -1722,9 +1722,9 @@ export interface Rp1RushTerms
 export interface Rp1Confidence
 {
 	/** Confidence available to spend now. */
-	confidence?: Value<"confidence">;
+	confidence?: Value<"confidence"> | null;
 	/** Confidence earned over the whole career, which never falls. */
-	earned?: Value<"confidence">;
+	earned?: Value<"confidence"> | null;
 }
 /**
 * One RP-1 Program, whether it is running, finished, or merely on offer.
@@ -1769,9 +1769,9 @@ export interface Rp1ProgramEntry
 	*/
 	speed?: string;
 	/** Program slots this occupies, against the ceiling in `Rp1ProgramSlots`. */
-	slots?: Value<"count">;
+	slots?: Value<"count"> | null;
 	/** A crewed-spaceflight Program, which is RP-1's `isHSF` flag. */
-	isHumanSpaceflight?: boolean;
+	isHumanSpaceflight?: boolean | null;
 	/**
 	* The catalogue duration BEFORE the speed multiplier and before the
 	* currency-modifier pass RP-1 runs over it. The duration actually in force is
@@ -1780,46 +1780,46 @@ export interface Rp1ProgramEntry
 	* to every modifier in the save and that is a thing to run rather than a thing
 	* to read.
 	*/
-	nominalDurationSeconds?: Value<"s">;
+	nominalDurationSeconds?: Value<"s"> | null;
 	/** When this Program was accepted. Absent on anything not yet accepted. */
-	acceptedUt?: Value<"ut">;
+	acceptedUt?: Value<"ut"> | null;
 	/**
 	* When the funding runs out and the reputation penalty starts. RP-1 recomputes
 	* this on every funding tick, so it tracks a Program that has been slowed or
 	* sped by a leader rather than staying at the accept-time estimate. Absent on
 	* anything not yet accepted.
 	*/
-	deadlineUt?: Value<"ut">;
+	deadlineUt?: Value<"ut"> | null;
 	/**
 	* When the objectives were met, which is when the Program becomes completable
 	* in the Administration building. Absent while they are not.
 	*/
-	objectivesCompletedUt?: Value<"ut">;
+	objectivesCompletedUt?: Value<"ut"> | null;
 	/** When the Program was completed. Absent unless it was. */
-	completedUt?: Value<"ut">;
+	completedUt?: Value<"ut"> | null;
 	/** The last funding tick. Absent on anything not yet accepted. */
-	lastPaymentUt?: Value<"ut">;
+	lastPaymentUt?: Value<"ut"> | null;
 	/**
 	* How far through the funding curve this Program is, which is the fraction
 	* RP-1 advances rather than elapsed wall time: warping past the deadline
 	* carries it above 1. Absent on anything not yet accepted, where RP-1's own
 	* field holds -1 as its "never funded" sentinel.
 	*/
-	fracElapsed?: Value<"ratio">;
+	fracElapsed?: Value<"ratio"> | null;
 	/**
 	* Everything this Program will pay over its whole life, at the career's funds
 	* multiplier. On a row not yet accepted this is the catalogue figure with any
 	* RP0_PROGRAM_MODIFIER already applied, matching what the Administration
 	* building offers.
 	*/
-	totalFunding?: Value<"funds">;
+	totalFunding?: Value<"funds"> | null;
 	/** Paid so far. Absent on anything not yet accepted. */
-	fundsPaidOut?: Value<"funds">;
+	fundsPaidOut?: Value<"funds"> | null;
 	/**
 	* Still to come on this Program. Absent on anything not yet accepted rather
 	* than equal to the total, because an offer is not money owed.
 	*/
-	fundsRemaining?: Value<"funds">;
+	fundsRemaining?: Value<"funds"> | null;
 	/**
 	* The named curve funding follows over the duration, e.g. "Flat" or
 	* "BimodalBackloaded". It decides whether the money arrives evenly or in the
@@ -1832,37 +1832,37 @@ export interface Rp1ProgramEntry
 	* shows it after a currency-modifier pass that a leader can shift, and that
 	* pass broadcasts to the whole save, so it is not run here.
 	*/
-	confidenceCost?: Value<"confidence">;
+	confidenceCost?: Value<"confidence"> | null;
 	/** Reputation gained per year this Program is completed early. */
-	repDeltaOnCompletePerYearEarly?: Value<"rep">;
+	repDeltaOnCompletePerYearEarly?: Value<"rep"> | null;
 	/**
 	* Reputation lost per year past the deadline, already scaled by speed: RP-1
 	* charges a Fast Program half again as much for running late.
 	*/
-	repPenaltyPerYearLate?: Value<"rep">;
+	repPenaltyPerYearLate?: Value<"rep"> | null;
 	/**
 	* Reputation this Program has already cost by overrunning. Absent on anything
 	* not yet accepted; zero on an accepted Program still inside its deadline,
 	* which is a real reading and not the same fact.
 	*/
-	repPenaltyAssessed?: Value<"rep">;
+	repPenaltyAssessed?: Value<"rep"> | null;
 	/**
 	* The requirements to accept this Program are satisfied now. Evaluated against
 	* live game state (tech unlocked, contracts completed, facility levels, other
 	* Programs), so it moves without the row otherwise changing.
 	*/
-	requirementsMet?: boolean;
+	requirementsMet?: boolean | null;
 	/** The objectives are satisfied, whether or not the Program is running. */
-	objectivesMet?: boolean;
+	objectivesMet?: boolean | null;
 	/**
 	* Accepting is possible right now on RP-1's own reading: not already active,
 	* not completed, not disabled, requirements met. It does NOT include the
 	* Confidence check, which RP-1 makes with a broadcast query; compare
 	* `Rp1ProgramEntry.confidenceCost` against `rp1.confidence` for that half.
 	*/
-	canAccept?: boolean;
+	canAccept?: boolean | null;
 	/** Active, and its objectives are done, so it can be cashed in. */
-	canComplete?: boolean;
+	canComplete?: boolean | null;
 	/**
 	* RP-1's own prose for what this Program needs before it can be accepted.
 	* Absent when the Program declares none. May carry KSP rich-text markup.
@@ -1893,7 +1893,7 @@ export interface Rp1ProgramEntry
 	* reaches 1 and the derivation has nothing left to divide by, and a catalogue
 	* row that declares no duration at all.
 	*/
-	durationSeconds?: Value<"s">;
+	durationSeconds?: Value<"s"> | null;
 	/**
 	* Every speed this Program could be accepted at, with the price and the
 	* commitment each one carries. Present on an accepted row too, where it is the
@@ -1930,19 +1930,19 @@ export interface Rp1ProgramSlots
 	* Slots the Administration building's current level allows. Absent when RP-1
 	* cannot answer, which it cannot outside a loaded career.
 	*/
-	maxSlots?: Value<"count">;
+	maxSlots?: Value<"count"> | null;
 	/** Slots the active Programs occupy, summed over their own slot costs. */
-	usedSlots?: Value<"count">;
+	usedSlots?: Value<"count"> | null;
 	/**
 	* Slots left to commit. Absent when the ceiling is unknown, because a free
 	* count derived from an assumed ceiling is a fabrication about what the
 	* operator can afford to start.
 	*/
-	freeSlots?: Value<"count">;
+	freeSlots?: Value<"count"> | null;
 	/** Programs currently running. */
-	activeCount?: Value<"count">;
+	activeCount?: Value<"count"> | null;
 	/** Programs finished over the whole career. */
-	completedCount?: Value<"count">;
+	completedCount?: Value<"count"> | null;
 }
 /**
 * One speed a Program can be accepted at, with what that choice costs and how
@@ -1967,14 +1967,14 @@ export interface Rp1ProgramSpeedOption
 	* a real price and the shipped catalogue charges it for `Slow`; absent means
 	* the table could not be read.
 	*/
-	confidenceCost?: Value<"confidence">;
+	confidenceCost?: Value<"confidence"> | null;
 	/**
 	* How long the Program would run at this speed: the catalogue duration scaled
 	* by the speed factor and rounded to RP-1's own quarter year. It omits the
 	* currency-modifier pass a leader can shift the deadline with, for the reason
 	* given on `Rp1ProgramEntry.durationSeconds`.
 	*/
-	durationSeconds?: Value<"s">;
+	durationSeconds?: Value<"s"> | null;
 }
 /**
 * One nominal year's funding on a Program, as RP-1's own Administration
@@ -1994,9 +1994,9 @@ export interface Rp1ProgramPaymentEntry
 	* year of a Program whose duration is not a whole number is short, and pays
 	* proportionally less.
 	*/
-	year?: Value<"count">;
+	year?: Value<"count"> | null;
 	/** What this one year pays. */
-	funds?: Value<"funds">;
+	funds?: Value<"funds"> | null;
 	/**
 	* Cumulative funding through the end of this year, which is the curve's own
 	* reading rather than a running sum of the rows above: on a Program already
@@ -2004,7 +2004,7 @@ export interface Rp1ProgramPaymentEntry
 	* what has actually been paid out, so the two only agree from the second row
 	* on.
 	*/
-	cumulativeFunds?: Value<"funds">;
+	cumulativeFunds?: Value<"funds"> | null;
 }
 /**
 * One key of one named funding curve, as RP-1 stores it.
@@ -2024,17 +2024,17 @@ export interface Rp1FundingCurveKey
 	* where the nominal duration ends and the key at 2 is where the curve stops,
 	* typically around 1.4 of the total.
 	*/
-	frac?: Value<"ratio">;
+	frac?: Value<"ratio"> | null;
 	/**
 	* The fraction of total funding paid out by this point. Cumulative, so it only
 	* ever climbs, and it is what RP-1 multiplies by the Program's total to get
 	* funds.
 	*/
-	paidFraction?: Value<"ratio">;
+	paidFraction?: Value<"ratio"> | null;
 	/** Slope arriving at this key, in paid fraction per unit of elapsed fraction. */
-	inTangent?: Value<"1">;
+	inTangent?: Value<"1"> | null;
 	/** Slope leaving this key, in the same units. */
-	outTangent?: Value<"1">;
+	outTangent?: Value<"1"> | null;
 }
 /**
 * One of RP-1's named funding curves, keys and all.
@@ -2058,7 +2058,7 @@ export interface Rp1FundingCurveEntry
 	* `Rp1ProgramEntry.fundingCurve` is absent is genuinely paid on this curve
 	* rather than on none.
 	*/
-	isDefault?: boolean;
+	isDefault?: boolean | null;
 	/**
 	* The keys, ascending by `Rp1FundingCurveKey.frac`. Absent rather than empty
 	* when the curve could not be read: a curve with no keys pays nothing at all,
@@ -2093,14 +2093,14 @@ export interface Rp1CrewEntry
 	* channel is read by a surface that is already looking at RP-1 rows and should
 	* not have to join back to answer "did this schedule complete".
 	*/
-	retired?: boolean;
+	retired?: boolean | null;
 	/**
 	* When this kerbal retires, as universal time. Absent when RP-1 holds no
 	* retirement date for them, which is a real state (a kerbal hired this tick,
 	* or a save where retirement is switched off) and NOT a retirement due now:
 	* RP-1's own getter answers 0 there, and 0 is a date.
 	*/
-	retiresAtUt?: Value<"ut">;
+	retiresAtUt?: Value<"ut"> | null;
 	/**
 	* The furthest that date could still be pushed: the current date plus the
 	* extension this kerbal has not yet spent. RP-1 caps the total extension a
@@ -2109,14 +2109,14 @@ export interface Rp1CrewEntry
 	* out that can be pushed to fifteen is a different planning problem from one
 	* that cannot move.
 	*/
-	latestRetiresAtUt?: Value<"ut">;
+	latestRetiresAtUt?: Value<"ut"> | null;
 	/**
 	* Extension already earned and spent against the cap, in seconds. Zero is a
 	* truthful reading (a kerbal who has flown nothing interesting has earned
 	* nothing), so it is NOT folded to absent; absent means RP-1 has no retirement
 	* record for the kerbal at all.
 	*/
-	retirementExtensionUsedSeconds?: Value<"s">;
+	retirementExtensionUsedSeconds?: Value<"s"> | null;
 	/**
 	* Name of the training course this kerbal is enrolled on; absent when they are
 	* not training.
@@ -2139,20 +2139,20 @@ export interface Rp1CrewEntry
 	* operator who reads enrolment as progress will plan a mission around a crew
 	* that is not getting trained.
 	*/
-	trainingStarted?: boolean;
+	trainingStarted?: boolean | null;
 	/**
 	* Progress through the course, 0-1. Absent when RP-1 has costed the course at
 	* zero points, which makes its own fraction a NaN: a NaN is not a progress and
 	* must not reach a bar.
 	*/
-	trainingFractionComplete?: Value<"ratio">;
+	trainingFractionComplete?: Value<"ratio"> | null;
 	/**
 	* When the course finishes, as universal time. Absent while RP-1 has not rated
 	* the course's build rate, which is the state a freshly queued course sits in
 	* for a tick: dividing by an unrated rate is how RP-1's own helper produces an
 	* infinite time-left, and an infinity is not a date.
 	*/
-	trainingFinishesAtUt?: Value<"ut">;
+	trainingFinishesAtUt?: Value<"ut"> | null;
 	/**
 	* When this kerbal's SOONEST mission training lapses, as universal time.
 	* Absent when nothing they hold is perishable.
@@ -2162,7 +2162,7 @@ export interface Rp1CrewEntry
 	* unqualified one while the vehicle is still being integrated.
 	* `Rp1CrewEntry.trainingExpiryCount` says how many more are behind it.
 	*/
-	nextTrainingExpiryUt?: Value<"ut">;
+	nextTrainingExpiryUt?: Value<"ut"> | null;
 	/**
 	* What lapses at `Rp1CrewEntry.nextTrainingExpiryUt`: RP-1's own target string
 	* for that training.
@@ -2172,7 +2172,7 @@ export interface Rp1CrewEntry
 	* How many perishable trainings this kerbal holds. Zero when none, so a client
 	* can say "none" rather than infer it from an absent date.
 	*/
-	trainingExpiryCount?: Value<"count">;
+	trainingExpiryCount?: Value<"count"> | null;
 }
 /**
 * The `rp1.crewProgram` channel payload: the RULES this career's personnel
@@ -2192,38 +2192,38 @@ export interface Rp1CrewProgram
 	* Whether crew retire at all on this save. False makes every retirement date
 	* inert rather than absent, which is why it is a field and not an omission.
 	*/
-	retirementEnabled?: boolean;
+	retirementEnabled?: boolean | null;
 	/**
 	* Whether crew stand down for rest after a flight. The switch behind the stock
 	* roster's `inactive` pair being populated at all.
 	*/
-	crewRnREnabled?: boolean;
+	crewRnREnabled?: boolean | null;
 	/**
 	* Whether mission-specific training is required on this save. False leaves
 	* proficiency training as the only kind, and no training can lapse.
 	*/
-	missionTrainingEnabled?: boolean;
+	missionTrainingEnabled?: boolean | null;
 	/**
 	* Career-wide multiplier on proficiency-training speed. A multiplier, not a
 	* rate: 1 is nominal.
 	*/
-	proficiencyTrainingRate?: Value<"1">;
+	proficiencyTrainingRate?: Value<"1"> | null;
 	/** Career-wide multiplier on mission-training speed. */
-	missionTrainingRate?: Value<"1">;
+	missionTrainingRate?: Value<"1"> | null;
 	/**
 	* The most any one kerbal's retirement can ever be pushed back, in seconds.
 	* The cap behind `Rp1CrewEntry.latestRetiresAtUt`.
 	*/
-	retirementExtensionCapSeconds?: Value<"s">;
+	retirementExtensionCapSeconds?: Value<"s"> | null;
 	/** Training courses RP-1 currently holds, started or not. */
-	courses?: Value<"count">;
+	courses?: Value<"count"> | null;
 	/**
 	* Courses that have actually begun. Below `Rp1CrewProgram.courses` means
 	* somebody is enrolled and waiting.
 	*/
-	coursesStarted?: Value<"count">;
+	coursesStarted?: Value<"count"> | null;
 	/** Kerbals enrolled on a course. The crew a mission cannot draw on today. */
-	crewInTraining?: Value<"count">;
+	crewInTraining?: Value<"count"> | null;
 }
 /**
 * One saved craft file, and what each launch complex would make of it.
@@ -2265,14 +2265,14 @@ export interface Rp1BuildableCraftEntry
 	* Which editor built it. Sent straight back as the command's `facility`
 	* argument.
 	*/
-	facility?: number;
-	partCount?: Value<"count">;
+	facility?: number | null;
+	partCount?: Value<"count"> | null;
 	/**
 	* Mass in tonnes with launch clamps left out, which is the figure RP-1
 	* measures against a complex's limits. Absent when it could not be measured,
 	* which makes no comparison at all rather than one against zero.
 	*/
-	mass?: Value<"t">;
+	mass?: Value<"t"> | null;
 	/**
 	* Stock's price for the craft, in funds.
 	*
@@ -2283,7 +2283,7 @@ export interface Rp1BuildableCraftEntry
 	* command. This is the list price a widget can show beside a balance; the
 	* charge is settled when the operator commits.
 	*/
-	cost?: Value<"funds">;
+	cost?: Value<"funds"> | null;
 	/**
 	* Parts the craft names that this install does not have, so nothing can build
 	* it. An empty array when it is whole.
@@ -2333,7 +2333,7 @@ export interface Rp1BuildableComplex
 	* doc. False is firmer: `Rp1BuildableComplex.refusals` names a reason RP-1
 	* itself would give.
 	*/
-	eligible?: boolean;
+	eligible?: boolean | null;
 	/**
 	* Why not, in sentences, or an empty array when nothing stops it. Never null
 	* for a complex that answered: an absent list and an empty one would read the
@@ -2369,18 +2369,18 @@ export interface Rp1HireTarget
 	* Whether an instruction is standing at all. False means no target, which is a
 	* different statement from a target of zero.
 	*/
-	active?: boolean;
+	active?: boolean | null;
 	/** The headcount being hired up to. */
-	targetCount?: Value<"count">;
+	targetCount?: Value<"count"> | null;
 	/** Headcount now, against which the target is measured. */
-	currentCount?: Value<"count">;
+	currentCount?: Value<"count"> | null;
 	/** How many more must be hired. The honest progress reading. */
-	leftToHire?: Value<"count">;
+	leftToHire?: Value<"count"> | null;
 	/**
 	* Whether this hires researchers rather than engineers. RP-1 distinguishes
 	* them by whether a complex is named, not by a kind field.
 	*/
-	isResearch?: boolean;
+	isResearch?: boolean | null;
 	/**
 	* The complex being staffed, absent when this hires researchers. The key
 	* `Rp1ComplexEntry.lcId` carries.
@@ -2390,7 +2390,7 @@ export interface Rp1HireTarget
 	* RP-1's estimate of how long until the target is met, which is really a
 	* forecast of when the funds will exist. An INTERVAL, so seconds.
 	*/
-	timeLeft?: Value<"s">;
+	timeLeft?: Value<"s"> | null;
 }
 /**
 * A standing instruction to stop time warp once the balance reaches a figure.
@@ -2407,19 +2407,19 @@ export interface Rp1FundTarget
 	* the moment it was set as no target at all, so this is not simply "the number
 	* is non-zero".
 	*/
-	active?: boolean;
+	active?: boolean | null;
 	/** The balance being warped toward. */
-	targetFunds?: Value<"funds">;
+	targetFunds?: Value<"funds"> | null;
 	/**
 	* The balance when the target was set, which is the other end of RP-1's own
 	* progress measure and the reason a target equal to it counts as unset.
 	*/
-	originalFunds?: Value<"funds">;
+	originalFunds?: Value<"funds"> | null;
 	/**
 	* RP-1's estimate of the wait, iterated against the income curve rather than
 	* divided out of it. An INTERVAL, so seconds.
 	*/
-	timeLeft?: Value<"s">;
+	timeLeft?: Value<"s"> | null;
 }
 /**
 * One training course RP-1 currently holds, started or not.
@@ -2467,15 +2467,15 @@ export interface Rp1TrainingCourseEntry
 	* The fewest students the course can run with. Above one, the only way out is
 	* cancelling the whole course.
 	*/
-	seatMin?: Value<"count">;
+	seatMin?: Value<"count"> | null;
 	/** The most it can take. Zero means RP-1 sets no maximum. */
-	seatMax?: Value<"count">;
+	seatMax?: Value<"count"> | null;
 	/**
 	* Whether the course has begun. **This is the field that costs money**: an
 	* enrolled-but-unstarted course draws nothing.
 	*/
-	started?: boolean;
-	completed?: boolean;
+	started?: boolean | null;
+	completed?: boolean | null;
 	/**
 	* When the course itself finishes. An INSTANT, so a UT.
 	*
@@ -2488,7 +2488,7 @@ export interface Rp1TrainingCourseEntry
 	* NOT when the crew can fly: see
 	* `Rp1TrainingCourseEntry.studentsAvailableAtUt`.
 	*/
-	completesAtUt?: Value<"ut">;
+	completesAtUt?: Value<"ut"> | null;
 	/**
 	* When the last student becomes available again, which is LATER than
 	* `Rp1TrainingCourseEntry.completesAtUt` and is the date a mission planner
@@ -2500,12 +2500,12 @@ export interface Rp1TrainingCourseEntry
 	* window rather than derived, so it stays right if RP-1 changes the
 	* multiplier.
 	*/
-	studentsAvailableAtUt?: Value<"ut">;
+	studentsAvailableAtUt?: Value<"ut"> | null;
 	/**
 	* Whether RP-1 discards this course once it completes, rather than keeping it
 	* on the roster.
 	*/
-	isTemporary?: boolean;
+	isTemporary?: boolean | null;
 }
 /**
 * One training RP-1 could be asked to run: a template, not a course.
@@ -2557,18 +2557,18 @@ export interface Rp1TrainingTemplateEntry
 	* Astronaut Complex tier sets. The course's own `rp1.training[].completesAtUt`
 	* is the answer once it is running.
 	*/
-	baseTime?: Value<"s">;
+	baseTime?: Value<"s"> | null;
 	/**
 	* The fewest students the course can run with. Above one, the only control
 	* RP-1 offers a started course is cancelling the whole thing.
 	*/
-	seatMin?: Value<"count">;
+	seatMin?: Value<"count"> | null;
 	/**
 	* The most it can take. RP-1 stores **-1** for no maximum, and that is
 	* published as it stands rather than folded into a zero or an absence, so a
 	* client can tell "unlimited" from "a seat count nobody could read".
 	*/
-	seatMax?: Value<"count">;
+	seatMax?: Value<"count"> | null;
 	/**
 	* Whether the career can train on this yet: RP-1 asks whether any part the
 	* training covers has its tech researched and out of the research queue.
@@ -2576,12 +2576,12 @@ export interface Rp1TrainingTemplateEntry
 	* A template with no parts at all reads as locked, which is RP-1's own answer
 	* rather than a substituted one.
 	*/
-	unlocked?: boolean;
+	unlocked?: boolean | null;
 	/**
 	* A placeholder RP-1 generated for a part still being researched, and will
 	* withdraw again. Its courses are aborted when it goes.
 	*/
-	isTemporary?: boolean;
+	isTemporary?: boolean | null;
 }
 /**
 * One tooling RP-1 would charge for on the ship currently in the editor.
@@ -2631,12 +2631,12 @@ export interface Rp1ToolingEntry
 	* tooling still travel, in the field that matters:
 	* `Rp1ToolingEntry.toolingCost` drops once the first parameter is owned.
 	*/
-	tooled?: boolean;
+	tooled?: boolean | null;
 	/**
 	* What finishing THIS tooling costs now. Lower on a partly-owned tooling,
 	* which is where the missing level shows itself.
 	*/
-	toolingCost?: Value<"funds">;
+	toolingCost?: Value<"funds"> | null;
 	/**
 	* What NOT tooling costs, per build, for ever.
 	*
@@ -2647,7 +2647,7 @@ export interface Rp1ToolingEntry
 	* cached `addedCost`, which is what its part-cost modifier actually charges,
 	* rather than from the formula behind it.
 	*/
-	untooledSurcharge?: Value<"funds">;
+	untooledSurcharge?: Value<"funds"> | null;
 	/** The part's craft id, and what `rp1.tooling.refit` names. */
 	partId?: string;
 	/**
@@ -2658,13 +2658,13 @@ export interface Rp1ToolingEntry
 	* a console can put the number beside the control instead, which is the same
 	* disclosure at the moment it can still change the answer.
 	*/
-	symmetryCounterparts?: Value<"count">;
+	symmetryCounterparts?: Value<"count"> | null;
 	/**
 	* Whether a refit could reshape this part at all. RP-1 resizes through
 	* `ModuleROTank` or `ProceduralPart` and silently does nothing on a part with
 	* neither, so a control can be dark rather than inert.
 	*/
-	refittable?: boolean;
+	refittable?: boolean | null;
 	/**
 	* The sizes this part could be REFITTED to: owned toolings it can be reshaped
 	* onto instead of buying a new one.
@@ -2752,9 +2752,9 @@ export interface Rp1Tooling
 	* price the ship, which it does by performing every purchase for real and
 	* rolling the database back.
 	*/
-	toolAllCost?: Value<"funds">;
+	toolAllCost?: Value<"funds"> | null;
 	/** How many of the rows below are not yet tooled. */
-	untooledCount?: Value<"count">;
+	untooledCount?: Value<"count"> | null;
 	/**
 	* Every tooling module on the ship, tooled or not.
 	*
@@ -2792,7 +2792,7 @@ export interface Rp1BuildCost
 	* it. So the surcharge below is an OF WHICH, never an addend, and a client
 	* that adds the two has charged the operator twice for the same thing.
 	*/
-	vehicleCost?: Value<"funds">;
+	vehicleCost?: Value<"funds"> | null;
 	/**
 	* How much of `Rp1BuildCost.vehicleCost` is the penalty for flying untooled
 	* parts, and therefore how much of it would go away if the tooling were
@@ -2803,20 +2803,20 @@ export interface Rp1BuildCost
 	* surcharge is paid on every copy of this vehicle ever built, and the tooling
 	* is paid once.
 	*/
-	untooledSurcharge?: Value<"funds">;
+	untooledSurcharge?: Value<"funds"> | null;
 	/**
 	* Tooling for every untooled part, once, RP-1's own deduplicated figure. The
 	* same number `rp1.tooling.toolAllCost` carries, and it is here as well rather
 	* than only there because a breakdown missing a line is not a breakdown: a
 	* client should not have to join two channels to render one column.
 	*/
-	toolingCost?: Value<"funds">;
+	toolingCost?: Value<"funds"> | null;
 	/**
 	* Entry costs for parts on this vehicle the career has not yet paid for.
 	* Distinct from researching the tech: RP-1 charges to unlock the NODE and
 	* again to buy the part.
 	*/
-	unlockCost?: Value<"funds">;
+	unlockCost?: Value<"funds"> | null;
 	/**
 	* Rolling the finished vehicle out to a pad.
 	*
@@ -2824,7 +2824,7 @@ export interface Rp1BuildCost
 	* and a hangar vehicle does not roll out. Absent is therefore "does not apply
 	* here" rather than "free".
 	*/
-	rolloutCost?: Value<"funds">;
+	rolloutCost?: Value<"funds"> | null;
 	/**
 	* Tech nodes this vehicle needs that the career has not researched, each with
 	* what it is called and what on this vehicle is waiting for it.
@@ -2907,7 +2907,7 @@ export interface Rp1RequiredTechEntry
 export interface Rp1CareerEventEntry
 {
 	/** When it happened. An INSTANT, so a UT. */
-	ut?: Value<"ut">;
+	ut?: Value<"ut"> | null;
 	/**
 	* Which of RP-1's six logs this came from: `contract`, `launch`, `failure`,
 	* `facilityConstruction`, `techResearch` or `leader`.
@@ -2941,9 +2941,9 @@ export interface Rp1CareerEventEntry
 	*/
 	launchId?: string;
 	/** Reputation gained or lost, on a contract. Absent elsewhere. */
-	repChange?: Value<"rep">;
+	repChange?: Value<"rep"> | null;
 	/** What it cost, on a leader appointment. Absent elsewhere. */
-	cost?: Value<"funds">;
+	cost?: Value<"funds"> | null;
 	/**
 	* Whether a leader was HIRED (`true`) or dismissed. Absent on every other
 	* kind.
@@ -2954,7 +2954,7 @@ export interface Rp1CareerEventEntry
 	* add"` or `"<name>: remove"`, so the name was never sufficient even to its
 	* author.
 	*/
-	isAdd?: boolean;
+	isAdd?: boolean | null;
 	/**
 	* Which editor a launch was built in, VAB or SPH. Absent on every other kind.
 	* One word, and it is the only thing on the row that separates a rocket from a
@@ -2984,7 +2984,7 @@ export interface Rp1CareerEvents
 	* been told the career is quiet when it is in fact unrecorded. A third state,
 	* "could not be read", is the channel publishing nothing at all.
 	*/
-	enabled?: boolean;
+	enabled?: boolean | null;
 	/**
 	* Everything recorded, oldest first, with any event whose
 	* `Rp1CareerEventEntry.ut` is absent placed after all the dated ones rather
@@ -3024,9 +3024,9 @@ export interface Rp1FacilityEntry
 	* The tier it is at now, zero-based, the same counting
 	* `career.status.facilities[].currentTier` uses.
 	*/
-	currentTier?: Value<"count">;
+	currentTier?: Value<"count"> | null;
 	/** The highest tier it has, zero-based. A one-tier building answers 0. */
-	maxTier?: Value<"count">;
+	maxTier?: Value<"count"> | null;
 	/**
 	* What raising it one tier costs, in funds, with the career's own funds-loss
 	* multiplier already applied. Absent at the ceiling, and absent rather than
@@ -3038,14 +3038,14 @@ export interface Rp1FacilityEntry
 	* as it advances, so this is what the project will draw in total, not what
 	* leaves the balance at the press.
 	*/
-	upgradeCost?: Value<"funds">;
+	upgradeCost?: Value<"funds"> | null;
 	/**
 	* RP-1 upgrades this building as a building. False for the ones its config
 	* prices at a single fund under the comment "cosmetic only": RP-1 drives their
 	* tier itself from the mean of the ones it does upgrade, so a project queued
 	* against one would finish at once and then be overwritten.
 	*/
-	upgradedByRp1?: boolean;
+	upgradedByRp1?: boolean | null;
 }
 /**
 * Whether RP-1 will let this vessel be steered: its avionics verdict, and the
@@ -3083,7 +3083,7 @@ export interface Rp1Avionics
 	* electricity actually reaches. Two small units on separate parts do not add
 	* up.
 	*/
-	supportedMassTons?: Value<"t">;
+	supportedMassTons?: Value<"t"> | null;
 	/**
 	* The mass RP-1 weighed against that limit, in tonnes.
 	*
@@ -3093,14 +3093,14 @@ export interface Rp1Avionics
 	* reached on. A readout showing total mass beside this limit would draw NO-GO
 	* on the pad for a vessel RP-1 has already cleared.
 	*/
-	vesselMassTons?: Value<"t">;
+	vesselMassTons?: Value<"t"> | null;
 	/**
 	* An interplanetary-rated unit is being held to its near-Earth limit. A SECOND
 	* lock reason alongside the tonnage: RP-1 raises its own reminder for this
 	* one, and a vessel comfortably inside its supported mass can still be limited
 	* by it.
 	*/
-	limitedByNonInterplanetary?: boolean;
+	limitedByNonInterplanetary?: boolean | null;
 }
 /**
 * Which strategy to commit to, for `rp1.strategy.activate`.
@@ -3159,13 +3159,13 @@ export interface Rp1LeaderEntry
 	*/
 	strategyId?: string;
 	/** Funds RP-1 charges to appoint, absent when it charges none. */
-	setupFunds?: Value<"funds">;
+	setupFunds?: Value<"funds"> | null;
 	/** Science RP-1 charges to appoint. */
-	setupScience?: Value<"science">;
+	setupScience?: Value<"science"> | null;
 	/** Reputation RP-1 charges to appoint. */
-	setupReputation?: Value<"rep">;
+	setupReputation?: Value<"rep"> | null;
 	/** Confidence RP-1 charges to appoint. */
-	setupConfidence?: Value<"confidence">;
+	setupConfidence?: Value<"confidence"> | null;
 	/**
 	* The reputation dismissal costs RIGHT NOW.
 	*
@@ -3174,16 +3174,16 @@ export interface Rp1LeaderEntry
 	* first thirty days, decaying over ten years. A client must therefore show it
 	* at the moment of the decision rather than caching it.
 	*/
-	deactivateReputation?: Value<"rep">;
+	deactivateReputation?: Value<"rep"> | null;
 	/**
 	* Whether dismissing starts a re-hire cooldown, i.e. whether this is a
 	* decision that cannot be undone by re-appointing.
 	*/
-	removeOnDeactivate?: boolean;
+	removeOnDeactivate?: boolean | null;
 	/** How long that cooldown lasts. An INTERVAL, so seconds rather than a UT. */
-	reactivateCooldown?: Value<"s">;
+	reactivateCooldown?: Value<"s"> | null;
 	/** The instant dismissal becomes possible at all. An INSTANT, so a UT. */
-	canRemoveFromUt?: Value<"ut">;
+	canRemoveFromUt?: Value<"ut"> | null;
 	/** The instant dismissal stops costing reputation. An INSTANT, so a UT. */
-	freeToRemoveFromUt?: Value<"ut">;
+	freeToRemoveFromUt?: Value<"ut"> | null;
 }

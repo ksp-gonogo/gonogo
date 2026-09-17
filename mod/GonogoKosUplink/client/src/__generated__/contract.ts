@@ -71,7 +71,7 @@ export interface KosComputeStatus
 	* UT of the last successful `[KOSDATA]` parse, null until the first good
 	* parse.
 	*/
-	lastGoodAt?: Value<"ut">;
+	lastGoodAt?: Value<"ut"> | null;
 	/** Last script-author fault (runtime exception / `[KOSERROR]`), null when none. */
 	scriptError?: string;
 	/** Last `[KOSDATA]` parse failure: null when none. */

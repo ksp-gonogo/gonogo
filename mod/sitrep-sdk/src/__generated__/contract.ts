@@ -339,15 +339,15 @@ export interface CareerFacilities
 */
 export interface CareerEconomy
 {
-	funds?: Value<"funds">;
+	funds?: Value<"funds"> | null;
 	/**
 	* The stock reputation field, unchanged. Under a career overhaul it is the
 	* most consequential number in the save (it IS the income) and the value was
 	* never wrong: what was missing is the context below, which is why that
 	* arrived as an elected interpretation rather than as a replacement here.
 	*/
-	reputation?: Value<"rep">;
-	science?: Value<"science">;
+	reputation?: Value<"rep"> | null;
+	science?: Value<"science"> | null;
 	/**
 	* Which money model answered the four fields below, e.g. `"stock"`. Provenance
 	* only: a client reads the interpretation, never branches on who produced it.
@@ -358,23 +358,23 @@ export interface CareerEconomy
 	* genuinely has no decay, and that zero is a statement rather than a
 	* placeholder.
 	*/
-	reputationDecayPerDay?: Value<"rep/day">;
+	reputationDecayPerDay?: Value<"rep/day"> | null;
 	/** Funding the current reputation earns, per day. Zero on stock. */
-	subsidyPerDay?: Value<"f/day">;
+	subsidyPerDay?: Value<"f/day"> | null;
 	/** The subsidy at zero reputation: the floor nothing takes away. */
-	subsidyMinPerDay?: Value<"f/day">;
+	subsidyMinPerDay?: Value<"f/day"> | null;
 	/**
 	* The subsidy reputation cannot beat. With the minimum it says how much of the
 	* range the current reputation has bought, which is what turns a bare
 	* reputation number into something an operator can act on.
 	*/
-	subsidyMaxPerDay?: Value<"f/day">;
+	subsidyMaxPerDay?: Value<"f/day"> | null;
 	/**
 	* Total ongoing cost per day. This is why `CareerEconomy.funds` is the right
 	* balance and the wrong affordability test under an overhaul: a balance that
 	* covers a purchase today may not cover it plus next month's salaries.
 	*/
-	upkeepPerDay?: Value<"f/day">;
+	upkeepPerDay?: Value<"f/day"> | null;
 	/**
 	* Where the upkeep goes: the parts `CareerEconomy.upkeepPerDay` is made of,
 	* and they sum to it. ABSENT on stock, which has no per-source model at all:
@@ -404,7 +404,7 @@ export interface CareerEconomy
 	* a per-purchase answer, so a surface that offers such a purchase shows this
 	* and the funds balance together rather than deriving the split itself.
 	*/
-	unlockCredit?: Value<"funds">;
+	unlockCredit?: Value<"funds"> | null;
 }
 /**
 * Ongoing cost by source, per day, from the elected economy model. Every
@@ -414,22 +414,22 @@ export interface CareerEconomy
 export interface CareerUpkeep
 {
 	/** Buildings: the standing cost of having a space centre at all. */
-	facilities?: Value<"f/day">;
+	facilities?: Value<"f/day"> | null;
 	/**
 	* Launch complexes and their pads, which cost whether or not anything is
 	* building.
 	*/
-	launchComplexes?: Value<"f/day">;
+	launchComplexes?: Value<"f/day"> | null;
 	/** Researcher salaries, which an idle research queue does not stop. */
-	researchSalary?: Value<"f/day">;
+	researchSalary?: Value<"f/day"> | null;
 	/** Crew training in progress. */
-	training?: Value<"f/day">;
+	training?: Value<"f/day"> | null;
 	/** Standing crew costs: everyone on the roster, flying or not. */
-	crewBase?: Value<"f/day">;
+	crewBase?: Value<"f/day"> | null;
 	/** The extra a crew in flight costs over a crew on the ground. */
-	crewInFlight?: Value<"f/day">;
+	crewInFlight?: Value<"f/day"> | null;
 	/** Engineer salaries on the integration teams. */
-	integrationSalary?: Value<"f/day">;
+	integrationSalary?: Value<"f/day"> | null;
 }
 /**
 * One facility entry in `CareerFacilities.facilities`. All three fields share
@@ -452,10 +452,10 @@ export interface CareerFacility
 	*
 	* `null` from a producer that predates this field.
 	*/
-	facilityOrdinal?: KspSpaceCenterFacility;
-	currentTier?: Value<"count">;
-	maxTier?: Value<"count">;
-	upgradeCost?: Value<"funds">;
+	facilityOrdinal?: KspSpaceCenterFacility | null;
+	currentTier?: Value<"count"> | null;
+	maxTier?: Value<"count"> | null;
+	upgradeCost?: Value<"funds"> | null;
 }
 /**
 * Contracts sub-group of `CareerStatus`. All three lists are always present
@@ -483,15 +483,15 @@ export interface CareerContract
 	title?: string;
 	agent?: string;
 	state?: string;
-	fundsAdvance?: Value<"funds">;
-	fundsCompletion?: Value<"funds">;
-	fundsFailure?: Value<"funds">;
-	scienceCompletion?: Value<"science">;
-	reputationCompletion?: Value<"rep">;
-	reputationFailure?: Value<"rep">;
-	dateAccepted?: Value<"ut">;
-	dateDeadline?: Value<"ut">;
-	dateExpire?: Value<"ut">;
+	fundsAdvance?: Value<"funds"> | null;
+	fundsCompletion?: Value<"funds"> | null;
+	fundsFailure?: Value<"funds"> | null;
+	scienceCompletion?: Value<"science"> | null;
+	reputationCompletion?: Value<"rep"> | null;
+	reputationFailure?: Value<"rep"> | null;
+	dateAccepted?: Value<"ut"> | null;
+	dateDeadline?: Value<"ut"> | null;
+	dateExpire?: Value<"ut"> | null;
 	parameters: CareerContractParameter[];
 }
 /** One parameter (objective) of a `CareerContract`. */
@@ -517,7 +517,7 @@ export interface CareerContractParameter
 	* `null` when the capture carried no state, which is a third answer and must
 	* not be read as either arm.
 	*/
-	stateOrdinal?: KspParameterState;
+	stateOrdinal?: KspParameterState | null;
 }
 /**
 * Strategies sub-group of `CareerStatus`. `CareerStrategies.activeCount` is
@@ -537,19 +537,19 @@ export interface CareerStrategy
 	title?: string;
 	description?: string;
 	department?: string;
-	isActive?: boolean;
-	factor?: Value<"ratio">;
-	dateActivated?: Value<"ut">;
-	requiredReputation?: Value<"rep">;
-	initialCostFunds?: Value<"funds">;
-	initialCostScience?: Value<"science">;
-	initialCostReputation?: Value<"rep">;
-	hasFactorSlider?: boolean;
-	factorSliderDefault?: Value<"ratio">;
-	factorSliderSteps?: Value<"count">;
-	canActivate?: boolean;
+	isActive?: boolean | null;
+	factor?: Value<"ratio"> | null;
+	dateActivated?: Value<"ut"> | null;
+	requiredReputation?: Value<"rep"> | null;
+	initialCostFunds?: Value<"funds"> | null;
+	initialCostScience?: Value<"science"> | null;
+	initialCostReputation?: Value<"rep"> | null;
+	hasFactorSlider?: boolean | null;
+	factorSliderDefault?: Value<"ratio"> | null;
+	factorSliderSteps?: Value<"count"> | null;
+	canActivate?: boolean | null;
 	activateBlockedReason?: string;
-	canDeactivate?: boolean;
+	canDeactivate?: boolean | null;
 	deactivateBlockedReason?: string;
 	effect?: string;
 }
@@ -579,8 +579,8 @@ export interface CareerTechNode
 	* description in whatever tree the save is playing.
 	*/
 	description?: string;
-	scienceCost?: Value<"science">;
-	unlocked?: boolean;
+	scienceCost?: Value<"science"> | null;
+	unlocked?: boolean | null;
 	parents: string[];
 }
 /**
@@ -753,7 +753,7 @@ export interface CommandCentreEntry
 	* Index into `SystemBodies` of the body this centre sits on; null when unknown
 	* or not surface-anchored.
 	*/
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 	/**
 	* Body-fixed surface latitude of the centre in degrees, when surface-anchored;
 	* null for a moving vessel centre.
@@ -770,14 +770,14 @@ export interface CommandCentreEntry
 	*
 	* Always null or non-null together with `CommandCentreEntry.longitude`.
 	*/
-	latitude?: Value<"°">;
+	latitude?: Value<"°"> | null;
 	/**
 	* Body-fixed surface longitude of the centre in degrees, wrapped to (-180,
 	* 180], matching every other geographic value on the wire. Null under exactly
 	* the rule `CommandCentreEntry.latitude` documents, and always null together
 	* with it.
 	*/
-	longitude?: Value<"°">;
+	longitude?: Value<"°"> | null;
 	/** Whether this centre is a valid command source right now. */
 	active: boolean;
 	/**
@@ -1375,7 +1375,7 @@ export interface CommsHop
 	fromIsHome: boolean;
 	toIsHome: boolean;
 	kind: CommsHopKind;
-	distanceMeters?: Value<"m">;
+	distanceMeters?: Value<"m"> | null;
 	/**
 	* The provider-namespaced extension bag: how the elected comms backend carries
 	* per-hop facts this shared shape does not declare, WITHOUT a PR against core
@@ -1536,7 +1536,7 @@ export interface CommsDelay
 	* stops being true as the craft moves, so only `CommsDelaySource.SignalDelay`
 	* is carried forward.
 	*/
-	oneWaySeconds?: Value<"s">;
+	oneWaySeconds?: Value<"s"> | null;
 	source: CommsDelaySource;
 	meta: PayloadMeta;
 }
@@ -1594,7 +1594,7 @@ export interface CommsCommandCentre
 	* Index into system.bodies of the body this centre sits on; null when unknown,
 	* not surface-anchored, or the centre is a moving vessel.
 	*/
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 	meta: PayloadMeta;
 }
 /**
@@ -1638,7 +1638,7 @@ export interface CommsDegrade
 	* range, and never a NaN: an arithmetic that overshot is clamped to the end it
 	* overshot, and one that failed to resolve arrives absent.
 	*/
-	level?: Value<"ratio">;
+	level?: Value<"ratio"> | null;
 	meta: PayloadMeta;
 }
 /**
@@ -1744,8 +1744,8 @@ export interface ComposedBurn
 	* planner's numbers in every other planner's contract; a caller that wants a
 	* placeholder states the placeholder.
 	*/
-	thrust?: Value<"kN">;
-	specificImpulse?: Value<"isp">;
+	thrust?: Value<"kN"> | null;
+	specificImpulse?: Value<"isp"> | null;
 }
 /**
 * A whole flight plan, composed at a command centre and transmitted to be
@@ -1843,7 +1843,7 @@ export interface ControlFrame
 	* Closest approach is computed only in this frame, and apsides do not exist in
 	* it at all.
 	*/
-	targetFrameSelected?: boolean;
+	targetFrameSelected?: boolean | null;
 	/** The target the frame is defined against, when it is a target frame. */
 	targetId?: string;
 }
@@ -2285,25 +2285,25 @@ export interface EvaKerbal
 	/** KSP's own situation name for the kerbal (`FLYING`, `LANDED`, ...). */
 	situation?: string;
 	/** EVA propellant remaining in the pack. */
-	propellantAmount?: Value<"units">;
+	propellantAmount?: Value<"units"> | null;
 	/**
 	* What the pack holds when full, so a reader can draw a fraction without
 	* knowing the model.
 	*/
-	propellantCapacity?: Value<"units">;
+	propellantCapacity?: Value<"units"> | null;
 	/**
 	* Whether this kerbal has a jetpack at all: without one the propellant figures
 	* describe nothing.
 	*/
-	hasJetpack?: boolean;
-	jetpackDeployed?: boolean;
+	hasJetpack?: boolean | null;
+	jetpackDeployed?: boolean | null;
 	/**
 	* Whether the pack is firing right now, which is the only signal that a kerbal
 	* is under thrust.
 	*/
-	jetpackIsThrusting?: boolean;
-	onALadder?: boolean;
-	lampOn?: boolean;
+	jetpackIsThrusting?: boolean | null;
+	onALadder?: boolean | null;
+	lampOn?: boolean | null;
 	/** KSP's own visor state name. */
 	visorState?: string;
 	/**
@@ -2313,12 +2313,12 @@ export interface EvaKerbal
 	* nothing else on the wire says whether the place a kerbal is standing in is
 	* survivable unsuited.
 	*/
-	willDieWithoutHelmet?: boolean;
+	willDieWithoutHelmet?: boolean | null;
 	/**
 	* Whether the helmet can come off here and now, which is a stricter question
 	* than surviving it.
 	*/
-	canSafelyRemoveHelmet?: boolean;
+	canSafelyRemoveHelmet?: boolean | null;
 	/**
 	* KSP's OWN words for why the helmet cannot come off, or `null` when it can.
 	*
@@ -2371,7 +2371,7 @@ export interface FleetVesselLink
 	* One-way light-time to this vessel, seconds. Null when there is no path
 	* (unreachable / torn-down state).
 	*/
-	oneWaySeconds?: Value<"s">;
+	oneWaySeconds?: Value<"s"> | null;
 	/** Whether this vessel is currently reachable (`v.connection.IsConnected`). */
 	connected: boolean;
 }
@@ -2400,7 +2400,7 @@ export interface FleetVesselContact
 	* UT of the last sample that observed contact. Null before the first-ever
 	* contact.
 	*/
-	lastContactUt?: Value<"ut">;
+	lastContactUt?: Value<"ut"> | null;
 }
 /**
 * The COMMS-OWNED officially-lost reckoning on `silence.<guid>.state`: how
@@ -2426,12 +2426,12 @@ export interface FleetVesselSilence
 	/** One of `Nominal` / `Silent` / `Lost` (`Sitrep.Host.Comms.SilenceState`). */
 	state: string;
 	/** UT the current silence run began. Null while Nominal. */
-	silenceSinceUt?: Value<"ut">;
+	silenceSinceUt?: Value<"ut"> | null;
 	/**
 	* UT at which this silence run becomes eligible to be declared Lost. Null
 	* while Nominal, or for a destroyed vessel.
 	*/
-	deadlineUt?: Value<"ut">;
+	deadlineUt?: Value<"ut"> | null;
 	/**
 	* One of `orbital-period` / `policy-floor` / `policy-ceiling` / `no-orbit` /
 	* `destroyed` / `predicted-reacquisition` / `no-occultation` /
@@ -2449,7 +2449,7 @@ export interface FleetVesselSilence
 	* which. A null is a prediction WITHHELD, never an emergence of "now": a
 	* client must render the absence as "no prediction", not as an overdue vessel.
 	*/
-	predictedReacquisitionUt?: Value<"ut">;
+	predictedReacquisitionUt?: Value<"ut"> | null;
 	/**
 	* The error budget the deadline was armed with, seconds: how long past the
 	* predicted return this craft may stay quiet before its silence is something
@@ -2465,7 +2465,7 @@ export interface FleetVesselSilence
 	* Null wherever the prediction is null, since a budget quoted next to a
 	* withheld prediction is an error bar around nothing.
 	*/
-	predictionGraceSeconds?: Value<"s">;
+	predictionGraceSeconds?: Value<"s"> | null;
 }
 /**
 * One fleet vessel's resource amounts on `fleet.<guid>.resources`: the same
@@ -2510,19 +2510,19 @@ export interface FleetSilenceEntry
 	/** One of `Nominal` / `Silent` / `Lost`. */
 	state: string;
 	/** UT the current silence run began. Null while Nominal. */
-	silenceSinceUt?: Value<"ut">;
+	silenceSinceUt?: Value<"ut"> | null;
 	/**
 	* UT at which this silence run becomes eligible to be declared Lost. Null
 	* while Nominal, or for a destroyed vessel.
 	*/
-	deadlineUt?: Value<"ut">;
+	deadlineUt?: Value<"ut"> | null;
 	/** One of `Sitrep.Host.Comms.SilenceDeadlineBasis`. Null while Nominal. */
 	deadlineBasis?: string;
 	/**
 	* UT the radio path is predicted to re-open. Null is a prediction WITHHELD,
 	* never an emergence of "now".
 	*/
-	predictedReacquisitionUt?: Value<"ut">;
+	predictedReacquisitionUt?: Value<"ut"> | null;
 	/**
 	* The error budget the deadline was armed with, seconds: how long past the
 	* predicted return this craft may stay quiet before its silence is something
@@ -2538,7 +2538,7 @@ export interface FleetSilenceEntry
 	* Null wherever the prediction is null, since a budget quoted next to a
 	* withheld prediction is an error bar around nothing.
 	*/
-	predictionGraceSeconds?: Value<"s">;
+	predictionGraceSeconds?: Value<"s"> | null;
 }
 /**
 * The fleet-wide silence roster on `fleet.silence`: every vessel the tracker
@@ -2846,9 +2846,9 @@ export interface IsruDrillEntry
 	* Drill head deployed. Null for a harvester with no deploy animation, e.g.
 	* some asteroid drills.
 	*/
-	deployed?: boolean;
+	deployed?: boolean | null;
 	/** Actively extracting this tick. */
-	running?: boolean;
+	running?: boolean | null;
 	/**
 	* Local abundance of `IsruDrillEntry.resource` at the drill's current
 	* position, 0..1. Stock reads the same resource map the right-click PAW does.
@@ -2857,7 +2857,7 @@ export interface IsruDrillEntry
 	* same 0..1 shape from a different source. Null when the backend has no
 	* abundance concept for this harvest type.
 	*/
-	abundance?: Value<"ratio">;
+	abundance?: Value<"ratio"> | null;
 	/**
 	* EFFECTIVE current extraction rate, already abundance- and
 	* efficiency-adjusted rather than the static config rate, so it matches what
@@ -2865,7 +2865,7 @@ export interface IsruDrillEntry
 	* `IsruDrillEntry.running` is false: the drill genuinely extracts nothing,
 	* which is a number, not an absence.
 	*/
-	rate?: Value<"units/s">;
+	rate?: Value<"units/s"> | null;
 	/**
 	* The provider-namespaced extension bag: how an ISRU backend carries a
 	* per-drill field this shared shape does not declare, WITHOUT a PR against
@@ -2885,7 +2885,7 @@ export interface IsruDrillEntry
 export interface IsruResourceFlow
 {
 	resource?: string;
-	rate?: Value<"units/s">;
+	rate?: Value<"units/s"> | null;
 }
 /**
 * One chemical converter on the active vessel. Field set matches stock's
@@ -2896,7 +2896,7 @@ export interface IsruConverterEntry
 	partId?: string;
 	partTitle?: string;
 	/** Actively converting this tick. */
-	running?: boolean;
+	running?: boolean | null;
 	/**
 	* Recipe inputs at their live rate. Empty list, not null, when the converter
 	* carries no recipe.
@@ -3269,7 +3269,7 @@ export interface OrbitPatch
 	* existed, on the same terms as `ManeuverNode.id`. Nullable rather than 0
 	* because a zero GM is not a body, and every consumer of it divides.
 	*/
-	mu?: Value<"m³/s²">;
+	mu?: Value<"m³/s²"> | null;
 	/**
 	* Body this patch orbits, as its `system.bodies` INDEX. The identity, where
 	* `OrbitPatch.referenceBody` is the display name: index is what every other
@@ -3288,7 +3288,7 @@ export interface OrbitPatch
 	* defaulted value here would read as a confident wrong answer rather than as
 	* an absent one.
 	*/
-	referenceBodyIndex?: number;
+	referenceBodyIndex?: number | null;
 	/**
 	* `OrbitPatch.closestEncounterBody`'s `system.bodies` index, on the same
 	* index-is-identity terms as `OrbitPatch.referenceBodyIndex`. Null when there
@@ -3296,7 +3296,7 @@ export interface OrbitPatch
 	* are indistinguishable here, which is acceptable only because
 	* `OrbitPatch.closestEncounterBody` already carries the distinction.
 	*/
-	closestEncounterBodyIndex?: number;
+	closestEncounterBodyIndex?: number | null;
 }
 /**
 * Args for `vessel.invokePartAction`: fire one button of one part's
@@ -3463,9 +3463,9 @@ export interface SolarPanelEntry
 	partName?: string;
 	partId?: string;
 	deployState?: string;
-	flowRate?: Value<"units/s">;
-	chargeRate?: Value<"units/s">;
-	sunAOA?: Value<"°">;
+	flowRate?: Value<"units/s"> | null;
+	chargeRate?: Value<"units/s"> | null;
+	sunAOA?: Value<"°"> | null;
 }
 /**
 * One battery in the `parts.power` payload's `batteries` array. Typing-only
@@ -3475,8 +3475,8 @@ export interface BatteryEntry
 {
 	partName?: string;
 	partId?: string;
-	current?: Value<"units">;
-	max?: Value<"units">;
+	current?: Value<"units"> | null;
+	max?: Value<"units"> | null;
 }
 /**
 * One fuel cell in the `parts.power` payload's `fuelCells` array. Typing-only
@@ -3486,7 +3486,7 @@ export interface FuelCellEntry
 {
 	partName?: string;
 	partId?: string;
-	active?: boolean;
+	active?: boolean | null;
 	status?: string;
 }
 /**
@@ -3497,7 +3497,7 @@ export interface AlternatorEntry
 {
 	partName?: string;
 	partId?: string;
-	outputRate?: Value<"units/s">;
+	outputRate?: Value<"units/s"> | null;
 }
 /**
 * The `parts.power` channel payload: the active vessel's electric-charge
@@ -3523,7 +3523,7 @@ export interface PartsPower
 	batteries?: BatteryEntry[];
 	fuelCells?: FuelCellEntry[];
 	alternators?: AlternatorEntry[];
-	totalProductionEc?: Value<"units/s">;
+	totalProductionEc?: Value<"units/s"> | null;
 }
 /**
 * One entry in the `robotics.servos` channel payload, a single Breaking Ground
@@ -3554,26 +3554,26 @@ export interface ServoEntry
 	partName?: string;
 	partId?: string;
 	type?: string;
-	servoIsLocked?: boolean;
-	servoIsMotorized?: boolean;
-	servoMotorIsEngaged?: boolean;
-	servoMotorLimit?: Value<"%">;
+	servoIsLocked?: boolean | null;
+	servoIsMotorized?: boolean | null;
+	servoMotorIsEngaged?: boolean | null;
+	servoMotorLimit?: Value<"%"> | null;
 	motorState?: string;
-	currentAngle?: Value<"°">;
-	targetAngle?: Value<"°">;
-	traverseVelocity?: number;
-	currentRPM?: Value<"rpm">;
-	rpmLimit?: Value<"rpm">;
-	normalizedOutput?: Value<"ratio">;
-	brakePercentage?: Value<"%">;
-	currentExtension?: Value<"m">;
-	targetExtension?: Value<"m">;
+	currentAngle?: Value<"°"> | null;
+	targetAngle?: Value<"°"> | null;
+	traverseVelocity?: number | null;
+	currentRPM?: Value<"rpm"> | null;
+	rpmLimit?: Value<"rpm"> | null;
+	normalizedOutput?: Value<"ratio"> | null;
+	brakePercentage?: Value<"%"> | null;
+	currentExtension?: Value<"m"> | null;
+	targetExtension?: Value<"m"> | null;
 	/**
 	* Rotor spin direction (rotor entries only: `null` for every other kind).
 	* Mirrors `ModuleRoboticServoRotor.rotateCounterClockwise`: `true` means the
 	* rotor spins counter-clockwise.
 	*/
-	counterClockwise?: boolean;
+	counterClockwise?: boolean | null;
 	/**
 	* Rotor torque ceiling in kN (rotor entries only, `null` for every other
 	* kind). Mirrors `ModuleRoboticServoRotor.maxTorque`: the scale
@@ -3587,7 +3587,7 @@ export interface ServoEntry
 	* technically a moment, but the wire states what KSP's own UI labels it, and
 	* that label is kN.
 	*/
-	maxTorque?: Value<"kN">;
+	maxTorque?: Value<"kN"> | null;
 }
 /**
 * The `robotics.available` channel payload: a single wrapper object (or `null`
@@ -3618,7 +3618,7 @@ export interface ServoEntry
 */
 export interface RoboticsAvailability
 {
-	available?: boolean;
+	available?: boolean | null;
 }
 /**
 * The payload for the `recovery.lastSummary` channel: a single "last notable
@@ -3786,7 +3786,7 @@ export interface ReliabilityBudget
 	* Used/Limit as a fraction, 0..1+ (may exceed 1). Null when the provider has
 	* no denominator. This is the field the client thresholds on.
 	*/
-	consumed?: Value<"ratio">;
+	consumed?: Value<"ratio"> | null;
 	/**
 	* Seconds of the allowance used. RATED seconds, not wall-clock: TestFlight
 	* consumes engine life thrust-weighted (`currentRunTime += dt *
@@ -3796,16 +3796,16 @@ export interface ReliabilityBudget
 	* "rated" for that reason, and no wall-clock conversion is attempted because
 	* the future throttle profile is unknown.
 	*/
-	usedSeconds?: Value<"s">;
+	usedSeconds?: Value<"s"> | null;
 	/**
 	* The rated allowance in the same seconds `ReliabilityBudget.usedSeconds`
 	* counts. Null when the provider has no denominator.
 	*/
-	limitSeconds?: Value<"s">;
+	limitSeconds?: Value<"s"> | null;
 	/** Countable events used (ignitions, cycles). Exclusive with the seconds pair. */
-	usedCount?: Value<"count">;
+	usedCount?: Value<"count"> | null;
 	/** The countable allowance. Null when the provider has no denominator. */
-	limitCount?: Value<"count">;
+	limitCount?: Value<"count"> | null;
 }
 /**
 * Per-part reliability, in the terms a reliability model actually has: a
@@ -3838,7 +3838,7 @@ export interface ReliabilityPartEntry
 	* Minimum experience level the trait must hold, elevated with
 	* `ReliabilityPartEntry.repairTrait`. Null when the provider states none.
 	*/
-	repairLevel?: Value<"count">;
+	repairLevel?: Value<"count"> | null;
 	title?: string;
 	/**
 	* One of: "nominal", "service-due", "failed", "failed-critical", "unknown".
@@ -3876,14 +3876,14 @@ export interface ReliabilityPartEntry
 	* seconds of OPERATION), 0..1. Null when the provider models no forward
 	* probability. MUST be null whenever the horizon is null.
 	*/
-	survival?: Value<"ratio">;
+	survival?: Value<"ratio"> | null;
 	/**
 	* The horizon the fraction is over, in seconds of operation. MANDATORY
 	* whenever `ReliabilityPartEntry.survival` is set: exp(-rate*t) is
 	* uninterpretable without t, and two parts' fractions are not comparable
 	* unless both horizons are on screen.
 	*/
-	survivalHorizonSeconds?: Value<"s">;
+	survivalHorizonSeconds?: Value<"s"> | null;
 	/**
 	* Consumed dimensions. Null or empty when the provider models none. Order is
 	* producer-chosen and not significant.
@@ -4330,7 +4330,7 @@ export interface ScetAlarm
 	* The universal time the alarm fired at, or `null` while it is still armed. On
 	* the craft's clock, like `ScetAlarmCondition.ut`.
 	*/
-	firedAtUt?: Value<"ut">;
+	firedAtUt?: Value<"ut"> | null;
 }
 /**
 * The notice that a SCET alarm has fired and the warp has been stopped.
@@ -4448,18 +4448,18 @@ export interface ExperimentEntry
 	experimentId?: string;
 	subjectId?: string;
 	title?: string;
-	dataAmount?: Value<"Mit">;
-	scienceValueRatio?: Value<"ratio">;
-	baseTransmitValue?: Value<"science">;
+	dataAmount?: Value<"Mit"> | null;
+	scienceValueRatio?: Value<"ratio"> | null;
+	baseTransmitValue?: Value<"science"> | null;
 	/**
 	* Transmit-value multiplier, 0..1. Every `xmitDataScalar` across the installed
 	* part cfgs is at most 1.0, so this is a bounded ratio, not an open-ended
 	* dimensionless number.
 	*/
-	transmitBonus?: Value<"ratio">;
-	labValue?: Value<"science">;
-	deployed?: boolean;
-	inoperable?: boolean;
+	transmitBonus?: Value<"ratio"> | null;
+	labValue?: Value<"science"> | null;
+	deployed?: boolean | null;
+	inoperable?: boolean | null;
 	situation?: string;
 	/**
 	* Which value model produced `ExperimentEntry.scienceValueRatio` /
@@ -4513,11 +4513,11 @@ export interface InstrumentEntry
 	partName?: string;
 	experimentId?: string;
 	title?: string;
-	deployed?: boolean;
-	inoperable?: boolean;
-	rerunnable?: boolean;
-	resettable?: boolean;
-	dataIsCollectable?: boolean;
+	deployed?: boolean | null;
+	inoperable?: boolean | null;
+	rerunnable?: boolean | null;
+	resettable?: boolean | null;
+	dataIsCollectable?: boolean | null;
 	/**
 	* The provider-namespaced extension bag, instrument half. Same mechanism and
 	* same rule as `ExperimentEntry.extensions`. This payload carries no
@@ -4542,19 +4542,19 @@ export interface InstrumentEntry
 export interface LabEntry
 {
 	partName?: string;
-	dataStored?: Value<"Mit">;
-	dataStorage?: Value<"Mit">;
-	storedScience?: Value<"science">;
-	processingData?: boolean;
+	dataStored?: Value<"Mit"> | null;
+	dataStorage?: Value<"Mit"> | null;
+	storedScience?: Value<"science"> | null;
+	processingData?: boolean | null;
 	statusText?: string;
-	scientistCount?: Value<"count">;
+	scientistCount?: Value<"count"> | null;
 	/**
 	* Science generated per GAME-DAY, not per second. The host reads this off
 	* `ModuleScienceConverter.CalculateScienceRate`, whose decompile multiplies
 	* the per-tick rate by a full day.
 	*/
-	scienceRate?: Value<"science/day">;
-	isOperational?: boolean;
+	scienceRate?: Value<"science/day"> | null;
+	isOperational?: boolean | null;
 	/**
 	* Which value model produced `LabEntry.scienceRate` and
 	* `LabEntry.storedScience`, and which unit `LabEntry.dataStored` /
@@ -4594,10 +4594,10 @@ export interface DeployedEntry
 	situation?: string;
 	biome?: string;
 	experimentId?: string;
-	scienceCompletedPercentage?: Value<"%">;
-	scienceTransmittedPercentage?: Value<"%">;
-	scienceValue?: Value<"science">;
-	scienceLimit?: Value<"science">;
+	scienceCompletedPercentage?: Value<"%"> | null;
+	scienceTransmittedPercentage?: Value<"%"> | null;
+	scienceValue?: Value<"science"> | null;
+	scienceLimit?: Value<"science"> | null;
 	/**
 	* `ModuleGroundSciencePart.PowerState` verbatim: KSP's own words for the power
 	* state, for display. DO NOT BRANCH ON THIS.
@@ -4632,13 +4632,13 @@ export interface DeployedEntry
 	* `null` when the cluster could not be read at all, which is a third answer
 	* and must not be read as either powered or unpowered.
 	*/
-	power?: DeployedPowerState;
+	power?: DeployedPowerState | null;
 	/**
 	* Whether the experiment is attached to a controller cluster at all, the fact
 	* behind `DeployedEntry.connectionState`'s "Connected"/"Not Connected". `null`
 	* when it could not be determined.
 	*/
-	controllerConnected?: boolean;
+	controllerConnected?: boolean | null;
 	/**
 	* Power units the cluster's parts PRODUCE
 	* (`DeployedScienceCluster.PowerAvailable`), against
@@ -4650,14 +4650,14 @@ export interface DeployedEntry
 	* `DeployedEntry.power`. Zero is a real reading a live cluster holds while its
 	* panels are dark, so it must not stand in for absence.
 	*/
-	powerAvailable?: Value<"count">;
+	powerAvailable?: Value<"count"> | null;
 	/**
 	* Power units the cluster's parts REQUIRE
 	* (`DeployedScienceCluster.PowerRequired`). Same scale and same null rule as
 	* `DeployedEntry.powerAvailable`, the demand side of the balance.
 	*/
-	powerRequired?: Value<"count">;
-	deployedOnGround?: boolean;
+	powerRequired?: Value<"count"> | null;
+	deployedOnGround?: boolean | null;
 }
 /**
 * A deployed-science cluster's power state: OUR enum, not KSP's.
@@ -4720,7 +4720,7 @@ export interface SensorEntry
 	* e.g. "293.1K" or "Off").
 	*/
 	readout?: string;
-	active?: boolean;
+	active?: boolean | null;
 }
 /**
 * One entry in the `science.experimentBreakdown` channel payload, a
@@ -4761,12 +4761,12 @@ export interface ExperimentBreakdownEntry
 	* Summed `ScienceData.dataAmount` (mits) across every stored blob for this
 	* subject.
 	*/
-	dataMits?: Value<"Mit">;
+	dataMits?: Value<"Mit"> | null;
 	/**
 	* Absolute science still recoverable from this subject (`scienceCap -
 	* science`); `0` outside Career/Science mode.
 	*/
-	remainingPotential?: Value<"science">;
+	remainingPotential?: Value<"science"> | null;
 	/**
 	* Which value model produced `ExperimentBreakdownEntry.remainingPotential`,
 	* and which unit `ExperimentBreakdownEntry.dataMits` is really in. See
@@ -4819,16 +4819,16 @@ export interface ArchiveEntry
 	biome?: string;
 	title?: string;
 	/** Science banked for this subject so far. */
-	science?: Value<"science">;
+	science?: Value<"science"> | null;
 	/** Max science this subject can ever yield. */
-	scienceCap?: Value<"science">;
+	scienceCap?: Value<"science"> | null;
 	/**
 	* Absolute science still recoverable from this subject (`scienceCap -
 	* science`).
 	*/
-	remainingPotential?: Value<"science">;
+	remainingPotential?: Value<"science"> | null;
 	/** Region multiplier KSP applies to this subject's yield. */
-	subjectValue?: Value<"1">;
+	subjectValue?: Value<"1"> | null;
 }
 /**
 * The `flight.simulation` channel payload: is this a rehearsal, and is signal
@@ -4849,7 +4849,7 @@ export interface FlightSimulation
 	* such concept; see ISimulationBackend.IsSimulatedFlight for why that is
 	* different from false.
 	*/
-	simulated?: boolean;
+	simulated?: boolean | null;
 	/**
 	* Whether signal delay is currently being applied to this flight.
 	*
@@ -4925,7 +4925,7 @@ export interface LaunchSiteEntry
 	* Index into `SystemBodies` of the body this site sits on; null when absent or
 	* unresolved (never a sentinel like -1).
 	*/
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 	/**
 	* Latitude of the site's spawn point on its body
 	* (`LaunchSite.SpawnPoint.latlonaltSet`); null when the site has no set spawn
@@ -4933,24 +4933,24 @@ export interface LaunchSiteEntry
 	* to give the site a location for the command-delay geometry (a launch is a
 	* command to this location).
 	*/
-	latitude?: Value<"°">;
+	latitude?: Value<"°"> | null;
 	/**
 	* Longitude of the site's spawn point on its body; null when the site has no
 	* set spawn coordinate. Pairs with `LaunchSiteEntry.latitude`.
 	*/
-	longitude?: Value<"°">;
+	longitude?: Value<"°"> | null;
 	/**
 	* Whether this is a stock KSP launch site (`PSystemSetup.IsStockLaunchSite`),
 	* false for Making History / Kerbal Konstructs sites.
 	*/
-	isStock?: boolean;
+	isStock?: boolean | null;
 	/**
 	* Whether a vessel is currently sitting on this pad. There is no clean stock
 	* per-site occupancy API, so for now this is populated ONLY on the stock KSC
 	* pad, derived from the active vessel being in the PRELAUNCH situation; every
 	* other site carries null (per-site true occupancy is a follow-up).
 	*/
-	padOccupied?: boolean;
+	padOccupied?: boolean | null;
 	/**
 	* Name of the vessel occupying this pad, when derivable (depends on
 	* `LaunchSiteEntry.padOccupied`); null until per-site occupancy exists beyond
@@ -5034,7 +5034,7 @@ export interface CrewRosterEntry
 	* Experience level (`ProtoCrewMember.experienceLevel`), 0–5 (0 for a fresh
 	* applicant).
 	*/
-	experienceLevel?: Value<"count">;
+	experienceLevel?: Value<"count"> | null;
 	/**
 	* Whether the kerbal can be assigned to a flight today.
 	*
@@ -5047,7 +5047,7 @@ export interface CrewRosterEntry
 	*
 	* A backend may override it outright.
 	*/
-	available?: boolean;
+	available?: boolean | null;
 	/**
 	* Why the kerbal can't fly, in prose: `Assigned` reads "On mission",
 	* `Training` reads "In training", `Resting` reads "Standing down", and every
@@ -5073,7 +5073,7 @@ export interface CrewRosterEntry
 	* living retiree and no reading of it can recover the difference. See
 	* `CrewStanding` for the whole account.
 	*/
-	standing?: CrewStanding;
+	standing?: CrewStanding | null;
 	/**
 	* Which provider decided `CrewRosterEntry.standing`: the elected backend's
 	* `ProviderId`, e.g. `"stock"` or `"rp1"`. Absent when no backend was
@@ -5094,7 +5094,7 @@ export interface CrewRosterEntry
 	* AND until when. The two are separate fields so the client formats the date
 	* in its own calendar.
 	*/
-	standingEndsAtUt?: Value<"ut">;
+	standingEndsAtUt?: Value<"ut"> | null;
 	/**
 	* When this kerbal is scheduled to become `Retired`, as universal time. Absent
 	* under any backend that does not schedule retirements, stock included, and
@@ -5106,7 +5106,7 @@ export interface CrewRosterEntry
 	* substitute for it: a kerbal is Available or Training for years while a
 	* retirement date sits in the future.
 	*/
-	retiresAtUt?: Value<"ut">;
+	retiresAtUt?: Value<"ut"> | null;
 	/**
 	* `CrewRosterEntry.standing`'s display LABEL: its enum name, or `"Applicant"`
 	* for a hireable candidate. Text for an operator, never a branch: compare
@@ -5129,7 +5129,7 @@ export interface CrewRosterEntry
 	* `CrewStanding.Applicant` instead. Use `CrewRosterEntry.isApplicant` to tell
 	* the two apart. Also `null` when the capture carried no status.
 	*/
-	situationOrdinal?: KspRosterStatus;
+	situationOrdinal?: KspRosterStatus | null;
 	/**
 	* Whether the kerbal is standing down rather than on duty
 	* (`ProtoCrewMember.inactive`): KSP's own field, published beside the derived
@@ -5145,35 +5145,35 @@ export interface CrewRosterEntry
 	* sets it, and it goes on the wire whether or not one is installed: the field
 	* is KSP's, so reading it costs a stock install nothing.
 	*/
-	inactive?: boolean;
+	inactive?: boolean | null;
 	/**
 	* When the stand-down ends (`ProtoCrewMember.inactiveTimeEnd`), as universal
 	* time. Absent when `CrewRosterEntry.inactive` is false: KSP leaves the field
 	* at whatever the last rest period set, so quoting it for a kerbal on duty
 	* would date a rest that is already over.
 	*/
-	inactiveUntilUt?: Value<"ut">;
+	inactiveUntilUt?: Value<"ut"> | null;
 	/**
 	* Whether this entry is a hireable candidate (`ProtoCrewMember.type ==
 	* KerbalType.Applicant`) rather than owned crew. Carried so a client never has
 	* to recognise the `"Applicant"` spelling of `CrewRosterEntry.situation` to
 	* know which channel it is reading.
 	*/
-	isApplicant?: boolean;
+	isApplicant?: boolean | null;
 	/** Courage, 0–1 (`ProtoCrewMember.courage`). */
-	courage?: Value<"ratio">;
+	courage?: Value<"ratio"> | null;
 	/** Stupidity, 0–1 (`ProtoCrewMember.stupidity`). */
-	stupidity?: Value<"ratio">;
+	stupidity?: Value<"ratio"> | null;
 	/**
 	* Raw experience points (`ProtoCrewMember.experience`), 0 for a fresh
 	* applicant.
 	*/
-	experience?: Value<"1">;
+	experience?: Value<"1"> | null;
 	/**
 	* Progress toward the next rank, 0–1 (the computed
 	* `ProtoCrewMember.ExperienceLevelDelta`); `1` at max rank (5).
 	*/
-	experienceLevelDelta?: Value<"ratio">;
+	experienceLevelDelta?: Value<"ratio"> | null;
 	/**
 	* The role's stock tooltip description
 	* (`ProtoCrewMember.experienceTrait.Description`): the exact string the
@@ -5205,9 +5205,9 @@ export interface SavedShipEntry
 	/** Craft name (`CraftProfileInfo.shipName`). */
 	name?: string;
 	/** Part count (`CraftProfileInfo.partCount`). */
-	partCount?: Value<"count">;
+	partCount?: Value<"count"> | null;
 	/** Total mass in tonnes (`CraftProfileInfo.totalMass`). */
-	totalMass?: Value<"t">;
+	totalMass?: Value<"t"> | null;
 	/**
 	* Which editor built it: the `EditorFacility` enum name, `"VAB"` or `"SPH"`
 	* (`CraftProfileInfo.shipFacility`). A display label; see
@@ -5227,12 +5227,12 @@ export interface SavedShipEntry
 	* `null` when the capture carried no facility, which is a third answer and
 	* must not be read as either editor.
 	*/
-	facilityOrdinal?: KspEditorFacility;
+	facilityOrdinal?: KspEditorFacility | null;
 	/**
 	* Funds needed before this can launch, the full craft cost
 	* (`CraftProfileInfo.totalCost`).
 	*/
-	requiresFunds?: Value<"funds">;
+	requiresFunds?: Value<"funds"> | null;
 	/**
 	* Parts referenced by the craft that are not yet unlocked/purchased
 	* (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
@@ -5254,7 +5254,7 @@ export interface SavedShipEntry
 export interface SpaceCenterPartsAvailable
 {
 	/** Count of buildable parts. */
-	count?: Value<"count">;
+	count?: Value<"count"> | null;
 }
 /**
 * The `spaceCenter.astronautComplex` channel payload: the Astronaut Complex
@@ -5290,7 +5290,7 @@ export interface AstronautComplexInfo
 	* number counted against `AstronautComplexInfo.crewCapacity`. Null when the
 	* roster isn't queryable.
 	*/
-	activeCrew?: Value<"count">;
+	activeCrew?: Value<"count"> | null;
 	/**
 	* Active-crew cap set by the Astronaut Complex facility tier
 	* (`GameVariables.GetActiveCrewLimit` over the facility's NORMALISED level). A
@@ -5299,13 +5299,13 @@ export interface AstronautComplexInfo
 	* wire, never clamped, so the client can render "unlimited". Null when the
 	* facility isn't queryable.
 	*/
-	crewCapacity?: Value<"count">;
+	crewCapacity?: Value<"count"> | null;
 	/**
 	* Funds cost to hire the next applicant (`GameVariables.GetRecruitHireCost`):
 	* one figure for the whole pool, the same for every applicant this tick and
 	* rising with the current roster size.
 	*/
-	nextHireCost?: Value<"funds">;
+	nextHireCost?: Value<"funds"> | null;
 }
 /**
 * One point of interest in the `spaceCenter.pois` channel: the union of every
@@ -5336,18 +5336,18 @@ export interface SpaceCenterPoiEntry
 	* Index into `SystemBodies`; null when absent or unresolved (never a sentinel
 	* like -1).
 	*/
-	bodyIndex?: number;
-	latitude?: Value<"°">;
-	longitude?: Value<"°">;
+	bodyIndex?: number | null;
+	latitude?: Value<"°"> | null;
+	longitude?: Value<"°"> | null;
 	/** Display label: the launch site's display name, or the contract's title. */
 	label?: string;
 	/** `"active"` | `"available"` (null for `ksc`/`launchSite` kinds). */
 	status?: string;
 	/** Contract-issuing agent name; null for `ksc`/`launchSite` kinds. */
 	contractAgent?: string;
-	contractFundsAdvance?: Value<"funds">;
-	contractFundsCompletion?: Value<"funds">;
-	contractDateDeadline?: Value<"ut">;
+	contractFundsAdvance?: Value<"funds"> | null;
+	contractFundsCompletion?: Value<"funds"> | null;
+	contractDateDeadline?: Value<"ut"> | null;
 }
 /**
 * One ΔV-producing stage of the active vessel, straight from KSP's STOCK
@@ -5371,38 +5371,38 @@ export interface SpaceCenterPoiEntry
 export interface StageDeltaVEntry
 {
 	/** `DeltaVStageInfo.stage`: the stage number this entry describes. */
-	stage?: number;
+	stage?: number | null;
 	/** `DeltaVStageInfo.deltaVinVac`: stage ΔV in vacuum (m/s). */
-	dvVac?: Value<"m/s">;
+	dvVac?: Value<"m/s"> | null;
 	/** `DeltaVStageInfo.deltaVatASL`: stage ΔV at sea level (m/s). */
-	dvAsl?: Value<"m/s">;
+	dvAsl?: Value<"m/s"> | null;
 	/** `DeltaVStageInfo.deltaVActual`: stage ΔV at the current situation (m/s). */
-	dvActual?: Value<"m/s">;
+	dvActual?: Value<"m/s"> | null;
 	/** `DeltaVStageInfo.stageBurnTime`: full-throttle burn time for the stage (s). */
-	burnTime?: Value<"s">;
+	burnTime?: Value<"s"> | null;
 	/** `DeltaVStageInfo.TWRVac`: thrust-to-weight ratio in vacuum. */
-	twrVac?: Value<"1">;
+	twrVac?: Value<"1"> | null;
 	/** `DeltaVStageInfo.TWRASL`: thrust-to-weight ratio at sea level. */
-	twrAsl?: Value<"1">;
+	twrAsl?: Value<"1"> | null;
 	/**
 	* `DeltaVStageInfo.TWRActual`: thrust-to-weight ratio at the current
 	* situation.
 	*/
-	twrActual?: Value<"1">;
+	twrActual?: Value<"1"> | null;
 	/** `DeltaVStageInfo.thrustVac`: stage thrust in vacuum (kN). */
-	thrustVac?: Value<"kN">;
+	thrustVac?: Value<"kN"> | null;
 	/** `DeltaVStageInfo.thrustASL`: stage thrust at sea level (kN). */
-	thrustAsl?: Value<"kN">;
+	thrustAsl?: Value<"kN"> | null;
 	/** `DeltaVStageInfo.thrustActual`: stage thrust at the current situation (kN). */
-	thrustActual?: Value<"kN">;
+	thrustActual?: Value<"kN"> | null;
 	/** `DeltaVStageInfo.startMass`: stage start mass (tonnes). */
-	startMass?: Value<"t">;
+	startMass?: Value<"t"> | null;
 	/** `DeltaVStageInfo.endMass`: stage end (burnout) mass (tonnes). */
-	endMass?: Value<"t">;
+	endMass?: Value<"t"> | null;
 	/** `DeltaVStageInfo.dryMass`: stage dry mass (tonnes). */
-	dryMass?: Value<"t">;
+	dryMass?: Value<"t"> | null;
 	/** `DeltaVStageInfo.fuelMass`: stage fuel mass (tonnes). */
-	fuelMass?: Value<"t">;
+	fuelMass?: Value<"t"> | null;
 	/**
 	* Per-resource current/max amounts for the parts active IN THIS STAGE, the old
 	* `r.resourceCurrent[X]`/`r.resourceCurrentMax[X]` pair (as opposed to
@@ -5431,21 +5431,21 @@ export interface StageDeltaVEntry
 export interface StageDeltaVSummary
 {
 	/** `VesselDeltaV.OperatingStageInfo.Count`: the number of ΔV-producing stages. */
-	stageCount?: Value<"count">;
+	stageCount?: Value<"count"> | null;
 	/** `VesselDeltaV.TotalDeltaVVac`: total vessel ΔV in vacuum (m/s). */
-	totalDvVac?: Value<"m/s">;
+	totalDvVac?: Value<"m/s"> | null;
 	/** `VesselDeltaV.TotalDeltaVASL`: total vessel ΔV at sea level (m/s). */
-	totalDvAsl?: Value<"m/s">;
+	totalDvAsl?: Value<"m/s"> | null;
 	/**
 	* `VesselDeltaV.TotalDeltaVActual`: total vessel ΔV at the current situation
 	* (m/s).
 	*/
-	totalDvActual?: Value<"m/s">;
+	totalDvActual?: Value<"m/s"> | null;
 	/**
 	* `VesselDeltaV.TotalBurnTime`: total full-throttle burn time across all
 	* stages (s).
 	*/
-	totalBurnTime?: Value<"s">;
+	totalBurnTime?: Value<"s"> | null;
 }
 /**
 * The `system.bodies` channel payload: the celestial-body tree, produced by
@@ -5489,12 +5489,12 @@ export interface BodyEntry
 	* Index of the body this one orbits; null ONLY for the root star (no parent),
 	* never a sentinel like -1.
 	*/
-	parentIndex?: number;
+	parentIndex?: number | null;
 	/**
 	* Mean radius, metres; null when the live game doesn't have it yet (never 0/-1
 	* as a stand-in).
 	*/
-	radius?: Value<"m">;
+	radius?: Value<"m"> | null;
 	/**
 	* Orbital elements; null ONLY for the root star (orbit is meaningless without
 	* a parent), the "sun has a bogus orbit" wart suppressed at the source.
@@ -5532,9 +5532,9 @@ export interface BodyEntry
 	* Standard gravitational parameter μ = G·M, m³/s² (KSP
 	* `CelestialBody.gravParameter`). Null when the live game hasn't populated it.
 	*/
-	gravParameter?: Value<"m³/s²">;
+	gravParameter?: Value<"m³/s²"> | null;
 	/** Body mass, kilograms (`CelestialBody.Mass`). */
-	mass?: Value<"kg">;
+	mass?: Value<"kg"> | null;
 	/**
 	* Surface gravity in multiples of g₀ (`CelestialBody.GeeASL`), verbatim. This
 	* is the CONFIG PRIMITIVE, not a derived quantity: KSP computes mass and
@@ -5543,7 +5543,7 @@ export interface BodyEntry
 	* it as μ/r²/g₀ is running the game's own arithmetic backwards and can only
 	* lose precision doing it.
 	*/
-	surfaceGravity?: Value<"g">;
+	surfaceGravity?: Value<"g"> | null;
 	/**
 	* Hill-sphere radius, metres (`CelestialBody.hillSphere`). Null for the root
 	* star, where KSP's own value is `double.PositiveInfinity` and there is no
@@ -5554,19 +5554,19 @@ export interface BodyEntry
 	* has ever drawn was ∛(1/3) ≈ 0.693 of the game's, about 31% too small, in two
 	* widgets that render it as a fact.
 	*/
-	hillSphere?: Value<"m">;
+	hillSphere?: Value<"m"> | null;
 	/**
 	* Sphere-of-influence radius, metres (`CelestialBody.sphereOfInfluence`); null
 	* when absent.
 	*/
-	sphereOfInfluence?: Value<"m">;
+	sphereOfInfluence?: Value<"m"> | null;
 	/**
 	* Sidereal rotation period, seconds (`CelestialBody.rotationPeriod`); a
 	* NEGATIVE value denotes retrograde rotation. Null when absent. Carries "does
 	* this body rotate" on its own (a body rotates iff this is finite and
 	* non-zero), so no separate bool is emitted for it.
 	*/
-	rotationPeriod?: Value<"s">;
+	rotationPeriod?: Value<"s"> | null;
 	/**
 	* The body's rotation angle at UT 0, degrees
 	* (`CelestialBody.initialRotation`); null when absent.
@@ -5583,12 +5583,12 @@ export interface BodyEntry
 	* Zero is a real value, not a stand-in: a body whose prime meridian happens to
 	* face the reference direction at UT 0 reports it.
 	*/
-	initialRotation?: Value<"°">;
+	initialRotation?: Value<"°"> | null;
 	/**
 	* Whether the body is tidally locked to its parent
 	* (`CelestialBody.tidallyLocked`); null when absent.
 	*/
-	tidallyLocked?: boolean;
+	tidallyLocked?: boolean | null;
 	/**
 	* Atmosphere descriptor; null when the body has no atmosphere
 	* (`!CelestialBody.atmosphere`), the "airless vs. no-data" distinction the
@@ -5599,7 +5599,7 @@ export interface BodyEntry
 	* Whether the body has a liquid ocean (`CelestialBody.ocean`); null when
 	* absent.
 	*/
-	hasOcean?: boolean;
+	hasOcean?: boolean | null;
 	/**
 	* KSP's per-body flavour text (`CelestialBody.bodyDescription`); null when
 	* absent. May be a raw `#autoLOC...` localization tag the client suppresses.
@@ -5611,7 +5611,7 @@ export interface BodyEntry
 	* The authoritative home-body marker: a client locates home by this flag,
 	* never by index.
 	*/
-	isHome?: boolean;
+	isHome?: boolean | null;
 }
 /**
 * A body's atmosphere, present on a `BodyEntry` only when the body actually
@@ -5625,17 +5625,17 @@ export interface AtmosphereEntry
 	* Atmosphere height, metres (`CelestialBody.atmosphereDepth`); null when
 	* absent.
 	*/
-	depth?: Value<"m">;
+	depth?: Value<"m"> | null;
 	/**
 	* Whether the atmosphere is breathable / oxygenated
 	* (`CelestialBody.atmosphereContainsOxygen`); null when absent.
 	*/
-	hasOxygen?: boolean;
+	hasOxygen?: boolean | null;
 	/**
 	* Sea-level pressure, kPa (`CelestialBody.atmospherePressureSeaLevel`); null
 	* when absent.
 	*/
-	seaLevelPressure?: Value<"kPa">;
+	seaLevelPressure?: Value<"kPa"> | null;
 	/**
 	* Altitudes of the `AtmosphereEntry.pressures` samples, metres above sea
 	* level, ascending from 0; null when the stream does not report a profile.
@@ -5704,25 +5704,25 @@ export interface AtmosphereEntry
 export interface OrbitEntry
 {
 	/** Semi-major axis, metres. */
-	sma?: Value<"m">;
+	sma?: Value<"m"> | null;
 	/** Eccentricity. */
-	ecc?: Value<"1">;
+	ecc?: Value<"1"> | null;
 	/** Inclination, degrees. */
-	inc?: Value<"°">;
+	inc?: Value<"°"> | null;
 	/**
 	* Longitude of ascending node, degrees; null for an undefined node
 	* (near-equatorial orbit).
 	*/
-	lan?: Value<"°">;
+	lan?: Value<"°"> | null;
 	/**
 	* Argument of periapsis, degrees; null for an undefined periapsis
 	* (near-circular orbit).
 	*/
-	argPe?: Value<"°">;
+	argPe?: Value<"°"> | null;
 	/** Mean anomaly at epoch, radians. */
-	meanAnomalyAtEpoch?: Value<"rad">;
+	meanAnomalyAtEpoch?: Value<"rad"> | null;
 	/** Epoch UT, seconds. */
-	epoch?: Value<"ut">;
+	epoch?: Value<"ut"> | null;
 }
 /**
 * The `system.vessels` channel payload: the full known-vessel roster (every
@@ -5782,7 +5782,7 @@ export interface VesselRosterEntry
 	* Index into `SystemBodies` of this vessel's main body; null when absent or
 	* unresolved.
 	*/
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 	/**
 	* Kerbals aboard right now. Read off the LOADED vessel's crew when loaded, off
 	* `ProtoVessel` otherwise (`KspHost.BuildVesselRosterEntry`'s doc comment): so
@@ -5791,12 +5791,12 @@ export interface VesselRosterEntry
 	* zero); never used to distinguish "probe" from "unknown", that is
 	* `VesselRosterEntry.crewCount` == 0 vs. null.
 	*/
-	crewCount?: Value<"count">;
+	crewCount?: Value<"count"> | null;
 	/**
 	* Seat capacity, same loaded/proto read as `VesselRosterEntry.crewCount`. Null
 	* only if the read failed.
 	*/
-	crewCapacity?: Value<"count">;
+	crewCapacity?: Value<"count"> | null;
 	/**
 	* Whether stock CommNet reports a live control link home for this vessel right
 	* now: a raw `Vessel.connection.IsConnected` read against EVERY roster vessel
@@ -5810,14 +5810,14 @@ export interface VesselRosterEntry
 	* those three types. A debris or asteroid roster entry is expected to carry
 	* null here on every sample, not occasionally.
 	*/
-	commsConnected?: boolean;
+	commsConnected?: boolean | null;
 	/**
 	* The same read's control-level tier, for the roster's connected/partial/ none
 	* link-quality tag. Null under the same "nothing to read" condition as
 	* `VesselRosterEntry.commsConnected`: including the permanent
 	* Debris/SpaceObject/Unknown-vessel-type case documented there.
 	*/
-	commsControlSource?: RosterCommsControlSource;
+	commsControlSource?: RosterCommsControlSource | null;
 	/**
 	* This vessel's own orbital elements, the same shape (and the same
 	* `SystemViewProvider.BuildOrbit` routine) that fills `BodyEntry.orbit`. This
@@ -5851,26 +5851,26 @@ export interface TargetListEntry
 	*/
 	vesselId?: string;
 	/** Index into `system.bodies`: set for `TargetKind.Body`. Null otherwise. */
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 	/**
 	* KSP `Part.flightID`: set for `TargetKind.Part` (scoped by
 	* `TargetListEntry.vesselId`). Null otherwise.
 	*/
-	partId?: number;
+	partId?: number | null;
 	/**
 	* Vessel type: set for `TargetKind.Vessel` / `TargetKind.Part` (the owning
 	* vessel's type). Null otherwise.
 	*/
-	vesselType?: VesselType;
+	vesselType?: VesselType | null;
 	/** Flight situation: set for `TargetKind.Vessel`. Null otherwise. */
-	situation?: Situation;
+	situation?: Situation | null;
 	/**
 	* Current metric distance (metres) from the active vessel. A coarse sort aid
 	* for the picker, NOT a HUD value, it rides the periodic re-key, not the
 	* change-gate (it moves every tick). Live distance for the CURRENT target
 	* comes off `vessel.target`. Null when a transform wasn't available this tick.
 	*/
-	distance?: Value<"m">;
+	distance?: Value<"m"> | null;
 	/**
 	* True when this entry is the active vessel's current target
 	* (`FlightGlobals.fetch.VesselTarget`) right now.
@@ -6072,7 +6072,7 @@ export interface TrajectoryFrameRef
 	* a frame with no centre. Three of the frames a player can plot in have none,
 	* which is also why apsides do not exist in them.
 	*/
-	centreBodyIndex?: number;
+	centreBodyIndex?: number | null;
 	/**
 	* True when the frame's lengths are not lengths.
 	*
@@ -6198,7 +6198,7 @@ export interface TrajectoryForceModel
 	* The largest perturbing acceleration as a fraction of the primary's, over the
 	* arc. Makes the chaotic regime visible rather than inferred.
 	*/
-	thirdBodyDominance?: Value<"ratio">;
+	thirdBodyDominance?: Value<"ratio"> | null;
 	/**
 	* Which term is absent, when the model could not be fully matched. Null when
 	* nothing is missing; a degraded curve always names one.
@@ -6331,9 +6331,9 @@ export interface LimitBreach
 	* ABSENCE of a limit. A breach with no limit should be unreachable, since
 	* nothing can exceed an unlimited limit.
 	*/
-	limit?: number;
+	limit?: number | null;
 	/** What the call actually asked for, same unit as `LimitBreach.limit`. */
-	actual?: number;
+	actual?: number | null;
 	/**
 	* The unit token `LimitBreach.limit` and `LimitBreach.actual` are in, e.g. `t`
 	* for a mass limit, `count` for a part count.
@@ -6506,7 +6506,7 @@ export interface VantagePlanReply
 	solved: boolean;
 	arc?: TrajectoryArc;
 	/** When the state this was computed from was actually TRUE. */
-	seededAtUt?: Value<"ut">;
+	seededAtUt?: Value<"ut"> | null;
 	/**
 	* Which command centre's view produced it, echoed so a client that switched
 	* vantage mid-flight can tell whose answer it is holding.
@@ -6792,7 +6792,7 @@ export interface ActionGroupState
 	* draws an OFF toggle for a group whose state nobody knows, and inverting that
 	* reading commands the wrong way.
 	*/
-	state?: boolean;
+	state?: boolean | null;
 }
 /**
 * The `vessel.control` channel payload: the READ half of what the legacy
@@ -6816,37 +6816,37 @@ export interface VesselControl
 	* SAS master switch. Its control channel pairs it with `setSas` so a client
 	* can read the confirmed state and dispatch a change through ONE handle.
 	*/
-	sas?: boolean;
-	sasMode?: SasMode;
-	rcs?: boolean;
-	gear?: boolean;
-	brakes?: boolean;
-	lights?: boolean;
-	abort?: boolean;
+	sas?: boolean | null;
+	sasMode?: SasMode | null;
+	rcs?: boolean | null;
+	gear?: boolean | null;
+	brakes?: boolean | null;
+	lights?: boolean | null;
+	abort?: boolean | null;
 	/**
 	* Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
 	* `FlightInputHandler.fetch.precisionMode`. Null when there's no active flight
 	* scene (`FlightInputHandler.fetch` is null), never a sentinel default
 	* (R1(a)).
 	*/
-	precisionControl?: boolean;
+	precisionControl?: boolean | null;
 	/**
 	* 0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc
 	* comment.
 	*/
-	throttle?: Value<"ratio">;
+	throttle?: Value<"ratio"> | null;
 	/** Commanded pitch axis input, -1..1 (FlightInputHandler ctrlState.pitch). */
-	pitch?: Value<"1">;
+	pitch?: Value<"1"> | null;
 	/** Commanded yaw axis input, -1..1 (FlightInputHandler ctrlState.yaw). */
-	yaw?: Value<"1">;
+	yaw?: Value<"1"> | null;
 	/** Commanded roll axis input, -1..1 (FlightInputHandler ctrlState.roll). */
-	roll?: Value<"1">;
+	roll?: Value<"1"> | null;
 	/** Commanded translation X (RCS right/left) input, -1..1 (ctrlState.X). */
-	translationX?: Value<"1">;
+	translationX?: Value<"1"> | null;
 	/** Commanded translation Y (RCS up/down) input, -1..1 (ctrlState.Y). */
-	translationY?: Value<"1">;
+	translationY?: Value<"1"> | null;
 	/** Commanded translation Z (RCS fwd/back) input, -1..1 (ctrlState.Z). */
-	translationZ?: Value<"1">;
+	translationZ?: Value<"1"> | null;
 	/**
 	* Every CUSTOM action group the elected action-groups backend knows, each
 	* NAMED and carrying its own index (see `ActionGroupState`). Stock KSP yields
@@ -6872,7 +6872,7 @@ export interface CrewMember
 {
 	name?: string;
 	trait?: string;
-	experienceLevel?: Value<"count">;
+	experienceLevel?: Value<"count"> | null;
 	type?: string;
 	rosterStatus?: string;
 	/**
@@ -6893,15 +6893,15 @@ export interface CrewMember
 	* The kerbal's own slot count, stock default 2, one of which usually holds a
 	* parachute.
 	*/
-	slots?: Value<"count">;
+	slots?: Value<"count"> | null;
 	/**
 	* Their packed-volume limit, stock default 40 in KSP's own cargo-volume unit.
 	* With a repair kit at 5, this is what actually bounds how many they can
 	* carry.
 	*/
-	packedVolumeLimit?: Value<"1">;
+	packedVolumeLimit?: Value<"1"> | null;
 	/** Packed volume they are currently using, same unit as the limit. */
-	packedVolumeUsed?: Value<"1">;
+	packedVolumeUsed?: Value<"1"> | null;
 }
 /**
 * The `vessel.crew` channel payload. Started count-only for M1 (G-13: grows to
@@ -6953,7 +6953,7 @@ export interface DockAlignment
 	* class doc comment. Null only if either port's transform was unavailable this
 	* tick.
 	*/
-	forwardDot?: Value<"1">;
+	forwardDot?: Value<"1"> | null;
 	meta: PayloadMeta;
 }
 /**
@@ -7124,12 +7124,12 @@ export interface VesselIdentity
 	* Index into the `system.bodies` collection; null when the vessel has no orbit
 	* driver yet (e.g. a just-spawned EVA before it attaches).
 	*/
-	parentBodyIndex?: number;
+	parentBodyIndex?: number | null;
 	/**
 	* sampleUt - missionTime; null before the vessel's launch clock has started.
 	* See the class doc comment.
 	*/
-	launchUt?: Value<"ut">;
+	launchUt?: Value<"ut"> | null;
 	meta: PayloadMeta;
 }
 /**
@@ -7182,29 +7182,29 @@ export interface InventoryStore
 	* `ModuleInventoryPart.InventorySlots`. Null when the module did not report
 	* one.
 	*/
-	slots?: Value<"count">;
+	slots?: Value<"count"> | null;
 	/**
 	* Slots with something in them, so a consumer can say "2 of 4" without summing
 	* quantities that share a slot.
 	*/
-	slotsUsed?: Value<"count">;
+	slotsUsed?: Value<"count"> | null;
 	/**
 	* `packedVolumeLimit`, in KSP's own cargo-volume unit rather than cubic
 	* metres: it is a config number (a kerbal is 40, a repair kit is 5) and
 	* presenting it as a physical volume would be inventing a dimension the game
 	* does not attach to it.
 	*/
-	packedVolumeLimit?: Value<"1">;
+	packedVolumeLimit?: Value<"1"> | null;
 	/**
 	* Packed volume currently used, same unit as
 	* `InventoryStore.packedVolumeLimit`.
 	*/
-	packedVolumeUsed?: Value<"1">;
+	packedVolumeUsed?: Value<"1"> | null;
 	/**
 	* `massLimit` in tonnes. A kerbal's is 0.065, which is the binding constraint
 	* on how much they can carry long before slots are.
 	*/
-	massLimit?: Value<"t">;
+	massLimit?: Value<"t"> | null;
 }
 /** One kind of thing stored in an `InventoryStore`, with how many of it. */
 export interface InventoryItem
@@ -7219,7 +7219,7 @@ export interface InventoryItem
 	/** How many of this kind are in this store, summed across slots. */
 	quantity: Value<"count">;
 	/** Packed volume of ONE of these, same unit as the store's limits. */
-	packedVolume?: Value<"1">;
+	packedVolume?: Value<"1"> | null;
 }
 /**
 * The `vessel.landing` channel payload: terrain-informed landing data that
@@ -7266,41 +7266,41 @@ export interface VesselLanding
 	* vessel. Currently null (see the Tier-1 note); the sub-vessel-fallback
 	* `VesselLanding.predictedTerrainElevation` carries the under-ship elevation.
 	*/
-	terrainElevationUnderVessel?: Value<"m">;
+	terrainElevationUnderVessel?: Value<"m"> | null;
 	/**
 	* Degrees, 0 = flat: under-vessel terrain slope. Currently null (see the
 	* Tier-1 note); under-vessel slope comes from the Tier-2 plane-fit via the
 	* sub-vessel sampling fallback.
 	*/
-	slopeAngleUnderVessel?: Value<"°">;
+	slopeAngleUnderVessel?: Value<"°"> | null;
 	/**
 	* Degrees: predicted touchdown latitude. Terrain-independent: the client
 	* patch-walk supplies the point; this channel samples terrain there. Null when
 	* no touchdown is predicted within the horizon.
 	*/
-	predictedLatitude?: Value<"°">;
+	predictedLatitude?: Value<"°"> | null;
 	/**
 	* Degrees: predicted touchdown longitude. Always defined together with
 	* `VesselLanding.predictedLatitude`.
 	*/
-	predictedLongitude?: Value<"°">;
+	predictedLongitude?: Value<"°"> | null;
 	/**
 	* Metres: terrain elevation at the predicted touchdown point.
 	* `CelestialBody.TerrainAltitude(lat, lon, allowNegative: true)` so ocean
 	* floor reads honestly rather than clamping to a fabricated 0.
 	*/
-	predictedTerrainElevation?: Value<"m">;
+	predictedTerrainElevation?: Value<"m"> | null;
 	/**
 	* Degrees: terrain slope at the predicted touchdown point, from a plane fit
 	* over sampled heights (not an abs-average, which cannot tell a bowl from an
 	* incline). The tipover-risk readout, available while still descending.
 	*/
-	predictedSlopeAngle?: Value<"°">;
+	predictedSlopeAngle?: Value<"°"> | null;
 	/**
 	* Degrees, 0 = north, clockwise: the downhill direction at the predicted point
 	* (which way the lander falls if it tips). Null below the noise floor.
 	*/
-	predictedSlopeHeading?: Value<"°">;
+	predictedSlopeHeading?: Value<"°"> | null;
 	/**
 	* Metres: RESIDUAL standard deviation of sampled terrain height at the
 	* predicted point, AFTER removing the fitted slope plane (so tilt is not
@@ -7308,14 +7308,14 @@ export interface VesselLanding
 	* `VesselLanding.roughnessFootprintMeters` so it lives on the client's
 	* calibrated sigma grade. The boulder-risk proxy.
 	*/
-	predictedRoughness?: Value<"m">;
+	predictedRoughness?: Value<"m"> | null;
 	/**
 	* Metres: the footprint radius the roughness sigma was sampled over. Ships so
 	* the client can label honestly and grade it on the shared sigma scale.
 	*/
-	roughnessFootprintMeters?: Value<"m">;
+	roughnessFootprintMeters?: Value<"m"> | null;
 	/** Metres: the (tighter) radius the slope plane-fit samples span. */
-	slopeSampleRadiusMeters?: Value<"m">;
+	slopeSampleRadiusMeters?: Value<"m"> | null;
 	/**
 	* KSP's biome name at the PREDICTED touchdown point (not the current position,
 	* that is `vessel.surface.biome`). Via `ScienceUtil.GetExperimentBiome` (which
@@ -7330,26 +7330,26 @@ export interface VesselLanding
 	*/
 	terrainPatch?: Value<"m">[];
 	/** The N of the NxN `VesselLanding.terrainPatch` grid. Null when no patch. */
-	terrainPatchSize?: Value<"count">;
+	terrainPatchSize?: Value<"count"> | null;
 	/** Metres: the full width the `VesselLanding.terrainPatch` grid spans. */
-	terrainPatchExtentMeters?: Value<"m">;
+	terrainPatchExtentMeters?: Value<"m"> | null;
 	/**
 	* m/s: terminal velocity at the CURRENT altitude/config, from the measured
 	* aggregate drag force against local gravity. Null outside an atmosphere. An
 	* ESTIMATE assuming current config holds (attitude, no pending chute).
 	*/
-	terminalVelocity?: Value<"m/s">;
+	terminalVelocity?: Value<"m/s"> | null;
 	/**
 	* m/s: projected touchdown speed under a terminal descent to the ground
 	* (terminal velocity scaled to ground density). The atmosphere-aware
 	* replacement for the (wrong) vacuum impact speed. Null outside an atmosphere.
 	*/
-	projectedTouchdownSpeed?: Value<"m/s">;
+	projectedTouchdownSpeed?: Value<"m/s"> | null;
 	/**
 	* Seconds: atmosphere-aware time to impact, integrating the terminal-velocity
 	* profile down the density column. Null outside an atmosphere.
 	*/
-	atmosphericTimeToImpact?: Value<"s">;
+	atmosphericTimeToImpact?: Value<"s"> | null;
 	/**
 	* The instantaneous descent regime: `"at-terminal"` / `"decelerating"` /
 	* `"accelerating"`. Null outside an atmosphere.
@@ -7361,7 +7361,7 @@ export interface VesselLanding
 	* (drag beats gravity), 1 at terminal, <1 still accelerating. A dimensionless
 	* 0..N ratio like TWR, not a 0..1 fraction. Null outside an atmosphere.
 	*/
-	dragToWeightRatio?: Value<"1">;
+	dragToWeightRatio?: Value<"1"> | null;
 	/**
 	* Parachute state affecting the estimate: `"none"` / `"armed"` (a future step
 	* change the instant model cannot see, flag the estimate) / `"deployed"` (drag
@@ -7438,7 +7438,7 @@ export interface ManeuverNode
 	* the engines" indistinguishable from "this burn is instantaneous", and only
 	* one of those is ever true.
 	*/
-	ignitionUt?: Value<"ut">;
+	ignitionUt?: Value<"ut"> | null;
 	/**
 	* When the engines cut, or null on the same terms as
 	* `ManeuverNode.ignitionUt`. Burn duration is `CutoffUt - IgnitionUt`.
@@ -7451,7 +7451,7 @@ export interface ManeuverNode
 	* only while the craft's mass is constant, and a burn long enough to be worth
 	* modelling is long enough to change it.
 	*/
-	cutoffUt?: Value<"ut">;
+	cutoffUt?: Value<"ut"> | null;
 	/**
 	* The basis `ManeuverNode.dvRadial`/`ManeuverNode.dvNormal`/
 	* `ManeuverNode.dvPrograde` are expressed in. Null only on a node read off a
@@ -7474,28 +7474,28 @@ export interface ManeuverNode
 	* renders a Frenet burn correctly and one that silently rotates every burn an
 	* integrating planner produces while looking right.
 	*/
-	frame?: ManeuverFrame;
+	frame?: ManeuverFrame | null;
 	/**
 	* Null only if KSP's own dv component was non-finite (NaN/Infinity) this tick:
 	* the NODE is still preserved (never silently dropped just because one
 	* component came back bad); see `VesselViewProvider.BuildManeuver`.
 	*/
-	dvRadial?: Value<"m/s">;
+	dvRadial?: Value<"m/s"> | null;
 	/**
 	* Null only if KSP's own dv component was non-finite this tick; see
 	* `ManeuverNode.dvRadial`'s doc comment.
 	*/
-	dvNormal?: Value<"m/s">;
+	dvNormal?: Value<"m/s"> | null;
 	/**
 	* Null only if KSP's own dv component was non-finite this tick; see
 	* `ManeuverNode.dvRadial`'s doc comment.
 	*/
-	dvPrograde?: Value<"m/s">;
+	dvPrograde?: Value<"m/s"> | null;
 	/**
 	* Null only if KSP's own dv magnitude was non-finite this tick; see
 	* `ManeuverNode.dvRadial`'s doc comment.
 	*/
-	dvTotal?: Value<"m/s">;
+	dvTotal?: Value<"m/s"> | null;
 	/**
 	* What `ManeuverNode.frame`'s basis is measured RELATIVE TO.
 	*
@@ -7514,12 +7514,12 @@ export interface ManeuverNode
 	* Null when the planner has only one frame, which is the stock case and not a
 	* gap.
 	*/
-	frameReference?: ManeuverFrameReference;
+	frameReference?: ManeuverFrameReference | null;
 	/**
 	* The body `ManeuverNode.frameReference` is about, as a `system.bodies` index.
 	* Unused by a frame that needs no body.
 	*/
-	frameReferenceBodyIndex?: Value<"count">;
+	frameReferenceBodyIndex?: Value<"count"> | null;
 	/**
 	* Whether the craft holds a fixed inertial attitude through the burn rather
 	* than following the frame as it rotates.
@@ -7528,7 +7528,7 @@ export interface ManeuverNode
 	* without it is a plan whose execution cannot be predicted from what is on
 	* screen. Null when the planner has no such concept, which is stock.
 	*/
-	inertiallyFixed?: boolean;
+	inertiallyFixed?: boolean | null;
 	/**
 	* Thrust the plan was computed against.
 	*
@@ -7538,13 +7538,13 @@ export interface ManeuverNode
 	* and the answer differs between a plan made at full throttle and one made on
 	* a single engine whatever computed it.
 	*/
-	thrust?: Value<"kN">;
+	thrust?: Value<"kN"> | null;
 	/** Specific impulse the plan was computed against. */
-	specificImpulse?: Value<"isp">;
+	specificImpulse?: Value<"isp"> | null;
 	/** Craft mass at ignition, as the plan assumed it. */
-	initialMass?: Value<"t">;
+	initialMass?: Value<"t"> | null;
 	/** Craft mass at cutoff, as the plan assumed it. */
-	finalMass?: Value<"t">;
+	finalMass?: Value<"t"> | null;
 	/**
 	* This node's post-burn future-orbit patch chain: element 0 is the orbit the
 	* vessel is on IMMEDIATELY after the burn (KSP's own
@@ -7645,13 +7645,13 @@ export interface VesselOrbit
 	* orbit, inc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a
 	* stand-in (R1/F-1).
 	*/
-	lan?: Value<"°">;
+	lan?: Value<"°"> | null;
 	/**
 	* Null = undefined periapsis (KSP's own argumentOfPeriapsis is NaN for a
 	* near-circular orbit, ecc ~ 0 -- a routine case, not an error). Never NaN,
 	* never 0 as a stand-in (R1/F-1).
 	*/
-	argPe?: Value<"°">;
+	argPe?: Value<"°"> | null;
 	/**
 	* RADIANS, not degrees. The KSP-native degrees/radians split this record
 	* deliberately keeps (see the class doc comment) is exactly the kind of trap a
@@ -7768,7 +7768,7 @@ export interface PropagationHorizon
 	* `PropagationHorizon.kind` is `PropagationHorizonKind.Until`; null otherwise,
 	* never a sentinel standing in for "forever".
 	*/
-	untilUt?: Value<"ut">;
+	untilUt?: Value<"ut"> | null;
 }
 /**
 * Deliberately THREE arms, and the ordering is the point.
@@ -7827,7 +7827,7 @@ export interface OrbitEncounter
 	* Index into `system.bodies` of the body being transitioned INTO; null if that
 	* body couldn't be resolved.
 	*/
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 }
 /**
 * The `vessel.orbit.truth` channel payload: KSP's own maintained ground-truth
@@ -7947,14 +7947,14 @@ export interface VesselPart
 	* `Part.skinMaxTemp` (K); `null` for the `-1` "no skin-thermal model"
 	* sentinel.
 	*/
-	skinMaxTemp?: Value<"K">;
+	skinMaxTemp?: Value<"K"> | null;
 	/**
 	* `Part.temperature`: current internal temperature (K); `null` for the `-1`
 	* "not yet simulated" sentinel.
 	*/
-	currentTemp?: Value<"K">;
+	currentTemp?: Value<"K"> | null;
 	/** `Part.skinTemperature`: current skin temperature (K). */
-	skinTemp?: Value<"K">;
+	skinTemp?: Value<"K"> | null;
 	/**
 	* `Part.partInfo.category` (`PartCategories` enum name, e.g. `"Engine"`). A
 	* display label; see `VesselPart.categoryOrdinal`.
@@ -7972,7 +7972,7 @@ export interface VesselPart
 	* leaves `VesselPart.category` empty. Note `PartCategories.none` is `-1` and
 	* is a real value, NOT an absence.
 	*/
-	categoryOrdinal?: KspPartCategory;
+	categoryOrdinal?: KspPartCategory | null;
 	/**
 	* Each `PartModule`'s CLR class name (e.g. `"ModuleEngines"`,
 	* `"CModuleFuelLine"`), which is what a client classifies a part by.
@@ -8078,12 +8078,12 @@ export interface PartResourceFlow
 	* Signed units/sec: positive = producing, negative = consuming. `null` when no
 	* cheaply-derivable module contributes.
 	*/
-	flow?: Value<"units/s">;
+	flow?: Value<"units/s"> | null;
 	/**
 	* Same-sign 100%-efficiency cap (rated solar output). `null` when no module
 	* supports a nominal, or when it would equal `PartResourceFlow.flow`.
 	*/
-	nominalFlow?: Value<"units/s">;
+	nominalFlow?: Value<"units/s"> | null;
 }
 /**
 * One module's behavioural state in `VesselPart.moduleStates`.
@@ -8116,12 +8116,12 @@ export interface PartModuleState
 	*/
 	state: string;
 	/** Solar-panel-only: sun-tracking gimbal active. `null` for every other type. */
-	tracking?: boolean;
+	tracking?: boolean | null;
 	/**
 	* Engine-only: fuel-starved. `null` unless `true` (never emitted as a bare
 	* `false`).
 	*/
-	flameout?: boolean;
+	flameout?: boolean | null;
 }
 /**
 * A `VesselPart`'s local bounding box: `PartBounds.size` is the part's
@@ -8235,7 +8235,7 @@ export interface VesselPropulsion
 	* has no parts to read). Otherwise switching away from a burning craft would
 	* read as its engines quitting.
 	*/
-	thrustStartedUt?: Value<"ut">;
+	thrustStartedUt?: Value<"ut"> | null;
 	/**
 	* UT the craft's most recent period of thrust ENDED, or null when no period of
 	* thrust has been observed to end since this craft became the subject. Same
@@ -8254,7 +8254,7 @@ export interface VesselPropulsion
 	* happened yet. A consumer may report that thrust ceased with delta-v owed; it
 	* may not report a shortfall.
 	*/
-	lastThrustEndUt?: Value<"ut">;
+	lastThrustEndUt?: Value<"ut"> | null;
 	meta: PayloadMeta;
 }
 /**
@@ -8328,9 +8328,9 @@ export interface VesselStructure
 	*/
 	currentStage: number;
 	/** Null when the vessel has no parts this tick. */
-	stageCount?: Value<"count">;
+	stageCount?: Value<"count"> | null;
 	/** Null when the vessel has no parts this tick. */
-	partCount?: Value<"count">;
+	partCount?: Value<"count"> | null;
 	meta: PayloadMeta;
 }
 /**
@@ -8368,7 +8368,7 @@ export interface VesselSurface
 	* extent (see the class doc comment for how this differs from
 	* `vessel.flight.altitudeTerrain`). Null if unavailable this tick.
 	*/
-	heightFromTerrain?: Value<"m">;
+	heightFromTerrain?: Value<"m"> | null;
 	meta: PayloadMeta;
 }
 /**
@@ -8473,7 +8473,7 @@ export interface VesselTarget
 	* `SetTargetArgs.bodyIndex`'s own field. Null for a vessel/other target, or if
 	* the body name couldn't be resolved against `system.bodies` this tick.
 	*/
-	bodyIndex?: number;
+	bodyIndex?: number | null;
 	/**
 	* The target part's KSP `Part.flightID`: populated ONLY when
 	* `VesselTarget.kind` is `TargetKind.Part` (a docking port), scoped by
@@ -8482,7 +8482,7 @@ export interface VesselTarget
 	* `vessel.target` and hands it back into `SetTargetArgs.partId` to re-target
 	* the same port.
 	*/
-	partId?: number;
+	partId?: number | null;
 	/**
 	* Metres, self-relative. Null only when the transform data needed to compute
 	* it wasn't available this tick.
@@ -8544,9 +8544,9 @@ export interface ThermalHottestPart
 export interface VesselThermal
 {
 	/** Null = no part this tick had a valid (> 0) `skinMaxTemp`, typed, never 0.0. */
-	maxSkinTempRatio?: Value<"ratio">;
+	maxSkinTempRatio?: Value<"ratio"> | null;
 	/** Null = no part this tick had a valid (> 0) `maxTemp`, typed, never 0.0. */
-	maxInternalTempRatio?: Value<"ratio">;
+	maxInternalTempRatio?: Value<"ratio"> | null;
 	/**
 	* Null = no part qualified as "hottest" (same no-valid-part condition as
 	* `VesselThermal.maxInternalTempRatio`).
@@ -8558,12 +8558,12 @@ export interface VesselThermal
 	* ablative heat shield this tick. Was °C until the units audit: the wire is
 	* SI, and a Celsius display is the client's choice to make.
 	*/
-	heatShieldTemp?: Value<"K">;
+	heatShieldTemp?: Value<"K"> | null;
 	/**
 	* The same heat shield's ablative heat flux (`ModuleAblator.flux`, kW). Null
 	* when the vessel carries no ablative heat shield this tick.
 	*/
-	heatShieldFlux?: Value<"kW">;
+	heatShieldFlux?: Value<"kW"> | null;
 	/**
 	* Internal temperature (K, raw: same unit as
 	* `ThermalHottestPart.internalTemp`) of whichever part carrying a
@@ -8571,18 +8571,18 @@ export interface VesselThermal
 	* internal-temperature ratio. Null when the vessel carries no engine parts
 	* this tick.
 	*/
-	hottestEngineTemp?: Value<"K">;
+	hottestEngineTemp?: Value<"K"> | null;
 	/**
 	* That same engine part's max internal temperature (K, raw). Null under the
 	* same no-engine-parts condition as `VesselThermal.hottestEngineTemp`.
 	*/
-	hottestEngineMaxTemp?: Value<"K">;
+	hottestEngineMaxTemp?: Value<"K"> | null;
 	/**
 	* That same engine part's internal-temperature ratio (`temperature /
 	* maxTemp`). Null under the same no-engine-parts condition as
 	* `VesselThermal.hottestEngineTemp`.
 	*/
-	hottestEngineTempRatio?: Value<"ratio">;
+	hottestEngineTempRatio?: Value<"ratio"> | null;
 	/**
 	* True when ANY engine part's internal-temperature ratio is at or above 0.9,
 	* the same ">90% max" threshold ThermalStatus's own inline alert copy already
@@ -8590,7 +8590,7 @@ export interface VesselThermal
 	* crosses it; null only alongside a null
 	* `VesselThermal.hottestEngineTempRatio` (no engine parts at all this tick).
 	*/
-	anyEnginesOverheating?: boolean;
+	anyEnginesOverheating?: boolean | null;
 	meta: PayloadMeta;
 }
 /**

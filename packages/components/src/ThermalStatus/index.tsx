@@ -373,7 +373,11 @@ function ThermalStatusComponent({
                       <TempValue>
                         {<Temp kelvin={engineTempK?.magnitude} />}
                       </TempValue>
-                      {engineMaxK !== undefined && (
+                      {/* `!= null`: `maxK` is a `double?` and the wire keeps
+                          the key, so a part with no rated maximum arrives as an
+                          explicit null and the strict form reached
+                          `.magnitude` on it. */}
+                      {engineMaxK != null && (
                         <MaxTag>
                           / {<Temp kelvin={engineMaxK.magnitude} />} max
                         </MaxTag>

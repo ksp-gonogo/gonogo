@@ -167,7 +167,13 @@ function severityName(ordinal: number | undefined): string | undefined {
  * number is not going on screen, it is a key into {@link SEVERITY_NAMES}, and
  * the word is what the row shows.
  */
-function ordinalOf(v: { magnitude: number } | undefined): number | undefined {
+function ordinalOf(
+  /* `null` as well as absent: these ordinals are `int?` on the contract and the
+     wire keeps the key, so a setting the plugin could not read arrives as a
+     null. `magnitudeOf` already answers null for it; the parameter simply did
+     not admit it. */
+  v: { magnitude: number } | null | undefined,
+): number | undefined {
   return magnitudeOf(v) ?? undefined;
 }
 

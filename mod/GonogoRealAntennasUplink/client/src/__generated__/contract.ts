@@ -81,17 +81,17 @@ export interface RealAntennasTargetStep
 	/** The body, for `BodyCenter` and `BodyLatLonAlt`. Null means the home body. */
 	bodyName?: string;
 	/** Latitude (degrees), for `BodyLatLonAlt`. */
-	latitude?: Value<"°">;
+	latitude?: Value<"°"> | null;
 	/** Longitude (degrees), for `BodyLatLonAlt`. */
-	longitude?: Value<"°">;
+	longitude?: Value<"°"> | null;
 	/** Altitude above the surface (metres), for `BodyLatLonAlt`. */
-	altitude?: Value<"m">;
+	altitude?: Value<"m"> | null;
 	/** Azimuth (degrees), for `AzEl`. */
-	azimuth?: Value<"°">;
+	azimuth?: Value<"°"> | null;
 	/** Elevation (degrees), for `AzEl` and `OrbitRelative`. */
-	elevation?: Value<"°">;
+	elevation?: Value<"°"> | null;
 	/** Deflection from prograde (degrees), for `OrbitRelative`. */
-	forward?: Value<"°">;
+	forward?: Value<"°"> | null;
 }
 /**
 * Args for `realantennas.antenna.targetChain`: hand one antenna an ordered
@@ -164,7 +164,7 @@ export interface RealAntennasAntennaChain
 	* is still aimed wherever it was. That is the normal resting state of a
 	* fallback, not a fault.
 	*/
-	activeStep?: Value<"count">;
+	activeStep?: Value<"count"> | null;
 	/**
 	* What the walk is doing: `holding` (the craft has a link, nothing to do),
 	* `settling` (an entry was just applied and is being given its time),
@@ -185,7 +185,7 @@ export interface RealAntennasAntennaChain
 	* When the craft last aimed this antenna from the chain. `null` while
 	* `RealAntennasAntennaChain.activeStep` is null, there being no such moment.
 	*/
-	lastAppliedUt?: Value<"ut">;
+	lastAppliedUt?: Value<"ut"> | null;
 	/**
 	* How many times the walk has been all the way through the chain without the
 	* craft regaining a link. Zero on a chain that is holding.
@@ -203,7 +203,7 @@ export interface RealAntennasAntennaChain
 	* to act: advancing on an unreadable signal would slew a dish that may be
 	* carrying the link.
 	*/
-	connected?: boolean;
+	connected?: boolean | null;
 	/**
 	* Whether THIS antenna is an endpoint of one of the craft's live links, rather
 	* than a dish aimed somewhere that nothing is using.
@@ -213,7 +213,7 @@ export interface RealAntennasAntennaChain
 	* through an omni while the chain's dish points at nothing. `null` when it
 	* could not be read.
 	*/
-	carrying?: boolean;
+	carrying?: boolean | null;
 	meta: PayloadMeta;
 }
 /**
@@ -272,28 +272,28 @@ export interface RealAntennasHopExt
 	/** RF band the hop is on (L/S/X/K): `RealAntenna.RFBand.name`. */
 	band?: string;
 	/** Antenna tech level (0..9): the progression axis behind the rate ceiling. */
-	techLevel?: Value<"count">;
+	techLevel?: Value<"count"> | null;
 	/**
 	* Negotiated modulation order: shows the link stepping down under a thin
 	* margin.
 	*/
-	modulationBits?: Value<"count">;
+	modulationBits?: Value<"count"> | null;
 	/** Active FEC encoder name (e.g. "Reed-Solomon 255/223", "Turbo 1/2"). */
 	encoder?: string;
 	/** Encoder coding rate (0..1): the FEC overhead the rate already includes. */
-	codingRate?: Value<"ratio">;
+	codingRate?: Value<"ratio"> | null;
 	/** Required Eb/N0 (dB) to close the link at this encoder: RA's own figure. */
-	requiredEbN0?: Value<"dB">;
+	requiredEbN0?: Value<"dB"> | null;
 	/** Dish beamwidth (degrees): pointing tightness/sensitivity. */
-	beamwidth?: Value<"°">;
+	beamwidth?: Value<"°"> | null;
 	/** Transmit electric-charge draw (units/s): the comms power cost of this hop. */
-	powerDrawEc?: Value<"units/s">;
+	powerDrawEc?: Value<"units/s"> | null;
 	/**
 	* Reverse-direction throughput (bits/sec): the opposite of the forward rate
 	* this Uplink publishes on `realantennas.hopRates`, off the same live
 	* RACommLink. The backend only surfaced the forward direction before.
 	*/
-	reverseBitsPerSec?: Value<"bit/s">;
+	reverseBitsPerSec?: Value<"bit/s"> | null;
 }
 /**
 * One entry of the `realantennas.hopRates` channel: the RealAntennas forward
@@ -371,7 +371,7 @@ export interface RealAntennasAntennaState
 	* commands refuse an unreadable antenna as well, but they say which of the two
 	* refusals it is.
 	*/
-	steerable?: boolean;
+	steerable?: boolean | null;
 	/**
 	* Whether this antenna currently holds a target. The fields below describe it
 	* when true and are all null when false.
@@ -385,25 +385,25 @@ export interface RealAntennasAntennaState
 	* and not a quieter "no". The target fields below are all null in that case
 	* too, for want of a target to describe rather than because there is none.
 	*/
-	targeted?: boolean;
+	targeted?: boolean | null;
 	/** Antenna gain (dBi), the quantity beamwidth and steerability both come off. */
-	gain?: Value<"dB">;
+	gain?: Value<"dB"> | null;
 	/** Antenna tech level (0..9): the level the mode gate compares against. */
-	techLevel?: Value<"count">;
+	techLevel?: Value<"count"> | null;
 	/**
 	* Beamwidth (degrees), from gain. RealAntennas draws the 3 dB cone at half
 	* this and the 10 dB cone at all of it, so this is the wider of the two.
 	*/
-	beamwidth?: Value<"°">;
+	beamwidth?: Value<"°"> | null;
 	/** The 3 dB cone half-angle (degrees): half the beamwidth. */
-	cone3Db?: Value<"°">;
+	cone3Db?: Value<"°"> | null;
 	/** The 10 dB cone half-angle (degrees): the beamwidth itself. */
-	cone10Db?: Value<"°">;
+	cone10Db?: Value<"°"> | null;
 	/**
 	* The near-field limit a tight beam imposes (metres): RealAntennas reports
 	* zero for an antenna holding no target, and for a beam 90° or wider.
 	*/
-	minimumDistance?: Value<"m">;
+	minimumDistance?: Value<"m"> | null;
 	/**
 	* The STORED kind of the current target: `Vessel`, `BodyLatLonAlt`, `AzEl` or
 	* `OrbitRelative`. Null when the antenna holds no target.
@@ -430,22 +430,22 @@ export interface RealAntennasAntennaState
 	/** The body a `BodyLatLonAlt` target is on. */
 	targetBodyName?: string;
 	/** Latitude of a `BodyLatLonAlt` target (degrees). */
-	targetLatitude?: Value<"°">;
+	targetLatitude?: Value<"°"> | null;
 	/** Longitude of a `BodyLatLonAlt` target (degrees). */
-	targetLongitude?: Value<"°">;
+	targetLongitude?: Value<"°"> | null;
 	/**
 	* Altitude of a `BodyLatLonAlt` target (metres above the surface). A value of
 	* minus the body's radius is the body's centre, which is what RealAntennas
 	* writes for its own "Body Center" affordance and for the default target it
 	* gives an untargeted dish.
 	*/
-	targetAltitude?: Value<"m">;
+	targetAltitude?: Value<"m"> | null;
 	/** Azimuth of an `AzEl` target (degrees, 0..360). */
-	targetAzimuth?: Value<"°">;
+	targetAzimuth?: Value<"°"> | null;
 	/** Elevation of an `AzEl` or `OrbitRelative` target (degrees, -90..90). */
-	targetElevation?: Value<"°">;
+	targetElevation?: Value<"°"> | null;
 	/** Deflection from prograde of an `OrbitRelative` target (degrees, -180..180). */
-	targetForward?: Value<"°">;
+	targetForward?: Value<"°"> | null;
 	/**
 	* The mode names `realantennas.antenna.target` will accept for THIS antenna:
 	* every mode the install declares whose tech level this antenna has reached.

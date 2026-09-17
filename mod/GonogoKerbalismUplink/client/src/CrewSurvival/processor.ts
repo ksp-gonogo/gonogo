@@ -145,7 +145,10 @@ export function ruleFraction(rule: KerbalismCrewRule): number | null {
   // and 0 on that scale is the reading that says the crew is fine.
   const accumulated = rule.value;
   const threshold = rule.fatalThreshold;
-  if (accumulated === undefined || threshold === undefined) return null;
+  // `== null`: both are `double?` on the contract and the wire keeps the key,
+  // so "never arrived" reaches here as an explicit null rather than as absence.
+  // The strict form let it past into the arithmetic below.
+  if (accumulated == null || threshold == null) return null;
   if (magnitudeOf(accumulated) === null) return null;
   const limit = magnitudeOr(threshold, Number.NaN);
   if (!Number.isFinite(limit) || limit <= 0) return null;

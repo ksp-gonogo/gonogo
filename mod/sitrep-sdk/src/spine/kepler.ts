@@ -61,8 +61,15 @@ const NEWTON_TOLERANCE = 1e-12;
  */
 export interface PropagationHorizonLike {
   kind: PropagationHorizonKindLike;
-  /** Only meaningful for `Until`; a UT, not a duration. */
-  untilUt?: { magnitude: number } | number;
+  /**
+   * Only meaningful for `Until`; a UT, not a duration.
+   *
+   * `null` as well as absent, because the C# is `double?` and the wire keeps
+   * the key: every horizon that is not `Until` arrives as `"untilUt":null`,
+   * which is the common case. `horizonUtOf` has always tested for it; this
+   * mirror simply did not say so until the generated type did.
+   */
+  untilUt?: { magnitude: number } | number | null;
   /**
    * What KIND of answer these elements are: a closed-form conic, or a snapshot
    * of an integrated path. Optional HERE and required on the wire, because this
