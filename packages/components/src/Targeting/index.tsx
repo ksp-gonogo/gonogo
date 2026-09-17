@@ -1419,7 +1419,11 @@ registerComponent<TargetingConfig>({
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
-  minSize: { w: 3, h: 4 },
+  /* Five rows, not four. At 3x4 the body scroller is 122px against 135px of
+     content, and the thirteen pixels that puts past the fold turn on an
+     overflow glow whose mask reaches seventeen, so "Waiting for target
+     telemetry" had its last word painted out where it stood. */
+  minSize: { w: 3, h: 5 },
   component: TargetingComponent,
   configComponent: TargetingConfigComponent,
   channels: topics.channels,

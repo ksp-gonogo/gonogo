@@ -614,7 +614,12 @@ registerComponent<DeployedScienceConfig>({
     "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 5, h: 9 },
-  minSize: { w: 4, h: 4 },
+  /* Five rows, not four. At 4x4 the body scroller is 122px against 135px of
+     content, and the thirteen pixels that puts past the fold turn on an
+     overflow glow whose mask reaches seventeen, so "Waiting for the
+     deployed-base roster" lost its last line to a cover it could not be read
+     under. */
+  minSize: { w: 4, h: 5 },
   component: DeployedScienceComponent,
   dataRequirements: ["deployed.bases", "game.dlc.breakingGround"],
   defaultConfig: {},

@@ -516,7 +516,12 @@ registerComponent<OrbitViewConfig>({
     "SVG diagram of the current orbit ellipse with vessel position, apoapsis, and periapsis markers.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
-  minSize: { w: 3, h: 3 },
+  /* Four rows, not three. At 3x3 the body scroller is 89px against 99px of
+     content, and the ten pixels that puts past the fold turn on an overflow
+     glow whose mask reaches seventeen, so "No orbital data" lost its last line
+     to a cover four times the scroll it was advertising. The fourth row leaves
+     it a clear 23px. */
+  minSize: { w: 3, h: 4 },
   component: OrbitViewComponent,
   // Exposes an overlay slot, drawn over the SVG diagram and passed the
   // diagram's projection. No first-party augment fills it yet.
