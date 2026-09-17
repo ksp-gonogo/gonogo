@@ -110,11 +110,22 @@ function findFixtures(root: string): string[] {
  * `minAppVersion` in the same `gonogo` block:
  *
  *     "gonogo": { "renderWith": ["../../../packages/components/src/index.ts"] }
+ *     "gonogo": { "renderWith": ["@ksp-gonogo/render-hosts"] }
  *
- * Paths, not specifiers, and relative to the client directory: a specifier would
- * need a dependency the isolation rules forbid. In-repo only for the same
- * reason, which is why a missing file is an error naming the declaration rather
- * than a silent skip.
+ * An entry is EITHER a path relative to the client directory, or a bare module
+ * specifier. The two are the same registrations reached two ways, and which one
+ * an Uplink writes is decided by where it lives rather than by preference: a
+ * path only exists inside this repository, so an Uplink here names one; an
+ * Uplink that has left names `@ksp-gonogo/render-hosts`, the package that
+ * carries the app's widgets prebuilt for exactly this.
+ *
+ * A specifier was refused until #221, on the ground that reaching a host would
+ * mean a dependency the isolation rules forbid. That was true while the only
+ * module was `packages/components`, which is `private: true` and unpublished.
+ * It stopped being true when `@ksp-gonogo/render-hosts` shipped: a published
+ * package, named in devDependencies rather than dependencies, imported from no
+ * source file. `uplink-isolation.test.ts` is what holds that line now, which is
+ * a check rather than the absence of a feature.
  */
 function resolveRenderWith(dir: string, gonogo: unknown): string[] {
   const declared = (gonogo as { renderWith?: unknown } | undefined)?.renderWith;
@@ -122,26 +133,101 @@ function resolveRenderWith(dir: string, gonogo: unknown): string[] {
   if (!Array.isArray(declared)) {
     throw new Error(
       `gonogo-uplink: "gonogo.renderWith" in ${join(dir, "package.json")} must ` +
-        `be an array of module paths, got ${typeof declared}.`,
+        `be an array of module paths or specifiers, got ${typeof declared}.`,
     );
   }
   return declared.map((entry) => {
     if (typeof entry !== "string") {
       throw new Error(
-        `gonogo-uplink: every "gonogo.renderWith" entry must be a path ` +
-          `string, got ${JSON.stringify(entry)}.`,
+        `gonogo-uplink: every "gonogo.renderWith" entry must be a path or a ` +
+          `specifier string, got ${JSON.stringify(entry)}.`,
       );
     }
+    return resolveRenderModule(dir, '"gonogo.renderWith"', entry);
+  });
+}
+
+/** A specifier is anything that is not a relative or absolute PATH. */
+function isBareSpecifier(entry: string): boolean {
+  return !entry.startsWith(".") && !entry.startsWith("/");
+}
+
+/** Every `node_modules` from `dir` up to the filesystem root, nearest first. */
+function nodeModulesChain(dir: string): string[] {
+  const chain: string[] = [];
+  let at = resolve(dir);
+  for (;;) {
+    chain.push(join(at, "node_modules"));
+    const up = dirname(at);
+    if (up === at) return chain;
+    at = up;
+  }
+}
+
+/**
+ * The package name at the head of a specifier, subpath dropped.
+ *
+ * `@ksp-gonogo/ui-kit/render-probe` is the package `@ksp-gonogo/ui-kit`: a
+ * scope carries a slash of its own, so the split is at the second slash when
+ * the name is scoped and at the first when it is not.
+ */
+function packageNameOf(specifier: string): string {
+  const parts = specifier.split("/");
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+}
+
+/**
+ * One `renderWith` entry or one `--with` value, as esbuild should receive it.
+ *
+ * Shared by both so the two cannot drift: a flag that accepted a shape the
+ * declaration refused would be a render that works once, for whoever ran it.
+ *
+ * A specifier is returned AS WRITTEN, for esbuild to resolve from the client's
+ * own directory when it builds the page. Resolving it to a file here would pick
+ * whatever condition a Node `require` picks, and every package in play
+ * publishes an `import`-only `exports` map. So the check below is for the
+ * package's PRESENCE, which is enough to turn a missing install into an error
+ * naming the declaration rather than an esbuild failure naming a generated file
+ * nobody wrote.
+ */
+export function resolveRenderModule(
+  dir: string,
+  where: string,
+  entry: string,
+): string {
+  if (!isBareSpecifier(entry)) {
     const full = resolve(dir, entry);
     if (!exists(full)) {
       throw new Error(
-        `gonogo-uplink: "gonogo.renderWith" names "${entry}", which resolves ` +
-          `to ${full} and does not exist. It is a path relative to the client ` +
-          "package, not a module specifier.",
+        `gonogo-uplink: ${where} names "${entry}", which resolves to ${full} ` +
+          "and does not exist. An entry starting with . or / is a path " +
+          "relative to the client package; drop the leading dots to name an " +
+          "installed package instead.",
       );
     }
     return full;
-  });
+  }
+  // `node_modules` walked up from the client directory, and NOTHING else. It is
+  // the one layout pnpm's symlink farm and npm's flat tree agree on, and it is
+  // what esbuild will do when it resolves this for real.
+  //
+  // `require.resolve.paths` is the obvious way to get that chain and is WRONG
+  // here, measured rather than reasoned: it appends `NODE_PATH`, and vitest
+  // sets `NODE_PATH` to pnpm's private `node_modules/.pnpm/node_modules`. Every
+  // package in the monorepo is present there, so the check answered "installed"
+  // for a package the Uplink had never declared — the same hoisting that
+  // `uplink-isolation.test.ts` exists to stop anyone relying on. A check that
+  // passes because of the store it happens to be run beside is not a check.
+  const pkg = packageNameOf(entry);
+  if (!nodeModulesChain(dir).some((root) => exists(join(root, pkg)))) {
+    throw new Error(
+      `gonogo-uplink: ${where} names "${entry}", and "${pkg}" is not ` +
+        `installed under ${dir}. Add it to devDependencies: it is a render-` +
+        "time module, not something the Uplink imports. For the app's own " +
+        'widgets that package is "@ksp-gonogo/render-hosts".',
+    );
+  }
+  return entry;
 }
 
 export function resolveUplinkPackage(

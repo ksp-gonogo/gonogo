@@ -293,15 +293,83 @@ describe("the generated browser entry", () => {
     expect(() => resolveUplinkPackage(dir)).toThrow(/renderWith.*gone\.ts/s);
   });
 
-  it("refuses a module SPECIFIER, which needs a dependency the rules forbid", () => {
+  /**
+   * A specifier was refused outright until #221, because the only host module
+   * was `packages/components`, which is unpublished: naming it by specifier
+   * would have meant a dependency the isolation rules forbid. Publishing
+   * `@ksp-gonogo/render-hosts` is what changed that, and it is the only way an
+   * Uplink that has LEFT this repo can draw a scene that names `_scene.host`.
+   */
+  it("takes an installed specifier and hands it to esbuild as written", () => {
     const dir = fakePackage({
       "package.json": JSON.stringify({
         name: "@example/uplink",
         version: "1.2.3",
-        gonogo: { renderWith: ["@ksp-gonogo/components"] },
+        gonogo: { renderWith: ["@ksp-gonogo/render-hosts"] },
+      }),
+      // Presence is the check, so a directory in the node_modules chain is an
+      // install. Its contents are esbuild's problem, not the resolver's.
+      "node_modules/@ksp-gonogo/render-hosts/package.json": JSON.stringify({
+        name: "@ksp-gonogo/render-hosts",
+        version: "0.1.0",
       }),
     });
-    expect(() => resolveUplinkPackage(dir)).toThrow(/not a module specifier/);
+
+    const pkg = resolveUplinkPackage(dir);
+    // NOT resolved to a file. Resolving here would pick the condition a Node
+    // `require` picks, and the kit, the sdk and this package all publish an
+    // `import`-only exports map; esbuild resolves it from the client directory
+    // with the right condition when it builds the page.
+    expect(pkg.renderWith).toEqual(["@ksp-gonogo/render-hosts"]);
+    expect(generateEntry(pkg, pkg.renderWith)).toContain(
+      'await import("@ksp-gonogo/render-hosts")',
+    );
+  });
+
+  it("names the declaration when a specifier's package is not installed", () => {
+    const dir = fakePackage({
+      "package.json": JSON.stringify({
+        name: "@example/uplink",
+        version: "1.2.3",
+        gonogo: { renderWith: ["@ksp-gonogo/render-hosts"] },
+      }),
+    });
+    // The failure an author actually gets is a missing devDependency, so the
+    // error has to name that rather than let esbuild fail on a generated file
+    // nobody wrote.
+    //
+    // This assertion is load-bearing beyond its wording. `require.resolve.paths`
+    // is the obvious way to find the node_modules chain and it appends
+    // `NODE_PATH`, which VITEST sets to pnpm's private
+    // `node_modules/.pnpm/node_modules` — where every package in the monorepo
+    // is present. Written that way the resolver answered "installed" here and
+    // this test was the only thing that said so.
+    expect(() => resolveUplinkPackage(dir)).toThrow(
+      /renderWith.*render-hosts.*not \r?\n?installed|renderWith.*render-hosts/s,
+    );
+    expect(() => resolveUplinkPackage(dir)).toThrow(/devDependencies/);
+  });
+
+  /**
+   * The two shapes are told apart by the leading `.` or `/`, so the error an
+   * author gets has to be the one for the shape they wrote. A relative path
+   * that does not exist is a typo in a path; a specifier that does not resolve
+   * is a missing install, and the remedies are different.
+   */
+  it("tells a missing PATH from a missing PACKAGE", () => {
+    const missingPath = fakePackage({
+      "package.json": JSON.stringify({
+        name: "@example/uplink",
+        version: "1.2.3",
+        gonogo: { renderWith: ["./gone.ts"] },
+      }),
+    });
+    expect(() => resolveUplinkPackage(missingPath)).toThrow(
+      /does not exist.*path relative to the client package/s,
+    );
+    expect(() => resolveUplinkPackage(missingPath)).not.toThrow(
+      /devDependencies/,
+    );
   });
 });
 

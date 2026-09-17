@@ -824,3 +824,148 @@ describe("uplink subpath isolation", () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * `@ksp-gonogo/render-hosts` is the app's own widgets, registered, so an
+ * Uplink's docs page can draw an augment inside its real host. It is PUBLISHED,
+ * which is what makes it reachable from outside this repo at all, and that is
+ * exactly what makes it dangerous: every other rule in this file works by a
+ * package being unpublished, and this one cannot.
+ *
+ * The operator's ruling on #221 is the rule:
+ *
+ * > "typically pulling the widgets into the UI kit is only for the docs page,
+ * > right? It's not for anything else."
+ *
+ * So the line is not WHETHER an Uplink may name it, but WHERE:
+ *
+ *   - `devDependencies` and `gonogo.renderWith`: yes. That is the whole purpose
+ *   - `dependencies`: no. A runtime dependency is the Uplink shipping the app's
+ *     widget library to its users
+ *   - any `import` in client source: no. There is nothing to import — the
+ *     package exports no symbols, only the side effect of registration — so an
+ *     import is someone reaching past the exports map for a widget
+ *
+ * Position is the whole check, which is why this cannot be an entry in
+ * `FORBIDDEN_PACKAGES`: that list is scanned across `dependencies` and
+ * `devDependencies` together and would ban the one position that is correct.
+ */
+describe("render-hosts is a render-time module, not an import", () => {
+  const RENDER_HOSTS = "@ksp-gonogo/render-hosts";
+
+  /** Same spellings as `IMPORT_RE`, for the one package. */
+  const RENDER_HOSTS_IMPORT_RE = new RegExp(
+    `${SPECIFIER_PREFIX}["']${RENDER_HOSTS.replace("/", "\\/")}(?:["']|/)`,
+    "gm",
+  );
+
+  function manifestsDeclaringItAsARuntimeDependency(): string[] {
+    const offenders: string[] = [];
+    for (const manifest of uplinkManifests()) {
+      const pkg = JSON.parse(readFileSync(manifest, "utf8")) as {
+        dependencies?: Record<string, string>;
+      };
+      if (pkg.dependencies?.[RENDER_HOSTS] !== undefined) {
+        offenders.push(relative(REPO_ROOT, manifest).split("\\").join("/"));
+      }
+    }
+    return offenders;
+  }
+
+  function sourceFilesImportingIt(): string[] {
+    return uplinkSourceFiles().filter((file) =>
+      RENDER_HOSTS_IMPORT_RE.test(readFileSync(file, "utf8")),
+    );
+  }
+
+  /**
+   * Both scanners, graded against a planted violation of each, because both
+   * report an empty list when they are blind and an empty list is what a clean
+   * tree reports too. There are no Uplinks declaring or importing this package
+   * today, so without this test the two checks below would pass on a tree where
+   * neither scanner could see anything at all.
+   */
+  it("can see a violation of each position it forbids", () => {
+    const seen = (source: string) => {
+      RENDER_HOSTS_IMPORT_RE.lastIndex = 0;
+      return RENDER_HOSTS_IMPORT_RE.test(source);
+    };
+
+    const reaches: Record<string, string> = {
+      "static named": `import { a } from "${RENDER_HOSTS}";`,
+      "static side-effect": `import "${RENDER_HOSTS}";`,
+      "re-export": `export * from "${RENDER_HOSTS}";`,
+      dynamic: `const m = await import("${RENDER_HOSTS}");`,
+      require: `const m = require("${RENDER_HOSTS}");`,
+      subpath: `import { a } from "${RENDER_HOSTS}/anything";`,
+    };
+    expect(
+      Object.entries(reaches)
+        .filter(([, source]) => !seen(source))
+        .map(([spelling]) => spelling),
+      "The import pattern cannot see a spelling that reaches the module anyway.",
+    ).toEqual([]);
+
+    const prose: Record<string, string> = {
+      possessive: `// ${RENDER_HOSTS}'s registrations`,
+      "renderWith declaration": `"renderWith": ["${RENDER_HOSTS}"]`,
+      "permitted sibling": `import { Panel } from "@ksp-gonogo/ui-kit";`,
+    };
+    expect(
+      Object.entries(prose)
+        .filter(([, source]) => seen(source))
+        .map(([kind]) => kind),
+      "The import pattern matched something that is not an import. The renderWith entry is the case that matters: it names the package in the manifest on purpose, and a pattern that reads it as an import fails the very thing it is meant to permit.",
+    ).toEqual([]);
+
+    // The manifest scanner, planted the same way: a real manifest shape, read
+    // through the same field the check reads, rather than trusting that a
+    // `dependencies` lookup does what it looks like it does.
+    const planted = JSON.parse(
+      `{"dependencies":{"${RENDER_HOSTS}":"^0.1.0"},"devDependencies":{}}`,
+    ) as { dependencies?: Record<string, string> };
+    expect(
+      planted.dependencies?.[RENDER_HOSTS],
+      "The manifest check reads a field that a runtime declaration does not land in.",
+    ).toBeDefined();
+  });
+
+  it("no Uplink client declares render-hosts as a runtime dependency", () => {
+    expect(
+      manifestsDeclaringItAsARuntimeDependency(),
+      [
+        `An Uplink client declares ${RENDER_HOSTS} in "dependencies".`,
+        "",
+        "It belongs in devDependencies. It exists to render the docs page and",
+        "for nothing else, so a runtime dependency on it means this Uplink now",
+        "ships the app's whole widget library to its users.",
+        "",
+        'Move it to devDependencies and name it in "gonogo.renderWith".',
+        "",
+        "See docs/uplink-isolation.md.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
+  it("no Uplink client source imports render-hosts", () => {
+    expect(
+      sourceFilesImportingIt().map((f) =>
+        relative(REPO_ROOT, f).split("\\").join("/"),
+      ),
+      [
+        `An Uplink client file imports ${RENDER_HOSTS}.`,
+        "",
+        "There is nothing in it to import: it exports no symbols, only the",
+        "side effect of registering the app's widgets so a docs render can",
+        "find a scene's host. An import is therefore someone reaching for an",
+        "app widget to use for real, which is the thing this package was put",
+        "behind its own name to prevent.",
+        "",
+        'Name it in "gonogo.renderWith" instead. If you need a component from',
+        "it, move that component into @ksp-gonogo/ui-kit.",
+        "",
+        "See docs/uplink-isolation.md.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+});
