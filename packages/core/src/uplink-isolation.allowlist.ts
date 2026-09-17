@@ -157,6 +157,36 @@ export const AUTHOR_SUBPATHS: Record<
     grid: "the dashboard's cell geometry, so an author sizing a render reads the app's own numbers instead of mirroring them. It is also the one module a NODE process imports, because the root barrel reaches the sdk and cannot load outside a bundler",
     "tokens.css": "the design-system custom properties, imported as an asset",
   },
+  "@ksp-gonogo/uplink-tools": {
+    "render-probe":
+      "the browser half of the render harness, driven by the gonogo-uplink bin. An author's `gonogo-render.setup.ts` imports `defineRenderSetup` from it",
+    "page-check":
+      "the generated-page assertions an author's own `uplink-page.test.ts` reads back",
+  },
+};
+
+/**
+ * Published subpaths whose classification is a DECISION the operator has not
+ * made yet, with the question each one poses.
+ *
+ * A third state, because the other two both settle something. This one records
+ * that nothing is settled while still keeping the subpath off the author
+ * surface: `isAuthorSubpath` reads {@link AUTHOR_SUBPATHS} alone, so an Uplink
+ * importing anything listed here fails the same way it would for a
+ * non-author subpath. What it is NOT is a default: a subpath reaches this map
+ * by someone writing the question down.
+ *
+ * An entry is meant to LEAVE, in one direction or the other. It is not a debt
+ * list and nothing shrinks it automatically.
+ */
+export const PENDING_RULING: Record<
+  string,
+  Readonly<Record<string, string>>
+> = {
+  "@ksp-gonogo/uplink-tools": {
+    widgets:
+      "registers the app's ENTIRE built-in widget library, as one `import \"@ksp-gonogo/components\"`. It exists so an Uplink's docs page can draw an augment inside the real widget it extends. Whether an author may import it for anything BEYOND rendering that page is the question: it is the one route by which an Uplink could start depending on app widgets for real use, which the whole isolation architecture exists to prevent. Awaiting the operator's ruling (ticket 344); nothing in this repo imports it today",
+  },
 };
 
 /**

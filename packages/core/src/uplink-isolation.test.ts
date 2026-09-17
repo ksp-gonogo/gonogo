@@ -4,11 +4,20 @@
 // `uplink-boundary.test.ts`: the shrink-only check transpiles the allowlist at a
 // git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
 import {
   AUTHOR_SUBPATHS,
@@ -18,6 +27,7 @@ import {
   type ForbiddenPackage,
   INTERNAL_IMPORT_DEBT,
   NON_AUTHOR_SUBPATHS,
+  PENDING_RULING,
 } from "./uplink-isolation.allowlist";
 
 /**
@@ -702,10 +712,69 @@ describe("uplink isolation", () => {
  * is not an author surface.
  */
 describe("uplink subpath isolation", () => {
-  const PUBLISHED = {
-    "@ksp-gonogo/sitrep-sdk": join(MOD_DIR, "sitrep-sdk", "package.json"),
-    "@ksp-gonogo/ui-kit": join(REPO_ROOT, "packages", "ui-kit", "package.json"),
-  } as const;
+  const plantDirs: string[] = [];
+  afterAll(() => {
+    for (const dir of plantDirs.splice(0)) rmSync(dir, { recursive: true });
+  });
+
+  /**
+   * Every package this repo PUBLISHES, discovered rather than named.
+   *
+   * It was a two-entry literal, and that made the scan blind along a dimension
+   * it never reported: `@ksp-gonogo/uplink-tools` is published, is a
+   * devDependency of every Uplink, and had all of its subpaths unclassified
+   * while this test passed. Adding `@ksp-gonogo/ui-kit/grid` failed it
+   * immediately and correctly in the same run, which is what a gate that
+   * discovers one dimension and hardcodes another looks like from the inside.
+   *
+   * The walk is over `pnpm-workspace.yaml`'s own globs, so a package cannot be
+   * published from a directory this does not read. `private: true` is what
+   * excludes a package, matching what `npm publish` would actually do, rather
+   * than a second list to keep in step.
+   */
+  function discoverPublished(): Record<string, string> {
+    const found: Record<string, string> = {};
+    for (const dir of [
+      join(REPO_ROOT, "packages"),
+      MOD_DIR,
+      ...readdirSync(MOD_DIR, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => join(MOD_DIR, e.name, "client")),
+    ]) {
+      if (!existsSync(dir)) continue;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const manifest = entry.isDirectory()
+          ? join(dir, entry.name, "package.json")
+          : entry.name === "package.json"
+            ? join(dir, entry.name)
+            : undefined;
+        if (!manifest || !existsSync(manifest)) continue;
+        // Narrowed rather than asserted: this reads an arbitrary manifest off
+        // disk, which is exactly the boundary `unknown` is for.
+        const pkg: unknown = JSON.parse(readFileSync(manifest, "utf8"));
+        if (typeof pkg !== "object" || pkg === null) continue;
+        const name = "name" in pkg ? pkg.name : undefined;
+        if (typeof name !== "string") continue;
+        if ("private" in pkg && pkg.private === true) continue;
+        if (!("exports" in pkg) || !pkg.exports) continue;
+        found[name] = manifest;
+      }
+    }
+    return found;
+  }
+
+  const PUBLISHED = discoverPublished();
+
+  /**
+   * The floor the discovery cannot drop below without saying so.
+   *
+   * A walk that finds nothing reports every subpath classified, which is the
+   * failure mode this whole describe exists to prevent, one level up. Three is
+   * what the repo publishes today; it is a FLOOR rather than an equality so
+   * that publishing a fourth package does not fail here, where it has nothing
+   * to say. It fails where it should: unclassified subpaths.
+   */
+  const MIN_PUBLISHED_PACKAGES = 3;
 
   /**
    * The module subpaths a package exports. `./biome` and the `.json` configs are
@@ -733,9 +802,20 @@ describe("uplink subpath isolation", () => {
    * with no keyword and no call, and one Uplink config aliases both non-author
    * subpaths today because `sdk-subpath-alias.test.ts` requires every published
    * subpath to be aliased wherever the sdk is.
+   *
+   * The package alternation is DERIVED from the same walk the classification
+   * uses, not written out. Hardcoding `(sitrep-sdk|ui-kit)` here left this half
+   * blind to `@ksp-gonogo/uplink-tools` in exactly the way the classification
+   * half was: planting an Uplink import of `/widgets` failed only the dedicated
+   * widgets test and went unseen by this one, so a published package's subpaths
+   * could be imported freely as long as nobody had written a bespoke test for
+   * them. Fixing one half and not the other would have left the ticket half
+   * done and looking finished.
    */
   const SUBPATH_IMPORT_RE = new RegExp(
-    `${SPECIFIER_PREFIX}["']@ksp-gonogo/(sitrep-sdk|ui-kit)/([^"']+)["']`,
+    `${SPECIFIER_PREFIX}["']@ksp-gonogo/(${Object.keys(PUBLISHED)
+      .map((name) => name.replace("@ksp-gonogo/", ""))
+      .join("|")})/([^"']+)["']`,
     "gm",
   );
 
@@ -767,16 +847,91 @@ describe("uplink subpath isolation", () => {
     ).toEqual([]);
   });
 
-  it("classifies every published subpath, so a new one cannot default", () => {
+  /** A throwaway manifest exporting `subpaths`, for the blindness plants. */
+  function manifestWith(subpaths: string[]): string {
+    const dir = mkdtempSync(join(tmpdir(), "uplink-isolation-plant-"));
+    plantDirs.push(dir);
+    const file = join(dir, "package.json");
+    writeFileSync(
+      file,
+      JSON.stringify({
+        name: "@planted/pkg",
+        exports: Object.fromEntries(subpaths.map((s) => [s, "./x.js"])),
+      }),
+    );
+    return file;
+  }
+
+  /**
+   * Extracted from the test body so the blindness check below can run it
+   * against PLANTED manifests. Inline, the only thing that could exercise it
+   * was the repo's real state, which is exactly the state it is supposed to be
+   * auditing.
+   */
+  function unclassifiedSubpaths(published: Record<string, string>): string[] {
     const unclassified: string[] = [];
-    for (const [pkg, manifest] of Object.entries(PUBLISHED)) {
+    for (const [pkg, manifest] of Object.entries(published)) {
       const author = AUTHOR_SUBPATHS[pkg] ?? {};
       const nonAuthor = NON_AUTHOR_SUBPATHS[pkg] ?? {};
+      const pending = PENDING_RULING[pkg] ?? {};
       for (const sub of publishedSubpaths(manifest)) {
-        if (sub in author || sub in nonAuthor) continue;
+        if (sub in author || sub in nonAuthor || sub in pending) continue;
         unclassified.push(`${pkg}/${sub}`);
       }
     }
+    return unclassified;
+  }
+
+  it("discovers every published package, so a whole one cannot go unread", () => {
+    expect(
+      Object.keys(PUBLISHED).length,
+      `The published-package walk found ${Object.keys(PUBLISHED).length} (${Object.keys(PUBLISHED).join(", ")}), below the floor of ${MIN_PUBLISHED_PACKAGES}. A walk that finds nothing reports every subpath classified. Fix the walk, or lower the floor deliberately if a package genuinely stopped being published.`,
+    ).toBeGreaterThanOrEqual(MIN_PUBLISHED_PACKAGES);
+    for (const manifest of Object.values(PUBLISHED)) {
+      expect(existsSync(manifest), `${manifest} does not exist`).toBe(true);
+    }
+  });
+
+  it("reports an unclassified subpath in EVERY published package, not just the first", () => {
+    // Two planted packages, not one: a reader that stops at its first find, or
+    // carries state between iterations, passes a single plant and fails this.
+    // The same lesson as a `/g` regex skipping the second occurrence.
+    const planted = {
+      "@ksp-gonogo/sitrep-sdk": manifestWith(["./planted-one"]),
+      "@ksp-gonogo/ui-kit": manifestWith(["./planted-two"]),
+    };
+    expect(unclassifiedSubpaths(planted).sort()).toEqual([
+      "@ksp-gonogo/sitrep-sdk/planted-one",
+      "@ksp-gonogo/ui-kit/planted-two",
+    ]);
+    // And it is the CLASSIFICATION doing the work, not the planting: a subpath
+    // that is listed comes back clean through the same path.
+    expect(
+      unclassifiedSubpaths({
+        "@ksp-gonogo/ui-kit": manifestWith(["./testing"]),
+      }),
+    ).toEqual([]);
+  });
+
+  it("keeps a pending-ruling subpath OFF the author surface", () => {
+    // The point of the third state: recorded, so it does not read as a new
+    // subpath defaulting, and still not importable.
+    for (const [pkg, subs] of Object.entries(PENDING_RULING)) {
+      for (const sub of Object.keys(subs)) {
+        expect(
+          AUTHOR_SUBPATHS[pkg]?.[sub],
+          `${pkg}/${sub} is awaiting a ruling and must not also be an author surface`,
+        ).toBeUndefined();
+        expect(
+          subs[sub]?.length ?? 0,
+          `${pkg}/${sub} needs the question written down, not an empty reason`,
+        ).toBeGreaterThan(40);
+      }
+    }
+  });
+
+  it("classifies every published subpath, so a new one cannot default", () => {
+    const unclassified = unclassifiedSubpaths(PUBLISHED);
     expect(
       unclassified,
       [
@@ -786,7 +941,9 @@ describe("uplink subpath isolation", () => {
         "Defaulting is what this list exists to prevent: a new subpath is reachable",
         "the moment it is published, and every other gate in the tree permits it.",
         "Decide, and record the reason, in AUTHOR_SUBPATHS or NON_AUTHOR_SUBPATHS in",
-        "packages/core/src/uplink-isolation.allowlist.ts.",
+        "packages/core/src/uplink-isolation.allowlist.ts. If the decision is not",
+        "yours to make, PENDING_RULING records the question and keeps the subpath",
+        "off the author surface meanwhile.",
       ].join("\n"),
     ).toEqual([]);
   });
@@ -972,7 +1129,7 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
     ).toBe(false);
   });
 
-  it("no Uplink client declares the hosts module as a runtime dependency", () => {
+  it("no Uplink client declares the widgets module as a runtime dependency", () => {
     expect(
       manifestsDeclaringItAsARuntimeDependency(),
       [
@@ -989,7 +1146,7 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
     ).toEqual([]);
   });
 
-  it("no Uplink client source imports the hosts module", () => {
+  it("no Uplink client source imports the widgets module", () => {
     expect(
       sourceFilesImportingIt().map((f) =>
         relative(REPO_ROOT, f).split("\\").join("/"),
