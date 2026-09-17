@@ -82,14 +82,6 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
      */
     "topic kerbalism.features",
   ],
-  GonogoRealAntennasUplink: [
-    /*
-     * Declared beside `comms.dataRate` and `comms.linkMargin`, which ARE read.
-     * The odd one out of the three, so most likely an omission rather than a
-     * decision.
-     */
-    "topic comms.linkQuality",
-  ],
 };
 
 /**

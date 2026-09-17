@@ -613,7 +613,6 @@ jobs:
             Sitrep.Skeleton.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
-            GonogoRealAntennasUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
             Gonogo.KSP.Tests

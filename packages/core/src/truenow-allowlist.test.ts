@@ -236,17 +236,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 1 explicit + 7 helper = 8.
   "mod/Gonogo.KSP/CommsCoreUplink.cs": 8,
 
-  // RealAntennas link-quality/data-rate/link-margin, plus
-  // realantennas.available (whether RA is installed, same install-fact
-  // class as scansat/kerbcast .available) and realantennas.hopRates (the
-  // per-hop forward band rate that left CommsHop for this Uplink's own
-  // channel, a ground-side fact about the link the same as the rest): same
-  // "facts about the link (or its presence)" class as CommsCoreUplink above,
-  // same helper shape: 1 explicit `Delay =` line inside the helper body + 5
-  // call sites + the helper's own declaration line = 6 helper matches. 1
-  // explicit + 6 helper = 7.
-  "mod/GonogoRealAntennasUplink/RealAntennasUplink.cs": 7,
-
   // kerbalism.available (whether the Kerbalism mod is INSTALLED, same
   // install-fact class as scansat/kerbcast .available) + kerbalism.features
   // (the profile's auto-detected feature toggles: a ground-side fact about

@@ -74,7 +74,7 @@ import {
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ENGINES = ["chromium", "firefox", "webkit"];
-const target = process.argv[2] ?? "GonogoRealAntennasUplink";
+const target = process.argv[2] ?? "GonogoKerbalismUplink";
 
 const pkg = resolveUplinkPackage(join(ROOT, "mod", target, "client"), {});
 console.log(`${pkg.name}\n`);

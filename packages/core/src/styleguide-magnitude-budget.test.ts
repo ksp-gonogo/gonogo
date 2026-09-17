@@ -92,7 +92,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.
-  "mod/GonogoRealAntennasUplink/client/src/CommSignal/hopRates.ts": 1,
   // 5, up from a written-down 4 that was never the real figure: the scan used
   // to count matching LINES, and `pathConnectedDuring(a.magnitude, b.magnitude)`
   // spends two on one. Nothing was added here, the counter learned to see what

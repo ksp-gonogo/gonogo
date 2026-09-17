@@ -368,8 +368,8 @@ Two conventions the serializer expects and the generated types assume. An **enum
 as its integer ordinal, not its name. A **nested payload** is another `Dictionary<string, object?>`
 under its own key, and a **list** of them is a `List<Dictionary<string, object?>>`; both are exactly
 what the generated interface's nested type and array say they are.
-`GonogoRealAntennasUplink/RaWire.cs` in this repo is the same class with four channels on it, if you
-want a longer worked one.
+The RealAntennas Uplink's own `RaWire.cs`, now in `gonogo-uplinks`, is the same class with four
+channels on it, if you want a longer worked one.
 
 ### Reading another mod's internals
 
