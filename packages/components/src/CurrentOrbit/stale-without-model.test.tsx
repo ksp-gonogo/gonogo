@@ -97,18 +97,24 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     }
 
     /*
-     * NOT asserted: that the whole widget is blank. It is not, and that is a
-     * SECOND path rather than this one leaking.
+     * The SECOND path, which this assertion used to record as open and now
+     * pins as closed.
      *
-     * `t-Ap`, `t-Pe` and `T` are derived on `vessel.state`, which this widget
-     * reads through `useStream`, a raw stream with no currency on it. They go on
-     * showing a figure after the orbit stops arriving, which is the same
-     * falsehood by a different route, and no change to the reading path can fix
-     * it. Recorded here rather than silently accommodated: a test that asserted
-     * "the widget is empty" would have to be written around those three, and
-     * writing around them is how they stay.
+     * `t-Ap`, `t-Pe` and `T` are derived on `vessel.state`, which has no
+     * `Reading`, so they went on showing figures after the orbit stopped
+     * arriving: the same falsehood by a different route, in the same column.
+     * The comment here used to say "no change to the reading path can fix it",
+     * and that was right — the fix was not in the reading path. `vessel.state`
+     * computes its own currency through `deriveStatus` on its channel
+     * definition, and nothing read it (ticket 346); `useOrbitElements` now
+     * reports it and `CurrentOrbit` nulls these rows on it.
+     *
+     * So the whole grid nulls together and the count is EQUAL to the
+     * never-arrived baseline rather than short of it. Asserting equality is
+     * what stops the hole reopening: a row that goes back to drawing from the
+     * derived channel drops the count and fails here.
      */
-    expect(screen.getAllByText(NULL_DISPLAY).length).toBeLessThan(
+    expect(screen.getAllByText(NULL_DISPLAY).length).toBe(
       placeholdersWhenEmpty,
     );
   });

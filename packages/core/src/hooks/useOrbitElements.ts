@@ -1,4 +1,9 @@
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type StreamStatusValue,
+  useStream,
+  useTopicStatus,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 
 /**
  * Consolidated apo/peri/timeToAp/timeToPe orbital readings.
@@ -31,6 +36,21 @@ export interface OrbitElements {
   timeToApoapsis?: number;
   /** `o.timeToPe`: seconds until next periapsis pass. */
   timeToPeriapsis?: number;
+  /**
+   * How current every figure above is, which is ONE answer because they all
+   * come off one derived channel and share its frame.
+   *
+   * These are derived values, so they carry no `Reading` and nothing in the
+   * reading system can mark them: `vessel.state` computes its currency through
+   * `deriveStatus` on its own channel definition, and until ticket 346 no
+   * caller read it. A widget that draws these figures beside reading-backed
+   * ones nulled the readings when they went stale and left these drawing
+   * confidently in the same column; `CurrentOrbit` ships exactly that today.
+   *
+   * `"resyncing"` until a provider is mounted and the channel has produced,
+   * which is the honest floor rather than `"live"`.
+   */
+  status: StreamStatusValue;
 }
 
 /**
@@ -45,8 +65,16 @@ export interface OrbitElements {
  */
 export function useOrbitElements(): OrbitElements {
   const vesselState = useStream<VesselState>("vessel.state");
+  /*
+   * Read at the same frame as the value above, because both resolve through
+   * `store.currentFrame()`: a pair read in one render cannot disagree about
+   * which frame it describes. That is the property the sibling-channel
+   * inferences this replaces could not offer.
+   */
+  const status = useTopicStatus("vessel.state");
 
   return {
+    status,
     apoapsisRadius: vesselState?.apoapsisRadius as number | undefined,
     periapsisRadius: vesselState?.periapsisRadius as number | undefined,
     apoapsisAltitude: vesselState?.apoapsisAlt as number | undefined,
