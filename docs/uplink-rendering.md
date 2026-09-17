@@ -496,9 +496,27 @@ on screen. `_scene.size` is optional and overrides the host's own tile: a host's
 `defaultSize` is chosen for the host alone, and an operator who has added three
 sections to it has made it bigger.
 
-**This is an in-repo affordance, not an author surface.** A host widget ships
-with the APP, in a package nobody outside this repo can install, so the run has
-to be told which module registers it. Declare that once, beside `minAppVersion`:
+A host widget ships with the APP, so the run has to be told which module
+registers it. Declare that once, beside `minAppVersion`. **Which of the two
+forms you write is decided by where your Uplink lives, not by preference.**
+
+Outside this repo — install `@ksp-gonogo/render-hosts` as a **devDependency** and
+name it:
+
+```jsonc
+"gonogo": {
+  "renderWith": ["@ksp-gonogo/render-hosts"]
+}
+```
+
+That package is the app's own widgets, prebuilt, published for this and for
+nothing else. It is a devDependency because you never import it: there is
+nothing in it to import, only the side effect of registering the widgets. Moving
+it to `dependencies`, or importing it anywhere in your client, fails the
+isolation gate — see [uplink-isolation.md](uplink-isolation.md).
+
+Inside this repo — name the source path instead, relative to your client
+package, because it needs no install and tracks your edits without a rebuild:
 
 ```jsonc
 "gonogo": {
@@ -506,13 +524,13 @@ to be told which module registers it. Declare that once, beside `minAppVersion`:
 }
 ```
 
-Paths relative to your client package, not module specifiers. `--with <module>`
-does the same thing for a single run. Without either, a scene naming a host fails
-with the host it could not find and the list of what was in the bundle.
+`--with <module>` takes either form for a single run. Without one, a scene
+naming a host fails with the host it could not find and the list of what was in
+the bundle.
 
-The module may sit in a **different install** from your Uplink, which is what an
-Uplink developed outside this repo needs: point `--with` at a checkout of
-`packages/components/src/index.ts` and the real widget mounts. `react`,
+The module may sit in a **different install** from your Uplink, which is the
+normal case for the published package and what an Uplink developed outside this
+repo needs. `react`,
 `react-dom` and `styled-components` are pinned to your Uplink's copy for the
 whole page so the two sides share one of each. They were not, until an augment
 mounted in a cross-install host threw `Cannot read properties of null (reading
