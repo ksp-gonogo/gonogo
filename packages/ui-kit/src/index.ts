@@ -360,7 +360,7 @@ export {
   type FramedDisplayProps,
 } from "./FramedDisplay";
 export { type FillQuantity, fillFraction } from "./fillQuantity";
-export { fitBox } from "./fitBox";
+export { fitBox, fitMask } from "./fitBox";
 // `formatDuration` is NOT here, and that is the point. It was exported as a
 // narrow escape for a `title` or an `aria-label`, and eleven files took it as
 // a general one: `<Unit>` was documented as the only unit renderer while a

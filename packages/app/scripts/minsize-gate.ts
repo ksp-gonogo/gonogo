@@ -29,7 +29,7 @@
  *
  * ## It proves it can still see
  *
- * `minsize-probe.tsx` registers a widget that is broken in all six ways the
+ * `minsize-probe.tsx` registers a widget that is broken in all seven ways the
  * audit can name. The gate mounts it too and REFUSES to report on anything else
  * unless it comes back broken, because every way this check can quietly stop
  * working (a bundle that mounts nothing, a probe that throws before the audit, a
@@ -260,6 +260,16 @@ async function main(): Promise<void> {
       () =>
         (globalThis as unknown as { __minsizeFitsId: string }).__minsizeFitsId,
     );
+    const maskedId = await tab.evaluate(
+      () =>
+        (globalThis as unknown as { __minsizeMaskedId: string })
+          .__minsizeMaskedId,
+    );
+    const scrollsId = await tab.evaluate(
+      () =>
+        (globalThis as unknown as { __minsizeScrollsId: string })
+          .__minsizeScrollsId,
+    );
 
     // The planted canary must fail, or the sweep below proves nothing.
     const canary = all.find((w) => w.id === canaryId);
@@ -278,10 +288,11 @@ async function main(): Promise<void> {
     );
     const canaryKinds = kindsOf(canaryFindings);
     const WANTED =
-      "box-clipped, box-escapes-tile, control-cut-off, escapes-tile, text-cut-off, title-clipped";
+      "box-clipped, box-escapes-tile, control-cut-off, escapes-tile, " +
+      "masked-by-glow, text-cut-off, title-clipped";
     if (canaryKinds !== WANTED) {
       throw new Error(
-        `minsize-gate: BLIND. The planted canary is broken in six ways and ` +
+        `minsize-gate: BLIND. The planted canary is broken in seven ways and ` +
           `the audit reported "${canaryKinds || "(nothing)"}" instead of ` +
           `"${WANTED}". A check that cannot see a violation it planted itself ` +
           `reports zero, and zero reads as success. No result from this run is ` +
@@ -323,8 +334,61 @@ async function main(): Promise<void> {
       );
     }
 
+    /* The overflow mask needs a planted pair of its own: it is the one finding
+       whose whole difficulty is telling a defect from the affordance working,
+       so a check that reported every masked scroller would pass the canary. */
+    const masked = all.find((w) => w.id === maskedId);
+    if (!masked?.minSize) {
+      throw new Error(
+        "minsize-gate: BLIND. The planted masked-body widget did not register, " +
+          "so nothing proves the audit can see text the overflow glow covers. " +
+          "Fix minsize-probe.tsx rather than skipping this.",
+      );
+    }
+    const maskedFindings = await mountAndAudit(
+      tab,
+      masked,
+      masked.minSize.w,
+      masked.minSize.h,
+    );
+    if (kindsOf(maskedFindings) !== "masked-by-glow") {
+      throw new Error(
+        `minsize-gate: BLIND. The planted body overflows by less than its own ` +
+          `overflow glow masks and the audit reported ` +
+          `"${kindsOf(maskedFindings) || "(nothing)"}" instead of ` +
+          `"masked-by-glow". The mask depth is read out of the glow's computed ` +
+          `gradient, so a gradient this can no longer parse measures as no mask ` +
+          `at all and every scroller in this run comes back clean.`,
+      );
+    }
+
+    const scrolls = all.find((w) => w.id === scrollsId);
+    if (!scrolls?.minSize) {
+      throw new Error(
+        "minsize-gate: BLIND. The planted honest-scroller widget did not " +
+          "register, so nothing proves the audit passes a scroller with a " +
+          "screenful below its fold. Fix minsize-probe.tsx rather than skipping " +
+          "this.",
+      );
+    }
+    const scrollsFindings = await mountAndAudit(
+      tab,
+      scrolls,
+      scrolls.minSize.w,
+      scrolls.minSize.h,
+    );
+    if (scrollsFindings.length > 0) {
+      throw new Error(
+        `minsize-gate: the planted scroller has forty rows below its fold, so ` +
+          `its glow is the "more below" cue working, and the audit reported it ` +
+          `anyway. Every masked-by-glow finding in this run may be ` +
+          `false:\n${describe(scrolls, scrollsFindings, scrollsFindings.length)}`,
+      );
+    }
+
+    const planted = new Set([canaryId, fitsId, maskedId, scrollsId]);
     const subjects = all
-      .filter((w) => w.id !== canaryId && w.id !== fitsId)
+      .filter((w) => !planted.has(w.id))
       .filter((w) => (args.widget ? w.id === args.widget : true))
       .sort((a, b) => a.id.localeCompare(b.id));
     const undeclared = subjects.filter((w) => !w.minSize).map((w) => w.id);

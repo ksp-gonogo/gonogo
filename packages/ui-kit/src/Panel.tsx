@@ -20,7 +20,7 @@ import styled, { css } from "styled-components";
 import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
-import { fitBox } from "./fitBox";
+import { fitBox, fitMask } from "./fitBox";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
@@ -1123,6 +1123,9 @@ const ScrollOverflowGlow = styled.div<{
      Height is outside the ratchet's scanned properties, so it stays a
      literal. */
   height: 44px;
+  /* The audit reads how deep this actually masks out of the gradient below, so
+     the height staying a literal costs it nothing. See fitMask. */
+  ${fitMask("panel-scroll-glow")}
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity var(--duration-base, 150ms) var(--ease-standard, ease);

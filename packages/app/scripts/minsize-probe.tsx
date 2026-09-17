@@ -56,7 +56,7 @@ defineRenderSetup({
  * fits". So the gate mounts this widget too and REFUSES to report on the others
  * unless this one comes back broken.
  *
- * Broken in all six ways the audit can name, so a check that loses one of them
+ * Broken in all seven ways the audit can name, so a check that loses one of them
  * fails here rather than going quiet in the field.
  *
  * The two pills carry their words in a child span that fits, and are cut only
@@ -181,6 +181,90 @@ registerComponent({
   minSize: { w: 4, h: 6 },
 });
 
+/**
+ * The planted pair for the overflow mask, which needs BOTH halves to mean
+ * anything.
+ *
+ * `Panel.Glow` paints a fixed 44px box over the bottom of the body the moment
+ * the body overflows by a single pixel, and about seventeen of those pixels are
+ * opaque enough to erase the faint text a widget's empty state is drawn in. So
+ * a body that overflows by a few pixels has a line covered where it sits, and a
+ * body that overflows by a few hundred has the same line covered as the "more
+ * below" cue it is meant to be. One of those is a defect and the other is the
+ * affordance working.
+ *
+ * A check that reported every masked scroller would call both broken and still
+ * come back green on the canary, which is why the honest one is planted too.
+ */
+const MASKED_ID = "minsize-gate-masked";
+const SCROLLS_ID = "minsize-gate-scrolls";
+
+/**
+ * Pushes the line below the fold by a few pixels and no more.
+ *
+ * Measured rather than reasoned: at 3x3 the panel's body scroller is 89px and
+ * its own title unit and insets take 85 of them around a single 22px line, so
+ * twelve more pixels overflow it by eight and leave thirteen of that line under
+ * a mask reaching about seventeen. The number has to sit BETWEEN the overflow
+ * and the mask, which is the whole point of the widget and not something CSS
+ * can state. If the panel's chrome changes height the gate fails as BLIND
+ * rather than going quiet, and retuning this is the fix.
+ */
+const MASKED_SPACER_PX = 12;
+
+/** Deep enough that the body cannot fit it, shallow enough that the scroll it
+ *  buys is smaller than the mask: the shape the finding exists for. */
+function Masked() {
+  return (
+    <Panel panelTitle="Masked">
+      {/* flexShrink, because the body is a flex column and will otherwise
+          squeeze the spacer down until nothing overflows at all. */}
+      <div style={{ flexShrink: 0, height: MASKED_SPACER_PX }} />
+      <div style={{ flexShrink: 0, lineHeight: "22px" }}>Four</div>
+    </Panel>
+  );
+}
+
+registerComponent({
+  id: MASKED_ID,
+  name: "Min-size gate masked body",
+  description:
+    "Registered only inside the min-size gate's probe page: proves the audit still sees text the overflow glow covers where it sits.",
+  tags: ["diagnostics"],
+  component: Masked,
+  dataRequirements: [],
+  defaultSize: { w: 6, h: 6 },
+  minSize: { w: 3, h: 3 },
+});
+
+/** The same mask over a body with a screenful below the fold, which must audit
+ *  clean: here the glow is telling the truth. */
+function Scrolls() {
+  return (
+    <Panel panelTitle="Scrolls">
+      <div style={{ lineHeight: "22px" }}>
+        {Array.from({ length: 40 }, (_, row) => `Row ${row + 1} of forty`).map(
+          (label) => (
+            <div key={label}>{label}</div>
+          ),
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+registerComponent({
+  id: SCROLLS_ID,
+  name: "Min-size gate honest scroller",
+  description:
+    "Registered only inside the min-size gate's probe page: proves the audit stays quiet about a scroller with a screenful below its fold.",
+  tags: ["diagnostics"],
+  component: Scrolls,
+  dataRequirements: [],
+  defaultSize: { w: 6, h: 6 },
+  minSize: { w: 3, h: 3 },
+});
+
 /** One widget, as the Node half needs it. */
 export interface MinSizeWidget {
   id: string;
@@ -196,10 +280,14 @@ declare global {
   var __minsizeWidgets: () => MinSizeWidget[];
   var __minsizeCanaryId: string;
   var __minsizeFitsId: string;
+  var __minsizeMaskedId: string;
+  var __minsizeScrollsId: string;
 }
 
 globalThis.__minsizeCanaryId = CANARY_ID;
 globalThis.__minsizeFitsId = FITS_ID;
+globalThis.__minsizeMaskedId = MASKED_ID;
+globalThis.__minsizeScrollsId = SCROLLS_ID;
 globalThis.__minsizeWidgets = () =>
   getComponents().map((def) => ({
     id: def.id,

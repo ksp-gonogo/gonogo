@@ -29,7 +29,10 @@
  *   vertical scroll area is content they reach without thinking, and a widget
  *   that puts its overflow behind a scroller at a small size is doing the right
  *   thing. A HORIZONTAL scroller is not the same affordance and does not count:
- *   see `readableBeyond`.
+ *   see `readableBeyond`. The one exception is text a scroller's own overflow
+ *   mask PAINTS OVER where it sits, which is unreadable without scrolling even
+ *   though it is on screen: see `maskFindings`, which is narrow in its turn and
+ *   speaks only where the mask is deeper than the scroll it advertises.
  */
 
 /**
@@ -69,6 +72,16 @@ const HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"]';
  */
 const FIT_BOX = "--fit-box";
 
+/**
+ * The custom property a box sets on itself to say it PAINTS OVER the scrolling
+ * content behind it, rather than merely sitting in front of it. See `fitMask`.
+ *
+ * Read the same way as `FIT_BOX`, and for the same reasons: custom properties
+ * inherit, so only the element whose value differs from its parent's is the
+ * mask itself.
+ */
+const FIT_MASK = "--fit-mask";
+
 /** One thing an operator cannot read at this size. */
 export interface MinFitFinding {
   kind:
@@ -77,7 +90,8 @@ export interface MinFitFinding {
     | "escapes-tile"
     | "box-clipped"
     | "box-escapes-tile"
-    | "control-cut-off";
+    | "control-cut-off"
+    | "masked-by-glow";
   /** How many pixels of it are unreachable. */
   px: number;
   /** The text that is cut off, the title's own words, the name of the box and
@@ -479,6 +493,344 @@ function controlName(control: Control): string {
 }
 
 /**
+ * How opaque the paint over a line of text has to be before the line counts as
+ * unreadable.
+ *
+ * At half coverage the panel colour is mixed evenly with the glyph and the
+ * faint body text the empty states use is gone; below it the text ghosts but
+ * can still be made out. Half is also where the measurement is least sensitive
+ * to the exact gradient, since coverage falls fastest through the middle of the
+ * fade.
+ */
+const MASK_ALPHA = 0.5;
+
+/** How finely the mask's coverage is sampled down its own height, in px. */
+const MASK_STEP_PX = 0.5;
+
+/** Splits a CSS list on its TOP-LEVEL commas, so a `rgb(1, 2, 3)` inside a
+ *  gradient stays one token. */
+function splitTopLevel(text: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let at = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "," && depth === 0) {
+      out.push(text.slice(at, i));
+      at = i + 1;
+    }
+  }
+  out.push(text.slice(at));
+  return out.map((s) => s.trim()).filter((s) => s !== "");
+}
+
+/**
+ * How opaque a computed colour is.
+ *
+ * Only the alpha matters here: a mask hides what is behind it by covering it,
+ * whatever colour it covers it with. The forms are the ones a browser produces
+ * in a computed `background-image`, which is a narrower set than CSS accepts.
+ */
+function alphaOf(colour: string): number {
+  const text = colour.trim();
+  if (text === "transparent") return 0;
+  const slashed = /\/\s*([\d.]+%?)\s*\)/.exec(text);
+  if (slashed) {
+    const raw = slashed[1];
+    return raw.endsWith("%") ? parseFloat(raw) / 100 : parseFloat(raw);
+  }
+  const rgba = /^rgba?\(([^)]*)\)$/.exec(text);
+  if (rgba) {
+    const parts = splitTopLevel(rgba[1]);
+    return parts.length >= 4 ? parseFloat(parts[3]) : 1;
+  }
+  return 1;
+}
+
+interface GradientStop {
+  /** Distance along the gradient line from its start, in px. */
+  at: number;
+  alpha: number;
+}
+
+interface Gradient {
+  /** Which edge of the box the gradient line STARTS at. */
+  from: "top" | "bottom";
+  stops: GradientStop[];
+}
+
+/**
+ * One vertical gradient layer of a computed `background-image`, as stops of
+ * alpha down the box.
+ *
+ * Returns undefined for anything this cannot read as a vertical fade: a
+ * non-linear gradient, an angled one, an image. A mask made of those measures
+ * as no mask at all, and the planted canary is what catches that rather than a
+ * silent zero.
+ */
+function readGradient(layer: string, height: number): Gradient | undefined {
+  const outer = /^linear-gradient\(([\s\S]*)\)$/.exec(layer.trim());
+  if (!outer) return undefined;
+  const parts = splitTopLevel(outer[1]);
+  let from: "top" | "bottom" = "top";
+  if (/^to\s/.test(parts[0]) || /^[-\d.]+(deg|rad|grad|turn)$/.test(parts[0])) {
+    const direction = parts.shift() as string;
+    if (
+      /^to\s+top$/.test(direction) ||
+      /^0(deg|rad|grad|turn)$/.test(direction)
+    )
+      from = "bottom";
+    else if (!/^to\s+bottom$/.test(direction) && !/^180deg$/.test(direction))
+      return undefined;
+  }
+  if (parts.length < 2) return undefined;
+
+  const raw = parts.map((part) => {
+    const position = /\s(-?[\d.]+)(%|px)$/.exec(part);
+    const alpha = alphaOf(position ? part.slice(0, position.index) : part);
+    if (!position) return { at: undefined, alpha };
+    const value = parseFloat(position[1]);
+    return { at: position[2] === "%" ? (value / 100) * height : value, alpha };
+  });
+  // CSS fills in an omitted position: the ends sit on the ends, and a run of
+  // omitted stops spreads evenly between the known ones on either side.
+  const at: number[] = raw.map((s) => s.at ?? Number.NaN);
+  if (Number.isNaN(at[0])) at[0] = 0;
+  if (Number.isNaN(at[at.length - 1])) at[at.length - 1] = height;
+  for (let i = 1; i < at.length - 1; i++) {
+    if (!Number.isNaN(at[i])) continue;
+    let next = i;
+    while (Number.isNaN(at[next])) next++;
+    const step = (at[next] - at[i - 1]) / (next - i + 1);
+    for (let j = i; j < next; j++) at[j] = at[i - 1] + step * (j - i + 1);
+  }
+  return { from, stops: raw.map((s, i) => ({ at: at[i], alpha: s.alpha })) };
+}
+
+/** A gradient's alpha at `down` px from the TOP of its box. */
+function alphaAt(gradient: Gradient, down: number, height: number): number {
+  const along = gradient.from === "top" ? down : height - down;
+  const { stops } = gradient;
+  if (along <= stops[0].at) return stops[0].alpha;
+  for (let i = 1; i < stops.length; i++) {
+    const a = stops[i - 1];
+    const b = stops[i];
+    if (along > b.at) continue;
+    if (b.at === a.at) return b.alpha;
+    return a.alpha + ((along - a.at) / (b.at - a.at)) * (b.alpha - a.alpha);
+  }
+  return stops[stops.length - 1].alpha;
+}
+
+/**
+ * The part of a mask element that actually hides what is behind it, in viewport
+ * coordinates, or undefined when nothing it paints reaches `MASK_ALPHA`.
+ *
+ * Measured out of the element's own computed `background-image` rather than
+ * from its height, which is the whole point: the panel's glow is a 44px box
+ * whose opaque layer is solid for the first quarter of it and gone by half, so
+ * its height is nearly three times what it covers. Reading the gradient means
+ * the number cannot drift from the CSS, and a gradient this cannot parse
+ * measures as no mask rather than as a wrong one.
+ */
+function maskedBand(el: Element): { top: number; bottom: number } | undefined {
+  const style = getComputedStyle(el);
+  if (parseFloat(style.opacity || "1") < 0.01) return undefined;
+  const rect = el.getBoundingClientRect();
+  if (rect.height < 1) return undefined;
+  const layers = splitTopLevel(style.backgroundImage)
+    .map((layer) => readGradient(layer, rect.height))
+    .filter((g): g is Gradient => g !== undefined);
+  if (layers.length === 0) return undefined;
+
+  let top: number | undefined;
+  let bottom: number | undefined;
+  for (let down = 0; down <= rect.height; down += MASK_STEP_PX) {
+    // Source-over: what each layer lets through, multiplied.
+    let through = 1;
+    for (const layer of layers) {
+      through *= 1 - alphaAt(layer, down, rect.height);
+    }
+    if (1 - through < MASK_ALPHA) continue;
+    if (top === undefined) top = rect.top + down;
+    bottom = rect.top + down;
+  }
+  if (top === undefined || bottom === undefined) return undefined;
+  return { top, bottom };
+}
+
+/**
+ * Where this element's OWN words are actually INKED: top and bottom of the
+ * glyphs, one band per line.
+ *
+ * Three boxes are in play and only the innermost is the answer. The element's
+ * border box is where text may go, which on a readout row centring one line is
+ * several times taller than where the text went. A range over its text nodes
+ * narrows that to the line boxes, which is still the line's leading rather than
+ * its glyphs: a 38px em-dash draws a two-pixel bar in the middle of a 50px line
+ * box, and judging the line box reported that dash as fifteen pixels masked
+ * while the render was pixel-identical with the mask turned off.
+ *
+ * So the line box is narrowed once more by the string's own ink extents, which
+ * only a text measurement knows. The whole string's extents are applied to
+ * every line of it, which can overstate a last line that happens to carry no
+ * descender by a pixel or two, and is the only part of this that is an estimate.
+ */
+function inkBands(el: Element): { top: number; bottom: number }[] {
+  const style = getComputedStyle(el);
+  const out: { top: number; bottom: number }[] = [];
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType !== 3) continue;
+    const text = node.textContent ?? "";
+    if (text.trim() === "") continue;
+    const range = el.ownerDocument.createRange();
+    range.selectNodeContents(node);
+    const metrics = measureInk(el.ownerDocument, style, text);
+    for (const line of Array.from(range.getClientRects())) {
+      if (!metrics) {
+        out.push({ top: line.top, bottom: line.bottom });
+        continue;
+      }
+      // Half-leading splits whatever the line box has spare around the font's
+      // own box, which is what puts the baseline where the browser put it.
+      const leading =
+        (line.height - (metrics.fontAscent + metrics.fontDescent)) / 2;
+      const baseline = line.top + leading + metrics.fontAscent;
+      out.push({
+        top: baseline - metrics.inkAscent,
+        bottom: baseline + metrics.inkDescent,
+      });
+    }
+  }
+  return out;
+}
+
+interface InkMetrics {
+  fontAscent: number;
+  fontDescent: number;
+  inkAscent: number;
+  inkDescent: number;
+}
+
+/** One canvas for the whole audit; `measureText` needs a 2D context and
+ *  nothing else, and making one per string is the slow way to the same number. */
+let inkCanvas: CanvasRenderingContext2D | null | undefined;
+
+function measureInk(
+  doc: Document,
+  style: CSSStyleDeclaration,
+  text: string,
+): InkMetrics | undefined {
+  if (inkCanvas === undefined) {
+    inkCanvas = doc.createElement("canvas").getContext("2d");
+  }
+  if (!inkCanvas) return undefined;
+  inkCanvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const m = inkCanvas.measureText(text);
+  if (
+    typeof m.fontBoundingBoxAscent !== "number" ||
+    typeof m.actualBoundingBoxAscent !== "number"
+  ) {
+    return undefined;
+  }
+  return {
+    fontAscent: m.fontBoundingBoxAscent,
+    fontDescent: m.fontBoundingBoxDescent,
+    inkAscent: m.actualBoundingBoxAscent,
+    inkDescent: m.actualBoundingBoxDescent,
+  };
+}
+
+/** The nearest vertical scroll container the mask is painted over. */
+function scrollerUnder(mask: Element): HTMLElement | undefined {
+  let at = mask.parentElement;
+  while (at) {
+    for (const el of Array.from(at.querySelectorAll<HTMLElement>("*"))) {
+      const style = getComputedStyle(el);
+      if (style.overflowY !== "auto" && style.overflowY !== "scroll") continue;
+      if (el.scrollHeight - el.clientHeight <= TOLERANCE_PX) continue;
+      return el;
+    }
+    at = at.parentElement;
+  }
+  return undefined;
+}
+
+/**
+ * Text a scroll-overflow mask covers where it sits, at a size where the mask is
+ * deeper than the scroll it is advertising.
+ *
+ * The mask is drawn at a fixed height whatever is behind it, and the trigger
+ * that turns it on is binary: any overflow at all, by one pixel, paints the
+ * whole thing. On a tall list that is the boundary cue it is meant to be, and a
+ * row under it is a row the operator scrolls to without thinking. On a short
+ * body it is a blindfold: a widget whose empty state sits five pixels past the
+ * fold has the last line of that sentence covered where it stands, and the
+ * operator has to scroll a body that barely scrolls to read a line that was
+ * already on screen.
+ *
+ * So this reports only where the mask reaches DEEPER than the remaining scroll.
+ * That is the difference between covering content because there is more below
+ * and covering content because the mask is a fixed size: past that point the
+ * cover cannot be explained by what is under it. Everything else a scroller
+ * puts below its fold is reachable and deliberately says nothing, the same rule
+ * `readableBeyond` applies to the text pass.
+ */
+function maskFindings(tile: HTMLElement): MinFitFinding[] {
+  const findings: MinFitFinding[] = [];
+  for (const mask of Array.from(tile.querySelectorAll("*"))) {
+    const own = getComputedStyle(mask).getPropertyValue(FIT_MASK).trim();
+    if (own === "") continue;
+    const parent = mask.parentElement;
+    const inherited = parent
+      ? getComputedStyle(parent).getPropertyValue(FIT_MASK).trim()
+      : "";
+    if (own === inherited) continue;
+    if (!painted(mask)) continue;
+    const band = maskedBand(mask);
+    if (!band) continue;
+    const scroller = scrollerUnder(mask);
+    if (!scroller) continue;
+
+    const view = clientRect(scroller);
+    // Which end of the scroller the mask sits at decides which way the scroll
+    // that would clear it runs.
+    const atBottom = view.bottom - band.bottom <= band.top - view.top;
+    const depth = atBottom ? view.bottom - band.top : band.bottom - view.top;
+    const remaining = atBottom
+      ? scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop
+      : scroller.scrollTop;
+    if (depth <= remaining + TOLERANCE_PX) continue;
+
+    for (const el of Array.from(scroller.querySelectorAll("*"))) {
+      if (!carriesText(el) || !drawn(el) || !painted(el)) continue;
+      // Where the glyphs are inked rather than where the element is, because
+      // what is at stake is whether the paint lands on the words.
+      const covered = Math.max(
+        0,
+        ...inkBands(el).map(
+          (line) =>
+            // Only the part of it that is on screen: what a scroller puts below
+            // its own fold is reachable by scrolling and says nothing here.
+            Math.min(line.bottom, band.bottom, view.bottom) -
+            Math.max(line.top, band.top, view.top),
+        ),
+      );
+      if (covered <= TOLERANCE_PX) continue;
+      findings.push({
+        kind: "masked-by-glow",
+        px: Math.round(covered),
+        text: sample(el),
+        axis: "y",
+      });
+    }
+  }
+  return findings;
+}
+
+/**
  * Every way this tile's content is unreachable at the size it is mounted at.
  *
  * `tile` is the mount box, sized to the widget's declared `minSize`. Nothing
@@ -562,6 +914,11 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
       axis: axisOf(cutX, cutY),
     });
   }
+
+  /* Being reachable by scrolling is not the same as being readable where it
+     sits, and a fixed-height mask over a body that barely scrolls is the case
+     where the two come apart. */
+  findings.push(...maskFindings(tile));
 
   return findings.sort((a, b) => b.px - a.px);
 }
