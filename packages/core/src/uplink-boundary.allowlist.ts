@@ -2536,22 +2536,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/uplink-health.test.ts",
     "packages/sitrep-client/src/use-route-commands.test.tsx",
   ],
-  principia: [
-    /*
-     * `unknown-cast.debt.ts`, `unknown-cast.test.ts`,
-     * `principia-plugin-version-parity.test.ts`, `uplink-bundle-targets.ts`,
-     * `comment-stacks.allowlist.ts`, `styleguide-magnitude-budget.test.ts` and
-     * `truenow-allowlist.test.ts` were here, and are gone because the Uplink
-     * left for gonogo-uplinks: `depart-uplink.mjs` and a
-     * `unknown-cast-debt.mjs --update` regeneration removed the data entries
-     * each one carried, and what survived the comment strip was that data, not
-     * prose. With the entries gone each file names Principia only in prose
-     * (or, for `principia-plugin-version-parity.test.ts`, not at all: the
-     * check itself moved with the Uplink), so the exemptions are stale rather
-     * than merely unused. Same shape as the `declaration-reachability
-     * .allowlist.ts` removal recorded here before.
-     */
-  ],
+  principia: [],
   scansat: [
     // -- UNKNOWN-CAST ratchet inventory (2026-09-04): the mod name as DATA, one
     // per-file ceiling key per file still asserting out of `unknown`. Generated
