@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { display, resolveUplinkPackage } from "./context";
+import { display, resolveRenderModule, resolveUplinkPackage } from "./context";
 import {
   buildManifest,
   buildReadme,
@@ -100,7 +100,12 @@ function parseArgs(argv: readonly string[]): Args {
         args.bundle = value();
         break;
       case "--with":
-        args.withModules.push(resolve(process.cwd(), value()));
+        // Through the same resolver as `gonogo.renderWith`, so the flag and the
+        // declaration accept the same two shapes. Relative to the cwd rather
+        // than to `--root`, which is what a flag typed by hand means.
+        args.withModules.push(
+          resolveRenderModule(process.cwd(), "--with", value()),
+        );
         break;
       case "--frames":
         args.frames = true;
@@ -131,8 +136,10 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   --bundle <file>        the file you distribute, hashed into integrity
   --frames               keep the numbered PNGs of a motion scene
   --with <module>        also bundle this module's registrations, on top of
-                         package.json's "gonogo.renderWith". For a one-off run;
-                         declare the ones a fixture needs every time. Repeatable
+                         package.json's "gonogo.renderWith". A path, or an
+                         installed package (@ksp-gonogo/render-hosts for the
+                         app's own widgets). For a one-off run; declare the ones
+                         a fixture needs every time. Repeatable
 `;
 
 async function main(argv: readonly string[]): Promise<void> {
@@ -154,7 +161,11 @@ async function main(argv: readonly string[]): Promise<void> {
   console.log(`  fixtures ${pkg.fixtures.length}`);
   if (pkg.renderWith.length > 0) {
     console.log(
-      `  hosts   ${pkg.renderWith.map((m) => display(pkg.dir, m)).join(", ")}`,
+      // A specifier prints as itself. Through `display` it would come out as a
+      // relative PATH to a directory of that name, which is not where it is.
+      `  hosts   ${pkg.renderWith
+        .map((m) => (m.startsWith("/") ? display(pkg.dir, m) : m))
+        .join(", ")}`,
     );
   }
 

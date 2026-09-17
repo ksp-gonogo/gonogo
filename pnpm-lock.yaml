@@ -783,6 +783,45 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/render-hosts:
+    devDependencies:
+      '@ksp-gonogo/components':
+        specifier: workspace:*
+        version: link:../components
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0)(yaml@2.9.0))
+
   packages/serial:
     dependencies:
       '@ksp-gonogo/core':

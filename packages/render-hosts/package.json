@@ -1,0 +1,55 @@
+{
+  "name": "@ksp-gonogo/render-hosts",
+  "description": "The app's own widgets, registered, so an Uplink's docs page can draw an augment inside its real host. Docs rendering only.",
+  "license": "MIT",
+  "version": "0.1.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ksp-gonogo/gonogo.git",
+    "directory": "packages/render-hosts"
+  },
+  "homepage": "https://github.com/ksp-gonogo/gonogo/tree/main/packages/render-hosts#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@ksp-gonogo/sitrep-sdk": "*",
+    "@ksp-gonogo/ui-kit": "*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "styled-components": "^6.0.0"
+  },
+  "devDependencies": {
+    "@ksp-gonogo/components": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.0.0",
+    "esbuild": "^0.28.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "styled-components": "^6.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.4"
+  }
+}
