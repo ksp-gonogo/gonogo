@@ -252,23 +252,21 @@ function CommSignalComponent({
 
   /*
    * The collapse survives for NEVER-ARRIVED and dies for NOT-CURRENT, which is
-   * the whole of the change here.
+   * the whole of the distinction here.
    *
-   * Operator's ruling, 2026-09-17: "any widget defaulting to 'CAN'T SHOW THIS
-   * NOW' IMO is a stale widget not using current style". That is about a panel
-   * that HAS something and hides it: this one used to replace itself with "Link
-   * state no longer current" the moment its verdicts went stale, taking the
-   * held percentage, the light-time and the whole route with them, while
-   * whatever an Uplink had contributed to the segment underneath withheld in
-   * parallel for the same reason. Now the panel renders, the figures are drawn
-   * held and marked, and the verdicts say so beside themselves.
+   * A panel that HAS something must not hide it. Replacing the whole widget
+   * with "Link state no longer current" the moment its verdicts go stale takes
+   * the light-time and the whole route with it, and whatever an Uplink had
+   * contributed to the segment underneath withholds in parallel for the same
+   * reason. So the panel renders, every line shows its null state, and one
+   * badge carries the reason.
    *
    * Never-arrived is a different statement and keeps its empty state: there is
-   * no figure to hold, and a panel of null tokens reads as a fault rather than
-   * as "nothing yet". A `vessel.comms` TOMBSTONE renders here too, which
-   * `undefined.characterise.test.tsx` pins as a known conflation of "confirmed
-   * no comms" with "nothing has come through"; that conflation is untouched by
-   * this change and is not mine to resolve.
+   * nothing to show a null state FOR, and a panel of null tokens reads as a
+   * fault rather than as "nothing yet". A `vessel.comms` TOMBSTONE renders
+   * here too, which `undefined.characterise.test.tsx` pins as a known
+   * conflation of "confirmed no comms" with "nothing has come through"; that
+   * conflation is untouched here and is out of this widget's scope.
    */
   if (nothingHasArrived && !noSignal) {
     return (
