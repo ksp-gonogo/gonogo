@@ -156,9 +156,15 @@ describe("generated contract types can hold the null the wire sends", () => {
       checked += found.checked;
       problems.push(...found.missing.map((m) => `${rel} ${m}`));
     }
-    // 786 across seven files when this landed. A walk that stopped early has
-    // nothing to disagree with and reports a clean tree.
-    expect(checked).toBeGreaterThan(600);
+    // A walk that stopped early has nothing to disagree with and reports a
+    // clean tree, so the count is a floor under the walk rather than a target.
+    //
+    // It moves DOWN as Uplinks leave for their own repo, because each takes its
+    // generated contract with it: 786 across seven files when this landed, 582
+    // once RP-1's went. Lowered deliberately each time rather than left to fail,
+    // and kept well clear of the remaining files' own total so it still catches
+    // a discovery that reaches nothing.
+    expect(checked).toBeGreaterThan(400);
     expect(problems).toEqual([]);
   });
 

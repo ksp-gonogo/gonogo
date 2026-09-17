@@ -34,11 +34,13 @@
 // an Uplink whose wiring is entirely missing. That is how three of the four
 // projects holding these assertions held a guard that could not fail.
 //
-// So a caller that cannot ALSO show a non-zero registration count (as
-// Rp1UplinkStartsTests does, off its stand-in RP-1 types) is not covered by
-// these, and should not be read as covered. The gate that does not depend on
-// running Register is Sitrep.Core.Tests.UplinkWiringCoverageTests, which pairs
-// the same two halves by walking every Uplink's SOURCE.
+// So a caller that cannot ALSO show a non-zero registration count is not covered
+// by these, and should not be read as covered. An Uplink whose Tests project
+// compiles stand-in types for the mod it wraps can show one, because its Register
+// really executes; one that probes for a mod the test run does not have cannot.
+// The gate that does not depend on running Register is
+// Sitrep.Core.Tests.UplinkWiringCoverageTests, which pairs the same two halves by
+// walking every Uplink's SOURCE.
 using System;
 using System.Collections.Generic;
 using System.Linq;

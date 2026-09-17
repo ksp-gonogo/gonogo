@@ -313,8 +313,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   // mod/GonogoRealAntennasUplink/client: 3 in 1 files (2 out of `any`, 3 in tests), walked 23 files
   "mod/GonogoRealAntennasUplink/client/src/hopExt.test.ts": 3,
   // mod/GonogoRp1Uplink/client: 6 in 2 files (1 out of `any`, 3 in tests), walked 88 files
-  "mod/GonogoRp1Uplink/client/src/fixture-consistency.test.ts": 3,
-  "mod/GonogoRp1Uplink/client/src/settings/rp1SimulationSettings.ts": 3,
   // mod/sitrep-kernel: 5 in 3 files (0 out of `any`, 3 in tests), walked 15 files
   "mod/sitrep-kernel/src/broker.test.ts": 2,
   "mod/sitrep-kernel/src/registry.test.ts": 1,
@@ -553,7 +551,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "mod/GonogoKosUplink/client": 38,
   "mod/GonogoPrincipiaUplink/client": 28,
   "mod/GonogoRealAntennasUplink/client": 18,
-  "mod/GonogoRp1Uplink/client": 70,
   "mod/sitrep-kernel": 12,
   "mod/sitrep-sdk": 248,
   "mod/sitrep-server": 10,

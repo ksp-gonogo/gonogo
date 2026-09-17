@@ -91,7 +91,6 @@ const UNARMED_DEBT = new Set([
   "GonogoKerbalismUplink",
   "GonogoPrincipiaUplink",
   "GonogoRealAntennasUplink",
-  "GonogoRp1Uplink",
 ]);
 
 /**

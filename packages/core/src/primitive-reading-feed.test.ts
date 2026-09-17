@@ -443,8 +443,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * payload has no path for the accessor to address. Stays for the same reason
    * `StartResearch` does.
    */
-  "mod/GonogoRp1Uplink/client/src/CrewSchedule/enrolment.tsx": 1,
-  "mod/GonogoRp1Uplink/client/src/StartResearch/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 2,
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,

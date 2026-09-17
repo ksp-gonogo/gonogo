@@ -70,7 +70,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // because RP-1 stores them as `int` and validates against an integer range and
   // an integer step, so a raw number has to exist where the typed value meets the
   // wire. The figures a READER sees go out through `<Unit>`.
-  "mod/GonogoRp1Uplink/client/src/ContractPayload/index.tsx": 1,
   /*
    * The one place a wire Value meets transcribed arithmetic. A new complex is
    * priced against what the operator is typing, so its pad and integration halves
@@ -79,7 +78,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * funds-per-unit Value and has to join those as a number to be summed with them.
    * Every figure a READER sees goes back out through `<Unit>`.
    */
-  "mod/GonogoRp1Uplink/client/src/KscComplexes/lcCost.ts": 1,
   /*
    * ONE, where the delay reading leaves the contract for the design system.
    * `signalDelayPresentation` decides which of the two delay readings a console

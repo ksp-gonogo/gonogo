@@ -275,7 +275,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // Confidence) reaches each vantage after its delay to home. They used to ride
   // a `Ground` helper that scored 1 here for 26 channels, which was this file's
   // largest blind spot; that helper is gone. 1 explicit declaration.
-  "mod/GonogoRp1Uplink/Rp1ScUplink.cs": 1,
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched

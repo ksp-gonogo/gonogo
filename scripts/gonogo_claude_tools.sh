@@ -948,44 +948,6 @@ build_gonogokosuplink() {
   ls -la "$install_dir"
 }
 
-build_gonogorp1uplink() {
-  local proj="$ROOT/mod/GonogoRp1Uplink/GonogoRp1Uplink.csproj"
-  local out_dir="$ROOT/mod/GonogoRp1Uplink/bin/Release"
-  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoRp1Uplink/Plugins"
-  if [ ! -f "$proj" ]; then
-    echo "GonogoRp1Uplink csproj not found at $proj"
-    return 3
-  fi
-  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
-    return 3
-  fi
-  echo "=== building GonogoRp1Uplink ==="
-  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
-    dotnet build "$proj" -c Release --nologo -v minimal
-  if [ ! -f "$out_dir/GonogoRp1Uplink.dll" ]; then
-    echo "GonogoRp1Uplink.dll not produced (missing at $out_dir/GonogoRp1Uplink.dll)"
-    return 4
-  fi
-  mkdir -p "$install_dir"
-  # Both DLLs, for the reason spelled out on the FAR target below: the contract
-  # slice is Private="true" and core does not provide it at runtime, while
-  # Sitrep.Contract.dll is reference-only and a copy here would shadow core's.
-  cp "$out_dir/GonogoRp1Uplink.dll" "$install_dir/"
-  if [ ! -f "$out_dir/GonogoRp1Uplink.Contract.dll" ]; then
-    echo "GonogoRp1Uplink.Contract.dll not produced (missing at $out_dir/GonogoRp1Uplink.Contract.dll)"
-    return 4
-  fi
-  cp "$out_dir/GonogoRp1Uplink.Contract.dll" "$install_dir/"
-  {
-    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
-    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  } > "$install_dir/build-info.txt"
-  echo "=== deployed to $install_dir ==="
-  ls -la "$install_dir"
-}
-
 build_gonogokerbalismuplink() {
   local proj="$ROOT/mod/GonogoKerbalismUplink/GonogoKerbalismUplink.csproj"
   local out_dir="$ROOT/mod/GonogoKerbalismUplink/bin/Release"
@@ -1203,11 +1165,10 @@ case "${1:-help}" in
       gonogokosuplink) build_gonogokosuplink ;;
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       gonogoprincipiauplink) build_gonogoprincipiauplink ;;
-      gonogorp1uplink) build_gonogorp1uplink ;;
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogorp1uplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogokerbalismuplink, gonogoprincipiauplink, devtools"
         exit 2
         ;;
     esac
