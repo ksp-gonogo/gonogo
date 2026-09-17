@@ -644,17 +644,21 @@ function ManeuverPlannerComponent({
   // or NaN mid-scene-load, so this is a positive check rather than a
   // `!== undefined` one.
   /*
-   * The four apsis figures come off derived `vessel.state`, which carries no
-   * `Reading`, so until ticket 346 nothing here could tell a current one from one
-   * that had stopped arriving and the solver took them either way.
+   * The plan is WITHHELD when the channel its inputs ride stops arriving.
    *
-   * A plan built on inputs that stopped arriving is WRONG rather than stale, and
-   * it does not look wrong: it renders as a confident burn for a position the
-   * craft has left. `waiting` is honest and recoverable. Ruled by the operator
-   * 2026-09-17, with the boundary that gating may govern ADDITIONAL reasoning
-   * and must not reach the diagram's own reckoning of basic motion, which it
-   * does not: `currentTrajectory` is `useOrbitTrajectory(orbit)`, fed from the
-   * `vessel.orbit` READING and not from any of these.
+   * The four apsis figures come off derived `vessel.state`, which carries no
+   * `Reading`, so the channel's own currency is the only thing that can tell a
+   * current figure from one that has stopped arriving; without it the solver
+   * takes them either way.
+   *
+   * A plan built on inputs that stopped arriving is WRONG rather than stale,
+   * and it does not look wrong: it renders as a confident burn for a position
+   * the craft has left. `waiting` is honest and recoverable.
+   *
+   * Gating governs this ADDITIONAL reasoning only: it must not reach the
+   * diagram's own reckoning of basic motion, and it does not.
+   * `currentTrajectory` is `useOrbitTrajectory(orbit)`, fed from the
+   * `vessel.orbit` READING rather than from any of these.
    */
   const planReady =
     apsidesStatus === "live" &&

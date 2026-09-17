@@ -72,28 +72,27 @@ export function useStream<T>(topic: string): T | undefined {
 
   return useSyncExternalStore(subscribe, getSnapshot);
 }
-
 /**
  * The CURRENCY of `topic`, raw or derived, resolved from context exactly as
  * {@link useStream} resolves the value.
  *
- * `useStreamStatus` in `@ksp-gonogo/sitrep-client` already reads
+ * A derived channel computes its own currency: `vessel.state` declares
+ * `deriveStatus` and `deriveReckoning` on its channel definition, so the
+ * channel knows how current its figures are even though its payload carries
+ * no `Reading`. `useStream` returns that payload alone, so a widget drawing
+ * from a derived channel has no other way to tell a current figure from one
+ * that has stopped arriving.
+ *
+ * `useStreamStatus` in `@ksp-gonogo/sitrep-client` reads the same
  * `store.sampleStatus`, and its own doc prescribes the pairing: "pair the two
  * hooks for `{ value, status }`-shaped widget consumption". What it cannot do
  * is find the store, because it takes one as an argument while `useStream`
- * resolves it from the provider. That gap is why no widget paired them: a
- * derived channel's status was computed, published and unreachable from the
- * place that draws it.
+ * resolves it from the provider. Mirroring that resolution here is what makes
+ * a derived channel's currency reachable from the place that draws it.
  *
- * ## The gap this closes, stated because it is not obvious from either side
- *
- * `vessel.state` declares `deriveStatus` and `deriveReckoning` on its channel
- * definition, so its currency has always existed. Widgets read it through
- * `useStream`, which returns the payload alone, so every figure sourced from a
- * derived channel drew as confidently as a live one and nothing in the reading
- * system could mark it. Ticket 346. Two widgets had already worked around it by
- * inferring staleness from a SIBLING channel, which holds only while the
- * sibling's currency tracks the derived value's, and nothing enforces that.
+ * Inferring a derived channel's staleness from a SIBLING channel is not an
+ * equivalent: it holds only while the sibling's currency tracks the derived
+ * value's, and nothing enforces that.
  *
  * Same frame as the value: both go through `store.currentFrame()`, so a pair
  * read in one render cannot disagree about which frame it describes.

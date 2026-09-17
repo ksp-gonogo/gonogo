@@ -97,17 +97,14 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     }
 
     /*
-     * The SECOND path, which this assertion used to record as open and now
-     * pins as closed.
+     * The SECOND path into the same falsehood, pinned shut.
      *
      * `t-Ap`, `t-Pe` and `T` are derived on `vessel.state`, which has no
-     * `Reading`, so they went on showing figures after the orbit stopped
-     * arriving: the same falsehood by a different route, in the same column.
-     * The comment here used to say "no change to the reading path can fix it",
-     * and that was right: the fix was not in the reading path. `vessel.state`
-     * computes its own currency through `deriveStatus` on its channel
-     * definition, and nothing read it (ticket 346); `useOrbitElements` now
-     * reports it and `CurrentOrbit` nulls these rows on it.
+     * `Reading`, so a fix confined to the reading path leaves them showing
+     * figures after the orbit has stopped arriving: the same falsehood by a
+     * different route, in the same column. What withholds them is the
+     * channel's own currency, computed by `deriveStatus` on its channel
+     * definition and reported by `useOrbitElements`.
      *
      * So the whole grid nulls together and the count is EQUAL to the
      * never-arrived baseline rather than short of it. Asserting equality is

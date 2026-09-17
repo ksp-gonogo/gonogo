@@ -468,23 +468,22 @@ function MapViewComponent({
    *
    * `positionStale` is a true statement about `vessel.flight`, the reading the
    * MARKER comes from. The altitude does not come from there: it rides derived
-   * `vessel.state`, which carries no `Reading`, so it went on drawing a
-   * confident figure beside a withheld marker and its own caption. Ticket 346.
-   * `useTopicStatus` reads that channel's own currency, computed by
-   * `deriveStatus` on its channel definition and until now unreachable from
-   * here, at the same frame as the value.
+   * `vessel.state`, which carries no `Reading`, so without that channel's own
+   * currency it draws a confident figure beside a withheld marker and beside
+   * the caption explaining the withholding. `useTopicStatus` reads the
+   * currency `deriveStatus` computes on the channel definition, at the same
+   * frame as the value.
    *
-   * NULL rather than a mark, matching the orbit grid: an altitude on a map
-   * readout is not a figure read second by second, which is the operator's own
-   * criterion for what earns its own staleness presentation.
+   * NULL rather than a mark, matching the orbit grid: a staleness presentation
+   * is earned by figures read second by second, and an altitude on a map
+   * readout is not read that way.
    */
   const vesselStateStatus = useTopicStatus("vessel.state");
   const altSea = vesselState?.altitudeAsl ?? undefined;
   /*
-   * TWO values, on the two sides of the operator's line (ticket 346, ruled
-   * 2026-09-17): gating "may govern ADDITIONAL reasoning... but must not
-   * interfere with the diagram's own reckoning of the vessel's basic motion
-   * and orbit".
+   * TWO values off one channel, on the two sides of one boundary: gating may
+   * govern a readout, but it must not interfere with the diagram's own
+   * reckoning of the vessel's basic motion and orbit.
    *
    * `altSeaReadout` is the figure an operator READS, so it nulls when its
    * channel stops feeding it. `altSea` itself stays ungated because it also

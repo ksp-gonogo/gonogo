@@ -102,22 +102,20 @@ function CurrentOrbitComponent({
    * The derived figures NULL when their channel is no longer current, which is
    * the same answer the reading-backed elements below already give.
    *
-   * These ride `vessel.state`, which carries no `Reading`, so until ticket 346
-   * nothing could mark or withhold them: on a stale orbit with no model this
-   * grid nulled `sma`, `ecc` and `inc` and went on drawing Ap, Pe and both
-   * countdowns as confident present-tense claims, side by side in one column.
-   * `useOrbitElements` now reports the channel's own currency and this is where
-   * it is spent.
+   * These ride `vessel.state`, which carries no `Reading`, so the channel's
+   * own currency is the only thing that can say whether they are still
+   * arriving. Without it a stale orbit with no model nulls `sma`, `ecc` and
+   * `inc` and goes on drawing Ap, Pe and both countdowns as confident
+   * present-tense claims, side by side in one column.
    *
-   * NULL rather than a mark, per the operator's criterion for who earns a
-   * staleness presentation: "the widgets that earn it are ones with a greater
-   * sense of being used second by second". An apoapsis is not read that way,
-   * so it falls the same side as `ecc` and `inc` and the column stays
-   * consistent.
+   * NULL rather than a mark: a staleness presentation is earned by figures
+   * read second by second, and an apoapsis is not read that way, so it falls
+   * the same side as `ecc` and `inc` and the column stays consistent.
    *
    * The RADII are deliberately NOT nulled: they feed the diagram's own
    * geometry rather than a readout, and the diagram already refuses to draw a
-   * curve it cannot make current.
+   * curve it cannot make current. Gating may govern a readout; it must not
+   * reach the diagram's own reckoning of basic motion.
    */
   const derivedCurrent = derivedStatus === "live";
   const apoapsisA = derivedCurrent ? apoapsisARaw : undefined;

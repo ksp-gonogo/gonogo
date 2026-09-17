@@ -80,15 +80,15 @@ describe("MapView when the position is not current", () => {
   });
 
   /**
-   * The ALTITUDE, which the marker's caption cannot speak for. Ticket 346.
+   * The ALTITUDE, which the marker's caption cannot speak for.
    *
    * `positionStale` is a true statement about `vessel.flight`, the reading the
    * marker comes from. The altitude does not come from there: it rides derived
-   * `vessel.state`, which carries no `Reading`, so it drew a confident figure
-   * beside a withheld marker and beside the caption explaining the withholding.
-   * Three answers in one readout.
+   * `vessel.state`, which carries no `Reading`, so without that channel's own
+   * currency it draws a confident figure beside a withheld marker and beside
+   * the caption explaining the withholding: three answers in one readout.
    *
-   * It nulls on its own channel's currency now, read through `useTopicStatus`.
+   * It nulls on its own channel's currency, read through `useTopicStatus`.
    */
   it("nulls the altitude too, not just the position it has a caption for", async () => {
     const { fixture, container } = mount();
