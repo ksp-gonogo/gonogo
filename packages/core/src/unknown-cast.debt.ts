@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 593 of them
- * across 254 files.
+ * Assertions that escape `unknown`, per file. The tree carries 590 of them
+ * across 253 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 357 of the 593 are
+ * **A test fixture minted through an assertion.** 354 of the 590 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 239 of the 593 are `as unknown as`, and those are worth taking
+ * 238 of the 590 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 129 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 127 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 254 files those would be 254 sentences
+ * sentence per entry: at 253 files those would be 253 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -144,7 +144,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/registry.ts": 1,
   "packages/app/src/uplinks/skewOverride.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 139 in 51 files (23 out of `any`, 59 in tests), walked 671 files
+  // packages/components: 139 in 51 files (23 out of `any`, 59 in tests), walked 672 files
   "packages/components/scripts/synthesize-landing-descent.ts": 2,
   "packages/components/scripts/widgetRenderHarness.ts": 5,
   "packages/components/src/AstronautComplex/index.tsx": 12,
@@ -306,8 +306,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 16,
   "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 6,
   "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 3,
-  // mod/GonogoRealAntennasUplink/client: 3 in 1 files (2 out of `any`, 3 in tests), walked 24 files
-  "mod/GonogoRealAntennasUplink/client/src/hopExt.test.ts": 3,
   // mod/sitrep-kernel: 5 in 3 files (0 out of `any`, 3 in tests), walked 15 files
   "mod/sitrep-kernel/src/broker.test.ts": 2,
   "mod/sitrep-kernel/src/registry.test.ts": 1,
@@ -410,7 +408,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/loader.skewOverride.test.ts": 1,
   "packages/app/src/uplinks/loader.test.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 46 in 26 files (0 out of `any`, 37 in tests), walked 671 files
+  // packages/components: 46 in 26 files (0 out of `any`, 37 in tests), walked 672 files
   "packages/components/scripts/widgetRenderHarness.ts": 4,
   "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
@@ -479,8 +477,6 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 2,
   "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 2,
   "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 2,
-  // mod/GonogoRealAntennasUplink/client: 1 in 1 files (0 out of `any`, 1 in tests), walked 24 files
-  "mod/GonogoRealAntennasUplink/client/src/hopExt.test.ts": 1,
   // mod/sitrep-sdk: 26 in 15 files (0 out of `any`, 9 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/host.ts": 3,
   "mod/sitrep-sdk/src/api/index.ts": 2,
@@ -512,9 +508,9 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  * steady as the debt falls and still fails if the walk stops seeing assertions.
  */
 export const SCAN_FLOORS = {
-  roots: 20,
-  files: 2246,
-  assertions: 2034,
+  roots: 19,
+  files: 2225,
+  assertions: 2022,
 } as const;
 
 /**
@@ -528,7 +524,7 @@ export const SCAN_FLOORS = {
  */
 export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/app": 312,
-  "packages/components": 536,
+  "packages/components": 537,
   "packages/core": 180,
   "packages/data": 42,
   "packages/logger": 8,
@@ -543,7 +539,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client": 26,
   "mod/GonogoKerbalismUplink/client": 66,
   "mod/GonogoKosUplink/client": 38,
-  "mod/GonogoRealAntennasUplink/client": 19,
   "mod/sitrep-kernel": 12,
   "mod/sitrep-sdk": 256,
   "mod/sitrep-server": 10,

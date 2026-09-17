@@ -113,13 +113,6 @@ jobs:
             extra_dlls: "Sitrep.Host.dll Sitrep.Contract.dll Sitrep.Transport.dll Sitrep.Core.dll Sitrep.Propagation.dll"
             notice: ""
             mod_id_var: SPACEDOCK_MOD_ID_GONOGO
-          - id: GonogoRealAntennasUplink
-            csproj: mod/GonogoRealAntennasUplink/GonogoRealAntennasUplink.csproj
-            dll: GonogoRealAntennasUplink.dll
-            gamedata: GonogoRealAntennasUplink
-            extra_dlls: "GonogoRealAntennasUplink.Contract.dll"
-            notice: mod/GonogoRealAntennasUplink/NOTICE-REALANTENNAS.txt
-            mod_id_var: SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK
           - id: GonogoKosUplink
             csproj: mod/GonogoKosUplink/GonogoKosUplink.csproj
             dll: GonogoKosUplink.dll

@@ -87,10 +87,7 @@ if (process.argv.includes("--require") && !required) {
  * Delete an entry when its hash is baked. An entry that is armed fails as STALE,
  * because a debt list nobody prunes stops describing anything.
  */
-const UNARMED_DEBT = new Set([
-  "GonogoKerbalismUplink",
-  "GonogoRealAntennasUplink",
-]);
+const UNARMED_DEBT = new Set(["GonogoKerbalismUplink"]);
 
 /**
  * Discovered from the same matrix CI uses, never a list here. A hand-kept list of

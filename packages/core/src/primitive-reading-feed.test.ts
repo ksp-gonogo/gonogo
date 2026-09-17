@@ -451,15 +451,27 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * currency to the screen. So the observed-only read is the wanted behaviour
    * here and the gate's premise does not apply.
    */
-  "mod/GonogoRealAntennasUplink/client/src/CommSignalRaAugment/index.tsx": 6,
+  // The one RP-1 site no accessor can reach: `chosen` is an element of a
+  // FILTERED list, and a payload is addressed BY PATH, so an element selected
+  // by predicate has none. Filed as #310, and it will recur in the Targeting
+  // slices rather than being worked around here.
+  /*
+   * Newly VISIBLE rather than newly written: the walk followed a call's
+   * ARGUMENTS and not its callee, so `offered.find(...)` put the list nowhere
+   * it looked. Closed by the commit that added the currency exemption, since
+   * the shape turned up while planting that exemption's control.
+   *
+   * And it is #310 again: `selected` is an element chosen by PREDICATE, so the
+   * payload has no path for the accessor to address. Stays for the same reason
+   * `StartResearch` does.
+   */
   "packages/components/src/AstronautComplex/index.tsx": 2,
   /*
-   * NOT debt a migration can pay, for the reason on the RealAntennas entry
-   * above: a comms figure NULLS when the link stops arriving rather than
-   * drawing held, and a field reading exists precisely to carry that currency
-   * to the screen. So the observed-only read plus a minted `Value` is the
-   * wanted behaviour here and the gate's premise does not apply. Revisit only
-   * if that rule changes.
+   * Migrated on 2026-09-17 and REVERTED the same day: #337 ruled that a comms
+   * figure NULLS when the link stops arriving rather than drawing held, and a
+   * field reading exists to carry that currency to the screen. The
+   * observed-only read plus a minted `Value` is the ruled behaviour, so this
+   * site is not debt a migration can pay. Revisit only if that ruling changes.
    */
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,

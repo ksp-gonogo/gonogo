@@ -64,11 +64,4 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
     repo: "ksp-gonogo/GonogoBreakingGroundUplink",
     clientDir: resolve(modDir, "GonogoBreakingGroundUplink/client"),
   },
-  {
-    id: "realantennas",
-    name: "RealAntennas",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoRealAntennasUplink",
-    clientDir: resolve(modDir, "GonogoRealAntennasUplink/client"),
-  },
 ];
