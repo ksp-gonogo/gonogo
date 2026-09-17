@@ -223,25 +223,19 @@ function suitResourceTone(pair: SuitTank): MeterTone | undefined {
 function EvaSuitReadout({
   oxygen,
   electricCharge,
-  notCurrent: readingsNotCurrent,
 }: Readonly<{
   oxygen: SuitTank | undefined;
   electricCharge: SuitTank | undefined;
-  /** The suit figures went stale rather than never arriving. */
-  notCurrent: boolean;
 }>) {
-  // Said out loud rather than rendered as an absent meter. A kerbal outside the
-  // craft with no consumption figures is a different situation from one whose
-  // suit reports nothing, and only the first means "get them back inside".
-  if (readingsNotCurrent) {
-    return (
-      <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
-        <Text tone="warn" size="xs">
-          Suit resources no longer current
-        </Text>
-      </Cluster>
-    );
-  }
+  /* A stale reading draws both meters, marked, rather than replacing them with
+     a sentence. `suitTank` takes each figure as a FIELD READING, so `amount`
+     and `capacity` carry their own currency all the way into `Meter`, which
+     marks the value and the track itself. The early return here threw those
+     marks away along with the figures, and the two figures in question are the
+     ones deciding whether a kerbal outside the craft has time to get back in.
+
+     No replacement sentence: the mark on each meter already says it, and a
+     panel that states its own staleness in words as well says it twice. */
   if (!oxygen && !electricCharge) return null;
   return (
     <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
@@ -483,13 +477,6 @@ function CrewStatusComponent({
    * whether a kerbal outside the craft has time to get back in.
    */
   const resourcesReading = topics.useTelemetry("vessel.resources");
-  /*
-   * `EvaSuitReadout` returns early on this flag and drops both meters, so it
-   * has to mean "there is nothing to meter". `vessel.resources` declares no
-   * reckonable value, so the observation is the only thing that ever fills the
-   * meters and a held reading is exactly the case where nothing was drawn.
-   */
-  const suitReadingsNotCurrent = resourcesReading.state === "stale";
   const suitOxygen = isEVA ? suitTank(resourcesReading, "Oxygen") : undefined;
   const suitElectricCharge = isEVA
     ? suitTank(resourcesReading, "ElectricCharge")
@@ -579,7 +566,6 @@ function CrewStatusComponent({
           <EvaSuitReadout
             oxygen={suitOxygen}
             electricCharge={suitElectricCharge}
-            notCurrent={isEVA === true && suitReadingsNotCurrent}
           />
           <div ref={rosterWidthRef}>
             {renderBody({
