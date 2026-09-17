@@ -22,6 +22,7 @@ import {
   type OrbitTrajectory,
   useOrbitTrajectory,
   useStream,
+  useTopicStatus,
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -461,7 +462,42 @@ function MapViewComponent({
     flightReading.reckoning.status !== "available";
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
+  /*
+   * The altitude NULLS when its own channel stops feeding it, which the marker
+   * caption above cannot speak for.
+   *
+   * `positionStale` is a true statement about `vessel.flight`, the reading the
+   * MARKER comes from. The altitude does not come from there: it rides derived
+   * `vessel.state`, which carries no `Reading`, so it went on drawing a
+   * confident figure beside a withheld marker and its own caption. Ticket 346.
+   * `useTopicStatus` reads that channel's own currency, computed by
+   * `deriveStatus` on its channel definition and until now unreachable from
+   * here, at the same frame as the value.
+   *
+   * NULL rather than a mark, matching the orbit grid: an altitude on a map
+   * readout is not a figure read second by second, which is the operator's own
+   * criterion for what earns its own staleness presentation.
+   */
+  const vesselStateStatus = useTopicStatus("vessel.state");
   const altSea = vesselState?.altitudeAsl ?? undefined;
+  /*
+   * TWO values, on the two sides of the operator's line (ticket 346, ruled
+   * 2026-09-17): gating "may govern ADDITIONAL reasoning... but must not
+   * interfere with the diagram's own reckoning of the vessel's basic motion
+   * and orbit".
+   *
+   * `altSeaReadout` is the figure an operator READS, so it nulls when its
+   * channel stops feeding it. `altSea` itself stays ungated because it also
+   * feeds `useTrajectoryBuffer`, which accumulates the FLOWN TRAIL: that is
+   * the diagram depicting basic motion, and gating it would stop the trail
+   * growing while the marker beside it is still being drawn and still moving.
+   * The trail already declines to append without `lat`/`lon`, which come from
+   * the flight reading and are withheld on their own terms.
+   *
+   * One channel, one status, two answers, because the question is what the
+   * value is FOR rather than where it came from.
+   */
+  const altSeaReadout = vesselStateStatus === "live" ? altSea : undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
@@ -1200,12 +1236,17 @@ function MapViewComponent({
     variant: "on" | "off" | "warn";
   } | null>(() => {
     if (!body) return null;
-    if (altSea === undefined) return { label: "NO DATA", variant: "off" };
+    /* The READOUT altitude, not the trail's: "IMAGING" is a verdict about now,
+       and computing it from an altitude the channel has stopped vouching for
+       would assert a window the craft may already have left. Falls to
+       "NO DATA", which is the honest null for a verdict chip. */
+    if (altSeaReadout === undefined)
+      return { label: "NO DATA", variant: "off" };
     const { min, max } = getImagingWindow(body);
-    if (altSea < min) return { label: "TOO LOW", variant: "warn" };
-    if (altSea > max) return { label: "TOO HIGH", variant: "warn" };
+    if (altSeaReadout < min) return { label: "TOO LOW", variant: "warn" };
+    if (altSeaReadout > max) return { label: "TOO HIGH", variant: "warn" };
     return { label: "IMAGING", variant: "on" };
-  }, [body, altSea]);
+  }, [body, altSeaReadout]);
 
   // Selective rendering: at small sizes the canvas isn't readable, so
   // collapse to a lat/lon text readout. Header chrome (imaging chip, follow
@@ -1306,11 +1347,11 @@ function MapViewComponent({
                     )}
                   </CompactValue>
                 </CompactRow>
-                {altSea !== undefined && rows >= 5 && (
+                {altSeaReadout !== undefined && rows >= 5 && (
                   <CompactRow>
                     <CompactLabel>Alt</CompactLabel>
                     <CompactValue>
-                      <Unit value={value("m", altSea)} />
+                      <Unit value={value("m", altSeaReadout)} />
                     </CompactValue>
                   </CompactRow>
                 )}

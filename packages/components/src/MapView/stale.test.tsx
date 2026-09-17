@@ -79,6 +79,40 @@ describe("MapView when the position is not current", () => {
     expect(visibleText(container)).not.toContain("marker withheld");
   });
 
+  /**
+   * The ALTITUDE, which the marker's caption cannot speak for. Ticket 346.
+   *
+   * `positionStale` is a true statement about `vessel.flight`, the reading the
+   * marker comes from. The altitude does not come from there: it rides derived
+   * `vessel.state`, which carries no `Reading`, so it drew a confident figure
+   * beside a withheld marker and beside the caption explaining the withholding.
+   * Three answers in one readout.
+   *
+   * It nulls on its own channel's currency now, read through `useTopicStatus`.
+   */
+  it("nulls the altitude too, not just the position it has a caption for", async () => {
+    const { fixture, container } = mount();
+    /* Whitespace normalised: `Unit` sets a figure from its unit with a thin
+       space, so a plain-space needle never matches the DOM's own text. */
+    const shown = () => visibleText(container).replace(/\s+/g, " ");
+    emitPosition(fixture);
+    await waitFor(() => expect(shown()).toContain("80.0 m"));
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    /*
+     * Asserted as the absence of the FIGURE rather than as a null-token count:
+     * the readout has several rows and a count cannot say which one stopped
+     * claiming. The altitude is the only thing on this widget that draws it.
+     */
+    await waitFor(() => expect(shown()).not.toContain("80.0 m"));
+    // And the marker's own statement is still made: this did not silence it.
+    expect(visibleText(container)).toContain("marker withheld");
+  });
+
   it("withholds the marker once the position stops arriving, and SAYS SO", async () => {
     const { fixture, container } = mount();
     emitPosition(fixture);
