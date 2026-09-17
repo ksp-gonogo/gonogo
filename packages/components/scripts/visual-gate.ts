@@ -64,7 +64,7 @@ function baselineDirFor(engine: Engine, config: WidgetRenderConfig): string {
 interface Failure {
   widget: string;
   name: string;
-  kind: "drift" | "missing-baseline";
+  kind: "drift" | "missing-baseline" | "no-renders";
   ratio?: number;
 }
 
@@ -110,9 +110,15 @@ async function main(): Promise<void> {
       const baselineDir = baselineDirFor(engine as Engine, config);
       const renders = await pngFiles(actualDir);
       // Guard against wiping a widget's baselines when a render unexpectedly
-      // produces nothing (e.g. renderOneWidget returns without throwing on a
-      // missing fixtures dir). Skip the wholesale replace rather than delete
-      // good baselines and repopulate with nothing.
+      // produces nothing. Skip the wholesale replace rather than delete good
+      // baselines and repopulate with nothing.
+      //
+      // The two ways a config renders nothing are NOT symmetric, measured
+      // 2026-09-17: a fixtures directory that does not EXIST makes
+      // renderOneWidget throw ENOENT, which is loud and stops the run, while
+      // one that exists and is EMPTY returns quietly after printing "No
+      // fixtures found". Only the second reaches here, and only the second is
+      // the dangerous one. Gate mode has its own assertion for it below.
       if (renders.length === 0) {
         console.warn(
           `  ! ${config.widgetId}: 0 renders produced, leaving baselines untouched.`,
@@ -154,7 +160,26 @@ async function main(): Promise<void> {
     const actualDir = resolve(actualBase, config.outPath);
     const baselineDir = baselineDirFor(engine as Engine, config);
     const baselineNames = new Set(await pngFiles(baselineDir));
-    for (const file of await pngFiles(actualDir)) {
+    const actualNames = await pngFiles(actualDir);
+    // A config that rendered NOTHING is the one shape the loop below cannot
+    // report, because the loop is over the renders themselves: no renders, no
+    // iterations, no findings, and the run ends "✓ No visual drift". A widget
+    // producing nothing then reads exactly like a widget that is perfect, and
+    // this gate exists to sign off 37 widgets' appearance.
+    //
+    // Measured 2026-09-17 by planting a config on an empty fixtures directory:
+    // the whole gate exited 0 saying "compared 0 render(s) ... ✓ No visual
+    // drift". The harness does print "No fixtures found", but one stdout line
+    // among hundreds in a CI log is not an instrument.
+    if (actualNames.length === 0) {
+      failures.push({
+        widget: config.label ?? config.widgetId,
+        name: config.outPath,
+        kind: "no-renders",
+      });
+      continue;
+    }
+    for (const file of actualNames) {
       const actualPath = join(actualDir, file);
       const baselinePath = join(baselineDir, file);
       if (!baselineNames.has(file)) {
@@ -192,20 +217,45 @@ async function main(): Promise<void> {
     `\n${engine}: compared ${compared} render(s) against baselines ` +
       `(threshold ${(ALLOWED_RATIO * 100).toFixed(2)}%).`,
   );
+  // A run that compared nothing has checked nothing, and printing the zero is
+  // not the same as refusing it: the number above was already on screen on the
+  // day this gate passed a config that rendered nothing. Asserted rather than
+  // reported, so the whole gate going dark (a bundle that registers no widget,
+  // a probe that throws before any render) fails instead of reading as clean.
+  if (compared === 0) {
+    console.error(
+      `\n✗ ${engine}: 0 renders were compared against a baseline, so this run ` +
+        `checked nothing.\n` +
+        `  Every config either produced no render or had no baseline. That is a\n` +
+        `  broken run, not a clean one: fix the renders, or establish baselines\n` +
+        `  with update-baselines.yml.`,
+    );
+    process.exitCode = 1;
+  }
   if (failures.length === 0) {
-    console.log(`✓ No visual drift.`);
+    if (compared > 0) console.log(`✓ No visual drift.`);
     return;
   }
 
   console.error(`\n✗ ${failures.length} visual difference(s):`);
   for (const f of failures) {
     console.error(
-      f.kind === "missing-baseline"
-        ? `  MISSING baseline: ${f.widget}/${f.name}`
-        : `  DRIFT ${((f.ratio ?? 0) * 100).toFixed(2)}%: ${f.widget}/${f.name}`,
+      f.kind === "no-renders"
+        ? `  NO RENDERS: ${f.widget} produced nothing (${f.name})`
+        : f.kind === "missing-baseline"
+          ? `  MISSING baseline: ${f.widget}/${f.name}`
+          : `  DRIFT ${((f.ratio ?? 0) * 100).toFixed(2)}%: ${f.widget}/${f.name}`,
     );
   }
   const ref = process.env.GITHUB_REF_NAME ?? "<branch>";
+  if (failures.some((f) => f.kind === "no-renders")) {
+    console.error(
+      `\nA NO RENDERS config is not a baseline problem and regenerating will not\n` +
+        `fix it: the widget drew nothing, so there is nothing to capture. Check\n` +
+        `its fixtures directory exists and holds fixtures: one that is missing\n` +
+        `throws, one that is EMPTY renders nothing quietly.`,
+    );
+  }
   console.error(
     `\nIf these changes are intended, regenerate the baselines on CI:\n` +
       `    gh workflow run update-baselines.yml --ref ${ref}` +
