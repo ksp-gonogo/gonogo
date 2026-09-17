@@ -12,6 +12,7 @@ import {
   type ReadoutTone,
   Section,
   StatusPill,
+  Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
@@ -162,23 +163,24 @@ function ThermalStatusComponent({
   // read once and destructured; nothing about these ten fields can disagree
   // about how current it is, so nothing should ask ten times.
   /**
-   * Every readout in this widget is a judgement: four band tags and a summary
-   * pill, each converting a temperature ratio into "nominal" or "critical". None
-   * of them can be dated, because the operator reads a band as the situation now.
+   * The BAND TAGS and the summary pill are judgements: each converts a
+   * temperature ratio into "nominal" or "critical", and none of them can be
+   * dated, because the operator reads a band as the situation now. So a stale
+   * record lands them on the `unknown` band rather than on a green one.
    *
-   * So a stale record is withheld, which lands on the `unknown` band rather than
-   * on a green one, and `thermalNotCurrent` lets the widget say which of the two
-   * reasons it is unknown for.
+   * <p>The temperatures themselves are not judgements. The heat-shield
+   * temperature and flux, the hottest part's name and its skin figures are
+   * MEASUREMENTS, and a measurement can be dated: an operator who has lost the
+   * link during re-entry is better served by the last heat-shield reading,
+   * marked, than by a panel that has thrown it away. So the record is held and
+   * only the ratios and the overheat flag are withheld, which is what
+   * `datedJudgements` does.</p>
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const thermal =
-    thermalReading.state === "observed" ? thermalReading.value : undefined;
-  /*
-   * This flag replaces the entire readout with a sentence, so it has to mean
-   * the bands could not be computed at all. `vessel.thermal` declares no
-   * reckonable value, so the observation is the only record the bands are ever
-   * worked out from and a held reading leaves nothing to hide behind a notice.
-   */
+    thermalReading.state === "observed" || thermalReading.state === "stale"
+      ? thermalReading.value
+      : undefined;
   const thermalNotCurrent = thermalReading.state === "stale";
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
@@ -228,10 +230,21 @@ function ThermalStatusComponent({
   const shieldTempK = shieldSentinel ? undefined : rawShieldTempK;
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
 
-  const hottestBand = bandFromRatio(hottestRatio?.magnitude);
-  const engineBand = engineOverheat
-    ? "critical"
-    : bandFromRatio(engineRatio?.magnitude);
+  /* The judgements, and only the judgements, are withheld once the record stops
+     arriving. A band is read as the situation NOW, and a craft that has since
+     flown deeper into re-entry would keep showing "nominal" for as long as the
+     link stayed down, so feeding the ratios through drops both bands to
+     `unknown` exactly as a never-read ratio does. The temperatures they were
+     derived from are still drawn, dated, because a dated measurement is the
+     operator's best information and a blank one is nothing at all. */
+  const hottestBand = thermalNotCurrent
+    ? bandFromRatio(undefined)
+    : bandFromRatio(hottestRatio?.magnitude);
+  const engineBand = thermalNotCurrent
+    ? bandFromRatio(undefined)
+    : engineOverheat
+      ? "critical"
+      : bandFromRatio(engineRatio?.magnitude);
 
   // The pill summarises the worst observed band, it's the at-a-glance
   // affordance the tiny mode lives by.
@@ -275,14 +288,13 @@ function ThermalStatusComponent({
   const showInlineAlert = anyHotOrAbove && cols >= 6;
 
   /*
-   * "No longer current" is a different sentence from "none reported", and the
-   * difference decides whether the operator distrusts the craft or the link.
+   * Only "none reported" empties the panel now. A record that has merely stopped
+   * arriving still has every temperature in it, so replacing the body with a
+   * sentence threw away the heat-shield reading an operator who has just lost
+   * the link most wants. That case gets a dated caption over a live body
+   * instead, and the bands above have already dropped to `unknown`.
    */
-  const absence = thermalNotCurrent
-    ? "Thermal readings no longer current"
-    : noData
-      ? "No thermal data"
-      : null;
+  const absence = noData ? "No thermal data" : null;
 
   return (
     <Panel
@@ -291,6 +303,17 @@ function ThermalStatusComponent({
         absence !== null && (
           <Section key="absence" full>
             <EmptyState>{absence}</EmptyState>
+          </Section>
+        ),
+        absence === null && thermalNotCurrent && (
+          <Section key="dated" full>
+            {/* Names which half is dated: the figures below are real readings
+                held from the last delivery, while the bands and the pill have
+                gone to unknown because a judgement cannot be dated. */}
+            <Text tone="warn" size="xs" role="status" aria-live="polite">
+              Thermal readings no longer current: the temperatures are the last
+              reported, and the bands are unknown until they resume.
+            </Text>
           </Section>
         ),
         absence === null && (
