@@ -551,7 +551,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client": 24,
   "mod/GonogoKerbalismUplink/client": 64,
   "mod/GonogoKosUplink/client": 38,
-  "mod/GonogoMechJebUplink/client": 8,
   "mod/GonogoPrincipiaUplink/client": 28,
   "mod/GonogoRealAntennasUplink/client": 18,
   "mod/GonogoRp1Uplink/client": 70,

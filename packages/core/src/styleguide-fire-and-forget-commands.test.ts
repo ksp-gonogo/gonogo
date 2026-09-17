@@ -66,7 +66,6 @@ import { describe, expect, it } from "vitest";
 const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 3,
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 6,
-  "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx": 3,
   "packages/components/src/ActionGroup/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 1,
   // 7 -> 8 on 2026-08-21: `ksp.launch` moved off the deleted `useExecuteAction`,

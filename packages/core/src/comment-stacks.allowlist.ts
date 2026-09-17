@@ -54,8 +54,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/dataSource/kosWrapper.test.ts": 2,
   "mod/GonogoKosUplink/client/src/topics.test.ts": 2,
   "mod/GonogoKosUplink/client/src/uplink.ts": 1,
-  "mod/GonogoMechJebUplink/client/src/MechJeb/index.test.tsx": 3,
-  "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx": 1,
   "mod/GonogoPrincipiaUplink/client/src/BurnEditor/index.test.tsx": 1,
   "mod/GonogoPrincipiaUplink/client/src/FlightPlanSection/index.test.tsx": 1,
   "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis/index.tsx": 1,
