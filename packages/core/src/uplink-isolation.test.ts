@@ -853,10 +853,18 @@ describe("uplink subpath isolation", () => {
 describe("render-hosts is a render-time module, not an import", () => {
   const RENDER_HOSTS = "@ksp-gonogo/render-hosts";
 
-  /** Same spellings as `IMPORT_RE`, for the one package. */
+  /**
+   * Same spellings as `IMPORT_RE`, for the one package.
+   *
+   * `m` but deliberately NOT `g`: this one is used with `.test()`, and a global
+   * regex carries `lastIndex` between calls, so testing a second file starts
+   * partway through it and can miss a match the file plainly contains. Clean,
+   * that is invisible — nothing matches, `lastIndex` stays 0 — and it only
+   * shows once TWO files are in violation, which is the worst time to find out.
+   */
   const RENDER_HOSTS_IMPORT_RE = new RegExp(
     `${SPECIFIER_PREFIX}["']${RENDER_HOSTS.replace("/", "\\/")}(?:["']|/)`,
-    "gm",
+    "m",
   );
 
   function manifestsDeclaringItAsARuntimeDependency(): string[] {
@@ -886,10 +894,7 @@ describe("render-hosts is a render-time module, not an import", () => {
    * neither scanner could see anything at all.
    */
   it("can see a violation of each position it forbids", () => {
-    const seen = (source: string) => {
-      RENDER_HOSTS_IMPORT_RE.lastIndex = 0;
-      return RENDER_HOSTS_IMPORT_RE.test(source);
-    };
+    const seen = (source: string) => RENDER_HOSTS_IMPORT_RE.test(source);
 
     const reaches: Record<string, string> = {
       "static named": `import { a } from "${RENDER_HOSTS}";`,
