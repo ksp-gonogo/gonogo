@@ -5,15 +5,6 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
-// The one unresolvable cref left in this assembly, and the only reason CS1574 is
-// not on everywhere. `ReliabilitySummary.Unmodeled` was replaced by `Coverage`
-// (one of `ReliabilityCoverage`), and whether that is the comparison this
-// paragraph wants is an open question on Saga #272: `Coverage` answers "is
-// anyone modelling this at all", where `ValueModel` answers "by whose model was
-// this computed", which is nearer `ReliabilitySummary.Source`. Lift the pragma
-// with the rewrite, do not widen the project's NoWarn again.
-#pragma warning disable 1574
-
 /// <summary>
 /// The vocabulary for the <c>valueModel</c> discriminator that the value-bearing
 /// <c>science.*</c> payloads carry (<see cref="ExperimentEntry.ValueModel"/>,
@@ -27,7 +18,7 @@ namespace Sitrep.Contract;
 /// another's is a flat rate times remaining data. A widget that treats one
 /// provider's <c>scienceValueRatio</c> as comparable to another's is silently
 /// wrong, and nothing in the field's name or unit says so. This is the same job
-/// <see cref="ReliabilitySummary.Unmodeled"/> does for reliability: stop a
+/// <see cref="ReliabilitySummary.Source"/> does for reliability: stop a
 /// consumer reading a number as something it is not.</para>
 ///
 /// <para><b>An OPEN vocabulary, deliberately.</b> Like <see cref="Units"/> and the
@@ -38,7 +29,6 @@ namespace Sitrep.Contract;
 /// consumer must treat an unrecognised token as "a model I do not know", never as
 /// stock.</para>
 /// </summary>
-#pragma warning restore 1574
 public static class ScienceValueModels
 {
     /// <summary>

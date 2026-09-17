@@ -324,7 +324,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/sdk-facade.conformance.test-d.ts",
       /*
-       * Comms + kOS IUplinkHealthReporter implementations (2026-07-19) cite
+       * Comms + kOS ISitrepUplink.Health() implementations (2026-07-19) cite
        * KerbcastUplink/KerbcastHealth in doc comments as the reference
        * reporter pattern they mirror (the KerbcastHealth pure-Evaluate split
        * was the first-party precedent). Prose only, no import, type, or code

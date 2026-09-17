@@ -51,7 +51,7 @@ interface KosDataSourceOptions {
  * (`onProcessorsChanged`). Registered only via `registerUplinkHandle("kos",
  * kosSource)` (NOT `registerDataSource`) so it never appears in the
  * generic Data Sources panel; kOS's own health surfaces via the mod-side
- * `IUplinkHealthReporter` (`KosHealth`) instead. Same SPI-free shape as
+ * `ISitrepUplink.Health()` (`KosHealth`) instead. Same SPI-free shape as
  * other first-party Uplinks that carry no subscribable data keys of their
  * own.
  *
