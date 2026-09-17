@@ -151,6 +151,26 @@ const stepperLabel = (action: string, from: number | null): string =>
 const flagLabel = (action: string, from: boolean | null): string | undefined =>
   from === null ? `${action} (unavailable, not reported)` : undefined;
 
+/**
+ * The same rotors, off a list that has stopped arriving: the two MEASURED
+ * figures withheld, every setting kept.
+ *
+ * <p>`rpm` and `output` are what the machine is doing, and a rotor spins on
+ * without telling us, so both are the situation NOW and cannot be dated. Nulling
+ * them hands the gauge to the vocabulary already in the file: the needle draws
+ * "unknown" rather than pointing somewhere.</p>
+ *
+ * <p>Everything else STAYS, because none of it is a measurement. `rpmLimit`,
+ * `torqueLimit`, `maxTorque` and `brakePercentage` are settings, `motorEngaged`,
+ * `locked` and `counterClockwise` are states a command puts the rotor in, and
+ * none of them drifts while the link is down. The cap in particular is what the
+ * gauge's go-zone arc is drawn from, so withholding it would have blanked the
+ * scale around a needle we were withholding anyway.</p>
+ */
+export function dateReadings(rotors: RotorInfo[]): RotorInfo[] {
+  return rotors.map((r) => ({ ...r, rpm: null, output: null }));
+}
+
 const rotorActions = [
   {
     id: "rpmUp",
@@ -189,12 +209,18 @@ export type RotorTachometerActions = typeof rotorActions;
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
-  // An RPM gauge is read as the situation now, so it is withheld rather than
-  // held. Nothing could carry a stale figure forward anyway: `robotics.servos`
-  // is never reckonable.
+  /* An RPM gauge is read as the situation now, so the NEEDLE is withheld rather
+     than held, and nothing could carry it forward anyway: `robotics.servos` is
+     never reckonable.
+
+     That argument reaches the needle and stops there. Which rotors the craft
+     carries, their caps, torque and brake settings, and whether each is engaged,
+     locked or turning counter-clockwise are all things a command set and no
+     event can change down a link that is not delivering. They are held exactly
+     as `available` and `breakingGround` are just below. See `dateReadings`. */
   const roboticsReading = useTelemetry("robotics.servos");
-  const roboticsRaw =
-    roboticsReading.state === "observed" ? roboticsReading.value : undefined;
+  const roboticsRaw = stillTrue(roboticsReading, undefined);
+  const readingsNotCurrent = roboticsReading.state === "stale";
   // Two DIFFERENT facts, and the empty state needs both. `robotics.available`
   // is "this craft carries a robotic part", a per-vessel reading that rides the
   // delay clock. `game.dlc.breakingGround` is "the install has the expansion",
@@ -230,7 +256,9 @@ function RotorTachometerComponent({
   // fixed 180px that clips in a narrow slot.
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 180, h: 104 });
 
-  const rotors = parseRotors(roboticsRaw);
+  const rotors = readingsNotCurrent
+    ? dateReadings(parseRotors(roboticsRaw))
+    : parseRotors(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
@@ -323,7 +351,8 @@ function RotorTachometerComponent({
               {emptyStateText(
                 breakingGround,
                 available,
-                roboticsReading.state === "observed",
+                roboticsReading.state === "observed" ||
+                  roboticsReading.state === "stale",
                 "rotors",
               )}
             </EmptyState>
@@ -355,6 +384,17 @@ function RotorTachometerComponent({
     <Panel
       panelTitle="ROTORS"
       sections={[
+        readingsNotCurrent && (
+          <Section key="dated" full>
+            {/* Names which half is dated, because "no longer current" over a
+                panel still showing caps and brake settings would read as the
+                whole instrument being dead. Only the needle is withheld. */}
+            <Text tone="warn" size="xs" role="status" aria-live="polite">
+              RPM no longer current: the rotors, their caps, torque and brake
+              settings are the last reported.
+            </Text>
+          </Section>
+        ),
         showGauge && (
           <Section key="gauge">
             <Cluster justify="center" ref={gaugeRef}>

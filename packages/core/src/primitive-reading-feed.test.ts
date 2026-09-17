@@ -422,7 +422,11 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * does is stop the number growing while that decision is open.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
+  /* RotorTachometer's entry is gone, tightened in the commit that earned it.
+     Its one site fed the gauge off a reading laundered into a bare value by
+     `state === "observed" ? value : undefined`; holding the list through stale
+     and dating the two measured figures replaced that accessor, and the walk
+     finds nothing to report there now. */
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   "mod/GonogoRealAntennasUplink/client/src/CommSignalRaAugment/index.tsx": 6,
   // The one RP-1 site no accessor can reach: `chosen` is an element of a
