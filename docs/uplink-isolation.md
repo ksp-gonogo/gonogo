@@ -16,8 +16,6 @@ An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 - **`@ksp-gonogo/ui-kit`**, the published design system, and its subpaths:
   - `@ksp-gonogo/ui-kit/testing`, the widget provider stack and the readout helpers
   - `@ksp-gonogo/ui-kit/guards`, the render-time invariants a widget asserts against
-  - `@ksp-gonogo/ui-kit/render-probe` and `/render`, the render harness
-  - `@ksp-gonogo/ui-kit/page-check`, the assertions the render harness reads back
   - `@ksp-gonogo/ui-kit/tokens.css`, the design-system custom properties
 - `react`, `styled-components`, and third-party packages
 
@@ -159,9 +157,9 @@ sensible export sitting in the wrong package, not a design problem:
   re-export each other: a widget's harness is a host from the sdk and a provider
   stack from the kit, and those are genuinely two things
 - a whole-widget screenshot or a generated page →
-  **`@ksp-gonogo/ui-kit/render-probe`** and **`@ksp-gonogo/ui-kit/render`**, the
-  two halves of the render harness, driven by the `gonogo-uplink` bin. See
-  `docs/uplink-rendering.md`
+  **`@ksp-gonogo/uplink-tools`** and its `/render-probe` entry, the two halves of
+  the render harness, driven by the `gonogo-uplink` bin. It is a separate
+  package and a devDependency; see `docs/uplink-rendering.md`
 
   There WAS a third package, `@ksp-gonogo/sitrep-testing`, sitting above `core`
   and `sitrep-client`, and this document told you to install it for months after

@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { readInventory } from "@ksp-gonogo/uplink-tools/render-probe";
-import { display, resolveUplinkPackage } from "./render/context";
+import {
+  display,
+  renderModuleUrl,
+  resolveUplinkPackage,
+} from "./render/context";
 import { buildManifest, buildReadme } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 
@@ -163,9 +166,16 @@ function compare(
 export async function loadRenderHosts(
   options: PageCheckOptions = {},
 ): Promise<void> {
-  const pkg = resolveUplinkPackage(options.root ?? process.cwd());
+  const dir = options.root ?? process.cwd();
+  const pkg = resolveUplinkPackage(dir);
   for (const host of pkg.renderWith) {
-    await import(/* @vite-ignore */ pathToFileURL(host).href);
+    // Through `renderModuleUrl`, the same resolver the render path and `--with`
+    // use, because `renderWith` carries two shapes and this is the only
+    // consumer that has to turn the second one back into a file itself. It was
+    // a bare `pathToFileURL`, which is correct for a path and produces the
+    // client directory with the package name glued onto the end for a
+    // specifier.
+    await import(/* @vite-ignore */ renderModuleUrl(dir, host));
   }
 }
 

@@ -43,17 +43,21 @@ widget with no fixture fails naming the widget.
 The `gonogo-uplink` command itself is `@ksp-gonogo/sitrep-sdk`'s, which every
 Uplink already depends on, and `bundle` and `bake-hash` need nothing else.
 `render` and `docs` drive a real browser, and that half lives in
-`@ksp-gonogo/ui-kit`: the sdk resolves it from YOUR package when one of those two
-verbs is used, so it is never loaded by a CI job that only bundles.
+`@ksp-gonogo/uplink-tools`: the sdk resolves it from YOUR package when one of
+those two verbs is used, so it is never loaded by a CI job that only bundles.
 
 ```jsonc
 "devDependencies": {
-  "@ksp-gonogo/ui-kit": "^0.2.0",        // the browser half of render / docs
+  "@ksp-gonogo/uplink-tools": "^0.1.0",  // the browser half of render / docs
   "playwright": "^1.60.0",               // the browser the render happens in
   "esbuild": "^0.28.0",                  // bundles the generated browser entry
   "@fontsource/jetbrains-mono": "^5.2.8" // the app's own monospace face
 }
 ```
+
+`@ksp-gonogo/ui-kit` is a separate, RUNTIME dependency: it is the design system
+your widgets are built from, and the tools package takes it as a peer. The two
+were one package until the harness moved out.
 
 **The playwright package is not a browser.** Installing it gets you the driver
 and no executable to drive, and the first `render` then dies on a missing one. So
@@ -400,7 +404,7 @@ browser:
 
 ```ts
 // client/src/uplink-page.test.ts
-import { expectUplinkPageCurrent } from "@ksp-gonogo/ui-kit/page-check";
+import { expectUplinkPageCurrent } from "@ksp-gonogo/uplink-tools/page-check";
 import "./index";  // your client, so its registrations happen
 
 it("the generated page still describes this Uplink", () => {
@@ -447,7 +451,7 @@ both spellings are looked for, and JSX will not parse in a `.ts` file.
 ```tsx
 // client/gonogo-render.setup.tsx
 import { registerDataSource, unregisterDataSource } from "@ksp-gonogo/sitrep-sdk";
-import { defineRenderSetup } from "@ksp-gonogo/ui-kit/render-probe";
+import { defineRenderSetup } from "@ksp-gonogo/uplink-tools/render-probe";
 
 export default defineRenderSetup({
   beforeScene({ scene, starve }) {
