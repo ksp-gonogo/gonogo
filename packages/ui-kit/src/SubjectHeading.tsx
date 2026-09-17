@@ -28,8 +28,8 @@ export interface SubjectHeadingProps {
  * <para>The order is the whole point and it is not a knob. A status badge
  * drawn before the thing it is a status OF reads as the state arriving before
  * its subject, both to an eye scanning the line and to a screen reader walking
- * it, which is why the operator ruled that status badges belong above the
- * title or aligned to its right and never in front of it.</para>
+ * it, so status badges belong above the title or aligned to its right and
+ * never in front of it.</para>
  *
  * <para>Two sites had drifted the other way (an RP-1 Program's detail pane and
  * a training course's card) while every other heading in the tree happened to

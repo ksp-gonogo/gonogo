@@ -990,12 +990,8 @@ describe("uplink subpath isolation", () => {
  * exactly what makes it dangerous: every other rule in this file works by a
  * package being unpublished, and this one cannot.
  *
- * The operator's ruling on ticket 221 is the rule:
- *
- * > "typically pulling the widgets into the UI kit is only for the docs page,
- * > right? It's not for anything else."
- *
- * So the line is not WHETHER an Uplink may name it, but WHERE:
+ * Pulling the widgets into the UI kit is only for the docs page, not for
+ * anything else, so the line is not WHETHER an Uplink may name it, but WHERE:
  *
  *   - `devDependencies` and `gonogo.renderWith`: yes. That is the whole purpose
  *   - `dependencies`: no. A runtime dependency is the Uplink shipping the app's

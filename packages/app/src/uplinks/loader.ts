@@ -664,9 +664,9 @@ async function loadThirdParty(
   }
 
   if (manifest.integrity !== roster.expectedClientHash) {
-    // Hard refuse BEFORE import (operator ruling 2026-07-25). The mod and its
-    // client bundle ship as one release, so a self-declared manifest integrity
-    // that disagrees with the mod-vouched expectedClientHash is a real fault
+    // Hard refuse BEFORE import. The mod and its client bundle ship as one
+    // release, so a self-declared manifest integrity that disagrees with the
+    // mod-vouched expectedClientHash is a real fault
     // (mod/client version skew, or a tampered manifest), never an expected
     // state: quarantine-with-reason like every other integrity gate rather
     // than loading past it. This is the manifest-declared vs mod-vouched
@@ -866,9 +866,8 @@ async function loadOne(
 }
 
 /**
- * Derive the set of ids `loadEnabledUplinks` attempts, per the operator
- * decision (2026-07-24) that the installed-mod roster drives the loader
- * rather than a static id list:
+ * Derive the set of ids `loadEnabledUplinks` attempts: the installed-mod
+ * roster drives the loader rather than a static id list:
  *
  *   - `roster` PRESENT (the mod answered, even with an empty list) → enable
  *     exactly the ids the roster reports INSTALLED that either (a) have a

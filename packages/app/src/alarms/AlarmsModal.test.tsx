@@ -680,10 +680,9 @@ describe("AlarmsModal threshold trigger key picker", () => {
   });
 
   /**
-   * The operator's own worked example from the 2026-09-11 ruling: "an alarm for
-   * SCET 100km altitude". It is also the one the picker's vocabulary would have
-   * lost on its own, because altitude is shown under the derived `vessel.state`
-   * name and the simulation has never heard of that channel.
+   * "An alarm for SCET 100km altitude" is also the one the picker's vocabulary
+   * would have lost on its own, because altitude is shown under the derived
+   * `vessel.state` name and the simulation has never heard of that channel.
    */
   it("arms a SCET threshold at the Topic the simulation publishes, not the derived name", async () => {
     const user = userEvent.setup();
@@ -866,11 +865,10 @@ describe("AlarmsModal vantage choice", () => {
   }
 
   /**
-   * A universal time is the same instant at every vantage and names no craft
-   * (operator, 2026-09-15), so a UT alarm has no clock to pick between. The
-   * control is greyed rather than removed, because the operator arriving from
-   * the threshold arm needs to see that the question they just answered does
-   * not apply here.
+   * A universal time is the same instant at every vantage and names no craft,
+   * so a UT alarm has no clock to pick between. The control is greyed rather
+   * than removed, because an operator arriving from the threshold arm needs
+   * to see that the question they just answered does not apply here.
    */
   it("greys the vantage control out for a UT alarm and shows neither option chosen", () => {
     const group = renderModal();

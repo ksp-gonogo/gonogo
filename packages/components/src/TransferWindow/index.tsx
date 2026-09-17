@@ -240,9 +240,8 @@ function TransferWindowComponent({
    *
    * A DESCRIPTION in `LandingStatus`'s sense, and that doc names this exact
    * quantity: "how much delta-v there was" renders from a last-known value,
-   * labelled. The operator's standing position settles the rest: we plan with what
-   * we have, and running dry at execution is operator error. So a dated budget is
-   * captioned, never withheld.
+   * labelled. We plan with what we have, and running dry at execution is
+   * operator error. So a dated budget is captioned, never withheld.
    *
    * It is dated more carefully than the parking orbit above, because the two decay
    * differently. Elements do not drift; only a burn or an SOI change moves them,

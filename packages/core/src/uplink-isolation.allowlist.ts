@@ -187,6 +187,6 @@ export const NON_AUTHOR_SUBPATHS: Record<
   "@ksp-gonogo/ui-kit": {},
   "@ksp-gonogo/uplink-tools": {
     widgets:
-      "registers the app's entire built-in widget library so an Uplink's docs page can draw an augment inside the real widget it extends. Ruled by the operator on ticket 221: pulling the widgets in \"is only for the docs page, right? It's not for anything else\". It is reached through `gonogo.renderWith` as a devDependency and imported by nothing, so an Uplink importing it from client source is a violation by design, not an oversight",
+      "registers the app's entire built-in widget library so an Uplink's docs page can draw an augment inside the real widget it extends. Pulling the widgets in is only for the docs page, not for anything else. It is reached through `gonogo.renderWith` as a devDependency and imported by nothing, so an Uplink importing it from client source is a violation by design, not an oversight",
   },
 };

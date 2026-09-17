@@ -356,8 +356,8 @@ public class ScetAlarm
 /// The spec also proposed echoing the condition back. For a time arm that is
 /// the instant restated, so it adds nothing; for the threshold arm to come it
 /// would be a claim about the craft ("altitude passed 100 km") wearing the
-/// operator's own words, and the 2026-09-11 ruling is that the firing shows
-/// true-now and the REASON does not. So the condition is not echoed, here or
+/// operator's own words, and the firing shows true-now while the REASON does
+/// not. So the condition is not echoed, here or
 /// later, and a client that wants to name the alarm reads the roster.
 /// Published RAW: see <c>JsonWriter.AppendScetAlarmFired</c>.
 /// </internal>

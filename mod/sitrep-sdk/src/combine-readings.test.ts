@@ -6,10 +6,10 @@ import { value } from "./unit-system/value";
 /**
  * The combinator's currency rule, one test per clause of it.
  *
- * The clauses are the operator's ruling on #257 (comment 418 on #296), and two
- * of them exist BECAUSE the obvious reading was unavailable: `StaleGrade` has
- * no severity order and the three non-value states have no precedence, so the
- * rules are positional and tied to the instant rather than ranked. Each is
+ * Two of the clauses exist BECAUSE the obvious reading was unavailable:
+ * `StaleGrade` has no severity order and the three non-value states have no
+ * precedence, so the rules are positional and tied to the instant rather
+ * than ranked. Each is
  * asserted here so a later "tidy-up" that invents a ranking fails.
  */
 

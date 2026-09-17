@@ -13,10 +13,9 @@ import { CurrentOrbitComponent } from "./index";
  *
  * The rule is in this widget's own header: it DRAWS the orbit and the craft's
  * place on it, so what it shows is a positive claim about where the craft is
- * NOW. An element that merely stopped arriving does not support that claim, and
- * the operator settled the same question for comms on 2026-09-17: "it would make
- * no sense to reckon a dead link, nor really to share old values. It doesn't
- * really say anything."
+ * NOW. An element that merely stopped arriving does not support that claim:
+ * it would make no sense to reckon a dead link, nor really to share old
+ * values, and it doesn't really say anything.
  *
  * Giving the topic a model briefly broke this. Taking the observation on
  * `observed` OR `stale` and then overlaying the model is right when a model is
