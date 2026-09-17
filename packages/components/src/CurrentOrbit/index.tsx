@@ -135,19 +135,33 @@ function CurrentOrbitComponent({
    * Written here rather than hidden in a helper because the spread IS the
    * judgement, as `ReckonableReading`'s own doc puts it. Picking one side or the
    * other, which this did before, gets a two-field fragment whenever the model
-   * is available and drew the eccentricity and inclination as the absence
+   * is available, and drew the eccentricity and inclination as the absence
    * placeholder.
+   *
+   * ## A STALE reading is only drawn when a model makes it current
+   *
+   * The paragraph above is the whole rule and this is the case it does not
+   * obviously cover, so it is spelled out. A stale orbit with NO model draws
+   * nothing: sharing an element that merely stopped arriving, as a present-tense
+   * claim about where the craft is, says nothing true, and this widget is a
+   * marker rather than a log.
+   *
+   * A stale orbit WITH a model does draw, and that is not the same act. `sma`,
+   * `ecc` and `inc` are constants of the orbit rather than figures that go out
+   * of date, so a conic that moves the phase makes the whole thing current: the
+   * result is assembled from a constant and a model, not held from an old
+   * frame.
    */
   const observedOrbit =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
       : undefined;
   const orbit =
-    observedOrbit === undefined
-      ? undefined
-      : orbitReading.reckoning.status === "available"
-        ? { ...observedOrbit, ...orbitReading.reckoning.value }
-        : observedOrbit;
+    observedOrbit !== undefined && orbitReading.reckoning.status === "available"
+      ? { ...observedOrbit, ...orbitReading.reckoning.value }
+      : orbitReading.state === "observed"
+        ? orbitReading.value
+        : undefined;
   const vesselState = useStream<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
