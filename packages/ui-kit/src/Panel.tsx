@@ -2112,21 +2112,28 @@ function PanelRoot({
   const badgePills =
     badges.length === 0
       ? null
-      : badges.map((b) => (
+      : badges.map((b) => {
           /* An absent or `neutral` entry tone is a decorative kind-chip, so
              it gets NO severity rather than the nominal floor: a contributed
              label with nothing to report must not paint itself go-green. */
-          <Badge
-            key={b.id}
-            severity={
-              b.tone === undefined || b.tone === "neutral"
-                ? undefined
-                : severityFromBadgeEntryTone(b.tone)
-            }
-          >
-            {b.label}
-          </Badge>
-        ));
+          const severity =
+            b.tone === undefined || b.tone === "neutral"
+              ? undefined
+              : severityFromBadgeEntryTone(b.tone);
+          return (
+            <Badge
+              key={b.id}
+              severity={severity}
+              /* A decorative kind-chip has no severity to assert, so it stays
+                 out of the collapsed header's dot summary entirely: only a
+                 badge carrying a real severity is the widget-level assertion
+                 that summary consolidates. */
+              report={severity === undefined ? undefined : { id: b.id }}
+            >
+              {b.label}
+            </Badge>
+          );
+        });
   const hasHeader =
     panelTitle !== undefined ||
     panelAside !== undefined ||
