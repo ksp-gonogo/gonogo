@@ -3,7 +3,6 @@ import {
   clearAugments,
   clearRegistry,
   getComponent,
-  MockDataSource,
   registerAugment,
   registerDataSource,
   WidgetMetaContext,
@@ -11,6 +10,7 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";

@@ -4,12 +4,12 @@ import {
   clearRegistry,
   getComponents,
   getThemes,
-  MockDataSource,
   registerComponent,
   registerDataSource,
   registerTheme,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { cleanup } from "@ksp-gonogo/test-utils";
 
 export interface SetupMockOptions {

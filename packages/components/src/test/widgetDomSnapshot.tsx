@@ -3,11 +3,11 @@ import {
   ContributionsProvider,
   DashboardItemContext,
   getComponents,
-  type MockDataSource,
   registerStockBodies,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
+import type { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type React from "react";
 import { Fragment } from "react";

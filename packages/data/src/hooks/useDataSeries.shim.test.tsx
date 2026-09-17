@@ -1,8 +1,4 @@
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import {
   createFakeWallClock,
   DEAD_READ_SETTLE_MS,
@@ -21,7 +17,10 @@ import {
   Quality,
   registerTopicUnits,
 } from "@ksp-gonogo/sitrep-sdk";
-import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  installTestHost,
+  MockDataSource,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
