@@ -319,6 +319,67 @@ function unwrapOf(
  * terminates does so at a reading or at a literal, and the `seen` set is what
  * stops a cycle.
  */
+/**
+ * Array methods that hand a callback an ELEMENT of their receiver, and which
+ * parameter position that element arrives in.
+ *
+ * A callback's parameter is not a variable declaration, so the one `const` hop
+ * below reaches nothing for it and a figure taken off it reads as having no
+ * provenance at all. That is how seven sites sat inside one `flatMap` in a file
+ * this gate had already reported on: the array was plainly a reading's payload
+ * and every element taken out of it was invisible.
+ *
+ * A closed list, for the reason `CURRENCY_ACCESSORS` is one. Following ANY
+ * callback parameter back to its receiver would make `reduce`'s accumulator
+ * reading-derived on the receiver's account even when it is seeded from a
+ * literal. The POSITION matters as much as the method: `reduce` hands the
+ * element second, so a rule keyed on parameter 0 would follow the accumulator
+ * and miss the element.
+ */
+const ELEMENT_YIELDING_CALLBACKS: ReadonlyMap<string, readonly number[]> =
+  new Map([
+    ["map", [0]],
+    ["flatMap", [0]],
+    ["filter", [0]],
+    ["forEach", [0]],
+    ["find", [0]],
+    ["findLast", [0]],
+    ["findIndex", [0]],
+    ["findLastIndex", [0]],
+    ["some", [0]],
+    ["every", [0]],
+    ["sort", [0, 1]],
+    ["reduce", [1]],
+    ["reduceRight", [1]],
+  ]);
+
+/**
+ * The array a callback parameter's elements come from, when that parameter IS
+ * an element rather than an index, an accumulator or the array itself.
+ *
+ * The callback must be the call's FIRST argument, which it is for every method
+ * on the list, so a function handed over as a later argument cannot be mistaken
+ * for the element-yielding one.
+ */
+function callbackElementReceiver(
+  parameter: ts.ParameterDeclaration,
+): ts.Expression | undefined {
+  const callback = parameter.parent;
+  if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) {
+    return undefined;
+  }
+  const call = callback.parent;
+  if (!ts.isCallExpression(call) || call.arguments[0] !== callback) {
+    return undefined;
+  }
+  const callee = skipParens(call.expression);
+  if (!ts.isPropertyAccessExpression(callee)) return undefined;
+  const positions = ELEMENT_YIELDING_CALLBACKS.get(callee.name.text);
+  return positions?.includes(callback.parameters.indexOf(parameter))
+    ? callee.expression
+    : undefined;
+}
+
 const DERIVATION_DEPTH = 12;
 
 /**
@@ -402,10 +463,17 @@ function derivedFromReading(
   }
 
   if (ts.isIdentifier(node)) {
-    const declaration = checker
-      .getSymbolAtLocation(node)
-      ?.declarations?.find(ts.isVariableDeclaration);
-    return declaration?.initializer ? recur(declaration.initializer) : false;
+    const declarations = checker.getSymbolAtLocation(node)?.declarations ?? [];
+    const declaration = declarations.find(ts.isVariableDeclaration);
+    if (declaration?.initializer) return recur(declaration.initializer);
+    /*
+     * A callback's element parameter carries the provenance of the array it
+     * was taken out of, which no `const` hop can reach because a parameter is
+     * not a variable declaration. See `ELEMENT_YIELDING_CALLBACKS`.
+     */
+    const parameter = declarations.find(ts.isParameter);
+    const receiver = parameter && callbackElementReceiver(parameter);
+    return receiver ? recur(receiver) : false;
   }
 
   return false;

@@ -108,6 +108,10 @@ const WORLD = `
 
   export declare const altitude: Reading<Value<"m">>;
   export declare const definite: Value<"m">;
+
+  /** A reading carrying an ARRAY, for the laundered-through-a-callback shape. */
+  export interface Upkeep { sources: { amount: Value<"f"> }[] }
+  export declare const upkeep: Reading<Upkeep>;
 `;
 
 /** Run the scanner over hand-written files, through the real walk. */
@@ -422,11 +426,34 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * does is stop the number growing while that decision is open.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
-  /* RotorTachometer's entry is gone, tightened in the commit that earned it.
-     Its one site fed the gauge off a reading laundered into a bare value by
-     `state === "observed" ? value : undefined`; holding the list through stale
-     and dating the two measured figures replaced that accessor, and the walk
-     finds nothing to report there now. */
+  /*
+   * ONE, newly VISIBLE rather than newly written: `exp.progress * 100` inside
+   * `base.experiments.map(...)`, nested two callbacks deep under
+   * `bases.map(...)`.
+   *
+   * The provenance runs `useTelemetry("deployed.bases")` through `stillTrue`
+   * and `parseBases` into `bases`, then through two `map` callbacks. The call
+   * hops were always followed; the callback ELEMENT was not, because a
+   * parameter is not a variable declaration and the walk's one `const` hop
+   * reached nothing for it.
+   */
+  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 1,
+  /*
+   * TWO, in a file this list had already CLEARED, which is the part worth
+   * reading before trusting any zero here.
+   *
+   * Its previous single site fed the gauge off a reading laundered by
+   * `state === "observed" ? value : undefined`, and holding the list through
+   * stale genuinely replaced that accessor. The old note said the walk "finds
+   * nothing to report there now", and that was true of what the walk could SEE
+   * and false of the file: these two take `r.rpm` and the torque figure off an
+   * element of `rotors.map(...)`, the one shape the walk was blind to.
+   *
+   * So a cleared entry is only as strong as the reach that cleared it. Both
+   * sites are ordinary field properties on an addressable path, so unlike the
+   * #310 entries below they are migratable.
+   */
+  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 2,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   /*
    * SIX, and none of them is migratable, which makes this entry a different
@@ -494,5 +521,45 @@ describe("no primitive is fed a figure a reading's currency was dropped from", (
         "A file below its entry has fixed one: lower the number here in the " +
         "same commit, or the next site to appear inherits the allowance.",
     ).toEqual(DERIVED_FEED_DEBT);
+  });
+});
+
+describe("the gate can see an unwrap laundered through a callback", () => {
+  /**
+   * The shape that hid seven sites in a file this gate had already reported on.
+   *
+   * The walk follows one `const` hop per identifier by resolving the
+   * identifier's variable declaration. A callback's PARAMETER is not a variable
+   * declaration, so `s` in `rows.flatMap((s) => ...)` reaches nothing and every
+   * figure taken off it reads as having no provenance, however plainly the array
+   * it came from is a reading's payload.
+   *
+   * The control is planted on the SAME reading and must be reported, so a zero
+   * here cannot be a broken harness reporting clean. Two laundered spellings
+   * rather than one, because a fix that special-cases `flatMap` and forgets
+   * `map` would pass a single-shape assertion.
+   */
+  const PLANTED = `
+    import { upkeep, Unit } from "./world";
+
+    const rows = upkeep.value?.sources ?? [];
+
+    export const control = <Unit value={upkeep.value!.sources[0].amount} />;
+    export const viaFlatMap = rows.flatMap((s) => <Unit value={s.amount} />);
+    export const viaMap = rows.map((s) => <Unit value={s.amount} />);
+  `;
+
+  const scan = scanPlanted({ "planted.tsx": PLANTED });
+
+  it("read types that resolved, so the verdict is not a build artefact", () => {
+    expect(scan.errorTyped).toBe(0);
+  });
+
+  it("sees the direct control on the same reading", () => {
+    expect(scan.sites.length).toBeGreaterThan(0);
+  });
+
+  it("sees the figure taken off a callback parameter, in map and flatMap", () => {
+    expect(scan.sites.length).toBe(3);
   });
 });
