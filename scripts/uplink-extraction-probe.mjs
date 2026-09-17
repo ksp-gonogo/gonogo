@@ -6,7 +6,7 @@
  *
  * `packages/core/src/uplink-isolation.test.ts` and
  * `mod/Sitrep.Core.Tests/UplinkIsolationTests.cs` enforce that an Uplink imports
- * only `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit`. Both are correct and
+ * only this repo's PUBLISHED packages. Both are correct and
  * both are blind to this: the build still resolves through pnpm workspace links,
  * so an Uplink can import nothing but permitted packages, pass every gate, and
  * depend on API that exists only in the workspace copy.
@@ -20,7 +20,7 @@
  * pnpm's workspace linking is the thing that hides the problem. A filtered
  * `pnpm install`, however scoped, still resolves `workspace:*` to the directory
  * next door. So the probe copies the client somewhere else entirely, repoints
- * the two permitted dependencies at packed tarballs, and installs with npm. What
+ * every permitted dependency at a packed tarball, and installs with npm. What
  * survives that is what an outside author would get.
  *
  * Nothing is carried in alongside it, and that matters. An earlier version
@@ -74,7 +74,7 @@
  * reason the error was caught.
  *
  * So before believing any number, the probe builds a package under the tsconfig
- * baseline the sdk ships, importing every entry point the two packages publish,
+ * baseline the sdk ships, importing every entry point the published packages publish,
  * and requires three things:
  *
  *  1. that CONTROL typechecks clean, under `bundler` AND under `nodenext`. It
@@ -131,6 +131,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -157,13 +158,65 @@ const run = (cmd, cmdArgs, opts = {}) =>
     ...opts,
   });
 
-/** The two published packages, packed exactly as a release would publish them. */
+/**
+ * Every package this repo PUBLISHES, as `[name, dir]`, discovered rather than
+ * listed.
+ *
+ * It was the same two-entry literal in two places here, and `publishedSubpaths`
+ * said in as many words that a new subpath "joins by existing". True of
+ * subpaths; false of packages. `@ksp-gonogo/uplink-tools` was published, was
+ * declared by every in-repo Uplink, and by two out-of-repo Uplinks in their
+ * `gonogo.renderWith`, while this probe (the only check that means "this
+ * Uplink can leave") never packed it, never installed it outside the
+ * workspace and never imported an entry point of it. The
+ * `RUNTIME_IMPORT_EXEMPT` entries naming its subpaths had therefore never once
+ * been exercised.
+ *
+ * Same rule and same reason as `discoverPublished` in
+ * `packages/core/src/uplink-isolation.test.ts`: `private: true` is what `npm
+ * publish` honours, so there is no second list to drift.
+ */
+function publishedPackages() {
+  const found = [];
+  for (const dir of ["packages", "mod"]) {
+    const base = join(ROOT, dir);
+    if (!existsSync(base)) continue;
+    for (const entry of readdirSync(base, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const rel = `${dir}/${entry.name}`;
+      const manifest = join(ROOT, rel, "package.json");
+      if (!existsSync(manifest)) continue;
+      const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+      if (!pkg.name || pkg.private === true || !pkg.exports) continue;
+      found.push([pkg.name, rel]);
+    }
+  }
+  return found.sort(([a], [b]) => a.localeCompare(b));
+}
+
+/**
+ * The floor the discovery cannot drop below silently.
+ *
+ * A walk that finds nothing packs nothing, probes nothing and reports zero
+ * errors, which is this probe's own stated failure mode: "a probe whose install
+ * or typecheck silently no-ops reports zero errors".
+ */
+const MIN_PUBLISHED_PACKAGES = 3;
+
+/** The published packages, packed exactly as a release would publish them. */
 function packPermittedPackages(into) {
   const tarballs = {};
-  for (const [name, dir] of [
-    ["@ksp-gonogo/sitrep-sdk", "mod/sitrep-sdk"],
-    ["@ksp-gonogo/ui-kit", "packages/ui-kit"],
-  ]) {
+  const packages = publishedPackages();
+  if (packages.length < MIN_PUBLISHED_PACKAGES) {
+    console.error(
+      `✖ the published-package walk found ${packages.length} (${packages
+        .map(([n]) => n)
+        .join(", ")}), below the floor of ${MIN_PUBLISHED_PACKAGES}. ` +
+        "A walk that finds nothing probes nothing and reports success.",
+    );
+    process.exit(2);
+  }
+  for (const [name, dir] of packages) {
     if (!existsSync(join(ROOT, dir, "dist"))) {
       console.error(
         `✖ ${dir}/dist is missing. The probe packs what a release would publish, and ` +
@@ -269,7 +322,7 @@ function probe(clientDir, tarballs, workRoot, label) {
 }
 
 /**
- * Every module subpath the two published packages export, as import specifiers.
+ * Every module subpath the published packages export, as import specifiers.
  *
  * Read off the manifests rather than listed, so a new subpath joins by existing.
  * `./biome` and the `.json` configs are shared CONFIG files that nothing resolves
@@ -278,10 +331,7 @@ function probe(clientDir, tarballs, workRoot, label) {
  */
 function publishedSubpaths() {
   const specs = [];
-  for (const [name, dir] of [
-    ["@ksp-gonogo/sitrep-sdk", "mod/sitrep-sdk"],
-    ["@ksp-gonogo/ui-kit", "packages/ui-kit"],
-  ]) {
+  for (const [name, dir] of publishedPackages()) {
     const pkg = JSON.parse(
       readFileSync(join(ROOT, dir, "package.json"), "utf8"),
     );
@@ -315,8 +365,18 @@ function selfTest(tarballs, workRoot) {
         version: "0.0.0",
         type: "module",
         devDependencies: {
-          "@ksp-gonogo/sitrep-sdk": `file:${tarballs["@ksp-gonogo/sitrep-sdk"]}`,
-          "@ksp-gonogo/ui-kit": `file:${tarballs["@ksp-gonogo/ui-kit"]}`,
+          /**
+           * From the packed set, not named: the control imports every published
+           * subpath, so a package it imports and does not depend on fails
+           * TS2307 and reads as "the tarball is broken" when it means "the
+           * control is".
+           */
+          ...Object.fromEntries(
+            Object.entries(tarballs).map(([name, tgz]) => [
+              name,
+              `file:${tgz}`,
+            ]),
+          ),
           typescript: "^5.0.0",
           // The peers the runtime leg needs to reach OUR code rather than
           // stopping at a missing package. Declared here, not installed on the
@@ -385,18 +445,14 @@ function selfTest(tarballs, workRoot) {
       2,
     )}\n`,
   );
-  // The control reaches every module subpath the two packages publish. That is
+  // The control reaches every module subpath the published packages publish. That is
   // the resolution check as well as the control: a subpath left out of `files`
   // or out of the `publishConfig` export map resolves inside the workspace and
   // nowhere else, which is the shape `/spine` shipped in and nothing saw until
   // `import(bundleUrl)` threw. A type-only namespace import needs no named
   // export to survive a barrel being reorganised, and still fails TS2307 when
   // the specifier does not resolve.
-  const specs = [
-    "@ksp-gonogo/sitrep-sdk",
-    "@ksp-gonogo/ui-kit",
-    ...publishedSubpaths(),
-  ];
+  const specs = [...Object.keys(tarballs), ...publishedSubpaths()];
   /*
    * A namespace import proves a specifier RESOLVES and nothing more, so it is
    * blind to a declaration merge that failed to bind: the interface is still
@@ -564,7 +620,7 @@ function typesResolveToDist(work) {
   }
 
   console.log(
-    `types: all ${ours.length} file(s) TypeScript read from the two packages came from dist/.`,
+    `types: all ${ours.length} file(s) TypeScript read from the published packages came from dist/.`,
   );
 }
 
