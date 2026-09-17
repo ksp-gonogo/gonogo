@@ -89,7 +89,6 @@ if (process.argv.includes("--require") && !required) {
  */
 const UNARMED_DEBT = new Set([
   "GonogoKerbalismUplink",
-  "GonogoPrincipiaUplink",
   "GonogoRealAntennasUplink",
 ]);
 

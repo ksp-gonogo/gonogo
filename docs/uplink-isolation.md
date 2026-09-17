@@ -535,12 +535,13 @@ needs something the shipped doubles do not do (a capability declared on the
 kernel before `Register`, ticks gated on subscriptions, a throw on every seam the
 Uplink should never touch), **write the double in your own Tests project.**
 `IUplinkHost` lives in `Sitrep.Contract`, so anyone can implement it, and it is
-about a hundred lines of lists and no-ops. `GonogoPrincipiaUplink.Tests/RecordingUplinkHost.cs`
-is the reference: it records what the Uplink registered, and exposes a REAL
-`Kernel` rather than a recorded one, because what an Uplink registers into a
-capability is only half a wiring claim and the other half is what the election
-then resolves. A double implementing a shipped interface breaks at compile time
-when the interface grows, so unlike a copied assertion it cannot drift silently.
+about a hundred lines of lists and no-ops. The Principia Uplink's
+`RecordingUplinkHost.cs` (now in `gonogo-uplinks`) is the reference: it records
+what the Uplink registered, and exposes a REAL `Kernel` rather than a recorded
+one, because what an Uplink registers into a capability is only half a wiring
+claim and the other half is what the election then resolves. A double
+implementing a shipped interface breaks at compile time when the interface
+grows, so unlike a copied assertion it cannot drift silently.
 
 ```csharp
 internal sealed class RecordingUplinkHost : IUplinkHost
@@ -557,11 +558,12 @@ internal sealed class RecordingUplinkHost : IUplinkHost
 }
 ```
 
-`GonogoPrincipiaUplink.Tests` reaches nothing private and is the shape to copy.
-`GonogoTestFlightUplink.Tests` and `GonogoActionGroupsExtendedUplink.Tests` were
-the other two, and have since left for the `gonogo-uplinks` repo, which is what
-being that shape is FOR. The rest are the ones carrying debt, not the ones to
-imitate.
+`GonogoPrincipiaUplink.Tests`, `GonogoTestFlightUplink.Tests`,
+`GonogoActionGroupsExtendedUplink.Tests` and `GonogoMechJebUplink.Tests` reached
+nothing private and were the shape to copy; all four have since left for the
+`gonogo-uplinks` repo, which is what being that shape is FOR. The code sample
+above is the copyable part that travels with this doc regardless. The rest are
+the ones carrying debt, not the ones to imitate.
 
 Two other habits keep a Tests project clean, and both come from those two:
 

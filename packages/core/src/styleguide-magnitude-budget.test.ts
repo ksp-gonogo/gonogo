@@ -144,7 +144,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // editor computes the same window from the same numbers. Two of these are the
   // instants going in and one is the view clock; doing it in the algebra would
   // mean a second implementation of a deadline both surfaces have to agree on.
-  "mod/GonogoPrincipiaUplink/client/src/PlanComposer/index.tsx": 3,
   // The one place a magnitude is unavoidable on the INPUT side: a DOM field
   // holds a string, so somewhere the value has to become a number and back.
   // Having it here once is what lets every widget stop doing it: `UnitInput`
@@ -157,14 +156,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // unavailable for the session. Unwrapping once here is what stops every caller
   // building that shape by hand and finding out the same way.
   "mod/sitrep-sdk/src/plan-composition.ts": 8,
-  // 4: the same boundary as the entry above, for the Uplink's own send command.
-  // `PrincipiaComposedBurn` is carried INSIDE an args record rather than being
-  // one, so codegen's "an Args type is a wire-WRITE" exemption does not reach it
-  // and its instant and three components are typed as `Value`s. The receiving
-  // side binds each to a plain double and rejects an object bag from inside the
-  // handler, so passing them through lost the whole plan. Unwrapped where the
-  // command shape is built, exactly as `planSendArgs` does.
-  "mod/GonogoPrincipiaUplink/client/src/PlanSlots/index.tsx": 4,
   // 2, up from a written-down 1 the file never used: `lerpFieldValue(key,
   // before.magnitude, after.magnitude, t)` spends two on one line, and the scan
   // used to charge that line once. Nothing was added. Both are a boundary: the

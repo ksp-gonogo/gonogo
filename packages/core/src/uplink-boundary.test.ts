@@ -270,26 +270,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ],
   },
   principia: {
-    // The Uplink now EXISTS, so the token finally has an owning directory
-    // (2026-08-20). Everything below about why the token was created still
-    // stands: outside those two dirs a mention is a violation, and the
-    // anticipation pattern the token was written to catch is unchanged.
-    //
-    // What the Uplink is allowed to know is narrow, and it widened once with a
-    // reason. It reads assembly presence and version, and it now also reads the
-    // flight planner's own managed fields by reflection: every one was read in
-    // the decompiled body and confirmed to enter no native call, because the
-    // surviving native surface aborts the KSP process on a bad one and that
-    // guard is armed against a caller's arguments. So the name lives here, and
-    // the substantive fact still reaches clients as a property of the ANSWER (an
-    // integrated trajectory, bounded by a horizon; a plan with an observation
-    // instant on it) rather than as the vendor's identity: see
-    // `PropagationHorizon`'s `TrajectoryKind` rather than a provider name on the
-    // wire.
-    //
-    // The contract slice and the client are owned dirs for the same reason the
-    // mod project is: they ARE this Uplink. `mod/GonogoPrincipiaUplink/client`
-    // sits inside the mod dir already and needs no separate entry.
+    // The Uplink LEFT for gonogo-uplinks and ownedDirs is [] again, back to
+    // the token's original 2026-08-20 shape: with no owning directory, ANY
+    // mention of the mod outside packages/core's own carried-topics files is
+    // a violation, which is the stronger guard and the reason this narrows
+    // rather than being deleted outright. See the ContractVersion.cs entry
+    // in ALLOWLIST for the historical record this token still needs to name.
     //
     // This token exists because its absence was a blind spot with teeth. A
     // ratchet keyed on "mods we already integrate" cannot see coupling
@@ -299,11 +285,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // PrincipiaPriority for a year without ever being flagged, because no token
     // looked for the string.
     patterns: [/principia/i],
-    ownedDirs: [
-      "mod/GonogoPrincipiaUplink",
-      "mod/GonogoPrincipiaUplink.Contract",
-      "mod/GonogoPrincipiaUplink.Tests",
-    ],
+    ownedDirs: [],
   },
   realsolarsystem: {
     /*

@@ -51,13 +51,6 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
     clientDir: resolve(modDir, "GonogoKerbalismUplink/client"),
   },
   {
-    id: "principia",
-    name: "Principia",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoPrincipiaUplink",
-    clientDir: resolve(modDir, "GonogoPrincipiaUplink/client"),
-  },
-  {
     /*
      * Bundled IN the core mod DLL (Gonogo.KSP/BreakingGroundUplink.cs, like
      * PartsUplink/VesselUplink) rather than shipping its own assembly, so the

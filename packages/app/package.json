@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "@ksp-gonogo/gonogo-principia-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-breaking-ground-uplink": "workspace:*",
     "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
