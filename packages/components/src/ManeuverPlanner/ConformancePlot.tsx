@@ -1,6 +1,6 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Stack, Unit } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, NULL_DISPLAY, Stack, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { OrbitDiagram, type ProjectedOrbit } from "../shared/OrbitDiagram";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -252,40 +252,48 @@ export function ConformancePlot({
           // The planned conic underneath is unaffected.
           style={{ opacity: currentIsObserved ? 1 : 0.55 }}
         >
-          <OrbitDiagram
-            // The seam's answer, drawn as given. `null` on the conic arm, where
-            // the diagram's own conic renderer is what the provider said is
-            // right.
-            trajectoryPath={
-              currentTrajectory?.shape === "arc"
-                ? currentTrajectory.points
-                : null
-            }
-            trajectoryFarEnd={
-              currentTrajectory?.shape === "arc"
-                ? currentTrajectory.farEnd
-                : null
-            }
-            sma={current.sma}
-            ecc={current.ecc}
-            apoapsis={current.apoapsis}
-            periapsis={current.periapsis}
-            trueAnomaly={current.trueAnomaly}
-            argPe={current.argPe}
-            projected={planned}
-            /*
-             * ONLY under `deviance`, which is the one regime where the two
-             * conics are a flown-versus-planned comparison. The others all
-             * mean the opposite, in this file's own words: `intended-change`
-             * and `missed` say "the gap is the intended change" and
-             * `in-progress` says it "is closing as it burns". Filling those
-             * would colour the burn itself and call it conformance, which is
-             * the post-burn reading the ticket exists to give.
-             */
-            corridor={regime === "deviance"}
-            bodyRadius={bodyRadius ?? undefined}
-            variant="mini"
-          />
+          {/*
+            Framed like every other visual in the app. It matters more here
+            than usual because a second diagram follows: without an edge each
+            one bleeds into the text around it, and the two read as one
+            run-on picture rather than a plot and a detail of it.
+          */}
+          <FramedDisplay>
+            <OrbitDiagram
+              // The seam's answer, drawn as given. `null` on the conic arm, where
+              // the diagram's own conic renderer is what the provider said is
+              // right.
+              trajectoryPath={
+                currentTrajectory?.shape === "arc"
+                  ? currentTrajectory.points
+                  : null
+              }
+              trajectoryFarEnd={
+                currentTrajectory?.shape === "arc"
+                  ? currentTrajectory.farEnd
+                  : null
+              }
+              sma={current.sma}
+              ecc={current.ecc}
+              apoapsis={current.apoapsis}
+              periapsis={current.periapsis}
+              trueAnomaly={current.trueAnomaly}
+              argPe={current.argPe}
+              projected={planned}
+              /*
+               * ONLY under `deviance`, which is the one regime where the two
+               * conics are a flown-versus-planned comparison. The others all
+               * mean the opposite, in this file's own words: `intended-change`
+               * and `missed` say "the gap is the intended change" and
+               * `in-progress` says it "is closing as it burns". Filling those
+               * would colour the burn itself and call it conformance, which is
+               * the post-burn reading the ticket exists to give.
+               */
+              corridor={regime === "deviance"}
+              bodyRadius={bodyRadius ?? undefined}
+              variant="mini"
+            />
+          </FramedDisplay>
         </div>
       ) : (
         <span style={CAPTION}>{NULL_DISPLAY} no current orbit</span>
@@ -295,8 +303,8 @@ export function ConformancePlot({
           {/*
             Named, because a second orbit picture directly under the first
             reads as another plot rather than as a closer look at the one
-            above it. The caption below carries the distance; this carries
-            what the frame IS.
+            above it. The border says where the picture ENDS, this says what
+            it IS, and the caption below carries the distance.
           */}
           <span style={CAPTION}>detail: widest gap, true scale</span>
           {/*
@@ -304,9 +312,13 @@ export function ConformancePlot({
             separation; its height only decides how much arc runs through it,
             and left square it took as much room as the orbit it is a detail
             of. `OrbitDiagram` fits its viewBox to whatever aspect it is
-            measured at, so constraining the box here is the whole mechanism.
+            measured at, so constraining the box here is the whole mechanism,
+            and `FramedDisplay` sizes itself to nothing, so the aspect still
+            belongs on it rather than fighting it.
           */}
-          <div style={{ width: "100%", aspectRatio: "5 / 2", display: "flex" }}>
+          <FramedDisplay
+            style={{ width: "100%", aspectRatio: "5 / 2", display: "flex" }}
+          >
             {/*
             The same two curves, framed on the widest part of the gap instead
             of on the orbit that contains it. Nothing is redrawn and nothing is
@@ -346,7 +358,7 @@ export function ConformancePlot({
               }}
               variant="mini"
             />
-          </div>
+          </FramedDisplay>
           <span style={CAPTION}>
             widest gap, flown vs planned:{" "}
             <Unit value={value("m", inset.gap)} decimals={0} /> apart
