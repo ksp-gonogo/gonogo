@@ -502,6 +502,57 @@ describe("fixtures become scenes", () => {
     ).toThrow(/--with/);
   });
 
+  /**
+   * The rename guard, which existed for a day with nothing exercising it.
+   *
+   * `_scene.host` became `_scene.hostWidget` across two repos and 66 fixtures.
+   * A fixture left on the old key would otherwise lose its host silently: the
+   * key is simply not read, so the augment mounts in a stand-in and the render
+   * succeeds with a picture of the wrong thing. That is why this refuses rather
+   * than warning.
+   *
+   * The assertions are on the MESSAGE, not merely that something threw. Two
+   * old-key fixtures were once observed exiting 1 for an unrelated reason,
+   * which reads as the guard working and is not.
+   */
+  describe("the renamed _scene.host key", () => {
+    const onOldKey = (host: unknown) => () =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { augment: "reactor-badge", host } }),
+        ),
+        INVENTORY,
+      );
+
+    it("refuses the old key and names the new one", () => {
+      expect(onOldKey("console")).toThrow(
+        /"_scene\.host" is not read any more.*renamed to.*"_scene\.hostWidget"/s,
+      );
+    });
+
+    // `in`, not truthiness: an empty or null host is still a fixture written
+    // against the old format, and the operator needs telling. Pinned so that
+    // "simplifying" the check to `scene.host &&` fails here.
+    it.each([
+      ["an empty string", ""],
+      ["null", null],
+    ])("refuses %s, because the check is `in` and not truthiness", (_, host) => {
+      expect(onOldKey(host)).toThrow(/is not read any more/);
+    });
+
+    it("still accepts the new key, so this discriminates", () => {
+      const [scene] = buildScenes(
+        resolveUplinkPackage(
+          fixture({
+            _scene: { augment: "reactor-badge", hostWidget: "reactor" },
+          }),
+        ),
+        INVENTORY,
+      );
+      expect(scene.target).toEqual({ kind: "augment", id: "reactor-badge" });
+    });
+  });
+
   it("refuses a host widget on a WIDGET scene, which is drawn on its own", () => {
     expect(() =>
       buildScenes(

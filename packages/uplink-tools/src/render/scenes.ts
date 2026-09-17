@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { gridToPixels } from "@ksp-gonogo/ui-kit";
+import { gridToPixels } from "@ksp-gonogo/ui-kit/grid";
 import type {
   InventoryMode,
   SceneEmit,

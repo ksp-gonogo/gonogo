@@ -26,6 +26,10 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     },
+    "./grid": {
+      "types": "./dist/gridUnits.d.ts",
+      "import": "./dist/gridUnits.js"
+    },
     "./guards": {
       "types": "./dist/guards.d.ts",
       "import": "./dist/guards.js"

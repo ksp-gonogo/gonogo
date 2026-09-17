@@ -498,6 +498,9 @@ importers:
       '@ksp-gonogo/test-utils':
         specifier: workspace:*
         version: link:../test-utils
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../uplink-tools
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

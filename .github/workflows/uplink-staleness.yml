@@ -125,8 +125,13 @@ jobs:
       # generator dies with unresolved imports on exactly those five and the
       # check reports them stale for a reason that has nothing to do with their
       # pictures. `ci.yml` and `uplink-docs.yml` both carry the same filter.
+      #
+      # `uplink-tools` joined the filter when the render harness left ui-kit: the
+      # sdk CLI resolves `@ksp-gonogo/uplink-tools` from the client being
+      # documented, so an unbuilt `dist` is a module-not-found naming a path
+      # inside the Uplink rather than the package that was never built.
       - name: Build
-        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
+        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... --filter @ksp-gonogo/uplink-tools... build
 
       # Asking whether the committed renders are current means rendering them.
       # Chromium alone, the engine the page harness launches.

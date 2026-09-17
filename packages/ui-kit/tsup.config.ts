@@ -48,7 +48,22 @@ export default defineConfig([
     // failed with `renderWidget is not a function`. That hazard moved with it:
     // `renderWidget` still ships from `./testing` here and the harness consumes
     // it across the package boundary, which is what keeps them one copy.
-    entry: ["src/index.ts", "src/testing.ts", "src/guards.ts"],
+    // `./grid` is a fourth entry for a reason the other three do not share: it
+    // is the one module a NODE process imports. The root barrel reaches the sdk,
+    // whose workspace `exports` resolve to TypeScript source, so `import
+    // "@ksp-gonogo/ui-kit"` under bare node dies on an extensionless relative
+    // import inside `mod/sitrep-sdk/src/index.ts`. That was invisible while the
+    // Uplink render harness lived in this package and reached `gridUnits`
+    // relatively; the moment the harness became `@ksp-gonogo/uplink-tools` the
+    // same read crossed a package boundary, and every Uplink page failed to
+    // generate. `gridUnits.ts` imports nothing, so this entry loads where the
+    // barrel cannot.
+    entry: [
+      "src/index.ts",
+      "src/testing.ts",
+      "src/guards.ts",
+      "src/gridUnits.ts",
+    ],
     clean: true,
     // Inline the internal, never-published theme package + lucide-react (icons).
     noExternal: ["@ksp-gonogo/theme", "lucide-react"],

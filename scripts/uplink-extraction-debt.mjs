@@ -109,7 +109,7 @@ export const RUNTIME_IMPORT_EXEMPT = {
     "imports the kit at module scope, so it evaluates the same styled.span",
   "@ksp-gonogo/uplink-tools/page-check":
     "imports the kit at module scope, so it evaluates the same styled.span",
-  "@ksp-gonogo/uplink-tools/hosts":
+  "@ksp-gonogo/uplink-tools/widgets":
     "bundles the app's widget graph, which evaluates styled.span at module scope for the same reason the kit does",
   /*
    * FLAT, not peer-conditional, and that is a change from what this entry said

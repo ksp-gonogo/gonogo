@@ -238,16 +238,26 @@ jobs:
       #
       # `components` is filtered in alongside ui-kit for the same reason
       # uplink-docs.yml needs it: five Uplinks declare a `gonogo.renderWith`
-      # host and every one names a PATH into packages/components/src rather than
-      # a package, so pnpm's dependency graph cannot see it. Without this the
-      # generator cannot resolve those five.
+      # host widget and every one names a PATH into packages/components/src
+      # rather than a package, so pnpm's dependency graph cannot see it. Without
+      # this the generator cannot resolve those five.
       #
-      # This is the THIRD place the same missing filter has been fixed. The
-      # other two were uplink.yml (a per-Uplink matrix) and uplink-docs.yml (the
-      # self-heal). A build filter is copied between workflows and the copy does
-      # not carry the reason, so the next one will need it too.
-      - name: Build ui-kit and components
-        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
+      # `uplink-tools` is here because the harness LEFT ui-kit: the sdk CLI
+      # resolves `@ksp-gonogo/uplink-tools` from the client being documented, so
+      # an unbuilt `dist` is a module-not-found naming a path inside the Uplink.
+      # Before the split `--filter @ksp-gonogo/ui-kit...` covered it for free,
+      # and afterwards it covered nothing: ui-kit does not depend on the harness
+      # and neither does components, so the package sat outside both filters.
+      #
+      # This is the FOURTH place the same missing filter has been fixed, and the
+      # first where the cause was a package MOVING rather than appearing. The
+      # others were uplink.yml (a per-Uplink matrix), uplink-docs.yml (the
+      # self-heal) and this job. A build filter is copied between workflows and
+      # the copy does not carry the reason, so the next one will need it too.
+      # The durable fix is a turbo task that knows the graph rather than a
+      # hand-kept list whose failure mode is omission.
+      - name: Build ui-kit, components and the Uplink docs harness
+        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... --filter @ksp-gonogo/uplink-tools... build
 
       # The authoring guide's code blocks are typechecked as ONE client, against
       # the published packages, resolving the way an installed client resolves
