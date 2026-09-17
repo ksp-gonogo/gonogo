@@ -100,7 +100,7 @@ describe("every command answers --help", () => {
  * The browser verbs are forwarded to ui-kit, and WHOSE ui-kit is the whole
  * question.
  *
- * A bare `await import("@ksp-gonogo/ui-kit/render")` inside this package
+ * A bare `await import("@ksp-gonogo/uplink-tools")` inside this package
  * resolves against THIS package's own directory, and this package deliberately
  * does not depend on ui-kit (it would be a cycle). Under npm's flat layout an
  * author gets away with it, because both packages sit side by side at the top of

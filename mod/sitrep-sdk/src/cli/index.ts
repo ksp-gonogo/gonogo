@@ -12,16 +12,16 @@
  *
  * ## One command, and the browser half stays lazy
  *
- * `render` and `docs` drive Playwright through `@ksp-gonogo/ui-kit` and are
- * forwarded to it, imported only when one of those verbs is actually used. An
- * author running `bundle` in CI does not pay for a browser driver they are not
- * using, and the sdk keeps no dependency on ui-kit.
+ * `render` and `docs` drive Playwright through `@ksp-gonogo/uplink-tools` and
+ * are forwarded to it, imported only when one of those verbs is actually used.
+ * An author running `bundle` in CI does not pay for a browser driver they are
+ * not using, and the sdk keeps no dependency on the tools package.
  *
  * Two commands would have been the alternative and it is worse: a second tool is
  * a second thing to discover, version and document, and an author has no way to
  * know which of the two owns the verb they want.
  *
- * ## esbuild and ui-kit are NOT declared as optional peers
+ * ## esbuild and uplink-tools are NOT declared as optional peers
  *
  * They are the author's, resolved at the moment a verb needs one, and each
  * missing case throws with the exact install command. Declaring them as peers
@@ -29,8 +29,8 @@
  * resolves a per-peer INSTANCE of a workspace package and COPIES it rather than
  * linking, so this package's `src` arrives without the files a consumer resolves
  * and 4 core suites fail with "Stripping types is currently unsupported for files
- * under node_modules". ui-kit's own tsup config documents the same trap for the
- * same reason.
+ * under node_modules". The tools package's own tsup config documents the same
+ * trap for the same reason.
  */
 
 import { createHash } from "node:crypto";
@@ -53,9 +53,9 @@ const USAGE = `gonogo-uplink <command>
 
   bundle     build the client bundle the app loads, and its gonogo-uplink.json
   bake-hash  write a client bundle's sha256 into C#, for the mod to vouch for
-  render     render this Uplink's widgets to images (needs @ksp-gonogo/ui-kit)
+  render     render this Uplink's widgets to images (needs @ksp-gonogo/uplink-tools)
   docs       this Uplink's README, its assets and the SAME gonogo-uplink.json
-             that bundle writes (needs @ksp-gonogo/ui-kit)
+             that bundle writes (needs @ksp-gonogo/uplink-tools)
 
 Run a command with --help for its options.`;
 
@@ -301,25 +301,34 @@ namespace ${namespace}
 }
 
 /**
- * Where the AUTHOR's `@ksp-gonogo/ui-kit` is, walking up from their package.
+ * Where the AUTHOR's copy of `pkg` is, walking up from their package.
  *
- * The subpath is resolved out of ui-kit's own `exports` map rather than guessed,
- * because guessing `dist/render.js` would reach past the map and keep working
- * right up until ui-kit moved the file.
+ * The subpath is resolved out of that package's own `exports` map rather than
+ * guessed, because guessing `dist/index.js` would reach past the map and keep
+ * working right up until the file moved.
  *
- * `createRequire().resolve` is the wrong instrument and looks like the right one:
- * it applies the `require` condition, and ui-kit's map declares only `types` and
- * `import`, so it fails with ERR_PACKAGE_PATH_NOT_EXPORTED on a package that is
- * installed and fine. `import.meta.resolve`'s two-argument form would do it and
- * needs a flag. So: fs walk, then read the map.
+ * `createRequire().resolve` is the wrong instrument and looks like the right
+ * one: it applies the `require` condition, and these maps declare only `types`
+ * and `import`, so it fails with ERR_PACKAGE_PATH_NOT_EXPORTED on a package
+ * that is installed and fine. `import.meta.resolve`'s two-argument form would
+ * do it and needs a flag. So: fs walk, then read the map.
+ *
+ * Parameterised by package NAME since the render harness left ui-kit for
+ * `@ksp-gonogo/uplink-tools`. Every message below names the package it actually
+ * looked for: the wording here is load-bearing, and this function's own history
+ * is why. Authors on pnpm were once told ui-kit was not installed while it sat
+ * in their devDependencies, and a message naming the WRONG package would be
+ * that same defect wearing a new coat.
  */
-function findAuthorsUiKit(
+function findAuthorsPackage(
   fromDir: string,
+  pkg: string,
   subpath: string,
 ): string | undefined {
+  const [scope, name] = pkg.split("/");
   let dir = resolve(fromDir);
   for (;;) {
-    const pkgDir = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
+    const pkgDir = join(dir, "node_modules", scope, name);
     const manifest = join(pkgDir, "package.json");
     if (existsSync(manifest)) {
       const exports = (
@@ -332,8 +341,8 @@ function findAuthorsUiKit(
         typeof entry === "string" ? entry : (entry?.import ?? entry?.default);
       if (!file) {
         throw new Error(
-          `@ksp-gonogo/ui-kit at ${pkgDir} exports no "${subpath}", so this version of it ` +
-            "cannot render. Upgrade it:\n  npm i -D @ksp-gonogo/ui-kit@latest",
+          `${pkg} at ${pkgDir} exports no "${subpath}", so this version of it ` +
+            `cannot render. Upgrade it:\n  npm i -D ${pkg}@latest`,
         );
       }
       return join(pkgDir, file);
@@ -344,33 +353,36 @@ function findAuthorsUiKit(
   }
 }
 
+/** The package that owns the browser verbs. Left ui-kit at ticket 221. */
+const TOOLS_PACKAGE = "@ksp-gonogo/uplink-tools";
+
 /**
- * Forward a browser verb to ui-kit's CLI, imported HERE rather than at module
+ * Forward a browser verb to the tools CLI, imported HERE rather than at module
  * scope so `bundle` and `bake-hash` never load Playwright or a DOM stack.
  *
  * Resolved from the AUTHOR's package, never from this one's module graph, and
  * that distinction is the whole function. A bare
- * `await import("@ksp-gonogo/ui-kit/render")` resolves against THIS file, and
- * the sdk deliberately does not depend on ui-kit: ui-kit depends on the sdk, so
- * declaring it back is a cycle, and declaring it as an optional peer makes pnpm
- * copy a per-peer instance of a workspace package instead of linking it (see
- * this module's own header). Under npm's flat layout the bare import gets away
- * with it, because the walk-up from `node_modules/@ksp-gonogo/sitrep-sdk` finds
- * the sibling. Under pnpm the two live in separate isolated stores and it can
- * NEVER resolve, so every author on pnpm was told ui-kit was not installed while
+ * `await import("@ksp-gonogo/uplink-tools")` resolves against THIS file, and the
+ * sdk deliberately does not depend on it: it depends on the sdk, so declaring it
+ * back is a cycle, and declaring it as an optional peer makes pnpm copy a
+ * per-peer instance of a workspace package instead of linking it (see this
+ * module's own header). Under npm's flat layout the bare import gets away with
+ * it, because the walk-up from `node_modules/@ksp-gonogo/sitrep-sdk` finds the
+ * sibling. Under pnpm the two live in separate isolated stores and it can NEVER
+ * resolve, so every author on pnpm was told the package was not installed while
  * it sat in their own devDependencies. It is also the right question on npm: the
- * ui-kit whose version the page reports must be the one the author pinned.
+ * version the page reports must be the one the author pinned.
  */
-async function forwardToUiKit(argv: readonly string[]): Promise<number> {
-  // The same `--root` the browser verbs take, so the ui-kit found is the one
+async function forwardToTools(argv: readonly string[]): Promise<number> {
+  // The same `--root` the browser verbs take, so the copy found is the one
   // belonging to the package being documented rather than to wherever the
   // command happened to be typed.
   const root = resolve(flag(argv, "--root") ?? process.cwd());
-  const entry = findAuthorsUiKit(root, "./render");
+  const entry = findAuthorsPackage(root, TOOLS_PACKAGE, ".");
   if (!entry) {
     throw new Error(
-      `\`${argv[0]}\` renders in a real browser and lives in @ksp-gonogo/ui-kit, which is not ` +
-        `installed in ${root} or any directory above it:\n  npm i -D @ksp-gonogo/ui-kit playwright\n` +
+      `\`${argv[0]}\` renders in a real browser and lives in ${TOOLS_PACKAGE}, which is not ` +
+        `installed in ${root} or any directory above it:\n  npm i -D ${TOOLS_PACKAGE} playwright\n` +
         "`bundle` and `bake-hash` need neither, which is why this is not a dependency of the sdk.",
     );
   }
@@ -389,7 +401,7 @@ export async function run(argv: readonly string[]): Promise<number> {
   try {
     if (verb === "bundle") return await bundle(argv.slice(1));
     if (verb === "bake-hash") return await bakeHash(argv.slice(1));
-    if (verb === "render" || verb === "docs") return await forwardToUiKit(argv);
+    if (verb === "render" || verb === "docs") return await forwardToTools(argv);
     console.error(`unknown command "${verb}"\n\n${USAGE}`);
     return 1;
   } catch (err) {

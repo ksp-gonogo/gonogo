@@ -73,8 +73,14 @@ const DIST = new URL("../dist/", import.meta.url).pathname;
  * The kit emits one declaration per entry point plus its shared chunks. Fewer
  * than this is a build that did not run, and a pass over an absent tree reports
  * the same "nothing to extend" as a clean one.
+ *
+ * Four, not five, since the Uplink render harness left for
+ * `@ksp-gonogo/uplink-tools`: `render`, `render-probe` and `page-check` were
+ * three of the entry points this counted. Lowering a blindness floor is
+ * normally the wrong move, so the check it protects was run against the new
+ * tree before this number changed rather than after.
  */
-const MIN_DECLARATION_FILES = 5;
+const MIN_DECLARATION_FILES = 4;
 
 /** Extensions a specifier may already carry and be left alone. */
 const RESOLVED_EXTENSIONS = [".js", ".mjs", ".cjs", ".json", ".css", ".node"];

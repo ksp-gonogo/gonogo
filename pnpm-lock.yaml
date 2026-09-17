@@ -95,6 +95,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../../../packages/uplink-tools
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -153,6 +156,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../../../packages/uplink-tools
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -211,6 +217,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../../../packages/uplink-tools
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -275,6 +284,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../../../packages/uplink-tools
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -327,6 +339,9 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/ui-kit
     devDependencies:
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../../../packages/uplink-tools
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -783,51 +798,6 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0)(yaml@2.9.0))
 
-  packages/render-hosts:
-    devDependencies:
-      '@ksp-gonogo/components':
-        specifier: workspace:*
-        version: link:../components
-      '@ksp-gonogo/sitrep-sdk':
-        specifier: workspace:*
-        version: link:../../mod/sitrep-sdk
-      '@ksp-gonogo/ui-kit':
-        specifier: workspace:*
-        version: link:../ui-kit
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.17
-      '@types/react':
-        specifier: ^18.3.28
-        version: 18.3.28
-      esbuild:
-        specifier: ^0.28.0
-        version: 0.28.0
-      jsdom:
-        specifier: ^29.0.2
-        version: 29.0.2
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.0.0
-        version: 18.3.1(react@18.3.1)
-      styled-components:
-        specifier: ^6.0.0
-        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      tsup:
-        specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.4
-        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0)(yaml@2.9.0))
-
   packages/serial:
     dependencies:
       '@ksp-gonogo/core':
@@ -1043,9 +1013,6 @@ importers:
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0
-      gifenc:
-        specifier: ^1.0.3
-        version: 1.0.3
       jest-axe:
         specifier: ^10.0.0
         version: 10.0.0
@@ -1058,6 +1025,57 @@ importers:
       playwright:
         specifier: ^1.60.0
         version: 1.60.0
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0)(yaml@2.9.0))
+
+  packages/uplink-tools:
+    devDependencies:
+      '@ksp-gonogo/components':
+        specifier: workspace:*
+        version: link:../components
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
+      gifenc:
+        specifier: ^1.0.3
+        version: 1.0.3
+      jsdom:
+        specifier: ^29.0.2
+        version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)

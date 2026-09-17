@@ -56,11 +56,11 @@ import {
   gridToPixels,
   type MinFitFinding,
   RENDER_PROBE_GLOBAL,
-} from "@ksp-gonogo/ui-kit/render";
+} from "@ksp-gonogo/uplink-tools";
 import type {
   RenderProbeApi,
   ScenePayload,
-} from "@ksp-gonogo/ui-kit/render-probe";
+} from "@ksp-gonogo/uplink-tools/render-probe";
 import { chromium, type Page } from "playwright";
 import { UPLINK_BUNDLE_TARGETS } from "../uplink-bundle-targets";
 import { KNOWN_MISFITS } from "./minsize-debt";

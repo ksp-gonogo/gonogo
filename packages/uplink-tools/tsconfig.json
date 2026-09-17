@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    // `render-probe.tsx` and the hosts reach this package by its own name, so
+    // the built files stay CONSUMERS of it and share no code-split chunk with
+    // it. These map that self-reference back to source for typechecking, which
+    // is both more accurate than the emitted `.d.ts` and free of a build-order
+    // dependency on this package's own `dist`.
+    "paths": {
+      "@ksp-gonogo/uplink-tools": ["./src/index.ts"],
+      "@ksp-gonogo/uplink-tools/render-probe": ["./src/render-probe.tsx"]
+    }
+  },
+  "include": ["src"]
+}
