@@ -1,5 +1,6 @@
 import {
   useStream,
+  useTopicStatus,
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -29,12 +30,24 @@ import type { ReactNode } from "react";
  */
 export function OrbitalEventChips() {
   const vesselState = useStream<VesselState>("vessel.state");
-  const enc = vesselState?.encounterExists;
-  const encBody = vesselState?.encounterBody;
-  const encUt = vesselState?.encounterUt;
+  /*
+   * Every chip below is a claim about what happens NEXT, so they all withhold
+   * together when the channel that feeds them stops.
+   *
+   * `vessel.state` is derived and carries no `Reading`, so these drew as
+   * confidently as live ones and nothing in the reading system could mark them
+   * (ticket 346). `useTopicStatus` reads the currency its channel definition
+   * has always computed, at the same frame as the value. An encounter chip is
+   * the sharpest case: "Mun in 20m" held over from a dropped link is an
+   * instruction about a rendezvous that may already have happened.
+   */
+  const stateCurrent = useTopicStatus("vessel.state") === "live";
+  const enc = stateCurrent ? vesselState?.encounterExists : undefined;
+  const encBody = stateCurrent ? vesselState?.encounterBody : undefined;
+  const encUt = stateCurrent ? vesselState?.encounterUt : undefined;
   const viewUt = useViewUt();
-  const apsisType = vesselState?.nextApsisType;
-  const timeToApsis = vesselState?.timeToNextApsis;
+  const apsisType = stateCurrent ? vesselState?.nextApsisType : undefined;
+  const timeToApsis = stateCurrent ? vesselState?.timeToNextApsis : undefined;
 
   const encounterKind: "encounter" | "escape" | null =
     typeof enc === "number" && enc === 1
