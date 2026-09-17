@@ -826,7 +826,7 @@ describe("uplink subpath isolation", () => {
 });
 
 /**
- * `@ksp-gonogo/render-hosts` is the app's own widgets, registered, so an
+ * `@ksp-gonogo/uplink-tools/hosts` is the app's own widgets, registered, so an
  * Uplink's docs page can draw an augment inside its real host. It is PUBLISHED,
  * which is what makes it reachable from outside this repo at all, and that is
  * exactly what makes it dangerous: every other rule in this file works by a
@@ -850,20 +850,36 @@ describe("uplink subpath isolation", () => {
  * `FORBIDDEN_PACKAGES`: that list is scanned across `dependencies` and
  * `devDependencies` together and would ban the one position that is correct.
  */
-describe("render-hosts is a render-time module, not an import", () => {
-  const RENDER_HOSTS = "@ksp-gonogo/render-hosts";
+describe("uplink-tools/hosts is a render-time module, not an import", () => {
+  /**
+   * TWO names, and conflating them silently disarms half this gate.
+   *
+   * A manifest can only ever declare the PACKAGE; `dependencies` never holds a
+   * subpath. An import, by contrast, has to name the subpath, because the
+   * package root is the harness API that `uplink-page.test.ts` legitimately
+   * imports in five Uplinks.
+   *
+   * Written as one constant, the manifest half looks for
+   * `@ksp-gonogo/uplink-tools/hosts` in `dependencies`, which nothing can ever
+   * contain, so it passes for ever while reading exactly like a check.
+   */
+  const TOOLS_PACKAGE = "@ksp-gonogo/uplink-tools";
+  const HOSTS_MODULE = `${TOOLS_PACKAGE}/hosts`;
 
   /**
-   * Same spellings as `IMPORT_RE`, for the one package.
+   * Same spellings as `IMPORT_RE`, for the one subpath.
    *
    * `m` but deliberately NOT `g`: this one is used with `.test()`, and a global
    * regex carries `lastIndex` between calls, so testing a second file starts
    * partway through it and can miss a match the file plainly contains. Clean,
    * that is invisible (nothing matches, `lastIndex` stays 0) and it only
    * shows once TWO files are in violation, which is the worst time to find out.
+   *
+   * `replaceAll`, not `replace`: the latter takes only the FIRST slash, and
+   * this specifier has two.
    */
-  const RENDER_HOSTS_IMPORT_RE = new RegExp(
-    `${SPECIFIER_PREFIX}["']${RENDER_HOSTS.replace("/", "\\/")}(?:["']|/)`,
+  const HOSTS_MODULE_IMPORT_RE = new RegExp(
+    `${SPECIFIER_PREFIX}["']${HOSTS_MODULE.replaceAll("/", "\\/")}(?:["']|/)`,
     "m",
   );
 
@@ -884,7 +900,7 @@ describe("render-hosts is a render-time module, not an import", () => {
     if (!("dependencies" in parsed)) return false;
     const deps = parsed.dependencies;
     if (typeof deps !== "object" || deps === null) return false;
-    return RENDER_HOSTS in deps;
+    return TOOLS_PACKAGE in deps;
   }
 
   function manifestsDeclaringItAsARuntimeDependency(): string[] {
@@ -895,7 +911,7 @@ describe("render-hosts is a render-time module, not an import", () => {
 
   function sourceFilesImportingIt(): string[] {
     return uplinkSourceFiles().filter((file) =>
-      RENDER_HOSTS_IMPORT_RE.test(readFileSync(file, "utf8")),
+      HOSTS_MODULE_IMPORT_RE.test(readFileSync(file, "utf8")),
     );
   }
 
@@ -907,15 +923,15 @@ describe("render-hosts is a render-time module, not an import", () => {
    * neither scanner could see anything at all.
    */
   it("can see a violation of each position it forbids", () => {
-    const seen = (source: string) => RENDER_HOSTS_IMPORT_RE.test(source);
+    const seen = (source: string) => HOSTS_MODULE_IMPORT_RE.test(source);
 
     const reaches: Record<string, string> = {
-      "static named": `import { a } from "${RENDER_HOSTS}";`,
-      "static side-effect": `import "${RENDER_HOSTS}";`,
-      "re-export": `export * from "${RENDER_HOSTS}";`,
-      dynamic: `const m = await import("${RENDER_HOSTS}");`,
-      require: `const m = require("${RENDER_HOSTS}");`,
-      subpath: `import { a } from "${RENDER_HOSTS}/anything";`,
+      "static named": `import { a } from "${HOSTS_MODULE}";`,
+      "static side-effect": `import "${HOSTS_MODULE}";`,
+      "re-export": `export * from "${HOSTS_MODULE}";`,
+      dynamic: `const m = await import("${HOSTS_MODULE}");`,
+      require: `const m = require("${HOSTS_MODULE}");`,
+      subpath: `import { a } from "${HOSTS_MODULE}/anything";`,
     };
     expect(
       Object.entries(reaches)
@@ -925,8 +941,8 @@ describe("render-hosts is a render-time module, not an import", () => {
     ).toEqual([]);
 
     const prose: Record<string, string> = {
-      possessive: `// ${RENDER_HOSTS}'s registrations`,
-      "renderWith declaration": `"renderWith": ["${RENDER_HOSTS}"]`,
+      possessive: `// ${HOSTS_MODULE}'s registrations`,
+      "renderWith declaration": `"renderWith": ["${HOSTS_MODULE}"]`,
       "permitted sibling": `import { Panel } from "@ksp-gonogo/ui-kit";`,
     };
     expect(
@@ -944,23 +960,23 @@ describe("render-hosts is a render-time module, not an import", () => {
      */
     expect(
       declaresItAtRuntime(
-        `{"dependencies":{"${RENDER_HOSTS}":"^0.1.0"},"devDependencies":{}}`,
+        `{"dependencies":{"${TOOLS_PACKAGE}":"^0.1.0"},"devDependencies":{}}`,
       ),
       "The manifest reader cannot see a runtime declaration.",
     ).toBe(true);
     expect(
       declaresItAtRuntime(
-        `{"devDependencies":{"${RENDER_HOSTS}":"^0.1.0"},"dependencies":{}}`,
+        `{"devDependencies":{"${TOOLS_PACKAGE}":"^0.1.0"},"dependencies":{}}`,
       ),
       "The manifest reader flags the devDependency, which is the position this package is FOR.",
     ).toBe(false);
   });
 
-  it("no Uplink client declares render-hosts as a runtime dependency", () => {
+  it("no Uplink client declares the hosts module as a runtime dependency", () => {
     expect(
       manifestsDeclaringItAsARuntimeDependency(),
       [
-        `An Uplink client declares ${RENDER_HOSTS} in "dependencies".`,
+        `An Uplink client declares ${TOOLS_PACKAGE} in "dependencies".`,
         "",
         "It belongs in devDependencies. It exists to render the docs page and",
         "for nothing else, so a runtime dependency on it means this Uplink now",
@@ -973,13 +989,13 @@ describe("render-hosts is a render-time module, not an import", () => {
     ).toEqual([]);
   });
 
-  it("no Uplink client source imports render-hosts", () => {
+  it("no Uplink client source imports the hosts module", () => {
     expect(
       sourceFilesImportingIt().map((f) =>
         relative(REPO_ROOT, f).split("\\").join("/"),
       ),
       [
-        `An Uplink client file imports ${RENDER_HOSTS}.`,
+        `An Uplink client file imports ${HOSTS_MODULE}.`,
         "",
         "There is nothing in it to import: it exports no symbols, only the",
         "side effect of registering the app's widgets so a docs render can",

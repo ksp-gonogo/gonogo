@@ -297,7 +297,7 @@ describe("the generated browser entry", () => {
    * A specifier was refused outright until ticket 221, because the only host module
    * was `packages/components`, which is unpublished: naming it by specifier
    * would have meant a dependency the isolation rules forbid. Publishing
-   * `@ksp-gonogo/render-hosts` is what changed that, and it is the only way an
+   * `@ksp-gonogo/uplink-tools/hosts` is what changed that, and it is the only way an
    * Uplink that has LEFT this repo can draw a scene that names `_scene.host`.
    */
   it("takes an installed specifier and hands it to esbuild as written", () => {
@@ -305,14 +305,15 @@ describe("the generated browser entry", () => {
       "package.json": JSON.stringify({
         name: "@example/uplink",
         version: "1.2.3",
-        gonogo: { renderWith: ["@ksp-gonogo/render-hosts"] },
+        gonogo: { renderWith: ["@ksp-gonogo/uplink-tools/hosts"] },
       }),
       // Presence is the check, so a directory in the node_modules chain is an
       // install. Its contents are esbuild's problem, not the resolver's.
-      "node_modules/@ksp-gonogo/render-hosts/package.json": JSON.stringify({
-        name: "@ksp-gonogo/render-hosts",
-        version: "0.1.0",
-      }),
+      "node_modules/@ksp-gonogo/uplink-tools/hosts/package.json":
+        JSON.stringify({
+          name: "@ksp-gonogo/uplink-tools/hosts",
+          version: "0.1.0",
+        }),
     });
 
     const pkg = resolveUplinkPackage(dir);
@@ -320,9 +321,9 @@ describe("the generated browser entry", () => {
     // `require` picks, and the kit, the sdk and this package all publish an
     // `import`-only exports map; esbuild resolves it from the client directory
     // with the right condition when it builds the page.
-    expect(pkg.renderWith).toEqual(["@ksp-gonogo/render-hosts"]);
+    expect(pkg.renderWith).toEqual(["@ksp-gonogo/uplink-tools/hosts"]);
     expect(generateEntry(pkg, pkg.renderWith)).toContain(
-      'await import("@ksp-gonogo/render-hosts")',
+      'await import("@ksp-gonogo/uplink-tools/hosts")',
     );
   });
 
@@ -331,7 +332,7 @@ describe("the generated browser entry", () => {
       "package.json": JSON.stringify({
         name: "@example/uplink",
         version: "1.2.3",
-        gonogo: { renderWith: ["@ksp-gonogo/render-hosts"] },
+        gonogo: { renderWith: ["@ksp-gonogo/uplink-tools/hosts"] },
       }),
     });
     // The failure an author actually gets is a missing devDependency, so the
@@ -345,7 +346,7 @@ describe("the generated browser entry", () => {
     // is present. Written that way the resolver answered "installed" here and
     // this test was the only thing that said so.
     expect(() => resolveUplinkPackage(dir)).toThrow(
-      /renderWith.*render-hosts.*not \r?\n?installed|renderWith.*render-hosts/s,
+      /renderWith.*uplink-tools.*not \r?\n?installed|renderWith.*uplink-tools/s,
     );
     expect(() => resolveUplinkPackage(dir)).toThrow(/devDependencies/);
   });

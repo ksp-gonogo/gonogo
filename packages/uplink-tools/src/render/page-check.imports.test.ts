@@ -122,10 +122,10 @@ describe("the browserless page check stays browserless", () => {
   });
 
   it("proves the walk would SEE one, by walking the entry that has them", () => {
-    // The instrument checked against a known positive. `render.ts` is the node
+    // The instrument checked against a known positive. `index.ts` is the node
     // driver and genuinely does import both, so a walk that comes back clean
     // there is a walk that cannot see anything.
-    const driver = walk(join(SRC, "render.ts"));
+    const driver = walk(join(SRC, "index.ts"));
     expect(
       [...driver.bare].filter((s) => FORBIDDEN.includes(s)).sort(),
     ).toEqual(["esbuild", "playwright"]);

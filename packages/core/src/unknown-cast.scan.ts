@@ -69,13 +69,13 @@ export const SCANNED_PACKAGE_ROOTS = [
   "packages/data",
   "packages/logger",
   "packages/relay",
-  "packages/render-hosts",
   "packages/serial",
   "packages/sitrep-client",
   "packages/test-utils",
   "packages/theme",
   "packages/ui",
   "packages/ui-kit",
+  "packages/uplink-tools",
 ] as const;
 
 /**

@@ -209,21 +209,26 @@ Both directions are enforced now: `DECLARED_DEPENDENCY_DEBT` covers the
 declarations, and a separate check derives staleness from the two scans, so it
 needs no list of its own and cannot itself go out of date.
 
-### `@ksp-gonogo/render-hosts` is the one package where the POSITION is the rule
+### `@ksp-gonogo/uplink-tools` is the one package where the POSITION is the rule
 
 Every other rule on this page works because the package is unpublished, so an
-outside author simply cannot install it. `@ksp-gonogo/render-hosts` is
-published, because it has to be: it carries the app's own widgets so an Uplink's
-docs page can draw an augment inside the real host it extends, instead of a
-stand-in that renders the host's body as nothing. So the question is not whether
-you may name it, but where.
+outside author simply cannot install it. `@ksp-gonogo/uplink-tools` is
+published, because it has to be: it is the docs toolchain, and its `/hosts`
+entry carries the app's own widgets so an Uplink's docs page can draw an augment
+inside the real host it extends, instead of a stand-in that renders the host's
+body as nothing. So the question is not whether you may name it, but where.
 
 | where | allowed | why |
 |---|---|---|
 | `devDependencies` | **yes** | it runs at docs-render time and never ships |
-| `gonogo.renderWith` | **yes** | that is what it is for |
+| `gonogo.renderWith` | **yes** | that is what `/hosts` is for |
 | `dependencies` | **no** | a runtime dependency means your Uplink ships the app's whole widget library to its users |
-| any `import` in client source | **no** | there is nothing in it to import; it exports no symbols, only the side effect of registration |
+| `import` of `/hosts` | **no** | there is nothing in it to import; it exports no symbols, only the side effect of registration |
+
+**The other entries ARE importable**, and five Uplinks import them: the root and
+`/page-check` are the harness API and the page assertion, which belong in a test
+or a `gonogo-render.setup.ts`. `/hosts` is the one entry with a position rule,
+because it is the one that carries app widgets.
 
 From the ruling that created it:
 

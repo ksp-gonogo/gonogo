@@ -137,7 +137,7 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   --frames               keep the numbered PNGs of a motion scene
   --with <module>        also bundle this module's registrations, on top of
                          package.json's "gonogo.renderWith". A path, or an
-                         installed package (@ksp-gonogo/render-hosts for the
+                         installed package (@ksp-gonogo/uplink-tools/hosts for the
                          app's own widgets). For a one-off run; declare the ones
                          a fixture needs every time. Repeatable
 `;
