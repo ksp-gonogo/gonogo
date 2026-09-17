@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "science-data-aboard-row-file-manager",
-    "host": "science-data",
+    "hostWidget": "science-data",
     "caption": "File Manager with all three Kerbalism flags unread: the two reversible controls disable themselves instead of guessing a direction, and the transmit state says so",
     "modes": ["default"],
     "size": { "w": 10, "h": 12 },

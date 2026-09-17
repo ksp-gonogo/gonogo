@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "realantennas-comm-signal-section",
-    "host": "comm-signal",
+    "hostWidget": "comm-signal",
     "caption": "RealAntennas installed but the link is dark: the budget section withholds itself entirely rather than showing a labelled blank",
     "modes": ["default"],
     "size": { "w": 8, "h": 10 },

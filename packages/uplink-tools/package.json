@@ -14,7 +14,7 @@
     "access": "public"
   },
   "sideEffects": [
-    "./dist/hosts.js"
+    "./dist/widgets.js"
   ],
   "exports": {
     ".": {
@@ -29,9 +29,9 @@
       "types": "./dist/page-check.d.ts",
       "import": "./dist/page-check.js"
     },
-    "./hosts": {
-      "types": "./dist/hosts.d.ts",
-      "import": "./dist/hosts.js"
+    "./widgets": {
+      "types": "./dist/widgets.d.ts",
+      "import": "./dist/widgets.js"
     }
   },
   "main": "./dist/index.js",

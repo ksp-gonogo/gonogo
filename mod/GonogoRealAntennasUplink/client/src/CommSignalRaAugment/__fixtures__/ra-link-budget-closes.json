@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "realantennas-comm-signal-section",
-    "host": "comm-signal",
+    "hostWidget": "comm-signal",
     "caption": "RealAntennas' link budget composed into CommSignal: margin closing, with the negotiated encoder, modulation and tech level under it",
     "modes": ["default"],
     "size": { "w": 8, "h": 12 },

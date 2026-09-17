@@ -101,28 +101,28 @@ function findFixtures(root: string): string[] {
 /**
  * Extra modules whose registrations belong in the page, declared once.
  *
- * A scene naming `_scene.host` needs that host widget in the bundle, and a
+ * A scene naming `_scene.hostWidget` needs that host widget in the bundle, and a
  * host widget ships with the APP, in a package no Uplink may import. `--with`
  * can name one per run, but a render that only works when someone remembers a
- * flag is a render nobody runs: the FIRST Uplink to use `_scene.host` shipped a
+ * flag is a render nobody runs: the FIRST Uplink to use `_scene.hostWidget` shipped a
  * plain `gonogo-uplink render` script beside a fixture naming a host, which
  * cannot succeed. So the modules are a fact about the package, beside
  * `minAppVersion` in the same `gonogo` block:
  *
  *     "gonogo": { "renderWith": ["../../../packages/components/src/index.ts"] }
- *     "gonogo": { "renderWith": ["@ksp-gonogo/uplink-tools/hosts"] }
+ *     "gonogo": { "renderWith": ["@ksp-gonogo/uplink-tools/widgets"] }
  *
  * An entry is EITHER a path relative to the client directory, or a bare module
  * specifier. The two are the same registrations reached two ways, and which one
  * an Uplink writes is decided by where it lives rather than by preference: a
  * path only exists inside this repository, so an Uplink here names one; an
- * Uplink that has left names `@ksp-gonogo/uplink-tools/hosts`, the package that
+ * Uplink that has left names `@ksp-gonogo/uplink-tools/widgets`, the package that
  * carries the app's widgets prebuilt for exactly this.
  *
  * A specifier was refused until ticket 221, on the ground that reaching a host would
  * mean a dependency the isolation rules forbid. That was true while the only
  * module was `packages/components`, which is `private: true` and unpublished.
- * It stopped being true when `@ksp-gonogo/uplink-tools/hosts` shipped: a published
+ * It stopped being true when `@ksp-gonogo/uplink-tools/widgets` shipped: a published
  * package, named in devDependencies rather than dependencies, imported from no
  * source file. `uplink-isolation.test.ts` is what holds that line now, which is
  * a check rather than the absence of a feature.
@@ -224,7 +224,7 @@ export function resolveRenderModule(
       `gonogo-uplink: ${where} names "${entry}", and "${pkg}" is not ` +
         `installed under ${dir}. Add it to devDependencies: it is a render-` +
         "time module, not something the Uplink imports. For the app's own " +
-        'widgets that package is "@ksp-gonogo/uplink-tools/hosts".',
+        'widgets that package is "@ksp-gonogo/uplink-tools/widgets".',
     );
   }
   return entry;
@@ -374,8 +374,8 @@ export function display(dir: string, file: string): string {
  * render path hands it to esbuild, which resolves it from the client directory.
  *
  * **`page-check` has no bundler**, so it resolves the specifier itself, and
- * `pathToFileURL` alone is wrong for it: given `@ksp-gonogo/uplink-tools/hosts`
- * it produces `<client dir>/@ksp-gonogo/uplink-tools/hosts`, the client
+ * `pathToFileURL` alone is wrong for it: given `@ksp-gonogo/uplink-tools/widgets`
+ * it produces `<client dir>/@ksp-gonogo/uplink-tools/widgets`, the client
  * directory with the package name glued on the end. That was the defect, and it
  * only appeared once a specifier became legal.
  *

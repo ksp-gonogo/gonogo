@@ -27,9 +27,9 @@ const HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE = [
   "landing-status",
 ];
 
-describe("@ksp-gonogo/uplink-tools/hosts", () => {
-  it("registers the hosts an out-of-repo Uplink names in _scene.host", async () => {
-    await import("./hosts");
+describe("@ksp-gonogo/uplink-tools/widgets", () => {
+  it("registers the hosts an out-of-repo Uplink names in _scene.hostWidget", async () => {
+    await import("./widgets");
     const registered = new Set(getComponents().map((c) => c.id));
     expect(
       HOSTS_THAT_BLOCKED_AN_UPLINK_PAGE.filter((id) => !registered.has(id)),
@@ -37,11 +37,11 @@ describe("@ksp-gonogo/uplink-tools/hosts", () => {
   });
 
   it("registers a host with a BODY, which is the whole difference from a stand-in", async () => {
-    await import("./hosts");
+    await import("./widgets");
     const strategies = getComponents().find((c) => c.id === "strategies");
     /**
-     * `standInHost` synthesises `{ component: () => null, description:
-     * "Stand-in host for a render scene.", channels: undefined }`. A slot drawn
+     * `standInHostWidget` synthesises `{ component: () => null, description:
+     * "Stand-in host widget for a render scene.", channels: undefined }`. A slot drawn
      * by the host's own body renders nothing against that, which is what
      * ticket 317 measured and why this package exists rather than a second
      * stand-in.
@@ -52,7 +52,7 @@ describe("@ksp-gonogo/uplink-tools/hosts", () => {
      * could never be equal to anything.
      */
     expect(strategies?.description).not.toBe(
-      "Stand-in host for a render scene.",
+      "Stand-in host widget for a render scene.",
     );
     expect(strategies?.channels?.length ?? 0).toBeGreaterThan(0);
     expect(strategies?.contributionSlots).toContain("strategies.screens");

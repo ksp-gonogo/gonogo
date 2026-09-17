@@ -161,9 +161,9 @@ function compare(
  * the same latitude `renderWith` already takes.
  *
  * Await it before {@link expectUplinkPageCurrent} in an Uplink whose fixtures
- * name `_scene.host`. It is a no-op for one that declares no hosts.
+ * name `_scene.hostWidget`. It is a no-op for one that declares no hosts.
  */
-export async function loadRenderHosts(
+export async function loadHostWidgets(
   options: PageCheckOptions = {},
 ): Promise<void> {
   const dir = options.root ?? process.cwd();

@@ -509,14 +509,14 @@ name it:
 
 ```jsonc
 "gonogo": {
-  "renderWith": ["@ksp-gonogo/uplink-tools/hosts"]
+  "renderWith": ["@ksp-gonogo/uplink-tools/widgets"]
 }
 ```
 
-`/hosts` is the app's own widgets, prebuilt, published for this and for nothing
+`/widgets` is the app's own widgets, prebuilt, published for this and for nothing
 else. There is nothing in it to import: it exports no symbols, only the side
 effect of registering the widgets. Moving `@ksp-gonogo/uplink-tools` to
-`dependencies`, or importing `/hosts` anywhere in your client, fails the
+`dependencies`, or importing `/widgets` anywhere in your client, fails the
 isolation gate (see [uplink-isolation.md](uplink-isolation.md)). The package's
 other entries are the harness itself, and those you do import.
 

@@ -5,7 +5,7 @@
   },
   "_scene": {
     "augment": "realantennas-comm-signal-antenna-targets",
-    "host": "comm-signal",
+    "hostWidget": "comm-signal",
     "caption": "A card per antenna: what each is aimed at, the modes its tech level has earned, and the controls to move it",
     "modes": ["default"],
     "size": { "w": 8, "h": 20 },

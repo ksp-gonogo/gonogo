@@ -204,17 +204,17 @@ export interface ScenePayload {
    * A REGISTERED widget id to mount an augment scene inside, instead of the
    * stand-in `Panel`.
    *
-   * An overlay augment draws in its host's projection: a map's camera, an SVG
-   * transform, a plot's axes. Mounted in a stand-in host it has nothing to draw
-   * against and produces a blank frame, which is why overlay augments have
-   * never had a render at all. Naming the real host closes that: the host
-   * widget mounts, computes its own geometry, passes it through the real slot,
-   * and the picture is of the augment where it actually lives.
+   * An overlay augment draws in its host widget's projection: a map's camera,
+   * an SVG transform, a plot's axes. Mounted in a stand-in it has nothing to
+   * draw against and produces a blank frame, which is why overlay augments have
+   * never had a render at all. Naming the real widget closes that: it mounts,
+   * computes its own geometry, passes it through the real slot, and the picture
+   * is of the augment where it actually lives.
    *
-   * The host has to be in the bundle, which for a first-party host means the
+   * That widget has to be in the bundle, which for a first-party one means the
    * run supplied it with `--with`. That is an in-repo affordance and not an
    * author surface: a third-party author cannot import a private package, so a
-   * scene of theirs naming a first-party host has nothing to mount.
+   * scene of theirs naming a first-party widget has nothing to mount.
    */
   host?: string;
   /** Legacy `DataSource` keys, by source id. */
@@ -368,7 +368,7 @@ export interface UplinkInventory {
   declaredClients: string[];
   /**
    * Registered widgets this client does NOT own, the ones a scene may name as
-   * its `_scene.host`. Never part of the generated page: it describes what the
+   * its `_scene.hostWidget`. Never part of the generated page: it describes what the
    * run happened to have in the bundle, not what the Uplink is.
    */
   hosts: InventoryWidget[];
@@ -695,9 +695,9 @@ function teardown(): void {
   mountedFixture = null;
 }
 
-/** A synthetic host definition for an augment or contribution scene.
+/** A synthetic host-widget definition for an augment or contribution scene.
  *  See `WidgetHostFor` for why the stack is reused rather than rebuilt. */
-function standInHost(
+function standInHostWidget(
   hostWidgetId: string,
   slot: string,
   kind: SceneTargetKind,
@@ -705,7 +705,7 @@ function standInHost(
   return {
     id: hostWidgetId,
     name: hostWidgetId,
-    description: "Stand-in host for a render scene.",
+    description: "Stand-in host widget for a render scene.",
     tags: [],
     component: () => null,
     augmentSlots: kind === "augment" ? [slot] : [],
@@ -1014,10 +1014,10 @@ function buildTree(scene: ScenePayload): ReactNode {
   if (scene.host) {
     if (!getComponent(scene.host)) {
       throw new Error(
-        `render probe: "_scene.host" names "${scene.host}", which is not a ` +
-          "registered widget in this bundle. A host that ships with the app " +
-          "has to be supplied to the run with --with <module that registers " +
-          "it>, or declared once in package.json's gonogo.renderWith; " +
+        `render probe: "_scene.hostWidget" names "${scene.host}", which is not ` +
+          "a registered widget in this bundle. A widget that ships with the " +
+          "app has to be supplied to the run with --with <module that " +
+          "registers it>, or declared once in package.json's gonogo.renderWith; " +
           `registered widgets are: ${getComponents()
             .map((c) => c.id)
             .sort()
@@ -1030,10 +1030,11 @@ function buildTree(scene: ScenePayload): ReactNode {
     // slot has an owner to check the host against.
     if (isWidgetOwnedSlot(slot) && !slot.startsWith(`${scene.host}.`)) {
       throw new Error(
-        `render probe: "_scene.host" names "${scene.host}" but this target's ` +
-          `slot is "${slot}", which belongs to "${slot.split(".")[0]}". A ` +
-          "host that does not own the slot would mount and never render the " +
-          "augment, which is a blank picture with no error.",
+        `render probe: "_scene.hostWidget" names "${scene.host}" but this ` +
+          `target's slot is "${slot}", which belongs to ` +
+          `"${slot.split(".")[0]}". A widget that does not own the slot would ` +
+          "mount and never render the augment, which is a blank picture with " +
+          "no error.",
       );
     }
     return mountWidget(scene.host, scene);
@@ -1046,7 +1047,7 @@ function buildTree(scene: ScenePayload): ReactNode {
   if (!isWidgetOwnedSlot(slot)) {
     throw new Error(
       `render probe: this target's slot is "${slot}", which belongs to no ` +
-        "widget, so `_scene.host` must name one that declares it (and the " +
+        "widget, so `_scene.hostWidget` must name one that declares it (and the " +
         "run must supply that widget with --with <module that registers it>).",
     );
   }
@@ -1058,7 +1059,7 @@ function buildTree(scene: ScenePayload): ReactNode {
   if (scene.target.kind === "contribution" && !isHostDrawnSlot(slot)) {
     throw new Error(
       `render probe: this contribution goes on "${slot}", which its host ` +
-        "draws itself, so `_scene.host` must name a widget that declares it. " +
+        "draws itself, so `_scene.hostWidget` must name a widget that declares it. " +
         "A stand-in host renders no body of its own, so the picture would be " +
         "an empty panel.",
     );
@@ -1071,7 +1072,7 @@ function buildTree(scene: ScenePayload): ReactNode {
   }) => ReactElement;
   return (
     <WidgetHostFor
-      def={standInHost(hostWidgetId, slot, scene.target.kind)}
+      def={standInHostWidget(hostWidgetId, slot, scene.target.kind)}
       instanceId="probe"
     >
       {/* No `PanelBody` of our own: `Panel` wraps its children in one, so a

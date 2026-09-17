@@ -13,7 +13,7 @@
  *
  * The REAL augment can now be photographed in this widget, and this stub does
  * not replace that. It runs from the Uplink's side: a fixture naming
- * `_scene.host: "targeting"` plus `gonogo-uplink render --with <this repo's
+ * `_scene.hostWidget: "targeting"` plus `gonogo-uplink render --with <this repo's
  * packages/components/src/index.ts>` mounts the genuine `<video>` inside the
  * genuine host (see `docs/uplink-rendering.md`). That is the run to make when
  * the question is about the picture, because a stub cannot answer what

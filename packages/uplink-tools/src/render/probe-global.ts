@@ -31,7 +31,7 @@ export const PROBE_CHROME_ATTR = "data-probe-chrome";
 
 /**
  * The contribution segments a stand-in host can actually DRAW, so a scene that
- * names one needs no `_scene.host`.
+ * names one needs no `_scene.hostWidget`.
  *
  * `Panel` renders every host's `<id>.badges` aside itself, through
  * `renderWidget`'s `WidgetBadges`, so a badge lands in a stand-in exactly as it

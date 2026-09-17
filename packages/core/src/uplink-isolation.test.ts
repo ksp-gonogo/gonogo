@@ -826,7 +826,7 @@ describe("uplink subpath isolation", () => {
 });
 
 /**
- * `@ksp-gonogo/uplink-tools/hosts` is the app's own widgets, registered, so an
+ * `@ksp-gonogo/uplink-tools/widgets` is the app's own widgets, registered, so an
  * Uplink's docs page can draw an augment inside its real host. It is PUBLISHED,
  * which is what makes it reachable from outside this repo at all, and that is
  * exactly what makes it dangerous: every other rule in this file works by a
@@ -850,7 +850,7 @@ describe("uplink subpath isolation", () => {
  * `FORBIDDEN_PACKAGES`: that list is scanned across `dependencies` and
  * `devDependencies` together and would ban the one position that is correct.
  */
-describe("uplink-tools/hosts is a render-time module, not an import", () => {
+describe("uplink-tools/widgets is a render-time module, not an import", () => {
   /**
    * TWO names, and conflating them silently disarms half this gate.
    *
@@ -860,11 +860,11 @@ describe("uplink-tools/hosts is a render-time module, not an import", () => {
    * imports in five Uplinks.
    *
    * Written as one constant, the manifest half looks for
-   * `@ksp-gonogo/uplink-tools/hosts` in `dependencies`, which nothing can ever
+   * `@ksp-gonogo/uplink-tools/widgets` in `dependencies`, which nothing can ever
    * contain, so it passes for ever while reading exactly like a check.
    */
   const TOOLS_PACKAGE = "@ksp-gonogo/uplink-tools";
-  const HOSTS_MODULE = `${TOOLS_PACKAGE}/hosts`;
+  const WIDGETS_MODULE = `${TOOLS_PACKAGE}/widgets`;
 
   /**
    * Same spellings as `IMPORT_RE`, for the one subpath.
@@ -878,8 +878,8 @@ describe("uplink-tools/hosts is a render-time module, not an import", () => {
    * `replaceAll`, not `replace`: the latter takes only the FIRST slash, and
    * this specifier has two.
    */
-  const HOSTS_MODULE_IMPORT_RE = new RegExp(
-    `${SPECIFIER_PREFIX}["']${HOSTS_MODULE.replaceAll("/", "\\/")}(?:["']|/)`,
+  const WIDGETS_MODULE_IMPORT_RE = new RegExp(
+    `${SPECIFIER_PREFIX}["']${WIDGETS_MODULE.replaceAll("/", "\\/")}(?:["']|/)`,
     "m",
   );
 
@@ -911,7 +911,7 @@ describe("uplink-tools/hosts is a render-time module, not an import", () => {
 
   function sourceFilesImportingIt(): string[] {
     return uplinkSourceFiles().filter((file) =>
-      HOSTS_MODULE_IMPORT_RE.test(readFileSync(file, "utf8")),
+      WIDGETS_MODULE_IMPORT_RE.test(readFileSync(file, "utf8")),
     );
   }
 
@@ -923,15 +923,15 @@ describe("uplink-tools/hosts is a render-time module, not an import", () => {
    * neither scanner could see anything at all.
    */
   it("can see a violation of each position it forbids", () => {
-    const seen = (source: string) => HOSTS_MODULE_IMPORT_RE.test(source);
+    const seen = (source: string) => WIDGETS_MODULE_IMPORT_RE.test(source);
 
     const reaches: Record<string, string> = {
-      "static named": `import { a } from "${HOSTS_MODULE}";`,
-      "static side-effect": `import "${HOSTS_MODULE}";`,
-      "re-export": `export * from "${HOSTS_MODULE}";`,
-      dynamic: `const m = await import("${HOSTS_MODULE}");`,
-      require: `const m = require("${HOSTS_MODULE}");`,
-      subpath: `import { a } from "${HOSTS_MODULE}/anything";`,
+      "static named": `import { a } from "${WIDGETS_MODULE}";`,
+      "static side-effect": `import "${WIDGETS_MODULE}";`,
+      "re-export": `export * from "${WIDGETS_MODULE}";`,
+      dynamic: `const m = await import("${WIDGETS_MODULE}");`,
+      require: `const m = require("${WIDGETS_MODULE}");`,
+      subpath: `import { a } from "${WIDGETS_MODULE}/anything";`,
     };
     expect(
       Object.entries(reaches)
@@ -941,8 +941,8 @@ describe("uplink-tools/hosts is a render-time module, not an import", () => {
     ).toEqual([]);
 
     const prose: Record<string, string> = {
-      possessive: `// ${HOSTS_MODULE}'s registrations`,
-      "renderWith declaration": `"renderWith": ["${HOSTS_MODULE}"]`,
+      possessive: `// ${WIDGETS_MODULE}'s registrations`,
+      "renderWith declaration": `"renderWith": ["${WIDGETS_MODULE}"]`,
       "permitted sibling": `import { Panel } from "@ksp-gonogo/ui-kit";`,
     };
     expect(
@@ -995,7 +995,7 @@ describe("uplink-tools/hosts is a render-time module, not an import", () => {
         relative(REPO_ROOT, f).split("\\").join("/"),
       ),
       [
-        `An Uplink client file imports ${HOSTS_MODULE}.`,
+        `An Uplink client file imports ${WIDGETS_MODULE}.`,
         "",
         "There is nothing in it to import: it exports no symbols, only the",
         "side effect of registering the app's widgets so a docs render can",
