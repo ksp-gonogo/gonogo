@@ -3,11 +3,11 @@ import {
   clearAugments,
   clearRegistry,
   DashboardItemContext,
-  MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   fireEvent,

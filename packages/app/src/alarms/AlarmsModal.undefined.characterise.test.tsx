@@ -1,8 +1,5 @@
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";

@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
-import { installDomStubs, PerfBudget } from "@ksp-gonogo/core";
+import { PerfBudget } from "@ksp-gonogo/core";
+import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 import { muteFixtureEmits } from "./setupStreamFixture";
 

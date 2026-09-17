@@ -43,7 +43,6 @@ import {
   DashboardItemContext,
   getAugments,
   getComponent,
-  MockDataSource,
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
@@ -54,6 +53,7 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import type { Meta, TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   type BadgeEntry,
   DomainAvailabilityProvider,

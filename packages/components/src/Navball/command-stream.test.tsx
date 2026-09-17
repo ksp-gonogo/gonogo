@@ -2,11 +2,11 @@ import {
   clearActionHandlers,
   clearRegistry,
   DashboardItemContext,
-  MockDataSource,
   PerfBudget,
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { JSX, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

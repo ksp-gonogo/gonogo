@@ -1,9 +1,9 @@
 import {
   clearRegistry,
   type DataKey,
-  MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DataKeyMeta } from "../types";

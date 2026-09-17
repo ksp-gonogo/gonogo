@@ -1,8 +1,5 @@
-import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
+import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";

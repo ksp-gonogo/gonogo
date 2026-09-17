@@ -37,6 +37,21 @@ import { defineConfig } from "tsup";
  * The kit and the sdk are peers rather than dependencies on purpose: an Uplink
  * already has both, and they must be ITS copies, not a second pair arriving
  * underneath this package.
+ *
+ * ## `@testing-library/react` is a peer, and should not have to be
+ *
+ * Nothing here uses it. It arrives because `@ksp-gonogo/sitrep-client`'s root
+ * barrel re-exports `createFakeWallClock` and `StubTransport` from files whose
+ * only job is to forward `@ksp-gonogo/sitrep-sdk/testing`, and a
+ * `export ... from` across an EXTERNAL boundary cannot be tree-shaken: the
+ * specifier survives into `dist` whether or not a widget ever calls it, and the
+ * sdk's testing entry imports `@testing-library/react`.
+ *
+ * Declared rather than left implicit because every Uplink happens to carry it
+ * as a devDependency, so leaving it undeclared would work everywhere it is
+ * tried and fail for the first consumer who is not an Uplink. `core`'s barrel
+ * had the same re-export and it is gone; `sitrep-client`'s reaches 193 files
+ * and is its own ticket.
  */
 export default defineConfig({
   entry: ["src/index.ts"],

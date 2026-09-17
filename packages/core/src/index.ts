@@ -10,17 +10,16 @@ export {
   type ResolvedDeps,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
-// Re-exported, not owned. Both moved to `@ksp-gonogo/sitrep-sdk/testing` so an
-// Uplink can obtain them: `installDomStubs` imports nothing, and `MockDataSource`
-// names four types and no behaviour, so neither had anything keeping it in an
-// unpublished package that 9 and 15 Uplink test files respectively had to import.
-// Kept on this barrel so core's own consumers (the app and components setup files)
-// did not have to move with them.
-export {
-  installDomStubs,
-  MockDataSource,
-  type MockDataSourceOptions,
-} from "@ksp-gonogo/sitrep-sdk/testing";
+// `installDomStubs`, `MockDataSource` and `MockDataSourceOptions` live in
+// `@ksp-gonogo/sitrep-sdk/testing`, and are NOT re-exported here. They were,
+// so that the three test setup files reaching them through this barrel did not
+// have to move with them, and that convenience cost more than it looked:
+// a re-export from a testing entry is part of this barrel's module graph
+// whether or not anyone imports it, so `@ksp-gonogo/sitrep-sdk/testing` and its
+// own `@testing-library/react` were pulled into every bundle of core. Inside
+// this repo that resolves and nothing shows; bundling the app's widgets for a
+// consumer who has no test runner fails outright on a package they have no
+// reason to install. Import them from the sdk's testing entry directly.
 export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";

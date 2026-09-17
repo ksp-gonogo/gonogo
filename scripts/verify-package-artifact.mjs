@@ -185,14 +185,26 @@ if (manifest.private === true) {
   );
 }
 
+// Through `scopePackages`, for the reason that map exists: the question is
+// whether a consumer can INSTALL the named package, not whether the name is in
+// our scope. Check 3 already asks it that way about the emitted specifiers, and
+// asking it differently here was a real hole in both directions — it passed a
+// private package that a `.d.ts` reached by another route, and it refused
+// `@ksp-gonogo/ui-kit` as a peer, which is the one correct way to declare a
+// package that MUST resolve to the consumer's own copy rather than a second one
+// underneath this package.
 for (const field of RESOLVED_DEP_FIELDS) {
   for (const name of Object.keys(manifest[field] ?? {})) {
-    if (name.startsWith(`${SCOPE}/`)) {
-      failures.push(
-        `${field}.${name}: a consumer cannot resolve a workspace package; ` +
-          `bundle it into dist instead`,
-      );
-    }
+    if (!name.startsWith(`${SCOPE}/`)) continue;
+    const publishable = scopePackages.get(name.slice(SCOPE.length + 1));
+    if (publishable === true) continue;
+    failures.push(
+      publishable === false
+        ? `${field}.${name}: a consumer cannot resolve a private workspace ` +
+            `package; bundle it into dist instead`
+        : `${field}.${name}: no such package in this workspace, so nothing ` +
+            `here can say whether a consumer could resolve it`,
+    );
   }
 }
 

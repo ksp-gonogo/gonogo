@@ -34,6 +34,7 @@
   "peerDependencies": {
     "@ksp-gonogo/sitrep-sdk": "*",
     "@ksp-gonogo/ui-kit": "*",
+    "@testing-library/react": "^16.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "styled-components": "^6.0.0"
