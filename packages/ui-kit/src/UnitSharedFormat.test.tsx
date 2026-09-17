@@ -42,6 +42,76 @@ describe("UnitSharedFormat", () => {
   });
 
   /**
+   * `hideUnitInGroup`, which exists so a part-and-whole pair in a dense row can
+   * read `1234/2000 rpm` instead of drawing the symbol on both halves.
+   */
+  describe("hideUnitInGroup", () => {
+    it("draws the symbol once when the first member hides it", () => {
+      const { container } = render(
+        <UnitSharedFormat>
+          <Unit value={value("m", 1200)} hideUnitInGroup />
+          {"/"}
+          <Unit value={value("m", 2000)} />
+        </UnitSharedFormat>,
+      );
+      expect(screen.queryAllByText("kilometres")).toHaveLength(1);
+      expect(container.textContent).toContain("1.2");
+      expect(container.textContent).toContain("2.0");
+    });
+
+    /**
+     * The point of the prop, and the half that could silently not work.
+     *
+     * The HIDDEN member is the larger one here, so it is the one whose scale
+     * decides the rung. If hiding it dropped its vote, the visible 500 m would
+     * be alone and read `500` in metres; because it still reports, the pair
+     * settles on km and the visible half reads `0.5`.
+     */
+    it("still lets a hidden member's scale decide the group's rung", () => {
+      const { container } = render(
+        <UnitSharedFormat>
+          <Unit value={value("m", 3400)} hideUnitInGroup />
+          <Unit value={value("m", 500)} />
+        </UnitSharedFormat>,
+      );
+      expect(container.textContent).toContain("0.5");
+      expect(container.textContent).not.toContain("500");
+      expect(screen.queryAllByText("kilometres")).toHaveLength(1);
+    });
+
+    /**
+     * A unit with NO LADDER, which is the case the other tests here cannot see
+     * and the case this prop was written for.
+     *
+     * `m` climbs to km, so a group of metres settles a rung and the hook that
+     * reports it answers. `rpm` climbs nothing, so an rpm group settles nothing
+     * and that hook answers `undefined` even though the scope is right there.
+     * Gating the hiding on its answer therefore drew the symbol on both halves
+     * of the exact row this was built for, while every laddered test passed.
+     */
+    it("hides the symbol for a unit that climbs no ladder", () => {
+      const { container } = render(
+        <UnitSharedFormat>
+          <Unit value={value("rpm", 200)} decimals={0} hideUnitInGroup />
+          {"/"}
+          <Unit value={value("rpm", 300)} decimals={0} />
+        </UnitSharedFormat>,
+      );
+      expect(screen.queryAllByText("revolutions per minute")).toHaveLength(1);
+      expect(container.textContent).toContain("200/300");
+    });
+
+    /**
+     * A number with no unit anywhere near it is not a readout, so the prop is
+     * inert on its own. Otherwise it would be a way to write one.
+     */
+    it("does nothing on a lone Unit with no scope above it", () => {
+      render(<Unit value={value("m", 1200)} hideUnitInGroup />);
+      expect(screen.queryAllByText("kilometres")).toHaveLength(1);
+    });
+  });
+
+  /**
    * A zero is the smallest reading there is, so the largest-member rule leaves
    * it out of the choice on its own: no clause excludes it, and it still cannot
    * drag a group to the bottom of its ladder.

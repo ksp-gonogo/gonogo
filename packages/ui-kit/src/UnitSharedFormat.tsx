@@ -553,6 +553,24 @@ const NO_SCOPE: Scope = {
 
 const ScopeContext = createContext<Scope>(NO_SCOPE);
 
+/**
+ * Whether there is a real `<UnitSharedFormat>` above this point.
+ *
+ * Separate from {@link useSharedFormat} because the two answer different
+ * questions, and one was mistaken for the other. That hook answers "what did my
+ * group SETTLE on", and it returns nothing for a unit that climbs no ladder and
+ * whose scope pinned no digits: `rpm` has no rungs, so an rpm pair inside a
+ * scope is a real group whose settled format is legitimately empty.
+ *
+ * So membership cannot be read off that answer. Anything gating on "am I in a
+ * group" has to ask this, or it silently means "am I in a group that changed
+ * something", which is a different set and excludes exactly the unladdered
+ * units.
+ */
+export function useInSharedFormat(): boolean {
+  return useContext(ScopeContext) !== NO_SCOPE;
+}
+
 /** What every spelling of the props below shares. */
 interface UnitSharedFormatBaseProps {
   children?: ReactNode;

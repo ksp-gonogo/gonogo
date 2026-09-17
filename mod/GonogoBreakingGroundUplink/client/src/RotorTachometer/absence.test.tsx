@@ -6,6 +6,7 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   renderWidget,
@@ -141,10 +142,22 @@ describe("RotorTachometer: a withheld figure is not a zero", () => {
     });
 
     const row = await screen.findByRole("button", { name: /Tail Rotor/i });
+    /*
+     * The null TOKEN rather than the word "unknown": the row draws through
+     * `<Unit>` now, and an absent quantity is the kit's null token everywhere
+     * else in the app. The guarantee this test exists for is the line below,
+     * and it is unchanged.
+     */
     await waitFor(() =>
-      expect(visibleText(row)).toContain("unknown/unknown RPM"),
+      expect(visibleText(row)).toContain(`${NULL_DISPLAY}/${NULL_DISPLAY}`),
     );
-    expect(visibleText(row)).not.toContain("0/0 RPM");
+    /*
+     * Matched WITHOUT the unit, deliberately. This read `0/0 RPM` and the
+     * symbol is lowercase now, so leaving it would have made the one assertion
+     * that carries the guarantee trivially true: a withheld figure could come
+     * back as a zero and nothing here would have said so.
+     */
+    expect(visibleText(row)).not.toContain("0/0");
   });
 });
 

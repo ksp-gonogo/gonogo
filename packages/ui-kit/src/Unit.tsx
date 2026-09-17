@@ -23,7 +23,7 @@ import { formatStreamStatus } from "./StreamStatusBadge";
  * function, so the dot on the cell and the pill above it cannot drift apart.
  */
 import { severityDotColor } from "./status/severityDotColor";
-import { useSharedFormat } from "./UnitSharedFormat";
+import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
   ATTACHED_SYMBOLS,
   displaySymbol,
@@ -647,6 +647,24 @@ export interface UnitProps<U extends string = string>
    */
   as?: PresentableAs<U>;
   /**
+   * Draw the number without its symbol, for a member of a group that prints the
+   * symbol once at the end: `1234/2000 rpm` rather than `1234 rpm/2000 rpm`.
+   *
+   * HONOURED ONLY INSIDE a `<UnitSharedFormat>`, asked of the scope itself
+   * rather than asserted by the caller. On a lone `<Unit>` it does nothing,
+   * deliberately: a number with no unit anywhere near it is not a readout, and
+   * a prop that could strip the symbol on its own would be a way to write one.
+   *
+   * The member still REPORTS, so its magnitude keeps its vote on the rung the
+   * group settles at. It is the drawing that is suppressed and nothing else,
+   * which is what lets the hidden half pull the visible half up a rung.
+   *
+   * Hidden from the accessibility tree as well as the screen, so the two say
+   * the same thing. A reader hears "1234 2000 rpm", which is what the row
+   * shows, rather than a symbol nobody can see.
+   */
+  hideUnitInGroup?: boolean;
+  /**
    * TRANSITIONAL: a bare unit token, rendered as a symbol with no number.
    *
    * Every call site used this before values carried their units. It goes when
@@ -729,6 +747,12 @@ export function Unit<U extends string = string>({
   value,
   children,
   className,
+  /*
+   * Taken out of `opts` on purpose: everything left in there is handed to the
+   * formatter, and this is an instruction about drawing rather than about the
+   * number.
+   */
+  hideUnitInGroup,
   ...opts
 }: UnitProps<U>) {
   // Unpacked first, so the number and the statement about it go separate ways.
@@ -749,6 +773,19 @@ export function Unit<U extends string = string>({
   // The number is still a real number on the same ladder, which is the whole of
   // what a report carries.
   const shared = useSharedFormat(shown, opts);
+
+  /*
+   * MEMBERSHIP, not the settled answer, and the difference is the whole of why
+   * this is a separate hook.
+   *
+   * Gating on `shared !== undefined` looks equivalent and is not: that is
+   * "my group settled something", and a group of a unit with no ladder settles
+   * nothing to return. `rpm` is exactly such a unit, so the first version of
+   * this drew the symbol on both halves of the very row it was written for
+   * while three tests over `m` passed.
+   */
+  const inGroup = useInSharedFormat();
+  const hideSymbol = hideUnitInGroup === true && inGroup;
 
   // An absent value renders through here too, and comes out as the null token.
   // A reading that has not arrived and one that is explicitly inapplicable owe
@@ -802,13 +839,16 @@ export function Unit<U extends string = string>({
         title={hover(caption, interval) ?? undefined}
       >
         {formatted.value}
-        <UnitSymbol token={formatted.symbol} spaced />
+        {!hideSymbol && <UnitSymbol token={formatted.symbol} spaced />}
         {interval !== null && (
           <Unit__Interval data-unit-band="">
             {interval.plusMinus === null
               ? ` (${interval.lo} to ${interval.hi}`
               : ` ± ${interval.plusMinus}`}
-            <UnitSymbol token={formatted.symbol} spaced />
+            {/* Suppressed with the main symbol rather than separately. A band
+                is stated in the same unit as the figure it widens, so a row
+                that prints the symbol once at the end covers both. */}
+            {!hideSymbol && <UnitSymbol token={formatted.symbol} spaced />}
             {interval.plusMinus === null ? ")" : null}
           </Unit__Interval>
         )}
