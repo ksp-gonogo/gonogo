@@ -10,10 +10,10 @@ import { dashboardWithWidget } from "./helpers";
  * gating it (main.tsx always runs the loader; see that file's
  * `bootUplinksAndRender`). Proves, in a REAL browser on all three engines,
  * that a loaded Uplink client works end to end. It names two ids
- * (`kos,mechjeb`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
+ * (`kos,breakingGround`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
  * the mechanism is per-Uplink identical, so a second engine-crossing run of the
- * same nine assertions buys nothing. Any two ids in that file do, and these two
- * are named because each registers exactly one widget to look for. Widget
+ * same nine assertions buys nothing. Any two ids in that file do, and one widget
+ * id per Uplink is all this looks for. Widget
  * COVERAGE across every Uplink is `scripts/minsize-gate.ts`'s and the visual
  * gate's job. What is proved here is the LOADER, on all three engines:
  *
@@ -23,7 +23,7 @@ import { dashboardWithWidget } from "./helpers";
  *     import()ed at runtime, its bare imports resolving through the baked
  *     import map to the app's singleton chunks, so its module-load
  *     registerComponent writes into the app's ONE registry (`kos-terminal` +
- *     `mechjeb` both appear);
+ *     `robotics-console` both appear);
  *  2. the injected SDK host is installed on globalThis;
  *  3. a widget from a LOADED (not statically-bundled) Uplink actually RENDERS on
  *     the dashboard: not merely registers. The dashboard is seeded (same
@@ -49,7 +49,7 @@ import { dashboardWithWidget } from "./helpers";
  * A second test proves the `?uplinkLoaderIds=` override (`flag.ts`'s
  * `loaderBootIdsOverride`) actually narrows which ids the boot call attempts:
  * restricting the boot set to just `kos` fetches only the kos bundle and leaves
- * mechjeb unloaded. That override is the only way to name ids with no mod
+ * breakingGround unloaded. That override is the only way to name ids with no mod
  * talking, so both tests here pass it and the pair differ only in the ids.
  *
  * Consent: the loader gates each first load at a new id@version behind operator
@@ -115,7 +115,7 @@ async function seedRenderAndSettingsState(
 }
 
 test.describe("Uplink loader (default path)", () => {
-  test("kos + mechjeb load via the runtime loader by default (no flag)", async ({
+  test("kos + breakingGround load via the runtime loader by default (no flag)", async ({
     page,
   }) => {
     // Establish the origin, then seed consent + the dashboard/Settings-UI
@@ -129,31 +129,33 @@ test.describe("Uplink loader (default path)", () => {
       (r) => r.url().includes("/uplinks/kos.client.js") && r.ok(),
       { timeout: 30_000 },
     );
-    const mechjebFetched = page.waitForResponse(
-      (r) => r.url().includes("/uplinks/mechjeb.client.js") && r.ok(),
+    const breakingGroundFetched = page.waitForResponse(
+      (r) => r.url().includes("/uplinks/breakingGround.client.js") && r.ok(),
       { timeout: 30_000 },
     );
 
     // The ids come in through `?uplinkLoaderIds=` because there is no mod
     // talking here and no shipped default to name them, which is how dev and
     // e2e boot; a real boot gets its ids from the live roster.
-    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kos,mechjeb`, {
+    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kos,breakingGround`, {
       waitUntil: "load",
     });
 
     // Both standalone bundles were fetched by the loader (not statically
     // imported).
     expect((await kosFetched).status()).toBe(200);
-    expect((await mechjebFetched).status()).toBe(200);
+    expect((await breakingGroundFetched).status()).toBe(200);
 
     // Singleton proof: each loaded bundle's registerComponent wrote into the
-    // app's ONE registry: a kos widget (`kos-terminal`) and a MechJeb widget
-    // (`mechjeb`) are both present, resolved through the import map.
+    // app's ONE registry: a kos widget (`kos-terminal`) and a Breaking Ground
+    // widget (`robotics-console`) are both present, resolved through the import map.
     await expect
       .poll(
         async () => {
           const ids = await registeredComponentIds(page);
-          return ids.includes("kos-terminal") && ids.includes("mechjeb");
+          return (
+            ids.includes("kos-terminal") && ids.includes("robotics-console")
+          );
         },
         { timeout: 15_000 },
       )
@@ -194,7 +196,7 @@ test.describe("Uplink loader (default path)", () => {
     await expect(
       dataSourcesPanel.getByText("Loaded clients", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
-    for (const name of ["kOS", "MechJeb"]) {
+    for (const name of ["kOS", "Breaking Ground"]) {
       await expect(
         dataSourcesPanel.getByText(name, { exact: true }),
       ).toBeVisible();
@@ -215,10 +217,10 @@ test.describe("Uplink loader (default path)", () => {
     await page.goto(`${PREVIEW}/`, { waitUntil: "load" });
     await seedConsent(page);
 
-    let mechjebRequested = false;
+    let breakingGroundRequested = false;
     page.on("request", (r) => {
-      if (r.url().includes("/uplinks/mechjeb.client.js")) {
-        mechjebRequested = true;
+      if (r.url().includes("/uplinks/breakingGround.client.js")) {
+        breakingGroundRequested = true;
       }
     });
     const kosFetched = page.waitForResponse(
@@ -243,7 +245,7 @@ test.describe("Uplink loader (default path)", () => {
       .toBe(true);
 
     const ids = await registeredComponentIds(page);
-    expect(ids).not.toContain("mechjeb");
-    expect(mechjebRequested).toBe(false);
+    expect(ids).not.toContain("robotics-console");
+    expect(breakingGroundRequested).toBe(false);
   });
 });

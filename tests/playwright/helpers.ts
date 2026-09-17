@@ -220,8 +220,8 @@ export async function bootstrapPair(
     contextOptions?: Parameters<Browser["newContext"]>[0];
     /**
      * Uplink ids the runtime loader should actually load, for specs testing a
-     * widget PROVIDED BY an Uplink (mechjeb = MechJeb) or one whose data
-     * comes from an Uplink feed (target-picker = kos). Default (omitted or
+     * widget PROVIDED BY an Uplink (robotics-console = breakingGround) or one
+     * whose data comes from an Uplink feed (target-picker = kos). Default (omitted or
      * empty) = load NOTHING, the loader-agnostic boot every built-in-widget
      * spec wants. When set, both pages run against the PRODUCTION preview
      * server (the loader is build-time-only, see the boot comment below), boot

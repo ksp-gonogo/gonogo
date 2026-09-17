@@ -134,13 +134,6 @@ jobs:
             extra_dlls: "GonogoPrincipiaUplink.Contract.dll"
             notice: mod/GonogoPrincipiaUplink/NOTICE-PRINCIPIA.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOPRINCIPIAUPLINK
-          - id: GonogoMechJebUplink
-            csproj: mod/GonogoMechJebUplink/GonogoMechJebUplink.csproj
-            dll: GonogoMechJebUplink.dll
-            gamedata: GonogoMechJebUplink
-            extra_dlls: "GonogoMechJebUplink.Contract.dll"
-            notice: mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt
-            mod_id_var: SPACEDOCK_MOD_ID_GONOGOMECHJEBUPLINK
     uses: ./.github/workflows/_build-uplink-mod.yml
     with:
       id: ${{ matrix.id }}

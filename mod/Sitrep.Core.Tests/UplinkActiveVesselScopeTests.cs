@@ -53,21 +53,15 @@ namespace Sitrep.Core.Tests
         /// <c>&lt;Uplink&gt;/&lt;file&gt;</c>, with the count that is expected
         /// and the reason it stands.
         /// </summary>
-        private static readonly Dictionary<string, int> Debt = new(StringComparer.Ordinal)
-        {
-            /*
-             * Three WRITES, held back on purpose and pending a live flight. The
-             * reasoning is long and belongs to that Uplink rather than to core,
-             * so it lives in the file's own doc comment: what the decompile
-             * established, why the risk of routing is one-way, and the three
-             * things a rig has to show before it can be routed.
-             *
-             * The short of it: those commands refuse today rather than lying,
-             * and what nothing static can settle is whether the autopilot's
-             * output would reach a craft KSP is not flying.
-             */
-            ["GonogoMechJebUplink/MechJebController.cs"] = 3,
-        };
+        /*
+         * EMPTY, and it emptied by an Uplink LEAVING rather than by the reads
+         * being routed: GonogoMechJebUplink held the only three, and they went
+         * with it to the gonogo-uplinks repo still unrouted. So this is not a
+         * clean tree so much as a smaller one, and the walk below is what says
+         * so: it asserts it found Uplinks to measure before reporting none in
+         * breach.
+         */
+        private static readonly Dictionary<string, int> Debt = new(StringComparer.Ordinal);
 
         [Fact]
         public void NoUplinkReadsKspsActiveVesselDirectly()

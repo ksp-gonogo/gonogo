@@ -30,7 +30,6 @@
     "@ksp-gonogo/data": "workspace:*",
     "@ksp-gonogo/gonogo-kerbalism-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-kos-uplink": "workspace:*",
-    "@ksp-gonogo/gonogo-mechjeb-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-realantennas-uplink": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/serial": "workspace:*",

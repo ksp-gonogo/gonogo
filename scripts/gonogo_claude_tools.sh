@@ -836,9 +836,8 @@ build_gonogoscansatuplink() {
   # references below). Sitrep.Contract.dll (provided by GonogoCore) and
   # SCANsat.dll/SCANsat.Unity.dll (provided by the user's SCANsat install) are
   # reference-only (Private="false") and must NOT be copied here - see
-  # .superpowers/sdd/uplink-packaging-pattern.md. Applies the deploy-script
-  # lesson the MechJeb pilot's build_gonogomechjebuplink fixed (and
-  # build_gonogoavionicsuplink applied from day one): a single-DLL copy here
+  # .superpowers/sdd/uplink-packaging-pattern.md. Every Uplink with a contract
+  # slice of its own needs both copies: a single-DLL copy here
   # would silently drop the Contract.dll from the
   # deployed GameData folder and break the mod at KSP load.
   cp "$out_dir/GonogoScansatUplink.dll" "$install_dir/"
@@ -949,51 +948,6 @@ build_gonogokosuplink() {
   ls -la "$install_dir"
 }
 
-build_gonogomechjebuplink() {
-  local proj="$ROOT/mod/GonogoMechJebUplink/GonogoMechJebUplink.csproj"
-  local out_dir="$ROOT/mod/GonogoMechJebUplink/bin/Release"
-  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoMechJebUplink/Plugins"
-  if [ ! -f "$proj" ]; then
-    echo "GonogoMechJebUplink csproj not found at $proj"
-    return 3
-  fi
-  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
-    return 3
-  fi
-  echo "=== building GonogoMechJebUplink ==="
-  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
-    dotnet build "$proj" -c Release --nologo -v minimal
-  if [ ! -f "$out_dir/GonogoMechJebUplink.dll" ]; then
-    echo "GonogoMechJebUplink.dll not produced (missing at $out_dir/GonogoMechJebUplink.dll)"
-    return 4
-  fi
-  mkdir -p "$install_dir"
-  # GonogoMechJebUplink.dll AND GonogoMechJebUplink.Contract.dll: the
-  # uplink-types-out-of-core pilot split MechJebAscentArgs/MechJebNoArgs into
-  # their own contract-slice project (Private="true", the default, so
-  # `dotnet build` DOES copy it into $out_dir, unlike the two references
-  # below). Sitrep.Contract.dll (provided by GonogoCore) and MechJeb2.dll
-  # (provided by the user's MechJeb2 install) are reference-only
-  # (Private="false") and must NOT be copied here - see
-  # .superpowers/sdd/uplink-packaging-pattern.md. This is the first Uplink
-  # with a second self-owned deployable DLL; the next relocated Uplink's
-  # build_<name> function needs the same two-line copy.
-  cp "$out_dir/GonogoMechJebUplink.dll" "$install_dir/"
-  if [ ! -f "$out_dir/GonogoMechJebUplink.Contract.dll" ]; then
-    echo "GonogoMechJebUplink.Contract.dll not produced (missing at $out_dir/GonogoMechJebUplink.Contract.dll)"
-    return 4
-  fi
-  cp "$out_dir/GonogoMechJebUplink.Contract.dll" "$install_dir/"
-  {
-    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
-    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  } > "$install_dir/build-info.txt"
-  echo "=== deployed to $install_dir ==="
-  ls -la "$install_dir"
-}
-
 build_gonogorp1uplink() {
   local proj="$ROOT/mod/GonogoRp1Uplink/GonogoRp1Uplink.csproj"
   local out_dir="$ROOT/mod/GonogoRp1Uplink/bin/Release"
@@ -1059,10 +1013,9 @@ build_gonogokerbalismuplink() {
   # Sitrep.Contract.dll (provided by GonogoCore) is reference-only
   # (Private="false") and must NOT be copied here, and Kerbalism.dll is never
   # referenced at all (this uplink reaches Kerbalism entirely by runtime
-  # reflection) - see .superpowers/sdd/uplink-packaging-pattern.md. Applies the
-  # deploy-script lesson the MechJeb pilot's build_gonogomechjebuplink fixed: a
-  # single-DLL copy here would silently drop the Contract.dll from the deployed
-  # GameData folder and break the mod at KSP load.
+  # reflection) - see .superpowers/sdd/uplink-packaging-pattern.md. Both copies
+  # are needed: a single-DLL copy here would silently drop the Contract.dll from
+  # the deployed GameData folder and break the mod at KSP load.
   cp "$out_dir/GonogoKerbalismUplink.dll" "$install_dir/"
   if [ ! -f "$out_dir/GonogoKerbalismUplink.Contract.dll" ]; then
     echo "GonogoKerbalismUplink.Contract.dll not produced (missing at $out_dir/GonogoKerbalismUplink.Contract.dll)"
@@ -1248,14 +1201,13 @@ case "${1:-help}" in
       gonogoscansatuplink) build_gonogoscansatuplink ;;
       gonogorealantennasuplink) build_gonogorealantennasuplink ;;
       gonogokosuplink) build_gonogokosuplink ;;
-      gonogomechjebuplink) build_gonogomechjebuplink ;;
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       gonogoprincipiauplink) build_gonogoprincipiauplink ;;
       gonogorp1uplink) build_gonogorp1uplink ;;
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogorp1uplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogorp1uplink, devtools"
         exit 2
         ;;
     esac

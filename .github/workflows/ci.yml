@@ -606,7 +606,6 @@ jobs:
             GonogoRealAntennasUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
-            GonogoMechJebUplink.Tests
             GonogoPrincipiaUplink.Tests
             GonogoRp1Uplink.Tests
             Gonogo.KSP.Tests
