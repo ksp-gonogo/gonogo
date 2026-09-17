@@ -218,6 +218,32 @@ export function parseServos(raw: unknown): ServoInfo[] {
   return out;
 }
 
+/**
+ * The same joints, off a list that has stopped arriving: the MEASURED position
+ * withheld, everything a command set kept.
+ *
+ * <p>`current` goes because a hinge travels on its own and this console
+ * commands against it, so a held angle would aim a command at a joint that has
+ * moved. `atTarget` goes with it: it is a verdict derived from `current`, and a
+ * verdict cannot outlive either of its inputs.</p>
+ *
+ * <p>`target` STAYS, and that is the distinction worth keeping. A target is not
+ * a measurement, it is the last value somebody commanded, and it does not drift
+ * while the link is down. Withholding it would have thrown away the one number
+ * that says what the joint was asked to do, and disabled the stepper that steps
+ * from it, for no gain in safety. The stepper's absolute `setTarget` lands the
+ * same whether or not the joint has reached it yet.</p>
+ *
+ * <p>Nulling rather than holding hands the row to the vocabulary the widget
+ * already has for a figure it never read: `posWithUnit` draws "unknown" and
+ * `stepperLabel` disables a stepper and says why. So a dated position cannot be
+ * read as a live one, which was the whole of the original argument for dropping
+ * the list.</p>
+ */
+export function datePositions(servos: ServoInfo[]): ServoInfo[] {
+  return servos.map((s) => ({ ...s, current: null, atTarget: null }));
+}
+
 const roboticsActions = [
   {
     id: "targetUp",
@@ -250,13 +276,18 @@ export type RoboticsConsoleActions = typeof roboticsActions;
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
-  // Servo angles move continuously and this console commands against them, so a
-  // held position would aim a command at a hinge that has since travelled.
-  // Nothing can carry one forward either: `robotics.servos` is never reckonable,
-  // so a reading that is not a current observation draws no joints at all.
+  /* Servo angles move continuously and this console commands against them, so a
+     held POSITION would aim a command at a hinge that has since travelled, and
+     `robotics.servos` is never reckonable so nothing can carry one forward.
+
+     That argument reaches the positions and stops there. A joint's name, kind,
+     lock, motor state and torque limit are FACTS, and no event changing one can
+     reach us down a link that is not delivering, so they are held exactly as
+     `available` and `breakingGround` are just below. The list is kept and its
+     positions dated; see `datePositions` for what that hands to the row. */
   const roboticsReading = useTelemetry("robotics.servos");
-  const roboticsRaw =
-    roboticsReading.state === "observed" ? roboticsReading.value : undefined;
+  const roboticsRaw = stillTrue(roboticsReading, undefined);
+  const positionsNotCurrent = roboticsReading.state === "stale";
   // Two DIFFERENT facts, and the empty state needs both. `robotics.available`
   // is "this craft carries a robotic part", a per-vessel reading that rides the
   // delay clock. `game.dlc.breakingGround` is "the install has the expansion",
@@ -282,7 +313,9 @@ function RoboticsConsoleComponent({
   usePanelDelay(motorCmd);
   usePanelDelay(lockCmd);
 
-  const servos = parseServos(roboticsRaw);
+  const servos = positionsNotCurrent
+    ? datePositions(parseServos(roboticsRaw))
+    : parseServos(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
@@ -350,7 +383,8 @@ function RoboticsConsoleComponent({
               {emptyStateText(
                 breakingGround,
                 available,
-                roboticsReading.state === "observed",
+                roboticsReading.state === "observed" ||
+                  roboticsReading.state === "stale",
                 "robotic parts",
               )}
             </EmptyState>
@@ -379,6 +413,17 @@ function RoboticsConsoleComponent({
       panelTitle="ROBOTICS"
       sections={[
         <Section key="readout" full>
+          {positionsNotCurrent && (
+            /* Names which half is dated, because "no longer current" over a
+               joint list that is still on screen would read as the whole panel
+               being dead. The positions are the only thing withheld; the roster,
+               the lock and motor state and the torque limits are as good as they
+               were when the link was last delivering. */
+            <Text tone="warn" size="xs" role="status" aria-live="polite">
+              Measured positions no longer current: the joints, their targets,
+              lock and motor state are the last reported.
+            </Text>
+          )}
           <Cluster justify="start" align="baseline" wrap>
             {selected.current === null ? (
               <Text size="lg" weight="semibold" tone="muted" role="status">

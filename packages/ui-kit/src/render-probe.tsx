@@ -175,6 +175,28 @@ export interface ScenePayload {
   /** Derived from the target's registration, never written in a fixture. */
   carriedChannels: string[];
   emits: SceneEmit[];
+  /**
+   * Stage the scene as NOT CURRENT: once every emit has landed and the setup
+   * has run, drop the transport and mint a frame, so the shot is of a widget
+   * whose figures have stopped arriving.
+   *
+   * <p>Without it this harness can only picture a live scene, and what a widget
+   * draws when a figure is not current is exactly the thing worth seeing: the
+   * mark on the figure, the held value where a null token used to be, the
+   * caption naming which half is dated. A field reading and a minted `Value` of
+   * the same magnitude draw identical pixels, so a stale scene rendered live is
+   * byte-identical to its live twin and shows nothing.</p>
+   *
+   * <p>The DROP is the lever rather than a clock advance because it is the one
+   * the widgets' own stale tests use (`store.setTransportConnected(false)`), so
+   * a render and the test asserting on it are staging the same thing.</p>
+   *
+   * <p>The same field `packages/components/scripts/probe/probe-entry.tsx` and
+   * `packages/components/src/test/widgetDomSnapshot.tsx` read. It arrived here
+   * later: the commit adding it said "both harnesses" and there are three, this
+   * being the one every Uplink widget renders through.</p>
+   */
+  stopsArriving?: boolean;
   config: Record<string, unknown>;
   /** Props handed to `<AugmentSlot>` for an augment scene. */
   slotProps: Record<string, unknown>;
@@ -822,6 +844,21 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
 
   await activeSetup.afterMount?.({ scene, starve: scene.starve });
   await frame();
+
+  /* The drop goes after the setup, because that is the order an operator meets
+     it: the panel is up and populated, and then the link goes. It also goes
+     BEFORE the clock is sealed, because a scene that has stopped arriving has
+     stopped arriving for the whole of its film rather than partway through it.
+     `beginFrame` mints the frame that publishes the new status rather than
+     waiting on the provider's own loop, so the shot does not depend on which of
+     the two lands first. */
+  if (scene.stopsArriving) {
+    fixture.store.setTransportConnected(false);
+    fixture.store.beginFrame();
+    await frame();
+    await frame();
+  }
+
   // The setup is done and the film starts here, so from this point the scene
   // clock owns every timer, and whatever the setup left pending is rebased onto
   // the first frame. See `sealSceneClock`.

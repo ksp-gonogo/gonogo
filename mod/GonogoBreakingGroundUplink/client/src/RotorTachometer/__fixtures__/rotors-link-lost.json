@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "scenario": "rotors-link-lost",
+    "notes": "The rotors scene, after the craft stops reporting. The wire is identical to `rotors` and the link then drops, so the rotor list, the RPM cap the gauge's arc is drawn from, the torque and brake settings and the motor/lock/direction states are all HELD, and only the MEASURED rpm is withheld. Before this the whole panel collapsed to \"Waiting for the rotors list\", a never-arrived sentence about a list already received."
+  },
+  "_scene": {
+    "widget": "rotor-tachometer",
+    "caption": "The same rotors after the link drops: the needle withheld, the cap and every setting held",
+    "modes": ["default"],
+    "paints": ["ROTORS", "RPM no longer current"]
+  },
+  "robotics.available": true,
+  "robotics.servos": [
+    {
+      "partName": "Main Rotor",
+      "partId": "101",
+      "type": "rotor",
+      "servoIsLocked": false,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": true,
+      "servoMotorLimit": 80,
+      "currentRPM": 240,
+      "rpmLimit": 300,
+      "normalizedOutput": 0.8,
+      "brakePercentage": 0,
+      "counterClockwise": false,
+      "maxTorque": 400
+    },
+    {
+      "partName": "Tail Rotor",
+      "partId": "202",
+      "type": "rotor",
+      "servoIsLocked": true,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": false,
+      "servoMotorLimit": 50,
+      "currentRPM": 0,
+      "rpmLimit": 120,
+      "normalizedOutput": 0,
+      "brakePercentage": 100,
+      "counterClockwise": true,
+      "maxTorque": 400
+    }
+  ],
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "robotics.servos",
+        "payload": [
+          {
+            "partName": "Main Rotor",
+            "partId": "101",
+            "type": "rotor",
+            "servoIsLocked": false,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": true,
+            "servoMotorLimit": 80,
+            "currentRPM": 240,
+            "rpmLimit": 300,
+            "normalizedOutput": 0.8,
+            "brakePercentage": 0,
+            "counterClockwise": false,
+            "maxTorque": 400
+          },
+          {
+            "partName": "Tail Rotor",
+            "partId": "202",
+            "type": "rotor",
+            "servoIsLocked": true,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": false,
+            "servoMotorLimit": 50,
+            "currentRPM": 0,
+            "rpmLimit": 120,
+            "normalizedOutput": 0,
+            "brakePercentage": 100,
+            "counterClockwise": true,
+            "maxTorque": 400
+          }
+        ]
+      },
+      {
+        "topic": "robotics.available",
+        "payload": {
+          "available": true
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}

@@ -439,6 +439,7 @@ function payloadFor(
     pinnedUt: scene.pinnedUt,
     carriedChannels: scene.carriedChannels,
     emits: scene.emits,
+    stopsArriving: scene.stopsArriving,
     config: scene.config,
     slotProps: scene.slotProps,
     host: scene.host,

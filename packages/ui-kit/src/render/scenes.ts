@@ -111,6 +111,8 @@ export interface SceneAct {
 interface RawStream {
   pinnedUt?: number;
   emits?: SceneEmit[];
+  /** See `ScenePayload.stopsArriving`. Absent means a live scene. */
+  stopsArriving?: boolean;
 }
 
 export interface Scene {
@@ -124,6 +126,7 @@ export interface Scene {
   before: SceneAct[];
   pinnedUt: number;
   emits: SceneEmit[];
+  stopsArriving?: boolean;
   config: Record<string, unknown>;
   slotProps: Record<string, unknown>;
   dataSources: Record<string, Record<string, unknown>>;
@@ -239,6 +242,7 @@ function oneScene(
     before: beforeFor(where, scene),
     pinnedUt,
     emits,
+    stopsArriving: stream.stopsArriving,
     config: scene.config ?? {},
     slotProps: scene.slotProps ?? {},
     dataSources,

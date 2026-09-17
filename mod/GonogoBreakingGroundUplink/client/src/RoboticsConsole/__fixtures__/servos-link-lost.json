@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "scenario": "servos-link-lost",
+    "notes": "The servos scene, after the craft stops reporting. The wire is identical to `servos` and the link then drops, so the joint list, each commanded target, the lock and motor states and the torque limits are all HELD, and only the MEASURED angle is withheld. Rendering the two side by side is what shows the split at all. Before this the whole panel collapsed to \"Waiting for the robotic parts list\", a never-arrived sentence about a list already received."
+  },
+  "_scene": {
+    "widget": "robotics-console",
+    "caption": "The same joints after the link drops: measured angles withheld, the roster and every commanded target held",
+    "modes": ["default"],
+    "paints": ["ROBOTICS", "Measured positions no longer current"]
+  },
+  "robotics.available": true,
+  "robotics.servos": [
+    {
+      "partName": "Arm Hinge",
+      "partId": "11",
+      "type": "hinge",
+      "servoIsLocked": false,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": true,
+      "servoMotorLimit": 100,
+      "currentAngle": 22,
+      "targetAngle": 60
+    },
+    {
+      "partName": "Deploy Piston",
+      "partId": "12",
+      "type": "piston",
+      "servoIsLocked": false,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": true,
+      "servoMotorLimit": 70,
+      "currentExtension": 0.85,
+      "targetExtension": 0.85
+    },
+    {
+      "partName": "EM-32S Standard Rotor",
+      "partId": "13",
+      "type": "rotor",
+      "servoIsLocked": true,
+      "servoIsMotorized": true,
+      "servoMotorIsEngaged": false,
+      "servoMotorLimit": 50,
+      "currentRPM": 0,
+      "rpmLimit": 200
+    }
+  ],
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "robotics.servos",
+        "payload": [
+          {
+            "partName": "Arm Hinge",
+            "partId": "11",
+            "type": "hinge",
+            "servoIsLocked": false,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": true,
+            "servoMotorLimit": 100,
+            "currentAngle": 22,
+            "targetAngle": 60
+          },
+          {
+            "partName": "Deploy Piston",
+            "partId": "12",
+            "type": "piston",
+            "servoIsLocked": false,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": true,
+            "servoMotorLimit": 70,
+            "currentExtension": 0.85,
+            "targetExtension": 0.85
+          },
+          {
+            "partName": "EM-32S Standard Rotor",
+            "partId": "13",
+            "type": "rotor",
+            "servoIsLocked": true,
+            "servoIsMotorized": true,
+            "servoMotorIsEngaged": false,
+            "servoMotorLimit": 50,
+            "currentRPM": 0,
+            "rpmLimit": 200
+          }
+        ]
+      },
+      {
+        "topic": "robotics.available",
+        "payload": {
+          "available": true
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}
