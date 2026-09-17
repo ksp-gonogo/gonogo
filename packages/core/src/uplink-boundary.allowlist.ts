@@ -1286,7 +1286,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
-      "mod/Sitrep.Core/Serialization/JsonWriter.cs",
+      "mod/Sitrep.Contract/Serialization/JsonWriter.cs",
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*

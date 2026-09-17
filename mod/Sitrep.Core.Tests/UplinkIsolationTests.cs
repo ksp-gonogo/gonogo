@@ -222,13 +222,13 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectImportDebt =
             new(StringComparer.Ordinal)
             {
-                ["GonogoKerbalismUplink.Tests"] = new[] { "Sitrep.Core.Serialization" },
+                ["GonogoKerbalismUplink.Tests"] = new[] { "Sitrep.Contract.Serialization" },
                 ["GonogoKosUplink.Tests"] = new[]
                 {
                     "Sitrep.Core",
                     "Sitrep.Host",
                 },
-                ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Core.Serialization" },
+                ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Contract.Serialization" },
             };
 
         /// <summary>
@@ -279,12 +279,12 @@ namespace Sitrep.Core.Tests
         /// file excuses nothing for. Adding
         /// <c>&lt;ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" /&gt;</c>
         /// to its csproj, and a one-line
-        /// <c>PlantedIsolationBreach.cs</c> holding <c>using Sitrep.Core.Serialization;</c>,
+        /// <c>PlantedIsolationBreach.cs</c> holding <c>using Sitrep.Contract.Serialization;</c>,
         /// turned both Tests gates red and named the project and the site:</para>
         /// <code>
         /// GonogoTestFlightUplink.Tests can build against Sitrep.Core, which is private and
         /// unpublished. ...
-        /// GonogoTestFlightUplink.Tests imports Sitrep.Core.Serialization (at
+        /// GonogoTestFlightUplink.Tests imports Sitrep.Contract.Serialization (at
         /// PlantedIsolationBreach.cs:1), which lives in a private assembly. ...
         /// </code>
         /// <para>The stale half was planted separately, by excusing

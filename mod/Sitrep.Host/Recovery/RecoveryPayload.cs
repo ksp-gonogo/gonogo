@@ -120,7 +120,7 @@ namespace Sitrep.Host.Recovery
         /// <summary>
         /// Flattens a <see cref="RecoveryCapture"/> to the nested
         /// <c>Dictionary&lt;string, object?&gt;</c> / <c>List&lt;object?&gt;</c>
-        /// graph <see cref="Sitrep.Core.Serialization.JsonWriter"/> serializes.
+        /// graph <see cref="Sitrep.Contract.Serialization.JsonWriter"/> serializes.
         /// Key names match exactly what <c>FlightOutcomeBanner.parseRecovery</c>
         /// (the app) already reads off the wire.
         /// </summary>

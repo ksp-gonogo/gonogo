@@ -260,7 +260,7 @@ export enum GameMode {
 * **Typing-only mirror.** This type reproduces the EXACT serialized shape
 * `CareerViewProvider.BuildCareerMode` emits (`{ "mode": <int> }`, the enum's
 * integer ordinal, matching every other enum in this codec; see
-* `Sitrep.Core.Serialization.JsonWriter`). It is a codegen marker, not
+* `Sitrep.Contract.Serialization.JsonWriter`). It is a codegen marker, not
 * serialized itself.
 */
 export interface CareerMode

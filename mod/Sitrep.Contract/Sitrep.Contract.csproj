@@ -84,7 +84,13 @@
        (see UplinkContract.cs's ISitrepUplink doc comment), so that
        cross-assembly internal access needs this friend-assembly grant now,
        same pattern Sitrep.Core.csproj already uses for Sitrep.Host. -->
+  <!-- Sitrep.Host writes recorded-session JSON through Serialization's
+       JsonWriter, which is internal and stays internal: the wire FORMAT is the
+       public surface here (EnvelopeCodec, BinaryFrameCodec), the writer behind
+       it is not. The grant moved with the serializer out of Sitrep.Core, which
+       carried the identical one for the identical reason. -->
   <ItemGroup>
     <InternalsVisibleTo Include="Sitrep.Core" />
+    <InternalsVisibleTo Include="Sitrep.Host" />
   </ItemGroup>
 </Project>

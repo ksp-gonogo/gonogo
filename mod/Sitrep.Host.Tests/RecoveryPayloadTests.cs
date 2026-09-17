@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Contract;
 using Sitrep.Host.Recovery;
 using Xunit;

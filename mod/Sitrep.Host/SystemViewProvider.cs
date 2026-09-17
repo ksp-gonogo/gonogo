@@ -53,7 +53,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>The <c>system.bodies</c> payload this produces</b> (a plain
     /// <c>Dictionary&lt;string, object?&gt;</c> / <c>List&lt;object?&gt;</c> /
-    /// scalar tree: the exact shape <c>Sitrep.Core.Serialization.JsonWriter.AppendValue</c>
+    /// scalar tree: the exact shape <c>Sitrep.Contract.Serialization.JsonWriter.AppendValue</c>
     /// already walks, so it drops straight into a
     /// <c>StreamData&lt;object?&gt;.Payload</c> and serializes via the
     /// existing <c>EnvelopeCodec.WriteStreamData</c> with no writer changes):

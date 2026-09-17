@@ -104,7 +104,7 @@ namespace Sitrep.Host.Crash
         /// <summary>
         /// Flattens a <see cref="CrashCapture"/> to the nested
         /// <c>Dictionary&lt;string, object?&gt;</c> / <c>List&lt;object?&gt;</c>
-        /// graph <see cref="Sitrep.Core.Serialization.JsonWriter"/> serializes.
+        /// graph <see cref="Sitrep.Contract.Serialization.JsonWriter"/> serializes.
         /// Key order mirrors the wire fixtures so the produced shape reads
         /// identically to the captured payloads.
         /// </summary>

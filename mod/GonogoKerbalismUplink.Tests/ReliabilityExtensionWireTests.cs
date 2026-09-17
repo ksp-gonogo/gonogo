@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Gonogo.KerbalismUplink;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Xunit;
 
 namespace GonogoKerbalismUplink.Tests

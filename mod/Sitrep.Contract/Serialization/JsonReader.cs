@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace Sitrep.Core.Serialization
+namespace Sitrep.Contract.Serialization
 {
     /// <summary>
     /// Hand-written recursive-descent JSON parser: no Json.NET, no

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Xunit;
 
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// Conformance test for <c>Sitrep.Core.Serialization.EnvelopeCodec</c>
+    /// Conformance test for <c>Sitrep.Contract.Serialization.EnvelopeCodec</c>
     /// (the hand-written, dependency-free envelope JSON writer/reader:
     /// Task 7 of the M5a C# port) against the TS-computed golden fixtures in
     /// <c>mod/golden-fixtures/serialization.json</c>. The fixture is

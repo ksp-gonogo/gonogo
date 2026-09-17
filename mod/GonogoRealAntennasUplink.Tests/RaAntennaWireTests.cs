@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Gonogo.RealAntennasUplink;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Xunit;
 
 namespace GonogoRealAntennasUplink.Tests

@@ -4,7 +4,7 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
  * The BINARY LANE, read side: how a frame carrying opaque bytes is told apart
  * from the JSON every other frame on this socket is, and taken apart.
  *
- * The C# writer is `Sitrep.Core.Serialization.BinaryFrameCodec`, and
+ * The C# writer is `Sitrep.Contract.Serialization.BinaryFrameCodec`, and
  * `Sitrep.Contract.BinaryLane` carries the full rationale. What matters here:
  *
  * ```

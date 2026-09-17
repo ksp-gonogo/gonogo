@@ -18,7 +18,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <para>Root cause was NOT the delay clock or the keyframe-on-subscribe
     /// path (both fine, an EMPTY list delivered as <c>[]</c>): the channel
     /// payload was a <c>List&lt;KosProcessorInfo&gt;</c>, and <c>KosProcessorInfo</c>
-    /// had no wire-flatten in <see cref="Sitrep.Core.Serialization.JsonWriter"/>,
+    /// had no wire-flatten in <see cref="Sitrep.Contract.Serialization.JsonWriter"/>,
     /// so a NON-EMPTY list threw <c>NotSupportedException</c> at the wire boundary
     /// and fail-softed to nothing, exactly the comms.delay bug the
     /// <c>AppendCommsDelay</c> case had already fixed for that POCO.</para>

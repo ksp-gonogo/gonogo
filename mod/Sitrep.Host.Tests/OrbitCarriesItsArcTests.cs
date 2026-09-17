@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Core.Serialization;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host.Propagation;
 using Xunit;
 

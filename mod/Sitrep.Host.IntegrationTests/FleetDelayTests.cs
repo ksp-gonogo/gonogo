@@ -421,7 +421,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(3.0, ConnFixture(3.0, ("v", false)), Timeout);
 
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await late.SendAsync(Sitrep.Core.Serialization.EnvelopeCodec.WriteSubscribe(
+                await late.SendAsync(Sitrep.Contract.Serialization.EnvelopeCodec.WriteSubscribe(
                     new Subscribe { Topic = "fleet.v.orbit" }));
                 var catchUp = (await DrainAllStreamDataAsync(late, Quiet))
                     .Where(f => f.Topic == "fleet.v.orbit" && f.Payload != null)
@@ -470,7 +470,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(4.0, ConnFixture(4.0, ("v", true)), Timeout);
 
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await late.SendAsync(Sitrep.Core.Serialization.EnvelopeCodec.WriteSubscribe(
+                await late.SendAsync(Sitrep.Contract.Serialization.EnvelopeCodec.WriteSubscribe(
                     new Subscribe { Topic = "fleet.v.orbit" }));
                 var catchUp = (await DrainAllStreamDataAsync(late, Quiet))
                     .Where(f => f.Topic == "fleet.v.orbit" && f.Payload != null)

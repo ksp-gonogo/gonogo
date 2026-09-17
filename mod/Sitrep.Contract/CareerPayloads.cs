@@ -30,7 +30,7 @@ namespace Sitrep.Contract;
 /// <c>Sitrep.Host.CareerViewProvider.BuildCareer</c> already emits: same names,
 /// same camelCase wire keys (via <c>RtConfig.CamelCaseForProperties</c>), same
 /// types, same units. It is NOT serialized itself: the wire bytes are written by
-/// <c>Sitrep.Core.Serialization.JsonWriter</c> walking the provider's live
+/// <c>Sitrep.Contract.Serialization.JsonWriter</c> walking the provider's live
 /// <c>Dictionary&lt;string, object?&gt;</c> tree, so adding this type changed no
 /// bytes. The sandbox case is the absence of a <c>"career"</c> group in the
 /// snapshot. Nullability is <c>SnapshotDict.Get*</c>'s rule, not a per-field

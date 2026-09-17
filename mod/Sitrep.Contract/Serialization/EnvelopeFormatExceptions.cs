@@ -1,6 +1,6 @@
 using System;
 
-namespace Sitrep.Core.Serialization
+namespace Sitrep.Contract.Serialization
 {
     /// <summary>
     /// The frame's <c>type</c> discriminant is absent, unreadable, or names no

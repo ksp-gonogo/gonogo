@@ -46,7 +46,7 @@ public enum GameMode
 /// <para><b>Typing-only mirror.</b> This type reproduces the EXACT serialized
 /// shape <c>CareerViewProvider.BuildCareerMode</c> emits (<c>{ "mode": &lt;int&gt; }</c>,
 /// the enum's integer ordinal, matching every other enum in this codec; see
-/// <c>Sitrep.Core.Serialization.JsonWriter</c>). It is a codegen marker, not
+/// <c>Sitrep.Contract.Serialization.JsonWriter</c>). It is a codegen marker, not
 /// serialized itself.</para>
 /// </summary>
 [SitrepContract]

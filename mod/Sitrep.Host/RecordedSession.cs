@@ -14,7 +14,7 @@ namespace Sitrep.Host
     ///
     /// Plain POCOs all the way down (no delegates, no reference-type fields
     /// other than nested POCOs/collections) so Task 2's hand-rolled
-    /// <c>Sitrep.Core.Serialization.JsonWriter</c> (already zero-external-dep;
+    /// <c>Sitrep.Contract.Serialization.JsonWriter</c> (already zero-external-dep;
     /// see <c>NanPolicy</c>) can walk this shape directly, with no external
     /// JSON library needed in Sitrep.Host.
     /// </summary>

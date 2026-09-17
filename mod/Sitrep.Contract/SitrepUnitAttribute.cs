@@ -471,7 +471,7 @@ namespace Sitrep.Contract
     /// resolve an external assembly (<c>Reinforced.Typings</c> is
     /// compile-time-only by explicit design, see
     /// <see cref="SitrepContractAttribute"/>). It is metadata ONLY and does not
-    /// touch the wire: <c>Sitrep.Core.Serialization.JsonWriter</c> never reads
+    /// touch the wire: <c>Sitrep.Contract.Serialization.JsonWriter</c> never reads
     /// it, so annotating a field costs zero bytes per tick.</para>
     ///
     /// <para><b>Every scalar property declares something.</b> This inverts the

@@ -90,7 +90,7 @@ import { SOURCES } from "./asyncapi/sources.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const JSON_WRITER = "mod/Sitrep.Core/Serialization/JsonWriter.cs";
+const JSON_WRITER = "mod/Sitrep.Contract/Serialization/JsonWriter.cs";
 
 /**
  * Generated interface name -> the C# type it was emitted from, where the two
