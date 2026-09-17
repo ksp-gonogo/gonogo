@@ -728,6 +728,54 @@ function wireArithmeticHits(root: string): string[] {
 
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
+/**
+ * What an over-budget file is told to do instead, in the order the fixes are
+ * usually needed: arithmetic, formatting, then the missing-API question.
+ *
+ * Named rather than inline so the guidance can be ASSERTED. Message text is the
+ * part of a ratchet nothing else checks, so it rots quietly: a message that
+ * stopped naming the fix would still fail the build, just uselessly, and every
+ * test here would stay green while it happened.
+ */
+function magnitudeOverBudgetMessage(over: readonly string[]): string {
+  return (
+    "`.magnitude` is an escape hatch and these files reach for it more " +
+    "than the budget allows. If the new use is arithmetic, do it in the " +
+    "algebra (a.minus(b), value(unit, n), .in(unit)) instead.\n\n" +
+    "IF THE NEW USE IS FORMATTING, it belongs to `<Unit>`: render " +
+    "`<Unit value={x} />` rather than reading `x.magnitude` into a " +
+    "template or a `toFixed`. Unit picks the rung and the precision, so " +
+    "a hand-built string is both an unwrap and a second formatter. " +
+    "Where a node genuinely cannot go (an SVG <text>, a contribution " +
+    "`label`, an aria-label) use `writeQuantity` or `speakQuantity`, " +
+    "which are the two sanctioned string escapes. " +
+    "`styleguide-unit-exclusive` is the gate that owns this rule.\n\n" +
+    "BEFORE RAISING THE COUNT, ask what method Value is missing. A count " +
+    "that goes up because the algebra cannot express something is an API " +
+    "gap: widen Value and the budget falls on its own. A count that goes " +
+    "up because the method already exists and was not used is a mistake. " +
+    "`isFinite()` was added to retire `Number.isFinite(x.magnitude)`, and " +
+    "`min`/`max` take a bare operand so `x.max(0)` replaces " +
+    "`Math.max(0, x.magnitude)`. See 'A budget entry is often a missing " +
+    "API' in docs/ratchets.md.\n\n" +
+    "RATIOS AND PRODUCTS ARE ALGEBRA TOO, and this is the family most " +
+    "often missed: `a.per(b)` / `a.dividedBy(b)` return " +
+    "`Value<Quotient<U, W>>` with the dimension checked at TYPE level, " +
+    "and `.times()`, `.plus()`, `.greaterThan()` compare and combine " +
+    "without unwrapping. A length over a length is NOT untyped: " +
+    'definitions.ts declares `"1"` as dimensionless, so `m.per(m)` is a ' +
+    'real `Value<"1">`. Four unwraps in one function were removed on ' +
+    "exactly this ground. ASSOCIATION MATTERS: " +
+    "`delay.times(hop.per(total))` types, while " +
+    "`hop.times(delay).per(total)` degrades because `m*s` is not a " +
+    "declared dimension.\n\n" +
+    "Only a genuine boundary earns an entry: a plain-number return type, " +
+    "a third-party call, a wire shape you do not own. Raise the count " +
+    "here only then, and say which boundary it is:\n" +
+    over.join("\n")
+  );
+}
+
 describe("the magnitude budget only shrinks", () => {
   const counts = countsByFile(root);
 
@@ -900,36 +948,36 @@ describe("the magnitude budget only shrinks", () => {
       }
     }
     if (over.length > 0) {
-      throw new Error(
-        "`.magnitude` is an escape hatch and these files reach for it more " +
-          "than the budget allows. If the new use is arithmetic, do it in the " +
-          "algebra (a.minus(b), value(unit, n), .in(unit)) instead.\n\n" +
-          "BEFORE RAISING THE COUNT, ask what method Value is missing. A count " +
-          "that goes up because the algebra cannot express something is an API " +
-          "gap: widen Value and the budget falls on its own. A count that goes " +
-          "up because the method already exists and was not used is a mistake. " +
-          "`isFinite()` was added to retire `Number.isFinite(x.magnitude)`, and " +
-          "`min`/`max` take a bare operand so `x.max(0)` replaces " +
-          "`Math.max(0, x.magnitude)`. See 'A budget entry is often a missing " +
-          "API' in docs/ratchets.md.\n\n" +
-          "RATIOS AND PRODUCTS ARE ALGEBRA TOO, and this is the family most " +
-          "often missed: `a.per(b)` / `a.dividedBy(b)` return " +
-          "`Value<Quotient<U, W>>` with the dimension checked at TYPE level, " +
-          "and `.times()`, `.plus()`, `.greaterThan()` compare and combine " +
-          "without unwrapping. A length over a length is NOT untyped: " +
-          'definitions.ts declares `"1"` as dimensionless, so `m.per(m)` is a ' +
-          'real `Value<"1">`. Four unwraps in one function were removed on ' +
-          "exactly this ground. ASSOCIATION MATTERS: " +
-          "`delay.times(hop.per(total))` types, while " +
-          "`hop.times(delay).per(total)` degrades because `m*s` is not a " +
-          "declared dimension.\n\n" +
-          "Only a genuine boundary earns an entry: a plain-number return type, " +
-          "a third-party call, a wire shape you do not own. Raise the count " +
-          "here only then, and say which boundary it is:\n" +
-          over.join("\n"),
-      );
+      throw new Error(magnitudeOverBudgetMessage(over));
     }
     expect(over).toEqual([]);
+  });
+
+  /**
+   * The failure NAMES THE FIX, which is the half of a ratchet that decides
+   * whether anyone acts on it.
+   *
+   * The operator asked for the `<Unit>` notice specifically: an unwrap done in
+   * order to FORMAT is the commonest kind, and the algebra advice above it does
+   * not answer that case at all, so a reader doing it was told to reach for
+   * `minus`/`per` when what they needed was a component.
+   *
+   * Asserted on the offending list too, because guidance with no filenames
+   * under it is a lecture rather than a report.
+   */
+  it("tells an over-budget file what to do instead, formatting included", () => {
+    const message = magnitudeOverBudgetMessage([
+      "  packages/components/src/Example/index.tsx: 3, budget 1",
+    ]);
+
+    expect(message).toContain("<Unit value={x} />");
+    expect(message).toContain("writeQuantity");
+    expect(message).toContain("speakQuantity");
+    expect(message).toContain("a.minus(b)");
+    expect(message).toContain("docs/ratchets.md");
+    expect(message).toContain(
+      "packages/components/src/Example/index.tsx: 3, budget 1",
+    );
   });
 });
 
