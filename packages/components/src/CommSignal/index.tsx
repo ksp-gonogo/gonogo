@@ -418,8 +418,11 @@ function CommsPathRoute({
   hops: readonly CommsHop[];
   vesselLabel: string;
   centreLabel: string;
-  /** The path's total one-way delay: apportioned across legs by distance, see `commsLegTime`. */
-  pathDelay: Value<"s"> | undefined;
+  /** The path's total one-way delay: apportioned across legs by distance, see
+   *  `commsLegTime`. `null` as well as absent, because `oneWaySeconds` is a
+   *  `double?` and the wire keeps the key: a path with no measurable delay
+   *  arrives as an explicit null, which is NOT a delay of zero. */
+  pathDelay: Value<"s"> | null | undefined;
   /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`, joined from the
    *  `comm-signal.hop-rates` contribution. Empty under bare CommNet / no RA. */
   rateByHopId: ReadonlyMap<string, number>;
@@ -509,7 +512,7 @@ function CommsPathLeg({
 }: {
   hop: CommsHop;
   hops: readonly CommsHop[];
-  pathDelay: Value<"s"> | undefined;
+  pathDelay: Value<"s"> | null | undefined;
   /** This hop's forward bitrate (bits/sec), or undefined when none was contributed. */
   rate: number | undefined;
   /** Whether this hop is the path's minimum-rate (limiting) hop. */

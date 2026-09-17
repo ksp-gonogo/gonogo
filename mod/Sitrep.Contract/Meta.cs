@@ -132,7 +132,12 @@ public class Meta
     /// readings for, which is the one thing an operator must not be shown: the
     /// line looks like data.</para>
     /// </summary>
+    // The key is OMITTED when there is no gap rather than written as null:
+    // EnvelopeCodec.AppendMeta guards it on HasValue, alone among Meta's
+    // fields, because a gap is rare by construction and every frame would
+    // otherwise carry 17 bytes saying nothing happened.
     [SitrepUnit(Units.UniversalTime)]
+    [SitrepOmittedWhenNull]
     public double? GapSinceUt { get; set; }
 }
 

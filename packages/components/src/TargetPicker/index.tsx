@@ -174,14 +174,14 @@ function entrySubtitle(entry: TargetListEntry): string | null {
   if (entry.kind !== TargetKind.Vessel && entry.kind !== TargetKind.Part) {
     return null;
   }
+  /* `!= null` on both: `vesselType` and `situation` are nullable enums on the
+     contract and the wire keeps the key, so "the mod could not classify this
+     one" arrives as an explicit null and the strict form indexed the label
+     table with it. */
   const type =
-    entry.vesselType !== undefined
-      ? VESSEL_TYPE_LABELS[entry.vesselType]
-      : undefined;
+    entry.vesselType != null ? VESSEL_TYPE_LABELS[entry.vesselType] : undefined;
   const situation =
-    entry.situation !== undefined
-      ? SITUATION_LABELS[entry.situation]
-      : undefined;
+    entry.situation != null ? SITUATION_LABELS[entry.situation] : undefined;
   const parts = [type, situation].filter((v): v is string => Boolean(v));
   return parts.length > 0 ? parts.join(" · ") : null;
 }
@@ -321,7 +321,10 @@ function TargetPickerComponent({
         { label },
       );
     } else if (entry.kind === TargetKind.Part) {
-      if (!entry.vesselId || entry.partId === undefined) return;
+      /* `== null`: `partId` is a `uint?` and the wire keeps the key, so a part
+         the mod could not identify arrives as an explicit null and the strict
+         form put it in the command args. */
+      if (!entry.vesselId || entry.partId == null) return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
       void setTargetCmd.send(
         {

@@ -149,7 +149,11 @@ export function commsLegTime(
   pathDelay: Value<"s"> | null | undefined,
 ): Value<"s"> | undefined {
   const hopDistance = hop.distanceMeters;
-  if (hopDistance === undefined) return undefined;
+  // `== null`: `distanceMeters` is a `double?` and the wire keeps the key, so a
+  // hop whose geometry nobody could measure arrives as an explicit null. The
+  // strict form let it past into `hopDistance.per(...)`, which throws inside
+  // render rather than returning undefined.
+  if (hopDistance == null) return undefined;
   if (!pathDelay?.greaterThan(0)) return undefined;
   const totalDistance = hops.reduce(
     (sum, h) => (h.distanceMeters ? sum.plus(h.distanceMeters) : sum),

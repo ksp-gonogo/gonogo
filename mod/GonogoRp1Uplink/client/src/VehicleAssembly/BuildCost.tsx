@@ -79,7 +79,17 @@ export function BuildCostSection() {
  * spaceplane because a hangar vehicle does not roll out, and a vehicle nobody has
  * priced yet carries no cost at all. Neither is free.</para>
  */
-function CostRow({ name, value }: { name: string; value?: Value<"funds"> }) {
+// `value` admits null as well as absent: every cost on `Rp1BuildCost` is a
+// `double?` and the wire keeps the key, so a figure RP-1 could not price
+// arrives as an explicit null. The `== null` below already drew the placeholder
+// for it; the prop type simply said it could not happen.
+function CostRow({
+  name,
+  value,
+}: {
+  name: string;
+  value?: Value<"funds"> | null;
+}) {
   return (
     <Row as="div">
       <RowName>{name}</RowName>

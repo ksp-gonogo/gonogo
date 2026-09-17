@@ -705,6 +705,15 @@ Five files land in `src/__generated__/`, and none of them is ever hand-edited:
 | `units.ts` | `GENERATED_TOPIC_UNITS` / `_SHAPES` and `GENERATED_TYPE_UNITS` / `_SHAPES` | `topics.ts`, at module load |
 | `units.json` | the same unit map as data | anything that is not TypeScript |
 
+**A nullable value type generates as `T | null`, not just `T | undefined`.** `double?`, `bool?`,
+`int?` and a nullable enum all emit `name?: T | null`, and a quantity composes with the wrap
+(`outputPower?: Value<"kW"> | null`). That is not caution, it is what your wire does: `JsonWriter`
+walks every key of a payload dictionary and writes `null` for an absent value rather than dropping
+the key, so a reading nobody could take arrives as `"outputPower":null`. Guard with `== null` or
+`?.`, never `=== undefined`, which lets the null straight through into whatever reads it next. If
+your own flattener genuinely OMITS a key rather than nulling it, say so at the property with
+`[SitrepOmittedWhenNull]` and it generates as a plain `T`.
+
 `topic-map.ts` is a reference rather than something you import: it names the Topics your
 `[SitrepTopic]` attributes declared, and **it is not a list of every Topic on your wire**. A dynamic
 namespace registered through `IUplinkHost.RegisterDynamicNamespace` materialises its Topics per subject

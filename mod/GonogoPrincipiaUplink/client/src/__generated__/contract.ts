@@ -30,7 +30,7 @@ export interface PrincipiaAnalysis
 	/** The vessel every analysis below belongs to. */
 	vesselId?: string;
 	/** When the plugin was asked. */
-	sampledAtUt?: Value<"ut">;
+	sampledAtUt?: Value<"ut"> | null;
 	/**
 	* The vessel's own current-orbit analysis, or null when it holds none.
 	*
@@ -60,18 +60,18 @@ export interface PrincipiaAnalysis
 export interface PrincipiaCoastAnalysis
 {
 	/** Position in the plan, from zero. */
-	index?: Value<"count">;
+	index?: Value<"count"> | null;
 	/**
 	* When the coast begins: the plan's own start for the first, the previous
 	* burn's cutoff for the rest. This is also the instant the coast's elements
 	* are measured from.
 	*/
-	startsAtUt?: Value<"ut">;
+	startsAtUt?: Value<"ut"> | null;
 	/**
 	* When the coast ends: the next burn's ignition, or the plan's final time for
 	* the last coast.
 	*/
-	endsAtUt?: Value<"ut">;
+	endsAtUt?: Value<"ut"> | null;
 	/**
 	* The analysis of this coast, or null when the producer had none: a coast
 	* following a burn it could not integrate has no valid initial state to
@@ -113,17 +113,17 @@ export interface PrincipiaOrbitAnalysis
 	* A band quoted without it is meaningless: widening the window widens every
 	* interval and can flip every adjective in the description.
 	*/
-	missionDurationSeconds?: Value<"s">;
+	missionDurationSeconds?: Value<"s"> | null;
 	/**
 	* How far along the NEXT analysis is, from zero to one. Not the age of this
 	* one.
 	*/
-	progressOfNextAnalysis?: Value<"ratio">;
+	progressOfNextAnalysis?: Value<"ratio"> | null;
 	/**
 	* The body the elements are measured against, as the producer's own celestial
 	* index, or null when the craft is bound to nothing over this span.
 	*/
-	primaryIndex?: Value<"count">;
+	primaryIndex?: Value<"count"> | null;
 	/**
 	* The primary's name, when the game's body table could answer for the index.
 	*
@@ -138,7 +138,7 @@ export interface PrincipiaOrbitAnalysis
 	* analysed span. The n-body answer to a question the stock conic widgets
 	* answer from a two-body eccentricity.
 	*/
-	gravitationallyBound?: boolean;
+	gravitationallyBound?: boolean | null;
 	/**
 	* True when the elements below were determined at all.
 	*
@@ -146,7 +146,7 @@ export interface PrincipiaOrbitAnalysis
 	* trajectory that does not span one sidereal period, which no amount of
 	* waiting on this end fixes.
 	*/
-	elementsPresent?: boolean;
+	elementsPresent?: boolean | null;
 	/**
 	* The instant the elements are measured FROM: the start of the span the
 	* analysis integrated, on the same clock as every other instant here.
@@ -162,16 +162,16 @@ export interface PrincipiaOrbitAnalysis
 	* Mean elements look exactly as confident an hour old, and the producer keeps
 	* its last completed analysis indefinitely once its own window shuts.
 	*/
-	elementsEpochUt?: Value<"ut">;
+	elementsEpochUt?: Value<"ut"> | null;
 	/** The period of the mean longitude. */
-	siderealPeriodSeconds?: Value<"s">;
+	siderealPeriodSeconds?: Value<"s"> | null;
 	/**
 	* Time between successive ascending nodes. Not the sidereal period, and the
 	* difference is the precession below.
 	*/
-	nodalPeriodSeconds?: Value<"s">;
+	nodalPeriodSeconds?: Value<"s"> | null;
 	/** Time between successive periapsides. */
-	anomalisticPeriodSeconds?: Value<"s">;
+	anomalisticPeriodSeconds?: Value<"s"> | null;
 	/**
 	* The rate the ascending node drifts, in degrees per hour.
 	*
@@ -182,7 +182,7 @@ export interface PrincipiaOrbitAnalysis
 	* than the per day the producer's own window prints, because a day is not a
 	* fixed quantity in this game and an hour is.
 	*/
-	nodalPrecessionDegreesPerHour?: Value<"°/h">;
+	nodalPrecessionDegreesPerHour?: Value<"°/h"> | null;
 	/** Size of the orbit, and how much it wanders. */
 	meanSemimajorAxisMetres?: PrincipiaLengthInterval;
 	/**
@@ -204,9 +204,9 @@ export interface PrincipiaOrbitAnalysis
 	* for an escape trajectory. Never zero, which would read as a very fast repeat
 	* rather than as no repeat.
 	*/
-	recurrenceCycleRotations?: Value<"count">;
+	recurrenceCycleRotations?: Value<"count"> | null;
 	/** How many revolutions the craft makes in one whole cycle. */
-	recurrenceRevolutions?: Value<"count">;
+	recurrenceRevolutions?: Value<"count"> | null;
 	/**
 	* Revolutions per single turn of the primary, Capderou's νₒ.
 	*
@@ -215,14 +215,14 @@ export interface PrincipiaOrbitAnalysis
 	* the cycle, because that derivation is a rounding and a client that rounds
 	* differently renames the orbit.
 	*/
-	recurrenceRevolutionsPerRotation?: Value<"count">;
+	recurrenceRevolutionsPerRotation?: Value<"count"> | null;
 	/**
 	* The shorter run after which the track very nearly repeats, in turns of the
 	* primary. What an operator plans revisits around.
 	*/
-	recurrenceSubcycleRotations?: Value<"count">;
+	recurrenceSubcycleRotations?: Value<"count"> | null;
 	/** How far the track walks along the equator each revolution. */
-	recurrenceEquatorialShiftDegrees?: Value<"°">;
+	recurrenceEquatorialShiftDegrees?: Value<"°"> | null;
 	/**
 	* Where the craft crosses the equator northbound, as a band of longitudes over
 	* the analysed span.
@@ -250,7 +250,7 @@ export interface PrincipiaOrbitAnalysis
 	/** The same band at the southbound node. */
 	descendingNodeSolarTimeDegrees?: PrincipiaAngleInterval;
 	/** The spacing of the fully-populated longitude grid the whole cycle lays down. */
-	recurrenceGridIntervalDegrees?: Value<"°">;
+	recurrenceGridIntervalDegrees?: Value<"°"> | null;
 	/** Where the orbit plane cuts the reference plane, and how far it swings. */
 	meanLongitudeOfAscendingNodeDegrees?: PrincipiaAngleInterval;
 	/**
@@ -273,14 +273,14 @@ export interface PrincipiaOrbitAnalysis
 	* is the extreme of the actual integrated trajectory, where the periapsis band
 	* is an average over a filtered one.
 	*/
-	lowestAltitudeMetres?: Value<"m">;
+	lowestAltitudeMetres?: Value<"m"> | null;
 	/** When the trajectory hits the primary, or null for no impact over the window. */
-	firstCollisionUt?: Value<"ut">;
+	firstCollisionUt?: Value<"ut"> | null;
 	/**
 	* When it comes close enough to the primary to be at risk. Deliberately
 	* distinct from a certain collision.
 	*/
-	firstCollisionRiskUt?: Value<"ut">;
+	firstCollisionRiskUt?: Value<"ut"> | null;
 	/**
 	* When it first enters the primary's atmosphere.
 	*
@@ -288,7 +288,7 @@ export interface PrincipiaOrbitAnalysis
 	* says when the craft first arrives at the atmosphere and nothing about what
 	* happens next.
 	*/
-	firstReentryUt?: Value<"ut">;
+	firstReentryUt?: Value<"ut"> | null;
 }
 /**
 * A closed interval in metres.
@@ -306,8 +306,8 @@ export interface PrincipiaOrbitAnalysis
 */
 export interface PrincipiaLengthInterval
 {
-	min?: Value<"m">;
-	max?: Value<"m">;
+	min?: Value<"m"> | null;
+	max?: Value<"m"> | null;
 }
 /**
 * A closed interval in degrees. See `PrincipiaLengthInterval` for why the unit
@@ -315,8 +315,8 @@ export interface PrincipiaLengthInterval
 */
 export interface PrincipiaAngleInterval
 {
-	min?: Value<"°">;
-	max?: Value<"°">;
+	min?: Value<"°"> | null;
+	max?: Value<"°"> | null;
 }
 /**
 * A closed interval of a dimensionless quantity. See `PrincipiaLengthInterval`
@@ -324,8 +324,8 @@ export interface PrincipiaAngleInterval
 */
 export interface PrincipiaRatioInterval
 {
-	min?: Value<"1">;
-	max?: Value<"1">;
+	min?: Value<"1"> | null;
+	max?: Value<"1"> | null;
 }
 /**
 * A reference frame, named well enough that a number stamped with it can be
@@ -360,7 +360,7 @@ export interface PrincipiaReferenceFrame
 	* The frame's kind, as the producer's own enum value. Null when the target
 	* frame is selected, which is not a member of that enum.
 	*/
-	type?: number;
+	type?: number | null;
 	/**
 	* The body the frame is centred on, when it has one. The two rotating frames
 	* and the target frame do not.
@@ -402,7 +402,7 @@ export interface PrincipiaReferenceFrame
 	* enum rather than inside it. It is the only frame in which the producer
 	* computes closest approach, and one in which apsides do not exist at all.
 	*/
-	targetFrameSelected?: boolean;
+	targetFrameSelected?: boolean | null;
 	/** The target vessel the frame is defined against, when it is a target frame. */
 	targetVesselId?: string;
 	/** That vessel's name, so a readout need not resolve the guid. */
@@ -460,7 +460,7 @@ export interface PrincipiaSettings
 	* the sample's own UT rather than a past observation, and it is carried so a
 	* client never has to assume that.
 	*/
-	observedAtUt?: Value<"ut">;
+	observedAtUt?: Value<"ut"> | null;
 	/**
 	* The producer's build string, as the session's version gate read it. Null
 	* when no session is bound, in which case nothing below the frame is present
@@ -471,7 +471,7 @@ export interface PrincipiaSettings
 	* True when we have deliberately stopped reading. The rest of the payload is
 	* absent, and `PrincipiaSettings.readingSuspendedReason` says why.
 	*/
-	readingSuspended?: boolean;
+	readingSuspended?: boolean | null;
 	/** Why reading stopped, in a sentence an operator can act on. */
 	readingSuspendedReason?: string;
 	/**
@@ -490,7 +490,7 @@ export interface PrincipiaSettings
 	* True while the producer's map-click vessel picker is armed. Read only; we
 	* never arm it.
 	*/
-	selectingTargetVessel?: boolean;
+	selectingTargetVessel?: boolean | null;
 	/**
 	* The target vessel, by guid. It gates the target frame and every
 	* closest-approach number, so it is not informational: clearing it
@@ -504,7 +504,7 @@ export interface PrincipiaSettings
 	* exclusive with `PrincipiaSettings.selectingTargetVessel`: arming either
 	* disarms the other, so both true is a state the game cannot be in.
 	*/
-	selectingTargetCelestial?: boolean;
+	selectingTargetCelestial?: boolean | null;
 	/**
 	* The targeted celestial, by name, when the target is a body rather than a
 	* vessel.
@@ -515,32 +515,32 @@ export interface PrincipiaSettings
 	* that tells an operator they are being shown two contradictory futures; the
 	* producer's own label for it ends "do not use for flight planning!".
 	*/
-	displayPatchedConics?: boolean;
+	displayPatchedConics?: boolean | null;
 	/**
 	* The window the orbit analyser has been ASKED to analyse over. The analysis
 	* payload reports the duration it actually covered, and the two differ while
 	* an analysis is still catching up; this is the request.
 	*/
-	analysisMissionDurationRequestedSeconds?: Value<"s">;
+	analysisMissionDurationRequestedSeconds?: Value<"s"> | null;
 	/**
 	* True when the producer is detecting the ground-track recurrence itself
 	* rather than being told one.
 	*/
-	recurrenceAutodetect?: boolean;
+	recurrenceAutodetect?: boolean | null;
 	/**
 	* The manual recurrence cycle's revolutions, used in game when autodetect is
 	* off. Inert for our own figures, which is exactly why it is here: it explains
 	* why the player's screen and ours disagree.
 	*/
-	recurrenceRevolutionsPerCycle?: Value<"count">;
+	recurrenceRevolutionsPerCycle?: Value<"count"> | null;
 	/** The manual recurrence cycle's days. */
-	recurrenceDaysPerCycle?: Value<"count">;
+	recurrenceDaysPerCycle?: Value<"count"> | null;
 	/**
 	* Which revolution the ground-track figures are quoted for. Both
 	* equatorial-crossing longitudes change meaning with it, from a stepper the
 	* operator cannot see.
 	*/
-	groundTrackRevolution?: Value<"count">;
+	groundTrackRevolution?: Value<"count"> | null;
 	/**
 	* Which vessel the prediction bounds below were read for. They are per-vessel,
 	* so a tolerance with no vessel attached would read as a global setting and
@@ -551,46 +551,46 @@ export interface PrincipiaSettings
 	* The position tolerance that vessel's prediction is integrated to, read from
 	* the plugin's own per-vessel parameters rather than from the global slider.
 	*/
-	predictionToleranceMetres?: Value<"m">;
+	predictionToleranceMetres?: Value<"m"> | null;
 	/**
 	* That prediction's step limit. A prediction that stops short looks identical
 	* to a trajectory that ends, and this is the only number that separates them.
 	*/
-	predictionMaxSteps?: Value<"count">;
+	predictionMaxSteps?: Value<"count"> | null;
 	/**
 	* The FLIGHT PLAN's integration tolerance, which is a different setting from
 	* the prediction's despite sharing a label in game. Conflated, a plan failure
 	* gets explained by a prediction setting and the operator changes the wrong
 	* control.
 	*/
-	planToleranceMetres?: Value<"m">;
+	planToleranceMetres?: Value<"m"> | null;
 	/**
 	* The flight plan's step limit per segment, and the remedy for the commonest
 	* reason a plan could not be drawn.
 	*/
-	planMaxSteps?: Value<"count">;
+	planMaxSteps?: Value<"count"> | null;
 	/** Where the plan begins. */
-	planInitialTimeUt?: Value<"ut">;
+	planInitialTimeUt?: Value<"ut"> | null;
 	/**
 	* Where the plan has been asked to end. Shortening it makes later burns
 	* vanish, and a burn that disappeared reads as a burn that was deleted.
 	*/
-	planDesiredFinalTimeUt?: Value<"ut">;
+	planDesiredFinalTimeUt?: Value<"ut"> | null;
 	/**
 	* How far the plan actually integrated. Short of the desired final time
 	* exactly when the plan is in trouble.
 	*/
-	planActualFinalTimeUt?: Value<"ut">;
+	planActualFinalTimeUt?: Value<"ut"> | null;
 	/** How many flight plans the vessel holds, up to the producer's ten. */
-	flightPlanCount?: Value<"count">;
+	flightPlanCount?: Value<"count"> | null;
 	/**
 	* Which plan is selected, from zero. **Minus one means none is selected**,
 	* which is a state rather than a zero, and every number on a plan board
 	* belongs to whichever this names.
 	*/
-	selectedFlightPlan?: Value<"count">;
+	selectedFlightPlan?: Value<"count"> | null;
 	/** The altitude the plan optimiser is solving for. */
-	optimiserTargetAltitudeMetres?: Value<"m">;
+	optimiserTargetAltitudeMetres?: Value<"m"> | null;
 	/**
 	* The inclination the optimiser is solving for, or null when inclination is
 	* NOT an objective. Null and zero are different instructions and rendering the
@@ -598,13 +598,13 @@ export interface PrincipiaSettings
 	* The optimised BODY is not here: it comes from the plotting frame, which is
 	* the coupling most easily got wrong.
 	*/
-	optimiserTargetInclinationDegrees?: Value<"°">;
+	optimiserTargetInclinationDegrees?: Value<"°"> | null;
 	/**
 	* How much flown history the producer draws, for the vessel and for every
 	* celestial. Our own map draws its own history, so this exists to explain a
 	* disagreement between screens rather than to drive one.
 	*/
-	historyLengthSeconds?: Value<"s">;
+	historyLengthSeconds?: Value<"s"> | null;
 	/**
 	* True when apsis, node and approach markers are hidden IN THE FRAME NOW
 	* SELECTED. This is the per-frame answer rather than the global one: a
@@ -612,16 +612,16 @@ export interface PrincipiaSettings
 	* here", which sends an operator looking for a physics problem that is a view
 	* setting.
 	*/
-	unpinnedMarkersHiddenHere?: boolean;
+	unpinnedMarkersHiddenHere?: boolean | null;
 	/**
 	* How many frames in total hide their unpinned markers, so the per-frame
 	* answer above can be read as one case of a habit.
 	*/
-	framesHidingUnpinnedMarkers?: Value<"count">;
+	framesHidingUnpinnedMarkers?: Value<"count"> | null;
 	/** As above, for celestial trajectories, in the frame now selected. */
-	unpinnedCelestialsHiddenHere?: boolean;
+	unpinnedCelestialsHiddenHere?: boolean | null;
 	/** As above, the total. */
-	framesHidingUnpinnedCelestials?: Value<"count">;
+	framesHidingUnpinnedCelestials?: Value<"count"> | null;
 	/**
 	* The bodies pinned exempt from the two hide settings, by name. Without it
 	* those settings are unfalsifiable: a hidden marker and an exempt one look the
@@ -629,55 +629,55 @@ export interface PrincipiaSettings
 	*/
 	pinnedCelestials?: string[];
 	/** True when the target is pinned exempt as well. */
-	targetPinned?: boolean;
+	targetPinned?: boolean | null;
 	/**
 	* True when the producer is synthesising a stock-shaped manœuvre node on the
 	* player's navball from its own guidance. Our navball takes the guidance
 	* directly; reading the synthesised node would be reading our own reflection
 	* back.
 	*/
-	showManoeuvreOnNavball?: boolean;
+	showManoeuvreOnNavball?: boolean | null;
 	/**
 	* True when the stability graph is drawn against the maximum-eccentricity,
 	* minimum-inclination contour family. The same curve against the wrong family
 	* reads as the opposite stability conclusion.
 	*/
-	stabilityGridMaxEccentricityMinInclination?: boolean;
+	stabilityGridMaxEccentricityMinInclination?: boolean | null;
 	/**
 	* True when it is drawn against the minimum-eccentricity, maximum-inclination
 	* family.
 	*/
-	stabilityGridMinEccentricityMaxInclination?: boolean;
+	stabilityGridMinEccentricityMaxInclination?: boolean | null;
 	/**
 	* True when the producer's own element graphs are shown. Ours are a widget
 	* rather than a toggle, so this is what explains an operator having history
 	* their game does not.
 	*/
-	showElementGraphs?: boolean;
+	showElementGraphs?: boolean | null;
 	/** The producer's verbose logging level, 0 to 4. */
-	verboseLevel?: Value<"count">;
+	verboseLevel?: Value<"count"> | null;
 	/**
 	* The severity at or above which a message is written to the log file. Three
 	* sinks, three independent thresholds, three settings.
 	*/
-	logThreshold?: Value<"count">;
+	logThreshold?: Value<"count"> | null;
 	/** The severity at or above which a message also reaches stderr. */
-	stderrThreshold?: Value<"count">;
+	stderrThreshold?: Value<"count"> | null;
 	/** The severity above which the log is flushed rather than buffered. */
-	flushThreshold?: Value<"count">;
+	flushThreshold?: Value<"count"> | null;
 	/**
 	* True when the operator has ASKED for a journal. It takes effect on the next
 	* load, so it is deliberately not the same fact as
 	* `PrincipiaSettings.journaling`.
 	*/
-	recordJournalRequested?: boolean;
+	recordJournalRequested?: boolean | null;
 	/**
 	* True when a recorder is ACTUALLY running. This is the state that stops us
 	* reading, precisely because it is the actual one: gating on the requested
 	* flag instead would stop us a session early and then fail to stop us at all
 	* in the case that matters.
 	*/
-	journaling?: boolean;
+	journaling?: boolean | null;
 }
 /**
 * The `principia.plan` channel: the selected flight plan as the PLUGIN answers
@@ -715,9 +715,9 @@ export interface PrincipiaPlan
 	* When the plugin was asked. Equal to the sample's own instant, unlike the
 	* window mirror's observation stamp.
 	*/
-	sampledAtUt?: Value<"ut">;
+	sampledAtUt?: Value<"ut"> | null;
 	/** True when the vessel holds a plan. False is a positive observation of none. */
-	planExists?: boolean;
+	planExists?: boolean | null;
 	/**
 	* Whether an edit can be dispatched at all, and if not, why.
 	*
@@ -727,27 +727,27 @@ export interface PrincipiaPlan
 	*/
 	writeSurface?: PrincipiaWriteSurface;
 	/** How many plans the vessel holds, up to the producer's ten. */
-	planCount?: Value<"count">;
+	planCount?: Value<"count"> | null;
 	/**
 	* Which plan is selected, from zero; **minus one means none**. Every number
 	* below belongs to whichever this names.
 	*/
-	selectedPlan?: Value<"count">;
+	selectedPlan?: Value<"count"> | null;
 	/** Where the plan begins. */
-	initialTimeUt?: Value<"ut">;
+	initialTimeUt?: Value<"ut"> | null;
 	/** Where the plan has been asked to end. */
-	desiredFinalTimeUt?: Value<"ut">;
+	desiredFinalTimeUt?: Value<"ut"> | null;
 	/**
 	* How far it actually integrated. Short of the desired final time exactly when
 	* the plan is in trouble.
 	*/
-	actualFinalTimeUt?: Value<"ut">;
+	actualFinalTimeUt?: Value<"ut"> | null;
 	/**
 	* How many burns the integrator flagged. They are the LAST n of
 	* `PrincipiaPlan.burns`, and each carries its own flag so no client repeats
 	* that rule.
 	*/
-	anomalousBurnCount?: Value<"count">;
+	anomalousBurnCount?: Value<"count"> | null;
 	/**
 	* Whether the plan integrated: true observed OK, false observed failed, **null
 	* when the status could not be read at all**.
@@ -760,13 +760,13 @@ export interface PrincipiaPlan
 	* keeps a different thing under a similar name: the status of the last edit
 	* the player made in that panel, which it clears once it has shown it.
 	*/
-	planIntegrated?: boolean;
+	planIntegrated?: boolean | null;
 	/**
 	* The integrator's own error code, when `PrincipiaPlan.planIntegrated` is
 	* false. Passed through rather than mapped: the codes are the producer's
 	* vocabulary.
 	*/
-	statusError?: number;
+	statusError?: number | null;
 	/**
 	* The integrator's own message for a failed plan, passed through as it stands.
 	* The producer's window composes localised prose on top of this; the raw
@@ -782,7 +782,7 @@ export interface PrincipiaPlan
 	* so this is `PrincipiaPlan.statusError` read through the producer's own
 	* predicate rather than compared against a number here.
 	*/
-	reachedDeadline?: boolean;
+	reachedDeadline?: boolean | null;
 	/**
 	* Index into `PrincipiaPlan.burns` of the next burn still ahead of the sample
 	* instant, or absent when every burn is behind it.
@@ -791,7 +791,7 @@ export interface PrincipiaPlan
 	* the rule the producer's own panel applies and no two clients should have to
 	* agree on it independently.
 	*/
-	firstFutureBurnIndex?: Value<"count">;
+	firstFutureBurnIndex?: Value<"count"> | null;
 	/**
 	* True when the producer's own optimiser is mid-run on this plan.
 	*
@@ -800,7 +800,7 @@ export interface PrincipiaPlan
 	* every frame, which discards an in-place edit wholesale and reports nothing.
 	* An edit dispatched while this is true is refused rather than raced.
 	*/
-	optimisationRunning?: boolean;
+	optimisationRunning?: boolean | null;
 	/**
 	* The integrator bounds this plan is being solved to, and the remedy for the
 	* commonest reason a plan will not draw.
@@ -822,7 +822,7 @@ export interface PrincipiaWriteSurface
 	* True when the surface could be armed: the producer's build is one whose
 	* write entry points were analysed, and a plan is there to edit.
 	*/
-	available?: boolean;
+	available?: boolean | null;
 	/**
 	* True when the operator has armed it, so an edit will actually be attempted.
 	*
@@ -833,7 +833,7 @@ export interface PrincipiaWriteSurface
 	* they are on the wire because a gate may legitimately pass on partial
 	* verification and may not report that as full verification.
 	*/
-	armed?: boolean;
+	armed?: boolean | null;
 	/**
 	* Whether a BURN was actually round-tripped through the plugin and came back
 	* unchanged.
@@ -846,14 +846,14 @@ export interface PrincipiaWriteSurface
 	* to know that the check covering the edit they were about to make had never
 	* run.
 	*/
-	burnLayoutVerified?: boolean;
+	burnLayoutVerified?: boolean | null;
 	/**
 	* Whether the integrator's step parameters were round-tripped and came back
 	* unchanged. Its own verdict, because a plan with no burns can still have its
 	* step limit raised, which is the commonest remedy for the plan most likely to
 	* have no burns drawn.
 	*/
-	integratorLayoutVerified?: boolean;
+	integratorLayoutVerified?: boolean | null;
 	/**
 	* Why the surface is unavailable or unarmed, in a sentence an operator can act
 	* on. Null only when `PrincipiaWriteSurface.armed` is true.
@@ -884,18 +884,18 @@ export interface PrincipiaWriteSurface
 export interface PrincipiaPlanIntegrator
 {
 	/** Step limit per segment. The remedy when a plan stops short. */
-	maxSteps?: Value<"count">;
+	maxSteps?: Value<"count"> | null;
 	/** Position tolerance. */
-	lengthToleranceMetres?: Value<"m">;
+	lengthToleranceMetres?: Value<"m"> | null;
 	/** Speed tolerance. */
-	speedToleranceMetresPerSecond?: Value<"m/s">;
+	speedToleranceMetresPerSecond?: Value<"m/s"> | null;
 	/** The integrator kind, as the producer's own enum value. */
-	integratorKind?: number;
+	integratorKind?: number | null;
 	/**
 	* The generalized integrator kind, from a DIFFERENT set of values than
 	* `PrincipiaPlanIntegrator.integratorKind`.
 	*/
-	generalizedIntegratorKind?: number;
+	generalizedIntegratorKind?: number | null;
 }
 /**
 * One planned burn, as the plugin describes it rather than as the producer's
@@ -909,68 +909,68 @@ export interface PrincipiaPlanIntegrator
 export interface PrincipiaPlannedBurn
 {
 	/** Position in the plan, from zero. */
-	index?: Value<"count">;
+	index?: Value<"count"> | null;
 	/**
 	* Ignition instant. The countdown an operator needs is to THIS, never to a
 	* node: a finite burn starts here and the producer anchors its own countdown
 	* the same way.
 	*/
-	ignitionUt?: Value<"ut">;
+	ignitionUt?: Value<"ut"> | null;
 	/** Cutoff instant. */
-	cutoffUt?: Value<"ut">;
+	cutoffUt?: Value<"ut"> | null;
 	/** Burn length, an interval. */
-	durationSeconds?: Value<"s">;
+	durationSeconds?: Value<"s"> | null;
 	/**
 	* How long from ignition until half the Δv has been spent, which is the
 	* instant a stock-shaped node would have been placed at.
 	*/
-	timeToHalfDeltaVSeconds?: Value<"s">;
+	timeToHalfDeltaVSeconds?: Value<"s"> | null;
 	/** Δv magnitude, derived from the triple. */
-	deltaV?: Value<"m/s">;
+	deltaV?: Value<"m/s"> | null;
 	/**
 	* The along-track component. The producer's own word for this axis is
 	* "tangent", and it is kept: relabelling it prograde is safe, but relabelling
 	* the other two is a physics error, and a triple whose axes come from two
 	* vocabularies is worse than one that keeps the producer's.
 	*/
-	deltaVTangent?: Value<"m/s">;
+	deltaVTangent?: Value<"m/s"> | null;
 	/** The in-plane component orthogonal to the track. */
-	deltaVNormal?: Value<"m/s">;
+	deltaVNormal?: Value<"m/s"> | null;
 	/** The out-of-plane component. */
-	deltaVBinormal?: Value<"m/s">;
+	deltaVBinormal?: Value<"m/s"> | null;
 	/**
 	* Which coordinate system the triple is expressed in, as the producer's own
 	* enum ordinal. One of its four values is Cartesian and the other three are
 	* spherical, and the components above are only the whole story for the
 	* Cartesian one.
 	*/
-	coordinateSystem?: number;
+	coordinateSystem?: number | null;
 	/**
 	* True when the burn holds a fixed inertial attitude instead of tracking its
 	* frame. A direction locked to the stars behaves differently from one that
 	* rotates with the orbit, and that difference is the whole point of the
 	* setting.
 	*/
-	inertiallyFixed?: boolean;
+	inertiallyFixed?: boolean | null;
 	/** Thrust the plan assumes. */
-	thrustKilonewtons?: Value<"kN">;
+	thrustKilonewtons?: Value<"kN"> | null;
 	/** Specific impulse the plan assumes, at standard gravity. */
-	specificImpulseSeconds?: Value<"isp">;
+	specificImpulseSeconds?: Value<"isp"> | null;
 	/** Vessel mass at ignition. */
-	initialMassTons?: Value<"t">;
+	initialMassTons?: Value<"t"> | null;
 	/** Vessel mass at cutoff. */
-	finalMassTons?: Value<"t">;
+	finalMassTons?: Value<"t"> | null;
 	/**
 	* Propellant consumption while the burn runs. Part of the planned profile
 	* rather than a curiosity: the plan integrates the burn, so a stage or engine
 	* change moves the trajectory.
 	*/
-	massFlowKilogramsPerSecond?: Value<"kg/s">;
+	massFlowKilogramsPerSecond?: Value<"kg/s"> | null;
 	/**
 	* The burn's own manœuvring frame, as the producer's frame-type enum value.
 	* Independent of the plotting frame, and routinely different.
 	*/
-	frameType?: number;
+	frameType?: number | null;
 	/**
 	* The body the burn's frame is centred on, when its kind has one. The two
 	* rotating kinds are declined with a PAIR instead and leave this null.
@@ -1015,19 +1015,19 @@ export interface PrincipiaPlannedBurn
 	* kill, so the answer travels with the burn rather than being rediscovered per
 	* client.
 	*/
-	frameEditable?: boolean;
+	frameEditable?: boolean | null;
 	/**
 	* True when the burn is running right now: ignition is past and cutoff is not.
 	* The plugin permits editing it and will not warn; that guard is ours, so the
 	* fact is published.
 	*/
-	executing?: boolean;
+	executing?: boolean | null;
 	/**
 	* True when this burn is one the integrator flagged, false when it is one the
 	* integrator was happy with, and `null` when the plan's flagged count would
 	* not read. Null is not a clean bill of health.
 	*/
-	anomalous?: boolean;
+	anomalous?: boolean | null;
 }
 /**
 * What actually happened to a dispatched plan write. Three states, and none of
@@ -1234,7 +1234,7 @@ export interface PrincipiaPlanWriteReceipt
 	* than a fresh write. A plan write re-integrates synchronously, so repeating
 	* one on a retry is expensive as well as wrong.
 	*/
-	replayed?: boolean;
+	replayed?: boolean | null;
 	/** Refused, rejected or written. Never a success by default. */
 	outcome: PrincipiaWriteOutcome;
 	/** Which guard refused it. */
@@ -1245,7 +1245,7 @@ export interface PrincipiaPlanWriteReceipt
 	* The producer's own status code when it declined. Zero when it accepted; null
 	* when we never called.
 	*/
-	statusError?: number;
+	statusError?: number | null;
 	/**
 	* The producer's own message for a declined write, passed through rather than
 	* reworded: it names conditions we do not model.

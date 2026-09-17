@@ -126,7 +126,11 @@ export function CrewSchedule({
  */
 function retirementLine(
   row: Rp1CrewEntry,
-  retirementEnabled: boolean | undefined,
+  // `null` as well as absent: `retirementEnabled` is a `bool?` and the wire
+  // keeps the key, so a career RP-1 could not answer for arrives as an explicit
+  // null. Only an explicit `false` suppresses the line; a null falls through
+  // and shows it, the same as never having heard.
+  retirementEnabled: boolean | null | undefined,
 ) {
   if (retirementEnabled === false) {
     return null;
@@ -213,7 +217,8 @@ function trainingLine(row: Rp1CrewEntry) {
  */
 function expiryLine(
   row: Rp1CrewEntry,
-  missionTrainingEnabled: boolean | undefined,
+  // Same `bool?` rule as retirementEnabled above.
+  missionTrainingEnabled: boolean | null | undefined,
 ) {
   if (missionTrainingEnabled === false) {
     return null;

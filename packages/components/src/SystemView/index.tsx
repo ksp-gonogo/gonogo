@@ -246,8 +246,12 @@ interface WireOrbit {
   sma: Value<"m">;
   ecc: Value<"1">;
   inc: Value<"°">;
-  lan?: Value<"°">;
-  argPe?: Value<"°">;
+  /* `| null` as well as optional: both are `double?` on the contract and the
+     wire keeps the key, so a circular or equatorial orbit whose node is
+     undefined arrives as an explicit null. `buildElements` already tests
+     `== null` for it. */
+  lan?: Value<"°"> | null;
+  argPe?: Value<"°"> | null;
   meanAnomalyAtEpoch: Value<"rad">;
   /** An INSTANT the elements are stated at, not a duration. */
   epoch: Value<"ut">;

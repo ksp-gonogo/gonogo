@@ -120,7 +120,11 @@ public class PendingUplink
     /// was asked for explicitly rather than slipped past it; the test carries
     /// the same reasoning.</para>
     /// </remarks>
+    // The key is OMITTED when null rather than written as null
+    // (JsonWriter.AppendPendingUplink guards it on HasValue), because a zero
+    // throttle and an unknown value must never arrive looking the same.
     [SitrepUnit(Units.NotApplicable)]
+    [SitrepOmittedWhenNull]
     public double? CommandedValue { get; set; }
 }
 
