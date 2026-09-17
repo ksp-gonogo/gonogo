@@ -47,6 +47,11 @@
       "elements": 13,
       "text": "f903d91f"
     },
+    "rotors-link-lost--default.png": {
+      "hash": "316c3296832345ad",
+      "elements": 44,
+      "text": "8d256182"
+    },
     "servos--default.png": {
       "hash": "a2b3db9ba8fce7db",
       "elements": 38,
@@ -56,6 +61,11 @@
       "hash": "a58fe2b27ae4f1bf",
       "elements": 27,
       "text": "220c5a23"
+    },
+    "servos-link-lost--default.png": {
+      "hash": "818e2832792984d2",
+      "elements": 36,
+      "text": "10c6c4b8"
     }
   }
 }
