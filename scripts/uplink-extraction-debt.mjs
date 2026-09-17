@@ -131,6 +131,4 @@ export const RUNTIME_IMPORT_EXEMPT = {
    * If the styled-components cause is ever fixed, the playwright condition
    * comes back rather than the entry simply being deleted.
    */
-  "@ksp-gonogo/uplink-tools":
-    "imports the kit at module scope, so it evaluates the same styled.span before it reaches anything of its own",
 };

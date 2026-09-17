@@ -27,7 +27,6 @@ import {
   type ForbiddenPackage,
   INTERNAL_IMPORT_DEBT,
   NON_AUTHOR_SUBPATHS,
-  PENDING_RULING,
 } from "./uplink-isolation.allowlist";
 
 /**
@@ -873,9 +872,8 @@ describe("uplink subpath isolation", () => {
     for (const [pkg, manifest] of Object.entries(published)) {
       const author = AUTHOR_SUBPATHS[pkg] ?? {};
       const nonAuthor = NON_AUTHOR_SUBPATHS[pkg] ?? {};
-      const pending = PENDING_RULING[pkg] ?? {};
       for (const sub of publishedSubpaths(manifest)) {
-        if (sub in author || sub in nonAuthor || sub in pending) continue;
+        if (sub in author || sub in nonAuthor) continue;
         unclassified.push(`${pkg}/${sub}`);
       }
     }
@@ -913,19 +911,24 @@ describe("uplink subpath isolation", () => {
     ).toEqual([]);
   });
 
-  it("keeps a pending-ruling subpath OFF the author surface", () => {
-    // The point of the third state: recorded, so it does not read as a new
-    // subpath defaulting, and still not importable.
-    for (const [pkg, subs] of Object.entries(PENDING_RULING)) {
-      for (const sub of Object.keys(subs)) {
-        expect(
-          AUTHOR_SUBPATHS[pkg]?.[sub],
-          `${pkg}/${sub} is awaiting a ruling and must not also be an author surface`,
-        ).toBeUndefined();
-        expect(
-          subs[sub]?.length ?? 0,
-          `${pkg}/${sub} needs the question written down, not an empty reason`,
-        ).toBeGreaterThan(40);
+  it("records a real reason for every classification, not a placeholder", () => {
+    /**
+     * Generalised from the guard written for the pending state: a decision with
+     * no reason recorded is how a classification becomes folklore. `./widgets`
+     * is the worked example, its reason being the operator's own words plus the
+     * ticket, which is what this is protecting.
+     */
+    for (const [label, map] of [
+      ["author", AUTHOR_SUBPATHS],
+      ["non-author", NON_AUTHOR_SUBPATHS],
+    ] as const) {
+      for (const [pkg, subs] of Object.entries(map)) {
+        for (const [sub, reason] of Object.entries(subs)) {
+          expect(
+            reason.length,
+            `${label} ${pkg}/${sub} needs the reason written down, not an empty placeholder`,
+          ).toBeGreaterThan(40);
+        }
       }
     }
   });
@@ -941,9 +944,7 @@ describe("uplink subpath isolation", () => {
         "Defaulting is what this list exists to prevent: a new subpath is reachable",
         "the moment it is published, and every other gate in the tree permits it.",
         "Decide, and record the reason, in AUTHOR_SUBPATHS or NON_AUTHOR_SUBPATHS in",
-        "packages/core/src/uplink-isolation.allowlist.ts. If the decision is not",
-        "yours to make, PENDING_RULING records the question and keeps the subpath",
-        "off the author surface meanwhile.",
+        "packages/core/src/uplink-isolation.allowlist.ts.",
       ].join("\n"),
     ).toEqual([]);
   });
