@@ -90,13 +90,40 @@ function CurrentOrbitComponent({
   });
 
   const {
-    apoapsisAltitude: apoapsisA,
-    periapsisAltitude: periapsisA,
+    apoapsisAltitude: apoapsisARaw,
+    periapsisAltitude: periapsisARaw,
     apoapsisRadius: apoapsisR,
     periapsisRadius: periapsisR,
-    timeToApoapsis: timeToAp,
-    timeToPeriapsis: timeToPe,
+    timeToApoapsis: timeToApRaw,
+    timeToPeriapsis: timeToPeRaw,
+    status: derivedStatus,
   } = useOrbitElements();
+  /*
+   * The derived figures NULL when their channel is no longer current, which is
+   * the same answer the reading-backed elements below already give.
+   *
+   * These ride `vessel.state`, which carries no `Reading`, so until ticket 346
+   * nothing could mark or withhold them: on a stale orbit with no model this
+   * grid nulled `sma`, `ecc` and `inc` and went on drawing Ap, Pe and both
+   * countdowns as confident present-tense claims, side by side in one column.
+   * `useOrbitElements` now reports the channel's own currency and this is where
+   * it is spent.
+   *
+   * NULL rather than a mark, per the operator's criterion for who earns a
+   * staleness presentation: "the widgets that earn it are ones with a greater
+   * sense of being used second by second". An apoapsis is not read that way,
+   * so it falls the same side as `ecc` and `inc` and the column stays
+   * consistent.
+   *
+   * The RADII are deliberately NOT nulled: they feed the diagram's own
+   * geometry rather than a readout, and the diagram already refuses to draw a
+   * curve it cannot make current.
+   */
+  const derivedCurrent = derivedStatus === "live";
+  const apoapsisA = derivedCurrent ? apoapsisARaw : undefined;
+  const periapsisA = derivedCurrent ? periapsisARaw : undefined;
+  const timeToAp = derivedCurrent ? timeToApRaw : undefined;
+  const timeToPe = derivedCurrent ? timeToPeRaw : undefined;
 
   /**
    * What the operator's own view frame does to these two numbers.
@@ -168,7 +195,11 @@ function CurrentOrbitComponent({
   const argPe = orbit?.argPe;
   const inclination = orbit?.inc;
   const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
-  const period = vesselState?.period ?? undefined;
+  /* Same rule as the four above: a period drawn from a channel that has stopped
+     arriving is a present-tense claim this widget does not get to make. */
+  const period = derivedCurrent
+    ? (vesselState?.period ?? undefined)
+    : undefined;
   const refBody = vesselState?.referenceBodyName ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
   // Connectivity indicator: `o.sma` is the representative topic (its resolved

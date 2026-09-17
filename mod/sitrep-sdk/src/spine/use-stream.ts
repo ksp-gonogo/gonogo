@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+import type { StreamStatusValue } from "../api/types";
 import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -67,6 +68,61 @@ export function useStream<T>(topic: string): T | undefined {
     // through as-is, same as the pre-bridge `client.getValue()` read would
     // have for a raw topic; only "no point at all" collapses to `undefined`.
     return point ? (point.payload as T | undefined) : undefined;
+  }, [store, topic]);
+
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/**
+ * The CURRENCY of `topic`, raw or derived, resolved from context exactly as
+ * {@link useStream} resolves the value.
+ *
+ * `useStreamStatus` in `@ksp-gonogo/sitrep-client` already reads
+ * `store.sampleStatus`, and its own doc prescribes the pairing: "pair the two
+ * hooks for `{ value, status }`-shaped widget consumption". What it cannot do
+ * is find the store, because it takes one as an argument while `useStream`
+ * resolves it from the provider. That gap is why no widget paired them: a
+ * derived channel's status was computed, published and unreachable from the
+ * place that draws it.
+ *
+ * ## The gap this closes, stated because it is not obvious from either side
+ *
+ * `vessel.state` declares `deriveStatus` and `deriveReckoning` on its channel
+ * definition, so its currency has always existed. Widgets read it through
+ * `useStream`, which returns the payload alone, so every figure sourced from a
+ * derived channel drew as confidently as a live one and nothing in the reading
+ * system could mark it. Ticket 346. Two widgets had already worked around it by
+ * inferring staleness from a SIBLING channel, which holds only while the
+ * sibling's currency tracks the derived value's, and nothing enforces that.
+ *
+ * Same frame as the value: both go through `store.currentFrame()`, so a pair
+ * read in one render cannot disagree about which frame it describes.
+ */
+export function useTopicStatus(topic: string): StreamStatusValue {
+  const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!client || !store) return () => {};
+      const releaseInputs = subscribeTopicRead(client, store, topic);
+      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
+      return () => {
+        unsubscribeFrame();
+        releaseInputs();
+      };
+    },
+    [client, store, topic],
+  );
+
+  /*
+   * `"resyncing"` with no provider, not `"live"`: the honest floor is "nothing
+   * has told us anything yet", and defaulting to live would make an unmounted
+   * dashboard claim currency it cannot have.
+   */
+  const getSnapshot = useCallback((): StreamStatusValue => {
+    if (!store) return "resyncing";
+    return store.sampleStatus(topic, store.currentFrame());
   }, [store, topic]);
 
   return useSyncExternalStore(subscribe, getSnapshot);

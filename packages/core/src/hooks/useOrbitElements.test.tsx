@@ -87,6 +87,10 @@ describe("useOrbitElements", () => {
       periapsisAltitude: undefined,
       timeToApoapsis: undefined,
       timeToPeriapsis: undefined,
+      /* The honest floor before anything has told us anything: NOT "live",
+         which would have an unmounted dashboard claim a currency it cannot
+         have. Ticket 346. */
+      status: "resyncing",
     });
   });
 
@@ -100,6 +104,10 @@ describe("useOrbitElements", () => {
       periapsisAltitude: undefined,
       timeToApoapsis: undefined,
       timeToPeriapsis: undefined,
+      /* The honest floor before anything has told us anything: NOT "live",
+         which would have an unmounted dashboard claim a currency it cannot
+         have. Ticket 346. */
+      status: "resyncing",
     });
   });
 
@@ -224,6 +232,10 @@ describe("useOrbitElements", () => {
         periapsisAltitude: undefined,
         timeToApoapsis: undefined,
         timeToPeriapsis: undefined,
+        /* A tombstone is a CONFIRMED absence, which the channel's own
+           `deriveStatus` reports as `"absent"` rather than as resyncing: the
+           distinction the status field exists to carry. */
+        status: "absent",
       }),
     );
   });
