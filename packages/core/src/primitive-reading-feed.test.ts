@@ -413,17 +413,22 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * funds were read, `career?.economy?.funds` reached off a payload, or a
  * `describeReckonable(reading)` helper that hands back bare values.
  *
- * Seeded from the walk on 2026-09-16, not typed out: 56 sites over 23 files.
- * It is a CEILING and an exact one, because unlike the act-warning counts this
- * number comes from a deterministic static walk rather than from a race, so a
- * file that drops below its entry can and must tighten it in the same commit.
- * An approximate ceiling on an exact measurement is just a place to hide.
+ * Derived from the walk rather than typed out, so the total lives in the list
+ * below rather than in this sentence. It is a CEILING and an exact one,
+ * because unlike the act-warning counts this number comes from a deterministic
+ * static walk rather than from a race, so a file that drops below its entry
+ * can and must tighten it in the same commit. An approximate ceiling on an
+ * exact measurement is just a place to hide.
  *
  * Three different fixes, which is why this is a survey rather than a task:
  * a minted `Value` goes through `combineReadings`, a payload field moves onto
  * the field property, and a laundering helper has to return readings itself.
- * Which of them each site wants is the operator's to schedule; what this list
- * does is stop the number growing while that decision is open.
+ * Which of them each site wants is a scheduling decision; what this list does
+ * is stop the number growing while that decision is open.
+ *
+ * A cleared entry is only as strong as the REACH that cleared it. See the
+ * RotorTachometer entry: cleared honestly against what the walk could see, and
+ * holding two sites all along behind the one shape it was blind to.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
   /*
@@ -465,36 +470,21 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * `FieldReading<unknown>` and `Unit` refuses it. Its own ticket, because it
    * recurs for every Uplink augment that reads an extension bag.
    *
-   * The other two are ordinary field properties and were migrated on
-   * 2026-09-17, then REVERTED the same day: #337 ruled that a comms figure must
-   * null when the link stops arriving rather than draw held, and a field
-   * reading exists precisely to carry that currency to the screen. So the
-   * observed-only read is the ruled behaviour here and the gate's premise does
-   * not apply. Not debt a migration can pay.
+   * The other two are ordinary field properties, and they are still NOT debt a
+   * migration can pay: a comms figure must null when the link stops arriving
+   * rather than draw held, and a field reading exists precisely to carry that
+   * currency to the screen. So the observed-only read is the wanted behaviour
+   * here and the gate's premise does not apply.
    */
   "mod/GonogoRealAntennasUplink/client/src/CommSignalRaAugment/index.tsx": 6,
-  // The one RP-1 site no accessor can reach: `chosen` is an element of a
-  // FILTERED list, and a payload is addressed BY PATH, so an element selected
-  // by predicate has none. Filed as #310, and it will recur in the Targeting
-  // slices rather than being worked around here.
-  /*
-   * Newly VISIBLE rather than newly written: the walk followed a call's
-   * ARGUMENTS and not its callee, so `offered.find(...)` put the list nowhere
-   * it looked. Closed by the commit that added the currency exemption, since
-   * the shape turned up while planting that exemption's control.
-   *
-   * And it is #310 again: `selected` is an element chosen by PREDICATE, so the
-   * payload has no path for the accessor to address. Stays for the same reason
-   * `StartResearch` does.
-   */
   "packages/components/src/AstronautComplex/index.tsx": 2,
   /*
-   * Migrated on 2026-09-17 and REVERTED the same day, for the reason on the
-   * RealAntennas entry below: #337 ruled that a comms figure NULLS when the
-   * link stops arriving rather than drawing held, and a field reading exists to
-   * carry that currency to the screen. The observed-only read plus a minted
-   * `Value` is the ruled behaviour, so this site is not debt a migration can
-   * pay. Revisit only if that ruling changes.
+   * NOT debt a migration can pay, for the reason on the RealAntennas entry
+   * above: a comms figure NULLS when the link stops arriving rather than
+   * drawing held, and a field reading exists precisely to carry that currency
+   * to the screen. So the observed-only read plus a minted `Value` is the
+   * wanted behaviour here and the gate's premise does not apply. Revisit only
+   * if that rule changes.
    */
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,
