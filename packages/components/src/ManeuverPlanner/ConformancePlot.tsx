@@ -121,42 +121,78 @@ export interface ConformancePlotProps {
 /**
  * Where the two conics are furthest apart, and how far apart they are there.
  *
- * <p>Apoapsis, for the reason the geometry gives: a burn changes the orbit
- * most at the apsis OPPOSITE the point it was made at, and a maneuver node's
- * own instant is where the two conics still touch. So the widest part of the
- * gap is the far apsis, and its width is the difference of the two apoapsis
- * radii.</p>
+ * <p>SAMPLED rather than reasoned to. The obvious shortcut is the far apsis,
+ * on the argument that a burn changes the orbit most opposite the point it was
+ * made at. That holds only for a burn AT an apsis: a burn made elsewhere
+ * leaves two conics that can share an apoapsis almost exactly and diverge at
+ * the other end, and assuming the apsis then reports a gap of about a metre
+ * for a pair visibly far apart.</p>
  *
- * <p>Null when either conic is unbounded, or when the two coincide: a frame
- * around a gap of zero has no extent to choose and nothing to show.</p>
+ * <p>Both radii are taken in the same inertial frame, each against its OWN
+ * argument of periapsis, because a burn rotates the apsides and a difference
+ * measured against one orbit's line of apsides is not a difference in space.
+ * </p>
+ *
+ * <p>Null when either conic is unbounded, or when they never separate: a frame
+ * around a gap of zero has no extent to choose, which is what drew a frame six
+ * metres across and filled the panel with it.</p>
  */
-function widestSeparation(
+export function widestSeparation(
   current: { sma: number; ecc: number; argPe: number },
   planned: ProjectedOrbit,
 ): { x: number; y: number; gap: number } | null {
   if (current.ecc >= 1 || current.sma <= 0) return null;
   if (planned.ecc >= 1 || planned.sma <= 0) return null;
 
-  const currentApR = current.sma * (1 + current.ecc);
-  const plannedApR = planned.sma * (1 + planned.ecc);
-  const gap = Math.abs(plannedApR - currentApR);
-  if (!(gap > 0)) return null;
-
-  // Apoapsis sits opposite the focus, and the diagram rotates by -argPe.
-  const theta = (-current.argPe * Math.PI) / 180;
-  return {
-    x: -currentApR * Math.cos(theta),
-    y: -currentApR * Math.sin(theta),
-    gap,
+  const plannedArgPe = planned.argPe ?? current.argPe;
+  const radiusAt = (
+    sma: number,
+    ecc: number,
+    argPeDeg: number,
+    nuDeg: number,
+  ): number => {
+    const trueFromPe = ((nuDeg - argPeDeg) * Math.PI) / 180;
+    return (sma * (1 - ecc * ecc)) / (1 + ecc * Math.cos(trueFromPe));
   };
+
+  let bestNu = 0;
+  let bestGap = 0;
+  for (let nu = 0; nu < 360; nu += 0.5) {
+    const a = radiusAt(current.sma, current.ecc, current.argPe, nu);
+    const b = radiusAt(planned.sma, planned.ecc, plannedArgPe, nu);
+    const gap = Math.abs(a - b);
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestNu = nu;
+    }
+  }
+  if (!(bestGap > 0)) return null;
+
+  // On the flown curve at that bearing, and in the diagram's own frame, whose
+  // rotation is the negative of the angle.
+  const r = radiusAt(current.sma, current.ecc, current.argPe, bestNu);
+  const theta = (-bestNu * Math.PI) / 180;
+  return { x: r * Math.cos(theta), y: r * Math.sin(theta), gap: bestGap };
 }
 
-/**
- * How much room to give the gap in the inset. Six half-gaps puts the two
- * curves roughly a third of the frame apart, which reads as a separation
- * rather than as two curves that happen not to touch.
- */
 const INSET_GAP_MULTIPLE = 6;
+
+/**
+ * The widest gap, as a share of the orbit, that still needs a closer look.
+ *
+ * <p>Derived rather than chosen: `OrbitDiagram`'s mini variant strokes a conic
+ * at 0.012 of the drawn extent, so a gap bounded by two of those needs to be
+ * appreciably wider than three strokes before it reads as a gap at all. Below
+ * that the main frame cannot show it and the detail frame earns its place;
+ * above it the main frame already does, and a second picture of the same fact
+ * is just a bigger one.</p>
+ *
+ * <p>This is also what keeps the detail frame from degenerating. Its extent is
+ * six half-gaps, so a gap that is itself a large fraction of the orbit asks for
+ * a frame LARGER than the orbit, drawn with strokes scaled to match: the
+ * operator saw that as "a large orange blob with little to read".</p>
+ */
+const INSET_SHOWN_BELOW_EXTENT_FRACTION = 0.036;
 
 export function ConformancePlot({
   current,
@@ -173,9 +209,21 @@ export function ConformancePlot({
    * corridor's own regime gate applies here for the same reason, and a gap of
    * zero gets no frame rather than an infinitely magnified one.
    */
-  const inset =
+  const separation =
     regime === "deviance" && current && planned
       ? widestSeparation(current, planned)
+      : null;
+  /*
+   * Only where the main frame cannot already show it. A gap the operator can
+   * read off the orbit above needs no second picture, and asking for one is
+   * what produced a frame wider than the orbit itself.
+   */
+  const inset =
+    separation &&
+    current !== null &&
+    current.apoapsis > 0 &&
+    separation.gap / current.apoapsis < INSET_SHOWN_BELOW_EXTENT_FRACTION
+      ? separation
       : null;
   const attributable = devianceIsAttributable(residual);
   const withheld =
@@ -239,10 +287,27 @@ export function ConformancePlot({
             variant="mini"
           />
         </div>
-      ) : null}
+      ) : (
+        <span style={CAPTION}>{NULL_DISPLAY} no current orbit</span>
+      )}
       {inset && current ? (
         <div style={{ opacity: currentIsObserved ? 1 : 0.55 }}>
           {/*
+            Named, because a second orbit picture directly under the first
+            reads as another plot rather than as a closer look at the one
+            above it. The caption below carries the distance; this carries
+            what the frame IS.
+          */}
+          <span style={CAPTION}>detail: widest gap, true scale</span>
+          {/*
+            A strip rather than a square. The frame's WIDTH carries the
+            separation; its height only decides how much arc runs through it,
+            and left square it took as much room as the orbit it is a detail
+            of. `OrbitDiagram` fits its viewBox to whatever aspect it is
+            measured at, so constraining the box here is the whole mechanism.
+          */}
+          <div style={{ width: "100%", aspectRatio: "5 / 2", display: "flex" }}>
+            {/*
             The same two curves, framed on the widest part of the gap instead
             of on the orbit that contains it. Nothing is redrawn and nothing is
             stretched: every distance inside this frame is in true proportion
@@ -250,36 +315,44 @@ export function ConformancePlot({
             exaggeration. The frame's SIZE is derived from the gap, so it reads
             whether the burn missed by kilometres or by metres.
           */}
-          <OrbitDiagram
-            sma={current.sma}
-            ecc={current.ecc}
-            apoapsis={current.apoapsis}
-            periapsis={current.periapsis}
-            trueAnomaly={current.trueAnomaly}
-            argPe={current.argPe}
-            projected={planned}
-            corridor
-            /*
-             * The apsis markers are suppressed here: at this framing the
-             * apoapsis dot sits exactly where the separation is, and a marker
-             * scaled to the frame covers the thing the frame exists to show.
-             */
-            showMarkers={false}
-            focus={{
-              x: inset.x,
-              y: inset.y,
-              halfExtent: inset.gap * INSET_GAP_MULTIPLE,
-            }}
-            variant="mini"
-          />
+            <OrbitDiagram
+              sma={current.sma}
+              ecc={current.ecc}
+              apoapsis={current.apoapsis}
+              periapsis={current.periapsis}
+              trueAnomaly={current.trueAnomaly}
+              argPe={current.argPe}
+              projected={planned}
+              corridor
+              /*
+               * The apsis markers are suppressed here: at this framing the
+               * apoapsis dot sits exactly where the separation is, and a marker
+               * scaled to the frame covers the thing the frame exists to show.
+               */
+              showMarkers={false}
+              focus={{
+                x: inset.x,
+                y: inset.y,
+                halfExtent: inset.gap * INSET_GAP_MULTIPLE,
+                /*
+                 * Lay the arc along the strip. At the apsis the separation is
+                 * radial and the arc runs perpendicular to it, so without this
+                 * a frame wide enough to read is also tall enough to dominate
+                 * the panel. Derived from where the frame is rather than
+                 * fixed: the apsis direction is the focus point's own bearing.
+                 */
+                rotationDeg:
+                  90 - (Math.atan2(inset.y, inset.x) * 180) / Math.PI,
+              }}
+              variant="mini"
+            />
+          </div>
           <span style={CAPTION}>
-            at apoapsis, flown vs planned:{" "}
+            widest gap, flown vs planned:{" "}
             <Unit value={value("m", inset.gap)} decimals={0} /> apart
           </span>
         </div>
-      ) : (
-        <span style={CAPTION}>{NULL_DISPLAY} no current orbit</span>
-      )}
+      ) : null}
       {/* The model's own limit, stated where the output is read rather than in a
           doc, and COMPUTED for this burn: the same sentence would be wrong at
           both ends of the range (0.03% of the delta-v for a burn spanning 2.4

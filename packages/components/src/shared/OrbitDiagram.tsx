@@ -6,6 +6,7 @@ import {
 import type { ArcFarEnd } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -111,7 +112,19 @@ export interface OrbitDiagramProps {
    * half-extent FROM the difference gets a frame that reads at whatever size
    * the difference happens to be.</p>
    */
-  focus?: { x: number; y: number; halfExtent: number } | null;
+  focus?: {
+    x: number;
+    y: number;
+    halfExtent: number;
+    /**
+     * Turn the scene about the focus point, degrees, so the arc through it
+     * runs along the frame rather than across it. A separation is measured
+     * ACROSS the curves and read ALONG them, so the two want perpendicular
+     * axes: without this, a frame short enough not to dominate the panel is
+     * also too short to show any arc.
+     */
+    rotationDeg?: number;
+  } | null;
   /** Interactive prograde/radial drag handles at the burn point. */
   maneuverHandles?: ManeuverHandleProps | null;
   /**
@@ -231,6 +244,23 @@ function conicPolygon(
 
 /** Points per conic in a corridor. 240 keeps the fill smooth at the widest variant. */
 const CORRIDOR_STEPS = 240;
+
+/**
+ * Applies a rotation to the scene, and emits NOTHING when there is none.
+ *
+ * An unconditional wrapper would be invisible and still wrong: it adds a `<g>`
+ * to the DOM of every diagram in the app for a transform only the focus frame
+ * asks for, which is a change to markup that other widgets pin.
+ */
+function Rotated({
+  transform,
+  children,
+}: {
+  transform?: string;
+  children: ReactNode;
+}) {
+  return transform ? <g transform={transform}>{children}</g> : <>{children}</>;
+}
 
 export function OrbitDiagram({
   sma,
@@ -507,278 +537,286 @@ export function OrbitDiagram({
            one. */
         data-orbiting={isOrbiting ? "yes" : "no"}
       >
-        {/* The corridor between flown and planned, drawn first so both
+        <Rotated
+          transform={
+            focus?.rotationDeg
+              ? `rotate(${focus.rotationDeg} ${focus.x} ${focus.y})`
+              : undefined
+          }
+        >
+          {/* The corridor between flown and planned, drawn first so both
           strokes stay legible on top of it. An even-odd ring: two closed
           subpaths, so whichever conic is inside the other leaves a hole
           rather than the fill covering the gap it exists to show. Which one
           encloses which is not fixed (a burn can raise or lower the orbit),
           and even-odd means nothing here has to know. */}
-        {corridorPath && (
-          <path
-            d={corridorPath}
-            fillRule="evenodd"
-            fill="rgba(255,180,40,0.22)"
-            stroke="none"
-          />
-        )}
-
-        {/* Projected orbit (behind): dashed, amber to contrast with the
-          green "current" trajectory. Drawn before the current orbit so
-          the live trajectory stays visually dominant. */}
-        {projected && (
-          <g transform={`rotate(${-projArgPe})`}>
-            {projIsHyperbolic ? (
-              <path
-                d={buildHyperbolicPath(
-                  projected.sma,
-                  projected.ecc,
-                  projected.periapsis * HYPERBOLIC_SCALE,
-                )}
-                fill="none"
-                stroke="rgba(255,180,40,0.75)"
-                strokeWidth={strokeW}
-                strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
-              />
-            ) : (
-              <ellipse
-                cx={-projC}
-                cy={0}
-                rx={projected.sma}
-                ry={projB}
-                fill="none"
-                stroke="rgba(255,180,40,0.75)"
-                strokeWidth={strokeW}
-                strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
-              />
-            )}
-          </g>
-        )}
-
-        {/* Secondary projection: solid amber. Used for the "final"
-          orbit on a Hohmann transfer; the (dashed) `projected` carries
-          the intermediate transfer ellipse. */}
-        {secondaryProjected && (
-          <g transform={`rotate(${-sec2ArgPe})`}>
-            {sec2IsHyperbolic ? (
-              <path
-                d={buildHyperbolicPath(
-                  secondaryProjected.sma,
-                  secondaryProjected.ecc,
-                  secondaryProjected.periapsis * HYPERBOLIC_SCALE,
-                )}
-                fill="none"
-                stroke="rgba(255,180,40,0.95)"
-                strokeWidth={strokeW}
-              />
-            ) : (
-              <ellipse
-                cx={-sec2C}
-                cy={0}
-                rx={secondaryProjected.sma}
-                ry={sec2B}
-                fill="none"
-                stroke="rgba(255,180,40,0.95)"
-                strokeWidth={strokeW}
-              />
-            )}
-          </g>
-        )}
-
-        {/* Trajectory first so the body overdraws it at the focus */}
-        <g transform={`rotate(${-argPe})`}>
-          {trailPath && trailPath.length > 1 && (
-            /* Dimmer and thinner than the forward arc, because it is the other
-               kind of claim: what was observed, against what is predicted. */
+          {corridorPath && (
             <path
-              data-trajectory="trail"
-              d={buildSuppliedPath(trailPath)}
-              fill="none"
-              stroke={orbitStroke}
-              strokeOpacity={0.35}
-              strokeWidth={strokeW * 0.6}
+              d={corridorPath}
+              fillRule="evenodd"
+              fill="rgba(255,180,40,0.22)"
+              stroke="none"
             />
           )}
-          {trajectoryPath ? (
-            /* A supplied path wins over the conic: the seam has said this is
+
+          {/* Projected orbit (behind): dashed, amber to contrast with the
+          green "current" trajectory. Drawn before the current orbit so
+          the live trajectory stays visually dominant. */}
+          {projected && (
+            <g transform={`rotate(${-projArgPe})`}>
+              {projIsHyperbolic ? (
+                <path
+                  d={buildHyperbolicPath(
+                    projected.sma,
+                    projected.ecc,
+                    projected.periapsis * HYPERBOLIC_SCALE,
+                  )}
+                  fill="none"
+                  stroke="rgba(255,180,40,0.75)"
+                  strokeWidth={strokeW}
+                  strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
+                />
+              ) : (
+                <ellipse
+                  cx={-projC}
+                  cy={0}
+                  rx={projected.sma}
+                  ry={projB}
+                  fill="none"
+                  stroke="rgba(255,180,40,0.75)"
+                  strokeWidth={strokeW}
+                  strokeDasharray={`${strokeW * 4} ${strokeW * 3}`}
+                />
+              )}
+            </g>
+          )}
+
+          {/* Secondary projection: solid amber. Used for the "final"
+          orbit on a Hohmann transfer; the (dashed) `projected` carries
+          the intermediate transfer ellipse. */}
+          {secondaryProjected && (
+            <g transform={`rotate(${-sec2ArgPe})`}>
+              {sec2IsHyperbolic ? (
+                <path
+                  d={buildHyperbolicPath(
+                    secondaryProjected.sma,
+                    secondaryProjected.ecc,
+                    secondaryProjected.periapsis * HYPERBOLIC_SCALE,
+                  )}
+                  fill="none"
+                  stroke="rgba(255,180,40,0.95)"
+                  strokeWidth={strokeW}
+                />
+              ) : (
+                <ellipse
+                  cx={-sec2C}
+                  cy={0}
+                  rx={secondaryProjected.sma}
+                  ry={sec2B}
+                  fill="none"
+                  stroke="rgba(255,180,40,0.95)"
+                  strokeWidth={strokeW}
+                />
+              )}
+            </g>
+          )}
+
+          {/* Trajectory first so the body overdraws it at the focus */}
+          <g transform={`rotate(${-argPe})`}>
+            {trailPath && trailPath.length > 1 && (
+              /* Dimmer and thinner than the forward arc, because it is the other
+               kind of claim: what was observed, against what is predicted. */
+              <path
+                data-trajectory="trail"
+                d={buildSuppliedPath(trailPath)}
+                fill="none"
+                stroke={orbitStroke}
+                strokeOpacity={0.35}
+                strokeWidth={strokeW * 0.6}
+              />
+            )}
+            {trajectoryPath ? (
+              /* A supplied path wins over the conic: the seam has said this is
                the trajectory, and deriving one from the elements beside it
                would be drawing a second, contradicting answer. Open by
                construction, no `Z`: it stops where the provider stopped. */
-            <>
+              <>
+                <path
+                  data-trajectory="supplied"
+                  d={buildSuppliedPath(trajectoryPath)}
+                  fill="none"
+                  stroke={orbitStroke}
+                  strokeWidth={strokeW}
+                />
+                <HorizonMark
+                  points={trajectoryPath}
+                  farEnd={trajectoryFarEnd}
+                  length={dotR * 2.4}
+                  strokeWidth={strokeW * 1.8}
+                  stroke={orbitStroke}
+                />
+              </>
+            ) : isHyperbolic ? (
               <path
-                data-trajectory="supplied"
-                d={buildSuppliedPath(trajectoryPath)}
+                d={buildHyperbolicPath(sma, ecc, periapsis * HYPERBOLIC_SCALE)}
                 fill="none"
                 stroke={orbitStroke}
                 strokeWidth={strokeW}
               />
-              <HorizonMark
-                points={trajectoryPath}
-                farEnd={trajectoryFarEnd}
-                length={dotR * 2.4}
-                strokeWidth={strokeW * 1.8}
+            ) : (
+              <ellipse
+                cx={-c}
+                cy={0}
+                rx={sma}
+                ry={b}
+                fill="none"
                 stroke={orbitStroke}
+                strokeWidth={strokeW}
               />
-            </>
-          ) : isHyperbolic ? (
-            <path
-              d={buildHyperbolicPath(sma, ecc, periapsis * HYPERBOLIC_SCALE)}
-              fill="none"
-              stroke={orbitStroke}
-              strokeWidth={strokeW}
-            />
-          ) : (
-            <ellipse
-              cx={-c}
-              cy={0}
-              rx={sma}
-              ry={b}
-              fill="none"
-              stroke={orbitStroke}
-              strokeWidth={strokeW}
-            />
-          )}
-        </g>
+            )}
+          </g>
 
-        {/* Atmosphere band: soft radial gradient from body surface to
+          {/* Atmosphere band: soft radial gradient from body surface to
             atmosphere top. Drawn before the body disc so the body's solid
             fill occludes the inner edge. */}
-        {atmosphereDepthM !== null &&
-          atmosphereDepthM > 0 &&
-          bodyRadius !== undefined && (
-            <circle
-              data-atmosphere={atmosphereHasOxygen ? "oxygen" : "inert"}
-              cx={0}
-              cy={0}
-              r={bodyRadius + atmosphereDepthM}
-              fill={
-                atmosphereHasOxygen
-                  ? "rgba(80, 160, 220, 0.18)"
-                  : "rgba(220, 140, 60, 0.16)"
-              }
-            />
-          )}
+          {atmosphereDepthM !== null &&
+            atmosphereDepthM > 0 &&
+            bodyRadius !== undefined && (
+              <circle
+                data-atmosphere={atmosphereHasOxygen ? "oxygen" : "inert"}
+                cx={0}
+                cy={0}
+                r={bodyRadius + atmosphereDepthM}
+                fill={
+                  atmosphereHasOxygen
+                    ? "rgba(80, 160, 220, 0.18)"
+                    : "rgba(220, 140, 60, 0.16)"
+                }
+              />
+            )}
 
-        <circle
-          cx={0}
-          cy={0}
-          r={bodyDisc}
-          fill={bodyColor ?? cfg.defaultBodyColor}
-        />
+          <circle
+            cx={0}
+            cy={0}
+            r={bodyDisc}
+            fill={bodyColor ?? cfg.defaultBodyColor}
+          />
 
-        {/* Rotation marker: a small dot near the limb that rotates as
+          {/* Rotation marker: a small dot near the limb that rotates as
             `b.rotationAngle` ticks. Rendered with a thin diameter line so
             the rotation is legible even on small body discs. Only shown
             in the "full" variant; mini-variant frames are too small for
             a meaningful read. */}
-        {rotationAngleDeg !== null && variant === "full" && (
-          <g transform={`rotate(${-rotationAngleDeg})`}>
-            <line
-              x1={-bodyDisc * 0.85}
-              y1={0}
-              x2={bodyDisc * 0.85}
-              y2={0}
-              stroke="rgba(255, 255, 255, 0.35)"
-              strokeWidth={strokeW * 0.6}
-            />
-            <circle
-              cx={bodyDisc * 0.9}
-              cy={0}
-              r={dotR * 0.5}
-              fill="rgba(255, 255, 255, 0.7)"
-            />
-          </g>
-        )}
+          {rotationAngleDeg !== null && variant === "full" && (
+            <g transform={`rotate(${-rotationAngleDeg})`}>
+              <line
+                x1={-bodyDisc * 0.85}
+                y1={0}
+                x2={bodyDisc * 0.85}
+                y2={0}
+                stroke="rgba(255, 255, 255, 0.35)"
+                strokeWidth={strokeW * 0.6}
+              />
+              <circle
+                cx={bodyDisc * 0.9}
+                cy={0}
+                r={dotR * 0.5}
+                fill="rgba(255, 255, 255, 0.7)"
+              />
+            </g>
+          )}
 
-        <g transform={`rotate(${-argPe})`}>
-          {showMarkers && (
-            <>
-              {/* Apoapsis is undefined on a hyperbolic trajectory. Skip the
+          <g transform={`rotate(${-argPe})`}>
+            {showMarkers && (
+              <>
+                {/* Apoapsis is undefined on a hyperbolic trajectory. Skip the
                   marker rather than place it at a sentinel value, which would
                   land it off-screen and point a "tab to focus" target at empty
                   space. */}
-              {!isHyperbolic && (
+                {!isHyperbolic && (
+                  <ApsisMarker
+                    cx={-apoapsis}
+                    cy={0}
+                    r={dotR}
+                    fill="var(--color-status-warning-bg)"
+                    aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
+                    onMouseEnter={() => setHoveredMarker("ap")}
+                    onMouseLeave={() => setHoveredMarker(null)}
+                    onFocus={() => setHoveredMarker("ap")}
+                    onBlur={() => setHoveredMarker(null)}
+                    tabIndex={0}
+                  />
+                )}
                 <ApsisMarker
-                  cx={-apoapsis}
+                  cx={periapsis}
                   cy={0}
                   r={dotR}
-                  fill="var(--color-status-warning-bg)"
-                  aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
-                  onMouseEnter={() => setHoveredMarker("ap")}
+                  fill="var(--color-tag-blue-fg)"
+                  aria-label={`Periapsis altitude ${formatAltitude(periapsis, bodyRadius)}`}
+                  onMouseEnter={() => setHoveredMarker("pe")}
                   onMouseLeave={() => setHoveredMarker(null)}
-                  onFocus={() => setHoveredMarker("ap")}
+                  onFocus={() => setHoveredMarker("pe")}
                   onBlur={() => setHoveredMarker(null)}
                   tabIndex={0}
                 />
-              )}
-              <ApsisMarker
-                cx={periapsis}
-                cy={0}
-                r={dotR}
-                fill="var(--color-tag-blue-fg)"
-                aria-label={`Periapsis altitude ${formatAltitude(periapsis, bodyRadius)}`}
-                onMouseEnter={() => setHoveredMarker("pe")}
-                onMouseLeave={() => setHoveredMarker(null)}
-                onFocus={() => setHoveredMarker("pe")}
-                onBlur={() => setHoveredMarker(null)}
-                tabIndex={0}
-              />
-            </>
-          )}
+              </>
+            )}
 
-          {/* Vessel: SVG y-flipped relative to orbital frame */}
-          <circle
-            cx={vx}
-            cy={-vy}
-            r={dotR * cfg.vesselDotScale}
-            fill="var(--color-accent-fg)"
-          />
-
-          {maneuverHandles && (
-            <ManeuverHandles
-              {...maneuverHandles}
-              sma={sma}
-              ecc={ecc}
-              dotR={dotR}
-              strokeW={strokeW}
-              scaleRef={scaleRef}
+            {/* Vessel: SVG y-flipped relative to orbital frame */}
+            <circle
+              cx={vx}
+              cy={-vy}
+              r={dotR * cfg.vesselDotScale}
+              fill="var(--color-accent-fg)"
             />
-          )}
-        </g>
 
-        {/* Apsis labels live outside the rotation group so they always
+            {maneuverHandles && (
+              <ManeuverHandles
+                {...maneuverHandles}
+                sma={sma}
+                ecc={ecc}
+                dotR={dotR}
+                strokeW={strokeW}
+                scaleRef={scaleRef}
+              />
+            )}
+          </g>
+
+          {/* Apsis labels live outside the rotation group so they always
             read horizontally regardless of argPe. The hover tooltip
             replaces the static label with the altitude on the
             corresponding marker. */}
-        {showMarkers && cfg.showLabels && (
-          <g pointerEvents="none">
-            {!isHyperbolic && (
+          {showMarkers && cfg.showLabels && (
+            <g pointerEvents="none">
+              {!isHyperbolic && (
+                <ApsisLabel
+                  x={apoLabelPos.x}
+                  y={apoLabelPos.y}
+                  fill="var(--color-status-warning-bg)"
+                  fontSizePx={labelPxSize}
+                  vbPerPx={vbPerPx}
+                  text={
+                    hoveredMarker === "ap"
+                      ? formatAltitude(apoapsis, bodyRadius)
+                      : "Ap"
+                  }
+                />
+              )}
               <ApsisLabel
-                x={apoLabelPos.x}
-                y={apoLabelPos.y}
-                fill="var(--color-status-warning-bg)"
+                x={periLabelPos.x}
+                y={periLabelPos.y}
+                fill="var(--color-tag-blue-fg)"
                 fontSizePx={labelPxSize}
                 vbPerPx={vbPerPx}
                 text={
-                  hoveredMarker === "ap"
-                    ? formatAltitude(apoapsis, bodyRadius)
-                    : "Ap"
+                  hoveredMarker === "pe"
+                    ? formatAltitude(periapsis, bodyRadius)
+                    : "Pe"
                 }
               />
-            )}
-            <ApsisLabel
-              x={periLabelPos.x}
-              y={periLabelPos.y}
-              fill="var(--color-tag-blue-fg)"
-              fontSizePx={labelPxSize}
-              vbPerPx={vbPerPx}
-              text={
-                hoveredMarker === "pe"
-                  ? formatAltitude(periapsis, bodyRadius)
-                  : "Pe"
-              }
-            />
-          </g>
-        )}
+            </g>
+          )}
+        </Rotated>
       </DiagramSvg>
     </DiagramFrame>
   );
