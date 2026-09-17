@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@ksp-gonogo/test-utils": "workspace:*",
+    "@ksp-gonogo/uplink-tools": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest-axe": "^3.5.9",

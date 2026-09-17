@@ -27,7 +27,7 @@ export {
   GRID_MARGIN,
   gridToPixels,
   ROW_HEIGHT,
-} from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit/grid";
 export {
   type ChannelDisposition,
   readChannelDispositions,

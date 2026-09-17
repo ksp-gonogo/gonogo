@@ -154,10 +154,7 @@ export const AUTHOR_SUBPATHS: Record<
   "@ksp-gonogo/ui-kit": {
     testing: "the widget provider stack and the readout helpers",
     guards: "the render-time invariants a widget asserts against",
-    "render-probe":
-      "half of the render harness, driven by the gonogo-uplink bin",
-    render: "the other half of the render harness",
-    "page-check": "the generated-page assertions the render harness reads back",
+    grid: "the dashboard's cell geometry, so an author sizing a render reads the app's own numbers instead of mirroring them. It is also the one module a NODE process imports, because the root barrel reaches the sdk and cannot load outside a bundler",
     "tokens.css": "the design-system custom properties, imported as an asset",
   },
 };
