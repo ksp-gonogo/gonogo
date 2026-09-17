@@ -93,6 +93,43 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
   "Mit",
   "deg",
   "rad",
+  /*
+   * Units the tree renders that this list did not name, found by diffing it
+   * against every token actually passed to `value()`/`quantity()`: it looked
+   * for 30 symbols while 67 were in use, so anything absent here was outside
+   * the rule rather than clean.
+   *
+   * `RPM` is listed beside `rpm` ON PURPOSE, and is the reason this comment is
+   * here. The pattern is built with no `i` flag, so case is significant, and
+   * the site that prompted this (`RotorTachometer`) types the uppercase form:
+   * adding only the lowercase token would have left it invisible while looking
+   * like it had been covered. Blanket case-insensitivity is NOT the fix, since
+   * single-letter members like `m`, `s`, `t`, `N` and `W` would then match
+   * prose and CSS; a unit conventionally written both ways earns both spellings
+   * instead.
+   */
+  "rpm",
+  "RPM",
+  "dB",
+  "rad/s",
+  "bit/s",
+  "J/s",
+  "N·m",
+  "m²",
+  "Pa",
+  /*
+   * `kg/m³` and `g/m³` are deliberately NOT here yet, and this is a held
+   * position rather than an oversight.
+   *
+   * Adding them turns this gate red on `components/src/shared/formatDensity.ts`
+   * (3 lines), which is a real violation and is already recorded as a local
+   * formatter whose stated fix is to move its kg/m³ to g/m³ ladder into
+   * `units.ts`. There is nowhere honest to park it meanwhile: this gate's
+   * BASELINE is empty on purpose and says a new entry is a regression rather
+   * than a backlog item, so listing it would be writing down the exact excuse
+   * the gate exists to refuse. They join this list in the commit that converts
+   * that file and declares the `g/m³` rung.
+   */
 ];
 
 /**

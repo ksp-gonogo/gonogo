@@ -141,7 +141,7 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
     const rows = screen.getAllByRole("button", {
       name: new RegExp(rotorName),
     });
-    const targetRow = rows.find((r) => visibleText(r).includes("200/300 RPM"));
+    const targetRow = rows.find((r) => visibleText(r).includes("200/300 rpm"));
     if (!targetRow) {
       throw new Error("could not find the partId 2 (200 RPM) rotor row");
     }

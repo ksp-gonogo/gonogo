@@ -176,6 +176,48 @@ describe("expectNoHandTypedUnits", () => {
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/speakQuantity/);
   });
 
+  /**
+   * The symbol list is the guard's whole reach, so a unit missing from it is
+   * not caught rather than not present. These pin the units added after the
+   * list was measured against what the tree actually renders (30 symbols
+   * looked for, 67 tokens in use).
+   */
+  it("sees the units added after the list was measured", () => {
+    for (const source of [
+      "`${v} rpm`",
+      "`${v} dB`",
+      "`${v} Pa`",
+      "`${v} rad/s`",
+      "`${v} m²`",
+    ]) {
+      const dir = fixture({ "Readout.tsx": `${source}\n` });
+      expect(() => expectNoHandTypedUnits({ dir }), source).toThrow(
+        /Readout\.tsx:1/,
+      );
+    }
+  });
+
+  /**
+   * Case is significant, because `patternFor` builds its RegExp with no `i`
+   * flag. That is not a defect to fix by adding the flag: single-letter members
+   * like `m`, `s`, `t`, `N` and `W` would then match prose and CSS. It is a
+   * property the list has to be written against, and it is pinned here because
+   * a unit conventionally typed in caps (`RPM`) was invisible while the
+   * lowercase token sat on the list looking like coverage.
+   */
+  it("matches a unit case-sensitively, so both spellings must be listed", () => {
+    const upper = fixture({ "Rotor.tsx": "`${v} RPM`\n" });
+    expect(() => expectNoHandTypedUnits({ dir: upper })).toThrow(
+      /Rotor\.tsx:1/,
+    );
+
+    // Not on the list in this spelling, and so not seen. Asserting the LIMIT
+    // rather than the reach: this is what the next person needs to know before
+    // adding a symbol and believing it covers the other casing.
+    const unlisted = fixture({ "Rotor.tsx": "`${v} Rpm`\n" });
+    expect(() => expectNoHandTypedUnits({ dir: unlisted })).not.toThrow();
+  });
+
   it("stays quiet for a file at its baseline", () => {
     const dir = fixture({ "Old.tsx": "`${v} km`\n" });
     expect(() =>

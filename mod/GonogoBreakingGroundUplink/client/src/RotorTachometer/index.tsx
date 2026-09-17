@@ -23,6 +23,7 @@ import {
   Text,
   ToggleButton,
   Unit,
+  UnitSharedFormat,
   useElementSize,
   usePanelDelay,
   writeQuantity,
@@ -134,10 +135,6 @@ export function parseRotors(raw: unknown): RotorInfo[] {
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
-
-/** A withheld figure in the rotor list, where the row has no room for a sentence. */
-const roundOrUnknown = (v: number | null): string =>
-  v === null ? "unknown" : String(Math.round(v));
 
 /**
  * A relative stepper's accessible name, carrying WHY it is disabled when the
@@ -625,7 +622,23 @@ function RotorTachometerComponent({
               >
                 <span>{r.name}</span>
                 <span>
-                  {roundOrUnknown(r.rpm)}/{roundOrUnknown(r.rpmLimit)} RPM
+                  {/* One scope around the pair, so the two halves cannot land
+                      on different rungs, and the symbol is drawn once at the
+                      end rather than on both figures in a row this dense. */}
+                  <UnitSharedFormat>
+                    <Unit
+                      value={r.rpm === null ? null : quantity("rpm", r.rpm)}
+                      decimals={0}
+                      hideUnitInGroup
+                    />
+                    /
+                    <Unit
+                      value={
+                        r.rpmLimit === null ? null : quantity("rpm", r.rpmLimit)
+                      }
+                      decimals={0}
+                    />
+                  </UnitSharedFormat>
                   {r.motorEngaged === false ? " · off" : ""}
                   {r.locked === true ? " · locked" : ""}
                 </span>
