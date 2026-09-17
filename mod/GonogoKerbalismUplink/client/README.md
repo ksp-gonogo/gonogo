@@ -88,9 +88,11 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | Uses if present | `vessel.flight` |
 | Only while present | `flight` |
 | Default size | 8 × 11 |
-| Scenes | 6 |
+| Scenes | 7 |
 
 ![Two stars, one quiet and one with an inbound CME, each on its own activity diagram](docs/assets/binary--default.png)
+
+![The same vessel after the link drops: dose, shielding and CMEs held and dated, the belt position and the verdict withheld](docs/assets/inner-belt-link-lost--default.png)
 
 ![The craft inside the inner radiation belt, dose an order of magnitude up and the belt ring lit](docs/assets/inner-belt--default.png)
 
