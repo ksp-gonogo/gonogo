@@ -341,9 +341,15 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
   return (
     <Section title="Altitude ASL">
       <Grid cols="auto 1fr" gap="xs">
-        <GridCellPair label={carrying ? "Last observed" : "Observed"}>
-          <Unit value={observed} decimals={decimals} />
-        </GridCellPair>
+        {carrying ? (
+          <GridCellPair label="Last observed">
+            <Unit value={observed} decimals={decimals} />
+          </GridCellPair>
+        ) : (
+          <Text style={{ gridColumn: "1 / -1" }}>
+            <Unit value={observed} decimals={decimals} />
+          </Text>
+        )}
         {carrying && (
           <GridCellPair label="Carried to now">
             {carried === null ? (
