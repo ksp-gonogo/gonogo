@@ -847,7 +847,7 @@ namespace GonogoRp1Uplink
             {
                 host.Kernel.RegisterProvider(new ProviderRegistration
                 {
-                    Capability = "economy",
+                    Capability = EconomyCapability.Id,
                     Id = "rp1",
                     Priority = 10.0,
                     Factory = _ => _economy,

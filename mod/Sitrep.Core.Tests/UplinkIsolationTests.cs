@@ -178,16 +178,6 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Transport",
                 },
 
-                // Sitrep.Host for the Economy and Crew starvation probes, and the
-                // rest transitively behind it.
-                ["GonogoRp1Uplink.Tests"] = new[]
-                {
-                    "Sitrep.Core",
-                    "Sitrep.Host",
-                    "Sitrep.Propagation",
-                    "Sitrep.Transport",
-                },
-
                 // Absent, and deliberately: GonogoPrincipiaUplink.Tests reaches
                 // nothing private. It is the proof this is achievable and the shape
                 // the rest owe. GonogoMechJebUplink.Tests reached only TestSupport,
@@ -206,6 +196,18 @@ namespace Sitrep.Core.Tests
                 // where the engine may be named; and the probe host was written into
                 // the Tests project itself, which is what docs/uplink-isolation.md
                 // tells a NEW Uplink to do.
+                //
+                // GonogoRp1Uplink.Tests paid off next, on the same shape and for a
+                // fraction of the work: four assemblies listed, but three of them
+                // were transitive behind Sitrep.Host and the whole reach was two
+                // files importing one election each. The economy capability id
+                // moved to Sitrep.Contract as EconomyCapability, the last one still
+                // spelled as a literal by the Uplink that registers against it, and
+                // the two starvation probes now build the descriptor themselves
+                // against a stock stand-in. What core DECLARES is not left unheld:
+                // Sitrep.Host.Tests' own election tests pin stock winning when no
+                // provider is present, a provider winning when one is, and the
+                // registration ordering, which is where a fact about core belongs.
             };
 
         /// <summary>
@@ -227,11 +229,6 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Host",
                 },
                 ["GonogoRealAntennasUplink.Tests"] = new[] { "Sitrep.Core.Serialization" },
-                ["GonogoRp1Uplink.Tests"] = new[]
-                {
-                    "Sitrep.Host.Crew",
-                    "Sitrep.Host.Economy",
-                },
             };
 
         /// <summary>

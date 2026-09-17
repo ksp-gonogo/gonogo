@@ -3,7 +3,6 @@ using GonogoRp1Uplink;
 using RP0.Crew;
 using Sitrep.Contract;
 using Sitrep.Contract.TestSupport;
-using Sitrep.Host.Crew;
 using Xunit;
 
 /// <summary>
@@ -54,7 +53,7 @@ public class CrewStandingStarvationTests : IDisposable
         var host = Registered();
         host.DriveTicks(3, new KspSnapshot());
 
-        var backend = CrewStandingElection.Elected(host.Kernel);
+        var backend = Elected(host);
         Assert.NotNull(backend);
         Assert.Equal("rp1", backend!.ProviderId);
         Assert.Equal(
@@ -76,7 +75,7 @@ public class CrewStandingStarvationTests : IDisposable
         var host = Registered();
         host.DriveTicks(3, new KspSnapshot(), Rp1ScUplink.CrewTopic);
 
-        var watched = CrewStandingElection.Elected(host.Kernel)
+        var watched = Elected(host)
             ?.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead));
         Assert.Equal(CrewStanding.Retired, watched?.Standing);
     }
@@ -95,7 +94,7 @@ public class CrewStandingStarvationTests : IDisposable
 
         Assert.Equal(
             CrewStanding.Retired,
-            CrewStandingElection.Elected(host.Kernel)?.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead))?.Standing);
+            Elected(host)?.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead))?.Standing);
     }
 
     /// <summary>
@@ -112,7 +111,7 @@ public class CrewStandingStarvationTests : IDisposable
 
         var host = Registered();
         host.DriveTicks(2, new KspSnapshot());
-        var backend = CrewStandingElection.Elected(host.Kernel);
+        var backend = Elected(host);
 
         Assert.Null(backend!.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead)));
 
@@ -124,18 +123,46 @@ public class CrewStandingStarvationTests : IDisposable
     }
 
     /// <summary>
-    /// The capability declared the way core declares it, the Uplink registered,
-    /// the election run. Declared through <see cref="CrewStandingElection"/> itself
-    /// rather than a copy of its descriptor, so a change to how core declares the
-    /// capability reaches this test instead of drifting away from it.
+    /// The capability declared as core declares it, the Uplink registered, the
+    /// election run.
     /// </summary>
+    /// <remarks>
+    /// The descriptor is built here rather than through core's own registrar, for
+    /// the reason <c>EconomyStarvationTests.Registered</c> gives: core's registrar
+    /// lives in <c>Sitrep.Host</c>, and an Uplink's suite travels with the Uplink.
+    /// What core declares is guarded where core can be named, by
+    /// <c>Sitrep.Host.Tests/CrewStandingElectionTests</c>.
+    /// </remarks>
     private static StarvationProbeHost Registered()
     {
         var kernel = new Kernel();
-        CrewStandingElection.RegisterCapability(kernel);
+        kernel.RegisterCapability(new CapabilityDescriptor
+        {
+            Id = CrewStandingCapability.Id,
+            Exclusive = true,
+            SpineCritical = false,
+            Vanilla = _ => new StockStandIn(),
+        });
         var host = new StarvationProbeHost(kernel);
         new Rp1ScUplink().Register(host);
         host.Resolve();
         return host;
+    }
+
+    private static ICrewStandingBackend? Elected(StarvationProbeHost host) =>
+        host.Kernel.Query<ICrewStandingBackend>(CrewStandingCapability.Id);
+
+    /// <summary>
+    /// The vanilla, present so the election has something to fall back to. It maps
+    /// the roster status through the contract's own derivation, which is what the
+    /// stock backend does, so a starved RP-1 provider reads as a FATALITY here
+    /// rather than as null: the exact wrong answer these cases exist to catch.
+    /// </summary>
+    private sealed class StockStandIn : ICrewStandingBackend
+    {
+        public string ProviderId => CrewStandings.StockSource;
+
+        public CrewStandingReading? Read(CrewStandingQuery query) =>
+            new CrewStandingReading { Standing = CrewStandings.FromQuery(query) };
     }
 }

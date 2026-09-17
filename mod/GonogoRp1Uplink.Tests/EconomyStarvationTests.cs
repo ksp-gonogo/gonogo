@@ -3,7 +3,6 @@ using GonogoRp1Uplink;
 using RP0;
 using Sitrep.Contract;
 using Sitrep.Contract.TestSupport;
-using Sitrep.Host.Economy;
 using Xunit;
 
 /// <summary>
@@ -56,7 +55,7 @@ public class EconomyStarvationTests : IDisposable
         var host = Registered();
         host.DriveTicks(3, new KspSnapshot());
 
-        var backend = EconomyElection.Elected(host.Kernel);
+        var backend = Elected(host);
         Assert.NotNull(backend);
         Assert.Equal("rp1", backend!.ProviderId);
         Assert.NotNull(backend.Interpret(0.0, 100.0));
@@ -77,23 +76,54 @@ public class EconomyStarvationTests : IDisposable
         var host = Registered();
         host.DriveTicks(3, new KspSnapshot(), Rp1ScUplink.CentresTopic);
 
-        var watched = EconomyElection.Elected(host.Kernel)?.Interpret(0.0, 100.0);
+        var watched = Elected(host)?.Interpret(0.0, 100.0);
         Assert.NotNull(watched);
     }
 
     /// <summary>
-    /// The capability declared the way core declares it, the Uplink registered, the
-    /// election run. Declared through <see cref="EconomyElection"/> itself rather
-    /// than a copy of its descriptor, so a change to how core declares the
-    /// capability reaches this test instead of drifting away from it.
+    /// The capability declared as core declares it, the Uplink registered, the
+    /// election run.
     /// </summary>
+    /// <remarks>
+    /// The descriptor is built here rather than through core's own registrar,
+    /// because core's registrar lives in <c>Sitrep.Host</c> and an Uplink's suite
+    /// travels with the Uplink: a test that reaches a private assembly is a test an
+    /// author who forks this cannot run. What core declares is guarded where core
+    /// can be named, by <c>Sitrep.Host.Tests/EconomyElectionTests</c>, which pins
+    /// stock winning when no provider is present, a provider winning when one is,
+    /// the registration ordering, and the null a missing capability resolves to.
+    /// This file's subject is the other half: whether THIS Uplink's provider still
+    /// answers when nothing is subscribed.
+    /// </remarks>
     private static StarvationProbeHost Registered()
     {
         var kernel = new Kernel();
-        EconomyElection.RegisterCapability(kernel);
+        kernel.RegisterCapability(new CapabilityDescriptor
+        {
+            Id = EconomyCapability.Id,
+            Exclusive = true,
+            SpineCritical = false,
+            Vanilla = _ => new StockStandIn(),
+        });
         var host = new StarvationProbeHost(kernel);
         new Rp1ScUplink().Register(host);
         host.Resolve();
         return host;
+    }
+
+    private static IEconomyBackend? Elected(StarvationProbeHost host) =>
+        host.Kernel.Query<IEconomyBackend>(EconomyCapability.Id);
+
+    /// <summary>
+    /// The vanilla, present so the election has something to fall back to. It
+    /// answers with its own provider id, which is how the cases above tell an RP-1
+    /// win from a silent fallback: a starved exclusive provider that lost the
+    /// election reads as stock, not as null.
+    /// </summary>
+    private sealed class StockStandIn : IEconomyBackend
+    {
+        public string ProviderId => "stock";
+
+        public EconomyReading? Interpret(double ut, double? reputation) => new EconomyReading();
     }
 }
