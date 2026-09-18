@@ -444,21 +444,24 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    */
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 1,
   /*
-   * TWO, in a file this list had already CLEARED, which is the part worth
-   * reading before trusting any zero here.
+   * THREE, in a file this list had already CLEARED to nothing, which is the
+   * part worth reading before trusting any zero here.
    *
    * Its previous single site fed the gauge off a reading laundered by
    * `state === "observed" ? value : undefined`, and holding the list through
    * stale genuinely replaced that accessor. The old note said the walk "finds
    * nothing to report there now", and that was true of what the walk could SEE
-   * and false of the file: these two take `r.rpm` and the torque figure off an
-   * element of `rotors.map(...)`, the one shape the walk was blind to.
+   * and false of the file. TWO of these take `r.rpm` and its cap off an element
+   * of `rotors.map(...)`, the shape no callback reach existed for. The THIRD is
+   * the torque figure, which was truncated by a depth ceiling of twelve while
+   * its chain to the reading is thirteen hops long.
    *
-   * So a cleared entry is only as strong as the reach that cleared it. Both
-   * sites are ordinary field properties on an addressable path, so unlike the
-   * #310 entries below they are migratable.
+   * So a cleared entry is only as strong as the reach that cleared it, and
+   * "reach" is two separate things: the SHAPES the walk knows and how FAR it
+   * will follow one. All three are ordinary field properties on an addressable
+   * path, so unlike the #310 entries they are migratable.
    */
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 2,
+  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 3,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   /*
    * SIX, and none of them is migratable, which makes this entry a different
@@ -551,5 +554,42 @@ describe("the gate can see an unwrap laundered through a callback", () => {
 
   it("sees the figure taken off a callback parameter, in map and flatMap", () => {
     expect(scan.sites.length).toBe(3);
+  });
+});
+
+describe("the gate follows a provenance chain deeper than a dozen hops", () => {
+  /**
+   * The cap that hid `RotorTachometer`'s torque figure, asserted so it cannot
+   * be tightened back without a failure.
+   *
+   * Fifteen named hops, each one legal and none of them contrived: a real chain
+   * gets this long by passing through a `??`, a `find`, a conditional and two
+   * or three helpers, which is exactly how the site this guards was reached.
+   *
+   * The control is the SAME chain one hop shorter than the plant is long, so a
+   * cap set anywhere between them would fail this test rather than silently
+   * shortening the gate's reach.
+   */
+  const CHAIN = Array.from(
+    { length: 15 },
+    (_, i) => `    const h${i} = ${i === 0 ? "altitude.value" : `h${i - 1}`};`,
+  ).join("\n");
+
+  const PLANTED = `
+    import { altitude, Unit } from "./world";
+
+${CHAIN}
+
+    export const deep = <Unit value={h14} />;
+  `;
+
+  const scan = scanPlanted({ "planted.tsx": PLANTED });
+
+  it("read types that resolved, so the verdict is not a build artefact", () => {
+    expect(scan.errorTyped).toBe(0);
+  });
+
+  it("still reports the unwrap at the far end of the chain", () => {
+    expect(scan.sites.map((s) => s.prop)).toEqual(["value"]);
   });
 });

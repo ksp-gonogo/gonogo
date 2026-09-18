@@ -380,7 +380,24 @@ function callbackElementReceiver(
     : undefined;
 }
 
-const DERIVATION_DEPTH = 12;
+/**
+ * A COST ceiling, not a termination one.
+ *
+ * Termination is `seen`'s job: it is one shared set for the whole walk, every
+ * node enters it before its children are visited, and a program has finitely
+ * many nodes, so the walk stops whether or not this number exists. What this
+ * guards is the pathological case where one attribute drags in a large slice of
+ * the file, and it is set high enough that no honest chain reaches it.
+ *
+ * It was 12 and that TRUNCATED a real site: `RotorTachometer`'s torque figure
+ * reaches its reading in thirteen hops (a `??` chain, a `find`, a conditional,
+ * then `parseRotors`, `stillTrue` and `useTelemetry`), so the gate reported the
+ * file clean of it while the fault was there. A cap that silently answers "no
+ * provenance" for a chain that HAS provenance reports the tree clean, which is
+ * this gate's one unacceptable failure direction, so the number wants headroom
+ * rather than tightness.
+ */
+const DERIVATION_DEPTH = 64;
 
 /**
  * Whether this expression's value was DERIVED from a reading, however far back.
