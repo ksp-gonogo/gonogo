@@ -2,6 +2,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 import { PanelBadgesProvider } from "./PanelBadges";
+import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 
 /**
  * The two header shapes that exist for widgets whose chrome does not fit one
@@ -163,6 +164,38 @@ describe("Panel panelBadges", () => {
     );
     expect(screen.getByText("CRITICAL")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Custom control" })).toBeTruthy();
+  });
+
+  it("a lone severity-bearing badge is not ALSO drawn as the merged summary badge", () => {
+    // The badge registers into the store (it has a real severity) and wins its
+    // own summary, so it must render exactly once: as its own pill, not again
+    // beside itself as `PanelSummaryBadge`.
+    render(
+      <PanelStatusStoreProvider>
+        <Panel
+          panelTitle="Fixture"
+          panelBadges={[{ id: "no-signal", label: "NO SIGNAL", tone: "warn" }]}
+        />
+      </PanelStatusStoreProvider>,
+    );
+    expect(screen.getAllByText("NO SIGNAL")).toHaveLength(1);
+  });
+
+  it("a worse OTHER contributor still shows its own summary beside an unrelated badge", () => {
+    // The badge is not the winner here (the stream contribution is worse), so
+    // both the badge's own pill and the merged summary for the stream must
+    // show: they are two different signals, not a duplicate of one.
+    render(
+      <PanelStatusStoreProvider>
+        <Panel
+          panelTitle="Fixture"
+          panelBadges={[{ id: "aboard", label: "3/4 ABOARD", tone: "info" }]}
+          panelStatus="disconnected"
+        />
+      </PanelStatusStoreProvider>,
+    );
+    expect(screen.getByText("3/4 ABOARD")).toBeTruthy();
+    expect(screen.getByText("OFFLINE")).toBeTruthy();
   });
 });
 

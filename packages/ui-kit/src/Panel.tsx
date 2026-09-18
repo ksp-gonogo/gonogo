@@ -2178,16 +2178,24 @@ function PanelRoot({
       : null,
   );
   const summary = useStatusSummary();
+  /* A badge that already draws its own pill above (any entry with a real
+     severity, via `report`) must not ALSO win the merged summary: the two
+     would show the identical label twice. `stream`/an alarm id never
+     collides with a badge id, so this only ever suppresses a badge's own
+     win. */
+  const summaryDuplicatesABadgePill =
+    summary !== null && badges.some((b) => b.id === summary.id);
 
   // With a store in the tree the header renders the winning contribution; with
   // none (a standalone panel in the settings modal or the station connect view,
   // and every unit test that wraps only `Panel.Status`) it falls back to the
   // legacy stream badge, so that path keeps behaving exactly as before.
-  const statusBadge = !hasHeader ? null : summary !== null ? (
-    <PanelSummaryBadge summary={summary} />
-  ) : streamStatus === null ? null : (
-    <StreamStatusBadge status={streamStatus} />
-  );
+  const statusBadge =
+    !hasHeader || summaryDuplicatesABadgePill ? null : summary !== null ? (
+      <PanelSummaryBadge summary={summary} />
+    ) : streamStatus === null ? null : (
+      <StreamStatusBadge status={streamStatus} />
+    );
   // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
   // and skips the box, where a null child would still render the padded slot.
   const aside =

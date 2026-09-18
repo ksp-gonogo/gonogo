@@ -15,8 +15,14 @@ export interface StatusContribution {
   label: string;
 }
 
-/** The winning contribution, or `null` when nothing is registered. */
+/**
+ * The winning contribution, or `null` when nothing is registered. `id` is the
+ * winner's own contributor id, so a caller can tell whether the winner is
+ * ALSO something it is about to render its own way (a badge pill) and skip
+ * drawing it twice, rather than matching on `severity`/`label` text.
+ */
 export interface StatusSummary {
+  id: string;
   severity: Severity;
   label: string;
 }
@@ -66,7 +72,9 @@ function summarise(
   if (contributions.length === 0) return null;
   const worst = worstSeverity(contributions.map((c) => c.severity));
   for (const c of contributions) {
-    if (c.severity === worst) return { severity: c.severity, label: c.label };
+    if (c.severity === worst) {
+      return { id: c.id, severity: c.severity, label: c.label };
+    }
   }
   return null; // unreachable: worst is drawn from the set
 }
@@ -131,6 +139,7 @@ export function createPanelStatusStore(): PanelStatusStore {
       if (
         cachedSummary !== null &&
         next !== null &&
+        cachedSummary.id === next.id &&
         cachedSummary.severity === next.severity &&
         cachedSummary.label === next.label
       ) {
