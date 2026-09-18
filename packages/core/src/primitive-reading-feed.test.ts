@@ -426,9 +426,12 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * Which of them each site wants is a scheduling decision; what this list does
  * is stop the number growing while that decision is open.
  *
- * A cleared entry is only as strong as the REACH that cleared it. See the
- * RotorTachometer entry: cleared honestly against what the walk could see, and
- * holding two sites all along behind the one shape it was blind to.
+ * A cleared entry is only as strong as the REACH that cleared it, and "reach"
+ * is two separate things: the SHAPES the walk knows, and how FAR it follows
+ * one. A file has already sat at zero here while holding three sites, two
+ * behind a callback parameter and one behind a depth ceiling, each cleared
+ * honestly against what the walk could see at the time. So when the walk is
+ * widened, the entries already at zero are where to look first.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
   /*
@@ -443,25 +446,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * reached nothing for it.
    */
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 1,
-  /*
-   * THREE, in a file this list had already CLEARED to nothing, which is the
-   * part worth reading before trusting any zero here.
-   *
-   * Its previous single site fed the gauge off a reading laundered by
-   * `state === "observed" ? value : undefined`, and holding the list through
-   * stale genuinely replaced that accessor. The old note said the walk "finds
-   * nothing to report there now", and that was true of what the walk could SEE
-   * and false of the file. TWO of these take `r.rpm` and its cap off an element
-   * of `rotors.map(...)`, the shape no callback reach existed for. The THIRD is
-   * the torque figure, which was truncated by a depth ceiling of twelve while
-   * its chain to the reading is thirteen hops long.
-   *
-   * So a cleared entry is only as strong as the reach that cleared it, and
-   * "reach" is two separate things: the SHAPES the walk knows and how FAR it
-   * will follow one. All three are ordinary field properties on an addressable
-   * path, so unlike the #310 entries they are migratable.
-   */
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 3,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   /*
    * SIX, and none of them is migratable, which makes this entry a different

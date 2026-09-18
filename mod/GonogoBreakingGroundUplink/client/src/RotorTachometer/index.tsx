@@ -64,6 +64,19 @@ const TORQUE_STEP = 10;
  * substitution does not stay on screen: it goes up to the rotor.
  */
 export interface RotorInfo {
+  /**
+   * Position in `robotics.servos` AS DELIVERED, which is not this rotor's
+   * position in the parsed list: the parse drops non-rotor servos and any
+   * entry without a `partId`, so the two indices diverge on the first mixed
+   * craft.
+   *
+   * It is here so a DISPLAYED figure can be read back as a field reading and
+   * arrive at `Unit` with its currency intact. The numeric fields below stay
+   * because the steppers compute the next commanded value from them, and a
+   * command wants a bare number that `dateReadings` has already withheld when
+   * it is not current.
+   */
+  srcIndex: number;
   partId: string;
   name: string;
   rpm: number | null;
@@ -111,12 +124,15 @@ function stillTrue<T, A>(
 export function parseRotors(raw: unknown): RotorInfo[] {
   if (!Array.isArray(raw)) return [];
   const out: RotorInfo[] = [];
-  for (const entry of raw) {
+  // Indexed, because `srcIndex` must be the position in the DELIVERED array
+  // and the two `continue`s below make that differ from the output position.
+  for (const [srcIndex, entry] of raw.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     if (e.type !== "rotor") continue;
     if (typeof e.partId !== "string") continue;
     out.push({
+      srcIndex,
       partId: e.partId,
       name: typeof e.partName === "string" ? e.partName : `Rotor ${e.partId}`,
       rpm: numOrNull(e.currentRPM),
@@ -499,11 +515,16 @@ function RotorTachometerComponent({
                 −
               </ActionButton>
               <Text size="sm" tone="default">
+                {/* "Torque unknown" stays a WORDED absence rather than a null
+                    token, because this line sits between two steppers and a
+                    bare placeholder there reads as a figure that failed to
+                    render. The figure itself is a field reading, so when it IS
+                    present it carries its own currency. */}
                 {selected.torqueLimit === null ? (
                   "Torque unknown"
                 ) : (
                   <Unit
-                    value={quantity("%", selected.torqueLimit)}
+                    value={roboticsReading[selected.srcIndex].servoMotorLimit}
                     decimals={0}
                   />
                 )}
@@ -624,18 +645,22 @@ function RotorTachometerComponent({
                 <span>
                   {/* One scope around the pair, so the two halves cannot land
                       on different rungs, and the symbol is drawn once at the
-                      end rather than on both figures in a row this dense. */}
+                      end rather than on both figures in a row this dense.
+
+                      Both figures are read as FIELD READINGS off the delivered
+                      servo, so each arrives carrying its own currency and
+                      `Unit` draws its own null state. The parsed numbers beside
+                      them are what the steppers command from, and those stay
+                      numbers. */}
                   <UnitSharedFormat>
                     <Unit
-                      value={r.rpm === null ? null : quantity("rpm", r.rpm)}
+                      value={roboticsReading[r.srcIndex].currentRPM}
                       decimals={0}
                       hideUnitInGroup
                     />
                     /
                     <Unit
-                      value={
-                        r.rpmLimit === null ? null : quantity("rpm", r.rpmLimit)
-                      }
+                      value={roboticsReading[r.srcIndex].rpmLimit}
                       decimals={0}
                     />
                   </UnitSharedFormat>
