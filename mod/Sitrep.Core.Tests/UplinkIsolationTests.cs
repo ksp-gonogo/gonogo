@@ -161,15 +161,16 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
             new(StringComparer.Ordinal)
             {
-                // Sitrep.Host for the extension-discovery and headless-terminal
-                // harnesses, Sitrep.Core for the courier/reveal internals, and the
-                // rest transitively behind Host.
+                // Sitrep.Core alone, for the headless-terminal harness's real
+                // Courier/Archive delay engine (Headless/KosTerminalHeadlessHarnessTests.cs).
+                // Sitrep.Host, Sitrep.Propagation and Sitrep.Transport paid off:
+                // the discovery facts this project needed either compile against
+                // the Uplink's own ISitrepUplink.Manifest directly or are proved
+                // generically in Sitrep.Host.Tests, and Propagation/Transport were
+                // only ever transitive behind Host.
                 ["GonogoKosUplink.Tests"] = new[]
                 {
                     "Sitrep.Core",
-                    "Sitrep.Host",
-                    "Sitrep.Propagation",
-                    "Sitrep.Transport",
                 },
 
                 // Absent, and deliberately: GonogoPrincipiaUplink.Tests reaches
@@ -219,7 +220,6 @@ namespace Sitrep.Core.Tests
                 ["GonogoKosUplink.Tests"] = new[]
                 {
                     "Sitrep.Core",
-                    "Sitrep.Host",
                 },
             };
 

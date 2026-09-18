@@ -97,9 +97,10 @@ namespace GonogoKosUplink.Tests
             public readonly List<KosTerminalFrame> Published = new List<KosTerminalFrame>();
             public readonly List<double> PublishedUts = new List<double>();
             // Constant by default: reproduces production's "the terminal's
-            // ~20Hz poll runs faster than the UT source advances" shape,
-            // see KosTerminalCourierBurstTests for the end-to-end proof this
-            // matters for.
+            // ~20Hz poll runs faster than the UT source advances" shape, see
+            // Sitrep.Core.Tests.CourierReliableOrderedDeliveryTests and
+            // GonogoKosUplink.Tests.Headless.KosTerminalHeadlessHarnessTests
+            // for the Courier-side proof this matters for.
             public double Now;
             public readonly KosTerminalManager Manager;
 
@@ -392,9 +393,10 @@ namespace GonogoKosUplink.Tests
             // therefore no longer manufactures strictly-increasing stamps: it
             // publishes at the raw clock UT. A constant nowUt across a burst
             // yields identical stamps, which is fine (see
-            // KosTerminalCourierBurstTests for the Courier-backed proof the
-            // burst still delivers in order). This pins that the Fix #1 bump is
-            // gone: same nowUt -> same published UT, no epsilon drift.
+            // Sitrep.Core.Tests.CourierReliableOrderedDeliveryTests for the
+            // Courier-side proof a same-ValidAt burst still delivers in
+            // order). This pins that the Fix #1 bump is gone: same nowUt ->
+            // same published UT, no epsilon drift.
             var h = new Harness();
             h.Subscribed.Add(7);
             h.Now = 500.0;
