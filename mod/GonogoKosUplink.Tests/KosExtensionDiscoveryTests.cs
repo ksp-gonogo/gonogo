@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using Gonogo.KosUplink;
 using Sitrep.Contract;
-using Sitrep.Host;
 using Xunit;
 
 namespace GonogoKosUplink.Tests
@@ -12,11 +11,14 @@ namespace GonogoKosUplink.Tests
     /// <summary>
     /// Guards the regression the Uplink-foundation review caught: without
     /// <c>[SitrepUplink("kos")]</c> and a parameterless constructor,
-    /// <see cref="UplinkDiscovery"/>'s assembly scan silently skips
+    /// <c>Sitrep.Host.UplinkDiscovery</c>'s assembly scan silently skips
     /// <see cref="KosExtension"/> and the whole uplink is inert dead code
-    /// in a live game. These assertions touch only the attribute + ctor
-    /// metadata and the reflection scan: never <see cref="KosExtension.Register"/>
-    /// or the Unity GameObject path: so they run headlessly.
+    /// in a live game. That scan itself is host-side and proved generically
+    /// there (<c>UplinkDiscoveryTests.DiscoversAttributedUplinkWithParameterlessConstructor</c>);
+    /// these assertions pin the two facts about THIS uplink that scan
+    /// depends on: the attribute and the constructor. Never touches
+    /// <see cref="KosExtension.Register"/> or the Unity GameObject path, so
+    /// they run headlessly.
     /// </summary>
     public class KosExtensionDiscoveryTests
     {
@@ -39,14 +41,6 @@ namespace GonogoKosUplink.Tests
         }
 
         [Fact]
-        public void Discover_FindsKosUplink_InGonogoKosAssembly()
-        {
-            var discovered = UplinkDiscovery.Discover(new[] { typeof(KosExtension).Assembly });
-
-            Assert.Contains(discovered, d => d.Uplink.Manifest.Id == "kos");
-        }
-
-        [Fact]
         public void Manifest_ExpectedClientHash_MirrorsTheGeneratedConst()
         {
             /*
@@ -62,10 +56,7 @@ namespace GonogoKosUplink.Tests
              * the first byte of drift. A test pinned to the unarmed state failed the moment
              * arming landed, having described a transient condition as a rule.
              */
-            var manifest = UplinkDiscovery
-                .Discover(new[] { typeof(KosExtension).Assembly })
-                .Single(d => d.Uplink.Manifest.Id == "kos")
-                .Uplink.Manifest;
+            var manifest = new KosExtension().Manifest;
 
             var expected = string.IsNullOrEmpty(ExpectedClientHash.Value)
                 ? null
@@ -105,10 +96,7 @@ namespace GonogoKosUplink.Tests
                 }
             }
 
-            var manifest = UplinkDiscovery
-                .Discover(new[] { typeof(KosExtension).Assembly })
-                .Single(d => d.Uplink.Manifest.Id == "kos")
-                .Uplink.Manifest;
+            var manifest = new KosExtension().Manifest;
 
             var declared = manifest.Commands.Select(c => c.Command).ToArray();
             Assert.NotEmpty(declared);

@@ -19,11 +19,13 @@
          half compiles against (UplinkManifest, ISitrepUplink, IUplinkHost,
          CommandResult, ...): netstandard2.0;net472, no
          KSP/Unity linkage. Mirrors GonogoScansatUplink.Tests's split.
-         Sitrep.Host (KosExtensionDiscoveryTests's UplinkDiscovery) is the
-         same story: its own csproj declares a zero-external-dependency,
-         KSP-free invariant. -->
+         Sitrep.Core is a genuine reach, not a test convenience: the headless
+         terminal harness (Headless/KosTerminalHeadlessHarnessTests.cs) wires
+         a real Courier/Archive delay engine end to end. See
+         Sitrep.Core.Tests/UplinkIsolationTests.cs's TestProjectReferenceDebt
+         for this project's entry. -->
     <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
-    <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
+    <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
     <!-- GonogoKosUplink.Contract: the eleven Kos* wire types the comment above
          used to attribute to Sitrep.Contract, relocated into this Uplink's own
          contract slice (see that project's header comment). KosUnitCoverageTests.cs
