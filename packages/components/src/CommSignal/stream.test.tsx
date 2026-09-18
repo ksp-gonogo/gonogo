@@ -123,6 +123,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
    * every figure NULLS, and ONE badge carries the reason. A mark does not
    * withdraw what a number asserts, and for a link there's no value in
    * seeing what the link was.
+   *
+   * The badge is a `comm-signal.badges` contribution drawn by the panel header,
+   * so it is absent from this file's render and asserted in
+   * `./panel-badge.test.tsx` instead.
    */
   it("nulls every line once the link stops arriving", async () => {
     const fixture = setupStreamFixture({
@@ -169,9 +173,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
     expect(screen.queryByLabelText(/not current/i)).toBeNull();
 
-    // 3. ONE badge carries the reason, and no other staleness wording
-    //    survives anywhere on the panel.
-    expect(screen.getAllByText("No signal")).toHaveLength(1);
+    // 3. None of the disallowed wording survives anywhere on the panel.
     expect(visibleText()).not.toMatch(/not current/i);
     expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).not.toMatch(/stale/i);
