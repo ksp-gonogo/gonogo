@@ -143,9 +143,11 @@ describe("createFrameDelayStream", () => {
   });
 
   it("returns null when supported but the stream has no video track", () => {
-    // Minimal stand-ins just to satisfy the `typeof x !== "undefined"`
-    // feature-detection check: the constructors are never invoked because
-    // the no-video-track guard returns before either is called.
+    /*
+     * Minimal stand-ins just to satisfy the `typeof x !== "undefined"`
+     * feature-detection check: the constructors are never invoked because the
+     * no-video-track guard returns before either is called.
+     */
     vi.stubGlobal("MediaStreamTrackProcessor", class {});
     vi.stubGlobal("MediaStreamTrackGenerator", class {});
     try {
@@ -447,9 +449,11 @@ describe("runFrameDelayPipeline: encoded frame shape (no close(), keyframe/bytes
     const frame = fakeFrame("f1");
     const sink = recordingSink<FakeFrame>();
 
-    // maxBufferedFrames: 1 with the OLD default (frame-count cap, `bytes`
-    // defaults to 1) means a second push evicts the first, proves
-    // `frameBytes` really defaults to 1, not something encoded-shaped.
+    /*
+     * maxBufferedFrames: 1 with the OLD default (frame-count cap, `bytes`
+     * defaults to 1) means a second push evicts the first, proves
+     * `frameBytes` really defaults to 1, not something encoded-shaped.
+     */
     const second = fakeFrame("f2");
     runFrameDelayPipeline({
       view: clock,

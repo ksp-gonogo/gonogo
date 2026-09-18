@@ -222,10 +222,12 @@ export function useDataSeries(
   // don't allocate new arrays per sample.
   const dataRef = useRef<{ t: number[]; v: unknown[] }>({ t: [], v: [] });
 
-  // Stream-branch memoization (see `getStreamSnapshot` below): the last
-  // `SeriesRange` built from `sampleRange`, so an unchanged read reuses the
-  // same object identity instead of handing `useSyncExternalStore` a fresh
-  // one every call.
+  /*
+   * Stream-branch memoization (see `getStreamSnapshot` below): the last
+   * `SeriesRange` built from `sampleRange`, so an unchanged read reuses the
+   * same object identity instead of handing `useSyncExternalStore` a fresh
+   * one every call.
+   */
   const lastSnapshotRef = useRef<SeriesRange>(EMPTY);
 
   const setup = useCallback(

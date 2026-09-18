@@ -297,9 +297,12 @@ describe("SitrepPeerRelay", () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);
 
-    // The host reads this on its own account, and the only frame arrives before
-    // any station exists. `client.subscribe` for an already-held topic sends no
-    // wire subscribe and re-emits no frame, so the cache is the only answer.
+    /*
+     * The host reads this on its own account, and the only frame arrives
+     * before any station exists. `client.subscribe` for an already-held topic
+     * sends no wire subscribe and re-emits no frame, so the cache is the only
+     * answer.
+     */
     const unsubHost = transport.isSubscribed("vessel.identity");
     expect(unsubHost).toBe(false);
     act(() => {
