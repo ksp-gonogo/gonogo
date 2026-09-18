@@ -434,18 +434,6 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * widened, the entries already at zero are where to look first.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
-  /*
-   * ONE, newly VISIBLE rather than newly written: `exp.progress * 100` inside
-   * `base.experiments.map(...)`, nested two callbacks deep under
-   * `bases.map(...)`.
-   *
-   * The provenance runs `useTelemetry("deployed.bases")` through `stillTrue`
-   * and `parseBases` into `bases`, then through two `map` callbacks. The call
-   * hops were always followed; the callback ELEMENT was not, because a
-   * parameter is not a variable declaration and the walk's one `const` hop
-   * reached nothing for it.
-   */
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   /*
    * SIX, and none of them is migratable, which makes this entry a different
