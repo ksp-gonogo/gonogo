@@ -1,6 +1,12 @@
-import type { ComponentProps, TopicReading } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ComponentProps,
+  Reading,
+  TopicReading,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  combineReadings,
   DeployedPowerState,
   registerComponent,
   useTelemetry,
@@ -413,11 +419,38 @@ function powerBalance(base: DeployedBase): string | null {
   return `Power ${Math.round(powerAvailable)}/${Math.round(powerRequired)}`;
 }
 
+/**
+ * A completion fraction as a percentage that still says how current it is.
+ *
+ * `parseBases` normalises two wire shapes into one local number, so this figure
+ * has no single field path to be read back through. What it does have is the
+ * topic it came off, and that is what its currency is: as current as
+ * `deployed.bases` was when the roster arrived.
+ *
+ * The fraction is taken already-narrowed rather than nullable, because the only
+ * safe substitute for a missing completion is no figure at all: a zero here
+ * claims an experiment has gathered nothing, and `collecting` (`pct < 100`) is
+ * satisfied by that zero, so the card would report "gathered nothing and
+ * actively working" about an experiment nobody has heard from.
+ */
+function progressPercentReading(
+  source: Reading<unknown>,
+  fraction: number,
+): Reading<Value<"%">> {
+  return combineReadings([source], () => value("%", fraction * 100));
+}
+
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
   // A deployed-base roster is a fact: bases are planted by an event.
-  const basesRaw = stillTrue(useTelemetry("deployed.bases"), undefined);
+  //
+  // The reading is NAMED rather than consumed inline because the progress
+  // figure below is drawn from it and has to say how current it is. `stillTrue`
+  // hands back a fact's payload through stale on purpose, so without the
+  // reading beside it a held percentage draws as a present-tense claim.
+  const basesReading = useTelemetry("deployed.bases");
+  const basesRaw = stillTrue(basesReading, undefined);
   const available = stillTrue(
     useTelemetry("game.dlc"),
     undefined,
@@ -504,8 +537,14 @@ function DeployedScienceComponent(
                         {exp.progress === null ? (
                           "Progress unknown"
                         ) : (
+                          /* Drawn THROUGH the reading, so a percentage held
+                             over from a link that stopped delivering is marked
+                             rather than stated as current. */
                           <Unit
-                            value={value("%", exp.progress * 100)}
+                            value={progressPercentReading(
+                              basesReading,
+                              exp.progress,
+                            )}
                             decimals={0}
                           />
                         )}
