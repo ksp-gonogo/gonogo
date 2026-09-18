@@ -167,9 +167,9 @@ describe("Panel panelBadges", () => {
   });
 
   it("a lone severity-bearing badge is not ALSO drawn as the merged summary badge", () => {
-    // The badge registers into the store (it has a real severity) and wins its
-    // own summary, so it must render exactly once: as its own pill, not again
-    // beside itself as `PanelSummaryBadge`.
+    /* The badge registers into the store (it has a real severity) and wins
+       its own summary, so it must render exactly once: as its own pill, not
+       again beside itself as `PanelSummaryBadge`. */
     render(
       <PanelStatusStoreProvider>
         <Panel
@@ -182,9 +182,9 @@ describe("Panel panelBadges", () => {
   });
 
   it("a worse OTHER contributor still shows its own summary beside an unrelated badge", () => {
-    // The badge is not the winner here (the stream contribution is worse), so
-    // both the badge's own pill and the merged summary for the stream must
-    // show: they are two different signals, not a duplicate of one.
+    /* The badge is not the winner here (the stream contribution is worse),
+       so both the badge's own pill and the merged summary for the stream
+       must show: they are two different signals, not a duplicate of one. */
     render(
       <PanelStatusStoreProvider>
         <Panel
