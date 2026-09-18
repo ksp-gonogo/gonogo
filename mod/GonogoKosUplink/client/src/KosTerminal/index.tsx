@@ -753,11 +753,8 @@ function KosTerminalScreen({
   const effectiveScriptPaths =
     scriptPaths.length > 0 ? scriptPaths : liveListing.paths;
   /*
-   * The picker's empty-state line. `loading` was computed by the hook and
-   * read by nobody, so a listing still in flight drew the same "No scripts
-   * found" as a drive genuinely holding none: a 30-second dispatch window
-   * during which the picker asserted the volume was empty. It gets its own
-   * line, ahead of `hint`, which only ever describes a settled outcome.
+   * `hint` only ever describes a settled outcome, so a listing still in
+   * flight needs its own line here rather than falling through to it.
    */
   const scriptListHint = (() => {
     if (scriptPaths.length > 0) return null;
@@ -1645,9 +1642,9 @@ const CpuPicker = styled.div`
   padding: var(--space-12);
 `;
 
-// Larger, icon-leading CPU buttons (2026-07-15 feedback: the bare picker read
-// as "drab"). Composes the ui-kit GhostButton, enlarging its hit area and
-// pairing the label with a decorative computer icon.
+// Larger, icon-leading CPU buttons. Composes the ui-kit GhostButton,
+// enlarging its hit area and pairing the label with a decorative computer
+// icon.
 const CpuPicker__Button = styled(GhostButton)`
   display: inline-flex;
   align-items: center;

@@ -935,12 +935,10 @@ export interface CommandGateReport
 	gates: CommandGate[];
 }
 /**
-* The typed, machine-readable failure code every command result carries, R7
-* Fix 1's replacement for the bare `string` error codes
-* (`"E_RANGE"`/`"E_NOT_FOUND"`/`"E_MODE_UNAVAILABLE"`/ `"E_NO_VESSEL"`) the
-* three hand-rolled result records used to return. A string code forces the
-* client to string-match a magic value that the compiler can neither check nor
-* enumerate. This enum makes the failure surface a closed, typed set instead.
+* The typed, machine-readable failure code every command result carries. A
+* string code forces the client to string-match a magic value that the
+* compiler can neither check nor enumerate. This enum makes the failure
+* surface a closed, typed set instead.
 *
 * `CommandErrorCode.None` is the success sentinel (paired with
 * `CommandResult.success` = true); `CommandErrorCode.Unknown` is the
@@ -1213,18 +1211,16 @@ export enum CommandErrorCode {
 	Unreadable = 23
 }
 /**
-* R7 Fix 1: the ONE result shape every command returns, replacing the three
-* hand-rolled records (`Ack`/`StageResult`/`AddManeuverNodeResult`) that each
-* re-declared `Success` + `ErrorCode`. `CommandResult.success` false pairs
-* with a typed `CommandResult.errorCode` (never a free-text message a client
-* has to string-match), following a `Result<T, CommandError>` ruling: results
-* are always delivered (never a fire-and-forget void), and failure is
-* structured data, not a thrown exception.
+* The ONE result shape every command returns. `CommandResult.success` false
+* pairs with a typed `CommandResult.errorCode` (never a free-text message a
+* client has to string-match). Results are always delivered (never a
+* fire-and-forget void), and failure is structured data, not a thrown
+* exception.
 *
 * This non-generic base is the "no payload" case (every plain actuation
-* command: the former `Ack`). Commands that return a real value use
-* `CommandResult`, whose `Payload` carries it (`vessel.control.stage`'s new
-* stage index, `vessel.maneuver.add`'s created node id).
+* command). Commands that return a real value use `CommandResult`, whose
+* `Payload` carries it (`vessel.control.stage`'s new stage index,
+* `vessel.maneuver.add`'s created node id).
 */
 export interface CommandResult
 {
@@ -1238,12 +1234,11 @@ export interface CommandResult
 	* `CommandResult.errorCode` alone cannot say "16 of 16 active crew", and the
 	* code and the numbers only mean anything together: the code picks the
 	* sentence, this fills the gaps in it. Every number here was already in scope
-	* on the line that refused, and used to be discarded there.
+	* on the line that refused.
 	*
 	* The SAME `LimitBreach` the declared-gate path carries on
-	* `GateVerdict.breach`, deliberately, so an operator reads one sentence shape
-	* whether the refusal came from a gate or from an actuator that got far enough
-	* to look.
+	* `GateVerdict.breach`, so an operator reads one sentence shape whether the
+	* refusal came from a gate or from an actuator that got far enough to look.
 	*/
 	breach?: LimitBreach;
 	/**
@@ -6903,14 +6898,6 @@ export interface CrewMember
 	/** Packed volume they are currently using, same unit as the limit. */
 	packedVolumeUsed?: Value<"1"> | null;
 }
-/**
-* The `vessel.crew` channel payload. Started count-only for M1 (G-13: grows to
-* a full roster later WITHOUT a topic rename, per the "misc junk drawer split"
-* ruling). The roster (`VesselCrew.crew`) and `VesselCrew.capacity` are that
-* additive growth, new fields on the same record, same topic. Splitting this
-* out of KspHost's `misc` group into its own coherent, independently-growable
-* channel is itself part of the wart-fix.
-*/
 export interface VesselCrew
 {
 	count: Value<"count">;
@@ -7555,18 +7542,18 @@ export interface ManeuverNode
 	* `VesselOrbit.patches` uses, started from the node's own `nextPatch` instead
 	* of the vessel's current orbit).
 	*
-	* **How one burn links to the next, measured on the Deck 2026-08-18.** A
-	* burn's INPUT trajectory is the patch in the PREVIOUS burn's chain whose
-	* `PatchEndTransition` is `TransitionType.Maneuver`, equivalently the one
-	* whose `EndUt` equals this burn's `ManeuverNode.ut`. For the first burn it is
-	* the craft's own `vessel.orbit`. Every chain is a suffix of the previous one,
-	* but the number of patches skipped varies with how many SOI crossings fall
-	* between the two burns, so counting positions is not the rule and gets it
-	* wrong the first time a crossing appears.
+	* **How one burn links to the next.** A burn's INPUT trajectory is the patch
+	* in the PREVIOUS burn's chain whose `PatchEndTransition` is
+	* `TransitionType.Maneuver`, equivalently the one whose `EndUt` equals this
+	* burn's `ManeuverNode.ut`. For the first burn it is the craft's own
+	* `vessel.orbit`. Every chain is a suffix of the previous one, but the number
+	* of patches skipped varies with how many SOI crossings fall between the two
+	* burns, so counting positions is not the rule and gets it wrong the first
+	* time a crossing appears.
 	*
-	* KSP re-parents strictly sequentially, also measured: inserting a burn ahead
-	* of an existing one re-derives every later chain, so a burn's input is always
-	* the previous burn's result.
+	* KSP re-parents strictly sequentially: inserting a burn ahead of an existing
+	* one re-derives every later chain, so a burn's input is always the previous
+	* burn's result.
 	*
 	* **This whole field is a PATCHED-CONIC encoding.** It exists because a stock
 	* plan IS a sequence of conics joined at SOI boundaries. A planner that
@@ -7616,18 +7603,12 @@ export interface VesselManeuver
 /**
 * The `vessel.orbit` channel payload: elements are the CAUSE; every kinematic
 * quantity (position/velocity/apsides/anomalies/period) is a consumer-side
-* derivation at view-UT via the propagation capability, never streamed here
-* (the "elements-not-position" ruling). Kills O-1 (there is no
-* `eccentricAnomaly` field at all, the copy-paste-bug class can't exist on a
-* wire that never carries one), O-8 (spelled-out, unit-annotated fields, UT
-* always `double`), O-9 (`VesselOrbit.encounter` is a typed nullable record,
-* never the -1/0/1 + "" + NaN sentinel spray of o.encounterExists/Time/Body),
-* O-10 (no duplicate apsis keys). Units: `VesselOrbit.sma` in metres;
-* `VesselOrbit.inc`/`VesselOrbit.lan`/ `VesselOrbit.argPe` in DEGREES
-* (KSP-native); `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native):
-* this degrees/radians split is an inherited KSP inconsistency deliberately
-* KEPT, not "fixed": converting would desync from every KSP reference and the
-* recorder's own raw values).
+* derivation at view-UT via the propagation capability, never streamed here.
+* Units: `VesselOrbit.sma` in metres; `VesselOrbit.inc`/`VesselOrbit.lan`/
+* `VesselOrbit.argPe` in DEGREES (KSP-native);
+* `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native): this
+* degrees/radians split is an inherited KSP inconsistency, converting would
+* desync from every KSP reference and the recorder's own raw values.
 */
 export interface VesselOrbit
 {
@@ -7719,9 +7700,6 @@ export interface VesselOrbit
 	* tried to build one and stopped, `TrajectoryRefusal.NotAttempted` when none
 	* was sought at all, and `TrajectoryRefusal.NotRefused` beside one that was
 	* drawn.
-	*
-	* Those last two used to be one value, and a client could not tell an install
-	* where the integrated path never runs from one where it runs cleanly.
 	*/
 	arcRefusal: TrajectoryRefusal;
 	meta: PayloadMeta;
@@ -7751,12 +7729,6 @@ export interface PropagationHorizon
 	* analytic, therefore an ellipse is fine" then draws a closed conic for an
 	* integrated trajectory: faithful at the sample instant, wrong as a path, and
 	* confident.
-	*
-	* An earlier draft carried the provider's literal id instead. That answered
-	* "who computed this" where the client needed "what is this like", and it put
-	* a vendor's name in a standard payload. An enumeration answers the real
-	* question completely, and every provider can state it, stock included, which
-	* is what makes it belong on the standard shape at all.
 	*
 	* Diagnostics keep their own home: `system.uplinks` already carries each
 	* Uplink's id, version and availability once per session, and a version is
@@ -8156,12 +8128,11 @@ export interface PartBounds
 /**
 * The active vessel's physics-simulation regime, derived from KSP's own
 * `Vessel.loaded`/`Vessel.packed` flags (confirmed via decompile: both are
-* public `bool` fields on `Vessel`). This is the proper Value that replaces
-* the old "read stream meta" stand-in, physics mode is a discrete enum in its
-* own right, NOT a quality band on `PayloadMeta.quality` (a 2026-07-09
-* reversal). Widgets that switch propagation/dead-reckoning strategy
-* (a.physicsMode consumers) read this to know whether the craft is on-rails
-* conics, a packed cluster, or a fully physics-simulated vessel.
+* public `bool` fields on `Vessel`). Physics mode is a discrete enum in its
+* own right, NOT a quality band on `PayloadMeta.quality`. Widgets that switch
+* propagation/dead-reckoning strategy (a.physicsMode consumers) read this to
+* know whether the craft is on-rails conics, a packed cluster, or a fully
+* physics-simulated vessel.
 *
 * Mapping (see `Gonogo.KSP.KspHost.BuildPhysics` and
 * `Sitrep.Host.VesselViewProvider.BuildPhysicsMode`):
@@ -8185,12 +8156,9 @@ export enum PhysicsMode {
 }
 /**
 * The `vessel.physics.mode` Topic payload: the active vessel's physics regime
-* (`PhysicsMode`). Its own Topic Value per the 2026-07-09 decision that
-* reverses the earlier "fold physics mode into stream meta" call:
-* `PayloadMeta.quality` was a bad stand-in for a discrete enum).
-* DelayRole-Delayed like every other vessel-derived channel: it describes the
-* vessel itself, so ground learns about it at UT+delay, not as a ground-side
-* fact.
+* (`PhysicsMode`). DelayRole-Delayed like every other vessel-derived channel:
+* it describes the vessel itself, so ground learns about it at UT+delay, not
+* as a ground-side fact.
 */
 export interface VesselPhysicsMode
 {
@@ -8723,10 +8691,10 @@ export interface DelayedObservation
 *
 * Both values get the same model out of the same provider. Under an
 * integrating provider that is the craft's conic either way, because there is
-* no integrated point query to select (see the audit on #282). What differs is
-* whether the caller is willing to read it past the point anybody stands
-* behind it, which IPropagationProvider.CanPropagate already answers and which
-* nothing previously made a caller state.
+* no integrated point query to select. What differs is whether the caller is
+* willing to read it past the point anybody stands behind it, which
+* IPropagationProvider.CanPropagate already answers and which nothing
+* previously made a caller state.
 *
 * **`PropagationCertification.Unspecified` is zero and means nothing was
 * chosen.** Same rule as `TrajectoryKind`'s zero and for the same reason: had

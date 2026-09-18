@@ -33,20 +33,9 @@ const VISIBLE_MS = 10_000;
  * `recovery.lastSummary` and `crash.lastCrash` are typed by the generated
  * contract (`RecoveryReport`, `CrashReport`), and `useTelemetry` hands each
  * one back under its own type. This file therefore names no field shapes of
- * its own, and reads the reports directly.
- *
- * It used to. Two local interfaces of plain numbers restated both payloads
- * field-for-field, and a pair of `(raw: unknown)` parsers rebuilt each report
- * into them through `num(v) = typeof v === "number" ? v : 0`. That threw the
- * topic's type away at the door, so nothing could check the mirror against the
- * contract, and the two disagreed: every quantity on both payloads is a
- * `Value` by the time the banner reads it, because the wire carries a bare
+ * its own, and reads the reports directly: every quantity on both payloads is
+ * a `Value` by the time the banner reads it, because the wire carries a bare
  * number and `wrapUnits` wraps it on decode from the generated unit maps.
- * `typeof v === "number"` saw an object and substituted zero for all of them.
- * Recoveries paid 0 funds, 0 science and 0 rep, crashes flew to 0 m at 0 m/s,
- * every breakdown row read 0, part groups collapsed to "×1", and both UTs read
- * 0, which is what made the newest-outcome pick below compare 0 with 0 and
- * announce a recovery for a flight that ended in a crater.
  *
  * A hand-maintained mirror of a contract type is a second authority for the
  * wire's shape. Do not reintroduce one.
@@ -189,12 +178,6 @@ export function FlightOutcomeBanner() {
     // this effect runs before Effect 2, so if we wrote
     // `lastAnnouncedRef.current = outcome` here, Effect 2 would see
     // `last === outcome` and silently swallow the banner.
-    //
-    // Live-curl 2026-05-13: confirmed the fork emits crash.lastCrash + has
-    // crash.hasRecent=true. The earlier "crash didn't show on dashboard"
-    // user report was this effect closing the banner mid-fire when the
-    // flight ended (currentFlight: A → null) and the crash arrived in the
-    // same render cycle.
     if (prevFlightId !== null && nextFlightId !== null) {
       lastAnnouncedRef.current = outcome
         ? { kind: outcome.kind, ut: outcome.ut }

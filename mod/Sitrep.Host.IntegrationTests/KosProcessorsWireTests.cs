@@ -23,7 +23,7 @@ namespace Sitrep.Host.IntegrationTests
     /// and fail-softed to nothing, exactly the comms.delay bug the
     /// <c>AppendCommsDelay</c> case had already fixed for that POCO.</para>
     ///
-    /// <para>As of the kos migration (2026-07-18), the real
+    /// <para>As of the kos migration, the real
     /// <c>Gonogo.KosUplink.KosExtension.HandleProcessors</c> self-flattens
     /// each <c>KosProcessorInfo</c> via <c>KosProcessorInfoBuilder.Build</c>
     /// before publishing: mirrored by hand below (this project doesn't take

@@ -8,9 +8,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// The mod-side ownership guard from the uplink-types-out-of-core plan
-    /// (<c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>
-    /// §5a): NO Uplink-specific wire type may live in
+    /// The mod-side ownership guard: NO Uplink-specific wire type may live in
     /// <c>mod/Sitrep.Contract/</c>, even for an in-monorepo Uplink. Mirrors
     /// the frontend's <c>packages/core/src/uplink-boundary.test.ts</c>
     /// mechanically (a registered token's distinctive pattern, scanned
@@ -44,35 +42,18 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>Every Uplink in the plan is now registered, and the migration is
-    /// complete</b>: the pilot, the five whole-file relocations after it, and the
-    /// partial extract that closed it out, each having added its own token here in
-    /// the same commit that moved its types out. Naming those mods here would
-    /// itself trip THEIR frontend uplink-boundary tokens (this file lives outside
-    /// every owning Uplink dir), so the plan's own document is the
-    /// cross-reference, not this comment.</para>
+    /// <para><b>Naming a relocated mod here would trip its own ratchet.</b>
+    /// Naming a mod here would itself trip that mod's own frontend
+    /// uplink-boundary token, since this file lives outside every owning
+    /// Uplink's directory.</para>
     ///
-    /// <para><b>What the last token settled.</b> That entry was the open question
-    /// this comment used to hold: whether a partial extract from a shared-shape
-    /// file fits the same pattern form at all. It does, but only by naming the
-    /// extracted TYPES rather than the mod, and for a reason worth recording
-    /// because it inverts the usual one. The earlier tokens name their mods
-    /// because those types were written as a mod's own file and carry the mod's
-    /// name in every identifier. Types carved out of a SHARED contract are named
-    /// for the channel family instead, so the mod name appears in this directory
-    /// only in prose, which this scan already exempts. A bare mod-name pattern
-    /// would have been vacuous both before and after the move. The file the
-    /// extract left behind is legitimately core and does keep naming the mod in
-    /// prose, exactly as anticipated.</para>
-    ///
-    /// <para>Deliberately still NOT sharing pattern data with
-    /// <c>uplink-boundary.allowlist.ts</c> (the plan flags this as a good
-    /// follow-up, "worth doing regardless of relocation scope"): seven independent
-    /// small pattern lists is a duplication worth revisiting now that the set is
-    /// closed, and cross-linking them (a shared generated JSON) is real work whose
-    /// shape is finally knowable, since the last token proved the two kinds of
-    /// pattern (mod-named and type-named) have to coexist in whatever replaces
-    /// them.</para>
+    /// <para><b>Two token shapes, and when each applies.</b> A token names its
+    /// mod when the relocated types were written as that mod's own file and
+    /// carry the mod's name in every identifier. A token names the extracted
+    /// TYPES instead when they are carved out of a SHARED contract file: the
+    /// mod name would not appear in any identifier there, so a bare mod-name
+    /// pattern would be vacuous, and the mod name surfaces only in prose,
+    /// which this scan already exempts.</para>
     /// </summary>
     public class UplinkContractOwnershipTests
     {

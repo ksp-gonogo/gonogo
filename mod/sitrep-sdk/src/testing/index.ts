@@ -6,10 +6,8 @@
 // sdk's own tests) install a fake host so the shims resolve instead of throwing
 // the "no host installed" error. Self-contained: no core import, no cycle.
 //
-// It also ships the RENDER harness (2026-08-18): `render`/`renderHook` with the
-// kit's theme always mounted, plus Testing Library re-exported unchanged. Those
-// lived in `@ksp-gonogo/test-utils` until now, which is `private: true`, so 56
-// Uplink client files were importing a package an outside author cannot obtain.
+// It also ships the RENDER harness: `render`/`renderHook` with the
+// kit's theme always mounted, plus Testing Library re-exported unchanged.
 // Testing Library and styled-components are OPTIONAL peers and this is a separate
 // entry from the root barrel, so a runtime consumer never resolves any of it.
 //
@@ -79,8 +77,7 @@ export {
 export { consoleLogger } from "./console-logger";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
-// The jsdom shims a widget test needs before it can mount anything. Moved down
-// from `core` on 2026-08-19: it imports nothing, so nothing kept it up there.
+// The jsdom shims a widget test needs before it can mount anything.
 export { installDomStubs } from "./install-dom-stubs";
 // The WHOLE host, built from the real implementations rather than a subset. See its
 // own doc for why a partial host fails repeatedly, and for the four ui-kit members
@@ -90,13 +87,9 @@ export {
   type UiKitHostPieces,
 } from "./install-real-test-host";
 export { installTestHost, resetTestHost } from "./install-test-host";
-// The in-memory `Storage` shim, moved down from `core` on 2026-08-19 for the same
-// reason: it imports nothing, and an Uplink test wanting one was reaching through
-// `@ksp-gonogo/core/test` to find it.
+// The in-memory `Storage` shim.
 export { memoryStorage } from "./memory-storage";
-// The in-memory `DataSource` double, moved down from `core` on 2026-08-19: it
-// names four types and no behaviour, so nothing kept it in an unpublished package
-// that 15 Uplink test files had to import to construct one.
+// The in-memory `DataSource` double.
 export {
   MockDataSource,
   type MockDataSourceOptions,

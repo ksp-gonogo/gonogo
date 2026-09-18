@@ -125,10 +125,9 @@ export function useCommcastFeed(
    * that impossible: a stale pass leaves the pins alone and does nothing, and
    * the pass that has the new buffer is the one that re-pins.
    *
-   * This is the defect behind the render harness's "lost the arrival race",
-   * which the previous pass could reproduce and not explain. The rebuild is
-   * triggered by the observed vantage arriving, which happens on every fresh
-   * page load, so it is not a harness-only fault.
+   * This is the defect behind the render harness's "lost the arrival race".
+   * The rebuild is triggered by the observed vantage arriving, which happens
+   * on every fresh page load, so it is not a harness-only fault.
    */
   const pinnedBuffer = useRef<DelayedPlayoutBuffer<CommcastEntry> | null>(null);
   const [buffer, setBuffer] =

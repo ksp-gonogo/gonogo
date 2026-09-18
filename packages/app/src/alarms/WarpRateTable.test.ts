@@ -2,7 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { WarpRateTable } from "./WarpRateTable";
 
-/** KSP's own ladder, and the one the client used to assume was everybody's. */
+/** KSP's own ladder. */
 const STOCK = [1, 5, 10, 50, 100, 1000, 10000, 100000];
 
 /**

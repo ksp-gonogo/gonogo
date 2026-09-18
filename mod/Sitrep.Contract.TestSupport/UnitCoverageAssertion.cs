@@ -64,16 +64,14 @@ namespace Sitrep.Contract.TestSupport
         /// Every <see cref="SitrepContractAttribute"/>-tagged type in an
         /// Uplink's own contract assembly, nested-only shapes included.
         ///
-        /// <para>GENERIC TYPE DEFINITIONS ARE INCLUDED, and were excluded until
-        /// 2026-09-01. Exactly three contract types are generic, and they are
+        /// <para>GENERIC TYPE DEFINITIONS ARE INCLUDED. Exactly three contract
+        /// types are generic, and they are
         /// the three envelope types every message on the wire is one of:
         /// <c>StreamData&lt;T&gt;</c>, <c>CommandRequest&lt;TArgs&gt;</c> and
         /// <c>CommandResponse&lt;TResult&gt;</c>. None of them declared a unit
         /// on any field, while their non-generic siblings
         /// <see cref="EventMsg"/> and <see cref="ErrorMsg"/> declared one on
-        /// every field, and this gate reported green throughout: the omission
-        /// correlated 3-for-3 with the exclusion, so it was this filter and not
-        /// a decision.</para>
+        /// every field.</para>
         ///
         /// <para>A type PARAMETER is not scalar, so <c>Payload</c>,
         /// <c>Args</c> and <c>Result</c> are skipped by the property filter on

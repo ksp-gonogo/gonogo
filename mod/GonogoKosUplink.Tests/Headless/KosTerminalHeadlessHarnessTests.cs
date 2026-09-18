@@ -36,9 +36,7 @@ namespace GonogoKosUplink.Tests.Headless
     /// class the state re-read lane produces, and
     /// <see cref="Burst_ConstantValidAt_ReliableOrderedLane_DeliversEveryFrameAndReconstructsExactScreen"/>
     /// for the proof the ReliableOrdered forward lane fixes it at a constant
-    /// ValidAt (making Fix #1's strictly-increasing stamp unnecessary); the harness report
-    /// (docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md) pairs
-    /// it with an actual git-revert-of-Fix-#1 run of the positive test.</para>
+    /// ValidAt.</para>
     ///
     /// <para><b>Interpreter vs ScreenBuffer:</b> this drives the ScreenBuffer
     /// directly rather than standing up the full kOS interpreter headlessly,

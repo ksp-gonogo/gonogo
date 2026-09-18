@@ -1115,9 +1115,7 @@ export class PeerClientService {
       // Carry the host's TURN credentials into the station's own Peer.
       // The station→relay camera channel is a separate peer.connect()
       // call from the station's Peer instance; without TURN the relay's
-      // container-bridge candidates can't be reached from the LAN. See
-      // the 2026-05-17 evening session: every camera attempt fired
-      // `negotiation-failed` for this exact reason.
+      // container-bridge candidates can't be reached from the LAN.
       if (msg.iceServers && msg.iceServers.length > 0) {
         this.applyRelayIceServers(msg.iceServers);
       }

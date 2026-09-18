@@ -5,10 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The typed, machine-readable failure code every command result carries,
-/// R7 Fix 1's replacement for the bare <c>string</c> error codes
-/// (<c>"E_RANGE"</c>/<c>"E_NOT_FOUND"</c>/<c>"E_MODE_UNAVAILABLE"</c>/
-/// <c>"E_NO_VESSEL"</c>) the three hand-rolled result records used to return.
+/// The typed, machine-readable failure code every command result carries.
 /// A string code forces the client to string-match a magic value that the
 /// compiler can neither check nor enumerate. This enum
 /// makes the failure surface a closed, typed set instead.
@@ -180,7 +177,6 @@ public enum CommandErrorCode
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
     /// and does not resolve by waiting.
     /// <internal>
-    /// Five, not the seven this said until 2026-09-04.
     /// <c>ClearToSaveStatus</c> declares seven members and
     /// <c>PauseMenu.drawExitWithoutSaveOptions</c> switches over six of them,
     /// which is where the number came from, but <c>ClearToSave</c> itself
@@ -352,16 +348,14 @@ public enum CommandErrorCode
 }
 
 /// <summary>
-/// R7 Fix 1: the ONE result shape every command returns, replacing the three
-/// hand-rolled records (<c>Ack</c>/<c>StageResult</c>/<c>AddManeuverNodeResult</c>)
-/// that each re-declared <c>Success</c> + <c>ErrorCode</c>. <see cref="Success"/>
+/// The ONE result shape every command returns. <see cref="Success"/>
 /// false pairs with a typed <see cref="ErrorCode"/> (never a free-text message a
-/// client has to string-match), following a <c>Result&lt;T, CommandError&gt;</c>
-/// ruling: results are always delivered (never a fire-and-forget void), and
-/// failure is structured data, not a thrown exception.
+/// client has to string-match). Results are always delivered (never a
+/// fire-and-forget void), and failure is structured data, not a thrown
+/// exception.
 ///
 /// <para>This non-generic base is the "no payload" case (every plain
-/// actuation command: the former <c>Ack</c>). Commands that return a real
+/// actuation command). Commands that return a real
 /// value use <see cref="CommandResult{T}"/>, whose <c>Payload</c> carries it
 /// (<c>vessel.control.stage</c>'s new stage index, <c>vessel.maneuver.add</c>'s
 /// created node id).</para>
@@ -388,10 +382,10 @@ public class CommandResult
     /// <para><see cref="ErrorCode"/> alone cannot say "16 of 16 active crew", and
     /// the code and the numbers only mean anything together: the code picks the
     /// sentence, this fills the gaps in it. Every number here was already in
-    /// scope on the line that refused, and used to be discarded there.</para>
+    /// scope on the line that refused.</para>
     ///
     /// <para>The SAME <see cref="LimitBreach"/> the declared-gate path carries on
-    /// <see cref="GateVerdict.Breach"/>, deliberately, so an operator reads one
+    /// <see cref="GateVerdict.Breach"/>, so an operator reads one
     /// sentence shape whether the refusal came from a gate or from an actuator
     /// that got far enough to look.</para>
     /// </summary>

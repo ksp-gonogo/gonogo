@@ -78,16 +78,6 @@ function renderApp(): void {
 // e2e / offline first boot) nothing is attempted; `?uplinkLoaderIds=` is how
 // you name ids by hand (see `deriveEnabledIds` in loader.ts).
 //
-// There used to be a second path: nine build-time `import()`s of Uplink client
-// packages, taken because those clients ship alongside the app. That is a
-// privilege an outside author cannot reach, since a static import means being
-// inside this build, and it made the app's Uplink support two-tier. The reason
-// given for it was bootstrap timing on a station, and the timing was already
-// handled: `StationUplinkLoader` gates the Dashboard until the load settles,
-// and the SDK's runtime Topic registry is subscribable so a Topic registered
-// after the provider mounted is carried anyway
-// (`carried-channels-uplink.test.tsx` asserts exactly that).
-//
 // Render proceeds either way: a quarantined Uplink degrades to "widget not
 // loaded (reason)" in Settings, never a blank dashboard.
 //
@@ -96,7 +86,7 @@ function renderApp(): void {
 // (default 3000ms), so a mod that never answers delays the first render by
 // that much and no more.
 //
-// STATION BOOT (#6, station boot re-sequence, 2026-07-25): a station NEVER
+// STATION BOOT: a station NEVER
 // talks to KSP or an Uplink author host directly, it gets everything from the
 // main screen over PeerJS. `probeUplinkRoster()` opens its own direct
 // `WebSocketTransport` to KSP and `loadEnabledUplinks`'s default `fetchBytes`

@@ -160,13 +160,14 @@ describe("createFrameDelayStream", () => {
   });
 
   it("fails OPEN, returns null, reports via onError, never throws, when building the processor/generator pair throws", () => {
-    // Models the plausible real-world case: a build effect rebuilds on the
-    // SAME track before the PRIOR pipeline's un-awaited `source.cancel()`
-    // has actually released it (React StrictMode's mount→unmount→mount
-    // cycle, or any dep change that isn't `raw`), Chrome can throw
-    // `InvalidStateError` from `new MediaStreamTrackProcessor(...)` because a
-    // `MediaStreamTrack` may have only one processor at a time. Review
-    // finding #3 (`2026-07-15-per-frame-video-delay-review.md`).
+    /*
+     * Models the plausible real-world case: a build effect rebuilds on the
+     * SAME track before the PRIOR pipeline's un-awaited `source.cancel()` has
+     * actually released it (React StrictMode's mount→unmount→mount cycle, or
+     * any dep change that isn't `raw`), Chrome can throw `InvalidStateError`
+     * from `new MediaStreamTrackProcessor(...)` because a `MediaStreamTrack`
+     * may have only one processor at a time.
+     */
     class ThrowingProcessor {
       constructor() {
         throw new Error("InvalidStateError: track already has a processor");
@@ -359,13 +360,13 @@ describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)
   });
 });
 
-// -- Encoded-domain frame shape (2026-07-16 encoded-transform video-delay
-// work). An RTCEncodedVideoFrame has no `.close()` (a plain data object,
-// no GPU/decoder resource), a `.type` of "key"/"delta", and a real
-// `.data.byteLength`: this section proves the pipeline handles that shape
-// correctly: no crash on the optional `close?.()` calls, `isKeyframe`/
-// `frameBytes` correctly classify frames for `DelayedPlayoutBuffer`, and
-// `gopSafeEviction` protects a GOP under cap pressure end-to-end.
+// -- Encoded-domain frame shape. An RTCEncodedVideoFrame has no `.close()`
+// (a plain data object, no GPU/decoder resource), a `.type` of "key"/"delta",
+// and a real `.data.byteLength`: this section proves the pipeline handles
+// that shape correctly: no crash on the optional `close?.()` calls,
+// `isKeyframe`/`frameBytes` correctly classify frames for
+// `DelayedPlayoutBuffer`, and `gopSafeEviction` protects a GOP under cap
+// pressure end-to-end.
 describe("runFrameDelayPipeline: encoded frame shape (no close(), keyframe/bytes classification)", () => {
   /** Minimal stand-in for RTCEncodedVideoFrame: NO close() method, a
    *  `type` discriminant, and a byte-sized `data` payload. */

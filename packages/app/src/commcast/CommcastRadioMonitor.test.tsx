@@ -4,12 +4,12 @@
  *
  * The unit suites own the arithmetic (`RadioSession.test.ts`) and the drawn
  * controls (`RadioIndicator.test.tsx`, `RadioMute.test.tsx`). What only the
- * assembled widget can show is the failure they were all written against: the
- * radio used to be mounted inside the composer, so stepping back to the inbox
- * tore the session down and cut off whoever was mid-sentence, and opening
- * another conversation built a fresh one that could not place the keying it was
- * already hearing. Which loop an operator could HEAR was a consequence of where
- * they were looking.
+ * assembled widget can show is a failure the unit suites can't see: mounting
+ * the radio inside the composer would tear the session down on stepping back
+ * to the inbox, cutting off whoever was mid-sentence, and opening another
+ * conversation would build a fresh session that could not place the keying it
+ * was already hearing. Which loop an operator can HEAR is a consequence of
+ * where they are looking.
  *
  * Nothing internal is mocked. The real log, the real session, the real delay
  * arithmetic and the real controls all run; what is substituted is the two ends
@@ -230,8 +230,7 @@ describe("Commcast radio, monitored rather than tuned by the open view", () => {
     /*
      * The defect, at widget level. This test never opens a conversation: the
      * screen is on the inbox from mount to assertion, and the words are heard
-     * anyway. With the radio mounted in the composer there was no session at
-     * all here.
+     * anyway.
      */
     const s = scene();
     s.mount();

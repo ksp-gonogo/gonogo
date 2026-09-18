@@ -11,8 +11,7 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// C#-only tests (no TS reference -- <see cref="Meta.TimelineEpoch"/> and
     /// <see cref="Courier.ResetTimeline"/> are both C#-only additions) for
-    /// the M2 finding from <c>local_docs/telemetry-mod/m2-sdk-delay-design.md</c>
-    /// §7.6/§10.1: every envelope <see cref="Meta"/> carries the timeline
+    /// the M2 finding that every envelope <see cref="Meta"/> carries the timeline
     /// generation it was recorded/confirmed under, incremented once per
     /// quickload rewind, so a client can tell a rewind apart from a normal
     /// delayed delivery atomically instead of re-deriving it from a

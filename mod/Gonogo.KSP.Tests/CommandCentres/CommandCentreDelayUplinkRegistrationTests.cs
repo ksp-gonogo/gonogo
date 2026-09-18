@@ -53,9 +53,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
-        /// The regression this file exists for, stated directly: nothing this
-        /// uplink registers may hang off a fleet-topic subscription. The roster
-        /// and the ledger both used to.
+        /// Nothing this uplink registers may hang off a fleet-topic
+        /// subscription.
         /// </summary>
         [Fact]
         public void NothingIsGatedOnTheFleetNamespace()

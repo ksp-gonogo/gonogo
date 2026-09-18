@@ -17,32 +17,7 @@
  * <p><b>{@link RENDER_GAP}</b> is the real thing: the widget reads the field and
  * no fixture shows it, so the branch that renders it has never been looked at.
  * SHRINK-ONLY, graded against a base revision by the gate's second test. The way
- * off the list is to feed the field in a fixture and look at what it draws, the
- * way commit `a718dd36a` did for Principia's ground-track rows.</p>
- *
- * <p>Seeded 2026-08-29 from a full scan: 18 coincidental, 47 render gaps. Paid
- * down the same day on the `packages/components` half: 19 gaps closed by
- * fixtures and 3 reclassified, leaving 25.</p>
- *
- * <p>2026-08-30 took the remaining untriaged entries: 16 down to 3. Ten closed
- * by fixture, three reclassified, and one of the ten found a bug. Feeding
- * MapView its first `vessel.maneuver` node drew the maneuver ground track and,
- * beside it, a full-width horizontal line: the polyline was split at the
- * propagated date line while the canvas draws through the body's texture
- * offset. Every fixture before it was equatorial, where that line lies exactly
- * on the track that drew it. See `MapView/groundTrackWrap.ts`.</p>
- *
- * <p>2026-09-05 settled the last two misclassified entries,
- * `LandingStatus#surfaceGravity` and `MapView#rotationPeriod`, which sat in
- * COINCIDENTAL only because RENDER_GAP refuses growth. Both `__fixtures__`
- * dirs now carry the two facts the way the wire does, at the values a real
- * capture reports, so the reported-first branch `07587a9c8` introduced draws
- * for the first time. Every render came out byte-identical to the one the
- * static table produced, which is the answer worth having: the two authorities
- * agree on a stock body. That the branch is live rather than dead was proved
- * separately by planting a wrong figure, a tenth-gee Kerbin bent the descent
- * projection and a tenfold-fast rotation cut the equatorial track to two
- * stubs.</p>
+ * off the list is to feed the field in a fixture and look at what it draws.</p>
  */
 
 /**

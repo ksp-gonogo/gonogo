@@ -9,14 +9,13 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// C#-only tests (no TS reference) for the server-stampable half of the
-    /// M2 staleness model (<c>local_docs/telemetry-mod/m2-sdk-delay-design.md</c>
-    /// §4.3): <see cref="Meta.Staleness"/> is <see cref="Staleness.Fresh"/>
+    /// M2 staleness model: <see cref="Meta.Staleness"/> is <see cref="Staleness.Fresh"/>
     /// on every LIVE delivery unconditionally, and on a CATCH-UP delivery
     /// (the synchronous serve inside <see cref="Courier.SubscribeStream"/>)
     /// UNLESS <see cref="Courier.MarkLinkDown"/> has recorded the link to
     /// this (node, vantage) as down -- the seam a future M3 comms-capability
     /// provider drives (not yet built; this milestone only wires the
-    /// mechanism/plumbing, per the task's scope).
+    /// mechanism/plumbing).
     /// </summary>
     public class CourierCatchUpStalenessTests
     {

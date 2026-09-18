@@ -32,10 +32,6 @@ interface FakeTelemetry {
 /**
  * A dispatched `{command, args}` pair as one readable string, so an assertion
  * can name both what went and which one it was.
- *
- * It used to reconstruct the legacy ACTION KEY the pair came from, which kept
- * this file's assertions reading in a vocabulary nothing dispatches any more.
- * They now read in the command's own.
  */
 function formatCommand(command: string, args: unknown): string {
   if (command === "time.setWarpIndex") {
@@ -58,8 +54,7 @@ function formatCommand(command: string, args: unknown): string {
  * see `@ksp-gonogo/sitrep-client`'s `context.tsx`): `AlarmHostService`'s warp
  * reads (`getWarpState`), threshold `dataKey` reads (`getValue`), and
  * `contracts.active`/command dispatch (`dispatchActiveCommand`) all ride
- * this same store/client now, replacing the legacy `getLatestValue`/
- * `execute` `TelemetryReader` this used to fake.
+ * this same store/client.
  *
  * `set(key, value)` keeps the SAME call shape every test in this file
  * already uses: `t.universalTime` still registers the fake view clock,
@@ -221,7 +216,6 @@ describe("AlarmHostService", () => {
 
   it("fires an event alarm revealed inside a warp step that JUMPED CLEAN OVER it", async () => {
     /*
-     * The same jump that used to silence a time alarm, aimed at the event arm.
      * `deriveState` settles an event alarm on a 2-second CONTAINMENT test
      * (`now - matchSinceUT < 2`), which looks exposed; it is not, because
      * `updateEventTracking` latches `matchSinceUT` at the REVEAL UT, i.e. the
@@ -1418,11 +1412,10 @@ describe("AlarmHostService", () => {
       );
     });
 
-    // Regression from 2026-05-17 21:11 BST: stations that connected (or
-    // refreshed) after the operator added an alarm on main had to wait
-    // up to one tick before the snapshot arrived. If the alarm fired in
-    // that gap the banner could race the fire event. The bridge now
-    // sends the current snapshot directly to each new peer immediately.
+    // Without this, a station that connects (or refreshes) after the operator
+    // added an alarm on main would wait up to one tick before the snapshot
+    // arrived, and an alarm firing in that gap could race the fire event. The
+    // bridge sends the current snapshot directly to each new peer immediately.
     it("sends the current alarm snapshot to a station as soon as it connects", async () => {
       const { svc, captured } = makeServiceWithHost();
       svc.addAlarm({

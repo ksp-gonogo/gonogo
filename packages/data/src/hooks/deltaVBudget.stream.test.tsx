@@ -13,10 +13,8 @@ import { describe, expect, it } from "vitest";
  * `DELTA_V_BUDGET` read the way a widget reads it: through a real
  * `TelemetryProvider`/`TelemetryClient` over a `StubTransport`, no mocked hooks.
  *
- * This file replaces `useVesselDeltaV.test.tsx`, whose subject summed
- * `dv.stages` client-side for the vessel total. The cases below pin the ruling
- * that replaced it: the total is the game's own `dv.summary` figure, and stage
- * rows alone do not produce one.
+ * The cases below pin that the total is the game's own `dv.summary` figure,
+ * and stage rows alone do not produce one.
  */
 
 function Probe({ onRender }: { onRender: (v?: DeltaVBudget) => void }) {
@@ -108,9 +106,7 @@ describe("DELTA_V_BUDGET over a live stream", () => {
   it("maps the wire's own dvVac/dvAsl/dvActual onto the row the widgets render", async () => {
     // The mod writes `dvVac`/`dvAsl`/`dvActual`; the widgets render
     // `deltaVVac`/`deltaVASL`/`deltaVActual`. That rename is the whole of the
-    // reconciliation, and it used to sit beside a fallback accepting the widget
-    // spelling ON THE WIRE, which nothing has emitted since the retired legacy
-    // DataSource was deleted.
+    // reconciliation.
     const { transport, renders } = renderProbe();
     act(() => {
       transport.emit("dv.stages", [

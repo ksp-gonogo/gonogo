@@ -19,13 +19,10 @@ namespace Sitrep.Host.Tests
     /// for the synthetic regression pin) against data KSP itself actually
     /// wrote, not a hand-built fixture.
     ///
-    /// The recording lives under the gitignored <c>local_docs/</c> tree (see
-    /// CLAUDE.md's Feature log section), so every test here is a
-    /// <see cref="RecordingFactAttribute"/>: absent the file, xunit reports it
-    /// as SKIPPED, with the resolved path as the reason. It used to early-return
-    /// out of the body after logging "SKIPPING", which xunit reports as a PASS,
-    /// so in CI (which never has this asset) four tests claiming to replay a
-    /// 7.5 MB capture end to end went green having asserted nothing.
+    /// The recording lives under the gitignored <c>local_docs/</c> tree, so
+    /// every test here is a <see cref="RecordingFactAttribute"/>: absent the
+    /// file, xunit reports it as SKIPPED, with the resolved path as the
+    /// reason.
     /// </summary>
     public class ReferenceRecordingReplayTests
     {
@@ -157,8 +154,7 @@ namespace Sitrep.Host.Tests
         /// M1 Task 1 replay validation: replays the whole real recording
         /// through <see cref="VesselViewProvider"/>'s mappers +
         /// <see cref="VesselEpochSampler"/> and asserts the acceptance
-        /// criteria from docs/superpowers/plans/2026-07-07-m1-vessel-providers.md
-        /// Task 1: <c>vessel.orbit</c> emits real elements (sma&gt;0, mu&gt;0,
+        /// criteria: <c>vessel.orbit</c> emits real elements (sma&gt;0, mu&gt;0,
         /// NO <c>eccentricAnomaly</c> key anywhere on the wire),
         /// <c>vessel.flight</c> emits real lat/long, <c>vessel.identity</c>
         /// is stable, <c>meta.source</c> is <c>"vessel:&lt;guid&gt;"</c> on

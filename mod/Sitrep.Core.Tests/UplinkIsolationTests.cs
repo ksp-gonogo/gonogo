@@ -8,8 +8,8 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// The mod-side half of the Uplink isolation rule (<c>docs/uplink-isolation.md</c>,
-    /// and <c>packages/core/src/uplink-isolation.test.ts</c> for the client half):
+    /// The mod-side half of the Uplink isolation rule
+    /// (<c>packages/core/src/uplink-isolation.test.ts</c> is the client half):
     /// an Uplink may build against <c>Sitrep.Contract</c> and its own
     /// <c>&lt;Uplink&gt;.Contract</c> slice, and nothing else of this repo's.
     /// <c>Sitrep.Host</c>, <c>Sitrep.Core</c>, <c>Sitrep.Transport</c>,
@@ -19,28 +19,22 @@ namespace Sitrep.Core.Tests
     /// There is no first-party exemption; shipping bundled with the mod changes how
     /// an Uplink is distributed, not what it may reference.
     ///
-    /// <para><b>The <c>&lt;Uplink&gt;.Tests</c> siblings are in scope too, since
-    /// 2026-08-30.</b> They were not, and that is how every debt list here read
-    /// zero while ten of the twelve Uplinks were breaching the rule: the walk
-    /// skipped the directory the breach lived in, and a gate told to skip a
-    /// directory reports it clean. A Tests project is part of the Uplink it tests,
+    /// <para><b>The <c>&lt;Uplink&gt;.Tests</c> siblings are in scope too.</b> A
+    /// gate told to skip a directory reports it clean, which is how a debt
+    /// list here can read zero while a Tests project breaches the rule out of
+    /// the walk's sight. A Tests project is part of the Uplink it tests,
     /// it names that Uplink's types and compiles that Uplink's sources, so it moves
     /// with the Uplink when the Uplink leaves. An Uplink whose suite only builds
     /// against this repo's private assemblies has not been made extractable, and
     /// the author who forks it inherits tests they cannot run. The Tests half has
     /// its own walk, its own plant, and its own pair of debt lists
-    /// (<see cref="TestProjectReferenceDebt"/>, <see cref="TestProjectImportDebt"/>),
-    /// seeded from measurement rather than assumed empty.</para>
+    /// (<see cref="TestProjectReferenceDebt"/>, <see cref="TestProjectImportDebt"/>).</para>
     ///
     /// <para><b>Why this gates the REACHABLE set and not the declared one.</b>
     /// ProjectReference is transitive and nothing in this graph sets
     /// <c>PrivateAssets</c>, so a csproj naming one internal project gets that
-    /// project's own references too. The debt this was seeded with is what made the
-    /// distinction worth encoding rather than assuming: GonogoKerbalismUplink
-    /// declared exactly one internal project (<c>Gonogo.KSP</c>) and could compile
-    /// against five, and did, it used a <c>Sitrep.Host</c> type it never declared a
-    /// reference to. A guard counting csproj lines would have scored it the mildest
-    /// of the breaches instead of the widest. Declared references are what an author
+    /// project's own references too. A guard counting csproj lines would score the
+    /// widest breach as the mildest. Declared references are what an author
     /// edits; reachable assemblies are what the boundary actually is, so the debt is
     /// measured in the latter.</para>
     ///
@@ -114,8 +108,8 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
-        /// project references its csproj declares. Seeded 2026-08-19, EMPTIED
-        /// 2026-08-20. Shrink only, and there is nothing left to shrink: every
+        /// project references its csproj declares. Shrink only, and there is
+        /// nothing left to shrink: every
         /// Uplink in this repo now compiles against <c>Sitrep.Contract</c> and its
         /// own contract slice alone.
         ///
@@ -128,22 +122,18 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> ReferenceDebt = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// Namespaces each Uplink still IMPORTS from a private assembly. Seeded
-        /// 2026-08-19, EMPTIED 2026-08-20. Shrink only.
+        /// Namespaces each Uplink still IMPORTS from a private assembly. Shrink only.
         ///
         /// <para>Deliberately separate from <see cref="ReferenceDebt"/>, because
         /// "we stopped importing it" and "we stopped depending on it" are different
-        /// claims and the mod side was failing them in different places: five
-        /// references were dropped in the seeding commit purely because nothing
-        /// imported them, and the imports that remained were real. Both are now
-        /// empty, which is the only state in which an Uplink is done.</para>
+        /// claims. Both are now empty, which is the only state in which an Uplink
+        /// is done.</para>
         /// </summary>
         private static readonly Dictionary<string, string[]> ImportDebt = new(StringComparer.Ordinal);
 
         /// <summary>
         /// Private assemblies each <c>&lt;Uplink&gt;.Tests</c> project can still
-        /// REACH. Seeded 2026-08-30, when the Tests projects were brought into
-        /// scope for the first time. Shrink only, same rules as
+        /// REACH. Shrink only, same rules as
         /// <see cref="ReferenceDebt"/>.
         ///
         /// <para>What an entry costs: that Uplink cannot leave. A Tests project is
@@ -153,10 +143,8 @@ namespace Sitrep.Core.Tests
         /// cannot run. Every entry below is a real breach being carried, not an
         /// exemption.</para>
         ///
-        /// <para><c>Sitrep.Contract.TestSupport</c> used to be on every entry, and
-        /// left all of them at once when it started shipping beside the vendored
-        /// contract (<see cref="ShippedToTestProjects"/>). What remains are genuine
-        /// reaches into host internals, and they need the capability route.</para>
+        /// <para>What remains in this list are genuine reaches into host
+        /// internals, and they need the capability route.</para>
         /// </summary>
         private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
             new(StringComparer.Ordinal)
@@ -172,42 +160,11 @@ namespace Sitrep.Core.Tests
                 {
                     "Sitrep.Core",
                 },
-
-                // Absent, and deliberately: GonogoPrincipiaUplink.Tests reaches
-                // nothing private. It is the proof this is achievable and the shape
-                // the rest owe. GonogoMechJebUplink.Tests reached only TestSupport,
-                // so it has nothing left to owe either.
-                //
-                // GonogoActionGroupsExtendedUplink.Tests was the widest entry here
-                // and was paid off in full before the Uplink left for the
-                // gonogo-uplinks repo, which is the order that matters: a debt
-                // exported is a debt an outside author inherits and cannot pay.
-                // What it took, since the TestSupport entries this list used to
-                // carry made those look like the only cheap ones: the capability id
-                // moved to Sitrep.Contract, so the id had one declaration instead of two
-                // spellings pinned equal by a test; the cases needing ChannelEngine
-                // turned out to be asserting CORE's discovery ordering through a
-                // hand-written double of the Uplink, and moved to Sitrep.Host.Tests
-                // where the engine may be named; and the probe host was written into
-                // the Tests project itself, which is what docs/uplink-isolation.md
-                // tells a NEW Uplink to do.
-                //
-                // GonogoRp1Uplink.Tests paid off next, on the same shape and for a
-                // fraction of the work: four assemblies listed, but three of them
-                // were transitive behind Sitrep.Host and the whole reach was two
-                // files importing one election each. The economy capability id
-                // moved to Sitrep.Contract as EconomyCapability, the last one still
-                // spelled as a literal by the Uplink that registers against it, and
-                // the two starvation probes now build the descriptor themselves
-                // against a stock stand-in. What core DECLARES is not left unheld:
-                // Sitrep.Host.Tests' own election tests pin stock winning when no
-                // provider is present, a provider winning when one is, and the
-                // registration ordering, which is where a fact about core belongs.
             };
 
         /// <summary>
         /// Namespaces each <c>&lt;Uplink&gt;.Tests</c> project still IMPORTS from a
-        /// private assembly. Seeded 2026-08-30. Shrink only.
+        /// private assembly. Shrink only.
         ///
         /// <para>Separate from <see cref="TestProjectReferenceDebt"/> for the same
         /// reason the Uplink pair is separate: a reference that nothing imports is
@@ -226,9 +183,8 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The isolation assertions in this file walk the set this proves, so a
         /// walk that finds nothing reports no violations and looks identical to a
-        /// clean repo. It was a floor of six until the mod Uplinks started leaving;
-        /// see <see cref="UplinkProjects.AssertWalkAgreesWithPlantAndSolution"/> for
-        /// what replaced it and why it holds at zero.
+        /// clean repo. See <see cref="UplinkProjects.AssertWalkAgreesWithPlantAndSolution"/>
+        /// for why it holds at zero.
         /// </summary>
         [Fact]
         public void ScanFindsEveryUplinkProject()
@@ -242,12 +198,10 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The Tests half of <see cref="ScanFindsEveryUplinkProject"/>, and it
-        /// exists for a sharper reason than symmetry. Every debt list in this file
-        /// read zero for ten days while ten Uplinks were breaching the rule,
-        /// because the Uplink walk excludes the <c>.Tests</c> siblings and nothing
-        /// else looked at them. A gate told to skip a directory reports that
-        /// directory clean. So the Tests walk has its own plant and its own exact
-        /// agreement with <c>Gonogo.sln</c>.
+        /// exists for a sharper reason than symmetry: the Uplink walk excludes
+        /// the <c>.Tests</c> siblings, and a gate told to skip a directory
+        /// reports that directory clean. So the Tests walk has its own plant and
+        /// its own exact agreement with <c>Gonogo.sln</c>.
         /// </summary>
         [Fact]
         public void ScanFindsEveryUplinkTestProject()
@@ -265,30 +219,6 @@ namespace Sitrep.Core.Tests
         /// compiles that Uplink's sources, and it goes with it when the Uplink
         /// leaves this repo. An Uplink whose suite only builds against
         /// <c>Sitrep.Host</c> has not been extracted, it has been split.
-        ///
-        /// <para><b>The planted-failure demonstration.</b> Run 2026-08-30, all
-        /// three plants on <c>GonogoTestFlightUplink.Tests</c>, the project this
-        /// file excuses nothing for. Adding
-        /// <c>&lt;ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" /&gt;</c>
-        /// to its csproj, and a one-line
-        /// <c>PlantedIsolationBreach.cs</c> holding <c>using Sitrep.Contract.Serialization;</c>,
-        /// turned both Tests gates red and named the project and the site:</para>
-        /// <code>
-        /// GonogoTestFlightUplink.Tests can build against Sitrep.Core, which is private and
-        /// unpublished. ...
-        /// GonogoTestFlightUplink.Tests imports Sitrep.Contract.Serialization (at
-        /// PlantedIsolationBreach.cs:1), which lives in a private assembly. ...
-        /// </code>
-        /// <para>The stale half was planted separately, by excusing
-        /// <c>Sitrep.Core</c> for that project while it reached nothing:</para>
-        /// <code>
-        /// GonogoTestFlightUplink.Tests no longer reaches Sitrep.Core, but
-        /// TestProjectReferenceDebt still excuses it. Delete that entry: this list is
-        /// shrink-only.
-        /// </code>
-        /// <para>All three were then removed and the suite went green again. The
-        /// clean run is as much of the demonstration as the red ones: a gate that
-        /// fails at everything proves nothing about its subject.</para>
         /// </summary>
         [Fact]
         public void NoUplinkTestProjectReachesAPrivateProjectOutsideTheDebtList()
@@ -395,9 +325,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The packaging half, and the reason it is a static check rather than an
         /// inspection of <c>bin/</c>: an incremental build reports whatever was left
-        /// there last time. A stale <c>bin/</c> was read once while measuring this and
-        /// said GonogoKerbalismUplink bundled nothing, when a clean build bundled four
-        /// of core's assemblies. A gate that only tells the truth after
+        /// there last time. A gate that only tells the truth after
         /// <c>rm -rf bin obj</c> is a gate that will lie.
         ///
         /// <para>So the invariant is asserted on the thing that causes it. Every KSP
@@ -409,8 +337,8 @@ namespace Sitrep.Core.Tests
         /// that holds it.</para>
         ///
         /// <para>Note this is NOT subsumed by the isolation debt lists: an Uplink is
-        /// allowed to be in <see cref="ReferenceDebt"/> while it works through a
-        /// ruling, but it is never allowed to bundle what it reaches. The two gates
+        /// allowed to be in <see cref="ReferenceDebt"/> while it pays down that debt,
+        /// but it is never allowed to bundle what it reaches. The two gates
         /// fail for different reasons and an Uplink can fail this one alone.</para>
         ///
         /// <para>The <c>.Tests</c> siblings have no equivalent of this check and
@@ -611,8 +539,7 @@ namespace Sitrep.Core.Tests
         /// the whole story: C# can also reach a type through a fully-qualified name,
         /// an extension method, or (because every Uplink sits in <c>namespace
         /// Gonogo.*</c>) an unqualified <c>KSP.Foo</c> that binds to
-        /// <c>Gonogo.KSP.Foo</c> through the enclosing namespace. Those were all
-        /// scanned for by hand when this gate was seeded and none was found. The
+        /// <c>Gonogo.KSP.Foo</c> through the enclosing namespace. The
         /// reference gate above is what actually holds that line: nothing can be
         /// reached by ANY of those routes without the assembly being reachable
         /// first, and that is asserted independently.

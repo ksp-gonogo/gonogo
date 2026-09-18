@@ -178,9 +178,8 @@ export async function createWorkerFrameDelayStream(
 
   try {
     // The transfer list is what actually moves the track, a browser that
-    // doesn't support transferring a MediaStreamTrack (Chrome/Firefox, per
-    // this task's 2026-07-16 verification) throws HERE, synchronously,
-    // before the worker ever sees the message.
+    // doesn't support transferring a MediaStreamTrack (Chrome/Firefox) throws
+    // HERE, synchronously, before the worker ever sees the message.
     worker.postMessage(createMsg, [track]);
   } catch (err) {
     pendingReady.delete(pipelineId);
@@ -215,7 +214,7 @@ export async function createWorkerFrameDelayStream(
 }
 
 // ---------------------------------------------------------------------------
-// Encoded-transform backend (2026-07-16).
+// Encoded-transform backend.
 // Empirically validated on Chromium, Firefox and WebKit, gated on a real
 // confirmedEdgeUt() computation. Reachable
 // from the main-screen and station/broker camera path via

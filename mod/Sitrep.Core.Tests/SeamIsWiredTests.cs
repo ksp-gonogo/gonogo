@@ -22,14 +22,6 @@ namespace Sitrep.Core.Tests
     /// unit test of the code behind the seam passes, and the feature has never
     /// executed.</para>
     ///
-    /// <para>It happened, and it is why this file exists.
-    /// <c>ChannelEngine.SeededPropagation</c> shipped with a declaration, a reader
-    /// in the command path, a full provider implementing it and a passing test
-    /// suite. Nothing assigned it, so <c>vessel.trajectory.forVantage</c> refused
-    /// on the rig for every argument, vantage and game state alike. The defect was
-    /// invisible until a dispatcher fault one layer up was fixed, because until
-    /// then the command never reached the reader at all.</para>
-    ///
     /// <para><b>Why a different KIND of check, again.</b> A test that sets the
     /// property and asserts what happens after proves the code behind the seam and
     /// says nothing about whether anything in the shipped game ever sets it. The
@@ -60,9 +52,7 @@ namespace Sitrep.Core.Tests
         /// </summary>
         private static readonly Dictionary<string, string> Debt = new(StringComparer.Ordinal)
         {
-            // Empty, and it should stay that way. Its one entry was
-            // ChannelEngine.SeededPropagation, which left this list when the
-            // provider began being constructed and installed at bootstrap.
+            // Empty, and it should stay that way.
         };
 
         private static bool IsTestProject(string projectName) =>

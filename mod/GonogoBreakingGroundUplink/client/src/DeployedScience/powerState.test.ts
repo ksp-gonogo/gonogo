@@ -5,8 +5,6 @@ import { type DeployedBase, parseBases } from "./index";
 /**
  * A deployed base's power readout, against what the mod actually sends.
  *
- * This is the one item in the 2026-08-21 KSP-enum sweep that was NOT an enum
- * problem, and the distinction is the whole fix.
  * `ModuleGroundSciencePart.PowerState` and `.ConnectionState` are `public string`
  * fields that `UpdateModuleUI()` assigns LOCALISED PROSE to, out of
  * `Localizer`. Decompiled from the installed build:
@@ -19,13 +17,7 @@ import { type DeployedBase, parseBases } from "./index";
  * ```
  *
  * So there was no ordinal to put on the wire, and no comparison against those
- * strings could be made correct. The old client tested `=== "Powered"` and
- * `=== "NoPower"` - a string KSP has never emitted - so `Unpowered`,
- * `Disabled`, `Controller Disabled` and `N/A` all fell off the end into
- * `powered: true`, and an unpowered cluster painted as a working one on a
- * reduced supply. In English. The localised half was worse: a translated
- * "Powered" also read partially-powered, and a translated "Connected" read
- * not-connected.
+ * strings could be made correct.
  *
  * The mod now derives `power` (our own `DeployedPowerState` ordinal) and
  * `controllerConnected` from the four booleans stock's own readout branches on,
@@ -105,11 +97,11 @@ describe("deployed-science power state", () => {
    * No derived state at all: an older mod build, or a cluster the capture could
    * not read. That is a THIRD answer, not "not powered".
    *
-   * This asserted `powered: false` until 2026-09-14, on the reasoning that we
-   * cannot claim it IS powered. True, and it does not follow that we may claim
+   * We cannot claim it IS powered, and it does not follow that we may claim
    * it is not: `false` is what the render paints the red `nogo` "Unpowered"
-   * pill from, so an unread cluster read exactly as confidently dark as a
-   * genuinely dark one. `partialPower` stays false, as it does in every arm.
+   * pill from, so an unread cluster would read exactly as confidently dark
+   * as a genuinely dark one. `partialPower` stays false, as it does in every
+   * arm.
    */
   it("reads an absent power state as neither powered nor unpowered", () => {
     const [base] = baseWith({ power: null, powerState: "Powered" });

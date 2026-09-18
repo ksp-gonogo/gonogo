@@ -48,13 +48,12 @@ namespace Gonogo.KSP.Tests.Robotics
         }
 
         /// <summary>
-        /// The defect this suite was written for. <c>ModuleRoboticRotationServo</c>
-        /// is a SIBLING of <c>ModuleRoboticServoHinge</c> under
-        /// <see cref="BaseServo"/>, not a subclass, so the per-kind scan the
-        /// capture used to do never saw one: a craft's rotation servos were
-        /// dropped before they reached the wire, while the actuator - which
-        /// already resolved through <see cref="BaseServo"/> - would happily
-        /// lock or unlock them.
+        /// <c>ModuleRoboticRotationServo</c> is a SIBLING of
+        /// <c>ModuleRoboticServoHinge</c> under <see cref="BaseServo"/>, not a
+        /// subclass, so a per-kind scan would never see one: a craft's rotation
+        /// servos would be dropped before they reached the wire, while the
+        /// actuator - which already resolves through <see cref="BaseServo"/> -
+        /// would happily lock or unlock them.
         /// </summary>
         [Fact]
         public void ARotationServoReachesThePublishedPayload()

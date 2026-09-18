@@ -9,9 +9,7 @@ namespace Gonogo.KSP
     /// <summary>
     /// The <c>system.bodies</c> retrofit: the reference
     /// <see cref="ISitrepUplink"/>, proving the uplink contract fits
-    /// the exact channel <c>GonogoBodiesServer</c> used to hand-wire. See
-    /// <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c> §6.1
-    /// (this class matches that sketch almost verbatim).
+    /// the exact channel <c>GonogoBodiesServer</c> used to hand-wire.
     ///
     /// Only ONE line of actual wiring survives the retrofit:
     /// <see cref="SystemViewProvider.BuildSystemBodies"/> drops straight in
@@ -77,22 +75,18 @@ namespace Gonogo.KSP
                      * (Sitrep.Core.StructuralEquality) rather than against a
                      * deadband.
                      *
-                     * The gate used to compare the payload by REFERENCE, and
+                     * Comparing the payload by REFERENCE would misfire here:
                      * BuildSystemBodies hands back a fresh Dictionary every
-                     * call, so every sample read as changed and this channel
-                     * re-emitted at the ~1s sample cadence. Measured on the
-                     * deck's RO 200km capture that was 24.2 kB/s, 82% of the
-                     * whole stream, for a payload that did not move once.
+                     * call, so every sample would read as changed and this
+                     * channel would re-emit at the ~1s sample cadence.
                      */
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     // Explicit retrofit: celestial-body ephemeris is a
                     // ground-side fact (known independent of any vessel's
                     // comms link, same class as scansat.available), so this
-                    // is TrueNow, bypassing the delay clock. Judgment call
-                    // documented in contract-dynamic-delay-report.md: no
-                    // prior mechanism existed to state this either way, and
-                    // nothing observably reads it yet, so this is a
-                    // classification, not a behavior change.
+                    // is TrueNow, bypassing the delay clock. Nothing
+                    // observably reads it yet, so this is a classification,
+                    // not a behavior change.
                     Delay = DelayRole.TrueNow,
                 },
                 // system.vessels -- the M3 R3 roster capture-add. Same cadence

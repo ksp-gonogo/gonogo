@@ -7,8 +7,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Which outbox lane a channel's samples ride, per
-    /// <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c> §1.1.
+    /// Which outbox lane a channel's samples ride.
     /// <see cref="LossyLatest"/> is the <c>ChannelEngine</c>'s default:
     /// the outbox coalesces to the freshest sample per topic (the shape
     /// <c>GonogoBodiesServer</c>'s <c>GonogoOutbox._latestByTopic</c> already
@@ -41,9 +40,7 @@ namespace Sitrep.Contract
     /// subject gets the same answer both ways round: <c>time.warp</c> is a
     /// <see cref="TrueNow"/> channel and <c>time.setWarpIndex</c> a
     /// <see cref="TrueNow"/> command, the <c>alarm.scet.*</c> channels and the
-    /// commands that arm them likewise. A command used to say it as
-    /// <c>Delayed = false</c>, which was the same answer in a second spelling
-    /// and read as a different axis to anyone who met both.</para>
+    /// commands that arm them likewise.</para>
     /// </summary>
     public enum DelayRole
     {
@@ -166,9 +163,7 @@ namespace Sitrep.Contract
         /// plain "whatever's latest in the archive" read, which, for a diff
         /// stream, can otherwise resolve to a bare positional diff with no
         /// baseline to apply it to (screen corruption / the terminal
-        /// "black screen" bug: see
-        /// local_docs/kos-terminal-feedback-2026-07-15.md's "Loading /
-        /// connection" section). Null (default) leaves every existing
+        /// "black screen" bug). Null (default) leaves every existing
         /// channel's catch-up behavior byte-for-byte unchanged.
         /// </summary>
         public Func<object?, bool>? IsKeyframe { get; set; }
@@ -1328,8 +1323,7 @@ namespace Sitrep.Contract
         void Register(IUplinkHost host);
 
         /// <summary>
-        /// This uplink's current health: a MANDATORY self-report (2026-07-21,
-        /// <c>local_docs/holiday_week/HIGH-PRIORITY-mandatory-healthchecks.md</c>).
+        /// This uplink's current health: a MANDATORY self-report.
         /// Every uplink MUST report health: it is a required member of the base
         /// contract (NOT a default), so an uplink that does not consciously report
         /// does not compile, only the uplink itself knows what "ready" means for

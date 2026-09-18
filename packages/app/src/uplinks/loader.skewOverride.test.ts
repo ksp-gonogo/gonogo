@@ -155,9 +155,8 @@ describe("the pre-fetch skew refusal is recorded as a DECLARATION finding", () =
   });
 
   /*
-   * The regression this exists to hold. Before the override work the arm called
-   * plain `refuse`, so the outcome carried a reason string and nothing else, and
-   * a surface could not tell skew from a compat gate without matching prose.
+   * A surface must be able to tell skew from a compat gate without matching
+   * reason prose, so this outcome must carry more than a bare reason string.
    */
   it("is not merely a reason string", async () => {
     const outcome = await load(indexWith(goodHash), rosterWith(MOD_HASH));

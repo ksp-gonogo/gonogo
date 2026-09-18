@@ -246,16 +246,12 @@ describe("rate-integration candidates carry a written verdict", () => {
     // them, so there is no default it could supply even where the pairing is
     // real.
     //
-    // It read "most of the time" and a strict majority until the reliability.*
-    // reshape (2026-08-29), which is a fair measurement of a real change rather
-    // than a threshold nudged to fit: that shape replaced four three-way
-    // ambiguous candidates with four unambiguous ones, because it now carries a
-    // ratio DERIVED from the pair beside it (`consumed` = used/limit) and a
-    // probability whose seconds are its own PARAMETER rather than a sibling
-    // reading. Both are single-sibling by construction. The argument the number
-    // supports is unchanged at exactly half: half the candidate set has no
-    // default the rule could supply. Below half it would want revisiting, which
-    // is what this still fails on.
+    // Both `consumed` (a ratio DERIVED from the pair beside it, used/limit)
+    // and the probability (whose seconds are its own PARAMETER rather than a
+    // sibling reading) are single-sibling by construction. The argument the
+    // number supports is unchanged at exactly half: half the candidate set has
+    // no default the rule could supply. Below half it would want revisiting,
+    // which is what this still fails on.
     const ambiguous = [...proposed.values()].filter(
       (rates) => rates.length >= 2,
     ).length;

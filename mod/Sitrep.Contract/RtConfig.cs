@@ -75,8 +75,7 @@ public static class RtConfig
         // --- Wire payload types (non-generic) ---
         // Everything else marked [SitrepContract]/[TsInterface] that crosses the wire:
         // vessel.* channel payloads, comms.* channels, command args, and the
-        // shared value shapes (Vec3, PayloadMeta, CommandResult). Every Uplink's
-        // own payload types have left this list; see its trailing comment.
+        // shared value shapes (Vec3, PayloadMeta, CommandResult).
         // Held in a local rather than passed inline because the unit-typing
         // pass below re-enters this set: only a type registered with rtcli may
         // have its properties retyped, so the two lists must not drift apart.
@@ -172,13 +171,6 @@ public static class RtConfig
                 // comms.commandCentre: which centre the active vessel's own
                 // ControlPath currently terminates at (see CommsCommandCentre)
                 typeof(CommsCommandCentre),
-                // The three provider-private comms channels (comms.linkQuality /
-                // comms.dataRate / comms.linkMargin) used to be listed right here.
-                // They moved OUT of core into GonogoRealAntennasUplink.Contract:
-                // only one backend can ever source them, so they are its wire types,
-                // not the shared family's. Last step of the uplink-types-out-of-core
-                // migration. The rest of the comms.* list above is the shared shape
-                // the ELECTED backend fills, which is core whichever backend wins.
                 // fleet.<guid>.* per-vessel dynamic channels (Plan 2c): the
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
@@ -208,10 +200,6 @@ public static class RtConfig
                 // operator cannot infer a distant event from the instant career total.
                 typeof(ScienceCreditEvent),
                 typeof(ReputationLossEvent),
-                // kos.* channels + the kos.terminal.<coreId> / kos.run.<coreId>
-                // dynamic-channel payloads and their command args: see the
-                // trailing comment below (moved OUT of core into
-                // GonogoKosUplink.Contract).
                 // command args
                 typeof(AddManeuverNodeArgs),
                 typeof(UpdateManeuverNodeArgs),
@@ -340,12 +328,6 @@ public static class RtConfig
                 // science.instruments / science.sensors entries
                 typeof(InstrumentEntry),
                 typeof(SensorEntry),
-                // scansat.scanningVessels / scansat.science payloads + their
-                // nested value shapes + the scansat.anomalies.<body> element
-                // shape: see the trailing comment below (moved OUT of core into
-                // GonogoScansatUplink.Contract).
-                // kerbcast.cameras payload + its command args: see the trailing
-                // comment below (moved OUT of core into GonogoKerbcastUplink.Contract).
                 // vessel.inventory channel payload + nested value shapes: stock
                 // cargo carried on parts AND on kerbals, which share one KSP
                 // module and so share one channel.
@@ -405,9 +387,8 @@ public static class RtConfig
                 typeof(RecoveryPartEntry),
                 typeof(RecoveryResourceEntry),
                 typeof(RecoveryCrewEntry),
-                // flight.current / flight.started / flight.ended / flight.vesselChanged
-                //, the flight-lifecycle domain (P4c-b flight-lifecycle spec,
-                // 2026-07-11). Replaces the client-side FlightDetector heuristic.
+                // flight.current / flight.started / flight.ended / flight.vesselChanged,
+                // the flight-lifecycle domain.
                 typeof(FlightCurrent),
                 typeof(FlightStarted),
                 typeof(FlightEnded),
@@ -415,9 +396,6 @@ public static class RtConfig
                 // One NAMED custom action group on vessel.control.actionGroups,
                 // the element type that replaced the positional bool[].
                 typeof(ActionGroupState),
-                // kerbalism.* channels (Domain "kerbalism") + their nested value
-                // shapes: see the trailing comment below (moved OUT of core into
-                // GonogoKerbalismUplink.Contract).
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
@@ -428,38 +406,6 @@ public static class RtConfig
                 typeof(IsruDrillEntry),
                 typeof(IsruConverterEntry),
                 typeof(IsruResourceFlow),
-                // avionics.status (AvionicsStatus) moved OUT of core into
-                // GonogoAvionicsUplink.Contract, mechjeb.engageAscentAutopilot /
-                // mechjeb.executeNextNode / mechjeb.landAtTarget command args moved
-                // OUT of core into GonogoMechJebUplink.Contract, and kerbcast.cameras
-                // (KerbcastCameraEntry) + kerbcast.setFieldOfView/kerbcast.setPan
-                // command args moved OUT of core into GonogoKerbcastUplink.Contract,
-                // and the five SCANsat payload types (scansat.scanningVessels'
-                // ScanningVesselEntry + its nested ScanSensorEntry/ScanTrackColor,
-                // scansat.science's ScanScienceEntry, and the typing-only
-                // scansat.anomalies.<body> element ScanAnomalyEntry) moved OUT of
-                // core into GonogoScansatUplink.Contract, and the fifteen
-                // kerbalism payload types (the five [SitrepTopic] roots
-                // KerbalismSpaceWeather/KerbalismProfile/KerbalismLifeSupport/
-                // KerbalismCrewEntry/KerbalismFeatures plus the ten nested shapes
-                // KerbalismStarInfo/KerbalismStormEntry/KerbalismResource/
-                // KerbalismHabitat/KerbalismProcessEntry/KerbalismGreenhouseEntry/
-                // KerbalismCrewRule/KerbalismResourceDef/KerbalismRuleDef/
-                // KerbalismProcessDef) moved OUT of core into
-                // GonogoKerbalismUplink.Contract, and the eleven kOS types (the one
-                // [SitrepTopic] root kos.processors' KosProcessorInfo, the
-                // dynamic-channel payloads KosTerminalFrame/KosRunResult/
-                // KosComputeStatus, and the seven command args KosExecArgs/
-                // KosReEnableArgs/KosRunArgs/KosTerminalOpenArgs/KosKeystrokeArgs/
-                // KosTerminalResizeArgs/KosTerminalCloseArgs) moved OUT of core into
-                // GonogoKosUplink.Contract, completing the plan's per-Uplink list
-                // (uplink-types-out-of-core plan, 2026-08-10): see ContractVersion.cs
-                // and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
-                // What REMAINS of that plan is a PARTIAL extract from Comms.cs, a
-                // split of one shared-shape file rather than a whole-file move, which
-                // is why it is sequenced separately; the plan doc names the mod, this
-                // file deliberately does not, since doing so would trip that mod's
-                // own frontend uplink-boundary token.
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
 

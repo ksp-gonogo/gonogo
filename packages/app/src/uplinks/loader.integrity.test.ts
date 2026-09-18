@@ -205,23 +205,16 @@ describe("an integrity failure is recorded apart from an ordinary load failure",
   });
 
   /*
-   * REVERSED, deliberately (2026-09-01). This case used to assert the opposite,
-   * that mod/index skew records nothing, on the reasoning that neither side of
-   * it is the bundle and the loud surface should not be spent on staleness.
-   * The first half of that is still true and is exactly why the record uses the
-   * `declaration` subject rather than `bundle`; the conclusion drawn from it
-   * was wrong.
-   *
    * A surface cannot offer an operator a route past a refusal it cannot
-   * identify, and the only alternative identification was matching the reason
-   * prose, which this file's own header rules out. So skew now carries a record
-   * too, and the two refusals are told apart on `subject`.
+   * identify, and the only alternative identification is matching the reason
+   * prose, which this file's own header rules out. So skew carries a record
+   * too, using the `declaration` subject rather than `bundle`, and the two
+   * refusals are told apart on `subject`.
    *
-   * The concern that produced the old assertion survives in the surface, not
-   * here: a banner carrying only declaration findings grades itself down to a
-   * warning and says "Hash disagreement", and the critical "Integrity failure"
-   * headline still fires only for a measured one. See
-   * `UplinkSkewOverride.test.tsx`.
+   * The staleness concern is handled in the surface, not here: a banner
+   * carrying only declaration findings grades itself down to a warning and
+   * says "Hash disagreement", and the critical "Integrity failure" headline
+   * still fires only for a measured one. See `UplinkSkewOverride.test.tsx`.
    */
   it("records mod/index version skew as a DECLARATION finding, apart from any bytes", async () => {
     const [outcome] = await load({
@@ -262,8 +255,7 @@ describe("an integrity failure is recorded apart from an ordinary load failure",
  * "The index" and "the mod" are different claims and the record has to keep
  * them apart. The first is a bundle disagreeing with its own published
  * descriptor; the second is a bundle disagreeing with the mod the operator
- * installed from CKAN, which is the more serious reading and the one the loader
- * used to leave unsaid.
+ * installed from CKAN, which is the more serious reading.
  */
 describe("who an integrity failure names", () => {
   it("names the mod as well as the index when both vouched the hash the bytes missed", async () => {
@@ -389,10 +381,7 @@ describe("the reason string survives alongside the record", () => {
   });
 
   /*
-   * The arming half of the three-way check, which had never fired for a bundled
-   * Uplink: every `ExpectedClientHash.g.cs` in the tree read `""` until
-   * 2026-09-01, so `roster.expectedClientHash` was null everywhere and no load
-   * could ever produce a finding against the mod. With a real hash baked, an
+   * The arming half of the three-way check: with a real mod-vouched hash, an
    * operator whose bundle does not match their installed mod has to be told
    * that, not told a catalogue entry disagrees.
    */

@@ -8,12 +8,12 @@
  *
  * Paths deliberately stay in `vite.config.ts`.
  *
- * The LIST itself now lives in `@ksp-gonogo/sitrep-sdk`, where it ships. It was
- * only here, which is private and unpublished, so an author outside this repo had
- * to hand-copy it to build a loadable bundle, and a hand copy of a list whose
- * failure mode is a MISSING entry agrees with the original by omission. This
- * re-exports rather than restating, so the app and every external author read one
- * list and cannot drift.
+ * The LIST itself lives in `@ksp-gonogo/sitrep-sdk`, where it ships: being
+ * private and unpublished here would force an author outside this repo to
+ * hand-copy it to build a loadable bundle, and a hand copy of a list whose
+ * failure mode is a MISSING entry would agree with the original by omission.
+ * This re-exports rather than restating, so the app and every external
+ * author read one list and cannot drift.
  */
 
 export {

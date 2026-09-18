@@ -4,13 +4,10 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// The <c>kos.processors</c> wire mapping. Regression coverage
-    /// for the "subscribed but no stream-data" bug moved here from
-    /// <c>Sitrep.Core.Tests</c>'s deleted <c>KosProcessorInfoWireTests</c>:
-    /// as of the kos migration (2026-07-18) the wire shape is asserted
+    /// The <c>kos.processors</c> wire mapping. The wire shape is asserted
     /// directly on the Builder's Dictionary output rather than round-tripped
-    /// through <c>JsonWriter</c>, since JsonWriter no longer has (or needs) a
-    /// hardcoded case for the raw POCO.
+    /// through <c>JsonWriter</c>, since JsonWriter has no hardcoded case for
+    /// the raw POCO.
     /// </summary>
     public class KosProcessorInfoBuilderTests
     {

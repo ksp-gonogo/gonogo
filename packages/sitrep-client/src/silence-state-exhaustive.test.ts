@@ -6,15 +6,12 @@ import { contactPhase, type FleetVesselSilence } from "./fleet-contact";
 
 /**
  * `silence.<guid>.state` carries `Sitrep.Host.Comms.SilenceState` as its NAME,
- * not its ordinal, so there is no number to branch on instead. What there has
- * to be, then, is a branch that cannot silently absorb a member nobody has
- * ruled on.
- *
- * `contactPhase` used to test for "Lost" and "Nominal" and let everything else
- * fall through to the Silent treatment. The phase drives FleetRoster's badge:
- * `lost` is `severity="critical"` with `role="alert"`, `waiting` renders
- * nothing at all. So a member appended to the C# enum, however grave, would
- * have been reported as a vessel quietly waiting to come back.
+ * not its ordinal, so there is no number to branch on instead. The branch
+ * must not silently absorb a member it does not recognize into the Silent
+ * treatment: the phase drives FleetRoster's badge, `lost` is
+ * `severity="critical"` with `role="alert"`, `waiting` renders nothing at
+ * all, so a member appended to the C# enum, however grave, would otherwise be
+ * reported as a vessel quietly waiting to come back.
  *
  * Two checks, because either alone reports success while the other fails:
  * the union here has to keep covering the C# enum, and the branch has to keep

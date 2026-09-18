@@ -1,13 +1,6 @@
 /**
- * Two-screen integration proof for station-side Sitrep-stream forwarding
- * (docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md).
- *
- * The repo's prior "recorded-fixture top-level test" (the PBDS-bridge
- * two-screen harness referenced in project memory) was deleted in
- * `cb96f069`: the same commit that removed the entire legacy
- * replay stack (`FlightReplayDataSource`, `replay-server`, etc.) it depended
- * on. This is its Sitrep-native successor: same "sequential render, direct
- * in-process wiring, fake peerjs" trick, new pipeline.
+ * Two-screen integration proof for station-side Sitrep-stream forwarding:
+ * sequential render, direct in-process wiring, fake peerjs.
  *
  * What's real here: `PeerHostService`, `PeerClientService`, `SitrepPeerRelay`,
  * `PeerTransport`, `TelemetryClient`, `TelemetryProvider`: every class this
@@ -689,13 +682,12 @@ describe("station subscription intent reaches the mod", () => {
     await waitForHostPeerId(peerHost);
 
     // The host reads this one itself, and the only frame for it arrives BEFORE
-    // any station exists. Every other test in this file emits AFTER the station
-    // has connected, which is why none of them could see this: the relay's
-    // cache used to be filled from inside the tap gated on having connections,
-    // so it learned nothing until the first station arrived and then only
-    // learned what changed. `client.subscribe` for an already-held topic sends
-    // no wire subscribe and re-emits no frame, so the mod is never asked
-    // either, and the station stays blank forever.
+    // any station exists. Every other test in this file emits AFTER the
+    // station has connected, which is why none of them exercise this path.
+    // `client.subscribe` for an already-held topic sends no wire subscribe
+    // and re-emits no frame, so if the relay's cache didn't already hold this
+    // value from before the station connected, the mod would never be asked
+    // again and the station would stay blank forever.
     const pastUt = Date.now() / 1000 - 10_000;
     act(() => {
       hostTransport.emit(

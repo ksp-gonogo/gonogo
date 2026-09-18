@@ -55,11 +55,10 @@ export function AlarmBanner() {
       : null;
   /*
    * The target rate comes off the snapshot, from the table the host actually
-   * planned against. This used to look the rung up in a copy of stock's ladder
-   * kept here, which drew "→ 100×" beside a game running at 10000×: the rung
-   * numbers are the same everywhere, the rates behind them are the install's.
-   * Null while the host is probing a rung nothing has said the rate of, and
-   * then the arrow is not drawn at all rather than filled with a guess.
+   * planned against: the rung numbers are the same everywhere, but the rates
+   * behind them are the install's. Null while the host is probing a rung
+   * nothing has said the rate of, and then the arrow is not drawn at all
+   * rather than filled with a guess.
    */
   const warpToTargetRate = snap.warpTo?.targetRate ?? null;
 
@@ -463,9 +462,9 @@ const Wrap = styled.div<{ $tone: Tone }>`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   /* Rungs, not --inset-surface. This is the floating-chrome band on the 16px
-     gutter lock, the band the deleted --inset-panel used to hold, and nothing
-     names it now: taking a banner that overlays the dashboard to (6,8) would
-     halve its gutter to make a ratchet number smaller. */
+     gutter lock, and nothing names it: taking a banner that overlays the
+     dashboard to (6,8) would halve its gutter to make a ratchet number
+     smaller. */
   padding: var(--space-8) var(--space-16);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;

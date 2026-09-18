@@ -147,11 +147,9 @@ describe("latLonToMap", () => {
   });
 });
 
-// `formatDuration` and `formatDistance` used to live here and their tests
-// with them. Both are gone: a quantity is rendered by `<Unit>` now, and a
-// formatter in a package every widget imports is exactly how a dashboard
-// ends up with several spellings of the same unit. The geometry below is
-// what this module is actually for.
+// A quantity is rendered by `<Unit>`: a formatter in a package every widget
+// imports is exactly how a dashboard ends up with several spellings of the
+// same unit. The geometry below is what this module is actually for.
 
 // ── circularOrbitVelocity ──────────────────────────────────────────────────
 

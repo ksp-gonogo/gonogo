@@ -20,12 +20,8 @@ import { afterEach, describe, expect, it } from "vitest";
  * `useWidgetStreamStatus` derives it from a live store: `renderWidget` puts the
  * plumbing up, and `setupStreamFixture` puts data through it.
  *
- * Everything comes from the published packages, assertions included, which is what
- * an Uplink has. That used to be load-bearing in a second way: the harness was its
- * own package and BUNDLED core, so a registry written through the app's copy was a
- * different Map and a context read through it a different object, both reading empty
- * whatever the host did. There is one copy of each now, so this is fidelity rather
- * than avoidance.
+ * Everything comes from the published packages, assertions included, which is
+ * what an Uplink has.
  */
 
 const PROBE_ID = "render-widget-host-probe";

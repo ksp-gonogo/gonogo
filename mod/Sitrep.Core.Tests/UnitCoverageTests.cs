@@ -18,16 +18,13 @@ namespace Sitrep.Core.Tests
     /// property on a <see cref="SitrepContractAttribute"/> type declares a unit,
     /// or sits in a baseline that may only ever shrink.
     ///
-    /// <para><b>Why this can exist now and could not before.</b> The attribute
-    /// originally said "only annotate what is KNOWN", so an absent annotation
-    /// meant "not yet stated". Under that rule a bare property is
-    /// indistinguishable from a property that never needed one, and a gate has
-    /// nothing to assert: a new unannotated <c>double</c> looks exactly like a
-    /// <c>bool</c>. Giving the non-quantities their own tokens
-    /// (<see cref="Units.Count"/>, <see cref="Units.Id"/>,
+    /// <para><b>Why silence is checkable.</b> Every non-quantity has its own
+    /// token (<see cref="Units.Count"/>, <see cref="Units.Id"/>,
     /// <see cref="Units.Text"/>, <see cref="Units.Flag"/>,
-    /// <see cref="Units.Enumeration"/>, <see cref="Units.NotApplicable"/>) is
-    /// what makes silence mean "someone forgot" and therefore checkable.</para>
+    /// <see cref="Units.Enumeration"/>, <see cref="Units.NotApplicable"/>), so
+    /// a bare property is never "a property that never needed one": a new
+    /// unannotated <c>double</c> cannot hide behind a <c>bool</c>, and silence
+    /// always means someone forgot.</para>
     ///
     /// <para><b>Structural properties are exempt BY TYPE, not by name.</b> A
     /// container has no dimension of its own: a nested contract POCO, or a list
@@ -35,17 +32,13 @@ namespace Sitrep.Core.Tests
     /// from the property type means a payload can gain a sub-object without
     /// anyone editing this file, which is the coupling
     /// <c>WirePayloadCoverageTests.FlattenedByProducer</c> next door demonstrates
-    /// the cost of: adding a payload there means editing a core test, and
-    /// §6 of the uplink-boundary write-up calls that out as the one coupling
-    /// with a real price. This gate deliberately does not repeat the shape.</para>
+    /// the cost of: adding a payload there means editing a core test. This gate
+    /// deliberately does not repeat the shape.</para>
     ///
-    /// <para><b>A declining ratchet, not a cliff.</b> Seeding it hard would have
-    /// meant annotating 580 properties in one commit, which is neither
-    /// reviewable nor safe: a guessed unit is worse than a bare readout, because
-    /// a formatter will confidently mislabel it. The baseline holds what was
-    /// already bare, and <see cref="BaselineOnlyShrinks"/> fails if an entry
-    /// goes stale, so a batch that annotates properties MUST delete its lines
-    /// here. The ratchet cannot quietly stall.</para>
+    /// <para><b>A declining ratchet, not a cliff.</b> The baseline holds what
+    /// was already bare, and <see cref="BaselineOnlyShrinks"/> fails if an
+    /// entry goes stale, so a batch that annotates properties MUST delete its
+    /// lines here. The ratchet cannot quietly stall.</para>
     /// </summary>
     public class UnitCoverageTests
     {
@@ -145,21 +138,7 @@ namespace Sitrep.Core.Tests
             || t == typeof(uint) || t == typeof(ulong) || t == typeof(ushort) || t == typeof(sbyte);
 
         /// <summary>
-        /// GENERIC TYPE DEFINITIONS ARE INCLUDED, and were excluded until
-        /// 2026-09-01.
-        ///
-        /// <para>Exactly three contract types are generic, and they are the three
-        /// envelope types every message on the wire is one of:
-        /// <c>StreamData&lt;T&gt;</c>, <c>CommandRequest&lt;TArgs&gt;</c> and
-        /// <c>CommandResponse&lt;TResult&gt;</c>. None declared a unit on any
-        /// field, while their non-generic siblings <c>EventMsg</c> and
-        /// <c>ErrorMsg</c> declared one on every field, and this gate reported
-        /// green throughout. The omission correlated 3-for-3 with the exclusion,
-        /// so it was this filter and not a decision.</para>
-        ///
-        /// <para><see cref="DiscoveryReachesTheContractSurface"/> could not have
-        /// caught it: its floor is 100 types and its spot-checks name four
-        /// non-generic ones, so a filter that drops exactly three passes both.</para>
+        /// Generic type definitions are included.
         /// </summary>
         private static IEnumerable<Type> ContractTypes() =>
             typeof(CommsDelay).Assembly.GetTypes()
@@ -276,9 +255,7 @@ namespace Sitrep.Core.Tests
                     // INHERITED property is attributed where its attribute lives
                     // and matches what the metadata scan produces. Keyed on `t`,
                     // `CommandResult<T> : CommandResult` re-reports its base's
-                    // three annotated properties as bare under the derived name,
-                    // which was invisible only while generic definitions were
-                    // excluded from the sweep.
+                    // three annotated properties as bare under the derived name.
                     var key = (p.DeclaringType ?? t).Name + "." + p.Name;
                     surface[key] = annotated.Contains(key);
                 }

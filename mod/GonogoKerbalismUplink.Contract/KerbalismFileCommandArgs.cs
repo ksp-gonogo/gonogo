@@ -7,9 +7,7 @@ namespace GonogoKerbalismUplink;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Args for the File Manager command surface (kerbalism.file.*/kerbalism.sample.*):
-// flag/delete a stored file, flag/dump a sample, move a sample to a lab. See
-// local_docs/design/2026-08-14-kerbalism-science-widget-integration-research.md
-// §3/§4 for the full ground-truthing.
+// flag/delete a stored file, flag/dump a sample, move a sample to a lab.
 //
 // ── Why SubjectId only, never a part/drive id ────────────────────────────────
 // Kerbalism's own Drive verbs (Send, Delete_file, Analyze, Delete_sample, all in
@@ -28,15 +26,9 @@ namespace GonogoKerbalismUplink;
 // "assigned" to one lab. What moveToLab actuates is a physical relocation
 // (Drive.Record_sample on the destination + Drive.Delete_sample on the source,
 // composed the way Drive.Move already does for a whole-drive transfer), useful
-// for redistributing samples off a nearly-full drive. The read side
-// (KerbalismScienceMap.Lab) currently emits only partName for a lab entry, a
-// display string, not partName's sibling ScienceLabRaw.PartId (which the
-// reflection layer already reads but the map deliberately never wires to the
-// channel). With no addressable lab id on the wire, a client cannot pick a
-// target, so v1 keeps this subject-only: the live handler resolves
-// its own destination drive (first lab-capable drive with capacity). Promoting
-// ScienceLabRaw.PartId onto science.lab is the follow-up if multi-lab targeting
-// is ever wanted; that is a read-side change, not this one.
+// for redistributing samples off a nearly-full drive. With no addressable lab
+// id on the wire, a client cannot pick a target: the live handler resolves its
+// own destination drive (first lab-capable drive with capacity).
 //
 // ── Why the toggles carry an explicit desired state ──────────────────────────
 // Send/Analyze read as reversible checkboxes in Kerbalism's own File Manager

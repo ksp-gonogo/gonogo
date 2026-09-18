@@ -572,12 +572,6 @@ export interface FleetRosterUpdatesContext {
   /**
    * The roster is too narrow for a per-row detail line, so an augment renders a
    * BADGE and nothing else.
-   *
-   * <p>It exists because the alternative was worse: the roster used to drop the
-   * whole slot below six columns, which is the normal width of a portrait station
-   * panel, so a critical part failure was invisible on exactly the screens a
-   * station operator watches. Shedding the words is a judgement about density;
-   * shedding the alarm is not.</p>
    */
   compact: boolean;
 }
@@ -585,8 +579,7 @@ export interface FleetRosterUpdatesContext {
 // ---------------------------------------------------------------------------
 // The merge itself: every first-party (packages/components-owned) slot id,
 // enumerated by grepping every `declare module "@ksp-gonogo/core"` /
-// `"@ksp-gonogo/sitrep-sdk"` SlotRegistry block across packages/components
-// (2026-07-19).
+// `"@ksp-gonogo/sitrep-sdk"` SlotRegistry block across packages/components.
 // ---------------------------------------------------------------------------
 
 // Targets `./types` (relative), NOT the package specifier

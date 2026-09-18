@@ -113,9 +113,10 @@ export async function fetchRegistry(
      * A 200 that is not JSON means the index is ABSENT, not malformed. The dev
      * server answers any unknown path with the SPA shell rather than a 404, so
      * a tree that has never been built returns `<!DOCTYPE html>` here with a
-     * perfectly healthy status code. Reported as the JSON parse error it
-     * literally is ("Unexpected token '<'"), it named neither the cause nor
-     * the fix, and the Uplinks all quarantined behind a sentence about syntax.
+     * perfectly healthy status code. Left as the JSON parse error it literally
+     * is ("Unexpected token '<'"), it would name neither the cause nor the
+     * fix, and the Uplinks would all quarantine behind a sentence about
+     * syntax.
      */
     const contentType = res.headers?.get?.("content-type") ?? "";
     if (contentType.includes("html")) {

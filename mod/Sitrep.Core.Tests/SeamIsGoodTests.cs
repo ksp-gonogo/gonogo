@@ -17,13 +17,10 @@ namespace Sitrep.Core.Tests
     /// assertion in the shipped <c>Sitrep.Contract.TestSupport</c> that accepts the
     /// seam's own type, or a base of it.
     ///
-    /// <para><b>This file used to ask a different question, and the difference is
-    /// the point.</b> It asked whether a seam had a production implementer IN THIS
-    /// REPO, and failed one that did not. That is the wrong question now, because a
-    /// seam is a future integration point for an Uplink nobody has written yet: an
-    /// OPEN seam is legitimate, and holding one to an in-repo implementer would have
-    /// blocked five seams the moment the Uplinks holding them left this repo.
-    /// <c>IDerivedCurrencyWithholder</c>, <c>IScetThresholdSources</c>,
+    /// <para><b>An open seam is legitimate.</b> A seam is a future integration
+    /// point for an Uplink nobody has written yet, and holding one to an
+    /// in-repo implementer would block it the moment the Uplink holding it
+    /// leaves this repo. <c>IDerivedCurrencyWithholder</c>, <c>IScetThresholdSources</c>,
     /// <c>IGravityModelSource</c>, <c>IIntegratedTrajectorySource</c> and
     /// <c>IBodyEphemerisHorizon</c> each have exactly one implementer and it is an
     /// Uplink that is on its way out. Which Uplinks is deliberately not written
@@ -39,8 +36,8 @@ namespace Sitrep.Core.Tests
     /// delete, because it says nothing about implementations.</para>
     ///
     /// <para><b>Which interfaces are seams is DERIVED, not listed.</b> An Uplink may
-    /// reference <c>Sitrep.Contract</c> and nothing else of this repo's (see
-    /// docs/uplink-isolation.md), so the public interfaces of that one assembly are
+    /// reference <c>Sitrep.Contract</c> and nothing else of this repo's, so the
+    /// public interfaces of that one assembly are
     /// exactly the set an outside party can implement or call. A 37th joins by being
     /// declared. Everything else (<c>Sitrep.Host</c>'s, <c>Sitrep.Core</c>'s,
     /// <c>Sitrep.Transport</c>'s) is an internal collaborator nobody outside can
@@ -76,7 +73,7 @@ namespace Sitrep.Core.Tests
     {
         /// <summary>
         /// Seams with no conformance assertion in <c>Sitrep.Contract.TestSupport</c>
-        /// yet. Seeded 2026-09-16, SHRINK ONLY.
+        /// yet. Shrink only.
         ///
         /// <para>An entry leaves by someone writing the assertion, which is a real
         /// piece of work per seam: reading what that interface promises and turning

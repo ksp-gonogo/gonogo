@@ -63,8 +63,7 @@ namespace Gonogo.KSP.CurrencyDelay
 
             if (kernel == null)
             {
-                // Bind(null) is a teardown spelled differently, and it used to be a
-                // silent one.
+                // Bind(null) is a teardown spelled differently.
                 Unbind(reason);
                 return;
             }
@@ -152,11 +151,10 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Says, every time a neutralise happens, how many arms it reached. This is
-        /// the line that would have ended rig run <c>conf-fixed-1</c> in a minute
-        /// instead of a session: the science was withheld correctly, the derived
-        /// confidence moved anyway, and the whole fan-out was unreachable with
-        /// nothing said about it either way. A no-op that cannot be told from a
+        /// Says, every time a neutralise happens, how many arms it reached: without
+        /// it, the science can be withheld correctly while the derived confidence
+        /// moves anyway, and the whole fan-out is unreachable with nothing said
+        /// about it either way. A no-op that cannot be told from a
         /// success is not a fail-soft, it is a silence.
         ///
         /// <para>Three outcomes, three levels, because they are three different
@@ -306,8 +304,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// Where the ROUTINE outcome goes, separately from <see cref="Report"/>: a
         /// fan-out that reached its arms is not a warning, and a subsystem that
         /// only ever speaks up when something breaks cannot be told from one that
-        /// is not running at all. That indistinguishability is the whole of rig run
-        /// <c>conf-fixed-1</c>.
+        /// is not running at all.
         /// </summary>
         public static Action<string> Note { get; set; } = _ => { };
     }

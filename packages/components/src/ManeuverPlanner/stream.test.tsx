@@ -296,11 +296,8 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
  * through the shared `DELTA_V_BUDGET` processor, and NOT from adding up
  * `dv.stages`.
  *
- * That is the whole of the ruling, so the case emits three stage rows adding to
- * 1800 alongside a summary that says 1900, and demands 1900 on screen. It used
- * to demand 1800, which was the client's own arithmetic over
- * `OperatingStageInfo` presented as the vessel total that KSP accumulates over
- * `WorkingStageInfo`: a different list, and a figure the game never agreed with.
+ * The case emits three stage rows adding to 1800 alongside a summary that
+ * says 1900, and demands 1900 on screen.
  *
  * The processor also has to SUBSCRIBE its own deps, since the widget no longer
  * reads either topic itself; `isSubscribed` below is what says so. The ΔV total

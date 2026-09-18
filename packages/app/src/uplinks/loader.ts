@@ -70,12 +70,11 @@ export interface RosterEntry {
    * makes a third-party Uplink self-describing (the app learns the client URL
    * from the mod, no central index).
    *
-   * CONSUMED as of the D5-loader follow-on (2026-07-25): an id installed in
-   * the roster with no local-registry descriptor but a `clientSource` is
-   * still enabled (`deriveEnabledIds`), and the loader builds an
-   * `UplinkDescriptor` for it from this field + the bundle's own manifest
-   * sidecar rather than the local index: see `descriptorFromClientSource`
-   * and `loadThirdParty` below.
+   * CONSUMED: an id installed in the roster with no local-registry descriptor
+   * but a `clientSource` is still enabled (`deriveEnabledIds`), and the loader
+   * builds an `UplinkDescriptor` for it from this field + the bundle's own
+   * manifest sidecar rather than the local index: see
+   * `descriptorFromClientSource` and `loadThirdParty` below.
    */
   clientSource?: { url: string; devPath: string | null } | null;
 }
@@ -114,14 +113,14 @@ export interface LoaderContext {
    * Import an already-fetched, already-VERIFIED bundle. Injected so tests can
    * drive the loader without a real `import()`.
    *
-   * Takes the bytes, not just the URL, and that is the whole point: the default
-   * used to re-`import(url)` after `fetchBytes` had downloaded and hashed the
-   * same URL separately, so **the bytes that were verified were not the bytes
-   * that were executed**. Two downloads, one integrity check. Over a
-   * same-origin fixture that reads as a caching detail; over the remote release
-   * URL an Uplink now declares, a host can serve verified bytes to the first
-   * request and anything at all to the second while every arm of the three-way
-   * check reports green.
+   * Takes the bytes, not just the URL, and that is the whole point:
+   * `import(url)`-ing the URL again after `fetchBytes` already downloaded and
+   * hashed it separately would mean **the bytes that were verified are not
+   * the bytes that would be executed**. Two downloads, one integrity check.
+   * Over a same-origin fixture that reads as a caching detail; over the
+   * remote release URL an Uplink declares, a host could serve verified bytes
+   * to the first request and anything at all to the second while every arm of
+   * the three-way check reports green.
    *
    * The URL is still passed, for diagnostics only. Nothing may fetch it again.
    *
@@ -135,8 +134,8 @@ export interface LoaderContext {
    * Fetch bundle bytes. Injected for tests; defaults to `defaultFetchBytes`
    * (a direct `fetch`). `expectedHash` is the SAME value `loadOne` is about
    * to verify the returned bytes against (`version.integrity`), passed
-   * through as of the D6 station-conduit follow-on (2026-07-25) so a
-   * peer-backed implementation (`../peer/PeerClientService.sendBundleFetch`
+   * through so a peer-backed implementation
+   * (`../peer/PeerClientService.sendBundleFetch`
    * via `./peerBundleFetch.ts`'s `createPeerBundleFetcher`) can put it on
    * the wire for the HOST to verify before it ever sends bytes back to a
    * station: a station has no route to the author host to verify against
@@ -304,11 +303,9 @@ function checkCompat(
 
   /*
    * Mod-hash gate (design §3.3 row B, the H_mod == H_index half, checked here,
-   * before fetch). Unenforceable until the mod emits `expectedClientHash`, which
-   * no bundled Uplink did until the first two were armed on 2026-09-01. Which
-   * ones are armed is not this file's business: ask `client-hash-armed.mjs`.
-   *
-   * ## What arming changed, and why this gate keeps its shape anyway
+   * before fetch). Unenforceable until the mod emits `expectedClientHash`.
+   * Which ones are armed is not this file's business: ask
+   * `client-hash-armed.mjs`.
    *
    * This is a hash equality test standing in for a VERSION question, and it
    * cannot tell "different" from "incompatible": an operator whose CKAN mod is
@@ -316,11 +313,10 @@ function checkCompat(
    * refusal that reads like tampering. `checkUplinkCompat` above is the
    * instrument for compatibility and it has already ruled.
    *
-   * The reason it is not simply demoted to an advisory is that the descriptor is
-   * a PACKAGE: the version metadata, the bundleUrl and the integrity come from
-   * one index entry, and `checkUplinkCompat` gated on that metadata. Fetching
-   * past a hash the mod contradicts means loading bytes whose compat was decided
-   * from a description of something else.
+   * The descriptor is a PACKAGE: the version metadata, the bundleUrl and the
+   * integrity come from one index entry, and `checkUplinkCompat` gated on that
+   * metadata. Fetching past a hash the mod contradicts means loading bytes
+   * whose compat was decided from a description of something else.
    *
    * The durable fix is not here. It is to let the mod anchor the load the way
    * `loadThirdParty` already does: `clientSource` for the URL,
@@ -339,12 +335,9 @@ function checkCompat(
        * this, and refusing it outright leaves the operator with no route back.
        *
        * The record is what makes the two refusals in this file
-       * distinguishable at the point a surface renders them. Before this, the
-       * arm below called plain `refuse` and produced a bare reason string, so
-       * skew was indistinguishable from a compat gate without matching prose,
-       * while the post-fetch bytes mismatch already carried a record. Now both
-       * carry one and `isOverridableIntegrityFailure` tells them apart on the
-       * `subject`, never on the wording.
+       * distinguishable at the point a surface renders them, and
+       * `isOverridableIntegrityFailure` tells them apart on the `subject`,
+       * never on the wording.
        */
       const failure: UplinkIntegrityFailure = {
         subject: "declaration",
@@ -750,16 +743,9 @@ async function loadOne(
 
     /*
      * The reason string names the party whose claim the bytes missed, and the
-     * INSTALLED MOD outranks the index whenever it vouched.
-     *
-     * It said "index" unconditionally until 2026-09-01, on every path, and that
-     * was already wrong for a third-party `clientSource` load, where the mod
-     * supplies the hash and there is no index entry in the story at all. It
-     * became wrong for the bundled Uplinks too the moment their DLLs started
-     * carrying a real `ExpectedClientHash`: "these bytes are not what the mod you
-     * installed vouches for" is the more serious of the two readings and the one
-     * an operator can act on, and `vouchedBy` had been carrying it while the line
-     * a human reads did not.
+     * INSTALLED MOD outranks the index whenever it vouched: "these bytes are
+     * not what the mod you installed vouches for" is the more serious of the
+     * two readings and the one an operator can act on.
      */
     const vouchedBy = vouchersFor(version, roster, integrityAnchor);
     if (digest !== version.integrity) {

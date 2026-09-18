@@ -104,8 +104,7 @@ describe("useActionInput", () => {
     function Renderer() {
       const [tick, setTick] = useState(0);
       triggerRender = () => setTick((n) => n + 1);
-      // Inline object literal: fresh identity every render. Pre-fix
-      // this used to re-run the effect each tick.
+      // Inline object literal: fresh identity every render.
       useActionInput<typeof toggleActions>({
         toggle: () => {
           lastSeenSpyCallCount = onToggle.mock.calls.length;

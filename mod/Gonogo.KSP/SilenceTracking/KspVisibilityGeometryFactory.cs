@@ -109,12 +109,13 @@ namespace Gonogo.KSP.SilenceTracking
             }
 
             var parentBody = bodies[sample.ReferenceBodyIndex.Value];
-            // These two are DIFFERENT failures behind what used to be one
-            // message, and the trace de-dupes by message: "no homes exist" then
-            // masked "homes exist but none resolved to a body" for the rest of
-            // the session, because the second never printed. The first is
-            // transient (CommNet is not built on the opening tick); the second
-            // is a real bug in body resolution. They must not look alike.
+            // These two are DIFFERENT failures and must not share one message:
+            // the trace de-dupes by message, so if "no homes exist" and "homes
+            // exist but none resolved to a body" were the same string, the
+            // second would be masked for the rest of the session once the
+            // first had printed. The first is transient (CommNet is not built
+            // on the opening tick); the second is a real bug in body
+            // resolution. They must not look alike.
             CelestialBody stationBody;
             int unresolvedHomes;
             List<CommNode> stationNodes;

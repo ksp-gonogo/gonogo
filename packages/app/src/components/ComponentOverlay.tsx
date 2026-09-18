@@ -117,9 +117,7 @@ export function ComponentOverlay({
 
   // Tag → count, descending. Drives the chip row below the search box so the
   // most-used tags appear first. Singleton tags (only one widget carries
-  // them) are hidden, user feedback (2026-05-12): the chip row was dense
-  // with chips that filtered to a single result, and they pushed the
-  // useful filters off the screen.
+  // them) are hidden.
   const tagCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const def of allComponents) {

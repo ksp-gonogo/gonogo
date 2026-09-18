@@ -95,8 +95,8 @@ namespace Gonogo.KSP.CurrencyDelay
         // concern).
         //
         // There is no live-Vessel twin of this. Caching one for the single entry
-        // point that had a live handle is what let the other two go unmeasured:
-        // the delay comes off the roster by id now, so a handle cached here would
+        // point that has a live handle would let the other two go unmeasured:
+        // the delay comes off the roster by id, so a handle cached here would
         // be a second answer to a question with one.
         private readonly Dictionary<string, ProtoVessel> _recoveryVesselsById = new Dictionary<string, ProtoVessel>();
 
@@ -373,7 +373,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 // nothing. Nothing below would run, and every figure the delay
                 // probe reads would say the subsystem was never involved - which
                 // is exactly how a base erased by an interleaved modifier query
-                // stayed invisible for a night. Say so instead.
+                // stayed invisible. Say so instead.
                 Debug.LogWarning("[Gonogo] StockCurrencyInterceptor: an away science change attributed to "
                     + vesselId + " carried a zero base, so nothing was neutralised or credited");
                 return;
@@ -413,9 +413,7 @@ namespace Gonogo.KSP.CurrencyDelay
 
             // The science is withheld, so anything another mod derived from it in
             // the last two events has to go back too, or the operator reads the
-            // arrival off the derived currency instead. Measured on the rig as run
-            // conf-leak-1: 25 science correctly held for its whole silence deadline
-            // while RP-1's confidence moved 700 -> 800 at earn.
+            // arrival off the derived currency instead.
             //
             // Nothing is enqueued for the reveal. The reveal re-applies the science
             // through AddScience, which fires the same events the earn did, so each

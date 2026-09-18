@@ -75,25 +75,21 @@ const channelsOnly = (source: string): string =>
 const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
 
 /**
- * KNOWN BLIND SPOT, measured 2026-09-02: the helper regex closes the hole only
+ * KNOWN BLIND SPOT: the helper regex closes the hole only
  * for a helper literally NAMED `TrueNow`. A helper that sets the same
  * `Delay = DelayRole.TrueNow` under any other name contributes exactly ONE
  * match, the line inside its own body, no matter how many channels are built
  * through it.
  *
  * One exists today: `KerbalismUplink.Static(topic)` carries 1 channel and
- * scores 1, which happens to be the right number. The large one,
- * `Rp1ScUplink.Ground(topic)`, carried 26 channels behind a line reading 1 until
- * 2026-09-14, when 25 of them moved to HeldAtHome through a helper that declares
- * no TrueNow at all and the 26th, rp1.available, was declared inline. The
- * numbers in this file total 37 (measured 2026-09-14, after that move and the
- * stock career and space-centre channels left) against 31 real channels; the gap
- * is the helper bodies and helper declaration lines the counts below explain.
+ * scores 1, which happens to be the right number. The numbers in this file
+ * total 37 against 31 real channels; the gap is the helper bodies and helper
+ * declaration lines the counts below explain.
  *
  * The hole itself is still open: a new helper under any other name hides every
  * channel after its first, so nothing asks whether the next one is ground-side.
  * Counting per channel would rewrite every count and every arithmetic note in
- * this file, and that is the operator's call, not a drive-by.
+ * this file.
  */
 
 const SCAN_EXTENSION = /\.cs$/;
@@ -129,12 +125,7 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // grounds that it was never a reading taken aboard the craft. A fact the whole
   // simulation shares is vantage-independent by construction, so there is no
   // light-time for it to cross, and this is the read side agreeing with the
-  // write side: time.setWarpIndex has always been TrueNow for exactly
-  // this reason.
-  //
-  // This entry is a LOOSENING, not a ratchet-down: VesselUplink had no entry
-  // before, and the channel was Delayed. Warp has to be truenow: it's a meta
-  // state, effectively scene "changing".
+  // write side: time.setWarpIndex is TrueNow for exactly this reason.
   //
   // Declared through the file's own WarpChannel() helper rather than the shared
   // Channel() one, so the count stays honest: a second delay-bypassing channel
@@ -147,7 +138,7 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // operator asked the simulation to watch for, which never described a craft
   // and never travelled down a link. Same class as commandCentre.roster below.
   //
-  // The FIRE NOTICE is the deliberate exception, and the only one this feature
+  // The FIRE NOTICE is the exception, and the only one this feature
   // makes. A SCET alarm stops the warp universally, because warp is a
   // meta-game concept, and an operator's readings will still show the craft a
   // light-time ago when it does (an alarm for SCET at 100km altitude could
@@ -158,9 +149,9 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   //
   // What keeps that from being a telemetry leak is the PAYLOAD, not the role:
   // ScetAlarmFired carries the alarm's own id and the instant it fired, and
-  // nothing else. No measured value, no restatement of the condition. The same
-  // ruling: "we have to show the alarm going off truenow, even for SCET. What we
-  // don't have to show is WHY it triggered." 2 explicit declarations.
+  // nothing else. No measured value, no restatement of the condition. The
+  // alarm going off must show truenow, even for SCET; why it triggered does
+  // not have to. 2 explicit declarations.
   "mod/Gonogo.KSP/ScetAlarmUplink.cs": 2,
 
   // commandCentre.roster: the LIST of command centres a dashboard can select as
@@ -179,19 +170,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // only StockHomeNodeSource (ground-registry) is honest as TrueNow; the crewed
   // source's delay-gating is the Phase-2 follow-up.
   //
-  // commandCentre.separation USED to be here and is now Delayed, which is why
-  // this count is 1 rather than 2. The justification it carried was wrong: it
-  // claimed delaying the channel would make the gate depend on itself, and the
-  // gate reads the LEDGER (ChannelEngine.SetCentreDelay writes straight into
-  // INetwork.SetDelay), never the topic. The separation matrix is a readout off
-  // the same rows, so it rides light-time like anything else describing a place
-  // a signal has to cross.
+  // commandCentre.separation is Delayed rather than TrueNow, which is why this
+  // count is 1 rather than 2: the gate reads the LEDGER
+  // (ChannelEngine.SetCentreDelay writes straight into INetwork.SetDelay),
+  // never the topic, and the separation matrix is a readout off the same rows,
+  // so it rides light-time like anything else describing a place a signal has
+  // to cross.
   //
-  // That also retires most of the delay-honesty debt this entry used to inherit
-  // from the roster: a crewed forward centre appearing in the MATRIX no longer
-  // leaks ahead of its own telemetry. The roster's own crewed entries are still
-  // TrueNow and still owe the Phase-2 fix described above. 1 explicit
-  // declaration.
+  // The roster's own crewed entries are still TrueNow and still owe the
+  // Phase-2 fix described above. 1 explicit declaration.
   "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 1,
 
   // flight.simulation: whether the flight on screen is one of RP-1's
@@ -222,13 +209,12 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // vessel's OWN path resolved to, a fact about this end of the link rather
   // than about another vessel.
   //
-  // comms.delay and comms.path LEFT this list and are now Delayed, which is why
-  // the count is 8 rather than 10. The old note claimed they could not ride
-  // their own delay without a circular dependency, and that is not so: the
-  // reveal gate and the command scheduler read the LEDGER (INetwork.DelayTo,
-  // filled by the ungated capture pass), while the channels of those names are
-  // readouts published from the same numbers. Both describe the far end of the
-  // link, so both wait for the light that carries them.
+  // comms.delay and comms.path are Delayed rather than TrueNow, which is why
+  // the count is 8 rather than 10: the reveal gate and the command scheduler
+  // read the LEDGER (INetwork.DelayTo, filled by the ungated capture pass),
+  // while the channels of those names are readouts published from the same
+  // numbers. Both describe the far end of the link, so both wait for the
+  // light that carries them.
   //
   // Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
   // the helper body + 6 call sites (one per topic) + the helper's own
@@ -259,11 +245,10 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // rp1.available: whether RP-1 is installed and managing the save, an install
   // fact held nowhere. Declared inline, so this 1 is one channel.
   //
-  // The other 25 rp1.* channels LEFT this list and are HeldAtHome through the
+  // The other 25 rp1.* channels are HeldAtHome through the
   // `AtHome` helper: RP-1's space centre (queues, complexes, payroll, Programs,
-  // Confidence) reaches each vantage after its delay to home. They used to ride
-  // a `Ground` helper that scored 1 here for 26 channels, which was this file's
-  // largest blind spot; that helper is gone. 1 explicit declaration.
+  // Confidence) reaches each vantage after its delay to home. 1 explicit
+  // declaration.
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched

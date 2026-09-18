@@ -12,7 +12,7 @@ import type { UplinkClientHandle } from "./uplinkClients";
  *
  * A widget is augmented through the slots it declares in `augmentSlots`, and
  * contributed-to through the slots it declares in `contributionSlots` AND
- * through its automatic `<id>.badges` slot (contribution-slots-spec §13.2), so
+ * through its automatic `<id>.badges` slot, so
  * an Uplink that only drops a badge onto the widget still counts as provenance.
  */
 function provenanceUplinks(def: ComponentDefinition): UplinkClientHandle[] {

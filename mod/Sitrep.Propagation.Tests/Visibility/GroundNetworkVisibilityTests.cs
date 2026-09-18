@@ -11,7 +11,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// A craft behind a moon should be reckoned back when it clears the moon,
     /// not when one particular ground station happens to rotate into view.
     ///
-    /// <para>Measured live on 2026-08-16: a relay in a circular 20 km orbit
+    /// <para>A relay in a circular 20 km orbit
     /// about Minmus was predicted to be silent for 2104 s and was actually
     /// silent for 795 s. 795 s is what the moon's own shadow gives
     /// (<c>2*asin(60/80)</c> of a 3383.6 s period is 913 s, and a chord that

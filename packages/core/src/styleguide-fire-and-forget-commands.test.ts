@@ -16,18 +16,6 @@ import { describe, expect, it } from "vitest";
  * the information exists and nothing shows it: the operator presses the button,
  * the game says no, and the widget says nothing at all.
  *
- * ## Why a budget rather than a runtime error
- *
- * Because zero of these sites surface an error today. Making a discarded
- * refusal throw would convert every one of them into a crash at once, in
- * widgets whose only fault is predating the phase, and the reliable outcome of
- * that is a `.catch(() => {})` added everywhere to make it stop. A budget turns
- * the same list into a queue that can only shrink, answered widget by widget,
- * with the UX question settled once per widget rather than once globally.
- *
- * The runtime invariant is the right instrument for a NEW command, where there
- * is no debt to grandfather. It is the wrong one for these. Separate decision.
- *
  * ## Working the list down
  *
  * Read the outcome and show it. `classifyCommandRejection` (published on the
@@ -51,36 +39,23 @@ import { describe, expect, it } from "vitest";
  */
 
 /**
- * Per-file fire-and-forget dispatch budget, seeded 2026-08-20 at the census
- * count. Each entry EQUALS what its file dispatches blind: a file absent from
- * this map may not have any, a file over its number fails, and so does a file
- * under it, because slack in a queue entry is room for the next regression to
- * hide in. See "has no entry above what its file actually dispatches" below.
+ * Per-file fire-and-forget dispatch budget. Each entry EQUALS what its file
+ * dispatches blind: a file absent from this map may not have any, a file over
+ * its number fails, and so does a file under it, because slack in a queue
+ * entry is room for the next regression to hide in. See "has no entry above
+ * what its file actually dispatches" below.
  *
  * A number may only RISE for one reason: a dispatch that was already blind
- * became visible to this scan. `useExecuteAction` swallowed its own rejection
- * internally, so its call sites were discarding an outcome the whole time
- * while matching nothing here. Retiring it moved two widgets' dispatches into
- * the census rather than adding any. Every other direction is down.
+ * became visible to this scan. Every other direction is down.
  */
 const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 3,
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 6,
   "packages/components/src/ActionGroup/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 1,
-  // 7 -> 8 on 2026-08-21: `ksp.launch` moved off the deleted `useExecuteAction`,
-  // whose own `result.then(()=>undefined, ()=>undefined)` swallowed the refusal
-  // before any call site could see it. The blind dispatch is not new, only
-  // countable: launch has six refusal arms and showed none of them either way.
-  // 8 -> 1: seven of them answered, launch's six refusal arms included. The
-  // number was never lowered as they were, so the widget that prompted the note
-  // above had been carrying the queue's largest single allowance for weeks.
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 1,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 1,
-  // 6 -> 7 on 2026-08-21: the three trim actions moved off the deleted
-  // `useExecuteAction` onto one shared `vessel.control.setAxes` handle. Same
-  // note as LaunchDirector above: the swallow moved into view, it did not appear.
   "packages/components/src/Navball/index.tsx": 7,
   "packages/components/src/ShipMap/index.tsx": 1,
   "packages/components/src/TargetPicker/index.tsx": 5,
@@ -109,8 +84,7 @@ const SEARCH_GLOBS = ["*.ts", "*.tsx"];
  * seed is a `useCommand` handle (`cmd`, `hireCmd`, `engage`, ...), not a
  * transport or peer `send`, which is why the receiver is left unconstrained
  * rather than pattern-matched on a `Cmd` suffix: a command handle called
- * `land` or `executeNode` is the same defect and an earlier suffix-matching
- * pass missed four files for exactly that reason.
+ * `land` or `executeNode` is the same defect.
  *
  * POSIX ERE via `git grep -E`, which has no `\b`. Nothing in the character
  * class needs escaping, but if a `]` is ever added it must come FIRST inside
@@ -141,8 +115,7 @@ const COMMENT_LINE = /^(\/\/|\*|\/\*)/;
  * `-o` is what makes this scan count OCCURRENCES. Without it `git grep` emits
  * one record per matching LINE and the tally counts records, so two dispatches
  * written on one source line score as one and joining two lines becomes a way
- * to spend a dispatch the budget cannot see. The sibling `.magnitude` budget
- * was under-counting sixteen lines that way before it took the flag.
+ * to spend a dispatch the budget cannot see.
  *
  * But `-o` alone would break `COMMENT_LINE`, which is the reason the fix here
  * is a different shape from the sibling's. That filter reads the text after

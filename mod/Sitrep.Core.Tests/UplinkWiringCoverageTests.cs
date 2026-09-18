@@ -10,17 +10,14 @@ namespace Sitrep.Core.Tests
     /// What an Uplink DECLARES and what it REGISTERS have to agree, on every
     /// Uplink rather than on the ones somebody remembered.
     ///
-    /// <para>WHY THIS EXISTS. On 2026-08-31 the whole telemetry mod failed to
-    /// start on the rig with <c>gate requirements that cannot be enforced: command
-    /// "rp1.facility.upgrade" requires gate kind "rp1.facilities"</c>.
-    /// rp1.facility.upgrade was innocent: a DIFFERENT command had been registered
-    /// with no matching declaration, <c>AddCommandHandler</c> throws for that, the
-    /// Uplink's fail-soft turned the throw into a health string, and every
-    /// registration after it was skipped, one of which was the gate evaluator that
-    /// the named command's requirement needed. The channel half is quieter still
-    /// and throws nothing at all: an undeclared topic publishes happily every tick
-    /// and is simply refused at subscribe, so it is missing from the wire with
-    /// nothing logged.</para>
+    /// <para><b>What a bad registration hides.</b> <c>AddCommandHandler</c> throws
+    /// when a command has been registered with no matching declaration; an
+    /// Uplink's fail-soft turns that throw into a health string, and every
+    /// registration after the offending one is skipped, including whatever
+    /// gate evaluator a later command's requirement needed. The channel half
+    /// is quieter still and throws nothing at all: an undeclared topic
+    /// publishes happily every tick and is simply refused at subscribe, so it
+    /// is missing from the wire with nothing logged.</para>
     ///
     /// <para><b>Both directions, because only one of them is loud.</b> A
     /// registration with no declaration throws, which is how the outage announced
@@ -31,20 +28,10 @@ namespace Sitrep.Core.Tests
     /// never arrives. Both sides are asserted both ways, and all four are at zero
     /// across every Uplink, so none of them carries a debt list.</para>
     ///
-    /// <para><b>Why a walk, and why it replaced the per-Uplink form.</b> The guard
-    /// written after that outage was a runtime one: hand the Uplink a recording
-    /// host, compare against its manifest. It was added to four Uplinks, and on
-    /// three of the four it could not fail. Two of them keep their entire
-    /// registration body in a <c>.Ksp.cs</c> half that the headless test csproj
-    /// deliberately excludes, so <c>Register</c> forwards to an unimplemented
-    /// <c>partial void</c> that compiles away to nothing: the test registered
-    /// nothing, compared nothing to nothing, and passed. The third declares and
-    /// registers no commands or channels at all, so it had nothing to check.
-    /// Meanwhile the two Uplinks with the largest command surfaces, ten and five,
-    /// had no such test at all, and neither did the four publish-only ones. This
-    /// file names none of them on purpose: core may not reach an Uplink, and a
-    /// comment is a reach the boundary ratchet counts. A per-project assertion
-    /// is the thing that gets forgotten; a walk enrols an Uplink by existing.</para>
+    /// <para><b>Why a walk, not a per-Uplink assertion.</b> This file names no
+    /// Uplink on purpose: core may not reach an Uplink, and a comment is a
+    /// reach the boundary ratchet counts. A per-project assertion is the
+    /// thing that gets forgotten; a walk enrols an Uplink by existing.</para>
     ///
     /// <para><b>The runtime form is still the stronger one where it runs.</b> An
     /// Uplink whose Tests project compiles stand-in types for the mod it wraps

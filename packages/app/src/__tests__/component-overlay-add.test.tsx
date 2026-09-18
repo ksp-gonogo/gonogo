@@ -1,8 +1,7 @@
 /**
- * Regression: adding a widget whose ComponentDefinition has
- * `openConfigOnAdd: true` opens the config modal immediately. Previously
- * the modal's Save was discarded, the item stuck with `defaultConfig`
- * forever. This test covers the config-persists-on-initial-add path.
+ * Adding a widget whose ComponentDefinition has `openConfigOnAdd: true` opens
+ * the config modal immediately. This test covers the config-persists-on-
+ * initial-add path.
  */
 
 import {

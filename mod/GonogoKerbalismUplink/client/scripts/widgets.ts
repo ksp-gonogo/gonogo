@@ -75,8 +75,7 @@ const WIDGETS: WidgetRenderConfig[] = [
   {
     // SpaceWeather: the Kerbalism radiation/storm/belt board. Fixtures are the
     // SpaceWeatherData showcase states (nominal from a real Deck capture;
-    // storm/inner-belt synthesised to real config magnitudes). See
-    // local_docs/spaceweather-widget-SPEC.md + local_docs/kerbalism-fixtures/.
+    // storm/inner-belt synthesised to real config magnitudes).
     widgetId: "space-weather",
     fixturesPath: "SpaceWeather/__fixtures__",
     outPath: "renders/space-weather-widget",

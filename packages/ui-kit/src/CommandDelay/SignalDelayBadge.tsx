@@ -12,12 +12,11 @@ import { Unit } from "../Unit";
  *
  * ## Why the ONE-WAY figure
  *
- * It used to say the round trip, and the round trip answers a different
- * question: when the acknowledgement gets back. The operator's is when their
- * words land. A crew four light-minutes out starts acting on an instruction the
- * moment it reaches them, and the four minutes after that are the console
- * waiting to hear about it, not the craft waiting to be told. Quoting eight
- * minutes made the reading twice the number that mattered.
+ * The operator's question is when their words land, not when the
+ * acknowledgement gets back. A crew four light-minutes out starts acting on
+ * an instruction the moment it reaches them, and the four minutes after that
+ * are the console waiting to hear about it, not the craft waiting to be told.
+ * The round trip would double the number that matters here.
  *
  * The round trip has not gone anywhere: it is what the strip draws, in two
  * legs, for a message that is actually crossing. That is where a two-leg figure
@@ -25,19 +24,15 @@ import { Unit } from "../Unit";
  *
  * ## Placement is the CONSOLE's, not this chip's and not each caller's
  *
- * An inline chip with no position of its own, which is not the same as leaving
- * the position to whoever renders it. That was the arrangement, and the two
- * consoles that draw one used it to reach opposite answers: a character grid
- * pinned it in its own top corner, a column of prose put it in the composer row
- * beside Send. `Console` owns the placement for both now, so this stays free of
- * `position` and neither console gets to pick. Where it settled is the prose
- * console's answer rather than the grid's: at the foot, over the composer's
- * top border, in the same column as the queue's countdowns.
+ * An inline chip with no position of its own: `Console` owns the placement for
+ * it, so this stays free of `position` and neither console gets to pick. It
+ * renders at the foot, over the composer's top border, in the same column as
+ * the queue's countdowns.
  *
  * Not on the barrel for the same reason: `Console` is the only thing that draws
- * one, and a widget reaching this directly is a widget deciding for itself
- * whether a chip or a queue is the right reading, which is the decision that
- * drifted.
+ * one, and a widget reaching this directly would be a widget deciding for
+ * itself whether a chip or a queue is the right reading, which is `Console`'s
+ * call to make.
  */
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */

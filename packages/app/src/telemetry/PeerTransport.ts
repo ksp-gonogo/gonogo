@@ -45,11 +45,9 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * `WebSocketTransport`: neither is the ORIGIN of the data, both are a
  * scheduled/event-driven re-delivery of `ServerMessage`s that arrived some
  * other way. Here that "some other way" is the host's own gated stream,
- * relayed verbatim over a PeerJS data channel; see
- * `docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md` §5
- * for why relaying verbatim (no re-timestamping) is what keeps a station's
- * `ViewClock` fit to the identical `(validAt, deliveredAt)` observations the
- * host's own clock saw.
+ * relayed verbatim over a PeerJS data channel: relaying verbatim (no
+ * re-timestamping) is what keeps a station's `ViewClock` fit to the
+ * identical `(validAt, deliveredAt)` observations the host's own clock saw.
  *
  * `carriedChannels` is deliberately NOT implemented, the station doesn't
  * need to learn the carried set from the host at all, it imports the exact
@@ -71,12 +69,10 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * the replay a reconnected station would sit blank on every topic it had
  * already subscribed.
  *
- * `set-vantage` is CARRIED. It used to be refused, on the reasoning that the
- * mod keeps the chosen vantage per `ClientSession` and the host has one
- * session, so two stations could not observe at two vantages over one relayed
- * stream. That premise is gone: the host now holds one upstream session per
- * vantage anything asks for (`PeerHostService.attachSitrepSinkFor`), so the mod
- * is still one-vantage-per-session and the selection can be honoured after all.
+ * `set-vantage` is CARRIED: the host holds one upstream session per vantage
+ * anything asks for (`PeerHostService.attachSitrepSinkFor`), so the mod stays
+ * one-vantage-per-session while the selection is honoured.
+ *
  * The vantage is replayed before the topic set on every reconnect, so the
  * host's fresh per-connection claims are keyed to the right session from the
  * first subscribe rather than being made against its own and moved.

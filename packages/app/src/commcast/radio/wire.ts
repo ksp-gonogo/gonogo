@@ -20,8 +20,8 @@ import type { RecipientId } from "../types";
  * binary through BinaryPack without base64's added third, so the chunks travel
  * as bytes.
  *
- * It does NOT carry them untouched, which this file used to say: a `Uint8Array`
- * comes out of BinaryPack at the far end as an `ArrayBuffer`. See
+ * It does NOT carry them untouched: a `Uint8Array` comes out of BinaryPack at
+ * the far end as an `ArrayBuffer`. See
  * {@link radioFrameFromWire}, which is where that is undone.
  */
 
@@ -173,8 +173,7 @@ export const RADIO_BYTES_BUDGET = new PerfBudget({
  * perfectly happily and the defect is invisible to a listener. It is not
  * invisible to anything that INDEXES the audio, which is every other thing one
  * might do with it: a decoder that checks a magic byte, an amplitude read, a
- * test comparing what was heard against what was said. The first of those found
- * it within a second of the first two-screen keying.
+ * test comparing what was heard against what was said.
  *
  * Normalised HERE rather than at the decoder, because the wire is where the
  * shape changed and a type that is only true on the sending side is worth

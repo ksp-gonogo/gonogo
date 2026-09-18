@@ -101,7 +101,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Every exclusive capability in the tree, as of 2026-08-26. Twelve are
+        /// Every exclusive capability in the tree. Twelve are
         /// declared; eleven have a provider registered from an Uplink, which this
         /// file discovers rather than restates.
         /// </summary>

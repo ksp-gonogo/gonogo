@@ -33,9 +33,8 @@ import {
 // `DataSource` here is harmless, but note it does NOT prove the real
 // threshold-picker path works. That's covered separately, with no "data"
 // `DataSource` registered at all, in the "threshold trigger key picker"
-// describe block at the bottom of this file (Finding 1: the legacy "data"
-// source was deleted in `806e7fe2`, so the real app never has one
-// registered either).
+// describe block at the bottom of this file (the legacy "data" source is
+// deleted, so the real app never has one registered either).
 /**
  * `DataKeyPicker`'s search input and the native `<select>` for the onFire
  * action-group both carry the implicit/explicit ARIA `combobox` role, and
@@ -618,11 +617,8 @@ describe("AlarmsModal recommended presets", () => {
 });
 
 describe("AlarmsModal threshold trigger key picker", () => {
-  // Deliberately NOT registering a mock "data" `DataSource`, the real app
-  // never has one (deleted in `806e7fe2`). This is the config-UI proof for
-  // Finding 1: before the fix, `useValueKeys("data")` always returned `[]`
-  // here and the picker showed nothing but "No matches", making it
-  // impossible to set a threshold alarm at all.
+  // Deliberately NOT registering a mock "data" `DataSource`: the real app
+  // never has one (it's deleted).
   beforeEach(clearRegistry);
 
   it("offers real telemetry keys with no 'data' DataSource registered", async () => {
@@ -856,9 +852,8 @@ describe("AlarmsModal vantage choice", () => {
         onDelete={() => {}}
       />,
       ORBIT_EPOCH,
-      /* The screen the choice used to be withheld on: no light time at all, so
-         both clocks print the same string and `useTimeContexts` drops every
-         qualifier. */
+      /* No light time at all: both clocks print the same string, and
+         `useTimeContexts` drops every qualifier. */
       0,
     );
     return screen.getByRole("radiogroup", { name: /fires on/i });
@@ -887,7 +882,7 @@ describe("AlarmsModal vantage choice", () => {
 
   it("arms a UT alarm with no vantage at all", async () => {
     // The precondition, asserted rather than assumed: this is the screen that
-    // has nothing to LABEL, which is what used to remove the choice
+    // has nothing to LABEL.
     expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
 
     const user = userEvent.setup();

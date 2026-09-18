@@ -135,12 +135,12 @@ describe("loadEnabledUplinks", () => {
   /*
    * The bytes that are HASHED must be the bytes that are EXECUTED.
    *
-   * The loader used to `fetchBytes(url)`, hash that, and then `import(url)`
-   * again, so the verified download was thrown away and a second, unverified one
-   * was run. Over a same-origin fixture that reads as a caching detail. Over the
-   * remote release URL an Uplink declares, a host can serve verified bytes to the
-   * first request and anything at all to the second while every arm of the
-   * three-way integrity check reports green.
+   * Fetching bytes, hashing them, and then `import(url)`-ing the URL again
+   * would throw away the verified download and run a second, unverified one.
+   * Over a same-origin fixture that reads as a caching detail. Over the
+   * remote release URL an Uplink declares, a host could serve verified bytes
+   * to the first request and anything at all to the second while every arm of
+   * the three-way integrity check reports green.
    *
    * This holds the property by IDENTITY rather than by counting fetches: the
    * buffer handed to `importBundle` has to be the very one `fetchBytes` returned.
@@ -1384,9 +1384,11 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       importBundle,
     });
     expect(outcomes[0].status).toBe("quarantined");
-    // The MOD, not the index: this bundle was described by a `clientSource` the
-    // mod supplied, so there is no index entry in the story to have vouched
-    // anything. The line said "index" here until 2026-09-01.
+    /*
+     * The MOD, not the index: this bundle was described by a `clientSource`
+     * the mod supplied, so there is no index entry in the story to have
+     * vouched anything.
+     */
     expect(outcomes[0].reason).toMatch(/hash .* != mod-expected/);
     expect(importBundle).not.toHaveBeenCalled();
   });

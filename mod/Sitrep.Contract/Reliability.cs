@@ -401,15 +401,6 @@ public class RepairOutcome
 /// The vocabulary <see cref="RepairOutcome.Refusal"/> is drawn from, and the
 /// ONE place a refusal becomes a <see cref="CommandResult"/>.
 ///
-/// <para>Here, and not at either call site, because there are two of them and
-/// they used to disagree in the worst available direction: the core registrar
-/// wrapped every outcome in <c>CommandResult&lt;RepairOutcome&gt;.Ok(...)</c>,
-/// which sets <see cref="CommandResult.Success"/> true unconditionally, so a
-/// refusal reached the client on the confirmed path and settled the control at
-/// rest. A repair that never happened was byte-identical on screen to one that
-/// did, and the button's own <c>refused</c> phase was structurally
-/// unreachable for this command.</para>
-///
 /// <para>A backend states WHY in this vocabulary and nothing else. It does not
 /// choose a <see cref="CommandErrorCode"/>, so a new backend cannot invent a
 /// mapping of its own, and it does not write a sentence: a code surfaced

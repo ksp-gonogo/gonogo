@@ -900,9 +900,8 @@ describe("PeerClientService.sendFlightRpc", () => {
     svc.connect("HOST");
     const peer = FakePeer.instances[0];
 
-    // Kick off the RPC BEFORE peer.open / conn.open fire, this is the
-    // FlightsManager-on-mount race that previously surfaced "not connected"
-    // as an uncaught rejection.
+    // Kick off the RPC BEFORE peer.open / conn.open fire: unhandled, this
+    // would surface as an uncaught "not connected" rejection.
     const pending = svc.sendFlightRpc({ op: "list" });
 
     // Flush any synchronous resolution paths.
@@ -961,14 +960,12 @@ describe("PeerClientService.sendFlightRpc", () => {
 });
 
 // ---------------------------------------------------------------------------
-// relay-peer-id: applying iceServers to the station's Peer, the
-// 2026-05-17 evening session showed 200+ negotiation-failed events
-// on station→relay because the station's Peer had empty iceServers
-// (deliberate, see iceServers.ts) and couldn't reach the relay's
-// container-bridge ICE candidates. The fix shipped 2026-05-18 has
-// the host bundle its iceServers into the relay-peer-id message,
-// and the station mutates its Peer's _options.config so a fresh
-// peer.connect() for the camera channel uses them.
+// relay-peer-id: applying iceServers to the station's Peer. The station's
+// Peer has empty iceServers (deliberate, see iceServers.ts) and cannot reach
+// the relay's container-bridge ICE candidates on its own, so the host bundles
+// its iceServers into the relay-peer-id message, and the station mutates its
+// Peer's _options.config so a fresh peer.connect() for the camera channel
+// uses them.
 // ---------------------------------------------------------------------------
 
 describe("PeerClientService: relay-peer-id iceServers application", () => {
@@ -1054,10 +1051,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
   });
 
   describe("countdown sticky replay", () => {
-    // gonogo-countdown-start is a fire-and-forget broadcast. A GoNoGo widget
-    // that subscribes after the message landed (page mounting, layout switch,
-    // remount) used to miss the running countdown entirely and show nothing
-    // until T-0: the 2026-05-08 "Joel saw only T-0" bug.
+    // gonogo-countdown-start is a fire-and-forget broadcast.
     it("replays a running countdown to a late subscriber", async () => {
       const svc = new PeerClientService();
       const t0Ms = Date.now() + 8_000;

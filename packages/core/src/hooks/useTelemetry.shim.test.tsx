@@ -134,17 +134,14 @@ describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProv
       }
 
       render(
-        // M3 Wave 0 carried-channels gate (`m3-migration-plan.md` §5.1): a
-        // mapped topic only routes to the stream once its raw inputs are
+        // A mapped topic only routes to the stream once its raw inputs are
         // actually carried. `StubTransport` doesn't declare
         // `carriedChannels` (it's test-scriptable, not a real serving
         // guarantee), so this test explicitly promotes the four raw inputs
-        // `vessel.state.altitudeAsl` resolves to (vessel-state-extend, M3:
-        // `vesselStateChannel.inputs` grew to include `vessel.identity`/
-        // `system.bodies` for `met`/apoapsides: the carried-channels gate
+        // `vessel.state.altitudeAsl` resolves to: the carried-channels gate
         // is parent-channel-scoped, so EVERY `vessel.state.*` field,
-        // including this one, now needs all four carried, not just the two
-        // it happens to read), the "dev-first per-topic opt-in" half of the
+        // including this one, needs all four carried, not just the two
+        // it happens to read. This is the "dev-first per-topic opt-in" half of the
         // gate. Without this, the mapped topic would stay on the legacy path
         // and the rest of this test (which proves the DERIVED-channel
         // wiring) would never even exercise the stream. See `useTelemetry

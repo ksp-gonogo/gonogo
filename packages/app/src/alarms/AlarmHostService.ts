@@ -158,7 +158,8 @@ export class AlarmHostService {
   /**
    * The UT of the PREVIOUS tick, so a time alarm can be fired on a CROSSING
    * rather than on containment. Under warp one tick moves the clock by ~W
-   * seconds, which used to step clean over the firing window in silence.
+   * seconds, which would otherwise step clean over the firing window in
+   * silence.
    */
   private lastTickUt: number | null = null;
   private opts: Required<

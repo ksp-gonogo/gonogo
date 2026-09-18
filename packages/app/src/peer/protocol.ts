@@ -95,10 +95,9 @@ export type PeerMessage =
   // the host fetched from /ice-config). Stations need this for their
   // station→relay peer connection: without it the station's Peer
   // gathers only host-LAN candidates and the relay's container-bridge
-  // candidates are unreachable from the LAN, causing every
-  // negotiation-failed event in the 2026-05-17 evening session. Older
-  // station builds that don't read this field still work, just only
-  // when the router supports NAT-hairpin to the relay container.
+  // candidates are unreachable from the LAN. Older station builds that
+  // don't read this field still work, just only when the router supports
+  // NAT-hairpin to the relay container.
   | {
       type: "relay-peer-id";
       peerId: string | null;
@@ -304,8 +303,6 @@ export type PeerMessage =
     }
   | { type: "trigger-cancel"; id: string }
   // ──────────────────────────────────────────────────────────────────────
-  // Selective subscription: see local_docs/performance_review.md #1.
-  //
   // Default mode is "broadcast-all" so a station on an old bundle still
   // receives every key. A v2 station immediately sends `peer-data-mode`
   // with `mode: "selective"` after handshake, and follows up with
@@ -423,13 +420,11 @@ export type PeerMessage =
   // re-timestamping: `message.meta.validAt`/`deliveredAt` are the exact
   // values the mod computed for the HOST's own vantage, so a station's
   // TimelineStore/ViewClock fits the identical UT<->wall observations the
-  // host's own clock did; see the delay-correctness note in
-  // docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md §5.
+  // host's own clock did.
   // v1 is eager broadcast-all (mirrors this file's existing
   // `peer-data-mode` broadcast-all default): every carried topic is sent
   // to every connected station unconditionally; there is no
-  // sitrep-subscribe/unsubscribe pair yet (deferred, see the plan's §2 v2
-  // note).
+  // sitrep-subscribe/unsubscribe pair yet.
   // ──────────────────────────────────────────────────────────────────────
   | {
       type: "sitrep-frame";
@@ -447,12 +442,9 @@ export type PeerMessage =
   // `WebSocketTransport` re-subscribes its live topics on every socket open:
   // the host's per-connection claims die with the old `DataConnection`.
   //
-  // `sitrep-set-vantage` below is what used to be deliberately absent here.
-  // The reasoning was that the mod keeps the chosen vantage on the
-  // `ClientSession` and the host has ONE session, so a relay message could not
-  // give two peers two vantages. That premise is what changed: the host now
-  // holds one upstream session PER vantage anything asks for, so the mod is
-  // still one-vantage-per-session and no wire change was needed after all.
+  // `sitrep-set-vantage` below: the host holds one upstream session PER
+  // vantage anything asks for, so the mod stays one-vantage-per-session while
+  // a relay message can give different peers different vantages.
   | {
       type: "sitrep-subscribe";
       topic: string;

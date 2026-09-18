@@ -39,19 +39,18 @@ export function createCommcastLog(
  *
  * Separate from the constructor because it registers listeners on the peer
  * host, and a registration with no disposal path is the defect this shape
- * exists to prevent. It was previously done inside the same call, from inside a
- * `useState` initialiser, and React invokes those more than once: every extra
- * invocation left a live undisposed mesh on `onCommcastRadio`, and a host mesh
- * REPEATS what it hears. The host's own log stayed correct, because each leaked
- * mesh delivered to its own orphan log rather than to the rendered one, so the
- * only symptom was on the wire: a station keying once put four copies of every
- * chunk in front of every other peer, and a chunk has no id for anything
- * downstream to dedupe on. Measured at four copies; the count moved with how
- * many times the screen happened to mount.
+ * exists to prevent. Doing this inside a `useState` initialiser instead would
+ * be unsafe: React invokes those more than once, and every extra invocation
+ * would leave a live undisposed mesh on `onCommcastRadio`, and a host mesh
+ * REPEATS what it hears. The host's own log would stay correct, because each
+ * leaked mesh delivers to its own orphan log rather than to the rendered one,
+ * so the only symptom would be on the wire: a station keying once would put
+ * multiple copies of every chunk in front of every other peer, and a chunk
+ * has no id for anything downstream to dedupe on.
  *
- * A host-authored transmission cannot show this and never did. The host sends
- * by calling `host.broadcast` directly, once per keying, so the duplication
- * lives only on the path a PEER's frame takes.
+ * A host-authored transmission cannot show this: the host sends by calling
+ * `host.broadcast` directly, once per keying, so duplication like this could
+ * only occur on the path a PEER's frame takes.
  */
 export function attachCommcastHostMesh(
   log: CommcastLog,

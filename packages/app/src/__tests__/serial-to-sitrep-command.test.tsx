@@ -155,10 +155,7 @@ describe("serial → action → sitrep command end-to-end", () => {
     // ── 4. Drive the serial port: press button A ──────────────────────
     // Drive the full cascade (serial read → parser → InputDispatcher →
     // ActionGroup handler → dispatchAction → useCommand.send →
-    // client.dispatch → transport.send) inside a single act scope. The raw
-    // microtask drains that used to live here ran outside act, so the
-    // trailing setState landed outside React's act boundary and tripped a
-    // warning.
+    // client.dispatch → transport.send) inside a single act scope.
     await act(async () => {
       await port.emitData(" 1 0 \n");
       // Drain enough microtasks for the full async cascade to settle.

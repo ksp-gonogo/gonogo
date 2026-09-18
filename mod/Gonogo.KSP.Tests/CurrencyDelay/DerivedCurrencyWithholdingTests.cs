@@ -12,9 +12,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// <para>The defect this closes is not RP-1's: it is the shape of every
     /// quantity a mod computes from a currency change. The core neutralises the
     /// change with a balance write, a balance write fires no currency query, so the
-    /// mod is never told to revisit what it derived. Confidence was the instance
-    /// that was measured (rig run <c>conf-leak-1</c>, 2026-08-27) and there is
-    /// nothing special about it.</para>
+    /// mod is never told to revisit what it derived.</para>
     /// </summary>
     public class DerivedCurrencyWithholdingTests : IDisposable
     {
@@ -161,10 +159,10 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
 
         /// <summary>
         /// A neutralise with NO KERNEL BOUND is not a quiet no-op, it is the leak
-        /// wide open, and it must say so. Rig run <c>conf-fixed-1</c> is exactly this
-        /// state: the science was withheld correctly, the derived confidence moved
-        /// anyway, and the whole fan-out was unreachable with nothing said either
-        /// way, so a working install and a dead one read identically.
+        /// wide open, and it must say so. The science was withheld correctly, the
+        /// derived confidence moved anyway, and the whole fan-out was unreachable with
+        /// nothing said either way, so a working install and a dead one read
+        /// identically.
         /// </summary>
         [Fact]
         public void a_neutralise_with_no_kernel_bound_says_the_leak_is_open()

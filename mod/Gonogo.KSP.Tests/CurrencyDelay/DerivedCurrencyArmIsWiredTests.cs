@@ -120,9 +120,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// And it binds it again on the way BACK INTO a game, which is the whole of
-        /// rig run <c>conf-fixed-1</c>: the science was withheld correctly and RP-1's
-        /// confidence moved anyway, with nothing in <c>KSP.log</c> either way.
+        /// And it binds it again on the way BACK INTO a game. Without that re-bind,
+        /// the science would be withheld correctly while RP-1's confidence moved
+        /// anyway, with nothing in <c>KSP.log</c> either way.
         ///
         /// <para><c>Register</c> runs once for the whole process (the host addon is
         /// <c>KSPAddon(Instantly, once)</c>) and it runs during LOADING, which is

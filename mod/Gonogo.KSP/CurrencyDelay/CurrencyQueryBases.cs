@@ -5,21 +5,14 @@ namespace Gonogo.KSP.CurrencyDelay
     /// the modifier query that precedes it so the following <c>On*Changed</c>
     /// can read a pre-clamp figure instead of a post-clamp difference.
     ///
-    /// <para><b>Why this is a class and not three fields on the interceptor.</b>
-    /// It used to be three fields plus one shared reason, on the premise that
-    /// "the query and its matching On*Changed fire synchronously back to back
-    /// within one mutator call, with nothing else able to interleave". Something
-    /// does interleave. Between the two, the mutator also fires
+    /// <para>Something does interleave. Between the two, the mutator also fires
     /// <c>OnCurrencyModified</c>, and a subscriber to THAT is free to run a
     /// query of its own: a career overhaul that awards its own extra currency
     /// off a science award prices that award through a fresh query, carrying the
     /// same <c>ScienceTransmission</c> reason and zero science. Landing in one
     /// shared slot, it displaced the real base, the science change resolved with
     /// a base of zero, and the away arm silently neutralised nothing and
-    /// credited nothing. Measured on the rig 2026-08-27, request
-    /// <c>away-arm-first-1</c>: the science landed at once with the shadow left
-    /// behind and no pending row, and every correlation list read empty, so
-    /// nothing named the failure.
+    /// credited nothing.
     /// </para>
     ///
     /// <para>So a query is evidence about a currency only when it carries a

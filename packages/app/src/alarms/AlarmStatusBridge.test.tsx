@@ -100,11 +100,8 @@ describe("alarmSubjectKey / alarmMatchesWidget", () => {
 
 /**
  * The properties a widget's `dataRequirements` migration off the legacy
- * vocabulary has to preserve. Attribution used to be three string equalities
- * against a legacy key, so it survived only while the widget kept declaring
- * that key: swapping in the modern topic the widget actually reads silently
- * detached every alarm from it. Probing the supposedly-finished exemplar is
- * what surfaced that; reading it did not.
+ * vocabulary has to preserve: swapping in the modern topic a widget actually
+ * reads must not silently detach its alarms from it.
  */
 describe("alarm attribution survives the vocabulary migration", () => {
   const funds = makeAlarm(

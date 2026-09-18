@@ -213,7 +213,7 @@ namespace Sitrep.Contract
     ///
     /// <para>Both values get the same model out of the same provider. Under an
     /// integrating provider that is the craft's conic either way, because there
-    /// is no integrated point query to select (see the audit on #282). What
+    /// is no integrated point query to select. What
     /// differs is whether the caller is willing to read it past the point
     /// anybody stands behind it, which
     /// <see cref="IPropagationProvider.CanPropagate"/> already answers and which

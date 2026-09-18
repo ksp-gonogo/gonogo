@@ -15,10 +15,8 @@ namespace Gonogo.KerbalismUplink
     /// <para>The live implementation reflects over Kerbalism's <c>Drive</c>
     /// (<c>Send</c>/<c>Delete_file</c>/<c>Analyze</c>/<c>Delete_sample</c>, plus
     /// a composed <c>Record_sample</c>+<c>Delete_sample</c> pair for
-    /// <see cref="MoveToLab"/>, ground-truthed in
-    /// <c>local_docs/design/2026-08-14-kerbalism-science-widget-integration-research.md</c>
-    /// §3), and must run on the same main thread every other live PartModule
-    /// read in this Uplink does. A fake implementation is what
+    /// <see cref="MoveToLab"/>), and must run on the same main thread every
+    /// other live PartModule read in this Uplink does. A fake implementation is what
     /// <see cref="KerbalismFileCommandProvider"/>'s unit tests exercise
     /// instead: the same KSP-free/real-impl split <c>IScienceActuator</c>/
     /// <c>KspScienceActuator</c> already established.</para>

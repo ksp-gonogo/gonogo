@@ -158,12 +158,12 @@ namespace Sitrep.Core.Tests
             courier.Record("system", "bodies", "v20", 20);
             clock.AdvanceTo(20);
 
-            // KSC's cursor was pinned to 100 by the pre-rewind peak. Pre-fix,
-            // ReadAtVantage's Math.Max(rawScene=20, lastScene=100) clamps
-            // straight back up to 100, and the archive still holds "v100" at
-            // ValidAt=100 <= 100 -- delivering the STALE GHOST "v100" a
-            // second time instead of the genuinely new "v20". Post-fix, the
-            // cursor was cleared and "v100" was pruned, so this must be
+            // KSC's cursor was pinned to 100 by the pre-rewind peak. Without
+            // clearing it, ReadAtVantage's Math.Max(rawScene=20, lastScene=100)
+            // would clamp straight back up to 100, and if the archive still
+            // held "v100" at ValidAt=100 <= 100, that would deliver the STALE
+            // GHOST "v100" a second time instead of the genuinely new "v20".
+            // The cursor is cleared and "v100" pruned, so this must be
             // exactly "v20".
             Assert.Equal(
                 new List<(object?, double)> { ("v0", 0.0), ("v50", 50.0), ("v100", 100.0), ("v20", 20.0) },
@@ -173,14 +173,14 @@ namespace Sitrep.Core.Tests
                 missionControl);
 
             // Push well past the abandoned peak's own UTs (50, 100) WITHOUT
-            // recording anything new there. Pre-fix, SubscribeStream's
+            // recording anything new there. Without pruning, SubscribeStream's
             // "still in flight" reschedule loop (run when MissionControl
-            // subscribed, above) saw the unpruned archive's "v50"/"v100" and
-            // scheduled their delivery for exactly this moment -- the
+            // subscribed, above) would see the unpruned archive's "v50"/"v100"
+            // and schedule their delivery for exactly this moment -- the
             // abandoned pre-quickload timeline getting replayed to a
             // subscriber that joined AFTER the reset and never should see
-            // it. Post-fix, the archive was already pruned to just "v0" by
-            // the time MissionControl subscribed, so nothing was ever
+            // it. The archive is already pruned to just "v0" by
+            // the time MissionControl subscribed, so nothing is ever
             // scheduled here.
             clock.AdvanceTo(60);
             Assert.Equal(

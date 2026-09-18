@@ -13,13 +13,9 @@ namespace Sitrep.Host.Tests
     ///
     /// <para>It resolves the recording at DISCOVERY time and sets
     /// <see cref="FactAttribute.Skip"/> when the file is not there, so the test
-    /// is reported as SKIPPED with the reason attached. The idiom it replaces
-    /// was an <c>if (!File.Exists) { _output.WriteLine("SKIPPING: ..."); return; }</c>
-    /// at the top of each body, which reports a PASS: thirteen tests across four
-    /// files claimed to validate a 7.5 MB capture end to end and asserted nothing
-    /// at all, in CI, always. A green that is indistinguishable from a green that
-    /// ran is the failure mode; xunit already has a state for "did not run" and
-    /// this uses it.</para>
+    /// is reported as SKIPPED with the reason attached. A green that is
+    /// indistinguishable from a green that ran is the failure mode; xunit
+    /// already has a state for "did not run" and this uses it.</para>
     ///
     /// <para>Linked into <c>Sitrep.Host.IntegrationTests</c> by that project's
     /// csproj (the same selective-<c>Compile</c> pattern it already uses for the

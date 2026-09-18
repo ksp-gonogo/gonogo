@@ -9,19 +9,18 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// A refusal must not resolve as a success.
     ///
-    /// <para><c>vessel.repair</c> returned every outcome through
-    /// <c>CommandResult&lt;RepairOutcome&gt;.Ok(...)</c>, and <c>Ok</c> sets
-    /// <see cref="CommandResult.Success"/> true unconditionally. So a repair that
-    /// was refused for want of a kit, a qualified kerbal or a part that exists
-    /// arrived on the client's CONFIRMED path: the promise resolved,
-    /// <c>CommandButton</c> settled at <c>idle</c>, and the operator saw exactly
-    /// what a successful repair looks like. The button's own <c>refused</c> phase
-    /// could not be reached by this command at all.</para>
+    /// <para><c>Ok</c> sets <see cref="CommandResult.Success"/> true
+    /// unconditionally, so wrapping a refusal in
+    /// <c>CommandResult&lt;RepairOutcome&gt;.Ok(...)</c> would arrive on the
+    /// client's CONFIRMED path: the promise resolves, <c>CommandButton</c>
+    /// settles at <c>idle</c>, and the operator sees exactly what a successful
+    /// repair looks like. The button's own <c>refused</c> phase is unreachable
+    /// by a command wired that way.</para>
     ///
-    /// <para>Two halves, because either alone passes while the bug is live: the
-    /// RULE below decides what a refusal becomes, and the WIRING test asserts the
-    /// registrar actually routes through it. A correct rule nothing calls is the
-    /// shape the defect already had.</para>
+    /// <para>Two halves, because either alone passes while a wiring gap
+    /// exists: the RULE below decides what a refusal becomes, and the WIRING
+    /// test asserts the registrar actually routes through it. A correct rule
+    /// nothing calls is worth nothing.</para>
     /// </summary>
     public class RepairRefusalResultTests
     {

@@ -398,8 +398,6 @@ export interface Value<U extends string = string> {
   /**
    * Equality across units, and a bare number is IN BASE UNITS like every other
    * bare operand: `value("kW", 3).equals(3)` is false, because 3 kW is not 3 W.
-   * It read the receiver's own magnitude until 2026-08-19, which made it the one
-   * method where a bare `3` meant something different from `3` everywhere else.
    */
   equals(other: Value | number): boolean;
 

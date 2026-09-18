@@ -10,15 +10,13 @@ namespace Gonogo.KSP.Tests.CommandCentres
 {
     /// <summary>
     /// The second argument to <see cref="IChannelPublisher.Publish"/> is a
-    /// universe time, and the roster publish used to be handed the NUMBER OF
-    /// COMMAND CENTRES instead.
+    /// universe time.
     ///
-    /// <para>Nothing caught it because the engine only ever clamps a stamp that
-    /// is AHEAD of the clock: a count is far below current UT, so it sailed
-    /// through and the sample was recorded as stamped in the deep past, with
-    /// <c>validAt</c> on the wire equal to a command-centre count. The
-    /// assertions below are therefore on the STAMP rather than on the payload,
-    /// which is the half that had no coverage at all.</para>
+    /// <para>The engine only ever clamps a stamp that is AHEAD of the clock, so
+    /// a value far below current UT (such as a count passed in place of a UT)
+    /// sails straight through and gets recorded as stamped in the deep past.
+    /// The assertions below are therefore on the STAMP rather than on the
+    /// payload, which is otherwise easy to leave uncovered.</para>
     /// </summary>
     public class CommandCentreRosterStampTests
     {

@@ -17,15 +17,6 @@ import type { TransportStatus } from "./transport";
 import { WebSocketTransport } from "./websocket-transport";
 
 /**
- * The test whose ABSENCE let a dropped command hang for ever.
- *
- * `Transport.predictConfirmEta` was optional, `CourierTransport` implemented it, and
- * the production `WebSocketTransport` did not. So `etaConfirm` fell back to "now", no
- * loss timer armed, and `dispatch`'s promise never settled: twenty-two files of queue UI
- * able to display a lost command, and nothing in production able to mark one. There WAS
- * a loss-inference test, but only over the courier, which is the transport that already
- * worked. A suite can be green and prove nothing about the path that ships.
- *
  * These drive the REAL `WebSocketTransport` over MSW's ws link, the same
  * network-boundary pattern as `websocket-transport.test.ts`, and take the delay from the
  * authority exactly as `TelemetryProvider` does (`setDelaySource`), never from the
@@ -176,9 +167,11 @@ describe("loss inference over the production WebSocket transport", () => {
     const { client } = await connected();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    // No authority attached, and WebSocketTransport deliberately does not predict, so
-    // this dispatch genuinely cannot be settled on silence. Doing that SILENTLY is how
-    // the gap shipped, so the absence has to be audible.
+    /*
+     * No authority attached, and WebSocketTransport deliberately does not
+     * predict, so this dispatch genuinely cannot be settled on silence: the
+     * absence has to be audible.
+     */
     void client
       .dispatch("vessel.staging.activate")
       .result.catch(() => undefined);

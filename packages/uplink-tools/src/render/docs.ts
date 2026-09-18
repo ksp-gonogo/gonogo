@@ -33,14 +33,7 @@ type PageAsset = Omit<RenderedAsset, "shape">;
 /**
  * The manifest first, the page from it.
  *
- * `gonogo-uplink.json` is specced in `docs/creating-an-uplink.md`, typed as
- * `GonogoUplinkManifest`, consumed by the app's loader on the third-party path,
- * described in the author guide as "build-generated, never hand-written", and did
- * not exist anywhere. Six client `uplink.ts` files carried
- * `UPLINK_VERSION = "0.0.0-dev"` with a `TODO(version)` saying it should come
- * from that file.
- *
- * So the manifest is the primary output and the README is that manifest plus the
+ * The manifest is the primary output and the README is that manifest plus the
  * Uplink's own declared description. Build it the other way round, as a doc
  * generator that happens to emit a manifest, and it drifts: a wrong manifest is
  * parsed by the loader at install time and fails visibly, whereas a wrong
@@ -51,34 +44,29 @@ type PageAsset = Omit<RenderedAsset, "shape">;
  * The Uplink's description, each widget's own registered description, DATA in
  * tables, and the screenshots. Nothing else.
  *
- * That is a ruling, not a style preference, and it replaced a page roughly twice
- * the length. What came out: a rationale paragraph per widget on top of the
- * description its registration already carries (two answers to one question, the
- * second longer); the rules of Uplinks restated as if specific to one of them
- * (presence-gating, the universal `badges`/`filters`/`meters` segments every
- * widget has) which belong in the Uplink documentation once and never per Uplink;
- * a 45-word explanation of why an augment had no preview, repeated verbatim five
- * times, where an empty table cell says the same thing; a closing section listing
- * what the page could not tell the reader, which is not information; and every
- * image's alt text repeated as an italic caption directly beneath it, so each
- * screenshot stated its sentence twice.
+ * A rationale paragraph per widget duplicates the description its registration
+ * already carries. Restating the rules of Uplinks as if specific to one of
+ * them (presence-gating, the universal `badges`/`filters`/`meters` segments
+ * every widget has) belongs in the Uplink documentation once, never per
+ * Uplink. A repeated boilerplate explanation of why something has no preview
+ * says no more than an empty table cell already does. A closing section
+ * listing what the page could not tell the reader is not information. And an
+ * image's alt text repeated as an italic caption beneath it states the same
+ * sentence twice.
  *
  * The test to apply to anything added here: a reader should skim the whole page
  * in under a minute and come away with what the Uplink does, what its widgets
  * show, and what it puts on the wire. And: **if a thing repeats per item, it is a
- * table, not a section.** The augments went from five headed six-line sections to
- * one five-row table, which is the same information and comparable at a glance,
- * which the sections never were.
+ * table, not a section**, comparable at a glance in a way repeated sections
+ * never are.
  */
 
 /**
  * The manifest's shape is `@ksp-gonogo/sitrep-sdk`'s, and so is the code that
  * builds it.
  *
- * `docs` used to declare a rival nine-field shape here while `gonogo-uplink
- * bundle` wrote thirteen fields under the same filename, and nothing said which
- * one the loader honours. Both now call one writer, so an author who runs either
- * command gets the same file.
+ * Both `docs` and `gonogo-uplink bundle` call one writer, so an author who
+ * runs either command gets the same file.
  */
 export type UplinkManifestJson = UplinkManifest;
 
@@ -224,10 +212,8 @@ function table(
 /**
  * The images for one registration: alt text and nothing else.
  *
- * The alt text was previously repeated verbatim as an italic caption directly
- * underneath every image, so each screenshot stated its sentence twice. The
- * scene's caption goes in the alt, where a screen reader and a broken-image
- * placeholder both find it.
+ * The scene's caption goes in the alt, where a screen reader and a
+ * broken-image placeholder both find it.
  *
  * A scene rendered at several sizes gets ONE caption, on the first, and a short
  * size phrase on the others: five images captioned with the same sentence is the
@@ -286,9 +272,9 @@ function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
  * Scenes that assert nothing, which are pictures nobody has read.
  *
  * <p>A WARNING rather than a failure: a scene with no `paints` still renders and
- * still gets looked at. But `paints` is what caught RP-1's efficiency bug (a
- * string that was expected and did not appear), and a scene without any is one
- * where nobody wrote down what the render should say.</p>
+ * still gets looked at. But `paints` is what catches an expected string that
+ * does not appear, and a scene without any is one where nobody wrote down what
+ * the render should say.</p>
  */
 export function scenesAssertingNothing(inputs: DocsInputs): string[] {
   return inputs.scenes
@@ -341,10 +327,9 @@ function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
 /**
  * Every augment in ONE table, with its images after it.
  *
- * A section per augment was six lines each and five of them repeated the same
- * paragraph about previews. As a table the five are comparable at a glance,
- * which is what a reader is actually doing: seeing which host widgets this
- * Uplink reaches into.
+ * As a table, each augment's facts are comparable at a glance, which is what
+ * a reader is actually doing: seeing which host widgets this Uplink reaches
+ * into.
  */
 function augmentTable(inputs: DocsInputs): string[] {
   const rows = inputs.inventory.augments.map((augment: InventoryAugment) => {

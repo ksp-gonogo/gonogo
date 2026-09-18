@@ -14,7 +14,6 @@ namespace Gonogo.KSP
     /// <see cref="VesselUplink"/> (whose commands are all craft actuation) and
     /// are declared instant on their args types, a scene load or a revert is a
     /// local game action, never a signal that rides light-time (see
-    /// <c>local_docs/telemetry-mod/delay-architecture-resolution.md</c> §3 and
     /// <see cref="VesselUplink"/>'s command-classification table).
     ///
     /// <para>Read topics for the same domain (<c>ksp.revertAvailability</c>,

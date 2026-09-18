@@ -49,9 +49,9 @@ export const _wrongKind = <Unit value={surfaceSpeed} format="s" />;
 // @ts-expect-error: not a unit of any kind
 export const _notAUnit = <Unit value={altitude} format="furlongs" />;
 
-// `as` is checked the same way, and was not until 2026-09-13. A cross-kind
-// conversion is refused by the formatter and the value renders in its own unit,
-// so an open `as` was a prop that could be spelled wrong and do nothing.
+// `as` is checked the same way. A cross-kind conversion is refused by the
+// formatter and the value renders in its own unit, so an open `as` would be a
+// prop that could be spelled wrong and do nothing.
 // @ts-expect-error: a length is not a mass
 export const _wrongAsKind = <Unit value={altitude} as="kg" />;
 

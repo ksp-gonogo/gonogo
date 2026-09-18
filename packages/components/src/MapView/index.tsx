@@ -900,16 +900,11 @@ function MapViewComponent({
   }, [containerSize, camera, textureReady, body?.color, baseLayerVersion]);
 
   // ── Coverage: paint-gate, not a drawn overlay ────────────────────────────
-  // A per-vessel painter used to model gonogo's own imaging FOV from
-  // lat/lon/altitude/heading. A mod's own coverage-source model replaced that
-  // wholesale, scanner range gates, persisted coverage, etc. are that mod's
-  // own concern, and the painter has now been deleted rather than left to
-  // read as an alternative that still exists. There is no
-  // separate dark overlay canvas drawn on top of the map anymore (settled
-  // model): `coverageGate` (T4, above) is handed to whichever
-  // `map-view.base` augment is active so IT can gate its own per-tile
-  // paint. This overlay canvas is left entirely for augments that draw ON
-  // TOP of the base surface via the `map-view.overlay` slot below.
+  // There is no separate dark overlay canvas drawn on top of the map:
+  // `coverageGate` (T4, above) is handed to whichever `map-view.base`
+  // augment is active so IT can gate its own per-tile paint. This overlay
+  // canvas is left entirely for augments that draw ON TOP of the base
+  // surface via the `map-view.overlay` slot below.
   useEffect(() => {
     const canvas = overlayRef.current;
     if (!canvas || !containerSize) return;

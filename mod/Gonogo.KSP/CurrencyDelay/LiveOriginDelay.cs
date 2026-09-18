@@ -7,14 +7,13 @@ namespace Gonogo.KSP.CurrencyDelay
     /// Finds the vessel an away currency event came from among the ones the game
     /// currently holds, and measures that one's route home.
     ///
-    /// <para><b>The defect this exists to close.</b> The away-science arm was
+    /// <para>The away-science arm was
     /// handed a live vessel on exactly one of its three entry points (the stock
     /// science lab). Every ordinary transmission arrives carrying a ProtoVessel
     /// and nothing else, and the arm answered <see cref="KscDelay.Unroutable"/>
     /// from a literal rather than asking whether that vessel was sitting in the
     /// roster all along. So a craft in a stable orbit with a working one-hop link
-    /// home had its science held for the whole silence-declaration deadline:
-    /// measured on the rig as 21,600 s against a hop worth about 13.</para>
+    /// home had its science held for the whole silence-declaration deadline.</para>
     ///
     /// <para>Generic over the vessel type on purpose. The roster and the route
     /// read are both live-scene reads that cannot be entered headlessly at all,

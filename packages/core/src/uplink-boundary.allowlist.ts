@@ -33,21 +33,6 @@
  * The dividing line in one sentence: if there's code to move, it's
  * domain-debt; if naming the mod is the file's actual job (wire shape) or
  * the mention is just words, it's permanent.
- *
- * THE BUNDLE-TIME UPLINK IMPORT is gone (2026-08-31). Six tokens used to carry
- * one `packages/app/src/main.tsx` entry each, for nine `import("@ksp-gonogo/
- * gonogo-*-uplink")` calls the app took because those clients ship alongside it.
- * The paragraph that lived here argued the entry was `permanent` and not debt,
- * on the grounds that "an import of a package whose name contains a mod name is
- * the mechanism by which an Uplink registers at all" and that "a runtime loader
- * would one day remove the line". Both halves were true; the second one has
- * happened. Every Uplink now registers through the runtime loader, `main.tsx`
- * names none of them, and all twelve entries (six `permanent`, six
- * `SURVIVES_COMMENT_STRIP`) came out. Kept as a note because the argument was
- * written down six times and drifted into four readings, one of which filed the
- * identical line under `domainDebt` instead: if a similar entry is ever proposed
- * again, it is worth knowing this one did clear, and by a change rather than by
- * attrition.
  */
 
 export type ModToken =
@@ -68,13 +53,12 @@ export type ModToken =
  * How much of a `packages/<pkg>` directory the scan walks. Recorded HERE, in
  * the data module, so the shrink-only checks can read it at their base ref.
  *
- * `"src"` is what it was until 2026-09-04, and `src` turned out not to be where
- * the coupling lived: `packages/components/scripts/` holds the visual-gate probe
+ * `packages/components/scripts/` holds the visual-gate probe
  * harnesses, which side-effect-import three Uplink clients so the probe can
  * photograph the augments those Uplinks contribute into built-in widgets, and
- * `packages/app/scripts/minsize-gate.ts` names nine Uplink bundles. Twenty files
- * were invisible, and no line for any of them could ever have appeared below,
- * because no walk reached them.
+ * `packages/app/scripts/minsize-gate.ts` names nine Uplink bundles: narrowing
+ * the scan back to `src` would make those invisible again, with no line for
+ * them able to appear below.
  *
  * Widening a scan is the one change every shrink-only gate reads as a flood of
  * new debt. Grading it that way makes the rule impossible to widen without
@@ -94,13 +78,12 @@ export const PACKAGE_SCAN_SCOPE = "package";
  * shrink-only checks have to be able to read the set at their base ref to tell a
  * reseed from growth.
  *
- * It was `ts`/`tsx`/`cs` until 2026-09-11, and a stylesheet is the one file kind
+ * A stylesheet is the one file kind
  * in this tree whose whole job is arguing in prose about boxes that belong to
- * specific widgets. `packages/theme/src/tokens.css` could have named an Uplink
- * and passed. That is not hypothetical: on 2026-09-11 the same phrase ("the kOS
- * terminal's CPU picker") was written into a `packages/core` comment, where the
- * gate fired correctly, and was nearly written into `tokens.css`, where nothing
- * would have caught it.
+ * specific widgets. `packages/theme/src/tokens.css` could name an Uplink
+ * and pass unnoticed. That is not hypothetical: identical prose can appear
+ * correctly in a `packages/core` comment, where the gate fires, and just as
+ * easily land in `tokens.css`, where nothing would catch it.
  *
  * The reseed seam this opens is narrower than the scope one, because a LIST
  * needs no interpretation: `PACKAGE_SCAN_SCOPE` is an opaque marker, so a value
@@ -124,7 +107,7 @@ export interface ModAllowlist {
 
 export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   /*
-   * The pack RP-1 is played on. Added 2026-08-30, `domainDebt` EMPTY and meant
+   * The pack RP-1 is played on. `domainDebt` EMPTY and meant
    * to stay so: there is no Uplink owning this pack yet, so any CODE that names
    * it is a violation the gate states rather than a thing it offers a bucket
    * for. The single permanent entry is one comment.
@@ -189,17 +172,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
     ],
     permanent: [
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // prose: a timeout note quoting this very gate's failure message.
       "packages/core/vitest.config.ts",
       // prose: kerbcast is the facecam this probe STANDS IN FOR with a fake augment, named to say what the fake is imitating. No import, and deliberately so.
       "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
       /*
-       * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
+       * -- PERMANENT-BUCKET gate: the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
        * the allowlist names Uplinks the same way the allowlist does, and its
        * worked example of a planted violation has to name a real token to be
@@ -207,7 +185,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
-       * -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
+       * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
        * Topics the topic-field catalogue can describe nothing about names each
        * Uplink Topic that has none, so a Topic arriving unannotated is a test
        * failure rather than a silent absence from every picker in the app.
@@ -217,7 +195,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
-       * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+       * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
@@ -225,7 +203,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * flag.ts / flag.test.ts / main.tsx were here (the loader's shipped
        * first-party enabled-id list, its test, and main.tsx's prose naming the
-       * three ids it booted). The list was deleted on 2026-08-27: the loader
+       * three ids it booted). The list was deleted: the loader
        * derives what to attempt from the live roster, so no app source names
        * kerbcast at all now, stale, ratcheted off.
        */
@@ -243,7 +221,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/sitrep-client/src/map-topic.test.ts",
       /*
        * view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
-       * video-delay design (2026-07-16) extracted ViewClock's
+       * video-delay design extracted ViewClock's
        * confirmedEdgeUt()/utNowEstimate() formula into pure functions
        * (view-clock-formula.ts) so the kerbcast per-frame delay WORKER can
        * mirror it exactly instead of forking it; see ViewClock.snapshot().
@@ -256,14 +234,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * -- the kerbcast Uplink's provenance record in core --
        * ContractVersion.cs's Minor-history doc comment records the ORIGINAL
-       * add of kerbcast's control-plane types (Major-4 line, Bumped 0 -> 1)
-       * AND RtConfig.cs's own comment records where they went (moved OUT of
-       * core into GonogoKerbcastUplink.Contract, uplink-types-out-of-core
-       * plan, third relocation, 2026-08-10): prose/history only, the types
-       * themselves no longer live here.
+       * add of kerbcast's control-plane types (Major-4 line, Bumped 0 -> 1):
+       * prose/history only, the types themselves no longer live here.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/RtConfig.cs",
       /*
        * default-carried-topics.ts: the raw-topic promotion allowlist, which
        * is a literal-string set and so must name every Uplink's topics,
@@ -274,7 +248,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
 
       /*
        * UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
-       * ratchet (uplink-types-out-of-core plan, §5a). It necessarily names
+       * ratchet. It necessarily names
        * every relocated Uplink's token in its own RelocatedModTokens data and
        * doc comment, kerbcast included now that its three types have moved
        * out: a ratchet naming its own subject, not a boundary violation, same
@@ -290,7 +264,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * dependency.
        */
       "packages/core/src/truenow-allowlist.test.ts",
-      // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
+      // -- Doc/comment-only mentions --
       "packages/app/src/dataSources/migrateGameHost.ts",
       "packages/app/src/dataSources/seedKspHost.ts",
       "mod/sitrep-sdk/src/testing/install-dom-stubs.ts",
@@ -308,13 +282,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * sdk-facade.conformance.test-d.ts: the drift-guard's own comment on
        * the new DelayClockLike assertion names kerbcast as the mirror's
-       * consumer (facade-sealing the kerbcast client, 2026-07-19). Prose
-       * only: the file imports sitrep-client/sitrep-sdk types, never
-       * anything kerbcast-specific.
+       * consumer. Prose only: the file imports sitrep-client/sitrep-sdk
+       * types, never anything kerbcast-specific.
        */
       "packages/core/src/sdk-facade.conformance.test-d.ts",
       /*
-       * Comms + kOS ISitrepUplink.Health() implementations (2026-07-19) cite
+       * Comms + kOS ISitrepUplink.Health() implementations cite
        * KerbcastUplink/KerbcastHealth in doc comments as the reference
        * reporter pattern they mirror (the KerbcastHealth pure-Evaluate split
        * was the first-party precedent). Prose only, no import, type, or code
@@ -329,8 +302,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosHealth.cs",
       "mod/GonogoKosUplink.Tests/KosHealthTests.cs",
       /*
-       * AlarmHostService.ts (event alarm wiring, 2026-07-22): a text-only
-       * doc-comment mention ("the kerbcast Uplink's producer"): the service
+       * AlarmHostService.ts: a text-only doc-comment mention ("the kerbcast
+       * Uplink's producer"): the service
        * is mod-agnostic and takes an externally-wired producer; nothing
        * kerbcast-specific is imported. Its test names the "kerbcast.events"
        * topic id as a string literal only (TEST-only, same class as
@@ -344,7 +317,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   // === scansat: owning dir mod/GonogoScansatUplink/
   scansat: {
     domainDebt: [
-      // -- HARD violations (audit §2) --
+      // -- HARD violations --
     ],
     permanent: [
       /*
@@ -356,7 +329,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/unknown-cast.debt.ts",
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here, Kerbalism's own
        * science payload says a SCANsat scanner is one of the two things that
@@ -375,7 +348,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
-       * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
+       * -- DYNAMIC-NAMESPACE ROUTING: `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
        * generated list. A pattern is the only thing that can vouch for such a
@@ -384,7 +357,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/spine/map-topic.ts",
       /*
-       * -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
+       * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
        * Topics the topic-field catalogue can describe nothing about names each
        * Uplink Topic that has none, so a Topic arriving unannotated is a test
        * failure rather than a silent absence from every picker in the app.
@@ -394,7 +367,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
-       * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+       * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
@@ -424,24 +397,22 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbalismUplink.Tests/ScienceExtensionWireTests.cs",
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/RtConfig.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       /*
        * ScanPayloads.cs and the two sitrep-sdk generated files (topic-map.ts,
-       * units.ts) were REMOVED from this bucket 2026-08-10: the SCANsat
+       * units.ts) were REMOVED from this bucket: the SCANsat
        * relocation (uplink-types-out-of-core plan, fourth step) moved all five
        * Scan* payload types into GonogoScansatUplink.Contract, which deleted the
        * source file outright and left both generated artifacts with no scansat
-       * key at all. ContractVersion.cs and RtConfig.cs stay: each now carries
-       * the relocation's PROVENANCE prose (the Major 8 -> 9 entry, and the
-       * wirePayloadTypes comment recording what left), which is exactly what
+       * key at all. ContractVersion.cs stays: it carries the relocation's
+       * PROVENANCE prose (the Major 8 -> 9 entry), which is exactly what
        * the permanent bucket is for.
        * topics.test-d.ts stays too, but for the opposite reason to before: it no
        * longer type-asserts any scansat Topic (that proof moved inline into
        * mod/GonogoScansatUplink/client/src/topics.ts alongside
        * `scansat.available`'s). What matches now is the comment recording WHY the
        * assertion left. (topics.ts and topics.test.ts were REMOVED from this
-       * bucket 2026-07-20: the bare-primitive fix scrubbed their scansat mentions.)
+       * bucket: the bare-primitive fix scrubbed their scansat mentions.)
        */
       "mod/sitrep-sdk/src/topics.test-d.ts",
       /*
@@ -458,19 +429,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/units.ts",
       /*
        * scansat-coverage-roundtrip.test.tsx: the app-level MSW acceptance gate
-       * (2026-07-20) for the dynamic-topic fix: drives the real client stack and
+       * for the dynamic-topic fix: drives the real client stack and
        * asserts the mod's canonical scansat.coverage.<body>.<typeBit> string surfaces
        * to the widget. A new acceptance test naming the canonical wire string; no
        * product-code coupling.
        */
       "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
-      /*
-       * -- SCANsat startup-recovery fix (2026-07-20): these name "SCANsat" only in
-       * comments/tests, no product coupling. --
-       * GonogoAddon.cs: a doc-comment on the diagnostic sink notes the silent
-       * fail-soft "hid the SCANsat coverage root cause". Comment-only.
-       */
-      "mod/Gonogo.KSP/GonogoAddon.cs",
       /*
        * The host retry-recovery regression + its test uplink name scansat as the
        * concrete case (a sampler disabled by an early-tick throw must re-run). Tests.
@@ -501,7 +465,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
 
       /*
        * UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
-       * ratchet (uplink-types-out-of-core plan §5a). Registers a "scansat"
+       * ratchet. Registers a "scansat"
        * token so no Scan* wire type may return to Sitrep.Contract. A ratchet
        * inventory naming the mods it guards, same class as the kerbcast/
        * mechjeb/avionics entries on the same file; nothing is imported.
@@ -510,7 +474,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
       "packages/sitrep-client/src/map-topic.test.ts",
 
-      // -- Cross-mod / doc-comment-only mentions (audit §2, "not violations") --
+      // -- Cross-mod / doc-comment-only mentions --
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
       "mod/Gonogo.KSP/SystemUplink.cs",
       "mod/GonogoKosUplink.Tests/KosVersionGuardTests.cs",
@@ -520,15 +484,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/ChannelEngine.cs",
       /*
        * main.tsx was here: first for a static `@ksp-gonogo/gonogo-scansat-uplink`
-       * import (dropped D4 step 2, 2026-07-25), then for a
+       * import, then for a
        * `registerScansatAndRender` function name and doc comments naming the
-       * three ids it booted. On 2026-08-27 that function became
+       * three ids it booted. That function became
        * `bootUplinksAndRender` and the prose went with the id list it
        * described, stale, ratcheted off.
        */
       /*
        * `CoverageMaskStore.ts` was here, and is gone entirely rather than moved:
-       * the store went into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk
+       * the store went into `@ksp-gonogo/sitrep-sdk`, and the sdk
        * is the leaf every Uplink depends on, so it cannot name one at all, not
        * even in prose. Its three remaining doc mentions (the historical motivator
        * for the migration wipe) now say "a coverage source" instead, which is
@@ -550,27 +514,25 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // truenow-allowlist.test.ts above; nothing is imported.
       "packages/core/src/styleguide.test.ts",
       /*
-       * -- Uplink LOADER (Phase A, 2026-07-17): the loader's unit test uses
+       * -- Uplink LOADER: the loader's unit test uses
        * scansat as its example Uplink (TEST-only). The loader module itself
        * (loader.ts) is generic and names no mod. flag.ts and flag.test.ts were
        * here for the shipped enabled-id list and the test asserting its
-       * contents; the list was deleted on 2026-08-27, stale, ratcheted off.
+       * contents; the list was deleted, stale, ratcheted off.
        */
       "packages/app/src/uplinks/loader.test.ts",
       /*
-       * useLateTelemetrySubscribe (2026-07-19): scansat's coverage sync is the
+       * useLateTelemetrySubscribe: scansat's coverage sync is the
        * motivating call site for the new hook (a runtime-templated topic,
        * `scansat.mask.<body>.<scanType>`, that has no fixed `TopicId` member),
-       * so its doc comments and its conformance-gate justification name
-       * scansat as the example: same "illustrative, zero coupling" shape as
-       * augments.test.tsx above. Neither file imports anything from the
-       * scansat Uplink.
+       * so its doc comments name scansat as the example: same "illustrative,
+       * zero coupling" shape as augments.test.tsx above. Neither file imports
+       * anything from the scansat Uplink.
        */
-      "packages/core/src/sdk-facade.conformance.test-d.ts",
       "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
       "mod/sitrep-sdk/src/spine/use-late-telemetry-subscribe.ts",
       /*
-       * Breaking Ground uplink extraction (2026-08-08): the new bundled
+       * Breaking Ground uplink extraction: the new bundled
        * uplink's doc comments and its client package's scaffolding name
        * GonogoScansatUplink/client as the structural template they were
        * built from ("mirroring GonogoScansatUplink/client's structure").
@@ -585,11 +547,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   // === kos: owning dir mod/GonogoKosUplink/
   kos: {
     domainDebt: [
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // The render harness imports this Uplink to photograph its widgets. Unlike
       // the two below, this one IS removable and is being removed: KosTerminal is
       // a whole widget whose pictures core has no business owning, so it and its
@@ -597,7 +554,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // line to go STALE and be deleted, which is the ratchet working.
       "packages/components/scripts/probe/probe-entry.tsx",
       /*
-       * -- kos migration (2026-07-18), Task 4: CpuRegistryService/
+       * -- kos migration, Task 4: CpuRegistryService/
        * CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
        * StationScreen constructs its own CpuRegistryService and wraps
        * <CpuRegistryProvider> exactly as MainScreen already does (see the
@@ -623,11 +580,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * last escape does.
        */
       "packages/core/src/unknown-cast.debt.ts",
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // data: the app's Uplink bundle registry, one id/repo/clientDir per Uplink. Same class as the gate above.
       "packages/app/uplink-bundle-targets.ts",
       // prose: a note about kOS's xterm.css being the stylesheet case that forced style folding.
@@ -645,7 +597,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // zero as each consumer is written.
       "packages/core/src/declaration-reachability.allowlist.ts",
       // The wall-clock ratchet's allowlist, same class as the line above. Its
-      // walk widened on 2026-09-04 to cover Uplink clients, where widgets now
+      // walk widened to cover Uplink clients, where widgets now
       // live, and one file out of the 143 that brought in reads a wall clock:
       // kOS's local CPU ledger, which is honestly about wall time and says so.
       // A repo-relative path in an inventory of counts. Nothing here imports,
@@ -653,7 +605,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // the day that file stops reading a clock.
       "packages/core/src/styleguide-wall-clock.test.ts",
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here, `vessel.control`'s
        * throttle note says a kOS-driven throttle can genuinely read above 1,
@@ -672,7 +624,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
+       * keyed by project name, and they cover the
        * <Uplink>.Tests projects too, ten of which reach a private assembly.
        * A debt list has to name its subjects, so this is a ratchet-inventory
        * file and the entry goes when that Uplink's debt does. Nothing else in
@@ -689,7 +641,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
       /*
-       * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
+       * -- DYNAMIC-NAMESPACE ROUTING: `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
        * generated list. A pattern is the only thing that can vouch for such a
@@ -698,7 +650,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/spine/map-topic.ts",
       /*
-       * -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
+       * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
        * Topics the topic-field catalogue can describe nothing about names each
        * Uplink Topic that has none, so a Topic arriving unannotated is a test
        * failure rather than a silent absence from every picker in the app.
@@ -715,7 +667,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
-       * -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
+       * -- MAGNITUDE budget ratchet: the per-file `.magnitude`
        * budget is keyed by file path, so it names every Uplink that unwraps a
        * Value. Ratchet-inventory file, the case this bucket documents.
        */
@@ -724,28 +676,18 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
       "mod/Sitrep.Host.IntegrationTests/SharedVantageCatchUpTests.cs",
       /*
-       * -- contract/SDK layer. KosCommands.cs / KosRun.cs / KosTerminal.cs used
-       * to sit here, and were the last three files in this whole allowlist
-       * holding real Uplink POCOs in core: all eleven Kos* types relocated into
-       * GonogoKosUplink.Contract (uplink-types-out-of-core plan, sixth and last
-       * relocation, 2026-08-10), so the files are gone from Sitrep.Contract and
-       * the ratchet demanded these lines go with them. The two below are prose
-       * only now: ContractVersion.cs's Major/Minor history records what moved
-       * and when, and RtConfig.cs's wirePayloadTypes carries the same
-       * provenance note where the eleven typeof() entries used to be. That is
-       * the rationale this file's header used to assert in the opposite
-       * direction ("every Uplink's wire types live in Sitrep.Contract, by
-       * design") fully inverted: for these tokens core now names them in
-       * history and nowhere else.
+       * -- contract/SDK layer. All eleven Kos* types live in
+       * GonogoKosUplink.Contract, not Sitrep.Contract. ContractVersion.cs is
+       * prose only: its Major/Minor history records what moved and when, for
+       * a token core names in history and nowhere else.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/RtConfig.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       /*
        * Engine sticky-reveal integration test: the diff-channel keyframe-retention
        * feature is generic engine behaviour, but its canonical test case is the kOS
        * terminal, so the test names KosTerminalFrame as the concrete diff-channel
-       * example. Engine test, not engine shipping code, the boundary holds. (2026-07-16)
+       * example. Engine test, not engine shipping code, the boundary holds.
        */
       "mod/Sitrep.Host.IntegrationTests/ChannelEngineTests.cs",
       // pending-uplink contract: its Command field doc-comment gives
@@ -763,7 +705,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * still names a kos.* dynamic namespace or a Kos-prefixed contract type
        * (`kos.compute.*`, `kos.processors`, `KosProcessorInfo`) as a generic
        * example. Their scansat/kerbcast mentions were scrubbed by the
-       * bare-primitive fix (2026-07-20), so they left those two buckets, but the
+       * bare-primitive fix, so they left those two buckets, but the
        * kos references are legitimate and remain.
        */
       "mod/sitrep-sdk/src/topics.test-d.ts",
@@ -771,7 +713,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/topics.ts",
       /*
        * topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
-       * (2026-07-20): statically imports the Uplink clients (incl. `@ksp-gonogo/gonogo-kos-uplink`)
+       *: statically imports the Uplink clients (incl. `@ksp-gonogo/gonogo-kos-uplink`)
        * so registration fires, then asserts the registry union matches the
        * C#-declared Topics. A new test importing the clients; no product-code coupling.
        */
@@ -838,7 +780,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
       "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
       "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
-      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
       "mod/Sitrep.Host.IntegrationTests/CommsGateCommandTests.cs",
       // KosProcessorsWireTests.cs exercises the kos.processors wire SHAPE:
       // a contract-level wire test, same class as CommandRequestLabelWireTests.
@@ -848,7 +789,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * kos-execute-tunnel.test.ts has zero real kos coupling, it only uses
        * "kos" as a generic Uplink-handle id while exercising app-owned PeerJS
-       * relay machinery (kos migration Task 8, 2026-07-18: moved into the kos
+       * relay machinery (kos migration Task 8: moved into the kos
        * package and back out once that became clear). Stays in
        * packages/app/src/__tests__ where this entry already covers it.
        */
@@ -871,12 +812,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/telemetry/PeerTransport.test.ts",
       /*
-       * map-command coverage test exercises map-command.ts (permanent,
-       * above): same subject, same category.
-       */
-      "packages/core/src/styleguide-styled-components.test.ts",
-      /*
-       * uplink-health-render-gating feature (2026-07-19): uplink-health.test.ts
+       * uplink-health-render-gating feature: uplink-health.test.ts
        * and useUplinkHealthFor.test.tsx use "kos.terminal."/"kos.processors" as
        * sample owned-prefix/channel strings exercising the generic
        * longest-prefix-match resolver, same "topic string, no real kOS import"
@@ -899,7 +835,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * `registry.ts` was here for `clearRegistry`'s doc, which explained itself
        * by naming what it does NOT clear: the kOS script registry. The registry
-       * moved into `@ksp-gonogo/sitrep-sdk` on 2026-08-19 and the sdk is the leaf
+       * moved into `@ksp-gonogo/sitrep-sdk` and the sdk is the leaf
        * every Uplink depends on, so it cannot name one at all, not even in prose.
        * The doc now states the general rule instead (it never reaches a registry
        * an Uplink owns), which is what it always meant.
@@ -914,7 +850,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP/DevCommsOverride.cs",
       "mod/Gonogo.KSP/VesselUplink.cs",
-      "mod/Sitrep.Contract/SitrepUplinkAttribute.cs",
       "mod/Sitrep.Contract/VesselControl.cs",
       "mod/Sitrep.Core.Tests/CommsWireTests.cs",
       "mod/Sitrep.Core/Courier.cs",
@@ -927,9 +862,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/logs/LogsManager.tsx",
       /*
        * main.tsx was here (`import "@ksp-gonogo/gonogo-kos-uplink"`, a sanctioned self-
-       * registration import). D4 step 2 (2026-07-25) removed the static
-       * import: kos now always loads through the runtime loader, and since
-       * 2026-08-27 not even a shipped id list names it (no
+       * registration import). That static
+       * import was removed: kos now always loads through the runtime loader, and not
+       * even a shipped id list names it (no
        * "kOS"/"Kos*"/"kos.*" distinctive-form text left in main.tsx itself):
        * stale, ratcheted off.
        * CrewStatus/index.tsx was here (a doc-comment aside claiming gonogo
@@ -949,7 +884,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * BufferedDataSource.ts / flightDetector.ts were here (prose asides about a
        * kOS-sourced `vesselUid` and the kOS compute fanout as an example feeder).
-       * Both moved into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk is the
+       * Both moved into `@ksp-gonogo/sitrep-sdk`, and the sdk is the
        * leaf every Uplink depends on, so it cannot name one even in prose. They now
        * describe the general shape they always meant ("another feeder", "an
        * authoritative vesselUid from the vessel"), so both ratcheted off.
@@ -987,7 +922,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- PROSE, both of them (2026-09-04). The visibility factory names RA to
+       * -- PROSE, both of them. The visibility factory names RA to
        * say WHY its occluder walk cannot assume a stock `CommNetHome`:
        * `RACommNetHome` derives from it, so the scene search finds both. The
        * dispatch test names RA because it models RA's routing SHAPE: stock's
@@ -1002,7 +937,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/SilenceTracking/KspVisibilityGeometryFactory.cs",
       "mod/Gonogo.KSP.Tests/Comms/RouteBackendDispatchTests.cs",
       /*
-       * -- CITED EVIDENCE (2026-09-03): the command-centre reachability rule
+       * -- CITED EVIDENCE: the command-centre reachability rule
        * asks two questions, the node's stock antenna budget and whether any
        * part carries an `ICommAntenna`, and the second only earns its place
        * because a network that replaces stock's range model zeroes the first
@@ -1015,7 +950,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP/CommandCentres/CommandCentreReach.cs",
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here, `CommsHop` says
        * the per-hop band rate rides the RealAntennas Uplink's own channel
@@ -1026,7 +961,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
-       * -- the client-side read of comms.degrade (2026-09-05). One prose
+       * -- the client-side read of comms.degrade. One prose
        * sentence names the two shipped backends, and it is the sentence that
        * tells an author why to use this helper instead of
        * `1 - comms.signal.strength`: that field is a range fraction on one
@@ -1046,15 +981,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/components/src/FleetReliability/install-profiles.test.tsx",
       /*
-       * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+       * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      // -- Judgment calls, all resolved clean (audit §4) --
+      // -- Judgment calls, all resolved clean --
       "mod/Gonogo.KSP/CommNetBackend.cs",
       /*
-       * -- stock's own link GRADING (2026-09-05), carved out of CommNetBackend.cs
+       * -- stock's own link GRADING, carved out of CommNetBackend.cs
        * the same way CommNetOcclusion.cs and CommNetReach.cs already are. The
        * judgement is on the seam: ICommsBackend.DegradeModel, each backend
        * declaring its own rule, exactly as reach and occlusion do, so core
@@ -1105,7 +1040,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * with no target counts as perfectly aimed, so a target that does not
        * reach the mirror leaves the property, the part menu and the map cone all
        * saying "aimed" while the solver goes on charging no pointing loss.
-       * Measured live on 2026-09-06, that window stays open indefinitely without
+       * Measured live, that window stays open indefinitely without
        * an explicit invalidate. Nothing but a running game can show it, and
        * nothing inside the Uplink could read the mirror without shipping the
        * reflection in a released assembly. DEV-ONLY, never shipped, reflection
@@ -1129,7 +1064,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/Comms/CommsElection.cs",
       "mod/Sitrep.Host/Comms/SignalDelay.cs",
       /*
-       * -- the no-comms-model rule (2026-09-04): it wraps whichever backend the
+       * -- the no-comms-model rule: it wraps whichever backend the
        * election picked rather than checking inside the stock one, and the
        * reason is that KSP's CommNet difficulty option kills a replacement
        * network as surely as it kills stock's. Named, because left generic that
@@ -1226,10 +1161,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
-       * -- Sitrep.Contract/Comms.cs, prose only as of the relocation --
-       * It carried the three RA-only payload types until the last step of the
-       * uplink-types-out-of-core plan moved them into this Uplink's own contract
-       * slice. The entry stays, and it is the clearest example in this file of
+       * -- Sitrep.Contract/Comms.cs, prose only --
+       * The three RA-only payload types it carried moved into this Uplink's
+       * own contract slice. The entry stays, and it is the clearest example in this file of
        * why a mod name in core is not automatically a boundary problem: the
        * comms family is a two-provider channel set, so the file legitimately
        * explains which backend sources what, and names one of them to do it. It
@@ -1240,7 +1174,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/Comms.cs",
 
       /*
-       * -- THE SEAM'S OWN PROSE (2026-09-05), eight files, all text-only --
+       * -- THE SEAM'S OWN PROSE, eight files, all text-only --
        * Two comms questions came off core and onto ICommsBackend: REACH (how
        * far a link carries) and the CONTROL-PATH TERMINUS behind
        * comms.commandCentre. In both cases the reason the question cannot be
@@ -1272,7 +1206,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Contract/CommsReach.cs",
       /*
-       * -- CommsDegrade.cs (2026-09-05) is the third file of that same set, and
+       * -- CommsDegrade.cs is the third file of that same set, and
        * the one whose naming is most load-bearing of any of them. Its whole
        * reason to exist is that comms.signal is 0..1 and looks like the
        * quality number a consumer wants, and is not: it holds a range fraction
@@ -1332,7 +1266,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here, `ActionGroupState`
        * says Action Groups Extended raises the custom-group count from ten to
@@ -1343,7 +1277,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
-       * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
+       * -- PERMANENT-BUCKET gate: the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
        * the allowlist names Uplinks the same way the allowlist does, and its
        * worked example of a planted violation has to name a real token to be
@@ -1351,18 +1285,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too. This Uplink's debt entry is GONE, so what
-       * is left is the note recording how it was paid off: that is why the file
-       * dropped out of SURVIVES_COMMENT_STRIP below, it no longer carries the
-       * project name as data. Nothing else in the file names a mod: both
-       * directory walks are checked against the project list in Gonogo.sln
-       * rather than a hardcoded one, precisely so these stay the only ones.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
-       * -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
+       * -- Judgment calls, all doc-mention only --
        * NOTE: mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs used to sit
        * here, justified as "constant/method names ... and prose". Naming the API
        * symbols in the justification should have been the tell: a public
@@ -1397,7 +1320,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/VesselCommandProvider.cs",
       "mod/sitrep-sdk/src/spine/vessel-state.ts",
       /*
-       * f.ag<N>-beyond-10 toggle fix (2026-07-19): actionGroupHome's
+       * f.ag<N>-beyond-10 toggle fix: actionGroupHome's
        * doc-comment explains why the write bridge is now a generic
        * `/^f\.ag(\d+)$/` rule instead of a 10-row static table, AGX assigns
        * indices up to 250, same rationale as VesselCommandProvider.cs's own
@@ -1417,7 +1340,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   /*
    * === mechjeb: owning dirs mod/GonogoMechJebUplink/ (incl. its client/),
    * mod/GonogoMechJebUplink.Tests, and mod/GonogoMechJebUplink.Contract (the
-   * uplink-types-out-of-core pilot's own contract slice, 2026-08-10). Every
+   * uplink-types-out-of-core pilot's own contract slice). Every
    * hit below is a comment/doc-mention or the sanctioned loader import; there
    * is no real code coupling outside the owning dirs, so domainDebt is empty.
    */
@@ -1425,7 +1348,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here, a centre-of-mass
        * note attributes the `Vessel.CoM` construction it describes to MechJeb.
@@ -1442,18 +1365,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * a third-party author could not run.
        */
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
-       * -- CI gating ratchet (2026-08-20): names the four Uplink test
+       * -- CI gating ratchet: names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
        * a usable comment. Text-only mention in a ratchet-inventory file, the
@@ -1461,14 +1373,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
       /*
-       * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+       * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
 
       /*
-       * -- The mod-side ownership ratchet itself (§5a of the plan) --
+       * -- The mod-side ownership ratchet itself --
        * UplinkContractOwnershipTests.cs is a new xUnit test asserting
        * Sitrep.Contract carries zero non-comment "MechJeb" references: it
        * necessarily names the token it is testing FOR, in its own doc
@@ -1479,7 +1391,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
-       * -- ACTIVE-VESSEL scan inventory (2026-09-04): core reports the craft an
+       * -- ACTIVE-VESSEL scan inventory: core reports the craft an
        * EVA kerbal stepped out of, and this scan holds every Uplink to resolving
        * that through the activeVessel capability rather than off FlightGlobals.
        * Its shrink-only debt has one entry and a debt list has to name its
@@ -1557,7 +1469,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * === avionics: owning dirs mod/GonogoRp1Uplink/ (incl. its client/),
    * mod/GonogoRp1Uplink.Tests and mod/GonogoRp1Uplink.Contract.
    *
-   * RP-1's, since 2026-09-10. Avionics was never a separate mod, only a
+   * RP-1's,. Avionics was never a separate mod, only a
    * separate Uplink reading the same RP-1 assembly, and the standalone
    * GonogoAvionicsUplink was deleted with its capture folded into
    * GonogoRp1Uplink as `rp1.avionics`. Five entries went with it: they were
@@ -1574,17 +1486,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * The isolation ratchet's forbidden-package list, which keeps this
        * Uplink's package name after its departure for the gonogo-uplinks repo
-       * on 2026-09-06. That rule may widen and never narrow, so the name
+       *. That rule may widen and never narrow, so the name
        * outlives the code and the next Uplink to import it is still caught.
        * The name as DATA in a ratchet inventory, not a reference to any file
        * of the departed Uplink's.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // prose: the debt list's header names which Uplink owns the two worst bundles.
       "packages/app/scripts/minsize-debt.ts",
       /**
@@ -1595,7 +1502,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * a third-party author could not run.
        */
       /*
-       * -- CI gating ratchet (2026-08-20): names the four Uplink test
+       * -- CI gating ratchet: names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
        * a usable comment. Text-only mention in a ratchet-inventory file, the
@@ -1603,7 +1510,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
       /*
-       * -- The mod-side ownership ratchet itself (§5a of the plan) --
+       * -- The mod-side ownership ratchet itself --
        * UplinkContractOwnershipTests.cs necessarily names the token it is
        * testing FOR, in its own doc comment and its RelocatedModTokens data.
        * A ratchet naming its own subject, not a boundary violation, same
@@ -1616,11 +1523,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ContractVersion.cs's Major/Minor-history doc comments record the
        * original add of the avionics.status Topic AND its later relocation
        * out of this assembly: prose only, the type itself no longer lives
-       * here. RtConfig.cs's wirePayloadTypes comment records where it went
-       * (GonogoAvionicsUplink.Contract).
+       * here.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/RtConfig.cs",
 
       /*
        * -- The test that records avionics.status coming from the Uplink's own
@@ -1669,11 +1574,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    */
   kerbalism: {
     domainDebt: [
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // The render harness imports this Uplink to photograph its augments (the
       // Greenhouse section, the crew meters). Moving Ship Systems' and
       // CrewSurvival's fixtures to the Uplink moves those pictures and leaves this
@@ -1706,11 +1606,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * last escape does.
        */
       "packages/core/src/unknown-cast.debt.ts",
-      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
-      // `packages/<pkg>/src` and nothing else, so twenty files under a
-      // package's `scripts` directory and at its root were never visited, and
-      // no line for them could ever have appeared here. These are what the
-      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
       // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
@@ -1724,7 +1619,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // zero as each consumer is written.
       "packages/core/src/declaration-reachability.allowlist.ts",
       /*
-       * -- BANNER-COMMENT debt list (2026-09-02): a ratchet inventory, so it is
+       * -- BANNER-COMMENT debt list: a ratchet inventory, so it is
        * a list of PATHS that carry a banner comment, two of which are this
        * Uplink's. It names the token the way every debt list names one, by
        * quoting a file it is holding a count against, and it carries no code at
@@ -1732,7 +1627,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/banner-comments.allowlist.ts",
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here,
        * `ReliabilityReading`'s backend field is literally the string
@@ -1743,7 +1638,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
-       * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
+       * -- PERMANENT-BUCKET gate: the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
        * the allowlist names Uplinks the same way the allowlist does, and its
        * worked example of a planted violation has to name a real token to be
@@ -1751,7 +1646,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
-       * -- WIDGET-FIXTURE CONFORMANCE gate (2026-08-30): text-only. Its
+       * -- WIDGET-FIXTURE CONFORMANCE gate: text-only. Its
        * planted-failure demonstration replants the defect that shipped in this
        * Uplink's CrewSurvival fixture, `deathClockSec` for the wire's
        * `deathClockUt`, and quotes the fixture path and the message the gate
@@ -1761,7 +1656,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/widget-fixture-conformance.test.ts",
       /*
-       * -- CANONICAL-UNWRAP ratchet (2026-08-25): text-only, no code coupling.
+       * -- CANONICAL-UNWRAP ratchet: text-only, no code coupling.
        * It holds the magnitude unwrap at one implementation, and its doc
        * comment names the Uplink whose diverged copy answered 0 for absence,
        * because the concrete case is the whole value of that comment. No
@@ -1777,7 +1672,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
-       * -- KSP's OWN enums (2026-08-21). KspEnums.cs mirrors seven stock KSP
+       * -- KSP's OWN enums. KspEnums.cs mirrors seven stock KSP
        * enums so their ordinals can cross the wire, and one of them,
        * ResourceFlowMode, is read by this Uplink and by nothing else. The enum
        * is STOCK KSP's, not Kerbalism's, so declaring it in the Uplink's slice
@@ -1793,30 +1688,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/index.ts",
       "mod/sitrep-sdk/src/ksp-enum-names.ts",
       /*
-       * The mod-side Uplink isolation ratchet, same case as the magnitude budget
-       * below: its shrink-only debt lists are keyed by project name, so a
-       * project that still reaches a private assembly has to be named in one.
-       * This was the last such entry while only the Uplink plugins were in
-       * scope; the 2026-08-30 extension to the <Uplink>.Tests projects put nine
-       * more tokens back on the same file, each with its own copy of this note.
-       * Nothing else in the file names a mod: both directory walks are checked
-       * against the project list in Gonogo.sln rather than a hardcoded one.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
-       * -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
+       * -- MAGNITUDE budget ratchet: the per-file `.magnitude`
        * budget is keyed by file path, so it names every Uplink that unwraps a
        * Value. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
       /*
-       * -- FIRE-AND-FORGET command budget (2026-08-20): the per-file budget
+       * -- FIRE-AND-FORGET command budget: the per-file budget
        * for dispatches that discard their outcome is keyed by file path, so it
        * names every Uplink with a blind dispatch. Ratchet-inventory file, the
        * case this bucket documents.
        */
       /*
-       * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+       * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
@@ -2052,7 +1936,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * provider registers generically into the "reliability" capability, so core
    * never names it.
    *
-   * The Uplink moved to the gonogo-uplinks repo on 2026-09-06, so those
+   * The Uplink moved to the gonogo-uplinks repo, so those
    * owning dirs no longer exist and every mention below is held by this
    * list alone. They stay named for the same reason kerbcast's and
    * scansat's do: the pair says where the code went, rather than
@@ -2062,7 +1946,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here,
        * `ReliabilityReading`'s backend field is literally the string
@@ -2073,18 +1957,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
-       * -- CI gating ratchet (2026-08-20): names the four Uplink test
+       * -- CI gating ratchet: names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
        * a usable comment. Text-only mention in a ratchet-inventory file, the
@@ -2174,16 +2047,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   },
 
   /*
-   * === principia: the token PREDATES the Uplink, and that is why it exists.
-   * It was created when there was no Principia Uplink at all, so a token with
-   * no owning directory made ANY mention of the mod a hard failure. That is
-   * the correct default for a mod we do not integrate: the pattern this
-   * ratchet exists to stop is core naming a specific mod, and the moment that
-   * is most likely is when someone leaves a seam "ready" for a mod that has no
-   * Uplink yet. The Uplink arrived 2026-08-20 and the token now has three
-   * owning dirs (see MOD_OWNERSHIP in uplink-boundary.test.ts); everything
-   * below about why it was created still stands. A token keyed on mods we
-   * already integrate cannot see that case, which is exactly how
+   * === principia: the pattern this ratchet exists to stop is core naming a
+   * specific mod, and the moment that is most likely is when someone leaves a
+   * seam "ready" for a mod that has no Uplink yet. The token now has three
+   * owning dirs (see MOD_OWNERSHIP in uplink-boundary.test.ts). A token keyed
+   * on mods we already integrate cannot see that case, which is exactly how
    * TargetApproachElection acquired a public RegisterPrincipiaProvider and
    * PrincipiaProviderId without ever being flagged.
    */
@@ -2224,31 +2092,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // zero as each consumer is written.
       "packages/core/src/declaration-reachability.allowlist.ts",
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
+       * -- RENDER-FIXTURE COVERAGE ratchet: names this Uplink in
+       * PROSE now rather than as data. The test cites commit a718dd36a and
+       * quotes the six field names its planted-failure demonstration reports,
+       * which holds no coupling either: the demonstration is the evidence
+       * that the gate can fail at all, and naming what it printed is what
+       * makes that checkable.
        */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
-       * -- RENDER-FIXTURE COVERAGE ratchet (2026-08-29). Two files, and both
-       * name this Uplink in PROSE now rather than as data. The debt list is
-       * keyed by widget directory and used to carry OrbitAnalysis's
-       * `elementsEpochUt`; that entry is gone, the vessel's own analysis being
-       * dated on the wire now, so all that is left is the worked example in its
-       * header. The test itself cites commit a718dd36a and quotes the six field
-       * names its planted-failure demonstration reports, which holds no
-       * coupling either: the demonstration is the evidence that the gate can
-       * fail at all, and naming what it printed is what makes that checkable.
-       */
-      "packages/core/src/render-fixture-coverage.debt.ts",
       "packages/core/src/render-fixture-coverage.test.ts",
       /*
-       * -- CI gating ratchet (2026-08-20): names the four Uplink test
+       * -- CI gating ratchet: names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
        * a usable comment. Text-only mention in a ratchet-inventory file, the
@@ -2311,10 +2164,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   // matching reports a clean repo, so without them the ratchet would go quiet
   // instead of red. No import, no topic read, no assembly reference.
   mechjeb: [
-    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
-    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
-    // a vitest alias) or, where noted in the entry's own line above, a real
-    // import that is recorded in domainDebt and shrinks from there.
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
@@ -2336,12 +2185,12 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   agx: [],
   avionics: [
     // The isolation ratchet's forbidden-package list, which keeps this
-    // Uplink's package name after its departure on 2026-09-06: that rule may
+    // Uplink's package name after its departure: that rule may
     // widen and never narrow, so the next Uplink to import it is still
     // caught. The name as DATA in a ratchet inventory, not a reference to any
     // code of its.
     "packages/core/src/uplink-isolation.allowlist.ts",
-    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE. Each of these is
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
     // import that is recorded in domainDebt and shrinks from there. The
@@ -2363,15 +2212,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // `format*` helper. A path in a data literal, not an import and not a
     // topic read; the key goes when that file's last line does.
     "packages/core/src/styleguide-unit-exclusive.test.ts",
-    // -- UNKNOWN-CAST ratchet inventory (2026-09-04): the mod name as DATA, one
+    // -- UNKNOWN-CAST ratchet inventory: the mod name as DATA, one
     // per-file ceiling key per file still asserting out of `unknown`. Generated
     // by `scripts/unknown-cast-debt.mjs`; the key goes when that file's last
     // escape does.
     "packages/core/src/unknown-cast.debt.ts",
-    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
-    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
-    // a vitest alias) or, where noted in the entry's own line above, a real
-    // import that is recorded in domainDebt and shrinks from there.
     "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
     "packages/components/scripts/widgets.ts",
@@ -2416,15 +2261,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // `format*` helper. A path in a data literal, not an import and not a
     // topic read; the key goes when that file's last line does.
     "packages/core/src/styleguide-unit-exclusive.test.ts",
-    // -- UNKNOWN-CAST ratchet inventory (2026-09-04): the mod name as DATA, one
+    // -- UNKNOWN-CAST ratchet inventory: the mod name as DATA, one
     // per-file ceiling key per file still asserting out of `unknown`. Generated
     // by `scripts/unknown-cast-debt.mjs`; the key goes when that file's last
     // escape does.
     "packages/core/src/unknown-cast.debt.ts",
-    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
-    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
-    // a vitest alias) or, where noted in the entry's own line above, a real
-    // import that is recorded in domainDebt and shrinks from there.
     "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/probe/probe-entry.tsx",
     "packages/components/scripts/render-systemview-traffic-video.ts",
@@ -2472,7 +2313,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   principia: [],
   scansat: [
-    // -- UNKNOWN-CAST ratchet inventory (2026-09-04): the mod name as DATA, one
+    // -- UNKNOWN-CAST ratchet inventory: the mod name as DATA, one
     // per-file ceiling key per file still asserting out of `unknown`. Generated
     // by `scripts/unknown-cast-debt.mjs`; the key goes when that file's last
     // escape does.

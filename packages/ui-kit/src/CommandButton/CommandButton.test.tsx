@@ -438,10 +438,9 @@ describe("CommandButton: the refused phase", () => {
   });
 
   /**
-   * The defect this exists for: `lost` settled the control to `idle` with a
-   * null reason, byte-identical to the confirmed path one line above it, so a
-   * command the engine dropped for a downed link looked exactly like one that
-   * ran. It affects every control built on this one.
+   * A dropped command must not settle the control to `idle` with a null
+   * reason, byte-identical to the confirmed path: that would make a command
+   * the engine dropped for a downed link look exactly like one that ran.
    */
   it("does not settle a dropped command the way it settles a confirmed one", async () => {
     async function settledPhase(settle: (d: Deferred) => void) {

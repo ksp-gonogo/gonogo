@@ -9,7 +9,7 @@ namespace GonogoKosUplink.Tests
 {
     /// <summary>
     /// Headless tests for the compute capture hot path
-    /// (<see cref="KosExtension.OnPrint"/>): the adversarial-review I1 fix.
+    /// (<see cref="KosExtension.OnPrint"/>).
     /// <see cref="KosExtension.Register"/> needs a live kOS/Unity process (the
     /// version guard + Harmony install), so these wire the compute source, the
     /// subscription gate, and the CPU reverse-map directly via the internal test
@@ -34,11 +34,8 @@ namespace GonogoKosUplink.Tests
             public readonly List<(string sub, object? value)> Published = new();
 
             /// <summary>
-            /// The UT each publish was stamped with. Kept beside
-            /// <see cref="Published"/> rather than folded into it because this
-            /// fake DISCARDED the stamp until 2026-09-15, so every test here
-            /// passed just as happily against the hardcoded 0.0 the compute
-            /// path used to hand over.
+            /// The UT each publish was stamped with, kept beside
+            /// <see cref="Published"/>.
             /// </summary>
             public readonly List<(string sub, double ut)> Stamps = new();
 

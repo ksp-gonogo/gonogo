@@ -117,11 +117,10 @@ namespace Gonogo.KSP
             // All nine DELAY, and none of them says so here: whether a command
             // rides light-time is declared once, on its args type in the
             // contract, which is also what the client reads
-            // (SitrepCommandAttribute.Delay). They used to be instant on the
-            // reasoning that career writes are ground-side bookkeeping; that
-            // was wrong twice over. None of them changes the scene, and a career
-            // write is an ORDER rather than a fact, one a second command centre
-            // can issue, so it crosses the gap like any other order.
+            // (SitrepCommandAttribute.Delay). None of them changes the scene,
+            // and a career write is an ORDER rather than a fact, one a second
+            // command centre can issue, so it crosses the gap like any other
+            // order.
             //
             // Each carries its declared gates, from GateDeclarations: at
             // minimum "this is a career save", which is a permanent property of

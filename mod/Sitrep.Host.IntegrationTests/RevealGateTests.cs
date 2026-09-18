@@ -16,8 +16,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// The SERVER-SIDE reveal gate proven end-to-end over a real WebSocket,
-    /// "a raw, non-SDK client experiences the delay" (spec-streaming-delay-model
-    /// §4 / §7.3 Step 6). Everything here talks to <see cref="ChannelEngine"/>
+    /// "a raw, non-SDK client experiences the delay". Everything here talks to <see cref="ChannelEngine"/>
     /// through the exact wire a curl script / third-party dashboard / station
     /// relay would use; there is no SDK, no ViewClock, no client-side legibility
     /// layer. What the client receives on the raw stream is therefore, by
@@ -338,14 +337,14 @@ namespace Sitrep.Host.IntegrationTests
         /// delay enabled and a non-zero hop, the Delayed channel must STILL be
         /// withheld until its UT crosses the reveal horizon (now − delay).
         ///
-        /// <para>This is the hole the wire-snoop had: the delay used to be
-        /// captured off the <c>comms.delay</c> channel inside <c>Emit</c>, which
-        /// only fired while <c>comms.delay</c> was SUBSCRIBED (the channel loop
-        /// is subscription-gated). A client that subscribed a Delayed channel
-        /// but not <c>comms.delay</c> therefore got it revealed live/ungated,
-        /// defeating "any API client experiences the delay". The delay is now
-        /// sourced from the server-side SignalDelay capability every tick
-        /// regardless of subscription, so the gate holds here.</para>
+        /// <para>If the delay were captured off the <c>comms.delay</c> channel
+        /// inside <c>Emit</c>, which only fires while <c>comms.delay</c> is
+        /// SUBSCRIBED (the channel loop is subscription-gated), a client that
+        /// subscribes a Delayed channel but not <c>comms.delay</c> would get it
+        /// revealed live/ungated, defeating "any API client experiences the
+        /// delay". The delay is sourced from the server-side SignalDelay
+        /// capability every tick regardless of subscription, so the gate holds
+        /// here.</para>
         /// </summary>
         [Fact]
         public async Task DelayedChannelStillWithheldWhenClientNeverSubscribesCommsDelay()
@@ -837,13 +836,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REGRESSION (the live "all Delayed channels frozen while comms reads
-        /// connected" bug): a connectivity source that THROWS on a transient
+        /// A connectivity source that THROWS on a transient
         /// tick, while the link is otherwise CONNECTED with a POSITIVE delay,
         /// must NOT be treated as a disconnect. If a throwing tick flipped the
-        /// gate to DISCONNECTED (the production defect:
-        /// <c>Gonogo.KSP.CommsCoreUplink.ComputeConnectedOnMain</c> used to
-        /// swallow the throw and return a hard <c>false</c>), then:
+        /// gate to DISCONNECTED, then:
         /// <list type="number">
         /// <item>the buffered Delayed sample would freeze during the throwing
         /// tick, and</item>
@@ -855,9 +851,10 @@ namespace Sitrep.Host.IntegrationTests
         /// gate connected across the blip, so the sample buffered before the throw
         /// still matures at its horizon. Asserting the sample IS revealed at its
         /// true SCET distinguishes the two precisely: it can only appear if the
-        /// gate never froze/dropped it. This is the engine-side contract the
-        /// production connectivity-source fix now satisfies (it propagates the
-        /// throw to THIS fail-soft instead of asserting a hard disconnect).
+        /// gate never froze/dropped it. This is the engine-side contract
+        /// <c>Gonogo.KSP.CommsCoreUplink.ComputeConnectedOnMain</c> satisfies by
+        /// propagating the throw to THIS fail-soft instead of asserting a hard
+        /// disconnect.
         /// </summary>
         [Fact]
         public async Task ThrowingConnectivityTickDoesNotFreezeOrDropConnectedDelayedSample()
@@ -941,12 +938,9 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// HEADLINE INVARIANT (flight-lifecycle spec, 2026-07-11, §"Delay
-        /// invariants" #2: <c>docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md</c>):
-        /// "the reveal horizon is a COMMITMENT boundary" for the RELIABLE
-        /// OUTBOX lane too, not just change-gated lossy values. This is the
-        /// REQUIRED TEST the spec calls out as also auditing the CURRENT
-        /// crash/recovery feature: <c>crash.lastCrash</c> and
+        /// The reveal horizon is a COMMITMENT boundary for the RELIABLE
+        /// OUTBOX lane too, not just change-gated lossy values.
+        /// <c>crash.lastCrash</c> and
         /// <c>recovery.lastSummary</c> are exactly this shape
         /// (<see cref="DelayRole.Delayed"/> + <see cref="Delivery.ReliableOrdered"/>,
         /// a discrete "last event" channel: see <see cref="ReliableRevertTestUplink"/>'s

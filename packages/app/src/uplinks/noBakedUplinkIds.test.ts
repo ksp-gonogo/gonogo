@@ -20,22 +20,17 @@ import { firstPartyUplinkIds } from "../test/firstPartyUplinkIds";
  * The build is a different matter and keeps its list: `uplink-bundle-targets.ts`
  * sits outside `src/` because a build has to name what it builds.
  *
- * ## Two shapes, because one of them slipped through for four days
+ * ## Two shapes
  *
- * The id check below is the original. It matches a QUOTED BARE ID (`"kos"`),
- * which is the shape a fallback list takes, and it is what `268c16f8a`
- * (2026-08-27) landed when it removed the loader's first-party id list. That
- * commit's message claimed "main.tsx now carries no mod token at all". It was
- * false when written: the same file held eight `import("@ksp-gonogo/gonogo-*-
- * uplink")` calls, and grew to nine. A package SPECIFIER is not a quoted bare
- * id, so this gate reported clean over the larger instance of the thing it
- * exists to ban, and a build-time import is the more privileged shape of the
- * two: a fallback id list at least names something the loader could reach,
- * where a static import is reachable only from inside this build.
+ * The id check below matches a QUOTED BARE ID (`"kos"`), the shape a fallback
+ * list takes. A package SPECIFIER is not a quoted bare id, and a build-time
+ * import is the more privileged shape of the two: a fallback id list at
+ * least names something the loader could reach, where a static import is
+ * reachable only from inside this build.
  *
- * So the specifier check is the second shape, and it is the one that would have
- * spoken. Both run over the same corpus and both have a planted-violation test,
- * because a checker that cannot be seen to fail reports zero either way.
+ * So the specifier check is the second shape. Both run over the same corpus
+ * and both have a planted-violation test, because a checker that cannot be
+ * seen to fail reports zero either way.
  */
 const SRC_DIR = resolve(import.meta.dirname, "..");
 const TARGET_IDS = firstPartyUplinkIds();

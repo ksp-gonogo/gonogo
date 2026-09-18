@@ -534,10 +534,9 @@ const BASELINES: Record<Family, Record<string, number>> = {
     /*
      * What remains here is the tray GAP, not an inset: five glyphs ride it and
      * the widget's name has the rest of the row, so the default gap would take
-     * 32px of that name away. The glyph buttons that used to sit beside it in
-     * this entry are on --inset-control-compact now, along with the drag-header
-     * trays in shared.tsx, WidgetGearMenu.tsx and PushedDashboardOverlay.tsx
-     * that cross-referenced them.
+     * 32px of that name away. The glyph buttons are on --inset-control-compact,
+     * along with the drag-header trays in shared.tsx, WidgetGearMenu.tsx and
+     * PushedDashboardOverlay.tsx.
      */
     "packages/app/src/components/Dashboard/MobileDashboard.tsx": 1,
     "packages/app/src/components/FlightOutcomeBanner.tsx": 1,
@@ -585,20 +584,15 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/data/src/FlightsManager/index.tsx": 1,
     "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
-    // The two below and SourceOfflineBanner.tsx at the end GREW by four in
-    // total when the vocabulary went from eight names to five, which is the
-    // only growth in this table and is deliberate. They hold the four call
-    // sites of the deleted --inset-panel: a floating banner, a menu banner and
-    // a modal's header and body, all at (10,16). Nothing names that pair now,
-    // and the alternative was to take them to --inset-surface, which would have
-    // tightened four visible chrome surfaces by (-4,-8) to make a ratchet
-    // number smaller. Each site carries the reason at its own declaration, and
-    // the 16 is the cross-package gutter lock the ladder documents. The modal's
-    // entry is now exactly those two sites: its code block was the third and
-    // was reading as none of the inset classes on the strength of being code,
-    // when its fill and its radius are Card's recipe and only the inset
-    // differed. It is --inset-surface. The menu's entry is now exactly its
-    // banner: the device card that shared this key is on
+    // The two below and SourceOfflineBanner.tsx at the end hold the four call
+    // sites at (10,16): a floating banner, a menu banner and a modal's header
+    // and body. Nothing names that pair. Each site carries the reason at its
+    // own declaration, and the 16 is the cross-package gutter lock the ladder
+    // documents. The modal's entry here is exactly its header and body: its
+    // code block looks like a candidate too, on the strength of being code,
+    // but its fill and radius are Card's recipe and only the inset differs,
+    // so it is --inset-surface, not part of this pair. The menu's entry here
+    // is exactly its banner: the device card that shares this key is on
     // --inset-surface-standalone.
     "packages/serial/src/SerialDevicesMenu/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 2,

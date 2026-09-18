@@ -46,8 +46,8 @@ namespace Sitrep.Host
             // enumerating. GetProperties() materialises every property's
             // attributes, and on the netstandard2.0 contract that means
             // resolving Reinforced.Typings, which is deliberately never
-            // deployed: the exact throw that aborted every delayed dispatch
-            // until 2026-08-20. A targeted lookup reads no attributes at all.
+            // deployed and would throw. A targeted lookup reads no attributes
+            // at all.
             var property = _args.GetType().GetProperty(
                 path,
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);

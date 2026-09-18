@@ -946,14 +946,6 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 
 // --- Data introspection shims (stateful → injected host) ---------------------
 
-// `useDataSchema` retired, 2026-08-19. It was a host member and a shim that no
-// Uplink ever called: its readers are the app's own Data Sources panel and key
-// picker. Keeping it would have been the one member that could not follow the
-// others here, because the schema it returns for the default `"data"` source is
-// built from a legacy vendor key catalogue, and moving that would have published a
-// dying table as devkit API where its removal becomes an outside author's breaking
-// change. `@ksp-gonogo/data` still exports it for the app.
-
 /** Whether a recorded-flight replay session is currently active. */
 export function useReplaySessionActive(): boolean {
   return getHost().useReplaySessionActive();

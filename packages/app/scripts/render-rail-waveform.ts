@@ -128,9 +128,7 @@ const SCENES: readonly Scene[] = [
   },
   /*
    * Low Kerbin orbit: a few hundred kilometres is well under a millisecond, so
-   * the gap holds a fraction of one 20 ms chunk. `crossingSpanSamples` used to
-   * floor that at 1 and the rail drew a confident full-width sawtooth off two
-   * samples, identical for every transmission at low orbit.
+   * the gap holds a fraction of one 20 ms chunk.
    */
   {
     name: "04-lko-subsecond-speech",

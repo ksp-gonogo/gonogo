@@ -8,9 +8,8 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// GENERAL guard against the "subscribed but no stream-data" bug class that
-    /// has now bitten twice (kos.processors, then the comms.* trio): a payload
-    /// type published to the wire as a RAW POCO with no
+    /// GENERAL guard against the "subscribed but no stream-data" bug class: a
+    /// payload type published to the wire as a RAW POCO with no
     /// <see cref="JsonWriter.AppendValue"/> case compiles fine but throws
     /// <c>NotSupportedException</c> at the wire boundary at runtime, and the
     /// frame is silently dropped, the client sees only "subscribed".
@@ -37,20 +36,17 @@ namespace Sitrep.Core.Tests
     {
         /// <summary>
         /// What is left of the hand-written exclusion list, and it is a RESIDUE
-        /// rather than the mechanism: 109 of its 148 entries were deleted when
-        /// <see cref="ProducerFieldParityTests"/> landed, because <see cref="Excused"/>
-        /// now derives what they used to claim.
+        /// rather than the mechanism: <see cref="Excused"/> now derives most
+        /// entries automatically instead of taking them on claim.
         ///
         /// <para>An entry here was never coverage. It said "some producer
-        /// flattens this type" and reflection cannot grade a claim: two of the
-        /// five failures this file's bug class has had were sitting on it wearing
-        /// reasons that were simply false. 34 entries went to
-        /// <see cref="SitrepCommandAttribute"/>, which is the declaration's own
-        /// statement that a type is a command's arguments and therefore inbound
-        /// only. 75 went to the producer scan, which finds the flattening method
-        /// and holds it to every field of the type it stands for, so the
-        /// exclusion and the parity check now come from the same reading of the
-        /// same source.</para>
+        /// flattens this type" and reflection cannot grade a claim. What used
+        /// to be claimed by hand is now derived: <see cref="SitrepCommandAttribute"/>
+        /// is the declaration's own statement that a type is a command's
+        /// arguments and therefore inbound only, and the producer scan finds
+        /// the flattening method and holds it to every field of the type it
+        /// stands for, so the exclusion and the parity check now come from the
+        /// same reading of the same source.</para>
         ///
         /// <para>What survives is the two shapes that reading cannot reach, and
         /// they are grouped by which. NOTHING here is a licence: the goal is
@@ -146,11 +142,7 @@ namespace Sitrep.Core.Tests
             typeof(CommsDelay).Assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition)
                 // [SitrepContract] is the contract's own marker, applied alongside
-                // every codegen attribute. It used to matter that IsDefined does
-                // not construct the sibling Reinforced.Typings attributes, whose
-                // assembly was unloadable here; those attributes no longer ship at
-                // all (see Sitrep.Contract.Codegen), so this is now just the
-                // straightforward way to ask.
+                // every codegen attribute (see Sitrep.Contract.Codegen).
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false))
                 .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
 
@@ -199,13 +191,13 @@ namespace Sitrep.Core.Tests
             var missing = new List<string>();
             foreach (var t in ContractPayloadTypes())
             {
-                // Every type is TRIED, and only a type that could not be written
-                // is then asked whether it is excused. The excuse used to come
-                // first, which quietly let a type off a case it already had: a
-                // type both flattened by a producer AND published raw somewhere
-                // else (InventoryItem is one) would keep its case only until
-                // someone deleted it. Trying first costs nothing and means an
-                // excuse can never take away coverage that exists.
+                // Every type is TRIED, and only a type that could not be
+                // written is then asked whether it is excused. Trying first
+                // costs nothing and means an excuse can never take away
+                // coverage that exists: a type both flattened by a producer
+                // AND published raw somewhere else (InventoryItem is one)
+                // still keeps its case, rather than losing it the moment
+                // someone adds an excuse entry for it.
                 var inst = Activator.CreateInstance(t)!;
                 try
                 {
@@ -227,21 +219,19 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The two types the 2026-09-05 incident concerned, in the shapes their
+        /// <c>CommandCentreEntry</c> and <c>RepairOutcome</c>, in the shapes their
         /// producers actually publish rather than as bare default instances.
         ///
-        /// <para>Both had been ALLOWLISTED above on a claim that turned out to be
-        /// false: the roster's entry was recorded as hand-flattened by its
-        /// producer (it is not, <c>CommandCentreDelayUplink.ToRosterEntry</c>
-        /// builds the POCO and the publisher hands the list straight over) and the
-        /// repair outcome as riding out inside a flattened reply (it does not,
-        /// <c>CommandResult&lt;T&gt;.Payload</c> goes back through
-        /// <see cref="JsonWriter.AppendValue"/>). An allowlist entry is a human
-        /// claim, and the sweep above cannot grade one; these two are asserted
-        /// NOT allowlisted so the claim cannot come back.</para>
+        /// <para>Neither is hand-flattened by its producer: the roster's entry is
+        /// built as a POCO by <c>CommandCentreDelayUplink.ToRosterEntry</c> and the
+        /// publisher hands the list straight over, and the repair outcome rides
+        /// back through <see cref="JsonWriter.AppendValue"/> inside
+        /// <c>CommandResult&lt;T&gt;.Payload</c>, not flattened. An allowlist entry
+        /// is a human claim, and the sweep above cannot grade one; these two are
+        /// asserted NOT allowlisted so a false claim cannot come back.</para>
         ///
         /// <para>The roster is exercised POPULATED, which is the whole reason this
-        /// shipped: an empty <c>List&lt;CommandCentreEntry&gt;</c> serializes to
+        /// exists: an empty <c>List&lt;CommandCentreEntry&gt;</c> serializes to
         /// <c>[]</c> without the element type ever reaching the payload switch, so
         /// every headless rig and every save without real command centres in it
         /// read healthy.</para>
@@ -283,16 +273,9 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void CommsPayloadsAreCovered_NotAllowlisted()
         {
-            // The exact types the comms.* bug concerned, asserted covered AND
-            // asserted NOT hidden behind the allowlist, so this test genuinely
-            // exercises them (it would have gone RED before their JsonWriter
-            // cases existed). KosProcessorInfo used to sit in this same list,
-            // then moved to the allowlist at the kos migration (2026-07-18) once
-            // it began self-flattening producer-side, and has now left this
-            // assembly altogether for GonogoKosUplink.Contract. Either way it
-            // does not belong in a "must NOT be allowlisted" assertion; the
-            // relocation note in FlattenedByProducer above records where it
-            // went. Its own Uplink's tests own its coverage now.
+            // These types are asserted covered AND asserted NOT hidden behind
+            // the allowlist, so this test genuinely exercises them: it would
+            // go RED if any of their JsonWriter cases were removed.
             foreach (var name in new[]
                      {
                          nameof(CommsConnectivity), nameof(CommsSignal),

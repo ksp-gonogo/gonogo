@@ -636,10 +636,10 @@ export interface DeployedExperimentContext {
 // experiment.
 //
 // The target is `@ksp-gonogo/sitrep-sdk`, as it is for every other slot-owning
-// widget in the mod tree. This one named `@ksp-gonogo/core` until 2026-08-18,
-// which is a module a third-party author cannot install and therefore cannot
-// augment: the merge would simply never resolve for them, silently, leaving
-// every augment of this slot typed as the loose fallback.
+// widget in the mod tree: `@ksp-gonogo/core` is a module a third-party author
+// cannot install, so a merge declared against it would simply never resolve
+// for them, silently, leaving every augment of this slot typed as the loose
+// fallback.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "deployed-science.experiment": DeployedExperimentContext;

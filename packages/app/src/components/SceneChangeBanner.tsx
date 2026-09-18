@@ -17,7 +17,7 @@ import styled from "styled-components";
  * localStorage so a station that reloads or only just connects can
  * still recognise the transition that happened while it was away.
  * Without persistence the station would silently swallow the first
- * value as "initial" and miss the cue (user-reported, 2026-05-12).
+ * value as "initial" and miss the cue.
  */
 
 const VISIBLE_MS = 10_000;

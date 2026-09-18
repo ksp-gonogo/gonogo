@@ -83,18 +83,18 @@ const FIXED_EPOCH_MS = 1_700_000_000_000;
 async function pinTheClock(page: Page): Promise<void> {
   await page.addInitScript((fixed) => {
     const RealDate = Date;
-    // A widget deriving layout from `new Date()` rather than `Date.now()` was
-    // the gap the first-party harness's own comment named and left open. Only
-    // the NO-ARGUMENT form is the nondeterministic one, so every other overload
-    // is forwarded untouched.
+    // A widget deriving layout from `new Date()` rather than `Date.now()` is
+    // the gap this closes. Only the NO-ARGUMENT form is the nondeterministic
+    // one, so every other overload is forwarded untouched.
     //
-    // A function DECLARATION, not the arrow this used to be: an arrow has no
-    // [[Construct]], so `new Date(x)` threw "Date is not a constructor" and took
-    // the whole page down before a single module ran. Nothing in the page had
-    // constructed a date until a first-party widget was mounted in it, so the
-    // stand-in-host renders never reached the line. A declaration also keeps its
-    // own name without the `__name` helper an anonymous function assigned to a
-    // const picks up, which does not exist in the serialised page context.
+    // A function DECLARATION rather than an arrow function: an arrow has no
+    // [[Construct]], so `new Date(x)` throws "Date is not a constructor" and
+    // takes the whole page down before a single module runs. Nothing in the
+    // page constructs a date until a first-party widget is mounted in it, so
+    // the stand-in-host renders never reach the line. A declaration also
+    // keeps its own name without the `__name` helper an anonymous function
+    // assigned to a const picks up, which does not exist in the serialised
+    // page context.
     function PinnedDate(this: unknown, ...args: unknown[]) {
       if (!new.target) return RealDate();
       return Reflect.construct(

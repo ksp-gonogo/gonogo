@@ -18,8 +18,7 @@ namespace Sitrep.Transport
     /// <summary>
     /// One connected WebSocket peer, abstracted away from whichever library
     /// actually implements the socket. This is the seam a future kernel would
-    /// register a transport provider against: see
-    /// <c>docs/superpowers/plans/2026-07-06-telemetry-m5-csharp-mod.md</c>.
+    /// register a transport provider against.
     /// </summary>
     public interface ITransportConnection
     {

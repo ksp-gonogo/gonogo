@@ -94,10 +94,9 @@ describe("the relay's own subscriptions", () => {
     const host = makeFakeHost();
     const { transport, view } = renderRelay(host);
 
-    // Nothing has asked for either of these, on either screen. `vessel.orbit`
-    // is named specifically because it is the first entry of the list the relay
-    // used to subscribe eagerly: a station reaches it the same way it reaches a
-    // topic an Uplink installed this morning, by a mounted widget asking.
+    // Nothing has asked for either of these, on either screen: a station
+    // reaches `vessel.orbit` the same way it reaches a topic an Uplink
+    // installed this morning, by a mounted widget asking.
     expect(transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(transport.isSubscribed(UPLINK_TOPIC)).toBe(false);
 

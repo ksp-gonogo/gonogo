@@ -966,8 +966,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  // ── Wave 2 (2026-05-29): widgets fixtured from a live career capture
-  //    (Kerbin orbit, Mk1 pod). See local_docs/.../captures/. ─────────────
+  // ── Widgets fixtured from a live career capture (Kerbin orbit, Mk1 pod) ──
   {
     widgetId: "crew-status",
     fixturesPath: "CrewStatus/__fixtures__",

@@ -275,10 +275,7 @@ public class StockCurrencyStateMachineTests
     // The exact event order a caller drives when it names a lab vessel and then
     // awards through AddScience: OnTriggeredDataTransmission first, the science
     // change second. OnScienceReceived plays no part - it is the ordinary
-    // transmission path, a sibling of this one, not a prerequisite for it. Pinned
-    // because a rig run whose science was never neutralised was read as evidence
-    // that the lab push does not attribute without OnScienceReceived, and the
-    // attribution half of that question is answerable headlessly.
+    // transmission path, a sibling of this one, not a prerequisite for it.
     [Fact]
     public void a_lab_push_followed_by_a_science_change_resolves_Away_with_no_OnScienceReceived_involved()
     {
@@ -806,11 +803,9 @@ public class StockCurrencyStateMachineTests
         Assert.Equal(20.0, state.ShadowReputation);
     }
 
-    // Three rig runs read the shadow as 2.000 at every sample while the live
-    // balance walked 2 -> 27 -> 52 -> 82, with the interceptor reporting itself
-    // subscribed. These two tests say that reading cannot be produced by a
-    // machine that saw those events, whichever way it classified them, so it is
-    // a measurement of an object that did NOT see them.
+    // A shadow that stays frozen at its seed value while the live balance moves
+    // cannot be produced by a machine that saw those changes, whichever way it
+    // classified them, so it is a measurement of an object that did NOT see them.
     //
     // ResearchAndDevelopment.AddScience fires OnScienceChanged unconditionally
     // (decompile-confirmed against the installed Assembly-CSharp: it mutates

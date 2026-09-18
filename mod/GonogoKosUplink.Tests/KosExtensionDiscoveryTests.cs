@@ -69,13 +69,12 @@ namespace GonogoKosUplink.Tests
         /// Every kOS command rides the signal delay, resize included, and the
         /// manifest is not where that is said.
         ///
-        /// <para>Resize was the one exception until the command classification
-        /// was settled: a terminal is a cursor-addressed screen diff computed at
+        /// <para>A terminal is a cursor-addressed screen diff computed at
         /// the mod's width, so a delayed resize leaves the mod diffing at the old
         /// width for a light-time round trip and the client draws those diffs at
         /// the wrong column until the new width lands. That is a real cost and it
-        /// is the lesser one. Instant, a resize let one console reflow a terminal
-        /// another console was reading in real time, and a resize is an order like
+        /// is the lesser one. Instant, a resize would let one console reflow a terminal
+        /// another console is reading in real time, and a resize is an order like
         /// any other: it changes no scene and it is not a presentation choice,
         /// which is the whole of the rule for an instant command.</para>
         ///

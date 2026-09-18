@@ -261,8 +261,7 @@ public class ManeuverNode
     /// started from the node's own <c>nextPatch</c> instead of the
     /// vessel's current orbit).
     ///
-    /// <para><b>How one burn links to the next, measured on the Deck
-    /// 2026-08-18.</b> A burn's INPUT trajectory is the patch in the PREVIOUS
+    /// <para><b>How one burn links to the next.</b> A burn's INPUT trajectory is the patch in the PREVIOUS
     /// burn's chain whose <c>PatchEndTransition</c> is
     /// <see cref="TransitionType.Maneuver"/>, equivalently the one whose
     /// <c>EndUt</c> equals this burn's <see cref="Ut"/>. For the first burn it
@@ -271,7 +270,7 @@ public class ManeuverNode
     /// crossings fall between the two burns, so counting positions is not the
     /// rule and gets it wrong the first time a crossing appears.</para>
     ///
-    /// <para>KSP re-parents strictly sequentially, also measured: inserting a
+    /// <para>KSP re-parents strictly sequentially: inserting a
     /// burn ahead of an existing one re-derives every later chain, so a burn's
     /// input is always the previous burn's result.</para>
     ///

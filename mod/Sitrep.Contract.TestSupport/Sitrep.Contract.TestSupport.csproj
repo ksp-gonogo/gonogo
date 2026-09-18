@@ -1,12 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Shared test-support for the per-Uplink contract slices: one copy of the
-    Unit-coverage assertion every relocated Uplink's Tests project used to hold
-    its own near-identical copy of. Called in as a debt by the
-    uplink-types-out-of-core plan
-    (local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md §5b, which
-    names this project as the helper's natural home) once five copies existed.
-
     NOT a test project (no IsTestProject, no test SDK): it holds assertions, it
     does not hold [Fact]s. Every [Fact] stays in the Uplink's own Tests project,
     naming that Uplink's own types, so a red still names the Uplink that broke.
@@ -29,7 +22,7 @@
     <DebugType>portable</DebugType>
     <!-- IsPackable=false because this project is not packed BY ITSELF. Its
          output ships inside KspGonogo.Sitrep.Contract's net10.0 group, placed
-         there by Sitrep.Contract.Package; the ruling (#272) is one package, not
+         there by Sitrep.Contract.Package: one package, not
          two, so a second package id must never appear. -->
     <IsPackable>false</IsPackable>
     <AssemblyName>Sitrep.Contract.TestSupport</AssemblyName>

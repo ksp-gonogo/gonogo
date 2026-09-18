@@ -233,13 +233,13 @@ namespace Sitrep.Host.IntegrationTests
                 // Nothing else due yet (222's fireUt=7 is well beyond UT 5).
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
 
-                // ---- THE QUICKLOAD: tick backward to UT 1. Pre-fix, this
-                // no-ops (1 < 5) and the courier stays wedged at UT 5 with
-                // sma=222's delivery (fireUt=7) permanently pending -- the
-                // live multi-minute stall this fix targets. Post-fix, the
-                // server detects the backward tick, resets the courier's
-                // timeline to UT 1 (dropping the abandoned fireUt=7
-                // delivery), and broadcasts a timeline-reset event. ----
+                // ---- THE QUICKLOAD: tick backward to UT 1. Without rewind
+                // detection, this would no-op (1 < 5) and the courier would
+                // stay wedged at UT 5 with sma=222's delivery (fireUt=7)
+                // permanently pending. The server detects the backward tick,
+                // resets the courier's timeline to UT 1 (dropping the
+                // abandoned fireUt=7 delivery), and broadcasts a
+                // timeline-reset event. ----
                 server.TickAndWait(1.0, TestSystemUplink.RawSnapshot(1.0, BodiesPayload(333)), Timeout);
 
                 // (b) timeline-reset was emitted, using the same EventMsg

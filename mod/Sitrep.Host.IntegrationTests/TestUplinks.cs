@@ -1540,9 +1540,8 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// Reveal-gate-meets-reliable-outbox test uplink for the flight-lifecycle
-    /// spec's HEADLINE INVARIANT (<c>docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md</c>
-    /// §"Delay invariants" #2): a revert BEFORE an un-revealed event's reveal
+    /// Reveal-gate-meets-reliable-outbox test uplink for the invariant that a
+    /// revert BEFORE an un-revealed event's reveal
     /// horizon must ERASE it from the reliable-ordered replay lane, not just
     /// the change-gated lossy one. Modeled directly on the shape
     /// <c>Gonogo.KSP.CrashUplink</c>/<c>RecoveryUplink</c> actually ship:

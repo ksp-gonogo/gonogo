@@ -17,56 +17,31 @@ import { AlarmHostService } from "./AlarmHostService";
  * What a warp STOP does to a command centre a light-minute away, measured
  * rather than reasoned about.
  *
- * Two facts are pinned here. Both WERE defects; both are now the assertions
- * that they stay fixed.
+ * Two facts are pinned here.
  *
- * ## 1. The channel's `DelayRole` decides when the client may READ it (fixed)
+ * ## 1. The channel's `DelayRole` decides when the client may READ it
  *
- * `time.warp` is `DelayRole.TrueNow` as of the 2026-09-11 ruling ("warp has to
- * be truenow, it's a meta state, effectively scene 'changing'"). On the mod that
- * is real and load-bearing: `ChannelEngine.RevealDelayFor` returns 0 and the
- * topic rides `MetaVantage`, so the frame reaches the wire on the tick it was
- * captured instead of a light-time later.
+ * `time.warp` is `DelayRole.TrueNow`. On the mod that is real and
+ * load-bearing: `ChannelEngine.RevealDelayFor` returns 0 and the topic rides
+ * `MetaVantage`, so the frame reaches the wire on the tick it was captured
+ * instead of a light-time later.
  *
- * It used to buy the client nothing, because nothing on the client was
- * delay-role aware. `TimelineStore.sample` read EVERY topic at the frame's
- * frozen `viewUt`, and `ViewClock.viewUt()` in confirmed mode is
- * `min(utNowEstimate() - delaySeconds(), maxSampleUt)`. A frame stamped
- * `validAt = <true now>` was therefore unreadable until view time had crawled
- * the whole one-way light time up to it, whether it arrived instantly or was
- * held back by the reveal gate for exactly that long. The two paths cancelled,
- * and both wire shapes below produced the same number.
+ * A frame token freezes TWO view times, and a topic is read at the one its
+ * declared role entitles it to (`GENERATED_TRUENOW_TOPICS`, scanned off the
+ * mod's own `ChannelDeclaration`s). So the `truenow` wire shape surfaces the
+ * stop at the instant it happened, and the `delayed` shape still takes a
+ * light-time to deliver a frame describing it. The classification is what
+ * buys the light-time back.
  *
- * They no longer do, and the difference between them is the fix. A frame token
- * now freezes TWO view times, and a topic is read at the one its declared role
- * entitles it to (`GENERATED_TRUENOW_TOPICS`, scanned off the mod's own
- * `ChannelDeclaration`s). So the `truenow` wire shape surfaces the stop at the
- * instant it happened, and the `delayed` shape still takes a light-time to
- * deliver a frame describing it. The classification is what buys the light-time
- * back, which is what it was always for.
+ * ## 2. A warp-to session ENDS on a stop it did not ask for
  *
- * This was never specific to warp. Every TrueNow channel in the mod (career
- * funds, uplink health, the RP-1 ground state, `system.*`) was read a
- * light-time late for the same structural reason, and none of it was ever
- * visible because a craft in Kerbin orbit has a light-time of milliseconds.
- *
- * ## 2. A warp-to session ENDS on a stop it did not ask for (fixed)
- *
- * `WarpControl.reconcile` used to re-command the ladder whenever the observed
- * index differed from the computed target. While the client still believed warp
- * was elevated the two agreed and it commanded nothing; the moment the stop
- * surfaced they disagreed and the client warped back up, undoing the stop from
- * the operator's own screen at exactly `t0 + owlt`.
- *
- * Fixing (1) would only have made that PROMPT rather than late, so the fix is in
- * the controller: it remembers the index it asked for and the reading that was
- * current when it asked, and a reading that has moved to 0 on its own ends the
- * session rather than being reconciled against. It ends WITHOUT a second
+ * The controller remembers the index it asked for and the reading that was
+ * current when it asked, and a reading that has moved to 0 on its own ends
+ * the session rather than being reconciled against. It ends WITHOUT a second
  * `SetWarp(0)`, because the warp is already stopped.
  *
- * The same memory is what stops the controller re-dispatching while it is blind.
- * Measured on this fixture before the fix: 120 and 122 `time.setWarpIndex`
- * dispatches across one session, where one is correct.
+ * The same memory is what stops the controller re-dispatching while it is
+ * blind.
  */
 
 /** One-way light time, seconds. A craft four minutes out. */

@@ -19,7 +19,7 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
  *  - `comms?.signalStrength`, plus `signalStrength !== undefined` inside
  *    `deriveState`, so a missing strength is "no reading" and never 0%
  *  - `comms == null`, which deliberately covers BOTH warmup and a tombstone,
- *    and is the read that used to crash the app on `null.controlState`
+ *    guarding `.controlState` access from crashing on either
  */
 
 const CARRIED = ["comms.link", "vessel.comms"];
@@ -41,10 +41,9 @@ const CONTROL_STATE_KERBAL_FULL = 10;
  * without this a broken fixture (nothing subscribed, no provider) would satisfy
  * every absence assertion in this file.
  *
- * It also pins the SHAPE of the read, and that shape is the thing the migration
- * changed. It used to be `undefined` for an unarrived topic and `null` for a
- * tombstone, two spellings that no call site could reliably tell apart. The arm
- * names them instead: `pending` and `absent`.
+ * It also pins the SHAPE of the read: the arm names `pending` (unarrived) and
+ * `absent` (tombstone) rather than leaving them as indistinguishable
+ * `undefined`/`null`.
  */
 function Probe() {
   const link = useTelemetry("comms.link");

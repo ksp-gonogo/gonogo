@@ -322,14 +322,8 @@ export function useDataSeries(
   // as `useTelemetry`'s streamed branch (`isTopicCarried`/`mapTopic`).
   //
   // The gate picks between two live reads; it is not permission to reach the
-  // stream. It used to be both: an uncarried topic short-circuited
-  // `subscribeStream` to a no-op. That is safe only while the legacy series it
-  // diverts to exists, and it does not, for the same reason the `topic` comment
-  // below already gives: nothing registers the `"data"` source in production.
-  // So an uncarried plot drew an empty chart for ever, and drew it silently,
-  // because `installUnownedTopicWarning` can only report topics something
-  // subscribed to. The subscription is now unconditional and the legacy series
-  // simply gets first refusal, which is the behaviour the gate was written for.
+  // stream: the subscription is unconditional, and the legacy series gets
+  // first refusal.
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
@@ -438,11 +432,11 @@ export function useDataSeries(
     for (const sample of tail) {
       const i = nextT.length;
       nextT.push(sample.atUt);
-      // Through the SAME unwrap the observed half takes, because a modelled
-      // instant of a `Value`-typed quantity arrives wrapped exactly as an
-      // observed one does. The tail used to be declared `number` and pushed
-      // raw, which was true only while `vessel.state`'s bare-magnitude record
-      // was the one topic in the tree that could produce a tail at all.
+      /*
+       * Through the SAME unwrap the observed half takes, because a modelled
+       * instant of a `Value`-typed quantity arrives wrapped exactly as an
+       * observed one does.
+       */
       nextV.push(plotValue(sample.value));
       /*
        * A banded instant and an unbanded one do not share a run even under one
@@ -567,9 +561,9 @@ export function useDataSeries(
   );
 
   // Gated off, so the legacy series gets first refusal: that ordering IS the
-  // gate, and it is unchanged. What changed is the tie-break when it declines.
-  // An empty legacy series used to end the matter, and on a `sourceId` no
-  // longer backed by a registered source it was empty for ever.
+  // gate. An empty legacy series does not end the matter on its own: on a
+  // `sourceId` not backed by a registered source, the streamed series is
+  // rescued instead.
   //
   // Reported only when there is no registered source at all, which is the
   // unambiguous case. A registered source that has simply not filled its window

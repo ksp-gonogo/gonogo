@@ -25,9 +25,8 @@ const KSC = "ground:Kerbal Space Center";
  * tombstone test could pass on a tombstone that never landed.
  */
 function RosterProbe() {
-  // Reads the ARM. It used to print `undefined` vs the JSON payload, because those
-  // were the only two answers a read had; a tombstone and a cold start were the same
-  // sentence. `pending` and `absent` are the same distinction, said out loud.
+  // Reads the ARM: `pending` and `absent` distinguish a cold start from a
+  // confirmed tombstone.
   const reading = useTelemetry("commandCentre.roster");
   const detail =
     reading.state === "observed" || reading.state === "stale"

@@ -10,9 +10,7 @@ namespace Sitrep.Host
     /// KSP-free mapping logic for the four M1 "core" vessel channels,
     /// <c>vessel.identity</c>/<c>vessel.orbit</c>/<c>vessel.orbit.truth</c>/
     /// <c>vessel.flight</c>: the Task 1 foundation for the vessel telemetry
-    /// uplink. See local_docs/telemetry-mod/m1-provider-taxonomy-design.md
-    /// §2.2 and the legacy-API issue catalogue's O-1/O-8/O-9/O-10/V-10/V-12/V-13.
-    /// Reads <see cref="KspSnapshot.Values"/>'s <c>"vessel"</c> groups (see
+    /// uplink. Reads <see cref="KspSnapshot.Values"/>'s <c>"vessel"</c> groups (see
     /// <c>Gonogo.KSP.KspHost.BuildVesselEntry</c>'s doc comment for the raw
     /// shape) and produces the typed <c>Sitrep.Contract</c> POCOs. Every
     /// <c>Build*</c> method returns <c>null</c> (never a partially-populated
@@ -20,7 +18,7 @@ namespace Sitrep.Host
     /// never a sentinel default).
     ///
     /// <para><b>Subject provenance</b> (the M1 "must-ship, unretrofittable"
-    /// rule: design doc §6.1/§8.1): every payload's <c>Meta.Source</c> is
+    /// rule): every payload's <c>Meta.Source</c> is
     /// stamped <c>"vessel:&lt;guid&gt;"</c> from <c>vessel.identity.id</c>, so
     /// a sample is always attributable to the vessel it describes even across
     /// a vessel switch. Epoching that switch into a clean keyframe boundary is
@@ -2113,8 +2111,7 @@ namespace Sitrep.Host
                 // deliberate simplification for M1 Task 1, not a silent
                 // "always trust conics" claim. Off-rails detection is scoped
                 // to whichever future task wires up physicsMode/packed
-                // capture (mirrors O-2's "deliberately deferred" ruling in
-                // the taxonomy design doc).
+                // capture.
                 Quality = Quality.OnRails,
             };
         }

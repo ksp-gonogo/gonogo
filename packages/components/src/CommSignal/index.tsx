@@ -358,10 +358,8 @@ function CommSignalComponent({
    * never goes stale, so that fallback printed a confident "Full" for a link
    * that had stopped arriving.
    *
-   * Operator's ruling on ticket 337: every line shows its null state, because
-   * "there's no value in seeing what the link was". A not-current mark does not
-   * withdraw what a number asserts, which is the objection this widget's own
-   * source had already written down.
+   * Every line shows its null state: a not-current mark does not withdraw
+   * what a number asserts.
    */
   const headline = noSignal ? (
     NULL_DISPLAY
@@ -764,9 +762,9 @@ function SignalBars({
     <div
       role="img"
       /* "0 of 4" is itself a verdict, so a withheld glyph must not announce
-         one. An aria-label IS operator-facing copy, so it uses the ruled words
-         rather than the "not current" wording the operator objected to, and it
-         matches the badge a sighted reader sees. */
+         one. An aria-label IS operator-facing copy, so it matches the badge a
+         sighted reader sees rather than describing the link as merely "not
+         current". */
       aria-label={noSignal ? "No signal" : `Signal ${bars} of 4`}
       style={{
         display: "flex",

@@ -773,9 +773,8 @@ function UpgradeButton({
        and the same as a short balance, and only one of the three is what
        happened here.
 
-       `aria-disabled` and NOT `disabled`, the ruling CommandButton's own
-       blocked phase sets out: a disabled button is dropped from some screen
-       readers' walk entirely, and a gate verdict is advice rather than
+       `aria-disabled` and NOT `disabled`: a disabled button is dropped from
+       some screen readers' walk entirely, and a gate verdict is advice rather than
        permission, since it is sampled and the dispatch re-evaluates anyway.
        The sentence travels in `title` and in the accessible name rather than in
        the button's body, because a facility cell is about two grid columns wide

@@ -1,6 +1,5 @@
 // ---------------------------------------------------------------------------
-// Resource-identity colour primitive (design doc: gonogo main repo,
-// local_docs/design/2026-08-08-resource-colour-system.md). Deterministic
+// Resource-identity colour primitive. Deterministic
 // name -> colour mapping so the same resource always renders the same
 // colour everywhere it appears (ShipMap's per-part meters today, any future
 // resource widget). Pure and stateless: no registry, no memoisation needed,
@@ -13,13 +12,11 @@
 //      shorter one that would also match (see CURATED's own comment). Each
 //      family owns a single HUE (its neighbourhood on the wheel); members of
 //      a family (waste/wastewater/carbondioxide all share the co2/waste
-//      family) are told apart by LIGHTNESS, not hue. Hue-only spreading was
-//      tried first and failed for crowded families: waste's three members
-//      landed 2.8-6deg apart, boxed in by ElectricCharge's neighbouring
-//      band, and read as nearly-identical olives. Lightness has headroom
-//      even when hue is crowded, so a family's members now spread along
-//      that axis instead, deterministically from a hash of each member's own
-//      full name, no per-member table entry required.
+//      family) are told apart by LIGHTNESS, not hue: a crowded family's hue
+//      neighbourhood leaves too little room to keep members visually
+//      distinct, so they spread along the lightness axis instead,
+//      deterministically from a hash of each member's own full name, no
+//      per-member table entry required.
 //   2. A stateless golden-angle hash fallback for anything unrecognised
 //      (mod resources, future KSP resources, typos), so an unknown resource
 //      still gets a stable, well-spread, legible colour rather than one

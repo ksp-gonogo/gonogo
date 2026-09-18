@@ -3,10 +3,8 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Marks a concrete <c>ISitrepUplink</c> type for assembly-scan discovery,
-    /// the kOS <c>kOSAddonAttribute</c> precedent
-    /// (<c>local_docs/reference/kos/src/kOS/AddOns/kOSAddonAttribute.cs</c>),
-    /// adapted for Uplinks. <c>UplinkDiscovery</c> scans
+    /// Marks a concrete <c>ISitrepUplink</c> type for assembly-scan discovery.
+    /// <c>UplinkDiscovery</c> scans
     /// every loaded assembly that references <c>Sitrep.Contract</c> for
     /// types carrying this attribute and implementing
     /// <c>ISitrepUplink</c>, instantiates each via its PARAMETERLESS

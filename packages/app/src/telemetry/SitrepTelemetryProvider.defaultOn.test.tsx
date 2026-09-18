@@ -15,9 +15,9 @@ import { SitrepTelemetryProvider } from "./SitrepTelemetryProvider";
 import { resetSitrepRuntimeForTests } from "./sitrepRuntime";
 
 /**
- * Proves the play-blocking gap from `806e7fe2` (legacy source deletion) is
- * actually closed: with the `VITE_SITREP_STREAM` gate removed, the stream
- * must connect with ZERO configuration, no `enabled` prop, no `host`/`port`
+ * Proves there is no play-blocking gap left: with the `VITE_SITREP_STREAM`
+ * gate removed, the stream must connect with ZERO configuration, no
+ * `enabled` prop, no `host`/`port`
  * prop, no env var. This test passes none of those and asserts a REAL
  * `WebSocketTransport` opens a socket to the build-time default
  * (`localhost:8090`), observed over MSW's `ws` interceptor exactly like

@@ -1,5 +1,5 @@
-// Single import surface for the Processor primitive (contribution-slots-spec
-// §14): the definition/hook/types live in the sitrep-client spine (importing
+// Single import surface for the Processor primitive: the definition/hook/types
+// live in the sitrep-client spine (importing
 // core would cycle); re-exported here so client code has one `@ksp-gonogo/core`
 // import. The bare `./processorPerfBudget` import is for its side effect: it
 // wires the evaluator's recorder seam to a real core-side PerfBudget at load.

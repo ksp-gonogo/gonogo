@@ -665,13 +665,13 @@ const GATED_KEYS: DataKey[] = [
   // `f.throttle` is on the blocklist (`isAntennaOnlyKey` in
   // BufferedDataSource); we use it to exercise the gate's drop path.
   // `v.altitude` / `v.surfaceSpeed` / most other keys flow honestly
-  // even with the telemetry antenna down: verified live 2026-05-18.
+  // even with the telemetry antenna down.
   { key: "f.throttle" },
   { key: "comm.connected" },
   { key: "p.paused" },
   { key: "career.science" },
   // Scene-level / KSC-global / outcome keys that must flow through the
-  // CommNet gate. See the 2026-05-18 12:28 BST regression below.
+  // CommNet gate.
   { key: "kc.scene" },
   { key: "kc.padOccupied" },
   { key: "ksp.canRevertToLaunch" },
@@ -770,13 +770,8 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
     expect(spy).toHaveBeenCalledWith(60);
   });
 
-  // 2026-05-18 12:28 BST regression: switching from Flight to SpaceCenter
-  // dropped comm.connected to false (no active vessel), and the host
-  // stopped broadcasting any `kc.*` / `ksp.*` / `crash.*` / `recovery.*`
-  // / `flight.*` / `tech.*` / `strategies.*` keys: so stations'
-  // SceneSwitchPrompt never fired and various scene-aware widgets stayed
-  // on stale Flight-scene values. None of those prefixes describe vessel
-  // telemetry; they're scene / career / outcome state.
+  // None of those prefixes describe vessel telemetry; they're scene /
+  // career / outcome state.
   it.each([
     ["kc.scene", "SpaceCenter"],
     ["kc.padOccupied", true],

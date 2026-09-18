@@ -16,10 +16,9 @@ namespace Sitrep.Propagation.Tests
     /// fixture file <c>packages/sitrep-client</c>'s TS <c>solve()</c> is
     /// asserted against (see <c>propagation.test.ts</c>). Both languages
     /// conforming to one shared fixture set is how we prove the C# server
-    /// and the TS SDK derive positions IDENTICALLY
-    /// (spec-streaming-delay-model.md &#167;4/&#167;5's derived-channel
-    /// requirement) -- rather than each language separately "looking
-    /// correct" while silently disagreeing with the other.
+    /// and the TS SDK derive positions IDENTICALLY -- rather than each
+    /// language separately "looking correct" while silently disagreeing
+    /// with the other.
     ///
     /// Per-case <c>tolerance</c> in the fixture distinguishes:
     /// <list type="bullet">

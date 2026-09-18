@@ -27,11 +27,8 @@ const STORAGE_KEY = "gonogo.scene-banner.lastSeen";
 /**
  * The raw read, so a test about which absence it got records which one.
  *
- * It used to print `undefined` vs the JSON payload, because `null` and `undefined`
- * were the only two things a read could answer with and the point was to catch which
- * arrived. That distinction now lives in the reading's ARM, and the arm says it
- * properly: `pending` for nothing-yet and `absent` for a confirmed tombstone, which
- * the old spelling could not tell apart at all.
+ * The distinction lives in the reading's ARM: `pending` for nothing-yet and
+ * `absent` for a confirmed tombstone.
  */
 function SceneProbe() {
   const reading = useTelemetry("spaceCenter.scene");

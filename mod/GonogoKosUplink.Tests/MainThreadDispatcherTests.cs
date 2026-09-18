@@ -8,8 +8,8 @@ using Xunit;
 namespace GonogoKosUplink.Tests
 {
     /// <summary>
-    /// Covers the three invariants local_docs/telemetry-mod/kos-migration-spec.md
-    /// §2 demands of the main-thread dispatch spine: (1) actions enqueued
+    /// Covers the three invariants the main-thread dispatch spine must
+    /// uphold: (1) actions enqueued
     /// from a background thread drain in FIFO order on the draining
     /// thread, (2) a throwing action never stops (or drops) the actions
     /// behind it, and (3) draining an empty queue is a safe no-op.

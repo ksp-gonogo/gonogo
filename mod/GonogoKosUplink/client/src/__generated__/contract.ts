@@ -178,12 +178,10 @@ export interface KosRunResult
 * be (which, mid-session, is usually an ordinary incremental diff with no
 * baseline of its own to apply it to). This is what lets a late/returning
 * viewer see something immediately instead of waiting out a fresh reveal-delay
-* window for its own forced reseed to mature: see
-* local_docs/kos-terminal-feedback-2026-07-15.md's "Loading / connection"
-* section for the full root-cause writeup. A genuinely first-ever subscribe to
-* a CPU's terminal (nothing has EVER been recorded for it) still has to wait
-* out that first reseed's own delay window, there is no way around that; there
-* is nothing earlier to be sticky about.
+* window for its own forced reseed to mature. A genuinely first-ever subscribe
+* to a CPU's terminal (nothing has EVER been recorded for it) still has to
+* wait out that first reseed's own delay window, there is no way around that;
+* there is nothing earlier to be sticky about.
 *
 * `KosTerminalFrame.coreId` echoes the emitting CPU's
 * `KosProcessorInfo.coreId` so a client reading several CPUs can disambiguate

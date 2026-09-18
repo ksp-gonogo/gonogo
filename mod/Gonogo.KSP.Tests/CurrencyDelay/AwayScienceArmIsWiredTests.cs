@@ -11,8 +11,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// <para><b>Source text, not behaviour</b>, and for the reason
     /// <c>CurrencyDelaySettlePumpIsWiredTests</c> spells out: a test that calls the
     /// rule itself proves the rule works and says nothing about whether the shipped
-    /// game reaches it. The defect below lived in exactly that gap, and was found
-    /// on the rig rather than here.</para>
+    /// game reaches it.</para>
     ///
     /// <para>Where that arm gets the DELAY is the other half, and lives in
     /// <see cref="AwayScienceOriginIsResolvedTests"/> beside the headless

@@ -238,18 +238,13 @@ namespace Gonogo.KSP
         /// Arms this uplink on the way into a game and stands it down on the way back
         /// to the main menu.
         ///
-        /// <para><b>The re-arm is the fix for rig run <c>conf-fixed-1</c>.</b> The
-        /// stand-down half used to be all there was, on the stated assumption that a
-        /// re-<c>Register</c> would arm it again. There is no re-<c>Register</c>: the
+        /// <para>There is no re-<c>Register</c>: the
         /// host addon is <c>KSPAddon(Instantly, once)</c>, so <c>Register</c> runs
         /// once for the whole process, and it runs during LOADING. KSP fires
         /// <c>onGameSceneLoadRequested(MAINMENU)</c> out of
         /// <c>HighLogic.SetLoadSceneEventsAndFlags</c> on the LOADING -> MAINMENU
         /// transition that follows, so the stand-down was reached at BOOT, before the
-        /// player had loaded anything, and nothing ever undid it. Measured: the addon
-        /// logged its build at 11:34:14 and the scene change came at 11:35:53, 99
-        /// seconds later, in the same session whose science was withheld correctly
-        /// while RP-1's confidence moved anyway.</para>
+        /// player had loaded anything, and nothing ever undid it.</para>
         ///
         /// <para>Both halves are idempotent, so an extra scene change costs nothing.
         /// The stand-down is kept rather than deleted because a currency handler at

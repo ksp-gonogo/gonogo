@@ -1,5 +1,5 @@
 /**
- * Uplink Client Contract: version compatibility (design §6.2/§6.3).
+ * Uplink Client Contract: version compatibility.
  *
  * Pure logic only: the manifest shape, a validation helper, and the
  * compat-verdict function the loader will gate an `import()` behind. No
@@ -13,14 +13,15 @@
 import { EXTENSION_API_VERSION } from "@ksp-gonogo/sitrep-sdk";
 import { type ParsedSemver, parseSemver } from "./version/compare";
 
-// Re-exported, not declared. It was declared here, in a `private: true` package,
-// which meant an Uplink's build had to hand-type the number its own manifest is
-// gated on. It lives in `@ksp-gonogo/sitrep-sdk` now so both sides of the gate
-// read one constant; this re-export keeps every app-side importer unchanged.
+/*
+ * Re-exported, not declared: it lives in `@ksp-gonogo/sitrep-sdk` so both
+ * sides of the gate read one constant; this re-export keeps every app-side
+ * importer unchanged.
+ */
 export { EXTENSION_API_VERSION };
 
 /**
- * The manifest an Uplink client bundle ships alongside (design §6.2). Every
+ * The manifest an Uplink client bundle ships alongside. Every
  * version-gate field mirrors a `UplinkVersionDescriptor` value from
  * `packages/app/src/uplinks/registry.ts`: this is the pure, package-level
  * home for the shape and its compat rule, so the loader (and any future
@@ -163,9 +164,9 @@ function compareSemverOrder(a: ParsedSemver, b: ParsedSemver): number {
 }
 
 /**
- * The §6.3 compat-verdict rule table. Precedence when multiple rules would
+ * The compat-verdict rule table. Precedence when multiple rules would
  * independently refuse: apiVersion, then uiKitVersion, then contractMajor,
- * then contractMinor: the same order the fields are listed in §6.3 and in
+ * then contractMinor: the same order the fields are listed in
  * `GonogoUplinkManifest` above. Any refuse wins over warn-load; minAppVersion
  * (the only warn-load-producing rule) is checked last, only once every
  * refuse gate has passed. `integrity` is never inspected here, the loader

@@ -2,12 +2,10 @@
 //
 // An Uplink is a mod in its own right, and every mod ecosystem shows a
 // self-declared author and repo, because that is the information an operator
-// actually wants even though nobody verified it. The app used to withhold the
-// bundle's own declaration and print `by unknown` instead, which is not safer,
-// only less useful.
+// actually wants even though nobody verified it.
 //
-// What must survive is the distinction, not the withholding: the running mod
-// vouching for an Uplink is a different claim from a bundle describing itself,
+// What must survive is the distinction: the running mod vouching for an
+// Uplink is a different claim from a bundle describing itself,
 // so every value here carries its source and the render surfaces say which one
 // they are showing. Nothing in this module gates a load: the hash gates in
 // `loader.ts` are the trust boundary, this is what an operator reads while

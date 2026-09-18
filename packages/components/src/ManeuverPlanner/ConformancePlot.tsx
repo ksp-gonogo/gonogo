@@ -286,8 +286,8 @@ export function ConformancePlot({
                * mean the opposite, in this file's own words: `intended-change`
                * and `missed` say "the gap is the intended change" and
                * `in-progress` says it "is closing as it burns". Filling those
-               * would colour the burn itself and call it conformance, which is
-               * the post-burn reading the ticket exists to give.
+               * would colour the burn itself and call it conformance before
+               * there is a post-burn reading to give.
                */
               corridor={regime === "deviance"}
               bodyRadius={bodyRadius ?? undefined}

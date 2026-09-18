@@ -41,11 +41,6 @@ describe("resolveUplinkIdentity", () => {
     });
   });
 
-  /*
-   * The whole of the change: a bundle that declares an author now has that
-   * author shown, marked as its own claim, where the app used to substitute
-   * "unknown" and throw the declaration away.
-   */
   it("falls back to the bundle's own manifest where the mod said nothing", () => {
     const identity = resolveUplinkIdentity(
       "widget-y",
@@ -96,10 +91,9 @@ describe("resolveUplinkIdentity", () => {
 /*
  * Two independent claims about the same Uplink: the roster the installed mod
  * reports, and the manifest sidecar the bundle ships. The mod still wins every
- * field, unchanged. What changed is that the losing claim is kept, because
- * "the mod calls this X, the bundle calls itself Y" is exactly the reading an
- * operator needs before consenting to pull the bundle, and the app used to
- * resolve it silently and throw the loser away.
+ * field, unchanged, but the losing claim is kept: "the mod calls this X, the
+ * bundle calls itself Y" is exactly the reading an operator needs before
+ * consenting to pull the bundle.
  */
 describe("resolveUplinkIdentity: a disagreement between the two sources", () => {
   it("keeps the mod's value and records the bundle's competing one", () => {

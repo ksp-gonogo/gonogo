@@ -8,10 +8,10 @@ import { CurrentOrbitComponent } from "./index";
 /**
  * The frame as a qualifier on the boards.
  *
- * The ruling this covers: the active frame is shown where the numbers it
- * governs are, and a readout the frame invalidates SAYS SO rather than showing
- * a number. An apsis is defined against a centre, so in a frame defined by a
- * pair of bodies an apoapsis does not exist at all.
+ * The active frame is shown where the numbers it governs are, and a readout
+ * the frame invalidates SAYS SO rather than showing a number. An apsis is
+ * defined against a centre, so in a frame defined by a pair of bodies an
+ * apoapsis does not exist at all.
  *
  * The distinction under test is the one an em-dash cannot carry. This widget
  * already renders `NULL_DISPLAY` for a hyperbolic orbit's absent apoapsis, and

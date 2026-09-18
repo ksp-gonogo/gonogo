@@ -13,8 +13,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// is what catches the shadow back up. It shipped reachable only from inside
     /// the next <c>On*Changed</c> of the same currency, so a change nothing ever
     /// explained, and that nothing followed, stranded the shadow for the rest of
-    /// the session: measured on the rig as science 38 -> 63 with the shadow
-    /// still reading 38. Every later neutralise restores to that number.</para>
+    /// the session. Every later neutralise restores to that stranded number.</para>
     ///
     /// <para><b>And why not from a change handler.</b> Settling resyncs the shadow
     /// to the live total, and inside <c>On*Changed</c> the live total has already

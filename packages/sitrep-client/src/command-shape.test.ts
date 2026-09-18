@@ -36,12 +36,8 @@ describe("commandDelayed", () => {
   });
 
   /*
-   * The commands the two halves used to disagree about. The mod ran all three
-   * instantly and this answered `true` for every one, so each was drawn with a
-   * countdown and an in-flight queue row it did not have. Both sides now read
-   * one declaration, and the ruling that settled these is the one that says a
-   * career write and a target designation are orders rather than ground-side
-   * facts.
+   * A career write and a target designation are orders, not ground-side
+   * facts, so both sides read them off the one declaration.
    */
   it("agrees with the mod about the ones it used to contradict", () => {
     expect(commandDelayed("career.tech.unlock")).toBe(true);

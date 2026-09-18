@@ -9,20 +9,13 @@ namespace Sitrep.Contract;
 /// The <c>vessel.orbit</c> channel payload: elements are the CAUSE; every
 /// kinematic quantity (position/velocity/apsides/anomalies/period) is a
 /// consumer-side derivation at view-UT via the propagation capability, never
-/// streamed here (the "elements-not-position" ruling). Kills O-1 (there is no
-/// <c>eccentricAnomaly</c> field at all,
-/// the copy-paste-bug class can't exist on a wire that never carries one),
-/// O-8 (spelled-out, unit-annotated fields, UT always <c>double</c>), O-9
-/// (<see cref="Encounter"/> is a typed nullable record, never the
-/// -1/0/1 + "" + NaN sentinel spray of o.encounterExists/Time/Body), O-10
-/// (no duplicate apsis keys).
+/// streamed here.
 ///
 /// Units: <see cref="Sma"/> in metres; <see cref="Inc"/>/<see cref="Lan"/>/
 /// <see cref="ArgPe"/> in DEGREES (KSP-native); <see cref="MeanAnomalyAtEpoch"/>
 /// in RADIANS (also KSP-native): this degrees/radians split is an inherited
-/// KSP inconsistency deliberately KEPT, not "fixed":
-/// converting would desync from every
-/// KSP reference and the recorder's own raw values).
+/// KSP inconsistency, converting would desync from every
+/// KSP reference and the recorder's own raw values.
 ///
 /// <internal>
 /// Only <see cref="MeanAnomalyAtEpoch"/> and <see cref="Epoch"/> are marked
@@ -146,10 +139,6 @@ public class VesselOrbit
     /// tried to build one and stopped,
     /// <see cref="TrajectoryRefusal.NotAttempted"/> when none was sought at all,
     /// and <see cref="TrajectoryRefusal.NotRefused"/> beside one that was drawn.
-    ///
-    /// <para>Those last two used to be one value, and a client could not tell an
-    /// install where the integrated path never runs from one where it runs
-    /// cleanly.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public TrajectoryRefusal ArcRefusal { get; set; }
@@ -189,12 +178,6 @@ public class PropagationHorizon
     /// long. A client reasoning "unbounded, therefore analytic, therefore an
     /// ellipse is fine" then draws a closed conic for an integrated trajectory:
     /// faithful at the sample instant, wrong as a path, and confident.</para>
-    ///
-    /// <para>An earlier draft carried the provider's literal id instead. That
-    /// answered "who computed this" where the client needed "what is this like",
-    /// and it put a vendor's name in a standard payload. An enumeration answers
-    /// the real question completely, and every provider can state it, stock
-    /// included, which is what makes it belong on the standard shape at all.</para>
     ///
     /// <para>Diagnostics keep their own home: <c>system.uplinks</c> already
     /// carries each Uplink's id, version and availability once per session, and

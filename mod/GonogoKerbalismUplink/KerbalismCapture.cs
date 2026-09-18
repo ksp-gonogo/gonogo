@@ -7,7 +7,7 @@ namespace Gonogo.KerbalismUplink
     /// Pure plain-data mappers: a captured snapshot -> the value-tree dictionaries
     /// that mirror the Sitrep.Contract Kerbalism POCOs field-for-field (camelCase
     /// wire keys). NO KSP/Unity/Kerbalism types: headless-testable against the
-    /// captured fixtures (local_docs/kerbalism-fixtures/). The uplink's
+    /// captured fixtures. The uplink's
     /// capture-on-main reflection (KerbalismReflection) fills KerbalismSnapshot +
     /// the *Raw lists; these mappers run off the main thread (Courier).
     /// </summary>

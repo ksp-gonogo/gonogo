@@ -11,16 +11,12 @@ namespace Sitrep.Core.Tests
     /// time, and nothing in the tree checked that the expression handed over is
     /// one.
     ///
-    /// <para><b>The defect this is the general form of.</b>
-    /// <c>CommandCentreDelayUplink</c> published <c>commandCentre.roster</c>
-    /// with <c>cap.Roster.Count</c> as its stamp: the NUMBER OF COMMAND CENTRES
-    /// where a UT belongs. It went unnoticed for as long as it did because the
-    /// engine's only sanity check on a caller-supplied stamp is a FORWARD clamp
-    /// (see <c>ChannelEngine.ProcessPublish</c>): a stamp ahead of the clock is
-    /// pulled back to now, and a stamp far BEHIND it (which a small count always
-    /// is) is recorded exactly as given. So the sample landed stamped in
-    /// the deep past with <c>validAt</c> on the wire equal to a centre count,
-    /// and no test, no log line and no clamp said anything.</para>
+    /// <para><b>Why a bad stamp goes unnoticed.</b> The engine's only sanity
+    /// check on a caller-supplied stamp is a FORWARD clamp (see
+    /// <c>ChannelEngine.ProcessPublish</c>): a stamp ahead of the clock is
+    /// pulled back to now, but a stamp far BEHIND it, which a small count
+    /// always is, is recorded exactly as given, with no test, log line or
+    /// clamp catching it.</para>
     ///
     /// <para><b>Why a scan rather than a per-uplink assertion.</b> A test that
     /// pins one publisher's stamp catches that publisher's regression and
@@ -51,11 +47,9 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The scan sees the call sites it is meant to judge.
         ///
-        /// <para>This was a floor of sixty sites, and roughly half of them are in
-        /// Uplinks leaving for the gonogo-uplinks repo, so it could not tell a
-        /// smaller tree from a matcher that had stopped matching. Two halves
-        /// replace it. Over a planted tree the scan returns exactly the planted
-        /// stamps and nothing from a test project beside them. Over the real tree
+        /// <para>This runs in two halves. Over a planted tree the scan returns
+        /// exactly the planted stamps and nothing from a test project beside
+        /// them. Over the real tree
         /// the files it found a site in are exactly the production files whose
         /// text contains <c>.Publish(</c> at all, a plain substring read that
         /// shares nothing with the argument splitter, so a site the splitter drops
@@ -116,16 +110,16 @@ namespace Sitrep.Core.Tests
         /// the failure mode a scan is most prone to and least able to announce.
         /// </summary>
         [Theory]
-        [InlineData("cap.Roster.Count")] // the defect as it actually shipped
+        [InlineData("cap.Roster.Count")]
         [InlineData("roster.Count")]
         [InlineData("entries.Length")]
         [InlineData("vessels.Count()")]
         [InlineData("index")]
         [InlineData("capture.VesselId")]
-        [InlineData("raw?.Ut ?? 0.0")] // twelve RP-1 sites, and it used to pass
+        [InlineData("raw?.Ut ?? 0.0")]
         [InlineData("raw?.Ut ?? 0")]
         [InlineData("raw?.Ut ?? snapshot?.Ut ?? 0.0")]
-        [InlineData("0.0")] // the last standalone literal in the tree, until 2026-09-15
+        [InlineData("0.0")]
         [InlineData("0")]
         [InlineData("1.5d")]
         [InlineData("nowUt.GetValueOrDefault()")] // the substitution, spelled as an unwrap
@@ -158,12 +152,9 @@ namespace Sitrep.Core.Tests
         /// <c>nowUt.Value</c>).
         ///
         /// <para>A numeric literal is NOT one, standing alone or behind a
-        /// <c>??</c>. It was accepted standing alone until 2026-09-15, on the
-        /// grounds that a site with no snapshot to quote has nothing else to
-        /// hand over. The one site that relied on that stamped every sample of
-        /// a Delayed channel 0.0, dating it from the start of the campaign; it
-        /// now reads the game clock and publishes nothing when it has none, so
-        /// there is no honest use of a constant left to allow for.</para>
+        /// <c>??</c>: a site with nothing to report reads the game clock and
+        /// publishes nothing when it has none, so there is no honest use of a
+        /// constant left to allow for.</para>
         /// </summary>
         internal static bool NamesATime(string stamp)
         {
@@ -171,10 +162,7 @@ namespace Sitrep.Core.Tests
             // to name a time, so check them separately rather than reading only
             // the one that happens to be last. A literal behind a ?? is a site
             // that HAD an instant on the good path and fabricated one on the
-            // other, which is the shape twelve RP-1 courier handles took: they
-            // coalesced an unread tick to 0.0 and published a reading dated the
-            // start of the game, and this scan waved every one of them through,
-            // because 0.0 did then name a time.
+            // other.
             var index = stamp.IndexOf("??", StringComparison.Ordinal);
             if (index >= 0)
             {

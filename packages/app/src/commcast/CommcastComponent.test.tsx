@@ -300,12 +300,8 @@ describe("Commcast, rendered", () => {
 
   it("keeps the composer INSIDE the console's own border", async () => {
     /*
-     * The same claim the terminal widget's suite makes about its own bar, and
-     * the reason both were changed at once: the composer used to hang below the
-     * frame as a third box in a stack, so the outline contained a column of
-     * messages here and a terminal screen there, and the two consoles read as
-     * unrelated components. A role query cannot see it, because the composer
-     * rendered perfectly well outside.
+     * A role query cannot see this: the composer renders perfectly well
+     * outside the console's own border too.
      */
     const log = makeLog();
     log.replaceForTesting({
@@ -335,11 +331,8 @@ describe("Commcast, rendered", () => {
 
   it("keeps the send control one size whatever the delay beside it is", async () => {
     /*
-     * The defect the operator named: the label used to carry the round trip,
-     * so the same button was two words at the pad and a sentence four
-     * light-minutes out. The verb is now all the label ever says, and the
-     * figure is a separate reading whose shape the terminal widget's model
-     * decides.
+     * The verb is all the label ever says, and the figure is a separate
+     * reading whose shape the terminal widget's model decides.
      */
     const log = makeLog();
     log.setVantage("ksc");
@@ -409,14 +402,9 @@ describe("Commcast, rendered", () => {
 
   it("hangs the delay reading at the console's foot, not over the log", async () => {
     /*
-     * The defect and the fix, in one place. This console used to put the
-     * reading INSIDE the composer beside Send while the terminal widget pinned
-     * it in the top-right corner of the scrollback, so the pair answered the
-     * same question in two places. The corner won that argument and then lost
-     * on its own terms: over a column of prose it sits on a sentence somebody
-     * has to read. The frame's foot is where both go now, in the same column as
-     * the queue's countdowns, because a separation and an ETA are the same kind
-     * of value and had been diagonally opposite each other.
+     * The frame's foot is where the delay reading sits, in the same column as
+     * the queue's countdowns, because a separation and an ETA are the same
+     * kind of value.
      *
      * Structural rather than positional: a role query cannot tell any of these
      * apart, because every one of them drew a perfectly good badge.
@@ -666,12 +654,10 @@ describe("Commcast, rendered", () => {
 
   it("loses NOTHING when the observed vantage arrives after the log did", async () => {
     /*
-     * The regression that made the render harness lose whole logs at random.
      * The arrival buffer is rebuilt when this screen learns its own vantage,
-     * which happens on every fresh page load, and the pass that rebuilt it
-     * used to re-pin every message against the buffer it had just disposed.
-     * Those messages were then pinned to something that would never release
-     * them and vanished from the log.
+     * which happens on every fresh page load. Re-pinning a message against
+     * the buffer the rebuild just disposed would pin it to something that
+     * never releases it, and it would vanish from the log.
      */
     const log = makeLog();
     log.replaceForTesting({

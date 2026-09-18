@@ -12,19 +12,12 @@ import { describe, expect, it } from "vitest";
 import "./index";
 
 /**
- * DeployedScience's stream render golden. This began life as a
- * legacy-`DataSource`↔stream byte-identical dual-run (`deployed.bases`'s
- * grouped-base shape compared against `deployed.bases`'s flat
- * per-experiment shape); with the widget now reading its whole state off the
- * canonical `deployed.bases` + `game.dlc` Topics, there is no legacy read
- * path left to compare against: same "the legacy leg is gone" story as
- * `Experiments/dual-run.test.tsx`'s own doc comment. What remains proves
- * the widget renders the full two-experiment Mun cluster correctly off the
- * real stream pipeline, from the flat `deployed.bases` wire shape grouped by
- * `vesselName` (`groupFlatDeployedEntries`, index.tsx):
- * the cluster's own power-unit balance drawn as produced-over-required (NOT an
- * EC figure, and hardcoded `0`/`0` until 2026-09-09), progress derived straight
- * from `scienceCompletedPercentage`.
+ * DeployedScience's stream render golden. Proves the widget renders the
+ * full two-experiment Mun cluster correctly off the real stream pipeline,
+ * from the flat `deployed.bases` wire shape grouped by `vesselName`
+ * (`groupFlatDeployedEntries`, index.tsx): the cluster's own power-unit
+ * balance drawn as produced-over-required (NOT an EC figure), progress
+ * derived straight from `scienceCompletedPercentage`.
  */
 describe("DeployedScience: stream render golden (delay=0)", () => {
   it("renders the full deployed-cluster state off the stream pipeline", async () => {
@@ -57,8 +50,7 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           powerState: "Powered",
           connectionState: "Connected",
           // The DERIVED ordinal the widget branches on, alongside the prose it
-          // ignores. Absent here until 2026-09-14, which the widget then read
-          // as "not powered" rather than as "cannot say".
+          // ignores.
           power: DeployedPowerState.Powered,
           controllerConnected: true,
           powerAvailable: 5,
@@ -79,8 +71,7 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           powerState: "Powered",
           connectionState: "Connected",
           // The DERIVED ordinal the widget branches on, alongside the prose it
-          // ignores. Absent here until 2026-09-14, which the widget then read
-          // as "not powered" rather than as "cannot say".
+          // ignores.
           power: DeployedPowerState.Powered,
           controllerConnected: true,
           powerAvailable: 5,

@@ -2,10 +2,9 @@
  * End-to-end push-to-main test: proves the full wire round-trip preserves
  * the widget's config without dropping nested values (arrays, booleans).
  *
- * The reported bug: MapView pushed from a station showed no telemetry rows
- * on main. This test would fail if config were being flattened, JSON-
- * stringified with reviver issues, or replaced with `{}` anywhere on the
- * path from PeerClientService.sendWidgetPush to PushHostService's snapshot.
+ * This test would fail if config were being flattened, JSON-stringified with
+ * reviver issues, or replaced with `{}` anywhere on the path from
+ * PeerClientService.sendWidgetPush to PushHostService's snapshot.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";

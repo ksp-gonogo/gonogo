@@ -222,9 +222,9 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   mobileHeight?: number;
   dataRequirements?: string[];
   /**
-   * Topics this widget REQUIRES (Uplink architecture spec §3.2). The widget
+   * Topics this widget REQUIRES. The widget
    * only mounts once every one of these Topics is live, so a required Topic's
-   * payload is read non-null through the manifest hook (§3.3). Typed as
+   * payload is read non-null through the manifest hook. Typed as
    * `readonly WidgetChannelId[]`: the same typed token the read hook is keyed
    * by, so there is no drift between declaration and read. The union's other
    * arm is the client-side derived channels, which a widget consumes exactly as
@@ -235,9 +235,9 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    */
   channels?: readonly WidgetChannelId[];
   /**
-   * Topics this widget OPTIONALLY consumes (Uplink architecture spec §3.2).
+   * Topics this widget OPTIONALLY consumes.
    * May be absent at runtime, so every Value read from one is `| undefined`
-   * through the manifest hook (§3.3): a widget therefore cannot hard-depend
+   * through the manifest hook: a widget therefore cannot hard-depend
    * on an optional Topic, statically. Typed as `readonly WidgetChannelId[]`.
    * Authored via {@link defineTopicManifest} (`optionalChannels`).
    */
@@ -250,8 +250,8 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * widget mounts on the whole of `vessel.state` and draws a handful of its
    * fields: declaring only the former makes it claim all of them, and alarm
    * attribution matches by containment, so every other widget's alarm on that
-   * channel lights this panel too. Measured before this existed, 20 of the 23
-   * widgets declaring field paths would have falsely claimed a field another
+   * channel lights this panel too. Without this field, 20 of the 23
+   * widgets declaring field paths would falsely claim a field another
    * widget draws.
    *
    * OPTIONAL, and absent means "I draw everything I mount on", which is the
@@ -309,24 +309,24 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    */
   seats?: readonly Seat[];
   /**
-   * Addressable augment slots this widget owns (Uplink architecture spec §4.1).
+   * Addressable augment slots this widget owns.
    * Each entry is a small, stable API the base widget exposes via
    * `<AugmentSlot name="..." />`; any Uplink may contribute into it with
-   * `registerAugment`. Slot names are authored up front (`augment-slot-map.md`)
+   * `registerAugment`. Slot names are authored up front
    * and are discoverable/version-able like any contract surface. Not a
-   * core-widget privilege: an Uplink-owned widget can expose slots too (§4.6).
+   * core-widget privilege: an Uplink-owned widget can expose slots too.
    */
   augmentSlots?: string[];
   /**
-   * Addressable CONTRIBUTION slots this widget owns (contribution-slots-spec
-   * §4.3), the pure-data sibling of `augmentSlots`. Declared once so
+   * Addressable CONTRIBUTION slots this widget owns, the pure-data sibling of
+   * `augmentSlots`. Declared once so
    * `useContributions([...] as const)` (overload B) types its keyed result
    * off this widget's own list. A slot id is one kind or the other, never
    * both: do not list a slot here that is also in `augmentSlots`.
    */
   contributionSlots?: readonly ContributionSlotId[];
   /**
-   * Replacement escape hatch (Uplink architecture spec §4.5): declares that this
+   * Replacement escape hatch: declares that this
    * widget REPLACES the widget with the given id, the registry suppresses the
    * original and renders this one instead. This is the "throw the whole widget
    * away and render mine" case, distinct from (composable) augments. One active
@@ -335,8 +335,8 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    */
   replaces?: string;
   /**
-   * The Uplink client that registered this widget (Uplink Client Contract
-   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle,
+   * The Uplink client that registered this widget, stamped via
+   * `defineUplinkClient`'s returned handle,
    * never set by hand. Purely for provenance / mod search tags
    * (`effectiveSearchTags`) and future health/version surfaces; it plays no
    * part in registration collision handling (that stays the existing
