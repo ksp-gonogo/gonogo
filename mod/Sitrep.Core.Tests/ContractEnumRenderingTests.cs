@@ -126,9 +126,7 @@ public class ContractEnumRenderingTests
     ///
     /// <para>This test is the one that fails either way, because it reads the
     /// assembly's reference table rather than exercising behaviour that a stray
-    /// file can satisfy. A stray copy in a bin is exactly what made 13 failing
-    /// tests pass on 2026-08-20 and hid a dispatch bug for a month, so the check
-    /// that cannot be fooled by one has to stay.</para>
+    /// file can satisfy.</para>
     /// </summary>
     [Fact]
     public void ContractAssemblyDoesNotReferenceReinforcedTypings()

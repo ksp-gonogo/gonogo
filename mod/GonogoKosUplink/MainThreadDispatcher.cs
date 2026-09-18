@@ -8,12 +8,11 @@ using System.Threading;
 namespace Gonogo.KosUplink
 {
     /// <summary>
-    /// The main-thread dispatch spine every kOS touch must route through,
-    /// local_docs/telemetry-mod/kos-migration-spec.md §2, the adversarial
-    /// review's #1 must-have. kOS mutates all terminal/screen/volume state
+    /// The main-thread dispatch spine every kOS touch must route through.
+    /// kOS mutates all terminal/screen/volume state
     /// on the KSP/Unity main thread and does so WITHOUT locking (e.g.
-    /// <c>CharInputQueue</c> is a plain unlocked <c>Queue&lt;char&gt;</c>,
-    /// spec §1/§2). The Sitrep SDK pump (the WebSocket read/write loop) is
+    /// <c>CharInputQueue</c> is a plain unlocked <c>Queue&lt;char&gt;</c>).
+    /// The Sitrep SDK pump (the WebSocket read/write loop) is
     /// a BACKGROUND thread. Calling any kOS member directly from that
     /// thread races the VM and Unity: intermittent, load-dependent
     /// <c>NullReferenceException</c>s, "Collection was modified", and

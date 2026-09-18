@@ -730,10 +730,8 @@ export class BufferedDataSource extends DataSourceWrapper {
     // readings) and KSC-global state remain trustworthy whether or
     // not the telemetry antenna is up.
     //
-    // The blocklist was built from the 2026-05-18 live test: with the
-    // data-link disabled in-game, ~42 keys collapse to `2`; 131 keys
-    // continue to report real values. Rather than try to enumerate the
-    // honest set (a moving target), we enumerate the broken set.
+    // Rather than try to enumerate the honest set (a moving target), we
+    // enumerate the broken set.
     //
     // Special-cases handled outside the blocklist:
     //  - `p.paused` itself: returns the literal `2` here (it IS the

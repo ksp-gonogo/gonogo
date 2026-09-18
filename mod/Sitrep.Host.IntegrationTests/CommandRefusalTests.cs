@@ -217,7 +217,8 @@ namespace Sitrep.Host.IntegrationTests
                     SentAt = 0.0,
                 }));
 
-                // Pre-fix this timed out: nothing was ever sent for this request.
+                // Without the guard, nothing would ever be sent for this
+                // request and this would time out.
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
 
                 Assert.Equal("error", error.Type);

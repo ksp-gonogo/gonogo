@@ -165,9 +165,10 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
   }, 30_000);
 
   /**
-   * The witness that the scan and the registration both reach a real pair. It used to name
-   * one real Uplink's Topic, which leaves this repo with that Uplink, so it is the planted
-   * pair instead: read out of the planted C# tree and registered by the planted client.
+   * The witness that the scan and the registration both reach a real pair.
+   * Naming a real Uplink's Topic would tie this repo to that Uplink still
+   * existing, so a planted pair is used instead: read out of the planted C#
+   * tree and registered by the planted client.
    */
   it("reads the planted Uplink's C# Topic and sees its client registration", () => {
     expect(extractDeclaredTopics(PLANT_ROOT)).toContain(PLANTED_TOPIC);

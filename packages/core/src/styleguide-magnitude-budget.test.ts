@@ -11,9 +11,7 @@ import { describe, expect, it } from "vitest";
  *
  * The unit algebra can add, subtract, scale and compare `Value`s, and it knows
  * which quantities are instants and which are intervals. None of that helps if
- * the habit is to unwrap first and compute on bare numbers: before this budget
- * existed the entire arithmetic surface had ZERO product callers, not because
- * nothing computed, but because everything routed around it. An escape hatch
+ * the habit is to unwrap first and compute on bare numbers. An escape hatch
  * that is free to reach for is just the default path.
  *
  * Plenty of these unwraps are correct and always will be. A d3 scale wants a
@@ -37,12 +35,9 @@ import { describe, expect, it } from "vitest";
  *
  * ## Two acts, two counts
  *
- * This budget spent a long time unable to tell apart two things that look
- * identical in source: DISCARDING dimension in order to compute on bare
- * numbers, which is the defect it exists for, and SERIALISING at a numeric
- * boundary, which is unavoidable and is not. One spelling covered both, so the
- * only way out of the type system looked exactly like the mistake and a real
- * boundary cost the same as a lazy one.
+ * Two things look identical in source: DISCARDING dimension in order to
+ * compute on bare numbers, which is the defect this budget exists for, and
+ * SERIALISING at a numeric boundary, which is unavoidable.
  *
  * `Value.toWire()` is the second act, named. It is counted HERE, by
  * {@link WIRE_BUDGET}, on the same shrink-only terms: a separate ceiling, not
@@ -92,10 +87,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.
-  // 5, up from a written-down 4 that was never the real figure: the scan used
-  // to count matching LINES, and `pathConnectedDuring(a.magnitude, b.magnitude)`
-  // spends two on one. Nothing was added here, the counter learned to see what
-  // was already there. That pair is a boundary rather than arithmetic:
+  // 5: `pathConnectedDuring(a.magnitude, b.magnitude)`
+  // spends two on one. That pair is a boundary rather than arithmetic:
   // `PathConnectedDuring` is a CALLER-supplied predicate over bare UT numbers,
   // so the instants shed their type where they leave for someone else's code.
   "mod/sitrep-sdk/src/command-delay.ts": 5,
@@ -110,8 +103,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   //
   // ONE, and only because `DegradeRating.level` is a plain number on the way
   // out. The non-finite check is `Value.isFinite()` and the clamp is
-  // `.max(0).min(1)`, both in the algebra. This file used to unwrap for all
-  // three, which is exactly the escape `isFinite()` was added to retire.
+  // `.max(0).min(1)`, both in the algebra.
   "mod/sitrep-sdk/src/comms-degrade.ts": 1,
   // 6: the floors that turn an instant into calendar PARTS, plus the round
   // that lands the inverse back on a whole second. A day number is not a
@@ -124,16 +116,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // The wire carries it as a plain UT because the receiving side records it on
   // a receipt rather than doing algebra with it.
   "mod/sitrep-sdk/src/api/index.ts": 1,
-  // 3, all three in `frameVector`, and this file exists so that number stays 3.
-  // It read 1 while the scan counted matching LINES and the three components
-  // are unwrapped on one: the file gained nothing, the counter learned to see
-  // what a `[v.x, v.y, v.z]` return had always spent. The frame arithmetic
+  // 3, all three in `frameVector`. The frame arithmetic
   // works in bare metres throughout (a rotation matrix has no unit to carry),
   // so SOMETHING has to unwrap a wire vector before `toFrame` sees it. The
-  // alternative is every Uplink author doing it at their own call sites, which
-  // in this repo was previously written as a cast and put `Value` objects
-  // through arithmetic that wanted numbers. The unwrap is constrained to `"m"`
-  // and `"m/s"` here, which is the check a hand-rolled one does not get.
+  // alternative is every Uplink author doing it at their own call sites. The
+  // unwrap is constrained to `"m"` and `"m/s"` here, which is the check a
+  // hand-rolled one does not get.
   "mod/sitrep-sdk/src/frames/index.ts": 3,
   // 2: the observed instant a plan was built from, and the comparison against
   // the view instant that catches a plan built from a state nobody could have
@@ -148,17 +136,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // Having it here once is what lets every widget stop doing it: `UnitInput`
   // emits a `Value`, so a call site never sees a bare number at all.
   "packages/ui-kit/src/UnitInput.tsx": 1,
-  // Raised deliberately, and this file is where the escape hatch belongs: its
+  // This file is where the escape hatch belongs: its
   // job IS the wire shape, and the receiving side binds every instant and every
   // Δv component to a plain double. A `Value` reaching it is refused from inside
   // the handler, which loses the whole plan and marks the vessel uplink
   // unavailable for the session. Unwrapping once here is what stops every caller
   // building that shape by hand and finding out the same way.
   "mod/sitrep-sdk/src/plan-composition.ts": 8,
-  // 2, up from a written-down 1 the file never used: `lerpFieldValue(key,
-  // before.magnitude, after.magnitude, t)` spends two on one line, and the scan
-  // used to charge that line once. Nothing was added. Both are a boundary: the
-  // recursion re-enters itself on the plain-number branch and re-declares the
+  // 2: `lerpFieldValue(key,
+  // before.magnitude, after.magnitude, t)` spends two on one line. Both are a
+  // boundary: the recursion re-enters itself on the plain-number branch and re-declares the
   // unit on the way out, so the two samples meet the interpolator bare and by
   // construction share a unit.
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 2,
@@ -199,7 +186,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/ContractManager/index.tsx": 2,
   "packages/components/src/CrewStatus/badge.ts": 2,
   /*
-   * 2, up from 1 on 2026-09-12. The second is `suitResourceTone`, which bands a
+   * 2. The second is `suitResourceTone`, which bands a
    * suit tank's remaining fraction against two thresholds. The division is
    * `amount.dividedBy(capacity)` and therefore dimension-checked; its quotient
    * is dimensionless by construction, so the unwrap is on a number that has
@@ -210,16 +197,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/CurrentOrbit/index.tsx": 3,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
-  // 19, down from 34: every plot on this widget is a contribution now, and each
-  // reads its own Topics. What the widget used to unwrap once and hand down as
-  // props (the terrain patch, the drift, the speeds) it no longer unwraps at
-  // all. The nineteenth is the altitude RAIL's own AGL: the rail is a gauge
-  // rather than a plot, so it stayed the widget's and reads its one number
-  // here.
+  // 19: every plot on this widget is a contribution, and each
+  // reads its own Topics. The nineteenth is the altitude RAIL's own AGL: the
+  // rail is a gauge rather than a plot, so it stayed the widget's and reads its
+  // one number here.
   //
-  // The three entries below are where those reads went, and they add up to more
-  // than the sixteen that left. That is the cost of the model rather than a
-  // regression to work off: a plot that derives its own inputs cannot share the
+  // The three entries below are where the plot reads live. That is the cost of
+  // the model rather than a regression to work off: a plot that derives its own
+  // inputs cannot share the
   // host's derivation, because a host with a derivation to share is a host with
   // a privilege an outside author does not have. Three plots reading the same
   // four Topics unwrap them three times, on purpose.
@@ -249,11 +234,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
-  // 18, up from a written-down 16, and the two are on lines this scan used to
-  // charge once each: two `{ ut, lat, lon }` literals each unwrap a latitude
-  // and a longitude side by side. The file gained no unwrap; the counter
-  // learned to see what was already there.
-  // Of the sixteen that were visible, the sixteenth is a maneuver node's own
+  // 18: two `{ ut, lat, lon }` literals each unwrap a latitude
+  // and a longitude side by side. One of them is a maneuver node's own
   // UT. It reads the modern vessel.maneuver shape, where the instant is a
   // Value; the horizon it feeds is plain-number geometry against a plain-number
   // view instant, so the unwrap belongs at that boundary rather than one term
@@ -271,33 +253,23 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 1: the view instant, unwrapped to bound a history window. sampleRange
   // takes plain UT numbers because a store index is not a quantity.
   "packages/components/src/shared/usePastTrack.ts": 1,
-  // 3, all three in `bare`, up from a written-down 1: the three components come
-  // off one line and the scan used to charge that line once. No unwrap was
-  // added. `bare` is the honest form of the `as Vec3` cast this file used to
-  // carry, which asserted the leaves were numbers and put a `Value` into
-  // `toFixed` the moment they were not.
+  /*
+   * 3, all three in `bare`: the three components come off one line. `bare` is
+   * the honest form of an `as Vec3` cast, which would assert the leaves were
+   * numbers and put a `Value` into `toFixed` the moment they were not.
+   */
   "packages/components/src/shared/dockAngles.ts": 3,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 1,
   "packages/components/src/SystemView/index.tsx": 23,
-  // 5, and it is a real shrink rather than a re-measurement. Counting
-  // occurrences showed this file at 8, not the 7 written down: the LAN and
-  // argPe coalesce shared a line. All three of those were `?.magnitude ?? 0`
-  // and `?.magnitude` behind a `Number.isFinite` guard, which is what
-  // `magnitudeOr` and `magnitudeOf` exist to say, so they went rather than
-  // being written down. What is left is the five elements the shared Kepler
-  // solver takes as canonical SI numbers.
+  // 5: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
+  // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
+  // `magnitudeOf` instead and so does not count here. What is left is the five
+  // elements the shared Kepler solver takes as canonical SI numbers.
   "packages/components/src/SystemView/usePhaseAngles.ts": 5,
   "packages/components/src/Targeting/index.tsx": 5,
   "packages/components/src/ThermalStatus/index.tsx": 13,
-  // 1, down from a written-down 2 that occurrence-counting first showed to be
-  // 3. The view instant was `viewUt?.magnitude ?? 0`, which is `magnitudeOr`
-  // spelled out, and the parking radius was `sma.times(1 - ecc.magnitude)
-  // .magnitude`, two on one line: eccentricity is `Value<"1">`, so `a(1 - e)`
-  // is expressible in the algebra end to end and only the result needs
-  // unwrapping. Both went rather than being written down.
-  //
-  // The one that stays is the Δv budget the reach list compares against.
+  // 1: the Δv budget the reach list compares against.
   // `calc/transfer.ts` and the porkchop are deliberately plain-SI ("no React,
   // no side effects", see their own docs), so a `Value<"m/s">` off the wire has
   // to shed its unit exactly once to be compared against a solver's cost. Doing
@@ -324,8 +296,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // wire wants: nothing added to the vector, said in one place.
   "packages/data/src/hooks/useManeuverNodes.ts": 4,
   "packages/data/src/hooks/useDataSeries.ts": 1,
-  // 22, up from a written-down 20: the part's `up` vector spends three on one
-  // line and the scan charged it once. Nothing was added to this file. It is
+  // 22: the part's `up` vector spends three on one
+  // line. It is
   // the wire-to-plain-model adapter for the parts list, so every read here is
   // the same boundary said once per field.
   "packages/data/src/hooks/vesselPartsAdapter.ts": 22,
@@ -375,14 +347,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
   /*
-   * The four instrument primitives, seeded 2026-09-12 when their axes stopped
-   * being bare numbers. Each one unwraps its axis ONCE per quantity into the
-   * drawing's own coordinate space: an SVG path command, a `y` pixel, a CSS
-   * width. That is the permanent kind of unwrap this budget's own header names
-   * ("a d3 scale wants a number"), and it is what makes the change a net gain
-   * rather than a wash: one `U` across value, min, max, zones, ticks and
-   * markers is what makes these magnitudes belong on one scale at all, where
-   * before nothing checked it. Every figure a READER sees goes back out
+   * The four instrument primitives. Each one unwraps its axis ONCE per
+   * quantity into the drawing's own coordinate space: an SVG path command, a
+   * `y` pixel, a CSS width. That is the permanent kind of unwrap this budget's
+   * own header names ("a d3 scale wants a number"), and it is what makes one
+   * `U` across value, min, max, zones, ticks and markers belong on one scale
+   * at all. Every figure a READER sees goes back out
    * through `writeQuantity` or `speakQuantity`.
    *
    * Tape spends the most because it has the most axis props (value, min, max,
@@ -406,14 +376,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * and an `aria-valuenow`.
    */
   "packages/ui-kit/src/fillQuantity.ts": 1,
-  // 1, and it is the implementation: this is the ONE unwrap in the repo, moved
-  // down from ui-kit on 2026-08-25 so `sitrep-sdk`'s own files could reach it
-  // without a cycle. ui-kit re-exports it and now spends none.
+  /*
+   * 1, and it is the implementation: this is the ONE unwrap in the repo,
+   * living here so `sitrep-sdk`'s own files can reach it without a cycle.
+   * ui-kit re-exports it and spends none.
+   */
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   /*
-   * 5, up from 2 on 2026-09-15 with the uncertainty interval `<Unit>` now draws
-   * beside a banded reading. Three of the five are the seam `units.ts` spends
+   * 5. Three of the five are the seam `units.ts` spends
    * its three on: `formatQuantity` takes the magnitude and the unit as two
    * plain arguments, so a quantity object cannot be handed over whole. One of
    * those three is the staleness hover rendering the reading's own `asOfUt` on
@@ -432,11 +403,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/ui-kit/src/Unit.tsx": 5,
   /*
-   * ONE, and it is the same fill fraction `fillQuantity.ts` spends its own on,
-   * moved back here on 2026-09-15 when `Meter` stopped taking the pair as one
-   * object: the two halves are two props now, so the division is this file's
-   * again and `fillQuantity` keeps its copy for `ProgressBar`, which still
-   * takes a pair.
+   * ONE, and it is the same fill fraction `fillQuantity.ts` spends its own on:
+   * `Meter` takes the pair as two props, so the division belongs to this file,
+   * and `fillQuantity` keeps its copy for `ProgressBar`, which still takes a
+   * pair.
    *
    * `dividedBy` has already checked the two halves are the same kind and made
    * the quotient dimensionless, so this unwraps a number that has stopped being
@@ -446,7 +416,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/ui-kit/src/Meter.tsx": 1,
   /*
-   * 3, up from 2 on 2026-09-12. Each is the SAME unwrap in the same place: the
+   * 3. Each is the SAME unwrap in the same place: the
    * seam where a quantity object meets `formatQuantity`, which takes the
    * magnitude and the unit as two arguments. `speakQuantity` and
    * `writeQuantity` have each spent one there since they existed; `quantityScale`
@@ -487,10 +457,9 @@ const WIRE_BUDGET: Record<string, number> = {
    * to the chart and then over PeerJS to a station. Nothing computes with them
    * here; the shading path in `lineChartMath` scales them into SVG coordinates.
    *
-   * The pair used to be spent in the store, where the tail is minted. It moved
-   * here on 2026-09-14 with `ReckonedSample`'s ends: those stay wrapped out of
-   * the store now, and are unwrapped beside the value they describe, at the one
-   * boundary this file's own magnitude entry already names.
+   * Those ends stay wrapped out of the store, and are unwrapped beside the
+   * value they describe, at the one boundary this file's own magnitude entry
+   * already names.
    */
   "packages/data/src/hooks/useDataSeries.ts": 2,
 };
@@ -500,8 +469,8 @@ const WIRE_BUDGET: Record<string, number> = {
  * regex, a moved root, a renamed extension) every count reads as zero and the
  * budget reports success while checking nothing.
  *
- * That is not hypothetical: the regex for this very check returned zero matches
- * on the first attempt, because `git grep -E` does not take `\b`.
+ * That is not hypothetical: `git grep -E` does not take `\b`, so a regex
+ * written without accounting for that returns zero matches silently.
  *
  * Deliberately well under the real total, so ordinary shrinking never trips it.
  */
@@ -873,12 +842,9 @@ describe("the magnitude budget only shrinks", () => {
 
   it("has no entry for a path that no longer exists", () => {
     /*
-     * An Rp1 Uplink widget's entry sat on this list carrying 2 after its whole
-     * directory was deleted. A budget entry for a file that is gone can never
-     * be spent, so it never trips the over-budget arm and never gets removed:
-     * it is pure slack that no run reports. The sibling token ratchet already
-     * guards this ("excuses no path that has moved or been deleted"); this one
-     * did not, which is how the entry outlived its file.
+     * A budget entry for a file that is gone can never be spent, so it never
+     * trips the over-budget arm and never gets removed: it is pure slack that
+     * no run reports.
      */
     const missing = Object.keys(MAGNITUDE_BUDGET)
       .filter((rel) => !existsSync(join(root, rel)))
@@ -895,13 +861,9 @@ describe("the magnitude budget only shrinks", () => {
      * 2 is not a record of anything: it is permission for two more, and the
      * over-budget arm below cannot see them because they fit.
      *
-     * This used to be nothing at all here, and on the sibling styled-components
-     * ratchet it was a `console.warn`. Vitest 4's default reporter suppresses
-     * console output for a PASSING test and both `pnpm test` and CI run the
-     * default reporter, so that warning reached no stream anyone reads and went
-     * unheard through thirty imports. Failing is the only signal here that has
-     * been shown to move a number, and unlike "someone read the log" it can be
-     * tested by planting a shrink.
+     * Vitest 4's default reporter suppresses console output for a PASSING
+     * test, so a `console.warn` here would reach no stream anyone reads.
+     * Failing is the only signal that can be tested by planting a shrink.
      *
      * Not a new contract so much as a consistent one: the sibling test above
      * already hard-fails a budget entry whose file was DELETED. A file that

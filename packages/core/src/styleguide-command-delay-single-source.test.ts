@@ -10,14 +10,7 @@ import { describe, expect, it } from "vitest";
  * Whether a command rides signal delay is declared ONCE, and both halves read
  * that one declaration.
  *
- * The defect this replaced: the mod stated it per command on
- * `CommandDeclaration.Delay`, the client kept a hand-written set of instant
- * ids in `map-command.ts`, and nothing carried either answer to the other. The
- * mod ran 54 commands the instant they arrived; the client's set named two. So
- * 52 commands were drawn with a countdown and an in-flight queue row that was a
- * fiction about the operator's own order, and neither side could see it.
- *
- * The declaration now lives on each command's `[SitrepCommand(Delay = ...)]` in
+ * The declaration lives on each command's `[SitrepCommand(Delay = ...)]` in
  * the contract, in the same `DelayRole` vocabulary a channel uses. The host
  * dispatches by it (`ChannelEngine.ResolveCommandDelay` through
  * `CommandDelayCatalog`), and the SDK codegen writes it into
@@ -32,9 +25,9 @@ import { describe, expect, it } from "vitest";
  * and fails on a diff, so a map here cannot be stale with respect to the
  * attribute the host reads.
  *
- * KNOWN REACH, narrowed 2026-09-12 when the two spellings merged: half 2 reads
+ * KNOWN REACH: half 2 reads
  * `new CommandDeclaration { ... }` initializers, which is every restatement the
- * tree has ever contained and how a manifest is written. What it can no longer
+ * tree has ever contained and how a manifest is written. What it cannot
  * see is a disposition assigned to an already-built declaration
  * (`decl.Delay = ...` on a line of its own), because `Delay =` outside an
  * initializer is what a CHANNEL correctly writes and nothing textual tells the

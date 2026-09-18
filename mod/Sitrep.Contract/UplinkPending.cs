@@ -38,11 +38,9 @@ public class PendingUplink
     /// <internal>
     /// ChannelEngine.NextRequestId(), minted in ProcessDispatchCommand and passed
     /// to Courier.DispatchCommand; the socket handler's req.RequestId is captured
-    /// only by the response closure and never reaches the job. Said out loud
-    /// because this comment read "== the dispatch CommandRequest.RequestId, the
-    /// correlation key" until 2026-09-06, and Sitrep.Contract has exactly one
-    /// CommandRequest: the wire one. A client author hovering the published TSDoc
-    /// would join on an id that can never match.
+    /// only by the response closure and never reaches the job. Sitrep.Contract
+    /// has exactly one CommandRequest: the wire one, and a client author hovering
+    /// the published TSDoc would join on an id that can never match.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]

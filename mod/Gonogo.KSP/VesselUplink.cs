@@ -14,9 +14,7 @@ namespace Gonogo.KSP
     /// the M1 vessel/time.warp READ channels with
     /// <see cref="VesselViewProvider"/>'s typed mappers (via its wire-adapter
     /// <c>*Wire</c> overloads: see that class's doc comment), wires the
-    /// subject-provenance + epoch mechanism
-    /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1/§8.1 call
-    /// "must-ship, unretrofittable": every <c>vessel.*</c> sample already
+    /// subject-provenance + epoch mechanism: every <c>vessel.*</c> sample already
     /// carries <c>meta.source = "vessel:&lt;guid&gt;"</c> (VesselViewProvider's
     /// job); this uplink additionally registers <see cref="VesselEpochSampler"/>,
     /// which detects an active-vessel GUID change and forces an
@@ -211,16 +209,10 @@ namespace Gonogo.KSP
                 Channel(StageDeltaVViewProvider.StagesTopic, absenceIsData: true),
                 Channel(StageDeltaVViewProvider.SummaryTopic, absenceIsData: true),
             },
-            // The command delay classification is NOT here any more.
-            //
-            // This list used to carry a delayed: flag per command and call
-            // itself the one table to edit. It was one of two: the client kept
-            // its own set of instant ids, the two disagreed about 52 commands,
-            // and neither could see the other. The flag now lives on each
-            // command's args type in the contract
-            // (SitrepCommandAttribute.Delay), which is the SAME declaration
-            // the SDK codegen turns into GENERATED_COMMAND_RAIL, so the mod's
-            // dispatch and the console's countdown read one answer.
+            // Command delay classification lives on each command's args type in
+            // the contract (SitrepCommandAttribute.Delay), which is the SAME
+            // declaration the SDK codegen turns into GENERATED_COMMAND_RAIL, so
+            // the mod's dispatch and the console's countdown read one answer.
             //
             // The rule the values follow, from the simulation's point of view
             // rather than one console's: a command that changes the SCENE, a
@@ -571,8 +563,7 @@ namespace Gonogo.KSP
         /// already declared instant on exactly that reasoning (see its
         /// <c>[SitrepCommand]</c> in <c>Sitrep.Contract/VesselCommands.cs</c>).</para>
         ///
-        /// <para>It used to be <see cref="DelayRole.Delayed"/> because it
-        /// arrives on the vessel snapshot. That is a routing fact, not a
+        /// <para>Arriving on the vessel snapshot is a routing fact, not a
         /// provenance one, and routing is not what decides this.</para>
         ///
         /// <para>Named for the one topic it builds rather than generalised to a

@@ -297,11 +297,10 @@ describe("DelayedPlayoutBuffer", () => {
     });
   });
 
-  // -- gopSafeEviction: the fix for encoded video's GOP-dependency hazard
-  // flagged in local_docs/reports/encoded-transform-spike-report.md
-  // ("frame ordering / GOP dependency survival"): an encoded delta frame
-  // depends on a prior reference frame, so evicting a single mid-GOP delta
-  // frame (the default eviction unit) would corrupt the decode chain.
+  // -- gopSafeEviction: the fix for encoded video's GOP-dependency hazard: an
+  // encoded delta frame depends on a prior reference frame, so evicting a
+  // single mid-GOP delta frame (the default eviction unit) would corrupt the
+  // decode chain.
   describe("gopSafeEviction", () => {
     it("evicts a complete oldest GOP (keyframe + its deltas) as one atomic unit, never a lone mid-GOP delta", () => {
       const clock = manualClock(Number.NEGATIVE_INFINITY);

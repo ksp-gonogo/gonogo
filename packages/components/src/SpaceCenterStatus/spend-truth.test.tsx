@@ -217,9 +217,8 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     const button = await screen.findByRole("button", {
       name: /rp1\.facility\.upgrade/,
     });
-    /* aria-disabled and NOT disabled, the ruling CommandButton's `blocked`
-       phase sets out, so a screen reader still finds the control and a press
-       can surface the reason. */
+    /* aria-disabled and NOT disabled, so a screen reader still finds the
+       control and a press can surface the reason. */
     expect(button.getAttribute("aria-disabled")).toBe("true");
     expect((button as HTMLButtonElement).disabled).toBe(false);
   });

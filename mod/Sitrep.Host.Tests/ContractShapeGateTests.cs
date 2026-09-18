@@ -13,8 +13,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The CI contract-shape gate: see
-    /// <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>. Reflects
+    /// The CI contract-shape gate. Reflects
     /// every <see cref="SitrepContractAttribute"/>-marked type in
     /// <c>Sitrep.Contract</c> (applied alongside every real
     /// <c>[TsInterface]</c> usage: see <see cref="SitrepContractAttribute"/>'s
@@ -30,30 +29,8 @@ namespace Sitrep.Host.Tests
     /// this project the same way the other <c>golden-fixtures/</c> JSON
     /// fixtures are; see this project's .csproj).
     ///
-    /// <para><b>Why a ledger and not a single baseline.</b> This gate used to
-    /// diff against one baseline blob that mirrored HEAD. That blob was
-    /// regenerated in the SAME commit that bumped
-    /// <see cref="ContractVersion.Major"/>, which meant the gate compared the
-    /// new code against a baseline derived from the new code, and passed
-    /// vacuously. A Major bump was a blanket amnesty: <c>DiffNonAdditive</c>
-    /// returned early on <c>baseline.Major != currentMajor</c> without ever
-    /// inspecting the change. The gate was trivially satisfied by the very act
-    /// it existed to scrutinise, and both failure modes below reached
-    /// <c>staging</c> in the wild:</para>
-    ///
-    /// <para>(1) Two branches independently bumped Major 3 -&gt; 4 with
-    /// DIFFERENT wire shapes (a <c>CommsDelay</c> nullable retype and a
-    /// <c>VesselControl.ActionGroups</c> retype). Merged, v4 would have named
-    /// two incompatible shapes. Caught by a human reading a rebase diff, not by
-    /// this gate.</para>
-    ///
-    /// <para>(2) The follow-up collapse landed the action-group retype as
-    /// v4.<b>1</b> (an "additive Minor") on top of a v4.<b>0</b> that had
-    /// already published <c>ActionGroups</c> as <c>System.Boolean[]</c>. A
-    /// retype is not additive. The gate passed silently because the baseline
-    /// had been regenerated and no longer remembered v4.0.</para>
-    ///
-    /// <para>Both are one root cause: <b>the baseline had no memory</b>. The
+    /// <para><b>Why a ledger and not a single baseline.</b> <b>The baseline had
+    /// no memory.</b> The
     /// ledger fixes exactly that. Each entry records a Major's frozen
     /// <c>Shape</c>, written ONCE when that Major is created and never
     /// rewritten (see <see cref="FreezeCurrentMajor_ManualOnly"/>, which
@@ -80,10 +57,9 @@ namespace Sitrep.Host.Tests
     /// </list>
     ///
     /// <para>Note what is deliberately NOT enforced: this gate never decides
-    /// whether a break is <i>allowed</i>. That is a human call (the v4 collapse
-    /// was ratified on the grounds that the mod is pre-release with no external
-    /// Uplinks). The gate's job is only to guarantee the call is made
-    /// explicitly, recorded, and true.</para>
+    /// whether a break is <i>allowed</i>. That is a human call. The gate's job
+    /// is only to guarantee the call is made explicitly, recorded, and
+    /// true.</para>
     /// </summary>
     public class ContractShapeGateTests
     {
@@ -306,14 +282,14 @@ namespace Sitrep.Host.Tests
         /// Reproduces the exact collision that reached <c>staging</c>: the
         /// action-group retype landing as an "additive" v4.1 on top of a v4.0
         /// that had already published <c>ActionGroups</c> as
-        /// <c>System.Boolean[]</c>. Under the old single-mirror baseline this
-        /// passed silently, because the baseline had been regenerated and no
-        /// longer remembered v4.0. Against a frozen floor it is caught.
+        /// <c>System.Boolean[]</c>. Under a single-mirror baseline this passes
+        /// silently, because the baseline is regenerated and no longer
+        /// remembers v4.0. Against a frozen floor it is caught.
         /// </summary>
         [Fact]
         public void GateSelfTest_CatchesTheRealV40ToV41ActionGroupCollision()
         {
-            // Major 4's floor, as commit 57daa136 actually published it.
+            // Major 4's floor: the real published shape before the retype.
             var v40Floor = new Shape
             {
                 Types = new Dictionary<string, string[]>
@@ -563,14 +539,12 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Proves the topic dimension does what the type and enum dimensions
-        /// already do, INCLUDING the case that was the whole defect: an id
-        /// renamed while the class and its members stay identical.
+        /// already do: catches an id renamed while the class and its members
+        /// stay identical.
         ///
-        /// <para>That case was planted in the real contract first
-        /// (<c>career.mode</c> to <c>career.modeRENAMED</c>, nothing else
-        /// touched) and the gate passed 8 of 8. A client binds to the id
-        /// string, so every subscriber would have broken while the shape gate
-        /// reported the contract unchanged.</para>
+        /// <para>A client binds to the id string, so every subscriber would
+        /// break on a rename that the type and enum dimensions cannot see,
+        /// because nothing about the class or its members changed.</para>
         ///
         /// <para>The absent-floor case is asserted here too, because it is the
         /// one that decides whether backfilling this dimension could rewrite
@@ -718,14 +692,13 @@ namespace Sitrep.Host.Tests
         ///
         /// <para>Step 1 and 3 are not ceremony. xUnit 2's <c>Skip</c> is
         /// UNCONDITIONAL: no <c>--filter</c> and no environment variable can
-        /// run a skipped fact, so the one-line invocation this comment used to
-        /// give reported <c>Skipped! 1</c> and wrote nothing, which reads
+        /// run a skipped fact. Filtering for this test without dropping the
+        /// Skip reports <c>Skipped! 1</c> and writes nothing, which reads
         /// exactly like a freeze that had no work to do. The env var below is
         /// still the guard that matters, and it is what makes dropping the
         /// Skip safe.</para>
         ///
-        /// <para>Three deliberate differences from the old
-        /// <c>RegenerateBaseline_ManualOnly</c> it replaces:</para>
+        /// <para>Three deliberate choices in how this utility works:</para>
         ///
         /// <para>(1) It <b>refuses to overwrite an existing Major's frozen
         /// Shape</b>. That refusal is the fix: rewriting the floor in the same
@@ -890,20 +863,10 @@ namespace Sitrep.Host.Tests
         /// <see cref="System.Reflection.PortableExecutable"/>), NOT
         /// <c>System.Reflection</c>'s <c>Type.GetCustomAttributesData()</c>/
         /// <c>IsDefined</c>. Both of those eagerly resolve EVERY custom
-        /// attribute applied to a type in one shot (verified experimentally
-        /// while writing this gate: even wrapping the enumeration call itself
-        /// in try/catch wasn't enough: <c>GetCustomAttributesData()</c> throws
-        /// building its full record list before a single record is ever
-        /// inspected). That mattered enormously while every
-        /// <c>[SitrepContract]</c> type ALSO carried <c>[TsInterface]</c> from
-        /// <c>Reinforced.Typings</c>, an assembly deliberately never deployed:
-        /// any CLR-level attribute enumeration on these types threw
-        /// <see cref="System.IO.FileNotFoundException"/>, whichever attribute
-        /// was actually being searched for. That is fixed at the source, the
-        /// codegen attributes are compiled only into
-        /// <c>Sitrep.Contract.Codegen</c> now (see
-        /// <c>Sitrep.Contract.csproj</c>'s doc comment), and
-        /// <c>Sitrep.Core.Tests.ContractEnumRenderingTests</c> holds it there.
+        /// attribute applied to a type in one shot: even wrapping the
+        /// enumeration call itself in try/catch is not enough, because
+        /// <c>GetCustomAttributesData()</c> throws building its full record
+        /// list before a single record is ever inspected.
         ///
         /// <para>The PE-metadata read stays regardless. It only ever needs the
         /// attribute CONSTRUCTOR's simple name and never resolves it to a live
@@ -1007,18 +970,10 @@ namespace Sitrep.Host.Tests
         /// way so this gate reads an assembly's shape without depending on
         /// anything that assembly references.
         ///
-        /// <para>The measurement that first forced it is worth keeping, because
-        /// it is the clearest statement of what the codegen-attribute leak
-        /// actually did. While the contract enums carried <c>[TsEnum]</c> from
-        /// the undeployed <c>Reinforced.Typings</c>,
-        /// <c>Type.IsEnum</c>/<c>Enum.GetNames</c>'s own CLR machinery
-        /// (<c>RuntimeType.GetEnumNames</c> → <c>Enum.EnumInfo.Create</c>)
-        /// called <c>CustomAttribute.IsCustomAttributeDefined</c> and threw
-        /// <see cref="System.IO.FileNotFoundException"/>. Enum SHAPE, not just
-        /// the marker, was unreachable. The same call chain is why
-        /// <c>Enum.ToString()</c> threw. That leak is fixed at the source
-        /// (<c>Sitrep.Contract.Codegen</c>), so the CLR path would work now,
-        /// but the metadata read remains the better instrument.</para>
+        /// <para>The metadata read remains the better instrument regardless:
+        /// it does not depend on the CLR's own enum-reflection machinery
+        /// (<c>Type.IsEnum</c>/<c>Enum.GetNames</c>), which resolves custom
+        /// attributes as a side effect of asking the question at all.</para>
         /// </summary>
         private static bool IsEnumTypeDefinition(
             System.Reflection.Metadata.MetadataReader metadataReader,

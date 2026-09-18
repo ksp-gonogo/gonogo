@@ -7,17 +7,13 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
 {
     /// <summary>
     /// The rule these pin: a currency event is delayed by exactly ONE number,
-    /// the one-way light-time of a live control path whose last hop is home
-    /// (<c>local_docs/design/2026-08-15-unroutable-currency-consensus.md</c>).
+    /// the one-way light-time of a live control path whose last hop is home.
     ///
-    /// <para>This file used to test the opposite. It had cases named
-    /// <c>Resolve_falls_back_to_straight_line_when_no_routed_delay_is_available</c>
-    /// and a family of <c>FromDistance</c> tests, all asserting that a chord
-    /// from the craft to KSC divided by <c>c</c> was an acceptable delay. It is
-    /// not one: a chord passes through whatever the craft is hiding behind, so
-    /// it quoted a confident, timed delay for a craft nothing could reach and
-    /// science from the far side of the system was credited as though it had
-    /// arrived. Those tests are gone with the code they protected.</para>
+    /// <para>A straight-line chord from the craft to KSC divided by <c>c</c> is
+    /// not an acceptable delay: it passes through whatever the craft is hiding
+    /// behind, so it quotes a confident, timed delay for a craft nothing could
+    /// reach, and science from the far side of the system would be credited as
+    /// though it had arrived.</para>
     /// </summary>
     public class KscLightTimeTests
     {

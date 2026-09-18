@@ -153,9 +153,8 @@ export type WorkerToMainMessage =
 // file actually needs, the same "minimal ambient surface" spirit as
 // `webcodecs-track-io.d.ts`.
 // `RTCTransformEvent`/`RTCRtpScriptTransform` are the standard WebRTC
-// Encoded Transform API (encoded-transform video-delay work, 2026-07-16,
-// see `../encoded-frame-delay.ts`'s module doc). Declared locally, narrowed to
-// just what `handleRtcTransform` reads, for the same "minimal ambient
+// Encoded Transform API (see `../encoded-frame-delay.ts`'s module doc).
+// Declared locally, narrowed to just what `handleRtcTransform` reads, for the same "minimal ambient
 // surface, no full webworker lib" reason as `WorkerGlobalSurface` itself,
 // this repo's default DOM lib doesn't reliably ship these types across TS
 // versions, and a full declaration isn't needed.

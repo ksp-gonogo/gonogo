@@ -5,8 +5,7 @@ namespace Sitrep.Host
     /// Detects an active-vessel GUID change (docking/undocking/EVA/vessel
     /// switch) and forces an unconditional keyframe on every
     /// <c>vessel.*</c> channel for that same tick: the "subject provenance +
-    /// epoching" rule from local_docs/telemetry-mod/m1-provider-taxonomy-design.md
-    /// §6.1: without this, a station's <c>vessel.*</c> timeline would
+    /// epoching" rule -- without this, a station's <c>vessel.*</c> timeline would
     /// silently interleave two different physical objects across the
     /// switch, poisoning both live delivery and <c>request(range)</c>
     /// history.

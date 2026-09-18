@@ -62,7 +62,7 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * When the vantage IS the craft the light-time is zero, the two clocks
  * coincide, and there is nothing to qualify.
  *
- * ## The letters RT are ruled out
+ * ## RT is not used as an abbreviation
  *
  * Both clocks already exist in this codebase and one of them is named the
  * opposite of what an RT label would mean: `useViewUt()` is the DELAYED clock

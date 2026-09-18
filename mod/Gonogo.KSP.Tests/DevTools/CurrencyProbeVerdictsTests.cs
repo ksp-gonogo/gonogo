@@ -4,9 +4,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.DevTools
 {
     /// <summary>
-    /// The readings the currency-delay dev probe reports, exercised against the exact
-    /// numbers real rig runs produced on 2026-08-27, when the probe could not express
-    /// any of them and a night went into re-deriving them by hand.
+    /// The readings the currency-delay dev probe reports.
     ///
     /// <para><see cref="CurrencyProbeVerdicts.RefuseTrigger"/> is covered here for a
     /// second reason: it gates a real recovery, a real vessel destruction and a real
@@ -15,8 +13,7 @@ namespace Gonogo.KSP.Tests.DevTools
     ///
     /// <para>Every case here is chosen so a WRONG answer is a different string, not a
     /// missing one: a verdict that read the same whether the subsystem worked or not
-    /// would be worth nothing, which is the specific failure this probe was extended
-    /// to avoid.</para>
+    /// would be worth nothing.</para>
     /// </summary>
     public class CurrencyProbeVerdictsTests
     {
@@ -25,7 +22,6 @@ namespace Gonogo.KSP.Tests.DevTools
         [Fact]
         public void A_reveal_exactly_one_silence_deadline_out_is_named_unroutable()
         {
-            // The row the rig actually held: enqueued at UT 2694.36, reveal 24294.36.
             // The difference is 21600 to the digit, which is the silence-declaration
             // policy deadline and not a light-time anybody measured.
             var verdict = CurrencyProbeVerdicts.ClassifyRevealOffset(
@@ -38,8 +34,7 @@ namespace Gonogo.KSP.Tests.DevTools
         [Fact]
         public void A_reveal_at_earth_moon_light_time_is_named_routed()
         {
-            // 384,400 km at the rig's lightSpeedScale = 0.1 is ~12.82s one-way: the
-            // number the operator expected and never saw.
+            // 384,400 km at the rig's lightSpeedScale = 0.1 is ~12.82s one-way.
             var verdict = CurrencyProbeVerdicts.ClassifyRevealOffset(
                 revealUt: 2707.18, eventUt: 2694.36, silenceDeclarationSeconds: StockKerbinDaySeconds);
 
@@ -84,10 +79,6 @@ namespace Gonogo.KSP.Tests.DevTools
         [Fact]
         public void The_override_verdict_says_NO_when_the_route_read_followed_the_real_link()
         {
-            // The rig's third run: force-comms mode=restore was in force, the real
-            // CommNet link was down, and the route read still found no path. That is
-            // the currency arm ignoring the override, and it means the run was not a
-            // control at all.
             var verdict = CurrencyProbeVerdicts.JudgeOverrideReach(
                 overrideMode: true, rawCommNetConnected: false, routeReadFoundAPath: false);
 
@@ -160,8 +151,6 @@ namespace Gonogo.KSP.Tests.DevTools
         [Fact]
         public void A_balance_that_did_not_move_with_a_row_queued_is_named_withheld()
         {
-            // The science row the rig held on 2026-08-27: 25 science withheld, one
-            // pending row, balance unmoved.
             var verdict = CurrencyProbeVerdicts.JudgeCurrencyMovement(
                 readable: true, unreadableFault: "", delta: 0.0, newPendingRows: 1, tolerance: Tolerance);
 
@@ -195,9 +184,9 @@ namespace Gonogo.KSP.Tests.DevTools
         [Fact]
         public void An_unreadable_balance_is_unreadable_and_never_reads_as_no_movement()
         {
-            // The defect this replaced: a missing ScenarioModule read as 0.0, and 0.0 is
-            // also what an unmoved balance reads, so a save the probe could not measure
-            // reported the same line as a clean run.
+            // A missing ScenarioModule read as 0.0, and 0.0 is also what an unmoved
+            // balance reads, so a save the probe could not measure reported the same
+            // line as a clean run.
             var verdict = CurrencyProbeVerdicts.JudgeCurrencyMovement(
                 readable: false, unreadableFault: "no Reputation instance on this save",
                 delta: 0.0, newPendingRows: 0, tolerance: Tolerance);
@@ -231,9 +220,8 @@ namespace Gonogo.KSP.Tests.DevTools
         [Fact]
         public void A_derived_quantity_that_moved_while_a_currency_was_withheld_is_named_a_leak()
         {
-            // The measurement that opened this: 25 science withheld while RP-1's
-            // confidenceEarned went 200 to 300 at earn time. An operator watching
-            // confidence knew the science had arrived before the science did.
+            // An operator watching confidence knew the science had arrived before the
+            // science did.
             var verdict = CurrencyProbeVerdicts.JudgeDerivedLeak(
                 "confidenceEarned", readable: true, unreadableFault: "",
                 before: 200.0, now: 300.0, withheldCurrencies: "Science", tolerance: Tolerance);

@@ -111,9 +111,8 @@ const TELEMETRY_KEYS: DataKey[] = [
   { key: "v.missionTime" },
   { key: "v.altitude" },
   // f.throttle is on BufferedDataSource's antenna-only blocklist
-  // (collapses to literal 2 when the antenna is down,
-  // see 2026-05-18 live test). Use it for the gate drop-path
-  // assertion; v.altitude flows honestly regardless of antenna
+  // (collapses to literal 2 when the antenna is down). Use it for the gate
+  // drop-path assertion; v.altitude flows honestly regardless of antenna
   // state so it can't exercise the drop.
   { key: "f.throttle" },
   { key: "comm.connected" },
@@ -192,10 +191,8 @@ describe("peer roundtrip: telemetry → buffered → PBDS → relay → PCDS", (
     // live gap: nothing in production constructs a `BufferedDataSource` any
     // more, so this whole pipeline is harness scaffolding, and the key stays
     // spelled the way the blocklist spells it rather than being half-migrated.
-    // The blocklist retires with the source. When the gate is
-    // active it drops samples (replacing the prior allowlist behaviour
-    // that gated nearly every vessel-required key). See the 2026-05-18
-    // live test in local_docs/2026-05-18/_decisions.md.
+    // The blocklist retires with the source. When the gate is active it drops
+    // samples.
     ctx.stationSide.subscribe("f.throttle", (v) => received.push(v));
 
     primeFlight(ctx.telemetry);

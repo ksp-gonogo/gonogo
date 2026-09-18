@@ -58,13 +58,11 @@ const DECLARED_RE =
  */
 const KNOWN_DIVERGENCES: readonly string[] = [
   // The whole augment surface: the sdk's four are one-line shims onto `getHost()`,
-  // ui-kit's are the registry those shims eventually reach. RULED that an Uplink
-  // imports the sdk's, for reading as well as writing: the shim is what carries
+  // ui-kit's are the registry those shims eventually reach. An Uplink imports
+  // the sdk's, for reading as well as writing: the shim is what carries
   // the Uplink's own `declare module "@ksp-gonogo/sitrep-sdk"` slot ids, and what
   // throws a named error when the package was not marked external instead of
-  // carrying on silently. The dead-registry symptom this list used to cite is no
-  // longer among the reasons: ui-kit's registry moved into one `globalThis` slot
-  // on 2026-09-01, so two loaded copies converge (`augments.second-copy.test.ts`).
+  // carrying on silently.
   //
   // Enforced by `uplink-augment-route.test.ts`, not by narrowing ui-kit's barrel.
   // That was checked rather than assumed: `core/src/augments.ts` re-exports this
@@ -72,17 +70,16 @@ const KNOWN_DIVERGENCES: readonly string[] = [
   // "@ksp-gonogo/core"` merge of `SlotRegistry` still lands, so the names have to
   // stay on ui-kit's barrel and the rule has to be about who imports them.
   //
-  // These four stay on this list because two declarations genuinely exist and the
-  // guard cannot collapse them; what changed is that the route is now enforced
-  // and a planted violation fails.
+  // These four stay on this list because two declarations genuinely exist and
+  // the guard cannot collapse them.
   "AugmentSlot",
   "clearAugments",
   "getAugmentsForSlot",
   "registerAugment",
   // Two functions answering different questions under one name: the sdk's
   // strips a token's namespace (`snacks:g` reads `g`), ui-kit's picks the glyph
-  // a KIND displays as (`funds` reads `f`). The unit registries they used to
-  // sit beside are one now, `registerUnit` on the sdk, which ui-kit listens to.
+  // a KIND displays as (`funds` reads `f`). Both read from the one unit
+  // registry, `registerUnit` on the sdk, which ui-kit listens to.
   "displaySymbol",
 ];
 

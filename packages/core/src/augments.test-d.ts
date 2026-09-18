@@ -1,4 +1,4 @@
-// Type-level tests for the augment slot-id typing seam (spec §4.6).
+// Type-level tests for the augment slot-id typing seam.
 //
 // Enforced by `tsc` (the package `typecheck` script runs them via
 // `tsconfig.test-d.json`), NOT by the vitest runner: matching the SDK's
@@ -9,7 +9,7 @@
 // `SlotRegistry` to map a slot id → its props type, and `registerAugment` /
 // `SlotProps` are then typed precisely against that props type for the merged
 // slot, while an unmerged (out-of-repo / loose) slot id gracefully falls back to
-// `Record<string, unknown>` rather than erroring (spec §4.6 hybrid fallback).
+// `Record<string, unknown>` rather than erroring.
 
 import type { ComponentType } from "react";
 import { registerAugment, type SlotProps } from "./augments";
@@ -34,7 +34,7 @@ type _TypedResolves = Expect<
   Equal<SlotProps<"test.typed-slot">, { instanceId: string; zoom: number }>
 >;
 
-// ── An unmerged slot id falls back to the loose props type (spec §4.6 (c)) ───────
+// ── An unmerged slot id falls back to the loose props type ───────
 type _LooseFallback = Expect<
   Equal<SlotProps<"totally.unknown.slot">, Record<string, unknown>>
 >;

@@ -4,8 +4,8 @@
 // enter it: the walk around it reaches a live Part, Vessel and ProtoCrewMember
 // and cannot run outside a scene, but the RULE takes two booleans.
 //
-// Read off Kerbalism's own Reliability.Repair() KSPEvent (Kerbalism.dll,
-// decompiled 2026-09-03), which is one event handling two conditions:
+// Read off Kerbalism's own Reliability.Repair() KSPEvent (Kerbalism.dll),
+// which is one event handling two conditions:
 //
 //     if (!crewSpecs.Check(activeVessel)) { ...; return; }
 //     needMaintenance = false;                     // ALWAYS, and free

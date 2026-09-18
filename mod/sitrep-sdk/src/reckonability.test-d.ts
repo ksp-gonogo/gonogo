@@ -63,8 +63,7 @@ type _OrbitFields = Expect<
 // An unmarked Topic answers `never`, which is what makes the conditional in
 // `useTelemetry` safe to write over every `TopicId`.
 //
-// `system.bodies` rather than `vessel.orbit`, which used to stand here and was
-// marked on 2026-09-16. This one is principled rather than merely unmarked
+// This one is principled rather than merely unmarked
 // today: it is a CATALOGUE, not a reading of anything, so there is nothing for a
 // model to move. The tree changes once a session and is permanently stale, and
 // a hold-last is the right reading of it, which is why the input-horizon rule

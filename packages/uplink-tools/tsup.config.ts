@@ -3,11 +3,11 @@ import { defineConfig } from "tsup";
 /**
  * Three entries that must never share a chunk, for three different reasons.
  *
- * This package used to be four subpaths of `@ksp-gonogo/ui-kit`. It is its own
- * package because a design system has no business shipping a Playwright-driven
- * doc harness, and because the render HOSTS need `@ksp-gonogo/components`,
- * which depends on the kit: carrying them inside the kit is a build-graph
- * cycle, and outside it is an ordinary one-way dependency.
+ * It is its own package because a design system has no business shipping a
+ * Playwright-driven doc harness, and because the render HOSTS need
+ * `@ksp-gonogo/components`, which depends on the kit: carrying them inside the
+ * kit is a build-graph cycle, and outside it is an ordinary one-way
+ * dependency.
  *
  * The kit is a PEER here, in one direction only. `gridUnits` is the single
  * module this package takes back from it.
@@ -114,8 +114,7 @@ export default defineConfig([
       // only job is to forward `@ksp-gonogo/sitrep-sdk/testing`. A
       // `export ... from` across an external boundary cannot be tree-shaken, so
       // the specifier survives into `dist` whether or not a widget ever calls
-      // it. Nothing here uses it. `core`'s barrel had the same re-export and it
-      // is gone; `sitrep-client`'s reaches 193 files and is its own ticket.
+      // it. Nothing here uses it.
       "@testing-library/react",
     ],
     dts: true,

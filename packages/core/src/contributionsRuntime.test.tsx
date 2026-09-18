@@ -251,18 +251,18 @@ describe("useContributions", () => {
   });
 
   it("`requires` self-subscribes to `<domain>.available`, needing no OTHER subscriber for that topic", async () => {
-    // Regression: a contribution's `requires` gate reads `client.getValue
+    // A contribution's `requires` gate reads `client.getValue
     // ("<domain>.available")`, but a Stub/production transport alike only
-    // ever DELIVERS a sample for a topic something has subscribed to. Before
-    // this fix, the aggregator subscribed to `deps` only, so `requires`
-    // silently depended on some UNRELATED widget elsewhere in the tree
-    // happening to already subscribe to that same `.available` topic (true
-    // almost always in the live app, via that widget's own RequiresGuard,
-    // false the moment a contribution's host widget is the only thing
-    // mounted). Found rendering ShipMap's Kerbalism self-contribution
-    // (spec §13.4) in isolation: the widget itself has no `requires` of its
-    // own, so nothing ever subscribed to "kerbalism.available" and the
-    // Kerbalism contribution silently never fired.
+    // ever DELIVERS a sample for a topic something has subscribed to. If the
+    // aggregator subscribed to `deps` only, `requires` would silently depend
+    // on some UNRELATED widget elsewhere in the tree happening to already
+    // subscribe to that same `.available` topic (true almost always in the
+    // live app, via that widget's own RequiresGuard, false the moment a
+    // contribution's host widget is the only thing mounted), as ShipMap's
+    // Kerbalism self-contribution shows in isolation: the widget itself has
+    // no `requires` of its own, so nothing would subscribe to
+    // "kerbalism.available" and the Kerbalism contribution would silently
+    // never fire.
     registerContribution({
       id: "gated-contrib",
       contributes: "fixture.rows",

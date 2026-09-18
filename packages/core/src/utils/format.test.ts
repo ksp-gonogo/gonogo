@@ -50,10 +50,8 @@ describe("formatAgeLong", () => {
     expect(formatAgeLong(45_000)).toBe("45s");
   });
 
-  // The "long" form used to spell its suffixes out ("2 min", "1 d") and stop
-  // at hours. It is the same ladder as `formatAge` now, so what is worth
-  // asserting is that the two agree rather than that one of them still has a
-  // second spelling.
+  // It is the same ladder as `formatAge`, so what is worth
+  // asserting is that the two agree.
   it("is the same reading as formatAge", () => {
     for (const ms of [1000, 90_000, 3_600_000, 24 * 3_600_000]) {
       expect(formatAgeLong(ms)).toBe(formatAge(ms));

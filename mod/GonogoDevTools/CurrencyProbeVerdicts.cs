@@ -25,11 +25,9 @@ namespace Gonogo.DevTools
         /// <summary>
         /// What a ledger row's reveal offset SAYS about how its delay was decided.
         ///
-        /// <para>This is the reading that was missing on the night this probe was
-        /// extended: a row whose reveal is one silence-declaration deadline after its
-        /// event was classed <c>Unroutable</c>, and a row whose reveal is a plausible
-        /// light-time was routed, and the two are told apart by arithmetic nobody was
-        /// doing by hand at 3am. Derived, not observed - the row does not record which
+        /// <para>A row whose reveal is one silence-declaration deadline after its
+        /// event is classed <c>Unroutable</c>, and a row whose reveal is a plausible
+        /// light-time is routed. Derived, not observed - the row does not record which
         /// branch produced it - so it is reported beside the ROUTE node's directly
         /// observed answer, and a disagreement between the two is itself a finding.</para>
         /// </summary>
@@ -98,9 +96,9 @@ namespace Gonogo.DevTools
         ///
         /// <para>The stamp is the half that was missing. A request cfg persists, and the
         /// process-scoped guard resets with the process, so every KSP start silently
-        /// re-awarded whatever request was still on disk: on the night this was written
-        /// that fabricated a ledger row and polluted a before/after pair twice, and the
-        /// fabricated row was the one <c>firstPending</c> then reported.</para>
+        /// re-awarded whatever request was still on disk, fabricating a ledger row and
+        /// polluting a before/after pair twice, and the fabricated row was the one
+        /// <c>firstPending</c> then reported.</para>
         /// </summary>
         internal static bool ShouldApply(string? requestId, string? processLastApplied, string? diskLastApplied)
         {
@@ -168,9 +166,7 @@ namespace Gonogo.DevTools
         /// being withheld, which is the delayed information leaking out of the side of
         /// the subsystem.
         ///
-        /// <para>Measured on 2026-08-27: 25 science was withheld with one pending row
-        /// while RP-1's confidence went 700 to 800 and confidenceEarned 200 to 300, at
-        /// earn time. An operator watching confidence therefore knows the science
+        /// <para>An operator watching confidence therefore knows the science
         /// arrived before the science does, and in RP-1 confidence gates real career
         /// decisions, so the delay leaks through a channel it never modelled.</para>
         ///

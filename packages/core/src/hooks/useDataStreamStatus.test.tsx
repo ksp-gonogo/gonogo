@@ -49,9 +49,7 @@ function makeLegacySource(id = "data") {
 beforeEach(() => clearRegistry());
 
 /**
- * `useDataStreamStatus`: the M3 "adopt staleness/certainty" shim
- * (`m3-migration-plan.md` §2 item 3, the "convert cleared-assertions into
- * held-stale-assertions" step): the third leg alongside `useDataValue`
+ * `useDataStreamStatus`: the third leg alongside `useDataValue`
  * (read) / `useExecuteAction` (write). Same dual-path contract: no provider
  * (or an uncarried/unmapped key) reads a legacy-DataSource-status-derived
  * value; a carried, mapped key reads the real `StreamStatusValue` off the

@@ -80,23 +80,22 @@ interface ModOwnership {
 
 const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   kerbcast: {
-    // GonogoKerbcastUplink owns kerbcast's CONTROL plane (camera inventory,
-    // capabilities, docking-port association, health, aim/zoom commands): see
-    // .superpowers/sdd/kerbcast-uplink-design.md. Its §8 left open whether the
-    // MEDIA half (the WebRTC/playout path, npm name @ksp-gonogo/gonogo-kerbcast-uplink)
-    // folds into the Uplink's client; it now has: that package moved from
-    // packages/kerbcast to this Uplink's client/ half, so ONE directory owns
-    // both planes and the client is no longer a special-cased core package.
-    // (mod/GonogoKerbcastUplink covers client/: isUnderOwnedDir is a prefix
-    // match: so the client half needs no separate entry.)
+    /*
+     * GonogoKerbcastUplink owns both kerbcast's CONTROL plane (camera
+     * inventory, capabilities, docking-port association, health, aim/zoom
+     * commands) and its MEDIA half (the WebRTC/playout path, npm name
+     * @ksp-gonogo/gonogo-kerbcast-uplink): ONE directory owns both planes, and
+     * the client is not a special-cased core package.
+     * (mod/GonogoKerbcastUplink covers client/: isUnderOwnedDir is a prefix
+     * match: so the client half needs no separate entry.)
+     */
     patterns: [/kerbcast/i, /hullcam/i],
     ownedDirs: [
       "mod/GonogoKerbcastUplink",
       "mod/GonogoKerbcastUplink.Tests",
       /*
-       * GonogoKerbcastUplink's own contract slice (uplink-types-out-of-core
-       * plan, third relocation, 2026-08-10): KerbcastCameraEntry/
-       * KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs live here now, not in
+       * GonogoKerbcastUplink's own contract slice: KerbcastCameraEntry/
+       * KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs live here, not in
        * Sitrep.Contract.
        */
       "mod/GonogoKerbcastUplink.Contract",
@@ -123,10 +122,9 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoScansatUplink",
       "mod/GonogoScansatUplink.Tests",
       /*
-       * GonogoScansatUplink's own contract slice (uplink-types-out-of-core
-       * plan, fourth relocation, 2026-08-10): ScanningVesselEntry/
+       * GonogoScansatUplink's own contract slice: ScanningVesselEntry/
        * ScanSensorEntry/ScanTrackColor/ScanScienceEntry/ScanAnomalyEntry live
-       * here now, not in Sitrep.Contract.
+       * here, not in Sitrep.Contract.
        */
       "mod/GonogoScansatUplink.Contract",
     ],
@@ -148,9 +146,8 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoKosUplink",
       "mod/GonogoKosUplink.Tests",
       /*
-       * GonogoKosUplink's own contract slice (uplink-types-out-of-core plan,
-       * sixth and last relocation, 2026-08-10): all eleven Kos* wire and
-       * command-arg types live here now, not in Sitrep.Contract.
+       * GonogoKosUplink's own contract slice: all eleven Kos* wire and
+       * command-arg types live here, not in Sitrep.Contract.
        */
       "mod/GonogoKosUplink.Contract",
     ],
@@ -198,9 +195,8 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoMechJebUplink",
       "mod/GonogoMechJebUplink.Tests",
       /*
-       * GonogoMechJebUplink's own contract slice (uplink-types-out-of-core
-       * pilot, 2026-08-10): MechJebAscentArgs/MechJebNoArgs live here now,
-       * not in Sitrep.Contract.
+       * GonogoMechJebUplink's own contract slice: MechJebAscentArgs/
+       * MechJebNoArgs live here, not in Sitrep.Contract.
        */
       "mod/GonogoMechJebUplink.Contract",
     ],
@@ -215,15 +211,11 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     patterns: [/avionics/i],
     /*
      * RP-1's dirs, not an avionics Uplink's. Avionics is not a separate mod: it
-     * is RP-1, and the standalone GonogoAvionicsUplink that read it was deleted
-     * on 2026-09-10 with its capture folded into GonogoRp1Uplink as
-     * `rp1.avionics`. The two had read the SAME assembly by the same reflection
-     * against two different RP-1 versions.
+     * is RP-1.
      *
      * The token is kept rather than retired, and re-owned rather than widened:
      * an avionics reference outside RP-1's three dirs is still a boundary
-     * failure, which is what the check is for. Retiring the token would have
-     * been the loosening, because then nothing would be watched at all.
+     * failure, which is what the check is for.
      */
     ownedDirs: [
       "mod/GonogoRp1Uplink",
@@ -245,9 +237,8 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoKerbalismUplink",
       "mod/GonogoKerbalismUplink.Tests",
       /*
-       * GonogoKerbalismUplink's own contract slice (uplink-types-out-of-core
-       * plan, fifth relocation, 2026-08-11): all fifteen kerbalism payload
-       * types live here now, not in Sitrep.Contract.
+       * GonogoKerbalismUplink's own contract slice: all fifteen kerbalism
+       * payload types live here, not in Sitrep.Contract.
        */
       "mod/GonogoKerbalismUplink.Contract",
     ],
@@ -265,6 +256,13 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ],
   },
   principia: {
+    // The Uplink LEFT for gonogo-uplinks and ownedDirs is []: with no owning
+    // directory, ANY mention of the mod outside packages/core's own
+    // carried-topics files is a violation, which is the stronger guard and
+    // the reason this narrows rather than being deleted outright. See the
+    // ContractVersion.cs entry in ALLOWLIST for the record this token still
+    // needs to name.
+    //
     // This token exists because its absence was a blind spot with teeth. A
     // ratchet keyed on "mods we already integrate" cannot see coupling
     // introduced in ANTICIPATION of one we do not, and anticipating is exactly
@@ -541,7 +539,7 @@ function* walk(dir: string): Generator<string> {
  * 54 files, 8 of them naming an Uplink, and not one line for any of them
  * could ever have appeared in the allowlist, because no walk reached them.
  *
- * Demonstrated 2026-09-04: `export const PLANTED = "scansat";` appended to
+ * Demonstrated: `export const PLANTED = "scansat";` appended to
  * `packages/components/scripts/widgets.ts` left this suite at 39/39. The same
  * line in `packages/components/src/index.ts` failed it and named the file.
  *
@@ -773,7 +771,7 @@ describe("scansat token: pattern coverage for the schema-identifier blind spot",
   /*
    * Representative content shapes for packages/core/src/schemas/scansat.ts's
    * exported wire-shape identifiers (SCANType, SCAN_TYPE, etc.): the class
-   * of leak the bare `/scansat/i` pattern was blind to (design doc §1.1-1.2):
+   * of leak the bare `/scansat/i` pattern was blind to:
    * a file can be scansat-schema-coupled (import/use SCANType, key a cache
    * by SCANType, etc.) without ever spelling the word "scansat".
    */
@@ -1001,7 +999,7 @@ function reachableAtBaseScope(
 }
 
 /**
- * The extension half, added when `.css` joined the walk on 2026-09-11.
+ * The extension half.
  *
  * A list needs no interpretation, unlike `PACKAGE_SCAN_SCOPE`'s opaque marker:
  * the base states outright which extensions it reached, so there is no
@@ -1120,10 +1118,9 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
   });
 
   /**
-   * The same seam, graded on the extension half. `.css` joined the walk on
-   * 2026-09-11 and the `packages/<pkg>/src` case is again the one that matters:
-   * excusing a `.ts` path here would turn the shrink gates off for every file
-   * kind the base already scanned.
+   * The same seam, graded on the extension half. The `packages/<pkg>/src`
+   * case is again the one that matters: excusing a `.ts` path here would turn
+   * the shrink gates off for every file kind the base already scanned.
    */
   it("excuses only a file kind the base's walk could not reach", () => {
     const tsEra = ["ts", "tsx", "cs"];
@@ -1256,10 +1253,12 @@ describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures
 
 describe("uplink boundary: domain-debt allowlist entries only ever shrink", () => {
   it("no token's domainDebt set gained an entry vs the base ref", async () => {
-    // Throws when no base can be reached. It used to walk a candidate list and
-    // return null on exhaustion, which read as a pass, and in CI it resolved
-    // nothing at all: the checkout was a depth-1 clone with no remote refs in
-    // it, so this gate never once ran there.
+    /*
+     * Throws when no base can be reached, rather than walking a candidate list
+     * and returning null on exhaustion: a null here reads as a pass, and a
+     * depth-1 CI checkout with no remote refs would resolve nothing at all,
+     * letting this gate silently never run.
+     */
     const base = ratchetBaseRef();
     if (!base) return; // the checkout IS the base, so there is nothing to diff
 

@@ -50,11 +50,12 @@ describe("the push-to-talk key", () => {
 
   it("keeps one name, and one width, through every state it has", () => {
     /*
-     * The label used to read "Talk" and then "On air", which is two words of
-     * different width on a control an operator presses twice in a row: the
-     * second press lands where the first one was and the button has moved out
-     * from under the pointer. It is also a rename in the accessibility tree at
-     * the exact instant the state changes, which is what `aria-pressed` is for.
+     * A label that changed per state (e.g. "Talk" then "On air") would be two
+     * words of different width on a control an operator presses twice in a
+     * row: the second press would land where the first one was, and the
+     * button would move out from under the pointer. It would also be a rename
+     * in the accessibility tree at the exact instant the state changes, which
+     * is what `aria-pressed` is for.
      *
      * Asserted over every state the key has rather than the two obvious ones,
      * because the opening state is the one that got a third name.
@@ -226,11 +227,6 @@ describe("the voice ribbon it publishes", () => {
   /**
    * A vessel in low orbit is under a millisecond away, so the gap holds a
    * FRACTION of one 20 ms chunk. That fraction is what goes to the rail.
-   *
-   * It used to be floored at 1, and the floor was the second defect: the rail
-   * limits its turning points to the samples actually behind them, and told the
-   * gap held a whole sample it drew a confident full-width sawtooth off two of
-   * them, identical for every transmission at low orbit and saying nothing.
    */
   it("passes the real fraction of a chunk for a sub-millisecond separation", () => {
     const store = createDelayRailStore();

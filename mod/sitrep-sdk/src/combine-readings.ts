@@ -61,10 +61,9 @@ import type { Value } from "./unit-system/value";
  * ## It carries NO band, deliberately
  *
  * Propagating an interval through arbitrary arithmetic is width arithmetic over
- * inputs whose errors this cannot know to be independent, and that is precisely
- * what the framework was ruled out of doing. A combination that deserves a band
- * deserves a model: publish one, and the band comes from the mathematics that
- * knows it.
+ * inputs whose errors this cannot know to be independent. A combination that
+ * deserves a band deserves a model: publish one, and the band comes from the
+ * mathematics that knows it.
  *
  * ## `compute` may answer `undefined`, and that is not the same as an absence
  *

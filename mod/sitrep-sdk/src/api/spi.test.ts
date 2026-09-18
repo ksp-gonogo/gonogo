@@ -83,12 +83,6 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
 
   describe("data introspection", () => {
     it("does not publish useDataSchema at all", () => {
-      // Retired 2026-08-19 along with its host member, and asserted here rather
-      // than simply deleted: it is the one SPI shim that could not follow the
-      // others into this package, because the schema it returns for the default
-      // `"data"` source is built from a legacy vendor key catalogue. Publishing
-      // that would make a dying table into devkit API, where its removal becomes
-      // an outside author's breaking change. No Uplink ever called it.
       expect(
         (barrel as Record<string, unknown>).useDataSchema,
         "useDataSchema is retired; @ksp-gonogo/data still exports it for the app",
@@ -107,11 +101,6 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
 
   describe("game-host SPI", () => {
     it("getGameHost reads the setting itself rather than forwarding to a host", () => {
-      // Not a shim any more. It was one while the implementation lived in
-      // `@ksp-gonogo/core`, and the only thing it needed was `getSetting`, which
-      // this package has owned since the settings store moved. So the host member
-      // retired with it: a two-line read of a setting this package holds does not
-      // need injecting.
       resetTestHost();
       // The assertion that matters is that it does not throw with NO host, which
       // every shim in this file does. The value is the build default because this
@@ -121,8 +110,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(barrel.getGameHost()).toBe("localhost");
     });
 
-    // The settings STORE is not a shim any more: it moved into this package with
-    // its service and its React context on 2026-08-19. `getGameHost` above still
+    // The settings STORE is not a shim: `getGameHost` above still
     // is one, because the build-time default it falls back to is the app's.
     // This suite runs in `node`, where `localStorage` is undefined and the store's
     // own guard makes the SAVED layer a no-op. So these exercise the seed layer and
@@ -163,9 +151,8 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
   });
 
   describe("map/coverage SPI", () => {
-    // `getBody` was a shim, and its doc argued for this move without taking it: a
-    // bundled copy of a module-static map would read its own permanently-empty
-    // version. The map is a `globalThis` slot now, so there is no second copy to
+    // A bundled copy of a module-static map would read its own permanently-empty
+    // version. The map is a `globalThis` slot, so there is no second copy to
     // read and no host to fail loud against.
     it("the body registry needs no host, and a pack overrides by re-registering", () => {
       resetTestHost();
@@ -208,10 +195,6 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       barrel.clearBodies();
     });
 
-    // Not a shim any more: the coverage-source registry moved into this package on
-    // 2026-08-19, alongside the POI one and for the same reason. It went last of
-    // the three because it was the one that needed a TYPE to move with it
-    // (`NamespacedAugmentSettings`, down from ui-kit).
     it("the coverage-source registry needs no host, in either direction", () => {
       resetTestHost();
       barrel.clearCoverageSources();
@@ -294,11 +277,11 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(clearContributions).toHaveBeenCalledTimes(1);
     });
 
-    // The POI provider registry is NOT a shim any more: it moved into this
-    // package on 2026-08-19, so there is no host to fail loud against. These
-    // three used to assert the throw; asserting the OPPOSITE is what keeps the
-    // move honest, because a silent regression to the host path would otherwise
-    // look identical to a passing suite.
+    /*
+     * The POI provider registry needs no host: asserting that explicitly is
+     * what guards against a silent regression to the host path, because that
+     * would otherwise look identical to a passing suite.
+     */
     it("the POI provider registry needs no host, in either direction", () => {
       resetTestHost();
       const changed = vi.fn();

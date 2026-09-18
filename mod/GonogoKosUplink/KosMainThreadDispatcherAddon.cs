@@ -8,7 +8,7 @@ namespace Gonogo.KosUplink
     /// <summary>
     /// Drains <see cref="Dispatcher"/> once per Unity frame, on the KSP
     /// main thread: the ONLY place a kOS API call from this uplink may
-    /// happen (local_docs/telemetry-mod/kos-migration-spec.md §2). Owned
+    /// happen. Owned
     /// by <see cref="KosExtension"/>, which instantiates exactly one of
     /// these on a dedicated, <c>DontDestroyOnLoad</c> GameObject during
     /// <see cref="KosExtension.Register"/>.

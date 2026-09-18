@@ -32,8 +32,7 @@ public class RealCaptureTests
     public void TheRelayToDirectCaptureCannotConcludeBecauseItCarriesNoOrbit()
     {
         // Recording began during a scene load, so vessel.orbit was subscribed but
-        // never delivered a payload. This is the exact failure an earlier analysis
-        // walked straight past.
+        // never delivered a payload.
         CaptureReport report = CaptureAnalyser.Analyse(RelayToDirect(), new AnalysisOptions());
 
         Assert.Null(report.Orbit);

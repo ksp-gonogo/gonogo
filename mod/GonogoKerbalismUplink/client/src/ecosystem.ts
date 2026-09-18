@@ -56,13 +56,12 @@ export interface ResourceFacts {
 /**
  * The flow modes that pool across the whole vessel, by ORDINAL.
  *
- * This compared KSP's `ResourceFlowMode` NAME against a two-entry set until
- * 2026-08-21, and the failure was the one answer this field's own doc rules out.
- * A renamed member missed the set and produced `false` - a confident "not
- * pooled" - rather than the `undefined` that means "vessel-wide pool, mode
- * unknown". So a resource that pools vessel-wide would have been given a
- * per-part meter presented as a reading rather than as bookkeeping, which is
- * precisely what the field exists to prevent.
+ * Comparing by NAME instead would let a renamed `ResourceFlowMode` member
+ * miss the set and produce `false` - a confident "not pooled" - rather than
+ * the `undefined` that means "vessel-wide pool, mode unknown". A resource
+ * that pools vessel-wide would then be given a per-part meter presented as
+ * a reading rather than as bookkeeping, which is precisely what the field
+ * exists to prevent.
  */
 const POOLED_MODES: ReadonlySet<number> = new Set([
   KspResourceFlowMode.ALL_VESSEL,

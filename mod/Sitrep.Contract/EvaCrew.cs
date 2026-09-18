@@ -20,8 +20,7 @@ namespace Sitrep.Contract;
 /// <internal>
 /// Read off the <c>KerbalEVA</c> PartModule on the kerbal vessel's root part,
 /// not off <c>Vessel</c>, so a kerbal whose part has not finished spawning
-/// yields nulls rather than throwing. Field names verified against the shipped
-/// Assembly-CSharp on 2026-09-14.
+/// yields nulls rather than throwing.
 /// </internal>
 /// </summary>
 [SitrepContract]

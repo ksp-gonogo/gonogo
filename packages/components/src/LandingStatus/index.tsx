@@ -576,8 +576,8 @@ function LandingStatusComponent({
   const surface = describe(surfaceReading);
   const propulsion = describe(propulsionReading);
   /*
-   * `vessel.orbit` carries a mark since ticket 308, so it takes the OVERLAYING read
-   * like `vessel.flight` beside it: the conic moves the phase and says nothing
+   * `vessel.orbit` carries a mark, so it takes the OVERLAYING read like
+   * `vessel.flight` beside it: the conic moves the phase and says nothing
    * about the elements, and `reckoned.value` alone is not an orbit.
    */
   const orbit = describeReckonable(orbitReading);

@@ -532,12 +532,11 @@ namespace Gonogo.KSP.CommandCentres
             /// <summary>
             /// The capture's own universe time, carried across to the courier
             /// thread so the publish is stamped with when the roster was READ
-            /// rather than with whatever the courier thread can reach. This
-            /// used to be absent and the publish passed the roster's entry
-            /// COUNT: a number far below any real UT, which the engine's
-            /// forward-only clamp lets through untouched, so the sample landed
-            /// stamped in the deep past with <c>validAt</c> equal to a
-            /// command-centre count.
+            /// rather than with whatever the courier thread can reach. Passing
+            /// anything else here, such as the roster's entry COUNT, would
+            /// land unnoticed: a number far below any real UT slips through
+            /// the engine's forward-only clamp, so the sample would land
+            /// stamped in the deep past.
             /// </summary>
             public double Ut;
         }

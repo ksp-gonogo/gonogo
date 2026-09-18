@@ -22,11 +22,11 @@ import type { RadioControl } from "./useRadio";
  * `aria-pressed` for it automatically. Hold-to-talk on pointer events may be
  * ADDED later; it must never become the only way to key the microphone.
  *
- * **The label is FIXED, and the state is carried beside it.** It used to read
- * "Talk" and then "On air", which is two words of different width on the one
- * control an operator presses twice in a row: the second press lands where the
- * first one was and the button is no longer there. The pressed state is the
- * filled tone plus `aria-pressed`, exactly as `RadioMute` next to it does it,
+ * **The label is FIXED, and the state is carried beside it.** A label that
+ * changed per state would be two words of different width on the one control
+ * an operator presses twice in a row: the second press would land where the
+ * first one was and the button would no longer be there. The pressed state is
+ * the filled tone plus `aria-pressed`, exactly as `RadioMute` next to it does it,
  * and the accessible name stays "Talk" through every state so a screen reader
  * is never told the control was renamed at the instant it changed.
  *
@@ -46,11 +46,9 @@ const CHUNK_SECONDS = 0.02;
  * DELIVERY come from `railTagsForTelemetry` itself: nothing is being asked of
  * anyone, and there is no reply channel for an ack to arrive on.
  *
- * It is a DECLARATION, not an override. The rail used to draw this as a ribbon
- * because the widget put it in the `ribbons` array, which is the same
- * assumption the rail's own three-axis vocabulary exists to remove: the entry's
- * properties decide its mark, so the same declaration would draw the same
- * picture if it arrived by any other route.
+ * It is a DECLARATION, not an override: the entry's properties decide its
+ * mark, so the same declaration would draw the same picture if it arrived by
+ * any other route.
  */
 const VOICE_RAIL_TAGS = railTagsForTelemetry("continuous");
 
@@ -58,15 +56,11 @@ const VOICE_RAIL_TAGS = railTagsForTelemetry("continuous");
  * The light-time to the far end, in captured chunks: how many samples of the
  * ribbon fit in the gap, and so what fraction of it the trace has filled.
  *
- * **Fractional, and never rounded or floored.** It used to be
- * `max(1, round(...))`, and both halves of that were wrong below one chunk: a
- * few hundred kilometres of low orbit is well under a millisecond, so the gap
- * holds a twentieth of a single 20 ms sample, and a span of 1 told the rail the
- * gap held a whole one. Drawn against a fixed pitch that came back out as a
- * full-width sawtooth from two samples: confident, legible, identical for every
- * transmission at low orbit, and saying nothing. `RailCrossing` limits its
- * turning points to the samples actually behind them, and it can only do that
- * if it is handed the real number.
+ * **Fractional, and never rounded or floored.** A few hundred kilometres of
+ * low orbit is well under a millisecond, so the gap can hold a twentieth of a
+ * single 20 ms sample. `RailCrossing` limits its turning points to the
+ * samples actually behind them, and it can only do that if it is handed the
+ * real number.
  *
  * `undefined` when there is no separation to convert, which is the prop's
  * documented "caller does not know" reading: the trace falls back to the

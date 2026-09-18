@@ -9,11 +9,10 @@ import type { WarpRateTable } from "./WarpRateTable";
  * an alarm that is eligible but not yet trackable, or a threshold the
  * simulation cannot model.
  *
- * A RATE, where this used to be warp index 4. The index was only ever shorthand
- * for "100x on stock's ladder", and an install that republishes the ladder
- * makes the shorthand a different number: rung 4 is 10000x on the deck's RSS/RO
- * table. Naming the rate says the same thing on every install, and picks rung 4
- * on stock exactly as before.
+ * A RATE, not a warp index: an index is only ever shorthand for "100x on
+ * stock's ladder", and an install that republishes the ladder makes the
+ * shorthand a different number (rung 4 is 10000x on the deck's RSS/RO table).
+ * Naming the rate says the same thing on every install.
  */
 const UNPLANNABLE_MAX_RATE = 100;
 const WARP_COMMAND_COOLDOWN_MS = 1_500;

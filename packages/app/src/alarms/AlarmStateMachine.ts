@@ -246,14 +246,14 @@ export class AlarmStateMachine {
    * what makes a time alarm (and a sustained threshold or contract-parameter
    * alarm, which come due at `matchSinceUT + sustainSeconds`) survive warp.
    * An `event` alarm needs no such companion: it latches `matchSinceUT` at
-   * reveal, so its window opens on the deriving tick itself. The firing test
-   * used to be pure
-   * CONTAINMENT (`now - ut < 2`), and the host fires only on the TRANSITION
-   * into `firing`; but the host ticks at 1 Hz while `viewUt` advances at the
-   * warp rate, so one tick moves the clock by ~W seconds. Above ~1000x neither
-   * that 2-second window nor the arming window is ever observed: the alarm went
-   * straight to `fired`, and nothing notified, nothing broadcast, no `onFire`
-   * action group ran and warp was never stepped down.
+   * reveal, so its window opens on the deriving tick itself. A pure
+   * CONTAINMENT firing test (`now - ut < 2`) fails at high warp: the host
+   * fires only on the TRANSITION into `firing`, but the host ticks at 1 Hz
+   * while `viewUt` advances at the warp rate, so one tick moves the clock by
+   * ~W seconds. Above ~1000x neither a 2-second window nor the arming window
+   * would ever be observed: the alarm would go straight to `fired`, with
+   * nothing notified, nothing broadcast, no `onFire` action group run, and
+   * warp never stepped down.
    *
    * A CROSSING test is the fix rather than a wider window, because any window
    * is only a faster warp away from the same silence. Pass `null` (the default)
@@ -357,9 +357,7 @@ export class AlarmStateMachine {
    * `getContractsActive` answers a non-array whenever nothing has arrived on
    * `contracts.active` yet or the link is down, and that is a different claim
    * from an EMPTY list: empty says the contract is no longer active, non-array
-   * says nobody could ask. Both used to come back `false`, which published a
-   * failed read as the confident fact "the condition just ended" and cleared
-   * the sustain latch.
+   * says nobody could ask.
    *
    * The same distinction applies one level down, to a contract record that
    * arrives carrying no `parameters` array: the record is half-formed, so

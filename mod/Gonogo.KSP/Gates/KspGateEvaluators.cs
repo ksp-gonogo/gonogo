@@ -34,10 +34,10 @@ namespace Gonogo.KSP.Gates
     /// direction of the mistake is the safe one.</para>
     ///
     /// <para><b>An authority that does not exist is not an authority that could
-    /// not be read.</b> The facility gates are the one place the two used to be
-    /// confused: <c>ScenarioUpgradeableFacilities</c> is absent from a sandbox
-    /// save because sandbox HAS no facility tiers, and answering Unknown there
-    /// refused capabilities that are maximally available. That is decided by
+    /// not be read.</b> In the facility gates, <c>ScenarioUpgradeableFacilities</c>
+    /// is absent from a sandbox save because sandbox HAS no facility tiers, and
+    /// answering Unknown there would refuse capabilities that are maximally
+    /// available. That is decided by
     /// <see cref="FacilityGateHelp.ReadFacilityTiers"/>, from the game mode, and
     /// it narrows Unknown rather than widening Pass: a career save whose scenario
     /// has not woken up yet still answers Unknown.</para>

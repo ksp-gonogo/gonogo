@@ -213,16 +213,13 @@ export function buildTouchdownReticlePlot(
  * Metres AGL below which an atmospheric descent is a LANDING rather than an
  * entry, and this plot has a site worth pointing at.
  *
- * The widget used to gate on this OR on the predicted point having settled
- * between ticks, and the second half cannot survive the move into a
- * contribution: `compute` is pure, a settling rate is a difference between
- * frames, and there is nowhere for one to live. Only the altitude half is left.
+ * `compute` is pure, and a settling rate is a difference between frames, so
+ * there is nowhere for one to live: the altitude gate is the whole of it.
  *
- * That is a loss of exactly one case, and it loses in the safe direction: a
- * settled prediction between this gate and the edge of the atmosphere used to
- * show and now waits. Nothing that was hidden is now shown, which is the half
- * that would have mattered, because a pinpoint reticle around a point still
- * moving kilometres a second is a picture of a decision nobody can take.
+ * That is the safe direction to be missing a case in: a settled prediction
+ * between this gate and the edge of the atmosphere waits rather than showing
+ * early. A pinpoint reticle around a point still moving kilometres a second
+ * is a picture of a decision nobody can take.
  */
 const ATMO_PLOT_ALT_GATE_M = 10_000;
 

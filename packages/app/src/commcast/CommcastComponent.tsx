@@ -450,8 +450,8 @@ function ComposeView({
         composer={
           /* The bar's own commit slot, and its own verb: a picker opens rather
              than sends, but it is the same control in the same place, so it
-             needs neither a second button nor the spacer that used to push one
-             there. No prompt glyph: this composer chooses rather than types. */
+             needs neither a second button nor a spacer for one. No prompt
+             glyph: this composer chooses rather than types. */
           <ComposerBar
             blocked={group}
             {...(group ? { flag: "ONE AT A TIME" } : {})}
@@ -552,10 +552,8 @@ function ThreadView({
   return (
     <>
       {/* The radio's controls sit at the far END of this row, opposite the
-          conversation's name: talk in the widget's top-right corner, where the
-          operator asked for it and where it is nowhere near the thing they type
-          into. It used to head the composer bar, which put a red latch a few
-          pixels from the send key and moved with every reflow of the row.
+          conversation's name: talk sits in the widget's top-right corner,
+          nowhere near the thing the operator types into.
 
           Order along the row is a reading, then two controls. The lamp is
           leftmost because it is the only one of the three that GROWS (a name
@@ -592,15 +590,9 @@ function ThreadView({
           composer sits IN it rather than strapped under it, and the blue
           outline the operator sees is the input's own.
 
-          The delay reading is the console's decision now. This one used to draw
-          the chip inside the composer, beside Send, on the reasoning that a
-          chip over a column of prose sits on a sentence somebody has to read;
-          the terminal widget pinned the same chip in its top-right corner. The
-          corner won the argument for a pair that had to agree, then proved this
-          console's objection right on the first render with a full log. Both
-          hang it at the foot now, over the composer's top border and in the
-          same column as the outbound queue's countdowns, so the separation and
-          the ETAs read as one stack of times.
+          The delay reading hangs at the foot, over the composer's top border
+          and in the same column as the outbound queue's countdowns, so the
+          separation and the ETAs read as one stack of times.
 
           `inFlightFrozenAtDispatch` is the one thing this console asks for that
           the terminal widget does not, and it has to. A message freezes its
@@ -987,11 +979,7 @@ function Composer({
        refusal only after they have pressed send. The flag says why an outline
        has turned red, which an outline cannot.
 
-       The flag now says ONLY that. It used to carry the round trip too, which
-       made one pinned slot answer two unrelated questions and put a figure
-       there that the strip above was already drawing. The delay reading is the
-       console's own standing slot now, and the flag went back to being about
-       refusal. The two share this bar's top border, at opposite ends, and on
+       The two share this bar's top border, at opposite ends, and on
        THIS console they can never both be up anyway: `noPath` and a null
        `separationSeconds` are the same `separationBetween` result read twice,
        and a null separation gets no chip. The terminal widget is the one that
@@ -1141,10 +1129,9 @@ const Commcast__BarRadio = styled.div`
 `;
 
 /*
- * Type one rung down from the kit's Button, and nothing else. The inset and the
- * icon gap it used to restate were the control inset the base already carries,
- * tightened: the button sits on the shared --control-height floor either way,
- * so the tightening only narrowed it against the title beside it.
+ * Type one rung down from the kit's Button, and nothing else. The button sits
+ * on the shared --control-height floor either way, so the tightened inset and
+ * icon gap only narrow it against the title beside it.
  */
 const Commcast__Back = styled(GhostButton)`
   display: inline-flex;

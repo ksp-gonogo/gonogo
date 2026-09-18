@@ -10,8 +10,7 @@ namespace Sitrep.Host.Comms
     /// ships: <c>clamp(floor, k * cycle, ceiling)</c>, where the cycle is whatever
     /// the elected propagation capability says the craft's motion repeats on. For
     /// the two-body vanilla that is <c>T = 2*pi*sqrt(a^3/mu)</c> off
-    /// <see cref="OrbitElements.Sma"/>/<see cref="OrbitElements.Mu"/> (see
-    /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>). A low
+    /// <see cref="OrbitElements.Sma"/>/<see cref="OrbitElements.Mu"/>. A low
     /// orbit is declared lost in minutes; a high one gets proportionally
     /// longer. Deliberately simple: a better predictor is future work, this
     /// policy exists to prove the seam, not to be the last word on it.

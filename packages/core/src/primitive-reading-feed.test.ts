@@ -15,7 +15,7 @@ import {
 
 /**
  * The gate on a primitive being handed a reading's value instead of the
- * reading, which is ruling 8 of ticket 257.
+ * reading.
  *
  * The rule and its reasoning live in `primitive-reading-feed.scan.ts`. What
  * lives HERE is whether this gate can be trusted, which is five things:
@@ -253,8 +253,8 @@ describe("the gate does not flag what is correct", () => {
    * The two false-positive controls, both real shapes.
    *
    * The reading passed whole is the thing the rule is FOR. The definite
-   * `Value` is ruling 7: "where a definite `Value` is what is needed, taking a
-   * `Value` is right", and a gate that failed it would be a gate that had to
+   * `Value` case: where a definite `Value` is what is needed, taking a
+   * `Value` is right, and a gate that failed it would be a gate that had to
    * be turned off within a day.
    */
   const CONTROL = `

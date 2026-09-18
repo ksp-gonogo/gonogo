@@ -66,15 +66,6 @@ public class CrewMember
     public double? PackedVolumeUsed { get; set; }
 }
 
-/// <summary>
-/// The <c>vessel.crew</c> channel payload. Started count-only for M1 (G-13:
-/// grows to a full roster later WITHOUT a topic rename, per the
-/// "misc junk drawer split" ruling). The roster (<see cref="Crew"/>) and
-/// <see cref="Capacity"/> are that additive growth, new fields on the same
-/// record, same topic. Splitting this out of KspHost's <c>misc</c> group into
-/// its own coherent, independently-growable channel is itself part of the
-/// wart-fix.
-/// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -1,5 +1,5 @@
-// The settings-definition registry moved to @ksp-gonogo/core (2026-07-23) so
-// Uplink clients can declare settings through the sitrep-sdk facade, alongside
+// The settings-definition registry lives in @ksp-gonogo/core so Uplink
+// clients can declare settings through the sitrep-sdk facade, alongside
 // `registerSettingsTab`. Re-exported here for back-compat.
 //
 // Note the rename: core's setting-def lookup is `getSettingDefinition` (not

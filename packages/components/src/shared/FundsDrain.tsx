@@ -28,8 +28,8 @@ export function netFundsPerDay(
  * {@link netFundsPerDay} answers the question a caller BRANCHES on, and a bare
  * number is the right shape for that. A caller that puts the rate on screen
  * needs the other half back: a net worked out from a subsidy the link stopped
- * carrying an hour ago draws exactly like a live one once the currency is off
- * it, which is the drift ruling 8 of ticket 257 exists to stop.
+ * carrying an hour ago draws exactly like a live one once the currency is
+ * off it.
  *
  * `combineReadings` enforces the both-halves rule on its own, so the two forms
  * agree on absence by construction rather than by two copies of the same

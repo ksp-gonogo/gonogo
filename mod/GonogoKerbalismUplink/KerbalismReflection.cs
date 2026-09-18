@@ -15,11 +15,8 @@ namespace Gonogo.KerbalismUplink
     /// <summary>
     /// Reflection-only bridge to Kerbalism. No compile-time reference to
     /// Kerbalism.dll: every call degrades to null/empty on a moved/absent
-    /// surface, so the uplink loads presence-safe. The reflection calls are
-    /// ported verbatim from the proven mod/GonogoDevTools/GonogoDevKerbalismDump.cs,
-    /// which performed exactly these reads against live Kerbalism 3.32 + CRP v112
-    /// to produce local_docs/kerbalism-fixtures/. Mirrors the RaReflection.cs shape
-    /// (probe assembly by name; cache handles once; typed-absence readers).
+    /// surface, so the uplink loads presence-safe. Mirrors the RaReflection.cs
+    /// shape (probe assembly by name; cache handles once; typed-absence readers).
     /// </summary>
     public sealed class KerbalismReflection
     {

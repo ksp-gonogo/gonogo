@@ -18,10 +18,10 @@ import { Meter, MeterStack } from "./Meter";
 // it, cannot lay it out with its own rows.
 //
 // `row` is what makes this reach where an augment SEGMENT cannot. A segment
-// mounts once per widget and has no way to name a row, so per-row extension was
-// the one shape §5 of the audit ruled uncollapsible. An entry carrying its own
-// row key inverts that: the host mounts one `<WidgetMeters row={...}>` per row
-// and each entry lands beside the datum it is about.
+// mounts once per widget and has no way to name a row, so per-row extension
+// cannot collapse into that shape. An entry carrying its own row key inverts
+// that: the host mounts one `<WidgetMeters row={...}>` per row and each entry
+// lands beside the datum it is about.
 // ---------------------------------------------------------------------------
 
 export interface WidgetMetersProps {

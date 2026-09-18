@@ -125,12 +125,11 @@ export interface RadioLight {
 /** What a screen can honestly say about what it is hearing. */
 export interface RadioReception {
   /*
-   * There is deliberately no `playing` naming ONE speaker. There used to be,
-   * and it could only ever be a lie the moment a second person keyed up: the
-   * listener sums whatever reaches it, so at any instant there may be several
-   * voices in the operator's ear and no way to elect one of them. `live` below
-   * carries all of them, each with whether it is being heard, which is the
-   * complete reading and the one the lamps draw.
+   * There is deliberately no `playing` naming ONE speaker: the listener sums
+   * whatever reaches it, so at any instant there may be several voices in the
+   * operator's ear and no way to elect one of them. `live` below carries all
+   * of them, each with whether it is being heard, which is the complete
+   * reading and the one the lamps draw.
    */
   /**
    * Every transmission currently reaching this screen, MUTED ONES INCLUDED,

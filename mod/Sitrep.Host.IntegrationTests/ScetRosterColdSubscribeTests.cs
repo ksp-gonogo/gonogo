@@ -12,9 +12,10 @@ namespace Sitrep.Host.IntegrationTests
     /// A roster channel has to be able to say it is EMPTY, and the client that
     /// needs to hear it is the one that has never heard anything.
     ///
-    /// <para><b>The defect, measured on the deck 2026-09-12.</b> Subscribing to
+    /// <para><b>A roster channel that publishes only on CHANGE can never say
+    /// "empty."</b> Subscribing to
     /// <c>alarm.scet</c> returned the subscribed event and then nothing at all,
-    /// for twenty-seven seconds and for twelve thousand UT of warp, well past the
+    /// well past the
     /// channel's own keyframe interval. A successful arm produced no frame
     /// either. The client's reconciler waits for a roster before it arms
     /// anything, so a cold client armed nothing: the one state that had to reach

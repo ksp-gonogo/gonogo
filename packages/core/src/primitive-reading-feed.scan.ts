@@ -1,9 +1,9 @@
 /**
- * Finds the drift ruling 8 of ticket 257 exists to stop: a primitive that says it
- * handles a `Reading` being handed the value with the currency stripped off it.
+ * Finds a primitive that says it handles a `Reading` being handed the value
+ * with the currency stripped off it.
  *
  * `Unit` and `Meter` each widened to `Value<U> | Reading<Value<U>>`, because
- * ruling 7 is right that a definite quantity should be passable as one. The
+ * a definite quantity should be passable as one. The
  * cost of that widening is that the compiler can no longer tell a caller who
  * HAS a reading to pass the reading:
  *
@@ -11,7 +11,7 @@
  *     <Unit value={altitude.value} />        // compiles. Band and staleness gone
  *
  * Both lines typecheck, both render a number, and the second silently drops the
- * not-current mark and the uncertainty band that tickets 64 and 255 put there. That
+ * not-current mark and the uncertainty band. That
  * is not a hypothetical failure mode: it is the SHORTER thing to write, and it
  * is what a call site reaches for the moment the reading's optional `value`
  * annoys it.
@@ -37,10 +37,9 @@
  *
  * The rule names no primitive and no prop. It asks the props type what it
  * accepts, so a primitive that widens to take a reading next month is covered
- * next month, which is what "per primitive" in ruling 8 has to mean if it is
- * not to be a list someone forgets to add to.
+ * next month.
  *
- * THE OTHER HALF OF RULING 8 IS `styleguide-primitive-inputs.test.ts`, and the
+ * THIS GATE PAIRS WITH `styleguide-primitive-inputs.test.ts`, and the
  * two are not duplicates. That one refuses a bare magnitude, top-level
  * arithmetic or a cast reaching the prop; this one refuses a reading that was
  * unwrapped on the way in. Cross-planted both ways rather than reasoned about:
@@ -53,8 +52,8 @@
  *  - a prop that accepts only a `Value`. Nothing was dropped: the primitive
  *    never offered to carry the currency
  *  - a `Value` that no reading was unwrapped to reach: a literal, a `value()`
- *    call, a prop the widget was handed. Those are ruling 7's legitimate case,
- *    and ticket 257 part 3's combinator is what moves the computed ones
+ *    call, a prop the widget was handed. Those are the legitimate case this
+ *    gate does not flag
  *  - `<reading>.modelled`, and anything off `reading.reckoning`. Reaching into
  *    the reckoning is a deliberate act with the reading still in hand, not the
  *    accidental discard this looks for
@@ -415,7 +414,7 @@ const DERIVATION_DEPTH = 64;
  * ARGUMENTS (never a callee's body, which would be a whole-program analysis),
  * property objects and one `const` hop per identifier.
  *
- * It deliberately does NOT flag ruling 7's legitimate case. A literal, a
+ * It deliberately does NOT flag the legitimate case. A literal, a
  * constant, a prop the widget was handed: none of those reach a reading, so
  * none of them is reported. The discriminator is where the number CAME FROM,
  * not what it looks like on arrival, and a rule that cannot tell those apart

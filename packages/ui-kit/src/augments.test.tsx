@@ -253,9 +253,9 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   });
 });
 
-// useAugmentAvailable is AugmentEntry's own gate hook, extracted (spec:
-// local_docs/spec-mapview-stackable-layers.md fix-up) so a HOST can ask "is
-// this augment's Domain live" WITHOUT rendering the augment's component,
+// useAugmentAvailable is AugmentEntry's own gate hook, extracted so a HOST
+// can ask "is this augment's Domain live" WITHOUT rendering the augment's
+// component,
 // needed for a decision like MapView's vanilla-suppression, which must
 // respect Domain availability exactly like rendering does, not just
 // registry presence (a bundled client package registers its augments

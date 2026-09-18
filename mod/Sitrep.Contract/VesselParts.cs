@@ -327,11 +327,7 @@ public class PartModuleState
 /// vessel's: they are authored fields of the part's config node, so one value
 /// has to serve every instance of that part however it was assembled. A
 /// consumer placing the box on a ship rotates both by that part's <c>orgRot</c>
-/// before adding <see cref="VesselPart.Position"/>, which is <c>vessel-local</c>.
-/// <internal>
-/// <see cref="Center"/> was documented as vessel-local until the frame rule
-/// landed; the config-node reading is what settled it.
-/// </internal></para>
+/// before adding <see cref="VesselPart.Position"/>, which is <c>vessel-local</c>.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

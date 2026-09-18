@@ -31,9 +31,9 @@ describe("reading the Uplink index", () => {
   /**
    * The dev server answers a path it does not have with the app shell, at HTTP
    * 200 and `text/html`. So an index that was never built arrives as a healthy
-   * response whose body starts with `<`, and the only thing the loader could
-   * say about it was `Unexpected token '<'`: true, useless, and about JSON
-   * syntax rather than about a build that has not been run.
+   * response whose body starts with `<`, and a bare JSON parse error would
+   * only say `Unexpected token '<'`: true, useless, and about JSON syntax
+   * rather than about a build that has not been run.
    */
   it("reads an HTML answer as an absent index, and names the fix", async () => {
     serve('<!DOCTYPE html>\n<html lang="en"><head></head></html>', {

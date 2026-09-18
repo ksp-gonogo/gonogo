@@ -10,15 +10,12 @@ namespace Sitrep.Host.Flight
     /// half of <c>Gonogo.KSP.FlightUplink</c> (mirrors the
     /// <c>VesselViewProvider</c>/<c>VesselEpochSampler</c> split
     /// <c>Gonogo.KSP.VesselUplink</c> already follows). Owns everything the
-    /// flight-lifecycle spec (<c>docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md</c>)
-    /// calls for except the two GameEvents a tick-driven sampler genuinely
+    /// flight-lifecycle spec calls for except the two GameEvents a tick-driven sampler genuinely
     /// cannot classify on its own (crash vs. destroyed vs. recovered), those
     /// arrive via <see cref="SignalEnd"/> from the KSP-facing uplink and are
     /// drained here, on the Courier thread, at the top of every <see cref="Sample"/>.
     ///
-    /// <para><b>Why REVERT needs no GameEvent hook at all (a deliberate
-    /// deviation from the spec's suggested <c>onGameStateLoad</c>/
-    /// <c>onLevelWasLoaded</c> hook):</b> a revert (or an F9 quickload) is
+    /// <para><b>Why REVERT needs no GameEvent hook at all:</b> a revert (or an F9 quickload) is
     /// ALREADY, unambiguously signalled by <c>KspSnapshot.Ut</c> jumping
     /// backward: the exact same signal <c>ChannelEngine.ProcessTick</c>
     /// itself uses to trigger <c>Courier.ResetTimeline</c> +

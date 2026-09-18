@@ -38,17 +38,16 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class KspVesselActuator : IVesselActuator
     {
-        // M3 R3: this is now the SAME ReferenceIdRegistry<ManeuverNode>
+        // This is the SAME ReferenceIdRegistry<ManeuverNode>
         // instance KspHost's read-side BuildManeuverNodes assigns ids from
         // (GonogoAddon.Awake constructs one and hands it to both); see
-        // that class's doc comment. Before this change, this actuator kept
-        // its OWN throwaway Dictionary<string, ManeuverNode>, so
-        // update/remove only ever worked for a node created THROUGH
-        // AddManeuverNode; a node the player placed by hand in the map view
-        // had no id at all and could never be referenced. Sharing the
-        // registry closes that gap: GetOrAssign returns the SAME id
-        // regardless of which side (read sampling or this AddManeuverNode
-        // call) sees a given node object first.
+        // that class's doc comment. A private, throwaway
+        // Dictionary<string, ManeuverNode> here instead would only work for
+        // a node created THROUGH AddManeuverNode; a node the player placed
+        // by hand in the map view would have no id at all and could never
+        // be referenced. Sharing the registry closes that gap: GetOrAssign
+        // returns the SAME id regardless of which side (read sampling or
+        // this AddManeuverNode call) sees a given node object first.
         private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
 
         /// <summary>
@@ -538,9 +537,8 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The same event pressing the space bar is, which this used to be only
-        /// half of. See <see cref="StageRule"/> for stock's own three lines and
-        /// what each of them is for.
+        /// The same event pressing the space bar is. See <see cref="StageRule"/>
+        /// for stock's own three lines and what each of them is for.
         ///
         /// <para>The Stage action group fires whether or not the stack advances
         /// and only inside the staging lock, which is exactly where
@@ -581,8 +579,8 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Delegates to the ELECTED action-groups backend rather than the magic
-        /// <c>1 => Custom01 ... 10 => Custom10</c> switch this used to be. The
+        /// Delegates to the ELECTED action-groups backend rather than a magic
+        /// <c>1 => Custom01 ... 10 => Custom10</c> switch. The
         /// backend owns both the mapping and the RANGE, stock stops at 10, AGX
         /// goes to 250: so an index it doesn't know comes back <c>false</c>
         /// and becomes <c>CommandErrorCode.Range</c> here.
@@ -888,9 +886,8 @@ namespace Gonogo.KSP
         /// contract-side constant), so the design table's <c>CommandResult | CommandErrorCode.Range</c>
         /// (§3) is enforced here rather than passed to <c>TimeWarp.SetRate</c>.
         ///
-        /// <para><b>And the rate the game settled on is read back.</b> The old
-        /// comment here said <c>SetRate</c> "does no bounds checking of its
-        /// own"; it does two. It clamps the index, and then <c>setRate</c> runs
+        /// <para><b>And the rate the game settled on is read back.</b> It
+        /// clamps the index, and then <c>setRate</c> runs
         /// <c>getMaxOnRailsRateIdx</c> against the body's altitude limit (and a
         /// kerbal on a ladder, and the physics ceiling) and posts its own screen
         /// message. Returning <c>Ok()</c> regardless reported 100,000x at 20 km

@@ -324,10 +324,11 @@ describe("a connection's upstream vantage", () => {
  * Where a peer's COMMAND is addressed from.
  *
  * A peer observing from its own vantage still dispatches through the HOST's
- * client, so an empty per-call vantage used to fall through to the host's
- * session and address the command from the ground. Its telemetry comes from a
- * session at its own vantage (above); its commands have to agree, or the two
- * disagree about where the peer is standing. Cosmetic while the address only
+ * client. Without the connection's own vantage in the priority order, an
+ * empty per-call vantage would fall through to the host's session and
+ * address the command from the ground. Its telemetry comes from a session at
+ * its own vantage (above); its commands have to agree, or the two disagree
+ * about where the peer is standing. Cosmetic while the address only
  * sizes the delay-UX pills, and not cosmetic at all once the address decides
  * the command's delay.
  */

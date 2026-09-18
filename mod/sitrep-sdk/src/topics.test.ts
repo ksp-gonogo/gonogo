@@ -90,7 +90,7 @@ function extractDeclaredTopics(): Set<string> {
 
 describe("typed Topic registry", () => {
   it("every SDK-owned Topic is declared in C# (forward self-check)", () => {
-    // NARROWED (2026-07-20): this SDK package cannot see the Uplink client
+    // This SDK package cannot see the Uplink client
     // packages that own the bare-primitive Topics: importing them here would be
     // the very `^build` cycle the leaf architecture forbids, so the SDK's own
     // registry (`TOPIC_IDS`) legitimately does NOT contain them. The FULL

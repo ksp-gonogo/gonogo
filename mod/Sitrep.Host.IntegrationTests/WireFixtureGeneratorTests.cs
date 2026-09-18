@@ -32,10 +32,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>vessel.resources</c>, <c>vessel.thermal</c>, <c>vessel.control</c>,
     /// <c>vessel.comms</c>, <c>vessel.propulsion</c>, <c>vessel.maneuver</c>,
     /// <c>vessel.target</c>, <c>vessel.crew</c>, <c>vessel.structure</c>,
-    /// <c>system.bodies</c>, <c>time.warp</c> -- fifteen channels total, grown
-    /// from an original six-channel set that left the fixture too thin to
-    /// catch a wrong mapping on any channel outside it, e.g. the
-    /// <c>vessel.resources</c> flat-path bug M3 batch 1 found the hard way)
+    /// <c>system.bodies</c>, <c>time.warp</c> -- fifteen channels total)
     /// -- exactly the raw JSON text a real <c>ClientWebSocket</c> received,
     /// byte-for-byte -- to a JSON fixture at
     /// <c>local_docs/telemetry-mod/recordings/reference-wire-fixture.json</c>

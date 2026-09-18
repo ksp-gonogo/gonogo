@@ -6,12 +6,12 @@ namespace Gonogo.KSP.CurrencyDelay
     /// The one and only way a currency event's delay is computed: the one-way
     /// light-time of a live CommNet control path whose last hop is home.
     ///
-    /// <para>There used to be a straight-line arm here, subject position to
-    /// KSC position, divided by c, used whenever no route existed. It was
-    /// wrong in a way that mattered: a chord through the planet a craft is
-    /// hiding behind is not a signal path, so it quoted a confident delay for
-    /// a craft nothing could reach, and science from the far side of the
-    /// system was credited as though it had arrived. There is no second way to
+    /// <para>A straight-line arm here - subject position to KSC position,
+    /// divided by c, used whenever no route existed - would be wrong in a way
+    /// that matters: a chord through the planet a craft is hiding behind is
+    /// not a signal path, so it would quote a confident delay for a craft
+    /// nothing could reach, and science from the far side of the system would
+    /// be credited as though it had arrived. There is no second way to
     /// compute a delay. No route home is <see cref="KscDelay.Unroutable"/>,
     /// which the caller must queue Blocked rather than treat as zero.</para>
     /// </summary>

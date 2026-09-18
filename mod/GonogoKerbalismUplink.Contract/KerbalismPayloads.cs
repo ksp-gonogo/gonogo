@@ -11,10 +11,7 @@ namespace GonogoKerbalismUplink;
 //
 // The GonogoKerbalismUplink (mod/GonogoKerbalismUplink/) publishes these by
 // reflecting over Kerbalism's KERBALISM.API / Features / DB.Kerbal(name).rules
-// and the ProcessController PartModules, the SAME reflection the proven
-// mod/GonogoDevTools/GonogoDevKerbalismDump.cs performs (it produced the
-// fixtures these shapes are grounded in: local_docs/kerbalism-fixtures/,
-// canonical kerbalism-fixture-baseline-crp.json).
+// and the ProcessController PartModules.
 //
 // TYPING-ONLY: these mirror, field-for-field, the
 // Dictionary<string, object?> value trees KerbalismCapture.Build* emit (camelCase
@@ -39,13 +36,11 @@ namespace GonogoKerbalismUplink;
 /// <c>StormIncoming</c>/<c>StormInProgress</c>/<c>Blackout</c>, <c>InSunlight</c>)
 /// plus the <c>Shielding</c> resource.
 ///
-/// <para><b>This payload names no vessel, deliberately.</b> Solar activity is
-/// SUN-sourced: the storms, the ejection speed and the star geometry describe
-/// what the Sun is doing, and the intended shape for this channel is a
-/// sun-sourced one delayed by its own Sun-to-observer geometry rather than a
-/// vessel-attributed sample, per
-/// <c>local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md</c>. Binding
-/// it to a vessel id would encode the wrong subject and have to be unpicked.
+/// <para>This payload names no vessel. Solar activity is SUN-sourced: the
+/// storms, the ejection speed and the star geometry describe what the Sun is
+/// doing, and the channel is delayed by its own Sun-to-observer geometry
+/// rather than a vessel-attributed sample. Binding it to a vessel id would
+/// encode the wrong subject and have to be unpicked.
 /// Distinct from <see cref="KerbalismFeatures"/>/<see cref="KerbalismProfile"/>,
 /// which are install-wide facts with no subject to name at all; this one HAS a
 /// subject, and it is the Sun.</para>

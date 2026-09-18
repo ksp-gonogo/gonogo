@@ -341,8 +341,7 @@ describe("design-system: the KSP day", () => {
       "86_400",
       "86400000",
       "86_400_000",
-      // Kerbin's rotation is a hardcoded day too, and was invisible to this
-      // guard for its whole life.
+      // Kerbin's rotation is a hardcoded day too.
       "21600",
       "21_600",
     ]) {
@@ -354,8 +353,6 @@ describe("design-system: the KSP day", () => {
   });
 
   it("does not fire on prose about the number", () => {
-    // A file explaining why a KSP day is not 86,400 seconds used to fail the
-    // guard for saying so.
     const source = [
       "// A KSP day is 21600s, not 86400.",
       "/* also not 86_400_000 ms */",

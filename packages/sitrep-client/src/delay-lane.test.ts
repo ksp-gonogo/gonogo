@@ -66,9 +66,6 @@ describe("a channel's declared delay role", () => {
     expect(isTrueNowTopic(TRUE_NOW_TOPIC)).toBe(true);
     expect(delayLaneOf(TRUE_NOW_TOPIC)).toBe("true-now");
     expect(delayLaneOf(DELAYED_TOPIC)).toBe("delayed");
-    /* `time.warp` is the channel the 2026-09-11 ruling reclassified, and the
-       one the scan behind this table could not see until it learned to read an
-       amended declaration. */
     expect(isTrueNowTopic("time.warp")).toBe(true);
   });
 

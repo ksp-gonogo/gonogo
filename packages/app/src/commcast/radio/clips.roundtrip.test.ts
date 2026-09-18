@@ -328,10 +328,10 @@ describe("a keying across a separation that is changing", () => {
 describe("a keying with no path", () => {
   it("is silence at the listener, and nothing else at all", async () => {
     /*
-     * The settled ruling. Announcing "somebody is transmitting and you cannot
-     * hear them" would be the faster-than-light channel the whole delay model
-     * exists to prevent, so the listener gets no reading of any kind: not a
-     * name, not a drop count, not a backlog.
+     * Announcing "somebody is transmitting and you cannot hear them" would be
+     * the faster-than-light channel the whole delay model exists to prevent,
+     * so the listener gets no reading of any kind: not a name, not a drop
+     * count, not a backlog.
      */
     const scene = crossing([SHORT_CLIP], { separationSeconds: null });
     await scene.say(0);

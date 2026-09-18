@@ -362,11 +362,9 @@ function ReportBug() {
       else tagged.error(trimmed, undefined, payload);
       // The Axiom SDK auto-batches and retries on its own. Race the flush
       // against a 10s deadline so a slow transport (e.g. backpressure on
-      // a large screenshot) doesn't trap the UI in "Submitting...", the
-      // user's 2026-05-17 bug-report attempt with a screenshot stalled
-      // forever and the report never arrived. The entry is in the ring
-      // buffer regardless, so timing out is a soft success: surface
-      // "sent" but flip the form to its post-send state quickly.
+      // a large screenshot) doesn't trap the UI in "Submitting...". The entry
+      // is in the ring buffer regardless, so timing out is a soft success:
+      // surface "sent" but flip the form to its post-send state quickly.
       const flushOrTimeout = await Promise.race([
         logger.flushTransports().then(() => "flushed" as const),
         new Promise<"timeout">((resolve) =>

@@ -22,17 +22,9 @@ export const ROW_HEIGHT = 25;
  * items routes through `migrateDashboardItems`.
  */
 export const RENAMED_COMPONENT_IDS: Record<string, string> = {
-  // 2026-06-24: the "Contracts Board" became the management-focused
-  // "Contract Manager"; live objectives moved to the new Objectives widget.
   "mission-director": "contract-manager",
-  // 2026-06-24: Mission Status was folded into the unified Objectives widget.
   "mission-status": "objectives",
-  // 2026-06-25: Deployed Base Monitor renamed to the simpler Deployed Science.
   "deployed-base-monitor": "deployed-science",
-  // 2026-08-22: Distance to Target covers the whole target relationship
-  // (distance, closest approach, relative velocity, target selection, view
-  // modes), so it is named Targeting for the relationship rather than for one
-  // of its fields.
   "distance-to-target": "targeting",
 };
 

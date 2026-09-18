@@ -17,23 +17,16 @@ namespace Gonogo.KSP.CurrencyDelay
     /// The delay applied to one currency event, as a value that cannot be
     /// silently coerced into a number.
     ///
-    /// <para><b>This type exists to make a specific bug unwriteable.</b> The
-    /// delay used to be a <c>double?</c>, and every call site ended
-    /// <c>?? 0.0</c>, so "no route home" and "no delay" collapsed into the
-    /// same zero, and science transmitted from the far side of the system was
-    /// credited instantly. There were five such sites. A nullable double
-    /// invites that; a struct with no implicit conversion to <c>double</c> and
-    /// no <c>GetValueOrDefault</c> does not. Reading the seconds requires
-    /// naming the <see cref="KscDelayKind.Unroutable"/> case first, which is
-    /// the whole point.</para>
+    /// <para>A struct with no implicit conversion to <c>double</c> and no
+    /// <c>GetValueOrDefault</c> requires naming the
+    /// <see cref="KscDelayKind.Unroutable"/> case first, before reading the
+    /// seconds.</para>
     ///
-    /// <para>The rule it enforces (see
-    /// <c>local_docs/design/2026-08-15-unroutable-currency-consensus.md</c>): a
-    /// currency event is delayed by exactly ONE number, the one-way light-time
-    /// of a live control path whose last hop is home. There is no second way to
-    /// compute a delay, and specifically no straight-line distance fallback,
-    /// a chord through the planet a craft is hiding behind is not a signal
-    /// path.</para>
+    /// <para>The rule it enforces: a currency event is delayed by exactly ONE
+    /// number, the one-way light-time of a live control path whose last hop is
+    /// home. There is no second way to compute a delay, and specifically no
+    /// straight-line distance fallback, a chord through the planet a craft is
+    /// hiding behind is not a signal path.</para>
     /// </summary>
     public readonly struct KscDelay : IEquatable<KscDelay>
     {

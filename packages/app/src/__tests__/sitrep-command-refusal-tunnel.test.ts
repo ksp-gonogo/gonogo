@@ -149,9 +149,9 @@ async function settleWire(): Promise<void> {
 }
 
 /**
- * A refusal with every optional half populated, because the defect was that the
- * optional halves were the ones that vanished: `code` and `message` always
- * crossed.
+ * A refusal with every optional half populated: an optional field silently
+ * vanishing while `code` and `message` still cross is exactly the failure
+ * mode this guards against.
  */
 const BREACH = {
   facility: "VehicleAssemblyBuilding",

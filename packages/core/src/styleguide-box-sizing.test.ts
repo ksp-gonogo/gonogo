@@ -7,13 +7,9 @@ import { describe, expect, it } from "vitest";
 /**
  * One border-box reset, in the sheet every gonogo page loads, and nowhere else.
  *
- * `box-sizing` is a document-level decision and this tree made it 36 times, once
- * per place somebody noticed: `width: 100%` beside horizontal padding resolves
- * to 100% PLUS the padding under the default `content-box`, so the rule that
- * overflows reads as if it asks for exactly the space it has. Two shipped bugs
- * came from the places nobody had noticed yet, the panel toolbar hanging 32px
- * past its own panel at every tile width and a fill empty state slicing its own
- * sentence in four widgets.
+ * `box-sizing` is a document-level decision: `width: 100%` beside horizontal
+ * padding resolves to 100% PLUS the padding under the default `content-box`,
+ * so a rule that overflows reads as if it asks for exactly the space it has.
  *
  * So the reset lives in `packages/theme/src/tokens.css`, which the app imports
  * and every render probe injects verbatim, and a local `box-sizing` declaration

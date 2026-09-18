@@ -10,20 +10,21 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="ChannelEngine.BindCommandArgs"/>: the generic
-    /// wire-args → typed-<c>TArgs</c> binder that closes the confirmed live bug
-    /// where the ENTIRE command/write path was dead over the real WebSocket:
-    /// <c>EnvelopeCodec</c> deserializes a command's args to a GENERIC shape
-    /// (<c>Dictionary&lt;string, object?&gt;</c> / <c>double</c> / <c>bool</c> /
-    /// <c>string</c>), and the old <c>(TArgs)args!</c> cast threw
-    /// <c>InvalidCastException</c> ("Specified cast is not valid") for every
-    /// command taking a typed args record. The existing
-    /// <c>VesselCommandProviderTests</c> never caught this because they invoke
-    /// handlers with an ALREADY-typed <c>TArgs</c> in-process: they never
-    /// exercise the wire-deserialize → dispatch path. These tests feed the exact
+    /// wire-args → typed-<c>TArgs</c> binder every command taking a typed args
+    /// record needs, because <c>EnvelopeCodec</c> deserializes a command's args
+    /// to a GENERIC shape (<c>Dictionary&lt;string, object?&gt;</c> /
+    /// <c>double</c> / <c>bool</c> / <c>string</c>), and a naive
+    /// <c>(TArgs)args!</c> cast throws <c>InvalidCastException</c>
+    /// ("Specified cast is not valid"). The existing
+    /// <c>VesselCommandProviderTests</c> would not catch a regression here,
+    /// because they invoke handlers with an ALREADY-typed <c>TArgs</c>
+    /// in-process: they never exercise the wire-deserialize → dispatch path.
+    /// These tests feed the exact
     /// generic shape the wire produces and assert the handler would receive the
     /// correctly-typed args.
     ///
-    /// <para>Every case here FAILED before the binder (the raw cast threw): a
+    /// <para>Every case here would FAIL without the binder (the raw cast
+    /// throws): a
     /// <c>Dictionary&lt;string, object?&gt;</c> is not a <see cref="SetEnabledArgs"/>,
     /// a boxed <c>double</c> is not a <see cref="SasMode"/>, etc.</para>
     /// </summary>

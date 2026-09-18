@@ -7,10 +7,10 @@ import type { Alarm, ContractParameterTrigger } from "./types";
  * A contract-parameter alarm's matching rule.
  *
  * The trigger's job is to fire when one objective of one contract reaches the
- * state the operator armed it on. It used to do that by comparing the wire's
- * `state` STRING against the word saved in the alarm, and `ParameterState` is
- * KSP's enum: rename `Complete` and the comparison silently never matches, so
- * the alarm never fires. Nothing throws and nothing warns, and an alarm that
+ * state the operator armed it on. Comparing the wire's `state` STRING against
+ * the word saved in the alarm is fragile: `ParameterState` is KSP's enum, and
+ * renaming `Complete` would make the comparison silently never match, so the
+ * alarm would never fire. Nothing throws and nothing warns, and an alarm that
  * does not go off is indistinguishable from an alarm whose condition has not
  * happened yet. That is the worst failure available to an alarm, so it gets its
  * own file rather than a line in an existing one.
@@ -101,9 +101,7 @@ describe("contract-parameter alarm trigger", () => {
   /**
    * The defect. A future KSP renaming `ParameterState.Complete` changes the name
    * on the wire and not the ordinal, and the operator's alarm still says
-   * "Complete" because that word is ours and lives in their saved alarms. Under
-   * the old string comparison this alarm sat pending forever on a contract
-   * objective that had been finished.
+   * "Complete" because that word is ours and lives in their saved alarms.
    */
   it("fires on the ordinal even when KSP's name for the state is one we have never seen", () => {
     const alarm = contractAlarm("Complete");
@@ -113,9 +111,9 @@ describe("contract-parameter alarm trigger", () => {
   });
 
   /**
-   * The same defect in the other direction, and why the fix is not "compare more
-   * loosely". A name that happens to read "Complete" while the ordinal says the
-   * objective FAILED must not fire a Complete alarm, and must fire a Failed one.
+   * The same defect in the other direction. A name that happens to read
+   * "Complete" while the ordinal says the objective FAILED must not fire a
+   * Complete alarm, and must fire a Failed one.
    */
   it("does not fire a Complete alarm on an objective whose ordinal says Failed", () => {
     const failedRows = contracts({ state: "Complete", stateOrdinal: 2 });
@@ -144,9 +142,10 @@ describe("contract-parameter alarm trigger", () => {
    * `getContractsActive` answers a non-array whenever nothing has arrived on
    * `contracts.active` yet or the link is down, which is not the same claim as
    * an empty list: an empty list says the contract is gone, a non-array says
-   * nobody asked. Collapsing the two published a failed read as the confident
-   * fact "the condition just ended" and cleared the sustain latch, so a link
-   * flapping faster than `sustainSeconds` never let the alarm fire at all.
+   * nobody asked. Collapsing the two would publish a failed read as the
+   * confident fact "the condition just ended" and clear the sustain latch, so
+   * a link flapping faster than `sustainSeconds` would never let the alarm
+   * fire at all.
    */
   describe("an unreadable contract list", () => {
     /**
@@ -197,8 +196,8 @@ describe("contract-parameter alarm trigger", () => {
     });
 
     /**
-     * The other half, and why a naive hold is not the fix either: an alarm
-     * must not come due on a sustain window nobody could see through.
+     * The other half: an alarm must not come due on a sustain window nobody
+     * could see through.
      */
     it("does not fire on a blackout that spans the whole sustain window", () => {
       const alarm = contractAlarm("Complete", 10);

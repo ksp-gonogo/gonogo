@@ -116,20 +116,13 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   });
 
   /**
-   * The ruled shape for a link that has stopped arriving (#337, operator
-   * 2026-09-17), asserted rather than described.
-   *
-   * > "show every line of the widget but with a null/empty state, not stale or
-   * > reckoned values, and to add a 'no signal' warning badge"
+   * Asserted rather than described.
    *
    * Three claims, and each is asserted because getting any one of them alone
    * would be a worse panel than the collapse this replaced: the panel STAYS,
-   * every figure NULLS, and ONE badge carries the reason. The badge itself is
-   * a `comm-signal.badges` contribution, asserted in `./panel-badge.test.tsx`.
-   * The held-and-marked shape this file asserted until 2026-09-17 was option B
-   * on #337 and the operator ruled against it: a mark does not withdraw what a
-   * number asserts, and for a link "there's no value in seeing what the link
-   * was".
+   * every figure NULLS, and ONE badge carries the reason. A mark does not
+   * withdraw what a number asserts, and for a link there's no value in
+   * seeing what the link was.
    */
   it("nulls every line once the link stops arriving", async () => {
     const fixture = setupStreamFixture({
@@ -170,13 +163,15 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
        `vessel.state`, which never goes stale, so the old fallback printed a
        confident "Full" for a link that had stopped reporting. */
     expect(visibleText()).not.toContain("Full");
-    /* The bars withhold their count, and their aria-label uses the ruled words
-       too: a screen-reader message is operator-facing copy. */
+    /* The bars withhold their count, and their aria-label matches the visible
+       badge too: a screen-reader message is operator-facing copy. */
     expect(screen.getByLabelText("No signal")).toBeTruthy();
     expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
     expect(screen.queryByLabelText(/not current/i)).toBeNull();
 
-    // 3. None of the disallowed wording survives anywhere on the panel.
+    // 3. ONE badge carries the reason, and no other staleness wording
+    //    survives anywhere on the panel.
+    expect(screen.getAllByText("No signal")).toHaveLength(1);
     expect(visibleText()).not.toMatch(/not current/i);
     expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).not.toMatch(/stale/i);

@@ -155,9 +155,7 @@ namespace Sitrep.Host.IntegrationTests
 
             // Whatever this recording has to say about facilities, it says on
             // their own channel: a frame carries at least one real reading, or
-            // there is no frame. What cannot happen any more is a frame of
-            // nulls, which is what this recording used to produce and what read
-            // downstream as a space centre with no buildings.
+            // there is no frame.
             foreach (var frame in ParsePayloads(capture.Frames, CareerViewProvider.FacilitiesTopic))
             {
                 var facDict = Assert.IsAssignableFrom<IDictionary<string, object?>>(frame["facilities"]);
@@ -184,11 +182,9 @@ namespace Sitrep.Host.IntegrationTests
         /// batch (ContractManager/Objectives/TechTree/SpaceCenterStatus/
         /// Strategies). <see cref="GeneratesCareerWireFixtureFromCareerRecording"/>
         /// above replays the REAL <c>reference-career-2026-07-08.json</c>
-        /// capture: but that recording predates the 3069438 capture-extend
-        /// session (facilities integer tiers, contract id/parameters,
-        /// strategy list, tech nodes): every facility's <c>currentTier</c>/
-        /// <c>maxTier</c>/<c>upgradeCost</c> is null on that wire, and
-        /// contracts/strategies.all/tech.nodes are all empty arrays (verified
+        /// capture, but that recording's own wire shows every facility's
+        /// <c>currentTier</c>/<c>maxTier</c>/<c>upgradeCost</c> as null, and
+        /// contracts/strategies.all/tech.nodes as all empty arrays (verified
         /// by inspecting the generated <c>reference-wire-fixture-career.json</c>
         /// directly). Blocking the five detail widgets' migration on a fresh
         /// Space Center capture would stall momentum, so this test instead
@@ -833,9 +829,9 @@ namespace Sitrep.Host.IntegrationTests
             /*
              * The 3 authored entries land once. T=0 is the channel's opening
              * keyframe; T=15 carries identical content and is inside the 30s
-             * keyframe interval, so the change-gate suppresses it. It used to
-             * re-emit, because the gate compared the rebuilt payload by
-             * reference and so read every sample as changed.
+             * keyframe interval, so the change-gate suppresses it: comparing
+             * the rebuilt payload by reference would read every sample as
+             * changed and re-emit it regardless.
              */
             Assert.Equal(3, deployedEntries.Count);
 

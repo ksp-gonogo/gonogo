@@ -186,8 +186,7 @@ function ManeuverPlannerComponent({
    * case the elements are current rather than dated and `needsDating` is false.
    * The caption only appears when nothing could model them forward.
    *
-   * This answers the caption that was OWED here. Note the warning that came with
-   * it, which still stands: do NOT compute the age as `viewUt - orbit.epoch`.
+   * Do NOT compute the age as `viewUt - orbit.epoch`.
    * `epoch` is the mean-anomaly REFERENCE epoch, not an observation time, so that
    * difference looks like an age and is not one, and the `ut` token cannot catch it
    * because both operands are correctly instants. The age comes off the reading's
@@ -196,8 +195,8 @@ function ManeuverPlannerComponent({
   const orbitReading = useTelemetry("vessel.orbit");
   const targetReading = useTelemetry("vessel.target");
   /*
-   * `vessel.orbit` carries a mark since ticket 308, so it takes the OVERLAYING read
-   * like `vessel.target` below: the conic moves the phase and says nothing about
+   * `vessel.orbit` carries a mark, so it takes the OVERLAYING read like
+   * `vessel.target` below: the conic moves the phase and says nothing about
    * the elements, and `reckoned.value` alone is not an orbit.
    */
   const { value: orbit, needsDating: orbitNeedsDating } =

@@ -182,12 +182,11 @@ describe("SitrepPeerRelay", () => {
   });
 
   it("reaches a topic under a dynamic namespace through the same path, with no per-namespace code in between", async () => {
-    // The acceptance criterion for removing the eager list. The relay used to
-    // mirror one Uplink's device list into a per-device subscription, because
-    // that Uplink's ids are only known at runtime and a station's own
-    // subscription could not reach the host. Now it can, and a runtime-keyed
-    // topic stops being a special case: the station's widget subscribes it like
-    // any other, and the relay knows nothing about the namespace.
+    /*
+     * A runtime-keyed topic is not a special case: the station's widget
+     * subscribes it like any other, and the relay knows nothing about the
+     * namespace.
+     */
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);
 

@@ -7,9 +7,8 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="VesselEpochSampler"/>: the M1 "subject
-    /// provenance + epoching" mechanism
-    /// (local_docs/telemetry-mod/m1-provider-taxonomy-design.md §6.1) in
-    /// isolation, via <see cref="FakeUplinkHost"/> rather than a full
+    /// provenance + epoching" mechanism in isolation, via
+    /// <see cref="FakeUplinkHost"/> rather than a full
     /// <see cref="ChannelEngine"/>: this is the "detect a vessel-guid
     /// change and force a keyframe on every vessel.* channel" logic on its
     /// own, decoupled from engine plumbing (which
@@ -206,8 +205,7 @@ namespace Sitrep.Host.Tests
 
             // THE REWIND: Ut goes backward (1.0 -> 0.5), and this rewind
             // tick's OWN snapshot has NO vessel at all -- the loading-scene
-            // case, before FlightGlobals.ready. Pre-fix, _lastVesselId was
-            // left as VesselA (only cleared "if (currentId != null)").
+            // case, before FlightGlobals.ready.
             sampler.Sample(NoVesselSnapshot(ut: 0.5));
 
             Assert.Empty(forced);

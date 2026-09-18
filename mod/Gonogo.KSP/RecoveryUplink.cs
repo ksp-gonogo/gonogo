@@ -45,9 +45,8 @@ namespace Gonogo.KSP
     /// exception, isolated to <see cref="ReadWidgetList{T}"/> below and
     /// wrapped defensively: a field-name mismatch after a future KSP update
     /// degrades to an empty breakdown list (still-correct totals, less
-    /// detail), never a crash or a dropped publish. Flagged in the M2c-style
-    /// commit for reviewer sign-off; a public-API alternative may exist and
-    /// would be a straightforward follow-up swap if found.</para>
+    /// detail), never a crash or a dropped publish. A public-API alternative
+    /// may exist and would be a straightforward follow-up swap if found.</para>
     /// </summary>
     [SitrepUplink("recovery")]
     public sealed class RecoveryUplink : ISitrepUplink

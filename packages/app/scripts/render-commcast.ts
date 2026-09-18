@@ -492,10 +492,8 @@ const SCENES: Scene[] = [
   {
     /*
      * A conversation with a correspondent and nothing said in it yet, reached
-     * out of the picker, and four light-minutes from the craft. The send button
-     * says the verb and nothing else: the round trip used to be inside its
-     * label, so the same control was two words at the pad and a sentence out
-     * here.
+     * out of the picker, and four light-minutes from the craft. The send
+     * button says the verb and nothing else.
      *
      * NO delay chip, and that is the point of the pair this makes with
      * `short-delay-badge` below. Past a second the countdown IS the reading and
@@ -528,10 +526,8 @@ const SCENES: Scene[] = [
      * long the words take to REACH them. Never both readings at once, which is
      * what the pair of pictures shows.
      *
-     * ONE-WAY, not the round trip it used to say. A recovery ship acts on an
-     * instruction the moment it lands; the acknowledgement coming back is a
-     * separate wait, and quoting the sum of the two was quoting the wrong
-     * number.
+     * ONE-WAY, not the round trip: a recovery ship acts on an instruction the
+     * moment it lands, and the acknowledgement coming back is a separate wait.
      */
     name: "short-delay-badge",
     panes: [
@@ -612,12 +608,11 @@ const SCENES: Scene[] = [
   },
   {
     /*
-     * NO PATH, AND STILL TALKING. This is a settled ruling rather than an
-     * oversight: loss of path stops DELIVERY, never transmission. The bar turns
-     * and flags it, the operator keeps their key, and every chunk still goes on
-     * the wire, where a listener who does have a path to this vantage can hear
-     * it. Refusing the press would be this end deciding something only the
-     * other end can answer.
+     * NO PATH, AND STILL TALKING: loss of path stops DELIVERY, never
+     * transmission. The bar turns and flags it, the operator keeps their key,
+     * and every chunk still goes on the wire, where a listener who does have a
+     * path to this vantage can hear it. Refusing the press would be this end
+     * deciding something only the other end can answer.
      *
      * What the LISTENER gets is silence and nothing else, which is why there is
      * no second pane here: there would be nothing in it. Announcing "somebody

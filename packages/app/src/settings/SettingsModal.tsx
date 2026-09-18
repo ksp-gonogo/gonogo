@@ -291,7 +291,7 @@ function UplinkHealthList() {
     return <Placeholder>No uplinks registered</Placeholder>;
   }
 
-  // Health is mandatory now (every uplink self-reports, 2026-07-21). Collapse a
+  // Health is mandatory (every uplink self-reports). Collapse a
   // plain "Healthy, nothing to say" entry into the chip below; anything
   // non-healthy, or healthy-WITH a detail string (an uplink offering more than
   // the trivial floor), stays individually visible.

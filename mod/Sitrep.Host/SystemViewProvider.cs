@@ -8,13 +8,10 @@ namespace Sitrep.Host
     /// KSP-free mapping logic for the "System View" typed stream topic
     /// (<see cref="Topic"/> = <c>"system.bodies"</c>). Reads the raw body
     /// data an <see cref="IKspHost.Sample"/> snapshot carries and produces
-    /// the clean, typed <c>system.bodies</c> wire payload: fixing the legacy
-    /// orbit warts catalogued under <c>local_docs/telemetry-mod/</c>
-    /// (O-1, O-7, O-9, N-2) rather than reproducing them: an explicit
+    /// the clean, typed <c>system.bodies</c> wire payload: an explicit
     /// parent-index tree instead of flat <c>b.*[idx]</c> keys, no in-band
     /// numeric sentinels for missing data, and no <c>eccentricAnomaly</c>
-    /// field (the old fork's orbit-patch formatter assigns that key the body's
-    /// eccentricity: a confirmed copy-paste bug; see O-1).
+    /// field.
     ///
     /// This class does NOT touch the Courier/transport, Task 4's
     /// MonoBehaviour pipeline calls <see cref="BuildSystemBodies"/> and

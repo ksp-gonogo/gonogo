@@ -40,7 +40,7 @@ namespace Gonogo.KSP
         // reach it at ws://<this-machine-LAN-IP>:8090, which is the primary
         // topology: the browser runs on a different machine from KSP.
         //
-        // This socket is NOT read-only, whatever this comment used to say. The
+        // This socket is NOT read-only. The
         // stream that carries telemetry also accepts every declared command,
         // and there is no TLS, no authentication and no origin check, here or
         // in the Fleck listener. Anything that can reach this port can fly the
@@ -118,10 +118,8 @@ namespace Gonogo.KSP
                 // Route the engine's fail-soft diagnostics to the KSP log.
                 // Sitrep.Host otherwise logs only to Console.Error, which KSP does
                 // NOT capture: so a disabled/unavailable uplink or a retrying
-                // capture-throw was invisible in the live log. That invisibility
-                // hid the SCANsat coverage root cause for the entire
-                // investigation; this sink makes the whole fail-soft class
-                // visible at [WRN] level.
+                // capture-throw would be invisible in the live log; this sink
+                // makes the whole fail-soft class visible at [WRN] level.
                 _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
 
                 // The same sink for the command-delay catalog's assembly scan,
@@ -132,9 +130,8 @@ namespace Gonogo.KSP
                 // this the only symptom is a countdown nobody ordered.
                 CommandDelayCatalog.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
 
-                // [SitrepUplink] assembly-scan discovery REPLACES the
-                // previous hardcoded RegisterUplink(new XyzUplink()) list:
-                // see Sitrep.Host.UplinkDiscovery's doc comment. The bundled
+                // [SitrepUplink] assembly-scan discovery is what registers
+                // Uplinks: see Sitrep.Host.UplinkDiscovery's doc comment. The bundled
                 // core uplinks (System/Vessel/Career/Science/Parts) carry
                 // the attribute identically to any future third-party
                 // Uplink: nothing about this loop is special-cased to them.
@@ -145,10 +142,7 @@ namespace Gonogo.KSP
                 // ChannelEngine.RegisterDiscoveredUplinks / the two-pass fix.
                 // Enable the light-time delay capability BEFORE discovery, so
                 // the comms uplink's SignalDelay source is configured at
-                // Register time. This wiring was previously MISSING,
-                // ConfigureSignalDelay had no caller, so SignalDelayConfig
-                // stayed at its Off() default and comms.delay was always 0
-                // (the headline delay feature was dormant). Config comes from
+                // Register time. Config comes from
                 // PluginData/gonogo.cfg (a SIGNAL_DELAY node with `enabled` +
                 // `lightSpeedScale`) so delay can be tuned without a rebuild;
                 // absent config = ON at real light-speed (scale 1.0).
@@ -383,9 +377,9 @@ namespace Gonogo.KSP
         ///
         /// <para>Here because this is the only place that can say it: an arm lives in
         /// its own Uplink assembly, which references no game assembly and so has no
-        /// log to write to, and the outcome was previously carried only as a health
+        /// log to write to, and the outcome is otherwise carried only as a health
         /// fact on <c>system.uplinks</c>. A rig operator cannot read that, so
-        /// "registered" and "never registered" were the same silence, and a rig run
+        /// "registered" and "never registered" would be the same silence, and a rig run
         /// with the leak still wide open could not be told from a deployment
         /// problem.</para>
         ///

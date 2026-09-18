@@ -1,28 +1,6 @@
 // Every command an Uplink registers a handler for must also be declared in its
 // manifest, and one registration failing must not skip the rest.
 //
-// WHY THIS IS SHARED RATHER THAN WRITTEN PER UPLINK. On 2026-08-31 the whole
-// telemetry mod failed to start on the rig, reporting:
-//
-//   gate requirements that cannot be enforced: command "rp1.facility.upgrade"
-//   requires gate kind "rp1.facilities"
-//
-// rp1.facility.upgrade was innocent. A DIFFERENT command had been registered
-// with no matching declaration; AddCommandHandler throws for that, the Uplink's
-// single try/catch around its whole registration block turned the throw into a
-// health string, and every registration after it was skipped, one of which was
-// the gate evaluator rp1.facility.upgrade's requirement needed.
-//
-// Three properties of that failure are why it belongs to every Uplink and not
-// just the one that had it:
-//
-//   1. The symptom names an INNOCENT command, so the reader starts in the wrong
-//      file.
-//   2. The fault is invisible to every per-command test. Each command's own
-//      tests passed; the manifest's tests passed; only the two together fail.
-//   3. Any Uplink that fail-softs a block of registrations has it. The shape is
-//      idiomatic here, so the bug is available to all of them.
-//
 // WHAT THESE CANNOT SEE, and it is not a small caveat. They ask what Register
 // DID, so they are worth exactly as much as the Register the headless test build
 // can run, and for most Uplinks here that is nothing. Several keep their whole
@@ -87,9 +65,7 @@ namespace Sitrep.Contract.TestSupport
         /// quieter failure: an undeclared channel does not throw at all. The
         /// publisher works, the Uplink publishes into it every tick, and the
         /// engine simply refuses the subscription, so the topic is missing from
-        /// the wire with nothing logged anywhere. Found live on 2026-08-31, when
-        /// rp1.fundTarget answered no subscribe while its siblings answered
-        /// theirs.</para>
+        /// the wire with nothing logged anywhere.</para>
         /// </summary>
         /// <returns>Topics published to but never declared, empty when correct.</returns>
         public static IReadOnlyList<string> UndeclaredPublishers(ISitrepUplink uplink)

@@ -279,16 +279,14 @@ function clipToOutgoing(
  * How far past the T divider a fire-and-forget leg trails off, as a fraction of
  * ONE light-time.
  *
- * A hard stop on the divider drew the signal as though it had halted at the
- * target. It had not: a sample past the boundary is one that left more than a
- * light-time ago and has therefore ARRIVED, and the operator asked to see that.
- * So the samples this used to discard are drawn after all, fading to nothing
- * over a quarter of a zone.
+ * A sample past the boundary is one that left more than a light-time ago and
+ * has therefore ARRIVED. Stopping the trace dead at the divider would draw it
+ * as though still in flight, so it fades to nothing over a quarter of a zone
+ * instead.
  *
  * A quarter, because the tail has to read as an ending rather than as a second
- * leg. It stays well short of the 2T divider, where a return leg would begin,
- * and the divider it crosses does not move: the zones are the rail's frame and a
- * migrating boundary was the defect the one-rail ruling removed.
+ * leg. It stays well short of the 2T divider, where a return leg would begin.
+ * The divider it crosses does not move: the zones are the rail's frame.
  */
 const OUTGOING_TAIL = 0.25;
 

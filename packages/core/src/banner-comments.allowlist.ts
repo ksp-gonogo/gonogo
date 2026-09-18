@@ -45,9 +45,9 @@
  * the matcher source to have actually changed, so the revision cannot be bumped
  * on its own.
  *
- * 1: `// --- Title ---` only, on one line. Seeded 2026-08-22, emptied 2026-09-01.
+ * 1: `// --- Title ---` only, on one line.
  * 2: the spread spelling too (a rule, a short title, a rule), and `///` and
- *    block-comment `*` leads. 2026-09-02. Revision 1 could not see 191 of the
+ *    block-comment `*` leads. Revision 1 could not see 191 of the
  *    423 banners in the tree, including every one in the published `ui-kit`.
  */
 export const MATCHER_REVISION = 2;

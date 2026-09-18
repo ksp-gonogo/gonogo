@@ -19,9 +19,7 @@ namespace Sitrep.Host.Alarms
     /// keyframe is decided inside the emitter and the emitter is only consulted
     /// when something is published, so a publisher-backed channel has no cadence
     /// at all until its first delivered frame, and the Courier has nothing
-    /// archived to catch a later subscriber up to. Measured on the deck
-    /// 2026-09-12: subscribing to <c>alarm.scet</c> returned nothing for
-    /// twenty-seven seconds and twelve thousand UT of warp.</para>
+    /// archived to catch a later subscriber up to.</para>
     ///
     /// <para>So the question this answers is not "have I published" but "is
     /// there anyone who has not been told", which is a fact about the

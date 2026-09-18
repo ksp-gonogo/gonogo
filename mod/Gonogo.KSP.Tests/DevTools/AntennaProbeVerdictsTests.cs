@@ -11,10 +11,8 @@ namespace Gonogo.KSP.Tests.DevTools
     ///
     /// <para><b>The failure this covers.</b> The boost is a set of KSPField writes on a
     /// live <c>ModuleRealAntenna</c>, and reloading the vessel re-instantiates that
-    /// module from the save, so the boost vanishes with no announcement. On 2026-08-27
-    /// that silently returned a craft to unroutable mid-session and made a delay run
-    /// unreadable, because a lapsed boost and a boost that never worked produce the same
-    /// unroutable craft.</para>
+    /// module from the save, so the boost vanishes with no announcement. A lapsed boost
+    /// and a boost that never worked produce the same unroutable craft.</para>
     /// </summary>
     public class AntennaProbeVerdictsTests
     {

@@ -1,4 +1,4 @@
-// Type-level tests for the per-widget Topic manifest (spec §3.2 / §3.3).
+// Type-level tests for the per-widget Topic manifest.
 //
 // Enforced by `tsc` (the package `typecheck` script runs them via
 // `tsconfig.test-d.json`), NOT by the vitest runner: matching the SDK's
@@ -32,9 +32,11 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// ── The `as const` ergonomics the spike must prove ──────────────────────────────────
-// Both arrays authored with `as const`; the narrow tuple types flow through and the
-// required/optional distinction is inferred, no per-Value annotation anywhere.
+/*
+ * Both arrays authored with `as const`; the narrow tuple types flow through
+ * and the required/optional distinction is inferred, no per-Value annotation
+ * anywhere.
+ */
 const asConstManifest = defineTopicManifest({
   channels: ["vessel.resources", "vessel.orbit"],
   optionalChannels: ["comms.delay"],
@@ -69,10 +71,11 @@ type _AcOptional = ReturnType<
 export type _AcRequiredIsReading = Expect<
   Equal<_AcRequired, TopicReading<VesselResources>>
 >;
-// `vessel.orbit` gained a `[SitrepReckonable]` mark on 2026-09-16 (ticket 308), so it
-// resolves to the projecting form too. That is this file working as intended:
-// its own doc below says a Topic gaining a mark is exactly the kind of change
-// that would otherwise drift the manifest hook away from `useTelemetry`.
+/*
+ * `vessel.orbit` carries a `[SitrepReckonable]` mark, so it resolves to the
+ * projecting form too: a Topic gaining a mark is exactly the kind of change
+ * that would otherwise drift the manifest hook away from `useTelemetry`.
+ */
 export type _AcRequired2IsReading = Expect<
   Equal<
     _AcRequired2,

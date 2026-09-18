@@ -564,15 +564,6 @@ namespace Sitrep.Contract
         /// means without the CLR arity suffix: <c>CommandRequest`1</c> keyed as
         /// <c>CommandRequest</c>, matching the <c>CommandRequest&lt;TArgs&gt;</c>
         /// interface a consumer is looking the field up against.
-        ///
-        /// <para>Reached for the first time on 2026-09-01, when the three generic
-        /// envelope types (<c>StreamData</c>, <c>CommandRequest</c>,
-        /// <c>CommandResponse</c>) gained their first unit declarations. Until
-        /// then no generic type declared one, so every key in the map happened to
-        /// be spelled the same either way and the raw <c>Type.Name</c> was
-        /// indistinguishable from this. Keyed raw, a declaration is PRESENT in the
-        /// map and unreachable by the only name a consumer has, which is the
-        /// failure it was added to fix wearing a different hat.</para>
         /// </summary>
         internal static string WireName(Type type)
         {

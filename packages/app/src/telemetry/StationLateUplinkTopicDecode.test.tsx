@@ -19,13 +19,9 @@ import { describe, expect, it } from "vitest";
  * after the provider mounted.
  *
  * This is the sibling of `StationLateContributedChannels.test.tsx`, which asks
- * the same station-ordering question about a DERIVED channel. It is here
- * because the ordering stopped being hypothetical on 2026-08-31: until then
- * nine Uplink clients were statically imported by `main.tsx`, so on a station
- * their Topics and units were registered at BOOT, before any provider existed,
- * and only the two runtime-loaded ones took the late path. Those imports are
- * gone and every Uplink now registers when its bundle loads, which on a
- * station is post-connect, inside `StationUplinkLoader`.
+ * the same station-ordering question about a DERIVED channel. Every Uplink
+ * registers when its bundle loads, which on a station is post-connect,
+ * inside `StationUplinkLoader`.
  *
  * The justification given for those imports, four times over, was that "a
  * station has to know <topic> is a Topic to read it off the host at all". This

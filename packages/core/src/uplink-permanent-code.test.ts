@@ -143,8 +143,7 @@ const SANCTIONED_KINDS: ReadonlyArray<{ pattern: RegExp; why: string }> = [
     why: "the Uplink tooling, whose whole subject is the set of Uplinks",
   },
   {
-    // Added 2026-09-04, when the boundary walk widened past `src` and reached
-    // these for the first time. Same kind as the line above, one directory
+    // Same kind as the line above, one directory
     // over: the app's Uplink bundle registry (id, repo, clientDir per Uplink)
     // and the size gate over the bundles it produces. Enumerating every Uplink
     // is the subject of both, and neither has code to move.
@@ -152,7 +151,7 @@ const SANCTIONED_KINDS: ReadonlyArray<{ pattern: RegExp; why: string }> = [
     why: "the app's Uplink bundling and the size gate over its output, whose subject is the set of Uplink bundles",
   },
   {
-    // Also 2026-09-04. What these name is a fixture DIRECTORY or a topic id in
+    // What these name is a fixture DIRECTORY or a topic id in
     // a replayed scene, never an import: an import from here is real coupling
     // and lands in `domainDebt`, because the comment-strip check forces that
     // classification before anything can reach this bucket. `uplink-isolation`

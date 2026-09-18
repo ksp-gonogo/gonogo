@@ -134,8 +134,8 @@ namespace Gonogo.KosUplink
 
             // Interactive terminal: kos.terminal.<coreId> ReliableOrdered
             // screen downlink + single-owner keystroke/resize/open/close.
-            // Replaces the standalone telnet proxy: the mod reads the CPU screen
-            // in-process (spec §P3), no telnet/node-pty anywhere in the path.
+            // The mod reads the CPU screen in-process, no telnet/node-pty
+            // anywhere in the path.
             _terminalSource = host.RegisterDynamicNamespace(
                 KosChannels.TerminalPrefix,
                 new ChannelDeclaration
@@ -147,12 +147,11 @@ namespace Gonogo.KosUplink
                     // reveal clock exactly like vessel.flight (comms authority).
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
-                    // Sticky-reveal fix (2026-07-15 feedback, "black screen for
-                    // one signal-delay after a CPU button press"): the screen
-                    // is a cursor-relative diff stream, so a late/returning
-                    // subscriber's catch-up must land on a self-contained
-                    // FullRepaint frame, never a bare incremental diff with no
-                    // baseline: see ChannelDeclaration.IsKeyframe and
+                    // The screen is a cursor-relative diff stream, so a
+                    // late/returning subscriber's catch-up must land on a
+                    // self-contained FullRepaint frame, never a bare
+                    // incremental diff with no baseline: see
+                    // ChannelDeclaration.IsKeyframe and
                     // Sitrep.Core.Courier's sticky-keyframe cache. Checks the
                     // flattened dictionary (KosTerminalFrameBuilder), not the
                     // KosTerminalFrame POCO: the dictionary is what actually

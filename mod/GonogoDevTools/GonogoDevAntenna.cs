@@ -89,9 +89,8 @@ namespace Gonogo.DevTools
     /// Everything it writes is a KSPField on a live <c>ModuleRealAntenna</c>, and
     /// reloading the vessel re-instantiates that module from the save, whose fields
     /// still hold the craft's real antenna parameters. The boost is then gone with no
-    /// announcement of any kind: on 2026-08-27 that silently returned a craft to
-    /// unroutable mid-session and made a whole delay run unreadable, because a lapsed
-    /// boost and a boost that never worked produce the same unroutable craft.</para>
+    /// announcement of any kind, and a lapsed boost and a boost that never worked
+    /// produce the same unroutable craft.</para>
     ///
     /// <para>So a successful request now STANDS on its vessel, and every
     /// <see cref="StandingVerifySeconds"/> the standing boosts are checked against what
@@ -170,10 +169,8 @@ namespace Gonogo.DevTools
         /// <para><b>Why any of this is needed.</b> The boost is a set of KSPField writes
         /// on a live <c>ModuleRealAntenna</c>. Reloading the vessel re-instantiates its
         /// part modules from the save, whose fields still hold the craft's real antenna
-        /// parameters, so the boost is gone with no announcement of any kind. On
-        /// 2026-08-27 that silently returned a craft to unroutable mid-session and made
-        /// a whole delay run unreadable, because a lapsed boost and a boost that never
-        /// worked read identically.</para>
+        /// parameters, so the boost is gone with no announcement of any kind, and a
+        /// lapsed boost and a boost that never worked read identically.</para>
         ///
         /// <para>Static, so it survives the flight-scene reloads this addon is
         /// re-instantiated by. Across a KSP RESTART nothing is needed: the request cfg

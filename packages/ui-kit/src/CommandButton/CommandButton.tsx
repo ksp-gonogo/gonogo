@@ -19,9 +19,8 @@ import { Spinner } from "../Spinner";
 /**
  * How long an armed control stays armed before it quietly disarms.
  *
- * The ONE definition. It was spelled out independently in eight widgets, which
- * is one behaviour written eight times and therefore eight things that drift
- * apart; `styleguide-delay-ux.test.ts` fails on a ninth.
+ * The ONE definition: `styleguide-delay-ux.test.ts` fails if it is
+ * duplicated elsewhere.
  */
 export const ARM_TIMEOUT_MS = 4000;
 
@@ -34,11 +33,9 @@ export const ARM_TIMEOUT_MS = 4000;
 export const REFUSAL_TIMEOUT_MS = 8000;
 
 /**
- * The outer backstop on a pending dispatch. `send()`'s promise is guaranteed to
- * settle as of `b09377948`; before that a dropped command's promise never
- * settled at all, which is why the five widgets that wanted a pending state
- * each built telemetry reconciliation instead. This is a belt for a handle from
- * some other source that makes no such guarantee, never the primary clear.
+ * The outer backstop on a pending dispatch. `send()`'s promise is guaranteed
+ * to settle; this is a belt for a handle from some other source that makes
+ * no such guarantee, never the primary clear.
  */
 export const PENDING_BACKSTOP_MS = 30_000;
 
@@ -158,8 +155,7 @@ export interface CommandButtonHandle<
  * - `blocked`: the game will refuse this, and said so before anyone pressed.
  *   The control is dark and NOT `disabled`, for two reasons. A `disabled`
  *   button is skipped by some screen readers, so a dimmed dead control tells a
- *   screen-reader user that nothing is there at all, which is the same ruling
- *   this repo already made about read-only settings rows. And a gate verdict is
+ *   screen-reader user that nothing is there at all. And a gate verdict is
  *   advice, not permission: it is sampled, so it can be a beat stale, and the
  *   dispatch re-evaluates anyway. So it carries `aria-disabled` instead, stays
  *   focusable, and answers a press by SAYING WHY rather than by doing nothing

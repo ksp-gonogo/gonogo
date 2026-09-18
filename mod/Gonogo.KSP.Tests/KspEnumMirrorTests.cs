@@ -136,12 +136,12 @@ namespace Gonogo.KSP.Tests
         /// derives them: every <see cref="KSPActionGroup"/> member with a
         /// positive value.
         ///
-        /// <para>That list used to be seventeen members written out by hand, so a
-        /// group KSP added was intersected away before it reached the wire and
-        /// the client could not tell a group it was never sent from a group
-        /// nothing is bound to. This pins the derivation instead: it reproduces
-        /// the seventeen the hand-written list had, in the same order, and it
-        /// cannot come up short.</para>
+        /// <para>A list of members written out by hand would fall behind KSP's
+        /// own enum: a group KSP added would be intersected away before it
+        /// reached the wire, and the client could not tell a group that was
+        /// never sent from a group nothing is bound to. This pins the
+        /// derivation instead: it reproduces the seventeen positive members, in
+        /// the same order, and it cannot come up short.</para>
         ///
         /// <para><c>None</c> (0) and <c>REPLACEWITHDEFAULT</c> (-1) must stay
         /// out, and not merely as tidiness: 0 matches every mask under

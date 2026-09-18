@@ -183,8 +183,8 @@ describe("customAtApsis", () => {
 
 describe("an unbound trajectory has no plan, and says so with null", () => {
   // The elliptical solver these presets propagate with does not describe an escape
-  // trajectory. It used to be handed one anyway and returned a confident wrong
-  // number; the shared kernel now refuses, and refusing has to surface as an ANSWER
+  // trajectory, and the shared kernel refuses rather than returning a confident
+  // wrong number. Refusing has to surface as an ANSWER
   // rather than as a thrown error, because a throw reaching the widget takes the
   // whole panel down over one unplannable burn. `ProjectedRows` already renders a
   // null projection as "escape / invalid".

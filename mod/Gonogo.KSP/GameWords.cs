@@ -16,15 +16,6 @@ namespace Gonogo.KSP
     /// <para><b>Meant for KSP's enums.</b> A <c>Sitrep.Contract</c> enum gains
     /// nothing here: its members carry no <c>[Description]</c>, its name is
     /// already ours to write, and this would only lower-case it.</para>
-    ///
-    /// <para>It used to be far worse than pointless. The contract's shipped
-    /// build carried <c>[TsEnum]</c> from Reinforced.Typings, an assembly
-    /// deliberately never deployed, and reading a member's attributes resolves
-    /// EVERY attribute on it, so passing a contract enum threw
-    /// <c>FileNotFoundException</c>, from <c>member.ToString()</c>, before the
-    /// try below could catch anything. Those attributes now exist only in
-    /// Sitrep.Contract.Codegen, so it is a style point again rather than a
-    /// trap.</para>
     /// </summary>
     internal static class GameWords
     {

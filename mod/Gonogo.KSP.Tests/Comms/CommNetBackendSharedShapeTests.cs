@@ -11,11 +11,9 @@ namespace Gonogo.KSP.Tests.Comms
     /// That the shared half of <see cref="ICommsBackend"/> really is shared, and
     /// that the backend's own half really is not.
     ///
-    /// <para>Five accessors used to be the same code twice in two assemblies,
-    /// down to a byte-identical <c>"no connection to a command source"</c>
-    /// string. The behavioural tests elsewhere check that each backend produces
+    /// <para>The behavioural tests elsewhere check that each backend produces
     /// the right payload; what they cannot check is that the two are produced by
-    /// ONE implementation, which is the property that stops them drifting again.
+    /// ONE implementation, which is the property that stops them drifting.
     /// A duplicate that agrees today passes every behavioural test right up
     /// until somebody edits one copy.</para>
     ///
@@ -37,8 +35,7 @@ namespace Gonogo.KSP.Tests.Comms
     public class CommNetBackendSharedShapeTests
     {
         /// <summary>
-        /// The accessors whose SHAPE the contract owns. Every one of these was a
-        /// duplicated implementation before <see cref="CommsBackendBase"/>.
+        /// The accessors whose SHAPE the contract owns.
         /// </summary>
         private static readonly string[] SharedShape =
         {

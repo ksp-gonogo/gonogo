@@ -691,14 +691,10 @@ namespace Gonogo.KSP
         /// parent-body-relative, matching every other vector in this
         /// dictionary.</para>
         ///
-        /// <para><b>Encounter (G-9, fixed - see the M1 Task 4 wart-fix
-        /// report):</b> <c>nextPatch</c> is routinely non-null WITHOUT there
-        /// being a genuine upcoming SOI transition - KSP leaves a stale/
-        /// inactive patch attached in the common case, which the ORIGINAL
-        /// (buggy) version of this method reported as a fabricated encounter
-        /// on essentially every tick (809/816 orbit samples in the M1
-        /// reference recording, transitionType <c>FINAL</c> every time - never
-        /// a real encounter or escape). Fixed by requiring BOTH
+        /// <para><b>Encounter.</b> <c>nextPatch</c> is routinely non-null
+        /// WITHOUT there being a genuine upcoming SOI transition - KSP leaves
+        /// a stale/inactive patch attached in the common case. Reporting one
+        /// as an encounter needs BOTH
         /// <c>nextPatch.activePatch</c> (the patch is actually part of the
         /// currently active patched-conics solution, not a leftover/
         /// beyond-the-conics-patch-limit one: the chain must be walked only
@@ -715,7 +711,7 @@ namespace Gonogo.KSP
         /// patch being transitioned INTO.
         /// <see cref="Sitrep.Host.VesselViewProvider.MapOrbit"/> applies the
         /// SAME transitionType restriction defensively on the mapping side,
-        /// so even a payload recorded before this fix existed maps to a null
+        /// so a payload with a stale <c>nextPatch</c> still maps to a null
         /// encounter on replay.</para>
         /// </summary>
         internal static Dictionary<string, object?>? BuildOrbit(Orbit? orbit)
@@ -3820,11 +3816,9 @@ namespace Gonogo.KSP
         ///
         /// <para><b>A facility that cannot be read is left out, and a capture
         /// where none can be read is <c>null</c>.</b> The reading is gone
-        /// through most of a session, and it used to be reported as nine
-        /// entries of nulls, which travelled as a current answer of "no tier"
-        /// and blanked a space centre that was still standing. Absence is now
-        /// said by omission, once, and the <c>career.facilities</c> channel is
-        /// declared <c>NullIsUnreadable</c> so a whole-capture null goes out as
+        /// through most of a session. Absence is said by omission, once, and
+        /// the <c>career.facilities</c> channel is declared
+        /// <c>NullIsUnreadable</c> so a whole-capture null goes out as
         /// silence: the client holds its last reading and dates it.</para>
         ///
         /// <para>There is no stock way to recover the ladder off-scene. The
@@ -3853,10 +3847,7 @@ namespace Gonogo.KSP
                 if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
                     proto?.facilityRefs == null || proto.facilityRefs.Count == 0 || proto.facilityRefs[0] == null)
                 {
-                    // Nothing to read from here, so nothing is written. The
-                    // entry used to be emitted with all three values null,
-                    // which spends a key on saying nothing and reads
-                    // downstream as a facility that answered with no tier. An
+                    // Nothing to read from here, so nothing is written. An
                     // absent key says the same thing once, and lets the whole
                     // channel be absent when every facility is in this state.
                     continue;
@@ -4401,9 +4392,8 @@ namespace Gonogo.KSP
         /// rotationPeriod/initialRotation/rotationAngle), which
         /// <c>BuildSystemBodies</c> simply ignores (additive-only mapping -
         /// see its doc comment). <c>mu</c> is the PARENT body's
-        /// <c>gravParameter</c> (needed to propagate THIS body's own orbit -
-        /// before G-2 only the vessel's orbit carried a <c>mu</c>), not this
-        /// body's own <c>gravParameter</c> (that's the separate
+        /// <c>gravParameter</c> (needed to propagate THIS body's own orbit),
+        /// not this body's own <c>gravParameter</c> (that's the separate
         /// <c>gravParameter</c> key, this body's own µ for satellites
         /// orbiting IT).
         /// </summary>

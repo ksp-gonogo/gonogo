@@ -21,7 +21,7 @@ import {
 // stream: `recovery.lastSummary`/`crash.lastCrash` via the canonical
 // `useTelemetry(<topic>)` and the `recovery.hasRecent`/`crash.hasRecent`
 // event flags via `useStream`. There is NO legacy "data" `DataSource` in the
-// app (deleted in `806e7fe2`), so the test drives a real `TelemetryProvider`
+// app (it's deleted), so the test drives a real `TelemetryProvider`
 // (`TelemetryClient` + `TimelineStore` over a `StubTransport`): mirrors
 // `packages/components/src/test/setupStreamFixture.tsx`, hand-rolled here in
 // miniature (no shared test-helper package to import from). The sticky
@@ -89,10 +89,6 @@ describe("FlightOutcomeBanner", () => {
     vi.useRealTimers();
   });
 
-  // Reproduction of the user-reported bug from 2026-05-12. Live curl on
-  // 2026-05-13 confirmed the fork DOES emit crash.lastCrash + has
-  // crash.hasRecent=true after a crash: so the silent banner was a
-  // gonogo-side effect-ordering bug.
   it("fires the crash banner when crash.lastCrash arrives after mount", () => {
     const fixture = setupOutcomeStream();
 

@@ -137,10 +137,9 @@ function makeSitrepStub(
 }
 
 /**
- * An arbitrary OTHER registered `DataSource`: used to prove the reworked
- * Data Sources tab does NOT fall back to an "Other Connections" list the
- * way the old `DataSourceStatusComponent` did (it rendered every registered
- * source).
+ * An arbitrary OTHER registered `DataSource`: proves the Data Sources tab
+ * does NOT fall back to an "Other Connections" list of every registered
+ * source.
  */
 function makeOtherSourceStub(id: string, name: string): DataSource {
   return {
@@ -831,13 +830,10 @@ describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
 });
 
 /*
- * Read-only, typed and grouped rows.
- *
- * The registry could express none of these until 2026-08-21: every row was a
- * writable boolean rendered as a `Switch`, in one flat list per category. A mod
- * whose settings are provenance (which plotting frame, what tolerance, which
- * build) had nowhere to put them but a bespoke tab, which is a status widget
- * with a different frame around it.
+ * Read-only, typed and grouped rows: a mod whose settings are provenance
+ * (which plotting frame, what tolerance, which build) needs somewhere to put
+ * them other than a writable boolean `Switch` in a flat list, or a bespoke
+ * tab (a status widget with a different frame around it).
  */
 
 interface FramePrefs {

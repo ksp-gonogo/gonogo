@@ -18,17 +18,15 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// The multi-topic generalization of <c>Gonogo.KSP.GonogoBodiesServer</c> /
-    /// <c>Sitrep.Host.IntegrationTests.ReplayBodiesServer</c> (both retired:
-    /// see <c>local_docs/telemetry-mod/uplink-sdk-contract-design.md</c>
-    /// §1.2/§6.1). Owns EVERYTHING those two paired, hand-copied classes
+    /// <c>Sitrep.Host.IntegrationTests.ReplayBodiesServer</c> (both retired).
+    /// Owns EVERYTHING those two paired, hand-copied classes
     /// owned: the <see cref="SubscriptionRegistry"/> outer gate, the
     /// per-topic <see cref="ChannelEmitter"/> inner gate, the <see cref="Courier"/>
     /// + delay, the timeline-reset broadcast, and the three-domain threading
     /// model (main-loop / Courier / socket): but drives a SET of channels
     /// and commands registered by <see cref="ISitrepUplink"/>s, not one
-    /// hardwired <c>system.bodies</c> topic. This is the design doc's central
-    /// rule made concrete: "providers are registered mappers; the engine owns
-    /// the pipeline."
+    /// hardwired <c>system.bodies</c> topic. This embodies the central rule:
+    /// "providers are registered mappers; the engine owns the pipeline."
     ///
     /// KSP is never touched here, same discipline <c>GonogoBodiesServer</c>
     /// followed: the caller (<c>GonogoAddon.FixedUpdate</c> in production, a
@@ -1815,8 +1813,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Every topic/prefix this uplink OWNS: the Phase-1 half of the
-        /// uplink-health render-gating design
-        /// (local_docs/uplink-health-render-gating-design.md): the client resolves
+        /// uplink-health render-gating design: the client resolves
         /// a widget's declared channels to an owning uplink via longest-prefix
         /// match against this list, instead of re-deriving a client-side
         /// TOPIC_OWNER map. Two sources, concatenated:
@@ -1924,9 +1921,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The version-checked entry point <see cref="UplinkDiscovery.Discover"/>'s
-        /// caller uses instead of the raw <see cref="RegisterUplink(ISitrepUplink)"/>;
-        /// see <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>'s
-        /// handshake design. A MAJOR mismatch between
+        /// caller uses instead of the raw <see cref="RegisterUplink(ISitrepUplink)"/>.
+        /// A MAJOR mismatch between
         /// <paramref name="contractMajor"/> (what the Uplink was built
         /// against: see <see cref="Sitrep.Contract.SitrepUplinkAttribute"/>'s
         /// doc comment for why that's reliable even for a stale binary) and
@@ -5287,9 +5283,7 @@ namespace Sitrep.Host
         /// Apply a CONNECTED/DISCONNECTED transition to the reveal gate for the
         /// ACTIVE vessel. On a DISCONNECTED→CONNECTED edge the withheld window
         /// is now REPLAYED as the craft's own recording rather than dropped: see
-        /// <see cref="ReplayInBlackoutBacklog"/>. Reconstructing the gap used to
-        /// be the client's job and there was nothing to reconstruct it from.
-        /// Courier-thread-only.
+        /// <see cref="ReplayInBlackoutBacklog"/>. Courier-thread-only.
         /// </summary>
         private void SetCommsConnected(bool connected, double ut) =>
             // Active-vessel connectivity entry point (the "system" subject),

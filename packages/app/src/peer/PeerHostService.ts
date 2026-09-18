@@ -371,10 +371,7 @@ export class PeerHostService {
   // never subscribes to them at construction. Without this, a station's
   // `peer-data-subscribe` would only ever get a single back-fill of the
   // last cached value (which is whatever a host-side widget happened to
-  // pull most recently), then go silent on subsequent updates. That's
-  // the 2026-05-17 ShipMap-sluggish-on-stations bug: stations froze on
-  // the topology snapshot from the moment of subscribe and only
-  // refreshed after a full reload re-armed the subscribe.
+  // pull most recently), then go silent on subsequent updates.
   //
   // Map<sourceId, Map<key, { refCount, unsub }>>: refCount is the
   // number of peer connections that have asked for this (sourceId, key)
@@ -554,9 +551,8 @@ export class PeerHostService {
   async start() {
     // Stamp the log identity before anything that can fail, errors fired
     // pre-`open` (unavailable-id, a broker that never answers) otherwise
-    // ship to Axiom with role "unknown" and no device id, which made the
-    // 2026-06-08 ID-taken errors untriageable. `open` re-stamps with the
-    // broker-confirmed peerId.
+    // ship to Axiom with role "unknown" and no device id. `open` re-stamps
+    // with the broker-confirmed peerId.
     logger.setIdentity({ role: "host", id: this.shareCode });
     // Fetch the relay's TURN config before constructing Peer, ICE
     // gathers candidates the moment the Peer exists, so a late config
@@ -1190,12 +1186,10 @@ export class PeerHostService {
   /**
    * Send `msg` only to the connections reading from `vantage`.
    *
-   * The frame direction used to be broadcast-all, which was right while there
-   * was one upstream: every frame was from the one place everyone was looking.
-   * With a session per vantage it would be a lie, and an expensive one: a
-   * station at the ground would be handed a pilot's live frames for the same
-   * topic and could not tell them apart, since a frame does not say what delay
-   * it travelled under.
+   * Broadcasting `msg` to every connection would be a lie, and an expensive
+   * one: a station at the ground would be handed a pilot's live frames for
+   * the same topic and could not tell them apart, since a frame does not say
+   * what delay it travelled under.
    */
   broadcastToVantage(vantage: string, msg: PeerMessage): void {
     for (const conn of this.connections) {
@@ -2057,9 +2051,8 @@ export class PeerHostService {
 
   /**
    * Sitrep command RPC: the correctness-required companion to
-   * `SitrepPeerRelay`'s read-path forwarding (see
-   * docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md §4).
-   * Once a station mounts a real `TelemetryClient` off `PeerTransport`,
+   * `SitrepPeerRelay`'s read-path forwarding. Once a station mounts a real
+   * `TelemetryClient` off `PeerTransport`,
    * `useCommand`'s carried-channels check can route a widget's command
    * through the stream instead of the legacy PeerJS `execute` fallback, if
    * this RPC didn't exist, that command would silently no-op on a station.
@@ -2109,12 +2102,13 @@ export class PeerHostService {
        * sender's own per-call override, then the vantage that CONNECTION is
        * reading from, and only then the host's session.
        *
-       * The middle term is the point. A peer observing from its own vantage
-       * (a pilot aboard the craft, a station at a centre of its own) dispatches
-       * through the HOST's client, so an empty vantage used to resolve to the
-       * host's session and address the command from the ground. Its telemetry
-       * comes from a session at its own vantage; its commands must be addressed
-       * the same way, or the two disagree about where the peer is standing.
+       * The middle term is the point: without it, an empty vantage would
+       * resolve straight to the host's session and address the command from
+       * the ground. A peer observing from its own vantage (a pilot aboard the
+       * craft, a station at a centre of its own) dispatches through the
+       * HOST's client, and its telemetry comes from a session at its own
+       * vantage; its commands must be addressed the same way, or the two
+       * disagree about where the peer is standing.
        *
        * Today that only sizes the delay-UX pills. It stops being cosmetic the
        * moment a command's address decides its DELAY, at which point a pilot's

@@ -126,8 +126,7 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  * Both the legacy subscription and the streamed subscription are always
  * wired up (stable hook order: this hook must not call a different set of
  * hooks across renders); only one of the two snapshots is actually returned,
- * chosen by whether a topic resolved and a provider is mounted. Deleted at M4
- * per the shim's own retirement plan.
+ * chosen by whether a topic resolved and a provider is mounted.
  */
 /**
  * One shared `pending` for the canonical no-provider path. A fresh object per
@@ -143,18 +142,10 @@ const CANONICAL_PENDING = topicReading<never>({
  *
  * ## Why the reading and not the payload
  *
- * This returned a bare payload, and a second hook returned the reading. The
- * numbers settled it: 218 call sites on this one, 2 on the other. `Reading`'s
- * whole justification is that "reaching a value at all requires branching on how
- * current it is", and that was only true for the sites that opted in.
- *
- * Which is the SAME failure the reading was built to fix, one layer up.
- * `StreamStatusValue` was built end to end and read by zero of the thirty-nine
- * widgets that stream telemetry, because a badge beside a body is chrome and
- * nothing makes the body consult it. A beside-the-value HOOK is chrome too. So
- * there is one hook, and the compile break is the migration: there is no way to
- * reach a value without confronting its currency, because the only hook that
- * hands one over makes you write the discriminant first.
+ * `Reading`'s whole justification is that "reaching a value at all requires
+ * branching on how current it is". There is no way to reach a value without
+ * confronting its currency, because the only hook that hands one over makes
+ * you write the discriminant first.
  *
  * For a topic in `NEVER_RECKONABLE` the return narrows to `UnmodelledReading`,
  * which drops every `reckoning: "available"` member, so a caller cannot write a

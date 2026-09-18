@@ -43,7 +43,6 @@ public class CurrencyQueryBasesTests
     }
 
     /// <summary>
-    /// The rig defect, request <c>away-arm-first-1</c> on 2026-08-27.
     /// <c>ResearchAndDevelopment.AddScience</c> (RP-1 replaces it wholesale via
     /// <c>PatchRnD.Prefix_AddScience</c>) fires the modifier query, then
     /// <c>OnCurrencyModified</c>, then <c>OnScienceChanged</c> - and in the

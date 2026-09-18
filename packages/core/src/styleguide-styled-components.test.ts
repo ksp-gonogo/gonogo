@@ -14,37 +14,14 @@ import { describe, expect, it } from "vitest";
  *
  * The expected route off styled-components: swap the widget's local
  * styled() wrappers for packages/ui-kit primitives (Card, Stack, Grid,
- * Readout, StatusIndicator, ProgressBar, WidgetHeader, ...). See
- * local_docs/telemetry-mod/ui-kit-design.md for the component catalogue.
+ * Readout, StatusIndicator, ProgressBar, WidgetHeader, ...).
  *
  * packages/ui and packages/ui-kit are themselves allowed to depend on
  * styled-components: they're the styling layer everything else should
  * be composing instead.
  *
- * ## The baseline is an EQUALITY, and a shrink fails
- *
- * A migration that lowers the count fails this test until the number below is
- * lowered with it. That is deliberate, and it replaced a `console.warn` that
- * had gone unheard twice (see the 74 -> 71 and 71 -> 41 notes below, thirty
- * imports between them). Vitest 4's default reporter suppresses console output
- * for a test that PASSES, and `pnpm test` and CI both run the default reporter,
- * so the nag reached no stream anyone reads: not a terminal, not a CI log.
- * Measured, not assumed, with the baseline planted 3 above live.
- *
- * A quieter fix was available and rejected. Any "make the warning louder"
- * variant (stderr, a job-summary annotation) still rests on someone reading it,
- * which is the exact step that did not happen, and it cannot be tested: you can
- * plant a shrink and assert a red build, you cannot plant one and assert a
- * human noticed.
- *
- * Do NOT copy `act-warning-gate`'s reasoning here. That gate stays a ceiling
- * because its quantity is a race whose count moves with machine load, so a drop
- * is not evidence of a fix. This one is a static text count: same tree, same
- * number, every run. Equality is free of flake here and is not there.
- *
- * There is deliberately no `--update` flag. The failure prints the exact number
- * to type, and typing it is what brings a person past the note above the
- * baseline, where the reasons for each previous move are written down.
+ * The baseline is an EQUALITY: a migration that lowers the count fails this
+ * test until the number below is lowered with it.
  */
 
 // Package roots to scan: the built-in widget library plus every mod's
@@ -55,42 +32,19 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 
 // Current baseline. When a widget migration removes its last
 // styled-components import, lower this number in the same commit.
-// Locks in the KosScriptFrame and Scanning migrations.
 //
-// What remains is bespoke widget CSS, the test-infrastructure imports are
-// gone. Snapshot tests, the `widgetDomSnapshot.tsx` harness, and the local
-// `testTheme.tsx` helpers each used to pair `ThemeProvider` (from
-// styled-components) with `defaultDarkTheme` themselves, which the scan root
-// can't tell apart from a widget's own CSS. They now render through
-// `DefaultThemeProvider` from `@ksp-gonogo/ui-kit` (the styling layer, which
-// the scan excludes), so none of them import styled-components at all.
+// Snapshot tests, the `widgetDomSnapshot.tsx` harness, and the local
+// `testTheme.tsx` helpers render through `DefaultThemeProvider` from
+// `@ksp-gonogo/ui-kit` (the styling layer, which the scan excludes), so none
+// of them import styled-components.
 //
-// 72 -> 74 when a camera Uplink's client half moved out of `packages/` (never
-// scanned) and into `mod/<uplink>/client` (scanned, being a mod client
-// bundle). Both added lines are SCOPE, not new bespoke CSS:
-//   • its settings panel: untouched pre-existing code the scan simply reaches
-//     now. A genuine migration candidate, newly visible rather than newly bad.
-//   • its docking-camera augment: the SAME styled `<video>` backdrop that
-//     used to live in Targeting as `HudVideo`, deleted from there in
-//     the same commit. The app's bespoke CSS did not grow; it moved into the
-//     Uplink that owns it. It reads as +1 only because Targeting still
-//     imports styled-components for its other styled parts, so no line came
-//     off that side of the ledger.
-// Held at styled-components rather than respelt as inline styles: a sibling
-// Uplink client's overlay augment styles the same way, and dodging a ratchet
-// with a different CSS-in-JS spelling would defeat the point of having one.
-// 74 -> 71: the baseline was carrying stale slack, not tracking a change.
-// Counting importers under the scanned roots at d60b924e (the commit before
-// the token migration) gives 71, the same as today, so three widgets dropped
-// their last styled-components import at some earlier point and the number
-// was never lowered. The ratchet had been printing its "can be lowered" nag
-// for that whole time.
-// 71 -> 41: the same staleness again, and thirty deep. Growth throws; shrinkage
-// only warns, into a stream vitest suppresses for a passing test, so the nag
-// above was printed on every green run for as long as it took thirty imports to
-// disappear and nobody heard it. A baseline thirty above its live count is
-// permission for thirty new ones, which is a gate that has stopped gating while
-// still reporting green. Measured 41 lines in 41 files across 787 scanned files.
+// Held at styled-components rather than respelt as inline styles: dodging a
+// ratchet with a different CSS-in-JS spelling would defeat the point of
+// having one.
+//
+// A baseline sitting above its live count is permission for that many new
+// imports, which is a gate that has stopped gating while still reporting
+// green. Measured 41 lines in 41 files across 787 scanned files.
 const STYLED_COMPONENTS_IMPORT_BASELINE = 41;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
@@ -151,10 +105,9 @@ function collectOffenders(): { file: string; line: number }[] {
 /**
  * Where the growth most likely is, for a gate that only knows a TOTAL.
  *
- * This replaced `offenders.slice(-newCount)`, which read as "the newest ones"
- * and was not: the list is in scan order, so the tail is simply whatever sorts
- * last. Planting one import in `CurrentOrbit` produced a message naming
- * `shared/dataPalette.ts`, an innocent file, which is worse than naming none.
+ * `offenders.slice(-newCount)` reads as "the newest ones" and is not: the
+ * list is in scan order, so the tail is simply whatever sorts last, which can
+ * name an innocent file instead of the real regression.
  *
  * A file holding TWO is the real signal, because the migrated tree has exactly
  * one import per importing file, so a second in one file is the shape almost

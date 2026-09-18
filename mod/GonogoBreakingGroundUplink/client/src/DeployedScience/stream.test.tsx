@@ -67,10 +67,9 @@ describe("DeployedScience: genuinely runs off the stream (M3 science-domain fina
     await waitFor(() => expect(screen.getByText("Minmus")).toBeTruthy());
     expect(screen.getByText("Barometer")).toBeTruthy();
     /* This entry carries only the LOCALISED PROSE `powerState: "NoPower"` and
-       no derived `power` ordinal, so the widget cannot say. It asserted
-       "Unpowered" until 2026-09-14, which was the right answer by the wrong
-       route: `power === DeployedPowerState.Powered` is false for an absent
-       `power` too, so an unread cluster drew the same red pill as a dark one.
+       no derived `power` ordinal, so the widget cannot say.
+       `power === DeployedPowerState.Powered` is false for an absent
+       `power` too, so an unread cluster draws the same red pill as a dark one.
        `powerState.test.ts` covers the real enum, with the prose disagreeing.
 
        Two matches, not one: the entry carries no power BALANCE either, so the

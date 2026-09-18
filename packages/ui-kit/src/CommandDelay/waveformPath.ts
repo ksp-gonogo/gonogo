@@ -4,8 +4,7 @@
  *
  * The CONTINUITY axis picks this mark (see `railTags.ts`), and `ControlDelayStream`
  * places it in the outgoing zone. Kept a pure module so the drawing can be
- * asserted directly: the geometry is the whole of what the mark decides, and it
- * was settled against 14 rendered scenes rather than against a description.
+ * asserted directly: the geometry is the whole of what the mark decides.
  */
 
 /**

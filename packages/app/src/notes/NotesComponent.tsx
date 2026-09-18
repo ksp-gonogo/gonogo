@@ -92,9 +92,7 @@ function NotesView({
   return (
     <Panel
       panelTitle="NOTES"
-      /* The composer is PINNED by Panel rather than merely rendered last. It
-         used to sit after a `flex: 1` ScrollArea, which is what held it at the
-         bottom; inside a section it would scroll away with the notes. */
+      /* The composer is PINNED by Panel rather than merely rendered last. */
       panelFooter={
         <AddRow>
           <TagAutocomplete
@@ -468,9 +466,9 @@ const Empty = styled.div`
   font-size: var(--font-size-xs);
   /* The tighter inset, and it is load-bearing at the minimum. The body scroller
      there is 105px and holds 8px of its own inset, the 35px sticky title unit,
-     this box, and 12px more inset. At the twelve-a-side this used to carry, the
-     box is 52px and the total 107: a two-pixel overflow, which turns on a 44px
-     glow that then covers the whole message. This leaves 10px spare. */
+     this box, and 12px more inset. At a 12px-a-side inset the box would be
+     52px and the total 107: a two-pixel overflow, which turns on a 44px glow
+     that then covers the whole message. The tighter inset leaves 10px spare. */
   padding: var(--inset-surface);
   text-align: center;
 `;

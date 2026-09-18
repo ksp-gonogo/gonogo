@@ -160,8 +160,7 @@ namespace Sitrep.Host.Comms
 
     /// <summary>
     /// The pluggable deadline seam: "we are still designing a better
-    /// predictor; the seam is the point" (see
-    /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>). Given
+    /// predictor; the seam is the point." Given
     /// the vessel's own orbit (null when unknown) and whether it is
     /// currently landed/splashed, returns how long a silence run gets before
     /// it becomes eligible to be declared Lost. Never called for a destroyed
@@ -284,8 +283,7 @@ namespace Sitrep.Host.Comms
 
     /// <summary>
     /// Pure, KSP-free "is this vessel out of contact, and should it now be
-    /// declared lost" state machine, decoupled from any currency concern
-    /// (see <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>).
+    /// declared lost" state machine, decoupled from any currency concern.
     /// Modeled on <c>LandingPredictor</c>'s discipline (no KSP/Unity types,
     /// every input injected, fully unit-testable) but genuinely stateful:
     /// silence has to survive from one capture tick to the next, which a

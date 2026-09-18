@@ -1454,8 +1454,8 @@ const AlarmListItem = styled(Card).attrs({ as: "li" as const })`
   display: flex;
   align-items: center;
   /* Section, not related: the info column, the state tag and the buttons are
-     three different kinds of thing. Inside a card that resolves to the 12 this
-     used to spell. The inset is Card's own, so it is not restated here. */
+     three different kinds of thing. The inset is Card's own, so it is not
+     restated here. */
   gap: var(--gap-section);
 `;
 

@@ -80,14 +80,10 @@ export interface ScetAlarmBridgeContext {
  * ## Why this reads raw frames rather than `useTelemetry`
  *
  * The notice is `DelayRole.TrueNow` on the mod, so it reaches the wire on the
- * tick it was captured rather than a light-time later. That used to buy a
- * client nothing through the ordinary read path, because `TimelineStore.sample`
- * read every topic at the delayed view time whatever its role was, and a notice
- * read that way arrived one light-time after the warp stopped, which is the
- * failure the TrueNow classification exists to prevent.
+ * tick it was captured rather than a light-time later.
  *
- * The store honours the role now (`warp-delay.characterise.test.ts` measures
- * what it buys), so the ordinary path would work. This still reads raw frames,
+ * The store honours the role (`warp-delay.characterise.test.ts` measures what
+ * it buys), so the ordinary path would work. This still reads raw frames,
  * because `TelemetryClient.subscribe` delivers on ARRIVAL with no view clock in
  * the way, which is the right shape for a one-shot event: a fire notice is an
  * edge, and a view-time read of an edge can only ever miss one that fell

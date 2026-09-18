@@ -1,18 +1,6 @@
-// No channel may be fed from the game's UI.
-//
-// WHY THIS EXISTS. A channel in this repo once read its fields off a producer
-// mod's own planner window, through Harmony postfixes on that window's render
-// methods. Those fields refresh only while the window renders, so the channel
-// answered only when the player happened to have that panel open. The operator's
-// ruling:
-//
-//   ANY time you're making a claim that some value is only available when a
-//   window is open in the game should be an IMMEDIATE red flag. It's not
-//   acceptable. We CANNOT support it.
-//
-// It was removed on 2026-08-31 and every value it carried now comes off that
-// producer's own interop query, which needs no window and turned out to be
-// strictly richer.
+// No channel may be fed from the game's UI: a value read off a window's own
+// render methods only refreshes while that window is open, so a channel fed
+// that way would answer only when the player happens to have the panel up.
 //
 // WHY THE FIRST AXIS IS STRUCTURAL AND NOT A NAME MATCH, which is the whole
 // design. The obvious gate, flagging captures that reach a type called *Window,
@@ -29,12 +17,11 @@
 //   activity it hosts, with no window, GUI or panel in the name at all. A name
 //   gate misses it completely.
 //
-// Measured again on 2026-09-01, across every project this file now walks: the
-// identifier `Window` appears on 84 code lines and almost none of them are UI.
-// They are time windows (a rolling PerfBudget window, an attribution window, a
-// visibility sweep window) and one mention of the Windows operating system. A
-// name gate would open with two dozen false entries, and a list that is mostly
-// noise is one nobody reads.
+// The identifier `Window` appears through this tree mostly as a time window (a
+// rolling PerfBudget window, an attribution window, a visibility sweep window)
+// or the Windows operating system, almost never as UI. A name gate would open
+// with two dozen false entries, and a list that is mostly noise is one nobody
+// reads.
 //
 // The real discriminator is whether the value is REFRESHED INDEPENDENTLY OF
 // RENDERING, and that is not statically decidable. So the first axis keys on the
@@ -52,8 +39,8 @@
 // this capture reach into the game's UI layer, as the GAME ITSELF classifies it,
 // by namespace? That is precise where a name match is not. `KSP.UI` is the
 // engine's own statement that a type is user interface, it needs no vocabulary
-// of ours to maintain, and it produced zero false matches on the current tree
-// against 84 for the name match. Every reach is then either removed or carries a
+// of ours to maintain, and it produces zero false matches on the current tree,
+// unlike the name match. Every reach is then either removed or carries a
 // written reason, and the reason has to say why the value is not gated on a
 // panel being open.
 //
@@ -61,45 +48,19 @@
 // reached by a reflection string. There is no namespace to key on (the string is
 // just a string) and no way to tell a producer's window from its model without
 // knowing that mod. That case is what the first axis is for, and between them
-// the mechanism is closed: to read a producer's window you must either patch its
-// render, which axis one forbids, or hold an instance the producer handed you,
-// which is the thing the deleted hook needed a patch to get.
+// the mechanism is closed: reading a producer's window requires either patching
+// its render, which axis one forbids, or being handed an instance directly by
+// the producer.
 //
 // NAMING NOTE. The producer examples above are deliberately unnamed. This file
 // lives outside every Uplink, and the boundary ratchet forbids naming a producer
-// mod from here; an earlier draft named both and failed that gate, which is the
-// rule working. Stock KSP types are not producer mods and are named freely.
+// mod from here. Stock KSP types are not producer mods and are named freely.
 //
 // AXIS ONE IS SEEDED AT ZERO and has no exemption list. The tree measured
 // exactly one instance and it is gone; a bucket there would only be somewhere to
 // put the next one. Axis two is seeded from measurement and does have one,
 // because unlike patching a render there are correct reasons to name a UI type
 // and the list is where each of them is written down.
-//
-// THE SCAN IS NOT BLIND. Five deliberate violations were planted on 2026-09-01,
-// each run against the real tree, each reverted after. A gate that cannot be
-// shown to fail reports zero, and zero reads as success:
-//
-//   Control, unmodified                        8 passed
-//   Exemption key mistyped                     NoCaptureReachesAGameUiNamespace...
-//                                              named the real file both ways:
-//                                              "Gonogo.KSP/RecoveryUplink.cs
-//                                              reaches" and "...TYPO.cs no longer
-//                                              reaches"
-//   RenderMethod widened to match `Method`,    NoCaptureProjectPatchesARendering...
-//   so real Harmony call sites qualify         named two files in two different
-//                                              Uplinks, with line numbers
-//   Project floor set to 999 (the floor has    ScanFindsEveryCaptureProject:
-//   since been replaced by a planted tree)     "found 31 project(s), expected at
-//                                              least 999"
-//   An entry added with an empty reason        EveryUiReachExemptionStatesItsReason
-//   Restored                                   8 passed
-//
-// The middle three are the ones worth having: they fail through the REAL walk
-// over the REAL tree and name real paths, which is the half the in-file plants
-// below cannot demonstrate. The clean run at each end is as much of the proof as
-// the red ones, because a gate that fails at everything says nothing about its
-// subject.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -118,10 +79,7 @@ namespace Sitrep.Core.Tests
         /// imperatively with <c>harmony.Patch(target, postfix: ...)</c>, which an
         /// attribute-only matcher walks straight past.
         ///
-        /// <para>That was not a hypothetical. The first version of this gate
-        /// matched attributes only, passed its own planted string, and then PASSED
-        /// with the real deleted file restored to the tree. A synthetic plant
-        /// tests the regex against itself.</para>
+        /// <para>A synthetic plant tests the regex against itself.</para>
         /// </summary>
         private static readonly Regex HarmonyPatch = new Regex(
             @"\[Harmony(Patch|Prefix|Postfix|Transpiler|Finalizer)|AccessTools\.Method\s*\(|\.Patch\s*\(",
@@ -181,10 +139,10 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Every file that may name a game UI namespace, and why it is not a
-        /// window-gated capture. Seeded 2026-09-01 from measurement, and
-        /// SHRINK-ONLY in both directions: a file that reaches a UI namespace
-        /// without an entry fails, and an entry for a reach that no longer happens
-        /// fails too, because a list nobody prunes stops describing anything.
+        /// window-gated capture. Shrink-only in both directions: a file that
+        /// reaches a UI namespace without an entry fails, and an entry for a
+        /// reach that no longer happens fails too, because a list nobody
+        /// prunes stops describing anything.
         ///
         /// <para>Every entry today is in the KSP-facing project, which is where a
         /// first-party capture meets the game and the only place stock UI types
@@ -331,10 +289,9 @@ namespace Sitrep.Core.Tests
         /// cannot publish it, not that we publish it sometimes.</para>
         ///
         /// <para>The scan covers every non-test project under <c>mod/</c>, not
-        /// just the Uplinks. It was Uplinks-only until 2026-09-01, which left the
-        /// KSP-facing project and the host out of scope, and those are where the
-        /// first-party captures live. A gate told to skip a directory reports that
-        /// directory clean.</para>
+        /// just the Uplinks: the KSP-facing project and the host are where the
+        /// first-party captures live, and a gate told to skip a directory
+        /// reports that directory clean.</para>
         /// </summary>
         [Fact]
         public void NoCaptureProjectPatchesARenderingMethod()
@@ -421,13 +378,11 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The matcher can see the thing it forbids, in the form it really took.
         ///
-        /// <para>The shape below reproduces the deleted hook verbatim in
-        /// structure: a method name held in a const, resolved by
-        /// <c>AccessTools.Method</c>, patched imperatively. An earlier version of
-        /// this test planted an attribute-decorated method instead, passed, and
-        /// the gate STILL passed when the real file was restored to the tree.
-        /// A plant that does not match production proves only that the regex
-        /// matches the plant.</para>
+        /// <para>The shape below reproduces, verbatim in structure, the pattern
+        /// this gate exists to forbid: a method name held in a const, resolved
+        /// by <c>AccessTools.Method</c>, patched imperatively. A plant that
+        /// does not match production proves only that the regex matches the
+        /// plant.</para>
         /// </summary>
         [Fact]
         public void TheGateWouldSeeTheHookThatCausedThis()

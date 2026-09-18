@@ -119,11 +119,11 @@ const CHUNK_SECONDS = 0.02;
  * The ring's FLOOR: what to keep when there is no separation to size against,
  * 128 chunks or 2.56 seconds.
  *
- * It was the whole rule until 2026-09-10, and as a rule it was a defect. The
- * rail draws each sample at its own age, so the trace reaches only as far as the
- * oldest sample held: against the operator's common ten to sixty seconds of
- * light-time this drew 4% to 25% of the rail and read as barely having started
- * talking, when the gap was in fact full of voice the transmitter had thrown
+ * Relying on this floor alone is a defect: the rail draws each sample at its
+ * own age, so the trace reaches only as far as the oldest sample held.
+ * Against the operator's common ten to sixty seconds of light-time this floor
+ * alone draws 4% to 25% of the rail and reads as barely having started
+ * talking, when the gap is in fact full of voice the transmitter has thrown
  * away.
  */
 export const AMPLITUDE_HISTORY = 128;

@@ -164,8 +164,7 @@ public class LifeSupportResourceCoverageTests
         // The guard proper. Every key on the life-support payload is structural
         // (habitat, processes, ruleEnvModifiers) or the rates map itself; none is a
         // resource. A fifth fixed consumable cannot be added without failing here.
-        // ruleEnvModifiers joined this list 2026-08-10 (option a', the live
-        // per-rule modifier product): it is keyed by RULE name, not a resource.
+        // ruleEnvModifiers is keyed by RULE name, not a resource.
         // asOfUt is a timestamp for the whole reading, which names nothing.
         var payload = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), new List<ProcessRaw>());
 

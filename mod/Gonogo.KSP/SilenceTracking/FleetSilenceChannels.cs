@@ -15,9 +15,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// registered from <see cref="CommsCoreUplink.Register"/> rather than
     /// alongside the always-on core <see cref="FleetChannels"/>. See
     /// <see cref="Sitrep.Contract.FleetVesselContact"/>'s doc comment for the
-    /// full core/comms split and
-    /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c> for the
-    /// feature.
+    /// full core/comms split.
     ///
     /// <para><b>Ungated, deliberately, unlike <see cref="FleetChannels"/>.</b>
     /// <see cref="SilenceTracker"/>'s state machine has to advance every tick
@@ -31,8 +29,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// Soft cap on the always-run silence capture, sized generously above
         /// a realistic career-scale fleet (a few hundred vessels) sampled at
         /// the ~1 UT-second cadence <c>GonogoAddon.SampleIntervalUt</c> uses
-        /// at 1x warp; see <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>'s
-        /// accepted risk #3 (no budget existed on this path before this work).
+        /// at 1x warp.
         /// </summary>
         private static readonly PerfBudget SilenceCaptureBudget = new PerfBudget(
             "FleetSilenceChannels silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");
@@ -213,10 +210,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// The FULL element set, matching <c>KspHost</c>'s <c>vessel.orbit</c>
         /// extraction field for field.
         ///
-        /// <para>These used to be sma/ecc/mu with the orientation and phase
-        /// zeroed, on the reasoning that the orbital-period deadline policy
-        /// read nothing else. That was true of that policy and false of the
-        /// predictor: zeroed inc/lan/argPe/meanAnomaly propagate an equatorial
+        /// <para>Zeroed inc/lan/argPe/meanAnomaly propagate an equatorial
         /// orbit at an arbitrary phase, so every occultation it found would be
         /// for a craft that is not where the game has it. A policy reading
         /// fewer fields costs nothing; a policy reading fabricated ones is

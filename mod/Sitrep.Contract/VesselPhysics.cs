@@ -7,10 +7,9 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The active vessel's physics-simulation regime, derived from KSP's own
 /// <c>Vessel.loaded</c>/<c>Vessel.packed</c> flags (confirmed via decompile:
-/// both are public <c>bool</c> fields on <c>Vessel</c>). This is the proper
-/// Value that replaces the old "read stream meta" stand-in, physics mode is a
-/// discrete enum in its own right, NOT a quality band on <see cref="PayloadMeta.Quality"/>
-/// (a 2026-07-09 reversal). Widgets that switch propagation/dead-reckoning
+/// both are public <c>bool</c> fields on <c>Vessel</c>). Physics mode is a
+/// discrete enum in its own right, NOT a quality band on <see cref="PayloadMeta.Quality"/>.
+/// Widgets that switch propagation/dead-reckoning
 /// strategy (a.physicsMode consumers) read this to know whether the craft is
 /// on-rails conics, a packed cluster, or a fully physics-simulated vessel.
 ///
@@ -43,10 +42,7 @@ public enum PhysicsMode
 
 /// <summary>
 /// The <c>vessel.physics.mode</c> Topic payload: the active vessel's physics
-/// regime (<see cref="PhysicsMode"/>). Its own Topic Value per the 2026-07-09
-/// decision that reverses the earlier "fold physics mode into stream meta"
-/// call: <see cref="PayloadMeta.Quality"/> was a bad stand-in for a discrete
-/// enum). <see cref="DelayRole"/>-Delayed like every other vessel-derived
+/// regime (<see cref="PhysicsMode"/>). <see cref="DelayRole"/>-Delayed like every other vessel-derived
 /// channel: it describes the vessel itself, so ground learns about it at
 /// UT+delay, not as a ground-side fact.
 /// </summary>

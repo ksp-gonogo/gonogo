@@ -5,10 +5,9 @@ namespace Gonogo.KSP
     /// <summary>
     /// What the game actually warped at, against what was asked for.
     ///
-    /// <para><b>What was wrong.</b> <c>SetWarp</c> bounds-checked the index
-    /// against <c>TimeWarp.fetch.warpRates.Length</c> and returned <c>Ok()</c>
-    /// unconditionally, on a doc comment claiming <c>TimeWarp.SetRate</c> "does
-    /// no bounds checking of its own". It does two:
+    /// <para><c>SetWarp</c> bounds-checked the index against
+    /// <c>TimeWarp.fetch.warpRates.Length</c> and returned <c>Ok()</c>
+    /// unconditionally, but <c>TimeWarp.SetRate</c> does two:
     /// <c>Mathf.Clamp(rate_index, 0, warpRates.Length)</c>, and then
     /// <c>setRate</c> runs <c>getMaxOnRailsRateIdx</c>, which clamps to the
     /// body's altitude limit (and to a kerbal on a ladder, and to the physics

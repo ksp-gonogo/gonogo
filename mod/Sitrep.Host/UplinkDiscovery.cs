@@ -9,8 +9,7 @@ namespace Sitrep.Host
     /// <summary>
     /// Assembly-scan discovery for <see cref="ISitrepUplink"/>s: the kOS
     /// <c>AddonManager</c>/<c>AssemblyWalkAttribute</c>/<c>Bootstrapper</c>
-    /// precedent (<c>local_docs/reference/kos/src/kOS/AddOns/AddonManager.cs</c>
-    /// et al.), adapted for Uplinks and kept KSP-free (uses only
+    /// precedent, adapted for Uplinks and kept KSP-free (uses only
     /// <see cref="AppDomain"/>/<see cref="Assembly"/> reflection, which is
     /// plain BCL, not a KSP type) so it is headlessly testable here rather
     /// than living in <c>Gonogo.KSP</c>.

@@ -103,7 +103,7 @@ const RECOVERY = {
   ],
 };
 
-/** A crash AFTER that recovery, which is the pick the banner used to get wrong. */
+/** A crash AFTER that recovery. */
 const CRASH = {
   ut: 1_004_200,
   vesselName: "Ares IV",

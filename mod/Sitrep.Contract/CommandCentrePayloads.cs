@@ -18,11 +18,7 @@ namespace Sitrep.Contract;
 /// <internal>
 /// Published RAW: the producer builds this POCO and the publisher hands the list
 /// straight over, so each element is written by JsonWriter's own
-/// AppendCommandCentreEntry. This paragraph used to say the opposite, that the
-/// producer hand-flattened each centre and the POCO never serialized raw, and
-/// that claim was copied into WirePayloadCoverageTests' allowlist, where it
-/// exempted the type from the one gate that would have caught it. Every
-/// non-empty roster publish failed at the wire boundary until 2026-09-05.
+/// AppendCommandCentreEntry.
 /// </internal></para>
 /// </summary>
 [SitrepContract]

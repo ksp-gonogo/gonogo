@@ -353,7 +353,7 @@ export function TelemetryProvider({
   // `subscribeTopicRead`'s set cannot contain `fleet.<guid>.orbit` and only the
   // store, which resolved the subject, can hold it up. Without this wiring the
   // model names an input nothing asked the wire for and declines on it for
-  // ever, which is #193/#195 again.
+  // ever.
   useEffect(() => {
     store.setDynamicSubscriber((topic) => client.subscribe(topic, () => {}));
     return () => store.setDynamicSubscriber(undefined);
@@ -1101,28 +1101,11 @@ function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
  * with the refusal when there was one and with `undefined` when the command
  * succeeded, so a caller that does not care can keep ignoring it.
  *
- * Takes the command and its arguments as they are. The version this replaces
- * took a widget-facing action STRING and resolved it through a table, which is
- * an indirection that only made sense while the caller's vocabulary was not the
- * command's own: `WarpControl` formatted `t.timeWarp[4]` for the table to parse
- * the 4 straight back out.
- *
  * `routed: false` means one thing only: no provider is mounted, so there is no
  * stream to put the command on.
  *
- * It used to mean a second thing, and that was a defect for as long as it
- * lasted. This also asked whether the command's id was in the carried-channels
- * allowlist, which is a promotion list of CHANNELS: a command id never arrives
- * on a `stream-data` frame to be learned, and nothing but a hand-written entry
- * could ever put one there. So every command a plain class sent was refused
- * unless someone had remembered to list it, and the four that nobody had
- * (GO/NO-GO's abort and stage, an alarm's action group, both maneuver-trigger
- * services' burn) went nowhere while their own tests passed, each installing
- * its command into the carried set by hand. {@link useCommand} never had the
- * gate, so a widget could always send what a plain class could not, which is
- * the asymmetry that shows it was never a designed property. Whether the
- * simulation will TAKE a command is the simulation's to answer, and it does:
- * `settled` carries its refusal, code and message as it wrote them.
+ * Whether the simulation will TAKE a command is the simulation's to answer, and
+ * it does: `settled` carries its refusal, code and message as it wrote them.
  */
 export function dispatchActiveCommandTopic(
   command: string,

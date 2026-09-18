@@ -709,12 +709,11 @@ namespace Gonogo.KSP
                 // which node its own path ended at, because the path is its;
                 // core matches that node against its own centre registry,
                 // because the registry is core's and an Uplink may not even
-                // reference the type. This used to be one `backend is
-                // CommNetBackend` downcast, under which the channel was all-null
-                // forever on a RealAntennas install and therefore
-                // indistinguishable from having no connection at all, dark
-                // exactly where RSS/RA's dozen ground stations make "which one
-                // am I talking to" a real question.
+                // reference the type. A `backend is CommNetBackend` downcast
+                // here would leave the channel all-null forever on a
+                // RealAntennas install, indistinguishable from having no
+                // connection at all, dark exactly where RSS/RA's dozen ground
+                // stations make "which one am I talking to" a real question.
                 //
                 // A save with no comms model still lands on all-null, now via a
                 // terminus nothing can report rather than via a downcast that

@@ -853,11 +853,8 @@ export function useCommand(
       }
       // Mark the dispatch's own rejection as HANDLED without consuming it.
       //
-      // Before commands could be settled on silence this promise never rejected, so
-      // the fire-and-forget call sites (`void someCmd.send(...)`, eight of them across
-      // the Robotics/RotorTachometer Uplinks) were safe by accident. Now that a
-      // dropped command rejects, a `void`ed dispatch would raise an unhandled
-      // rejection on every lost command.
+      // Now that a dropped command rejects, a `void`ed dispatch would raise an
+      // unhandled rejection on every lost command.
       //
       // Attaching a no-op handler here marks `result` handled while leaving the
       // rejection fully observable to anyone who awaits it: `ManeuverPlanner`'s

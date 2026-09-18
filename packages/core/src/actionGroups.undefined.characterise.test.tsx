@@ -31,10 +31,9 @@ import { clearRegistry } from "./registry";
  * from.
  *
  * That control is still offered, on purpose: the alternative is retiring a
- * group the operator plainly configured. What changed is that it no longer
- * passes itself off as reported. `provenance` distinguishes the three ways a
- * descriptor can exist, and the tests below are written around that
- * distinction rather than around the old byte-identity.
+ * group the operator plainly configured. `provenance` distinguishes the three
+ * ways a descriptor can exist, and the tests below are written around that
+ * distinction.
  */
 
 type LooseControl =
@@ -158,11 +157,8 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
   });
 
   /**
-   * An entry with no index used to interpolate one anyway, yielding the name
-   * "AGundefined" and the toggle "f.agundefined": a pressable pill bound to a
-   * command string no backend can honour. The index is what makes a group
-   * addressable, so without one the entry is listed and inert rather than
-   * fabricated into a command.
+   * The index is what makes a group addressable, so without one the entry is
+   * listed and inert rather than fabricated into a command.
    */
   it("lists an entry with no index as inert instead of fabricating f.agundefined", () => {
     const partial = [
@@ -179,8 +175,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
       description: "Custom action group with no index",
       provenance: "reported",
     });
-    // The two ways the old string could reach the wire are both gone: the
-    // toggle no longer exists at all, so there is nothing to dispatch.
+    // The toggle does not exist, so there is nothing to dispatch.
     expect(entry?.name).not.toContain("undefined");
     expect(entry?.toggle).toBeNull();
     expect(entry?.index).toBeUndefined();
@@ -223,9 +218,8 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
 describe("useActionGroup characterisation: resolving a configured id against an empty registry", () => {
   /**
    * With zero telemetry, `AG1` still resolves to a complete, clickable toggle
-   * bound to `f.ag1`, which is the fallback doing its job. What it no longer
-   * does is present that as a reported group: `provenance: "assumed"` is the
-   * descriptor saying so.
+   * bound to `f.ag1`, which is the fallback doing its job, marked
+   * `provenance: "assumed"` rather than presented as a reported group.
    */
   it("synthesises a fully operable AG1 toggle from no telemetry whatsoever, marked assumed", () => {
     const { result } = renderHook(() => useActionGroup("AG1"));
@@ -304,7 +298,7 @@ describe("useActionGroup characterisation: resolving a configured id against an 
 
   /**
    * THE ONE THIS FILE EXISTS FOR. A fabricated AG1 and a reported AG1 are the
-   * same control, deliberately, but they are no longer the same CLAIM: the
+   * same control, but not the same CLAIM: the
    * descriptor carries `provenance`, so a widget can caveat the pill it drew
    * from an absence instead of presenting it as reported fact.
    *

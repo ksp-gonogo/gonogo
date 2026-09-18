@@ -118,9 +118,8 @@ describe("CrewStatus: EVA suit resources that have stopped arriving", () => {
 
   it("no longer states its own staleness in words", async () => {
     /* The sentence goes because each meter already carries the mark. Saying it
-       again in prose over marked figures says it twice, and the ruling this
-       widget was changed under is that a widget defaulting to "can't show this
-       now" is the stale style. */
+       again in prose over marked figures says it twice, and a widget
+       defaulting to "can't show this now" is the stale style. */
     const fixture = mountEva();
     await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
 

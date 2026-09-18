@@ -29,7 +29,6 @@ namespace Gonogo.KSP
     /// stock KSP hands you, and is registered separately by
     /// <see cref="SilenceTracking.FleetSilenceChannels"/> from inside
     /// <see cref="CommsCoreUplink.Register"/>. See
-    /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c> and
     /// <see cref="Sitrep.Contract.FleetVesselContact"/>'s doc comment for the
     /// full split.</para>
     ///

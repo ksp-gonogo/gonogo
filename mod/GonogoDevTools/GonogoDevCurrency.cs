@@ -99,9 +99,7 @@ namespace Gonogo.DevTools
     /// credit from an award that never happened, and cannot tell a credit that landed
     /// from one that landed and is queued to land again.</para>
     ///
-    /// <para><b>And each sample reports whether the delay LEAKED.</b> Measured on
-    /// 2026-08-27: 25 science was withheld with one pending row while RP-1's confidence
-    /// went 700 to 800 and confidenceEarned 200 to 300, both at earn time. An operator
+    /// <para><b>And each sample reports whether the delay LEAKED.</b> An operator
     /// watching confidence therefore knows the science arrived before it does, and in
     /// RP-1 confidence gates real career decisions. The leak lines report that
     /// co-occurrence per derived quantity; the causal reading is left as an inference,
@@ -120,8 +118,7 @@ namespace Gonogo.DevTools
     /// subscribed, how many rows the pending-credit ledger holds, and the
     /// interceptor's shadow science. Balances alone cannot tell a delay that did
     /// not engage from a delay that engaged and revealed instantly, and both look
-    /// like "the science landed at once" - the first run of this tool produced
-    /// exactly that ambiguity. A neutralised award shows shadowScience below the
+    /// like "the science landed at once". A neutralised award shows shadowScience below the
     /// live balance and a non-zero pendingRows; an award the interceptor classed
     /// HOME shows shadowScience tracking the live balance and pendingRows at
     /// zero.</para>
@@ -132,8 +129,7 @@ namespace Gonogo.DevTools
     /// touch a home node, total path length), what
     /// <c>KscLightTime.ForVessel</c> made of it, what
     /// <c>KscDelayPolicy.DelaySeconds</c> would therefore add, and - when the answer
-    /// is Unroutable - WHICH of those tests failed. Before that node existed, a run
-    /// reported an unexplained "nothing revealed" and cost a night: an
+    /// is Unroutable - WHICH of those tests failed. An
     /// <c>Unroutable</c> with no reason behind it is indistinguishable from broken
     /// arithmetic, and the two want opposite fixes. Every figure in it is READ, not
     /// inferred, and the derived reading beside it (the CLASSIFICATION on each ledger
@@ -166,10 +162,10 @@ namespace Gonogo.DevTools
         ///
         /// <para><b>The replay this closes.</b> A request cfg persists and the guard
         /// above did not, so every KSP start re-read whatever request was still on
-        /// disk and awarded it again. On 2026-08-27 that fabricated a ledger row
-        /// twice and polluted two before/after pairs, and the fabricated row was then
-        /// the one the probe reported, because the probe named the OLDEST row rather
-        /// than the one the run had just made.</para>
+        /// disk and awarded it again, fabricating a ledger row twice and polluting
+        /// two before/after pairs, and the fabricated row was then the one the probe
+        /// reported, because the probe named the OLDEST row rather than the one the
+        /// run had just made.</para>
         ///
         /// <para><b>Why a stamp rather than consuming the request.</b> The request
         /// file is the operator's, written over SSH or through syncthing; deleting or
@@ -2306,12 +2302,10 @@ namespace Gonogo.DevTools
         /// The LEAK lines: whether a quantity DERIVED from a delayed currency moved while
         /// that currency was being withheld.
         ///
-        /// <para>Measured on 2026-08-27 with 25 science withheld: RP-1's confidence went
-        /// 700 to 800 and confidenceEarned 200 to 300, both at earn time. So an operator
-        /// watching confidence learns the science arrived before the science does, and in
-        /// RP-1 confidence gates real career decisions. That is the delay leaking through
-        /// a channel the subsystem never modelled, and it is the shape of thing the
-        /// validation matrix exists to catch.</para>
+        /// <para>An operator watching confidence learns the science arrived before the
+        /// science does, and in RP-1 confidence gates real career decisions. That is the
+        /// delay leaking through a channel the subsystem never modelled, and it is the
+        /// shape of thing the validation matrix exists to catch.</para>
         ///
         /// <para>RP-1 confidence is the only such quantity this probe can reach today. It
         /// is reported as a co-occurrence rather than a cause: that RP-1 credits

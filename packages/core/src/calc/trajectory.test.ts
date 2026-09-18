@@ -62,10 +62,10 @@ describe("solveKepler", () => {
   });
 
   it("handles negative M (orbit in retrograde time)", () => {
-    // Asserted MODULO a revolution, which is the honest form of the identity and is
-    // what the shared kernel now satisfies. This file used to carry its own solver
-    // returning E in (-pi, pi]; the kernel returns it in [0, 2pi), so at negative M
-    // the two differ by exactly one revolution and mean the same orbital position.
+    // Asserted MODULO a revolution, which is the honest form of the identity:
+    // the kernel returns E in [0, 2pi), so at negative M a solver returning E
+    // in (-pi, pi] would differ by exactly one revolution and still mean the
+    // same orbital position.
     // Nothing downstream can see it: every consumer uses E through cos(E) or through
     // eccentricToTrueAnomaly, both of which are periodic, and `stateAtUT` normalises
     // its reported true anomaly into [0, 360) anyway.

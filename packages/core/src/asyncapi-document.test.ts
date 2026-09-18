@@ -239,10 +239,8 @@ describe("asyncapi.yaml", () => {
       true,
     );
     /*
-     * `ksp.launch` rather than a `career.*` write, which was the instant example
-     * here until the classification was settled: a scene change is instant
-     * because every vantage shares it, and a career write is an order that
-     * crosses the gap like any other.
+     * A scene change is instant because every vantage shares it, and a career
+     * write is an order that crosses the gap like any other.
      */
     expect(channels["ksp.launch"]["x-sitrep-delayed"]).toBe(false);
     expect(channels["career.tech.unlock"]["x-sitrep-delayed"]).toBe(true);

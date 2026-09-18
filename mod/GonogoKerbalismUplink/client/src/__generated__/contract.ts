@@ -130,16 +130,13 @@ export interface KerbalismIsruConverterExtension
 * `StormIncoming`/`StormInProgress`/`Blackout`, `InSunlight`) plus the
 * `Shielding` resource.
 *
-* **This payload names no vessel, deliberately.** Solar activity is
-* SUN-sourced: the storms, the ejection speed and the star geometry describe
-* what the Sun is doing, and the intended shape for this channel is a
-* sun-sourced one delayed by its own Sun-to-observer geometry rather than a
-* vessel-attributed sample, per
-* `local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md`. Binding it
-* to a vessel id would encode the wrong subject and have to be unpicked.
-* Distinct from `KerbalismFeatures`/`KerbalismProfile`, which are install-wide
-* facts with no subject to name at all; this one HAS a subject, and it is the
-* Sun.
+* This payload names no vessel. Solar activity is SUN-sourced: the storms, the
+* ejection speed and the star geometry describe what the Sun is doing, and the
+* channel is delayed by its own Sun-to-observer geometry rather than a
+* vessel-attributed sample. Binding it to a vessel id would encode the wrong
+* subject and have to be unpicked. Distinct from
+* `KerbalismFeatures`/`KerbalismProfile`, which are install-wide facts with no
+* subject to name at all; this one HAS a subject, and it is the Sun.
 */
 export interface KerbalismSpaceWeather
 {

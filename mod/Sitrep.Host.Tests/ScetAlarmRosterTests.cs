@@ -522,8 +522,7 @@ namespace Sitrep.Host.Tests
         /// An arm arrives between ticks, off a command handler, and the tick that
         /// follows is the only chance anything has to notice. Reported as a
         /// change, or the operator's own alarm never reaches the roster they are
-        /// watching: measured on the deck, an arm that returned success produced
-        /// no roster frame at all until some later alarm fired.
+        /// watching.
         /// </summary>
         [Fact]
         public void AnArmIsReportedAsAChangeOnTheNextTick()

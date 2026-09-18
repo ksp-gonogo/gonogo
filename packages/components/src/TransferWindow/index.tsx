@@ -202,7 +202,7 @@ function TransferWindowComponent({
   /*
    * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
    * is the phase. `stillTrue` is the right read for an UNMARKED topic and this
-   * one carries a mark since ticket 308: a `ReckonableReading` is deliberately not
+   * one carries a mark: a `ReckonableReading` is deliberately not
    * assignable to `TopicReading`, so it cannot go through that helper at all,
    * and taking `reckoning.value` alone gets the moved fields and nothing else,
    * which is not an orbit. The spread is written here rather than in a helper

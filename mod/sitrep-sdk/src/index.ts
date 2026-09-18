@@ -32,7 +32,7 @@ export {
 // Carried-topic POLICY: which topics the stream carries, and whether a given
 // topic resolves entirely to carried inputs. Published because it decides where
 // an Uplink's data actually routes, which is runtime behaviour rather than a
-// test concern; it reached authors through the test harness until 2026-08-19.
+// test concern.
 export {
   isTopicCarried,
   type SubscriptionTopicResolver,
@@ -174,10 +174,9 @@ export {
 } from "./extensions";
 // The buffered-recording subsystem: wraps a live `DataSource`, persists every
 // sample into a `Store` keyed by inferred flight, and answers columnar range
-// queries. Moved down from `@ksp-gonogo/data` on 2026-08-19: an Uplink's tests
-// build one to assert what its widgets read, and `data` is `private: true`, so
-// the harness they needed was unbuildable outside this repo. Its transitive
-// imports were this package and itself all along.
+// queries. An Uplink's tests build one to assert what its widgets read, and
+// `data` is `private: true`, so the harness they needed was unbuildable outside
+// this repo. Its transitive imports were this package and itself all along.
 export type { KeyEnricher } from "./flight/BufferedDataSource";
 export { BufferedDataSource } from "./flight/BufferedDataSource";
 export { DataSourceWrapper } from "./flight/DataSourceWrapper";
@@ -233,11 +232,8 @@ export type {
   UnitHint,
 } from "./flight/types";
 export * from "./ksp-enum-names";
-// The magnitude unwrap, beside `Value` because that is what it unwraps. Moved
-// down from ui-kit on 2026-08-25: ui-kit depends on this package, so while it
-// lived there nothing here could reach it without a cycle and two spine files
-// carried their own diverging copies. `magnitude.ts`'s own doc says what that
-// cost. ui-kit re-exports these three, so no call site moved.
+// The magnitude unwrap, beside `Value` because that is what it unwraps.
+// ui-kit re-exports these three, so no call site moved.
 export {
   magnitudeOf,
   magnitudeOr,

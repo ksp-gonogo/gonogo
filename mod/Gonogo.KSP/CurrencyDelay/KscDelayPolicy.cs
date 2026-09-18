@@ -7,17 +7,17 @@ namespace Gonogo.KSP.CurrencyDelay
     /// The single place a <see cref="KscDelay"/> becomes a number of seconds.
     ///
     /// <para><b>Why this exists rather than call sites doing the arithmetic.</b>
-    /// The feature's off switch, <c>SignalDelayConfig.Enabled</c>, used to be
-    /// consulted only inside <c>KscLightTimeMath.Resolve</c>, i.e. only where a
-    /// delay is COMPUTED. Every code path that produced a
-    /// <see cref="KscDelay.Unroutable"/> literal instead of calling Resolve
-    /// therefore skipped the check, and there were several: a null vessel, a
-    /// throwing route read, a vessel absent from <c>FlightGlobals</c>, and the
-    /// ordinary science path, whose origin is a ProtoVessel and so never has a
-    /// live vessel to resolve. With signal delay switched OFF, all of them still
-    /// withheld the credit for a full Kerbin day.</para>
+    /// Consulting the feature's off switch, <c>SignalDelayConfig.Enabled</c>,
+    /// only inside <c>KscLightTimeMath.Resolve</c> - i.e. only where a delay is
+    /// COMPUTED - would miss every code path that produces a
+    /// <see cref="KscDelay.Unroutable"/> literal instead of calling Resolve, and
+    /// there are several: a null vessel, a throwing route read, a vessel absent
+    /// from <c>FlightGlobals</c>, and the ordinary science path, whose origin is
+    /// a ProtoVessel and so never has a live vessel to resolve. With signal
+    /// delay switched OFF, all of them would still withhold the credit for a
+    /// full Kerbin day.</para>
     ///
-    /// <para>So the gate moved to where a delay is CONSUMED. A player who turned
+    /// <para>The gate is where a delay is CONSUMED instead. A player who turned
     /// the feature off gets stock behaviour, whatever the routing did or did not
     /// find.</para>
     /// </summary>

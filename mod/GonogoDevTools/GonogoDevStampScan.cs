@@ -16,8 +16,7 @@ namespace Gonogo.DevTools
     /// scan types - i.e. marks the whole planet as already scanned. This gives
     /// terrain-render / coverage-gate tests a deterministic, reproducible scan
     /// fixture without having to actually fly a scanner over a body (which no
-    /// save currently has, confirmed 2026-07-20 by decoding every accessible
-    /// save's coverage grid - all zero).
+    /// save currently has).
     ///
     /// It calls SCANsat's OWN write path via reflection (no compile-time SCANsat
     /// reference, so this dev assembly stays SCANsat-version-agnostic and still

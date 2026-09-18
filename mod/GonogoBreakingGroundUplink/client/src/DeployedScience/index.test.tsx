@@ -116,9 +116,7 @@ describe("DeployedScienceComponent", () => {
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
-    // The cluster's produced-over-required power units. This asserted
-    // `/EC 0\/0/` until 2026-09-09: two hardcoded zeros under a unit name the
-    // scale never had, which is what the mod now actually publishes off
+    // The cluster's produced-over-required power units, from
     // `DeployedScienceCluster.PowerAvailable`/`.PowerRequired`.
     expect(visibleText()).toMatch(/Power 3\/2/);
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
