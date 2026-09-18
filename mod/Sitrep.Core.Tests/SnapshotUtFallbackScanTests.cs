@@ -56,14 +56,20 @@ namespace Sitrep.Core.Tests
             RegexOptions.Compiled);
 
         /// <summary>
-        /// The two live-clock forms, one per side of the Uplink boundary. Held as
-        /// text rather than as paths so the assertion below can say the guard is
-        /// still PRESENT without naming a project.
+        /// The live-clock form(s) the guard may take. Held as text rather than as
+        /// paths so the assertion below can say the guard is still PRESENT without
+        /// naming a project.
+        ///
+        /// <para>Core's own <c>Planetarium.GetUniversalTime()</c> form is the only
+        /// one this tree still contains an example of. The Uplink-side form,
+        /// <c>snapshot?.Ut ?? _host!.NowUt()</c>, is equally valid and
+        /// <see cref="EpochFallback"/> treats the two alike, matching only a bare
+        /// numeric literal and never a call. So this list is what the scan can find
+        /// here, not what the guard accepts.</para>
         /// </summary>
         private static readonly string[] AcceptedForms =
         {
             "snapshot?.Ut ?? Planetarium.GetUniversalTime()",
-            "snapshot?.Ut ?? _host!.NowUt()",
         };
 
         [Fact]
@@ -120,9 +126,12 @@ namespace Sitrep.Core.Tests
         ///
         /// <para>Its sibling above proves the pattern matches; this proves there is
         /// something to match against. <c>ProductionSources</c> throws on an empty
-        /// walk, and BOTH live-clock forms must still be present, or the property
-        /// being ratcheted has quietly stopped existing on one side of the Uplink
-        /// boundary.</para>
+        /// walk, and every form in <see cref="AcceptedForms"/> must still be
+        /// present, or the property being ratcheted has quietly stopped existing.
+        /// Core's <c>Planetarium.GetUniversalTime()</c> form is the only one left to
+        /// check: see <see cref="AcceptedForms"/>'s own doc comment for why the
+        /// Uplink-side form dropped out of this list rather than this scan simply
+        /// failing to see it.</para>
         /// </summary>
         [Fact]
         public void TheGuardStillExistsInItsAcceptedForm()
