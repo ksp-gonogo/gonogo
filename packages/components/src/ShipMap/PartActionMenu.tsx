@@ -83,7 +83,7 @@ export function PartActionMenu({
   const items: ActionMenuItem[] = (actions ?? []).map((action) => ({
     key: action.name,
     label: action.label || action.name,
-    group: action.group,
+    group: action.group ?? undefined,
     disabled: !action.active,
     // The part title is not in the item's own text, so a screen-reader user
     // hearing just "Extend Solar Panel" would not know which part it acts on.

@@ -65,7 +65,10 @@ describe("generated contract.ts: Value usage resolves to core", () => {
     );
 
     expect(processorInfo).toMatch(/coreId:\s*number;/);
-    expect(processorInfo).toMatch(/tag\?:\s*string;/);
+    /* The one nullable field of the six, and the union is the point of it: the
+       tag is null when the part carries no name-tag, which is not the same as a
+       part whose tag nobody read. */
+    expect(processorInfo).toMatch(/tag\?:\s*string \| null;/);
     expect(processorInfo).toMatch(/hasBooted:\s*boolean;/);
     expect(processorInfo).toMatch(/processorMode:\s*string;/);
     expect(processorInfo).not.toMatch(/Value</);

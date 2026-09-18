@@ -109,6 +109,9 @@ public class IsruDrillEntry
     /// already say. A blocking-reason string, an EC draw, an asteroid's remaining
     /// mass: all of those belong here rather than as nullable members above.
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
@@ -169,6 +172,9 @@ public class IsruConverterEntry
     /// derives that condition from the shared fields. Inventing an issue field
     /// would mean fabricating a diagnostic no engine actually reports.</para>
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }

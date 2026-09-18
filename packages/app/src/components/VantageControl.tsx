@@ -25,7 +25,7 @@ interface VantageOption extends ComboboxOption {
 
 interface ActiveCentre {
   id: string;
-  displayName?: string;
+  displayName?: string | null;
   isHome?: boolean;
 }
 

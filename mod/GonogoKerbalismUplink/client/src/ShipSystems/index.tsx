@@ -362,7 +362,8 @@ function ShipSystemsBody({
   const rowsByDisplayName = new Map(
     [...summary.supplies, ...summary.other].map((r) => [r.displayName, r]),
   );
-  const habitat: KerbalismHabitat | undefined = ship.lifeSupport?.habitat;
+  const habitat: KerbalismHabitat | null | undefined =
+    ship.lifeSupport?.habitat;
   const processes = (ship.lifeSupport?.processes ?? []).map(toProcessRow);
   const greenhouses = (ship.lifeSupport?.greenhouses ?? []).map(
     toGreenhouseRow,

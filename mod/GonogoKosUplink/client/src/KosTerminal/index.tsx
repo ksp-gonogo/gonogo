@@ -678,7 +678,7 @@ function KosTerminalLive({
 interface KosTerminalScreenProps {
   coreId: number;
   /** The resolved CPU's tagname, if it has one; see the `/`-picker's live listing hook. */
-  cpuTag: string | undefined;
+  cpuTag: string | null | undefined;
   readOnly: boolean;
   lineMode: boolean;
   scriptPaths: string[];

@@ -140,6 +140,9 @@ public class ExperimentEntry
     /// (<c>Sitrep.Host.Tests.ScienceProviderExtensionRatchetTests</c> holds that
     /// line).</para>
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
@@ -207,6 +210,9 @@ public class InstrumentEntry
     /// depleted") projects it down to those bools and carries the state and the
     /// reason here.</para>
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
@@ -279,6 +285,9 @@ public class LabEntry
     /// The provider-namespaced extension bag, lab half. Same mechanism and same
     /// rule as <see cref="ExperimentEntry.Extensions"/>.
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
@@ -565,6 +574,9 @@ public class ExperimentBreakdownEntry
     /// The provider-namespaced extension bag, per-subject-rollup half. Same
     /// mechanism and same rule as <see cref="ExperimentEntry.Extensions"/>.
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }

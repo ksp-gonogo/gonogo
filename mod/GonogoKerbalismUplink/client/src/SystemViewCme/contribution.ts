@@ -145,7 +145,7 @@ export function computeCmeEntities(
 
 function computeStormEntity(
   storm: KerbalismStormEntry,
-  stars: readonly KerbalismStarInfo[] | undefined,
+  stars: readonly KerbalismStarInfo[] | null | undefined,
   ejectionSpeedMps: number | null,
 ): CmeEntity | null {
   const state = magnitudeOf(storm.stormState);

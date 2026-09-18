@@ -94,6 +94,9 @@ public class ReliabilitySummary
     /// field this shared shape does not declare, WITHOUT a PR against this file.
     /// See <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism.
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
@@ -274,6 +277,9 @@ public class ReliabilityPartEntry
     /// The provider-namespaced extension bag, per-part half. Same mechanism and
     /// same rule as <see cref="ReliabilitySummary.Extensions"/>.
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }

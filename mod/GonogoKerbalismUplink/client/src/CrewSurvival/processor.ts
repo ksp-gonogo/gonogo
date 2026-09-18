@@ -49,7 +49,7 @@ export type SurvivalTone = "go" | "warn" | "nogo";
 
 export interface KerbalSurvival {
   name: string;
-  trait: string | undefined;
+  trait: string | null | undefined;
   /**
    * Every rule Kerbalism reports for this kerbal, worst (closest to fatal)
    * first. Empty when Kerbalism reports no rules for this kerbal.
@@ -165,7 +165,7 @@ export function ruleFraction(rule: KerbalismCrewRule): number | null {
  */
 function toKerbalSurvival(
   name: string,
-  trait: string | undefined,
+  trait: string | null | undefined,
   entry: KerbalismCrewEntry | undefined,
   viewUt: number,
 ): KerbalSurvival {

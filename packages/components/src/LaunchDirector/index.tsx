@@ -55,7 +55,10 @@ type LaunchDirectorConfig = Record<string, never>;
  * a header badge: e.g. supplies for the planned duration, or habitation.
  */
 export interface LaunchDirectorSlotContext {
-  /** Current KSP scene ("Flight", "Editor", ...); undefined until telemetry arrives. */
+  /**
+   * Current KSP scene ("Flight", "Editor", ...), undefined until telemetry
+   * arrives and while the mod cannot name the scene it is in.
+   */
   scene: string | undefined;
   /** True while a vessel is in flight (scene === "Flight"). */
   inFlight: boolean;
@@ -671,7 +674,7 @@ function LaunchDirectorComponent({
   // fresh reference per render is fine since `AugmentSlot`'s subscription is
   // store-driven and the live selection changes anyway.
   const slotContext: LaunchDirectorSlotContext = {
-    scene,
+    scene: scene ?? undefined,
     inFlight: scene === "Flight",
     selectedShip,
     selectedSite,

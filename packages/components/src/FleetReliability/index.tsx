@@ -686,7 +686,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
    * The provider's stated cost, resolved against the vessel. Empty when it
    * states none, which draws no ledger and gates nothing: absent is not zero.
    */
-  const costOf = (part: { repairCost?: RepairCostItem[] }): CostLine[] =>
+  const costOf = (part: { repairCost?: RepairCostItem[] | null }): CostLine[] =>
     (part.repairCost ?? []).map((item) => ({
       name: item.name,
       label: titleOf(item.name) ?? item.name,
