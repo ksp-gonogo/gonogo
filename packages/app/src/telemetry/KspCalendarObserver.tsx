@@ -67,7 +67,9 @@ export function KspCalendarObserver() {
   // what lets this component stay outside the settings provider, which is
   // where the telemetry tree puts it.
   const epochIso = calendar?.epoch;
-  const epochMs = epochIso === undefined ? undefined : Date.parse(epochIso);
+  // `== null`, not `=== undefined`: an explicit null is the NORMAL answer
+  // here, since stock KSP has no real calendar and so no anchor to send.
+  const epochMs = epochIso == null ? undefined : Date.parse(epochIso);
 
   useEffect(() => {
     // Every field, or none. A half-applied calendar (one calendar's day length

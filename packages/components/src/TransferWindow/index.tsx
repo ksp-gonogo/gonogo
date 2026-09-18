@@ -172,6 +172,15 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * How a body is named to the operator. The catalogue's own name when the save
+ * sent one, its index otherwise: the index identifies the body unambiguously,
+ * where a fabricated name would not.
+ */
+function bodyLabel(body: CelestialBody): string {
+  return body.name ?? `Body ${body.index}`;
+}
+
 function TransferWindowComponent({
   config,
 }: ComponentProps<TransferWindowConfig>) {
@@ -663,7 +672,7 @@ function TransferWindowComponent({
                       >
                         {dests.map((d) => (
                           <option key={d.index} value={d.index}>
-                            {d.name ?? `Body ${d.index}`}
+                            {bodyLabel(d)}
                           </option>
                         ))}
                       </RouteSelect>
@@ -673,7 +682,7 @@ function TransferWindowComponent({
                     createAlarm
                       ? (w) =>
                           createAlarm({
-                            name: `Transfer: ${origin.name} to ${dest.name}`,
+                            name: `Transfer: ${bodyLabel(origin)} to ${bodyLabel(dest)}`,
                             trigger: {
                               kind: "time",
                               ut: w.departureUt,
@@ -886,7 +895,7 @@ function ReachList({
                       aria-pressed={entry.body.index === selectedIndex}
                       onClick={() => onSelect(entry.body.index)}
                     >
-                      {entry.body.name ?? `Body ${entry.body.index}`}
+                      {bodyLabel(entry.body)}
                     </ReachPick>
                   </ReachTd>
                   <ReachTdNum>

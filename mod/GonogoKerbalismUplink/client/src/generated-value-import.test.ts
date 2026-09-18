@@ -14,6 +14,10 @@ import { describe, expect, it } from "vitest";
 // NOT vacuous: forty-seven properties across the fifteen types retype (the
 // codegen run prints that count), and none of the fifteen is an inbound-only
 // "...Args" for ApplyUnitValueTypes to skip.
+//
+// Every shape pinned below carries `| null` alongside its `?`, because the wire
+// keeps the key and writes null into it. The union is REQUIRED rather than
+// tolerated here: a shape that lost it would still be a regression.
 
 const generatedContractPath = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -43,20 +47,22 @@ describe("generated contract.ts: Value/Vec3Of usage resolves to core", () => {
     const src = source();
 
     // kerbalism.spaceweather -> per-star / per-storm
-    expect(src).toMatch(/stars\?:\s*KerbalismStarInfo\[\];/);
-    expect(src).toMatch(/storms\?:\s*KerbalismStormEntry\[\];/);
+    expect(src).toMatch(/stars\?:\s*KerbalismStarInfo\[\] \| null;/);
+    expect(src).toMatch(/storms\?:\s*KerbalismStormEntry\[\] \| null;/);
     // kerbalism.crew -> per-kerbal survival rule (the dose)
-    expect(src).toMatch(/rules\?:\s*KerbalismCrewRule\[\];/);
+    expect(src).toMatch(/rules\?:\s*KerbalismCrewRule\[\] \| null;/);
     // kerbalism.lifesupport -> habitat / processes / greenhouses
-    expect(src).toMatch(/habitat\?:\s*KerbalismHabitat;/);
-    expect(src).toMatch(/processes\?:\s*KerbalismProcessEntry\[\];/);
-    expect(src).toMatch(/greenhouses\?:\s*KerbalismGreenhouseEntry\[\];/);
+    expect(src).toMatch(/habitat\?:\s*KerbalismHabitat \| null;/);
+    expect(src).toMatch(/processes\?:\s*KerbalismProcessEntry\[\] \| null;/);
+    expect(src).toMatch(
+      /greenhouses\?:\s*KerbalismGreenhouseEntry\[\] \| null;/,
+    );
     // kerbalism.profile -> the resource definitions map, plus rules/processes
     expect(src).toMatch(
-      /resources\?:\s*\{\s*\[key:\s*string\]:\s*KerbalismResourceDef\s*\};/,
+      /resources\?:\s*\{\s*\[key:\s*string\]:\s*KerbalismResourceDef\s*\} \| null;/,
     );
-    expect(src).toMatch(/rules\?:\s*KerbalismRuleDef\[\];/);
-    expect(src).toMatch(/processes\?:\s*KerbalismProcessDef\[\];/);
+    expect(src).toMatch(/rules\?:\s*KerbalismRuleDef\[\] \| null;/);
+    expect(src).toMatch(/processes\?:\s*KerbalismProcessDef\[\] \| null;/);
   });
 
   it("keeps the deepest declared quantities typed as Values", () => {
@@ -79,7 +85,7 @@ describe("generated contract.ts: Value/Vec3Of usage resolves to core", () => {
   // The unit is declared on KerbalismStarInfo.Direction and has to survive two
   // hops of shape resolution before fanning out to the vector's three leaves.
   it("keeps the nested Vec3 typed as Vec3Of, not a bare Vec3", () => {
-    expect(source()).toMatch(/direction\?:\s*Vec3Of<"1">;/);
+    expect(source()).toMatch(/direction\?:\s*Vec3Of<"1"> \| null;/);
   });
 
   // The name-keyed unit map. This form exists nowhere else in the whole
@@ -91,16 +97,16 @@ describe("generated contract.ts: Value/Vec3Of usage resolves to core", () => {
     const src = source();
 
     expect(src).toMatch(
-      /rates\?:\s*\{\s*\[key:\s*string\]:\s*Value<"units\/s">\s*\};/,
+      /rates\?:\s*\{\s*\[key:\s*string\]:\s*Value<"units\/s">\s*\} \| null;/,
     );
     expect(src).toMatch(
-      /ruleEnvModifiers\?:\s*\{\s*\[key:\s*string\]:\s*Value<"1">\s*\};/,
+      /ruleEnvModifiers\?:\s*\{\s*\[key:\s*string\]:\s*Value<"1">\s*\} \| null;/,
     );
     expect(src).toMatch(
-      /inputs\?:\s*\{\s*\[key:\s*string\]:\s*Value<"units\/s">\s*\};/,
+      /inputs\?:\s*\{\s*\[key:\s*string\]:\s*Value<"units\/s">\s*\} \| null;/,
     );
     expect(src).toMatch(
-      /outputs\?:\s*\{\s*\[key:\s*string\]:\s*Value<"units\/s">\s*\};/,
+      /outputs\?:\s*\{\s*\[key:\s*string\]:\s*Value<"units\/s">\s*\} \| null;/,
     );
   });
 });

@@ -203,7 +203,10 @@ export interface CrewAvatarContext {
 
 /** Mirrors `LaunchDirectorSlotContext` (LaunchDirector/index.tsx). */
 export interface LaunchDirectorSlotContext {
-  /** Current KSP scene ("Flight", "Editor", ...); undefined until telemetry arrives. */
+  /**
+   * Current KSP scene ("Flight", "Editor", ...), undefined until telemetry
+   * arrives and while the mod cannot name the scene it is in.
+   */
   scene: string | undefined;
   /** True while a vessel is in flight (scene === "Flight"). */
   inFlight: boolean;

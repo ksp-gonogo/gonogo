@@ -66,7 +66,7 @@ const IDLE: KosScriptListingResult = { paths: [], loading: false, hint: null };
  */
 export function useKosScriptListing(
   coreId: number,
-  cpuTag: string | undefined,
+  cpuTag: string | null | undefined,
   enabled: boolean,
 ): KosScriptListingResult {
   const [result, setResult] = useState<KosScriptListingResult>(IDLE);

@@ -43,14 +43,14 @@ export interface KerbalismIsruDrillExtension
 	* Empty when the drill is fine, which is the normal case, so a renderer shows
 	* this only when it is non-empty.
 	*/
-	issue?: string;
+	issue?: string | null;
 	/**
 	* The harvest-type variant: 0-3 are the stock-equivalent situations, 4 is
 	* asteroid/comet. Free text rather than a closed enum, mirroring the posture
 	* the shared `Resource` field already takes: the numbering is a Kerbalism
 	* implementation detail and a closed enum here would break on any renumber.
 	*/
-	harvestType?: string;
+	harvestType?: string | null;
 	/**
 	* EC drawn per second, independent of abundance. A drill that is deployed and
 	* running still costs this even where there is nothing to extract, which is
@@ -97,13 +97,13 @@ export interface KerbalismIsruConverterExtension
 	* Process definition, not a real resource, which is why it is not the shared
 	* shape's resource field wearing a different name.
 	*/
-	processToken?: string;
+	processToken?: string | null;
 	/**
 	* The process's own display title, distinct from the part title (e.g. "Molten
 	* Regolith Electrolysis" running on an ISRU Chemical Plant part). One part can
 	* be reconfigured to run a different process, so the two genuinely differ.
 	*/
-	title?: string;
+	title?: string | null;
 	/**
 	* How many units of the process this part runs at once. Every rate on the
 	* shared shape is already scaled by this: it is the multiplier behind those
@@ -168,7 +168,7 @@ export interface KerbalismSpaceWeather
 	* Star-agnostic: 1..N entries, uniform shape for a binary/trinary pack same as
 	* a single star.
 	*/
-	stars?: KerbalismStarInfo[];
+	stars?: KerbalismStarInfo[] | null;
 	/**
 	* One CME slot per star. Which slot depends on where the vessel is: around a
 	* body it is the shared (body, star) slot (`Storm.StormKey(body,
@@ -178,7 +178,7 @@ export interface KerbalismSpaceWeather
 	* fair-vs-cheating read boundary that governs which of its members are
 	* populated.
 	*/
-	storms?: KerbalismStormEntry[];
+	storms?: KerbalismStormEntry[] | null;
 	/**
 	* Global CME transit speed, `PreferencesRadiation.Instance.StormEjectionSpeed`
 	* (a fraction of c; stock default 0.33c ≈ 99,000 km/s, read live in case a
@@ -197,9 +197,9 @@ export interface KerbalismSpaceWeather
 export interface KerbalismStarInfo
 {
 	/** Star body name (`Sim.SunData.body.bodyName`). */
-	star?: string;
+	star?: string | null;
 	/** Normalized vessel-to-sun direction, `VesselData.SunInfo.Direction`. */
-	direction?: Vec3Of<"1">;
+	direction?: Vec3Of<"1"> | null;
 	/** Vessel-to-sun-surface distance, `VesselData.SunInfo.Distance`. */
 	distance?: Value<"m"> | null;
 }
@@ -252,7 +252,7 @@ export enum KerbalismStormTargetKind {
 export interface KerbalismStormEntry
 {
 	/** Source star body name. Join key onto `KerbalismStarInfo.star`. */
-	star?: string;
+	star?: string | null;
 	/**
 	* Whether this slot is the shared per-body one or the vessel's own private
 	* one. Always populated (it describes which slot was READ, not the storm's
@@ -266,7 +266,7 @@ export interface KerbalismStormEntry
 	* vessel's `Vessel.vesselName` when it is `KerbalismStormTargetKind.Vessel`.
 	* Always populated, alongside `KerbalismStormEntry.targetKind`.
 	*/
-	targetName?: string;
+	targetName?: string | null;
 	/**
 	* `StormData.storm_state`: 0 none, 1 inbound (in transit), 2 in progress
 	* (arrived).
@@ -327,8 +327,8 @@ export interface KerbalismProcessEntry
 	* contains this token is the one this controller runs. Confirmed against a
 	* captured fixture and the stock profile config.
 	*/
-	resource?: string;
-	title?: string;
+	resource?: string | null;
+	title?: string | null;
 	/**
 	* Process capacity of the hosting part. Kerbalism scales EVERY rate in the
 	* matched `KerbalismProcessDef` by this, so `profileRate * capacity` is this
@@ -384,7 +384,7 @@ export interface KerbalismResourceDef
 	* worst misleading. A consumer cannot know that without this field, which is
 	* why per-part resource meters depend on it.
 	*/
-	flowMode?: string;
+	flowMode?: string | null;
 	/**
 	* `KerbalismResourceDef.flowMode`'s KSP ORDINAL, typed to
 	* `Sitrep.Contract.KspResourceFlowMode`. The enum is stock KSP's, not
@@ -405,7 +405,7 @@ export interface KerbalismResourceDef
 	* Localised display name from the KSP resource definition, when it differs
 	* from the key.
 	*/
-	displayName?: string;
+	displayName?: string | null;
 	density?: Value<"kg/m³"> | null;
 	/**
 	* True when the profile declares a `Supply` for this resource, i.e. it is life
@@ -424,17 +424,17 @@ export interface KerbalismResourceDef
 */
 export interface KerbalismRuleDef
 {
-	name?: string;
+	name?: string | null;
 	/**
 	* Consumed resource. Empty for rules modelling a pure accumulator (stress,
 	* radiation).
 	*/
-	input?: string;
+	input?: string | null;
 	/**
 	* Produced resource. Empty when the rule produces nothing; rule outputs are
 	* always dumped by Kerbalism.
 	*/
-	output?: string;
+	output?: string | null;
 	/**
 	* CANONICAL. Consumption per kerbal per SECOND, already divided by
 	* `KerbalismRuleDef.interval`. Use this one.
@@ -469,7 +469,7 @@ export interface KerbalismRuleDef
 	* Raw modifier keyword tokens, deliberately unparsed. See
 	* `KerbalismProcessDef.modifiers`.
 	*/
-	modifiers?: string[];
+	modifiers?: string[] | null;
 }
 /**
 * One `Profile.processes[]` entry: a vessel converter. Every rate below is PER
@@ -478,11 +478,11 @@ export interface KerbalismRuleDef
 */
 export interface KerbalismProcessDef
 {
-	name?: string;
+	name?: string | null;
 	/** Resource name -> rate per unit of process capacity, per second. */
-	inputs?: { [key: string]: Value<"units/s"> };
+	inputs?: { [key: string]: Value<"units/s"> } | null;
 	/** Resource name -> rate per unit of process capacity, per second. */
-	outputs?: { [key: string]: Value<"units/s"> };
+	outputs?: { [key: string]: Value<"units/s"> } | null;
 	/**
 	* The Process's own modifier tokens. REQUIRED: this list contains the
 	* pseudo-resource (e.g. "_Scrubber") that joins to
@@ -497,13 +497,13 @@ export interface KerbalismProcessDef
 	* reason about. Raw tokens let a consumer act on what it recognises and render
 	* the rest as honest provenance.
 	*/
-	modifiers?: string[];
+	modifiers?: string[] | null;
 	/**
 	* `dump_valve` options in the profile's own order, each an `&`-joined
 	* combination of output resources. `KerbalismProcessEntry.valveIndex` indexes
 	* into this list.
 	*/
-	dumpValves?: string[];
+	dumpValves?: string[] | null;
 }
 /**
 * The loaded Kerbalism profile's own definitions. Static for the life of the
@@ -516,7 +516,7 @@ export interface KerbalismProfile
 	* Loaded profile name ("Default", "RealismOverhaul", ...). Display and fixture
 	* keying only, never a behavioural switch.
 	*/
-	name?: string;
+	name?: string | null;
 	/**
 	* Every resource this profile touches: the union of all rule and process
 	* inputs/outputs plus every declared Supply, keyed by KSP resource name.
@@ -525,9 +525,9 @@ export interface KerbalismProfile
 	* enumeration drives which names the life-support capture asks Kerbalism for a
 	* rate about, so the two can never drift.
 	*/
-	resources?: { [key:string]: KerbalismResourceDef };
-	rules?: KerbalismRuleDef[];
-	processes?: KerbalismProcessDef[];
+	resources?: { [key: string]: KerbalismResourceDef } | null;
+	rules?: KerbalismRuleDef[] | null;
+	processes?: KerbalismProcessDef[] | null;
 }
 /**
 * One active Greenhouse part's growing state, field-for-field against
@@ -544,7 +544,7 @@ export interface KerbalismProfile
 export interface KerbalismGreenhouseEntry
 {
 	/** The resource this greenhouse produces (stock: "Food"). */
-	cropResource?: string;
+	cropResource?: string | null;
 	/**
 	* Derived continuous production rate, units/s (crop_size * crop_rate when
 	* active and lit; 0 when blocked).
@@ -566,7 +566,7 @@ export interface KerbalismGreenhouseEntry
 	* Blocking reason string (`Greenhouse.Data.issue`), e.g. the localized
 	* "insufficient lighting". Empty when growing normally.
 	*/
-	issue?: string;
+	issue?: string | null;
 	/** Part config: max lamp EC draw, units/s (`ec_rate`). */
 	ecRateMaxPerSec?: Value<"units/s"> | null;
 	/**
@@ -607,8 +607,8 @@ export interface KerbalismLifeSupport
 	* replaced four fixed properties (Food/Water/Oxygen/ElectricCharge) against a
 	* default profile that runs on twelve.
 	*/
-	rates?: { [key: string]: Value<"units/s"> };
-	habitat?: KerbalismHabitat;
+	rates?: { [key: string]: Value<"units/s"> } | null;
+	habitat?: KerbalismHabitat | null;
 	/**
 	* The per-part process list, with a THREE-WAY absence that a consumer must
 	* respect: a populated list is what is running, an EMPTY list means the craft
@@ -624,7 +624,7 @@ export interface KerbalismLifeSupport
 	* our reading into a false statement about the craft, which is why it is not
 	* an empty list.
 	*/
-	processes?: KerbalismProcessEntry[];
+	processes?: KerbalismProcessEntry[] | null;
 	/**
 	* Live modifier product k per rule name, keyed to join against
 	* `KerbalismRuleDef.name` on `kerbalism.profile.rules` (same math as
@@ -643,7 +643,7 @@ export interface KerbalismLifeSupport
 	* name absent from this map means "no correction available"; a consumer should
 	* treat that as k = 1.0, same as a null `KerbalismProcessEntry.envModifier`.
 	*/
-	ruleEnvModifiers?: { [key: string]: Value<"1"> };
+	ruleEnvModifiers?: { [key: string]: Value<"1"> } | null;
 	/**
 	* Active Greenhouse parts on the vessel, if any (most vessels carry none, an
 	* empty/absent list is the normal case, not an error). NOT YET POPULATED by
@@ -653,7 +653,7 @@ export interface KerbalismLifeSupport
 	* shape so the widget-side augment can be built and fixture-tested against it
 	* now.
 	*/
-	greenhouses?: KerbalismGreenhouseEntry[];
+	greenhouses?: KerbalismGreenhouseEntry[] | null;
 	/**
 	* The UT these values were last RECOMPUTED at by Kerbalism, which is not the
 	* UT they were read at and can be a long way behind it.
@@ -678,7 +678,7 @@ export interface KerbalismLifeSupport
 */
 export interface KerbalismCrewRule
 {
-	name?: string;
+	name?: string | null;
 	/** Current accumulator value ("problem") from KerbalData.rules. */
 	value?: Value<"units"> | null;
 	/**
@@ -699,9 +699,9 @@ export interface KerbalismCrewRule
 /** Per-kerbal survival state (dose is the rule named "radiation"). */
 export interface KerbalismCrewEntry
 {
-	name?: string;
-	trait?: string;
-	rules?: KerbalismCrewRule[];
+	name?: string | null;
+	trait?: string | null;
+	rules?: KerbalismCrewRule[] | null;
 	/**
 	* The UT at which the soonest FATAL rule kills this kerbal, derived in two
 	* stages: how long the rule's input resource lasts at its current net rate,
@@ -872,7 +872,7 @@ export interface KerbalismScienceExperimentExt
 	* scalar. The distinction drives what an operator can DO with the result, so
 	* it is the most consequential Kerbalism-only field here.
 	*/
-	kind?: string;
+	kind?: string | null;
 	/** Physical mass of a sample. Null for a file (a file weighs nothing). */
 	sampleMass?: Value<"t"> | null;
 	/**
@@ -940,7 +940,7 @@ export interface KerbalismScienceInstrumentExt
 	* which of the fields below carry a fact, so a reader never has to infer it
 	* from which ones happen to be null.
 	*/
-	kind?: string;
+	kind?: string | null;
 	/**
 	* Kerbalism's own free-text reason this experiment is not producing, empty
 	* when there is nothing wrong. The collapsed form of the whole requirement
@@ -948,19 +948,19 @@ export interface KerbalismScienceInstrumentExt
 	* Filled for both kinds: a scanner's version is "no storage available" or
 	* "disabled by power failure".
 	*/
-	issue?: string;
+	issue?: string | null;
 	/**
 	* The SIMULATED state: `Stopped` | `Running` | `Forced` | `Broken`. What the
 	* vessel is set to do.
 	*/
-	runningState?: string;
+	runningState?: string | null;
 	/**
 	* The DERIVED display state: `Stopped` | `Running` | `Forced` | `Waiting` |
 	* `Issue` | `Broken`. What is actually happening, which differs from
 	* `KerbalismScienceInstrumentExt.runningState` exactly when something is in
 	* the way.
 	*/
-	expStatus?: string;
+	expStatus?: string | null;
 	/**
 	* Nominal data production rate. The field that makes Kerbalism science a
 	* process rather than an instant: stock has no "how far through this run" idea
@@ -1032,7 +1032,7 @@ export interface KerbalismScienceLabExt
 	* `NO_RESEARCHER` | `RUNNING`. A typed reason where core's `StatusText` is a
 	* display string.
 	*/
-	status?: string;
+	status?: string | null;
 }
 /**
 * Kerbalism's sub-tree of one `science.experimentBreakdown` entry: the full

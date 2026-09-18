@@ -11,8 +11,8 @@ namespace Sitrep.Contract
     /// unconditionally, and <c>AppendValue</c>'s <c>case null:</c> writes the
     /// four bytes <c>null</c>, so an absent reading normally reaches a client as
     /// a key that is present and null. The generated TypeScript says so:
-    /// <c>RtConfig.ApplyUnitValueTypes</c> emits a nullable value-type property
-    /// as <c>name?: T | null</c>.</para>
+    /// <c>RtConfig.ApplyUnitValueTypes</c> emits any nullable property, value or
+    /// reference, as <c>name?: T | null</c>.</para>
     ///
     /// <para>This attribute turns that off for one property, which then emits as
     /// <c>name?: T</c>, because a key that is never written cannot arrive null

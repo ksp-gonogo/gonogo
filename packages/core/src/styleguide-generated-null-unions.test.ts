@@ -27,9 +27,13 @@ import { describe, expect, it } from "vitest";
  *
  * A count floor passes when one field loses its union and another gains one,
  * and it needs re-seeding every time a payload grows a field. The expectation
- * here is DERIVED from the file instead: every optional member whose type is a
- * value type must carry the union, so the check states the rule rather than
+ * here is DERIVED from the file instead: every optional member must carry the
+ * union unless the wire OMITS its key, so the check states the rule rather than
  * last week's total.
+ *
+ * The rule holds for a reference type exactly as for a value type, because
+ * `JsonWriter` never consults the C# nullable annotation: a `string?` and a
+ * `double?` both arrive as `"key":null`.
  *
  * `asyncapi.yaml` looks like a better witness and is not. It is generated FROM
  * this same TypeScript and takes its nullability from the `?`, so holding one
@@ -66,9 +70,13 @@ function generatedContracts(root: string): string[] {
 
 /**
  * The properties whose KEY a flattener leaves out entirely, so `| null` would
- * describe a state that cannot arrive. Each is marked
- * `[SitrepOmittedWhenNull]` at its C# property, which is what the codegen
- * reads; this list is the assertion's own copy of the same two decisions.
+ * describe a state that cannot arrive. This list is the assertion's own copy of
+ * what the flatteners do.
+ *
+ * A payload property says it with `[SitrepOmittedWhenNull]` at its C# property,
+ * which is what the codegen reads. An ENVELOPE property has no marker: the
+ * envelope is outside `ApplyUnitValueTypes` altogether (see the reasoning at
+ * that call), so an attribute there would be read by nothing.
  */
 const OMITTED_WHEN_NULL = new Set([
   /* EnvelopeCodec.AppendMeta guards it on HasValue, alone among Meta's fields:
@@ -78,38 +86,33 @@ const OMITTED_WHEN_NULL = new Set([
   // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero
   // throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
+  // JsonWriter.AppendCommandResult writes neither key on a success, rather than
+  // putting an empty refusal shape on every ack.
+  "CommandResult.breach",
+  "CommandResult.detail",
+  // EnvelopeCodec.WriteErrorMsg guards both on null: an error that names no
+  // request and no topic carries neither key.
+  "ErrorMsg.requestId",
+  "ErrorMsg.topic",
+  // The vantage a command centre stamps on its own request. Client-written, so
+  // it is left out rather than transmitted as an absence, the same rule the
+  // `Args` skip below states.
+  "CommandRequest.vantage",
 ]);
+
+/**
+ * The provider extension bag. `JsonWriter.AppendProviderExtensions` omits the
+ * key when no provider filled one, so a payload no provider extended carries no
+ * trace of the mechanism. Matched by TYPE because it is one rule spread over
+ * every elected payload rather than a rule per payload.
+ */
+const OMITTED_BAG_TYPE = "ProviderExtensions";
 
 /** A member declaration: a leading tab, a name, an optional `?`, a type. */
 const MEMBER = /^\t(\w+)(\??): (.+);$/;
 
-/**
- * Whether an emitted type is the TypeScript for a nullable C# VALUE type, which
- * is the half the codegen widens.
- *
- * `boolean` and `number` cover `bool?`, every numeric, and a cross-assembly
- * enum (which rtcli emits as its ordinal). A same-assembly enum emits under its
- * own name, so the file's own `export enum` declarations are the roster for
- * those. `Value<"m">` is a nullable quantity, where the two rules compose.
- *
- * Everything else is a nullable REFERENCE type, which crosses the same wire the
- * same way and is deliberately NOT widened: `string?`, `T[]?` (including
- * `Value<"m">[]`, which is why the match is anchored) and a POCO.
- */
-function isValueType(base: string, enums: ReadonlySet<string>): boolean {
-  return (
-    base === "boolean" ||
-    base === "number" ||
-    /^Value<"[^"]*">$/.test(base) ||
-    enums.has(base)
-  );
-}
-
-/** Every optional value-typed member of one generated file that cannot hold a null. */
+/** Every optional member of one generated file that cannot hold a null. */
 function unwidened(source: string): { checked: number; missing: string[] } {
-  const enums = new Set(
-    [...source.matchAll(/^export enum (\w+)/gm)].map((m) => m[1]),
-  );
   const missing: string[] = [];
   let checked = 0;
   for (const block of source.matchAll(
@@ -124,11 +127,12 @@ function unwidened(source: string): { checked: number; missing: string[] } {
       const member = MEMBER.exec(line);
       if (!member || member[2] !== "?") continue;
       const [, field, , tsType] = member;
-      const nullable = tsType.endsWith(" | null");
-      const base = nullable ? tsType.slice(0, -" | null".length) : tsType;
-      if (!isValueType(base, enums)) continue;
+      if (tsType === OMITTED_BAG_TYPE) continue;
       checked++;
-      if (!nullable && !OMITTED_WHEN_NULL.has(`${typeName}.${field}`)) {
+      if (
+        !tsType.endsWith(" | null") &&
+        !OMITTED_WHEN_NULL.has(`${typeName}.${field}`)
+      ) {
         missing.push(`${typeName}.${field}: \`${tsType}\``);
       }
     }
@@ -148,7 +152,7 @@ describe("generated contract types can hold the null the wire sends", () => {
     expect(contracts.length).toBeGreaterThan(1);
   });
 
-  it("widens every optional value-typed member", () => {
+  it("widens every optional member", () => {
     const problems: string[] = [];
     let checked = 0;
     for (const rel of contracts) {
@@ -158,31 +162,35 @@ describe("generated contract types can hold the null the wire sends", () => {
     }
     // A walk that stopped early has nothing to disagree with and reports a
     // clean tree, so the count is a floor under the walk rather than a target.
-    //
-    // It moves DOWN as Uplinks leave for their own repo, because each takes its
-    // generated contract with it: 786 across seven files when this landed, 582
-    // once RP-1's went. Lowered deliberately each time rather than left to fail,
-    // and kept well clear of the remaining files' own total so it still catches
-    // a discovery that reaches nothing.
+    // It moves DOWN as Uplinks leave for their own repo, each taking its
+    // generated contract with it, so it is lowered deliberately when that
+    // happens and kept well clear of the remaining files' own total.
     expect(checked).toBeGreaterThan(400);
     expect(problems).toEqual([]);
   });
 
   it("sees a union that has been taken back out", () => {
     // The check's pass condition is an empty list, and an empty list is also
-    // what a parse that stopped matching produces. Strip one union from a copy
-    // of the real file and require exactly that field back, named.
+    // what a parse that stopped matching produces. Strip a union from a copy of
+    // the real file and require exactly that field back, named.
+    //
+    // ONE plant of each KIND, because value and reference types reach the union
+    // by different branches of the codegen, and a check that measures only one
+    // of them reports a clean tree for the other.
     const sdk = readFileSync(
       join(root, "mod/sitrep-sdk/src/__generated__/contract.ts"),
       "utf8",
     );
-    const damaged = sdk.replace(
-      "\tstate?: boolean | null;",
-      "\tstate?: boolean;",
-    );
-    expect(damaged, "the planted edit matched nothing").not.toBe(sdk);
-    expect(unwidened(damaged).missing).toEqual([
+    const damaged = sdk
+      .replace("\tstate?: boolean | null;", "\tstate?: boolean;")
+      .replace(
+        "\tactivateBlockedReason?: string | null;",
+        "\tactivateBlockedReason?: string;",
+      );
+    expect(damaged, "the planted edits matched nothing").not.toBe(sdk);
+    expect(unwidened(damaged).missing.sort()).toEqual([
       "ActionGroupState.state: `boolean`",
+      "CareerStrategy.activateBlockedReason: `string`",
     ]);
   });
 
@@ -200,6 +208,11 @@ describe("generated contract types can hold the null the wire sends", () => {
     // And the rule reaching a quantity, where it composes with the unit wrap
     // rather than replacing it.
     expect(sdk).toMatch(/\n\tlan\?: Value<"°"> \| null;\n/);
+    /* And the rule reaching a reference type, which crosses the same wire the
+       same way: a refusal's own sentence, and the payload a failed command
+       carries as an explicit null. */
+    expect(sdk).toMatch(/\n\tactivateBlockedReason\?: string \| null;\n/);
+    expect(sdk).toMatch(/\n\tpayload\?: T \| null;\n/);
   });
 
   it("leaves a key the wire OMITS un-nullable", () => {
@@ -212,5 +225,9 @@ describe("generated contract types can hold the null the wire sends", () => {
     );
     expect(sdk).toMatch(/\n\tgapSinceUt\?: number;\n/);
     expect(sdk).toMatch(/\n\tcommandedValue\?: number;\n/);
+    // The reference-typed half. Nothing about a reference type excludes it, so
+    // these hold only while their marker does.
+    expect(sdk).toMatch(/\n\tbreach\?: LimitBreach;\n/);
+    expect(sdk).toMatch(/\n\tdetail\?: string;\n/);
   });
 });

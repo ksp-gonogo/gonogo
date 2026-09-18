@@ -113,9 +113,9 @@ export interface BodyStatesReply
 	* Which provider answered, so a reading that looks wrong can be attributed
 	* without guessing at the install.
 	*/
-	providerId?: string;
+	providerId?: string | null;
 	/** Why there is no answer, when `BodyStatesReply.solved` is false. */
-	refusal?: string;
+	refusal?: string | null;
 	/**
 	* A refusal, said in words a reader can act on. The states list stays empty:
 	* an unsolved reply with points in it would be read as a partial answer, and
@@ -288,10 +288,10 @@ export interface CareerMode
 */
 export interface CareerStatus
 {
-	economy?: CareerEconomy;
-	contracts?: CareerContracts;
-	strategies?: CareerStrategies;
-	tech?: CareerTech;
+	economy?: CareerEconomy | null;
+	contracts?: CareerContracts | null;
+	strategies?: CareerStrategies | null;
+	tech?: CareerTech | null;
 	/**
 	* Provenance, and always `"game"`: a career belongs to the save, not to
 	* anything flying, so switching vessels cannot change which one is being read.
@@ -331,7 +331,7 @@ export interface CareerFacilities
 	* rather than reaching for one you expect to be there. Never empty on the
 	* wire: the channel is absent instead.
 	*/
-	facilities?: { [key:string]: CareerFacility };
+	facilities?: { [key: string]: CareerFacility } | null;
 }
 /**
 * Economy sub-group of `CareerStatus`: funds/reputation/science, each null
@@ -352,7 +352,7 @@ export interface CareerEconomy
 	* Which money model answered the four fields below, e.g. `"stock"`. Provenance
 	* only: a client reads the interpretation, never branches on who produced it.
 	*/
-	economyModel?: string;
+	economyModel?: string | null;
 	/**
 	* Reputation lost per day at the current reputation. Zero on stock, which
 	* genuinely has no decay, and that zero is a statement rather than a
@@ -386,14 +386,14 @@ export interface CareerEconomy
 	* did not add up to the total beside it would be worse than no set: a reader
 	* has no way to tell which of the two lied.
 	*/
-	upkeep?: CareerUpkeep;
+	upkeep?: CareerUpkeep | null;
 	/**
 	* The same sources, priced BEFORE whatever the model does to them at
 	* transaction time: leaders, strategies, standing discounts. ABSENT when the
 	* model applies nothing, so the difference between this and
 	* `CareerEconomy.upkeep` is what the career's current arrangements are worth.
 	*/
-	upkeepBeforeModifiers?: CareerUpkeep;
+	upkeepBeforeModifiers?: CareerUpkeep | null;
 	/**
 	* A prepaid allowance the elected money model spends BEFORE
 	* `CareerEconomy.funds` on the purchases it covers. In funds, because that is
@@ -479,10 +479,10 @@ export interface CareerContracts
 /** One contract in `CareerContracts.active` / `CareerContracts.offered`. */
 export interface CareerContract
 {
-	id?: string;
-	title?: string;
-	agent?: string;
-	state?: string;
+	id?: string | null;
+	title?: string | null;
+	agent?: string | null;
+	state?: string | null;
 	fundsAdvance?: Value<"funds"> | null;
 	fundsCompletion?: Value<"funds"> | null;
 	fundsFailure?: Value<"funds"> | null;
@@ -497,13 +497,13 @@ export interface CareerContract
 /** One parameter (objective) of a `CareerContract`. */
 export interface CareerContractParameter
 {
-	title?: string;
+	title?: string | null;
 	/**
 	* `Contracts.ParameterState`'s enum NAME (`Incomplete`/`Complete`/`Failed`): a
 	* display label. `CareerContractParameter.stateOrdinal` is the field to branch
 	* on.
 	*/
-	state?: string;
+	state?: string | null;
 	/**
 	* `CareerContractParameter.state`'s KSP ORDINAL, typed to `KspParameterState`.
 	*
@@ -533,10 +533,10 @@ export interface CareerStrategies
 /** One strategy in `CareerStrategies.active` / `CareerStrategies.all`. */
 export interface CareerStrategy
 {
-	id?: string;
-	title?: string;
-	description?: string;
-	department?: string;
+	id?: string | null;
+	title?: string | null;
+	description?: string | null;
+	department?: string | null;
 	isActive?: boolean | null;
 	factor?: Value<"ratio"> | null;
 	dateActivated?: Value<"ut"> | null;
@@ -548,10 +548,10 @@ export interface CareerStrategy
 	factorSliderDefault?: Value<"ratio"> | null;
 	factorSliderSteps?: Value<"count"> | null;
 	canActivate?: boolean | null;
-	activateBlockedReason?: string;
+	activateBlockedReason?: string | null;
 	canDeactivate?: boolean | null;
-	deactivateBlockedReason?: string;
-	effect?: string;
+	deactivateBlockedReason?: string | null;
+	effect?: string | null;
 }
 /**
 * Tech sub-group of `CareerStatus`. `CareerTech.unlockedCount` is
@@ -567,8 +567,8 @@ export interface CareerTech
 /** One node in `CareerTech.nodes`. */
 export interface CareerTechNode
 {
-	id?: string;
-	title?: string;
+	id?: string | null;
+	title?: string | null;
 	/**
 	* The node's flavour line, as the tech tree itself writes it ("How hard can
 	* Rocket Science be anyway?").
@@ -578,7 +578,7 @@ export interface CareerTechNode
 	* tree a mod has replaced (RP-1) is read the same way, so this is the node's
 	* description in whatever tree the save is playing.
 	*/
-	description?: string;
+	description?: string | null;
 	scienceCost?: Value<"science"> | null;
 	unlocked?: boolean | null;
 	parents: string[];
@@ -741,14 +741,14 @@ export interface CommandCentreEntry
 	* home is `CommandCentreEntry.isHome`, never a special id. Ground stations
 	* that share a name are told apart as `"ground:<name>#2"`, `"#3"` and so on.
 	*/
-	id?: string;
+	id?: string | null;
 	/** Human-facing name. */
-	displayName?: string;
+	displayName?: string | null;
 	/**
 	* One of `GroundStation` / `CrewedVessel` / `Colony` / `Custom` (the
 	* `CommandCentreKind` name).
 	*/
-	kind?: string;
+	kind?: string | null;
 	/**
 	* Index into `SystemBodies` of the body this centre sits on; null when unknown
 	* or not surface-anchored.
@@ -811,7 +811,7 @@ export interface CommandCentreEntry
 	* commands ride the relay network, and a pair with no route has no delay to
 	* quote.
 	*/
-	delayQuality?: string;
+	delayQuality?: string | null;
 }
 /**
 * One ordered pair in the `commandCentre.separation` channel: how far
@@ -1276,7 +1276,7 @@ export interface CommandResult
 */
 export interface CommandResultOf<T> extends CommandResult
 {
-	payload?: T;
+	payload?: T | null;
 }
 /**
 * Degree of vessel control the link currently affords, the `controlSource`
@@ -1330,7 +1330,7 @@ export enum CommsControlStateKind {
 export interface CommsControl
 {
 	level: CommsControlStateKind;
-	reason?: string;
+	reason?: string | null;
 	meta: PayloadMeta;
 }
 /** Kind of a node participating in a `CommsHop`. */
@@ -1577,14 +1577,14 @@ export interface CommsCommandCentre
 	* Stable authority/vantage key, same scheme as `CommandCentreEntry.id`:
 	* "ground:<name>" | "vessel:<guid>". Null when no remote centre resolved.
 	*/
-	id?: string;
+	id?: string | null;
 	/** Human-facing name. */
-	displayName?: string;
+	displayName?: string | null;
 	/**
 	* One of `GroundStation` / `CrewedVessel` / `Colony` / `Custom` (the
 	* `CommandCentreKind` name), same as `CommandCentreEntry.kind`.
 	*/
-	kind?: string;
+	kind?: string | null;
 	/**
 	* Index into system.bodies of the body this centre sits on; null when unknown,
 	* not surface-anchored, or the centre is a moving vessel.
@@ -1650,7 +1650,7 @@ export interface CommsDegrade
 export interface CommsOcclusionBody
 {
 	index: number;
-	name?: string;
+	name?: string | null;
 	/** The body's own mean radius (`CelestialBody.Radius`). */
 	radiusMeters: Value<"m">;
 	hasAtmosphere: boolean;
@@ -1820,18 +1820,18 @@ export interface ControlFrame
 	* The body the frame is centred on, when it has one. The rotating frames are
 	* defined by their pair rather than by a centre.
 	*/
-	centreBody?: string;
+	centreBody?: string | null;
 	/** The body a rotating frame turns about. Null for the centred frames. */
-	primaryBody?: string;
+	primaryBody?: string | null;
 	/** The body a rotating frame is anchored to. Null for the centred frames. */
-	secondaryBody?: string;
+	secondaryBody?: string | null;
 	/**
 	* Every body on the primary side, leading with `ControlFrame.primaryBody`. See
 	* this type's own doc for why the set travels rather than the head.
 	*/
-	primaryBodies?: string[];
+	primaryBodies?: string[] | null;
 	/** Every body on the secondary side, leading with `ControlFrame.secondaryBody`. */
-	secondaryBodies?: string[];
+	secondaryBodies?: string[] | null;
 	/**
 	* The frame is defined against the current target rather than against a body,
 	* which sits orthogonally to `ControlFrame.kind` rather than inside it.
@@ -1840,7 +1840,7 @@ export interface ControlFrame
 	*/
 	targetFrameSelected?: boolean | null;
 	/** The target the frame is defined against, when it is a target frame. */
-	targetId?: string;
+	targetId?: string | null;
 }
 /**
 * `system.frame.set`'s args: the frame to put the view in.
@@ -2265,7 +2265,7 @@ export interface SetVantage
 export interface EvaKerbal
 {
 	/** The kerbal's own vessel id, the same guid `system.vessels` carries for it. */
-	kerbalVesselId?: string;
+	kerbalVesselId?: string | null;
 	/**
 	* The craft this kerbal stepped out of, or `null` when that is not known (a
 	* kerbal already outside when the save was loaded by a build that did not
@@ -2275,10 +2275,10 @@ export interface EvaKerbal
 	* outside, so a reader that follows the active vessel sees no discontinuity
 	* when a kerbal steps out.
 	*/
-	parentVesselId?: string;
-	name?: string;
+	parentVesselId?: string | null;
+	name?: string | null;
 	/** KSP's own situation name for the kerbal (`FLYING`, `LANDED`, ...). */
-	situation?: string;
+	situation?: string | null;
 	/** EVA propellant remaining in the pack. */
 	propellantAmount?: Value<"units"> | null;
 	/**
@@ -2300,7 +2300,7 @@ export interface EvaKerbal
 	onALadder?: boolean | null;
 	lampOn?: boolean | null;
 	/** KSP's own visor state name. */
-	visorState?: string;
+	visorState?: string | null;
 	/**
 	* Whether removing the helmet here would KILL this kerbal.
 	*
@@ -2321,7 +2321,7 @@ export interface EvaKerbal
 	* for a player, and inventing a second vocabulary for the same fact would only
 	* let the two drift.
 	*/
-	helmetUnsafeReason?: string;
+	helmetUnsafeReason?: string | null;
 }
 /**
 * Every kerbal currently outside a craft.
@@ -2433,7 +2433,7 @@ export interface FleetVesselSilence
 	* `no-emergence-in-window` / `warp-limited` / `grace-exceeds-ceiling`
 	* (`Sitrep.Host.Comms.SilenceDeadlineBasis`). Null while Nominal.
 	*/
-	deadlineBasis?: string;
+	deadlineBasis?: string | null;
 	/**
 	* UT the radio path is predicted to re-open, when a visibility sweep found
 	* one. This is what "should be back in ~16 min" is rendered from, and what
@@ -2512,7 +2512,7 @@ export interface FleetSilenceEntry
 	*/
 	deadlineUt?: Value<"ut"> | null;
 	/** One of `Sitrep.Host.Comms.SilenceDeadlineBasis`. Null while Nominal. */
-	deadlineBasis?: string;
+	deadlineBasis?: string | null;
 	/**
 	* UT the radio path is predicted to re-open. Null is a prediction WITHHELD,
 	* never an emergence of "now".
@@ -2672,7 +2672,7 @@ export interface FlightVesselChanged
 	* The vessel id the operator's focus moved FROM, null on the very first
 	* observation (nothing to switch away from).
 	*/
-	previousVesselId?: string;
+	previousVesselId?: string | null;
 	ut: Value<"ut">;
 }
 /**
@@ -2828,15 +2828,15 @@ export interface IsruDrillEntry
 	* Part.flightID stringified: the same join key
 	* vessel.parts/parts.power/reliability.parts use.
 	*/
-	partId?: string;
+	partId?: string | null;
 	/** Part.partInfo.title, for display without a vessel.parts join. */
-	partTitle?: string;
+	partTitle?: string | null;
 	/**
 	* Resource this drill extracts (e.g. "Ore"). Free text, not a closed enum:
 	* whatever the running install's configs and profiles name, the same posture
 	* every other resource-identity field in this contract takes.
 	*/
-	resource?: string;
+	resource?: string | null;
 	/**
 	* Drill head deployed. Null for a harvester with no deploy animation, e.g.
 	* some asteroid drills.
@@ -2879,7 +2879,7 @@ export interface IsruDrillEntry
 */
 export interface IsruResourceFlow
 {
-	resource?: string;
+	resource?: string | null;
 	rate?: Value<"units/s"> | null;
 }
 /**
@@ -2888,8 +2888,8 @@ export interface IsruResourceFlow
 */
 export interface IsruConverterEntry
 {
-	partId?: string;
-	partTitle?: string;
+	partId?: string | null;
+	partTitle?: string | null;
 	/** Actively converting this tick. */
 	running?: boolean | null;
 	/**
@@ -3248,7 +3248,7 @@ export interface OrbitPatch
 	* there is none. Same "name, not index" convention as
 	* `OrbitPatch.referenceBody`.
 	*/
-	closestEncounterBody?: string;
+	closestEncounterBody?: string | null;
 	/**
 	* Parent body's standard gravitational parameter (GM), so a patch is
 	* self-sufficient to propagate exactly as `VesselOrbit.mu` makes a vessel's
@@ -3372,7 +3372,7 @@ export interface PartActionEntry
 	* `BaseEvent.group?.displayName`: the PAW group this button sits under, so a
 	* client can group like the real window. `null` for an ungrouped button.
 	*/
-	group?: string;
+	group?: string | null;
 	/**
 	* Which `PartModule` owns this event (`PartModule.moduleName`), or `null` when
 	* the event is on the `Part` itself. Carried because it is the only way a
@@ -3380,7 +3380,7 @@ export interface PartActionEntry
 	* apart, and because it reads as useful provenance ("Toggle" on which
 	* module?).
 	*/
-	moduleName?: string;
+	moduleName?: string | null;
 	/**
 	* `BaseEvent.active`: the button is currently enabled. A `false` entry is
 	* present-but-inert, so a client renders it disabled rather than hiding it
@@ -3455,9 +3455,9 @@ export interface PartActions
 */
 export interface SolarPanelEntry
 {
-	partName?: string;
-	partId?: string;
-	deployState?: string;
+	partName?: string | null;
+	partId?: string | null;
+	deployState?: string | null;
 	flowRate?: Value<"units/s"> | null;
 	chargeRate?: Value<"units/s"> | null;
 	sunAOA?: Value<"°"> | null;
@@ -3468,8 +3468,8 @@ export interface SolarPanelEntry
 */
 export interface BatteryEntry
 {
-	partName?: string;
-	partId?: string;
+	partName?: string | null;
+	partId?: string | null;
 	current?: Value<"units"> | null;
 	max?: Value<"units"> | null;
 }
@@ -3479,10 +3479,10 @@ export interface BatteryEntry
 */
 export interface FuelCellEntry
 {
-	partName?: string;
-	partId?: string;
+	partName?: string | null;
+	partId?: string | null;
 	active?: boolean | null;
-	status?: string;
+	status?: string | null;
 }
 /**
 * One engine alternator in the `parts.power` payload's `alternators` array.
@@ -3490,8 +3490,8 @@ export interface FuelCellEntry
 */
 export interface AlternatorEntry
 {
-	partName?: string;
-	partId?: string;
+	partName?: string | null;
+	partId?: string | null;
 	outputRate?: Value<"units/s"> | null;
 }
 /**
@@ -3514,10 +3514,10 @@ export interface AlternatorEntry
 */
 export interface PartsPower
 {
-	solarPanels?: SolarPanelEntry[];
-	batteries?: BatteryEntry[];
-	fuelCells?: FuelCellEntry[];
-	alternators?: AlternatorEntry[];
+	solarPanels?: SolarPanelEntry[] | null;
+	batteries?: BatteryEntry[] | null;
+	fuelCells?: FuelCellEntry[] | null;
+	alternators?: AlternatorEntry[] | null;
 	totalProductionEc?: Value<"units/s"> | null;
 }
 /**
@@ -3546,14 +3546,14 @@ export interface PartsPower
 */
 export interface ServoEntry
 {
-	partName?: string;
-	partId?: string;
-	type?: string;
+	partName?: string | null;
+	partId?: string | null;
+	type?: string | null;
 	servoIsLocked?: boolean | null;
 	servoIsMotorized?: boolean | null;
 	servoMotorIsEngaged?: boolean | null;
 	servoMotorLimit?: Value<"%"> | null;
-	motorState?: string;
+	motorState?: string | null;
 	currentAngle?: Value<"°"> | null;
 	targetAngle?: Value<"°"> | null;
 	traverseVelocity?: number | null;
@@ -3727,12 +3727,12 @@ export interface ReliabilitySummary
 	* Which backend produced this: "kerbalism" | "testflight" | "none", or a
 	* third-party provider id.
 	*/
-	source?: string;
+	source?: string | null;
 	/**
 	* One of ReliabilityCoverage. Null only if a producer failed to set it; the
 	* client treats null and an unrecognised value identically.
 	*/
-	coverage?: string;
+	coverage?: string | null;
 	/**
 	* The provider-namespaced extension bag: how a reliability backend carries a
 	* field this shared shape does not declare, WITHOUT a PR against this file.
@@ -3760,13 +3760,13 @@ export interface ReliabilityBudget
 	* "cycles". A provider with a dimension not listed here invents an id; the
 	* client renders it from Label and the numbers, never from the id.
 	*/
-	id?: string;
+	id?: string | null;
 	/**
 	* Display-ready lower-case noun phrase, rendered verbatim in the operator's
 	* sentence: "continuous rated burn", "service". Max 40 chars; the producer
 	* clamps.
 	*/
-	label?: string;
+	label?: string | null;
 	/**
 	* What crossing the limit means, and therefore which verb the client uses:
 	* "schedule" (a maintenance date falls due; nothing fails at the line),
@@ -3776,7 +3776,7 @@ export interface ReliabilityBudget
 	* does not know writes "advisory"; NEVER null-by-ignorance, because the
 	* client's threshold table is keyed on this.
 	*/
-	kind?: string;
+	kind?: string | null;
 	/**
 	* Used/Limit as a fraction, 0..1+ (may exceed 1). Null when the provider has
 	* no denominator. This is the field the client thresholds on.
@@ -3813,7 +3813,7 @@ export interface ReliabilityPartEntry
 	* UNIQUE within one reliability.parts payload. Producers MUST enforce this; it
 	* is not a KSP flightID and must not be treated as one.
 	*/
-	partId?: string;
+	partId?: string | null;
 	/**
 	* Which crew trait may act on this part, as the provider states it: a single
 	* name, or several comma-separated, or empty meaning anyone.
@@ -3828,13 +3828,13 @@ export interface ReliabilityPartEntry
 	* critical failure than an ordinary one, so this is the requirement for THIS
 	* part in THIS condition, not the part's baseline.
 	*/
-	repairTrait?: string;
+	repairTrait?: string | null;
 	/**
 	* Minimum experience level the trait must hold, elevated with
 	* `ReliabilityPartEntry.repairTrait`. Null when the provider states none.
 	*/
 	repairLevel?: Value<"count"> | null;
-	title?: string;
+	title?: string | null;
 	/**
 	* One of: "nominal", "service-due", "failed", "failed-critical", "unknown".
 	* The provider's WORST condition for this part.
@@ -3858,14 +3858,14 @@ export interface ReliabilityPartEntry
 	* how "2 wearing" comes to disagree with the number of wearing rows beneath
 	* it.
 	*/
-	condition?: string;
+	condition?: string | null;
 	/**
 	* The provider's OWN word(s) for this condition, rendered verbatim as the
 	* row's detail clause: "busted", "needs service", "turbopump failure". Max 120
 	* chars; producer clamps. This is how a third mod's native vocabulary reaches
 	* the screen without a contract change.
 	*/
-	conditionDetail?: string;
+	conditionDetail?: string | null;
 	/**
 	* P(this part survives the next `ReliabilityPartEntry.survivalHorizonSeconds`
 	* seconds of OPERATION), 0..1. Null when the provider models no forward
@@ -3883,7 +3883,7 @@ export interface ReliabilityPartEntry
 	* Consumed dimensions. Null or empty when the provider models none. Order is
 	* producer-chosen and not significant.
 	*/
-	budgets?: ReliabilityBudget[];
+	budgets?: ReliabilityBudget[] | null;
 	/**
 	* What repairing THIS part in THIS condition consumes, as the provider states
 	* it. Null or empty means the provider models no consumable cost: that is not
@@ -3903,7 +3903,7 @@ export interface ReliabilityPartEntry
 	* `ReliabilityPartEntry.repairTrait`: this is the cost for this part in this
 	* condition, not the part's baseline.
 	*/
-	repairCost?: RepairCostItem[];
+	repairCost?: RepairCostItem[] | null;
 	/**
 	* The provider-namespaced extension bag, per-part half. Same mechanism and
 	* same rule as `ReliabilitySummary.extensions`.
@@ -3964,7 +3964,7 @@ export interface RepairOutcome
 	* not resolve and a crew member who does not are both
 	* `CommandErrorCode.NotFound`, and only this says which.
 	*/
-	refusal?: string;
+	refusal?: string | null;
 	/**
 	* Kits consumed. Kerbalism charges two for a critical failure and one
 	* otherwise.
@@ -3975,7 +3975,7 @@ export interface RepairOutcome
 	* otherwise the part id of the store it was taken from, so the operator can
 	* see which locker just got lighter.
 	*/
-	kitsFrom?: string;
+	kitsFrom?: string | null;
 }
 /**
 * The `ksp.revertAvailability` Topic payload: whether the two stock in-flight
@@ -4434,15 +4434,15 @@ export interface ExperimentActionArgs
 */
 export interface ExperimentEntry
 {
-	partName?: string;
+	partName?: string | null;
 	/**
 	* "experiment" (a live science module) or "container" (a part storing
 	* collected results).
 	*/
-	location?: string;
-	experimentId?: string;
-	subjectId?: string;
-	title?: string;
+	location?: string | null;
+	experimentId?: string | null;
+	subjectId?: string | null;
+	title?: string | null;
 	dataAmount?: Value<"Mit"> | null;
 	scienceValueRatio?: Value<"ratio"> | null;
 	baseTransmitValue?: Value<"science"> | null;
@@ -4455,7 +4455,7 @@ export interface ExperimentEntry
 	labValue?: Value<"science"> | null;
 	deployed?: boolean | null;
 	inoperable?: boolean | null;
-	situation?: string;
+	situation?: string | null;
 	/**
 	* Which value model produced `ExperimentEntry.scienceValueRatio` /
 	* `ExperimentEntry.baseTransmitValue` / `ExperimentEntry.labValue`, and which
@@ -4469,7 +4469,7 @@ export interface ExperimentEntry
 	* honest move is absence plus the real figure in the provider's own
 	* `ExperimentEntry.extensions` namespace.
 	*/
-	valueModel?: string;
+	valueModel?: string | null;
 	/**
 	* The provider-namespaced extension bag: how a science backend carries a
 	* per-experiment field this shared shape does not declare, WITHOUT a PR
@@ -4504,10 +4504,10 @@ export interface InstrumentEntry
 	* The part's KSP `flightID` (stringified): the stable join key for this
 	* instrument.
 	*/
-	partId?: string;
-	partName?: string;
-	experimentId?: string;
-	title?: string;
+	partId?: string | null;
+	partName?: string | null;
+	experimentId?: string | null;
+	title?: string | null;
 	deployed?: boolean | null;
 	inoperable?: boolean | null;
 	rerunnable?: boolean | null;
@@ -4536,12 +4536,12 @@ export interface InstrumentEntry
 */
 export interface LabEntry
 {
-	partName?: string;
+	partName?: string | null;
 	dataStored?: Value<"Mit"> | null;
 	dataStorage?: Value<"Mit"> | null;
 	storedScience?: Value<"science"> | null;
 	processingData?: boolean | null;
-	statusText?: string;
+	statusText?: string | null;
 	scientistCount?: Value<"count"> | null;
 	/**
 	* Science generated per GAME-DAY, not per second. The host reads this off
@@ -4563,7 +4563,7 @@ export interface LabEntry
 	* `LabEntry.extensions`. Without this tag a widget cannot tell that null apart
 	* from "idle".
 	*/
-	valueModel?: string;
+	valueModel?: string | null;
 	/**
 	* The provider-namespaced extension bag, lab half. Same mechanism and same
 	* rule as `ExperimentEntry.extensions`.
@@ -4583,12 +4583,12 @@ export interface LabEntry
 */
 export interface DeployedEntry
 {
-	vesselName?: string;
-	partName?: string;
-	body?: string;
-	situation?: string;
-	biome?: string;
-	experimentId?: string;
+	vesselName?: string | null;
+	partName?: string | null;
+	body?: string | null;
+	situation?: string | null;
+	biome?: string | null;
+	experimentId?: string | null;
 	scienceCompletedPercentage?: Value<"%"> | null;
 	scienceTransmittedPercentage?: Value<"%"> | null;
 	scienceValue?: Value<"science"> | null;
@@ -4603,13 +4603,13 @@ export interface DeployedEntry
 	* refreshes, so it can also be stale. `DeployedEntry.power` is the field to
 	* read.
 	*/
-	powerState?: string;
+	powerState?: string | null;
 	/**
 	* `ModuleGroundSciencePart.ConnectionState` verbatim, for display. Localised
 	* prose on the same terms as `DeployedEntry.powerState`; read
 	* `DeployedEntry.controllerConnected` instead.
 	*/
-	connectionState?: string;
+	connectionState?: string | null;
 	/**
 	* The cluster's power state, DERIVED from the same facts `UpdateModuleUI()`
 	* itself branches on
@@ -4703,18 +4703,18 @@ export interface SensorEntry
 	* Flight-scoped `part.flightID` as a string (null when the sentinel 0), the
 	* join key that disambiguates symmetric same-named sensor parts.
 	*/
-	partId?: string;
-	partName?: string;
+	partId?: string | null;
+	partName?: string | null;
 	/**
 	* The raw `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/...) passed
 	* through as a string so modded types survive.
 	*/
-	type?: string;
+	type?: string | null;
 	/**
 	* The sensor's current human-readable readout string (KSP's `readoutInfo`,
 	* e.g. "293.1K" or "Off").
 	*/
-	readout?: string;
+	readout?: string | null;
 	active?: boolean | null;
 }
 /**
@@ -4748,10 +4748,10 @@ export interface SensorEntry
 */
 export interface ExperimentBreakdownEntry
 {
-	subjectId?: string;
-	biome?: string;
-	situation?: string;
-	expTitle?: string;
+	subjectId?: string | null;
+	biome?: string | null;
+	situation?: string | null;
+	expTitle?: string | null;
 	/**
 	* Summed `ScienceData.dataAmount` (mits) across every stored blob for this
 	* subject.
@@ -4773,7 +4773,7 @@ export interface ExperimentBreakdownEntry
 	* the ledger in `ExperimentBreakdownEntry.extensions`: stock's pair is a lossy
 	* VIEW of the richer set, never the other way round.
 	*/
-	valueModel?: string;
+	valueModel?: string | null;
 	/**
 	* The provider-namespaced extension bag, per-subject-rollup half. Same
 	* mechanism and same rule as `ExperimentEntry.extensions`.
@@ -4806,13 +4806,13 @@ export interface ExperimentBreakdownEntry
 */
 export interface ArchiveEntry
 {
-	subjectId?: string;
-	experimentId?: string;
-	experimentTitle?: string;
-	body?: string;
-	situation?: string;
-	biome?: string;
-	title?: string;
+	subjectId?: string | null;
+	experimentId?: string | null;
+	experimentTitle?: string | null;
+	body?: string | null;
+	situation?: string | null;
+	biome?: string | null;
+	title?: string | null;
 	/** Science banked for this subject so far. */
 	science?: Value<"science"> | null;
 	/** Max science this subject can ever yield. */
@@ -4904,18 +4904,18 @@ export interface LaunchSiteEntry
 	* Internal launch-site id (`LaunchSite.name`): the stable key used with
 	* `PSystemSetup`'s lookup APIs; null when the live game hasn't populated it.
 	*/
-	name?: string;
+	name?: string | null;
 	/**
 	* Human-facing display name (`PSystemSetup.GetLaunchSiteDisplayName`, falling
 	* back to `LaunchSite.launchSiteName`).
 	*/
-	displayName?: string;
+	displayName?: string | null;
 	/**
 	* Which editor this site launches from (the pad-vs-runway distinction) as the
 	* `EditorFacility` enum name (`"None"`/`"VAB"`/`"SPH"`); a VAB site is a pad,
 	* an SPH site a runway.
 	*/
-	editorFacility?: string;
+	editorFacility?: string | null;
 	/**
 	* Index into `SystemBodies` of the body this site sits on; null when absent or
 	* unresolved (never a sentinel like -1).
@@ -4951,7 +4951,7 @@ export interface LaunchSiteEntry
 	* `LaunchSiteEntry.padOccupied`); null until per-site occupancy exists beyond
 	* the stock-pad PRELAUNCH derivation.
 	*/
-	padVesselTitle?: string;
+	padVesselTitle?: string | null;
 }
 /**
 * The `spaceCenter.scene` channel payload: the single current KSP game scene,
@@ -4976,14 +4976,14 @@ export interface SpaceCenterScene
 	* The current scene, one of
 	* `"Flight"`/`"SpaceCenter"`/`"Editor"`/`"TrackingStation"`/`"MainMenu"`/`"Other"`.
 	*/
-	scene?: string;
+	scene?: string | null;
 	/**
 	* The launch site currently selected in the editor
 	* (`EditorLogic.launchSiteName`), the migration target for the legacy
 	* `kc.launchSite` key. Null outside the editor scene (EditorLogic isn't live),
 	* never a fabricated default.
 	*/
-	launchSite?: string;
+	launchSite?: string | null;
 }
 /**
 * One kerbal in the `spaceCenter.crewRoster` channel (the hired-crew roster:
@@ -5019,12 +5019,12 @@ export interface CrewRosterEntry
 	* Kerbal name (`ProtoCrewMember.name`): the id the hire command resolves
 	* against the live applicant pool.
 	*/
-	name?: string;
+	name?: string | null;
 	/**
 	* Specialisation (`ProtoCrewMember.trait`):
 	* `"Pilot"`/`"Engineer"`/`"Scientist"`/`"Tourist"`.
 	*/
-	trait?: string;
+	trait?: string | null;
 	/**
 	* Experience level (`ProtoCrewMember.experienceLevel`), 0–5 (0 for a fresh
 	* applicant).
@@ -5056,7 +5056,7 @@ export interface CrewRosterEntry
 	* count years the way a stock one does. This is the only string on the payload
 	* a client could not re-render.
 	*/
-	unavailableReason?: string;
+	unavailableReason?: string | null;
 	/**
 	* The kerbal's standing, as the dashboard means it: the field to BRANCH on.
 	* The elected ICrewStandingBackend's answer where it has one, otherwise
@@ -5079,7 +5079,7 @@ export interface CrewRosterEntry
 	* report as a fatality, and an operator is entitled to see which mod is making
 	* it.
 	*/
-	standingSource?: string;
+	standingSource?: string | null;
 	/**
 	* When the CURRENT `CrewRosterEntry.standing` lapses, as universal time: the
 	* course ETA for `Training`, the rest period's end for `Resting`. Absent for a
@@ -5107,7 +5107,7 @@ export interface CrewRosterEntry
 	* for a hireable candidate. Text for an operator, never a branch: compare
 	* `CrewRosterEntry.standing` instead.
 	*/
-	situation?: string;
+	situation?: string | null;
 	/**
 	* KSP's OWN ordinal: `(int)ProtoCrewMember.rosterStatus`, typed to
 	* `KspRosterStatus`, whose members mirror KSP's numbering.
@@ -5174,14 +5174,14 @@ export interface CrewRosterEntry
 	* (`ProtoCrewMember.experienceTrait.Description`): the exact string the
 	* in-game Astronaut Complex shows, sourced from `Traits.cfg`.
 	*/
-	roleDescription?: string;
+	roleDescription?: string | null;
 	/**
 	* The role's current-rank effects text
 	* (`ProtoCrewMember.experienceTrait.DescriptionEffects`): rank-aware, it
 	* changes as the kerbal is promoted. Reflects this kerbal's own rank today
 	* only; there is no fetchable "effects at another rank" preview.
 	*/
-	descriptionEffects?: string;
+	descriptionEffects?: string | null;
 }
 /**
 * One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH
@@ -5198,7 +5198,7 @@ export interface CrewRosterEntry
 export interface SavedShipEntry
 {
 	/** Craft name (`CraftProfileInfo.shipName`). */
-	name?: string;
+	name?: string | null;
 	/** Part count (`CraftProfileInfo.partCount`). */
 	partCount?: Value<"count"> | null;
 	/** Total mass in tonnes (`CraftProfileInfo.totalMass`). */
@@ -5208,7 +5208,7 @@ export interface SavedShipEntry
 	* (`CraftProfileInfo.shipFacility`). A display label; see
 	* `SavedShipEntry.facilityOrdinal`.
 	*/
-	facility?: string;
+	facility?: string | null;
 	/**
 	* `SavedShipEntry.facility`'s KSP ORDINAL, typed to `KspEditorFacility`.
 	*
@@ -5233,7 +5233,7 @@ export interface SavedShipEntry
 	* (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
 	* buildable as-is.
 	*/
-	missingParts?: string[];
+	missingParts?: string[] | null;
 }
 /**
 * The `spaceCenter.partsAvailable` channel payload: a wrapper carrying the
@@ -5324,9 +5324,9 @@ export interface SpaceCenterPoiEntry
 	* `"launchSite:<LaunchSite.name>"` for `ksc`/`launchSite` kinds,
 	* `"contract:<Waypoint.navigationId>"` for `contractTarget`.
 	*/
-	id?: string;
+	id?: string | null;
 	/** `"ksc"` | `"launchSite"` | `"contractTarget"`. */
-	kind?: string;
+	kind?: string | null;
 	/**
 	* Index into `SystemBodies`; null when absent or unresolved (never a sentinel
 	* like -1).
@@ -5335,11 +5335,11 @@ export interface SpaceCenterPoiEntry
 	latitude?: Value<"°"> | null;
 	longitude?: Value<"°"> | null;
 	/** Display label: the launch site's display name, or the contract's title. */
-	label?: string;
+	label?: string | null;
 	/** `"active"` | `"available"` (null for `ksc`/`launchSite` kinds). */
-	status?: string;
+	status?: string | null;
 	/** Contract-issuing agent name; null for `ksc`/`launchSite` kinds. */
-	contractAgent?: string;
+	contractAgent?: string | null;
 	contractFundsAdvance?: Value<"funds"> | null;
 	contractFundsCompletion?: Value<"funds"> | null;
 	contractDateDeadline?: Value<"ut"> | null;
@@ -5409,7 +5409,7 @@ export interface StageDeltaVEntry
 	* real "no tracked resources active in this stage" reading, distinct from the
 	* whole stage entry being absent.
 	*/
-	resources?: { [key:string]: ResourceAmount };
+	resources?: { [key: string]: ResourceAmount } | null;
 }
 /**
 * The `dv.summary` channel payload: the whole-vessel ΔV rollup KSP's stock
@@ -5473,7 +5473,7 @@ export interface SystemBodies
 export interface BodyEntry
 {
 	/** Body name (e.g. "Kerbin"); null when the live game hasn't populated it. */
-	name?: string;
+	name?: string | null;
 	/**
 	* This body's position in the list: stable per session. Always present (the
 	* provider falls back to the list index when the raw field is missing), never
@@ -5494,7 +5494,7 @@ export interface BodyEntry
 	* Orbital elements; null ONLY for the root star (orbit is meaningless without
 	* a parent), the "sun has a bogus orbit" wart suppressed at the source.
 	*/
-	orbit?: OrbitEntry;
+	orbit?: OrbitEntry | null;
 	/**
 	* How far `BodyEntry.orbit` may be carried forward, and what kind of answer it
 	* is. NOT nullable, and the same `PropagationHorizon` a craft's elements
@@ -5589,7 +5589,7 @@ export interface BodyEntry
 	* (`!CelestialBody.atmosphere`), the "airless vs. no-data" distinction the
 	* whole payload's null-not-sentinel rule preserves.
 	*/
-	atmosphere?: AtmosphereEntry;
+	atmosphere?: AtmosphereEntry | null;
 	/**
 	* Whether the body has a liquid ocean (`CelestialBody.ocean`); null when
 	* absent.
@@ -5599,7 +5599,7 @@ export interface BodyEntry
 	* KSP's per-body flavour text (`CelestialBody.bodyDescription`); null when
 	* absent. May be a raw `#autoLOC...` localization tag the client suppresses.
 	*/
-	description?: string;
+	description?: string | null;
 	/**
 	* Whether KSC and the launch sites sit on this body
 	* (`CelestialBody.isHomeWorld`); true on exactly one body, null when absent.
@@ -5660,7 +5660,7 @@ export interface AtmosphereEntry
 	* pressure worth stating. A consumer draws to the last sample and takes
 	* `AtmosphereEntry.depth` as where the air formally ends.
 	*/
-	pressureAltitudes?: Value<"m">[];
+	pressureAltitudes?: Value<"m">[] | null;
 	/**
 	* Pressure at each `AtmosphereEntry.pressureAltitudes` entry, kPa, as the
 	* game's own `CelestialBody.GetPressure` answers it; null when the stream does
@@ -5680,7 +5680,7 @@ export interface AtmosphereEntry
 	* inside Unity's own `AnimationCurve`, so more digits would be inventing
 	* precision, and six is far below the 1% spacing tolerance.
 	*/
-	pressures?: Value<"kPa">[];
+	pressures?: Value<"kPa">[] | null;
 }
 /**
 * A body's Keplerian orbital elements, as emitted by
@@ -5821,7 +5821,7 @@ export interface VesselRosterEntry
 	* client derives position by joining a node's id to this orbit. Null when the
 	* vessel has no orbitDriver yet (a scene-transition race), never a sentinel.
 	*/
-	orbit?: OrbitEntry;
+	orbit?: OrbitEntry | null;
 }
 /**
 * One entry in the `target.available` list: anything the active vessel could
@@ -5844,7 +5844,7 @@ export interface TargetListEntry
 	* Stable vessel guid: set for `TargetKind.Vessel`, and the OWNING vessel for a
 	* `TargetKind.Part`. Null otherwise.
 	*/
-	vesselId?: string;
+	vesselId?: string | null;
 	/** Index into `system.bodies`: set for `TargetKind.Body`. Null otherwise. */
 	bodyIndex?: number | null;
 	/**
@@ -5969,7 +5969,7 @@ export interface TimeCalendar
 	* alongside it. Rendering some default anchor for those games would invent a
 	* date the game itself never shows.
 	*/
-	epoch?: string;
+	epoch?: string | null;
 	/**
 	* The stock `GameSettings.KERBIN_TIME` flag, for a consumer that wants to
 	* LABEL the calendar rather than just measure with it ("Kerbin time" against
@@ -6036,7 +6036,7 @@ export interface TrajectoryArc
 	* What the integration was against, when the producer integrated. Null for a
 	* closed-form curve, which has no force model to describe.
 	*/
-	forceModel?: TrajectoryForceModel;
+	forceModel?: TrajectoryForceModel | null;
 }
 /** One sampled point: where, and when. */
 export interface TrajectoryPoint
@@ -6188,7 +6188,7 @@ export interface TrajectoryForceModel
 	* Stated on every payload rather than in documentation, because a caveat a
 	* reader has to go and find is a caveat nobody meets.
 	*/
-	bodyEphemeris?: string;
+	bodyEphemeris?: string | null;
 	/**
 	* The largest perturbing acceleration as a fraction of the primary's, over the
 	* arc. Makes the chaotic regime visible rather than inferred.
@@ -6198,9 +6198,9 @@ export interface TrajectoryForceModel
 	* Which term is absent, when the model could not be fully matched. Null when
 	* nothing is missing; a degraded curve always names one.
 	*/
-	missingTerm?: string;
+	missingTerm?: string | null;
 	/** The integrator's name. */
-	integrator?: string;
+	integrator?: string | null;
 	/** The step actually used. An interval, so seconds. */
 	stepSeconds: Value<"s">;
 	/** How many steps were taken. */
@@ -6363,7 +6363,7 @@ export interface GateVerdict
 	* on: an Abstain or an Unknown has nothing to compare, so it must not arrive
 	* carrying zeroes that render as a real limit of 0.
 	*/
-	breach?: LimitBreach;
+	breach?: LimitBreach | null;
 	/**
 	* Why, when the outcome carries no numeric comparison: a
 	* `GateOutcome.Unknown`'s cause, or a discrete prerequisite's name. Prose for
@@ -6478,7 +6478,7 @@ export interface PendingUplinkQueue
 export interface VantagePlanRequest
 {
 	/** The channel carrying the craft's orbit. */
-	topic?: string;
+	topic?: string | null;
 	/**
 	* How far ahead to propagate. Allowed to be past what this vantage can
 	* currently see, because a prediction reaching beyond the news is the whole
@@ -6499,16 +6499,16 @@ export interface VantagePlanRequest
 export interface VantagePlanReply
 {
 	solved: boolean;
-	arc?: TrajectoryArc;
+	arc?: TrajectoryArc | null;
 	/** When the state this was computed from was actually TRUE. */
 	seededAtUt?: Value<"ut"> | null;
 	/**
 	* Which command centre's view produced it, echoed so a client that switched
 	* vantage mid-flight can tell whose answer it is holding.
 	*/
-	vantage?: string;
+	vantage?: string | null;
 	/** Why there is no trajectory. Null when there is one. */
-	refusal?: string;
+	refusal?: string | null;
 	Refused(refusal: string) : VantagePlanReply;
 	From(answer: any, vantage: string) : VantagePlanReply;
 }
@@ -6851,7 +6851,7 @@ export interface VesselControl
 	* read `ActionGroupState.index` rather than relying on array position:
 	* position does not carry identity here.
 	*/
-	actionGroups?: ActionGroupState[];
+	actionGroups?: ActionGroupState[] | null;
 	meta: PayloadMeta;
 }
 /**
@@ -6865,11 +6865,11 @@ export interface VesselControl
 */
 export interface CrewMember
 {
-	name?: string;
-	trait?: string;
+	name?: string | null;
+	trait?: string | null;
 	experienceLevel?: Value<"count"> | null;
-	type?: string;
-	rosterStatus?: string;
+	type?: string | null;
+	rosterStatus?: string | null;
 	/**
 	* What this kerbal is personally carrying, from their own
 	* `ModuleInventoryPart`.
@@ -6883,7 +6883,7 @@ export interface CrewMember
 	* Null when the crew source could not read inventories at all, which is not
 	* the same as an empty list, meaning they are carrying nothing.
 	*/
-	carrying?: InventoryItem[];
+	carrying?: InventoryItem[] | null;
 	/**
 	* The kerbal's own slot count, stock default 2, one of which usually holds a
 	* parachute.
@@ -7202,7 +7202,7 @@ export interface InventoryItem
 	*/
 	name: string;
 	/** The part's display title, already localised by KSP. */
-	title?: string;
+	title?: string | null;
 	/** How many of this kind are in this store, summed across slots. */
 	quantity: Value<"count">;
 	/** Packed volume of ONE of these, same unit as the store's limits. */
@@ -7238,7 +7238,7 @@ export interface VesselLanding
 	* `"vacuum-solved"`, `"atmospheric-aware"`, `"no-solution"`,
 	* `"terrain-assessed"`. Null before the first classification.
 	*/
-	outcome?: string;
+	outcome?: string | null;
 	/**
 	* Which sampling source produced the terrain fields this tick: `"predicted"`
 	* (sampled at the mod's predicted downrange touchdown point: the site you are
@@ -7247,7 +7247,7 @@ export interface VesselLanding
 	* surfaces this so the operator knows whether they are seeing downrange or
 	* under-ship terrain. Null when no terrain was sampled.
 	*/
-	sampleSource?: string;
+	sampleSource?: string | null;
 	/**
 	* Metres: terrain elevation above the body mean radius directly beneath the
 	* vessel. Currently null (see the Tier-1 note); the sub-vessel-fallback
@@ -7308,14 +7308,14 @@ export interface VesselLanding
 	* that is `vessel.surface.biome`). Via `ScienceUtil.GetExperimentBiome` (which
 	* takes degrees). Null when the body has no biome map.
 	*/
-	predictedBiome?: string;
+	predictedBiome?: string | null;
 	/**
 	* Flattened row-major NxN grid of terrain elevations (metres) around the
 	* predicted point, for the reticle's shaded relief. Null until the relief
 	* patch ships / when over the PQS budget (the reticle falls back to a flat
 	* roughness tint). Length is `VesselLanding.terrainPatchSize` squared.
 	*/
-	terrainPatch?: Value<"m">[];
+	terrainPatch?: Value<"m">[] | null;
 	/** The N of the NxN `VesselLanding.terrainPatch` grid. Null when no patch. */
 	terrainPatchSize?: Value<"count"> | null;
 	/** Metres: the full width the `VesselLanding.terrainPatch` grid spans. */
@@ -7341,7 +7341,7 @@ export interface VesselLanding
 	* The instantaneous descent regime: `"at-terminal"` / `"decelerating"` /
 	* `"accelerating"`. Null outside an atmosphere.
 	*/
-	descentRegime?: string;
+	descentRegime?: string | null;
 	/**
 	* The aggregate aerodynamic drag force divided by the vessel's weight (local
 	* gravity): the numeric form of `VesselLanding.descentRegime`. >1 decelerating
@@ -7354,7 +7354,7 @@ export interface VesselLanding
 	* change the instant model cannot see, flag the estimate) / `"deployed"` (drag
 	* already in the measurement, self-corrected). Null outside an atmosphere.
 	*/
-	parachuteState?: string;
+	parachuteState?: string | null;
 	meta: PayloadMeta;
 }
 /**
@@ -7597,7 +7597,7 @@ export interface VesselManeuver
 	* consumer can special-case one. Present-versus-null is the only part anything
 	* should test.
 	*/
-	planner?: string;
+	planner?: string | null;
 	meta: PayloadMeta;
 }
 /**
@@ -7653,7 +7653,7 @@ export interface VesselOrbit
 	* Null = no upcoming SOI transition on the current trajectory (the common
 	* case); NEVER a sentinel (kills O-9).
 	*/
-	encounter?: OrbitEncounter;
+	encounter?: OrbitEncounter | null;
 	/**
 	* The vessel's future-orbit patch chain: element 0 is THIS patch (the current
 	* orbit, same elements as the fields above, restated in `OrbitPatch`'s shape
@@ -7694,7 +7694,7 @@ export interface VesselOrbit
 	* and split across frames a client could hold one sample's arc beside
 	* another's elements.
 	*/
-	arc?: TrajectoryArc;
+	arc?: TrajectoryArc | null;
 	/**
 	* What became of the arc: why `VesselOrbit.arc` is absent when a provider
 	* tried to build one and stopped, `TrajectoryRefusal.NotAttempted` when none
@@ -7884,7 +7884,7 @@ export interface VesselPart
 	*/
 	id: string;
 	/** `Part.parent?.flightID` stringified; `null` for the root part. */
-	parentId?: string;
+	parentId?: string | null;
 	/**
 	* `Part.partInfo.name` (the `AvailablePart.name` config id, e.g.
 	* `"solarPanels1"`).
@@ -7904,7 +7904,7 @@ export interface VesselPart
 	* The part's local up axis (`Part.orgRot * Vector3.up`), for orienting
 	* flow/thrust glyphs. `null` on a snapshot recorded before this field existed.
 	*/
-	up?: Vec3Of<"1">;
+	up?: Vec3Of<"1"> | null;
 	bounds: PartBounds;
 	/** `Part.mass`: dry mass (tonnes). */
 	dryMass: Value<"t">;
@@ -7961,7 +7961,7 @@ export interface VesselPart
 	* For a fuel-line part, the stringified `flightID` of the part it feeds;
 	* `null` otherwise.
 	*/
-	fuelLineTargetId?: string;
+	fuelLineTargetId?: string | null;
 	/**
 	* Every resource this part carries (join key: resource name, e.g.
 	* `"ElectricCharge"`), storage plus live production/consumption flow: the
@@ -8123,7 +8123,7 @@ export interface PartBounds
 	* `vessel-local`, so adding the two raw mixes frames and lands the box
 	* somewhere the part is not; rotate this one by the part's `orgRot` first.
 	*/
-	center?: Vec3Of<"m">;
+	center?: Vec3Of<"m"> | null;
 }
 /**
 * The active vessel's physics-simulation regime, derived from KSP's own
@@ -8324,13 +8324,13 @@ export interface VesselSurface
 	* "Shores"). Null when the body has no biome map (e.g. gas giants) or the
 	* lookup failed this tick.
 	*/
-	biome?: string;
+	biome?: string | null;
 	/**
 	* The named launch/landing site the vessel is currently at (e.g.
 	* "KSC_LaunchPad", "Runway"), null when landed/splashed somewhere with no
 	* named site, or when not landed/splashed at all.
 	*/
-	landedAt?: string;
+	landedAt?: string | null;
 	/**
 	* Metres: KSP's own `heightFromTerrain`, accounting for the vessel's physical
 	* extent (see the class doc comment for how this differs from
@@ -8434,7 +8434,7 @@ export interface VesselTarget
 	* command with no extra lookup. Null for a body/other target; see
 	* `VesselTarget.bodyIndex` for the body case.
 	*/
-	vesselId?: string;
+	vesselId?: string | null;
 	/**
 	* The target's `system.bodies` index: populated ONLY when `VesselTarget.kind`
 	* is `TargetKind.Body`, mirroring `VesselTarget.vesselId`'s vessel case and
@@ -8455,24 +8455,24 @@ export interface VesselTarget
 	* Metres, self-relative. Null only when the transform data needed to compute
 	* it wasn't available this tick.
 	*/
-	relativePosition?: Vec3Of<"m">;
+	relativePosition?: Vec3Of<"m"> | null;
 	/**
 	* m/s, self-relative. R7 Fix 3: nullable for consistency with
 	* `VesselTarget.relativePosition`, null (never a sentinel `(0,0,0)`, the V-10
 	* ambiguity) when the transform data needed to compute it wasn't available
 	* this tick.
 	*/
-	relativeVelocity?: Vec3Of<"m/s">;
+	relativeVelocity?: Vec3Of<"m/s"> | null;
 	/**
 	* Null when the target has no orbit (e.g. it's landed, or its orbit couldn't
 	* be resolved this tick).
 	*/
-	orbit?: VesselOrbit;
+	orbit?: VesselOrbit | null;
 	/**
 	* Next closest approach (mod-side, elected solver). Null when there is no
 	* encounter to report; see `VesselTarget.closestApproach`.
 	*/
-	closestApproach?: ClosestApproach;
+	closestApproach?: ClosestApproach | null;
 	meta: PayloadMeta;
 }
 /**
@@ -8519,7 +8519,7 @@ export interface VesselThermal
 	* Null = no part qualified as "hottest" (same no-valid-part condition as
 	* `VesselThermal.maxInternalTempRatio`).
 	*/
-	hottestPart?: ThermalHottestPart;
+	hottestPart?: ThermalHottestPart | null;
 	/**
 	* Hottest heat-shield part's internal temperature (K, raw: the part carrying a
 	* `ModuleAblator`, `Part.temperature`). Null when the vessel carries no
@@ -8616,7 +8616,7 @@ export interface WarpState
 	* exactly the experiment that costs the game clock the overshoot it was trying
 	* to avoid.
 	*/
-	warpRates?: Value<"1">[];
+	warpRates?: Value<"1">[] | null;
 	meta: PayloadMeta;
 }
 /**
@@ -8682,7 +8682,7 @@ export interface DelayedObservation
 	/** How long this state has been the newest thing the vantage has. */
 	ageSeconds: number;
 	refusal: number;
-	reason?: string;
+	reason?: string | null;
 }
 /**
 * Whether a caller will accept an answer past the span the provider vouches

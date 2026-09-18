@@ -389,6 +389,9 @@ public class CommandResult
     /// sentence shape whether the refusal came from a gate or from an actuator
     /// that got far enough to look.</para>
     /// </summary>
+    // AppendCommandResult omits the key on a success and on a refusal that is
+    // not a comparison, rather than putting an empty shape on every ack.
+    [SitrepOmittedWhenNull]
     public LimitBreach? Breach { get; set; }
 
     /// <summary>
@@ -414,7 +417,10 @@ public class CommandResult
     /// <c>CommandResult</c> is not made to supply a field it has nothing to put
     /// in, which is what makes this additive rather than a Major.</para>
     /// </summary>
+    // AppendCommandResult omits the key when the refusal quoted nothing: an
+    // empty detail reads as a sentence that came back blank.
     [SitrepUnit(Units.Text)]
+    [SitrepOmittedWhenNull]
     public string? Detail { get; set; }
 
     public static CommandResult Ok() => new CommandResult { Success = true };

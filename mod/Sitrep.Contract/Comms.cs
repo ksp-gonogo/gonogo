@@ -192,6 +192,9 @@ public class CommsHop
     /// rate, typed by the RA client's own <c>RealAntennasHopExt</c>. It rides
     /// <c>comms.path</c>, so it inherits that channel's Delayed classification.
     /// </summary>
+    // AppendProviderExtensions omits the key when no provider filled a bag, so a
+    // payload no provider extended carries no trace of the mechanism.
+    [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }

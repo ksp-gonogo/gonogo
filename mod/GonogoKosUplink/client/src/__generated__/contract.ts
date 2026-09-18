@@ -29,7 +29,7 @@ export interface KosProcessorInfo
 	* `kOSProcessor.Tag` (from the companion `KOSNameTag`): null when the part
 	* carries no name-tag.
 	*/
-	tag?: string;
+	tag?: string | null;
 	/**
 	* `kOSProcessor.HasBooted`: false while the CPU is still running its boot
 	* script.
@@ -39,7 +39,7 @@ export interface KosProcessorInfo
 	* `kOSProcessor.BootFilePath`, stringified: null when no boot file is
 	* selected.
 	*/
-	bootFilePath?: string;
+	bootFilePath?: string | null;
 	/** `kOSProcessor.ProcessorMode` as its enum name (`READY`/`OFF`/`STARVED`). */
 	processorMode: string;
 	/**
@@ -48,7 +48,7 @@ export interface KosProcessorInfo
 	* picker label a CPU by what it IS when it carries no name-tag, instead of a
 	* bare "CPU <id>".
 	*/
-	partName?: string;
+	partName?: string | null;
 }
 /**
 * Out-of-band status for one centralised compute topic
@@ -73,9 +73,9 @@ export interface KosComputeStatus
 	*/
 	lastGoodAt?: Value<"ut"> | null;
 	/** Last script-author fault (runtime exception / `[KOSERROR]`), null when none. */
-	scriptError?: string;
+	scriptError?: string | null;
 	/** Last `[KOSDATA]` parse failure: null when none. */
-	parseError?: string;
+	parseError?: string | null;
 	/**
 	* The per-topic breaker has tripped (three consecutive script faults) and
 	* dispatch is paused. No command clears it: the re-arm half was never built.
@@ -145,9 +145,9 @@ export interface KosRunResult
 	/** Echoes the triggering `KosRunArgs.requestId`. */
 	requestId: string;
 	/** Parsed `[KOSDATA]` field map: null on an error result. */
-	fields?: { [key:string]: any };
+	fields?: { [key: string]: any } | null;
 	/** Explicit `[KOSERROR]` message: null on a data result. */
-	error?: string;
+	error?: string | null;
 }
 /**
 * One frame of interactive-terminal output for a single kOS CPU, delivered on

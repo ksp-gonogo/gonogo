@@ -435,7 +435,12 @@ public static class RtConfig
         // seconds and the coverage gate is right to want it said. What changes
         // is that the declaration stops becoming a type. The exhaustive test
         // carries the matching exemption, with this reasoning.
-        ApplyUnitValueTypes(builder, wirePayloadTypes);
+        //
+        // CommandResult<T> rides along despite being registered above rather than
+        // in the list: AppendCommandResult writes the payload key on every
+        // generic result and writes it as null on a refusal, which is exactly
+        // the failure branch a caller guards, so the type has to admit it.
+        ApplyUnitValueTypes(builder, wirePayloadTypes.Concat(new[] { typeof(CommandResult<>) }));
 
         // --- Provider extension bags become the opaque ProviderExtensions type ---
         // Same shape of pass as the unit retyping above, and for the same reason:
@@ -754,9 +759,9 @@ public static class RtConfig
 
                 if (nullable)
                 {
-                    // Only the scalar branch can be reached here: an array, a
-                    // Vec3 and a dictionary are all REFERENCE types, so
-                    // Nullable.GetUnderlyingType finds nothing on them.
+                    // Composes with every branch above: a nullable sequence
+                    // becomes Value<U>[] | null, a nullable Vec3 becomes
+                    // Vec3Of<U> | null.
                     nulled++;
                     tsType += " | null";
                 }
@@ -788,7 +793,7 @@ public static class RtConfig
             "codegen (unit types) -> " + retyped + " properties carry their unit (" +
             vectors + " as Vec3Of<...>)");
         Console.WriteLine(
-            "codegen (null unions) -> " + nulled + " nullable value-type properties can hold the null the wire sends");
+            "codegen (null unions) -> " + nulled + " nullable properties can hold the null the wire sends");
     }
 
     /// <summary>
@@ -803,34 +808,121 @@ public static class RtConfig
     /// <c>T | undefined</c> makes the correct guard (<c>=== null</c>) a compile
     /// error while the substitution (<c>?? false</c>) compiles clean.</para>
     ///
-    /// <para>Scoped to nullable VALUE types, which is where the C# declaration
-    /// is a deliberate three-valued choice. A nullable REFERENCE type
-    /// (<c>string?</c>, <c>T[]?</c>, a POCO) crosses the same wire the same way
-    /// and is NOT widened here; that half is unfixed on purpose rather than
-    /// overlooked.</para>
+    /// <para>A nullable REFERENCE type is the same question with the same
+    /// answer. <c>JsonWriter</c> never consults a C# nullable annotation, so a
+    /// <c>string?</c>, a <c>T[]?</c> or a POCO reaches a client as
+    /// <c>"key":null</c> exactly as a <c>double?</c> does, and a generated type
+    /// that spells the union for one and not the other tells a reader the
+    /// difference is meaningful when there is none.</para>
     ///
     /// <para><see cref="SitrepOmittedWhenNullAttribute"/> opts a property back
-    /// out, for the few whose key a flattener leaves out entirely.</para>
+    /// out, for the few whose key a flattener leaves out entirely. The marker is
+    /// the ONLY thing that excludes one: nothing about a property's type says
+    /// whether its flattener writes the key.</para>
     /// </summary>
     private static bool NullUnionApplies(PropertyInfo prop)
     {
+        if (prop.GetCustomAttribute<SitrepOmittedWhenNullAttribute>() != null)
+        {
+            return false;
+        }
+
         return Nullable.GetUnderlyingType(prop.PropertyType) != null
-            && prop.GetCustomAttribute<SitrepOmittedWhenNullAttribute>() == null;
+            || IsNullableReference(prop);
     }
 
     /// <summary>
-    /// The TypeScript rtcli would emit for a nullable value-type property that
-    /// carries no quantity token, so the <c>| null</c> can be appended to it.
+    /// True when a property is declared as a nullable REFERENCE type
+    /// (<c>string?</c> rather than <c>string</c>) under <c>#nullable enable</c>.
+    ///
+    /// <para>Read out of the compiler's own metadata rather than from
+    /// <c>NullabilityInfoContext</c>, which needs net6.0 while every contract
+    /// assembly is netstandard2.0. Roslyn encodes the annotation as a
+    /// <c>NullableAttribute</c> whose first flag is 1 for "not null" and 2 for
+    /// "nullable", and leaves the attribute off entirely when a
+    /// <c>NullableContextAttribute</c> on an enclosing scope already says the
+    /// same thing, so both have to be consulted. Both are compiler-synthesised
+    /// and internal to the assembly that carries them, which is why they are
+    /// matched by full name rather than referenced.</para>
+    /// </summary>
+    private static bool IsNullableReference(PropertyInfo prop)
+    {
+        if (prop.PropertyType.IsValueType)
+        {
+            return false;
+        }
+
+        foreach (var attribute in prop.CustomAttributes)
+        {
+            if (attribute.AttributeType.FullName != NullableAttributeName)
+            {
+                continue;
+            }
+
+            return FirstNullableFlag(attribute) == NullableAnnotated;
+        }
+
+        // No attribute on the property means the enclosing context decides.
+        // Nested types carry their own, so the walk goes outwards before it
+        // reaches the module.
+        for (var scope = prop.DeclaringType; scope != null; scope = scope.DeclaringType)
+        {
+            foreach (var attribute in scope.GetTypeInfo().CustomAttributes)
+            {
+                if (attribute.AttributeType.FullName == NullableContextAttributeName)
+                {
+                    return (byte)attribute.ConstructorArguments[0].Value! == NullableAnnotated;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private const string NullableAttributeName = "System.Runtime.CompilerServices.NullableAttribute";
+
+    private const string NullableContextAttributeName =
+        "System.Runtime.CompilerServices.NullableContextAttribute";
+
+    /// <summary>The flag byte Roslyn writes for an annotated (nullable) reference type.</summary>
+    private const byte NullableAnnotated = 2;
+
+    /// <summary>
+    /// The flag describing the OUTERMOST type of a <c>NullableAttribute</c>'s
+    /// subject. The attribute takes either a single byte or, for a generic or
+    /// array type whose arguments carry their own annotations, the flattened
+    /// array of them with the outermost first.
+    /// </summary>
+    private static byte FirstNullableFlag(CustomAttributeData attribute)
+    {
+        var argument = attribute.ConstructorArguments[0];
+        if (argument.Value is byte single)
+        {
+            return single;
+        }
+
+        var flags = (IReadOnlyList<CustomAttributeTypedArgument>)argument.Value!;
+        return flags.Count == 0 ? (byte)0 : (byte)flags[0].Value!;
+    }
+
+    /// <summary>
+    /// The TypeScript rtcli would emit for a nullable property that carries no
+    /// quantity token, so the <c>| null</c> can be appended to it.
     ///
     /// <para>Reinforced.Typings resolves the type itself and offers no way to
-    /// ask what it decided, so this mirrors the three cases a nullable value
-    /// type can actually be in these contracts and THROWS on anything else.
-    /// A fourth case would otherwise emit a type that does not compile, or
+    /// ask what it decided, so this mirrors the cases a nullable property can
+    /// actually be in these contracts and THROWS on anything else. An
+    /// unmirrored case would otherwise emit a type that does not compile, or
     /// worse, one that does and is wrong.</para>
     /// </summary>
     private static string BareTsType(Type declaringType, PropertyInfo prop)
     {
-        var underlying = Nullable.GetUnderlyingType(prop.PropertyType)!;
+        var underlying = Nullable.GetUnderlyingType(prop.PropertyType);
+        if (underlying == null)
+        {
+            return BareReferenceTsType(declaringType, prop.PropertyType, declaringType.Name + "." + prop.Name);
+        }
+
         if (underlying == typeof(bool))
         {
             return "boolean";
@@ -860,6 +952,92 @@ public static class RtConfig
             declaringType.Name + "." + prop.Name + " is a nullable " + underlying.Name +
             ", which this pass has no TypeScript spelling for. Add the case to " +
             nameof(BareTsType) + " rather than letting the property emit without its null.");
+    }
+
+    /// <summary>
+    /// The TypeScript rtcli emits for a REFERENCE type, resolved recursively so
+    /// an element or a map value is spelled the same way the property is.
+    ///
+    /// <para>A type declared in the assembly being exported is emitted into the
+    /// same file under its own name, so the name resolves. One declared
+    /// ELSEWHERE is not, and naming it would emit an identifier the generated
+    /// file never declares, which is the same rule the enum case above follows
+    /// and the same reason it falls back.</para>
+    /// </summary>
+    private static string BareReferenceTsType(Type declaringType, Type type, string site)
+    {
+        if (type == typeof(string))
+        {
+            return "string";
+        }
+
+        if (type == typeof(object))
+        {
+            // The untyped leaf of a provider's own value tree. rtcli spells an
+            // unconstrained object `any`, and there is nothing more specific to
+            // say: core never learns the shape.
+            return "any";
+        }
+
+        if (type.IsGenericParameter)
+        {
+            // CommandResult<T>.Payload, where the union has to land on the type
+            // ARGUMENT the interface declares.
+            return type.Name;
+        }
+
+        if (type.IsArray)
+        {
+            return BareReferenceElementTsType(declaringType, type.GetElementType()!, site) + "[]";
+        }
+
+        var element = UnitDescriptor.NumericSequenceElement(type);
+        if (element != null)
+        {
+            return BareReferenceElementTsType(declaringType, element, site) + "[]";
+        }
+
+        var dictionaryValue = UnitDescriptor.DictionaryValueType(type);
+        if (dictionaryValue != null)
+        {
+            return "{ [key: string]: " + BareReferenceElementTsType(declaringType, dictionaryValue, site) + " }";
+        }
+
+        if (!type.IsGenericType && type.GetTypeInfo().Assembly == declaringType.GetTypeInfo().Assembly)
+        {
+            return type.Name;
+        }
+
+        throw new InvalidOperationException(
+            site + " is a nullable " + type.Name + " declared outside " +
+            declaringType.GetTypeInfo().Assembly.GetName().Name +
+            ", which this pass has no TypeScript spelling for. Add the case to " +
+            nameof(BareReferenceTsType) + " rather than letting the property emit without its null.");
+    }
+
+    /// <summary>
+    /// The spelling for a type reached THROUGH a sequence or a map, where the
+    /// value-type cases have no <c>Nullable&lt;T&gt;</c> wrapper to look
+    /// through and so cannot go via <see cref="BareTsType"/>.
+    /// </summary>
+    private static string BareReferenceElementTsType(Type declaringType, Type type, string site)
+    {
+        if (type == typeof(bool))
+        {
+            return "boolean";
+        }
+
+        if (IsNumeric(type) || type.IsEnum)
+        {
+            // An enum element resolves to its ordinal for the same reason the
+            // scalar enum case falls back to `number` outside its own assembly:
+            // rtcli emits an ordinal unless the enum is exported into this file.
+            return type.IsEnum && type.GetTypeInfo().Assembly == declaringType.GetTypeInfo().Assembly
+                ? type.Name
+                : "number";
+        }
+
+        return BareReferenceTsType(declaringType, type, site);
     }
 
     /// <summary>
