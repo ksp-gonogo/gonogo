@@ -320,17 +320,23 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
     // changed the environment for forty node-environment assertions to gain one.
   });
 
-  // Also no longer a shim: the handle registry moved into this package with the
-  // POI one, for the same reason (it named nothing above this leaf) and to close
-  // the same gap (an Uplink could write to it and had no published read).
+  /*
+   * Also no longer a shim: the handle registry moved into this package with
+   * the POI one, for the same reason (it named nothing above this leaf) and
+   * to close the same gap (an Uplink could write to it and had no published
+   * read).
+   */
   describe("Uplink-handle registry, which needs no host", () => {
     it("round-trips a handle and hands back the same object", () => {
       resetTestHost();
       const handle = { foo: "bar" };
       barrel.registerUplinkHandle("example-uplink", handle);
-      // `toBe`, not `toEqual`: a handle is a SINGLETON, and a registry that
-      // cloned it would satisfy structural equality while breaking every caller
-      // that relies on identity (a live WebRTC client, a relay object).
+      /*
+       * `toBe`, not `toEqual`: a handle is a SINGLETON, and a registry that
+       * cloned it would satisfy structural equality while breaking every
+       * caller that relies on identity (a live WebRTC client, a relay
+       * object).
+       */
       expect(barrel.getUplinkHandle("example-uplink")).toBe(handle);
       barrel.clearUplinkHandles();
     });

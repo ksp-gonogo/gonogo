@@ -308,10 +308,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // deliberately, and it is why re-pointing that file at the unit system was a
   // two-line change.
   "mod/sitrep-sdk/src/spine/celestial-facts.ts": 1,
-  // Two: reading a stage field's magnitude out of a wire row typed `unknown`
-  // (there is no Value to do algebra with until it has been recognised as one),
-  // and the budget's age against the frame's view UT, which arrives as a plain
-  // number on `ProcessorFrame` rather than as an instant.
+  /*
+   * Two: reading a stage field's magnitude out of a wire row typed `unknown`
+   * (there is no Value to do algebra with until it has been recognised as
+   * one), and the budget's age against the frame's view UT, which arrives as
+   * a plain number on `ProcessorFrame` rather than as an instant.
+   */
   "mod/sitrep-sdk/src/spine/delta-v-budget.ts": 2,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
   "packages/sitrep-client/src/fleet-position.ts": 1,

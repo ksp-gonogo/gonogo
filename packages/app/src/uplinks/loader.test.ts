@@ -428,9 +428,12 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     );
   });
 
-  // Override-precedence: an explicit `?uplinkLoaderIds=` is a deliberate dev/test
-  // intent and must WIN over the roster (regression for the Hub-wizard e2e, whose
-  // fixture always supplies a roster: the override was silently ignored before).
+  /*
+   * Override-precedence: an explicit `?uplinkLoaderIds=` is a deliberate
+   * dev/test intent and must WIN over the roster (regression for the
+   * Hub-wizard e2e, whose fixture always supplies a roster: the override was
+   * silently ignored before).
+   */
   it("an explicit override (even empty) wins over the roster, loads nothing", async () => {
     const importBundle = vi.fn<
       (bytes: ArrayBuffer, url: string) => Promise<unknown>
@@ -1439,9 +1442,11 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
         version: "1.0.0",
         available: true,
         reason: null,
-        // Even with a (nonsense) clientSource present, the first-party
-        // descriptor must win, clientSource is only consulted when the
-        // local index has NO descriptor for the id.
+        /*
+         * Even with a (nonsense) clientSource present, the first-party
+         * descriptor must win, clientSource is only consulted when the local
+         * index has NO descriptor for the id.
+         */
         clientSource: {
           url: "https://cdn.example/scansat.client.js",
           devPath: null,
