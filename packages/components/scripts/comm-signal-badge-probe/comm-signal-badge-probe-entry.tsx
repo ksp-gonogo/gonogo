@@ -8,7 +8,11 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
-import { defaultDarkTheme, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
+import {
+  defaultDarkTheme,
+  PanelBadgesProvider,
+  PanelStatusStoreProvider,
+} from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
@@ -122,17 +126,21 @@ async function renderCommSignalBadgeProbe(
             ContributionsProvider,
             null,
             createElement(
-              WidgetBadges,
+              PanelStatusStoreProvider,
               null,
               createElement(
-                DashboardItemContext.Provider,
-                { value: { instanceId: "probe" } },
-                createElement(WidgetComponent, {
-                  config: def.defaultConfig ?? {},
-                  id: "probe",
-                  w: payload.w,
-                  h: payload.h,
-                }),
+                WidgetBadges,
+                null,
+                createElement(
+                  DashboardItemContext.Provider,
+                  { value: { instanceId: "probe" } },
+                  createElement(WidgetComponent, {
+                    config: def.defaultConfig ?? {},
+                    id: "probe",
+                    w: payload.w,
+                    h: payload.h,
+                  }),
+                ),
               ),
             ),
           ),
