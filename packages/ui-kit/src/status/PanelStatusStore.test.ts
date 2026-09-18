@@ -10,7 +10,11 @@ describe("PanelStatusStore", () => {
   it("summarises a single contribution as itself", () => {
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "warning", label: "STALE" });
-    expect(store.getSummary()).toEqual({ severity: "warning", label: "STALE" });
+    expect(store.getSummary()).toEqual({
+      id: "a",
+      severity: "warning",
+      label: "STALE",
+    });
   });
 
   it("returns the WORST contribution's own label, not a merged one", () => {
@@ -22,6 +26,7 @@ describe("PanelStatusStore", () => {
       label: "NO BURN VECTOR",
     });
     expect(store.getSummary()).toEqual({
+      id: "alarm",
       severity: "critical",
       label: "NO BURN VECTOR",
     });
@@ -33,7 +38,11 @@ describe("PanelStatusStore", () => {
     const store = createPanelStatusStore();
     store.register({ id: "topic-1", severity: "nominal", label: "" });
     store.register({ id: "topic-2", severity: "warning", label: "STALE" });
-    expect(store.getSummary()).toEqual({ severity: "warning", label: "STALE" });
+    expect(store.getSummary()).toEqual({
+      id: "topic-2",
+      severity: "warning",
+      label: "STALE",
+    });
   });
 
   it("update() moves the summary without re-registering", () => {
@@ -41,6 +50,7 @@ describe("PanelStatusStore", () => {
     store.register({ id: "a", severity: "caution", label: "SYNCING" });
     store.update("a", { severity: "offline", label: "OFFLINE" });
     expect(store.getSummary()).toEqual({
+      id: "a",
       severity: "offline",
       label: "OFFLINE",
     });
@@ -57,6 +67,7 @@ describe("PanelStatusStore", () => {
     expect(store.getSummary()?.severity).toBe("critical");
     drop();
     expect(store.getSummary()).toEqual({
+      id: "stream",
       severity: "caution",
       label: "SYNCING",
     });
@@ -76,6 +87,7 @@ describe("PanelStatusStore", () => {
     // Earliest-registered contribution at the top rank wins, so the winning
     // label does not flicker between two equal-severity contributors.
     expect(store.getSummary()).toEqual({
+      id: "first",
       severity: "warning",
       label: "FIRST",
     });
@@ -101,7 +113,7 @@ describe("PanelStatusStore", () => {
     store.update("a", { severity: "critical", label: "GONE" });
     const next = store.getSummary();
     expect(next).not.toBe(first);
-    expect(next).toEqual({ severity: "critical", label: "GONE" });
+    expect(next).toEqual({ id: "a", severity: "critical", label: "GONE" });
   });
 
   it("notifies subscribers on register / update / deregister", () => {
@@ -120,9 +132,17 @@ describe("PanelStatusStore", () => {
   it("a floor (nominal) contribution registers but never wins over anything above the floor", () => {
     const store = createPanelStatusStore();
     store.register({ id: "subsystem", severity: "nominal", label: "OK" });
-    expect(store.getSummary()).toEqual({ severity: "nominal", label: "OK" });
+    expect(store.getSummary()).toEqual({
+      id: "subsystem",
+      severity: "nominal",
+      label: "OK",
+    });
     store.register({ id: "note", severity: "info", label: "NOTE" });
-    expect(store.getSummary()).toEqual({ severity: "info", label: "NOTE" });
+    expect(store.getSummary()).toEqual({
+      id: "note",
+      severity: "info",
+      label: "NOTE",
+    });
   });
 });
 
