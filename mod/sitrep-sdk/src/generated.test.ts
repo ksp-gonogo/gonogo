@@ -227,8 +227,10 @@ describe("generated contract.ts unit types", () => {
 
   it("keeps the unit inside the array for a sequence of readings", () => {
     // The unit belongs to each ELEMENT: a terrain profile is a list of
-    // distances, not one distance.
-    expect(interfaces.VesselLanding?.terrainPatch).toBe('Value<"m">[]');
+    // distances, not one distance. The null arm sits outside the array, on the
+    // whole sequence, because the writer sends the key with null in it when
+    // there is no patch: an absent patch is not an empty one.
+    expect(interfaces.VesselLanding?.terrainPatch).toBe('Value<"m">[] | null');
   });
 
   // No name-keyed-map assertion here any more, and that is a statement about
