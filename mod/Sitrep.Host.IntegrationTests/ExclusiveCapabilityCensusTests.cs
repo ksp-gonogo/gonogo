@@ -184,11 +184,14 @@ namespace Sitrep.Host.IntegrationTests
                 "comms",
                 "Sitrep.Host/Comms/CommsElection.cs",
                 FedByGatedCapture: false,
-                Excuse: Excuse.UplinkProviderWithoutCase,
-                WhyNoBehaviouralCase: "Same limit again: the Register that wires the "
-                    + "provider reads stock CommNet. The provider is constructed fresh "
-                    + "per election and reads live, and the delay and connectivity "
-                    + "sources installed beside it are deliberately UNGATED."),
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink in this repo registers a provider, so "
+                    + "stock CommNet is the only one and it is the capability's own "
+                    + "Vanilla. There is nothing for an election to choose between, and "
+                    + "no gated path that could starve it: the provider is constructed "
+                    + "fresh per election and reads live, and the delay and connectivity "
+                    + "sources installed beside it are deliberately UNGATED. An Uplink "
+                    + "registering a rival provider makes this line stale and fails."),
             new Entry("homeCommand", "Sitrep.Host/CommandCentres/HomeCommandElection.cs", FedByGatedCapture: false),
             new Entry(
                 "activeVessel",
