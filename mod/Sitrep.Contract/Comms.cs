@@ -519,15 +519,25 @@ public class CommsCommandCentre
  */
 
 /// <summary>
-/// One hop of a route a backend has solved, geometry only: the distance
-/// between its two endpoints and whether either end is a ground station.
+/// One hop of a route a backend has solved: the geometry between its two
+/// endpoints, whether either end is a ground station, and the two endpoints'
+/// own opaque node handles.
 ///
 /// <para>Deliberately NOT a <see cref="CommsHop"/>. That shape is a wire
-/// payload and carries node ids, and resolving one costs a walk over every
+/// payload and carries node ids, and NAMING one costs a walk over every
 /// vessel in the game per node, which the centre-to-centre matrix (centres
-/// squared, every tick) cannot pay for an answer nobody reads. What a routed
-/// light-time consumes is the geometry and nothing else, so that is all this
-/// carries.</para>
+/// squared, every tick) cannot pay for an answer nobody reads. The handles
+/// below cost nothing extra to carry: a backend already holds them while it
+/// walks its own route, so this struct passes them along uninterpreted and
+/// naming happens only where and when a caller actually needs a name.</para>
+///
+/// <para><see cref="FromHandle"/>/<see cref="ToHandle"/> are the same opaque
+/// terms <see cref="CommsNodeView.Handle"/> and
+/// <see cref="ICommsBackend.RouteBetween"/> already traffic in: a live
+/// object, reference-matched by whoever asked for it, never dereferenced and
+/// never resolved to a name by this struct. They are optional because a hop
+/// built outside a live backend walk (a test fixture, a synthesised route)
+/// may have none to give.</para>
 ///
 /// <para>Carries no KSP type, so the light-time arithmetic built on it
 /// compiles and is exercised with no KSP reference assemblies at all.</para>
@@ -535,9 +545,16 @@ public class CommsCommandCentre
 public readonly struct CommsRouteHop
 {
     public CommsRouteHop(double distanceMeters, bool touchesHome)
+        : this(distanceMeters, touchesHome, fromHandle: null, toHandle: null)
+    {
+    }
+
+    public CommsRouteHop(double distanceMeters, bool touchesHome, object? fromHandle, object? toHandle)
     {
         DistanceMeters = distanceMeters;
         TouchesHome = touchesHome;
+        FromHandle = fromHandle;
+        ToHandle = toHandle;
     }
 
     /// <summary>Straight-line distance between the hop's two endpoints.</summary>
@@ -545,6 +562,12 @@ public readonly struct CommsRouteHop
 
     /// <summary>True when EITHER endpoint is a ground station.</summary>
     public bool TouchesHome { get; }
+
+    /// <summary>The live object behind this hop's origin endpoint, or null when the caller had none to give.</summary>
+    public object? FromHandle { get; }
+
+    /// <summary>The live object behind this hop's destination endpoint, or null when the caller had none to give.</summary>
+    public object? ToHandle { get; }
 }
 
 /// <summary>

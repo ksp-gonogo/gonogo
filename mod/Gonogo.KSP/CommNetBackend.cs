@@ -224,7 +224,9 @@ namespace Gonogo.KSP
                 }
                 hops.Add(new CommsRouteHop(
                     (link.a.precisePosition - link.b.precisePosition).magnitude,
-                    link.b.isHome || link.a.isHome));
+                    link.b.isHome || link.a.isHome,
+                    link.a,
+                    link.b));
             }
             return hops;
         }
