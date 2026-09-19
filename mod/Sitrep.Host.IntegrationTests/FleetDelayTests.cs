@@ -42,6 +42,34 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(expectedNode, engine.NodeFor(topic));
         }
 
+        /// <summary>
+        /// The route the vessel-home capture walks (see
+        /// <c>Gonogo.KSP.FleetChannels</c>) can now hand the ledger a
+        /// multi-leg journey rather than a bare scalar: <c>SetVesselJourney</c>,
+        /// called right after <c>SetVesselDelay</c> as production does, is
+        /// what a real fleet capture wires. Not started, same reasoning as
+        /// above: these are pure ledger writes, no WS server involved.
+        /// </summary>
+        [Fact]
+        public void SetVesselJourneyGivesTheLedgerTheRoutesLegs()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+
+            engine.SetVesselDelay("probe", 3.5);
+            engine.SetVesselJourney("probe", new[]
+            {
+                new CommsJourneyLeg(1.0, distanceMeters: 100, touchesHome: false, fromHandle: null, toHandle: null),
+                new CommsJourneyLeg(2.5, distanceMeters: 200, touchesHome: true, fromHandle: null, toHandle: null),
+            });
+
+            var node = ChannelEngine.FleetNodePrefix + "probe";
+            var journey = engine.LedgerJourneyFor("KSC", node);
+
+            Assert.Equal(2, journey.Legs.Count);
+            Assert.Equal(3.5, journey.TotalSeconds);
+            Assert.Equal(engine.LedgerDelayFor("KSC", node), journey.TotalSeconds);
+        }
+
         [Fact]
         public async Task FleetVesselsEmitPerVesselOrbitTopics()
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CommNet;
 using Sitrep.Contract;
+using Sitrep.Core;
 using Sitrep.Host.Comms;
 using UnityEngine;
 
@@ -72,6 +73,47 @@ namespace Gonogo.KSP
             {
                 Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVessel failed (treating as no path): " + ex.Message);
                 return (null, false);
+            }
+        }
+
+        /// <summary>
+        /// The same route as <see cref="ReadVessel"/>, broken into its
+        /// ordered legs rather than summed to a single delay. Walks the
+        /// vessel's OWN solved control path again -- already solved by
+        /// CommNet, so this is a second enumeration of an existing list, not
+        /// a second pathfind -- under the same fail-soft and
+        /// no-comms-model rules as <see cref="ReadVessel"/>: see there for
+        /// what each guard means. Null under exactly the conditions
+        /// <see cref="ReadVessel"/> would return a null <c>OneWaySeconds</c>
+        /// for; see <see cref="RoutedPathDelay.JourneyFor"/> for why the two
+        /// always agree.
+        /// </summary>
+        internal static Journey? ReadVesselJourney(Vessel vessel, SignalDelayConfig config)
+        {
+            try
+            {
+                if (vessel == null)
+                {
+                    return null;
+                }
+
+                if (config != null && config.CutForNoCommsModel)
+                {
+                    return new Journey(new[] { new Leg(0.0) });
+                }
+
+                var conn = vessel.connection;
+                if (conn == null)
+                {
+                    return null;
+                }
+
+                return RoutedPathDelay.JourneyFor(ToHops(conn.ControlPath), config);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVesselJourney failed (treating as no path): " + ex.Message);
+                return null;
             }
         }
 

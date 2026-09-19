@@ -242,5 +242,66 @@ namespace Sitrep.Host.Comms
             Source = CommsDelaySource.None,
             Meta = meta,
         };
+
+        /// <summary>
+        /// The same route as <see cref="Compute"/>, broken into its ordered
+        /// legs rather than summed to a scalar. Null under exactly the
+        /// conditions <see cref="Compute"/> reports <c>OneWaySeconds = null</c>
+        /// for over an equivalent hop list (no hops, or an unusable
+        /// light-speed scale); the flag being off returns a single
+        /// zero-second leg, the same "delay disabled but connected" zero
+        /// <see cref="Compute"/> reports.
+        ///
+        /// <para><see cref="Journey.TotalSeconds"/> is guaranteed
+        /// bit-for-bit equal to what <see cref="Compute"/> would return for
+        /// the same hops: both divide the SAME running total of metres by
+        /// the SAME <see cref="EffectiveC(SignalDelayConfig)"/>, at every
+        /// step here rather than once at the end, so the last leg's
+        /// cumulative always lands exactly on the one-shot total. Each leg's
+        /// own seconds is that running total's step, a derived breakdown for
+        /// positional reasoning (a future break's distance along the route),
+        /// never a fresh division of its own distance summed up afterwards:
+        /// that path is the one that drifts a few ULPs from the total.</para>
+        /// </summary>
+        public static Journey? ComputeJourney(SignalDelayConfig? config, IReadOnlyList<CommsRouteHop>? hops)
+        {
+            // Unroutable outranks the flag, matching RoutedPathDelay's own
+            // null-hops short-circuit ahead of Compute: a null list means no
+            // route exists at all, not that this connection is idle.
+            if (hops == null)
+            {
+                return null;
+            }
+
+            if (config == null || !config.Enabled)
+            {
+                return new Journey(new[] { new Leg(0.0) });
+            }
+
+            var effectiveC = EffectiveC(config);
+            if (effectiveC == null || hops.Count == 0)
+            {
+                return null;
+            }
+
+            var legs = new Leg[hops.Count];
+            double cumulativeMeters = 0.0;
+            double cumulativeSeconds = 0.0;
+            for (var i = 0; i < hops.Count; i++)
+            {
+                var hop = hops[i];
+                var previousSeconds = cumulativeSeconds;
+                cumulativeMeters += hop.DistanceMeters;
+                cumulativeSeconds = cumulativeMeters / effectiveC.Value;
+                legs[i] = new Leg(
+                    cumulativeSeconds - previousSeconds,
+                    hop.DistanceMeters,
+                    hop.TouchesHome,
+                    hop.FromHandle,
+                    hop.ToHandle);
+            }
+
+            return new Journey(legs);
+        }
     }
 }

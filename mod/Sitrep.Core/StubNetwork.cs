@@ -197,7 +197,7 @@ namespace Sitrep.Core
         double DelayTo(string vantage, string node);
 
         /// <summary>
-        /// The ordered legs of the one-way signal from <paramref name="vantage"/>
+        /// The ordered hops of the one-way signal from <paramref name="vantage"/>
         /// to <paramref name="node"/>. <see cref="DelayTo"/> is exactly
         /// <c>JourneyTo(vantage, node).TotalSeconds</c>, so every existing
         /// caller of the scalar keeps working unchanged.
@@ -235,6 +235,25 @@ namespace Sitrep.Core
         /// light-time for the single KSC observer.
         /// </summary>
         void SetNodeDelay(string node, double seconds);
+
+        /// <summary>
+        /// Sets the ordered hops of a NODE's journey, the journey-carrying
+        /// sibling of <see cref="SetNodeDelay"/>: applies to that node from
+        /// any vantage without a per-(vantage, node) <see cref="SetDelay"/>
+        /// override, same as <see cref="SetNodeDelay"/>, except
+        /// <see cref="JourneyTo"/> hands the hops back verbatim (scaled like
+        /// every other tier) instead of the single hop a scalar write would
+        /// produce. Also updates the node's scalar default to
+        /// <paramref name="journey"/>'s <see cref="Journey.TotalSeconds"/>,
+        /// so <see cref="DelayTo"/> and <see cref="StampFor"/> agree with
+        /// whichever of the two setters wrote this node last.
+        ///
+        /// <para>A later <see cref="SetNodeDelay"/> call for the SAME node
+        /// drops the journey: a bare scalar write means there is no hop
+        /// breakdown for this delay any more, and the node falls back to the
+        /// ordinary single-hop journey every other node already gets.</para>
+        /// </summary>
+        void SetNodeJourney(string node, Journey journey);
 
         /// <summary>
         /// Sets the one-way delay for an EXPLICIT (vantage, node) pair, the
@@ -397,6 +416,8 @@ namespace Sitrep.Core
             new Dictionary<string, Dictionary<string, double>>();
         private readonly Dictionary<string, double> _nodeDelays =
             new Dictionary<string, double>();
+        private readonly Dictionary<string, Journey> _nodeJourneys =
+            new Dictionary<string, Journey>();
         private readonly Dictionary<string, Dictionary<string, bool>> _reachability =
             new Dictionary<string, Dictionary<string, bool>>();
         private double _scale;
@@ -429,31 +450,55 @@ namespace Sitrep.Core
 
         public Journey JourneyTo(string vantage, string node)
         {
-            // Every writer today (SetDefaultDelay / SetNodeDelay / SetDelay) is
-            // scalar, so the journey it produces is always a single hop with no
-            // geometry or handles: there is nothing yet to split it into more.
-            var seconds = ResolveBaseDelay(vantage, node) * _scale;
-            return new Journey(new[] { new Hop(seconds) });
-        }
-
-        // Resolution order: an explicit (vantage, node) pair overrides a
-        // node-level default (SetNodeDelay), which overrides the global
-        // default (SetDefaultDelay). Plan 2 uses the node-default for
-        // per-vessel downlink delay -- one KSC observer, so the delay
-        // depends on the subject node, not the observer vantage. Plan 3
-        // layers per-(vantage, node) overrides on top for multiple command
-        // authorities: both paths are kept intact.
-        private double ResolveBaseDelay(string vantage, string node)
-        {
+            // Resolution order: an explicit (vantage, node) pair overrides a
+            // node-level journey or default (SetNodeJourney / SetNodeDelay),
+            // which overrides the global default (SetDefaultDelay). Plan 2
+            // uses the node-default for per-vessel downlink delay -- one KSC
+            // observer, so the delay depends on the subject node, not the
+            // observer vantage. Plan 3 layers per-(vantage, node) overrides on
+            // top for multiple command authorities: both paths are kept
+            // intact. An explicit pair is still scalar-only today, so it is
+            // always a single hop with no geometry or handles.
             if (_delays.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var pair))
             {
-                return pair;
+                return SingleHop(pair * _scale);
             }
-            if (_nodeDelays.TryGetValue(node, out var nodeDefault))
+            if (_nodeJourneys.TryGetValue(node, out var journey))
             {
-                return nodeDefault;
+                return ScaleJourney(journey);
             }
-            return _defaultDelay;
+            return SingleHop(NodeOrDefaultDelay(node) * _scale);
+        }
+
+        private double NodeOrDefaultDelay(string node)
+        {
+            return _nodeDelays.TryGetValue(node, out var nodeDefault) ? nodeDefault : _defaultDelay;
+        }
+
+        private static Journey SingleHop(double seconds) => new Journey(new[] { new Hop(seconds) });
+
+        /// <summary>
+        /// A stored node journey, at the current <see cref="_scale"/>. Hops
+        /// carry a light-time already computed at the config's own
+        /// light-speed scale, so this is a second, independent multiplier on
+        /// top of that (the same test-only knob every other tier already
+        /// applies); production never sets it away from 1, where this hands
+        /// the journey back untouched rather than rebuilding an identical
+        /// copy.
+        /// </summary>
+        private Journey ScaleJourney(Journey journey)
+        {
+            if (_scale == 1.0)
+            {
+                return journey;
+            }
+            var hops = new Hop[journey.Hops.Count];
+            for (var i = 0; i < hops.Length; i++)
+            {
+                var hop = journey.Hops[i];
+                hops[i] = new Hop(hop.Seconds * _scale, hop.DistanceMeters, hop.TouchesHome, hop.FromHandle, hop.ToHandle);
+            }
+            return new Journey(hops);
         }
 
         public DelayStamp StampFor(string node)
@@ -513,11 +558,13 @@ namespace Sitrep.Core
         /// (a negative delay would schedule deliveries in the past, matching
         /// <see cref="SetScale"/>'s clamp intent).
         /// </summary>
+        /// <summary>NaN / infinite / negative values clamp to 0: a negative delay would schedule deliveries in the past.</summary>
+        private static double ClampSeconds(double seconds) =>
+            double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0 ? 0 : seconds;
+
         public void SetDefaultDelay(double seconds)
         {
-            var clamped = double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0
-                ? 0
-                : seconds;
+            var clamped = ClampSeconds(seconds);
             if (clamped == _defaultDelay)
             {
                 return;
@@ -536,17 +583,28 @@ namespace Sitrep.Core
         /// <see cref="SetDefaultDelay"/>). Plan 3 layers per-(vantage, node)
         /// <see cref="SetDelay"/> overrides ON TOP of this node-default for
         /// multiple command authorities -- keep both.
+        ///
+        /// <para>Retires any <see cref="SetNodeJourney"/> held for this node:
+        /// a plain scalar write has no hop breakdown to offer, so the node
+        /// goes back to the ordinary single-hop journey every other node
+        /// gets.</para>
         /// </summary>
         public void SetNodeDelay(string node, double seconds)
         {
-            var clamped = double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0
-                ? 0
-                : seconds;
-            if (_nodeDelays.TryGetValue(node, out var held) && held == clamped)
+            var clamped = ClampSeconds(seconds);
+            var hadJourney = _nodeJourneys.Remove(node);
+            if (!hadJourney && _nodeDelays.TryGetValue(node, out var held) && held == clamped)
             {
                 return;
             }
             _nodeDelays[node] = clamped;
+            _revision++;
+        }
+
+        public void SetNodeJourney(string node, Journey journey)
+        {
+            _nodeJourneys[node] = journey;
+            _nodeDelays[node] = ClampSeconds(journey.TotalSeconds);
             _revision++;
         }
 

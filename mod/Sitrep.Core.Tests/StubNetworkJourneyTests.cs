@@ -104,5 +104,55 @@ namespace Sitrep.Core.Tests
             Assert.Equal(expectedSeconds, journey.Hops[0].Seconds);
             Assert.Equal(expectedSeconds, journey.TotalSeconds);
         }
+
+        /// <summary>
+        /// <see cref="StubNetwork.SetNodeJourney"/> is the writer a routed,
+        /// multi-hop capture (the fleet vessel-home read) uses instead of the
+        /// scalar-only <see cref="StubNetwork.SetNodeDelay"/>: the ledger
+        /// hands its legs straight back, and stays in exact agreement with
+        /// <see cref="StubNetwork.DelayTo"/> the same way every other tier
+        /// does.
+        /// </summary>
+        [Fact]
+        public void SetNodeJourneyMakesJourneyToReturnItsLegsVerbatim()
+        {
+            var network = new StubNetwork(delay: 0);
+            var journey = new Journey(new[]
+            {
+                new Leg(1.0, distanceMeters: 100, touchesHome: false),
+                new Leg(2.5, distanceMeters: 200, touchesHome: true),
+            });
+
+            network.SetNodeJourney("fleet.near", journey);
+
+            var resolved = network.JourneyTo("KSC", "fleet.near");
+            Assert.Equal(2, resolved.Legs.Count);
+            Assert.Equal(3.5, resolved.TotalSeconds);
+            Assert.Equal(network.DelayTo("KSC", "fleet.near"), resolved.TotalSeconds);
+        }
+
+        [Fact]
+        public void SetNodeDelayAfterSetNodeJourneyRetiresTheJourney()
+        {
+            var network = new StubNetwork(delay: 0);
+            network.SetNodeJourney("fleet.near", new Journey(new[] { new Leg(1.0), new Leg(2.0) }));
+
+            network.SetNodeDelay("fleet.near", 9.0);
+
+            var resolved = network.JourneyTo("KSC", "fleet.near");
+            Assert.Single(resolved.Legs);
+            Assert.Equal(9.0, resolved.TotalSeconds);
+        }
+
+        [Fact]
+        public void ExplicitPairOutranksANodeJourney_ButOnlyForItsOwnVantage()
+        {
+            var network = new StubNetwork(delay: 0);
+            network.SetNodeJourney("fleet.near", new Journey(new[] { new Leg(1.0), new Leg(2.0) }));
+            network.SetDelay("KSC", "fleet.near", 42.0);
+
+            Assert.Equal(42.0, network.JourneyTo("KSC", "fleet.near").TotalSeconds);
+            Assert.Equal(3.0, network.JourneyTo("other-vantage", "fleet.near").TotalSeconds);
+        }
     }
 }

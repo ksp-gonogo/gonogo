@@ -1096,6 +1096,21 @@ namespace Sitrep.Contract
         void SetVesselDelay(string vesselId, double oneWaySeconds);
 
         /// <summary>
+        /// Set a FLEET vessel's journey (the ordered legs behind
+        /// <see cref="SetVesselDelay"/>'s scalar), the journey-carrying
+        /// sibling of that call: <paramref name="legs"/>' own seconds MUST
+        /// sum to the same <c>oneWaySeconds</c> passed to
+        /// <see cref="SetVesselDelay"/> for the identical route, and calling
+        /// this without also calling <see cref="SetVesselDelay"/> first
+        /// leaves the ledger's scalar tier stale. Call it every capture pass
+        /// that has real per-hop geometry to give, right after
+        /// <see cref="SetVesselDelay"/> for the same vessel: a plain
+        /// <see cref="SetVesselDelay"/> call for a vessel that already has a
+        /// journey retires it, so this write has to come last to stick.
+        /// </summary>
+        void SetVesselJourney(string vesselId, IReadOnlyList<CommsJourneyLeg> legs);
+
+        /// <summary>
         /// Set the per-(authority, subject) command delay (Plan 3): the one-way
         /// light-time from a command centre (<paramref name="centreId"/>, an
         /// authority/vantage) to a fleet subject. Writes the EXPLICIT (vantage,
