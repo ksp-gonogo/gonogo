@@ -196,6 +196,14 @@ namespace Sitrep.Core
         /// <summary>One-way light-time seconds from <paramref name="vantage"/> to <paramref name="node"/>.</summary>
         double DelayTo(string vantage, string node);
 
+        /// <summary>
+        /// The ordered legs of the one-way signal from <paramref name="vantage"/>
+        /// to <paramref name="node"/>. <see cref="DelayTo"/> is exactly
+        /// <c>JourneyTo(vantage, node).TotalSeconds</c>, so every existing
+        /// caller of the scalar keeps working unchanged.
+        /// </summary>
+        Journey JourneyTo(string vantage, string node);
+
         /// <summary>Whether <paramref name="node"/> is currently reachable from <paramref name="vantage"/>.</summary>
         bool Reachable(string vantage, string node);
 
@@ -416,27 +424,36 @@ namespace Sitrep.Core
 
         public double DelayTo(string vantage, string node)
         {
-            // Resolution order: an explicit (vantage, node) pair overrides a
-            // node-level default (SetNodeDelay), which overrides the global
-            // default (SetDefaultDelay). Plan 2 uses the node-default for
-            // per-vessel downlink delay -- one KSC observer, so the delay
-            // depends on the subject node, not the observer vantage. Plan 3
-            // layers per-(vantage, node) overrides on top for multiple command
-            // authorities: both paths are kept intact.
-            double baseDelay;
+            return JourneyTo(vantage, node).TotalSeconds;
+        }
+
+        public Journey JourneyTo(string vantage, string node)
+        {
+            // Every writer today (SetDefaultDelay / SetNodeDelay / SetDelay) is
+            // scalar, so the journey it produces is always a single leg with no
+            // geometry or handles: there is nothing yet to split it into more.
+            var seconds = ResolveBaseDelay(vantage, node) * _scale;
+            return new Journey(new[] { new Leg(seconds) });
+        }
+
+        // Resolution order: an explicit (vantage, node) pair overrides a
+        // node-level default (SetNodeDelay), which overrides the global
+        // default (SetDefaultDelay). Plan 2 uses the node-default for
+        // per-vessel downlink delay -- one KSC observer, so the delay
+        // depends on the subject node, not the observer vantage. Plan 3
+        // layers per-(vantage, node) overrides on top for multiple command
+        // authorities: both paths are kept intact.
+        private double ResolveBaseDelay(string vantage, string node)
+        {
             if (_delays.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var pair))
             {
-                baseDelay = pair;
+                return pair;
             }
-            else if (_nodeDelays.TryGetValue(node, out var nodeDefault))
+            if (_nodeDelays.TryGetValue(node, out var nodeDefault))
             {
-                baseDelay = nodeDefault;
+                return nodeDefault;
             }
-            else
-            {
-                baseDelay = _defaultDelay;
-            }
-            return baseDelay * _scale;
+            return _defaultDelay;
         }
 
         public DelayStamp StampFor(string node)
