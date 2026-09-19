@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Core;
 using Sitrep.Host.Comms;
 
 namespace Gonogo.KSP
@@ -49,6 +50,18 @@ namespace Gonogo.KSP
             }
 
             return SignalDelay.Compute(config, new CommsPath { Hops = commsHops }, string.Empty, quality).OneWaySeconds;
+        }
+
+        /// <summary>
+        /// The same walked path as <see cref="OneWaySeconds"/>, broken into
+        /// its ordered per-hop legs rather than summed to a scalar. See
+        /// <see cref="SignalDelay.ComputeJourney"/> for how its
+        /// <c>TotalSeconds</c> is kept bit-for-bit identical to
+        /// <see cref="OneWaySeconds"/> over the same hops.
+        /// </summary>
+        internal static Journey? JourneyFor(IReadOnlyList<CommsRouteHop>? hops, SignalDelayConfig? config)
+        {
+            return SignalDelay.ComputeJourney(config, hops);
         }
     }
 }

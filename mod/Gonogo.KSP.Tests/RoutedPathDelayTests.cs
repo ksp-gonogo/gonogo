@@ -105,5 +105,57 @@ namespace Gonogo.KSP.Tests
             Assert.NotNull(seconds);
             Assert.Equal(2.0, seconds!.Value, 9);
         }
+
+        [Fact]
+        public void MultipleHops_YieldAMultiLegJourney_WhoseTotalMatchesTheScalar()
+        {
+            var c = SignalDelay.SpeedOfLightMetersPerSecond;
+            var hops = Hops(c, 2 * c, 0.5 * c);
+            var config = Enabled();
+
+            var scalar = RoutedPathDelay.OneWaySeconds(hops, config, Quality.Loaded);
+            var journey = RoutedPathDelay.JourneyFor(hops, config);
+
+            Assert.NotNull(scalar);
+            Assert.NotNull(journey);
+            Assert.Equal(3, journey!.Legs.Count);
+            // Bit-for-bit, not approximate: a journey built from the same
+            // hops must never drift from the scalar SignalDelay.Compute
+            // already returns for them.
+            Assert.Equal(scalar!.Value, journey.TotalSeconds);
+        }
+
+        [Fact]
+        public void SingleHop_JourneyIsOneLegCarryingTheWholeDelay()
+        {
+            var journey = RoutedPathDelay.JourneyFor(
+                Hops(SignalDelay.SpeedOfLightMetersPerSecond), Enabled());
+
+            var leg = Assert.Single(journey!.Legs);
+            Assert.Equal(1.0, leg.Seconds, 9);
+            Assert.Equal(SignalDelay.SpeedOfLightMetersPerSecond, leg.DistanceMeters);
+        }
+
+        [Fact]
+        public void NoPathAtAll_JourneyIsNull_NeverEmpty()
+        {
+            Assert.Null(RoutedPathDelay.JourneyFor(null, Enabled()));
+        }
+
+        [Fact]
+        public void PathWithNoHops_JourneyIsNull_NotZero()
+        {
+            Assert.Null(RoutedPathDelay.JourneyFor(Hops(), Enabled()));
+        }
+
+        [Fact]
+        public void DelayDisabled_JourneyIsASingleZeroSecondLeg()
+        {
+            var journey = RoutedPathDelay.JourneyFor(
+                Hops(SignalDelay.SpeedOfLightMetersPerSecond), SignalDelayConfig.Off());
+
+            var leg = Assert.Single(journey!.Legs);
+            Assert.Equal(0.0, leg.Seconds);
+        }
     }
 }

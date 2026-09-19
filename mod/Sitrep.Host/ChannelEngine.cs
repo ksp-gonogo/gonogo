@@ -2212,6 +2212,20 @@ namespace Sitrep.Host
             _network.SetNodeDelay(node, oneWaySeconds);
         }
 
+        public void SetVesselJourney(string vesselId, IReadOnlyList<CommsJourneyLeg> legs)
+        {
+            // No freeze bookkeeping here: SetVesselDelay, called first for
+            // the same vessel every capture pass, already did it against the
+            // identical total these legs sum to.
+            var coreLegs = new Leg[legs.Count];
+            for (var i = 0; i < legs.Count; i++)
+            {
+                var leg = legs[i];
+                coreLegs[i] = new Leg(leg.Seconds, leg.DistanceMeters, leg.TouchesHome, leg.FromHandle, leg.ToHandle);
+            }
+            _network.SetNodeJourney(FleetNodePrefix + vesselId, new Journey(coreLegs));
+        }
+
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
         {
             // Per-(authority, subject) command delay (Plan 3): the explicit
@@ -5493,6 +5507,9 @@ namespace Sitrep.Host
         /// touches state the Courier thread otherwise owns.
         /// </summary>
         internal double LedgerDelayFor(string vantage, string node) => _network.DelayTo(vantage, node);
+
+        /// <summary>Test hook: the delay ledger's current journey for a (vantage, node) pair, legs and all.</summary>
+        internal Journey LedgerJourneyFor(string vantage, string node) => _network.JourneyTo(vantage, node);
 
         /// <summary>Test hook (Plan 2b): whether any per-node freeze map still holds this subject.</summary>
         internal bool HasFreezeStateForSubject(string node) =>

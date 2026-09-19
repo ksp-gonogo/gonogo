@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Core;
 using Sitrep.Host;
 using UnityEngine;
 
@@ -176,6 +177,7 @@ namespace Gonogo.KSP
                     continue;
                 }
                 var (oneWay, connected) = FleetCommsReader.ReadVessel(vessel, config);
+                var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 var id = vessel.id.ToString();
                 if (connected)
@@ -186,6 +188,7 @@ namespace Gonogo.KSP
                 {
                     Id = id,
                     OneWaySeconds = oneWay,
+                    Journey = journey,
                     Connected = connected,
                     Orbit = orbit,
                     LastContactUt = _lastContactUt.TryGetValue(id, out var last) ? (double?)last : null,
@@ -279,6 +282,13 @@ namespace Gonogo.KSP
                 if (v.OneWaySeconds.HasValue)
                 {
                     _host?.SetVesselDelay(v.Id, v.OneWaySeconds.Value);
+                    // Written second: SetVesselDelay's plain scalar retires
+                    // any journey already held for this node, so the leg
+                    // breakdown has to land after it to stick.
+                    if (v.Journey != null)
+                    {
+                        _host?.SetVesselJourney(v.Id, ToJourneyLegs(v.Journey));
+                    }
                 }
                 // Per-subject freeze (Plan 2b): this vessel freezes on its own link.
                 // Reported here as well as by HandleLinksOnCourier because the
@@ -311,6 +321,17 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>The host-boundary-safe form of a journey's legs, for <see cref="IUplinkHost.SetVesselJourney"/>.</summary>
+        private static List<CommsJourneyLeg> ToJourneyLegs(Journey journey)
+        {
+            var legs = new List<CommsJourneyLeg>(journey.Legs.Count);
+            foreach (var leg in journey.Legs)
+            {
+                legs.Add(new CommsJourneyLeg(leg.Seconds, leg.DistanceMeters, leg.TouchesHome, leg.FromHandle, leg.ToHandle));
+            }
+            return legs;
+        }
+
         private sealed class FleetCapture
         {
             public double Ut { get; set; }
@@ -327,6 +348,7 @@ namespace Gonogo.KSP
         {
             public string Id { get; set; } = string.Empty;
             public double? OneWaySeconds { get; set; }
+            public Journey? Journey { get; set; }
             public bool Connected { get; set; }
             public object? Orbit { get; set; }
             public double? LastContactUt { get; set; }
