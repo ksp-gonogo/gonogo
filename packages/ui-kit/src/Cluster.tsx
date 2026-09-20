@@ -16,7 +16,12 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
    * leaving the widget with its own flex row.
    */
   align?: ClusterAlign;
-  /** Gap between children, snapped to the space scale. Defaults to `md`. */
+  /**
+   * Gap between children, snapped to the space scale. Omit it and the gap is
+   * `--gap-related`, inherited from whichever container the row lands in, so
+   * the same row is 8px on a panel and 6px inside a card. Pass a size only
+   * from a container deciding the spacing for what it holds.
+   */
   gap?: SpaceToken;
   /**
    * Let children wrap onto further lines. Off by default: a cluster that wraps
@@ -55,7 +60,7 @@ export const Cluster = forwardRef<HTMLDivElement, ClusterProps>(
     {
       justify = "between",
       align = "center",
-      gap = "md",
+      gap,
       wrap = false,
       children,
       ...rest
@@ -80,13 +85,14 @@ export const Cluster = forwardRef<HTMLDivElement, ClusterProps>(
 const Cluster__Root = styled.div<{
   $justify: ClusterJustify;
   $align: ClusterAlign;
-  $gap: SpaceToken;
+  $gap?: SpaceToken;
   $wrap: boolean;
 }>`
   display: flex;
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
   justify-content: ${({ $justify }) => JUSTIFY_CONTENT[$justify]};
-  gap: ${({ theme, $gap }) => theme.space[$gap]};
+  gap: ${({ theme, $gap }) =>
+    $gap ? theme.space[$gap] : "var(--gap-related, var(--space-8, 8px))"};
   ${({ $wrap }) => ($wrap ? "flex-wrap: wrap;" : "")}
   min-width: 0;
 `;
