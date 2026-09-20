@@ -414,6 +414,83 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+
+        /// <summary>
+        /// The engine tells the DISPATCHING CLIENT the flight time it actually
+        /// scheduled, so a loss deadline is sized from the route the command
+        /// took rather than from the only delay a client can see.
+        ///
+        /// <para>The pending queue cannot carry this: its <c>Id</c> is
+        /// engine-minted precisely because two clients can choose the same
+        /// request id, so nothing there pairs an entry with the caller that
+        /// caused it. The acceptance callback is per-dispatch and therefore
+        /// can.</para>
+        /// </summary>
+        [Fact]
+        public async Task ADelayedDispatchReportsItsOwnFlightTimeToTheCaller()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.Start();
+            try
+            {
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var accepted = new List<double>();
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.Command,
+                    "x",
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300),
+                    onAccepted: seconds => accepted.Add(seconds));
+
+                Assert.Equal(new[] { signalDelay }, accepted);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A dispatch with no light-time to wait out reports nothing. Silence
+        /// here is the ordinary answer for an instant command, not a failure,
+        /// and a client must not read it as one.
+        /// </summary>
+        [Fact]
+        public async Task AZeroDelayDispatchReportsNoFlightTime()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 0.0),
+                    Timeout);
+
+                var accepted = new List<double>();
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.Command,
+                    "x",
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300),
+                    onAccepted: seconds => accepted.Add(seconds));
+
+                Assert.Empty(accepted);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
         private sealed class PendingQueueTestUplink : ISitrepUplink
         {
             // Mandatory health floor (test double).

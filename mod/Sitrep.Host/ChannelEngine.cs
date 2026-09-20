@@ -4786,14 +4786,14 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null) =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null) =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted));
 
         /// <summary>Test-only deterministic variant of <see cref="DispatchCommand"/>.</summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted));
             barrier.Wait(timeout);
         }
 
@@ -6565,6 +6565,14 @@ namespace Sitrep.Host
                     // command, which is most of them.
                     CommandedValue = CommandedScalar(job),
                 });
+
+                // Told to the DISPATCHING CLIENT, correlated by the request id
+                // it chose, which the pending queue above deliberately cannot
+                // carry (its Id is engine-minted, because two clients can pick
+                // the same request id and a broadcast channel cannot pair
+                // them). Same branch and same number, so a client's loss
+                // deadline and the engine's own flight time cannot disagree.
+                job.OnAccepted?.Invoke(uplinkDelay);
             }
 
             // No explicit uplinkDelaySeconds: the Courier falls back to
@@ -7058,6 +7066,19 @@ namespace Sitrep.Host
                                 Message = reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                        }, onAccepted: oneWaySeconds =>
+                        {
+                            // The command is in flight and this is when to
+                            // expect an answer. Sent only on the delayed path,
+                            // so a client that never receives one is looking at
+                            // a command with no flight to wait out, not at a
+                            // failure.
+                            var accepted = new CommandAccepted
+                            {
+                                RequestId = req.RequestId,
+                                OneWaySeconds = oneWaySeconds,
+                            };
+                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(accepted)));
                         });
                         break;
                 }
@@ -7310,14 +7331,30 @@ namespace Sitrep.Host
             /// no way to tell the two apart from silence.
             /// </summary>
             public readonly Action<string>? OnRefused;
+            /// <summary>
+            /// Called when this dispatch is taken onto the DELAYED path,
+            /// carrying the one-way light-time it will travel. Fires before any
+            /// handler runs and says nothing about execution, only that the
+            /// command is in flight and when an answer is due.
+            ///
+            /// <para>Not called for a dispatch that never rides light-time (a
+            /// <c>TrueNow</c> command, or a delay resolving to zero) and not
+            /// called for a refusal, which takes <see cref="OnRefused"/>. The
+            /// socket layer supplies one so a client can size its loss deadline
+            /// from the engine's own number instead of from the only delay it
+            /// can see, which is the active craft's and is the wrong path for a
+            /// command addressed anywhere else.</para>
+            /// </summary>
+            public readonly Action<double>? OnAccepted;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<string>? onRefused = null)
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null)
             {
                 Command = command;
                 Args = args;
                 Vantage = vantage;
                 OnResult = onResult;
                 OnRefused = onRefused;
+                OnAccepted = onAccepted;
                 Done = done;
                 Label = label;
                 Topic = topic;

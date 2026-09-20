@@ -2213,6 +2213,42 @@ export interface CommandResponse<TResult>
 	result: TResult;
 	meta: Meta;
 }
+/**
+* Sent the moment the engine takes a dispatch onto the delayed path, carrying
+* the one-way light-time it will actually travel. It says THE COMMAND IS ON
+* ITS WAY AND HERE IS WHEN TO EXPECT AN ANSWER, never that anything executed.
+*
+* A client cannot work this out for itself. The delay depends on the node the
+* command is addressed to, which the engine resolves from the command's
+* declared subject, and on the vantage it was sent from: a client sizing a
+* loss deadline from the delay it can see (the active craft's) grades a
+* command to a different node against the wrong path entirely.
+*
+* Correlated by `CommandAccepted.requestId`, the client's own id off its
+* `command-request`. That is safe here and is NOT safe on
+* `system.uplink.pending`, whose entries carry an engine-minted id instead:
+* two clients can choose the same request id, so a broadcast channel cannot
+* pair them, whereas this frame travels back down the one socket that sent the
+* request.
+*
+* Absent for a dispatch that never rides light-time (a `TrueNow` command, or a
+* live delay resolving to zero), because there is no flight to wait out.
+* Absent also for a refusal, which sends an `ErrorMsg` instead. A client must
+* therefore treat "no acceptance yet" as ordinary rather than as an error.
+*/
+export interface CommandAccepted
+{
+	type: "command-accepted";
+	/** The client's own id, echoed from its `command-request`. */
+	requestId: string;
+	/**
+	* One-way light-time from the sending vantage to the node this command is
+	* addressed to, as the engine's ledger has it AT DISPATCH. Frozen: a route
+	* change afterwards is discrete and the sender may never learn of it, so this
+	* is not re-sent.
+	*/
+	oneWaySeconds: number;
+}
 export interface ErrorMsg
 {
 	type: "error";

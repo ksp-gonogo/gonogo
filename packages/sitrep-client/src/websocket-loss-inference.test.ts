@@ -183,3 +183,86 @@ describe("loss inference over the production WebSocket transport", () => {
     warn.mockRestore();
   });
 });
+
+/**
+ * The engine's own flight time, told to the dispatching client and replacing
+ * the deadline it could only guess at.
+ *
+ * A client can see exactly one delay, `comms.delay`, which is the ACTIVE
+ * craft's path home. A command addressed anywhere else (a career order held at
+ * home, a spend from a distant vessel) travels a different route, so a deadline
+ * built from what the client can see grades it against the wrong flight. The
+ * engine knows the real one because it is the thing that scheduled the
+ * delivery, so it says so, correlated by the client's own request id.
+ */
+describe("command-accepted carries the engine's own flight time", () => {
+  function commandAccepted(requestId: string, oneWaySeconds: number): string {
+    return JSON.stringify({
+      type: "command-accepted",
+      requestId,
+      oneWaySeconds,
+    });
+  }
+
+  async function connectedEchoing(
+    reply: (requestId: string) => string | undefined,
+  ) {
+    server.use(
+      link.addEventListener("connection", ({ client: wsClient }) => {
+        wsClient.addEventListener("message", (event) => {
+          const msg = JSON.parse(String(event.data));
+          if (msg.type !== "command-request") return;
+          const frame = reply(msg.requestId);
+          if (frame !== undefined) wsClient.send(frame);
+        });
+      }),
+    );
+    const clock = new ManualClock(0);
+    const transport = new WebSocketTransport({ url: SITREP_URL });
+    const client = new TelemetryClient(transport, clock);
+    await waitForStatus(transport, "connected");
+    return { clock, client };
+  }
+
+  it("re-arms the deadline off the engine's number, not the active craft's", async () => {
+    // The engine routed this one over a 30s path; the client can only see the
+    // active craft at 4s. Without the frame the command is graded lost at
+    // 8 + margin while its reply is still legitimately in the air.
+    const { clock, client } = await connectedEchoing((requestId) =>
+      commandAccepted(requestId, 30),
+    );
+    client.setDelaySource(() => 4);
+
+    const { requestId, result } = client.dispatch("career.tech.unlock");
+    const settled = result.then(
+      () => "resolved",
+      () => "rejected",
+    );
+    await vi.waitFor(() =>
+      expect(inFlight(client.getCommand(requestId)).etaConfirm).toBe(60),
+    );
+
+    // The old, wrong deadline passes and the command stays in flight. This is
+    // the whole point: it used to die here.
+    clock.advanceTo(8 + LOSS_MARGIN + 1);
+    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
+
+    clock.advanceTo(60 + LOSS_MARGIN);
+    expect(client.getCommand(requestId)?.phase).toBe("lost");
+    await expect(settled).resolves.toBe("rejected");
+  });
+
+  it("leaves the dispatch-time deadline alone when no acceptance arrives", async () => {
+    // A TrueNow command never rides light-time, so the engine sends no
+    // acceptance. Absence must read as ordinary, not as a reason to disarm.
+    const { clock, client } = await connectedEchoing(() => undefined);
+    client.setDelaySource(() => 4);
+
+    const { requestId, result } = client.dispatch("ksp.recover");
+    void result.catch(() => undefined);
+
+    expect(inFlight(client.getCommand(requestId)).etaConfirm).toBe(8);
+    clock.advanceTo(8 + LOSS_MARGIN);
+    expect(client.getCommand(requestId)?.phase).toBe("lost");
+  });
+});
