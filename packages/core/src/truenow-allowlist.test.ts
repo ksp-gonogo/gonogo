@@ -154,33 +154,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // not have to. 2 explicit declarations.
   "mod/Gonogo.KSP/ScetAlarmUplink.cs": 2,
 
-  // commandCentre.roster: the LIST of command centres a dashboard can select as
-  // its vantage. Correct as TrueNow for the KSC-only present: KSC + stock Extra
-  // Ground Stations + Kerbal Konstructs sites are FIXED ground-registry facts
-  // (their existence and position are known a priori, independent of any vessel's
-  // comms link), the same class as SpaceCenterUplink's launchSites/pois above.
-  //
-  // DELAY-HONESTY NOTE (Phase-2 requirement, flagged, not yet triggered): a
-  // CREWED forward command centre becoming commandable is an EVENT at a distant
-  // vessel. Publishing the roster TrueNow would leak "a distant crewed station is
-  // now a command centre" INSTANTLY, before that vessel's own (delayed) telemetry
-  // arrives, a genuine delay-honesty violation. So when crewed centres are
-  // enumerated (Phase 2), the roster's crewed entries MUST be delay-gated: move
-  // the roster to Delayed, or split crewed entries onto a Delayed channel. Today
-  // only StockHomeNodeSource (ground-registry) is honest as TrueNow; the crewed
-  // source's delay-gating is the Phase-2 follow-up.
-  //
-  // commandCentre.separation is Delayed rather than TrueNow, which is why this
-  // count is 1 rather than 2: the gate reads the LEDGER
-  // (ChannelEngine.SetCentreDelay writes straight into INetwork.SetDelay),
-  // never the topic, and the separation matrix is a readout off the same rows,
-  // so it rides light-time like anything else describing a place a signal has
-  // to cross.
-  //
-  // The roster's own crewed entries are still TrueNow and still owe the
-  // Phase-2 fix described above. 1 explicit declaration.
-  "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 1,
-
   // flight.simulation: whether the flight on screen is one of RP-1's
   // REHEARSALS. Meta about the stream rather than an observation of a craft,
   // the same class as comms.delay: a channel that told an operator "this is a

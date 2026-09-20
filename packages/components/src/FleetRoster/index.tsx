@@ -641,9 +641,10 @@ function FleetRosterComponent({
   const chosenVantage = useSelectedVantage();
   const observedVantage = useObservedVantage();
   const vantage = chosenVantage ?? observedVantage;
-  // A command-centre roster is ground-side and declared unmodellable: centres do
-  // not move and a stale list is still the list. Falls back to the raw id before
-  // anything has landed, which is what the comment above already described.
+  // Centres do not move, so a stale list is still the list. The roster is held
+  // at the home command, so a vessel vantage reads it at its own light-time
+  // home; the raw id stands in until it lands, which is what the comment above
+  // already described.
   const centresReading = topics.useTelemetry("commandCentre.roster");
   const centres =
     centresReading.state === "observed" || centresReading.state === "stale"

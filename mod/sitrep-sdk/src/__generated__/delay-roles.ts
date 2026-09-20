@@ -18,7 +18,6 @@
 export const GENERATED_TRUENOW_TOPICS = [
   "alarm.scet",
   "alarm.scet.fired",
-  "commandCentre.roster",
   "comms.commandCentre",
   "comms.connectivity",
   "comms.control",
@@ -51,6 +50,7 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "career.facilities",
   "career.mode",
   "career.status",
+  "commandCentre.roster",
   "science.archive",
   "spaceCenter.astronautComplex",
   "spaceCenter.crewRoster",

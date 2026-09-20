@@ -53,6 +53,39 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
+        /// Who can command is the home command's fact, so the roster is held
+        /// there and each vantage learns a change after its own delay home.
+        ///
+        /// <para>The practical split, and the reason it is declared this way
+        /// rather than left instant: a ground centre's delay home is effectively
+        /// zero, so an operator keeps the live centre picker they have always
+        /// had, while a vessel vantage reads the roster at its own light-time.
+        /// A craft cannot know a new centre came online before word reaches it,
+        /// and publishing the list instantly told it so.</para>
+        ///
+        /// <para><c>HeldAtHome</c> is what makes that one declaration rather
+        /// than two behaviours: the channel records under the home command's
+        /// node, and <c>DelayTo(vantage, home)</c> does the rest. The engine's
+        /// own coverage of that routing is
+        /// <c>Sitrep.Host.IntegrationTests.HomeCommandLedgerDelayTests</c>;
+        /// what this pins is that the roster asks for it.</para>
+        /// </summary>
+        [Fact]
+        public void TheRosterIsHeldAtTheHomeCommandRatherThanPublishedInstantly()
+        {
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+
+            var roster = Assert.Single(
+                uplink.Manifest.Channels.Where(c => c.Topic == CommandCentreDelayUplink.RosterTopic));
+
+            Assert.True(roster.HeldAtHome);
+            // Delayed, not TrueNow: the two are mutually exclusive by
+            // construction (declaring both refuses the uplink), and TrueNow is
+            // what this topic used to be.
+            Assert.Equal(DelayRole.Delayed, roster.Delay);
+        }
+
+        /// <summary>
         /// Nothing this uplink registers may hang off a fleet-topic
         /// subscription.
         /// </summary>
