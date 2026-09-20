@@ -75,7 +75,6 @@ namespace Sitrep.Contract.TestSupport
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) { }
 
         public void SetVesselDelay(string vesselId, double oneWaySeconds) { }
-        public void SetVesselJourney(string vesselId, IReadOnlyList<CommsJourneyLeg> legs) { }
 
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) { }
 

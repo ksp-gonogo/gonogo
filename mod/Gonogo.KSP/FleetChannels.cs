@@ -71,6 +71,14 @@ namespace Gonogo.KSP
         private IDynamicChannelSource? _orbitSource;
         private IUplinkHost? _host;
 
+        /// <summary>
+        /// The same host, when it can also take a route's hops rather than only
+        /// the scalar <see cref="IUplinkHost.SetVesselDelay"/> carries. Null
+        /// leaves the ledger on its scalar tier, which is the correct reading
+        /// for a host that has no journey ledger at all.
+        /// </summary>
+        private IVesselJourneyWriter? _journeyWriter;
+
         // Main-thread-only bookkeeping: the last UT each vessel was observed
         // connected. Trivial derived state (no hysteresis, no model), so it
         // lives here rather than needing anything like SilenceTracker. Written
@@ -96,6 +104,7 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _host = host;
+            _journeyWriter = host as IVesselJourneyWriter;
             _orbitSource = host.RegisterDynamicNamespace(ChannelEngine.FleetNodePrefix, new ChannelDeclaration
             {
                 Delivery = Delivery.LossyLatest,
@@ -283,11 +292,11 @@ namespace Gonogo.KSP
                 {
                     _host?.SetVesselDelay(v.Id, v.OneWaySeconds.Value);
                     // Written second: SetVesselDelay's plain scalar retires
-                    // any journey already held for this node, so the leg
+                    // any journey already held for this node, so the hop
                     // breakdown has to land after it to stick.
                     if (v.Journey != null)
                     {
-                        _host?.SetVesselJourney(v.Id, ToJourneyLegs(v.Journey));
+                        _journeyWriter?.SetVesselJourney(v.Id, v.Journey);
                     }
                 }
                 // Per-subject freeze (Plan 2b): this vessel freezes on its own link.
@@ -319,17 +328,6 @@ namespace Gonogo.KSP
                     _orbitSource.Publisher(v.Id + ResourcesSuffix).Publish(v.Resources, cap.Ut);
                 }
             }
-        }
-
-        /// <summary>The host-boundary-safe form of a journey's legs, for <see cref="IUplinkHost.SetVesselJourney"/>.</summary>
-        private static List<CommsJourneyLeg> ToJourneyLegs(Journey journey)
-        {
-            var legs = new List<CommsJourneyLeg>(journey.Legs.Count);
-            foreach (var leg in journey.Legs)
-            {
-                legs.Add(new CommsJourneyLeg(leg.Seconds, leg.DistanceMeters, leg.TouchesHome, leg.FromHandle, leg.ToHandle));
-            }
-            return legs;
         }
 
         private sealed class FleetCapture

@@ -35,7 +35,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IUplinkHost, IDisposable
+    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, IDisposable
     {
         public const string NodeId = "system";
 
@@ -2212,18 +2212,12 @@ namespace Sitrep.Host
             _network.SetNodeDelay(node, oneWaySeconds);
         }
 
-        public void SetVesselJourney(string vesselId, IReadOnlyList<CommsJourneyLeg> legs)
+        public void SetVesselJourney(string vesselId, Journey journey)
         {
             // No freeze bookkeeping here: SetVesselDelay, called first for
             // the same vessel every capture pass, already did it against the
-            // identical total these legs sum to.
-            var coreLegs = new Leg[legs.Count];
-            for (var i = 0; i < legs.Count; i++)
-            {
-                var leg = legs[i];
-                coreLegs[i] = new Leg(leg.Seconds, leg.DistanceMeters, leg.TouchesHome, leg.FromHandle, leg.ToHandle);
-            }
-            _network.SetNodeJourney(FleetNodePrefix + vesselId, new Journey(coreLegs));
+            // identical total these hops sum to.
+            _network.SetNodeJourney(FleetNodePrefix + vesselId, journey);
         }
 
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)

@@ -571,45 +571,6 @@ public readonly struct CommsRouteHop
 }
 
 /// <summary>
-/// A <see cref="CommsRouteHop"/> plus the one-way light-time already worked
-/// out for it: the wire-safe shape <see cref="IUplinkHost.SetVesselJourney"/>
-/// carries across the host boundary, since the host-side ledger's own
-/// <c>Journey</c>/<c>Leg</c> types are C#-only and unreachable from here.
-///
-/// <para>Deliberately NOT that ledger type itself. <c>Sitrep.Core</c>
-/// (where it lives) already depends on this project, so the dependency
-/// cannot run the other way; a caller that has already computed a leg's
-/// seconds hands them across as plain fields, and the host reassembles its
-/// own journey type from them.</para>
-/// </summary>
-public readonly struct CommsJourneyLeg
-{
-    public CommsJourneyLeg(double seconds, double distanceMeters, bool touchesHome, object? fromHandle, object? toHandle)
-    {
-        Seconds = seconds;
-        DistanceMeters = distanceMeters;
-        TouchesHome = touchesHome;
-        FromHandle = fromHandle;
-        ToHandle = toHandle;
-    }
-
-    /// <summary>This leg's own one-way light-time, in seconds.</summary>
-    public double Seconds { get; }
-
-    /// <summary>Straight-line distance between the leg's two endpoints.</summary>
-    public double DistanceMeters { get; }
-
-    /// <summary>True when EITHER endpoint is a ground station.</summary>
-    public bool TouchesHome { get; }
-
-    /// <summary>The live object behind this leg's origin endpoint, or null when the caller had none to give.</summary>
-    public object? FromHandle { get; }
-
-    /// <summary>The live object behind this leg's destination endpoint, or null when the caller had none to give.</summary>
-    public object? ToHandle { get; }
-}
-
-/// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves
 /// to. Exactly the readouts BOTH backends can
 /// honestly supply: the minimal shape the parallel CommNet+RA build forces

@@ -118,7 +118,7 @@ namespace Gonogo.KSP.Tests
 
             Assert.NotNull(scalar);
             Assert.NotNull(journey);
-            Assert.Equal(3, journey!.Legs.Count);
+            Assert.Equal(3, journey!.Hops.Count);
             // Bit-for-bit, not approximate: a journey built from the same
             // hops must never drift from the scalar SignalDelay.Compute
             // already returns for them.
@@ -131,7 +131,7 @@ namespace Gonogo.KSP.Tests
             var journey = RoutedPathDelay.JourneyFor(
                 Hops(SignalDelay.SpeedOfLightMetersPerSecond), Enabled());
 
-            var leg = Assert.Single(journey!.Legs);
+            var leg = Assert.Single(journey!.Hops);
             Assert.Equal(1.0, leg.Seconds, 9);
             Assert.Equal(SignalDelay.SpeedOfLightMetersPerSecond, leg.DistanceMeters);
         }
@@ -154,7 +154,7 @@ namespace Gonogo.KSP.Tests
             var journey = RoutedPathDelay.JourneyFor(
                 Hops(SignalDelay.SpeedOfLightMetersPerSecond), SignalDelayConfig.Off());
 
-            var leg = Assert.Single(journey!.Legs);
+            var leg = Assert.Single(journey!.Hops);
             Assert.Equal(0.0, leg.Seconds);
         }
     }
