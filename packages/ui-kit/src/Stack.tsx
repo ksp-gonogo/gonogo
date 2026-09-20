@@ -13,7 +13,12 @@ import styled from "styled-components";
 export type SpaceToken = "xs" | "sm" | "md" | "lg" | "xl";
 
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
-  /** Gap between children, snapped to the space scale. Defaults to `sm`. */
+  /**
+   * Gap between children, snapped to the space scale. Omit it and the gap is
+   * `--gap-related`, inherited from whichever container the stack lands in, so
+   * the same stack is 8px on a panel and 6px inside a card. Pass a size only
+   * from a container deciding the spacing for what it holds.
+   */
   gap?: SpaceToken;
   /**
    * Rendered tag. Defaults to `div`. Declared for the same reason `Row`
@@ -37,12 +42,7 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
  * scattered across widgets (e.g. ScienceOfficer's `Group`/`InstrumentList`/
  * `LabList`).
  */
-export function Stack({
-  gap = "sm",
-  fill = false,
-  children,
-  ...rest
-}: StackProps) {
+export function Stack({ gap, fill = false, children, ...rest }: StackProps) {
   return (
     <Stack__Root $gap={gap} $fill={fill} {...rest}>
       {children}
@@ -50,9 +50,10 @@ export function Stack({
   );
 }
 
-const Stack__Root = styled.div<{ $gap: SpaceToken; $fill: boolean }>`
+const Stack__Root = styled.div<{ $gap?: SpaceToken; $fill: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme, $gap }) => theme.space[$gap]};
+  gap: ${({ theme, $gap }) =>
+    $gap ? theme.space[$gap] : "var(--gap-related, var(--space-8, 8px))"};
   ${({ $fill }) => ($fill ? "flex: 1; min-height: 0;" : "")}
 `;
