@@ -238,7 +238,7 @@ function EvaSuitReadout({
      panel that states its own staleness in words as well says it twice. */
   if (!oxygen && !electricCharge) return null;
   return (
-    <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
+    <Cluster justify="start" wrap aria-label="EVA suit resources">
       {oxygen && (
         <Meter
           label="O2"
@@ -613,11 +613,19 @@ function renderBody({
     listStyle: "none",
     margin: "var(--space-8) 0 0",
     padding: 0,
+    /*
+     * Section rather than related: each row is a `Card`, and a card sets its
+     * own interior spacing to something tighter than the panel around it. A
+     * between-row gap that matched the panel would sit within a pixel or two
+     * of the gap inside each card, and the rows would stop reading as separate
+     * surfaces.
+     */
+    gap: "var(--gap-section)",
   } as const;
 
   if (names.length === 0) {
     return (
-      <Stack as="ul" gap="sm" style={rosterListStyle}>
+      <Stack as="ul" style={rosterListStyle}>
         <EmptyState>
           {crewCount} aboard, names unavailable. Crew names can be withheld when
           the vessel is out of CommNet range.
@@ -635,11 +643,7 @@ function renderBody({
     getAugmentsForSlot("crew-status.avatar").length > 0;
 
   return (
-    // `gap="lg"` (12px, up from `sm`'s 4px): the between-ROW breathing room
-    // operator feedback flagged as too tight. This is the ONLY gap this fix
-    // touches, the within-row gaps below (avatar-to-text-block, name-row-to-
-    // survival-section) are unrelated and stay as they were.
-    <Stack as="ul" gap="lg" style={rosterListStyle}>
+    <Stack as="ul" style={rosterListStyle}>
       {names.map((name, index) => {
         return (
           // Per-crew row: a padded, rounded `Card` (operator feedback: the
@@ -691,7 +695,7 @@ function renderBody({
                   `minWidth: 0` (CREW_INFO_STYLE) so it fills the remaining
                   row width and its own `Truncate` child can still shrink to
                   ellipsis rather than overflow. */}
-              <Stack gap="sm" style={CREW_INFO_STYLE}>
+              <Stack style={CREW_INFO_STYLE}>
                 <Cluster justify="start" wrap>
                   {/* `flex: 1 1 auto` (not the shared `Truncate`'s default
                       `flex: 1` = `1 1 0%`, overridden via inline `style`
@@ -710,7 +714,7 @@ function renderBody({
                       squeeze it; the name's own flex-grow already pushes the
                       badge to the trailing edge when both fit on one line,
                       so no `marginLeft: auto` is needed here. */}
-                  <Inline gap="xs">
+                  <Inline>
                     <AugmentSlot
                       name="crew-status.row-badges"
                       props={{ crewName: name, crewIndex: index }}

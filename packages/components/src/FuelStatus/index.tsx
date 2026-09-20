@@ -246,7 +246,7 @@ function ResourceListSection({
   readings: { def: ResourceDef; value: number; max: number }[];
 }) {
   return (
-    <Stack gap="sm" style={{ marginTop: "var(--space-6)" }}>
+    <Stack style={{ marginTop: "var(--space-6)" }}>
       {readings
         .filter(({ max }) => max > 0)
         .map(({ def, value: amount, max }) => (
@@ -326,7 +326,6 @@ function StageStackSection({
 }) {
   return (
     <Stack
-      gap="xs"
       style={{
         marginTop: "var(--space-10)",
         paddingTop: "var(--space-6)",
@@ -640,7 +639,7 @@ function FuelStatusComponent({
                 padding: "var(--inset-surface)",
               }}
             >
-              <Stack gap="xs">
+              <Stack>
                 <ReadoutCaption
                   style={{
                     color: "var(--color-text-faint)",
@@ -677,7 +676,7 @@ function FuelStatusComponent({
                   </span>
                 </Text>
               </Stack>
-              <Stack gap="xs">
+              <Stack>
                 <ReadoutCaption
                   style={{
                     color: "var(--color-text-faint)",

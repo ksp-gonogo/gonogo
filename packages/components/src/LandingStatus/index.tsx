@@ -1110,7 +1110,7 @@ function LandingStatusComponent({
   // matter. Non-relevant fragments are null and drop out. Used at sizes below
   // the wide-size plots layout.
   const detailStack = (
-    <Stack gap="sm">
+    <Stack>
       {contributedPlots}
       {boardEl}
       {velocityEl}

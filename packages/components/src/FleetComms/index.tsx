@@ -35,7 +35,7 @@ import {
 function FleetCommsActions() {
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
   return (
-    <Cluster justify="start" gap="xs">
+    <Cluster justify="start">
       <ToggleButton
         type="button"
         size="sm"

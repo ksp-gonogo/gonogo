@@ -100,7 +100,7 @@ export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
   }
 
   return (
-    <Stack gap="sm" fill>
+    <Stack fill>
       <ScrollArea>
         <DataTable
           caption="Career science archive, by body and experiment"

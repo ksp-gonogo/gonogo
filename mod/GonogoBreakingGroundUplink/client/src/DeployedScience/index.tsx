@@ -501,7 +501,7 @@ function DeployedScienceComponent(
                 borderColor: "var(--color-surface-raised)",
               }}
             >
-              <Stack gap="sm">
+              <Stack>
                 <Cluster style={{ gap: "var(--gap-related)" }}>
                   <Text tone="default" size="sm" style={{ fontWeight: 600 }}>
                     {base.body || "Surface base"}
@@ -527,7 +527,7 @@ function DeployedScienceComponent(
                 </Text>
 
                 {base.experiments.map((exp) => (
-                  <Stack gap="xs" key={`${base.id}-${exp.partId}`}>
+                  <Stack key={`${base.id}-${exp.partId}`}>
                     <Cluster
                       align="baseline"
                       style={{ gap: "var(--gap-related)" }}

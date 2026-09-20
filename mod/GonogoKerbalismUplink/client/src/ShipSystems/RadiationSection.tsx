@@ -339,7 +339,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
     // moved below as plain low-emphasis text; `role="status"` stays on that
     // text (not a Stack of badges) since it is still the one bit of this
     // section that changes without the operator watching for it.
-    <Stack gap="xs">
+    <Stack>
       <Fill style={{ height: 96 }}>
         <LineGraph
           series={series}
@@ -363,11 +363,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
           </GraphNotice>
         )}
       </Fill>
-      <Cluster
-        gap="md"
-        justify="between"
-        style={{ marginTop: "var(--space-2)" }}
-      >
+      <Cluster justify="between" style={{ marginTop: "var(--space-2)" }}>
         {/* Identity tones at rest (grey/info-blue, matching the traces),
             escalation only over the threshold. `warn`'s bare -fg token is
             near-black on this dark surface, so the escalated ambient reads

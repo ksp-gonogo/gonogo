@@ -690,7 +690,7 @@ function StormCard({
 
   return (
     <Card tone={SEVERITY_CARD_TONE[severity]}>
-      <Stack gap="xs">
+      <Stack>
         <Cluster justify="between" align="baseline">
           <Text tone="default" weight="semibold" size="sm">
             {storm.star}
@@ -1123,7 +1123,7 @@ function SpaceWeatherComponent({
             // canyon between them, which reads as broken rather than as "not much
             // going on". Packing left with a fixed card width is what scales from
             // a lone star to a five-star system, wrapping instead of stretching.
-            <Cluster gap="sm" wrap justify="start">
+            <Cluster wrap justify="start">
               {d.stars.map((star) => {
                 const name = star.star ?? "Unknown star";
                 const activity = starActivity(allStorms, name);
@@ -1137,7 +1137,7 @@ function SpaceWeatherComponent({
                     // `wrap`, so the browser wraps rather than squeezing.
                     style={{ width: 128, flexShrink: 0 }}
                   >
-                    <Stack gap="xs">
+                    <Stack>
                       <StarDiagram
                         starName={name}
                         activity={activity}
@@ -1161,7 +1161,7 @@ function SpaceWeatherComponent({
           {activeStorms.length === 0 ? (
             <EmptyState>No inbound CMEs detected.</EmptyState>
           ) : (
-            <Stack gap="sm">
+            <Stack>
               {activeStorms.map((storm) => (
                 <StormCard
                   key={storm.key}

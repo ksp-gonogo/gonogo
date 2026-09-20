@@ -279,10 +279,10 @@ function DrillCard({
       tone={!drillNotCurrent && drill.running ? "go" : "default"}
       categoryColor={drill.resource ? resourceColor(drill.resource) : undefined}
     >
-      <Stack gap="xs">
+      <Stack>
         {/* Wraps rather than clips: a no-wrap Cluster cut badges off at the
             default tile width. */}
-        <Cluster justify="start" gap="xs" wrap>
+        <Cluster justify="start" wrap>
           <Text size="sm" tone="default" weight="semibold">
             {drill.partTitle ?? drill.partId ?? "Drill"}
           </Text>
@@ -310,7 +310,7 @@ function DrillCard({
             ratesNotCurrent={drillNotCurrent}
           />
         </Grid>
-        <Inline gap="xs">
+        <Inline>
           <ReadoutCaption>abundance</ReadoutCaption>
           {/* Ore abundance is a property of where the drill is standing, and the
               drill can be driven somewhere else while the link is down.
@@ -388,8 +388,8 @@ function ConverterCard({
         primaryResource ? resourceColor(primaryResource) : undefined
       }
     >
-      <Stack gap="xs">
-        <Cluster justify="start" gap="xs" wrap>
+      <Stack>
+        <Cluster justify="start" wrap>
           <Text size="sm" tone="default" weight="semibold">
             {converter.partTitle ?? converter.partId ?? "Converter"}
           </Text>
@@ -478,18 +478,24 @@ function ResourceOpsStats({
   return (
     <Cluster
       justify="start"
-      gap="lg"
       wrap
       role="group"
       aria-label="Resource ops summary"
+      /*
+       * Section rather than related: every child is an `Inline` pairing a
+       * caption with its figure, and those pair at the related gap. The strip
+       * only reads as several stats instead of one long run while the gap
+       * between stats is the larger of the two.
+       */
+      style={{ gap: "var(--gap-section)" }}
     >
-      <Inline gap="xs">
+      <Inline>
         <Text size="sm" tone="default" weight="semibold">
           {total}
         </Text>
         <ReadoutCaption>{total === 1 ? "process" : "processes"}</ReadoutCaption>
       </Inline>
-      <Inline gap="xs">
+      <Inline>
         <Text size="sm" tone="default" weight="semibold">
           {activeCount ?? NULL_DISPLAY}
         </Text>
@@ -499,7 +505,7 @@ function ResourceOpsStats({
           moves ElectricCharge is a property of the recipes, which is a fact, so
           dropping the row would say "nothing here draws power". */}
       {netEc.moves && (
-        <Inline gap="xs">
+        <Inline>
           <ReadoutCaption>net EC</ReadoutCaption>
           {/* Withheld for either reason, and they read the same to an operator:
               the channel stopped being current, or one rate in the sum never
@@ -515,7 +521,7 @@ function ResourceOpsStats({
         </Inline>
       )}
       {location && (
-        <Inline gap="xs">
+        <Inline>
           <ReadoutCaption>at</ReadoutCaption>
           <Text size="sm" tone="default">
             {location}

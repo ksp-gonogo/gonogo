@@ -203,14 +203,14 @@ function GreenhouseEntryRow({
   const tooHigh = radiationTooHigh(g, ambientRadiationRadPerSecond);
   return (
     <Section>
-      <Cluster justify="between" gap="md">
+      <Cluster justify="between">
         {/* Same head treatment as the host widget's own SectionHead (a
             muted uppercase Text), so the greenhouse rows read as part of
             one system rather than a second heading style. */}
         <Text tone="muted" size="xs">
           {titlePrefix.toUpperCase()}
         </Text>
-        <Cluster gap="xs" justify="end" wrap>
+        <Cluster justify="end" wrap>
           {tooHigh && (
             // `warning`, not `critical`: recoverable once the storm passes,
             // the same rung the host widget's Degraded status uses for it
@@ -271,7 +271,7 @@ function GreenhouseSection({
   // titled by its own crop.
   if (greenhouses.length === 1) {
     return (
-      <Stack gap="xs">
+      <Stack>
         <GreenhouseEntryRow
           g={greenhouses[0]}
           titlePrefix="Greenhouse"
@@ -281,7 +281,7 @@ function GreenhouseSection({
     );
   }
   return (
-    <Stack gap="xs">
+    <Stack>
       <Text tone="muted" size="xs">
         GREENHOUSES
       </Text>
