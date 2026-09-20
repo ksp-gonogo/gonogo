@@ -76,13 +76,23 @@ function debtKey(file: string): string {
  *
  * Lower an entry (or delete the key) in the same commit as the cleanup; a drop
  * warns rather than fails, so a cleanup lands green.
+ *
+ * Re-measured 2026-09-20 at 145 sites across 39 files, and the `mod/` bucket
+ * fell 208 -> 38 without a single site being migrated. The Uplinks DEPARTED to
+ * `gonogo-uplinks` and took their widgets with them, leaving 170 sites of
+ * headroom a new violation could have landed in unnoticed. A departure is not
+ * a cleanup, so nothing prompted anyone to lower the number, and the drop hint
+ * below is a `console.warn` that the default vitest reporter suppresses for a
+ * PASSING test: the slack was reported on every run and displayed on none.
+ * Re-measure this bucket whenever an Uplink leaves, with
+ * `--reporter=verbose` to see the hint at all.
  */
 const DEBT: Record<string, number> = {
-  "mod/": 208,
+  "mod/": 38,
   "packages/components/src/ActionGroup/index.tsx": 4,
   "packages/components/src/AstronautComplex/index.tsx": 8,
   "packages/components/src/CommSignal/index.tsx": 4,
-  "packages/components/src/CrewStatus/index.tsx": 7,
+  "packages/components/src/CrewStatus/index.tsx": 5,
   "packages/components/src/DataSourceStatus/index.tsx": 3,
   "packages/components/src/EscapeProfile/index.tsx": 2,
   "packages/components/src/Experiments/index.tsx": 10,
