@@ -478,7 +478,7 @@ function ShipSystemsBody({
              some not. */
           <Section key="causes" full>
             <Card role="status" aria-live="polite">
-              <Stack gap="xs">
+              <Stack>
                 <Text tone="nogo" weight="semibold" size="sm">
                   Limiting factors
                 </Text>
@@ -612,7 +612,7 @@ function ShipSystemsBody({
             value={processSummary}
             tone={brokenCount > 0 ? "nogo" : unknownCount > 0 ? "warn" : "go"}
           />
-          <Stack gap="xs">
+          <Stack>
             {processes.map((p) => (
               <Cluster key={p.id} justify="between">
                 <Text tone="default" size="xs">
@@ -712,7 +712,7 @@ function ResourceLedgerRow({
       categoryColor={categoryColor}
       data-testid={`resource-card-${row.name}`}
     >
-      <Stack gap="sm">
+      <Stack>
         <Meter
           label={row.displayName}
           // See the Power footer: a resource the craft has no tank for has no
@@ -807,7 +807,7 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
     // hosts it, spilling the ledger past the widget's right edge at any width
     // narrower than the floor. `width: 100%` sizes it to whatever the accordion
     // panel actually has, at every panel width down to minSize.
-    <Stack gap="xs" style={{ width: "100%", minWidth: 0 }}>
+    <Stack style={{ width: "100%", minWidth: 0 }}>
       {ledger.terms.length === 0 ? (
         <Text tone="muted" size="xs">
           No modelled sources
@@ -836,7 +836,7 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
                 their own gap rather than spreading them across the (already
                 content-sized) width `DivergingBar`'s own `flex: 0 0 auto`
                 gives this inner row. */}
-            <Cluster gap="xs" justify="start">
+            <Cluster justify="start">
               <DivergingBar
                 value={value("units/s", term.ratePerSecond)}
                 maxAbs={maxAbsRate}

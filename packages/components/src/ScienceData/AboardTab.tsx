@@ -146,7 +146,7 @@ export function AboardTab({
   const hasExperiments = experiments !== null && experiments.length > 0;
 
   return (
-    <Stack gap="sm" fill>
+    <Stack fill>
       <Text
         tone="muted"
         size="sm"

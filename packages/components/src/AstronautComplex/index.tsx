@@ -617,8 +617,8 @@ function ApplicantsPanel({
         // Kerbal names are unique within the applicant pool, so the name is
         // a stable key (no array index).
         <Card as="li" key={a.name}>
-          <Stack gap="xs">
-            <Cluster justify="between" align="start" gap="sm">
+          <Stack>
+            <Cluster justify="between" align="start">
               <Who>
                 <KerbalStats
                   kerbal={applicantStats(a)}
@@ -630,7 +630,7 @@ function ApplicantsPanel({
               {/* The corner: whatever mark the career model wants read WITH
                   this name, then the action. An applicant gets one too, for the
                   same reason they get the crew slot. */}
-              <Cluster align="center" gap="xs">
+              <Cluster align="center">
                 <AugmentSlot
                   name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
                   props={{
@@ -749,7 +749,7 @@ function ActivePanel({
                     : undefined
                 }
               >
-                <Stack gap="xs">
+                <Stack>
                   {/* The identity line, and the sack control at the END of it
                       rather than in a column of its own down the side of the
                       card. Weight follows how often a control is reached for,
@@ -758,7 +758,7 @@ function ActivePanel({
                       claimed a fixed slice of every row on the roster, and took
                       that width off the schedule underneath, which is the part
                       that is read on every glance. */}
-                  <Cluster justify="between" align="start" gap="sm">
+                  <Cluster justify="between" align="start">
                     <Who>
                       <KerbalStats
                         kerbal={crewRowStats(m)}
@@ -773,7 +773,7 @@ function ActivePanel({
                         does not carry (a naut mid-course still reads
                         `Available` to KSP), and the corner is where a mark is
                         read WITH the name rather than in the block below it. */}
-                    <Cluster align="center" gap="xs">
+                    <Cluster align="center">
                       <AugmentSlot
                         name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
                         props={{

@@ -100,7 +100,7 @@ export function TrajectoryWithheldNote({
 }: Readonly<{ withheld: WithheldTrajectory; compact?: boolean }>) {
   const { heading, detail } = trajectoryWithheldCopy(withheld);
   return (
-    <Stack gap="xs" role="status" title={compact ? detail : undefined}>
+    <Stack role="status" title={compact ? detail : undefined}>
       <Text size="xs">{heading}</Text>
       {!compact && (
         <Text tone="muted" size="xs">

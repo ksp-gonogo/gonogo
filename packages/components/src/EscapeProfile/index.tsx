@@ -128,12 +128,12 @@ function EscapeProfileComponent({
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   return (
-    <Stack gap="sm" style={WRAP_STYLE}>
+    <Stack style={WRAP_STYLE}>
       {/* GraphView's Panel is height:100%, so without an explicit shrinkable
           flex slot it doesn't yield room to the Notice sibling below (the two
           overlap instead of the chart shrinking by the Notice's height).
           Mirrors KeplerPeriod's / AtmosphereProfile's own GraphSlot wrapper. */}
-      <Stack gap="xs" style={GRAPH_SLOT_STYLE}>
+      <Stack style={GRAPH_SLOT_STYLE}>
         <GraphView
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}

@@ -183,8 +183,8 @@ function ScienceDataAboardRowAugment({
       aria-label="Kerbalism file manager"
     >
       {file && (
-        <Stack gap="xs">
-          <Cluster gap="xs" wrap justify="start">
+        <Stack>
+          <Cluster wrap justify="start">
             {file.dataSizeMB != null && (
               <Text size="xs">
                 <Unit value={file.dataSizeMB} />
@@ -213,7 +213,7 @@ function ScienceDataAboardRowAugment({
               </Badge>
             )}
           </Cluster>
-          <Cluster gap="xs" wrap justify="start">
+          <Cluster wrap justify="start">
             <CommandButton
               size="sm"
               tone="go"
@@ -249,15 +249,15 @@ function ScienceDataAboardRowAugment({
         </Stack>
       )}
       {sample && (
-        <Stack gap="xs">
-          <Cluster gap="xs" wrap justify="start">
+        <Stack>
+          <Cluster wrap justify="start">
             {sample.sampleMass != null && (
               <Text size="xs">
                 <Unit value={sample.sampleMass} />
               </Text>
             )}
           </Cluster>
-          <Cluster gap="xs" wrap justify="start">
+          <Cluster wrap justify="start">
             <CommandButton
               size="sm"
               tone="go"

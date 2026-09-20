@@ -348,7 +348,7 @@ function ExperimentsComponent({
           slot below renders as a sibling inside this `<ul>` and would need
           to be a list item itself; nothing registers there yet, and the axe
           sweep over this widget's fixtures is what would say so. */}
-      <Stack gap="xs" as="ul" style={INSTRUMENT_LIST}>
+      <Stack as="ul" style={INSTRUMENT_LIST}>
         {items.map((inst) => (
           <Fragment key={inst.partId}>
             <ScienceExperimentRow
@@ -386,11 +386,11 @@ function ExperimentsComponent({
   const contributedNodes = contributedGroups.map(({ ownerLabel, groups }) => (
     <Section key={`contributed-${ownerLabel}`} full gap="sm" title={ownerLabel}>
       {groups.map(({ expId, items }) => (
-        <Stack key={expId} gap="xs">
+        <Stack key={expId}>
           <SectionTitle as="h5">{expId || "(unknown)"}</SectionTitle>
           {/* A real `<ul>`, for the same reason the stock list above needs
               one: the row is a kit `Row`, which renders an `<li>`. */}
-          <Stack gap="xs" as="ul" style={INSTRUMENT_LIST}>
+          <Stack as="ul" style={INSTRUMENT_LIST}>
             {items.map((inst) => (
               <ScienceExperimentRow key={inst.partId} instrument={inst} />
             ))}
@@ -457,14 +457,14 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
   if (labs === null || labs.length === 0) return null;
   return (
     <>
-      <Stack gap="sm">
+      <Stack>
         {labs.map((lab, i) => (
           // A `science.lab` entry carries no stable id, unlike an instrument's `partId`. The list is never reordered within a render, so the index only has to disambiguate two labs that happen to share a `partName`.
           // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
-          <Stack gap="xs" key={`${lab.partName}-${i}`}>
-            <Cluster gap="md">
+          <Stack key={`${lab.partName}-${i}`}>
+            <Cluster>
               <RowName>{lab.partName}</RowName>
-              <Inline gap="sm">
+              <Inline>
                 <Badge
                   severity={
                     lab.isOperational === null
@@ -483,7 +483,7 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
                 {lab.processingData === true && <Badge>PROCESSING</Badge>}
               </Inline>
             </Cluster>
-            <Inline gap="md">
+            <Inline>
               {lab.scientistCount !== null && (
                 <Text tone="muted" size="xs">
                   {lab.scientistCount} scientist
