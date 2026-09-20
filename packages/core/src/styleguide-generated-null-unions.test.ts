@@ -98,6 +98,23 @@ const OMITTED_WHEN_NULL = new Set([
   // it is left out rather than transmitted as an absence, the same rule the
   // `Args` skip below states.
   "CommandRequest.vantage",
+  /* The career economy group, and the reason it is nine entries rather than a
+     type rule: `CareerViewProvider.CarryIfPresent` copies a key only when the
+     capture carried it, which is the ONE provider that does not launder an
+     absence into an explicit null. Every other ViewProvider reads the raw dict
+     through a null-safe reader and writes an unconditional literal, so a key
+     KspHost skipped still arrives holding null. Career says why it differs:
+     "An absent key and a key holding null are different facts here": a model
+     that has no such pool at all, versus a pool that is empty. */
+  "CareerEconomy.economyModel",
+  "CareerEconomy.reputationDecayPerDay",
+  "CareerEconomy.subsidyPerDay",
+  "CareerEconomy.subsidyMinPerDay",
+  "CareerEconomy.subsidyMaxPerDay",
+  "CareerEconomy.upkeepPerDay",
+  "CareerEconomy.unlockCredit",
+  "CareerEconomy.upkeep",
+  "CareerEconomy.upkeepBeforeModifiers",
 ]);
 
 /**
@@ -229,5 +246,11 @@ describe("generated contract types can hold the null the wire sends", () => {
     // these hold only while their marker does.
     expect(sdk).toMatch(/\n\tbreach\?: LimitBreach;\n/);
     expect(sdk).toMatch(/\n\tdetail\?: string;\n/);
+    // Career, the one provider that does not launder an absence into a null.
+    // A value type, a reference type and a nested payload, so the assertion
+    // covers all three shapes the marker has to survive.
+    expect(sdk).toMatch(/\n\tunlockCredit\?: Value<"funds">;\n/);
+    expect(sdk).toMatch(/\n\teconomyModel\?: string;\n/);
+    expect(sdk).toMatch(/\n\tupkeep\?: CareerUpkeep;\n/);
   });
 });

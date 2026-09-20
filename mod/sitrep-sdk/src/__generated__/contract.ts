@@ -353,29 +353,29 @@ export interface CareerEconomy
 	* Which money model answered the four fields below, e.g. `"stock"`. Provenance
 	* only: a client reads the interpretation, never branches on who produced it.
 	*/
-	economyModel?: string | null;
+	economyModel?: string;
 	/**
 	* Reputation lost per day at the current reputation. Zero on stock, which
 	* genuinely has no decay, and that zero is a statement rather than a
 	* placeholder.
 	*/
-	reputationDecayPerDay?: Value<"rep/day"> | null;
+	reputationDecayPerDay?: Value<"rep/day">;
 	/** Funding the current reputation earns, per day. Zero on stock. */
-	subsidyPerDay?: Value<"f/day"> | null;
+	subsidyPerDay?: Value<"f/day">;
 	/** The subsidy at zero reputation: the floor nothing takes away. */
-	subsidyMinPerDay?: Value<"f/day"> | null;
+	subsidyMinPerDay?: Value<"f/day">;
 	/**
 	* The subsidy reputation cannot beat. With the minimum it says how much of the
 	* range the current reputation has bought, which is what turns a bare
 	* reputation number into something an operator can act on.
 	*/
-	subsidyMaxPerDay?: Value<"f/day"> | null;
+	subsidyMaxPerDay?: Value<"f/day">;
 	/**
 	* Total ongoing cost per day. This is why `CareerEconomy.funds` is the right
 	* balance and the wrong affordability test under an overhaul: a balance that
 	* covers a purchase today may not cover it plus next month's salaries.
 	*/
-	upkeepPerDay?: Value<"f/day"> | null;
+	upkeepPerDay?: Value<"f/day">;
 	/**
 	* Where the upkeep goes: the parts `CareerEconomy.upkeepPerDay` is made of,
 	* and they sum to it. ABSENT on stock, which has no per-source model at all:
@@ -387,14 +387,14 @@ export interface CareerEconomy
 	* did not add up to the total beside it would be worse than no set: a reader
 	* has no way to tell which of the two lied.
 	*/
-	upkeep?: CareerUpkeep | null;
+	upkeep?: CareerUpkeep;
 	/**
 	* The same sources, priced BEFORE whatever the model does to them at
 	* transaction time: leaders, strategies, standing discounts. ABSENT when the
 	* model applies nothing, so the difference between this and
 	* `CareerEconomy.upkeep` is what the career's current arrangements are worth.
 	*/
-	upkeepBeforeModifiers?: CareerUpkeep | null;
+	upkeepBeforeModifiers?: CareerUpkeep;
 	/**
 	* A prepaid allowance the elected money model spends BEFORE
 	* `CareerEconomy.funds` on the purchases it covers. In funds, because that is
@@ -405,7 +405,7 @@ export interface CareerEconomy
 	* a per-purchase answer, so a surface that offers such a purchase shows this
 	* and the funds balance together rather than deriving the split itself.
 	*/
-	unlockCredit?: Value<"funds"> | null;
+	unlockCredit?: Value<"funds">;
 }
 /**
 * Ongoing cost by source, per day, from the elected economy model. Every
