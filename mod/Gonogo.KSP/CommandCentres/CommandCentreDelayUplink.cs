@@ -105,9 +105,16 @@ namespace Gonogo.KSP.CommandCentres
                 {
                     Topic = RosterTopic,
                     Delivery = Delivery.LossyLatest,
-                    // Ground-side facts about who can command; instant, same class
-                    // as spaceCenter.launchSites / spaceCenter.pois.
-                    Delay = DelayRole.TrueNow,
+                    // Who can command is a fact the home command holds, so each
+                    // vantage learns a change after its own delay to home. A
+                    // ground centre is effectively instant (sub-second, not
+                    // literally zero) and keeps the live picker it has always
+                    // had; a vessel vantage, piloted or not, sees the roster at
+                    // its light-time home, which is the only honest answer for a
+                    // craft that cannot know who came online until word reaches
+                    // it.
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
