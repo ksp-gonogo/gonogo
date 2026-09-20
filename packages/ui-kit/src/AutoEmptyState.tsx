@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -44,7 +44,7 @@ export function AutoEmptyState({
 const AutoEmptyState__Content = styled.div<{ $gap: SpaceToken }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme, $gap }) => theme.space[$gap]};
+  gap: ${({ $gap }) => SPACE_VAR[$gap]};
   flex: 1;
   min-height: 0;
   overflow: auto;

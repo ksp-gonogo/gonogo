@@ -6,8 +6,6 @@ export { defaultDarkTheme } from "./defaultDarkTheme";
 export type {
   ThemeBorders,
   ThemeColors,
-  ThemeRadii,
-  ThemeSpace,
   ThemeTypography,
   UiKitTheme,
 } from "./theme";

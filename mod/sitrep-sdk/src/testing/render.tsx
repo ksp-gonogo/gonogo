@@ -14,14 +14,19 @@ import { harnessTheme } from "./theme";
 /**
  * The render an Uplink's tests use.
  *
- * Every `@ksp-gonogo/ui-kit` primitive reads `theme.space[...]` / `theme.colors[...]`
- * straight off the styled-components theme. With no provider in scope
+ * A `@ksp-gonogo/ui-kit` primitive that reads `theme.colors[...]` off the
+ * styled-components context needs a provider above it. With none in scope
  * styled-components hands it `{}`, so `theme.colors.text.primary` is a property
  * access on `undefined` and the render throws: not a guard, not a fallback, a
  * TypeError. That is a surprise every single time, and the module that knew about
  * it used to be `@ksp-gonogo/test-utils`, which is `private: true` and which a
  * third-party Uplink author therefore cannot install. 56 Uplink client files
  * imported it anyway, every one of them a file nobody outside this repo could run.
+ *
+ * Spacing and corner radii are NOT part of that: the kit resolves a `gap` or
+ * `pad` prop against its own scale, so those render correctly with no provider
+ * at all and `harnessTheme` does not carry them. Colour is what makes the
+ * provider mandatory.
  *
  * So the theme is ON, always, from here. A test that renders a kit primitive needs
  * no setup call and no provider of its own, and one that renders no primitive pays

@@ -31,8 +31,6 @@ export {
   defaultDarkTheme,
   type ThemeBorders,
   type ThemeColors,
-  type ThemeRadii,
-  type ThemeSpace,
   type ThemeTypography,
   type UiKitTheme,
 } from "@ksp-gonogo/theme";
@@ -560,7 +558,7 @@ export {
   type SelectableRowProps,
 } from "./SelectableRow";
 export { Spinner, type SpinnerProps } from "./Spinner";
-export { type SpaceToken, Stack, type StackProps } from "./Stack";
+export { Stack, type StackProps } from "./Stack";
 export { Stat, type StatProps, StatStrip } from "./Stat";
 export {
   StatContributions,

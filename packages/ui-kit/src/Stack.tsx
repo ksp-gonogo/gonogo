@@ -1,16 +1,6 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-
-/**
- * The space handles a layout primitive accepts, ordered smallest first.
- *
- * `sm+` (6px) and `md+` (10px) were briefly members, to reach the two rungs
- * this union omits. They are gone and nothing ever passed one: a size union
- * that needs half-steps is aliasing the wrong ladder, and the spacing it was
- * reaching for belongs to the semantic layer over panels, cards and
- * containers, which resolves by context rather than by size.
- */
-export type SpaceToken = "xs" | "sm" | "md" | "lg" | "xl";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -53,7 +43,7 @@ export function Stack({ gap, fill = false, children, ...rest }: StackProps) {
 const Stack__Root = styled.div<{ $gap?: SpaceToken; $fill: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme, $gap }) =>
-    $gap ? theme.space[$gap] : "var(--gap-related, var(--space-8, 8px))"};
+  gap: ${({ $gap }) =>
+    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
   ${({ $fill }) => ($fill ? "flex: 1; min-height: 0;" : "")}
 `;

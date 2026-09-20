@@ -1,11 +1,10 @@
 /**
  * Generates `mod/sitrep-sdk/src/__generated__/test-theme.ts`.
  *
- * `@ksp-gonogo/sitrep-sdk/testing`'s `render` mounts a theme, because every
- * ui-kit primitive reads `theme.space[...]` straight off the styled-components
- * context and a render with no provider is a TypeError rather than a fallback.
- * The theme is a MODEL fact owned by `@ksp-gonogo/theme`, so this copies it
- * across.
+ * `@ksp-gonogo/sitrep-sdk/testing`'s `render` mounts a theme, because a ui-kit
+ * primitive reading `theme.colors[...]` off the styled-components context is a
+ * TypeError rather than a fallback when no provider is in scope. The theme is a
+ * MODEL fact owned by `@ksp-gonogo/theme`, so this copies it across.
  *
  * Generated rather than imported because the sdk is the leaf every other package
  * depends on: it can name neither `@ksp-gonogo/theme` (`private: true`, so a
@@ -27,9 +26,7 @@
  * ## Not derived from the property path either
  *
  * The first design emitted `var(--...)` by kebab-casing the property path and
- * singularising the group. 18 of the 45 leaves do not follow it: `space.md` is
- * `--space-8` (the t-shirt names are the published `ThemeSpace` contract and are
- * deliberately not renamed to match the rung numbers), `typography.size.xs` is
+ * singularising the group. Many leaves do not follow it: `typography.size.xs` is
  * `--font-size-xs`, `typography.weight.regular` is the number `400`, and
  * `borders.subtle` is `"1px solid var(...)"`. An arbitrary mapping is not
  * recoverable from a naming rule, so the values are copied verbatim.
@@ -86,7 +83,10 @@ const lines = [
   "//",
   "// Every value here is a `var(--...)` handle or a literal; the numbers behind them",
   "// live in `tokens.css`, which no test loads. So a test asserts on",
-  "// `padding: var(--space-8)`, exactly as the app renders it.",
+  "// `color: var(--color-text-primary)`, exactly as the app renders it.",
+  "//",
+  "// No spacing or corner scale: the kit resolves a size prop against its own,",
+  "// so those need no provider.",
   "",
   "export const GENERATED_TEST_THEME = {",
   ...body,

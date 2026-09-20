@@ -10,7 +10,7 @@ export interface DefaultThemeProviderProps {
  * Mounts the kit's default dark theme: the same one the app mounts in
  * `main.tsx`.
  *
- * Kit primitives read `theme.space`/`theme.colors` and throw without a
+ * Kit primitives read `theme.colors` and throw without a
  * `ThemeProvider` in scope, so every surface that renders them outside the
  * app's own provider (tests, the snapshot harness, embedded slots) needs the
  * pairing of `ThemeProvider` + `defaultDarkTheme`. Re-deriving that pairing at
