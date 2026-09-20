@@ -313,6 +313,12 @@
          headlessly against the reference DLL - same gating contract as the
          ConfigNode-backed suites above. -->
     <Compile Include="..\Gonogo.KSP\FleetCommsReader.cs" />
+    <!-- VesselNodeIndex.cs names a CommNode by walking vessels once. CommNode is
+         a plain class and loads headlessly, but Vessel is the MonoBehaviour this
+         file's own comment calls out, so only the node-identity half and the
+         degenerate vessel lists are exercised - the same split, and for the same
+         reason, as FleetCommsReader.cs above. -->
+    <Compile Include="..\Gonogo.KSP\VesselNodeIndex.cs" />
     <!-- CommandCentreDelayUplink.cs is here for its REGISTRATION, which is
          KSP-free: which of its two sampled sources is subscription-gated is
          the whole of what CommandCentreDelayUplinkRegistrationTests asserts,
