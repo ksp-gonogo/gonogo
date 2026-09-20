@@ -146,6 +146,7 @@ namespace Sitrep.Host.IntegrationTests
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
             public const string Command = "gate.keystroke";
+            public const string Topic = "gate.subject";
             private int _handled;
 
             public int HandledCount => Volatile.Read(ref _handled);
@@ -154,9 +155,18 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Id = "comms-gate-test",
                 Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed, Subject = Topic },
                 },
             };
 

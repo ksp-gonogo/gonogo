@@ -2884,15 +2884,25 @@ namespace Sitrep.Host.IntegrationTests
 
             public const string InfraCommand = "infra.ping";
             public const string VesselCommand = "vessel.ping";
+            public const string VesselTopic = "vessel.ping-subject";
 
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-delay-flag",
                 Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = VesselTopic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
                 Commands = new List<CommandDeclaration>
                 {
                     new CommandDeclaration { Command = InfraCommand, Delay = DelayRole.TrueNow },
-                    new CommandDeclaration { Command = VesselCommand, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = VesselCommand, Delay = DelayRole.Delayed, Subject = VesselTopic },
                 },
             };
 
@@ -2992,26 +3002,45 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Id = "test-vessel-commands",
                 Version = "1.0.0",
+                // Declared so each command below has a real Subject to resolve:
+                // this uplink registers alone (no telemetry-declaring sibling),
+                // so its own commands' subjects must be topics it declares
+                // itself, mirroring Gonogo.KSP.VesselUplink's own pairing of
+                // each command with the channel it targets.
+                Channels = new List<ChannelDeclaration>
+                {
+                    Channel(VesselViewProvider.ControlTopic),
+                    Channel(VesselViewProvider.StructureTopic),
+                    Channel(VesselViewProvider.ManeuverTopic),
+                    Channel(VesselViewProvider.TargetTopic),
+                },
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = VesselCommandProvider.SetSasCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetSasModeCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetRcsCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetGearCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetBrakesCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetLightsCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetAbortCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.StageCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.TargetSetCommand },
-                    new CommandDeclaration { Command = VesselCommandProvider.TargetClearCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetSasCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetSasModeCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetRcsCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetGearCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetBrakesCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetLightsCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetAbortCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.StageCommand, Subject = VesselViewProvider.StructureTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand, Subject = VesselViewProvider.ManeuverTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand, Subject = VesselViewProvider.ManeuverTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand, Subject = VesselViewProvider.ManeuverTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.TargetSetCommand, Subject = VesselViewProvider.TargetTopic },
+                    new CommandDeclaration { Command = VesselCommandProvider.TargetClearCommand, Subject = VesselViewProvider.TargetTopic },
                     new CommandDeclaration { Command = VesselCommandProvider.SetWarpIndexCommand },
                     new CommandDeclaration { Command = VesselCommandProvider.SetPausedCommand },
                 },
+            };
+
+            private static ChannelDeclaration Channel(string topic) => new ChannelDeclaration
+            {
+                Topic = topic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             };
 
             public void Register(IUplinkHost host)
@@ -4034,7 +4063,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = EchoCommand, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = EchoCommand, Delay = DelayRole.Delayed, Subject = RawTopic },
                     new CommandDeclaration { Command = SyncCommand, Delay = DelayRole.TrueNow },
                 },
             };

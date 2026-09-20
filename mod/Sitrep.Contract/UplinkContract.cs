@@ -283,6 +283,26 @@ namespace Sitrep.Contract
         /// default) means ungated, which is every command that exists today.</para>
         /// </summary>
         public CommandRequirement[] Requires { get; set; } = new CommandRequirement[0];
+
+        /// <summary>
+        /// The Topic this command's target lives on: a channel topic, or a
+        /// dynamic namespace's topic with an <c>"{args.X}"</c> segment filled
+        /// from the dispatch args (<c>X</c> names an args property/key, e.g.
+        /// <c>"vessel.partActions.{args.PartId}"</c>). The engine resolves it
+        /// through the SAME node lookup a channel's telemetry uses
+        /// (<c>ChannelEngine.NodeFor</c>), so a command's delay, blackout gate
+        /// and delivery target always agree with whatever topic the operator
+        /// is actually reading.
+        ///
+        /// <para>Empty (the default) only for a <see cref="DelayRole.TrueNow"/>
+        /// command, which has no craft to address at all. Every other command
+        /// must set one that resolves to a channel or namespace some Uplink
+        /// actually declares: <c>ChannelEngine</c> checks this once every
+        /// Uplink has registered and marks a command whose Subject does not
+        /// resolve Unavailable rather than defaulting it to the active
+        /// craft.</para>
+        /// </summary>
+        public string Subject { get; set; } = "";
     }
 
     /// <summary>

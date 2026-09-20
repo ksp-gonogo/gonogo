@@ -440,11 +440,24 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Id = "pending-queue-test",
                 Version = "1.0.0",
+                // Declared so every command below has a real Subject to
+                // resolve: this uplink registers alone, so vessel.control has
+                // to be its own declaration, matching Gonogo.KSP.VesselUplink's
+                // real pairing of these two commands with that channel.
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = VesselViewProvider.ControlTopic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed },
-                    new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed },
-                    new CommandDeclaration { Command = GearCommand, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = GearCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                 },
             };
 

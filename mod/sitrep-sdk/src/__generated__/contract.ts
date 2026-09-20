@@ -191,7 +191,8 @@ export interface ContractActionArgs
 /**
 * `career.facility.upgrade`'s args: the facility's id as the READ side keys
 * it: the `SpaceCenterFacility` enum name (e.g. `"VehicleAssemblyBuilding"`,
-* `"LaunchPad"`), the same id `career.status`'s `facilities` map uses.
+* `"LaunchPad"`), the same id `CareerFacilities`'s `facilities` map uses on
+* the `career.facilities` channel. The buildings do NOT ride `career.status`.
 * Upgrading raises the facility one tier and deducts its upgrade cost from
 * funds.
 */

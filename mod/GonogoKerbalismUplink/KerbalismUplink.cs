@@ -29,6 +29,16 @@ namespace Gonogo.KerbalismUplink
         private const string CrewTopic = "kerbalism.crew";
         private const string ProfileTopic = "kerbalism.profile";
 
+        /// <summary>
+        /// The <c>science.experiments</c> channel topic every File Manager
+        /// command's Subject resolves its node through: each command acts on a
+        /// file/sample aboard the craft, the same craft that channel reads.
+        /// Declared as a literal rather than referencing
+        /// <c>Sitrep.Host.ScienceViewProvider.ExperimentsTopic</c>, which this
+        /// Uplink cannot reference under the isolation rule.
+        /// </summary>
+        private const string ScienceExperimentsSubject = "science.experiments";
+
         private readonly KerbalismReflection _k = new();
 
         /// <summary>
@@ -122,6 +132,7 @@ namespace Gonogo.KerbalismUplink
         private static CommandDeclaration Command(string command) => new()
         {
             Command = command,
+            Subject = ScienceExperimentsSubject,
         };
 
         private static ChannelDeclaration TrueNow(string topic) => new()
