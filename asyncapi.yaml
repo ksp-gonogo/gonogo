@@ -604,8 +604,9 @@ channels:
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
+    x-sitrep-delay-role: delayed
     x-sitrep-keyframe-interval-ut: 1000
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.commandCentre.roster"
