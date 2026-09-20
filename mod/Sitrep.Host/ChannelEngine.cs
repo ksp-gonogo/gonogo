@@ -191,23 +191,86 @@ namespace Sitrep.Host
                 {
                     continue;
                 }
-                var guid = GuidSegment(topic, prefix.Length);
-                return guid == null ? NodeId : FleetNodePrefix + guid;
+                var key = KeySegment(topic, prefix.Length);
+                if (key == null)
+                {
+                    return NodeId;
+                }
+                // A namespace keyed by something other than a vessel says so by
+                // declaring a resolver; without one the key IS the vessel id,
+                // which is how every fleet.<guid> namespace reads.
+                var vesselId = ResolveVesselKey(prefix, key);
+                return vesselId == null ? NodeId : FleetNodePrefix + vesselId;
             }
             return NodeForTopic(topic);
         }
 
         /// <summary>
-        /// The vessel-guid segment of a per-vessel topic: the text between
+        /// The key segment of a per-vessel topic: the text between
         /// <paramref name="start"/> and the next '.', or null when the topic carries
-        /// no field after the guid (a bare "currency.&lt;guid&gt;" is not a channel, so
+        /// no field after the key (a bare "currency.&lt;guid&gt;" is not a channel, so
         /// it falls back to <see cref="NodeId"/> rather than inventing a node).
+        ///
+        /// <para>The key is usually a vessel guid, and is not always: see
+        /// <see cref="ChannelDeclaration.VesselIdForKey"/>. Named for what it is
+        /// positionally rather than for what it usually contains, because a
+        /// namespace whose key is a processor id reads this same slot.</para>
         /// </summary>
-        private static string? GuidSegment(string topic, int start)
+        private static string? KeySegment(string topic, int start)
         {
             var dot = topic.IndexOf('.', start);
             return dot <= start ? null : topic.Substring(start, dot - start);
         }
+
+        /// <summary>
+        /// The vessel a namespace's key belongs to: the key itself for a
+        /// namespace keyed by craft, or whatever its declared resolver says for
+        /// one keyed by anything else.
+        ///
+        /// <para>Null means UNROUTABLE, and the caller falls back to the active
+        /// craft rather than minting <c>fleet.&lt;key&gt;</c> for a node the
+        /// ledger has never heard of. A resolver that throws is treated the same
+        /// way: this runs inside topic resolution on the Courier thread, where
+        /// an escaping exception would take down the tick for every channel, and
+        /// one Uplink's bad resolver must not do that.</para>
+        /// </summary>
+        private string? ResolveVesselKey(string prefix, string key)
+        {
+            if (!_dynamicNamespaces.TryGetValue(prefix, out var template)
+                || template?.VesselIdForKey == null)
+            {
+                return key;
+            }
+            try
+            {
+                var vesselId = template.VesselIdForKey(key);
+                return string.IsNullOrEmpty(vesselId) ? null : vesselId;
+            }
+            catch (Exception ex)
+            {
+                FailSoftNamespaceResolver(prefix, ex);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Reports a namespace resolver that threw, once per namespace: this sits
+        /// on the per-topic resolution path, so an unthrottled report would write
+        /// a line per channel per tick for as long as the fault lasted.
+        /// </summary>
+        private void FailSoftNamespaceResolver(string prefix, Exception ex)
+        {
+            if (!_reportedResolverFaults.Add(prefix))
+            {
+                return;
+            }
+            Console.Error.WriteLine(
+                "[ChannelEngine] dynamic namespace \"" + prefix
+                + "\" VesselIdForKey threw; its topics route to the active craft until it stops: "
+                + SafeExceptionMessage(ex));
+        }
+
+        private readonly HashSet<string> _reportedResolverFaults = new HashSet<string>(StringComparer.Ordinal);
 
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 

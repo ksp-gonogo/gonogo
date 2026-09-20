@@ -12,7 +12,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using kOS.Module;
 using kOS.Safe.Screen;
 using Sitrep.Contract;
@@ -98,6 +100,12 @@ namespace Gonogo.KosUplink
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
+                    // Keyed by coreId, not by craft, so routing needs the map
+                    // CaptureProcessors maintains: without the resolver this
+                    // would read the coreId AS a vessel id and address a node
+                    // nothing writes a delay for.
+                    PerVesselNode = true,
+                    VesselIdForKey = VesselIdForCore,
                 });
 
             // Subscription short-circuit source for OnPrint: every kerboscript
@@ -147,6 +155,12 @@ namespace Gonogo.KosUplink
                     // reveal clock exactly like vessel.flight (comms authority).
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
+                    // Keyed by coreId, not by craft, so routing needs the map
+                    // CaptureProcessors maintains: without the resolver this
+                    // would read the coreId AS a vessel id and address a node
+                    // nothing writes a delay for.
+                    PerVesselNode = true,
+                    VesselIdForKey = VesselIdForCore,
                     // The screen is a cursor-relative diff stream, so a
                     // late/returning subscriber's catch-up must land on a
                     // self-contained FullRepaint frame, never a bare
@@ -215,6 +229,12 @@ namespace Gonogo.KosUplink
                     Delivery = Delivery.ReliableOrdered,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
+                    // Keyed by coreId, not by craft, so routing needs the map
+                    // CaptureProcessors maintains: without the resolver this
+                    // would read the coreId AS a vessel id and address a node
+                    // nothing writes a delay for.
+                    PerVesselNode = true,
+                    VesselIdForKey = VesselIdForCore,
                 });
             // Flattened here, at the actual publish boundary, via
             // KosRunResultBuilder: KosRunManager itself stays typed in terms
@@ -245,15 +265,51 @@ namespace Gonogo.KosUplink
             return ids;
         }
 
+        /// <summary>
+        /// Which craft each CPU is aboard, keyed by <c>KOSCoreId</c> as a string
+        /// because that is the form a topic segment arrives in.
+        ///
+        /// <para>Written whole on the main thread by <see cref="CaptureProcessors"/>
+        /// and swapped in by reference; read on the Courier thread by
+        /// <see cref="VesselIdForCore"/>. Never mutated in place, so a reader
+        /// always sees one complete pass rather than a half-updated map, and no
+        /// lock is needed on a path that runs per topic.</para>
+        /// </summary>
+        private Dictionary<string, string> _coreVessels = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The vessel a kOS topic's <c>coreId</c> segment belongs to, or null
+        /// when the last main-thread pass did not see that CPU.
+        ///
+        /// <para>Null routes the topic to the active craft, which is where every
+        /// kOS topic sat before this existed. The alternative, handing back the
+        /// coreId itself, would mint <c>fleet.&lt;coreId&gt;</c>: a node no
+        /// delay is ever written for, which is a quieter wrong answer than the
+        /// one being fixed.</para>
+        /// </summary>
+        internal string? VesselIdForCore(string coreId) =>
+            Volatile.Read(ref _coreVessels).TryGetValue(coreId, out var vesselId) ? vesselId : null;
+
         /// <summary>MAIN-THREAD capture: read <c>AllInstances()</c> into a plain, KSP-handle-free list.</summary>
         internal object? CaptureProcessors(KspSnapshot? snapshot)
         {
             var list = new List<KosProcessorInfo>();
+            // Rebuilt whole rather than patched: a CPU that has gone (craft
+            // unloaded, part destroyed) must LEAVE the map, and a map that only
+            // ever gains entries would keep routing its topics at a craft that
+            // is no longer carrying it.
+            var coreVessels = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var p in kOSProcessor.AllInstances())
             {
                 if (p == null)
                 {
                     continue;
+                }
+                var vesselId = p.part?.vessel?.id;
+                if (vesselId != null && vesselId != Guid.Empty)
+                {
+                    coreVessels[p.KOSCoreId.ToString(CultureInfo.InvariantCulture)] =
+                        vesselId.Value.ToString();
                 }
                 list.Add(new KosProcessorInfo
                 {
@@ -265,6 +321,11 @@ namespace Gonogo.KosUplink
                     PartName = p.part?.partInfo?.title,
                 });
             }
+            // Published before the snapshot guard below: the routing map is
+            // useful whether or not there is a game clock to stamp a payload
+            // with, and returning early without swapping it would leave routing
+            // reading a pass older than the one just walked.
+            Volatile.Write(ref _coreVessels, coreVessels);
             // Carry the capture UT alongside the list (mirrors
             // CommsCoreUplink.CommsCapture.Ut). Publishing at the real UT (not a
             // hardcoded 0.0) keeps this Delayed channel on the same UT-indexed
