@@ -83,8 +83,10 @@ public class ContractActionArgs
 /// <c>career.facility.upgrade</c>'s args: the facility's id as the READ side
 /// keys it: the <c>SpaceCenterFacility</c> enum name (e.g.
 /// <c>"VehicleAssemblyBuilding"</c>, <c>"LaunchPad"</c>), the same id
-/// <c>career.status</c>'s <c>facilities</c> map uses. Upgrading raises the
-/// facility one tier and deducts its upgrade cost from funds.
+/// <see cref="CareerFacilities"/>'s <c>facilities</c> map uses on the
+/// <c>career.facilities</c> channel. The buildings do NOT ride
+/// <c>career.status</c>. Upgrading raises the facility one tier and deducts
+/// its upgrade cost from funds.
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

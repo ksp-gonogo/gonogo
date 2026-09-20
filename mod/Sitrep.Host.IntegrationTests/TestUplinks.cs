@@ -140,23 +140,23 @@ namespace Sitrep.Host.IntegrationTests
             },
             Commands = new List<CommandDeclaration>
             {
-                Command(VesselCommandProvider.SetSasCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetSasModeCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetRcsCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetGearCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetBrakesCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetLightsCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetAbortCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetThrottleCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.StageCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.SetActionGroupCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetSasCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetSasModeCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetRcsCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetGearCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetBrakesCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetLightsCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetAbortCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetThrottleCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.StageCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.StructureTopic),
+                Command(VesselCommandProvider.SetActionGroupCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ControlTopic),
                 // F2: vessel.maneuver.* reclassified delayed:true (mirrors
                 // Gonogo.KSP.VesselUplink's command-classification table).
-                Command(VesselCommandProvider.ManeuverAddCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.ManeuverUpdateCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.ManeuverRemoveCommand, delay: DelayRole.Delayed),
-                Command(VesselCommandProvider.TargetSetCommand, delay: DelayRole.TrueNow),
-                Command(VesselCommandProvider.TargetClearCommand, delay: DelayRole.TrueNow),
+                Command(VesselCommandProvider.ManeuverAddCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.ManeuverUpdateCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.ManeuverRemoveCommand, delay: DelayRole.Delayed, subject: VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.TargetSetCommand, delay: DelayRole.TrueNow, subject: VesselViewProvider.TargetTopic),
+                Command(VesselCommandProvider.TargetClearCommand, delay: DelayRole.TrueNow, subject: VesselViewProvider.TargetTopic),
                 Command(VesselCommandProvider.SetWarpIndexCommand, delay: DelayRole.TrueNow),
                 Command(VesselCommandProvider.SetPausedCommand, delay: DelayRole.TrueNow),
             },
@@ -210,10 +210,11 @@ namespace Sitrep.Host.IntegrationTests
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
-        private static CommandDeclaration Command(string command, DelayRole delay) => new CommandDeclaration
+        private static CommandDeclaration Command(string command, DelayRole delay, string subject = "") => new CommandDeclaration
         {
             Command = command,
             Delay = delay,
+            Subject = subject,
         };
     }
 

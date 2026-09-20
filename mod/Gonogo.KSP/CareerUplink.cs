@@ -120,7 +120,10 @@ namespace Gonogo.KSP
             // (SitrepCommandAttribute.Delay). None of them changes the scene,
             // and a career write is an ORDER rather than a fact, one a second
             // command centre can issue, so it crosses the gap like any other
-            // order.
+            // order -- to the HOME command's node (each Command() call below
+            // names the HeldAtHome channel it targets), not the active
+            // vessel's: the ledger these orders act on lives at home, so
+            // that is the light-time they should ride.
             //
             // Each carries its declared gates, from GateDeclarations: at
             // minimum "this is a career save", which is a permanent property of
@@ -132,15 +135,15 @@ namespace Gonogo.KSP
             // be dark with a reason instead of live and doomed.
             Commands = new List<CommandDeclaration>
             {
-                Command(CareerCommandProvider.ActivateStrategyCommand),
-                Command(CareerCommandProvider.DeactivateStrategyCommand),
-                Command(CareerCommandProvider.UnlockTechCommand),
-                Command(CareerCommandProvider.AcceptContractCommand),
-                Command(CareerCommandProvider.DeclineContractCommand),
-                Command(CareerCommandProvider.CancelContractCommand),
-                Command(CareerCommandProvider.UpgradeFacilityCommand),
-                Command(CareerCommandProvider.HireApplicantCommand),
-                Command(CareerCommandProvider.FireCrewCommand),
+                Command(CareerCommandProvider.ActivateStrategyCommand, CareerViewProvider.Topic),
+                Command(CareerCommandProvider.DeactivateStrategyCommand, CareerViewProvider.Topic),
+                Command(CareerCommandProvider.UnlockTechCommand, CareerViewProvider.Topic),
+                Command(CareerCommandProvider.AcceptContractCommand, CareerViewProvider.Topic),
+                Command(CareerCommandProvider.DeclineContractCommand, CareerViewProvider.Topic),
+                Command(CareerCommandProvider.CancelContractCommand, CareerViewProvider.Topic),
+                Command(CareerCommandProvider.UpgradeFacilityCommand, CareerViewProvider.FacilitiesTopic),
+                Command(CareerCommandProvider.HireApplicantCommand, SpaceCenterViewProvider.AstronautComplexTopic),
+                Command(CareerCommandProvider.FireCrewCommand, SpaceCenterViewProvider.CrewRosterTopic),
             },
         };
 
@@ -183,10 +186,11 @@ namespace Gonogo.KSP
             host.AddCommandHandler<FireCrewArgs, CommandResult>(CareerCommandProvider.FireCrewCommand, args => CareerCommandProvider.HandleFireCrew(_actuator, args));
         }
 
-        private static CommandDeclaration Command(string command) =>
+        private static CommandDeclaration Command(string command, string subject) =>
             new CommandDeclaration
             {
                 Command = command,
+                Subject = subject,
                 Requires = GateDeclarations.For(command),
             };
     }

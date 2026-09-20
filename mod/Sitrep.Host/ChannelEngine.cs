@@ -1482,6 +1482,7 @@ namespace Sitrep.Host
             // to tear down. See ValidateGateDeclarations for why it cannot live
             // in AddCommandHandler beside the missing-declaration check.
             ValidateGateDeclarations();
+            ValidateCommandSubjects();
             _courierThread.Start();
             _listener.Start();
         }
@@ -2972,6 +2973,75 @@ namespace Sitrep.Host
                         + "or remove the requirement: a gate nobody can evaluate is a gate that silently "
                         + "does not exist.");
             }
+        }
+
+        /// <summary>
+        /// Every non-<see cref="DelayRole.TrueNow"/> command must declare a
+        /// <see cref="CommandDeclaration.Subject"/> that resolves to a channel
+        /// or dynamic namespace some Uplink actually owns, checked once, after
+        /// every Uplink has registered: a Subject naming an Uplink's own
+        /// per-vessel dynamic namespace (<c>vessel.partActions.</c>,
+        /// <c>kos.run.</c>, <c>kos.terminal.</c>) only exists once that
+        /// Uplink's own <see cref="ISitrepUplink.Register"/> has run, which is
+        /// why this cannot run any earlier than <see cref="RegisterUplink"/>
+        /// itself does.
+        ///
+        /// <para>Same failure mechanism as <see cref="RegisterUplink"/>'s own
+        /// HeldAtHome/TrueNow contradiction check, and for the same reason:
+        /// <see cref="MarkUplinkUnavailable"/> disables just the declaring
+        /// Uplink rather than throwing and aborting every Uplink's engine, so
+        /// one command with a typo'd Subject never takes down commands and
+        /// channels it shares nothing with. Unlike
+        /// <see cref="ValidateGateDeclarations"/>'s throw, a bad Subject is
+        /// never a reason to fail the whole engine to start.</para>
+        /// </summary>
+        private void ValidateCommandSubjects()
+        {
+            foreach (var pair in _commandDeclarations)
+            {
+                var command = pair.Key;
+                if (!ResolveCommandDelay(command))
+                {
+                    // TrueNow: no craft or ledger to address, so no Subject is
+                    // expected. See SitrepCommandAttribute.Delay's doc comment
+                    // for what earns TrueNow.
+                    continue;
+                }
+
+                if (SubjectResolvable(pair.Value.Subject))
+                {
+                    continue;
+                }
+
+                if (_commandOwner.TryGetValue(command, out var ownerId))
+                {
+                    MarkUplinkUnavailable(ownerId,
+                        "command \"" + command + "\" declares no Subject topic that resolves to a channel or "
+                        + "dynamic namespace: never falls back to the active craft, declare "
+                        + "CommandDeclaration.Subject as a topic some Uplink actually publishes");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether <paramref name="subject"/> names a real destination: either
+        /// a topic some Uplink declared as a static channel, or a topic under
+        /// a live <see cref="RegisterDynamicNamespace"/> prefix once its
+        /// <c>"{args.X}"</c> segment (if any) is stripped back to the literal
+        /// text before it. A concrete arg value cannot be known at
+        /// registration time, but the prefix in front of it is exactly what a
+        /// dynamic namespace is keyed by, so checking the prefix is checking
+        /// the real thing rather than approximating it.
+        /// </summary>
+        private bool SubjectResolvable(string subject)
+        {
+            if (string.IsNullOrEmpty(subject))
+            {
+                return false;
+            }
+            var brace = subject.IndexOf('{');
+            var literal = brace < 0 ? subject : subject.Substring(0, brace);
+            return _channelDeclarations.ContainsKey(literal) || FindDynamicNamespaceForTopic(literal) != null;
         }
 
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
@@ -6252,6 +6322,68 @@ namespace Sitrep.Host
                 || declaration.Delay == DelayRole.Delayed;
         }
 
+        /// <summary>
+        /// The node <paramref name="job"/> addresses: its declared
+        /// <see cref="CommandDeclaration.Subject"/>, with every
+        /// <c>"{args.X}"</c> segment filled from <paramref name="job"/>'s own
+        /// args and resolved through <see cref="NodeFor"/>, the SAME lookup a
+        /// channel's telemetry resolves its node through. Falls back to
+        /// <see cref="NodeId"/> for a command with no Subject (TrueNow, or a
+        /// declaration this dispatch could not find), which is also what
+        /// <see cref="NodeFor"/> itself resolves an unrecognised topic to, so
+        /// the fallback and the general case share one answer.
+        /// </summary>
+        private string ResolveSubjectNode(DispatchCommandJob job)
+        {
+            if (!_commandDeclarations.TryGetValue(job.Command, out var declaration)
+                || string.IsNullOrEmpty(declaration.Subject))
+            {
+                return NodeId;
+            }
+
+            return NodeFor(FillSubjectArgs(declaration.Subject, job.Args));
+        }
+
+        /// <summary>
+        /// Replaces every <c>"{args.X}"</c> segment in <paramref name="subject"/>
+        /// with the dispatch's own arg named <c>X</c> (case-insensitive property
+        /// or dictionary-key lookup, via the same <see cref="GateArguments"/> a
+        /// gate requirement reads its args through). A segment whose name the
+        /// args do not carry fills in empty, which resolves through
+        /// <see cref="NodeFor"/> exactly like any other topic this Uplink never
+        /// declared: to <see cref="NodeId"/>, never a thrown exception on the
+        /// Courier thread.
+        /// </summary>
+        private static string FillSubjectArgs(string subject, object? args)
+        {
+            var open = subject.IndexOf("{args.", StringComparison.Ordinal);
+            if (open < 0)
+            {
+                return subject;
+            }
+
+            var arguments = new GateArguments(args);
+            var result = new StringBuilder();
+            var cursor = 0;
+            while (open >= 0)
+            {
+                var close = subject.IndexOf('}', open);
+                if (close < 0)
+                {
+                    break;
+                }
+                result.Append(subject, cursor, open - cursor);
+                var name = subject.Substring(open + 6, close - open - 6);
+                result.Append(arguments.TryGet(name, out var value)
+                    ? Convert.ToString(value, CultureInfo.InvariantCulture)
+                    : "");
+                cursor = close + 1;
+                open = subject.IndexOf("{args.", cursor, StringComparison.Ordinal);
+            }
+            result.Append(subject, cursor, subject.Length - cursor);
+            return result.ToString();
+        }
+
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
             // IMPORTANT-A: an unknown command AND a command whose owning
@@ -6345,23 +6477,32 @@ namespace Sitrep.Host
                 return;
             }
 
+            // Which node this command addresses: the command's own declared
+            // Subject topic (a career order's home-command ledger, a kOS
+            // command's CPU, everything else the active craft), resolved
+            // through the SAME NodeFor a channel's telemetry resolves its
+            // node through, so a command can never disagree with the topic it
+            // names.
+            var node = ResolveSubjectNode(job);
+
             // Comms-loss uplink gate: honest silence. A DELAYED command (a kOS
-            // keystroke, a vessel actuation) dispatched while the link is DOWN
-            // must be DROPPED (no execute, no response), symmetric with the
-            // reveal gate freezing the DOWNLINK on disconnect (see
-            // RevealDelayFor's !_commsConnected freeze). Without this the command
-            // would ride the Courier's light-time delay and reach the vessel
-            // after the blackout as if it never happened, the live-observed bug
-            // where keystrokes still reached the CPU during signal loss.
-            // _commsConnected is Courier-thread state (set by the tick job in
-            // ApplyConnectivity), read here on that same thread.
-            if (!SubjectConnected(NodeId))
+            // keystroke, a vessel actuation) dispatched while the link to its
+            // subject is DOWN must be DROPPED (no execute, no response),
+            // symmetric with the reveal gate freezing the DOWNLINK on
+            // disconnect (see RevealDelayFor's !_commsConnected freeze).
+            // Without this the command would ride the Courier's light-time
+            // delay and reach the subject after the blackout as if it never
+            // happened, the live-observed bug where keystrokes still reached
+            // the CPU during signal loss. _commsConnected is Courier-thread
+            // state (set by the tick job in ApplyConnectivity), read here on
+            // that same thread.
+            if (!SubjectConnected(node))
             {
                 job.Done?.Set();
                 return;
             }
 
-            // Uplink signal delay: a delayed command must reach the craft at
+            // Uplink signal delay: a delayed command must reach its subject at
             // t0 + the LIVE one-way signal delay, symmetric with the downlink
             // reveal gate (RevealDelayFor). Without this the Courier used its
             // fixed network hop (0 in production), so keystrokes and vessel
@@ -6376,7 +6517,7 @@ namespace Sitrep.Host
             // CaptureSignalDelay). Used for the pending-uplink prediction here
             // and, via the Courier's own DelayTo fallback below, for the actual
             // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
-            var uplinkDelay = _network.DelayTo(job.Vantage, NodeId);
+            var uplinkDelay = _network.DelayTo(job.Vantage, node);
 
             var requestId = NextRequestId();
 
@@ -6418,7 +6559,7 @@ namespace Sitrep.Host
             // No explicit uplinkDelaySeconds: the Courier falls back to
             // DelayTo(vantage, node) -- the same ledger delay used above -- so
             // telemetry and command delay share one per-(vantage, node) model.
-            _courier.DispatchCommand(NodeId, requestId, job.Command, job.Args, job.Vantage, response =>
+            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response =>
             {
                 job.OnResult(response.Result);
                 job.Done?.Set();

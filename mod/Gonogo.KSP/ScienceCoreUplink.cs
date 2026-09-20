@@ -154,8 +154,8 @@ namespace Gonogo.KSP
             // here, see SitrepCommandAttribute.Delay.
             Commands = new List<CommandDeclaration>
             {
-                Command(ScienceCommandProvider.DeployCommand),
-                Command(ScienceCommandProvider.TransmitCommand),
+                Command(ScienceCommandProvider.DeployCommand, ScienceViewProvider.InstrumentsTopic),
+                Command(ScienceCommandProvider.TransmitCommand, ScienceViewProvider.InstrumentsTopic),
             },
         };
 
@@ -206,9 +206,10 @@ namespace Gonogo.KSP
         private IScienceBackend Backend() =>
             (_kernel != null ? ScienceElection.Elected(_kernel) : null) ?? _vanilla;
 
-        private static CommandDeclaration Command(string command) => new CommandDeclaration
+        private static CommandDeclaration Command(string command, string subject) => new CommandDeclaration
         {
             Command = command,
+            Subject = subject,
         };
     }
 }

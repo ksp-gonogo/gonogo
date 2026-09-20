@@ -223,27 +223,29 @@ namespace Gonogo.KSP
             // Terminal/kOS uplink delay is a SEPARATE stream, not this rule.
             Commands = new List<CommandDeclaration>
             {
-                Command(VesselCommandProvider.SetSasCommand),
-                Command(VesselCommandProvider.SetSasModeCommand),
-                Command(VesselCommandProvider.SetRcsCommand),
-                Command(VesselCommandProvider.SetGearCommand),
-                Command(VesselCommandProvider.SetBrakesCommand),
-                Command(VesselCommandProvider.SetLightsCommand),
-                Command(VesselCommandProvider.SetAbortCommand),
-                Command(VesselCommandProvider.SetThrottleCommand),
-                Command(VesselCommandProvider.StageCommand),
-                Command(VesselCommandProvider.SetActionGroupCommand),
-                Command(VesselCommandProvider.SetFlyByWireCommand),
-                Command(VesselCommandProvider.SetControlAxesCommand),
-                Command(VesselCommandProvider.ManeuverAddCommand),
-                Command(VesselCommandProvider.ManeuverUpdateCommand),
-                Command(VesselCommandProvider.ManeuverRemoveCommand),
-                Command(VesselCommandProvider.ManeuverPlanSendCommand),
-                Command(VesselCommandProvider.TargetSetCommand),
-                Command(VesselCommandProvider.TargetClearCommand),
+                Command(VesselCommandProvider.SetSasCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetSasModeCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetRcsCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetGearCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetBrakesCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetLightsCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetAbortCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetThrottleCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.StageCommand, VesselViewProvider.StructureTopic),
+                Command(VesselCommandProvider.SetActionGroupCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetFlyByWireCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetControlAxesCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.ManeuverAddCommand, VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.ManeuverUpdateCommand, VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.ManeuverRemoveCommand, VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.ManeuverPlanSendCommand, VesselViewProvider.ManeuverTopic),
+                Command(VesselCommandProvider.TargetSetCommand, VesselViewProvider.TargetTopic),
+                Command(VesselCommandProvider.TargetClearCommand, VesselViewProvider.TargetTopic),
+                // TrueNow: no craft to address, so no Subject (see
+                // ChannelEngine.ValidateCommandSubjects).
                 Command(VesselCommandProvider.SetWarpIndexCommand),
                 Command(VesselCommandProvider.SetPausedCommand),
-                Command(PartActionCommandProvider.InvokePartActionCommand),
+                Command(PartActionCommandProvider.InvokePartActionCommand, PartActionsViewProvider.PartActionsPrefix + "{args.PartId}"),
             },
         };
 
@@ -579,9 +581,10 @@ namespace Gonogo.KSP
             return declaration;
         }
 
-        private static CommandDeclaration Command(string command) => new CommandDeclaration
+        private static CommandDeclaration Command(string command, string subject = "") => new CommandDeclaration
         {
             Command = command,
+            Subject = subject,
         };
     }
 }

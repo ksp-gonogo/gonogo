@@ -118,15 +118,15 @@ namespace Gonogo.KSP
             // args types, see SitrepCommandAttribute.Delay.
             Commands = new List<CommandDeclaration>
             {
-                Command(RoboticsCommandProvider.ServoSetTargetCommand),
-                Command(RoboticsCommandProvider.ServoSetMotorCommand),
-                Command(RoboticsCommandProvider.ServoSetLockCommand),
-                Command(RoboticsCommandProvider.RotorSetRpmLimitCommand),
-                Command(RoboticsCommandProvider.RotorSetTorqueLimitCommand),
-                Command(RoboticsCommandProvider.RotorSetBrakeCommand),
-                Command(RoboticsCommandProvider.RotorSetMotorCommand),
-                Command(RoboticsCommandProvider.RotorSetLockCommand),
-                Command(RoboticsCommandProvider.RotorReverseCommand),
+                Command(RoboticsCommandProvider.ServoSetTargetCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.ServoSetMotorCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.ServoSetLockCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.RotorSetRpmLimitCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.RotorSetTorqueLimitCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.RotorSetBrakeCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.RotorSetMotorCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.RotorSetLockCommand, BreakingGroundViewProvider.RoboticsTopic),
+                Command(RoboticsCommandProvider.RotorReverseCommand, BreakingGroundViewProvider.RoboticsTopic),
             },
         };
 
@@ -167,9 +167,10 @@ namespace Gonogo.KSP
             host.AddCommandHandler<RotorReverseArgs, CommandResult>(RoboticsCommandProvider.RotorReverseCommand, args => RoboticsCommandProvider.HandleRotorReverse(_actuator, args));
         }
 
-        private static CommandDeclaration Command(string command) => new CommandDeclaration
+        private static CommandDeclaration Command(string command, string subject) => new CommandDeclaration
         {
             Command = command,
+            Subject = subject,
         };
     }
 }
