@@ -1667,15 +1667,15 @@ const READOUT_PAIR: CSSProperties = {
 
 /**
  * The label in {@link READOUT_STACK}, beside its value rather than under it.
- * The 28px floor is what lines the three values up when they sit above each
- * other; three-across the label is a `ReadoutCaption` under its own reading and
- * needs no floor.
+ *
+ * It carries no width floor. HDG, PCH and RLL are each exactly three
+ * monospace glyphs, so they already measure the same and a floor would align
+ * nothing that is not aligned.
  */
 const READOUT_LABEL: CSSProperties = {
   fontSize: "var(--font-size-2xs)",
   letterSpacing: "0.12em",
   color: "var(--color-text-faint)",
-  minWidth: "28px",
 };
 
 const READOUT_VALUE: CSSProperties = {
@@ -1849,7 +1849,15 @@ registerComponent<NavballConfig>({
     "Attitude indicator + control surface. Reads heading/pitch/roll and exposes a deep action surface (every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim) so a hardware stick mapped via the Inputs tab can fly the vessel.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
-  minSize: { w: 3, h: 4 },
+  /*
+   * Four wide by five tall is where the stacked readout stops clipping. At
+   * 3x4 the row needs 81px in a 78px column, and 82px once a coarse pointer
+   * grows the touch targets, so the clip is vertical and present in every
+   * attitude rather than only at extreme roll. Trimming cannot close it: the
+   * three rows are heading, pitch and roll, and dropping one of those is
+   * dropping attitude information a pilot is reading.
+   */
+  minSize: { w: 4, h: 5 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
   // Both attitude frames are declared because the widget reads whichever the
