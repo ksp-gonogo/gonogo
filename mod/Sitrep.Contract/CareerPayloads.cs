@@ -158,6 +158,7 @@ public class CareerEconomy
     /// produced it.
     /// </summary>
     [SitrepUnit(Units.Id)]
+    [SitrepOmittedWhenNull]
     public string? EconomyModel { get; set; }
 
     /// <summary>
@@ -166,14 +167,17 @@ public class CareerEconomy
     /// placeholder.
     /// </summary>
     [SitrepUnit(Units.ReputationPerDay)]
+    [SitrepOmittedWhenNull]
     public double? ReputationDecayPerDay { get; set; }
 
     /// <summary>Funding the current reputation earns, per day. Zero on stock.</summary>
     [SitrepUnit(Units.FundsPerDay)]
+    [SitrepOmittedWhenNull]
     public double? SubsidyPerDay { get; set; }
 
     /// <summary>The subsidy at zero reputation: the floor nothing takes away.</summary>
     [SitrepUnit(Units.FundsPerDay)]
+    [SitrepOmittedWhenNull]
     public double? SubsidyMinPerDay { get; set; }
 
     /// <summary>
@@ -182,6 +186,7 @@ public class CareerEconomy
     /// reputation number into something an operator can act on.
     /// </summary>
     [SitrepUnit(Units.FundsPerDay)]
+    [SitrepOmittedWhenNull]
     public double? SubsidyMaxPerDay { get; set; }
 
     /// <summary>
@@ -190,6 +195,7 @@ public class CareerEconomy
     /// covers a purchase today may not cover it plus next month's salaries.
     /// </summary>
     [SitrepUnit(Units.FundsPerDay)]
+    [SitrepOmittedWhenNull]
     public double? UpkeepPerDay { get; set; }
 
     /// <summary>
@@ -204,6 +210,7 @@ public class CareerEconomy
     /// did not add up to the total beside it would be worse than no set: a reader
     /// has no way to tell which of the two lied.
     /// </remarks>
+    [SitrepOmittedWhenNull]
     public CareerUpkeep? Upkeep { get; set; }
 
     /// <summary>
@@ -212,6 +219,7 @@ public class CareerEconomy
     /// model applies nothing, so the difference between this and
     /// <see cref="Upkeep"/> is what the career's current arrangements are worth.
     /// </summary>
+    [SitrepOmittedWhenNull]
     public CareerUpkeep? UpkeepBeforeModifiers { get; set; }
 
     /// <summary>
@@ -226,6 +234,7 @@ public class CareerEconomy
     /// and the funds balance together rather than deriving the split itself.
     /// </remarks>
     [SitrepUnit(Units.Funds)]
+    [SitrepOmittedWhenNull]
     public double? UnlockCredit { get; set; }
 }
 
