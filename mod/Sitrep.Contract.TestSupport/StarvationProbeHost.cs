@@ -245,10 +245,6 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
-        public void SetVesselJourney(string vesselId, IReadOnlyList<CommsJourneyLeg> legs)
-        {
-        }
-
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
         {
         }

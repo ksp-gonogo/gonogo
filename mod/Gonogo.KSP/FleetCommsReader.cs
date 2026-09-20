@@ -99,7 +99,7 @@ namespace Gonogo.KSP
 
                 if (config != null && config.CutForNoCommsModel)
                 {
-                    return new Journey(new[] { new Leg(0.0) });
+                    return new Journey(new[] { new Hop(0.0) });
                 }
 
                 var conn = vessel.connection;

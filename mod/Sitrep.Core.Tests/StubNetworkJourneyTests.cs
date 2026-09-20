@@ -119,14 +119,14 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork(delay: 0);
             var journey = new Journey(new[]
             {
-                new Leg(1.0, distanceMeters: 100, touchesHome: false),
-                new Leg(2.5, distanceMeters: 200, touchesHome: true),
+                new Hop(1.0, distanceMeters: 100, touchesHome: false),
+                new Hop(2.5, distanceMeters: 200, touchesHome: true),
             });
 
             network.SetNodeJourney("fleet.near", journey);
 
             var resolved = network.JourneyTo("KSC", "fleet.near");
-            Assert.Equal(2, resolved.Legs.Count);
+            Assert.Equal(2, resolved.Hops.Count);
             Assert.Equal(3.5, resolved.TotalSeconds);
             Assert.Equal(network.DelayTo("KSC", "fleet.near"), resolved.TotalSeconds);
         }
@@ -135,12 +135,12 @@ namespace Sitrep.Core.Tests
         public void SetNodeDelayAfterSetNodeJourneyRetiresTheJourney()
         {
             var network = new StubNetwork(delay: 0);
-            network.SetNodeJourney("fleet.near", new Journey(new[] { new Leg(1.0), new Leg(2.0) }));
+            network.SetNodeJourney("fleet.near", new Journey(new[] { new Hop(1.0), new Hop(2.0) }));
 
             network.SetNodeDelay("fleet.near", 9.0);
 
             var resolved = network.JourneyTo("KSC", "fleet.near");
-            Assert.Single(resolved.Legs);
+            Assert.Single(resolved.Hops);
             Assert.Equal(9.0, resolved.TotalSeconds);
         }
 
@@ -148,7 +148,7 @@ namespace Sitrep.Core.Tests
         public void ExplicitPairOutranksANodeJourney_ButOnlyForItsOwnVantage()
         {
             var network = new StubNetwork(delay: 0);
-            network.SetNodeJourney("fleet.near", new Journey(new[] { new Leg(1.0), new Leg(2.0) }));
+            network.SetNodeJourney("fleet.near", new Journey(new[] { new Hop(1.0), new Hop(2.0) }));
             network.SetDelay("KSC", "fleet.near", 42.0);
 
             Assert.Equal(42.0, network.JourneyTo("KSC", "fleet.near").TotalSeconds);

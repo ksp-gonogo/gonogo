@@ -139,7 +139,6 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddCommandRequirement(string command, CommandRequirement requirement) => throw new NotSupportedException();
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
-            public void SetVesselJourney(string vesselId, IReadOnlyList<CommsJourneyLeg> legs) => throw new NotSupportedException();
             public List<(string, string, double)> AuthorityDelays { get; } = new List<(string, string, double)>();
             public List<Dictionary<string, double>> ActiveVesselDelays { get; } = new List<Dictionary<string, double>>();
 

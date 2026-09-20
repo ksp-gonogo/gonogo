@@ -275,7 +275,7 @@ namespace Sitrep.Host.Comms
 
             if (config == null || !config.Enabled)
             {
-                return new Journey(new[] { new Leg(0.0) });
+                return new Journey(new[] { new Hop(0.0) });
             }
 
             var effectiveC = EffectiveC(config);
@@ -284,7 +284,7 @@ namespace Sitrep.Host.Comms
                 return null;
             }
 
-            var legs = new Leg[hops.Count];
+            var timedHops = new Hop[hops.Count];
             double cumulativeMeters = 0.0;
             double cumulativeSeconds = 0.0;
             for (var i = 0; i < hops.Count; i++)
@@ -293,7 +293,7 @@ namespace Sitrep.Host.Comms
                 var previousSeconds = cumulativeSeconds;
                 cumulativeMeters += hop.DistanceMeters;
                 cumulativeSeconds = cumulativeMeters / effectiveC.Value;
-                legs[i] = new Leg(
+                timedHops[i] = new Hop(
                     cumulativeSeconds - previousSeconds,
                     hop.DistanceMeters,
                     hop.TouchesHome,
@@ -301,7 +301,7 @@ namespace Sitrep.Host.Comms
                     hop.ToHandle);
             }
 
-            return new Journey(legs);
+            return new Journey(timedHops);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Sitrep.Contract;
+using Sitrep.Core;
 using Sitrep.Host;
 using Xunit;
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
@@ -45,27 +46,27 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The route the vessel-home capture walks (see
         /// <c>Gonogo.KSP.FleetChannels</c>) can now hand the ledger a
-        /// multi-leg journey rather than a bare scalar: <c>SetVesselJourney</c>,
+        /// multi-hop journey rather than a bare scalar: <c>SetVesselJourney</c>,
         /// called right after <c>SetVesselDelay</c> as production does, is
         /// what a real fleet capture wires. Not started, same reasoning as
         /// above: these are pure ledger writes, no WS server involved.
         /// </summary>
         [Fact]
-        public void SetVesselJourneyGivesTheLedgerTheRoutesLegs()
+        public void SetVesselJourneyGivesTheLedgerTheRoutesHops()
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
 
             engine.SetVesselDelay("probe", 3.5);
-            engine.SetVesselJourney("probe", new[]
+            engine.SetVesselJourney("probe", new Journey(new[]
             {
-                new CommsJourneyLeg(1.0, distanceMeters: 100, touchesHome: false, fromHandle: null, toHandle: null),
-                new CommsJourneyLeg(2.5, distanceMeters: 200, touchesHome: true, fromHandle: null, toHandle: null),
-            });
+                new Hop(1.0, distanceMeters: 100, touchesHome: false),
+                new Hop(2.5, distanceMeters: 200, touchesHome: true),
+            }));
 
             var node = ChannelEngine.FleetNodePrefix + "probe";
             var journey = engine.LedgerJourneyFor("KSC", node);
 
-            Assert.Equal(2, journey.Legs.Count);
+            Assert.Equal(2, journey.Hops.Count);
             Assert.Equal(3.5, journey.TotalSeconds);
             Assert.Equal(engine.LedgerDelayFor("KSC", node), journey.TotalSeconds);
         }
