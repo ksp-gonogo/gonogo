@@ -820,6 +820,10 @@ export class TelemetryClient {
       this.handleCommandResponse(message.requestId, message.result);
       return;
     }
+    if (message.type === "command-accepted") {
+      this.handleCommandAccepted(message.requestId, message.oneWaySeconds);
+      return;
+    }
     if (message.type === "error") {
       // An error carrying a TOPIC and no requestId is not a reply to any
       // command: it is a channel that was acked and then could not be put on
@@ -904,6 +908,45 @@ export class TelemetryClient {
         epoch: meta.timelineEpoch,
       });
     }
+    this.notifyStore();
+  }
+
+  /**
+   * Arm this command's loss deadline from the number the ENGINE used to send
+   * it, replacing whatever was armed at dispatch.
+   *
+   * The dispatch-time deadline can only ever be built from the delay the client
+   * can see, which is the active craft's. A command addressed to another node
+   * (a career order held at home, a spend from a distant vessel) travels a
+   * different path entirely, so that deadline grades it against the wrong
+   * flight and can call it lost while its reply is still legitimately in the
+   * air. This is the correction, and it is authoritative because the engine is
+   * the thing that actually scheduled the delivery.
+   *
+   * Silently ignores a request id it does not know: a reply that already
+   * arrived, or a command settled some other way, has nothing left to time.
+   */
+  private handleCommandAccepted(
+    requestId: string,
+    oneWaySeconds: number,
+  ): void {
+    const pending = this.commands.get(requestId);
+    if (!pending) return;
+    /*
+     * Already settled, which a zero-delay reply can be by beating its own
+     * acceptance frame back. There is no deadline left to move, and arming one
+     * would schedule a loss for a command that is finished.
+     */
+    if (!pending.resolve) return;
+    if (!Number.isFinite(oneWaySeconds) || oneWaySeconds < 0) return;
+
+    const etaConfirm = this.clock.now() + 2 * oneWaySeconds;
+    pending.cancelLossTimer?.();
+    pending.status = { phase: "in-flight", requestId, etaConfirm };
+    pending.cancelLossTimer = this.clock.schedule(
+      etaConfirm + LOSS_MARGIN,
+      () => this.handleLoss(requestId),
+    );
     this.notifyStore();
   }
 

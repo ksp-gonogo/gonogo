@@ -19,6 +19,7 @@ const SERVER_TYPE_TAGS = {
   "stream-data": true,
   event: true,
   "command-response": true,
+  "command-accepted": true,
   error: true,
   "stream-binary": false,
 } satisfies Record<ServerMessage["type"], boolean>;

@@ -280,6 +280,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     distance: "m",
     time: "ut",
   },
+  "CommandAccepted": {
+    oneWaySeconds: "s",
+    requestId: "id",
+    type: "id",
+  },
   "CommandCentreEntry": {
     active: "flag",
     bodyIndex: "id",

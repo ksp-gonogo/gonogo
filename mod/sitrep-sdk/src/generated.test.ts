@@ -127,6 +127,11 @@ const TRANSPORT_ONLY = new Set([
   "StreamBinary",
   "CommandRequest",
   "CommandResponse",
+  // Its `oneWaySeconds` exists to be arithmetic: the client turns it straight
+  // into a loss deadline (`now() + 2 * oneWaySeconds`). Nothing renders it, and
+  // the rail shows the resulting ETA rather than the flight time it came from.
+  // Same case as `Meta`'s timestamps, one envelope over.
+  "CommandAccepted",
   "CommandResultOf",
 ]);
 

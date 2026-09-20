@@ -1,6 +1,7 @@
 // Hand-owned: RT cannot derive the union alias from C# generics. Under the drift gate.
 
 import type {
+  CommandAccepted,
   CommandRequest,
   CommandResponse,
   ErrorMsg,
@@ -16,6 +17,7 @@ export type ServerMessage =
   | StreamData<unknown>
   | EventMsg
   | CommandResponse<unknown>
+  | CommandAccepted
   | ErrorMsg
   // The one member that never arrives as text. It comes off the BINARY LANE
   // (`binary-frame.ts`), already decoded, and is in the union so every

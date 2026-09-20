@@ -8,7 +8,7 @@ namespace Sitrep.Contract.Serialization
     /// <summary>
     /// Hand-written writer/reader for every envelope DTO in
     /// <c>Sitrep.Contract</c> (<see cref="Meta"/>, <c>StreamData&lt;object?&gt;</c>,
-    /// <c>CommandResponse&lt;object?&gt;</c>, <see cref="EventMsg"/>,
+    /// <c>CommandResponse&lt;object?&gt;</c>, <see cref="CommandAccepted"/>, <see cref="EventMsg"/>,
     /// <see cref="ErrorMsg"/>, <see cref="Subscribe"/>, <see cref="Unsubscribe"/>,
     /// <c>CommandRequest&lt;object?&gt;</c>): no Json.NET, no
     /// System.Text.Json; see <see cref="JsonWriter"/>/<see cref="JsonReader"/>.
@@ -399,6 +399,35 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        public static string WriteCommandAccepted(CommandAccepted msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "requestId");
+            JsonWriter.AppendString(sb, msg.RequestId);
+
+            AppendField(sb, "oneWaySeconds");
+            JsonWriter.AppendNumber(sb, msg.OneWaySeconds);
+
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        public static CommandAccepted ParseCommandAccepted(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "command-accepted");
+            return new CommandAccepted
+            {
+                Type = "command-accepted",
+                RequestId = RequireString(raw, "requestId"),
+                OneWaySeconds = RequireDouble(raw, "oneWaySeconds"),
+            };
+        }
+
         public static ErrorMsg ParseErrorMsg(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -498,6 +527,7 @@ namespace Sitrep.Contract.Serialization
                     "stream-data" => ParseStreamData(json),
                     "event" => ParseEventMsg(json),
                     "command-response" => ParseCommandResponse(json),
+                    "command-accepted" => ParseCommandAccepted(json),
                     "error" => ParseErrorMsg(json),
                     _ => throw new UnknownEnvelopeTypeException($"unknown server envelope type: {type}"),
                 };

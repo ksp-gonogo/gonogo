@@ -246,6 +246,11 @@
       "distance": "m",
       "time": "ut"
     },
+    "CommandAccepted": {
+      "oneWaySeconds": "s",
+      "requestId": "id",
+      "type": "id"
+    },
     "CommandCentreEntry": {
       "active": "flag",
       "bodyIndex": "id",

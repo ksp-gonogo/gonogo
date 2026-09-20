@@ -39,6 +39,7 @@ public static class RtConfig
         builder.ExportAsInterface<Meta>().AutoI(false).WithPublicProperties().OverrideName("Meta");
         builder.ExportAsInterface<EventMsg>().AutoI(false).WithPublicProperties().OverrideName("EventMsg");
         builder.ExportAsInterface<ErrorMsg>().AutoI(false).WithPublicProperties().OverrideName("ErrorMsg");
+        builder.ExportAsInterface<CommandAccepted>().AutoI(false).WithPublicProperties().OverrideName("CommandAccepted");
         builder.ExportAsInterface<Subscribe>().AutoI(false).WithPublicProperties().OverrideName("Subscribe");
         builder.ExportAsInterface<Unsubscribe>().AutoI(false).WithPublicProperties().OverrideName("Unsubscribe");
         builder.ExportAsInterface<SetVantage>().AutoI(false).WithPublicProperties().OverrideName("SetVantage");

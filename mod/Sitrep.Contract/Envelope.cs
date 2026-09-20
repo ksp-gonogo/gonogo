@@ -125,6 +125,56 @@ public class CommandResponse<TResult>
     public Meta Meta { get; set; } = new();
 }
 
+/// <summary>
+/// Sent the moment the engine takes a dispatch onto the delayed path, carrying
+/// the one-way light-time it will actually travel. It says THE COMMAND IS ON
+/// ITS WAY AND HERE IS WHEN TO EXPECT AN ANSWER, never that anything executed.
+///
+/// <para>A client cannot work this out for itself. The delay depends on the
+/// node the command is addressed to, which the engine resolves from the
+/// command's declared subject, and on the vantage it was sent from: a client
+/// sizing a loss deadline from the delay it can see (the active craft's) grades
+/// a command to a different node against the wrong path entirely.</para>
+///
+/// <para>Correlated by <see cref="RequestId"/>, the client's own id off its
+/// <c>command-request</c>. That is safe here and is NOT safe on
+/// <c>system.uplink.pending</c>, whose entries carry an engine-minted id
+/// instead: two clients can choose the same request id, so a broadcast channel
+/// cannot pair them, whereas this frame travels back down the one socket that
+/// sent the request.</para>
+///
+/// <para>Absent for a dispatch that never rides light-time (a
+/// <c>TrueNow</c> command, or a live delay resolving to zero), because there is
+/// no flight to wait out. Absent also for a refusal, which sends an
+/// <see cref="ErrorMsg"/> instead. A client must therefore treat "no acceptance
+/// yet" as ordinary rather than as an error.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommandAccepted
+{
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"command-accepted\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "command-accepted";
+
+    /// <summary>The client's own id, echoed from its <c>command-request</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string RequestId { get; set; } = "";
+
+    /// <summary>
+    /// One-way light-time from the sending vantage to the node this command is
+    /// addressed to, as the engine's ledger has it AT DISPATCH. Frozen: a route
+    /// change afterwards is discrete and the sender may never learn of it, so
+    /// this is not re-sent.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double OneWaySeconds { get; set; }
+}
+
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
