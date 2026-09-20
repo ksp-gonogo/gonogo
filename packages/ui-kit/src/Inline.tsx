@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
   /**
@@ -56,8 +56,8 @@ const Inline__Root = styled.span<{
   $wrap: boolean;
 }>`
   display: inline-flex;
-  gap: ${({ theme, $gap }) =>
-    $gap ? theme.space[$gap] : "var(--gap-related, var(--space-8, 8px))"};
+  gap: ${({ $gap }) =>
+    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
   flex-shrink: ${({ $wrap }) => ($wrap ? 1 : 0)};
   ${({ $wrap }) => $wrap && `flex-wrap: wrap; min-width: 0;`}
   ${({ $inset }) => $inset && `margin-left: var(--space-6, 6px);`}

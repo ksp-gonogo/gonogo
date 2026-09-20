@@ -34,10 +34,10 @@ import { modClientRoots } from "./styleguideScanRoots";
  * nothing when the containers can answer the question.
  */
 
-/** The props a layout primitive resolves against `theme.space`. */
+/** The props a layout primitive resolves against the kit's space scale. */
 const SIZE_PROPS = ["gap", "rowGap", "space", "pad"];
 
-/** `SpaceToken`, as ui-kit declares it. */
+/** `SpaceToken`, as ui-kit declares it internally. */
 const SIZES = ["xs", "sm", "md", "lg", "xl"];
 
 /**

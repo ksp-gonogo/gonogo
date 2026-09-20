@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export type GridAlign = "center" | "start" | "baseline";
 
@@ -78,10 +78,8 @@ const Grid__Root = styled.div<{
 }>`
   display: grid;
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
-  gap: ${({ theme, $gap, $rowGap }) =>
-    $rowGap
-      ? `${theme.space[$rowGap]} ${theme.space[$gap]}`
-      : theme.space[$gap]};
+  gap: ${({ $gap, $rowGap }) =>
+    $rowGap ? `${SPACE_VAR[$rowGap]} ${SPACE_VAR[$gap]}` : SPACE_VAR[$gap]};
   grid-template-columns: ${({ $cols, $minColWidth }) => {
     if ($cols) return $cols;
     if ($minColWidth) return `repeat(auto-fill, minmax(${$minColWidth}, 1fr))`;

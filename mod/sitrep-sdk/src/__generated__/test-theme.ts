@@ -12,7 +12,10 @@
 //
 // Every value here is a `var(--...)` handle or a literal; the numbers behind them
 // live in `tokens.css`, which no test loads. So a test asserts on
-// `padding: var(--space-8)`, exactly as the app renders it.
+// `color: var(--color-text-primary)`, exactly as the app renders it.
+//
+// No spacing or corner scale: the kit resolves a size prop against its own,
+// so those need no provider.
 
 export const GENERATED_TEST_THEME = {
   colors: {
@@ -77,20 +80,6 @@ export const GENERATED_TEST_THEME = {
       wide: "0.15em",
       body: "0",
     },
-  },
-  space: {
-    xs: "var(--space-2)",
-    sm: "var(--space-4)",
-    md: "var(--space-8)",
-    lg: "var(--space-12)",
-    xl: "var(--space-16)",
-  },
-  radii: {
-    xs: "var(--radius-xs)",
-    sm: "var(--radius-sm)",
-    md: "var(--radius-md)",
-    lg: "var(--radius-lg)",
-    pill: "var(--radius-pill)",
   },
   borders: {
     subtle: "1px solid var(--color-border-subtle)",

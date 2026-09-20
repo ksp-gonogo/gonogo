@@ -14,8 +14,6 @@
 export type {
   ThemeBorders,
   ThemeColors,
-  ThemeRadii,
-  ThemeSpace,
   ThemeTypography,
   UiKitTheme,
   UiKitTheme as GonogoTheme,

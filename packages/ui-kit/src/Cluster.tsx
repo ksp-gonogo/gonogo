@@ -1,6 +1,6 @@
 import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export type ClusterJustify = "between" | "start" | "center" | "end";
 export type ClusterAlign = "center" | "start" | "baseline";
@@ -91,8 +91,8 @@ const Cluster__Root = styled.div<{
   display: flex;
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
   justify-content: ${({ $justify }) => JUSTIFY_CONTENT[$justify]};
-  gap: ${({ theme, $gap }) =>
-    $gap ? theme.space[$gap] : "var(--gap-related, var(--space-8, 8px))"};
+  gap: ${({ $gap }) =>
+    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
   ${({ $wrap }) => ($wrap ? "flex-wrap: wrap;" : "")}
   min-width: 0;
 `;

@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { RADIUS_VAR, SPACE_VAR } from "./scales";
 
 export type GraphNoticePlacement = "overlay" | "inline";
 
@@ -18,14 +19,14 @@ export interface GraphNoticeProps extends HTMLAttributes<HTMLDivElement> {
 const PLACEMENT_STYLES = {
   overlay: css`
     position: absolute;
-    bottom: ${({ theme }) => theme.space.sm};
-    left: ${({ theme }) => theme.space.md};
+    bottom: ${SPACE_VAR.sm};
+    left: ${SPACE_VAR.md};
   `,
   inline: css`
     flex: 0 0 auto;
     align-self: flex-start;
     max-width: 100%;
-    margin-top: ${({ theme }) => theme.space.sm};
+    margin-top: ${SPACE_VAR.sm};
   `,
 } as const;
 
@@ -62,8 +63,8 @@ const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
      value here (flagged in the migration report); promote to a
      --color-scrim token if a second consumer needs the exact value. */
   background: rgba(0, 0, 0, 0.7);
-  padding: ${({ theme }) => theme.space.xs} ${({ theme }) => theme.space.sm};
-  border-radius: ${({ theme }) => theme.radii.xs};
+  padding: ${SPACE_VAR.xs} ${SPACE_VAR.sm};
+  border-radius: ${RADIUS_VAR.xs};
   pointer-events: none;
 
   ${({ $placement }) => PLACEMENT_STYLES[$placement]}

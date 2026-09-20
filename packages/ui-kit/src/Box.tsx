@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { RADIUS_VAR, SPACE_VAR, type SpaceToken } from "./scales";
 
 export type BoxSurface = "app" | "panel" | "raised" | "sunken";
 export type BoxRadius = "xs" | "sm" | "md" | "lg" | "pill";
@@ -55,13 +55,13 @@ const Box__Root = styled.div<{
 }>`
   ${({ $surface }) => $surface && `background: ${SURFACE_VAR[$surface]};`}
   ${({ $bordered }) => $bordered && `border: 1px solid var(--color-border-subtle);`}
-  ${({ theme, $radius }) => $radius && `border-radius: ${theme.radii[$radius]};`}
-  ${({ theme, $pad }) => {
+  ${({ $radius }) => $radius && `border-radius: ${RADIUS_VAR[$radius]};`}
+  ${({ $pad }) => {
     if (!$pad) return "";
     if (Array.isArray($pad)) {
       const [y, x] = $pad;
-      return `padding: ${theme.space[y]} ${theme.space[x]};`;
+      return `padding: ${SPACE_VAR[y]} ${SPACE_VAR[x]};`;
     }
-    return `padding: ${theme.space[$pad]};`;
+    return `padding: ${SPACE_VAR[$pad]};`;
   }}
 `;
