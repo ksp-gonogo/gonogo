@@ -430,10 +430,10 @@ namespace Sitrep.Core
         public Journey JourneyTo(string vantage, string node)
         {
             // Every writer today (SetDefaultDelay / SetNodeDelay / SetDelay) is
-            // scalar, so the journey it produces is always a single leg with no
+            // scalar, so the journey it produces is always a single hop with no
             // geometry or handles: there is nothing yet to split it into more.
             var seconds = ResolveBaseDelay(vantage, node) * _scale;
-            return new Journey(new[] { new Leg(seconds) });
+            return new Journey(new[] { new Hop(seconds) });
         }
 
         // Resolution order: an explicit (vantage, node) pair overrides a
