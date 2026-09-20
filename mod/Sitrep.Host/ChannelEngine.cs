@@ -1130,6 +1130,17 @@ namespace Sitrep.Host
         // (dynamic sub-topics included), value byte is unused.
         private readonly ConcurrentDictionary<string, byte> _subscribedTopics = new ConcurrentDictionary<string, byte>();
 
+        /// <summary>
+        /// Who holds a standing subscription on each topic, by topic. Courier
+        /// thread only, the same rule as the <c>_subscriptions</c> counts it
+        /// adds to and removes from. A holder appears at most once per topic,
+        /// so a repeated open leaves the count alone and a repeated close
+        /// cannot drive it below what the clients hold. See
+        /// <see cref="OpenStandingSubscription"/>.
+        /// </summary>
+        private readonly Dictionary<string, HashSet<string>> _standingSubscriptions =
+            new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
         // topic/command -> owning uplink id, populated in RegisterUplink
         // alongside _channelDeclarations/_commandDeclarations. Lets Tick's
         // channel loop and ProcessDispatchCommand consult _availability
@@ -4940,6 +4951,9 @@ namespace Sitrep.Host
                             case UnsubscribeJob unsubscribe:
                                 ProcessUnsubscribe(unsubscribe.Session, unsubscribe.Topic);
                                 break;
+                            case StandingSubscriptionJob standing:
+                                ProcessStandingSubscription(standing);
+                                break;
                             case DisconnectJob disconnect:
                                 ProcessDisconnect(disconnect.Session);
                                 break;
@@ -6688,6 +6702,154 @@ namespace Sitrep.Host
             _pending.RemoveAll(entry => ut > entry.DispatchedAt + (2 * entry.OneWaySeconds));
         }
 
+        /// <summary>
+        /// Keep <paramref name="topic"/> recorded for as long as
+        /// <paramref name="holder"/> needs it, with no client session behind it.
+        ///
+        /// <para>Both paths that feed the archive skip a topic nothing is
+        /// subscribed to (<see cref="ProcessTick"/>'s channel loop and
+        /// <see cref="ProcessPublish"/>), so "subscribed" is what decides
+        /// whether a topic is recorded at all, and a client subscribe is the
+        /// only thing that ever said it. Something the HOST needs watched -- a
+        /// threshold armed at a command centre, say -- has no session to ask on
+        /// its behalf, and would otherwise read its own topic as permanently
+        /// empty. A standing subscription is that need, stated directly.</para>
+        ///
+        /// <para>It holds the topic for EVERY consumer, not for the holder: the
+        /// archive is one store per (node, topic), so a topic held open here is
+        /// readable at any vantage and catches a later client subscriber up on
+        /// everything recorded while it was the only reason to record. The
+        /// holder is a name, not a channel.</para>
+        ///
+        /// <para>A holder holds a topic once: repeating this call leaves the
+        /// count where it is, so an arm that runs twice cannot strand a
+        /// subscriber that no <see cref="CloseStandingSubscription"/> can
+        /// reach. Nothing releases a standing subscription but its holder, and
+        /// one left open outlives the reason it was opened for without saying
+        /// so, which is why <see cref="CloseStandingSubscriptions"/> exists for
+        /// a holder whose whole reason has gone away at once.</para>
+        ///
+        /// <para>A topic that is neither declared nor under a registered
+        /// dynamic namespace is refused and reported, matching what a client
+        /// subscribe to the same topic would be told.</para>
+        /// </summary>
+        public void OpenStandingSubscription(string topic, string holder)
+        {
+            RequireStandingSubscriptionArgs(topic, holder);
+            EnqueueJob(new StandingSubscriptionJob(topic, holder, open: true));
+        }
+
+        /// <summary>
+        /// Release <paramref name="holder"/>'s standing subscription on
+        /// <paramref name="topic"/>. A no-op if it holds none: the topic stays
+        /// recorded for as long as any other holder or any client still wants
+        /// it, and goes quiet the moment the last one lets go.
+        /// </summary>
+        public void CloseStandingSubscription(string topic, string holder)
+        {
+            RequireStandingSubscriptionArgs(topic, holder);
+            EnqueueJob(new StandingSubscriptionJob(topic, holder, open: false));
+        }
+
+        /// <summary>
+        /// Release every standing subscription <paramref name="holder"/> is
+        /// holding. What a holder whose reasons all die together calls, rather
+        /// than remembering the topics itself to close them one by one.
+        /// </summary>
+        public void CloseStandingSubscriptions(string holder)
+        {
+            if (string.IsNullOrWhiteSpace(holder))
+            {
+                throw new ArgumentException("a standing subscription needs a holder", nameof(holder));
+            }
+            EnqueueJob(new StandingSubscriptionJob(null, holder, open: false));
+        }
+
+        private static void RequireStandingSubscriptionArgs(string topic, string holder)
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+            {
+                throw new ArgumentException("a standing subscription needs a topic", nameof(topic));
+            }
+            if (string.IsNullOrWhiteSpace(holder))
+            {
+                throw new ArgumentException("a standing subscription needs a holder", nameof(holder));
+            }
+        }
+
+        private void ProcessStandingSubscription(StandingSubscriptionJob job)
+        {
+            if (job.Open)
+            {
+                OpenStandingSubscriptionOnCourier(job.Topic!, job.Holder);
+                return;
+            }
+            if (job.Topic != null)
+            {
+                CloseStandingSubscriptionOnCourier(job.Topic, job.Holder);
+                return;
+            }
+            foreach (var topic in new List<string>(_standingSubscriptions.Keys))
+            {
+                CloseStandingSubscriptionOnCourier(topic, job.Holder);
+            }
+        }
+
+        private void OpenStandingSubscriptionOnCourier(string topic, string holder)
+        {
+            if (!_channelDeclarations.ContainsKey(topic))
+            {
+                var dynamicPrefix = FindDynamicNamespaceForTopic(topic);
+                if (dynamicPrefix == null)
+                {
+                    Console.Error.WriteLine(
+                        "[ChannelEngine] standing subscription on unknown topic \"" + topic
+                        + "\" refused (holder \"" + holder + "\")");
+                    return;
+                }
+                EnsureDynamicTopicDeclared(dynamicPrefix, topic);
+            }
+
+            if (!_standingSubscriptions.TryGetValue(topic, out var holders))
+            {
+                holders = new HashSet<string>(StringComparer.Ordinal);
+                _standingSubscriptions[topic] = holders;
+            }
+            if (!holders.Add(holder))
+            {
+                return;
+            }
+
+            // The same 0 -> 1 work a client subscribe does, and for the same
+            // reason: the capture gate reads the mirror, and the emitter would
+            // otherwise sit on this topic until the keyframe cadence came round.
+            // What is deliberately NOT done here is the per-session half --
+            // no Courier stream, and no dynamic-namespace subscribe listener,
+            // which announces a viewer to repaint for and there is none.
+            if (_subscriptions.Subscribe(topic))
+            {
+                _subscribedTopics[topic] = 0;
+                _emitter.NotifySubscribed(topic);
+            }
+        }
+
+        private void CloseStandingSubscriptionOnCourier(string topic, string holder)
+        {
+            if (!_standingSubscriptions.TryGetValue(topic, out var holders) || !holders.Remove(holder))
+            {
+                return;
+            }
+            if (holders.Count == 0)
+            {
+                _standingSubscriptions.Remove(topic);
+            }
+            if (_subscriptions.Unsubscribe(topic))
+            {
+                _subscribedTopics.TryRemove(topic, out _);
+            }
+            CleanUpSubjectIfGone(topic);
+        }
+
         private void ProcessSubscribe(ClientSession session, string topic)
         {
             // MEDIUM-3: gate on any DECLARED channel (_channelDeclarations),
@@ -7443,6 +7605,25 @@ namespace Sitrep.Host
             {
                 Session = session;
                 Topic = topic;
+            }
+        }
+
+        /// <summary>
+        /// One standing subscription opened or closed on the Courier thread,
+        /// which is the only thread allowed to touch the subscription counts.
+        /// A close with a null <see cref="Topic"/> releases every topic this
+        /// holder holds; an open always names one.
+        /// </summary>
+        private sealed class StandingSubscriptionJob : IEngineJob
+        {
+            public readonly string? Topic;
+            public readonly string Holder;
+            public readonly bool Open;
+            public StandingSubscriptionJob(string? topic, string holder, bool open)
+            {
+                Topic = topic;
+                Holder = holder;
+                Open = open;
             }
         }
 
