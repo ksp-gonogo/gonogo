@@ -54,7 +54,9 @@ mod/         : The Gonogo mod (C#) and the generated `sitrep-sdk`, plus each
                 in the Sitrep section above
 ```
 
-**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope. Only `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` are published; every other workspace package is `private: true` and unreachable by a third-party Uplink.
+**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope. **Three packages are publishable** (not `private: true`): `@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/ui-kit`, and `@ksp-gonogo/uplink-tools`. Every other workspace package is `private: true` and unreachable by a third-party Uplink.
+
+`release.yml`'s publish matrix is hand-listed and names only the sdk and the kit, so `uplink-tools` does not reach npm today and is not there (`npm view` 404s). But the flag, not the matrix, is what the isolation gates read: `uplink-isolation.test.ts`'s `discoverPublished()` excludes a package on `private === true` "matching what `npm publish` would actually do, rather than a second list to keep in step", and its floor is `MIN_PUBLISHED_PACKAGES = 3`. So treat `uplink-tools` as a published surface when reasoning about what an Uplink may reach, and do not describe the published set as two.
 
 ---
 
