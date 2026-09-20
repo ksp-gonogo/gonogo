@@ -192,6 +192,29 @@ namespace Sitrep.Contract
         public bool PerVesselNode { get; set; } = false;
 
         /// <summary>
+        /// Turns this namespace's key segment into the id of the vessel that
+        /// owns it, for a namespace whose key is NOT itself a vessel id.
+        ///
+        /// <para>Without this, <see cref="PerVesselNode"/> reads the segment
+        /// after the prefix AS a vessel id. That is right for a namespace keyed
+        /// by craft and wrong for one keyed by anything else: a namespace keyed
+        /// by, say, a processor id would resolve to a node no delay is ever
+        /// written for, which is a QUIETER failure than the wrong delay it was
+        /// meant to fix. Null keeps the segment-is-the-id reading.</para>
+        ///
+        /// <para>Return null for a key this pass cannot place, and routing falls
+        /// back to the active craft, which is where an unrouted topic sits
+        /// today. Never invent an id: a node with no delay row is worse than a
+        /// node with the wrong one.</para>
+        ///
+        /// <para><b>Must not read live game state.</b> It is called on the
+        /// Courier thread while resolving a topic, and a Unity read from there
+        /// throws. Maintain a snapshot during the Uplink's own main-thread pass
+        /// and have this read that.</para>
+        /// </summary>
+        public Func<string, string?>? VesselIdForKey { get; set; }
+
+        /// <summary>
         /// Whether this channel's samples are held aboard the subject through a
         /// loss of signal and replayed on reacquisition, rather than discarded.
         ///

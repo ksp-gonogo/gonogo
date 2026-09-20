@@ -759,4 +759,111 @@ namespace Sitrep.Host.IntegrationTests
             };
         }
     }
+
+    /// <summary>
+    /// Routing for a per-vessel namespace whose key is NOT a vessel id.
+    ///
+    /// <para>A namespace keyed by a device rather than by a craft cannot use
+    /// the plain <c>PerVesselNode</c> reading, which takes the key to BE the
+    /// vessel id: it would address <c>fleet.&lt;deviceKey&gt;</c>, a node
+    /// nothing ever writes a delay for. That is a QUIETER failure than the
+    /// wrong delay it would be fixing, which is why such a namespace declares
+    /// a resolver instead.</para>
+    ///
+    /// <para>Deliberately exercised through a test double rather than a real
+    /// Uplink: the behaviour belongs to the engine, and naming a particular
+    /// Uplink here would both couple this suite to it and put that Uplink's
+    /// token outside its own directory.</para>
+    /// </summary>
+    public class KeyedNamespaceRoutingTests
+    {
+        [Fact]
+        public void AKeyedNamespaceResolvesItsKeyToTheOwningVessel()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(
+                key => key == "7" ? "vessel-abc" : null));
+
+            Assert.Equal(
+                ChannelEngine.FleetNodePrefix + "vessel-abc",
+                engine.NodeFor("keyed.7.screen"));
+        }
+
+        /// <summary>
+        /// A key this pass cannot place routes to the ACTIVE CRAFT, where an
+        /// unrouted topic already sits, rather than to a minted node the ledger
+        /// has never heard of. Never inventing an id is the point: a node with
+        /// no delay row is worse than one with the wrong delay, because nothing
+        /// downstream can see that it is missing.
+        /// </summary>
+        [Fact]
+        public void AnUnplaceableKeyFallsBackToTheActiveCraft()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(_ => null));
+
+            Assert.Equal(ChannelEngine.NodeId, engine.NodeFor("keyed.7.screen"));
+        }
+
+        /// <summary>
+        /// A resolver that throws is contained. It runs inside topic resolution
+        /// on the Courier thread, so an escaping exception would take the tick
+        /// down for every channel in the engine rather than just this Uplink's.
+        /// </summary>
+        [Fact]
+        public void AThrowingResolverDoesNotEscapeTopicResolution()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(
+                _ => throw new InvalidOperationException("resolver blew up")));
+
+            Assert.Equal(ChannelEngine.NodeId, engine.NodeFor("keyed.7.screen"));
+        }
+
+        /// <summary>
+        /// A per-vessel namespace with NO resolver keeps reading its key AS the
+        /// vessel id, which is how every <c>fleet.&lt;guid&gt;</c> namespace
+        /// works and what must not change.
+        /// </summary>
+        [Fact]
+        public void ANamespaceWithoutAResolverStillReadsItsKeyAsTheVesselId()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(null));
+
+            Assert.Equal(
+                ChannelEngine.FleetNodePrefix + "7",
+                engine.NodeFor("keyed.7.screen"));
+        }
+
+        private sealed class KeyedNamespaceTestUplink : ISitrepUplink
+        {
+            private readonly Func<string, string?>? _resolver;
+
+            internal KeyedNamespaceTestUplink(Func<string, string?>? resolver)
+            {
+                _resolver = resolver;
+            }
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "keyed-namespace-test",
+                Version = "1.0.0",
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.RegisterDynamicNamespace("keyed.", new ChannelDeclaration
+                {
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                    PerVesselNode = true,
+                    VesselIdForKey = _resolver,
+                });
+            }
+        }
+    }
 }
