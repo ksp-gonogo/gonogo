@@ -4,7 +4,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// Unit tests for <see cref="Journey"/>, <see cref="Leg"/> and
+    /// Unit tests for <see cref="Journey"/>, <see cref="Hop"/> and
     /// <see cref="StubNetwork.JourneyTo"/>. Cross-language conformance for
     /// the scalar surface stays with <see cref="StubNetworkGoldenFixtureTests"/>;
     /// these lock the C#-only journey shape, which has no TS reference.
@@ -12,31 +12,31 @@ namespace Sitrep.Core.Tests
     public class StubNetworkJourneyTests
     {
         [Fact]
-        public void JourneyTotalSecondsSumsItsLegs()
+        public void JourneyTotalSecondsSumsItsHops()
         {
             var journey = new Journey(new[]
             {
-                new Leg(2.0, distanceMeters: 100, touchesHome: true),
-                new Leg(3.5),
-                new Leg(0.5),
+                new Hop(2.0, distanceMeters: 100, touchesHome: true),
+                new Hop(3.5),
+                new Hop(0.5),
             });
 
             Assert.Equal(6.0, journey.TotalSeconds);
-            Assert.Equal(3, journey.Legs.Count);
-            Assert.Equal(100, journey.Legs[0].DistanceMeters);
-            Assert.True(journey.Legs[0].TouchesHome);
+            Assert.Equal(3, journey.Hops.Count);
+            Assert.Equal(100, journey.Hops[0].DistanceMeters);
+            Assert.True(journey.Hops[0].TouchesHome);
         }
 
         [Fact]
         public void LegDefaultsGeometryAndHandlesWhenNotGiven()
         {
-            var leg = new Leg(1.5);
+            var hop = new Hop(1.5);
 
-            Assert.Equal(1.5, leg.Seconds);
-            Assert.Equal(0, leg.DistanceMeters);
-            Assert.False(leg.TouchesHome);
-            Assert.Null(leg.FromHandle);
-            Assert.Null(leg.ToHandle);
+            Assert.Equal(1.5, hop.Seconds);
+            Assert.Equal(0, hop.DistanceMeters);
+            Assert.False(hop.TouchesHome);
+            Assert.Null(hop.FromHandle);
+            Assert.Null(hop.ToHandle);
         }
 
         [Fact]
@@ -44,10 +44,10 @@ namespace Sitrep.Core.Tests
         {
             var from = new object();
             var to = new object();
-            var leg = new Leg(1.0, fromHandle: from, toHandle: to);
+            var hop = new Hop(1.0, fromHandle: from, toHandle: to);
 
-            Assert.True(ReferenceEquals(from, leg.FromHandle));
-            Assert.True(ReferenceEquals(to, leg.ToHandle));
+            Assert.True(ReferenceEquals(from, hop.FromHandle));
+            Assert.True(ReferenceEquals(to, hop.ToHandle));
         }
 
         [Fact]
@@ -100,8 +100,8 @@ namespace Sitrep.Core.Tests
 
         private static void AssertSingleLeg(Journey journey, double expectedSeconds)
         {
-            Assert.Single(journey.Legs);
-            Assert.Equal(expectedSeconds, journey.Legs[0].Seconds);
+            Assert.Single(journey.Hops);
+            Assert.Equal(expectedSeconds, journey.Hops[0].Seconds);
             Assert.Equal(expectedSeconds, journey.TotalSeconds);
         }
     }
