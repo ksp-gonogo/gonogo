@@ -398,22 +398,14 @@ function toInterval<U extends string>(
    * its own on: `formatQuantity` takes the magnitude and the unit as two plain
    * arguments, so a quantity cannot be handed over whole.
    */
-  const write = (quantity: Value<U>): string =>
+  const write = <W extends string>(quantity: Value<W>): string =>
     formatQuantity(quantity.magnitude, quantity.unit, {
       ...opts,
       format: rung,
     }).value;
-  /*
-   * The two half-widths are subtracted on magnitudes rather than through
-   * `minus`, and that is an API GAP rather than a shortcut. `minus` is declared
-   * over `Addend<U>`, which a bare `U extends string` cannot be shown to
-   * satisfy, so `band.hi.minus(band.value)` does not compile in a component
-   * generic over its unit even though both operands are the same `Value<U>`.
-   * The dimension is safe anyway: all three ends came back from `bandIn`
-   * narrowed to the one unit, which is the check `minus` would have done.
-   */
-  const width = (from: Value<U>, to: Value<U>): string =>
-    write(quantity(shown.unit, to.magnitude - from.magnitude));
+  // Through the algebra, which checks the dimension the same way `bandIn` has
+  // already narrowed all three ends to one unit.
+  const width = (from: Value<U>, to: Value<U>): string => write(to.minus(from));
   const below = width(band.lo, band.value);
   const above = width(band.value, band.hi);
   const anchored = write(band.value) === write(shown);

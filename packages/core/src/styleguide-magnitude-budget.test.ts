@@ -407,21 +407,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   /*
-   * 4. Two of the four are the seam `units.ts` spends its three on:
-   * `formatQuantity` takes the magnitude and the unit as two plain arguments,
-   * so a quantity object cannot be handed over whole. One of those two is the
-   * single writer every end of the band goes through.
+   * TWO, and both are the seam `units.ts` spends its three on: `formatQuantity`
+   * takes the magnitude and the unit as two plain arguments, so a quantity
+   * cannot be handed over whole. One is the single writer every end of the band
+   * goes through, and the other is the figure itself.
    *
-   * The OTHER TWO are an API gap and are worth widening `Value` to close.
-   * `minus` is declared over `Addend<U>`, which a bare `U extends string`
-   * cannot be shown to satisfy, so `band.hi.minus(band.value)` does not compile
-   * inside a component generic over its unit even though both operands are one
-   * `Value<U>`. The two half-widths are therefore subtracted on magnitudes,
-   * with the dimension already established by `bandIn` having narrowed all
-   * three ends to the same unit. Give `minus` a same-unit overload and this
-   * entry falls to 2 on its own.
+   * The two half-widths that used to sit here are gone: they are `minus` now,
+   * which is the same dimension check `bandIn` has already applied to all three
+   * ends.
    */
-  "packages/ui-kit/src/Unit.tsx": 4,
+  "packages/ui-kit/src/Unit.tsx": 2,
   /*
    * ONE, on the same `formatQuantity` seam: the staleness caption renders the
    * reading's own `asOfUt` on the game's calendar through the formatter rather

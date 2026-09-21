@@ -356,6 +356,15 @@ export interface Value<U extends string = string> {
    */
   minus(other: Value<PointCounterpart<U>>): Value<VectorResult<U>>;
   minus(other: Value<Addend<U>> | BareOperand<U>): Value<U>;
+  /*
+   * The SAME-unit arm, LAST so it catches only what the two above cannot.
+   * `Addend<U>` is deferred while `U` is still a type parameter, so two
+   * operands of one generic unit do not compile against either arm even though
+   * they are plainly the same kind. A concrete unit still resolves above this:
+   * a point lands in the point arm and keeps its vector result, which is why
+   * the return is conditional rather than a flat `Value<U>`.
+   */
+  minus(other: Value<U>): Value<U extends PointUnit ? VectorResult<U> : U>;
 
   /**
    * Total. Any dimension over any dimension; `rep/f` is coherent.
