@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 544 of them
- * across 229 files.
+ * Assertions that escape `unknown`, per file. The tree carries 515 of them
+ * across 217 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 342 of the 544 are
+ * **A test fixture minted through an assertion.** 323 of the 515 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 227 of the 544 are `as unknown as`, and those are worth taking
+ * 208 of the 515 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 103 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 93 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 229 files those would be 229 sentences
+ * sentence per entry: at 217 files those would be 217 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -231,30 +231,18 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/core/src/widget-fixture-conformance.ts": 1,
   // packages/data: 1 in 1 files (0 out of `any`, 0 in tests), walked 53 files
   "packages/data/src/hooks/useOptionalStreamEvent.ts": 1,
-  // packages/serial: 21 in 8 files (10 out of `any`, 9 in tests), walked 72 files
-  "packages/serial/src/mocks/mockGamepad.test.ts": 1,
-  "packages/serial/src/mocks/mockGamepad.ts": 4,
-  "packages/serial/src/mocks/mockWebSerial.ts": 4,
-  "packages/serial/src/SerialDeviceService.test.ts": 1,
-  "packages/serial/src/SerialDeviceService.ts": 2,
-  "packages/serial/src/SerialDevicesMenu/DeviceEditor.test.tsx": 3,
-  "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.test.tsx": 4,
+  // packages/serial: 2 in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 25 in 16 files (5 out of `any`, 23 in tests), walked 163 files
+  // packages/sitrep-client: 15 in 11 files (5 out of `any`, 13 in tests), walked 164 files
   "packages/sitrep-client/src/client.test.ts": 2,
   "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
   "packages/sitrep-client/src/full-history-replay.ts": 1,
   "packages/sitrep-client/src/processorEvaluator.test.ts": 1,
   "packages/sitrep-client/src/reference-wire-fixture.test.ts": 1,
   "packages/sitrep-client/src/replay-recorder.test.ts": 1,
   "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
-  "packages/sitrep-client/src/space-center-state.test.ts": 1,
-  "packages/sitrep-client/src/system-state.test.ts": 1,
-  "packages/sitrep-client/src/uplink-health.test.ts": 1,
   "packages/sitrep-client/src/version.gate.test.ts": 1,
-  "packages/sitrep-client/src/vessel-state-mapping.coverage.test.ts": 3,
-  "packages/sitrep-client/src/vessel-state.test.ts": 3,
+  "packages/sitrep-client/src/vessel-state.test.ts": 1,
   "packages/sitrep-client/src/websocket-transport.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.ts": 1,
   // packages/ui-kit: 5 in 5 files (1 out of `any`, 3 in tests), walked 269 files
@@ -412,20 +400,12 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/core/src/settings/gameHost.ts": 1,
   "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
-  // packages/serial: 11 in 4 files (0 out of `any`, 1 in tests), walked 72 files
-  "packages/serial/src/mocks/mockGamepad.ts": 4,
-  "packages/serial/src/mocks/mockWebSerial.ts": 4,
-  "packages/serial/src/SerialDeviceService.test.ts": 1,
+  // packages/serial: 2 in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 18 in 10 files (0 out of `any`, 17 in tests), walked 163 files
+  // packages/sitrep-client: 8 in 5 files (0 out of `any`, 7 in tests), walked 164 files
   "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
   "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
-  "packages/sitrep-client/src/space-center-state.test.ts": 1,
-  "packages/sitrep-client/src/system-state.test.ts": 1,
-  "packages/sitrep-client/src/uplink-health.test.ts": 1,
-  "packages/sitrep-client/src/vessel-state-mapping.coverage.test.ts": 3,
-  "packages/sitrep-client/src/vessel-state.test.ts": 3,
+  "packages/sitrep-client/src/vessel-state.test.ts": 1,
   "packages/sitrep-client/src/websocket-transport.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.ts": 1,
   // packages/ui-kit: 3 in 3 files (0 out of `any`, 2 in tests), walked 269 files
@@ -475,8 +455,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 19,
-  files: 2228,
-  assertions: 1981,
+  files: 2229,
+  assertions: 1925,
 } as const;
 
 /**
@@ -496,7 +476,7 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/logger": 8,
   "packages/relay": 10,
   "packages/serial": 57,
-  "packages/sitrep-client": 130,
+  "packages/sitrep-client": 131,
   "packages/test-utils": 1,
   "packages/theme": 3,
   "packages/ui": 48,

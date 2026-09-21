@@ -32,7 +32,24 @@ interface MutableButton {
   value: number;
 }
 
-function buildGamepad(index: number, spec: MockGamepadSpec): Gamepad {
+/**
+ * A pad the mock hands out: a real `Gamepad` whose buttons and axes are the
+ * same arrays the setters mutate, which is the live-object semantics
+ * `getGamepads()` has in a browser.
+ */
+interface MockGamepad extends Gamepad {
+  readonly buttons: MutableButton[];
+  readonly axes: number[];
+}
+
+/** Haptics nothing in the transport reads, present because `Gamepad` declares
+ *  it and a pad without it is not one. */
+const NO_HAPTICS: GamepadHapticActuator = {
+  playEffect: () => Promise.resolve("complete"),
+  reset: () => Promise.resolve("complete"),
+};
+
+function buildGamepad(index: number, spec: MockGamepadSpec): MockGamepad {
   const buttons: MutableButton[] = Array.from(
     { length: spec.buttonCount ?? 17 },
     () => ({ pressed: false, touched: false, value: 0 }),
@@ -45,15 +62,14 @@ function buildGamepad(index: number, spec: MockGamepadSpec): Gamepad {
     connected: true,
     mapping: (spec.mapping ?? "standard") as GamepadMappingType,
     timestamp: 0,
-    buttons: buttons as unknown as readonly GamepadButton[],
-    axes: axes as unknown as readonly number[],
-    hapticActuators: [],
-    vibrationActuator: null as unknown as Gamepad["vibrationActuator"],
-  } as Gamepad;
+    buttons,
+    axes,
+    vibrationActuator: NO_HAPTICS,
+  };
 }
 
 export class MockGamepadAPI {
-  private pads = new Map<number, Gamepad>();
+  private pads = new Map<number, MockGamepad>();
   private previousGetGamepads: (() => (Gamepad | null)[]) | undefined;
   private hadGetGamepads = false;
   private installed = false;
@@ -98,7 +114,7 @@ export class MockGamepadAPI {
   /** Connect a mock pad at `index` and dispatch a real `gamepadconnected`
    *  window event carrying it: mirrors the browser firing on first input,
    *  not on physical plug-in. */
-  connectPad(index: number, spec: MockGamepadSpec): Gamepad {
+  connectPad(index: number, spec: MockGamepadSpec): MockGamepad {
     const gp = buildGamepad(index, spec);
     this.pads.set(index, gp);
     const evt = Object.assign(new Event("gamepadconnected"), { gamepad: gp });
@@ -128,7 +144,7 @@ export class MockGamepadAPI {
   ): void {
     const gp = this.pads.get(index);
     if (!gp) throw new Error(`MockGamepadAPI: no pad at index ${index}`);
-    const button = gp.buttons[buttonIndex] as MutableButton | undefined;
+    const button: MutableButton | undefined = gp.buttons[buttonIndex];
     if (!button) {
       throw new Error(
         `MockGamepadAPI: pad ${index} has no button ${buttonIndex}`,
@@ -141,7 +157,7 @@ export class MockGamepadAPI {
   setAxis(index: number, axisIndex: number, value: number): void {
     const gp = this.pads.get(index);
     if (!gp) throw new Error(`MockGamepadAPI: no pad at index ${index}`);
-    const axes = gp.axes as unknown as number[];
+    const axes = gp.axes;
     if (axisIndex < 0 || axisIndex >= axes.length) {
       throw new Error(`MockGamepadAPI: pad ${index} has no axis ${axisIndex}`);
     }
