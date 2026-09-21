@@ -267,7 +267,17 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // `magnitudeOf` instead and so does not count here. What is left is the five
   // elements the shared Kepler solver takes as canonical SI numbers.
   "packages/components/src/SystemView/usePhaseAngles.ts": 5,
-  "packages/components/src/Targeting/index.tsx": 5,
+  /*
+   * THREE, and each is a boundary rather than arithmetic: the view UT the
+   * widget subtracts from, a stream field that arrives as a bare number, and a
+   * dot product handed to a reticle that draws in bare numbers.
+   *
+   * The age the widget shows is no longer among them. It is carried as the
+   * quantity it is, from the subtraction all the way to the `<Unit>` that
+   * writes it, and clamped by the algebra's own `max(0)` rather than by
+   * `Math.max` on an unwrapped magnitude.
+   */
+  "packages/components/src/Targeting/index.tsx": 3,
   "packages/components/src/ThermalStatus/index.tsx": 13,
   // 1: the Δv budget the reach list compares against.
   // `calc/transfer.ts` and the porkchop are deliberately plain-SI ("no React,
@@ -361,16 +371,21 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * tickStep, groundLine, plus a zone pair and a marker each). DivergingBar
    * spends ONE, on a quotient that `dividedBy` has already made dimensionless.
    *
-   * Gauge, Tape and Dial each spend one more placing a band's two bounds on
-   * their track. It is the same SVG coordinate as the axis above and reached
-   * the same way, written once and mapped over the two ends. Normalising in the
-   * algebra instead would allocate a `Value` per mark per frame in a render
-   * path, which is the trade this budget is not asking for.
+   * Each of the three now funnels every OTHER quantity through one named step
+   * onto its own geometry, so a zone bound, a marker and a band end share the
+   * single unwrap rather than taking one each. What made that possible is the
+   * comparison moving into the algebra: `min`/`max` convert before they
+   * compare, where `Math.min` on two magnitudes orders a bound written on
+   * another rung of the same kind by its bare number.
+   *
+   * The ordering and the emptiness of a zone stay decided on QUANTITIES rather
+   * than on the pixels they become. Deciding them on the geometry would flip
+   * every zone on a dial drawn with a negative sweep.
    */
-  "packages/ui-kit/src/Dial.tsx": 7,
+  "packages/ui-kit/src/Dial.tsx": 5,
   "packages/ui-kit/src/DivergingBar.tsx": 1,
-  "packages/ui-kit/src/Gauge.tsx": 6,
-  "packages/ui-kit/src/Tape.tsx": 9,
+  "packages/ui-kit/src/Gauge.tsx": 4,
+  "packages/ui-kit/src/Tape.tsx": 6,
   /*
    * ONE, and it is the fill fraction every primitive drawn from an
    * amount/capacity pair is derived by. Moved here from Meter.tsx, which held

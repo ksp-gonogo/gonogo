@@ -140,6 +140,14 @@ export function Gauge<U extends string = string>({
   const lo = min.magnitude;
   const hi = max.magnitude;
   const safeValue = Number.isFinite(v) ? v : lo;
+  /*
+   * Every OTHER quantity's way onto the arc, clamped in the algebra and
+   * unwrapped once here. `min`/`max` convert before they compare, so a zone
+   * bound written on another rung of the same kind lands where it belongs
+   * rather than where its bare number would put it, which is the failure
+   * `Math.max` on two magnitudes cannot see.
+   */
+  const onAxis = (q: Value<U>): number => q.max(min).min(max).magnitude;
   // A reading that carries no number gets no needle: one parked at the bottom
   // of the scale would say the value IS that. A number that is present but
   // non-finite is a different case and keeps the fallback to the foot of the
@@ -229,8 +237,8 @@ export function Gauge<U extends string = string>({
         />
         {/* Zones */}
         {zones?.map((z, i) => {
-          const from = clamp(z.from.magnitude, lo, hi);
-          const to = clamp(z.to.magnitude, lo, hi);
+          const from = onAxis(z.from);
+          const to = onAxis(z.to);
           if (to <= from) return null;
           return (
             <path
@@ -247,12 +255,7 @@ export function Gauge<U extends string = string>({
         {/* The model's two bounds, straddling the arc the needle swings over */}
         {bounds !== null &&
           (["lo", "hi"] as const).map((end) => {
-            const at = pointOnArc(
-              clamp(bounds[end].magnitude, lo, hi),
-              lo,
-              hi,
-              radius,
-            );
+            const at = pointOnArc(onAxis(bounds[end]), lo, hi, radius);
             // Radial, so the mark crosses the track rather than lying along it:
             // a tangential dash at this thickness reads as another zone.
             const inner = radius - TRACK_THICKNESS / 2;

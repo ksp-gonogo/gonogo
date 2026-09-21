@@ -195,6 +195,15 @@ export function Tape<U extends string = string>({
     return PAD_TOP + (1 - t) * usable;
   };
 
+  /*
+   * A quantity's way onto the rail, and the single unwrap on that path. `yOf`
+   * already pins anything off the ends of the scale, so what this adds is the
+   * ordering being done in the ALGEBRA: `min`/`max` convert before they
+   * compare, and a zone written on another rung of the same kind is otherwise
+   * ordered by its bare number, which `Math.min` on two magnitudes cannot see.
+   */
+  const onRail = (q: Value<U>): number => yOf(q.magnitude);
+
   const trackTop = PAD_TOP;
   const trackBottom = PAD_TOP + usable;
   // Mirror the whole scale about the track when the labels read inboard.
@@ -259,15 +268,11 @@ export function Tape<U extends string = string>({
 
         {/* Zones */}
         {zones?.map((z) => {
-          const from = z.from.magnitude;
-          const to = z.to.magnitude;
-          const lo = Math.min(from, to);
-          const hi = Math.max(from, to);
-          const yHi = yOf(hi);
-          const yLo = yOf(lo);
+          const yHi = onRail(z.from.max(z.to));
+          const yLo = onRail(z.from.min(z.to));
           const h = Math.max(0, yLo - yHi);
           return (
-            <g key={`zone-${lo}-${hi}-${z.label ?? ""}`}>
+            <g key={`zone-${yLo}-${yHi}-${z.label ?? ""}`}>
               <rect
                 x={trackX}
                 y={yHi}
@@ -333,11 +338,10 @@ export function Tape<U extends string = string>({
 
         {/* Markers (to the right of the track) */}
         {markers?.map((m) => {
-          const at = m.value.magnitude;
-          const y = yOf(at);
+          const y = onRail(m.value);
           const color = m.color ?? "var(--color-accent-fg)";
           return (
-            <g key={`marker-${at}-${m.label ?? ""}`}>
+            <g key={`marker-${y}-${m.label ?? ""}`}>
               <polygon
                 points={
                   mirrored
@@ -369,7 +373,7 @@ export function Tape<U extends string = string>({
         {/* The model's two bounds, across the rail the pointer runs up */}
         {interval !== null &&
           (["lo", "hi"] as const).map((end) => {
-            const y = yOf(interval[end].magnitude);
+            const y = onRail(interval[end]);
             return (
               <InstrumentBound
                 key={end}
