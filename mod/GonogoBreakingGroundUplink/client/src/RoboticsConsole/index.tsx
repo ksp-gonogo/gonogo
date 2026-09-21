@@ -186,8 +186,9 @@ const flagLabel = (action: string, from: boolean | null): string | undefined =>
  */
 export function parseServos(raw: unknown): ServoInfo[] {
   if (!Array.isArray(raw)) return [];
+  const entries: unknown[] = raw;
   const out: ServoInfo[] = [];
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     if (e.type !== "hinge" && e.type !== "rotationServo" && e.type !== "piston")

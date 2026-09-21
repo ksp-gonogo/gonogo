@@ -7,7 +7,7 @@ import type { LogEntry, LogTransport } from "./types.js";
  * for the network during unit tests).
  */
 export interface AxiomIngestClient {
-  ingest(dataset: string, events: object | object[]): void;
+  ingest(dataset: string, events: object | readonly object[]): void;
   flush(): Promise<void>;
 }
 
@@ -54,16 +54,13 @@ export class AxiomTransport implements LogTransport {
     if (!options.dataset) {
       throw new Error("AxiomTransport requires a dataset name");
     }
-    if (!options.client && !options.token) {
-      throw new Error("AxiomTransport requires either `client` or `token`");
-    }
 
     this.dataset = options.dataset;
     if (options.client) {
       this.client = options.client;
-    } else {
+    } else if (options.token) {
       this.client = new Axiom({
-        token: options.token as string,
+        token: options.token,
         url: options.url,
         orgId: options.orgId,
         // Silence the SDK's default `console.error` so a transient ingest
@@ -71,7 +68,9 @@ export class AxiomTransport implements LogTransport {
         // The console transport (i.e. `ConsoleLogger`) keeps its own log
         // visibility independent of remote delivery.
         onError: () => {},
-      }) as unknown as AxiomIngestClient;
+      });
+    } else {
+      throw new Error("AxiomTransport requires either `client` or `token`");
     }
 
     const wantPageHide =
@@ -93,12 +92,12 @@ export class AxiomTransport implements LogTransport {
       // -state sends are far smaller than the chunk size and pass through in
       // a single ingest call.
       if (entries.length <= AxiomTransport.MAX_BATCH) {
-        this.client.ingest(this.dataset, entries as unknown as object[]);
+        this.client.ingest(this.dataset, entries);
         return;
       }
       for (let i = 0; i < entries.length; i += AxiomTransport.MAX_BATCH) {
         const chunk = entries.slice(i, i + AxiomTransport.MAX_BATCH);
-        this.client.ingest(this.dataset, chunk as unknown as object[]);
+        this.client.ingest(this.dataset, chunk);
       }
     } catch {
       // ignore: never let a logging path throw
