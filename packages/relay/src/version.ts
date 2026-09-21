@@ -6,10 +6,13 @@ function fallback(): string {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
     // src/version.ts → ../package.json (dev), dist/version.js → ../package.json (built)
-    const pkg = JSON.parse(
+    const pkg: unknown = JSON.parse(
       readFileSync(resolve(here, "../package.json"), "utf-8"),
-    ) as { version?: string };
-    return pkg.version ?? "0.0.0";
+    );
+    if (typeof pkg !== "object" || pkg === null || !("version" in pkg)) {
+      return "0.0.0";
+    }
+    return typeof pkg.version === "string" ? pkg.version : "0.0.0";
   } catch {
     return "0.0.0";
   }

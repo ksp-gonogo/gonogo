@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 590 of them
- * across 253 files.
+ * Assertions that escape `unknown`, per file. The tree carries 569 of them
+ * across 240 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 354 of the 590 are
+ * **A test fixture minted through an assertion.** 342 of the 569 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 238 of the 590 are `as unknown as`, and those are worth taking
+ * 233 of the 569 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 127 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 114 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 253 files those would be 253 sentences
+ * sentence per entry: at 240 files those would be 240 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -144,7 +144,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/registry.ts": 1,
   "packages/app/src/uplinks/skewOverride.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 139 in 51 files (23 out of `any`, 59 in tests), walked 672 files
+  // packages/components: 139 in 51 files (23 out of `any`, 59 in tests), walked 675 files
   "packages/components/scripts/synthesize-landing-descent.ts": 2,
   "packages/components/scripts/widgetRenderHarness.ts": 5,
   "packages/components/src/AstronautComplex/index.tsx": 12,
@@ -235,13 +235,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/data/src/schema/builtinDerivedKeys.ts": 5,
   "packages/data/src/storage/IndexedDbStore.ts": 2,
   "packages/data/src/storage/MissionStore.ts": 3,
-  // packages/logger: 4 in 2 files (1 out of `any`, 1 in tests), walked 11 files
-  "packages/logger/src/AxiomTransport.ts": 3,
-  "packages/logger/src/logger.test.ts": 1,
-  // packages/relay: 5 in 3 files (3 out of `any`, 4 in tests), walked 13 files
-  "packages/relay/src/__tests__/analyticsConfig.test.ts": 2,
-  "packages/relay/src/__tests__/discoverPublicIp.test.ts": 2,
-  "packages/relay/src/version.ts": 1,
   // packages/serial: 21 in 8 files (10 out of `any`, 9 in tests), walked 72 files
   "packages/serial/src/mocks/mockGamepad.test.ts": 1,
   "packages/serial/src/mocks/mockGamepad.ts": 4,
@@ -268,8 +261,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/vessel-state.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.ts": 1,
-  // packages/ui: 2 in 1 files (2 out of `any`, 2 in tests), walked 60 files
-  "packages/ui/src/DataKeyMultiPicker.test.tsx": 2,
   // packages/ui-kit: 5 in 5 files (1 out of `any`, 3 in tests), walked 269 files
   "packages/ui-kit/src/augments.second-copy.test.ts": 1,
   "packages/ui-kit/src/augments.ts": 1,
@@ -285,10 +276,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/uplink-tools/src/render/scenes.ts": 2,
   "packages/uplink-tools/src/render/shape.ts": 1,
   "packages/uplink-tools/src/render/wire.ts": 1,
-  // mod/GonogoBreakingGroundUplink/client: 5 in 3 files (5 out of `any`, 0 in tests), walked 33 files
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 3,
-  "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 1,
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
   // mod/GonogoKerbalismUplink/client: 20 in 7 files (6 out of `any`, 17 in tests), walked 83 files
   "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
   "mod/GonogoKerbalismUplink/client/src/isru.test.ts": 2,
@@ -306,9 +293,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 16,
   "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 6,
   "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 3,
-  // mod/sitrep-kernel: 5 in 3 files (0 out of `any`, 3 in tests), walked 15 files
-  "mod/sitrep-kernel/src/broker.test.ts": 2,
-  "mod/sitrep-kernel/src/registry.test.ts": 1,
+  // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
   // mod/sitrep-sdk: 81 in 38 files (19 out of `any`, 24 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/coverage/CoverageMaskStore.ts": 3,
@@ -349,9 +334,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/uplink-manifest.ts": 2,
   "mod/sitrep-sdk/src/version.gate.test.ts": 1,
   "mod/sitrep-sdk/src/wrap-units.test.ts": 3,
-  // mod/sitrep-server: 2 in 2 files (2 out of `any`, 2 in tests), walked 13 files
-  "mod/sitrep-server/src/courier-command.test.ts": 1,
-  "mod/sitrep-server/src/courier.test.ts": 1,
 };
 
 /**
@@ -408,7 +390,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/loader.skewOverride.test.ts": 1,
   "packages/app/src/uplinks/loader.test.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 46 in 26 files (0 out of `any`, 37 in tests), walked 672 files
+  // packages/components: 46 in 26 files (0 out of `any`, 37 in tests), walked 675 files
   "packages/components/scripts/widgetRenderHarness.ts": 4,
   "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
@@ -441,10 +423,6 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/core/src/settings/gameHost.ts": 1,
   "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
-  // packages/logger: 3 in 1 files (0 out of `any`, 0 in tests), walked 11 files
-  "packages/logger/src/AxiomTransport.ts": 3,
-  // packages/relay: 2 in 1 files (0 out of `any`, 2 in tests), walked 13 files
-  "packages/relay/src/__tests__/discoverPublicIp.test.ts": 2,
   // packages/serial: 11 in 4 files (0 out of `any`, 1 in tests), walked 72 files
   "packages/serial/src/mocks/mockGamepad.ts": 4,
   "packages/serial/src/mocks/mockWebSerial.ts": 4,
@@ -509,8 +487,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 19,
-  files: 2225,
-  assertions: 2022,
+  files: 2228,
+  assertions: 2001,
 } as const;
 
 /**
@@ -524,7 +502,7 @@ export const SCAN_FLOORS = {
  */
 export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/app": 312,
-  "packages/components": 537,
+  "packages/components": 540,
   "packages/core": 180,
   "packages/data": 42,
   "packages/logger": 8,
