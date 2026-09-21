@@ -46,9 +46,16 @@ namespace Sitrep.Host.IntegrationTests
         /// while staying CONNECTED throughout. Returns, per tick from UT 6 to
         /// <paramref name="throughUt"/>, the ValidAts that landed on that tick.
         /// </summary>
+        /// <param name="breakOut">
+        /// How far out along the old route, in light-seconds, the relay STOPPED
+        /// CARRYING, raising the drop event. Null for the plain reroute, where
+        /// the relay went offline but is still repeating and nothing in flight
+        /// is retired.
+        /// </param>
         private static async Task<Dictionary<double, List<double>>> RunRerouteAsync(
             double newDelay,
-            double throughUt)
+            double throughUt,
+            double? breakOut = null)
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new ConnectivityHorizonTestUplink());
@@ -79,7 +86,18 @@ namespace Sitrep.Host.IntegrationTests
                 var byTick = new Dictionary<double, List<double>>();
                 for (var ut = 6.0; ut <= throughUt; ut += 1.0)
                 {
-                    engine.TickAndWait(ut, ConnectivityHorizonTestUplink.Snapshot(ut, connected: true, delay: newDelay, delayed: 10.0 + ut), Timeout);
+                    // The break is raised on the reroute tick alone; every later
+                    // tick carries no breakOut, so a fixture that never passes
+                    // one is byte-for-byte unaffected.
+                    engine.TickAndWait(
+                        ut,
+                        ConnectivityHorizonTestUplink.Snapshot(
+                            ut,
+                            connected: true,
+                            delay: newDelay,
+                            delayed: 10.0 + ut,
+                            breakOut: ut == 6.0 ? breakOut : null),
+                        Timeout);
                     var frames = await DrainAllStreamDataAsync(client, Quiet);
                     byTick[ut] = frames.Where(f => f.Topic == Topic).Select(f => f.Meta.ValidAt).ToList();
                 }
@@ -127,6 +145,55 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(new[] { 7.0 }, byTick[15.0]);
 
             AssertNothingRepeatsOrArrivesEarly(byTick, oldDelay: 4.0, newDelay: 8.0);
+        }
+
+        /// <summary>
+        /// THE RELAY DIES AND A ROUTE SURVIVES, which is the case between this
+        /// suite's two halves. The tests above have the relay go offline while
+        /// still repeating, so nothing in flight is retired;
+        /// <c>MiddlemanDestructionTests</c> has it stop carrying with no route
+        /// left, so the craft disconnects and the stream never comes back. Here
+        /// it stops carrying two light-seconds out at UT 6 AND another path home
+        /// exists, so the craft stays connected and the stream has somewhere to
+        /// re-establish itself.
+        ///
+        /// <para>What that costs is four seconds of telemetry the craft had no
+        /// way to save. It cannot know the relay died: word has to come back
+        /// down the same two light-seconds, so until UT 8 it goes on
+        /// transmitting into a path that stops carrying half way along, and the
+        /// samples stamped UT 6 and UT 7 are lost alongside the tail that was
+        /// short of the relay. At UT 8 it finds out, re-targets, and the sample
+        /// it sends then lands at the NEW route's delay.</para>
+        ///
+        /// <para>The instant of recovery is the assertion worth having. A model
+        /// that let the craft re-target at UT 6 would put the UT 6 sample on the
+        /// wire at UT 12 and lose nothing but the tail, which is a craft
+        /// reacting to a death two light-seconds away before any signal from it
+        /// could have arrived.</para>
+        /// </summary>
+        [Fact]
+        public async Task ACraftGoesOnFeedingTheDeadRelayUntilWordOfItsDeathArrives()
+        {
+            var byTick = await RunRerouteAsync(newDelay: 6.0, throughUt: 15.0, breakOut: 2.0);
+
+            // The tail that was already past the relay, on its own 4 s timing.
+            Assert.Equal(new[] { 2.0 }, byTick[6.0]);
+            Assert.Equal(new[] { 3.0 }, byTick[7.0]);
+            Assert.Equal(new[] { 4.0 }, byTick[8.0]);
+
+            // UT 5 was two seconds short of the relay and never crossed it; UT 6
+            // and UT 7 were sent into it by a craft that did not yet know. Then
+            // real silence while the first re-targeted sample crosses 6 s.
+            foreach (var ut in new[] { 9.0, 10.0, 11.0, 12.0, 13.0 })
+            {
+                Assert.Empty(byTick[ut]);
+            }
+
+            // The stream re-established, on the route the ledger now holds.
+            Assert.Equal(new[] { 8.0 }, byTick[14.0]);
+            Assert.Equal(new[] { 9.0 }, byTick[15.0]);
+
+            AssertNothingRepeatsOrArrivesEarly(byTick, oldDelay: 4.0, newDelay: 6.0);
         }
 
         /// <summary>

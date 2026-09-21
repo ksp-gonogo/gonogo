@@ -155,17 +155,41 @@ namespace Sitrep.Core
         public double RestoredAtUt { get; }
 
         /// <summary>
+        /// The UT the node finds out and re-targets.
+        ///
+        /// <para>Word of the break travels back to the node over the route the
+        /// break sits on, so it arrives one one-way light-time from the node to
+        /// the break point, which is exactly <see cref="LightSecondsOut"/>. That
+        /// is the earliest instant the node can route around this break, and a
+        /// model that let it re-target at <see cref="AtUt"/> would have it
+        /// acting on a fact no signal had yet carried to it.</para>
+        /// </summary>
+        public double LearnedAtUt => AtUt + LightSecondsOut;
+
+        /// <summary>
+        /// Whether the node is still feeding the route this break sits on at
+        /// <paramref name="sentAtUt"/>: the break has opened and word of it has
+        /// not reached the node, so it goes on transmitting into a route that
+        /// stops carrying part-way along.
+        /// </summary>
+        public bool Blinded(double sentAtUt) =>
+            sentAtUt >= AtUt && sentAtUt < LearnedAtUt;
+
+        /// <summary>
         /// Whether light that left the node at <paramref name="sentAtUt"/> ran
         /// into this break.
         ///
-        /// <para>Three conditions, and each one is doing work. The light must
-        /// have LEFT before the break opened, because anything sent afterwards
-        /// rides whatever route the ledger holds now and never goes near this
-        /// one. It must NOT already have crossed the break point, which is the
-        /// whole of the per-hop question and is why the position is carried at
-        /// all. And it must reach that point while the break is still open: an
-        /// occultation that clears before the wavefront gets there never touched
-        /// it.</para>
+        /// <para>Two conditions, and each one is doing work. The light must have
+        /// left before the node re-targeted, which is free for anything sent
+        /// before the break and is <see cref="LearnedAtUt"/>'s question for
+        /// anything sent after it: a node goes on feeding the dead route for as
+        /// long as it takes word of the break to reach it, and everything it
+        /// sends in that window runs into the same break the tail did. And the
+        /// light must reach the break point while the break is open, which is
+        /// the whole of the per-hop question and is why the position is carried
+        /// at all: light already past that point is a wavefront on the far leg,
+        /// and an occultation that clears before the wavefront gets there never
+        /// touched it.</para>
         ///
         /// <para>Light arriving at the break point at exactly
         /// <see cref="AtUt"/> is treated as having crossed, matching
@@ -175,7 +199,7 @@ namespace Sitrep.Core
         /// </summary>
         public bool Caught(double sentAtUt)
         {
-            if (sentAtUt > AtUt)
+            if (sentAtUt >= LearnedAtUt)
             {
                 return false;
             }
@@ -296,9 +320,22 @@ namespace Sitrep.Core
         /// path does not exist. A reroute is already expressible: the delay
         /// changes, the tail in flight keeps arriving on its own record-time
         /// <see cref="DelayStamp"/>, and the new route governs what is sent
-        /// after. What a reroute could never express is that the tail is not
-        /// arriving at all, because the relay that would have retransmitted it
-        /// is the relay that died. That is what this records.</para>
+        /// once the node has re-targeted onto it. What a reroute could never
+        /// express is that the tail is not arriving at all, because the relay
+        /// that would have retransmitted it is the relay that died. That is what
+        /// this records.</para>
+        ///
+        /// <para>RE-TARGETING IS NOT INSTANT, and the position is what dates it.
+        /// A node learns its route broke when word of the break reaches it, one
+        /// one-way light-time out and back over the same
+        /// <paramref name="lightSecondsOut"/>, so it keeps feeding the dead
+        /// route until <see cref="PathDrop.LearnedAtUt"/> and everything it
+        /// sends in that window is retired alongside the tail. Only after that
+        /// does the next transmission ride whatever route the ledger now holds,
+        /// which may re-establish the stream at a different delay.</para>
+        ///
+        /// <para>A break opening while the node is still blind to an earlier one
+        /// is DISCARDED, because the node is not on the route it describes.</para>
         ///
         /// <para>The POSITION is the part that could not be inferred. A delay
         /// stamp fixes WHEN a sample arrives; where the break sat along the
@@ -677,6 +714,28 @@ namespace Sitrep.Core
                 held = new List<PathDrop>();
                 _drops[node] = held;
             }
+
+            /*
+             * A break opening while the node is still blinded by an earlier one
+             * sits on a route the node is not feeding. It has not learned to
+             * re-target yet, so it is still pushing signal down the route the
+             * earlier break killed, and everything it sends until it learns is
+             * retired by that break already.
+             *
+             * Kept off the books rather than recorded, because this one's own
+             * blind window can run PAST the instant the node re-targets, and
+             * light sent after that instant rides a route this break never sat
+             * on. A wrongly-declared break deletes telemetry that physically
+             * arrived, so the uncertainty resolves to delivering.
+             */
+            for (var i = 0; i < held.Count; i++)
+            {
+                if (held[i].Blinded(atUt))
+                {
+                    return;
+                }
+            }
+
             held.Add(new PathDrop(atUt, outSeconds, restoredAtUt));
         }
 

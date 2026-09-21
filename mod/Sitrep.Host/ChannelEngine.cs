@@ -5380,7 +5380,10 @@ namespace Sitrep.Host
         /// <summary>
         /// Spend this tick's DROP EVENT on the delay ledger: everything the
         /// subject sent that had not crossed the break when it opened can never
-        /// arrive, and <see cref="INetwork.DropPath"/> is what retires it (see
+        /// arrive, and neither can what it goes on sending down the dead route
+        /// until word of the break reaches it. <see cref="INetwork.DropPath"/>
+        /// is what retires both, off the break's POSITION, which dates the
+        /// subject's re-target as well as splitting the tail (see
         /// <see cref="IUplinkHost.SetPathBreakSource"/>).
         ///
         /// <para>Scoped to <see cref="NodeId"/>, the active vessel's own node,
