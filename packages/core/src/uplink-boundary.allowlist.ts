@@ -623,17 +623,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * a third-party author could not run.
        */
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
        * -- MAGNITUDE-BUDGET ratchet inventory: its per-file budget map is keyed
        * by file path, so it names any Uplink client file that unwraps a Value.
        * Ratchet-inventory file, the same case four other Uplinks already carry
@@ -2281,7 +2270,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
     "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
     "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
     "mod/sitrep-sdk/src/command-delay.test.ts",

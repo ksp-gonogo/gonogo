@@ -408,9 +408,14 @@ All ten of those entries were `Sitrep.Contract.TestSupport`, and they CLEARED on
 2026-09-15: TestSupport is a shipped surface now, vendored to `vendor/devkit` by
 `scripts/vendor-uplinks-reference-set.sh` and carried in the `net10.0` group of
 the `KspGonogo.Sitrep.Contract` NuGet package, so the gate reads it as private to
-a PLUGIN and shipped to a Tests project (`ShippedToTestProjects`). What is left is
-four entries reaching `Sitrep.Host` or `Sitrep.Core`, which are still private in
-both directions. Full rules and the reasoning: `docs/uplink-isolation.md`.
+a PLUGIN and shipped to a Tests project (`ShippedToTestProjects`). **Both lists
+are EMPTY as of 2026-09-21**: `Sitrep.Core` joined `ShippedToTestProjects` the
+same way, riding into both places behind TestSupport's ProjectReference, which
+cleared the last entry (`GonogoKosUplink.Tests`, for its headless terminal
+harness's real `Courier`/`Archive`). `Sitrep.Core` is still private to a PLUGIN:
+the `net472` and `netstandard2.0` groups a KSP plugin resolves carry
+`Sitrep.Contract` alone, and `scripts/nuget-contract-package-gate.mjs` fails if
+that changes. Full rules and the reasoning: `docs/uplink-isolation.md`.
 
 ---
 

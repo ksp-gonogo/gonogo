@@ -41,8 +41,8 @@
  * A Tests project does travel with its Uplink, and on 2026-08-30 the reference
  * gate was extended to say so: `TestProjectReferenceDebt` in
  * `UplinkIsolationTests.cs` carried ten Uplinks whose tests reached a private
- * assembly. It is down to four, and both reasons this probe gave for leaving the
- * Tests project out have weakened since.
+ * assembly. It is EMPTY, and both reasons this probe gave for leaving the Tests
+ * project out have gone with it.
  *
  * The first was that it is not a copy but a second design: this probe repoints the
  * contract reference at `Sitrep.Contract.dll` as GonogoCore installs it, one build,
@@ -59,16 +59,17 @@
  * stopped being true on 2026-09-15 (#29): TestSupport ships to a Tests project as
  * `vendor/devkit/Sitrep.Contract.TestSupport.dll` and in the contract package's
  * `net10.0` group, those ten debt entries cleared, and the gate now reads it as
- * private to a PLUGIN and shipped to a Tests project. A copied-out Tests project
- * would fail on it only because this probe does not yet bring the devkit in.
+ * private to a PLUGIN and shipped to a Tests project. `Sitrep.Core` joined it in
+ * both places on 2026-09-21, which cleared the last entry. A copied-out Tests
+ * project would fail on either only because this probe does not yet bring the
+ * devkit in.
  *
- * The sequencing this implies is unchanged in shape: the gate holds the line now,
- * and the Tests project joins the probe once `TestProjectReferenceDebt` is empty,
- * bringing `vendor/contract/netstandard2.0` and `vendor/devkit` rather than the
- * `net472` set. At that point the only question left is the one a reference scan
- * structurally cannot ask, a `<Compile Include>` reaching sideways or a property
- * arriving from `Directory.Build.props`, and the leg can be green on the day it
- * lands rather than being born red.
+ * So the precondition is met: `TestProjectReferenceDebt` is empty, and the Tests
+ * project can join the probe bringing `vendor/contract/netstandard2.0` and
+ * `vendor/devkit` rather than the `net472` set. What is left is wiring it, and
+ * then the only question outstanding is the one a reference scan structurally
+ * cannot ask, a `<Compile Include>` reaching sideways or a property arriving from
+ * `Directory.Build.props`.
  *
  * ## The self-test, which runs first and is not optional
  *

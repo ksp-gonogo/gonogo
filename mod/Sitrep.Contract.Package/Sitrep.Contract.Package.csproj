@@ -6,7 +6,7 @@
     empty assembly the SDK compiles here and places the real ones into the lib
     folders by hand.
 
-    WHY A SEPARATE PROJECT. The package carries TWO assemblies in its net10.0
+    WHY A SEPARATE PROJECT. The package carries THREE assemblies in its net10.0
     group, and `Sitrep.Contract.TestSupport` references `Sitrep.Contract`. A
     ProjectReference the other way round, so that `Sitrep.Contract` could pack
     TestSupport's output, is a cycle and MSBuild refuses it. Packing from a
@@ -103,6 +103,11 @@
     both take the netstandard2.0 build. That is already what every net10.0 test
     project in this repo compiles against, so the packaged net10.0 assets are
     the same assembly the in-repo suites exercise.
+
+    Sitrep.Core arrives behind TestSupport rather than being named here, which
+    is why it lands in the net10.0 group only: the net472 and netstandard2.0
+    legs never reference TestSupport, so there is nothing to pull it in. That is
+    the whole reason a KSP plugin cannot resolve it.
   -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" PrivateAssets="all" />
@@ -153,11 +158,17 @@
       <DocumentationProjectOutputGroupOutput Remove="@(DocumentationProjectOutputGroupOutput)" />
       <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
                             Condition="('%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract'
-                                        Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport')
+                                        Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport'
+                                        Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Core')
                                        And '%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
       <!-- The XML doc files go through the stylesheet rather than straight in:
            they carry the <internal> maintainer prose that must not reach a
-           published surface. See strip-internal-doc-prose.xslt. -->
+           published surface. See strip-internal-doc-prose.xslt.
+
+           Sitrep.Core is deliberately absent from this list. Its doc comments
+           are written for whoever maintains the engine and observe none of the
+           <internal> discipline the contract's do, so there is nothing for the
+           stylesheet to separate: the assembly ships, the prose does not. -->
       <_ContractXmlDoc Include="@(ReferenceCopyLocalPaths)"
                        Condition="('%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract'
                                    Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport')
@@ -179,7 +190,8 @@
       <DebugSymbolsProjectOutputGroupOutput Remove="@(DebugSymbolsProjectOutputGroupOutput)" />
       <TfmSpecificDebugSymbolsFile Include="@(ReferenceCopyLocalPaths)"
                                    Condition="('%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract'
-                                               Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport')
+                                               Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Contract.TestSupport'
+                                               Or '%(ReferenceCopyLocalPaths.Filename)' == 'Sitrep.Core')
                                               And '%(ReferenceCopyLocalPaths.Extension)' == '.pdb'">
         <TargetFramework>$(TargetFramework)</TargetFramework>
       </TfmSpecificDebugSymbolsFile>

@@ -298,12 +298,14 @@ at the language boundary. `mod/Gonogo*Uplink/*.csproj` may reference:
 `Gonogo.KSP` are unpublished. An outside author has no way to obtain them, so an
 Uplink that references one cannot be built by anyone but us.
 
-`Sitrep.Contract.TestSupport` is on that list for the PLUGIN only. It is
-`net10.0` and depends on `xunit.assert`, so it is never in GameData and a plugin
-must not reach it. The same rule applies to the `<Uplink>.Tests` projects, which
-travel with their Uplink, with that one name taken off the list: TestSupport
-ships beside the vendored contract (not as a package), so an outside author's
-Tests project can reference it. See "Testing a NEW Uplink" below.
+`Sitrep.Contract.TestSupport` and `Sitrep.Core` are on that list for the PLUGIN
+only. TestSupport is `net10.0` and depends on `xunit.assert`, so it is never in
+GameData; `Sitrep.Core` is in GameData, loaded once by GonogoCore into KSP's
+shared AppDomain, and a plugin carrying a second copy shadows it. The same rule
+applies to the `<Uplink>.Tests` projects, which travel with their Uplink, with
+those two names taken off the list: TestSupport ships beside the vendored
+contract and brings `Sitrep.Core` with it, so an outside author's Tests project
+can reference both. See "Testing a NEW Uplink" below.
 
 If a type you need is in one of them, **move it into `Sitrep.Contract`**. A
 contract change is free. The test is not where the type currently sits but what
@@ -511,9 +513,9 @@ nothing reports it.
 
 `scripts/vendor-uplinks-reference-set.sh <gonogo-uplinks checkout> [<ref>]` builds
 both halves from ONE gonogo commit and writes the sha to `VENDORED_FROM` in each:
-the contract to `vendor/contract`, and TestSupport alone to `vendor/devkit`. A
-Tests project in gonogo-uplinks references it by HintPath, next to the contract it
-was built against:
+the contract to `vendor/contract`, and TestSupport plus `Sitrep.Core` to
+`vendor/devkit`. A Tests project in gonogo-uplinks references them by HintPath,
+next to the contract they were built against:
 
 ```xml
 <Reference Include="Sitrep.Contract">
@@ -522,13 +524,25 @@ was built against:
 <Reference Include="Sitrep.Contract.TestSupport">
   <HintPath>$(GonogoDevkit)\Sitrep.Contract.TestSupport.dll</HintPath>
 </Reference>
+<Reference Include="Sitrep.Core">
+  <HintPath>$(GonogoDevkit)\Sitrep.Core.dll</HintPath>
+</Reference>
 ```
 
-`xunit.assert`, the only other thing it needs, comes with your own xunit package.
-What it gives you: `UnitCoverageAssertion` and `CommandRegistrationAssertion`
-(the core rules, which should never be copied), `ReckonabilityAssertion`, and the
-`IUplinkHost` doubles `ClockedUplinkHost` and `StarvationProbeHost`, plus
-`CrewStandingQueries` and `ScetThresholdSourceProbe`.
+The `net10.0` group of the `KspGonogo.Sitrep.Contract` package carries the same
+three assemblies, so a PackageReference gets them without the vendoring step.
+
+`xunit.assert`, the only other thing they need, comes with your own xunit package.
+What TestSupport gives you: `UnitCoverageAssertion` and
+`CommandRegistrationAssertion` (the core rules, which should never be copied),
+`ReckonabilityAssertion`, and the `IUplinkHost` doubles `ClockedUplinkHost` and
+`StarvationProbeHost`, plus `CrewStandingQueries` and `ScetThresholdSourceProbe`.
+
+What `Sitrep.Core` gives you is the engine itself, `Courier` and `Archive` and
+the rest, for a test that wants the real delay path end to end rather than a
+double of it. It is a private assembly and it carries no compatibility promise:
+a core change that breaks your test is showing you Uplink work you were going to
+have to do.
 
 What it does NOT make shared is a host double shaped to one Uplink. When yours
 needs something the shipped doubles do not do (a capability declared on the
@@ -572,8 +586,8 @@ Two other habits keep a Tests project clean, and both come from those two:
   omitted half's partial-method calls simply disappear. That is what lets the
   whole decision surface be driven with no game running
 - **Reference `Sitrep.Contract`, your own `.Contract` slice, and at most the
-  vendored TestSupport, and stop.** Anything else of gonogo's is private to the
-  Tests project exactly as it is to the Uplink
+  vendored devkit (TestSupport and `Sitrep.Core`), and stop.** Anything else of
+  gonogo's is private to the Tests project exactly as it is to the Uplink
 
 ## Enforcement
 
@@ -632,10 +646,11 @@ repo compiles against `Sitrep.Contract` and its own contract slice alone, so
 they are what holds zero at zero: the next breach fails on its own rather than
 waiting to be noticed.
 
-**Its `<Uplink>.Tests` debt lists are not, and that zero was never real.** Until
-2026-08-30 the walk excluded the `.Tests` siblings, so every list here read zero
-while ten of the twelve Uplink test projects referenced a private assembly. A
-gate told to skip a directory reports that directory clean.
+**Its `<Uplink>.Tests` debt lists are empty too, and the zero they read before
+2026-08-30 was not.** Until then the walk excluded the `.Tests` siblings, so
+every list here read zero while ten of the twelve Uplink test projects
+referenced a private assembly. A gate told to skip a directory reports that
+directory clean.
 
 A `.Tests` project is held to its Uplink's rule, because it is part of that
 Uplink: it names that Uplink's types, it `<Compile Include>`s that Uplink's
@@ -658,6 +673,15 @@ Seeded from measurement on 2026-08-30, shrink-only like the others:
 - **`GonogoPrincipiaUplink.Tests` and `GonogoMechJebUplink.Tests`** are clean.
   `GonogoTestFlightUplink.Tests` was too, and has left for the `gonogo-uplinks`
   repo
+
+**The last of them cleared on 2026-09-21**, when `Sitrep.Core` joined
+`ShippedToTestProjects`. `Sitrep.Contract.TestSupport` references it, so
+`Sitrep.Core.dll` now rides beside `Sitrep.Contract.TestSupport.dll` in both
+places TestSupport ships: `vendor/devkit` and the package's `net10.0` group. The
+final entry was `GonogoKosUplink.Tests`, whose headless terminal harness drives a
+real `Courier`/`Archive` delay engine end to end. Nothing about the PLUGIN rule
+moved: `Sitrep.Core` is in `PrivateProjects` and the plugin gates read that list
+unfiltered.
 
 A NEW Tests project does not join these lists and cannot.
 

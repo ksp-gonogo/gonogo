@@ -69,7 +69,13 @@ namespace Sitrep.Core.Tests
         private static readonly string[] PrivateProjects =
         {
             "Sitrep.Host",
+
+            // Private to an Uplink PLUGIN, and only to one: see
+            // ShippedToTestProjects. A plugin that carried its own copy would
+            // shadow the one GonogoCore has already loaded into KSP's shared
+            // AppDomain.
             "Sitrep.Core",
+
             "Sitrep.Transport",
             "Sitrep.Propagation",
             "Sitrep.CaptureAnalysis",
@@ -87,12 +93,19 @@ namespace Sitrep.Core.Tests
         /// Projects in <see cref="PrivateProjects"/> that a <c>&lt;Uplink&gt;.Tests</c>
         /// project MAY reach, because an outside author has them too.
         ///
-        /// <para><c>Sitrep.Contract.TestSupport</c> ships beside the vendored
-        /// contract: <c>scripts/vendor-uplinks-reference-set.sh</c> builds it from
-        /// the same gonogo commit as <c>Sitrep.Contract</c> and writes it to the
+        /// <para>Both ship beside the vendored contract:
+        /// <c>scripts/vendor-uplinks-reference-set.sh</c> builds them from the same
+        /// gonogo commit as <c>Sitrep.Contract</c> and writes them to the
         /// gonogo-uplinks repo's <c>vendor/devkit</c>, where that repo's Tests
-        /// projects reference it by HintPath. It is not a package, and it is not
-        /// in GameData, which is why the plugin half still counts it private.</para>
+        /// projects reference them by HintPath, and the <c>net10.0</c> group of
+        /// <c>KspGonogo.Sitrep.Contract</c> carries the same two. Neither is in
+        /// GameData, which is why the plugin half still counts them private.</para>
+        ///
+        /// <para><c>Sitrep.Core</c> rides in behind
+        /// <c>Sitrep.Contract.TestSupport</c>, which references it. A Tests project
+        /// that wires a real Courier/Archive delay engine gets the engine rather
+        /// than a double of it, and a change in core that breaks such a test is
+        /// showing that Uplink work it was going to have to do.</para>
         ///
         /// <para>A name here never loosens the plugin gates, which read
         /// <see cref="PrivateProjects"/> unfiltered. Adding one is a claim that the
@@ -101,6 +114,7 @@ namespace Sitrep.Core.Tests
         private static readonly string[] ShippedToTestProjects =
         {
             "Sitrep.Contract.TestSupport",
+            "Sitrep.Core",
         };
 
         private static readonly string[] TestProjectPrivateProjects =
@@ -140,27 +154,18 @@ namespace Sitrep.Core.Tests
         /// part of the Uplink it tests and moves with it, so an Uplink whose tests
         /// only compile against this repo's private assemblies has no green suite
         /// once it is extracted, and an author who forks it inherits a suite they
-        /// cannot run. Every entry below is a real breach being carried, not an
+        /// cannot run. An entry here is a real breach being carried, never an
         /// exemption.</para>
         ///
-        /// <para>What remains in this list are genuine reaches into host
-        /// internals, and they need the capability route.</para>
+        /// <para>Empty, and it stays here empty for the same reason
+        /// <see cref="ReferenceDebt"/> does: the next Tests project to reach a
+        /// private assembly fails on its own rather than waiting to be noticed.
+        /// Anything that turns up here now needs either the capability route or a
+        /// name in <see cref="ShippedToTestProjects"/>, and the second is a claim
+        /// the vendoring script has to make true.</para>
         /// </summary>
         private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
-            new(StringComparer.Ordinal)
-            {
-                // Sitrep.Core alone, for the headless-terminal harness's real
-                // Courier/Archive delay engine (Headless/KosTerminalHeadlessHarnessTests.cs).
-                // Sitrep.Host, Sitrep.Propagation and Sitrep.Transport paid off:
-                // the discovery facts this project needed either compile against
-                // the Uplink's own ISitrepUplink.Manifest directly or are proved
-                // generically in Sitrep.Host.Tests, and Propagation/Transport were
-                // only ever transitive behind Host.
-                ["GonogoKosUplink.Tests"] = new[]
-                {
-                    "Sitrep.Core",
-                },
-            };
+            new(StringComparer.Ordinal);
 
         /// <summary>
         /// Namespaces each <c>&lt;Uplink&gt;.Tests</c> project still IMPORTS from a
@@ -172,13 +177,7 @@ namespace Sitrep.Core.Tests
         /// same work and they do not clear together.</para>
         /// </summary>
         private static readonly Dictionary<string, string[]> TestProjectImportDebt =
-            new(StringComparer.Ordinal)
-            {
-                ["GonogoKosUplink.Tests"] = new[]
-                {
-                    "Sitrep.Core",
-                },
-            };
+            new(StringComparer.Ordinal);
 
         /// <summary>
         /// The isolation assertions in this file walk the set this proves, so a
