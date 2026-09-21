@@ -360,11 +360,17 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * Tape spends the most because it has the most axis props (value, min, max,
    * tickStep, groundLine, plus a zone pair and a marker each). DivergingBar
    * spends ONE, on a quotient that `dividedBy` has already made dimensionless.
+   *
+   * Gauge, Tape and Dial each spend one more placing a band's two bounds on
+   * their track. It is the same SVG coordinate as the axis above and reached
+   * the same way, written once and mapped over the two ends. Normalising in the
+   * algebra instead would allocate a `Value` per mark per frame in a render
+   * path, which is the trade this budget is not asking for.
    */
-  "packages/ui-kit/src/Dial.tsx": 6,
+  "packages/ui-kit/src/Dial.tsx": 7,
   "packages/ui-kit/src/DivergingBar.tsx": 1,
-  "packages/ui-kit/src/Gauge.tsx": 5,
-  "packages/ui-kit/src/Tape.tsx": 8,
+  "packages/ui-kit/src/Gauge.tsx": 6,
+  "packages/ui-kit/src/Tape.tsx": 9,
   /*
    * ONE, and it is the fill fraction every primitive drawn from an
    * amount/capacity pair is derived by. Moved here from Meter.tsx, which held
@@ -386,13 +392,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   /*
-   * 5. Three of the five are the seam `units.ts` spends
-   * its three on: `formatQuantity` takes the magnitude and the unit as two
-   * plain arguments, so a quantity object cannot be handed over whole. One of
-   * those three is the staleness hover rendering the reading's own `asOfUt` on
-   * the game's calendar, through the formatter rather than around it, so a held
-   * number and a `<MissionDate>` beside it cannot print two spellings of one
-   * instant, and one is the single writer every end of the band goes through.
+   * 4. Two of the four are the seam `units.ts` spends its three on:
+   * `formatQuantity` takes the magnitude and the unit as two plain arguments,
+   * so a quantity object cannot be handed over whole. One of those two is the
+   * single writer every end of the band goes through.
    *
    * The OTHER TWO are an API gap and are worth widening `Value` to close.
    * `minus` is declared over `Addend<U>`, which a bare `U extends string`
@@ -401,9 +404,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * `Value<U>`. The two half-widths are therefore subtracted on magnitudes,
    * with the dimension already established by `bandIn` having narrowed all
    * three ends to the same unit. Give `minus` a same-unit overload and this
-   * entry falls to 3 on its own.
+   * entry falls to 2 on its own.
    */
-  "packages/ui-kit/src/Unit.tsx": 5,
+  "packages/ui-kit/src/Unit.tsx": 4,
+  /*
+   * ONE, on the same `formatQuantity` seam: the staleness caption renders the
+   * reading's own `asOfUt` on the game's calendar through the formatter rather
+   * than around it, so a held number and a `<MissionDate>` beside it cannot
+   * print two spellings of one instant.
+   */
+  "packages/ui-kit/src/readingCurrency.ts": 1,
   /*
    * ONE, and it is the same fill fraction `fillQuantity.ts` spends its own on:
    * `Meter` takes the pair as two props, so the division belongs to this file,
