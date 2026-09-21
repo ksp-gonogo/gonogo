@@ -498,8 +498,19 @@ export interface Value<U extends string = string> {
    * that `Math.max(0, elapsed.magnitude)` was written as five times, and it
    * keeps its type on the way out instead of shedding it. See {@link BareOperand}.
    */
+  /*
+   * The SAME-unit arm, first so it wins the overload resolution it is about.
+   * `CombinableWith<U>` is deferred while `U` is still a type parameter, so a
+   * component generic over its own unit cannot show `Value<U>` satisfies it,
+   * and `q.max(min)` fails to compile for two operands that are plainly one
+   * kind. A value is always combinable with its own unit, so this arm asserts
+   * nothing the wider one would not have allowed, and it returns the narrow
+   * `Value<U>` rather than the union because both operands are already it.
+   */
+  min(other: Value<U>): Value<U>;
   min(other: BareOperand<U>): Value<U>;
   min(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
+  max(other: Value<U>): Value<U>;
   max(other: BareOperand<U>): Value<U>;
   max(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
 }

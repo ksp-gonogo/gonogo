@@ -173,6 +173,23 @@ export function Dial<U extends string = string>({
     return startAngle + t * sweep;
   };
 
+  /*
+   * Onto the axis, and then onto the face. Kept apart because only the first is
+   * a claim about the quantity: `min`/`max` convert before they compare, so a
+   * bound written on another rung of the same kind lands where it belongs
+   * rather than where its bare number would put it, which is the failure
+   * `Math.max` on two magnitudes cannot see. Clamped for the reason a meter
+   * clamps its bounds: a model fitted near a limit routinely bounds past it,
+   * and pinning at the end says more than vanishing does.
+   *
+   * `onFace` is then the single unwrap, and it stays a separate step so the
+   * ordering and emptiness of a zone are still decided on QUANTITIES. Deciding
+   * them on angles would inverse-flip every zone on a dial drawn with a
+   * negative sweep.
+   */
+  const onAxis = (q: Value<U>): Value<U> => q.max(min).min(max);
+  const onFace = (q: Value<U>): number => angleOf(q.magnitude);
+
   const isFullCircle = sweep >= 360;
   const needle = pointAt(cx, cy, r * 0.88, angleOf(display));
 
@@ -222,15 +239,13 @@ export function Dial<U extends string = string>({
         {/* Zones */}
         {r > 0 &&
           zones?.map((z) => {
-            const from = z.from.magnitude;
-            const to = z.to.magnitude;
-            const lo = Math.max(axisMin, Math.min(from, to));
-            const hi = Math.min(axisMax, Math.max(from, to));
-            if (!(hi > lo)) return null;
+            const lo = onAxis(z.from.min(z.to));
+            const hi = onAxis(z.from.max(z.to));
+            if (!hi.greaterThan(lo)) return null;
             return (
               <path
-                key={`zone-${lo}-${hi}-${z.color}`}
-                d={arcPath(cx, cy, r, angleOf(lo), angleOf(hi))}
+                key={`zone-${z.color}-${onFace(lo)}-${onFace(hi)}`}
+                d={arcPath(cx, cy, r, onFace(lo), onFace(hi))}
                 fill="none"
                 stroke={z.color}
                 strokeWidth={TRACK_THICKNESS}
@@ -277,7 +292,7 @@ export function Dial<U extends string = string>({
         {r > 0 &&
           interval !== null &&
           (["lo", "hi"] as const).map((end) => {
-            const a = angleOf(interval[end].magnitude);
+            const a = onFace(onAxis(interval[end]));
             const inner = pointAt(cx, cy, r - TRACK_THICKNESS / 2, a);
             const outer = pointAt(cx, cy, r + TRACK_THICKNESS / 2, a);
             return (
