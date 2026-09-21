@@ -5,6 +5,7 @@ using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
 using Sitrep.Host.CommandCentres;
 using Sitrep.Host.Comms;
+using Sitrep.Host.Settings;
 
 namespace Gonogo.KSP
 {
@@ -136,11 +137,76 @@ namespace Gonogo.KSP
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1), that
         // literal is a config/onboarding decision, so core ships it off and the
-        // config layer flips it. Held here so a future config read can set it
+        // settings layer flips it. Held here so the settings store can set it
         // before Register wires the delay source.
         private static SignalDelayConfig _signalDelayConfig = SignalDelayConfig.Off();
 
-        /// <summary>Set the SignalDelay config (called by the config layer before registration).</summary>
+        /// <summary>The settings block this uplink owns.</summary>
+        public const string SignalDelayBlock = "SIGNAL_DELAY";
+
+        internal const string DelayEnabledRow = SignalDelayBlock + "/enabled";
+        internal const string LightSpeedScaleRow = SignalDelayBlock + "/lightSpeedScale";
+        internal const string DelayInSimulationRow = SignalDelayBlock + "/delayInSimulation";
+
+        private static SettingsStore? _settings;
+
+        /// <summary>
+        /// The store the signal-delay policy reads and writes, bound on first
+        /// use so that staging a policy is total: there is no arm on which a
+        /// change is accepted and then applied nowhere.
+        ///
+        /// <para>A process that never called <see cref="BindSettings"/> gets an
+        /// in-memory one, which keeps the policy in force for the session and
+        /// forgets it afterwards. That is the same bargain a read-only GameData
+        /// already strikes.</para>
+        /// </summary>
+        internal static SettingsStore DelaySettings => _settings ?? Bind(new SettingsStore(new InMemorySettingsStore()));
+
+        /// <summary>
+        /// Bind the signal-delay policy to a settings store: declare the rows,
+        /// seeding whatever the file did not carry, and apply the block on every
+        /// commit that touches it.
+        ///
+        /// <para>Call before <see cref="Register"/>, so the delay source is
+        /// wired against the settings actually in force. The subscription fires
+        /// immediately, which is what carries the file's values in at boot.</para>
+        /// </summary>
+        public static void BindSettings(SettingsStore store)
+        {
+            Bind(store ?? throw new ArgumentNullException(nameof(store)));
+        }
+
+        private static SettingsStore Bind(SettingsStore store)
+        {
+            _settings = store;
+
+            // Delay is ON at real light-speed when the file says nothing: a
+            // player who never opened the settings still flies under the rule
+            // the mod exists to enforce. Delaying a SIMULATION is the one that
+            // defaults off, because a rehearsal has no craft to be distant from.
+            store.Declare(SettingsRow.Bool(DelayEnabledRow, true));
+            store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0));
+            store.Declare(SettingsRow.Bool(DelayInSimulationRow, false));
+
+            store.OnChanged(SignalDelayBlock, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
+            return store;
+        }
+
+        private static SignalDelayConfig ReadSignalDelay(SettingsStore store)
+        {
+            var scale = store.Number(LightSpeedScaleRow);
+            return new SignalDelayConfig
+            {
+                Enabled = store.Bool(DelayEnabledRow),
+                // A scale of zero or less is not a slower light speed, it is an
+                // infinite delay, so it reverts to real light-speed rather than
+                // freezing every channel.
+                LightSpeedScale = scale > 0.0 ? scale : 1.0,
+                DelayInSimulation = store.Bool(DelayInSimulationRow),
+            };
+        }
+
+        /// <summary>Apply a SignalDelay config directly, which is what a settings commit does.</summary>
         public static void ConfigureSignalDelay(SignalDelayConfig config) =>
             _signalDelayConfig = config ?? SignalDelayConfig.Off();
 
@@ -545,9 +611,12 @@ namespace Gonogo.KSP
         /// <para>The MOD owns this value, not the console, and that is
         /// deliberate: the mod is what enforces the delay, so a console
         /// preference the enforcer never heard would be a switch wired to
-        /// nothing. It is written back to <c>PluginData/gonogo.cfg</c> so it
-        /// survives a restart, beside the flag that turns delay on at
-        /// all.</para>
+        /// nothing. It goes through the settings store, so it survives a
+        /// restart beside the flag that turns delay on at all.</para>
+        ///
+        /// <para>There is no separate in-memory assignment here. Staging and
+        /// committing is the one mutation, and the store's own change callback
+        /// is what puts the new policy in force, so the two cannot drift.</para>
         ///
         /// <para>A failed WRITE is not a failed command. The policy is in force
         /// from the moment this returns; all that is lost is remembering it next
@@ -561,11 +630,17 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.Range, "no policy given");
             }
 
-            _signalDelayConfig.DelayInSimulation = args.ApplyDuringSimulation;
-            GonogoConfigFile.WriteSignalDelayFlag(
-                "delayInSimulation",
-                args.ApplyDuringSimulation);
-            return CommandResult.Ok();
+            var settings = DelaySettings;
+            settings.Stage(DelayInSimulationRow, args.ApplyDuringSimulation);
+            var written = settings.Commit();
+            return written.Success
+                ? CommandResult.Ok()
+                : new CommandResult
+                {
+                    Success = true,
+                    Detail = "in force for this session only, " + settings.Path
+                        + " could not be written: " + written.Reason,
+                };
         }
 
         /// <summary>
