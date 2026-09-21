@@ -36,8 +36,18 @@ export interface UplinkPackage {
   renderWith: string[];
 }
 
-export function readJson<T>(file: string): T {
-  return JSON.parse(readFileSync(file, "utf8")) as T;
+/**
+ * A JSON file's top-level object, or a failure naming the file and what it held
+ * instead. Every caller narrows the fields it reads off the result; a generic
+ * `readJson<T>` would hand each one a typed view of whatever happened to be on
+ * disk.
+ */
+export function readJsonObject(file: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`gonogo-uplink: ${file} does not hold a JSON object.`);
+  }
+  return parsed as Record<string, unknown>;
 }
 
 function exists(file: string): boolean {
@@ -128,7 +138,10 @@ function findFixtures(root: string): string[] {
  * a check rather than the absence of a feature.
  */
 function resolveRenderWith(dir: string, gonogo: unknown): string[] {
-  const declared = (gonogo as { renderWith?: unknown } | undefined)?.renderWith;
+  const declared =
+    typeof gonogo === "object" && gonogo !== null && "renderWith" in gonogo
+      ? gonogo.renderWith
+      : undefined;
   if (declared === undefined) return [];
   if (!Array.isArray(declared)) {
     throw new Error(
@@ -241,20 +254,25 @@ export function resolveUplinkPackage(
         "client package directory, or pass --root <dir>.",
     );
   }
-  const pkg = readJson<{
-    name: string;
-    version: string;
-    main?: string;
-    gonogo?: unknown;
-  }>(manifestPath);
+  const pkg = readJsonObject(manifestPath);
+  const { name, version, main } = pkg;
+  if (typeof name !== "string" || typeof version !== "string") {
+    throw new Error(
+      `gonogo-uplink: ${manifestPath} needs a string "name" and "version".`,
+    );
+  }
   const setup = ["gonogo-render.setup.ts", "gonogo-render.setup.tsx"]
     .map((f) => join(dir, f))
     .find(exists);
   return {
     dir,
-    name: pkg.name,
-    version: pkg.version,
-    entry: resolveEntry(dir, pkg, opts.entry),
+    name,
+    version,
+    entry: resolveEntry(
+      dir,
+      { main: typeof main === "string" ? main : undefined },
+      opts.entry,
+    ),
     setup,
     fixtures: findFixtures(dir),
     renderWith: resolveRenderWith(dir, pkg.gonogo),
@@ -397,15 +415,8 @@ export function renderModuleUrl(dir: string, entry: string): string {
     const pkgDir = join(root, pkg);
     const manifest = join(pkgDir, "package.json");
     if (!exists(manifest)) continue;
-    const exported = readJson<{
-      exports?: Record<string, string | Record<string, string>>;
-      main?: string;
-    }>(manifest);
-    const entryPoint = exported.exports?.[subpath];
-    const file =
-      typeof entryPoint === "string"
-        ? entryPoint
-        : (entryPoint?.import ?? entryPoint?.default);
+    const exported = readJsonObject(manifest);
+    const file = exportedEntryPoint(exported.exports, subpath);
     if (!file) {
       throw new Error(
         `gonogo-uplink: ${pkg} at ${pkgDir} exports no "${subpath}", so ` +
@@ -418,4 +429,24 @@ export function renderModuleUrl(dir: string, entry: string): string {
     `gonogo-uplink: "${entry}" names "${pkg}", which is not installed under ` +
       `${dir}. Add it to devDependencies.`,
   );
+}
+
+/**
+ * The file an `exports` map serves for `subpath`, reading the conditional form's
+ * `import` then `default`, or `undefined` when the map does not serve it.
+ */
+function exportedEntryPoint(
+  exports: unknown,
+  subpath: string,
+): string | undefined {
+  if (typeof exports !== "object" || exports === null) return undefined;
+  if (!(subpath in exports)) return undefined;
+  const entryPoint: unknown = Reflect.get(exports, subpath);
+  if (typeof entryPoint === "string") return entryPoint;
+  if (typeof entryPoint !== "object" || entryPoint === null) return undefined;
+  for (const condition of ["import", "default"]) {
+    const value: unknown = Reflect.get(entryPoint, condition);
+    if (typeof value === "string") return value;
+  }
+  return undefined;
 }

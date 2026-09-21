@@ -19,6 +19,33 @@ interface PendingSample {
   v: unknown;
 }
 
+/** A stored flights row when it carries the identity the readers key off, and
+ *  `null` for a row written by a schema that predates them. */
+function asFlightRecord(row: unknown): FlightRecord | null {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    typeof Reflect.get(row, "id") !== "string" ||
+    typeof Reflect.get(row, "launchedAt") !== "number"
+  ) {
+    return null;
+  }
+  return row as FlightRecord;
+}
+
+/** A stored sample row when it carries a timestamp, and `null` otherwise: a row
+ *  with no `t` cannot be placed on a series at all. */
+function asPendingSample(row: unknown): PendingSample | null {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    typeof Reflect.get(row, "t") !== "number"
+  ) {
+    return null;
+  }
+  return row as PendingSample;
+}
+
 /**
  * IndexedDB-backed `Store`. Persists across reloads so graph history
  * survives browser restarts.
@@ -57,8 +84,7 @@ export class IndexedDbStore implements FlightStore {
         .transaction(FLIGHTS_STORE)
         .objectStore(FLIGHTS_STORE)
         .get(id);
-      req.onsuccess = () =>
-        resolve((req.result as FlightRecord | undefined) ?? null);
+      req.onsuccess = () => resolve(asFlightRecord(req.result));
       req.onerror = () => reject(req.error);
     });
   }
@@ -71,7 +97,10 @@ export class IndexedDbStore implements FlightStore {
         .objectStore(FLIGHTS_STORE)
         .getAll();
       req.onsuccess = () => {
-        const list = req.result as FlightRecord[];
+        const rows: unknown[] = req.result;
+        const list = rows
+          .map(asFlightRecord)
+          .filter((row): row is FlightRecord => row !== null);
         list.sort(FLIGHTS_DESC);
         resolve(list);
       };
@@ -150,9 +179,11 @@ export class IndexedDbStore implements FlightStore {
       cursorReq.onsuccess = () => {
         const cursor = cursorReq.result;
         if (cursor) {
-          const row = cursor.value as PendingSample;
-          t.push(row.t);
-          v.push(row.v);
+          const row = asPendingSample(cursor.value);
+          if (row) {
+            t.push(row.t);
+            v.push(row.v);
+          }
           cursor.continue();
         } else {
           resolve({ t, v });

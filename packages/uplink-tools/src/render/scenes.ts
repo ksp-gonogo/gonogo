@@ -7,7 +7,7 @@ import type {
   SceneTarget,
   UplinkInventory,
 } from "../render-probe";
-import { display, readJson, type UplinkPackage } from "./context";
+import { display, readJsonObject, type UplinkPackage } from "./context";
 import { HOST_DRAWN_CONTRIBUTION_SEGMENTS } from "./probe-global";
 
 /**
@@ -153,10 +153,10 @@ export function buildScenes(
 ): Scene[] {
   const scenes: Scene[] = [];
   for (const file of pkg.fixtures) {
-    const raw = readJson<Record<string, unknown>>(file);
+    const raw = readJsonObject(file);
     const where = display(pkg.dir, file);
-    const scene = raw._scene as RawScene | undefined;
-    if (!scene) {
+    const sceneBlock = raw._scene;
+    if (typeof sceneBlock !== "object" || sceneBlock === null) {
       throw new Error(
         `${where}: no "_scene" block, so nothing says what this fixture is a ` +
           "fixture OF. Add one naming its target:\n" +
@@ -164,7 +164,7 @@ export function buildScenes(
           'or "augment" / "contribution" with the registered id.',
       );
     }
-    scenes.push(oneScene(where, file, raw, scene, inventory));
+    scenes.push(oneScene(where, file, raw, sceneBlock as RawScene, inventory));
   }
   return scenes;
 }
@@ -196,7 +196,11 @@ function oneScene(
   const id = scene[kind] as string;
   const target: SceneTarget = { kind, id };
 
-  const stream = (raw._stream as RawStream | undefined) ?? {};
+  const streamBlock = raw._stream;
+  const stream: RawStream =
+    typeof streamBlock === "object" && streamBlock !== null
+      ? (streamBlock as RawStream)
+      : {};
   const pinnedUt = stream.pinnedUt ?? DEFAULT_PINNED_UT;
   const emits = (stream.emits ?? []).map((e) => ({
     ...e,

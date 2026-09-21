@@ -187,16 +187,21 @@ export interface ThemeDefinition {
 
 /**
  * Declaration-merging seam for slot props. An augmenting package merges a slot
- * id → props type; a slot not (yet) in the registry falls back to a loose bag.
+ * id → props type.
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface SlotRegistry {}
 
 export type SlotId = keyof SlotRegistry;
 
+/**
+ * The props a slot passes its augments, and `never` for a slot no package has
+ * merged. A loose bag here would type an augment of a MISSPELLED slot id, and
+ * the props it reads off that bag, exactly as it types a correct one.
+ */
 export type SlotProps<S extends string> = S extends keyof SlotRegistry
   ? SlotRegistry[S]
-  : Record<string, unknown>;
+  : never;
 
 /**
  * Declaration-merging seam for what a widget is currently FOCUSED ON, keyed by
