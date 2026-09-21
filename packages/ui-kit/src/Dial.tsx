@@ -21,8 +21,15 @@
  * passed beside a bare number is a symbol nothing checks.
  */
 
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
+import {
+  InstrumentBound,
+  InstrumentNotCurrentDot,
+  sayNotCurrent,
+} from "./instrumentCurrency";
+import { NULL_DISPLAY } from "./NullValue";
+import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
 export interface DialZone<U extends string = string> {
@@ -42,8 +49,8 @@ export interface DialTick<U extends string = string> {
 }
 
 export interface DialProps<U extends string = string> {
-  /** Current value: the needle position. */
-  value: Value<U>;
+  /** Current value: the needle position, or the whole reading it arrived in. */
+  value: UnitValue<U>;
   min: Value<U>;
   max: Value<U>;
   width?: number;
@@ -114,6 +121,9 @@ export function Dial<U extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<DialProps<U>>) {
+  // Split first, so the figure and the statements about it go separate ways.
+  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+
   /*
    * The axis, unwrapped ONCE into the face's own angular geometry. Everything
    * below is trigonometry on bare numbers, which is what an arc command is
@@ -122,7 +132,7 @@ export function Dial<U extends string = string>({
    * goes back out through the unit layer, in the centre readout and in
    * `aria-valuetext`.
    */
-  const current = value.magnitude;
+  const current = shown?.magnitude ?? Number.NaN;
   const axisMin = min.magnitude;
   const axisMax = max.magnitude;
   const span = axisMax - axisMin;
@@ -140,9 +150,19 @@ export function Dial<U extends string = string>({
    * to a string. `speakQuantity` is its spoken twin, for `aria-valuetext`,
    * which is an attribute and can only hold text.
    */
-  const shown = { magnitude: display, unit: value.unit };
-  const centreLabel = valueLabel ?? writeQuantity(shown, { format });
-  const spoken = speakQuantity(shown, { format });
+  // A reading carrying no number gets no needle: one parked on the face would
+  // say the value is there. A number that is present but non-finite keeps the
+  // fallback to the start of the scale.
+  const hasFigure = shown != null;
+  const face = shown == null ? null : { magnitude: display, unit: shown.unit };
+  const centreLabel =
+    valueLabel ?? (face === null ? null : writeQuantity(face, { format }));
+  const spoken = face === null ? NULL_DISPLAY : speakQuantity(face, { format });
+  // Where the model would defend its answer, on the face the needle sweeps.
+  // Narrowed to the figure's own unit: an interval placed by a number of
+  // another kind is an interval about something else.
+  const interval =
+    shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
 
   const cx = width / 2;
   const cy = height / 2;
@@ -159,7 +179,8 @@ export function Dial<U extends string = string>({
   return (
     <Dial__Meter
       role="meter"
-      aria-label={ariaLabel ?? "Dial"}
+      aria-label={sayNotCurrent(ariaLabel ?? "Dial", caption)}
+      data-not-current={notCurrent ? "" : undefined}
       aria-valuenow={display}
       aria-valuemin={axisMin}
       aria-valuemax={axisMax}
@@ -252,8 +273,27 @@ export function Dial<U extends string = string>({
             );
           })}
 
+        {/* The model's two bounds, across the track the needle sweeps over */}
+        {r > 0 &&
+          interval !== null &&
+          (["lo", "hi"] as const).map((end) => {
+            const a = angleOf(interval[end].magnitude);
+            const inner = pointAt(cx, cy, r - TRACK_THICKNESS / 2, a);
+            const outer = pointAt(cx, cy, r + TRACK_THICKNESS / 2, a);
+            return (
+              <InstrumentBound
+                key={end}
+                end={end}
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
+              />
+            );
+          })}
+
         {/* Needle + hub */}
-        {r > 0 && (
+        {r > 0 && hasFigure && (
           <>
             <line
               x1={cx}
@@ -275,9 +315,16 @@ export function Dial<U extends string = string>({
           textAnchor="middle"
           fontSize={13}
           fontWeight="bold"
-          fill="var(--color-text-primary)"
+          fill={
+            centreLabel === null
+              ? "var(--color-text-muted)"
+              : "var(--color-text-primary)"
+          }
         >
-          {centreLabel}
+          {centreLabel ?? NULL_DISPLAY}
+          {notCurrent && centreLabel !== null && (
+            <InstrumentNotCurrentDot size={6} />
+          )}
         </text>
       </svg>
     </Dial__Meter>
