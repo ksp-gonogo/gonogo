@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 569 of them
- * across 240 files.
+ * Assertions that escape `unknown`, per file. The tree carries 544 of them
+ * across 229 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 342 of the 569 are
+ * **A test fixture minted through an assertion.** 342 of the 544 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 233 of the 569 are `as unknown as`, and those are worth taking
+ * 227 of the 544 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 114 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 103 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 240 files those would be 240 sentences
+ * sentence per entry: at 229 files those would be 229 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -229,12 +229,8 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/core/src/uplink-tsconfig-parity.test.ts": 1,
   "packages/core/src/uplinkVersionCompat.ts": 1,
   "packages/core/src/widget-fixture-conformance.ts": 1,
-  // packages/data: 12 in 5 files (6 out of `any`, 0 in tests), walked 53 files
-  "packages/data/src/FlightsManager/buildMissionRecord.ts": 1,
+  // packages/data: 1 in 1 files (0 out of `any`, 0 in tests), walked 53 files
   "packages/data/src/hooks/useOptionalStreamEvent.ts": 1,
-  "packages/data/src/schema/builtinDerivedKeys.ts": 5,
-  "packages/data/src/storage/IndexedDbStore.ts": 2,
-  "packages/data/src/storage/MissionStore.ts": 3,
   // packages/serial: 21 in 8 files (10 out of `any`, 9 in tests), walked 72 files
   "packages/serial/src/mocks/mockGamepad.test.ts": 1,
   "packages/serial/src/mocks/mockGamepad.ts": 4,
@@ -267,15 +263,8 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
   "packages/ui-kit/src/Tabs.test.tsx": 1,
   "packages/ui-kit/src/WidgetScope.tsx": 1,
-  // packages/uplink-tools: 15 in 8 files (5 out of `any`, 0 in tests), walked 26 files
-  "packages/uplink-tools/src/page-check.ts": 1,
+  // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  "packages/uplink-tools/src/render/cli.ts": 1,
-  "packages/uplink-tools/src/render/context.ts": 2,
-  "packages/uplink-tools/src/render/driver.ts": 6,
-  "packages/uplink-tools/src/render/scenes.ts": 2,
-  "packages/uplink-tools/src/render/shape.ts": 1,
-  "packages/uplink-tools/src/render/wire.ts": 1,
   // mod/GonogoKerbalismUplink/client: 20 in 7 files (6 out of `any`, 17 in tests), walked 83 files
   "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
   "mod/GonogoKerbalismUplink/client/src/isru.test.ts": 2,
@@ -443,9 +432,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/ui-kit/src/augments.ts": 1,
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
   "packages/ui-kit/src/Tabs.test.tsx": 1,
-  // packages/uplink-tools: 7 in 2 files (0 out of `any`, 0 in tests), walked 26 files
+  // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  "packages/uplink-tools/src/render/driver.ts": 6,
   // mod/GonogoKerbalismUplink/client: 13 in 4 files (0 out of `any`, 11 in tests), walked 83 files
   "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
   "mod/GonogoKerbalismUplink/client/src/ResourceOps/processFilters.test.ts": 1,
@@ -488,7 +476,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2228,
-  assertions: 2001,
+  assertions: 1981,
 } as const;
 
 /**

@@ -96,16 +96,16 @@ export interface AstronautComplexCrewContext {
   isApplicant: boolean;
 }
 
-// Declaration-merge the slot id onto its props type in core's `SlotRegistry`.
+// Declaration-merge each slot id onto its props type in core's `SlotRegistry`.
 // Co-located here (not a shared central file) so parallel slot work on other
-// widgets can't collide. Makes `registerAugment({ augments:
-// "astronaut-complex.crew" })` and `<AugmentSlot name="astronaut-complex.crew"
-// props={...} />` type-check against `AstronautComplexCrewContext` rather than
-// the loose fallback.
+// widgets can't collide. `astronaut-complex.training` is a whole tab and passes
+// nothing, which `Record<string, never>` states; an id missing from here carries
+// no props at all, so an augment of it does not compile.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "astronaut-complex.crew": AstronautComplexCrewContext;
     "astronaut-complex.crew-badge": AstronautComplexCrewContext;
+    "astronaut-complex.training": Record<string, never>;
   }
 }
 
