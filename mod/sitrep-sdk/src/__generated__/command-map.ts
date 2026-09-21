@@ -210,6 +210,73 @@ export interface GeneratedCommandReplyMap {
 }
 
 /**
+ * The same mapping as a RUNTIME value: command id -> the NAME of the type
+ * its dispatch resolves with, spelled exactly as the interface above spells
+ * it, `CommandResultOf<T>` envelope included.
+ *
+ * An interface is erased before a client runs, and a command reply arrives
+ * carrying a requestId and nothing else, so the command that was dispatched
+ * is the only route back to a type. Anything that has to treat a reply by
+ * its declared shape, unit hydration first among them, reads this.
+ */
+export const GENERATED_COMMAND_REPLY_TYPES = {
+  "alarm.scet.arm": "CommandResult",
+  "alarm.scet.disarm": "CommandResult",
+  "career.contract.accept": "CommandResult",
+  "career.contract.cancel": "CommandResult",
+  "career.contract.decline": "CommandResult",
+  "career.crew.fire": "CommandResult",
+  "career.crew.hire": "CommandResult",
+  "career.facility.upgrade": "CommandResult",
+  "career.strategy.activate": "CommandResult",
+  "career.strategy.deactivate": "CommandResult",
+  "career.tech.unlock": "CommandResult",
+  "comms.setSimulationDelayPolicy": "CommandResult",
+  "ksp.launch": "CommandResult",
+  "ksp.recover": "CommandResult",
+  "ksp.revertToEditor": "CommandResult",
+  "ksp.revertToLaunch": "CommandResult",
+  "ksp.switchVessel": "CommandResult",
+  "ksp.toTrackingStation": "CommandResult",
+  "robotics.rotor.reverse": "CommandResult",
+  "robotics.rotor.setBrake": "CommandResult",
+  "robotics.rotor.setLock": "CommandResult",
+  "robotics.rotor.setMotor": "CommandResult",
+  "robotics.rotor.setRpmLimit": "CommandResult",
+  "robotics.rotor.setTorqueLimit": "CommandResult",
+  "robotics.servo.setLock": "CommandResult",
+  "robotics.servo.setMotor": "CommandResult",
+  "robotics.servo.setTarget": "CommandResult",
+  "science.experiment.deploy": "CommandResult",
+  "science.experiment.transmit": "CommandResult",
+  "system.bodies.statesAt": "BodyStatesReply",
+  "system.frame.set": "CommandResult",
+  "time.setPaused": "CommandResult",
+  "time.setWarpIndex": "CommandResult",
+  "vessel.control.setAbort": "CommandResult",
+  "vessel.control.setActionGroup": "CommandResult",
+  "vessel.control.setAxes": "CommandResult",
+  "vessel.control.setBrakes": "CommandResult",
+  "vessel.control.setFlyByWire": "CommandResult",
+  "vessel.control.setGear": "CommandResult",
+  "vessel.control.setLights": "CommandResult",
+  "vessel.control.setRcs": "CommandResult",
+  "vessel.control.setSas": "CommandResult",
+  "vessel.control.setSasMode": "CommandResult",
+  "vessel.control.setThrottle": "CommandResult",
+  "vessel.control.stage": "CommandResultOf<number>",
+  "vessel.invokePartAction": "CommandResult",
+  "vessel.maneuver.add": "CommandResultOf<string>",
+  "vessel.maneuver.plan.send": "CommandResult",
+  "vessel.maneuver.remove": "CommandResult",
+  "vessel.maneuver.update": "CommandResult",
+  "vessel.repair": "CommandResultOf<RepairOutcome>",
+  "vessel.target.clear": "CommandResult",
+  "vessel.target.set": "CommandResult",
+  "vessel.trajectory.forVantage": "VantagePlanReply",
+} as const satisfies Record<string, string>;
+
+/**
  * What the delay rail needs to know about a command, as DATA: a client asks
  * this table rather than carrying a list of ids it recognises.
  */
