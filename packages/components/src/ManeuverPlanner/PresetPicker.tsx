@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import { Select } from "@ksp-gonogo/ui-kit";
 import { PRESETS, type PresetId } from "./presets";
 
 interface PresetPickerProps {
@@ -8,7 +8,7 @@ interface PresetPickerProps {
 
 export function PresetPicker({ value, onChange }: PresetPickerProps) {
   return (
-    <PresetSelect
+    <Select
       aria-label="Maneuver preset"
       value={value}
       onChange={(e) => onChange(e.target.value as PresetId)}
@@ -18,16 +18,6 @@ export function PresetPicker({ value, onChange }: PresetPickerProps) {
           {p.label}
         </option>
       ))}
-    </PresetSelect>
+    </Select>
   );
 }
-
-const PresetSelect = styled.select`
-  width: 100%;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-value);
-  padding: var(--inset-control);
-  border-radius: var(--radius-regular);
-`;

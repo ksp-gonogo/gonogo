@@ -426,7 +426,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/WarpControl/undefined.characterise.test.tsx": 2,
   "packages/components/src/shared/OrbitDiagram.tsx": 5,
   "packages/components/src/shared/OrbitalEventChips.test.tsx": 1,
-  "packages/components/src/shared/dataPalette.ts": 1,
   "packages/components/src/shared/trajectoryWithheld.test.tsx": 1,
   "packages/components/src/shared/useIsOrbiting.ts": 1,
   "packages/components/src/slot-registry.conformance.test-d.ts": 2,
