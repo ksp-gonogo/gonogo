@@ -119,6 +119,49 @@ textarea {
   --font-size-figure: var(--font-size-lg);
 
   /*
+   * ICON SIZE. A separate family from the type scale on purpose: an icon's
+   * size is a BOX dimension, and a name offered on the type scale for it
+   * gets reached for as text.
+   *
+   * `control`    The glyph inside a control the operator presses. 46 of the
+   *              63 icon sites, and the number is not arbitrary: both
+   *              control tokens below already do their arithmetic against a
+   *              14px glyph, in writing. `--inset-control-compact` derives
+   *              an 18px header from 2 inset + 2 border + a 14px glyph, and
+   *              `--control-height` derives its 28 from 12 + 2 + 14. Sizing
+   *              icons at anything else falsifies both.
+   * `standalone` The glyph that IS its control: no label, nothing beside it,
+   *              on a target hit at a glance. Every `Fab`, and the
+   *              processor picker.
+   *
+   * THESE STEP ON A COARSE POINTER and a raw `size={14}` cannot. The step
+   * is the reason the family is custom properties rather than constants: a
+   * prop is a JS number and a number cannot read a media query, so today
+   * the two halves of one population disagree on a touch screen. A `×`
+   * drawn with `font-size` grows and the `<CloseIcon>` beside it does not.
+   *
+   * REACHED THROUGH THE `size` PROP, not through a CSS rule, because a
+   * `var()` resolves inside an SVG presentation attribute. Measured in
+   * chromium, firefox and webkit, with the negative controls that make the
+   * measurement worth having: `width="banana"` is rejected in all three and
+   * `width="var(--absent, 33px)"` renders at 33, so the probe can tell a
+   * failure from a success. Anyone tempted to "fix" a `size="var(...)"`
+   * back to a number should reverse that reasoning, not the code.
+   *
+   * NOT NAMED:
+   *   an overlay tier  A dismiss on a surface that covers the screen is a
+   *                    real candidate and its own population disagrees:
+   *                    16, 16, 14 and 18 across four instances of one job.
+   *                    Naming it would write one of the three down and call
+   *                    it a decision.
+   *   a 12px tier      The observed mode, and not a job. It appears on
+   *                    `--inset-control-compact` AND on the 28px control
+   *                    floor, and sits beside a 14 in the same row twice.
+   */
+  --icon-size-control: 14px;
+  --icon-size-standalone: 20px;
+
+  /*
    * Line height, unitless, named by ROLE rather than by number. The
    * census showed the values split cleanly by job, not by size: all 25
    * `line-height: 1` sites are single-line chrome and glyph buttons that
@@ -717,5 +760,10 @@ textarea {
     --font-size-sm: 13px;
     --font-size-base: 15px;
     --font-size-lg: 17px;
+
+    /* The step a raw size prop cannot have. A Fab already grows its own box
+       40 -> 48 here; without this its glyph stayed behind. */
+    --icon-size-control: 15px;
+    --icon-size-standalone: 24px;
   }
 }
