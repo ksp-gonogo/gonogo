@@ -35,9 +35,11 @@ describe("Card", () => {
     const card = screen.getByTestId("card");
     const title = screen.getByText("Kerbin Explorer I");
     expect(card).toContainElement(title);
-    // Relative rather than a rung: the title is bigger than whatever the
-    // record is written in, which a fixed size can only be for some bodies.
-    expect(injectedCss()).toContain("font-size:1.09em;");
+    // The arrangement owns BOTH sides of the relation: the title one rung
+    // above the compact body it declares. A title alone cannot be bigger than
+    // a body it does not know.
+    expect(injectedCss()).toContain("font-size:var(--font-size-sm);");
+    expect(injectedCss()).toContain("font-size:var(--font-size-xs);");
     // The name comes before the figures under it, in the DOM a screen reader
     // walks as well as on screen.
     expect(

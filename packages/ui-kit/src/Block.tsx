@@ -87,17 +87,21 @@ export interface BlockProps
 const Block__Title = styled.div`
   color: var(--color-text-primary);
   font-weight: 600;
-  /* A RELATION, not a rung, which is the whole of what "the title is bigger
-     than the text underneath it" means. A fixed rung is only bigger than some
-     bodies: at the 12px rung the name of a part came out SMALLER than the
-     sentence under it in the fleet roster, which is the complaint inverted
-     rather than fixed. An em holds the relation against whatever the record is
-     written in, so the hierarchy survives a site the kit has never seen.
+  /* One rung above the body the arrangement sets, which is the whole of what
+     "the title is bigger than the text underneath it" means. Both sides are
+     the arrangement's, and they have to be: a title alone cannot be bigger
+     than a body it does not know. At this rung with the body left inherited,
+     the name of a part came out SMALLER than the sentence under it in the
+     fleet roster, which is the complaint inverted rather than fixed.
 
-     The ratio is 12 over 11: a name for the thing over the compact body it
-     heads. Those are the two rungs the semantic font-size vocabulary names, so
-     when that layer lands this becomes those two tokens and the number goes. */
-  font-size: 1.09em;
+     A relative em step was the other candidate and it is worse: em measures
+     against the INHERITED size, not the sibling body, so a record inside a
+     panel came out at 15px and out-sized the panel's own 11px heading.
+
+     12 over 11 is a name for the thing over the compact body it heads, which
+     is the pair the semantic font-size vocabulary names. When that layer
+     lands these two declarations become those two tokens. */
+  font-size: var(--font-size-sm);
   line-height: var(--line-height-tight);
   /* A content-sized basis, not a zero one. With a zero basis the title always
      "fits" its flex line at its pre-grow hypothetical size, so the row never
@@ -215,6 +219,12 @@ export const Block__Root = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   min-width: 0;
+  /* The compact body a record is written in, and the other half of the title's
+     relation above. Declared here rather than left inherited so the step holds
+     without every site restating it: a widget whose rows carry no size of
+     their own took the panel's, and a 14px sentence under a 12px name is the
+     hierarchy upside down. A row that means to be larger still says so. */
+  font-size: var(--font-size-xs);
 `;
 
 /**
