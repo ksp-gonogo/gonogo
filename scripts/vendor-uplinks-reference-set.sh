@@ -70,7 +70,7 @@ git -C "$ROOT" archive "$SHA" \
   mod/Sitrep.Core \
   | tar -x -C "$WORK"
 
-for project in Sitrep.Contract Sitrep.Contract.Codegen Sitrep.Contract.TestSupport; do
+for project in Sitrep.Contract Sitrep.Contract.Codegen Sitrep.Contract.TestSupport Sitrep.Core; do
   dotnet build "$WORK/mod/$project/$project.csproj" -c Release --nologo -v quiet -clp:ErrorsOnly
 done
 
