@@ -1,7 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  useStream,
+  useTopicStatus,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
 import {
@@ -64,6 +68,25 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // headline value reads straight off the stream; no legacy read remains
   // for this widget's live value.
   const twr = useStream<VesselState>("vessel.state")?.twr ?? undefined;
+  /*
+   * `useStream` hands back the sticky last value with no currency on it, so
+   * without this the dial goes on drawing a confident TWR after telemetry
+   * stops. Read at the same frame as the value above: both resolve through
+   * `store.currentFrame()`, so a pair read in one render cannot disagree about
+   * which frame it describes.
+   *
+   * The figure is HELD and captioned rather than withheld. This widget's whole
+   * content is the one number, and its empty state says there is no engine, so
+   * nulling a dated TWR would tell the operator something false about the
+   * craft rather than about the link.
+   *
+   * A caption rather than the mark `Gauge` can now draw, because the mark
+   * needs a `Reading` and this channel carries none: minting one from a status
+   * would assert an observation nothing made. When `vessel.state` moves into
+   * the reading model the dial takes the reading directly and this caption
+   * becomes redundant.
+   */
+  const twrNotCurrent = useTopicStatus("vessel.state") !== "live";
   // The sparkline history reads the same derived field the headline does.
   // A derived topic has a live value but no buffered history of its own, so
   // `useDataSeries` replays the channel's `derive()` across the window off the
@@ -156,7 +179,9 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 into ".82" at 72 px inner width. Scale the readout font and
                 drop the explicit "g" unit at this size, the panel title is
                 "TWR", the unit is implied. */}
-            <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
+            <TinyValue $color={TONE_COLOR[tone]} $notCurrent={twrNotCurrent}>
+              {twr.toFixed(1)}
+            </TinyValue>
           </Section>
         }
       />
@@ -176,6 +201,17 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
           <Section key="caption" full>
             <Text tone="muted" size="xs">
               Current stage · last {writeQuantity(value("s", SPARK_WINDOW_SEC))}
+            </Text>
+          </Section>
+        ),
+        twrNotCurrent && (
+          <Section key="dated" full>
+            {/* The fact and nothing else. The robotics console names WHICH
+                half of its panel is dated because it has several; this widget
+                draws one figure, so there is no ambiguity for a second clause
+                to resolve and it would be prose. */}
+            <Text tone="warn" size="xs" role="status" aria-live="polite">
+              TWR no longer current
             </Text>
           </Section>
         ),
@@ -233,7 +269,7 @@ const SparkSlot = styled.div`
   margin-top: 8px;
 `;
 
-const TinyValue = styled.span<{ $color: string }>`
+const TinyValue = styled.span<{ $color: string; $notCurrent: boolean }>`
   /* 24 px keeps a three-character value ("1.8") within ~50 px so the
      leading digit doesn't clip at the panel's ~70 px inner width. The
      panel title "TWR" supplies the unit context. Comment-locked to that box
@@ -241,6 +277,10 @@ const TinyValue = styled.span<{ $color: string }>`
   font-size: 24px;
   font-weight: 700;
   color: ${(p) => p.$color};
+  /* Dimmed rather than captioned: at ~70px of inner width there is no room
+     for a word, and a held figure still has to be readable. The same choice
+     the meter makes when its figure stops being current. */
+  ${(p) => (p.$notCurrent ? "opacity: 0.55;" : "")}
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   line-height: var(--line-height-flush);
