@@ -2396,6 +2396,27 @@ namespace Sitrep.Host
             _activeCentreIds.Contains(centreId);
 
         /// <summary>
+        /// Whether <paramref name="centreId"/> is an active command centre, or
+        /// NULL while no command centre is known at all.
+        ///
+        /// <para>The null is the point, and it is why this is not
+        /// <see cref="IsSelectableVantage"/> made public. The selectable set is
+        /// empty until the first tick and at the main menu, where no game is
+        /// loaded, so a bare false there says "that is not a place" when what is
+        /// true is "no place is known yet". A caller that refuses on the
+        /// difference would be refusing on ignorance.</para>
+        ///
+        /// <para>ANY-THREAD read, for the reason <see cref="IsSelectableVantage"/>
+        /// gives: it consults only the <see cref="_activeCentreIds"/> snapshot,
+        /// one sample stale.</para>
+        /// </summary>
+        public bool? IsVantageSelectable(string centreId)
+        {
+            var active = _activeCentreIds;
+            return active.Count == 0 ? (bool?)null : active.Contains(centreId);
+        }
+
+        /// <summary>
         /// MAIN-THREAD capture: enumerate the active command centres and publish their
         /// ids to <see cref="_activeCentreIds"/>, ask the elected home-command claimant
         /// for <see cref="CurrentHomeCommand"/>, then settle where a connection that has

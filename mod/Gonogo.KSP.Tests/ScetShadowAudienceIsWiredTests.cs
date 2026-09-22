@@ -161,6 +161,60 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
+        /// The vantage check is installed and dropped the same way, because the
+        /// engine's own predicate is private to it and a selectable-vantage
+        /// question is not an Uplink author surface.
+        /// </summary>
+        [Fact]
+        public void the_addon_installs_the_vantage_check_and_drops_it_again()
+        {
+            var addon = CurrencyDelaySourceText.ReadRelative("GonogoAddon.cs");
+
+            Assert.Contains(
+                "ScetAlarmUplink.ConfigureSelectableVantage(", addon, StringComparison.Ordinal);
+            Assert.Contains("engine.IsVantageSelectable(", addon, StringComparison.Ordinal);
+
+            var shutdown = CurrencyDelaySourceText.MethodBody(addon, "private void Shutdown()");
+            Assert.Contains(
+                "ScetAlarmUplink.ConfigureSelectableVantage(null)", shutdown, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// An alarm's vantage is checked WHERE IT IS ASKED FOR and nowhere else.
+        ///
+        /// <para>The engine already rules this for a command's own vantage: an
+        /// override is checked, a session's chosen vantage is not re-checked,
+        /// because "re-checking it here would start refusing ordinary commands the
+        /// moment the centre a session is sitting at went inactive". A crewed
+        /// centre stops being one the moment its crew leaves, so a per-tick check
+        /// would kill a standing alarm for a reason the operator never acted
+        /// on.</para>
+        /// </summary>
+        [Fact]
+        public void the_vantage_is_checked_at_arm_and_on_no_tick()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
+
+            Assert.Contains(
+                "ScetAlarmVantage.VerdictFor(",
+                CurrencyDelaySourceText.MethodBody(
+                    uplink, "private CommandResult HandleArm(ScetAlarmArmArgs? args, string vantage)"),
+                StringComparison.Ordinal);
+
+            foreach (var perTick in new[]
+            {
+                "private object? CaptureOnMain(KspSnapshot? snapshot)",
+                "private void HandleOnCourier(object? captured)",
+            })
+            {
+                Assert.DoesNotContain(
+                    "_selectableVantage",
+                    CurrencyDelaySourceText.MethodBody(uplink, perTick),
+                    StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
         /// The reconciliation runs on the handle, where the roster's OWN changes
         /// are visible: a rewind clear and an alarm going Unreachable are decided
         /// inside an evaluation and reach no command handler, so an arm and

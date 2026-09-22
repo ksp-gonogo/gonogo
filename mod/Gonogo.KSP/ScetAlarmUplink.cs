@@ -158,6 +158,28 @@ namespace Gonogo.KSP
             _closeStanding = close;
         }
 
+        /// <summary>
+        /// Whether a vantage names an active command centre, null while the
+        /// simulation knows of none, or null throughout on an install where
+        /// nothing wired it. An unwired install arms whatever it is asked to,
+        /// which is the behaviour every headless test that builds this uplink
+        /// directly already has.
+        ///
+        /// <para>Static and late-bound for the same reasons
+        /// <see cref="_revealedRead"/> is, and reachable from no other route:
+        /// the engine's own predicate is private to it, and a
+        /// selectable-vantage question is not an Uplink author surface.</para>
+        /// </summary>
+        private static Func<string, bool?>? _selectableVantage;
+
+        /// <summary>
+        /// Point the arm's vantage check at an engine; pass null to take it away
+        /// again, which a test doing so must, because this outlives any one
+        /// engine.
+        /// </summary>
+        public static void ConfigureSelectableVantage(Func<string, bool?>? selectable) =>
+            _selectableVantage = selectable;
+
         private readonly IVesselActuator _actuator;
 
         private IUplinkHost? _host;
@@ -331,6 +353,32 @@ namespace Gonogo.KSP
             // that apart from one whose condition simply has not come due. See
             // ScetThresholdSources for what is addressable and why the set is a
             // written-down table rather than everything on the wire.
+            // A vantage no command centre corresponds to is refused for the same
+            // reason, and it is the one the operator can most easily get wrong:
+            // the field is theirs to fill, so a stale one from another save names
+            // a place this one has never heard of.
+            //
+            // Asked once, here, and never again. A crewed centre stops being one
+            // the moment its crew leaves, and re-asking on a later tick would kill
+            // a standing alarm for a reason the operator never acted on.
+            var wanted = ScetAlarmVantage.Of(args);
+            switch (ScetAlarmVantage.VerdictFor(
+                wanted, ScetAlarmVantage.SubjectOf(args), _selectableVantage?.Invoke(wanted)))
+            {
+                case ScetVantageVerdict.NoSuchPlace:
+                    return CommandResult.Fail(
+                        CommandErrorCode.Range, "'" + wanted + "' is not an active command centre");
+                case ScetVantageVerdict.NoPlacesKnown:
+                    // A different refusal, because it is a different claim: the
+                    // simulation has not been told what places exist, which is
+                    // what the main menu and the ticks before the first capture
+                    // look like. Saying "no such place" there would state
+                    // something nothing has established.
+                    return CommandResult.Fail(
+                        CommandErrorCode.Range,
+                        "no command centre is known yet, so '" + wanted + "' cannot be checked");
+            }
+
             var condition = args.Condition;
             if (condition != null
                 && condition.Kind == ScetAlarmConditionKind.Threshold
