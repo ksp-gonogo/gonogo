@@ -1,8 +1,14 @@
 import type { DataKey } from "@ksp-gonogo/core";
 import { DataKeyPicker, GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
-import { FieldLabel } from "@ksp-gonogo/ui-kit";
+import {
+  Field,
+  FieldLabel,
+  Input,
+  Row,
+  Select,
+  Stack,
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import styled from "styled-components";
 import { THRESHOLD_OPS, type ThresholdOp } from "./triggerTypes";
 
 interface TriggerEditorProps {
@@ -32,9 +38,9 @@ export function TriggerEditor({
   const armDisabled =
     !triggerKey || !Number.isFinite(valueN) || externallyDisabled;
   return (
-    <Editor>
-      <EditorTitle>When this condition holds</EditorTitle>
-      <EditorField>
+    <Stack style={EDITOR_STYLE}>
+      <div style={EDITOR_TITLE_STYLE}>When this condition holds</div>
+      <Field style={EDITOR_FIELD_STYLE}>
         <FieldLabel>Telemetry key</FieldLabel>
         <DataKeyPicker
           subjectNoun="trigger subject"
@@ -44,11 +50,11 @@ export function TriggerEditor({
           placeholder="Search telemetry..."
           clearable
         />
-      </EditorField>
-      <OpRow>
-        <EditorField>
+      </Field>
+      <Row as="div" style={OP_ROW_STYLE}>
+        <Field style={EDITOR_FIELD_STYLE}>
           <FieldLabel htmlFor="mnv-trigger-op">Operator</FieldLabel>
-          <OpSelect
+          <Select
             id="mnv-trigger-op"
             value={triggerOp}
             onChange={(e) => setTriggerOp(e.target.value as ThresholdOp)}
@@ -58,20 +64,20 @@ export function TriggerEditor({
                 {o}
               </option>
             ))}
-          </OpSelect>
-        </EditorField>
-        <EditorField>
+          </Select>
+        </Field>
+        <Field style={EDITOR_FIELD_STYLE}>
           <FieldLabel htmlFor="mnv-trigger-value">Value</FieldLabel>
-          <ValueInput
+          <Input
             id="mnv-trigger-value"
             type="number"
             step="any"
             value={triggerValueDraft}
             onChange={(e) => setTriggerValueDraft(e.target.value)}
           />
-        </EditorField>
-      </OpRow>
-      <Actions>
+        </Field>
+      </Row>
+      <div style={ACTIONS_STYLE}>
         <GhostButton type="button" onClick={onClose}>
           Cancel
         </GhostButton>
@@ -84,71 +90,41 @@ export function TriggerEditor({
         >
           Arm
         </PrimaryButton>
-      </Actions>
-    </Editor>
+      </div>
+    </Stack>
   );
 }
 
-const Editor = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  padding: var(--inset-surface);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-`;
+/** The editor is a panel-tier card. Stack carries the column; the gap is named
+ *  rather than sized so the surface around it can retune it. */
+const EDITOR_STYLE = {
+  gap: "var(--gap-related)",
+  padding: "var(--inset-surface)",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+  borderRadius: "var(--radius-regular)",
+} as const;
 
-const EditorTitle = styled.div`
-  font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-`;
+const EDITOR_TITLE_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "var(--color-text-dim)",
+} as const;
 
-const EditorField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  flex: 1;
-  min-width: 0;
-`;
+/** Each field takes an equal share of the operator row and may shrink below
+ *  its content, which is what keeps a long telemetry key from pushing the
+ *  value box off the card. */
+const EDITOR_FIELD_STYLE = { flex: 1, minWidth: 0 } as const;
 
-const OpRow = styled.div`
-  display: flex;
-  gap: var(--gap-related);
-`;
+/** Two fields side by side. Row's own space-between would push them apart. */
+const OP_ROW_STYLE = { justifyContent: "flex-start" } as const;
 
-const OpSelect = styled.select`
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-  padding: var(--inset-control);
-  font-size: var(--font-size-value);
-`;
-
-const ValueInput = styled.input`
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-  padding: var(--inset-control);
-  font-size: var(--font-size-value);
-  font-family: inherit;
-  width: 100%;
-  min-width: 0;
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
-const Actions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--gap-related);
-  padding-top: var(--space-2);
-`;
+const ACTIONS_STYLE = {
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+  paddingTop: "var(--space-2)",
+} as const;
