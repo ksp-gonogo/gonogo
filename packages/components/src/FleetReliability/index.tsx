@@ -397,7 +397,7 @@ function rowFor(part: ReliabilityPartEntry): Row {
  * state, which is also the right reading order on a row that already has other
  * subsystems' markers on it.
  */
-function Notice({
+function AbsenceLine({
   severity,
   state,
   label,
@@ -745,7 +745,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
    */
   if (notCurrent) {
     return (
-      <Notice
+      <AbsenceLine
         severity="offline"
         state="not current"
         label="Reliability not current"
@@ -759,7 +759,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   // its findings are missing. Two situations, two sentences.
   if (parts === undefined) {
     return (
-      <Notice
+      <AbsenceLine
         severity="offline"
         state={prefixed(source, "parts not reporting")}
         label="Reliability parts not reporting"
@@ -771,7 +771,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   // modelled craft whose parts are all fine.
   if (parts.length === 0) {
     return (
-      <Notice
+      <AbsenceLine
         severity="info"
         state="no parts monitored"
         label="No parts monitored for reliability"

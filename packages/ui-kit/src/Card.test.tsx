@@ -35,7 +35,9 @@ describe("Card", () => {
     const card = screen.getByTestId("card");
     const title = screen.getByText("Kerbin Explorer I");
     expect(card).toContainElement(title);
-    expect(injectedCss()).toContain("font-size:var(--font-size-sm);");
+    // Relative rather than a rung: the title is bigger than whatever the
+    // record is written in, which a fixed size can only be for some bodies.
+    expect(injectedCss()).toContain("font-size:1.09em;");
     // The name comes before the figures under it, in the DOM a screen reader
     // walks as well as on screen.
     expect(
