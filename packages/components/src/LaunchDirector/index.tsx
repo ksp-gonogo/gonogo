@@ -698,7 +698,7 @@ function LaunchDirectorComponent({
               <div
                 role="status"
                 style={{
-                  fontSize: "var(--font-size-xs)",
+                  fontSize: "var(--font-size-compact)",
                   color: "var(--color-text-faint)",
                 }}
               >
@@ -748,7 +748,7 @@ function LaunchDirectorComponent({
               role="status"
               aria-live="polite"
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-compact)",
                 color: "var(--color-text-faint)",
               }}
             >
@@ -1577,7 +1577,7 @@ function ArmedButton({
 }
 
 const SectionLabel = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -1626,20 +1626,20 @@ const PadMeta = styled.span`
 `;
 
 const PadName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const PadDetails = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
 /* Occupied reads as the live state, unreported as a caution: an operator who
    skims the colour must not read silence as an empty pad. */
 const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   flex-shrink: 0;
   text-align: right;
   color: ${(p) =>
@@ -1654,7 +1654,7 @@ const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
    step down in size, so a space centre with six pads still reads as a list. */
 const PadAside = styled.div`
   padding-left: var(--space-8);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   &:empty {
     display: none;
   }
@@ -1695,7 +1695,7 @@ const PadColumn = styled.div`
 `;
 
 const EmptyNote = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
@@ -1741,13 +1741,13 @@ const ShipMeta = styled.span`
 `;
 
 const ShipName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const ShipDetails = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -1758,13 +1758,13 @@ const ShipCost = styled.span`
 `;
 
 const CostTag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
 
 const BlockedTag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
   font-variant-numeric: tabular-nums;
 `;
@@ -1828,12 +1828,12 @@ const CrewChip = styled.button<{
 `;
 
 const CrewName = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 600;
 `;
 
 const CrewTrait = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: inherit;
   opacity: 0.7;
   letter-spacing: 0.04em;
@@ -1879,7 +1879,7 @@ const FlightStatRow = styled.div`
 `;
 
 const StatLabel = styled.dt`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -1902,7 +1902,7 @@ const StatValue = styled.dd`
 const CrashChip = styled.div`
   background: var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
   letter-spacing: 0.04em;
@@ -1925,7 +1925,7 @@ const DrainReadout = styled.span`
 `;
 
 const armButtonBase = `
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--inset-control);
@@ -2009,7 +2009,7 @@ const VesselSwitchRow = styled.button`
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 
   &:hover {
     background: var(--color-surface-panel);
@@ -2037,7 +2037,7 @@ const VesselSwitchName = styled.span`
 `;
 
 const VesselSwitchMeta = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: currentColor;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -2045,7 +2045,7 @@ const VesselSwitchMeta = styled.span`
 `;
 
 const VesselSwitchDistance = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   margin-right: var(--space-4);
@@ -2053,7 +2053,7 @@ const VesselSwitchDistance = styled.span`
 
 const VesselSwitchHint = styled.div`
   padding: var(--inset-surface);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
@@ -2063,7 +2063,7 @@ const VesselSwitchHint = styled.div`
 const SpaceObjectToggle = styled.button`
   align-self: flex-start;
   margin: var(--space-2) var(--space-2) var(--space-4);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);

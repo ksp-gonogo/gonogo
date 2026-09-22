@@ -1042,7 +1042,7 @@ const HeaderMeta = styled.div`
   flex-wrap: wrap;
   gap: var(--gap-related);
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   flex-wrap: wrap;
 `;
 
@@ -1066,7 +1066,7 @@ const Sep = styled.span`
 
 const TinyFundsRow = styled.div`
   padding: 0 var(--space-12) var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1076,7 +1076,7 @@ const TinyFundsRow = styled.div`
 
 const TinyDrainRow = styled.div`
   padding: 0 var(--space-12) var(--space-6);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -1114,7 +1114,7 @@ const Empty = styled.p`
   margin: 0;
   color: var(--color-text-dim);
   font-style: italic;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 /**
@@ -1154,7 +1154,7 @@ const StrategyCard = styled(Block).attrs({
 
 const CardDept = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Truncate gracefully at narrow card widths instead of clipping
@@ -1182,7 +1182,7 @@ const ExpandToggle = styled.button`
 const Description = styled.p`
   margin: var(--space-2) 0 var(--space-4);
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
 `;
 
@@ -1197,7 +1197,7 @@ const EffectList = styled.ul`
 
 const EffectLine = styled.li`
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   &::before {
     content: "·";
@@ -1214,7 +1214,7 @@ const CostRow = styled.div`
 `;
 
 const CostChip = styled.span<{ $insufficient?: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
@@ -1308,14 +1308,14 @@ const Slider = styled.input`
 `;
 
 const FactorLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
 
 const FactorTag = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
 `;
@@ -1323,7 +1323,7 @@ const FactorTag = styled.span`
 const FactorValue = styled.span`
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   min-width: 3em;
   text-align: right;
 `;
@@ -1340,14 +1340,14 @@ const LockedScreen = styled.p`
   margin: 0;
   padding: var(--space-16);
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   text-align: center;
 `;
 
 const BlockedNote = styled.p`
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-style: italic;
 `;
 

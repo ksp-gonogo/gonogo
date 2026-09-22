@@ -485,7 +485,7 @@ export function FlightsManager({
                   <ConfirmRow>
                     <span
                       style={{
-                        fontSize: "var(--font-size-sm)",
+                        fontSize: "var(--font-size-compact)",
                         color: "var(--color-text-muted)",
                       }}
                     >
@@ -542,7 +542,7 @@ export function FlightsManager({
                 <ConfirmRow>
                   <span
                     style={{
-                      fontSize: "var(--font-size-sm)",
+                      fontSize: "var(--font-size-compact)",
                       color: "var(--color-text-muted)",
                     }}
                   >
@@ -668,7 +668,7 @@ const GraphButton = styled.button<{ $open: boolean }>`
   border: 1px solid ${({ $open }) => ($open ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};
   color: ${({ $open }) => ($open ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
@@ -686,7 +686,7 @@ const ExportButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
@@ -704,7 +704,7 @@ const ReplayButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
@@ -728,7 +728,7 @@ const RecordingToolbar = styled.div`
 `;
 
 const MissionHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -739,7 +739,7 @@ const RecordingBadge = styled.span`
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-on-bg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
@@ -749,13 +749,13 @@ const Table = styled.table`
   border-collapse: collapse;
   width: 100%;
   overflow-y: auto;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const Th = styled.th`
   text-align: left;
   padding: var(--inset-surface);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -781,7 +781,7 @@ const Td = styled.td`
 const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
   display: inline-block;
   margin-left: var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   padding: var(--inset-chip);
   /* A stadium, not a corner: the badge renders about 17px tall (11px x 1.2
      plus 1px padding and 1px border each side), so 8px was already at half
@@ -828,7 +828,7 @@ const DangerButton = styled.button`
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-tag-red-fg);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { background: var(--color-status-alert-muted); }
@@ -839,7 +839,7 @@ const CancelButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); }
@@ -862,7 +862,7 @@ const BulkActions = styled.div`
 `;
 
 const SelectionCount = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -886,7 +886,7 @@ const ThStar = styled.th`
      24px column carrying a star glyph needs the opposite. At (6,8) the content
      box is 8px and the glyph clips. */
   padding: var(--space-6) var(--space-4);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   border-bottom: 1px solid var(--color-border-subtle);
   text-align: center;
@@ -920,7 +920,7 @@ const AutoDeleteLabel = styled.label`
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   cursor: pointer;
   user-select: none;
@@ -935,7 +935,7 @@ const ClearAllButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-dim);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
