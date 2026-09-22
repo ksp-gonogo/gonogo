@@ -47,7 +47,9 @@ export interface MarkerIconProps
 /** Extra width of the keyline beyond the coloured stroke, split across both sides. */
 const KEYLINE_EXTRA = 1.4;
 const DOT_RADIUS = 1.7;
-const DEFAULT_SIZE = 20;
+/** Matches `Icons.tsx`, and for the same reason: the token reaches the glyph
+ *  through the presentation attribute, so it steps on a coarse pointer. */
+const DEFAULT_SIZE = "var(--icon-size-standalone)";
 const DEFAULT_STROKE_WIDTH = 1.8;
 
 type MarkerColour = "prograde" | "normal" | "radial" | "maneuver" | "target";
