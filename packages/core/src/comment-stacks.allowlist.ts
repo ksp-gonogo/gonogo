@@ -17,10 +17,6 @@
  * `comment-stacks.scan.ts` for the matcher itself.
  */
 export const COMMENT_STACK_DEBT: Record<string, number> = {
-  "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts": 2,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.test.tsx": 2,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 1,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/snapshots.test.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/index.test.tsx": 5,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/panel-badge.test.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/processor.test.ts": 2,
