@@ -655,6 +655,7 @@ describe("Graph: the region behind a modelled trace", () => {
   beforeEach(stubSizedResizeObserver);
 
   afterEach(() => {
+    restoreResizeObserver();
     vi.unstubAllGlobals();
     clearReckoners();
   });
