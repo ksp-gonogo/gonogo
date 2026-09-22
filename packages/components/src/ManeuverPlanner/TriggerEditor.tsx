@@ -100,7 +100,7 @@ const Editor = styled.div`
 `;
 
 const EditorTitle = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -126,7 +126,7 @@ const OpSelect = styled.select`
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   padding: var(--inset-control);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
 `;
 
 const ValueInput = styled.input`
@@ -135,7 +135,7 @@ const ValueInput = styled.input`
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   padding: var(--inset-control);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-family: inherit;
   width: 100%;
   min-width: 0;

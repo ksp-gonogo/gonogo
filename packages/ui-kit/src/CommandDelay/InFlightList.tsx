@@ -729,7 +729,7 @@ const InFlightQueue__Sq = styled.div`
   padding: 0;
   appearance: none;
   font: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   color: currentColor;
   /* A RAISED tile, lighter than the panel (a tint of the phase colour over the
@@ -821,7 +821,7 @@ const InFlightQueue__Overflow = styled.span`
   align-self: center;
   flex: 0 0 auto;
   padding: 0 ${QUEUE_GAP}px;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 `;
@@ -835,7 +835,7 @@ const InFlightList__Root = styled.div<{ $row: boolean }>`
   gap: var(--space-2, 2px);
   padding: var(--space-4, 4px) var(--space-8, 8px);
   font-family: monospace;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular, 4px);

@@ -123,7 +123,7 @@ const Bar = styled.div`
   background: var(--color-tag-purple-bg, var(--color-surface-raised));
   border-bottom: 2px solid var(--color-tag-purple-fg);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
 `;
 
@@ -179,7 +179,7 @@ const SeekBar = styled.input`
 
 const TimeText = styled.span`
   font-family: monospace;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   white-space: nowrap;
 `;
@@ -188,7 +188,7 @@ const RatePicker = styled.select`
   background: var(--color-surface-app);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
 `;
@@ -198,7 +198,7 @@ const ExitButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }

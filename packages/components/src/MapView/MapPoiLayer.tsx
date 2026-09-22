@@ -143,7 +143,7 @@ const PoiHoverCard = styled.div`
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   /* Off the app z-index ladder: the only z-index in this file, so its value
      is meaningless in isolation. Its contract is 1-versus-auto against the
      markers it covers, not a place on the app ladder. */

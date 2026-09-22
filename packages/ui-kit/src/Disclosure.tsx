@@ -225,7 +225,7 @@ const Disclosure__ButtonTrigger = styled(GhostButton)<{
   ${({ $size }) =>
     $size === "sm" &&
     css`
-      font-size: var(--font-size-2xs, 10px);
+      font-size: var(--font-size-compact);
       font-weight: 600;
       padding: var(--space-2, 2px) var(--space-8, 8px);
       border-radius: var(--radius-regular, 2px);

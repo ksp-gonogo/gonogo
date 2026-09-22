@@ -248,14 +248,14 @@ const Header = styled.div`
 `;
 
 const Title = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--color-text-muted);
 `;
 
 const Count = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -293,7 +293,7 @@ const ItemHeader = styled.div`
 `;
 
 const StationChip = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-status-info-fg);
@@ -308,7 +308,6 @@ const DismissBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   cursor: pointer;
@@ -326,7 +325,7 @@ const ItemBody = styled.div`
 
 const MissingComponent = styled.div`
   padding: var(--space-12);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   text-align: center;
 `;

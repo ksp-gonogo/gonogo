@@ -46,7 +46,7 @@ const InputRow = styled.label`
 `;
 
 const InputLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -56,13 +56,13 @@ const InputField = styled.input`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--space-4) var(--space-6);
   border-radius: var(--radius-regular);
   text-align: right;
 `;
 
 const InputSuffix = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   color: var(--color-text-faint);
 `;

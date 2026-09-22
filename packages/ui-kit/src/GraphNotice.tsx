@@ -55,7 +55,7 @@ export function GraphNotice({
 }
 
 const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   /* No design-system surface token covers this translucent dark scrim ,
      every surface tier in tokens.css is opaque. Kept as the one raw

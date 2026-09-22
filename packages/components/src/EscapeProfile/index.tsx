@@ -173,7 +173,7 @@ const GRAPH_SLOT_STYLE: CSSProperties = {
 
 const NOTICE_STYLE: CSSProperties = {
   flex: "0 0 auto",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   background: "rgba(0, 0, 0, 0.7)",
   padding: "var(--inset-chip)",

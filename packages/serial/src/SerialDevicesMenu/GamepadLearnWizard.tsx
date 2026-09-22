@@ -263,7 +263,7 @@ const Wrap = styled.div`
 `;
 
 const Progress = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-text-faint);
@@ -281,13 +281,13 @@ const PromptRow = styled.div`
 `;
 
 const PromptName = styled.span`
-  font-size: var(--font-size-lg, 16px);
+  font-size: var(--font-size-value);
   font-weight: 700;
   color: var(--color-text-primary);
 `;
 
 const PromptPositional = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -295,7 +295,7 @@ const ListenStatus = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-info-fg);
 `;
 
@@ -327,7 +327,7 @@ const ListenDot = styled.span`
 `;
 
 const FinishedHint = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-prose);
   color: var(--color-text-primary);
   line-height: var(--line-height-prose);
 `;

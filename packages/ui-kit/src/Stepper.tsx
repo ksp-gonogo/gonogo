@@ -161,7 +161,7 @@ const Stepper__Step = styled.button`
   justify-content: center;
   min-width: var(--space-24, 24px);
   font-family: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   line-height: var(--line-height-flush);
   padding: var(--space-4, 4px) var(--space-8, 8px);
@@ -197,7 +197,7 @@ const Stepper__Step = styled.button`
 const Stepper__Value = styled.div`
   text-align: center;
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   padding: var(--space-4, 4px) var(--space-8, 8px);
@@ -217,6 +217,6 @@ const Stepper__Value = styled.div`
 
 const Stepper__Note = styled.div`
   grid-column: 1 / -1;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;

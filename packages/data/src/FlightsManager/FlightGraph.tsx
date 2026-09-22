@@ -290,7 +290,7 @@ const Toolbar = styled.div`
 `;
 
 const PickerLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -302,7 +302,7 @@ const ChartWrap = styled.div`
 `;
 
 const Placeholder = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   padding: var(--space-24) 0;
   text-align: center;
@@ -312,7 +312,7 @@ const LoadingBadge = styled.div`
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   background: rgba(0, 0, 0, 0.6);
   padding: var(--inset-chip);
@@ -324,7 +324,7 @@ const LoadingBadge = styled.div`
 `;
 
 const ErrorLine = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-status-alert-muted);

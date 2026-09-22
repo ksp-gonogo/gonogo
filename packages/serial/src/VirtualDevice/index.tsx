@@ -188,7 +188,7 @@ const MomentaryButton = styled.button`
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   padding: var(--space-10) 0;
   cursor: pointer;

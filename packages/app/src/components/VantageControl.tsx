@@ -300,7 +300,7 @@ const VantageReadout__Root = styled.span`
 `;
 
 const Trigger = styled(ActionButton)`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const TriggerValue = styled.span`

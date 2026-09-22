@@ -812,11 +812,11 @@ const TONE_FILLED = {
 
 const SIZE_STYLES = {
   sm: css`
-    font-size: var(--font-size-2xs, 10px);
+    font-size: var(--font-size-caption);
     padding: var(--space-2, 2px) var(--space-8, 8px);
   `,
   md: css`
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-compact);
     padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   `,
 } as const;

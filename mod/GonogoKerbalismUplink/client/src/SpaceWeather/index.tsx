@@ -1285,7 +1285,7 @@ const SECTION_HEAD: CSSProperties = {
 };
 
 const SECTION_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
@@ -1293,7 +1293,7 @@ const SECTION_LABEL: CSSProperties = {
 
 function sectionValueStyle(tone: Tone): CSSProperties {
   return {
-    fontSize: "var(--font-size-xs)",
+    fontSize: "var(--font-size-caption)",
     color: TONE_HEX[tone],
     fontVariantNumeric: "tabular-nums",
     textAlign: "right",
@@ -1347,7 +1347,7 @@ const BLACKOUT_TAG: CSSProperties = {
   bottom: "2px",
   left: "50%",
   transform: "translateX(-50%)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
   // Text sitting ON the nogo-bg fill, not beside it: -fg (2.61:1 here) fails
@@ -1367,7 +1367,7 @@ const POSITION_UNKNOWN_TAG: CSSProperties = {
   top: "2px",
   left: "50%",
   transform: "translateX(-50%)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
   color: "var(--color-text-muted)",
@@ -1405,7 +1405,7 @@ function doseValueStyle(tone: Tone, compact: boolean): CSSProperties {
 }
 
 const DOSE_CAPTION: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
@@ -1442,7 +1442,7 @@ const ENV_ROW: CSSProperties = {
 function envTagStyle(on: boolean, tone?: Tone): CSSProperties {
   const active = TONE_HEX[tone ?? "go"];
   return {
-    fontSize: "var(--font-size-2xs)",
+    fontSize: "var(--font-size-caption)",
     letterSpacing: "0.05em",
     textTransform: "uppercase",
     padding: "var(--inset-chip)",

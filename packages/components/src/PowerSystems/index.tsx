@@ -731,7 +731,7 @@ function PowerSystemsConfigComponent({
 
 const RESOURCE_SELECT: CSSProperties = {
   maxWidth: "50%",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-value)",
   padding: "var(--inset-control)",
 };
 
@@ -789,7 +789,7 @@ const MEASURED_CELL: CSSProperties = {
 // against NetCell's tinted go/warn backgrounds it drops below the 4.5:1 AA floor
 // for this size of text, so it matches NetCell's own foreground tokens.
 const CELL_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
@@ -830,7 +830,7 @@ const SPARKLINE_ROW: CSSProperties = {
 };
 
 const SPARKLINE_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
@@ -883,7 +883,7 @@ const SECTION_COUNT: CSSProperties = {
 };
 
 const SECTION_EMPTY: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   padding: "var(--space-2) 0",
 };
@@ -901,7 +901,7 @@ const PowerRow = styled.div`
   grid-template-columns: 1fr auto auto;
   gap: var(--gap-related);
   padding: var(--inset-surface);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   background: var(--color-surface-app);
   border-radius: var(--radius-regular);
   &:hover {
@@ -912,14 +912,14 @@ const PowerRow = styled.div`
 // Per-sign colour was styled; the row value now renders through `Value`
 // (tone={go|warn|faint}), so RowValue is gone. RowEff stays a plain caption.
 const ROW_EFF: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   fontVariantNumeric: "tabular-nums",
 };
 
 const HINT: CSSProperties = {
   marginTop: "var(--space-6)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   lineHeight: "var(--line-height-body)",
 };
@@ -934,7 +934,7 @@ const COMPACT_BODY: CSSProperties = {
 };
 
 const COMPACT_RESOURCE: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",

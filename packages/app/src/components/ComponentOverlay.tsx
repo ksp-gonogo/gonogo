@@ -495,7 +495,6 @@ const CloseBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
-  font-size: var(--font-size-base);
   cursor: pointer;
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
@@ -536,7 +535,7 @@ const ResultsHeader = styled.div`
      name that took this one to 8 would step the header out of that column on
      its own. */
   padding: var(--space-6) var(--space-16);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -593,13 +592,13 @@ const ListItem = styled.button<{ $active?: boolean }>`
 `;
 
 const ItemName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const ItemDesc = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
@@ -608,7 +607,7 @@ const ItemDesc = styled.span`
 // addition explicit next to the base description. Accent-toned so it reads as
 // an extension rather than part of the stock description.
 const UplinkAddLine = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   line-height: var(--line-height-body);
 `;
@@ -624,7 +623,7 @@ const Empty = styled.div`
      room to sit where the first result would have been, and every --inset-*
      name puts horizontal at or above vertical, so none of them can say it. */
   padding: var(--space-24) var(--space-16);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   text-align: center;
 `;

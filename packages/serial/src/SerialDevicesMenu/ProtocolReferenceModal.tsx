@@ -237,7 +237,7 @@ const Header = styled.div`
 
 const Title = styled.h3`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -261,7 +261,7 @@ const Body = styled.div`
      measured against this 16, so the two move together or not at all. */
   padding: var(--space-10) var(--space-16);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-prose);
   line-height: var(--line-height-prose);
 
   p {
@@ -283,7 +283,7 @@ const Body = styled.div`
     color: var(--color-status-go-fg);
     padding: var(--inset-chip);
     border-radius: var(--radius-regular);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-prose);
   }
   pre {
     background: var(--color-surface-sunken);
@@ -296,7 +296,7 @@ const Body = styled.div`
        code run above stays --inset-chip: that one is sized by its text. */
     padding: var(--inset-surface);
     border-radius: var(--radius-regular);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-prose);
     overflow-x: auto;
     margin: 0 0 var(--space-10);
   }

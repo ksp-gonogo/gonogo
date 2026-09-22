@@ -403,7 +403,7 @@ const POWER_TONE: Record<PowerState, StatusTone> = {
   unknown: "neutral",
 };
 
-const XS2_STYLE = { fontSize: "var(--font-size-2xs)" } as const;
+const XS2_STYLE = { fontSize: "var(--font-size-caption)" } as const;
 
 /**
  * The cluster's produced-over-required power balance, or null when either side

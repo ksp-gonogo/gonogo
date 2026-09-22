@@ -180,7 +180,7 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
 const CommandOutcomeList__Label = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   align-self: center;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   color: ${({ $tone }) => toneFg($tone)};
 `;
@@ -188,7 +188,7 @@ const CommandOutcomeList__Label = styled.span<{ $tone: OutcomeTone }>`
 const CommandOutcomeList__Text = styled.span`
   flex: 1 1 auto;
   min-width: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   /* Wraps, never truncates: the numbers are at the end of the sentence. */
   overflow-wrap: anywhere;

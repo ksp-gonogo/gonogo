@@ -90,7 +90,7 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
   padding: var(--inset-control);
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
@@ -136,7 +136,7 @@ const FileInputHidden = styled.input`
 `;
 
 const FileInputName = styled.span<{ $hasFile: boolean }>`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: ${({ $hasFile }) =>
     $hasFile ? "var(--color-text-primary)" : "var(--color-text-faint)"};
   word-break: break-all;

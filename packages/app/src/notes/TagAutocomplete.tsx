@@ -332,20 +332,20 @@ const PopoverItem = styled.button<{ $selected: boolean }>`
 `;
 
 const OptLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 500;
   color: var(--color-text-primary);
 `;
 
 const OptKey = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   font-family: monospace;
   color: var(--color-text-faint);
   align-self: end;
 `;
 
 const OptGroup = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: var(--color-accent-fg);
   letter-spacing: 0.08em;
   text-transform: uppercase;

@@ -33,7 +33,7 @@ export const Button = styled.button`
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular, 3px);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   /* The kit's one control height, so a button lines up with the toggles and
@@ -108,7 +108,7 @@ export const TextButton = styled.button`
   background: none;
   border: none;
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-family: inherit;
   cursor: pointer;
   padding: 0;

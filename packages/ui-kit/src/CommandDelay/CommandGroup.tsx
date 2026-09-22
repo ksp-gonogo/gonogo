@@ -156,7 +156,7 @@ const CommandGroup__CommitButton = styled.button<{
      first, and a commit control squeezed to nothing is one nobody can press. */
   ${({ $orientation }) => $orientation === "row" && "flex-shrink: 0;"}
   padding: var(--space-4, 4px) var(--space-12, 12px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   border-radius: var(--radius-regular, 3px);
   border: 1px solid var(--color-border-subtle);

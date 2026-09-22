@@ -306,7 +306,7 @@ const Wrap = styled.div`
 
 const Empty = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-8) 0;
 `;
 
@@ -333,7 +333,7 @@ const ListenStatus = styled.div`
   align-items: center;
   gap: var(--gap-related);
   margin-top: var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-info-fg);
 `;
 
@@ -342,7 +342,7 @@ const BoundReadout = styled.div`
   align-items: center;
   gap: var(--gap-related);
   margin-top: var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
 `;
 
