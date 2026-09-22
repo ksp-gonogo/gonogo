@@ -51,15 +51,17 @@ function readingOfCase<U extends string>(
           basis: "linear-dead-reckoning",
           band,
         };
-  return c.stale
-    ? {
+  if (!c.stale) return { state: "observed", value: drawn, atUt: AT, reckoning };
+  // A gradeless stale reading omits `grade` rather than carrying a falsy one
+  return c.gradeless
+    ? { state: "stale", value: drawn, asOfUt: AT, reckoning }
+    : {
         state: "stale",
         value: drawn,
         asOfUt: AT,
         grade: "held-stale",
         reckoning,
-      }
-    : { state: "observed", value: drawn, atUt: AT, reckoning };
+      };
 }
 
 function bandOf(

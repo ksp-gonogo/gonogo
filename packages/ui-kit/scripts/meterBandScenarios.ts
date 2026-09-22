@@ -29,6 +29,13 @@ export interface MeterCase {
   tank?: { amount: number; capacity: number; unit: "units" };
   /** Not a reading of now: how the sheet asks for the stale treatment. */
   stale?: boolean;
+  /**
+   * A stale reading that names no grade, which is a real shape off the wire:
+   * a figure can stop being current without anything saying HOW. It is here
+   * because staleness alone is what dims the fill, and a sheet where every
+   * stale row carries a grade cannot show that.
+   */
+  gradeless?: boolean;
   /** What the case is here to show, printed under the bar. */
   note?: string;
 }
@@ -248,6 +255,7 @@ export const SHEETS: MeterSheet[] = [
       { label: "XenonGas", fraction: 0.6 },
       { label: "Ore", fraction: 0.05, tone: "warn", stale: true },
       { label: "IntakeAir", fraction: 0.33 },
+      { label: "SolidFuel", fraction: 0.71, stale: true, gradeless: true },
     ],
   },
 ];
