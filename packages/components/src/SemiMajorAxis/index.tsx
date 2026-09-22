@@ -240,7 +240,7 @@ function SemiMajorAxisComponent({
 }
 
 const SmaCaption = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
   text-align: center;

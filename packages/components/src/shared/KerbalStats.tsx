@@ -295,7 +295,7 @@ export function KerbalStats({
 }
 
 const KerbalStats__Name = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
   min-width: 0;
@@ -331,14 +331,14 @@ const StatSymbol = styled.span`
 `;
 
 const TraitTag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
   text-transform: uppercase;
 `;
 
 const Level = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
