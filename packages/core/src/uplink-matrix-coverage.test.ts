@@ -69,8 +69,12 @@ function runMatrix(): { legs: Leg[]; failure: string | null } {
       failure: null,
     };
   } catch (error) {
-    const err = error as { stderr?: Buffer | string; message?: string };
-    return { legs: [], failure: String(err.stderr ?? err.message ?? error) };
+    const stderr: unknown =
+      typeof error === "object" && error !== null
+        ? Reflect.get(error, "stderr")
+        : undefined;
+    const message = error instanceof Error ? error.message : undefined;
+    return { legs: [], failure: String(stderr ?? message ?? error) };
   }
 }
 

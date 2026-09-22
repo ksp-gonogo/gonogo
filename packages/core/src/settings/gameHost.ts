@@ -9,7 +9,12 @@ export const GAME_HOST_KEY = "gameHost";
  * Ports are per-service and NOT part of this, callers append their own.
  */
 export function getGameHost(): string {
-  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
-  const buildDefault = env?.VITE_SITREP_HOST || "localhost";
+  const env: unknown = Reflect.get(import.meta, "env");
+  const configured: unknown =
+    typeof env === "object" && env !== null
+      ? Reflect.get(env, "VITE_SITREP_HOST")
+      : undefined;
+  const buildDefault =
+    typeof configured === "string" && configured ? configured : "localhost";
   return getSetting(GAME_HOST_KEY) ?? buildDefault;
 }

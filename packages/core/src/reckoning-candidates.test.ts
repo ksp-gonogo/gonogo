@@ -1,9 +1,10 @@
 // @vitest-environment node
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Dimension, lookupUnit } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 import VERDICTS from "./reckoning-candidates.json";
 
 /**
@@ -87,7 +88,7 @@ const NON_QUANTITY = new Set(["text", "id", "flag", "enum", "n/a"]);
 
 const root = repoRoot();
 const descriptors = descriptorPaths(root).map(
-  (path) => JSON.parse(readFileSync(path, "utf8")) as Descriptor,
+  (path) => readJsonObject(path) as unknown as Descriptor,
 );
 
 /**

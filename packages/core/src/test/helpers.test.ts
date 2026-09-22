@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { memoryStorage } from "./helpers";
 
+/** A non-string value at the type `setItem` declares, which is the coercion
+ *  the DOM spec performs and this case asserts. */
+function asStored(value: number): string {
+  return value as unknown as string;
+}
+
 describe("memoryStorage", () => {
   it("round-trips values via setItem/getItem", () => {
     const s = memoryStorage();
@@ -17,8 +23,9 @@ describe("memoryStorage", () => {
 
   it("coerces non-string values to strings on setItem", () => {
     const s = memoryStorage();
-    // Storage.setItem accepts string, but the spec coerces, match that.
-    s.setItem("n", 42 as unknown as string);
+    // Storage.setItem accepts string, but the spec coerces, match that: the
+    // call below is what a caller with a loose value actually makes.
+    s.setItem("n", asStored(42));
     expect(s.getItem("n")).toBe("42");
   });
 

@@ -121,7 +121,7 @@ export function parseUplinkManifest(
       candidate = JSON.parse(json);
     } catch (err) {
       throw new Error(
-        `parseUplinkManifest: invalid JSON: ${(err as Error).message}`,
+        `parseUplinkManifest: invalid JSON: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   } else {

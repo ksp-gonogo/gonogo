@@ -13,6 +13,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   type RatchetBase,
   ratchetBaseRef,
+  readJsonObject,
   sourceAtRatchetBase,
 } from "./ratchetBaseRef";
 import { COINCIDENTAL, RENDER_GAP } from "./render-fixture-coverage.debt";
@@ -167,7 +168,7 @@ function loadDescriptors(): UnitsDescriptor {
   };
   for (const path of paths) {
     if (!existsSync(path)) continue;
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as UnitsDescriptor;
+    const parsed = readJsonObject(path) as unknown as UnitsDescriptor;
     Object.assign(merged.topics, parsed.topics ?? {});
     Object.assign(merged.topicShapes, parsed.topicShapes ?? {});
     Object.assign(merged.types, parsed.types ?? {});

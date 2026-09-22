@@ -2169,12 +2169,15 @@ export class PeerHostService {
         } satisfies PeerMessage);
         return;
       }
+      /* A refusal may arrive as an `Error` or as a plain bag, and both carry
+         the two fields this frame reports. */
       const failure: unknown = err;
       const named =
         typeof failure === "object" && failure !== null ? failure : {};
       const rawCode: unknown = Reflect.get(named, "code");
+      const rawMessage: unknown = Reflect.get(named, "message");
       const code = typeof rawCode === "string" ? rawCode : undefined;
-      const message = failure instanceof Error ? failure.message : undefined;
+      const message = typeof rawMessage === "string" ? rawMessage : undefined;
       logger.warn(
         `[PeerHost] sitrep command RPC failed (${msg.command}): ${message ?? String(err)}`,
       );
