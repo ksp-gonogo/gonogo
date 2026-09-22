@@ -8,16 +8,14 @@
  * - Hero: live → the ignition countdown; delayed → the burn-GO clock (the last
  *   instant a GO can still reach the vessel to START the burn, T_ignition − N) →
  *   BURN LOCKED once past it.
- * - UNCOMMANDABLE banner: when the round-trip exceeds the remaining burn window,
- *   a command sent now cannot be confirmed in time. Arguably the single most
- *   valuable thing this widget can say.
- * - COMMIT POINT line: the last instant a command's RESULT can still be seen
- *   before impact (T_impact − 2N); past it the outcome is fixed and merely not
- *   yet visible. (The spaceflight-standard term for what was internally "blind".)
+ *
+ * Neither an UNCOMMANDABLE banner nor a COMMIT POINT line is rendered: the note
+ * at the foot of the returned tree says why the round trip in the panel header
+ * replaced both.
  *
  * Landing is an INSTRUMENT, not a command surface, gear/brakes are fired from
  * the operator's own action-group widgets placed alongside, so this layer holds
- * only decision-support (clocks, uncommandable, ignition cue), no commands.
+ * only decision-support (clocks, ignition cue), no commands.
  *
  * Presentational: the clocks are derived upstream by `deriveDelayClocks`.
  */
@@ -51,7 +49,6 @@ export const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
 
 export interface CommitLayerProps {
   regime: LandingRegime;
-  roundTripSeconds: number | null;
   /**
    * True when the loop is real-time. A `no-path` regime is NOT live: an unknown
    * link takes its own hero arm below rather than borrowing this one.
@@ -71,8 +68,6 @@ export interface CommitLayerProps {
   suicideBurnCountdown: number | null;
   commitInSeconds: number | null;
   committed: boolean;
-  blindInSeconds: number | null;
-  blind: boolean;
   /** True once the vessel has touched down, the descent clocks are then void
    * and the hero shows a settled LANDED state instead of a stale countdown. */
   landed?: boolean;
@@ -88,30 +83,16 @@ export interface CommitLayerProps {
 
 export function CommitLayer({
   regime,
-  roundTripSeconds,
   live,
   mayInstruct,
   suicideBurnCountdown,
   commitInSeconds,
   committed,
-  blindInSeconds,
-  blind,
   landed = false,
   noLandingVector = false,
   impactSpeed = null,
 }: Readonly<CommitLayerProps>) {
   const countdown = suicideBurnCountdown;
-
-  // Uncommandable: a full round-trip no longer fits inside the remaining burn
-  // window, so a command sent now cannot be confirmed (or corrected) in time.
-  // Void once landed: there is no burn window left.
-  const _uncommandable =
-    !landed &&
-    roundTripSeconds != null &&
-    roundTripSeconds > 0 &&
-    countdown != null &&
-    countdown > 0 &&
-    roundTripSeconds > countdown;
 
   let heroValue: ReactNode;
   let heroCaption: string;
@@ -185,8 +166,8 @@ export function CommitLayer({
   }
 
   // The instantaneous ignition cue AND a no-landing-vector (imminent unavoidable
-  // impact) interrupt (assertive): both are ABORT-class. Uncommandable / blind
-  // are sustained states, announced politely, per the a11y rule that reserves
+  // impact) interrupt (assertive): both are ABORT-class. Every other state here
+  // is sustained and announced politely, per the a11y rule that reserves
   // assertive for ABORT-class events.
   const alarmed = urgent || noLandingVector;
 
