@@ -78,8 +78,8 @@
  * Every file carrying an assertion out of `unknown` or `any`, with how many.
  *
  * SHRINK-ONLY: an entry may be lowered or deleted, never added or raised.
- * Regenerate with `node scripts/unknown-cast-debt.mjs --update` in the same
- * commit as the narrow you wrote.
+ * Regenerate with `node scripts/unknown-cast-debt.mjs --update --only
+ * <substring>` in the same commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   // packages/app: 20 in 14 files (1 out of `any`, 15 in tests), walked 391 files
