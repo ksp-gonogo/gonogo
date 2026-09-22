@@ -1,5 +1,7 @@
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
+import { useBodyName } from "./useBodyName";
 import { useStreamBody } from "./useStreamBody";
 
 type OrbitInfo = {
@@ -10,14 +12,12 @@ type OrbitInfo = {
 };
 
 export function useIsOrbiting(): OrbitInfo {
-  // All three reads ride the SDK stream's derived `vessel.state` channel, no
-  // legacy `useTelemetry("data", ...)` fallback: `parentBodyName` (identity
-  // index → `system.bodies` name), and the `periapsisAlt`/`apoapsisAlt` apsis
-  // altitudes the client derives off `vessel.orbit`'s elements. `apoapsisAlt`
-  // is `undefined` on a hyperbolic/escape orbit (no apoapsis), which the
-  // not-orbiting guard below already handles.
+  // `apoapsisAlt` is `undefined` on a hyperbolic or escape orbit, which has no
+  // apoapsis, and the not-orbiting guard below already handles that.
   const vesselState = useStream<VesselState>("vessel.state");
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   const PeA = vesselState?.periapsisAlt ?? undefined;
   const ApA = vesselState?.apoapsisAlt ?? undefined;
 

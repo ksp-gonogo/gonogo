@@ -26,6 +26,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { type VesselManeuver, value } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
@@ -42,6 +43,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { bodyNamed } from "../shared/streamBody";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
+import { useBodyName } from "../shared/useBodyName";
 import {
   cameraTransform,
   fitCamera,
@@ -97,7 +99,12 @@ const topics = defineTopicManifest({
   /* `system.bodies` is read directly, not just as a `vessel.state` input: the
      mapped body's radius and rotation period come off it, keyed by the name the
      running game reports rather than looked up in the bundled stock table. */
-  channels: ["vessel.flight", "vessel.state", "system.bodies"],
+  channels: [
+    "vessel.flight",
+    "vessel.state",
+    "vessel.identity",
+    "system.bodies",
+  ],
   // `encounterUt` is an absolute instant, NOT the duration the retired
   // `o.encounterTime` named. Those were two keys for one event and the field
   // holds the instant, which is why that key maps to nothing now: an alarm
@@ -107,7 +114,7 @@ const topics = defineTopicManifest({
     "vessel.flight.latitude",
     "vessel.flight.longitude",
     "vessel.state.altitudeAsl",
-    "vessel.state.parentBodyName",
+    "vessel.identity.parentBodyIndex",
     "vessel.state.orbitPatches",
     "vessel.state.encounterExists",
     "vessel.state.encounterBody",
@@ -497,7 +504,12 @@ function MapViewComponent({
    * value is FOR rather than where it came from.
    */
   const altSeaReadout = vesselStateStatus === "live" ? altSea : undefined;
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  // Collapsed deliberately: MapView draws the name or draws nothing, and has
+  // no third rendering for a catalogue that is a confirmed tombstone.
+  const bodyName =
+    useBodyName(
+      useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+    ) ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
   const speed = flight?.surfaceSpeed?.magnitude;

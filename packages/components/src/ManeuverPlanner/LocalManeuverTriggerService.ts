@@ -12,7 +12,6 @@ import {
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
-import { magnitudeOf } from "../shared/magnitude";
 import {
   buildCurrentOrbit,
   computeMu,
@@ -213,21 +212,22 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       targetArgPe: targetOrbit?.argPe?.magnitude,
       targetTrueAnomaly: targetSolved?.trueAnomaly ?? undefined,
       targetPeriod: targetSolved?.period ?? undefined,
-      bodyRadius: this.readBodyRadius(state),
+      bodyRadius: this.readBodyRadius(),
     };
   }
 
   /**
    * Off the wire, by index, never by name against the bundled stock bodies:
    * under a planet pack the names do not match, the lookup misses, and a
-   * transfer that needs a radius quietly plans nothing. The host-side twin
-   * (`ManeuverTriggerHostService`) reads the same two fields.
+   * transfer that needs a radius quietly plans nothing. The craft's parent
+   * body answers first and the orbit's reference body behind it, which is the
+   * same order the host-side twin (`ManeuverTriggerHostService`) reads them.
    */
-  private readBodyRadius(
-    state: ReturnType<typeof getVesselState>,
-  ): number | undefined {
+  private readBodyRadius(): number | undefined {
+    const bodies = getSystemBodies();
     return (
-      magnitudeOf(state?.parentBodyRadius ?? state?.referenceBodyRadius) ??
+      bodyRadiusOf(bodies, getVesselIdentity()?.parentBodyIndex) ??
+      bodyRadiusOf(bodies, getVesselOrbit()?.referenceBodyIndex) ??
       undefined
     );
   }

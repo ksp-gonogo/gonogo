@@ -16,11 +16,15 @@ import {
   type TopicReading,
   useCommand,
   useControlStream,
-  useStream,
   useViewUt,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { SasMode as SasModeEnum, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  collapseControlStateLevel,
+  enumNameOf,
+  SAS_MODE_NAMES,
+  SasMode as SasModeEnum,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   BigReadout,
@@ -57,8 +61,8 @@ import { AttitudeIndicator } from "./AttitudeIndicator";
 const topics = defineTopicManifest({
   channels: [
     "vessel.attitude",
-    "vessel.state",
     "vessel.control",
+    "vessel.comms",
     "comms.delay",
   ],
   fields: [
@@ -68,12 +72,12 @@ const topics = defineTopicManifest({
     "vessel.attitude.headingRootFrame",
     "vessel.attitude.pitchRootFrame",
     "vessel.attitude.rollRootFrame",
-    "vessel.state.sasModeName",
+    "vessel.control.sasMode",
     "vessel.control.sas",
     "vessel.control.precisionControl",
     "vessel.control.rcs",
     "vessel.control.throttle",
-    "vessel.state.isControllable",
+    "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
   ],
 });
@@ -413,16 +417,27 @@ function NavballComponent({
   // show the last CONFIRMED state on every arm that has one; `useCommandFailures`
   // and the control-delay strip are what say "something is in flight" beside
   // them, which is why a stale toggle here is not a lie.
-  const control = lastObserved(useTelemetry("vessel.control"));
-  const vesselState = useStream<VesselState>("vessel.state");
-  const sasMode = vesselState?.sasModeName ?? undefined;
+  const control = lastObserved(topics.useTelemetry("vessel.control"));
+  const sasMode = enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
   const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
   // Magnitudes at the read: throttle drives a slider position and the delay
   // drives a threshold comparison, both of which are arithmetic. Left wrapped,
   // the `typeof === "number"` guards below answer "no reading" for every live
   // value, silently and completely.
   const throttle = magnitudeOr(control?.throttle, 0);
-  const isControllable = vesselState?.isControllable !== false;
+  /*
+   * Any control level above none is flyable, so the buttons stay live for a
+   * probe or a crewed craft alike and go dead only for the `*None` family.
+   * An unrecognised state and a link that has said nothing both leave them
+   * live: greying the stick out is a claim about the craft, and neither of
+   * those is one.
+   */
+  const comms = lastObserved(topics.useTelemetry("vessel.comms"));
+  const controlLevel =
+    comms === undefined
+      ? undefined
+      : collapseControlStateLevel(comms.controlState);
+  const isControllable = controlLevel === undefined || controlLevel > 0;
 
   /**
    * Throttle is the one continuous axis with a real bidirectional channel

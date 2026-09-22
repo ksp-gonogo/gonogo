@@ -1,6 +1,8 @@
-import type { ComponentProps, VesselState } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CELESTIAL_FACTS,
   registerComponent,
+  useProcessor,
   useStream,
   useTelemetry,
   useViewUt,
@@ -1027,10 +1029,24 @@ function SpaceWeatherComponent({
   // before the first confirmed sample, and substituting UT 0 there measured
   // every storm against year 1 day 1: an ETA years wide, stated to the second.
   const nowUt = magnitudeOf(useViewUt());
-  // Only the FALLBACK target name, for a stream whose mod predates the
-  // named-target capture; see `StormCard`.
+  /*
+   * Only the FALLBACK target name, for a stream whose mod predates the
+   * named-target capture; see `StormCard`.
+   *
+   * The catalogue's own index map answers which body an index is, and the
+   * catalogue is a FACT, so a held one is still the catalogue and both
+   * value-bearing arms are read. Written out rather than taken from a hook
+   * because the hook the app uses for this is app-side.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
+  const parentIndex =
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex;
   const fallbackBodyName =
-    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
+    parentIndex == null ? undefined : facts?.nameByIndex[parentIndex];
 
   if (!read.readable) {
     // No verdict badge in the header either: "Sheltered" is a claim about a

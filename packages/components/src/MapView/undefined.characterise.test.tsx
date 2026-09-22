@@ -208,18 +208,23 @@ describe("MapView: what undefined telemetry means today", () => {
     expect(screen.getByText(/Mun \(pinned\)/)).toBeInTheDocument();
   });
 
-  it("body inputs without vessel.flight: vessel.state stays undefined, so even the body LABEL never appears", async () => {
+  it("names the body from identity and the catalogue alone, with no vessel.flight", async () => {
     const { fixture, container } = renderMap({}, { w: 14, h: 14 });
     emitBodyOnly(fixture);
     await flushFrames();
 
-    // The Loaded basis returns `undefined` for the whole vessel.state record
-    // when vessel.flight has no point, so `bodyName` is undefined even though
-    // vessel.identity and system.bodies both arrived and jointly name the
-    // body. One missing input erases a label two present inputs could fill.
-    expect(screen.queryByText(/Kerbin/)).toBeNull();
+    // Which body a craft is at is a join of `vessel.identity`'s parent index
+    // against `system.bodies`, and neither of those is flight data. So the
+    // label stands on the two inputs that name it and does not wait on a third
+    // that cannot change the answer.
+    //
+    // Knowing the body is what lets the map draw at all, so the screen is no
+    // longer the bare cold-start notice: it names Kerbin, and says separately
+    // that it has no POSITION, which is the one thing vessel.flight carries and
+    // the one thing still missing.
+    expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
     expect(visibleText(container)).toBe(
-      "MAP VIEWFollowWaiting for telemetry...",
+      "MAP VIEWKerbinNO DATAFollowNo position data",
     );
   });
 
@@ -302,13 +307,13 @@ describe("MapView: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // MapView reaches every field through `flight?.x` / `vesselState?.x`, and
-    // `altSea = vesselState?.altitudeAsl ?? undefined` flattens the null arm
-    // too, so the widget implements NO distinction: a confirmed absence and a
-    // cold start are the same "Waiting for telemetry..." screen.
-    expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
+    // MapView reaches every POSITION field through `flight?.x`, which flattens
+    // the null arm, so for position a confirmed absence and a cold start still
+    // render alike. What they no longer erase is the body: its two inputs
+    // arrived and name Kerbin whether or not a vessel.flight ever does.
+    expect(screen.getByText("No position data")).toBeInTheDocument();
     expect(visibleText(container)).toBe(
-      "MAP VIEWFollowWaiting for telemetry...",
+      "MAP VIEWKerbinNO DATAFollowNo position data",
     );
   });
 

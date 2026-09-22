@@ -8,19 +8,26 @@ import {
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the period curve is Kepler's third law and
   // needs the body's own radius and gravitational parameter, both reported there.
-  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  channels: [
+    "vessel.orbit",
+    "vessel.state",
+    "vessel.identity",
+    "system.bodies",
+  ],
   fields: [
     "vessel.orbit.sma",
     "vessel.state.period",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
+    "vessel.orbit.referenceBodyIndex",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useBodyName } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 export interface KeplerPeriodConfig {
@@ -75,14 +82,12 @@ function buildPeriodCurve(
 function KeplerPeriodComponent({
   config,
 }: Readonly<ComponentProps<KeplerPeriodConfig>>) {
-  // Both reads are clean stream homes: `v.body` streams from the
-  // SDK-derived `vessel.state.parentBodyName` display map, `o.referenceBody`
-  // from `vessel.state.referenceBodyName` (index→name resolution against
-  // `system.bodies`, see `vessel-state.ts`). `useTelemetry`'s legacy two-arg
-  // form routes them through `mapTopic` onto those derived topics.
-  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
-  const referenceBody =
-    useStream<VesselState>("vessel.state")?.referenceBodyName;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
+  const referenceBody = useBodyName(
+    useStream<VesselOrbit>("vessel.orbit")?.referenceBodyIndex,
+  );
   /*
    * o.referenceBody is the authoritative answer for the body the orbit is
    * around (matters during SOI transitions); fall back to v.body for cases
