@@ -9,7 +9,6 @@ import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
-import { formatStreamStatus } from "./StreamStatusBadge";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
@@ -236,17 +235,13 @@ export function Meter<U extends string = string>({
     // is drawn against, and marking the bar would say the wrong half aged.
     trackNotCurrent: held.reading?.state === "stale",
     /*
-     * The FIGURE's own currency, said once for the whole meter. Taken from the
-     * grade rather than from the state, so a reading that went quiet and one
-     * that went behind a body do not share a word: they ask the operator for
-     * opposite moves, which is the distinction `formatStreamStatus` exists to
-     * keep. A held reading naming no grade says nothing rather than captioning
-     * itself with a missing word.
+     * The FIGURE's own currency, which dims the fill. Keyed on the GRADE rather
+     * than on the state alone: a held reading naming no grade leaves the fill
+     * as it is, on the same reasoning the dim inherited from the caption it
+     * used to sit beside.
      */
-    notCurrentWord:
-      shown.reading?.state === "stale" && shown.reading.grade !== undefined
-        ? formatStreamStatus(shown.reading.grade)
-        : null,
+    notCurrent:
+      shown.reading?.state === "stale" && shown.reading.grade !== undefined,
     ...rest,
   };
   // Where the capacity's own doubt puts the end of the track, as a fraction of
@@ -522,7 +517,7 @@ interface MeterBarProps
    * rows that each grew their own marker reads as the meter's main content
    * instead of as a statement about it.
    */
-  notCurrentWord: string | null;
+  notCurrent: boolean;
   /** The value for the eye, as markup. */
   display: ReactNode;
   /** The same value for the ear, as the string an attribute can hold. */
@@ -547,7 +542,7 @@ function MeterBar({
   tone,
   fillColor,
   trackNotCurrent,
-  notCurrentWord,
+  notCurrent,
   display,
   spoken,
   bounds,
@@ -558,15 +553,6 @@ function MeterBar({
     <Meter__Root {...rest}>
       <Meter__Head>
         <Meter__Label>{label}</Meter__Label>
-        {/* The grade's own word, never rephrased here, and beside the label
-            rather than over the bar: it is a statement about the whole meter,
-            and the bar is where the figure lives. Silent to a screen reader,
-            which already hears the grade in `aria-valuetext`. */}
-        {notCurrentWord !== null && (
-          <Meter__Grade aria-hidden="true" data-not-current-word="">
-            {notCurrentWord}
-          </Meter__Grade>
-        )}
         <Meter__Value>{display}</Meter__Value>
       </Meter__Head>
       <Meter__Bar>
@@ -583,7 +569,8 @@ function MeterBar({
           <Meter__Fill
             $tone={tone}
             $fillColor={fillColor}
-            $notCurrent={notCurrentWord !== null}
+            $notCurrent={notCurrent}
+            data-fill-not-current={notCurrent ? "" : undefined}
             style={{ width: `${pct}%` }}
           />
         </Meter__Track>
@@ -786,6 +773,16 @@ const Meter__Value = styled.span`
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Room for the not-current mark, which Unit draws OUTSIDE this box at
+     left:100% and the overflow above would otherwise eat whole. Measured
+     rather than chosen: the mark is max(0.3em, 4px) wide plus a 0.14em
+     margin, and a probe of the real clip put its right edge 6px past this
+     box. Anything smaller still clips.
+
+     Reserved unconditionally, because a width that appeared only when a
+     channel went quiet is exactly the reflow the mark is absolutely
+     positioned to avoid. */
+  padding-right: max(0.44em, 6px);
 `;
 
 /* The bar's axis.
@@ -797,19 +794,6 @@ const Meter__Value = styled.span`
    is how one visual language stops being one. A dash reads as provisional
    whether or not the reader can separate the two greys (WCAG 1.4.1), and the
    words are in `aria-valuetext`. */
-/* The grade, beside the label. Small and warning-toned: it qualifies the figure
-   rather than competing with it, and the figure is what the operator came to
-   read.
-
-   The MUTED warning token, which is the light one meant for a dark surface. Its
-   plain `-fg` sibling is near-black, for dark text ON an orange chip, and using
-   that here rendered the word all but invisible. */
-const Meter__Grade = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.08em;
-  color: var(--color-status-warning-fg-muted);
-  white-space: nowrap;
-`;
 
 const Meter__Track = styled.div<{ $notCurrent: boolean }>`
   width: 100%;

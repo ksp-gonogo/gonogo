@@ -271,7 +271,7 @@ describe("Meter, given a reading of a fraction", () => {
     expect(container.querySelector("[data-not-current]")).not.toBeNull();
   });
 
-  it("says the grade in words, once, for the whole meter", () => {
+  it("dims the fill where the figure names a grade", () => {
     const { container } = render(
       <Meter
         label="Dose"
@@ -284,12 +284,10 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(
-      container.querySelector("[data-not-current-word]")?.textContent,
-    ).toBe("STALE");
+    expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
   });
 
-  it("keeps the two grades apart, because they ask for opposite moves", () => {
+  it("marks the figure itself, which is the one place the doubt is drawn", () => {
     const { container } = render(
       <Meter
         label="Dose"
@@ -302,12 +300,17 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(
-      container.querySelector("[data-not-current-word]")?.textContent,
-    ).toBe("BLACKOUT");
+    /*
+     * The mark rather than a word: the meter says the figure is no longer a
+     * reading of now by marking the figure, and the grade's own word is said
+     * in `aria-valuetext` and nowhere on screen. Asserted HERE because nothing
+     * else asserts the mark inside a Meter, which is how it came to be clipped
+     * out of sight without a test noticing.
+     */
+    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
   });
 
-  it("says nothing where a held reading names no grade", () => {
+  it("leaves the fill alone where a held reading names no grade", () => {
     const { container } = render(
       <Meter
         label="Dose"
@@ -319,14 +322,15 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-not-current-word]")).toBeNull();
+    expect(container.querySelector("[data-fill-not-current]")).toBeNull();
   });
 
   it("says nothing at all while the figure is a reading of now", () => {
     const { container } = render(
       <Meter label="Dose" value={banded(value("ratio", 0.39))} />,
     );
-    expect(container.querySelector("[data-not-current-word]")).toBeNull();
+    expect(container.querySelector("[data-fill-not-current]")).toBeNull();
+    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
   });
 
   it("leaves the band marks alone: a band is doubt, not staleness", () => {
@@ -347,7 +351,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-not-current-word]")).not.toBeNull();
+    expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
     expect(marks(container)).toHaveLength(2);
   });
 
