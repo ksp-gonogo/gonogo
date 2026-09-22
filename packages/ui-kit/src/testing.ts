@@ -191,17 +191,69 @@ export function resizeObservation(
 }
 
 /**
+ * Who currently holds `globalThis.ResizeObserver`, or `null` when nobody does.
+ *
+ * These installers assign the global directly rather than through
+ * `vi.stubGlobal`, so `vi.unstubAllGlobals()` does not undo them and the
+ * returned closure is the only way back. A caller that drops the closure has
+ * installed something it can no longer remove, and nothing said so: two files
+ * shadowed the binding that held it with a local `const restore = () => {}`,
+ * their teardown called the shadow, and the only symptom was a
+ * `noUnusedVariables` warning indistinguishable from a dead import.
+ *
+ * So a second install over a live one throws. That catches the dropped closure
+ * on the NEXT install rather than never, which for the two real cases is the
+ * second test in the file, and it leaves alone the legitimate shape of
+ * installing once at module scope for a whole file and never restoring.
+ *
+ * Shared between both installers on purpose: the resource is the global, not
+ * either function, so installing a drivable one over a fixed-size one is the
+ * same mistake.
+ */
+let resizeObserverHolder: string | null = null;
+
+function claimResizeObserver(installer: string): void {
+  if (resizeObserverHolder !== null) {
+    throw new Error(
+      `${installer}: globalThis.ResizeObserver is already held by ` +
+        `${resizeObserverHolder}, which has not been restored.\n\n` +
+        `These installers return the ONLY uninstall, so whoever called ` +
+        `${resizeObserverHolder} still owes a call to it. The way this is ` +
+        `usually lost is a local binding shadowing the one that holds it:\n\n` +
+        `  let restoreResizeObserver = () => {};\n` +
+        `  beforeEach(() => { restoreResizeObserver = install...(); });\n` +
+        `  describe("...", () => {\n` +
+        `    const restoreResizeObserver = () => {};  // shadows it\n` +
+        `    afterEach(() => { restoreResizeObserver(); });  // calls the shadow\n` +
+        `  });\n\n` +
+        `Call the restore you were given, or install once at module scope and ` +
+        `never restore, which is also fine.`,
+    );
+  }
+  resizeObserverHolder = installer;
+}
+
+/** Idempotent: restoring twice is harmless, and the second call owes nothing. */
+function releaseResizeObserver(): void {
+  resizeObserverHolder = null;
+}
+
+/**
  * Install a `ResizeObserver` that reports one fixed size to everything observed,
  * and return the uninstall.
  *
  * `deliver` chooses when the callback fires: `"sync"` during `observe`, or
  * `"macrotask"` for a component that must not see a size during its own mount.
+ *
+ * The returned closure is the only way to uninstall, and installing again
+ * without calling it throws. See {@link resizeObserverHolder}.
  */
 export function installFixedSizeResizeObserver(options: {
   width: number;
   height: number;
   deliver?: "sync" | "macrotask";
 }): () => void {
+  claimResizeObserver("installFixedSizeResizeObserver");
   const previous = globalThis.ResizeObserver;
   const { width, height, deliver = "sync" } = options;
 
@@ -223,6 +275,7 @@ export function installFixedSizeResizeObserver(options: {
   globalThis.ResizeObserver = FixedSizeResizeObserver;
   return () => {
     globalThis.ResizeObserver = previous;
+    releaseResizeObserver();
   };
 }
 
@@ -243,6 +296,7 @@ export interface DrivableResizeObservers {
  * that never subscribed.
  */
 export function installDrivableResizeObserver(): DrivableResizeObservers {
+  claimResizeObserver("installDrivableResizeObserver");
   const previous = globalThis.ResizeObserver;
   const live = new Set<DrivableResizeObserver>();
 
@@ -275,6 +329,7 @@ export function installDrivableResizeObserver(): DrivableResizeObservers {
     uninstall() {
       live.clear();
       globalThis.ResizeObserver = previous;
+      releaseResizeObserver();
     },
   };
 }
