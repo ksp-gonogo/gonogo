@@ -6,6 +6,7 @@ import {
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  CommandErrorCode,
   ScetAlarmConditionKind,
   ScetAlarmThresholdOp,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -16,6 +17,13 @@ import {
   type ThresholdOp,
   thresholdAddress,
 } from "./types";
+
+/**
+ * How long to leave a vantage the simulation could not check yet before asking
+ * again. Long enough that sitting at the main menu is not a command per tick,
+ * short enough that an alarm armed before a save loaded is live soon after it.
+ */
+const TRANSIENT_REARM_INTERVAL_MS = 10_000;
 
 export const SCET_ROSTER_TOPIC = "alarm.scet";
 export const SCET_FIRED_TOPIC = "alarm.scet.fired";
@@ -70,6 +78,8 @@ export interface ScetAlarmBridgeContext {
    * operator picked the Topic.
    */
   onArmRefused(id: string, reason: string): void;
+  /** Wall clock, injected so the retry interval is drivable from a test. */
+  nowMs(): number;
   /** The arm went through, so any refusal recorded against this id is stale. */
   onArmAccepted(id: string): void;
 }
@@ -132,6 +142,17 @@ export class ScetAlarmBridge {
    * command that resolved but changed nothing.
    */
   private commandedSinceRoster = new Set<string>();
+  /**
+   * Ids refused for a reason that resolves by waiting, against the earliest
+   * moment worth asking again.
+   *
+   * A refused arm never reaches the mod's roster, so the roster does not move,
+   * so no frame arrives and `commandedSinceRoster` is never cleared: without
+   * this the first refusal is the last word until the operator edits the alarm.
+   * Only the transient code is held here; a permanent one stays refused, since
+   * re-asking a question already answered is noise on every tick for ever.
+   */
+  private retryTransientAfter = new Map<string, number>();
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
@@ -199,10 +220,11 @@ export class ScetAlarmBridge {
     }
     const held = new Set(this.rosterIds);
     for (const [id, alarm] of wanted) {
-      if (!held.has(id) && !this.commandedSinceRoster.has(id)) {
-        this.commandedSinceRoster.add(id);
-        this.arm(alarm);
-      }
+      if (held.has(id) || this.commandedSinceRoster.has(id)) continue;
+      const retryAt = this.retryTransientAfter.get(id);
+      if (retryAt !== undefined && this.ctx.nowMs() < retryAt) continue;
+      this.commandedSinceRoster.add(id);
+      this.arm(alarm);
     }
   }
 
@@ -229,8 +251,33 @@ export class ScetAlarmBridge {
     void outcome.settled.then((refusal) => {
       if (this.disposed) return;
       if (refusal === undefined) {
+        this.retryTransientAfter.delete(alarm.id);
         this.ctx.onArmAccepted(alarm.id);
         return;
+      }
+      /* The mod's own words when it quoted the game, which name the Topic or
+         the vantage the operator picked. `message` is built from the code and
+         names only the command, so it reads identically for every refusal of
+         the arm and tells an operator nothing about their alarm. */
+      const reason = refusal.detail ?? refusal.message;
+      if (refusal.errorCode === CommandErrorCode.NotClearToProceed) {
+        /* Nothing about the alarm is wrong: the simulation has not been told
+           what places exist yet, which is the main menu and the ticks before
+           the first capture. Asked again on a slow cadence rather than every
+           tick, because that window lasts as long as the operator leaves it.
+
+           Decided BEFORE the shadow branch below, because whether a refusal can
+           be re-asked is a different question from whether it is worth telling
+           anyone about. Only an arm naming a place other than its own subject
+           can be refused this way, and every one of those is a shadow arm, so
+           deciding it after that branch would retry nothing at all. */
+        this.retryTransientAfter.set(
+          alarm.id,
+          this.ctx.nowMs() + TRANSIENT_REARM_INTERVAL_MS,
+        );
+        this.commandedSinceRoster.delete(alarm.id);
+      } else {
+        this.retryTransientAfter.delete(alarm.id);
       }
       /* A shadow arm that the mod cannot read costs the operator nothing: the
          alarm they are watching is the client's own and is unaffected. So the
@@ -240,8 +287,8 @@ export class ScetAlarmBridge {
       if (!modOwnsLatch(alarm.trigger)) {
         logger.debug("alarm-host: shadow arm refused", {
           id: alarm.id,
-          code: refusal.code,
-          reason: refusal.message,
+          code: refusal.errorCode,
+          reason,
         });
         return;
       }
@@ -252,10 +299,10 @@ export class ScetAlarmBridge {
          table we deliberately do not hold. */
       logger.warn("alarm-host: SCET arm refused", {
         id: alarm.id,
-        code: refusal.code,
-        reason: refusal.message,
+        code: refusal.errorCode,
+        reason,
       });
-      this.ctx.onArmRefused(alarm.id, refusal.message);
+      this.ctx.onArmRefused(alarm.id, reason);
     });
   }
 
@@ -382,6 +429,8 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
+    /* A new connection is a new simulation to ask, so nothing is owed a wait. */
+    this.retryTransientAfter.clear();
   }
 }
 

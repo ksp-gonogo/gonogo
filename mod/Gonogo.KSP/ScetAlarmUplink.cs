@@ -388,8 +388,15 @@ namespace Gonogo.KSP
                     // what the main menu and the ticks before the first capture
                     // look like. Saying "no such place" there would state
                     // something nothing has established.
+                    //
+                    // NotClearToProceed rather than Range, on the axis the enum
+                    // already divides: this one resolves by waiting and the one
+                    // above it does not. Sharing a code with NoSuchPlace left
+                    // the two separable only by their prose, which is what a
+                    // typed code exists to avoid, and left a client unable to
+                    // tell a refusal worth retrying from one that is final.
                     return CommandResult.Fail(
-                        CommandErrorCode.Range,
+                        CommandErrorCode.NotClearToProceed,
                         "no command centre is known yet, so '" + wanted + "' cannot be checked");
             }
 

@@ -100,6 +100,12 @@ interface ModStandIn {
    * hears about it.
    */
   armForeign(id: string): void;
+  /** Every `alarm.scet.arm` this id was the subject of, accepted or refused. */
+  armAttempts(id: string): number;
+  /** Take the engine back to knowing no command centres, as the main menu does. */
+  forgetCommandCentres(): void;
+  /** The centre set populates, which is what a save loading looks like. */
+  learnCommandCentres(): void;
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
   /**
@@ -134,11 +140,15 @@ function startSession(owlt: number): ModStandIn {
   let warpIndex = 0;
   const warpDispatchedAt: number[] = [];
   const conditions = new Map<string, ArmedAlarm>();
+  const armAttemptCounts = new Map<string, number>();
+  let centresKnown = true;
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
+  let lastPublishedJson: string | null = null;
+  let rosterAnswered = false;
   let lastFired: { id: string; firedAtUt: number } | null = null;
   const firedAtTrueUt: { id: string; ut: number }[] = [];
 
@@ -157,18 +167,30 @@ function startSession(owlt: number): ModStandIn {
     }
     if (command === "alarm.scet.arm") {
       const id = String(bag.id ?? "");
+      armAttemptCounts.set(id, (armAttemptCounts.get(id) ?? 0) + 1);
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
+      if (!centresKnown && String(bag.vantage ?? "") !== "") {
+        /* The engine has not been told what places exist: the main menu, and
+           the ticks before the first capture. NotClearToProceed rather than
+           Range, because this one resolves by waiting. */
+        return {
+          success: false,
+          errorCode: 15,
+          detail: `no command centre is known yet, so '${String(bag.vantage ?? "")}' cannot be checked`,
+        };
+      }
       if (threshold && !ADDRESSABLE.has(String(condition.topic ?? ""))) {
-        /* The real uplink's refusal, verbatim in shape: a Range failure whose
-           message names the Topic. It is the ONLY way a client finds out, and
-           what this fixture exists to let the client be tested against. */
-        throw Object.assign(
-          new Error(
-            `no SCET threshold can be read from '${String(condition.topic ?? "")}'`,
-          ),
-          { code: "E_RANGE" },
-        );
+        /* The real uplink's refusal, in the shape the mod actually sends: a
+           CommandResult whose ErrorCode is the typed reason and whose Detail
+           quotes the game. Throwing here instead would model a TRANSPORT
+           error, which carries no contract code and puts the mod's words where
+           a real refusal never puts them. */
+        return {
+          success: false,
+          errorCode: 4,
+          detail: `no SCET threshold can be read from '${String(condition.topic ?? "")}'`,
+        };
       }
       const subject = String(bag.subject ?? "");
       conditions.set(id, {
@@ -246,6 +268,22 @@ function startSession(owlt: number): ModStandIn {
       state: fired.has(id) ? 1 : 0,
       firedAtUt: null,
     }));
+    /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
+       is subscribed, one frame to an audience that has not been answered (the
+       keyframe-on-subscribe a real client gets), and after that only when the
+       roster moves.
+
+       Publishing every tick instead would clear the bridge's already-commanded
+       set every tick, which makes a refused arm retry for ever here and never
+       in a game. */
+    const json = JSON.stringify(lastRoster);
+    if (!transport.isSubscribed("alarm.scet")) {
+      rosterAnswered = false;
+      return;
+    }
+    if (rosterAnswered && json === lastPublishedJson) return;
+    rosterAnswered = true;
+    lastPublishedJson = json;
     transport.emit("alarm.scet", lastRoster, {
       validAt: trueUt,
       deliveredAt: trueUt,
@@ -274,6 +312,13 @@ function startSession(owlt: number): ModStandIn {
       });
     },
     armOf: (id) => conditions.get(id),
+    armAttempts: (id) => armAttemptCounts.get(id) ?? 0,
+    forgetCommandCentres() {
+      centresKnown = false;
+    },
+    learnCommandCentres() {
+      centresKnown = true;
+    },
     fireForVantage(id) {
       transport.emit(
         "alarm.scet.fired",
@@ -1061,6 +1106,126 @@ describe("SCET alarms", () => {
       expect(session.armed()).toEqual([alarm.id]);
       // This screen chose no vantage, so it names the one the mod stamps its frames with: a PLACE, never a connection, which is the whole vocabulary the mod is given.
       expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
+    });
+
+    const COMMAND_VANTAGE_ALTITUDE = {
+      kind: "threshold",
+      dataKey: "vessel.flight.altitudeAsl",
+      op: ">",
+      value: 100_000,
+      sustainSeconds: 0,
+      vantage: "command",
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
+    } as const;
+
+    /**
+     * A refused arm never reaches the mod's roster, so the roster does not move,
+     * so no frame arrives and the already-commanded set is never cleared. The
+     * retry has to come from the refusal itself; nothing else will ever ask
+     * again.
+     */
+    it("asks again about a vantage it could not check yet, once it can", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.forgetCommandCentres();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([]);
+      const refused = session.armAttempts(alarm.id);
+      expect(refused).toBeGreaterThan(0);
+
+      session.learnCommandCentres();
+      for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+      svc.dispose();
+
+      expect(session.armed()).toEqual([alarm.id]);
+      expect(session.armAttempts(alarm.id)).toBeGreaterThan(refused);
+    });
+
+    /**
+     * The other half, and the reason the retry keys on the code rather than on
+     * refusal as such: a Topic the simulation cannot read is a settled answer,
+     * and asking it again every tick for ever is noise.
+     */
+    it("does not ask again about a refusal whose answer cannot change", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Funds",
+        trigger: {
+          kind: "threshold",
+          dataKey: "career.economy.funds",
+          op: "<",
+          value: 1000,
+          sustainSeconds: 0,
+          vantage: "command",
+          topic: "career.economy",
+          fieldPath: "funds",
+        },
+      });
+
+      await run(session, UT_START + 8 * DT);
+      svc.dispose();
+
+      expect(session.armed()).toEqual([]);
+      expect(session.armAttempts(alarm.id)).toBe(1);
+    });
+
+    /**
+     * The window this waits out is the main menu, which lasts as long as the
+     * operator leaves it there, so the retry is a cadence rather than a tick.
+     */
+    it("asks again on a cadence rather than on every tick", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.forgetCommandCentres();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+
+      session.emitAt(UT_START + DT);
+      nowMs += DT * 1000;
+      await vi.advanceTimersByTimeAsync(DT * 1000);
+      const before = session.armAttempts(alarm.id);
+
+      // Thirty seconds of ticks, one a second, with nothing else changing.
+      for (let i = 0; i < 30; i += 1) {
+        nowMs += 1000;
+        await vi.advanceTimersByTimeAsync(1000);
+      }
+      svc.dispose();
+
+      const asked = session.armAttempts(alarm.id) - before;
+      expect(asked).toBeGreaterThan(0);
+      expect(asked).toBeLessThanOrEqual(4);
     });
 
     /**

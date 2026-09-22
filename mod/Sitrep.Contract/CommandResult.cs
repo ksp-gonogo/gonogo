@@ -174,6 +174,12 @@ public enum CommandErrorCode
     /// the tracking station. The arm rides on
     /// <see cref="CommandResult.Detail"/>.</para>
     ///
+    /// <para>Also the SCET alarm arm, for a vantage it cannot check because no
+    /// command centre is known to the simulation yet: the main menu, and the
+    /// ticks before the first capture. A vantage that is known and inactive is
+    /// <see cref="Range"/> instead, because that one does not resolve by
+    /// waiting.</para>
+    ///
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
     /// and does not resolve by waiting.
     /// <internal>
