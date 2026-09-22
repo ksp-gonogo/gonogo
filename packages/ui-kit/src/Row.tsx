@@ -1,5 +1,6 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
+import { focusRingInset } from "./focusRing";
 
 export interface RowProps extends HTMLAttributes<HTMLElement> {
   /** Rendered tag. Defaults to `li` (a `Row` typically sits in a plain `<ul>`). */
@@ -161,10 +162,7 @@ const Row__Root = styled.li<{
     background: var(--color-surface-panel);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
+  ${focusRingInset}
 `
       : ""}
   ${({ $interactive, $selected }) =>

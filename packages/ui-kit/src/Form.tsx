@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * A vertical form body.
@@ -74,10 +75,7 @@ const inputBase = `
     outline: none;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   @media (pointer: coarse) {
     min-height: 44px;

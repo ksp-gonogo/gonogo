@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import styled, { css } from "styled-components";
+import { focusRing } from "../focusRing";
 
 interface CommandGroupOwnProps<V extends Record<string, unknown>> {
   value: V;
@@ -181,10 +182,7 @@ const CommandGroup__CommitButton = styled.button<{
       }
     `}
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   ${({ $gated }) =>
     $gated &&

@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import styled, { css } from "styled-components";
+import { focusRing } from "./focusRing";
 
 export type ToggleButtonTone = "neutral" | "go" | "nogo" | "warn";
 export type ToggleButtonSize = "sm" | "md";
@@ -132,10 +133,7 @@ const ToggleButton__Body = styled.button<{
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &:disabled {
     opacity: 0.4;

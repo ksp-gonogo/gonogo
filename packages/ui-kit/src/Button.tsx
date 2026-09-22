@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * Default action button: neutral dark style.
@@ -120,10 +121,7 @@ export const TextButton = styled.button`
       color: var(--color-text-primary);
     }
   }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
