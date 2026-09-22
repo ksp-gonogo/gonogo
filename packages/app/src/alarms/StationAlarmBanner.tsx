@@ -90,7 +90,7 @@ const Wrap = styled.div`
   border: 1px solid var(--color-status-nogo-bg);
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   /* Rungs, not --inset-surface, and the same reason AlarmBanner gives: this is
      the floating-chrome band on the 16px gutter lock, which no name covers
      since --inset-panel went. */
@@ -122,7 +122,7 @@ const Wrap = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-status-nogo-fg);
@@ -140,7 +140,7 @@ const AlarmName = styled.span`
 
 const FiredHint = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-style: italic;
 `;
 
@@ -148,7 +148,7 @@ const AckButton = styled.button`
   background: none;
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   cursor: pointer;

@@ -134,7 +134,7 @@ export const ConnectionRow = styled.div`
 /** Shared with `SettingsModal`'s Uplink lists and `UplinkReadinessStep`. */
 export const Name = styled.span`
   flex: 1;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
 `;
 
@@ -169,7 +169,7 @@ const Indicator = styled.span<{ $status: DataSourceStatus }>`
 `;
 
 const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: ${({ $status }) => statusColor[$status]};
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -179,7 +179,7 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
    to restate was the control inset the base already carries, tightened, on a
    button whose height is pinned by --control-height either way. */
 const RetryButton = styled(GhostButton)`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.05em;
   white-space: nowrap;
 `;
@@ -187,7 +187,6 @@ const RetryButton = styled(GhostButton)`
 const ConfigButton = styled(IconButton)<{ $active: boolean }>`
   color: ${({ $active }) =>
     $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
-  font-size: var(--font-size-sm);
   padding: 0 var(--space-2);
 `;
 
@@ -197,7 +196,7 @@ const SetupInstructions = styled.pre`
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-prose);
   color: var(--color-text-faint);
   white-space: pre-wrap;
   line-height: var(--line-height-prose);

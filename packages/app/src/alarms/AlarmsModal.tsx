@@ -1328,7 +1328,7 @@ const KindButton = styled.button<{ $active: boolean }>`
   border: none;
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     color: var(--color-status-go-fg);
@@ -1355,7 +1355,7 @@ const SideBySide = styled.div`
 `;
 
 const OpSelect = styled.select`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
@@ -1365,7 +1365,7 @@ const OpSelect = styled.select`
 
 const WaitingNote = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const PresetSection = styled.section`
@@ -1381,7 +1381,7 @@ const PresetSummary = styled.button`
   background: transparent;
   border: none;
   padding: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1428,23 +1428,23 @@ const PresetButton = styled.button`
 `;
 
 const PresetButtonLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
 `;
 
 const PresetButtonHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
 const AddedNote = styled.div`
   color: var(--color-status-go-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-12) 0;
 `;
 
@@ -1466,7 +1466,7 @@ const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
 };
 
 const RowMeta = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1475,7 +1475,7 @@ const RowMeta = styled.div`
 
 const StateTag = styled.span<{ $state: Alarm["state"] }>`
   text-transform: uppercase;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   color: ${(p) =>
     p.$state === "firing"
@@ -1499,7 +1499,7 @@ const DangerButton = styled.button`
   border: 1px solid var(--color-status-alert-muted);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     background: var(--color-status-alert-muted);
@@ -1524,7 +1524,7 @@ const FireChip = styled.span`
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1533,7 +1533,7 @@ const FireChip = styled.span`
 
 const FireMeta = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
 `;
 
 const FireRemoveButton = styled.button`
@@ -1563,7 +1563,7 @@ const PickerRow = styled.div`
 
 const PickerSelect = styled.select`
   flex: 1;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);

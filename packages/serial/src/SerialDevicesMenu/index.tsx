@@ -402,7 +402,7 @@ const Credit = styled.p`
   margin: var(--space-10) 0 0;
   padding-top: var(--space-8);
   border-top: 1px solid var(--color-border-subtle);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-prose);
   color: var(--color-text-faint);
   line-height: var(--line-height-prose);
 
@@ -432,7 +432,7 @@ const ToolbarButtons = styled.div`
 
 const Heading = styled.h3`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -441,7 +441,7 @@ const Heading = styled.h3`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-8) 0;
 `;
 
@@ -454,7 +454,7 @@ const WebSerialUnavailableBanner = styled.div`
   border: 1px solid var(--color-status-warning-bg);
   border-radius: var(--radius-regular);
   color: var(--color-status-warning-bg);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   /* The chrome band, in rungs. This banner spans the menu and carries prose
      with an inline <code> run, so it takes the 16px gutter lock the ladder
@@ -464,7 +464,7 @@ const WebSerialUnavailableBanner = styled.div`
 
   code {
     font-family: var(--font-mono, monospace);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-compact);
     word-break: break-all;
     background: var(--color-surface-raised);
     border-radius: var(--radius-regular);
@@ -478,7 +478,7 @@ const WebSerialUnavailableBanner = styled.div`
 const DeviceCard = styled(Card).attrs({ standalone: true })``;
 
 const RowMeta = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -499,7 +499,7 @@ const PendingPicker = styled.div`
 `;
 
 const PendingHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const PendingActions = styled.div`
@@ -509,7 +509,7 @@ const PendingActions = styled.div`
 `;
 
 const Status = styled.span<{ $status: string }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
