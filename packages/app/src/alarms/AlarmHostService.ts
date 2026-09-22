@@ -275,6 +275,7 @@ export class AlarmHostService {
       onArmAccepted: (id) => {
         if (this.scetArmRefusals.delete(id)) this.emit();
       },
+      nowMs: () => this.opts.nowMs(),
     });
     this.start();
   }

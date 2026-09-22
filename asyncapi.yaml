@@ -9678,6 +9678,12 @@ components:
             and the `GameParameters` flags for leaving to the space center and to the
             tracking station. The arm rides on `CommandResult.detail`.
 
+            Also the SCET alarm arm, for a vantage it cannot check because no command
+            centre is known to the simulation yet: the main menu, and the ticks before
+            the first capture. A vantage that is known and inactive is
+            `CommandErrorCode.Range` instead, because that one does not resolve by
+            waiting.
+
             Distinct from `CommandErrorCode.WrongState`, which is about the entity and
             does not resolve by waiting.
         - const: 16
