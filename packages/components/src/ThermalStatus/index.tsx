@@ -13,7 +13,6 @@ import {
   Section,
   Stack,
   StatusPill,
-  Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { magnitudeOr } from "../shared/magnitude";
@@ -303,17 +302,6 @@ function ThermalStatusComponent({
         absence !== null && (
           <Section key="absence" full>
             <EmptyState>{absence}</EmptyState>
-          </Section>
-        ),
-        absence === null && thermalNotCurrent && (
-          <Section key="dated" full>
-            {/* Names which half is dated: the figures below are real readings
-                held from the last delivery, while the bands and the pill have
-                gone to unknown because a judgement cannot be dated. */}
-            <Text tone="warn" size="xs" role="status" aria-live="polite">
-              Thermal readings no longer current: the temperatures are the last
-              reported, and the bands are unknown until they resume.
-            </Text>
           </Section>
         ),
         absence === null && (
