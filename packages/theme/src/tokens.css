@@ -59,6 +59,66 @@ textarea {
   --font-size-lg: 16px;
 
   /*
+   * SEMANTIC TYPE, over the rungs above. One name per JOB, where a job
+   * is what the text IS rather than how big it is.
+   *
+   * `caption` The annotation that names a value it does not contain.
+   *           Small caps and tracked, set apart from the reading it
+   *           points at. 165 sites, and the job has a ceiling the rung
+   *           ladder never described: it reaches 2xs, xs and sm and
+   *           never base or lg.
+   * `compact` The working text of a surface: rows, cells, control
+   *           labels, and the commentary beside them. 297 sites, 53% of
+   *           the whole population, so this is the app's real default
+   *           and the document's own 14px never was.
+   * `value`   What the caption points at. The name of a row or a card,
+   *           the reading in a labelled line, the text a form control
+   *           holds.
+   * `prose`   Consecutive sentences, read start to finish.
+   * `figure`  The number a widget exists to show.
+   *
+   * COMPACT AND PROSE ARE REGISTERS, NOT SIZES. The test is not length,
+   * it is whether a person reads the words in order or picks one out at
+   * a glance. The boundary is disjoint rather than a judgement at the
+   * margin: of the 297 compact sites, 2 set a max-width in em or ch and
+   * none sets `--line-height-prose`, so almost nothing outside `prose`
+   * holds a wrapped sentence at all.
+   *
+   * CAPTION AND VALUE ARE A PAIR, and colour says so independently of
+   * size: 85% of captions sit on a muted, faint or dim text colour and
+   * 69% of values on `--color-text-primary`. Reach for one and you are
+   * reaching for the other.
+   *
+   * THERE IS NO SIXTH NAME FOR SUPPORTING TEXT, and the reason is here
+   * because the question comes back. Split `compact` by what its
+   * declarations are called and the four strands (supporting text,
+   * control labels, small readings, the rest) come out at 11.22, 11.47,
+   * 10.71 and 11.24 mean px, which is one size. Supporting text IS a
+   * real job, and the design already marks it with COLOUR: 68% muted
+   * against 2% primary, where the rest of `compact` is 37% and 18%. A
+   * second size name would invent a distinction the design does not
+   * make and say a second time what `--color-text-muted` already says.
+   *
+   * NOT NAMED, and each absence is a decision:
+   *   a glyph's box   14 sites size an icon glyph THROUGH `font-size`
+   *                   rather than sizing text: a dismiss cross, a
+   *                   caret, a chevron centred in a button. That is a
+   *                   box dimension wearing a type property, it belongs
+   *                   to an icon family, and a type name offered for it
+   *                   would be reached for as text.
+   *   a display tier  Every size above 16px is a fluid `clamp()`, a
+   *                   JS-computed fit or a value locked to a box width,
+   *                   as the scale's own note above records. `figure`
+   *                   is the top of the type scale, not the bottom of a
+   *                   display one.
+   */
+  --font-size-caption: var(--font-size-2xs);
+  --font-size-compact: var(--font-size-xs);
+  --font-size-value: var(--font-size-sm);
+  --font-size-prose: var(--font-size-base);
+  --font-size-figure: var(--font-size-lg);
+
+  /*
    * Line height, unitless, named by ROLE rather than by number. The
    * census showed the values split cleanly by job, not by size: all 25
    * `line-height: 1` sites are single-line chrome and glyph buttons that
