@@ -10,6 +10,7 @@ import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { asHostService } from "../test/peerFakes";
 import { SitrepPeerRelay } from "./SitrepPeerRelay";
 
 /**
@@ -72,7 +73,7 @@ function renderRelay(host: ReturnType<typeof makeFakeHost>) {
   const client = new TelemetryClient(transport);
   const view = render(
     <TelemetryProvider client={client}>
-      <SitrepPeerRelay peerHost={host as unknown as PeerHostService} />
+      <SitrepPeerRelay peerHost={asHostService(host)} />
     </TelemetryProvider>,
   );
   act(() => {

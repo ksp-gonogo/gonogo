@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { asHostService } from "../test/peerFakes";
 
 // Hand-rolled fakes mirror the surface CoverageSyncHostService actually
 // touches. The service ignores everything else on PeerHostService and
@@ -32,7 +33,7 @@ function makeFakeHost(): FakeHost {
     },
   };
   return {
-    service: fake as unknown as PeerHostService,
+    service: asHostService(fake),
     firePeerConnect: (peerId) => {
       for (const cb of subs) cb(peerId);
     },

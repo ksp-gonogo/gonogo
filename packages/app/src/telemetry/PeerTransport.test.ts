@@ -15,6 +15,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
+import { asClientService } from "../test/peerFakes";
 import { PeerTransport } from "./PeerTransport";
 
 /**
@@ -152,7 +153,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
  * construction.
  */
 function asService(fake: ReturnType<typeof makeFakeClient>): PeerClientService {
-  return fake as unknown as PeerClientService;
+  return asClientService(fake);
 }
 
 function makeMeta(overrides: Partial<Meta> = {}): Meta {
