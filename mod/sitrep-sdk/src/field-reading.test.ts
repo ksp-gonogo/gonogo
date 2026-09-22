@@ -10,7 +10,7 @@ import { value } from "./unit-system/value";
  * > accessor, not `bandFor(reckoned, string)`
  *
  * The live case it was filed for is an Uplink slice keying its bands by
- * `` `${subject}.rules.${index}.value` ``, so the shape under test is a map of
+ * `` `${subject}.rules.${index}.problem` ``, so the shape under test is a map of
  * subjects, each holding a collection, each entry carrying the modelled field.
  *
  * The load-bearing pair is "reaches the band under a collection-indexed path",
@@ -42,7 +42,7 @@ const band = (lo: number, hi: number) => ({
 function crewReading(
   bands: Record<string, ReturnType<typeof band>> = {},
   modelledPaths: readonly string[] = [
-    "crew.Bill.rules.0.value",
+    "crew.Bill.rules.0.problem",
     "crew.Bill.rules.0.limit",
   ],
 ) {
@@ -109,14 +109,16 @@ describe("a field reading reaches through the payload", () => {
 
   it("offers no band where the model wrote none at that path", () => {
     const leaf = firstRule(
-      crewReading({ "crew.Bill.rules.0.value": band(9, 11) }),
+      crewReading({ "crew.Bill.rules.0.problem": band(9, 11) }),
     ).limit;
     if (leaf.reckoning.status !== "available") throw new Error("unreachable");
     expect(leaf.reckoning.band).toBeUndefined();
   });
 
   it("offers no model where the model covers no entry at that path", () => {
-    const leaf = firstRule(crewReading({}, ["crew.Bill.rules.0.value"])).limit;
+    const leaf = firstRule(
+      crewReading({}, ["crew.Bill.rules.0.problem"]),
+    ).limit;
     expect(leaf.reckoning.status).toBe("none");
   });
 
@@ -124,7 +126,7 @@ describe("a field reading reaches through the payload", () => {
    * THE LIMIT, and it lands exactly on the case #250 named.
    *
    * The model this was filed for keys its bands by
-   * `` `${subject}.rules.${index}.value` `` and the leaf segment is literally
+   * `` `${subject}.rules.${index}.problem` `` and the leaf segment is literally
    * `value`, one of
    * the six reserved currency names. So the accessor reaches `rules[0]` and
    * stops: `.value` there answers with the READING's value, which is the rule
@@ -136,7 +138,7 @@ describe("a field reading reaches through the payload", () => {
    */
   it("CANNOT reach a leaf whose name is a reserved currency member", () => {
     const rule = firstRule(
-      crewReading({ "crew.Bill.rules.0.value": band(0.2, 0.4) }),
+      crewReading({ "crew.Bill.rules.0.problem": band(0.2, 0.4) }),
     );
     const payload = rule.value as Rule | undefined;
     expect(payload?.value).toBe(3);
