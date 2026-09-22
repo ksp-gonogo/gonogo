@@ -20,7 +20,11 @@ import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
+import {
+  baseReasons,
+  ratchetBaseRef,
+  sourceAtRatchetBase,
+} from "./ratchetBaseRef";
 import { TYPECHECK_COVERAGE_DEBT } from "./typecheck-coverage.allowlist";
 
 /**
@@ -360,9 +364,7 @@ describe("typecheck coverage: every package typechecks its own test files", () =
       const js = transformSync(source, { loader: "ts", format: "cjs" }).code;
       const module_ = { exports: {} as Record<string, unknown> };
       new Function("module", "exports", js)(module_, module_.exports);
-      const debt = module_.exports.TYPECHECK_COVERAGE_DEBT as
-        | Record<string, string>
-        | undefined;
+      const debt = baseReasons(module_.exports, "TYPECHECK_COVERAGE_DEBT");
       return debt ? { ref: at.ref, debt } : undefined;
     }
 

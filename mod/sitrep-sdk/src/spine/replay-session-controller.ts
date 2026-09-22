@@ -40,10 +40,10 @@ type DataOrEventMessage = Extract<
   { type: "stream-data" | "event" }
 >;
 
-function isDataOrEventFrame(
-  message: ServerMessage,
-): message is DataOrEventMessage {
-  return message.type === "stream-data" || message.type === "event";
+function isDataOrEventFrame(message: unknown): message is DataOrEventMessage {
+  if (typeof message !== "object" || message === null) return false;
+  const type: unknown = Reflect.get(message, "type");
+  return type === "stream-data" || type === "event";
 }
 
 /**
@@ -67,7 +67,7 @@ function buildSeekFixture(
   targetDeliveredAt: number,
 ): ReplayFixture {
   const parsed = fixture.frames
-    .map((raw) => JSON.parse(raw) as ServerMessage)
+    .map((raw): unknown => JSON.parse(raw))
     .filter(isDataOrEventFrame);
 
   const snapshotByTopic = new Map<string, DataOrEventMessage>();
@@ -99,7 +99,7 @@ function buildSeekFixture(
 function earliestDeliveredAt(fixture: ReplayFixture): number {
   let earliest = Number.POSITIVE_INFINITY;
   for (const raw of fixture.frames) {
-    const message = JSON.parse(raw) as ServerMessage;
+    const message: unknown = JSON.parse(raw);
     if (!isDataOrEventFrame(message)) continue;
     if (message.meta.deliveredAt < earliest)
       earliest = message.meta.deliveredAt;
@@ -244,8 +244,11 @@ export class ReplaySessionController {
       : {
           subscribedTopics: seeked.subscribedTopics,
           frames: seeked.frames.filter((raw) => {
-            const message = JSON.parse(raw) as DataOrEventMessage;
-            return message.meta.deliveredAt <= anchorUt + 1e-6;
+            const message: unknown = JSON.parse(raw);
+            return (
+              isDataOrEventFrame(message) &&
+              message.meta.deliveredAt <= anchorUt + 1e-6
+            );
           }),
         };
 

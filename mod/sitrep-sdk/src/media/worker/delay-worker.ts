@@ -179,7 +179,11 @@ interface WorkerGlobalSurface {
    *  options)` on the main thread: see `handleRtcTransform`. */
   onrtctransform: ((ev: RtcTransformEventLike) => void) | null;
 }
-const workerSelf = self as unknown as WorkerGlobalSurface;
+/* The worker global, by the same "declare the surface, no full webworker lib"
+   reasoning as `WorkerGlobalSurface` itself: the repo's DOM lib types `self` as
+   a window, which this file never runs in. */
+declare const self: WorkerGlobalSurface;
+const workerSelf = self;
 
 // --- State ---------------------------------------------------------------
 
@@ -191,7 +195,9 @@ let sharedClock: WorkerDelayClock | null = null;
 let nowWall: (() => number) | null = null;
 
 interface PipelineEntry {
-  pipeline: FrameDelayPipeline;
+  /** Null only between the entry being made and the pipeline that closes over
+   *  it being built, which is the same turn. */
+  pipeline: FrameDelayPipeline | null;
   captureSample: CaptureClockSample;
   stopPacingTicker: () => void;
 }
@@ -278,12 +284,11 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
   try {
     const processor = new MediaStreamTrackProcessor({ track: msg.track });
     const entry: PipelineEntry = {
-      // `pipeline` is filled in immediately below, and TS needs SOME value here
-      // in the meantime. The `captureUt` closure is passed to
+      // Filled in immediately below. The `captureUt` closure is passed to
       // `runFrameDelayPipeline` before `pipeline` exists, but it closes over
       // `entry` rather than the local `pipeline` const, so it always reads the
       // current sample even mid-construction.
-      pipeline: null as unknown as FrameDelayPipeline,
+      pipeline: null,
       captureSample: DEFAULT_MS,
       stopPacingTicker: () => {},
     };
@@ -371,7 +376,7 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
   const entry: PipelineEntry = {
     // Filled in immediately below: same "closes over `entry`, not the
     // local `pipeline` const" reasoning as `handleCreatePipeline`.
-    pipeline: null as unknown as FrameDelayPipeline,
+    pipeline: null,
     captureSample: DEFAULT_MS,
     stopPacingTicker: () => {},
   };
@@ -396,14 +401,14 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
 }
 
 function handleFlush(msg: FlushMessage): void {
-  pipelines.get(msg.pipelineId)?.pipeline.flush();
+  pipelines.get(msg.pipelineId)?.pipeline?.flush();
 }
 
 function handleDispose(msg: DisposePipelineMessage): void {
   const entry = pipelines.get(msg.pipelineId);
   if (!entry) return;
   entry.stopPacingTicker();
-  entry.pipeline.dispose();
+  entry.pipeline?.dispose();
   pipelines.delete(msg.pipelineId);
 }
 

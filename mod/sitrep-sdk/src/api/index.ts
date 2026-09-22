@@ -963,8 +963,13 @@ export function useReplaySessionActive(): boolean {
  * with nothing on the other end, so the member retires with the shim.
  */
 export function getGameHost(): string {
-  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
-  const buildDefault = env?.VITE_SITREP_HOST || "localhost";
+  const env: unknown = Reflect.get(import.meta, "env");
+  const configured: unknown =
+    typeof env === "object" && env !== null
+      ? Reflect.get(env, "VITE_SITREP_HOST")
+      : undefined;
+  const buildDefault =
+    typeof configured === "string" && configured ? configured : "localhost";
   return readSetting(GAME_HOST_KEY) ?? buildDefault;
 }
 // The read half of the contribution registry. The WRITE half stays on
@@ -1018,10 +1023,13 @@ export function AugmentSlot<S extends string>(props: {
   name: S;
   props: SlotProps<S>;
 }): ReactElement {
-  return createElement(
-    getHost().AugmentSlot,
-    props as unknown as { name: string; props?: Record<string, unknown> },
-  );
+  /* The host's slot takes the erased form, because it renders slots for every
+     widget and cannot know which one it holds. */
+  const erased: { name: string; props?: Record<string, unknown> } = {
+    name: props.name,
+    props: props.props as Record<string, unknown>,
+  };
+  return createElement(getHost().AugmentSlot, erased);
 }
 
 // `ContributionsProvider` is NOT a shim here any more. It is

@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 460 of them
- * across 201 files.
+ * Assertions that escape `unknown`, per file. The tree carries 390 of them
+ * across 170 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 278 of the 460 are
+ * **A test fixture minted through an assertion.** 238 of the 390 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 187 of the 460 are `as unknown as`, and those are worth taking
+ * 172 of the 390 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 85 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 62 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 201 files those would be 201 sentences
+ * sentence per entry: at 170 files those would be 170 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -196,37 +196,22 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/test/widgetDomSnapshot.tsx": 3,
   "packages/components/src/TransferWindow/undefined.characterise.test.tsx": 2,
   "packages/components/src/WarpControl/dual-run.test.tsx": 1,
-  // packages/core: 72 in 32 files (18 out of `any`, 67 in tests), walked 226 files
+  // packages/core: 47 in 17 files (13 out of `any`, 42 in tests), walked 226 files
   "packages/core/src/actionGroups.undefined.characterise.test.tsx": 3,
   "packages/core/src/asyncapi-document.test.ts": 16,
-  "packages/core/src/contract-version-parity.test.ts": 1,
-  "packages/core/src/declaration-reachability.test.ts": 1,
-  "packages/core/src/fixture-gated-suites.test.ts": 2,
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
-  "packages/core/src/published-doc-reachability.test.ts": 7,
+  "packages/core/src/published-doc-reachability.test.ts": 6,
   "packages/core/src/published-docs-name-real-packages.test.ts": 1,
   "packages/core/src/reckoning-candidates.test.ts": 1,
   "packages/core/src/render-fixture-coverage.test.ts": 1,
-  "packages/core/src/sdk-subpath-alias.test.ts": 1,
   "packages/core/src/settings/gameHost.ts": 1,
   "packages/core/src/settings/registry.test.ts": 2,
-  "packages/core/src/styleguide-banner-comments.test.ts": 6,
-  "packages/core/src/styleguide-comment-stacks.test.ts": 2,
-  "packages/core/src/styleguide-delay-ux.test.ts": 1,
-  "packages/core/src/styleguide-earth-day.test.ts": 1,
-  "packages/core/src/styleguide-ellipsis.test.ts": 1,
-  "packages/core/src/styleguide-emdash.test.ts": 1,
-  "packages/core/src/styleguide-fire-and-forget-commands.test.ts": 1,
-  "packages/core/src/styleguide-magnitude-canonical.test.ts": 1,
-  "packages/core/src/styleguide-optional-magnitude.test.ts": 1,
-  "packages/core/src/styleguide-panel-body.test.ts": 2,
   "packages/core/src/styleguide-type-tests-gated.test.ts": 2,
   "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
-  "packages/core/src/typecheck-coverage.test.ts": 2,
+  "packages/core/src/typecheck-coverage.test.ts": 1,
   "packages/core/src/uplink-isolation.test.ts": 7,
   "packages/core/src/uplink-matrix-coverage.test.ts": 1,
-  "packages/core/src/uplink-tsconfig-parity.test.ts": 1,
   "packages/core/src/uplinkVersionCompat.ts": 1,
   "packages/core/src/widget-fixture-conformance.ts": 1,
   // packages/data: 1 in 1 files (0 out of `any`, 0 in tests), walked 53 files
@@ -255,44 +240,28 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts": 1,
   // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
-  // mod/sitrep-sdk: 81 in 38 files (19 out of `any`, 24 in tests), walked 321 files
-  "mod/sitrep-sdk/src/api/coverage/CoverageMaskStore.ts": 3,
-  "mod/sitrep-sdk/src/api/host.ts": 3,
-  "mod/sitrep-sdk/src/api/index.ts": 2,
+  // mod/sitrep-sdk: 36 in 22 files (1 out of `any`, 9 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/localStorageStore.ts": 1,
   "mod/sitrep-sdk/src/api/logger.test.ts": 1,
   "mod/sitrep-sdk/src/api/settings-registry.test-d.ts": 6,
-  "mod/sitrep-sdk/src/api/settings/SettingsService.ts": 2,
-  "mod/sitrep-sdk/src/api/settings/store.ts": 1,
+  "mod/sitrep-sdk/src/api/settings/SettingsService.ts": 1,
   "mod/sitrep-sdk/src/api/uplink-handles.ts": 1,
   "mod/sitrep-sdk/src/cli/index.test.ts": 1,
-  "mod/sitrep-sdk/src/cli/index.ts": 3,
+  "mod/sitrep-sdk/src/cli/index.ts": 1,
   "mod/sitrep-sdk/src/client.ts": 1,
   "mod/sitrep-sdk/src/extensions.test.ts": 1,
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.test.ts": 10,
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.ts": 2,
-  "mod/sitrep-sdk/src/flight/derive.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.ts": 1,
   "mod/sitrep-sdk/src/frame-qualifier.test.ts": 1,
-  "mod/sitrep-sdk/src/media/frame-delay.test.ts": 3,
-  "mod/sitrep-sdk/src/media/worker/delay-worker.ts": 3,
-  "mod/sitrep-sdk/src/perf/PerfBudget.ts": 3,
   "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
   "mod/sitrep-sdk/src/plan-composition.ts": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts": 2,
-  "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 3,
-  "mod/sitrep-sdk/src/spine/replay-session-controller.ts": 3,
+  "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 1,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 7,
   "mod/sitrep-sdk/src/spine/use-action-input.ts": 1,
   "mod/sitrep-sdk/src/spine/use-stream-event.ts": 1,
   "mod/sitrep-sdk/src/spine/use-stream.ts": 1,
-  "mod/sitrep-sdk/src/testing/install-dom-stubs.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
-  "mod/sitrep-sdk/src/testing/stub-transport.ts": 1,
-  "mod/sitrep-sdk/src/unit-system/value.ts": 1,
-  "mod/sitrep-sdk/src/uplink-manifest.ts": 2,
-  "mod/sitrep-sdk/src/version.gate.test.ts": 1,
   "mod/sitrep-sdk/src/wrap-units.test.ts": 3,
 };
 
@@ -395,20 +364,14 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/ui-kit/src/augments.ts": 1,
   // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  // mod/sitrep-sdk: 26 in 15 files (0 out of `any`, 9 in tests), walked 321 files
-  "mod/sitrep-sdk/src/api/host.ts": 3,
-  "mod/sitrep-sdk/src/api/index.ts": 2,
+  // mod/sitrep-sdk: 11 in 9 files (0 out of `any`, 6 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/logger.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
   "mod/sitrep-sdk/src/frame-qualifier.test.ts": 1,
-  "mod/sitrep-sdk/src/media/frame-delay.test.ts": 3,
-  "mod/sitrep-sdk/src/media/worker/delay-worker.ts": 3,
-  "mod/sitrep-sdk/src/perf/PerfBudget.ts": 3,
   "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
   "mod/sitrep-sdk/src/plan-composition.ts": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts": 2,
   "mod/sitrep-sdk/src/spine/use-action-input.ts": 1,
-  "mod/sitrep-sdk/src/testing/install-dom-stubs.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
   "mod/sitrep-sdk/src/wrap-units.test.ts": 2,
 };
@@ -428,7 +391,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2231,
-  assertions: 1856,
+  assertions: 1787,
 } as const;
 
 /**

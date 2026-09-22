@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * A dispatched command now settles honestly: a refusal the game issued reaches
@@ -160,7 +161,7 @@ function runGrep(cwd: string, args: string[]): string {
     // git grep exits 1 when nothing matches. That is not a pass here: the whole
     // repo losing every dispatch at once is a broken search, and the file floor
     // below is what says so.
-    if ((err as { status?: number }).status === 1) return "";
+    if (exitStatus(err) === 1) return "";
     throw err;
   }
 }

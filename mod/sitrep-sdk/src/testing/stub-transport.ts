@@ -170,10 +170,13 @@ export class StubTransport implements Transport {
               meta: makeMeta(),
             });
           } catch (error) {
-            const { code, message: errMessage } = error as {
-              code: string;
-              message: string;
-            };
+            const raw: unknown = error;
+            const thrownCode: unknown =
+              typeof raw === "object" && raw !== null
+                ? Reflect.get(raw, "code")
+                : undefined;
+            const code = typeof thrownCode === "string" ? thrownCode : "error";
+            const errMessage = raw instanceof Error ? raw.message : String(raw);
             this.deliver({
               type: "error",
               requestId: message.requestId,

@@ -27,6 +27,7 @@ import {
   UNREACHED_DECLARATION_DEBT,
 } from "./declaration-reachability.allowlist";
 import {
+  baseStringLists,
   ratchetBaseRef,
   ratchetRepoRoot,
   sourceAtRatchetBase,
@@ -245,10 +246,8 @@ describe("the debt list only ever shrinks", () => {
     new Function("module", "exports", js)(module_, module_.exports);
     return {
       ref: at.ref,
-      list: module_.exports.UNREACHED_DECLARATION_DEBT as Record<
-        string,
-        readonly string[]
-      >,
+      list:
+        baseStringLists(module_.exports, "UNREACHED_DECLARATION_DEBT") ?? {},
     };
   }
 
