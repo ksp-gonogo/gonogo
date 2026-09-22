@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 67 of them
- * across 49 files.
+ * Assertions that escape `unknown`, per file. The tree carries 56 of them
+ * across 41 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 32 of the 67 are
+ * **A test fixture minted through an assertion.** 23 of the 56 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,7 +50,7 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 38 of the 67 are `as unknown as`, and those are worth taking
+ * 30 of the 56 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 49 files those would be 49 sentences
+ * sentence per entry: at 41 files those would be 41 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -82,34 +82,26 @@
  * commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 30 in 21 files (1 out of `any`, 24 in tests), walked 391 files
+  // packages/app: 20 in 14 files (1 out of `any`, 15 in tests), walked 391 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
-  "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
   "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 1,
-  "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
   "packages/app/src/__tests__/peer-client-data-source.test.ts": 1,
   "packages/app/src/__tests__/peer-client-service.test.ts": 2,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
-  "packages/app/src/alarms/AlarmHostService.test.ts": 1,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx": 1,
-  "packages/app/src/alarms/contractParameterTrigger.test.ts": 1,
   "packages/app/src/goNoGo/GoNoGoSound.test.tsx": 1,
-  "packages/app/src/peer/PeerHostService.ts": 1,
-  "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
-  "packages/app/src/settings/SettingsModal.test.tsx": 3,
-  "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
+  "packages/app/src/settings/SettingsModal.test.tsx": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx": 1,
   "packages/app/src/test/peerFakes.ts": 3,
   "packages/app/src/uplinks/externals/runtimeLink.test.ts": 1,
   "packages/app/src/uplinks/host.ts": 2,
-  // packages/components: 6 in 5 files (0 out of `any`, 5 in tests), walked 676 files
+  // packages/components: 5 in 4 files (0 out of `any`, 5 in tests), walked 676 files
   "packages/components/src/MapView/paintBaseSurface.test.ts": 1,
   "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
-  "packages/components/src/test/pointerStubs.ts": 1,
   // packages/core: 2 in 2 files (0 out of `any`, 0 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
@@ -154,29 +146,22 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 21 in 16 files (0 out of `any`, 19 in tests), walked 391 files
+  // packages/app: 14 in 10 files (0 out of `any`, 12 in tests), walked 391 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
-  "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
   "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 1,
-  "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
   "packages/app/src/__tests__/peer-client-service.test.ts": 2,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
-  "packages/app/src/alarms/AlarmHostService.test.ts": 1,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx": 1,
-  "packages/app/src/alarms/contractParameterTrigger.test.ts": 1,
   "packages/app/src/goNoGo/GoNoGoSound.test.tsx": 1,
-  "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
-  "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx": 1,
   "packages/app/src/uplinks/host.ts": 2,
-  // packages/components: 6 in 5 files (0 out of `any`, 5 in tests), walked 676 files
+  // packages/components: 5 in 4 files (0 out of `any`, 5 in tests), walked 676 files
   "packages/components/src/MapView/paintBaseSurface.test.ts": 1,
   "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
-  "packages/components/src/test/pointerStubs.ts": 1,
   // packages/core: 2 in 2 files (0 out of `any`, 0 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
@@ -209,7 +194,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2232,
-  assertions: 1416,
+  assertions: 1406,
 } as const;
 
 /**

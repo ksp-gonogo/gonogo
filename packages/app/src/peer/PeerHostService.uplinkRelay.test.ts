@@ -208,7 +208,7 @@ describe("PeerHostService.handleUplinkRelay (generic)", () => {
       configSchema: () => [],
       configure: () => {},
       getConfig: () => ({}),
-    } as unknown as DataSource;
+    } as DataSource;
     registerDataSource(new PeerBroadcastingDataSource(realSource, host));
 
     const { getUplinkHandle } = await import("@ksp-gonogo/core");

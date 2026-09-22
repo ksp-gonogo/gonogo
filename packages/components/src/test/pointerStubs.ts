@@ -43,5 +43,5 @@ export function pointerEvent(
     clientX: fields.clientX ?? 0,
     clientY: fields.clientY ?? 0,
     currentTarget,
-  } as unknown as React.PointerEvent<HTMLDivElement>;
+  } as React.PointerEvent<HTMLDivElement>;
 }
