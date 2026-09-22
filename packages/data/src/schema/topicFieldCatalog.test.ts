@@ -86,9 +86,9 @@ describe("getTopicFieldCatalog()", () => {
       (k) => k.topic === "alarm.scet.fired",
     );
     expect(fired.map((k) => k.key).sort()).toEqual([
-      "alarm.scet.fired.audience",
       "alarm.scet.fired.firedAtUt",
       "alarm.scet.fired.id",
+      "alarm.scet.fired.vantage",
     ]);
     expect(
       fired.find((k) => k.key === "alarm.scet.fired.firedAtUt"),

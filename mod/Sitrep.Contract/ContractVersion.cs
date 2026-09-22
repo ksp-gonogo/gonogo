@@ -474,11 +474,34 @@ namespace Sitrep.Contract
         /// mod is still pre-release with NO external Uplinks, and the app and mod
         /// ship together, so no artifact exists that was built against the old
         /// shape.</para>
+        ///
+        /// <para><b>Bumped 17 -&gt; 18: an alarm names the place that decides when
+        /// it comes due, and "audience" was the wrong word for that.</b> Three
+        /// <c>member-removed</c>, one rename each on
+        /// <see cref="ScetAlarm"/>, <see cref="ScetAlarmFired"/> and
+        /// <see cref="ScetAlarmArmArgs"/>: <c>Audience</c> becomes
+        /// <c>Vantage</c>.</para>
+        ///
+        /// <para>Two reasons, and the second is the one that makes it a rename
+        /// rather than a preference. "Audience" already means the subscriber
+        /// population one class away (<c>Sitrep.Host.Alarms.ScetRosterAudience</c>,
+        /// which decides when the roster goes on the wire), so one feature spelled
+        /// the same word for two things. And the field no longer selects between
+        /// two kinds of alarm: there is one kind, always read at a vantage, and
+        /// this field decides WHEN it comes due and whether the warp stops with
+        /// it. No word meaning "who is listening" can carry that.</para>
+        ///
+        /// <para>An empty value is ACCEPTED and resolved at arm time to the
+        /// alarm's <see cref="ScetAlarm.Subject"/>, which is what every alarm was
+        /// already judged against, so a client that names no vantage keeps the
+        /// behaviour it had and nothing persisted has to move.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as every Major above.</para>
         /// </remarks>
-        public const int Major = 17;
+        public const int Major = 18;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 16 -&gt; 17 bump (see <see cref="Major"/>).
+        /// Reset to 0 alongside the Major 17 -&gt; 18 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
@@ -1615,9 +1638,10 @@ namespace Sitrep.Contract
         ///
         /// <para><b>Major-16 line, Bumped 5 -&gt; 6: an alarm can name whose
         /// knowledge it is judged against.</b> One new member on each of three
-        /// existing types: <see cref="ScetAlarmArmArgs.Audience"/>,
-        /// <see cref="ScetAlarm.Audience"/> and
-        /// <see cref="ScetAlarmFired.Audience"/>. All three default to the empty
+        /// existing types: <see cref="ScetAlarmArmArgs.Vantage"/>,
+        /// <see cref="ScetAlarm.Vantage"/> and
+        /// <see cref="ScetAlarmFired.Vantage"/>, all three spelled
+        /// <c>Audience</c> until the Major 17 -&gt; 18 rename. All three default to the empty
         /// string, which is the behaviour every alarm already had, so an Uplink
         /// built against 16.5 is unaffected and the frozen Major-16 floor is NOT
         /// re-frozen.</para>
@@ -1773,9 +1797,9 @@ namespace Sitrep.Contract
         /// applies: an ephemeris horizon bounds how long osculating elements stand in
         /// for an INTEGRATED path, and a conic search is not claiming to be one.</para>
         ///
-        /// <para><b>Reset to 0 alongside the Major 16 -&gt; 17 bump</b> (see
-        /// <see cref="Major"/>). The Minor history above belongs to the Major-16 line
-        /// and is retained for provenance.</para>
+        /// <para><b>Reset to 0 alongside the Major 17 -&gt; 18 bump</b> (see
+        /// <see cref="Major"/>). The Minor history above belongs to the earlier Major
+        /// lines and is retained for provenance.</para>
         /// </remarks>
         public const int Minor = 0;
     }

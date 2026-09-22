@@ -36,7 +36,7 @@ namespace Sitrep.Host.Tests
             new ScetAlarmArmArgs
             {
                 Id = id,
-                Audience = vantage,
+                Vantage = vantage,
                 Subject = Craft,
                 Condition = new ScetAlarmCondition
                 {
@@ -52,7 +52,7 @@ namespace Sitrep.Host.Tests
             new ScetAlarmArmArgs
             {
                 Id = id,
-                Audience = vantage,
+                Vantage = vantage,
                 Subject = "game",
                 Condition = new ScetAlarmCondition { Kind = ScetAlarmConditionKind.Time, Ut = ut },
             };

@@ -9,8 +9,8 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class ScetAlarmVantageTests
     {
-        private static ScetAlarm Alarm(string subject, string audience) =>
-            new ScetAlarm { Id = "a", Subject = subject, Audience = audience };
+        private static ScetAlarm Alarm(string subject, string vantage) =>
+            new ScetAlarm { Id = "a", Subject = subject, Vantage = vantage };
 
         [Fact]
         public void AnAlarmNamingNoVantageReadsAtItsOwnSubject()

@@ -941,18 +941,18 @@
     },
     "ScetAlarm": {
       "armedBy": "id",
-      "audience": "id",
       "firedAtUt": "ut",
       "id": "id",
       "name": "text",
       "state": "enum",
-      "subject": "id"
+      "subject": "id",
+      "vantage": "id"
     },
     "ScetAlarmArmArgs": {
-      "audience": "id",
       "id": "id",
       "name": "text",
-      "subject": "id"
+      "subject": "id",
+      "vantage": "id"
     },
     "ScetAlarmCondition": {
       "fieldPath": "id",
@@ -968,9 +968,9 @@
       "id": "id"
     },
     "ScetAlarmFired": {
-      "audience": "id",
       "firedAtUt": "ut",
-      "id": "id"
+      "id": "id",
+      "vantage": "id"
     },
     "ScienceCreditEvent": {
       "amount": "science",
@@ -1429,17 +1429,17 @@
   "topics": {
     "alarm.scet": {
       "armedBy": "id",
-      "audience": "id",
       "firedAtUt": "ut",
       "id": "id",
       "name": "text",
       "state": "enum",
-      "subject": "id"
+      "subject": "id",
+      "vantage": "id"
     },
     "alarm.scet.fired": {
-      "audience": "id",
       "firedAtUt": "ut",
-      "id": "id"
+      "id": "id",
+      "vantage": "id"
     },
     "career.mode": {
       "mode": "enum"

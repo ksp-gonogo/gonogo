@@ -50,7 +50,7 @@ export interface ScetAlarmBridgeContext {
   onFired(id: string, firedAtUt: number): void;
   /**
    * The simulation decided a COMMAND-VANTAGE alarm was due, judged against what
-   * `audience` has been told rather than against the craft's true state.
+   * `vantage` has been told rather than against the craft's true state.
    *
    * Shadow only. The client is still the authority for this alarm and keeps
    * evaluating it; this exists so the two verdicts can be compared. Latching
@@ -58,7 +58,7 @@ export interface ScetAlarmBridgeContext {
    * the latch the mod would write is the same field the client's own tracking
    * writes, so two authorities for it would clear each other's.
    */
-  onShadowFired(id: string, firedAtUt: number, audience: string): void;
+  onShadowFired(id: string, firedAtUt: number, vantage: string): void;
   /**
    * The simulation refused to arm this alarm, and said why in its own words.
    *
@@ -102,9 +102,9 @@ export interface ScetAlarmBridgeContext {
  * ## What the SHADOW arm adds
  *
  * A command-vantage threshold carrying a Topic address is armed too, naming the
- * vantage this screen commands from as its AUDIENCE. The mod then evaluates it
- * against what that place has been told, and publishes its verdict on the same
- * fire channel tagged with the audience.
+ * vantage this screen commands from. The mod then evaluates it against what that
+ * place has been told, and publishes its verdict on the same fire channel tagged
+ * with the vantage.
  *
  * Nothing latches from it. The client keeps evaluating the same alarm itself,
  * and the two answers are compared and logged. That is the only configuration
@@ -252,21 +252,22 @@ export class ScetAlarmBridge {
    */
   private buildArmArgs(alarm: Alarm): Record<string, unknown> | null {
     const trigger = alarm.trigger;
-    /* Whose knowledge the simulation judges this against. Empty is the
-       simulation itself, which is what a SCET alarm means. A command-vantage
-       alarm names the place this screen is commanding from, so the mod compares
-       against the readings that place has actually been sent: the centre it
-       chose, or until it chooses, the one the mod stamped its frames with. */
+    /* Where the simulation reads this alarm. Empty is sent for a SCET alarm and
+       the mod resolves it to the alarm's own subject, which is what a SCET alarm
+       has always been read at. A command-vantage alarm names the place this
+       screen is commanding from, so the mod compares against the readings that
+       place has actually been sent: the centre it chose, or until it chooses,
+       the one the mod stamped its frames with. */
     const client = getActiveTelemetryClient();
-    const audience = isScetTrigger(trigger)
+    const vantage = isScetTrigger(trigger)
       ? ""
       : (client?.selectedVantage ?? client?.observedVantage ?? "");
-    if (!isScetTrigger(trigger) && audience === "") return null;
+    if (!isScetTrigger(trigger) && vantage === "") return null;
     if (trigger.kind === "time") {
       return {
         id: alarm.id,
         name: alarm.name,
-        audience,
+        vantage,
         // A time condition is about the game's own clock, so it names no craft.
         subject: "game",
         condition: {
@@ -294,7 +295,7 @@ export class ScetAlarmBridge {
     return {
       id: alarm.id,
       name: alarm.name,
-      audience,
+      vantage,
       subject,
       condition: {
         kind: ScetAlarmConditionKind.Threshold,
@@ -326,14 +327,19 @@ export class ScetAlarmBridge {
     this.unsubscribeFired = client.subscribe(SCET_FIRED_TOPIC, (payload) => {
       const notice = readFiredNotice(payload);
       if (!notice) return;
-      /* The audience is what separates a fact from an opinion. An empty one is
-         the simulation's own verdict: the warp is already stopped and this side
-         latches. A named one is what ONE PLACE has been told, which this side
-         holds its own answer to, so it is compared and never acted on. */
-      if (notice.audience === "") {
+      /* Which notices this side latches from is the same question as which
+         alarms it delegated, so it is asked the same way the arm asks it. The
+         vantage on the notice cannot answer it: the mod resolves an empty one to
+         the alarm's own subject, and a command centre commanding its own crewed
+         craft names that subject too. An id this side does not hold falls to the
+         shadow arm, which says so. */
+      const armed = this.ctx
+        .getAlarms()
+        .find((alarm) => alarm.id === notice.id);
+      if (armed && isScetTrigger(armed.trigger)) {
         this.ctx.onFired(notice.id, notice.firedAtUt);
       } else {
-        this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.audience);
+        this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.vantage);
       }
     });
   }
@@ -401,7 +407,7 @@ function readRosterIds(payload: unknown): readonly string[] {
  */
 function readFiredNotice(
   payload: unknown,
-): { id: string; firedAtUt: number; audience: string } | null {
+): { id: string; firedAtUt: number; vantage: string } | null {
   const id = readId(payload);
   if (id === null) return null;
   if (typeof payload !== "object" || payload === null) return null;
@@ -412,14 +418,13 @@ function readFiredNotice(
       ? raw.magnitude
       : raw;
   if (typeof magnitude !== "number" || !Number.isFinite(magnitude)) return null;
-  /* Absent reads as the simulation's own verdict, which is what every notice
-     meant before the field existed. A host older than this client is therefore
-     understood rather than ignored. */
-  const audience =
-    "audience" in payload && typeof payload.audience === "string"
-      ? payload.audience
+  /* Absent reads as unstated rather than as a place. Nothing routes on it, so a
+     host that does not send one is understood rather than ignored. */
+  const vantage =
+    "vantage" in payload && typeof payload.vantage === "string"
+      ? payload.vantage
       : "";
-  return { id, firedAtUt: magnitude, audience };
+  return { id, firedAtUt: magnitude, vantage };
 }
 
 /**
@@ -427,7 +432,7 @@ function readFiredNotice(
  * command-vantage THRESHOLD carrying the Topic-and-path address.
  *
  * Thresholds only, and the exclusion of the time arm is not an oversight. The
- * mod judges an audience roster's conditions against the readings that place
+ * mod judges a command vantage's conditions against the readings that place
  * has been told, but against the GAME's clock, because there is no one clock a
  * vantage keeps: how far behind it sits depends on which craft it is listening
  * to. A command-vantage time alarm evaluated there would fire at the SCET
