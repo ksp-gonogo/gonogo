@@ -117,7 +117,9 @@ export function extractLegacyPartLiveFromFixture(
     if (resourceMatch) {
       const fid = Number(resourceMatch[1]);
       const entry = out.get(fid) ?? {};
-      entry.resources = value as PartResources;
+      if (typeof value === "object" && value !== null) {
+        entry.resources = value as PartResources;
+      }
       out.set(fid, entry);
       continue;
     }
@@ -125,7 +127,9 @@ export function extractLegacyPartLiveFromFixture(
     if (partStateMatch) {
       const fid = Number(partStateMatch[1]);
       const entry = out.get(fid) ?? {};
-      entry.partState = value as PartState | null;
+      if (value === null || typeof value === "object") {
+        entry.partState = value as PartState | null;
+      }
       out.set(fid, entry);
     }
   }

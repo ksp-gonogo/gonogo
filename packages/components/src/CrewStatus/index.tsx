@@ -432,11 +432,12 @@ declare module "@ksp-gonogo/core" {
  */
 function toCrewNames(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
+  const entries: unknown[] = raw;
   const out: string[] = [];
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (typeof entry === "string" && entry.trim().length > 0) out.push(entry);
-    else if (entry && typeof entry === "object" && "name" in entry) {
-      const name = (entry as { name: unknown }).name;
+    else if (typeof entry === "object" && entry !== null) {
+      const name: unknown = Reflect.get(entry, "name");
       if (typeof name === "string" && name.trim().length > 0) out.push(name);
     }
   }
