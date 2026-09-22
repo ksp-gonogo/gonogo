@@ -47,11 +47,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import { AttitudeIndicator } from "./AttitudeIndicator";
 
 const topics = defineTopicManifest({
@@ -1460,7 +1456,7 @@ function clamp(v: number, lo: number, hi: number): number {
  * for every one, which rendered three em dashes over a flying vessel.
  */
 function numericOrNull(v: unknown): number | null {
-  return magnitudeOf(v as Quantityish);
+  return magnitudeOf(asQuantityish(v));
 }
 
 // ── Config component ──────────────────────────────────────────────────────────

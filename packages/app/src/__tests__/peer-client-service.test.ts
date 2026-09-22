@@ -81,11 +81,32 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
   };
 }
 
-// The handleMessage logic is private. To drive it from the outside we reach in
-// via a typed cast: these tests verify the observable contract (listeners fire
-// with the right payload) not the internal shape.
+/**
+ * The service's private message intake, which these tests drive directly: they
+ * verify the observable contract (listeners fire with the right payload) rather
+ * than the internal shape.
+ *
+ * One erasure, here, rather than at each call: `handleMessage` is private, so
+ * no amount of narrowing reaches it and the compiler has nothing to check.
+ */
 interface PeerClientServiceInternal {
   handleMessage(msg: PeerMessage): void;
+}
+
+function intake(svc: PeerClientService): PeerClientServiceInternal {
+  return svc as unknown as PeerClientServiceInternal;
+}
+
+/**
+ * The service's live `peer`, for a test that injects one with the `_options`
+ * shape PeerJS exposes internally.
+ */
+function peerOf(svc: PeerClientService): {
+  peer: { _options: { config?: { iceServers: RTCIceServer[] } } };
+} {
+  return svc as unknown as {
+    peer: { _options: { config?: { iceServers: RTCIceServer[] } } };
+  };
 }
 
 describe("PeerClientService", () => {
@@ -101,7 +122,7 @@ describe("PeerClientService", () => {
     expect(svc._listenerCounts().schema).toBe(0);
 
     // After unsub, a schema message should not reach the callback
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "schema",
       sources: [
         {
@@ -121,7 +142,7 @@ describe("PeerClientService", () => {
       hits.push([sourceId, key, value]);
     });
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "data",
       sourceId: "telemetry",
       key: "v.altitude",
@@ -130,7 +151,7 @@ describe("PeerClientService", () => {
     expect(hits).toEqual([["telemetry", "v.altitude", 42]]);
 
     unsub();
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "data",
       sourceId: "telemetry",
       key: "v.altitude",
@@ -146,7 +167,7 @@ describe("PeerClientService", () => {
     svc.onSourceStatus(() => calls.push("source-status"));
     svc.onSchema(() => calls.push("schema"));
 
-    const inner = svc as unknown as PeerClientServiceInternal;
+    const inner = intake(svc);
     inner.handleMessage({
       type: "data",
       sourceId: "s",
@@ -166,7 +187,7 @@ describe("PeerClientService", () => {
 
     expect(svc.getHostVersion()).toBeNull();
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "hello",
       version: "1.2.3",
       buildTime: "2026-04-25T00:00:00.000Z",
@@ -183,7 +204,7 @@ describe("PeerClientService", () => {
 
   it("fires onHostRestart only when the host's sessionToken changes between hellos", () => {
     const svc = new PeerClientService();
-    const inner = svc as unknown as PeerClientServiceInternal;
+    const inner = intake(svc);
     const restarts: number[] = [];
     let restartCount = 0;
     svc.onHostRestart(() => {
@@ -493,7 +514,7 @@ describe("PeerClientService.sendQueryRange", () => {
       throw new Error("expected query-range-request");
     }
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "query-range-response",
       requestId: first.requestId,
       t: [100, 200],
@@ -518,7 +539,7 @@ describe("PeerClientService.sendQueryRange", () => {
       throw new Error("expected query-range-request");
     }
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "query-range-response",
       requestId: first.requestId,
       t: [],
@@ -571,8 +592,10 @@ describe("PeerClientService.sendQueryRange", () => {
 
       vi.advanceTimersByTime(250);
       const result = await pending;
-      expect(result).toBeInstanceOf(Error);
-      expect((result as Error).message).toMatch(/queryRange timeout/);
+      if (!(result instanceof Error)) {
+        throw new Error(`expected a timeout Error, got: ${String(result)}`);
+      }
+      expect(result.message).toMatch(/queryRange timeout/);
     } finally {
       vi.useRealTimers();
     }
@@ -620,7 +643,7 @@ describe("PeerClientService.sendUplinkRelay", () => {
     expect(first.method).toBe("doThing");
     expect(first.args).toEqual(ARGS);
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "uplink-relay-response",
       requestId: first.requestId,
       result: { ok: true },
@@ -644,7 +667,7 @@ describe("PeerClientService.sendUplinkRelay", () => {
       throw new Error("expected uplink-relay-request");
     }
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "uplink-relay-response",
       requestId: first.requestId,
       error: "handle unavailable on host",
@@ -652,10 +675,11 @@ describe("PeerClientService.sendUplinkRelay", () => {
     });
 
     await expect(pending).rejects.toThrow(/unavailable on host/);
-    const err = await pending.catch((e: Error) => e);
-    expect((err as unknown as { meta?: Record<string, unknown> }).meta).toEqual(
-      { isScriptError: true },
-    );
+    const err: unknown = await pending.catch((e: Error) => e);
+    if (typeof err !== "object" || err === null) {
+      throw new Error(`expected a rejection object, got: ${String(err)}`);
+    }
+    expect(Reflect.get(err, "meta")).toEqual({ isScriptError: true });
   });
 
   it("rejects with timeout when no response arrives within timeoutMs", async () => {
@@ -743,7 +767,7 @@ describe("PeerClientService.sendBundleFetch", () => {
     expect(first.expectedHash).toBe(EXPECTED_HASH);
 
     const wireBytes = new Uint8Array([1, 2, 3, 4, 5]);
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "uplink-bundle-response",
       requestId: first.requestId,
       bytes: wireBytes,
@@ -769,7 +793,7 @@ describe("PeerClientService.sendBundleFetch", () => {
       throw new Error("expected uplink-bundle-request");
     }
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "uplink-bundle-response",
       requestId: first.requestId,
       error: "bundle hash sha256-actual != expected sha256-deadbeef",
@@ -851,7 +875,7 @@ describe("PeerClientService.sendFlightRpc", () => {
     }
 
     const result = [{ id: "f1", vesselName: "Hopper" }];
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "flight-rpc-response",
       requestId: first.requestId,
       result,
@@ -875,7 +899,7 @@ describe("PeerClientService.sendFlightRpc", () => {
       throw new Error("expected flight-rpc-request");
     }
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "flight-rpc-response",
       requestId: first.requestId,
       error: "buffered data source not registered",
@@ -924,7 +948,7 @@ describe("PeerClientService.sendFlightRpc", () => {
       throw new Error("expected flight-rpc-request after connect");
     }
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "flight-rpc-response",
       requestId: req.requestId,
       result: [],
@@ -947,7 +971,7 @@ describe("PeerClientService.sendFlightRpc", () => {
       lastMissionTime: 0,
       sampleCount: 1,
     };
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "flight-change",
       flight,
     });
@@ -976,7 +1000,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       received.push(peerId);
     });
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "relay-peer-id",
       peerId: "relay-abc",
       iceServers: [
@@ -994,7 +1018,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
     // covers the dispatch entry.
     const fakeOptions: { config?: { iceServers: RTCIceServer[] } } = {};
     const fakePeer = { _options: fakeOptions };
-    (svc as unknown as { peer: typeof fakePeer }).peer = fakePeer;
+    peerOf(svc).peer = fakePeer;
 
     const turn: RTCIceServer[] = [
       {
@@ -1004,7 +1028,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       },
     ];
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "relay-peer-id",
       peerId: "relay-abc",
       iceServers: turn,
@@ -1025,9 +1049,9 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       },
     };
     const fakePeer = { _options: fakeOptions };
-    (svc as unknown as { peer: typeof fakePeer }).peer = fakePeer;
+    peerOf(svc).peer = fakePeer;
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "relay-peer-id",
       peerId: "relay-abc",
       // iceServers omitted: older host bundle that doesn't ship this.
@@ -1042,7 +1066,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
     const svc = new PeerClientService();
     // No peer assigned: applyRelayIceServers should silently no-op.
     expect(() =>
-      (svc as unknown as PeerClientServiceInternal).handleMessage({
+      intake(svc).handleMessage({
         type: "relay-peer-id",
         peerId: "relay-abc",
         iceServers: [{ urls: "turn:r" }],
@@ -1055,7 +1079,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
     it("replays a running countdown to a late subscriber", async () => {
       const svc = new PeerClientService();
       const t0Ms = Date.now() + 8_000;
-      (svc as unknown as PeerClientServiceInternal).handleMessage({
+      intake(svc).handleMessage({
         type: "gonogo-countdown-start",
         t0Ms,
       });
@@ -1070,11 +1094,11 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
 
     it("does not replay after the countdown was cancelled", async () => {
       const svc = new PeerClientService();
-      (svc as unknown as PeerClientServiceInternal).handleMessage({
+      intake(svc).handleMessage({
         type: "gonogo-countdown-start",
         t0Ms: Date.now() + 8_000,
       });
-      (svc as unknown as PeerClientServiceInternal).handleMessage({
+      intake(svc).handleMessage({
         type: "gonogo-countdown-cancel",
         reason: "no-go",
       });
@@ -1087,7 +1111,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
 
     it("does not replay a countdown whose t0 already passed", async () => {
       const svc = new PeerClientService();
-      (svc as unknown as PeerClientServiceInternal).handleMessage({
+      intake(svc).handleMessage({
         type: "gonogo-countdown-start",
         t0Ms: Date.now() - 1_000,
       });
@@ -1104,7 +1128,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       svc.onGonogoCountdownStart((t) => received.push(t));
 
       const t0Ms = Date.now() + 8_000;
-      (svc as unknown as PeerClientServiceInternal).handleMessage({
+      intake(svc).handleMessage({
         type: "gonogo-countdown-start",
         t0Ms,
       });
@@ -1133,7 +1157,7 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
       payload: { apoapsis: 1 },
       meta: makeMeta(),
     };
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "sitrep-frame",
       message,
     });
@@ -1149,7 +1173,7 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
     );
 
     const meta = makeMeta();
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "sitrep-command-response",
       requestId: "c0",
       result: { ok: true },
@@ -1166,7 +1190,7 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
       received.push([requestId, code, message]),
     );
 
-    (svc as unknown as PeerClientServiceInternal).handleMessage({
+    intake(svc).handleMessage({
       type: "sitrep-command-error",
       requestId: "c0",
       code: "E_LOST",

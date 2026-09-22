@@ -68,6 +68,15 @@ function makeFakeCoverageStore(masks: StoredMask[] = []): FakeCoverageStore {
   };
 }
 
+/**
+ * The fake as the store the service takes. One erasure, here: the real store is
+ * a class with an IndexedDB handle, and `loadAllForProfile` is the only method
+ * the service under test calls.
+ */
+function asStore(fake: FakeCoverageStore): CoverageMaskStore {
+  return fake as unknown as CoverageMaskStore;
+}
+
 // flushMicrotasks lets the service's async sendSnapshot resolve before
 // we make assertions. The host fakes synchronously fire
 // `peerConnectListeners`, but the service kicks off a Promise chain
@@ -105,7 +114,7 @@ describe("CoverageSyncHostService", () => {
 
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -141,7 +150,7 @@ describe("CoverageSyncHostService", () => {
   it("sends nothing when the store has no masks", async () => {
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -155,7 +164,7 @@ describe("CoverageSyncHostService", () => {
     coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -176,7 +185,7 @@ describe("CoverageSyncHostService", () => {
     );
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -200,7 +209,7 @@ describe("CoverageSyncHostService", () => {
     coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
     sync.stop();
@@ -216,7 +225,7 @@ describe("CoverageSyncHostService", () => {
     coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
     sync.start();

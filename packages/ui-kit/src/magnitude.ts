@@ -13,6 +13,7 @@
  * every caller expects it.
  */
 export {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,

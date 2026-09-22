@@ -35,7 +35,7 @@ interface FakeTelemetry {
  */
 function formatCommand(command: string, args: unknown): string {
   if (command === "time.setWarpIndex") {
-    return `${command}[${(args as { index?: number })?.index}]`;
+    return `${command}[${Reflect.get(args ?? {}, "index")}]`;
   }
   if (command === "vessel.control.setActionGroup") {
     const { group, state } = (args ?? {}) as {
@@ -133,13 +133,13 @@ function fakeTelemetry(): FakeTelemetry {
         setActiveViewClockForTests({ viewUt: () => v });
         return;
       }
-      if (key === "t.currentRateIndex") {
-        warp = { ...warp, warpRateIndex: v as number };
+      if (key === "t.currentRateIndex" && typeof v === "number") {
+        warp = { ...warp, warpRateIndex: v };
         publish("time.warp", warp);
         return;
       }
-      if (key === "t.currentRate") {
-        warp = { ...warp, warpRate: v as number };
+      if (key === "t.currentRate" && typeof v === "number") {
+        warp = { ...warp, warpRate: v };
         publish("time.warp", warp);
         return;
       }

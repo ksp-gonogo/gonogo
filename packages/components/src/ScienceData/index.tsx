@@ -14,7 +14,7 @@ import {
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
 import {
@@ -146,8 +146,9 @@ function ScienceDataComponent({
   // balance received is still the balance and the panel's stream badge beside
   // it already tells the operator how fresh the panel is.
   const careerScience = magnitudeOf(
-    stillTrue(useTelemetry("career.status"), undefined)?.economy
-      ?.science as Quantityish,
+    asQuantityish(
+      stillTrue(useTelemetry("career.status"), undefined)?.economy?.science,
+    ),
   );
 
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];

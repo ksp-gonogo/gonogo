@@ -40,11 +40,7 @@ import {
   netFundsPerDay,
   reportsFundsDrain,
 } from "../shared/FundsDrain";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 type LaunchDirectorConfig = Record<string, never>;
 
@@ -330,7 +326,8 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: LaunchSiteEntry[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
@@ -396,19 +393,20 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: SavedShip[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
     if (!name) continue;
     out.push({
       name,
-      partCount: magnitudeOr(e.partCount as Quantityish, 0),
-      totalMass: magnitudeOr(e.totalMass as Quantityish, 0),
+      partCount: magnitudeOr(asQuantityish(e.partCount), 0),
+      totalMass: magnitudeOr(asQuantityish(e.totalMass), 0),
       facility: typeof e.facility === "string" ? e.facility : "",
       facilityOrdinal:
         typeof e.facilityOrdinal === "number" ? e.facilityOrdinal : null,
-      requiresFunds: magnitudeOr(e.requiresFunds as Quantityish, 0),
+      requiresFunds: magnitudeOr(asQuantityish(e.requiresFunds), 0),
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
         : [],
@@ -421,7 +419,8 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: CrewMember[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
@@ -429,7 +428,7 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
     out.push({
       name,
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOr(e.experienceLevel as Quantityish, 0),
+      experienceLevel: magnitudeOr(asQuantityish(e.experienceLevel), 0),
       available: typeof e.available === "boolean" ? e.available : null,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
