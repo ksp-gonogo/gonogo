@@ -249,6 +249,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // unwrap is the reconstruction rather than an escape.
   "packages/components/src/Navball/index.tsx": 1,
   "packages/components/src/OrbitView/index.tsx": 6,
+  /*
+   * ONE, on a quotient `dividedBy` has already made dimensionless: a part
+   * meter's fill, which becomes an SVG length and a spoken percentage. The
+   * division is the dimension check, and the single unwrap is where the
+   * fraction stops being a quantity.
+   */
+  "packages/components/src/ShipMap/ShipDiagramSvg.tsx": 1,
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
   // 1: the view instant, unwrapped to bound a history window. sampleRange
   // takes plain UT numbers because a store index is not a quantity.

@@ -77,8 +77,8 @@ describe("computeKerbalismPartMeters", () => {
         partId: "3",
         resource: "Water",
         displayName: "Water",
-        amount: 42.3,
-        capacity: 180,
+        amount: value("units", 42.3),
+        capacity: value("units", 180),
         status: null,
       },
     ]);

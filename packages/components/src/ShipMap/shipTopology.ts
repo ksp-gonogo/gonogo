@@ -5,7 +5,11 @@ import type {
   PartThermal,
   TopologyPart,
 } from "@ksp-gonogo/core";
-import { KspPartCategory } from "@ksp-gonogo/sitrep-sdk";
+import {
+  KspPartCategory,
+  type Reading,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { MeterTone } from "@ksp-gonogo/ui-kit";
 
 /**
@@ -144,11 +148,18 @@ export interface ShipMapPartMeterEntry {
    *  name (the built-in five don't; a mod's own resource definitions
    *  generally carry one). */
   displayName: string;
-  /** Current stored amount, resource units. */
-  amount: number;
-  /** Max storage capacity, resource units. A renderer drops any entry with
-   *  `capacity <= 0`: nothing to fill. */
-  capacity: number;
+  /**
+   * Current stored amount, as a quantity or the whole `Reading` of one.
+   *
+   * A `Reading` is how a contributed meter says more than where the bar is:
+   * the `Meter` draws the figure the same either way, and what the reading
+   * adds is whether it is a reading of NOW, and the band it places as one mark
+   * per bound. The primitive looks that up, never the contributor.
+   */
+  amount: Value<"units"> | Reading<Value<"units">>;
+  /** Max storage capacity, same terms as `amount`. A renderer drops any entry
+   *  whose capacity is not positive: nothing to fill. */
+  capacity: Value<"units"> | Reading<Value<"units">>;
   /**
    * A SEPARATE status signal, never the fill hue: `"critical"` /
    * `"low"` draw a border tint or badge alongside the identity-coloured
