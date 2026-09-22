@@ -10,7 +10,7 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { commandArgs, MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -80,12 +80,7 @@ const utFixture = setupStreamFixture({
  * (`dispatchActiveCommand`) instead of the legacy `DataSource.execute`.
  */
 function formatManeuverAddCommand(args: unknown): string {
-  const a = args as {
-    ut?: number;
-    radialOut?: number;
-    normal?: number;
-    prograde?: number;
-  };
+  const a = commandArgs<"vessel.maneuver.add">(args);
   return `o.addManeuverNode[${a?.ut},${a?.radialOut},${a?.normal},${a?.prograde}]`;
 }
 
@@ -682,7 +677,7 @@ describe("ManeuverPlannerComponent", () => {
     const calls: string[] = [];
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.remove") {
-        const a = args as { nodeId?: string };
+        const a = commandArgs<"vessel.maneuver.remove">(args);
         calls.push(`o.removeManeuverNode[${a?.nodeId}]`);
       }
       return null;
@@ -845,15 +840,7 @@ describe("ManeuverPlannerComponent", () => {
     }> = [];
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.update") {
-        calls.push(
-          args as {
-            nodeId?: string;
-            ut?: number;
-            radialOut?: number;
-            normal?: number;
-            prograde?: number;
-          },
-        );
+        calls.push(commandArgs<"vessel.maneuver.update">(args));
       }
       return null;
     });
@@ -921,14 +908,7 @@ describe("ManeuverPlannerComponent", () => {
     }> = [];
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
-        calls.push(
-          args as {
-            ut?: number;
-            radialOut?: number;
-            normal?: number;
-            prograde?: number;
-          },
-        );
+        calls.push(commandArgs<"vessel.maneuver.add">(args));
       }
       return null;
     });

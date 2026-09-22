@@ -25,7 +25,7 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
   const [viewMode, setViewMode] = useState<ViewMode>("global");
 
   // Ref for the element that receives pointer/wheel events (CanvasContainer)
-  const interactionRef = useRef<HTMLDivElement>(null);
+  const interactionRef = useRef<HTMLDivElement | null>(null);
 
   // Active pointers: keyed by pointerId so we can track multi-touch pinches.
   const activePointers = useRef<Map<number, PointerPos>>(new Map());

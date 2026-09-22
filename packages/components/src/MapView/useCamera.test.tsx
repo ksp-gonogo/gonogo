@@ -1,41 +1,7 @@
 import { act, render, renderHook } from "@ksp-gonogo/test-utils";
-import type { MutableRefObject } from "react";
 import { describe, expect, it } from "vitest";
+import { makeInteractionElement, pointerEvent } from "../test/pointerStubs";
 import { useCamera } from "./useCamera";
-
-type PointerFields = Partial<{
-  pointerId: number;
-  clientX: number;
-  clientY: number;
-  currentTarget: HTMLDivElement;
-}>;
-
-function ptr(fields: PointerFields): React.PointerEvent<HTMLDivElement> {
-  const el =
-    fields.currentTarget ??
-    ({
-      setPointerCapture() {},
-      releasePointerCapture() {},
-      getBoundingClientRect: () => ({
-        left: 0,
-        top: 0,
-        width: 200,
-        height: 100,
-        right: 200,
-        bottom: 100,
-        x: 0,
-        y: 0,
-        toJSON: () => ({}),
-      }),
-    } as unknown as HTMLDivElement);
-
-  return {
-    pointerId: fields.pointerId ?? 1,
-    clientX: fields.clientX ?? 0,
-    clientY: fields.clientY ?? 0,
-    currentTarget: el,
-  } as unknown as React.PointerEvent<HTMLDivElement>;
-}
 
 /**
  * Renders the hook with a fixed container size and attaches a fake element to
@@ -61,10 +27,7 @@ function setup() {
   } as unknown as HTMLDivElement;
 
   const hook = renderHook(() => useCamera({ w: 200, h: 100 }));
-  (
-    hook.result.current
-      .interactionRef as unknown as MutableRefObject<HTMLDivElement | null>
-  ).current = el;
+  hook.result.current.interactionRef.current = el;
   return { hook, el };
 }
 
@@ -75,17 +38,32 @@ describe("useCamera", () => {
 
     act(() => {
       hook.result.current.onPointerDown(
-        ptr({ pointerId: 1, clientX: 50, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 50,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
     });
     act(() => {
       hook.result.current.onPointerMove(
-        ptr({ pointerId: 1, clientX: 70, clientY: 60, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 70,
+          clientY: 60,
+          currentTarget: el,
+        }),
       );
     });
     act(() => {
       hook.result.current.onPointerUp(
-        ptr({ pointerId: 1, clientX: 70, clientY: 60, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 70,
+          clientY: 60,
+          currentTarget: el,
+        }),
       );
     });
 
@@ -101,19 +79,39 @@ describe("useCamera", () => {
 
     act(() => {
       hook.result.current.onPointerDown(
-        ptr({ pointerId: 1, clientX: 80, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 80,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
       hook.result.current.onPointerDown(
-        ptr({ pointerId: 2, clientX: 120, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 2,
+          clientX: 120,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
     });
     // Spread the fingers further apart: should zoom in (larger zoom value)
     act(() => {
       hook.result.current.onPointerMove(
-        ptr({ pointerId: 1, clientX: 40, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 40,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
       hook.result.current.onPointerMove(
-        ptr({ pointerId: 2, clientX: 160, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 2,
+          clientX: 160,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
     });
 
@@ -125,15 +123,30 @@ describe("useCamera", () => {
 
     act(() => {
       hook.result.current.onPointerDown(
-        ptr({ pointerId: 1, clientX: 80, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 80,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
       hook.result.current.onPointerDown(
-        ptr({ pointerId: 2, clientX: 120, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 2,
+          clientX: 120,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
     });
     act(() => {
       hook.result.current.onPointerUp(
-        ptr({ pointerId: 2, clientX: 120, clientY: 50, currentTarget: el }),
+        pointerEvent({
+          pointerId: 2,
+          clientX: 120,
+          clientY: 50,
+          currentTarget: el,
+        }),
       );
     });
     const afterLift = hook.result.current.camera;
@@ -141,7 +154,12 @@ describe("useCamera", () => {
     // Remaining finger now pans; no zoom jump.
     act(() => {
       hook.result.current.onPointerMove(
-        ptr({ pointerId: 1, clientX: 110, clientY: 60, currentTarget: el }),
+        pointerEvent({
+          pointerId: 1,
+          clientX: 110,
+          clientY: 60,
+          currentTarget: el,
+        }),
       );
     });
 
