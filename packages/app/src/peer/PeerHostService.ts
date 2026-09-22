@@ -79,6 +79,12 @@ function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
   );
 }
 
+/** One schema key as the richer form a wrapped source answers with, and the
+ *  bare key when it does not. */
+function asKeyMeta(key: unknown): DataKeyMeta {
+  return key as DataKeyMeta;
+}
+
 /**
  * Pull whatever extra, uplink-defined classification a thrown error carries
  * (e.g. a script-author-fault flag) into the wire's `errorMeta` bag. The
@@ -1522,11 +1528,11 @@ export class PeerHostService {
       const sources = getDataSources().map((s) => ({
         id: s.id,
         name: s.name,
-        // The DataSource interface declares `schema(): DataKey[]` but the
-        // BufferedDataSource wrappers that front every live source return
-        // `DataKeyMeta[]`. Cast locally so station-side pickers get label /
-        // unit / group without a wider type change across core.
-        keys: s.schema() as unknown as DataKeyMeta[],
+        // The DataSource interface declares `schema(): DataKey[]` while the
+        // BufferedDataSource wrappers that front every live source answer with
+        // the richer `DataKeyMeta[]`. Read per key so a station-side picker
+        // gets label / unit / group where the source supplies them.
+        keys: s.schema().map(asKeyMeta),
       }));
       const msg: PeerMessage = { type: "schema", sources };
       conn.send(msg);

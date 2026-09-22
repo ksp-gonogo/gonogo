@@ -426,11 +426,23 @@ const SHOWCASE_FRAME: Frame = {
   burning: true,
 };
 
+/** One channel block of a synthesised frame, or a failure naming the gap. */
+function channel(
+  frame: Record<string, unknown>,
+  topic: string,
+): Record<string, unknown> {
+  const block = frame[topic];
+  if (typeof block !== "object" || block === null) {
+    throw new Error(`the synthesised frame carries no ${topic}`);
+  }
+  return block as Record<string, unknown>;
+}
+
 function showcaseFixture(preset: TerrainPreset): Record<string, unknown> {
   const ch = channelsFor(SHOWCASE_FRAME, 2);
-  (ch["vessel.surface"] as Record<string, unknown>).biome = preset.biome;
+  channel(ch, "vessel.surface").biome = preset.biome;
   ch["vessel.landing"] = {
-    ...(ch["vessel.landing"] as Record<string, unknown>),
+    ...channel(ch, "vessel.landing"),
     predictedSlopeAngle: preset.slope,
     predictedSlopeHeading: preset.heading,
     predictedRoughness: preset.roughness,
