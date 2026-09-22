@@ -93,6 +93,31 @@
  * having nothing to do with it. Under the shipped baseline the same plant
  * produces one.
  *
+ * ## The self-test proves the INSTRUMENT. A planted leg proves the SUBJECTS
+ *
+ * Every requirement above passed continuously through five weeks in which not
+ * one Uplink was installed or typechecked. `5a5daa797` gave each client a
+ * `@ksp-gonogo/uplink-tools` workspace dependency, this file packed two packages
+ * by name and not that one, and every leg took `probe()`'s early return for a
+ * dependency no tarball exists for. The self-test cannot see that, because
+ * nothing in it says anything about the subjects: it builds its own control and
+ * grades that.
+ *
+ * The exit code was never the hiding place. A blocked leg has printed CANNOT BE
+ * EXTRACTED and set the exit code since this file's first commit; `uplink.yml`'s
+ * matrix job is `continue-on-error`, so the red went unread. What was genuinely
+ * indistinguishable is the run's OWN account of itself: each Uplink contributed
+ * `errors: 0`, and nothing anywhere stated how many Uplinks the run had
+ * actually reached. Every other leg here ends in a line saying what it measured
+ * and over how many; the Uplink loop ended in silence, and silence is what both
+ * "all clear" and "nothing was attempted" look like.
+ *
+ * So the subjects now get what the instrument already had. A planted client,
+ * declaring a workspace dependency no tarball can exist for, is run through the
+ * real `probe()` every time and must come back a hard finding. The measured and
+ * blocked legs are counted independently and must close over the discovered set.
+ * A run that measures none of them says so, rather than falling quiet.
+ *
  * ## Why (3) had to be added, and why typechecking could never have found it
  *
  * `@ksp-gonogo/sitrep-sdk@0.0.1` was on npm for six weeks in a state where
@@ -753,11 +778,109 @@ function runtimeImports(specs, work) {
   }
 }
 
+/**
+ * Prove the per-leg machinery can SEE an Uplink it failed to measure.
+ *
+ * A client declaring a workspace dependency that no tarball can exist for is
+ * the exact shape all five in-repo Uplinks were in from `5a5daa797`, and the
+ * shape any new private workspace package puts the next one in, needing no
+ * mistake by anyone. `probe()` must answer it with a hard finding rather than a
+ * count, and this asks it to, every run, through the real function.
+ *
+ * Same argument as the planted import in `selfTest` and the planted subpath in
+ * `runtimeImports`, one level down: those two prove the control can fail, and a
+ * control that can fail says nothing about whether the subjects were reached.
+ */
+function legThatCannotBeMeasured(tarballs, workRoot) {
+  const source = join(workRoot, "__leg-plant-src__");
+  mkdirSync(source, { recursive: true });
+  writeFileSync(
+    join(source, "package.json"),
+    `${JSON.stringify(
+      {
+        name: "extraction-probe-leg-plant",
+        private: true,
+        version: "0.0.0",
+        dependencies: {
+          "@ksp-gonogo/no-such-published-package": "workspace:*",
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  const planted = probe(source, tarballs, workRoot, "__leg-plant__");
+  if (!planted.blocked) {
+    console.error(
+      "✖ BLIND: a planted Uplink whose only dependency cannot be packed came back measurable\n" +
+        `  (${planted.errors} error(s)). The probe cannot tell an Uplink it never installed from\n` +
+        "  one that typechecked clean, which is the state every Uplink was in for five weeks.\n" +
+        "  Refusing to report success.",
+    );
+    process.exit(1);
+  }
+  console.log(
+    `legs: a planted unextractable Uplink was refused (${planted.blocked}).`,
+  );
+}
+
+/**
+ * Replace the `EXTRACTION_DEBT` statement and nothing else in the debt file.
+ *
+ * This used to keep the half of the file before the marker and append a fresh
+ * statement, which was correct while `EXTRACTION_DEBT` was the last thing in it
+ * and became silent data loss the moment `RUNTIME_IMPORT_EXEMPT` was added
+ * below: one `--update` deleted that whole named list and the paragraphs
+ * explaining it, and the next run could not import the module at all. Measured,
+ * not argued: it happened here on 2026-09-23, and `--update` is run precisely
+ * when nobody is reading this file.
+ *
+ * The terminator search relies on `EXTRACTION_DEBT` being a flat map of counts,
+ * so the first `};` after the marker ends the statement. The export-set check
+ * below is what actually holds: a write meant to change one number may not
+ * change which exports the file declares.
+ */
+function rewriteDebt(merged) {
+  const current = readFileSync(DEBT_PATH, "utf8");
+  const start = current.indexOf("export const EXTRACTION_DEBT");
+  const end = start === -1 ? -1 : current.indexOf("};", start);
+  if (end === -1) {
+    console.error(
+      `✖ could not find the EXTRACTION_DEBT statement in ${DEBT_PATH}, so refusing to rewrite it.`,
+    );
+    return false;
+  }
+  const rewritten = `${current.slice(0, start)}export const EXTRACTION_DEBT = ${JSON.stringify(
+    merged,
+    null,
+    2,
+  )};${current.slice(end + 2)}`;
+  const declared = (text) =>
+    (text.match(/^export const (\w+)/gm) ?? []).sort().join(", ");
+  if (declared(rewritten) !== declared(current)) {
+    console.error(
+      `✖ rewriting ${DEBT_PATH} would have changed which exports it declares\n` +
+        `  (${declared(current)} -> ${declared(rewritten)}), so refusing to write it.`,
+    );
+    return false;
+  }
+  writeFileSync(DEBT_PATH, rewritten);
+  return true;
+}
+
 const workRoot = mkdtempSync(join(tmpdir(), "gonogo-extraction-"));
 let exitCode = 0;
+/**
+ * Findings `--update` may not clear. It exists to accept a typecheck count that
+ * came in different from the debt, which is a measurement; a leg that produced
+ * no measurement has nothing to accept, and rewriting the file from that run
+ * writes down a number nobody took.
+ */
+let hardFindings = 0;
 try {
   const tarballs = packPermittedPackages(join(workRoot, "tarballs"));
   selfTest(tarballs, workRoot);
+  legThatCannotBeMeasured(tarballs, workRoot);
 
   const uplinks = JSON.parse(
     execFileSync("node", [join(ROOT, "scripts/uplink-matrix.mjs")], {
@@ -778,6 +901,7 @@ try {
   }
 
   const measured = {};
+  let blocked = 0;
   for (const uplink of uplinks) {
     const result = probe(
       join(ROOT, "mod", uplink.id, "client"),
@@ -788,8 +912,9 @@ try {
     const allowed = EXTRACTION_DEBT[uplink.id] ?? 0;
 
     if (result.blocked) {
-      console.log(`✖ ${uplink.id}: CANNOT BE EXTRACTED. ${result.blocked}`);
-      exitCode = 1;
+      console.error(`✖ ${uplink.id}: CANNOT BE EXTRACTED. ${result.blocked}`);
+      blocked += 1;
+      hardFindings += 1;
       continue;
     }
     measured[uplink.id] = result.errors;
@@ -815,21 +940,53 @@ try {
     }
   }
 
-  if (update) {
+  /*
+   * Both numbers counted from what happened, then required to close, and a line
+   * saying how many Uplinks the run actually reached.
+   *
+   * The loop above emitted a tick per Uplink and nothing at all about the set,
+   * so for five weeks "every Uplink is clean" and "no Uplink was installed or
+   * typechecked" produced the same output: a row of zeroes and no statement of
+   * how many rows there should have been. `runtimeImports` already states the
+   * rule this follows: report neither side as `total - other`, or the sentence
+   * agrees with itself whatever the run failed to measure.
+   */
+  const measuredCount = Object.keys(measured).length;
+  if (measuredCount + blocked !== uplinks.length) {
+    console.error(
+      `✖ BLIND: ${measuredCount} measured + ${blocked} blocked does not account for ` +
+        `${uplinks.length} Uplink(s), so this run measured something it is not reporting.`,
+    );
+    hardFindings += 1;
+  } else if (measuredCount === 0) {
+    console.error(
+      `✖ BLIND: none of the ${uplinks.length} Uplink(s) was installed and typechecked outside\n` +
+        "  the workspace. The zeroes above are the absence of a measurement, not the result of\n" +
+        "  one, and no debt entry can be believed against them.",
+    );
+    hardFindings += 1;
+  }
+  console.log(
+    `uplinks: ${measuredCount} of ${uplinks.length} installed and typechecked outside the ` +
+      `workspace${blocked > 0 ? `, ${blocked} could not be` : ""}.`,
+  );
+
+  if (update && measuredCount === 0) {
+    console.error(
+      "✖ refusing to rewrite the debt from a run that measured no Uplink.",
+    );
+  } else if (update) {
     const merged = { ...EXTRACTION_DEBT, ...measured };
     for (const [id, count] of Object.entries(merged))
       if (count === 0) delete merged[id];
-    const header = readFileSync(DEBT_PATH, "utf8").split(
-      "export const EXTRACTION_DEBT",
-    )[0];
-    writeFileSync(
-      DEBT_PATH,
-      `${header}export const EXTRACTION_DEBT = ${JSON.stringify(merged, null, 2)};\n`,
-    );
-    console.log(`\nRewrote ${DEBT_PATH} from this run.`);
-    exitCode = 0;
+    if (rewriteDebt(merged)) {
+      console.log(`\nRewrote ${DEBT_PATH} from this run.`);
+      exitCode = 0;
+    } else {
+      hardFindings += 1;
+    }
   }
 } finally {
   rmSync(workRoot, { recursive: true, force: true });
 }
-process.exit(exitCode);
+process.exit(hardFindings > 0 ? 1 : exitCode);
