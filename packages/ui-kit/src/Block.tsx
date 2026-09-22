@@ -98,10 +98,11 @@ const Block__Title = styled.div`
      against the INHERITED size, not the sibling body, so a record inside a
      panel came out at 15px and out-sized the panel's own 11px heading.
 
-     12 over 11 is a name for the thing over the compact body it heads, which
-     is the pair the semantic font-size vocabulary names. When that layer
-     lands these two declarations become those two tokens. */
-  font-size: var(--font-size-sm);
+     The title is what the record's caption points at and the body under it is
+     scanned, so the two halves of the step are the value size over the compact
+     one. The arrangement declares both, because a relation only one side
+     states is one a site can break by restating the other. */
+  font-size: var(--font-size-value);
   line-height: var(--line-height-tight);
   /* A content-sized basis, not a zero one. With a zero basis the title always
      "fits" its flex line at its pre-grow hypothetical size, so the row never
@@ -222,9 +223,9 @@ export const Block__Root = styled.div`
   /* The compact body a record is written in, and the other half of the title's
      relation above. Declared here rather than left inherited so the step holds
      without every site restating it: a widget whose rows carry no size of
-     their own took the panel's, and a 14px sentence under a 12px name is the
+     their own took the panel's, and a prose sentence under a 12px name is the
      hierarchy upside down. A row that means to be larger still says so. */
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 /**
