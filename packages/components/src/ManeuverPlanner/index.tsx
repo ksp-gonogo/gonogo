@@ -22,6 +22,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
   Panel,
@@ -37,6 +38,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
+import { useBodyName } from "../shared/useBodyName";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { BurnConformanceRow } from "./BurnConformanceRow";
@@ -253,12 +255,13 @@ function ManeuverPlannerComponent({
     useStream<VesselState>("vessel.state")?.orbitalSpeed ?? undefined;
   const radius =
     useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
-  const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
-  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
-  const parentBodyRadius =
-    useStream<VesselState>("vessel.state")?.parentBodyRadius;
-  const referenceBodyRadius =
-    useStream<VesselState>("vessel.state")?.referenceBodyRadius;
+  const parentBodyIndex =
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex;
+  const bodies = useStream<BodyRadiusTable>("system.bodies");
+  const refBody = useBodyName(orbit?.referenceBodyIndex);
+  const bodyName = useBodyName(parentBodyIndex);
+  const parentBodyRadius = bodyRadiusOf(bodies, parentBodyIndex);
+  const referenceBodyRadius = bodyRadiusOf(bodies, orbit?.referenceBodyIndex);
   const inclination = magnitudeOf(orbit?.inc) ?? undefined;
   const targetName = target?.name;
   const targetInclinationLive = magnitudeOf(target?.orbit?.inc) ?? undefined;
@@ -271,7 +274,6 @@ function ManeuverPlannerComponent({
    * TARGET's reference body, not the craft's, so the radius comes from its own
    * `referenceBodyIndex`.
    */
-  const bodies = useStream<BodyRadiusTable>("system.bodies");
   const targetSolved =
     target?.orbit == null || currentUT === undefined
       ? undefined
@@ -1052,8 +1054,9 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.state.trueAnomaly",
     "vessel.state.orbitalSpeed",
     "vessel.state.orbitalRadius",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
+    "vessel.orbit.referenceBodyIndex",
+    "system.bodies",
+    "vessel.identity.parentBodyIndex",
     "vessel.maneuver.nodes",
     "dv.stages",
   ],

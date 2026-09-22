@@ -14,6 +14,7 @@ import {
   useTelemetryStoreOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Section, Text } from "@ksp-gonogo/ui-kit";
@@ -26,12 +27,18 @@ import {
   trajectoryWithheldCopy,
   type WithheldTrajectory,
 } from "../shared/trajectoryWithheld";
+import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { usePastTrack } from "../shared/usePastTrack";
 import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  channels: [
+    "vessel.orbit",
+    "vessel.state",
+    "vessel.identity",
+    "system.bodies",
+  ],
   /*
    * The diagram is drawn from apsis RADII, never the altitudes. Body geometry
    * comes off `system.bodies`, which is why that channel is carried: the pole
@@ -47,7 +54,7 @@ const topics = defineTopicManifest({
     "vessel.state.apoapsisRadius",
     "vessel.state.periapsisRadius",
     "vessel.state.trueAnomaly",
-    "vessel.state.parentBodyName",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
@@ -200,14 +207,10 @@ function OrbitViewComponent({
     },
   });
 
-  // Every read rides the SDK stream directly, no legacy
-  // `useTelemetry("data", ...)` fallback.
-  //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
-  //  - `vessel.state` (client-side derived channel) carries
-  //    `trueAnomaly` (propagated at view-UT), `parentBodyName` (identity
-  //    index → `system.bodies` name), `basis` ("propagated" | "measured"),
-  //    and the apsis RADII. It isn't a wire `TopicId`, so it reads through
-  //    the provider-optional `useStreamOptional`.
+  // `vessel.orbit` carries the elements `sma`/`ecc`/`argPe`; `vessel.state`
+  // carries `trueAnomaly` (solved at the view time), `basis` and the apsis
+  // RADII, and is not a wire Topic, so it reads through the provider-optional
+  // `useStreamOptional`.
   //  - The apsis radii are read from `vessel.state.apoapsisRadius`/
   //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`), that
   //    formula is meaningless for apoapsis on a hyperbolic orbit (sma<0
@@ -250,7 +253,9 @@ function OrbitViewComponent({
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe ?? undefined;
   const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStreamOptional<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   const basis = vesselState?.basis;
   // `null` on a hyperbolic orbit (no apoapsis exists) or in the "measured"
   // basis (both apsides): see `VesselState.apoapsisRadius`'s doc comment.

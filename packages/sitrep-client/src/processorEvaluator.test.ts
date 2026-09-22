@@ -1,3 +1,4 @@
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -14,6 +15,20 @@ import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
+
+/**
+ * The payload a processor computed, off the {@link Reading} it answers with.
+ *
+ * A processor whose deps are readings answers with a reading of its own, so
+ * what `compute` returned sits one level in. These assertions are about what
+ * the derivation SAW, which is a different question from how current the
+ * derivation is, so the value is taken off whichever arm carries one.
+ */
+function derived<R>(id: string): R | undefined {
+  const reading = getProcessorValue<Reading<R>>(id);
+  if (reading === undefined) return undefined;
+  return "value" in reading ? reading.value : undefined;
+}
 
 function makeStore(): TimelineStore {
   return new TimelineStore(
@@ -806,14 +821,14 @@ describe("a reading-shaped dep", () => {
 
     store.ingest("temperature", point(100, 5));
     store.beginFrame();
-    expect(getProcessorValue(proc.id)).toBe("observed");
+    expect(derived<string>(proc.id)).toBe("observed");
 
     // The link drops. A payload-only dep would still hand over 5 and the
     // derivation would go on presenting it as current.
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
-    expect(getProcessorValue(proc.id)).toBe("stale");
+    expect(derived<string>(proc.id)).toBe("stale");
 
     expect(seen).toContain("observed");
     expect(seen).toContain("stale");
@@ -860,7 +875,7 @@ describe("a reading-shaped dep", () => {
     const deactivate = activateProcessor(proc.id);
     setActiveTimelineStore(store);
     store.beginFrame();
-    expect(getProcessorValue(proc.id)).toBe("pending");
+    expect(derived<string>(proc.id)).toBe("pending");
     deactivate();
   });
 });

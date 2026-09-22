@@ -6,12 +6,9 @@ import {
   registerComponent,
   useContributions,
 } from "@ksp-gonogo/core";
-import {
-  type TopicReading,
-  useStream,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import type { Reading, Value, VesselResources } from "@ksp-gonogo/sitrep-sdk";
+import { VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
@@ -39,13 +36,13 @@ import { type ReactNode, useMemo } from "react";
 import "./badge";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.crew", "vessel.state"],
+  channels: ["vessel.crew", "vessel.identity"],
   optionalChannels: ["vessel.resources"],
   fields: [
     "vessel.crew.crew",
     "vessel.crew.count",
     "vessel.crew.capacity",
-    "vessel.state.isEVA",
+    "vessel.identity.vesselType",
   ],
 });
 
@@ -459,9 +456,11 @@ function CrewStatusComponent({
   const crewRaw = crew?.crew;
   const crewCount = crew?.count;
   const crewCapacity = crew?.capacity;
-  // `v.isEVA` -> `vessel.state.isEVA`, a derived field on the `vessel.state`
-  // channel (map-topic.ts), read via `useStream` like the other derived reads.
-  const isEVA = useStream<VesselState>("vessel.state")?.isEVA;
+  // Whether the crew is outside is a fact about the craft, so it holds while
+  // the link is quiet exactly as the roster beside it does.
+  const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
+  const isEVA =
+    identity === undefined ? undefined : identity.vesselType === VesselType.EVA;
 
   // Connectivity indicator (mirroring the WarpControl pilot): count, roster,
   // and capacity all land on the same `vessel.crew` wire channel, so

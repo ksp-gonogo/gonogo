@@ -1,12 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
-import {
-  useStream,
-  useTopicStatus,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { useStream, useTopicStatus } from "@ksp-gonogo/sitrep-client";
+import type { VesselPropulsion } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, STANDARD_GRAVITY, value } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
@@ -55,6 +52,26 @@ const TONE_COLOR: Record<Tone, string> = {
   lost: "var(--color-status-nogo-bg)",
 };
 
+/**
+ * Thrust-to-weight at the instant the payload describes: thrust over the
+ * weight that mass has at standard gravity.
+ *
+ * `undefined` rather than a number wherever the ratio is not a fact: nothing
+ * has arrived, either quantity is absent or non-finite, or the craft has no
+ * mass to weigh. A zero-mass vessel divides to `Infinity`, which draws as a
+ * pinned dial rather than as the absence it is.
+ *
+ * The units cancel as declared, `kN / (t · m/s²)` being dimensionless, so the
+ * figure is a ratio in the `"1"` the dial's axis is drawn in.
+ */
+function twrOf(propulsion: VesselPropulsion | undefined): number | undefined {
+  if (!propulsion) return undefined;
+  const thrust = magnitudeOf(propulsion.currentThrust);
+  const mass = magnitudeOf(propulsion.totalMass);
+  if (thrust === null || mass === null || mass <= 0) return undefined;
+  return thrust / (mass * STANDARD_GRAVITY);
+}
+
 function toneFor(twr: number): Tone {
   if (twr < 1) return "lost";
   if (twr < 1.5) return "warn";
@@ -62,12 +79,7 @@ function toneFor(twr: number): Tone {
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
-  // `dv.currentTWR` is MAPPED (`map-topic.ts`) to the derived
-  // `vessel.state.twr` field: TWR = currentThrust/(totalMass·g), computed
-  // client-side off `vessel.propulsion`. Once that channel is carried the
-  // headline value reads straight off the stream; no legacy read remains
-  // for this widget's live value.
-  const twr = useStream<VesselState>("vessel.state")?.twr ?? undefined;
+  const twr = twrOf(useStream<VesselPropulsion>("vessel.propulsion"));
   /*
    * `useStream` hands back the sticky last value with no currency on it, so
    * without this the dial goes on drawing a confident TWR after telemetry
@@ -81,16 +93,15 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
    * craft rather than about the link.
    *
    * A caption rather than the mark `Gauge` can now draw, because the mark
-   * needs a `Reading` and this channel carries none: minting one from a status
-   * would assert an observation nothing made. When `vessel.state` moves into
-   * the reading model the dial takes the reading directly and this caption
-   * becomes redundant.
+   * needs a `Reading` and a status is not one: minting a reading from a status
+   * would assert an observation nothing made.
    */
-  const twrNotCurrent = useTopicStatus("vessel.state") !== "live";
-  // The sparkline history reads the same derived field the headline does.
-  // A derived topic has a live value but no buffered history of its own, so
-  // `useDataSeries` replays the channel's `derive()` across the window off the
-  // buffered history of its RAW inputs; see that hook's doc comment.
+  const twrNotCurrent = useTopicStatus("vessel.propulsion") !== "live";
+  /*
+   * A derived topic has a live value but no buffered history of its own, so
+   * `useDataSeries` replays the channel's `derive()` across the window off the
+   * buffered history of its RAW inputs; see that hook's doc comment.
+   */
   const series = useDataSeries("data", "vessel.state.twr", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
 
@@ -296,7 +307,11 @@ registerComponent<TwrConfig>({
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 2, h: 2 },
   component: TwrComponent,
-  dataRequirements: ["vessel.state.twr"],
+  dataRequirements: [
+    "vessel.propulsion.currentThrust",
+    "vessel.propulsion.totalMass",
+    "vessel.state.twr",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,

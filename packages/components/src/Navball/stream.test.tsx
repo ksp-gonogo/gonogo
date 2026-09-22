@@ -26,15 +26,12 @@ import { NavballComponent } from "./index";
  *   `vessel.control.throttle`; `f.precisionControl` ->
  *   `vessel.control.precisionControl` (un-gapped, shared with ActionGroup's
  *   precision-control read).
- * - GAPPED (stay legacy forever until a gap lands, not exercised here
- *   since no legacy source exists in this file): `v.isControllable`, and
- *   `f.sasMode` (shape mismatch: the real `vessel.control.sasMode` is a
- *   numeric enum, not the string this widget
- *   renders/compares against; see `map-topic.ts`). The `vessel.control`
- *   payload below carries a realistic numeric `sasMode` to match the real
- *   wire, but since the widget's own `sasMode` read stays gapped-to-legacy,
- *   this stream-only file (no legacy source registered) can't resolve it,
- *   the mode caption stays absent, asserted below.
+ * - `f.sasMode` -> `vessel.control.sasMode`, the numeric enum the wire
+ *   carries, resolved to its name against the contract's own table. The
+ *   `vessel.control` payload below carries a realistic ordinal and the mode
+ *   caption reads it, asserted below.
+ * - `v.isControllable` -> `vessel.comms.controlState`, collapsed to a control
+ *   level; not exercised here, no comms payload in this file.
  *
  * Sized at 8x4 (rows < 6) so the numeric HDG/PCH/RLL readout renders
  * instead of the SVG dial: the dial's tick geometry isn't useful to assert
@@ -91,10 +88,7 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
       });
       fixture.emit("vessel.control", {
         sas: true,
-        // Real wire shape: numeric SasMode enum (1 = Prograde), f.sasMode
-        // is a known gap (map-topic.ts), so this doesn't reach the widget's
-        // own sasMode read; included only so the payload matches the real
-        // contract shape.
+        // The wire shape: a numeric SasMode ordinal, 1 being Prograde.
         sasMode: 1,
         rcs: false,
         precisionControl: true,
@@ -105,10 +99,10 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
     await waitFor(() => expect(visibleText()).toContain("87°"));
     expect(visibleText()).toContain("+12°");
     expect(visibleText()).toContain("-5°");
-    // f.sasEnabled -> vessel.control.sas: the SAS toggle reads ON. f.sasMode is
-    // gapped (no legacy source in this stream-only file), so the mode token
-    // stays absent: "SAS ON", not "SAS: PRO".
-    expect(screen.getByRole("button", { name: "SAS ON" })).toBeTruthy();
+    // Both halves off the one topic: `sas` says the arm is on and `sasMode`
+    // says which mode it is holding, so the toggle names the mode rather than
+    // reporting a bare ON that discards what the wire already said.
+    expect(screen.getByRole("button", { name: "SAS: PRO" })).toBeTruthy();
     // f.precisionControl -> vessel.control.precisionControl (un-gapped):
     // the PRECISION chip lights up off the stream alone, no legacy source
     // registered in this file.
