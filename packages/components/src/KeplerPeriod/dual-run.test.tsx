@@ -55,6 +55,12 @@ beforeEach(() => {
 afterEach(() => {
   unmountAll();
   clearBodies();
+  /*
+   * `installFixedSizeResizeObserver` assigns `globalThis.ResizeObserver`
+   * directly rather than through `vi.stubGlobal`, so the closure it returns is
+   * the only way back and `unstubAllGlobals` below does not cover it.
+   */
+  restoreResizeObserver();
   vi.unstubAllGlobals();
 });
 
@@ -70,7 +76,6 @@ const VESSEL_STATE_INPUTS = [
 ];
 
 describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)", () => {
-  const restoreResizeObserver: () => void = () => {};
   it("draws the Kepler curve once a known reference body streams in", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
