@@ -9,7 +9,10 @@ import {
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -45,6 +48,7 @@ const VESSEL_STATE_INPUTS = [
 ] as const;
 
 describe("MapView: what undefined telemetry means today", () => {
+  let restoreResizeObserver: () => void = () => {};
   // Unmount before the state-mutating teardown (clearBodies / clearAugments),
   // which would otherwise re-render a still-mounted tree outside act().
   const trees: Array<() => void> = [];
@@ -54,32 +58,16 @@ describe("MapView: what undefined telemetry means today", () => {
     clearBodies();
     registerStockBodies();
 
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 600, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 600,
+      height: 300,
+    });
   });
 
   afterEach(() => {
     for (const unmount of trees) unmount();
     trees.length = 0;
+    restoreResizeObserver();
     vi.unstubAllGlobals();
     clearAugments();
     clearBodies();

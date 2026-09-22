@@ -4,6 +4,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { act, render as rtlRender, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -40,26 +41,15 @@ function unmountAll() {
  * Kepler reference curve renders (the unknown-body degraded path is covered
  * in `stream.test.tsx`).
  */
+let restoreResizeObserver: () => void = () => {};
+
 beforeEach(() => {
   clearBodies();
   registerStockBodies();
-  vi.stubGlobal(
-    "ResizeObserver",
-    class FakeResizeObserver {
-      private cb: ResizeObserverCallback;
-      constructor(cb: ResizeObserverCallback) {
-        this.cb = cb;
-      }
-      observe(_el: Element) {
-        this.cb(
-          [{ contentRect: { width: 400, height: 300 } } as ResizeObserverEntry],
-          this as unknown as ResizeObserver,
-        );
-      }
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  restoreResizeObserver = installFixedSizeResizeObserver({
+    width: 400,
+    height: 300,
+  });
 });
 
 afterEach(() => {
@@ -80,6 +70,7 @@ const VESSEL_STATE_INPUTS = [
 ];
 
 describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)", () => {
+  const restoreResizeObserver: () => void = () => {};
   it("draws the Kepler curve once a known reference body streams in", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
