@@ -1273,7 +1273,7 @@ describe("AlarmHostService", () => {
         sendToPeer: (peerId: string, msg: PeerMessage) => {
           captured.sentToPeer.push({ peerId, msg });
         },
-      } as unknown as import("../peer/PeerHostService").PeerHostService;
+      } as import("../peer/PeerHostService").PeerHostService;
       return { host, captured };
     }
 

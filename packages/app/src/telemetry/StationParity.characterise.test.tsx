@@ -90,6 +90,16 @@ function relayedTopics(host: ReturnType<typeof makeFakeHost>): string[] {
   );
 }
 
+/**
+ * The host's live connection set, which this case populates directly.
+ *
+ * `connections` is private and nothing public adds to it without a broker
+ * handshake, which is the thing the budget assertion below has to skip.
+ */
+function connectionsOf(host: PeerHostService): Set<unknown> {
+  return (host as unknown as { connections: Set<unknown> }).connections;
+}
+
 describe("the relay's own subscriptions", () => {
   it("pull nothing from the mod for a topic no screen has asked for", async () => {
     const host = makeFakeHost();
@@ -167,7 +177,7 @@ describe("relayed frames are counted per recipient", () => {
     // Two stand-in connections, so a single broadcast must count two.
     const conns = [{ send: () => {} }, { send: () => {} }];
     for (const conn of conns) {
-      (host as unknown as { connections: Set<unknown> }).connections.add(conn);
+      connectionsOf(host).add(conn);
     }
 
     host.broadcast({

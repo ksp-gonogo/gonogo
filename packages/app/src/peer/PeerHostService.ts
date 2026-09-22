@@ -1,3 +1,4 @@
+import type { DataKey } from "@ksp-gonogo/core";
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import type {
   DataKeyMeta,
@@ -81,7 +82,7 @@ function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
 
 /** One schema key as the richer form a wrapped source answers with, and the
  *  bare key when it does not. */
-function asKeyMeta(key: unknown): DataKeyMeta {
+function asKeyMeta(key: DataKey): DataKeyMeta {
   return key as DataKeyMeta;
 }
 

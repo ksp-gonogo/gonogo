@@ -233,6 +233,17 @@ afterEach(() => {
   __clearSettingsTabsForTests();
 });
 
+/**
+ * The registered source this row binds to.
+ *
+ * A source-backed row's binding closures are handed the source the registry
+ * holds under `sourceId`, which it stores erased: the id does not determine
+ * the type, so the client that wrote the binding is the one that knows.
+ */
+function throttleSource(source: unknown): ThrottleSource {
+  return source as ThrottleSource;
+}
+
 describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () => {
   it("shows the Sitrep Stream connection row when registered", async () => {
     registerDataSource(makeSitrepStub());
@@ -710,9 +721,9 @@ function registerThrottleSetting() {
     backing: "source-backed",
     type: "boolean",
     sourceId: "throttle-src",
-    read: (s) => (s as ThrottleSource).getThrottle(),
-    write: (s, v) => (s as ThrottleSource).setThrottle(v),
-    subscribe: (s, cb) => (s as ThrottleSource).onThrottleChange(cb),
+    read: (s) => throttleSource(s).getThrottle(),
+    write: (s, v) => throttleSource(s).setThrottle(v),
+    subscribe: (s, cb) => throttleSource(s).onThrottleChange(cb),
     category: "Test",
     label: "Throttle main render",
     description: "A source-backed setting bound to a DataSource.",
