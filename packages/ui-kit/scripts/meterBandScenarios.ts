@@ -230,4 +230,24 @@ export const SHEETS: MeterSheet[] = [
       },
     ],
   },
+  {
+    id: "dense-stale",
+    title: "A dense stack at tile width, stale mixed with current",
+    blurb:
+      "Eight rows at the width a real tile gives them, half of them no longer " +
+      "current. The question is whether the room reserved for the not-current " +
+      "mark reads as cramped when every row pays it, which one meter on a " +
+      "specimen sheet cannot show.",
+    width: 260,
+    cases: [
+      { label: "LiquidFuel", fraction: 0.82, stale: true },
+      { label: "Oxidizer", fraction: 0.79 },
+      { label: "MonoPropellant", fraction: 0.44, stale: true },
+      { label: "ElectricCharge", fraction: 0.96, tone: "info" },
+      { label: "Ablator", fraction: 0.12, tone: "warn", stale: true },
+      { label: "XenonGas", fraction: 0.6 },
+      { label: "Ore", fraction: 0.05, tone: "warn", stale: true },
+      { label: "IntakeAir", fraction: 0.33 },
+    ],
+  },
 ];
