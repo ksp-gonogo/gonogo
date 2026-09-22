@@ -18,6 +18,17 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "comm-signal-no-signal-badge",
   contributes: "comm-signal.badges",
   deps: [COMM_SIGNAL_NOT_CURRENT],
-  compute: (topics) =>
-    commSignalNoSignalBadge(topics[COMM_SIGNAL_NOT_CURRENT.id] ?? false),
+  /*
+   * The processor answers with currency, so its answer is unwrapped here. Both
+   * value-bearing arms: the flag is about the link, and a held flag is the last
+   * thing the link said about itself.
+   */
+  compute: (topics) => {
+    const reading = topics[COMM_SIGNAL_NOT_CURRENT.id];
+    return commSignalNoSignalBadge(
+      (reading?.state === "observed" || reading?.state === "stale"
+        ? reading.value
+        : undefined) ?? false,
+    );
+  },
 });

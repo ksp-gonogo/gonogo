@@ -270,7 +270,18 @@ function toGreenhouseRow(g: KerbalismGreenhouseEntry): GreenhouseRow {
 function ShipSystemsComponent(
   _props: Readonly<ComponentProps<ShipSystemsConfig>>,
 ) {
-  const ship = useProcessor(SHIP_SYSTEMS);
+  /*
+   * Both value-bearing arms. The ledger below is FIGURES, and a summary that
+   * has stopped being current is still the last real one: blanking the panel
+   * would take the supply levels away from an operator at exactly the moment
+   * the link went quiet. How current the resource levels behind it are is
+   * carried separately, on the summary's own provenance field.
+   */
+  const shipReading = useProcessor(SHIP_SYSTEMS);
+  const ship =
+    shipReading?.state === "observed" || shipReading?.state === "stale"
+      ? shipReading.value
+      : undefined;
   // Read outside the Processor (unlike the four `kerbalism.profile`/
   // `lifesupport`/resources/crew deps `SHIP_SYSTEMS` already shares with the
   // panel badge): nothing else in this widget's own render derives from

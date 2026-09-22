@@ -41,7 +41,7 @@ import {
   whyNotSendable,
 } from "../plan-composition";
 import { type PlanDraft, PlanDraftStore } from "../plan-drafts";
-import type { ReckonableReading, TopicReading } from "../reading";
+import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -812,11 +812,18 @@ export function useStream<T>(topic: string): T | undefined {
  * result. One evaluation per Sitrep frame is shared across every widget reading
  * the same handle (and any contribution that lists it in `deps`). Returns
  * `undefined` with no provider mounted, or before the first frame lands.
+ *
+ * A processor whose own deps include a reading answers a `Reading<R>`, because
+ * its inputs carried currency and so its answer is datable. One depending only
+ * on raw topic ids answers the bare `R`: there is nothing to date it by, and
+ * inventing an instant would be a claim nothing supports. The handle's own
+ * brand decides which, so the two cannot be confused at a call site.
  */
-export function useProcessor<R>(handle: {
+export function useProcessor<R, Carried extends boolean>(handle: {
   readonly id: string;
   readonly __resultType?: R;
-}): R | undefined {
+  readonly __carriesCurrency?: Carried;
+}): (Carried extends true ? Reading<R> : R) | undefined {
   return getHost().useProcessor(handle);
 }
 
