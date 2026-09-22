@@ -12,6 +12,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PeerMessage } from "../peer/protocol";
 import { AlarmHostService } from "./AlarmHostService";
 
 interface FakeTelemetry {
@@ -51,7 +52,7 @@ interface FakeTelemetry {
  */
 function formatCommand(command: string, args: unknown): string {
   if (command === "time.setWarpIndex") {
-    return `${command}[${(args as { index?: number })?.index}]`;
+    return `${command}[${Reflect.get(args ?? {}, "index")}]`;
   }
   if (command === "vessel.control.setActionGroup") {
     const { group, state } = (args ?? {}) as {
@@ -169,13 +170,13 @@ function fakeTelemetry(): FakeTelemetry {
         setActiveViewClockForTests({ viewUt: () => v });
         return;
       }
-      if (key === "t.currentRateIndex") {
-        warp = { ...warp, warpRateIndex: v as number };
+      if (key === "t.currentRateIndex" && typeof v === "number") {
+        warp = { ...warp, warpRateIndex: v };
         publish("time.warp", warp);
         return;
       }
-      if (key === "t.currentRate") {
-        warp = { ...warp, warpRate: v as number };
+      if (key === "t.currentRate" && typeof v === "number") {
+        warp = { ...warp, warpRate: v };
         publish("time.warp", warp);
         return;
       }
@@ -1315,9 +1316,9 @@ describe("AlarmHostService", () => {
       ackUnscheduledCb: VoidCb | null;
       warpIntentCb: VoidCb | null;
       peerConnectCb: PeerConnectCb | null;
-      broadcasts: unknown[];
+      broadcasts: PeerMessage[];
       // Targeted sendToPeer messages keyed by peerId.
-      sentToPeer: Array<{ peerId: string; msg: unknown }>;
+      sentToPeer: Array<{ peerId: string; msg: PeerMessage }>;
     }
 
     function makeHost(): {
@@ -1364,13 +1365,13 @@ describe("AlarmHostService", () => {
           captured.peerConnectCb = cb;
           return () => {};
         },
-        broadcast: (msg: unknown) => {
+        broadcast: (msg: PeerMessage) => {
           captured.broadcasts.push(msg);
         },
-        sendToPeer: (peerId: string, msg: unknown) => {
+        sendToPeer: (peerId: string, msg: PeerMessage) => {
           captured.sentToPeer.push({ peerId, msg });
         },
-      } as unknown as import("../peer/PeerHostService").PeerHostService;
+      } as import("../peer/PeerHostService").PeerHostService;
       return { host, captured };
     }
 
@@ -1467,9 +1468,7 @@ describe("AlarmHostService", () => {
       });
       telemetry.set("vessel.state.altitudeAsl", 70_500);
       await vi.advanceTimersByTimeAsync(1100);
-      const types = captured.broadcasts.map(
-        (m) => (m as { type: string }).type,
-      );
+      const types = captured.broadcasts.map((m) => m.type);
       expect(types).toContain("alarm-snapshot");
       expect(types).toContain("alarm-fired");
     });
@@ -1544,11 +1543,10 @@ describe("AlarmHostService", () => {
       captured.peerConnectCb?.("station-late");
       expect(captured.sentToPeer).toHaveLength(1);
       expect(captured.sentToPeer[0].peerId).toBe("station-late");
-      const msg = captured.sentToPeer[0].msg as {
-        type: string;
-        snapshot: { alarms: Array<{ name: string }> };
-      };
-      expect(msg.type).toBe("alarm-snapshot");
+      const msg = captured.sentToPeer[0].msg;
+      if (msg.type !== "alarm-snapshot") {
+        throw new Error(`expected an alarm-snapshot, got: ${msg.type}`);
+      }
       expect(msg.snapshot.alarms[0].name).toBe("Test alarm");
     });
 

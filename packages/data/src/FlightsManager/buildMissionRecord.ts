@@ -26,8 +26,15 @@ export function buildMissionRecord(params: {
   let firstFrameUt = Number.POSITIVE_INFINITY;
   let lastFrameUt = 0;
   for (const raw of fixture.frames) {
-    const parsed = JSON.parse(raw) as { meta?: { deliveredAt?: number } };
-    const deliveredAt = parsed.meta?.deliveredAt;
+    const parsed: unknown = JSON.parse(raw);
+    const frameMeta: unknown =
+      typeof parsed === "object" && parsed !== null
+        ? Reflect.get(parsed, "meta")
+        : undefined;
+    const deliveredAt: unknown =
+      typeof frameMeta === "object" && frameMeta !== null
+        ? Reflect.get(frameMeta, "deliveredAt")
+        : undefined;
     if (typeof deliveredAt !== "number") continue;
     if (deliveredAt < firstFrameUt) firstFrameUt = deliveredAt;
     if (deliveredAt > lastFrameUt) lastFrameUt = deliveredAt;

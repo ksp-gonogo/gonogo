@@ -23,6 +23,14 @@ afterEach(() => {
   clearAugments();
 });
 
+/* The propless probe slot this file mounts, declared because an undeclared
+   slot id carries no props at all. */
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "e2e-availability.slot": Record<string, never>;
+  }
+}
+
 describe("AugmentAvailabilityFeeder end-to-end gating", () => {
   it("keeps a demomod-gated augment hidden until demomod.available arrives on the stream, then renders it", async () => {
     registerAugment({

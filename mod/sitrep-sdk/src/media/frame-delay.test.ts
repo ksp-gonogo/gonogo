@@ -16,6 +16,7 @@ import {
   type FrameSource,
   isFrameDelaySupported,
   runFrameDelayPipeline,
+  type VideoTrackSource,
 } from "./frame-delay";
 
 function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
@@ -124,6 +125,12 @@ function recordingSink<T extends FrameLike>(): FrameSink<T> & {
   };
 }
 
+/** A track stand-in: `createFrameDelayStream` only ever hands it on to the
+ *  WebCodecs constructors, which the feature detection keeps from running. */
+function videoTrack(): MediaStreamTrack {
+  return new EventTarget() as MediaStreamTrack;
+}
+
 describe("isFrameDelaySupported", () => {
   it("is false in this (jsdom) test environment, no WebCodecs track-IO globals", () => {
     expect(isFrameDelaySupported()).toBe(false);
@@ -133,7 +140,7 @@ describe("isFrameDelaySupported", () => {
 describe("createFrameDelayStream", () => {
   it("returns null (never throws) when the browser lacks the WebCodecs track-IO APIs", () => {
     const clock = manualClock();
-    const raw = { getVideoTracks: () => [{}] } as unknown as MediaStream;
+    const raw: VideoTrackSource = { getVideoTracks: () => [videoTrack()] };
     expect(() =>
       createFrameDelayStream(raw, { view: clock, captureUt: () => 0 }),
     ).not.toThrow();
@@ -152,7 +159,7 @@ describe("createFrameDelayStream", () => {
     vi.stubGlobal("MediaStreamTrackGenerator", class {});
     try {
       const clock = manualClock();
-      const raw = { getVideoTracks: () => [] } as unknown as MediaStream;
+      const raw: VideoTrackSource = { getVideoTracks: () => [] };
       expect(
         createFrameDelayStream(raw, { view: clock, captureUt: () => 0 }),
       ).toBeNull();
@@ -179,7 +186,7 @@ describe("createFrameDelayStream", () => {
     vi.stubGlobal("MediaStreamTrackGenerator", class {});
     try {
       const clock = manualClock();
-      const raw = { getVideoTracks: () => [{}] } as unknown as MediaStream;
+      const raw: VideoTrackSource = { getVideoTracks: () => [videoTrack()] };
       const onError = vi.fn();
       // Starts undefined, which is not the null the assertion wants: a callback
       // that never ran fails the test rather than reading as a pass.

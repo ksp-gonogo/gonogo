@@ -5,6 +5,7 @@ import { ws } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import type { LinkClient } from "../test/peerFakes";
 
 /**
  * ACCEPTANCE / definition-of-done for the SCANsat dynamic-topic fix
@@ -85,13 +86,11 @@ function ControlProbe() {
   );
 }
 
-async function connectAndCaptureClient(): Promise<
-  Array<{ send: (data: string) => void }>
-> {
-  const serverClients: Array<{ send: (data: string) => void }> = [];
+async function connectAndCaptureClient(): Promise<LinkClient[]> {
+  const serverClients: LinkClient[] = [];
   server.use(
     link.addEventListener("connection", ({ client }) => {
-      serverClients.push(client as unknown as { send: (data: string) => void });
+      serverClients.push(client);
     }),
   );
   return serverClients;

@@ -7,11 +7,9 @@ import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import type {
-  PeerHostService,
-  SitrepSubscriptionSink,
-} from "../peer/PeerHostService";
+import type { SitrepSubscriptionSink } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { asHostService } from "../test/peerFakes";
 import { SitrepPeerRelay } from "./SitrepPeerRelay";
 
 function makeMeta(overrides: Partial<Meta> = {}): Meta {
@@ -116,7 +114,7 @@ function renderRelay(peerHost: ReturnType<typeof makeFakeHost>) {
   const client = new TelemetryClient(transport);
   const view = render(
     <TelemetryProvider client={client}>
-      <SitrepPeerRelay peerHost={peerHost as unknown as PeerHostService} />
+      <SitrepPeerRelay peerHost={asHostService(peerHost)} />
     </TelemetryProvider>,
   );
   return { transport, client, view };

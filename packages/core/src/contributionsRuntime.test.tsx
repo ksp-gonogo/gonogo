@@ -26,7 +26,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-declare module "./contributions" {
+declare module "@ksp-gonogo/sitrep-sdk" {
   interface ContributionRegistry {
     "fixture.rows": {
       entry: { id: string; label: string };

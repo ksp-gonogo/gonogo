@@ -53,3 +53,23 @@ export function magnitudeOf(v: Quantityish): number | null {
 export function magnitudeOr(v: Quantityish, fallback: number): number {
   return magnitudeOf(v) ?? fallback;
 }
+
+/**
+ * A value read off an untyped wire bag AS a quantity, and `undefined` for
+ * anything that is not one.
+ *
+ * A flattened payload can hold a string where a magnitude was expected, and
+ * naming the field back as a `Quantityish` tells `magnitudeOf` a shape the
+ * value never had. This checks instead, so a renamed or retyped field reads as
+ * absent rather than as a number nobody sent.
+ */
+export function asQuantityish(value: unknown): Quantityish {
+  if (value === null || value === undefined || typeof value === "number") {
+    return value;
+  }
+  if (typeof value !== "object") return undefined;
+  const magnitude: unknown = Reflect.get(value, "magnitude");
+  return typeof magnitude === "number"
+    ? (value as { magnitude: number })
+    : undefined;
+}

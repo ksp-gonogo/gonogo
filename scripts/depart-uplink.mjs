@@ -393,6 +393,63 @@ for (const rel of ratchets) {
 console.log(`Departure plan for ${dirBase}:\n`);
 for (const { what } of plan) console.log(`  remove  ${what}`);
 
+/*
+ * 9. two things are REPORTED, never edited: the boundary allowlist and
+ * MOD_OWNERSHIP.
+ *
+ * The allowlist's entries name files that mention this Uplink, and the ratchet
+ * step above stops some of them mentioning it, so its own gate then fails as
+ * STALE. Automating that prune is tempting and it was got wrong twice: matching
+ * the token flagged 296 lines because every OTHER mod's entries also fail "does
+ * this file mention scansat", and a line sweep over the same file stripped a
+ * section heading and a line from inside a doc comment, because it is prose as
+ * much as data.
+ *
+ * MOD_OWNERSHIP drives that scan and this script had never mentioned it. Seven
+ * departures left a block owning directories that no longer exist, unnoticed
+ * because a path matching nothing makes the scan STRICTER rather than broken.
+ * The block itself STAYS: with `ownedDirs` empty it is the strictest setting,
+ * still catching the departed mod's name anywhere unallowlisted. Emptying the
+ * list is mechanical; whether the block survives is a judgement.
+ *
+ * Both gates already name the exact lines, legibly, and this script's own rule
+ * is that it removes what is mechanically the Uplink's and decides nothing
+ * else. So it points at them rather than pre-empting them.
+ *
+ * Printed BEFORE the dry-run exit, because a list of what a tool refuses to do
+ * is worth most to someone deciding whether to run it.
+ */
+const ownershipSource = readFileSync(
+  join(ROOT, "packages/core/src/uplink-boundary.test.ts"),
+  "utf8",
+);
+const owningTokens = [...ownershipSource.matchAll(/^ {2}(\w+): \{/gm)]
+  .map((match, index, all) => ({
+    token: match[1],
+    body: ownershipSource.slice(
+      match.index,
+      all[index + 1]?.index ?? ownershipSource.length,
+    ),
+  }))
+  .filter(({ body }) => body.includes(`"mod/${dirBase}`))
+  .map(({ token }) => token);
+
+if (owningTokens.length > 0) {
+  deferred.push(
+    `packages/core/src/uplink-boundary.test.ts: MOD_OWNERSHIP.${owningTokens.join(", MOD_OWNERSHIP.")} ` +
+      `still own mod/${dirBase}. Empty the block's ownedDirs to [] and KEEP the block: ` +
+      `empty is the strictest setting, and it still guards the mod's name against ` +
+      `reappearing unallowlisted. The core suite fails on this until you do.`,
+  );
+}
+
+if (deferred.length > 0) {
+  console.log(
+    `\nNOT DONE, ${deferred.length} item(s) this refuses to guess at:\n` +
+      deferred.map((d) => `  ${d}`).join("\n"),
+  );
+}
+
 if (!apply) {
   console.log(
     "\nDry run. Re-run with --apply to perform it.\n" +
@@ -404,27 +461,6 @@ if (!apply) {
 }
 
 for (const { how } of plan) how();
-
-/*
- * 9. the boundary allowlist is REPORTED, never edited.
- *
- * Its entries name files that mention this Uplink, and step 8 stops some of them
- * mentioning it, so its own gate then fails as STALE. Automating that prune is
- * tempting and I got it wrong twice: matching the token flagged 296 lines because
- * every OTHER mod's entries also fail "does this file mention scansat", and a
- * line sweep over the same file stripped a section heading and a line from inside
- * a doc comment, because it is prose as much as data.
- *
- * The gate already names the exact lines, legibly, and this script's own rule is
- * that it removes what is mechanically the Uplink's and decides nothing else. So
- * it points at the gate rather than pre-empting it.
- */
-if (deferred.length > 0) {
-  console.log(
-    `\nNOT DONE, ${deferred.length} item(s) this refuses to guess at:\n` +
-      deferred.map((d) => `  ${d}`).join("\n"),
-  );
-}
 
 console.log(
   "\nNEXT, and this script deliberately does not do it: run the core suite. " +

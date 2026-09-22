@@ -18,8 +18,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class FleetDelayTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         [Theory]
         [InlineData("fleet.abc-123.orbit", "fleet.abc-123")] // per-vessel topic -> its own node

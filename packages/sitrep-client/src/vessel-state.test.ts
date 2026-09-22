@@ -1,5 +1,6 @@
 import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import { type OrbitElements, solve, solveAnomalies } from "./kepler";
 import type { OrbitPatchWirePayload } from "./orbit-patches";
 import type { StreamStatusValue } from "./stream-status";
@@ -71,14 +72,11 @@ type WireFlight = WireOf<VesselFlightPayload>;
 type WirePatch = WireOf<OrbitPatchWirePayload>;
 
 /**
- * `wrapTypePayload` is declared `T -> T` because it wraps a frame in place, but
- * the whole point of the call is that it turns every bare magnitude into a
- * `Value`, so what it takes and what it returns are the two halves of `WireOf`.
- * Saying so once here is what keeps the fixtures below honestly typed as the
- * wire and the point builders honestly typed as the model.
+ * Naming `wrapTypePayload`'s own `WireOf` pair once, so the fixtures below are
+ * honestly typed as the wire and the point builders as the model.
  */
 function wrapWire<T>(typeName: string, wire: WireOf<T>): T {
-  return wrapTypePayload(typeName, wire) as unknown as T;
+  return wrapTypePayload<T>(typeName, wire);
 }
 
 function orbitPoint(
@@ -145,10 +143,7 @@ function fakeGet(points: {
   "vessel.comms"?: TimelinePoint<VesselCommsPayload>;
 }): { get: DerivedGet; requestedTopics: string[] } {
   const requestedTopics: string[] = [];
-  const get: DerivedGet = (<T>(topic: string) => {
-    requestedTopics.push(topic);
-    return points[topic as keyof typeof points] as TimelinePoint<T> | undefined;
-  }) as DerivedGet;
+  const get = derivedGetOf(points, (topic) => requestedTopics.push(topic));
   return { get, requestedTopics };
 }
 
@@ -954,24 +949,19 @@ describe("deriveVesselState", () => {
     it("both inputs are read at the exact same viewUt within one derive call", () => {
       const viewUt = 777;
       const seenUts: number[] = [];
-      const get: DerivedGet = (<T>(topic: string) => {
-        // A real `get` is bound to one frame's viewUt structurally (it's
-        // `TimelineStore.sample` closed over a single token): this fake
-        // asserts the derive function itself never smuggles in a second UT
-        // by calling `get` with anything topic-shaped that isn't one of its
-        // declared inputs, and that whatever it reads is self-consistent
-        // for a single call.
-        seenUts.push(viewUt);
-        if (topic === "vessel.orbit") {
-          return orbitPoint(CIRCULAR_ORBIT, {
+      // A real `get` is bound to one frame's viewUt structurally (it's
+      // `TimelineStore.sample` closed over a single token): recording the UT
+      // per read asserts the derive function itself never smuggles in a second
+      // one, and that whatever it reads is self-consistent for a single call.
+      const get = derivedGetOf(
+        {
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
             quality: Quality.Loaded,
-          }) as unknown as TimelinePoint<T>;
-        }
-        if (topic === "vessel.flight") {
-          return flightPoint(MEASURED_FLIGHT) as unknown as TimelinePoint<T>;
-        }
-        return undefined;
-      }) as DerivedGet;
+          }),
+          "vessel.flight": flightPoint(MEASURED_FLIGHT),
+        },
+        () => seenUts.push(viewUt),
+      );
 
       deriveVesselState(get, viewUt);
 
@@ -1485,8 +1475,7 @@ function pt<T>(payload: T | null, quality = Quality.OnRails): TimelinePoint<T> {
 
 /** A `DerivedGet` over an arbitrary topic → point map (these derivations read topics beyond vessel.orbit/vessel.flight). */
 function getFrom(points: Record<string, TimelinePoint<unknown> | undefined>) {
-  return (<T>(topic: string) =>
-    points[topic] as TimelinePoint<T> | undefined) as DerivedGet;
+  return derivedGetOf(points);
 }
 
 const ONRAILS = { quality: Quality.OnRails };

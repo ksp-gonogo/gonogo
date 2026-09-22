@@ -21,7 +21,7 @@ import {
 
 const rate = (n: number) => value("units/s", n);
 
-const PROFILE = {
+const PROFILE: KerbalismProfile = {
   name: "Default",
   resources: {
     Water: {
@@ -29,7 +29,7 @@ const PROFILE = {
       flowModeOrdinal: 1,
       displayName: "Water",
       isSupply: true,
-      lowThreshold: 0.15,
+      lowThreshold: value("ratio", 0.15),
     },
     WasteWater: {
       flowMode: "ALL_VESSEL",
@@ -45,7 +45,7 @@ const PROFILE = {
       // is easy to assume otherwise: it is the most common root cause AND a
       // life-support consumable.
       isSupply: true,
-      lowThreshold: 0.15,
+      lowThreshold: value("ratio", 0.15),
     },
     Oxygen: {
       flowMode: "ALL_VESSEL",
@@ -111,15 +111,15 @@ const PROFILE = {
       outputs: { WasteWater: rate(0.0000839507) },
     },
   ],
-} as unknown as KerbalismProfile;
+};
 
 /** A recycler on one part, a shower on another. Capacities are invented. */
-const FITTED = {
+const FITTED: KerbalismLifeSupport = {
   processes: [
     {
       resource: "_WaterRecycler",
       title: "Water recycler",
-      capacity: 30,
+      capacity: value("units", 30),
       running: true,
       broken: false,
       flightId: 101,
@@ -127,7 +127,7 @@ const FITTED = {
     {
       resource: "_Shower",
       title: "Zero-g shower",
-      capacity: 1,
+      capacity: value("units", 1),
       running: true,
       broken: false,
       flightId: 202,
@@ -136,13 +136,13 @@ const FITTED = {
     {
       resource: "_FuelCell",
       title: "Fuel cell",
-      capacity: 1,
+      capacity: value("units", 1),
       running: false,
       broken: false,
       flightId: 303,
     },
   ],
-} as unknown as KerbalismLifeSupport;
+};
 
 const CREW = 3;
 
@@ -182,7 +182,7 @@ describe("resourceFacts", () => {
         // And STACK_PRIORITY_SEARCH, which does NOT pool.
         Ore: { flowMode: "STACK_SEARCH", flowModeOrdinal: 3 },
       },
-    } as unknown as KerbalismProfile);
+    });
 
     expect(facts.get("Water")?.pooled).toBe(true);
     expect(facts.get("Ore")?.pooled).toBe(false);
@@ -201,7 +201,7 @@ describe("resourceFacts", () => {
       resources: {
         Unobtainium: { flowMode: "SOME_NEW_MODE", flowModeOrdinal: 99 },
       },
-    } as unknown as KerbalismProfile);
+    });
 
     expect(facts.get("Unobtainium")?.pooled).toBeUndefined();
   });
@@ -299,7 +299,7 @@ describe("diagnose", () => {
       {
         resource: "_WaterRecycler",
         title: "Water recycler",
-        capacity: 30,
+        capacity: value("units", 30),
         running: true,
         broken: false,
         flightId: 101,
@@ -307,7 +307,7 @@ describe("diagnose", () => {
       {
         resource: "_FuelCell",
         title: "Fuel cell",
-        capacity: 40,
+        capacity: value("units", 40),
         running: true,
         broken: false,
         flightId: 303,
@@ -315,13 +315,13 @@ describe("diagnose", () => {
       {
         resource: "_WaterElectrolysis",
         title: "Electrolysis",
-        capacity: 1,
+        capacity: value("units", 1),
         running: true,
         broken: false,
         flightId: 404,
       },
     ],
-  } as unknown as KerbalismLifeSupport;
+  };
   const STORED = {
     Water: 258,
     ElectricCharge: 215,
@@ -392,7 +392,7 @@ describe("diagnose", () => {
 describe("timeToEmptySeconds", () => {
   const ls = {
     rates: { Water: rate(-0.0001), Oxygen: rate(0.2) },
-  } as unknown as KerbalismLifeSupport;
+  };
 
   it("divides what is left by what is leaving", () => {
     expect(timeToEmptySeconds("Water", ls, { Water: 10 })).toBeCloseTo(
@@ -421,7 +421,7 @@ describe("summarise", () => {
       {
         resource: "_WaterRecycler",
         title: "Water recycler",
-        capacity: 30,
+        capacity: value("units", 30),
         running: true,
         broken: false,
         flightId: 101,
@@ -429,13 +429,13 @@ describe("summarise", () => {
       {
         resource: "_FuelCell",
         title: "Fuel cell",
-        capacity: 40,
+        capacity: value("units", 40),
         running: true,
         broken: false,
         flightId: 303,
       },
     ],
-  } as unknown as KerbalismLifeSupport;
+  };
   const STORED = { Water: 20, ElectricCharge: 215, Hydrogen: 0, Oxygen: 1180 };
   const CAPACITY = {
     Water: 400,
@@ -533,7 +533,7 @@ describe("wearRows", () => {
         outputs: {},
       },
     ],
-  } as unknown as KerbalismProfile;
+  };
 
   const rows = wearRows({
     profile: WEARING_PROFILE,
@@ -542,12 +542,12 @@ describe("wearRows", () => {
         {
           resource: "_NonRegenScrubber",
           title: "Vac scrubber",
-          capacity: 1,
+          capacity: value("units", 1),
           running: true,
           broken: false,
         },
       ],
-    } as unknown as KerbalismLifeSupport,
+    },
     stored: { _NonRegenScrubberLife: 0.25 },
     capacity: { _NonRegenScrubberLife: 1 },
     crew: CREW,

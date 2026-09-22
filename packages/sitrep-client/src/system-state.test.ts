@@ -1,5 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta } from "./stub-transport";
 import { deriveSystemState } from "./system-state";
 import type { TimelinePoint } from "./timeline";
@@ -20,10 +21,7 @@ function bodiesPoint(
 function fakeGet(
   point: TimelinePoint<SystemBodiesPayload> | undefined,
 ): DerivedGet {
-  return (<T>(topic: string) =>
-    topic === "system.bodies"
-      ? (point as unknown as TimelinePoint<T> | undefined)
-      : undefined) as DerivedGet;
+  return derivedGetOf({ "system.bodies": point });
 }
 
 const THREE_BODIES: SystemBodiesPayload = {

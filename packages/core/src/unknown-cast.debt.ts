@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 590 of them
- * across 253 files.
+ * Assertions that escape `unknown`, per file. The tree carries 56 of them
+ * across 41 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 354 of the 590 are
+ * **A test fixture minted through an assertion.** 23 of the 56 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 238 of the 590 are `as unknown as`, and those are worth taking
+ * 30 of the 56 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 127 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 4 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 253 files those would be 253 sentences
+ * sentence per entry: at 41 files those would be 41 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -78,280 +78,62 @@
  * Every file carrying an assertion out of `unknown` or `any`, with how many.
  *
  * SHRINK-ONLY: an entry may be lowered or deleted, never added or raised.
- * Regenerate with `node scripts/unknown-cast-debt.mjs --update` in the same
- * commit as the narrow you wrote.
+ * Regenerate with `node scripts/unknown-cast-debt.mjs --update --only
+ * <substring>` in the same commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 143 in 61 files (18 out of `any`, 114 in tests), walked 390 files
+  // packages/app: 20 in 14 files (1 out of `any`, 15 in tests), walked 391 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
-  "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
-  "packages/app/src/__tests__/component-overlay-add.test.tsx": 2,
-  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 7,
-  "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
-  "packages/app/src/__tests__/dashboard-mobile.test.tsx": 3,
-  "packages/app/src/__tests__/gonogo-host-service.test.ts": 6,
-  "packages/app/src/__tests__/ice-liveness.test.ts": 1,
-  "packages/app/src/__tests__/kos-execute-tunnel.test.ts": 2,
-  "packages/app/src/__tests__/maneuver-trigger-roundtrip.test.ts": 4,
-  "packages/app/src/__tests__/message-dispatcher.test.ts": 1,
-  "packages/app/src/__tests__/peer-client-data-source.test.ts": 2,
-  "packages/app/src/__tests__/peer-client-service.test.ts": 32,
-  "packages/app/src/__tests__/peer-use-data-series.test.tsx": 2,
-  "packages/app/src/__tests__/push-host-service.test.ts": 1,
+  "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
+  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 1,
+  "packages/app/src/__tests__/peer-client-data-source.test.ts": 1,
+  "packages/app/src/__tests__/peer-client-service.test.ts": 2,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
-  "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx": 1,
-  "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts": 2,
-  "packages/app/src/__tests__/sitrep-stream-wire.test.tsx": 1,
-  "packages/app/src/__tests__/telemetry-components.test.tsx": 1,
-  "packages/app/src/alarms/AlarmHostService.test.ts": 6,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx": 1,
-  "packages/app/src/alarms/contractParameterTrigger.test.ts": 1,
-  "packages/app/src/alarms/types.ts": 4,
-  "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
-  "packages/app/src/components/Dashboard/useDashboardState.test.ts": 1,
-  "packages/app/src/components/Dashboard/useDashboardState.ts": 1,
-  "packages/app/src/dataSources/migrateGameHost.ts": 1,
-  "packages/app/src/dataSources/seedKspHost.ts": 1,
-  "packages/app/src/firstRun/FirstRunSetup.test.tsx": 1,
-  "packages/app/src/firstRun/useUplinkReadiness.integration.test.tsx": 1,
   "packages/app/src/goNoGo/GoNoGoSound.test.tsx": 1,
-  "packages/app/src/logs/LogsManager.test.tsx": 2,
-  "packages/app/src/logs/screenshotEncoder.ts": 1,
-  "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": 1,
-  "packages/app/src/notes/NotesHostService.ts": 1,
-  "packages/app/src/peer/iceServers.ts": 1,
-  "packages/app/src/peer/PeerClientService.ts": 2,
-  "packages/app/src/peer/PeerHostService.peerDrivenSubs.test.ts": 1,
-  "packages/app/src/peer/PeerHostService.sitrepSubs.test.ts": 1,
-  "packages/app/src/peer/PeerHostService.ts": 6,
-  "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 3,
-  "packages/app/src/peer/peerOptions.ts": 1,
-  "packages/app/src/settings/SettingsContext.test.tsx": 1,
-  "packages/app/src/settings/SettingsModal.test.tsx": 6,
-  "packages/app/src/sound/audio.ts": 1,
-  "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
-  "packages/app/src/telemetry/PeerTransport.test.ts": 1,
-  "packages/app/src/telemetry/SitrepPeerRelay.test.tsx": 1,
-  "packages/app/src/telemetry/StationParity.characterise.test.tsx": 2,
-  "packages/app/src/test/fakeAudio.ts": 1,
-  "packages/app/src/uplinks/consent.ts": 1,
+  "packages/app/src/settings/SettingsModal.test.tsx": 1,
+  "packages/app/src/telemetry/StationParity.characterise.test.tsx": 1,
+  "packages/app/src/test/peerFakes.ts": 3,
   "packages/app/src/uplinks/externals/runtimeLink.test.ts": 1,
-  "packages/app/src/uplinks/host.ts": 3,
-  "packages/app/src/uplinks/loader.integrity.test.ts": 1,
-  "packages/app/src/uplinks/loader.skewOverride.test.ts": 1,
-  "packages/app/src/uplinks/loader.test.ts": 1,
-  "packages/app/src/uplinks/registry.ts": 1,
-  "packages/app/src/uplinks/skewOverride.ts": 1,
-  "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 139 in 51 files (23 out of `any`, 59 in tests), walked 672 files
-  "packages/components/scripts/synthesize-landing-descent.ts": 2,
-  "packages/components/scripts/widgetRenderHarness.ts": 5,
-  "packages/components/src/AstronautComplex/index.tsx": 12,
-  "packages/components/src/AstronautComplex/renderFixture.test.ts": 1,
-  "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
-  "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
-  "packages/components/src/AtmosphereProfile/stale.test.tsx": 1,
-  "packages/components/src/AtmosphereProfile/undefined.characterise.test.tsx": 1,
-  "packages/components/src/ContractManager/index.tsx": 11,
-  "packages/components/src/CrewStatus/badge.test.ts": 2,
-  "packages/components/src/CrewStatus/index.tsx": 1,
-  "packages/components/src/CurrentOrbit/index.test.tsx": 1,
-  "packages/components/src/EscapeProfile/index.test.tsx": 1,
-  "packages/components/src/Experiments/index.tsx": 9,
-  "packages/components/src/FuelStatus/index.test.tsx": 6,
-  "packages/components/src/Graph/index.test.tsx": 1,
-  "packages/components/src/Graph/stream.test.tsx": 1,
-  "packages/components/src/KeplerPeriod/dual-run.test.tsx": 1,
-  "packages/components/src/KeplerPeriod/index.test.tsx": 1,
-  "packages/components/src/LaunchDirector/index.tsx": 7,
-  "packages/components/src/ManeuverPlanner/burnWindow.ts": 1,
-  "packages/components/src/ManeuverPlanner/index.test.tsx": 4,
-  "packages/components/src/MapView/index.test.tsx": 4,
-  "packages/components/src/MapView/paintBaseSurface.test.ts": 2,
-  "packages/components/src/MapView/undefined.characterise.test.tsx": 1,
-  "packages/components/src/MapView/useCamera.test.tsx": 4,
+  "packages/app/src/uplinks/host.ts": 2,
+  // packages/components: 5 in 4 files (0 out of `any`, 5 in tests), walked 676 files
+  "packages/components/src/MapView/paintBaseSurface.test.ts": 1,
+  "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
-  "packages/components/src/Navball/index.test.tsx": 1,
-  "packages/components/src/Navball/index.tsx": 1,
-  "packages/components/src/OrbitalAscent/index.test.tsx": 1,
-  "packages/components/src/ScienceData/fixtures.test.tsx": 1,
-  "packages/components/src/ScienceData/parsers.ts": 10,
-  "packages/components/src/SemiMajorAxis/index.test.tsx": 1,
-  "packages/components/src/shared/scienceAggregates.ts": 2,
-  "packages/components/src/shared/useZoomPan.test.tsx": 4,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
-  "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
-  "packages/components/src/ShipMap/snapshots.test.ts": 1,
-  "packages/components/src/ShipMap/stale.test.tsx": 1,
-  "packages/components/src/ShipMap/undefined.characterise.test.tsx": 2,
-  "packages/components/src/Strategies/index.test.tsx": 2,
-  "packages/components/src/Strategies/index.tsx": 11,
-  "packages/components/src/Strategies/screens.test.tsx": 1,
-  "packages/components/src/SystemView/fixtureFeeds.test.ts": 1,
-  "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 1,
-  "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
-  "packages/components/src/TechTree/index.tsx": 2,
-  "packages/components/src/test/topologyToVesselPartsWire.ts": 2,
-  "packages/components/src/test/widgetDomSnapshot.tsx": 3,
-  "packages/components/src/TransferWindow/undefined.characterise.test.tsx": 2,
-  "packages/components/src/WarpControl/dual-run.test.tsx": 1,
-  // packages/core: 72 in 32 files (18 out of `any`, 67 in tests), walked 226 files
-  "packages/core/src/actionGroups.undefined.characterise.test.tsx": 3,
-  "packages/core/src/asyncapi-document.test.ts": 16,
-  "packages/core/src/contract-version-parity.test.ts": 1,
-  "packages/core/src/declaration-reachability.test.ts": 1,
-  "packages/core/src/fixture-gated-suites.test.ts": 2,
+  // packages/core: 2 in 2 files (0 out of `any`, 0 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
-  "packages/core/src/published-doc-reachability.test.ts": 7,
-  "packages/core/src/published-docs-name-real-packages.test.ts": 1,
-  "packages/core/src/reckoning-candidates.test.ts": 1,
-  "packages/core/src/render-fixture-coverage.test.ts": 1,
-  "packages/core/src/sdk-subpath-alias.test.ts": 1,
-  "packages/core/src/settings/gameHost.ts": 1,
-  "packages/core/src/settings/registry.test.ts": 2,
-  "packages/core/src/styleguide-banner-comments.test.ts": 6,
-  "packages/core/src/styleguide-comment-stacks.test.ts": 2,
-  "packages/core/src/styleguide-delay-ux.test.ts": 1,
-  "packages/core/src/styleguide-earth-day.test.ts": 1,
-  "packages/core/src/styleguide-ellipsis.test.ts": 1,
-  "packages/core/src/styleguide-emdash.test.ts": 1,
-  "packages/core/src/styleguide-fire-and-forget-commands.test.ts": 1,
-  "packages/core/src/styleguide-magnitude-canonical.test.ts": 1,
-  "packages/core/src/styleguide-optional-magnitude.test.ts": 1,
-  "packages/core/src/styleguide-panel-body.test.ts": 2,
-  "packages/core/src/styleguide-type-tests-gated.test.ts": 2,
-  "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
-  "packages/core/src/typecheck-coverage.test.ts": 2,
-  "packages/core/src/uplink-isolation.test.ts": 7,
-  "packages/core/src/uplink-matrix-coverage.test.ts": 1,
-  "packages/core/src/uplink-tsconfig-parity.test.ts": 1,
-  "packages/core/src/uplinkVersionCompat.ts": 1,
-  "packages/core/src/widget-fixture-conformance.ts": 1,
-  // packages/data: 12 in 5 files (6 out of `any`, 0 in tests), walked 53 files
-  "packages/data/src/FlightsManager/buildMissionRecord.ts": 1,
+  // packages/data: 1 in 1 files (0 out of `any`, 0 in tests), walked 53 files
   "packages/data/src/hooks/useOptionalStreamEvent.ts": 1,
-  "packages/data/src/schema/builtinDerivedKeys.ts": 5,
-  "packages/data/src/storage/IndexedDbStore.ts": 2,
-  "packages/data/src/storage/MissionStore.ts": 3,
-  // packages/logger: 4 in 2 files (1 out of `any`, 1 in tests), walked 11 files
-  "packages/logger/src/AxiomTransport.ts": 3,
-  "packages/logger/src/logger.test.ts": 1,
-  // packages/relay: 5 in 3 files (3 out of `any`, 4 in tests), walked 13 files
-  "packages/relay/src/__tests__/analyticsConfig.test.ts": 2,
-  "packages/relay/src/__tests__/discoverPublicIp.test.ts": 2,
-  "packages/relay/src/version.ts": 1,
-  // packages/serial: 21 in 8 files (10 out of `any`, 9 in tests), walked 72 files
-  "packages/serial/src/mocks/mockGamepad.test.ts": 1,
-  "packages/serial/src/mocks/mockGamepad.ts": 4,
-  "packages/serial/src/mocks/mockWebSerial.ts": 4,
-  "packages/serial/src/SerialDeviceService.test.ts": 1,
-  "packages/serial/src/SerialDeviceService.ts": 2,
-  "packages/serial/src/SerialDevicesMenu/DeviceEditor.test.tsx": 3,
-  "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.test.tsx": 4,
+  // packages/serial: 2 in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 25 in 16 files (5 out of `any`, 23 in tests), walked 163 files
-  "packages/sitrep-client/src/client.test.ts": 2,
-  "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
-  "packages/sitrep-client/src/full-history-replay.ts": 1,
-  "packages/sitrep-client/src/processorEvaluator.test.ts": 1,
-  "packages/sitrep-client/src/reference-wire-fixture.test.ts": 1,
-  "packages/sitrep-client/src/replay-recorder.test.ts": 1,
-  "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
-  "packages/sitrep-client/src/space-center-state.test.ts": 1,
-  "packages/sitrep-client/src/system-state.test.ts": 1,
-  "packages/sitrep-client/src/uplink-health.test.ts": 1,
-  "packages/sitrep-client/src/version.gate.test.ts": 1,
-  "packages/sitrep-client/src/vessel-state-mapping.coverage.test.ts": 3,
-  "packages/sitrep-client/src/vessel-state.test.ts": 3,
-  "packages/sitrep-client/src/websocket-transport.test.ts": 3,
-  "packages/sitrep-client/src/websocket-transport.ts": 1,
-  // packages/ui: 2 in 1 files (2 out of `any`, 2 in tests), walked 60 files
-  "packages/ui/src/DataKeyMultiPicker.test.tsx": 2,
-  // packages/ui-kit: 5 in 5 files (1 out of `any`, 3 in tests), walked 269 files
+  // packages/sitrep-client: 1 in 1 files (0 out of `any`, 1 in tests), walked 164 files
+  "packages/sitrep-client/src/websocket-transport.test.ts": 1,
+  // packages/ui-kit: 3 in 3 files (1 out of `any`, 1 in tests), walked 269 files
   "packages/ui-kit/src/augments.second-copy.test.ts": 1,
   "packages/ui-kit/src/augments.ts": 1,
-  "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
-  "packages/ui-kit/src/Tabs.test.tsx": 1,
   "packages/ui-kit/src/WidgetScope.tsx": 1,
-  // packages/uplink-tools: 15 in 8 files (5 out of `any`, 0 in tests), walked 26 files
-  "packages/uplink-tools/src/page-check.ts": 1,
+  // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  "packages/uplink-tools/src/render/cli.ts": 1,
-  "packages/uplink-tools/src/render/context.ts": 2,
-  "packages/uplink-tools/src/render/driver.ts": 6,
-  "packages/uplink-tools/src/render/scenes.ts": 2,
-  "packages/uplink-tools/src/render/shape.ts": 1,
-  "packages/uplink-tools/src/render/wire.ts": 1,
-  // mod/GonogoBreakingGroundUplink/client: 5 in 3 files (5 out of `any`, 0 in tests), walked 33 files
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 3,
-  "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 1,
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
-  // mod/GonogoKerbalismUplink/client: 20 in 7 files (6 out of `any`, 17 in tests), walked 83 files
-  "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
-  "mod/GonogoKerbalismUplink/client/src/isru.test.ts": 2,
-  "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 2,
-  "mod/GonogoKerbalismUplink/client/src/ResourceOps/processFilters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/science.test.ts": 2,
-  "mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/test/widgetDomSnapshot.tsx": 3,
-  // mod/GonogoKosUplink/client: 34 in 8 files (3 out of `any`, 26 in tests), walked 48 files
-  "mod/GonogoKosUplink/client/src/dataSource/__fixtures__/FakeKosUplink.ts": 1,
-  "mod/GonogoKosUplink/client/src/dataSource/kos-execute-uplink.test.ts": 2,
-  "mod/GonogoKosUplink/client/src/dataSource/kos.ts": 1,
-  "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.test.ts": 2,
-  "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.ts": 3,
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 16,
-  "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 6,
-  "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 3,
-  // mod/sitrep-kernel: 5 in 3 files (0 out of `any`, 3 in tests), walked 15 files
-  "mod/sitrep-kernel/src/broker.test.ts": 2,
-  "mod/sitrep-kernel/src/registry.test.ts": 1,
+  // mod/GonogoKerbalismUplink/client: 1 in 1 files (1 out of `any`, 0 in tests), walked 84 files
+  "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts": 1,
+  // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
-  // mod/sitrep-sdk: 81 in 38 files (19 out of `any`, 24 in tests), walked 321 files
-  "mod/sitrep-sdk/src/api/coverage/CoverageMaskStore.ts": 3,
-  "mod/sitrep-sdk/src/api/host.ts": 3,
-  "mod/sitrep-sdk/src/api/index.ts": 2,
+  // mod/sitrep-sdk: 18 in 12 files (1 out of `any`, 1 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/localStorageStore.ts": 1,
-  "mod/sitrep-sdk/src/api/logger.test.ts": 1,
-  "mod/sitrep-sdk/src/api/settings-registry.test-d.ts": 6,
-  "mod/sitrep-sdk/src/api/settings/SettingsService.ts": 2,
-  "mod/sitrep-sdk/src/api/settings/store.ts": 1,
+  "mod/sitrep-sdk/src/api/settings/SettingsService.ts": 1,
   "mod/sitrep-sdk/src/api/uplink-handles.ts": 1,
-  "mod/sitrep-sdk/src/cli/index.test.ts": 1,
-  "mod/sitrep-sdk/src/cli/index.ts": 3,
-  "mod/sitrep-sdk/src/client.ts": 1,
-  "mod/sitrep-sdk/src/extensions.test.ts": 1,
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.test.ts": 10,
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.ts": 2,
-  "mod/sitrep-sdk/src/flight/derive.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.ts": 1,
-  "mod/sitrep-sdk/src/frame-qualifier.test.ts": 1,
-  "mod/sitrep-sdk/src/media/frame-delay.test.ts": 3,
-  "mod/sitrep-sdk/src/media/worker/delay-worker.ts": 3,
-  "mod/sitrep-sdk/src/perf/PerfBudget.ts": 3,
-  "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
-  "mod/sitrep-sdk/src/plan-composition.ts": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts": 2,
-  "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 3,
-  "mod/sitrep-sdk/src/spine/replay-session-controller.ts": 3,
-  "mod/sitrep-sdk/src/spine/timeline-store.ts": 7,
-  "mod/sitrep-sdk/src/spine/use-action-input.ts": 1,
+  "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 1,
+  "mod/sitrep-sdk/src/spine/timeline-store.ts": 6,
   "mod/sitrep-sdk/src/spine/use-stream-event.ts": 1,
   "mod/sitrep-sdk/src/spine/use-stream.ts": 1,
-  "mod/sitrep-sdk/src/testing/install-dom-stubs.ts": 1,
+  "mod/sitrep-sdk/src/testing/index.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
-  "mod/sitrep-sdk/src/testing/stub-transport.ts": 1,
-  "mod/sitrep-sdk/src/unit-system/value.ts": 1,
-  "mod/sitrep-sdk/src/uplink-manifest.ts": 2,
-  "mod/sitrep-sdk/src/version.gate.test.ts": 1,
-  "mod/sitrep-sdk/src/wrap-units.test.ts": 3,
-  // mod/sitrep-server: 2 in 2 files (2 out of `any`, 2 in tests), walked 13 files
-  "mod/sitrep-server/src/courier-command.test.ts": 1,
-  "mod/sitrep-server/src/courier.test.ts": 1,
 };
 
 /**
@@ -364,135 +146,37 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 96 in 43 files (0 out of `any`, 84 in tests), walked 390 files
+  // packages/app: 14 in 10 files (0 out of `any`, 12 in tests), walked 391 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
-  "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
-  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 7,
-  "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
-  "packages/app/src/__tests__/gonogo-host-service.test.ts": 1,
-  "packages/app/src/__tests__/ice-liveness.test.ts": 1,
-  "packages/app/src/__tests__/kos-execute-tunnel.test.ts": 1,
-  "packages/app/src/__tests__/maneuver-trigger-roundtrip.test.ts": 4,
-  "packages/app/src/__tests__/peer-client-data-source.test.ts": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts": 31,
-  "packages/app/src/__tests__/peer-use-data-series.test.tsx": 2,
-  "packages/app/src/__tests__/push-host-service.test.ts": 1,
+  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 1,
+  "packages/app/src/__tests__/peer-client-service.test.ts": 2,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
-  "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx": 1,
-  "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts": 2,
-  "packages/app/src/__tests__/sitrep-stream-wire.test.tsx": 1,
-  "packages/app/src/__tests__/telemetry-components.test.tsx": 1,
-  "packages/app/src/alarms/AlarmHostService.test.ts": 1,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx": 1,
-  "packages/app/src/alarms/contractParameterTrigger.test.ts": 1,
-  "packages/app/src/firstRun/FirstRunSetup.test.tsx": 1,
-  "packages/app/src/firstRun/useUplinkReadiness.integration.test.tsx": 1,
   "packages/app/src/goNoGo/GoNoGoSound.test.tsx": 1,
-  "packages/app/src/logs/screenshotEncoder.ts": 1,
-  "packages/app/src/peer/PeerClientService.ts": 1,
-  "packages/app/src/peer/PeerHostService.peerDrivenSubs.test.ts": 1,
-  "packages/app/src/peer/PeerHostService.sitrepSubs.test.ts": 1,
-  "packages/app/src/peer/PeerHostService.ts": 4,
-  "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 2,
-  "packages/app/src/peer/peerOptions.ts": 1,
-  "packages/app/src/sound/audio.ts": 1,
-  "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
-  "packages/app/src/telemetry/PeerTransport.test.ts": 1,
-  "packages/app/src/telemetry/SitrepPeerRelay.test.tsx": 1,
-  "packages/app/src/telemetry/StationParity.characterise.test.tsx": 2,
-  "packages/app/src/test/fakeAudio.ts": 1,
-  "packages/app/src/uplinks/host.ts": 3,
-  "packages/app/src/uplinks/loader.integrity.test.ts": 1,
-  "packages/app/src/uplinks/loader.skewOverride.test.ts": 1,
-  "packages/app/src/uplinks/loader.test.ts": 1,
-  "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 46 in 26 files (0 out of `any`, 37 in tests), walked 672 files
-  "packages/components/scripts/widgetRenderHarness.ts": 4,
-  "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
-  "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
-  "packages/components/src/AtmosphereProfile/stale.test.tsx": 1,
-  "packages/components/src/AtmosphereProfile/undefined.characterise.test.tsx": 1,
-  "packages/components/src/CrewStatus/badge.test.ts": 2,
-  "packages/components/src/CurrentOrbit/index.test.tsx": 1,
-  "packages/components/src/EscapeProfile/index.test.tsx": 1,
-  "packages/components/src/FuelStatus/index.test.tsx": 6,
-  "packages/components/src/Graph/index.test.tsx": 1,
-  "packages/components/src/Graph/stream.test.tsx": 1,
-  "packages/components/src/KeplerPeriod/dual-run.test.tsx": 1,
-  "packages/components/src/KeplerPeriod/index.test.tsx": 1,
-  "packages/components/src/ManeuverPlanner/burnWindow.ts": 1,
-  "packages/components/src/MapView/index.test.tsx": 1,
-  "packages/components/src/MapView/paintBaseSurface.test.ts": 2,
-  "packages/components/src/MapView/undefined.characterise.test.tsx": 1,
-  "packages/components/src/MapView/useCamera.test.tsx": 4,
+  "packages/app/src/telemetry/StationParity.characterise.test.tsx": 1,
+  "packages/app/src/uplinks/host.ts": 2,
+  // packages/components: 5 in 4 files (0 out of `any`, 5 in tests), walked 676 files
+  "packages/components/src/MapView/paintBaseSurface.test.ts": 1,
+  "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
-  "packages/components/src/OrbitalAscent/index.test.tsx": 1,
-  "packages/components/src/SemiMajorAxis/index.test.tsx": 1,
-  "packages/components/src/shared/useZoomPan.test.tsx": 4,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
-  "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
-  "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
-  "packages/components/src/test/widgetDomSnapshot.tsx": 3,
-  // packages/core: 7 in 5 files (0 out of `any`, 4 in tests), walked 226 files
-  "packages/core/src/actionGroups.undefined.characterise.test.tsx": 3,
+  // packages/core: 2 in 2 files (0 out of `any`, 0 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
-  "packages/core/src/settings/gameHost.ts": 1,
-  "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
-  // packages/logger: 3 in 1 files (0 out of `any`, 0 in tests), walked 11 files
-  "packages/logger/src/AxiomTransport.ts": 3,
-  // packages/relay: 2 in 1 files (0 out of `any`, 2 in tests), walked 13 files
-  "packages/relay/src/__tests__/discoverPublicIp.test.ts": 2,
-  // packages/serial: 11 in 4 files (0 out of `any`, 1 in tests), walked 72 files
-  "packages/serial/src/mocks/mockGamepad.ts": 4,
-  "packages/serial/src/mocks/mockWebSerial.ts": 4,
-  "packages/serial/src/SerialDeviceService.test.ts": 1,
+  // packages/serial: 2 in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 18 in 10 files (0 out of `any`, 17 in tests), walked 163 files
-  "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
-  "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
-  "packages/sitrep-client/src/space-center-state.test.ts": 1,
-  "packages/sitrep-client/src/system-state.test.ts": 1,
-  "packages/sitrep-client/src/uplink-health.test.ts": 1,
-  "packages/sitrep-client/src/vessel-state-mapping.coverage.test.ts": 3,
-  "packages/sitrep-client/src/vessel-state.test.ts": 3,
-  "packages/sitrep-client/src/websocket-transport.test.ts": 3,
-  "packages/sitrep-client/src/websocket-transport.ts": 1,
-  // packages/ui-kit: 3 in 3 files (0 out of `any`, 2 in tests), walked 269 files
+  // packages/sitrep-client: 1 in 1 files (0 out of `any`, 1 in tests), walked 164 files
+  "packages/sitrep-client/src/websocket-transport.test.ts": 1,
+  // packages/ui-kit: 1 in 1 files (0 out of `any`, 0 in tests), walked 269 files
   "packages/ui-kit/src/augments.ts": 1,
-  "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
-  "packages/ui-kit/src/Tabs.test.tsx": 1,
-  // packages/uplink-tools: 7 in 2 files (0 out of `any`, 0 in tests), walked 26 files
+  // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  "packages/uplink-tools/src/render/driver.ts": 6,
-  // mod/GonogoKerbalismUplink/client: 13 in 4 files (0 out of `any`, 11 in tests), walked 83 files
-  "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
-  "mod/GonogoKerbalismUplink/client/src/ResourceOps/processFilters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/test/widgetDomSnapshot.tsx": 2,
-  // mod/GonogoKosUplink/client: 6 in 3 files (0 out of `any`, 4 in tests), walked 48 files
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 2,
-  "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 2,
-  "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 2,
-  // mod/sitrep-sdk: 26 in 15 files (0 out of `any`, 9 in tests), walked 321 files
-  "mod/sitrep-sdk/src/api/host.ts": 3,
-  "mod/sitrep-sdk/src/api/index.ts": 2,
-  "mod/sitrep-sdk/src/api/logger.test.ts": 1,
+  // mod/sitrep-sdk: 4 in 3 files (0 out of `any`, 1 in tests), walked 321 files
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
-  "mod/sitrep-sdk/src/frame-qualifier.test.ts": 1,
-  "mod/sitrep-sdk/src/media/frame-delay.test.ts": 3,
-  "mod/sitrep-sdk/src/media/worker/delay-worker.ts": 3,
-  "mod/sitrep-sdk/src/perf/PerfBudget.ts": 3,
-  "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
-  "mod/sitrep-sdk/src/plan-composition.ts": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts": 2,
-  "mod/sitrep-sdk/src/spine/use-action-input.ts": 1,
-  "mod/sitrep-sdk/src/testing/install-dom-stubs.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
-  "mod/sitrep-sdk/src/wrap-units.test.ts": 2,
 };
 
 /**
@@ -509,8 +193,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 19,
-  files: 2225,
-  assertions: 2022,
+  files: 2232,
+  assertions: 1406,
 } as const;
 
 /**
@@ -524,21 +208,21 @@ export const SCAN_FLOORS = {
  */
 export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/app": 312,
-  "packages/components": 537,
+  "packages/components": 540,
   "packages/core": 180,
   "packages/data": 42,
   "packages/logger": 8,
   "packages/relay": 10,
   "packages/serial": 57,
-  "packages/sitrep-client": 130,
+  "packages/sitrep-client": 131,
   "packages/test-utils": 1,
   "packages/theme": 3,
   "packages/ui": 48,
   "packages/ui-kit": 215,
   "packages/uplink-tools": 20,
   "mod/GonogoBreakingGroundUplink/client": 26,
-  "mod/GonogoKerbalismUplink/client": 66,
-  "mod/GonogoKosUplink/client": 38,
+  "mod/GonogoKerbalismUplink/client": 67,
+  "mod/GonogoKosUplink/client": 39,
   "mod/sitrep-kernel": 12,
   "mod/sitrep-sdk": 256,
   "mod/sitrep-server": 10,

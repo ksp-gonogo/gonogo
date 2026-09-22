@@ -146,6 +146,11 @@ function makeFakeSocketCtor() {
   };
 }
 
+/** The connected client an MSW WebSocket link hands its connection listener. */
+type LinkClient = Parameters<
+  Parameters<ReturnType<typeof ws.link>["addEventListener"]>[1]
+>[0]["client"];
+
 describe("WebSocketTransport", () => {
   it("connects and transitions reconnecting -> connected on open", async () => {
     server.use(link.addEventListener("connection", () => {}));
@@ -165,14 +170,10 @@ describe("WebSocketTransport", () => {
      * callback still reads as its initialiser at the use site: `serverClient`
      * narrowed to `null` and `.send` came off `never`.
      */
-    const serverClient: { current: { send: (data: string) => void } | null } = {
-      current: null,
-    };
+    const serverClient: { current: LinkClient | null } = { current: null };
     server.use(
       link.addEventListener("connection", ({ client }) => {
-        serverClient.current = client as unknown as {
-          send: (data: string) => void;
-        };
+        serverClient.current = client;
         client.addEventListener("message", (event) => {
           received.push(event.data as string);
         });
@@ -229,14 +230,10 @@ describe("WebSocketTransport", () => {
     // the text-only MSW/stub harnesses. This test sends the frame as bytes.
 
     /** Boxed for the same reason as the subscribe test above. */
-    const serverClient: {
-      current: {
-        send: (data: string | ArrayBuffer | ArrayBufferView) => void;
-      } | null;
-    } = { current: null };
+    const serverClient: { current: LinkClient | null } = { current: null };
     server.use(
       link.addEventListener("connection", ({ client }) => {
-        serverClient.current = client as unknown as typeof serverClient.current;
+        serverClient.current = client;
       }),
     );
 

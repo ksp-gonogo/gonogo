@@ -50,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class ReplayToWebSocketEndToEndTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
         private const double NetworkDelaySeconds = 2.0;
 
         [Fact]
@@ -154,7 +154,7 @@ namespace Sitrep.Host.IntegrationTests
                 //      "drain to latest" idiom the M5a BackPressure test uses
                 //      for exactly this lossy-latest-coalescing shape. ----
                 DriveOneStep(host, server, lifecycleEvents);
-                var deliveredC = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(1000));
+                var deliveredC = await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet);
                 Assert.NotNull(deliveredC);
                 AssertCleanSystemBodiesShape(deliveredC!, expectedPlanetSma: 99_000_000, expectedStarName: "Kerbol", expectedPlanetName: "Kerbin");
                 Assert.Equal(3.0, deliveredC!.Meta.ValidAt);

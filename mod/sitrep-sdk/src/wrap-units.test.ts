@@ -8,7 +8,13 @@ import {
   wrapTypePayload,
 } from "./wrap-units";
 
-const asValue = (v: unknown) => v as Value;
+/** A wrapped field as the `Value` it must now be, or a failure saying what it is. */
+const asValue = (v: unknown): Value => {
+  if (!isValue(v)) {
+    throw new Error(`expected a Value, got: ${JSON.stringify(v)}`);
+  }
+  return v;
+};
 
 // A name-keyed map of same-unit readings, registered rather than named out of
 // this assembly's generated map.
@@ -143,16 +149,13 @@ describe("wrapTopicPayload", () => {
     // The unit is declared on the PARENT, because one canonical Vec3 shape is
     // reused at sites carrying three different units. The map propagates it
     // onto dotted leaf keys, and this is the runtime side of Vec3Of.
-    // Through `unknown`: `wrapTypePayload` is declared `T -> T` while what it
-    // returns is the WRAPPED shape, so the bare numbers going in and the
-    // `Value`s coming out share no type the compiler can see.
-    const payload = wrapTypePayload("DockAlignment", {
+    const payload = wrapTypePayload<{
+      relativePosition: { x: Value; y: Value; z: Value };
+      relativeVelocity: { x: Value; y: Value; z: Value };
+    }>("DockAlignment", {
       relativePosition: { x: 1, y: 2, z: 3 },
       relativeVelocity: { x: 0.4, y: 0, z: 0 },
-    }) as unknown as {
-      relativePosition: { x: Value; y: Value; z: Value };
-      relativeVelocity: { x: Value };
-    };
+    });
     expect(payload.relativePosition.x.unit).toBe("m");
     expect(payload.relativePosition.z.magnitude).toBe(3);
     expect(payload.relativeVelocity.x.unit).toBe("m/s");
@@ -182,11 +185,12 @@ describe("wrapTopicPayload", () => {
   it("wraps every element of an array topic", () => {
     // An array Topic's unit entry describes the ELEMENT's fields, which is
     // what a consumer indexes into.
-    // Through `unknown`, for the reason given on the Vec3 case above.
-    const payload = wrapTypePayload("ResourceAmount", [
+    const payload = wrapTypePayload<
+      Array<{ current: Value; max: Value; active: boolean }>
+    >("ResourceAmount", [
       { current: 100, max: 200, active: true },
       { current: 50, max: 200, active: false },
-    ]) as unknown as Array<{ current: Value; active: unknown }>;
+    ]);
     expect(payload.every((entry) => isValue(entry.current))).toBe(true);
     // And the flag beside them is left alone.
     expect(payload[0].active).toBe(true);

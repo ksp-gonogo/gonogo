@@ -18,7 +18,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class FreshConnectionVantageTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         [Fact]
         public async Task AFreshConnection_StartsAtTheHomeTheClaimantNames_NotTheFirstStationById()

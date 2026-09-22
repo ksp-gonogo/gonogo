@@ -11,9 +11,8 @@
 // module augmentation from files that are actually part of the compiled
 // PROGRAM, and a facade-sealed client (which must not import
 // `@ksp-gonogo/components`) never pulls those files in: so
-// `SlotProps<"map-view.overlay">` etc. silently fall back to the untyped
-// `Record<string, unknown>` for a sealed client, exactly the failure mode
-// this seam exists to prevent.
+// `SlotProps<"map-view.overlay">` etc. resolve to `never` for a sealed
+// client, exactly the failure mode this seam exists to prevent.
 //
 // The fix is NOT `import type` from `@ksp-gonogo/components`, same leaf
 // constraint documented at length in `./types.ts`'s header: sitrep-sdk is

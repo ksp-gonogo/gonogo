@@ -11,7 +11,13 @@ import { wrapTopicPayload } from "./wrap-units";
 // src -> sitrep-sdk -> mod
 const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const asValue = (v: unknown) => v as Value;
+/** A wrapped field as the `Value` it must now be, or a failure saying what it is. */
+const asValue = (v: unknown): Value => {
+  if (!isValue(v)) {
+    throw new Error(`expected a Value, got: ${JSON.stringify(v)}`);
+  }
+  return v;
+};
 
 // A SYNTHETIC provider and payload, registered through the SDK's own public
 // entry points.

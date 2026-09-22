@@ -118,8 +118,9 @@ const clamp01OrNull = (v: number | null) => (v === null ? null : clamp01(v));
 
 function parseExperiments(raw: unknown): DeployedExperiment[] {
   if (!Array.isArray(raw)) return [];
+  const entries: unknown[] = raw;
   const out: DeployedExperiment[] = [];
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
@@ -307,9 +308,11 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
       partialPower,
       powerAvailable: first?.powerAvailable ?? null,
       powerRequired: first?.powerRequired ?? null,
-      // The mod's derived boolean, not `connectionState === "Connected"`: that
-      // compared against the English rendering of a localised sentence, so a
-      // connected controller read as disconnected in every other language.
+      /*
+       * The mod's derived boolean, not `connectionState === "Connected"`: that
+       * compared against the English rendering of a localised sentence, so a
+       * connected controller read as disconnected in every other language.
+       */
       controllerEnabled: first?.controllerConnected ?? false,
       experimentCount: experiments.length,
       experiments,
@@ -344,8 +347,9 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
 export function parseBases(raw: unknown): DeployedBase[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
+  const entries: unknown[] = raw;
 
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     if (typeof e.vesselName === "string" && typeof e.id !== "number") {
@@ -355,7 +359,7 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
   }
 
   const out: DeployedBase[] = [];
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     if (typeof e.id !== "number") continue;

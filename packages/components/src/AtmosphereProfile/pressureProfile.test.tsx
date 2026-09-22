@@ -5,7 +5,10 @@ import {
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
@@ -42,34 +45,19 @@ const EARTH_ALTITUDES = [0, 5_000, 10_000, 20_000, 40_000, 80_000];
 const EARTH_PRESSURES = [101.325, 54.0, 26.5, 5.5, 0.28, 0.001];
 
 describe("AtmosphereProfile: the pressure curve is the game's, not a model", () => {
+  let restoreResizeObserver: () => void = () => {};
   beforeEach(() => {
     clearBodies();
     registerStockBodies();
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
   });
 
   afterEach(() => {
     clearBodies();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 

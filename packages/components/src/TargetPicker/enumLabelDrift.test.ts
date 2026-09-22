@@ -61,13 +61,20 @@ function expectIndexAligned(
   });
 }
 
+/**
+ * A generated enum as the key/value record the walk reads.
+ *
+ * TypeScript types an enum object nominally, so the walk cannot be given one
+ * without saying it is also a record. It always is: the emitter writes a plain
+ * object of name/ordinal pairs both ways round.
+ */
+function enumObject(members: object): Record<string, string | number> {
+  return members as Record<string, string | number>;
+}
+
 describe("T3: label arrays stay index-aligned with the generated SDK enums", () => {
-  const vesselTypeMembers = enumMembersByOrdinal(
-    VesselType as unknown as Record<string, string | number>,
-  );
-  const situationMembers = enumMembersByOrdinal(
-    Situation as unknown as Record<string, string | number>,
-  );
+  const vesselTypeMembers = enumMembersByOrdinal(enumObject(VesselType));
+  const situationMembers = enumMembersByOrdinal(enumObject(Situation));
 
   it("VesselType enum has the members this test expects (sanity check on the enum walk itself)", () => {
     expect(vesselTypeMembers).toEqual([

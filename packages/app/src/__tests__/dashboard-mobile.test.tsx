@@ -82,6 +82,25 @@ function registerStubWidget(id: string, name: string) {
   });
 }
 
+/**
+ * The saved dashboard layout, as the items this case reads off it.
+ *
+ * `JSON.parse` answers `any`, so a field name that no longer exists would read
+ * `undefined` rather than failing. `T` names what the case goes on to assert
+ * on, and the parse is checked to be a layout before it is handed over.
+ */
+function savedLayout<T>(key: string): { items: T[] } {
+  const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "{}");
+  const items: unknown =
+    typeof parsed === "object" && parsed !== null
+      ? Reflect.get(parsed, "items")
+      : undefined;
+  if (!Array.isArray(items)) {
+    throw new Error("no dashboard layout was saved");
+  }
+  return { items: items as T[] };
+}
+
 describe("Dashboard: mobile / touch path", () => {
   beforeEach(() => {
     installCoarsePointerMatchMedia();
@@ -179,9 +198,7 @@ describe("Dashboard: mobile / touch path", () => {
 
     await user.click(screen.getAllByRole("button", { name: "Move down" })[0]);
 
-    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
-      items: Array<{ i: string }>;
-    };
+    const stored = savedLayout<{ i: string }>(KEY);
     expect(stored.items.map((it) => it.i)).toEqual(["b", "a"]);
   });
 
@@ -240,9 +257,7 @@ describe("Dashboard: mobile / touch path", () => {
     );
     expect(cell?.getAttribute("data-mobile-width")).toBe("half");
 
-    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
-      items: Array<{ i: string; mobileWidth?: string }>;
-    };
+    const stored = savedLayout<{ i: string; mobileWidth?: string }>(KEY);
     expect(stored.items[0].mobileWidth).toBe("half");
 
     // Round-trip: half → full label switches.
@@ -279,9 +294,7 @@ describe("Dashboard: mobile / touch path", () => {
     const halfHeight = Number(cell?.getAttribute("data-mobile-height") ?? "0");
     expect(halfHeight).toBe(Math.round(fullHeight / 2));
 
-    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as {
-      items: Array<{ i: string; mobileHeight?: string }>;
-    };
+    const stored = savedLayout<{ i: string; mobileHeight?: string }>(KEY);
     expect(stored.items[0].mobileHeight).toBe("half");
 
     await user.click(

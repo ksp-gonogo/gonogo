@@ -18,13 +18,37 @@ import fixture from "./__render__/active-crew-multi-situation.json";
  * <p>The unit tests and the widget itself have no such problem, because they
  * name the member. These two cannot, so they are checked instead.</p>
  */
-const crew = (
-  fixture._stream.emits as Array<{ channel: string; value?: unknown }>
-).find((emit) => emit.channel === "spaceCenter.crewRoster")?.value as Array<{
+/**
+ * The crew roster this fixture emits, which the two checks below read member
+ * by member. A fixture file is untyped JSON, so the emit list is walked rather
+ * than indexed.
+ */
+function crewRosterEmit(): Array<{
   name: string;
   situation: string;
   standing: number;
-}>;
+}> {
+  const emits = fixture._stream?.emits;
+  if (!Array.isArray(emits)) {
+    throw new Error("the render fixture declares no _stream.emits");
+  }
+  const rows: unknown[] = emits;
+  for (const emit of rows) {
+    if (typeof emit !== "object" || emit === null) continue;
+    if (Reflect.get(emit, "channel") !== "spaceCenter.crewRoster") continue;
+    const value: unknown = Reflect.get(emit, "value");
+    if (Array.isArray(value)) {
+      return value as Array<{
+        name: string;
+        situation: string;
+        standing: number;
+      }>;
+    }
+  }
+  throw new Error("the render fixture emits no spaceCenter.crewRoster");
+}
+
+const crew = crewRosterEmit();
 
 // Resolved from the package root rather than from `import.meta.url`: the jsdom
 // environment these tests run in does not give the module a file: URL.

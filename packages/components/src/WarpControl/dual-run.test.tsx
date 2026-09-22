@@ -133,7 +133,8 @@ describe.skipIf(!realFixtureExists)(
       // the frames up to and including the FIRST "time.warp" sample (still
       // entirely within epoch 0), so there is nothing later to cross an
       // epoch boundary with.
-      const orderedFrames = (realFixture.frames as string[])
+      const recorded: string[] = realFixture.frames;
+      const orderedFrames = recorded
         .map((raw) => ({ raw, message: JSON.parse(raw) }))
         .filter(
           (f) => f.message.type === "stream-data" || f.message.type === "event",

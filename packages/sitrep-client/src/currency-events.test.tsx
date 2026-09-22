@@ -128,7 +128,7 @@ describe("useRevealedScience", () => {
     const client = new TelemetryClient(t);
     let shape: Record<string, unknown> = {};
     function ShapeProbe() {
-      shape = useRevealedScience([], 0) as unknown as Record<string, unknown>;
+      shape = { ...useRevealedScience([], 0) };
       return null;
     }
     render(

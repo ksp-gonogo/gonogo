@@ -3,7 +3,7 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
@@ -47,10 +47,6 @@ describe("CurrentOrbitComponent", () => {
       pinnedUt: 0,
       suspendFrames: true,
     });
-  });
-
-  afterEach(() => {
-    stream = undefined as unknown as ReturnType<typeof setupStreamFixture>;
   });
 
   function renderOrbit(

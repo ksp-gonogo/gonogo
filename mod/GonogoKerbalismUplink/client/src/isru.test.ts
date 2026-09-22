@@ -21,6 +21,7 @@ import {
   readKerbalismIsruConverterExt,
   readKerbalismIsruDrillExt,
 } from "./isru";
+import { goldenFrame } from "./test/goldenFrame";
 
 // src -> client -> GonogoKerbalismUplink -> mod
 const MOD_ROOT = join(
@@ -41,15 +42,7 @@ const FIXTURE = join(MOD_ROOT, "golden-fixtures", "isru-extensions.json");
  * them going red.
  */
 function serverFrame<T>(name: string): { topic: string; payload: T } {
-  const vectors = JSON.parse(readFileSync(FIXTURE, "utf8")) as {
-    name: string;
-    json: string;
-  }[];
-  const vector = vectors.find((v) => v.name === name);
-  if (vector === undefined) {
-    throw new Error(`fixture vector ${name} not found`);
-  }
-  return JSON.parse(vector.json) as { topic: string; payload: T };
+  return goldenFrame<T>(FIXTURE, name);
 }
 
 /** Drive one frame through the real client pipeline and hand back what a widget would see. */

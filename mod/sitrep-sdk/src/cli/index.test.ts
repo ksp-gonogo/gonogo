@@ -186,7 +186,11 @@ describe("gonogo-uplink forwards a browser verb to the AUTHOR's tools", () => {
           stdio: "pipe",
         });
       } catch (err) {
-        combined = String((err as { stderr?: string }).stderr ?? "");
+        const stderr: unknown =
+          typeof err === "object" && err !== null
+            ? Reflect.get(err, "stderr")
+            : undefined;
+        combined = String(stderr ?? "");
         throw err;
       }
     }).toThrow();

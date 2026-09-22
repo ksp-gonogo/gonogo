@@ -413,9 +413,8 @@ const MENU_HOST: CSSProperties = {
   // the menu: `position: fixed` makes this host its own stacking context, so a
   // rung declared inside it is trapped there, and any widget's own local
   // `z-index` (the ship diagram's svg carries 1) then paints over the menu.
-  // Held as the token rather than its value so the ladder stays stated once;
-  // `zIndex` is typed as a number, hence the assertion to pass the var through.
-  zIndex: "var(--z-dropdown, 200)" as unknown as CSSProperties["zIndex"],
+  // Held as the token rather than its value so the ladder stays stated once.
+  zIndex: "var(--z-dropdown, 200)",
 };
 
 // Positioning is the host's job now, and so is the rung. Static rather than the

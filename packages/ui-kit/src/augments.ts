@@ -4,6 +4,7 @@ import type {
   SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentType } from "react";
 
 // ---------------------------------------------------------------------------
 // The augment model (Uplink architecture spec §4)
@@ -117,7 +118,7 @@ export interface AugmentSegmentRegistry {
 export type AugmentSegmentProps<Seg extends string> =
   Seg extends keyof AugmentSegmentRegistry
     ? AugmentSegmentRegistry[Seg]
-    : Record<string, unknown>;
+    : never;
 
 // Augment settings (spec §4.7)
 
@@ -154,9 +155,16 @@ export type {
  */
 export type { AugmentDefinition } from "@ksp-gonogo/sitrep-sdk";
 
-// Stored erased to the loose slot type so the registry can hold augments for
-// any slot; `S` is checked at the `registerAugment` call site.
-export type AnyAugment = AugmentDefinition<string>;
+/*
+ * The erased form the registry stores, so one map can hold augments for every
+ * slot. `component` is widened here rather than left at `SlotProps<string>`,
+ * which resolves to `never` for a slot nothing has declared and so describes no
+ * component at all; `S` is checked at the `registerAugment` call site, which is
+ * the only place that knows it.
+ */
+export type AnyAugment = Omit<AugmentDefinition<string>, "component"> & {
+  component: ComponentType<Record<string, unknown>>;
+};
 
 /**
  * The single global slot the augment registry lives in, keyed by a string rather

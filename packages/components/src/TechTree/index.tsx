@@ -23,11 +23,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: ["career.status", "spaceCenter.scene"],
@@ -99,7 +95,8 @@ export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: TechNode[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const id = typeof e.id === "string" ? e.id : null;
@@ -119,7 +116,7 @@ export function parseTechNodes(raw: unknown): TechNode[] | null {
       title: typeof e.title === "string" ? e.title : id,
       description: typeof e.description === "string" ? e.description : "",
       // Compared against the available science to gate the Unlock button.
-      scienceCost: magnitudeOr(e.scienceCost as Quantityish, 0),
+      scienceCost: magnitudeOr(asQuantityish(e.scienceCost), 0),
       state,
       parents: Array.isArray(e.parents)
         ? e.parents.filter((p): p is string => typeof p === "string")

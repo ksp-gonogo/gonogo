@@ -8,6 +8,7 @@ import {
   FIXTURE_GATED_SUITES,
   fixtureGatedTestCount,
 } from "./fixture-gated-suites";
+import { exitStatus, readJsonObject } from "./ratchetBaseRef";
 
 /**
  * Holds the set of never-runs-in-CI suites to the ones that are written down.
@@ -62,7 +63,7 @@ function suitesWithSkipIf(): string[] {
   } catch (err) {
     // Exit 1 is "no matches", which here would mean every gated suite lost its
     // gate at once. The floor below is what refuses to read that as success.
-    if ((err as { status?: number }).status === 1) return [];
+    if (exitStatus(err) === 1) return [];
     throw err;
   }
   return out
@@ -222,9 +223,7 @@ describe("suites that cannot run in CI are declared, not merely skipped", () => 
 
       let topics: unknown;
       try {
-        topics = (
-          JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>
-        ).subscribedTopics;
+        topics = readJsonObject(path).subscribedTopics;
       } catch (err) {
         stale.push(`${fixture}: could not be parsed as JSON (${String(err)})`);
         continue;

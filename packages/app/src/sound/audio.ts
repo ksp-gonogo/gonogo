@@ -16,10 +16,12 @@ let sharedAudioContext: AudioContext | null = null;
  */
 export function getSharedAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
+  /* Safari still ships the prefixed constructor and no other, so a browser
+     with one and not the other is the case this reads for. */
+  const prefixed: unknown = Reflect.get(window, "webkitAudioContext");
   const Ctor =
     window.AudioContext ??
-    (window as unknown as { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
+    (typeof prefixed === "function" ? (prefixed as typeof AudioContext) : null);
   if (!Ctor) return null;
   try {
     if (!sharedAudioContext) sharedAudioContext = new Ctor();

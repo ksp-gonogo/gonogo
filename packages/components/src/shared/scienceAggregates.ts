@@ -1,4 +1,4 @@
-import { magnitudeOr, type Quantityish } from "./magnitude";
+import { asQuantityish, magnitudeOr } from "./magnitude";
 
 /**
  * Client-side science aggregation off the `science.experiments` array.
@@ -29,7 +29,8 @@ interface RawExperiment {
 function asRecordArray(raw: unknown): Record<string, unknown>[] {
   if (!Array.isArray(raw)) return [];
   const out: Record<string, unknown>[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (entry && typeof entry === "object" && !Array.isArray(entry)) {
       out.push(entry as Record<string, unknown>);
     }
@@ -38,7 +39,7 @@ function asRecordArray(raw: unknown): Record<string, unknown>[] {
 }
 
 function num(v: unknown): number {
-  return magnitudeOr(v as Quantityish, 0);
+  return magnitudeOr(asQuantityish(v), 0);
 }
 
 function str(v: unknown, fallback = ""): string {
