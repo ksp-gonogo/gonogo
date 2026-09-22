@@ -820,6 +820,11 @@ const CLIP_TOLERANCE_PX = 4;
  * Meaningful at the FIXED tile size only. The full-content capture path grows
  * the box until nothing is clipped, which is the same reason the overlap gate
  * renders tiles.
+ *
+ * Its caller REFUSES rather than relying on this paragraph. The sentence above
+ * was here first and I still ran the detector through the review path and read
+ * its zero as a clean widget: when you are running something you are not
+ * reading it, so adjacency in a file is not a delivery mechanism.
  */
 export async function findClippedContent(page: Page): Promise<string[]> {
   return page.evaluate(
@@ -1268,6 +1273,15 @@ async function renderOneWidget(
         );
       }
       if (process.env.PROBE_REPORT_CLIPPING === "1") {
+        if (fullContent) {
+          throw new Error(
+            "PROBE_REPORT_CLIPPING=1 with fullContent: the review path grows " +
+              "#root until nothing is clipped, so the detector can only ever " +
+              "report zero here, and a zero from an instrument that cannot " +
+              "detect anything reads as a clean widget. Run it through the " +
+              "visual gate, which renders fixed-tile.",
+          );
+        }
         for (const clip of await findClippedContent(page)) {
           findings.clipped.push(
             `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${clip}`,

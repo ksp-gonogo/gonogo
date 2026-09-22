@@ -79,7 +79,6 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
     careerReading.state === "observed" || careerReading.state === "stale"
       ? careerReading.value.economy
       : undefined;
-  const stale = careerReading.state === "stale";
 
   const model = economy?.economyModel;
   const decay = magnitudeOf(economy?.reputationDecayPerDay);
@@ -163,13 +162,6 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
             </div>
           </div>
         </Section>,
-        stale && (
-          <Section key="stale" full>
-            <p style={CAPTION_STYLE}>
-              No longer current: these are the last rates that arrived.
-            </p>
-          </Section>
-        ),
         <Section key="rates">
           {economy === undefined ? (
             <p style={CAPTION_STYLE}>No career economy has arrived.</p>
