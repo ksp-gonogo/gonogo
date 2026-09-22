@@ -1,4 +1,5 @@
 import type { ws } from "msw";
+import type { DataConnection } from "peerjs";
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { PeerHostService } from "../peer/PeerHostService";
 
@@ -27,4 +28,15 @@ export function asHostService(fake: unknown): PeerHostService {
 /** A fake as the client service under test; see {@link asHostService}. */
 export function asClientService(fake: unknown): PeerClientService {
   return fake as PeerClientService;
+}
+
+/**
+ * A fake as the PeerJS data connection under test.
+ *
+ * `DataConnection` is minted by PeerJS from a live RTCDataChannel and has no
+ * public constructor, so a test stands in for it with the handful of members
+ * the subject touches.
+ */
+export function asDataConnection(fake: unknown): DataConnection {
+  return fake as DataConnection;
 }

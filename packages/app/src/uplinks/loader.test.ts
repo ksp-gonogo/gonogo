@@ -84,11 +84,7 @@ function stubRegistryFetch(index: RegistryIndex | "fail"): void {
         if (index === "fail") {
           return { ok: false, status: 503 } as Response;
         }
-        return {
-          ok: true,
-          status: 200,
-          json: async () => index,
-        } as unknown as Response;
+        return Response.json(index);
       }
       throw new Error(`unexpected fetch: ${url}`);
     }),

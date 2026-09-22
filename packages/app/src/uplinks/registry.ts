@@ -107,7 +107,11 @@ export async function fetchRegistry(
   }
   let json: RegistryIndex;
   try {
-    json = (await res.json()) as RegistryIndex;
+    const body: unknown = await res.json();
+    if (typeof body !== "object" || body === null) {
+      throw new Error("the registry index is not a JSON object");
+    }
+    json = body as RegistryIndex;
   } catch (err) {
     /*
      * A 200 that is not JSON means the index is ABSENT, not malformed. The dev

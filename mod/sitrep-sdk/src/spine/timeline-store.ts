@@ -566,9 +566,10 @@ function lerpFieldValue(
   // construction.
   if (isValue(before) && isValue(after)) {
     const lerped = lerpFieldValue(key, before.magnitude, after.magnitude, t);
-    return lerped === undefined
-      ? undefined
-      : { value: value(before.unit, lerped.value as number) };
+    if (lerped === undefined || typeof lerped.value !== "number") {
+      return undefined;
+    }
+    return { value: value(before.unit, lerped.value) };
   }
   if (typeof before === "number" && typeof after === "number") {
     if (DISCRETE_NUMERIC_FIELD_NAMES.has(key)) {
@@ -3246,7 +3247,7 @@ export class TimelineStore {
     if (field && !(field in (value as object))) return undefined; // unknown field name, nothing to serve
 
     const payload = field
-      ? ((value as Record<string, unknown>)[field] as T)
+      ? (Reflect.get(value as object, field) as T)
       : (value as T);
 
     return {

@@ -13,9 +13,13 @@ export function migrateGameHost(): void {
   try {
     const raw = localStorage.getItem("gonogo.datasource.sitrep");
     if (!raw) return;
-    const parsed = JSON.parse(raw) as { host?: unknown };
-    if (typeof parsed.host === "string" && parsed.host.trim() !== "") {
-      setSetting("gameHost", parsed.host.trim());
+    const parsed: unknown = JSON.parse(raw);
+    const host: unknown =
+      typeof parsed === "object" && parsed !== null
+        ? Reflect.get(parsed, "host")
+        : undefined;
+    if (typeof host === "string" && host.trim() !== "") {
+      setSetting("gameHost", host.trim());
     }
   } catch {
     /* malformed legacy blob: nothing to migrate */
