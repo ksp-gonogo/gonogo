@@ -60,6 +60,8 @@ function makeFakeClient(
     }),
     sendFlightRpc: vi.fn(async (op: FlightRpcOp) => {
       flightOps.push(op);
+      /* `sendFlightRpc` is generic in its CALLER, so no implementation can
+         satisfy every `T`: the fake answers the one shape each case asked for. */
       return (flightRpcImpl ? await flightRpcImpl(op) : null) as never;
     }),
     getCurrentFlight: () => currentFlight,

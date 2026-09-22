@@ -700,8 +700,10 @@ describe("PeerClientService.sendUplinkRelay", () => {
 
       vi.advanceTimersByTime(100);
       const result = await pending;
-      expect(result).toBeInstanceOf(Error);
-      expect((result as Error).message).toMatch(
+      if (!(result instanceof Error)) {
+        throw new Error(`expected a rejection Error, got: ${String(result)}`);
+      }
+      expect(result.message).toMatch(
         /uplink relay timeout \(test-uplink\.doThing\)/,
       );
     } finally {
@@ -820,8 +822,10 @@ describe("PeerClientService.sendBundleFetch", () => {
 
       vi.advanceTimersByTime(100);
       const result = await pending;
-      expect(result).toBeInstanceOf(Error);
-      expect((result as Error).message).toMatch(
+      if (!(result instanceof Error)) {
+        throw new Error(`expected a rejection Error, got: ${String(result)}`);
+      }
+      expect(result.message).toMatch(
         /bundle fetch timeout \(https:\/\/example\.test\/bundle\.js\)/,
       );
     } finally {

@@ -64,6 +64,7 @@ beforeEach(() => {
 
 afterEach(() => {
   clearBodies();
+  restoreResizeObserver();
   vi.unstubAllGlobals();
 });
 

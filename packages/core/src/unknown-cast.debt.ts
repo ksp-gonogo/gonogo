@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 79 of them
- * across 59 files.
+ * Assertions that escape `unknown`, per file. The tree carries 72 of them
+ * across 54 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 41 of the 79 are
+ * **A test fixture minted through an assertion.** 36 of the 72 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 41 of the 79 are `as unknown as`, and those are worth taking
+ * 40 of the 72 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 8 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 7 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 59 files those would be 59 sentences
+ * sentence per entry: at 54 files those would be 54 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -82,14 +82,14 @@
  * commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 31 in 21 files (1 out of `any`, 25 in tests), walked 391 files
+  // packages/app: 30 in 21 files (1 out of `any`, 24 in tests), walked 391 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
   "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 1,
   "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
   "packages/app/src/__tests__/peer-client-data-source.test.ts": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts": 3,
+  "packages/app/src/__tests__/peer-client-service.test.ts": 2,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
   "packages/app/src/alarms/AlarmHostService.test.ts": 1,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 1,
@@ -104,19 +104,15 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/test/peerFakes.ts": 3,
   "packages/app/src/uplinks/externals/runtimeLink.test.ts": 1,
   "packages/app/src/uplinks/host.ts": 2,
-  // packages/components: 14 in 12 files (4 out of `any`, 11 in tests), walked 676 files
-  "packages/components/scripts/synthesize-landing-descent.ts": 2,
-  "packages/components/src/AstronautComplex/renderFixture.test.ts": 1,
+  // packages/components: 9 in 8 files (3 out of `any`, 8 in tests), walked 676 files
   "packages/components/src/MapView/paintBaseSurface.test.ts": 1,
   "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
   "packages/components/src/ScienceData/fixtures.test.tsx": 1,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
-  "packages/components/src/ShipMap/undefined.characterise.test.tsx": 1,
   "packages/components/src/SystemView/fixtureFeeds.test.ts": 1,
   "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 1,
   "packages/components/src/test/pointerStubs.ts": 1,
-  "packages/components/src/WarpControl/dual-run.test.tsx": 1,
   // packages/core: 2 in 2 files (0 out of `any`, 0 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
@@ -136,11 +132,10 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts": 1,
   // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
-  // mod/sitrep-sdk: 21 in 15 files (1 out of `any`, 3 in tests), walked 321 files
+  // mod/sitrep-sdk: 20 in 14 files (1 out of `any`, 2 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/localStorageStore.ts": 1,
   "mod/sitrep-sdk/src/api/settings/SettingsService.ts": 1,
   "mod/sitrep-sdk/src/api/uplink-handles.ts": 1,
-  "mod/sitrep-sdk/src/cli/index.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.ts": 1,
   "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
@@ -164,7 +159,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 22 in 17 files (0 out of `any`, 19 in tests), walked 391 files
+  // packages/app: 21 in 16 files (0 out of `any`, 19 in tests), walked 391 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
@@ -177,7 +172,6 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx": 1,
   "packages/app/src/alarms/contractParameterTrigger.test.ts": 1,
   "packages/app/src/goNoGo/GoNoGoSound.test.tsx": 1,
-  "packages/app/src/peer/PeerHostService.ts": 1,
   "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
   "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx": 1,
@@ -222,7 +216,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2232,
-  assertions: 1425,
+  assertions: 1419,
 } as const;
 
 /**
