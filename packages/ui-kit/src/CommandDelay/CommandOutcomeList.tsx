@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { focusRing } from "../focusRing";
 import { type RailTags, railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
@@ -209,8 +210,5 @@ const CommandOutcomeList__Dismiss = styled.button`
   &:focus-visible {
     color: var(--color-text-primary);
   }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;

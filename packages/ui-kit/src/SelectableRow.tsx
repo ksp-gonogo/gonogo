@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 import type { SpaceToken } from "./Stack";
 
 export interface SelectableRowProps
@@ -67,8 +68,5 @@ const SelectableRow__Root = styled.button<{
     $selected ? "var(--color-status-go-fg)" : "inherit"};
   cursor: pointer;
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;

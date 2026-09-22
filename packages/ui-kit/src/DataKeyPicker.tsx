@@ -15,6 +15,7 @@ import {
   groupComboboxOptions,
   moveComboboxActiveIndex,
 } from "./Combobox";
+import { focusRing } from "./focusRing";
 
 export interface KeyOption extends ComboboxOption {
   unit?: string;
@@ -227,10 +228,7 @@ const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
     outline: none;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &::placeholder {
     color: var(--color-text-faint);

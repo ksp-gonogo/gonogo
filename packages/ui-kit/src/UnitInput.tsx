@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useId, useState } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 import { JogWheel } from "./JogWheel";
 import { MissionDateField, partsOfUt } from "./MissionDateField";
 import { Stack } from "./Stack";
@@ -457,10 +458,7 @@ const SingleField = styled.input`
   font-variant-numeric: tabular-nums;
   min-width: 0;
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;
 
 const UnitSymbol = styled.span`

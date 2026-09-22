@@ -14,6 +14,7 @@ import {
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
 import { useCommandFailures } from "../CommandDelay/useCommandFailures";
+import { focusRing } from "../focusRing";
 import { Spinner } from "../Spinner";
 
 /**
@@ -867,10 +868,7 @@ const CommandButton__Body = styled.button<{
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &:disabled {
     opacity: 0.5;

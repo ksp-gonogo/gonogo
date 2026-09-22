@@ -774,6 +774,10 @@ const InFlightQueue__Sq = styled.div`
   &:is(button):focus-visible .glyph {
     opacity: 0;
   }
+  /* Not the kit's shared ring: this tile draws its border, its background tint
+     and its text from currentColor, which is the phase colour, so a ring in the
+     focus token would be the one part of it that ignored the phase. The 1px
+     offset keeps it clear of the neighbouring square. */
   &:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 1px;

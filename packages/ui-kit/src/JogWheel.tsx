@@ -19,6 +19,7 @@
 import type { KeyboardEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * What displacement MEANS.
@@ -342,10 +343,7 @@ const JogWheel__Root = styled.div<{
   user-select: none;
   opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;
 
 const JogWheel__Tape = styled.div<{ $orientation: "horizontal" | "vertical" }>`

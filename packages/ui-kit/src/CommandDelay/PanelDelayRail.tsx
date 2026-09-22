@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styled, { css } from "styled-components";
+import { focusRingInset } from "../focusRing";
 import { CommandDelay } from "./CommandDelay";
 import { CommandFoundList, type RailFound } from "./CommandFoundList";
 import { CommandLossList, type RailLoss } from "./CommandLossList";
@@ -446,10 +447,7 @@ const PanelDelayRail__Rail = styled.button`
     transition: none;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
+  ${focusRingInset}
 
   /* Open (pinned or the hover preview) grows past the band. Both arrive as
      React state now rather than a CSS hover rule, because the published height

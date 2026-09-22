@@ -1,5 +1,6 @@
 import { useCallback, useId } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 export interface StepperProps<T> {
   /**
@@ -178,10 +179,7 @@ const Stepper__Step = styled.button`
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &:disabled {
     opacity: 0.4;
@@ -205,10 +203,7 @@ const Stepper__Value = styled.div`
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sunken);
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &[aria-disabled="true"] {
     opacity: 0.4;

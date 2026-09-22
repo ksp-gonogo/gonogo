@@ -1,6 +1,7 @@
 import { type ReactNode, useId, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { GhostButton } from "./Button";
+import { focusRing } from "./focusRing";
 import { ChevronRightIcon } from "./Icons";
 
 export interface DisclosureProps {
@@ -187,10 +188,7 @@ const Disclosure__Trigger = styled.button<{
         background: var(--color-surface-sunken);
       }
     `}
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;
 
 /**
