@@ -26,6 +26,22 @@ interface FakeTelemetry {
    * and that is a different read. This is how a test asks for that one.
    */
   publishTopic(topic: string, record: unknown): void;
+  /**
+   * Make the game OBEY `time.setWarpIndex`: the observed rate and index become
+   * what was commanded, as a real session's do.
+   *
+   * Off by default, because a fixture that starts answering a question every
+   * existing case ignored would change what those cases assert.
+   *
+   * It is what gives the controller's reading-ORDER logic anything to be about.
+   * `WarpControl` records the index it saw AT dispatch, and treats a later
+   * reading equal to it as the game not having responded yet. With the game
+   * never responding, every reading equals that one for ever, so a stop the
+   * controller did not ask for is indistinguishable from a command that has not
+   * landed, and the branch that ends a session on an unrequested stop can never
+   * be reached.
+   */
+  obeyWarpCommands(): void;
   calls: string[];
 }
 
@@ -77,8 +93,18 @@ function fakeTelemetry(): FakeTelemetry {
   client.attachStore(store);
 
   const calls: string[] = [];
+  /* Late-bound because the warp record and the publish helper are declared
+     below, and the handler has to be registered before anything dispatches. */
+  let onWarpCommand: ((index: number) => void) | null = null;
   transport.setCommandHandler((command, args) => {
     calls.push(formatCommand(command, args));
+    if (onWarpCommand && command === "time.setWarpIndex") {
+      const index =
+        typeof args === "object" && args !== null && "index" in args
+          ? args.index
+          : undefined;
+      if (typeof index === "number") onWarpCommand(index);
+    }
     return null;
   });
 
@@ -128,6 +154,16 @@ function fakeTelemetry(): FakeTelemetry {
   return {
     calls,
     publishTopic: publish,
+    obeyWarpCommands() {
+      onWarpCommand = (index) => {
+        warp = {
+          ...warp,
+          warpRateIndex: index,
+          warpRate: warp.warpRates[index] ?? warp.warpRate,
+        };
+        publish("time.warp", warp);
+      };
+    },
     set(key, v) {
       if (key === "t.universalTime" && typeof v === "number") {
         setActiveViewClockForTests({ viewUt: () => v });
@@ -914,13 +950,51 @@ describe("AlarmHostService", () => {
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
 
-      /* The ladder is what this case is about and it ends here. The HAND-BACK
-         used to be asserted below it, via the alarm transitioning to `arming`,
-         and that is no longer a thing this side does: a time alarm is the mod's,
-         so the mod steps the warp down and `WarpControl.reconcile` ends the
-         session on the stop it observes. Asserting that needs a reading that
-         arrives AFTER the last ladder command, which this fixture cannot
-         currently express. */
+      /* The ladder is what this case is about and it ends here. The hand-back
+         is the case below, which needs the game to answer commands before a
+         stop can be told from a command that has not landed. */
+    });
+
+    /**
+     * The hand-back, which #39 turned from an edge case into the NORMAL end of
+     * every warp-to session: the mod stops the warp in the frame it decides to,
+     * and this side's job is to stop driving rather than argue.
+     *
+     * Two things are asserted and the second is the point. The session ends,
+     * AND no warp command is issued on the way out: the game is already at zero,
+     * so a command from here would be a second authority for one piece of state
+     * and would arrive after the fact.
+     *
+     * `obeyWarpCommands` is what makes this expressible at all. Until the game
+     * answers a command, every reading equals the one seen at dispatch, and
+     * `WarpControl` cannot tell a stop it did not ask for from a command that
+     * has not landed yet.
+     */
+    it("ends the session on a stop it did not ask for, and sends no command", async () => {
+      const { svc, telemetry } = makeService();
+      telemetry.obeyWarpCommands();
+      svc.addAlarm({
+        name: "Approaching",
+        trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+
+      // The game obeyed and the ladder stepped down, so the reading has moved on from the one seen at the first dispatch.
+      telemetry.set("t.universalTime", 10_000);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
+
+      // Now the mod stops the warp, which this side never asked for.
+      telemetry.calls.length = 0;
+      telemetry.set("t.currentRateIndex", 0);
+      telemetry.set("t.currentRate", 1);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(svc.snapshot().warpTo).toBeNull();
+      expect(telemetry.calls).not.toContain("time.setWarpIndex[0]");
     });
 
     it("retargets to a sooner alarm added mid-session", async () => {
