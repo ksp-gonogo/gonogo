@@ -12,6 +12,15 @@ beforeEach(() => {
   clearUplinkClients();
 });
 
+/* The probe slots these cases register into; an undeclared contribution slot
+   carries no entry shape at all. */
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface ContributionRegistry {
+    "test.slot": { entry: { id: string } };
+    "test.other-slot": { entry: { id: string } };
+  }
+}
+
 describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
   it("registers an enumerable client handle", () => {
     const handle = defineUplinkClient({

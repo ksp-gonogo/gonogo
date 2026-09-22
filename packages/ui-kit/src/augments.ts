@@ -118,7 +118,7 @@ export interface AugmentSegmentRegistry {
 export type AugmentSegmentProps<Seg extends string> =
   Seg extends keyof AugmentSegmentRegistry
     ? AugmentSegmentRegistry[Seg]
-    : Record<string, unknown>;
+    : never;
 
 // Augment settings (spec §4.7)
 

@@ -16,7 +16,7 @@ import {
   useContributions,
 } from "./contributionsRuntime";
 
-declare module "./contributions" {
+declare module "@ksp-gonogo/sitrep-sdk" {
   interface ContributionRegistry {
     "fixture.perf": { entry: { id: string; label: string }; topics: never };
   }

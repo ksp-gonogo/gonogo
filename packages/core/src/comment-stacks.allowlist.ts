@@ -41,7 +41,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/ecosystem.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/index.ts": 2,
   "mod/GonogoKerbalismUplink/client/src/processor-notifications.test.tsx": 1,
-  "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 2,
+  "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/reliability.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/science.test.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/shipSystemsProvenance.test.ts": 1,

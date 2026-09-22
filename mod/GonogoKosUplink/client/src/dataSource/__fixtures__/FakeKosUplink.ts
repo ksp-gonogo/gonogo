@@ -134,15 +134,9 @@ export class FakeKosUplink {
 
   private handleCommand(command: string, rawArgs: unknown): CommandResult {
     if (command !== "kos.run") return { success: true, errorCode: 0 };
-    const {
-      coreId,
-      requestId,
-      command: text,
-    } = rawArgs as {
-      coreId: number;
-      requestId: string;
-      command: string;
-    };
+    const run = asRunArgs(rawArgs);
+    if (!run) return { success: false, errorCode: 1 };
+    const { coreId, requestId, command: text } = run;
     const lines = text
       .trim()
       .split("\n")
@@ -224,4 +218,24 @@ function splitArgs(raw: string): string[] {
   }
   if (current.trim() !== "" || out.length > 0) out.push(current.trim());
   return out;
+}
+
+/**
+ * The `kos.run` args a dispatch carried, and `null` when the three fields this
+ * fake answers on are not all there: a run it cannot correlate is refused
+ * rather than answered against undefined.
+ */
+function asRunArgs(
+  rawArgs: unknown,
+): { coreId: number; requestId: string; command: string } | null {
+  if (
+    typeof rawArgs !== "object" ||
+    rawArgs === null ||
+    typeof Reflect.get(rawArgs, "coreId") !== "number" ||
+    typeof Reflect.get(rawArgs, "requestId") !== "string" ||
+    typeof Reflect.get(rawArgs, "command") !== "string"
+  ) {
+    return null;
+  }
+  return rawArgs as { coreId: number; requestId: string; command: string };
 }
