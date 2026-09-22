@@ -373,7 +373,11 @@ describe.skipIf(!fixtureExists)(
           const parsed: unknown = JSON.parse(raw);
           if (typeof parsed !== "object" || parsed === null) continue;
           const message = parsed as ServerMessage;
-          const meta = Reflect.get(message, "meta") as Meta | undefined;
+          const rawMeta: unknown = Reflect.get(message, "meta");
+          const meta =
+            typeof rawMeta === "object" && rawMeta !== null
+              ? (rawMeta as Meta)
+              : undefined;
 
           if (meta) {
             // Mid-gap wall-clock advance BEFORE delivering this frame, the

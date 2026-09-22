@@ -573,8 +573,8 @@ async function flushProviderFrame(
  */
 function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
   if (opts.defaultConfig !== undefined) return opts.defaultConfig;
-  const registered = getComponents().find(
-    (def) => (def.component as unknown as object) === opts.Widget,
+  const registered = getComponents().find((def) =>
+    Object.is(def.component, opts.Widget),
   )?.defaultConfig;
   return (registered as Cfg | undefined) ?? ({} as Cfg);
 }
