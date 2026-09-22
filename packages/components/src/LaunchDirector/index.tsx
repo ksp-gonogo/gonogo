@@ -528,11 +528,8 @@ function LaunchDirectorComponent({
   // In-flight context: populated when scene === "Flight".
   // The craft's name is set in the editor and changes nowhere else, so the last
   // one received still names the vessel that is flying.
-  const vesselName = stillTrue(
-    useTelemetry("vessel.identity"),
-    undefined,
-  )?.name;
-  const missionTime = useStream<VesselState>("vessel.state")?.met;
+  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const vesselName = identity?.name;
   const altitudeMeters = useStream<VesselState>("vessel.state")?.altitudeAsl;
   /**
    * Whether the save still holds a revert point is a capability the game grants
@@ -576,6 +573,12 @@ function LaunchDirectorComponent({
   // guard tested it with `typeof === "number"`, which answers NO for a wrapped
   // value and would have silently stopped recognising a post-dated snapshot.
   const viewUt = useViewUt();
+  // Elapsed mission time is the view clock measured from liftoff, absent until
+  // the clamps release: `launchUt` is null until then.
+  const missionTime =
+    identity?.launchUt == null || viewUt === undefined
+      ? undefined
+      : (magnitudeOf(viewUt.minus(identity.launchUt)) ?? undefined);
   // `target.available` ships the switcher's real roster: the producer
   // (TargetProvider) already excludes the active vessel itself, so no extra
   // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
@@ -2138,7 +2141,7 @@ registerComponent<LaunchDirectorConfig>({
     "career.status.economy.subsidyPerDay",
     "career.status.economy.upkeepPerDay",
     "vessel.identity.name",
-    "vessel.state.met",
+    "vessel.identity.launchUt",
     "vessel.state.altitudeAsl",
     "ksp.revertAvailability.canRevertToLaunch",
     "ksp.revertAvailability.canRevertToEditor",

@@ -44,23 +44,28 @@ function crew(radiation: number, asOfUt: number) {
     {
       name: "Jebediah Kerman",
       trait: "Pilot",
-      asOfUt,
+      rulesAsOfKerbalismUt: asOfUt,
       rules: [
         {
           name: "radiation",
-          value: radiation,
+          problem: radiation,
           degenPerSec: 0.002,
           fatalThreshold: 50,
         },
-        { name: "stress", value: 0.2, degenPerSec: 0.001, fatalThreshold: 1 },
+        { name: "stress", problem: 0.2, degenPerSec: 0.001, fatalThreshold: 1 },
       ],
     },
     {
       name: "Bob Kerman",
       trait: "Scientist",
-      asOfUt,
+      rulesAsOfKerbalismUt: asOfUt,
       rules: [
-        { name: "stress", value: 0.08, degenPerSec: 0.001, fatalThreshold: 1 },
+        {
+          name: "stress",
+          problem: 0.08,
+          degenPerSec: 0.001,
+          fatalThreshold: 1,
+        },
       ],
     },
   ];

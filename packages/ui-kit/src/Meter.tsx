@@ -234,6 +234,13 @@ export function Meter<U extends string = string>({
     // still the reading it always was; what is no longer known is the axis it
     // is drawn against, and marking the bar would say the wrong half aged.
     trackNotCurrent: held.reading?.state === "stale",
+    /*
+     * The FIGURE's own currency, which dims the fill. STALENESS is the whole
+     * condition: a held reading is no longer a reading of now whether or not
+     * anything named a grade for it, and a bright fill over a held figure says
+     * it is current.
+     */
+    notCurrent: shown.reading?.state === "stale",
     ...rest,
   };
   // Where the capacity's own doubt puts the end of the track, as a fraction of
@@ -502,6 +509,14 @@ interface MeterBarProps
   fillColor?: string;
   /** Whether the AXIS has stopped being current. See `Meter__Track`. */
   trackNotCurrent: boolean;
+  /**
+   * The grade's word where the FIGURE has stopped being current, else `null`.
+   *
+   * One treatment for the whole meter rather than a mark per entry: a stack of
+   * rows that each grew their own marker reads as the meter's main content
+   * instead of as a statement about it.
+   */
+  notCurrent: boolean;
   /** The value for the eye, as markup. */
   display: ReactNode;
   /** The same value for the ear, as the string an attribute can hold. */
@@ -526,6 +541,7 @@ function MeterBar({
   tone,
   fillColor,
   trackNotCurrent,
+  notCurrent,
   display,
   spoken,
   bounds,
@@ -552,6 +568,8 @@ function MeterBar({
           <Meter__Fill
             $tone={tone}
             $fillColor={fillColor}
+            $notCurrent={notCurrent}
+            data-fill-not-current={notCurrent ? "" : undefined}
             style={{ width: `${pct}%` }}
           />
         </Meter__Track>
@@ -754,6 +772,16 @@ const Meter__Value = styled.span`
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Room for the not-current mark, which Unit draws OUTSIDE this box at
+     left:100% and the overflow above would otherwise eat whole. Measured
+     rather than chosen: the mark is max(0.3em, 4px) wide plus a 0.14em
+     margin, and a probe of the real clip put its right edge 6px past this
+     box, which is the --space-6 rung exactly. Anything smaller still clips.
+
+     Reserved unconditionally, because a width that appeared only when a
+     channel went quiet is exactly the reflow the mark is absolutely
+     positioned to avoid. */
+  padding-right: max(0.44em, var(--space-6));
 `;
 
 /* The bar's axis.
@@ -765,6 +793,7 @@ const Meter__Value = styled.span`
    is how one visual language stops being one. A dash reads as provisional
    whether or not the reader can separate the two greys (WCAG 1.4.1), and the
    words are in `aria-valuetext`. */
+
 const Meter__Track = styled.div<{ $notCurrent: boolean }>`
   width: 100%;
   border-radius: var(--radius-pill);
@@ -837,10 +866,19 @@ const Meter__Bound = styled.div`
   pointer-events: none;
 `;
 
-const Meter__Fill = styled.div<{ $tone: MeterTone; $fillColor?: string }>`
+const Meter__Fill = styled.div<{
+  $tone: MeterTone;
+  $fillColor?: string;
+  $notCurrent: boolean;
+}>`
   height: 100%;
   border-radius: var(--radius-pill);
   transition: width var(--duration-slow) var(--ease-standard);
+  /* Dimmed rather than recoloured, and the FILL rather than the whole meter.
+     A second hue here would be read as the status the fill's colour already
+     carries, and dimming the root would take the label and the figure with it,
+     which is the one thing a held reading must stay readable as. */
+  ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.55;" : "")}
   /* $fillColor wins outright when set: an identity fill (a resource's own
      colour) isn't "one of five tones", it's a fully arbitrary CSS colour,
      so this is a straight override rather than another TONE_FILL entry. */

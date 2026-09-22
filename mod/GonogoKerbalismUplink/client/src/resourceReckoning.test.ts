@@ -55,7 +55,7 @@ function ingest(fixture: StreamFixture, topic: string, payload: unknown) {
 /** Food draining at 0.1/s, Oxygen in balance, accumulators stamped at UT 900. */
 function lifeSupport(overrides: Partial<LifeSupport> = {}): LifeSupport {
   return {
-    asOfUt: value("ut", 900),
+    asOfKerbalismUt: value("ut", 900),
     rates: { Food: value("units/s", -0.1), Oxygen: value("units/s", 0) },
     ...overrides,
   };
@@ -209,7 +209,7 @@ describe("when the model refuses", () => {
   it("declines when Kerbalism publishes no last-advanced stamp", () => {
     // A statement of ignorance the mod makes deliberately rather than
     // substituting a capture time: with no anchor there is no interval.
-    const unstamped = lifeSupport({ asOfUt: undefined });
+    const unstamped = lifeSupport({ asOfKerbalismUt: undefined });
 
     expect(readAt(1100, unstamped).reckoning.status).toBe("none");
   });
@@ -264,7 +264,9 @@ describe("the reason a refusal gives", () => {
   });
 
   it("names the stamp when the mod could not read its own evaluation marker", () => {
-    expect(declineOf(lifeSupport({ asOfUt: undefined }), 1100)).toMatchObject({
+    expect(
+      declineOf(lifeSupport({ asOfKerbalismUt: undefined }), 1100),
+    ).toMatchObject({
       reason: "input-absent",
       input: "@kerbalism.lifesupport#asOfUt",
     });
@@ -346,7 +348,7 @@ describe("the moment a level leaves the range it can occupy", () => {
   it("declines to invent one when Kerbalism published no stamp to anchor it to", () => {
     // The same refusal the model makes: with no anchor there is no moment,
     // and a capture time substituted for it would be a UT nobody measured.
-    const unstamped = lifeSupport({ asOfUt: undefined });
+    const unstamped = lifeSupport({ asOfKerbalismUt: undefined });
 
     expect(resourceBoundaryCrossings(AMOUNTS, unstamped)).toEqual([]);
   });

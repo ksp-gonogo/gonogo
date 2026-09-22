@@ -17,6 +17,7 @@
 
 import type { ComponentType } from "react";
 import type { CommandArgs, CommandId, CommandReply } from "../commands";
+import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import type { UplinkAlarmRequest } from "./alarm-request";
@@ -142,11 +143,16 @@ export interface GonogoHost {
    * sitrep-client's `ProcessorHandle` (same constraint as
    * `useTelemetryStoreOptional`'s opaque return). Degrades to `undefined` with
    * no provider mounted, or before the processor's first frame lands.
+   *
+   * A processor whose own deps include a reading answers a `Reading<R>`, one
+   * depending only on raw topic ids answers the bare `R`. The handle's own
+   * brand decides which, so a consumer cannot be handed the wrong shape.
    */
-  useProcessor<R>(handle: {
+  useProcessor<R, Carried extends boolean>(handle: {
     readonly id: string;
     readonly __resultType?: R;
-  }): R | undefined;
+    readonly __carriesCurrency?: Carried;
+  }): (Carried extends true ? Reading<R> : R) | undefined;
   useViewClock(): unknown;
   /**
    * Returns the function an Uplink calls to ask the app to CREATE an alarm.

@@ -10,7 +10,12 @@ import {
   useViewUt,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
-import { type ReckoningBasis, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type ReckoningBasis,
+  TargetKind,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   ConfigForm,
@@ -380,9 +385,9 @@ function TargetingComponent({
    * `Date.now()`, which this widget deliberately never does.
    */
   const dockObservedUt = observedAt(dockReading);
-  const dockAgeSec =
+  const dockAge =
     universalTime !== undefined && dockObservedUt
-      ? Math.max(0, value("ut", universalTime).minus(dockObservedUt).magnitude)
+      ? value("ut", universalTime).minus(dockObservedUt).max(0)
       : undefined;
 
   useEffect(() => {
@@ -426,12 +431,9 @@ function TargetingComponent({
   // lets two reads within one frame disagree about how old the same sample is,
   // which is the bug class `FrameToken` exists to prevent.
   const targetObservedUt = observedAt(targetReading);
-  const ageSec =
+  const age =
     universalTime !== undefined && targetObservedUt
-      ? Math.max(
-          0,
-          value("ut", universalTime).minus(targetObservedUt).magnitude,
-        )
+      ? value("ut", universalTime).minus(targetObservedUt).max(0)
       : undefined;
 
   if (targetReading.state === "pending") {
@@ -483,9 +485,9 @@ function TargetingComponent({
               reader would have read it out. */}
           <Stack>
             <span>No target set in KSP</span>
-            {ageSec !== undefined && (
+            {age !== undefined && (
               <ReadoutCaption>
-                {confirmedWord} <Unit value={value("s", ageSec)} /> ago
+                {confirmedWord} <Unit value={age} /> ago
               </ReadoutCaption>
             )}
           </Stack>
@@ -514,7 +516,7 @@ function TargetingComponent({
         forwardDot={dockForwardDot?.magnitude}
         modelled={
           modelledAlignment
-            ? { basis: modelledAlignment, ageSec: dockAgeSec }
+            ? { basis: modelledAlignment, age: dockAge }
             : undefined
         }
         showCamera={hudMode === "hud-with-camera"}
@@ -535,9 +537,7 @@ function TargetingComponent({
           typeof closestApproachUT === "number" ? closestApproachUT : null
         }
         universalTime={typeof universalTime === "number" ? universalTime : null}
-        alignmentWithheld={
-          alignmentWithheld ? { ageSec: dockAgeSec } : undefined
-        }
+        alignmentWithheld={alignmentWithheld ? { age: dockAge } : undefined}
         cols={cols}
         rows={rows}
       />
@@ -596,9 +596,9 @@ function TargetingComponent({
         {outOfContact && (
           <ReadoutCaption role="status">
             at last contact
-            {ageSec !== undefined && (
+            {age !== undefined && (
               <>
-                , <Unit value={value("s", ageSec)} /> ago
+                , <Unit value={age} /> ago
               </>
             )}
           </ReadoutCaption>
@@ -679,7 +679,7 @@ interface ApproachHudProps {
    * available. Carries the age of the last dock observation where there is one,
    * so the notice can date itself.
    */
-  alignmentWithheld?: { ageSec: number | undefined };
+  alignmentWithheld?: { age: Value<"s"> | undefined };
   cols: number;
   rows: number;
 }
@@ -728,13 +728,13 @@ function ReadoutRow({
  * the second is a link problem. So the withholding is stated in words, dated off
  * the last dock observation where there is one.
  */
-function AlignmentWithheldNotice({ ageSec }: { ageSec: number | undefined }) {
+function AlignmentWithheldNotice({ age }: { age: Value<"s"> | undefined }) {
   return (
     <ReadoutCaption role="status">
       Docking alignment no longer current
-      {ageSec !== undefined && (
+      {age !== undefined && (
         <>
-          , last seen <Unit value={value("s", ageSec)} /> ago
+          , last seen <Unit value={age} /> ago
         </>
       )}
     </ReadoutCaption>
@@ -818,7 +818,7 @@ function ApproachHud({
               </Text>
             )}
             {alignmentWithheld && (
-              <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
+              <AlignmentWithheldNotice age={alignmentWithheld.age} />
             )}
           </Section>
         }
@@ -877,7 +877,7 @@ function ApproachHud({
             </ReadoutRow>
           </Grid>
           {alignmentWithheld && (
-            <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
+            <AlignmentWithheldNotice age={alignmentWithheld.age} />
           )}
         </Section>,
       ]}
@@ -909,7 +909,7 @@ interface DockingHudProps {
    * observation behind it is. The reticle is honest either way; what would not
    * be is drawing it without saying which.
    */
-  modelled: { basis: ReckoningBasis; ageSec: number | undefined } | undefined;
+  modelled: { basis: ReckoningBasis; age: Value<"s"> | undefined } | undefined;
   showCamera: boolean;
   cameraFlightId: number | null | undefined;
   cols: number;
@@ -1327,9 +1327,9 @@ function DockingHud(props: DockingHudProps) {
             {modelled && (
               <ReadoutCaption role="status">
                 Alignment reckoned ({modelled.basis})
-                {modelled.ageSec !== undefined && (
+                {modelled.age !== undefined && (
                   <>
-                    , last seen <Unit value={value("s", modelled.ageSec)} /> ago
+                    , last seen <Unit value={modelled.age} /> ago
                   </>
                 )}
               </ReadoutCaption>

@@ -332,14 +332,14 @@ namespace Gonogo.KerbalismUplink
                 },
                 ["processes"] = procs,
                 ["ruleEnvModifiers"] = ruleModifierMap,
-                ["asOfUt"] = asOfUt,
+                ["asOfKerbalismUt"] = asOfUt,
             };
         }
 
         /// <summary>
         /// <paramref name="asOfUt"/> stamps every entry with the UT Kerbalism
         /// last advanced these accumulators at (see
-        /// <c>KerbalismCrewEntry.AsOfUt</c>): null stays null rather than
+        /// <c>KerbalismCrewEntry.RulesAsOfKerbalismUt</c>): null stays null rather than
         /// standing in the read time, which would claim a freshness nobody
         /// measured.
         /// </summary>
@@ -359,7 +359,7 @@ namespace Gonogo.KerbalismUplink
                     rules.Add(new Dictionary<string, object?>
                     {
                         ["name"] = kv.Key,
-                        ["value"] = kv.Value,
+                        ["problem"] = kv.Value,
                         ["degenPerSec"] = c.DegenPerSec,
                         ["fatalThreshold"] = c.FatalThreshold,
                     });
@@ -392,7 +392,7 @@ namespace Gonogo.KerbalismUplink
                     ["deathClockUt"] = deathClockSec.HasValue && asOfUt.HasValue
                         ? asOfUt.Value + deathClockSec.Value
                         : (double?)null,
-                    ["asOfUt"] = asOfUt,
+                    ["rulesAsOfKerbalismUt"] = asOfUt,
                 });
             }
             return list;

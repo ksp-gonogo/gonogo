@@ -289,8 +289,13 @@ export function ShipDiagram({
             <Meter
               key={`meter-${m.resource}`}
               label={m.displayName}
-              value={value("units", m.amount)}
-              capacity={m.capacity > 0 ? value("units", m.capacity) : null}
+              /* Handed over as they arrived. A contributor may send the whole
+                 reading, and `Meter` is what marks a held figure and places a
+                 band; minting a bare quantity here would strip both. A
+                 non-positive capacity is the primitive's own case too: it
+                 draws the absent form rather than a full bar. */
+              value={m.amount}
+              capacity={m.capacity}
               fillColor={resourceColor(m.resource)}
               style={
                 m.status

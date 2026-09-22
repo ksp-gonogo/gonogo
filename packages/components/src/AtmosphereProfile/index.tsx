@@ -6,6 +6,7 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -18,6 +19,7 @@ import {
 import { formatDensity } from "../shared/formatDensity";
 import { magnitudeOf } from "../shared/magnitude";
 import type { StreamBody } from "../shared/streamBody";
+import { useBodyName } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 export interface AtmosphereProfileConfig {
@@ -26,7 +28,7 @@ export interface AtmosphereProfileConfig {
 }
 
 const topics = defineTopicManifest({
-  channels: ["vessel.flight", "system.bodies"],
+  channels: ["vessel.flight", "vessel.identity", "system.bodies"],
 });
 
 const REFERENCE_SAMPLES = 80;
@@ -103,10 +105,6 @@ function AtmosphereProfileComponent({
   w,
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
-  // Canonical native reads: `v.body`/`v.altitude` off the `vessel.state`
-  // derived channel (SDK-side `deriveVesselState`: `parentBodyName`/
-  // `altitudeAsl`), `v.atmosphericDensity`/`v.atmosphericTemperature`/
-  // `v.externalTemperature` off the raw `vessel.flight` Topic.
   const vesselState = useStream<VesselState>("vessel.state");
   /**
    * All three atmospheric numbers are quantities that drift on their own as the
@@ -142,7 +140,9 @@ function AtmosphereProfileComponent({
         ? flightReading.value
         : undefined;
   const flightNotCurrent = flightReading.state === "stale";
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   /* Resolved against the same `system.bodies` roster the name came from, not
      against the bundled table of STOCK bodies: a planet pack renames both
      sides together, and a name lookup in the table missed every one of them. */

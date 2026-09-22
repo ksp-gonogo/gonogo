@@ -527,7 +527,11 @@ export type Contributed<E> = E & {
 export type ContributionDep =
   | TopicId
   | { readonly reading: TopicId }
-  | { readonly id: string; readonly __resultType?: unknown };
+  | {
+      readonly id: string;
+      readonly __resultType?: unknown;
+      readonly __carriesCurrency?: boolean;
+    };
 
 /**
  * The KEY the aggregation writes one dep's value under: a Topic id under
@@ -562,6 +566,12 @@ type DepKey<E> = E extends string
  * differ; this types what a contribution is actually given. No contribution in
  * the tree uses a reading dep today, so nothing is relying on either reading of
  * it.</para>
+ *
+ * <para>A PROCESSOR dep is the other way round and must track the evaluator
+ * exactly: a processor whose own deps include a reading answers a `Reading`,
+ * and the stored value a contribution is handed is that same answer. Typing it
+ * as the bare result here would hand a contribution a reading while telling it
+ * otherwise, which is the defect the brand exists to prevent.</para>
  */
 type DepValue<E> = E extends string
   ? TopicPayload<E & TopicId> | undefined
@@ -570,7 +580,9 @@ type DepValue<E> = E extends string
       ? TopicPayload<T> | undefined
       : never
     : E extends { readonly id: string; readonly __resultType?: infer R }
-      ? R | undefined
+      ? E extends { readonly __carriesCurrency?: true }
+        ? Reading<R> | undefined
+        : R | undefined
       : never;
 
 /** Every dep a contribution declared, keyed and typed the way it arrives. */

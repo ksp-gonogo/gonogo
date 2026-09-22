@@ -22,6 +22,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
   Panel,
@@ -37,6 +38,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
+import { useBodyName } from "../shared/useBodyName";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { BurnConformanceRow } from "./BurnConformanceRow";
@@ -253,12 +255,13 @@ function ManeuverPlannerComponent({
     useStream<VesselState>("vessel.state")?.orbitalSpeed ?? undefined;
   const radius =
     useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
-  const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
-  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
-  const parentBodyRadius =
-    useStream<VesselState>("vessel.state")?.parentBodyRadius;
-  const referenceBodyRadius =
-    useStream<VesselState>("vessel.state")?.referenceBodyRadius;
+  const parentBodyIndex =
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex;
+  const bodies = useStream<BodyRadiusTable>("system.bodies");
+  const refBody = useBodyName(orbit?.referenceBodyIndex);
+  const bodyName = useBodyName(parentBodyIndex);
+  const parentBodyRadius = bodyRadiusOf(bodies, parentBodyIndex);
+  const referenceBodyRadius = bodyRadiusOf(bodies, orbit?.referenceBodyIndex);
   const inclination = magnitudeOf(orbit?.inc) ?? undefined;
   const targetName = target?.name;
   const targetInclinationLive = magnitudeOf(target?.orbit?.inc) ?? undefined;
@@ -271,7 +274,6 @@ function ManeuverPlannerComponent({
    * TARGET's reference body, not the craft's, so the radius comes from its own
    * `referenceBodyIndex`.
    */
-  const bodies = useStream<BodyRadiusTable>("system.bodies");
   const targetSolved =
     target?.orbit == null || currentUT === undefined
       ? undefined
@@ -299,7 +301,18 @@ function ManeuverPlannerComponent({
    * a budget vanishing mid-blackout turns a craft that is demonstrably short
    * into one we have no opinion about, and re-enables the button.
    */
-  const availableDeltaV = magnitudeOf(useProcessor(DELTA_V_BUDGET)?.totalVac);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const availableDeltaV = magnitudeOf(
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value?.totalVac
+      : undefined,
+  );
 
   // Adding, updating and removing a node all actuate the craft's flight plan, so each is subject to signal delay and rides `useCommand`.
   const addNodeCmd = useCommand("vessel.maneuver.add");
@@ -1041,8 +1054,9 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.state.trueAnomaly",
     "vessel.state.orbitalSpeed",
     "vessel.state.orbitalRadius",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
+    "vessel.orbit.referenceBodyIndex",
+    "system.bodies",
+    "vessel.identity.parentBodyIndex",
     "vessel.maneuver.nodes",
     "dv.stages",
   ],

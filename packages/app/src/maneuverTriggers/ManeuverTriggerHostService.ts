@@ -270,6 +270,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
 
   private readLiveOrbit() {
     const orbit = getVesselOrbit();
+    const bodies = getSystemBodies();
     const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
@@ -324,7 +325,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
        * misses, and a transfer that needs a radius quietly plans nothing.
        */
       bodyRadius: solverInput(
-        state?.parentBodyRadius ?? state?.referenceBodyRadius,
+        bodyRadiusOf(bodies, getVesselIdentity()?.parentBodyIndex) ??
+          bodyRadiusOf(bodies, orbit?.referenceBodyIndex),
       ),
     };
   }

@@ -236,8 +236,7 @@ export function bodyNamed(
  * The parent body from the two Topics a CONTRIBUTION is handed.
  *
  * <p>A contribution gets Topic values and nothing else, so it does the
- * index-to-body join itself; `vessel.state.parentBodyRadius` is a derived
- * channel and not a Topic it may depend on.</p>
+ * index-to-body join itself rather than reaching for a hook.</p>
  *
  * <p>The parameter names the two topics it reads rather than taking an open
  * record, so a caller that did not declare them as `deps` fails here instead of

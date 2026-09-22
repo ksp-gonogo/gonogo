@@ -12,6 +12,7 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   apsidesExist,
   type ControlFrame,
@@ -33,11 +34,17 @@ import { useEffect, useRef, useState } from "react";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
+import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  channels: [
+    "vessel.orbit",
+    "vessel.state",
+    "vessel.identity",
+    "system.bodies",
+  ],
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -51,8 +58,8 @@ const topics = defineTopicManifest({
     "vessel.state.timeToPe",
     "vessel.state.trueAnomaly",
     "vessel.state.period",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
+    "vessel.orbit.referenceBodyIndex",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
@@ -135,16 +142,6 @@ function CurrentOrbitComponent({
   const controlFrame = useStream<ControlFrame>("system.frame");
   const apsides = apsidesExist(controlFrame);
   const noApsidesHere = apsides === "invalid";
-  // Every read rides the SDK stream directly, no legacy `useTelemetry("data",
-  // ...)` fallback:
-  //   - sma/eccentricity/inclination/argPe are raw `vessel.orbit.*` elements,
-  //     read off the canonical whole-`vessel.orbit` Topic.
-  //   - trueAnomaly/period (+ Ap/Pe/ApR/PeR/timeToAp/timeToPe via
-  //     `useOrbitElements`) and referenceBody/bodyName are SDK-derived
-  //     `vessel.state.*` fields (deriveVesselState: trueAnomaly propagated at
-  //     view-UT, referenceBodyName/parentBodyName resolved index → name against
-  //     `system.bodies`). `vessel.state` isn't a wire `TopicId`, so it reads
-  //     through `useStream`.
   // This widget DRAWS the orbit and the craft's place on it, which is a marker:
   // a positive claim about where it is now. So the elements come from a CURRENT
   // reading, or from a model where one is on offer, and otherwise from nothing,
@@ -198,8 +195,15 @@ function CurrentOrbitComponent({
   const period = derivedCurrent
     ? (vesselState?.period ?? undefined)
     : undefined;
-  const refBody = vesselState?.referenceBodyName ?? undefined;
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  /*
+   * The body's NAME is a label rather than a marker, so it holds off the last
+   * observation the way the subtitle beside it does: which body a craft is
+   * around does not change down a link that has gone quiet.
+   */
+  const refBody = useBodyName(observedOrbit?.referenceBodyIndex);
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
 
