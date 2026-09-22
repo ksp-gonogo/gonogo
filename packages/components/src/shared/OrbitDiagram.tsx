@@ -259,7 +259,7 @@ function Rotated({
   transform?: string;
   children: ReactNode;
 }) {
-  return transform ? <g transform={transform}>{children}</g> : <>{children}</>;
+  return transform ? <g transform={transform}>{children}</g> : children;
 }
 
 export function OrbitDiagram({
