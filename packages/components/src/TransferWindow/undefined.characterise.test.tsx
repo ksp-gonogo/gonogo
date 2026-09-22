@@ -143,13 +143,14 @@ function emitReady(
  */
 async function landedOrbitPoint(
   fixture: ReturnType<typeof setupStreamFixture>,
-) {
-  let point: unknown;
+): Promise<{ payload: unknown }> {
+  let point: { payload: unknown } | undefined;
   await waitFor(() => {
     point = fixture.store.sample("vessel.orbit", fixture.store.currentFrame());
     if (!point) throw new Error("vessel.orbit point has not landed");
   });
-  return point as { payload: unknown };
+  if (!point) throw new Error("vessel.orbit point has not landed");
+  return point;
 }
 
 describe("TransferWindow: nothing has arrived at all", () => {
@@ -243,9 +244,7 @@ describe("TransferWindow: the absence gates fire today", () => {
       emitReady(fixture, { referenceBodyIndex: null });
     });
     const point = await landedOrbitPoint(fixture);
-    expect(
-      (point.payload as { referenceBodyIndex: unknown }).referenceBodyIndex,
-    ).toBeNull();
+    expect(Reflect.get(point.payload ?? {}, "referenceBodyIndex")).toBeNull();
     expect(screen.getByText("Waiting for vessel orbit...")).toBeInTheDocument();
   });
 

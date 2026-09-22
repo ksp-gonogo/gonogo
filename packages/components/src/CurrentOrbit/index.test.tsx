@@ -49,10 +49,6 @@ describe("CurrentOrbitComponent", () => {
     });
   });
 
-  afterEach(() => {
-    stream = undefined as unknown as ReturnType<typeof setupStreamFixture>;
-  });
-
   function renderOrbit(
     config: Parameters<typeof CurrentOrbitComponent>[0]["config"] = {},
   ) {

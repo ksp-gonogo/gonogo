@@ -32,10 +32,6 @@ describe("SemiMajorAxisComponent", () => {
     });
   });
 
-  afterEach(() => {
-    stream = undefined as unknown as ReturnType<typeof setupStreamFixture>;
-  });
-
   function renderSma(size: { w: number; h: number } = { w: 5, h: 6 }) {
     // Default render size meets the subtitle threshold (rows≥5, cols≥4)
     // so tests that assert on the "Semi-major axis · Kerbin" subtitle
