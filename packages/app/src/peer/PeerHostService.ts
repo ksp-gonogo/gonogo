@@ -22,6 +22,7 @@ import { fetchHostIceServers } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
+import { asPeerMessage } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { TypedListeners } from "./typedListeners";
 
@@ -89,7 +90,7 @@ function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
 function extractErrorMeta(error: Error): Record<string, unknown> | undefined {
   const extra: Record<string, unknown> = {};
   for (const key of Object.keys(error)) {
-    extra[key] = (error as unknown as Record<string, unknown>)[key];
+    extra[key] = Reflect.get(error, key);
   }
   return Object.keys(extra).length > 0 ? extra : undefined;
 }
@@ -740,7 +741,10 @@ export class PeerHostService {
         void this.attachFlightListChangeBroadcaster();
         this.events.emit("peerConnect", conn.peer);
       });
-      conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
+      conn.on("data", (raw) => {
+        const msg = asPeerMessage(raw);
+        if (msg) this.handleIncoming(msg, conn);
+      });
       conn.on("close", () => this.dropConnection(conn, "closed"));
       conn.on("error", (err) => {
         logger.error(`[PeerHost] connection error: peer=${conn.peer}`, err);
@@ -861,13 +865,9 @@ export class PeerHostService {
    */
   private applyTurnToLivePeer(): void {
     if (!this.peer || this.iceServers.length === 0) return;
-    const opts = (
-      this.peer as unknown as {
-        _options?: { config?: { iceServers: RTCIceServer[] } };
-      }
-    )._options;
-    if (opts) {
-      opts.config = { iceServers: this.iceServers };
+    const opts: unknown = Reflect.get(this.peer, "_options");
+    if (typeof opts === "object" && opts !== null) {
+      Reflect.set(opts, "config", { iceServers: this.iceServers });
     }
   }
 
@@ -2169,7 +2169,12 @@ export class PeerHostService {
         } satisfies PeerMessage);
         return;
       }
-      const { code, message } = err as { code?: string; message?: string };
+      const failure: unknown = err;
+      const named =
+        typeof failure === "object" && failure !== null ? failure : {};
+      const rawCode: unknown = Reflect.get(named, "code");
+      const code = typeof rawCode === "string" ? rawCode : undefined;
+      const message = failure instanceof Error ? failure.message : undefined;
       logger.warn(
         `[PeerHost] sitrep command RPC failed (${msg.command}): ${message ?? String(err)}`,
       );
@@ -2379,6 +2384,5 @@ export const peerHostService = new PeerHostService();
 // component hierarchy walk. Harmless in production: only adds a single
 // reference to an already-singleton service.
 if (typeof window !== "undefined") {
-  (window as unknown as { peerHostService?: PeerHostService }).peerHostService =
-    peerHostService;
+  Reflect.set(window, "peerHostService", peerHostService);
 }

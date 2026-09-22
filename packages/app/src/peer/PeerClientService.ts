@@ -8,6 +8,7 @@ import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
+import { asPeerMessage } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
 import { getStationKey, getStationPeerId } from "./stationPeerId";
@@ -354,7 +355,10 @@ export class PeerClientService {
       this.sendDataMode("selective");
       this.emitConnStatus("connected");
     });
-    this.conn.on("data", (raw) => this.handleMessage(raw as PeerMessage));
+    this.conn.on("data", (raw) => {
+      const msg = asPeerMessage(raw);
+      if (msg) this.handleMessage(msg);
+    });
     this.conn.on("close", () => {
       logger.info(`[PeerClient] connection closed`);
       this.retryPolicy.handleUnexpectedClose();
@@ -1209,13 +1213,9 @@ export class PeerClientService {
     this.relayIceServers = iceServers;
     this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;
-    const opts = (
-      this.peer as unknown as {
-        _options?: { config?: { iceServers: RTCIceServer[] } };
-      }
-    )._options;
-    if (opts) {
-      opts.config = { iceServers };
+    const opts: unknown = Reflect.get(this.peer, "_options");
+    if (typeof opts === "object" && opts !== null) {
+      Reflect.set(opts, "config", { iceServers });
       logger.info(
         `[PeerClient] applied ${iceServers.length} iceServer(s) from relay-peer-id broadcast, station→relay camera channel can now use TURN`,
       );

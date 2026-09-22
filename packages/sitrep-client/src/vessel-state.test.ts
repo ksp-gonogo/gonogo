@@ -72,14 +72,11 @@ type WireFlight = WireOf<VesselFlightPayload>;
 type WirePatch = WireOf<OrbitPatchWirePayload>;
 
 /**
- * `wrapTypePayload` is declared `T -> T` because it wraps a frame in place, but
- * the whole point of the call is that it turns every bare magnitude into a
- * `Value`, so what it takes and what it returns are the two halves of `WireOf`.
- * Saying so once here is what keeps the fixtures below honestly typed as the
- * wire and the point builders honestly typed as the model.
+ * Naming `wrapTypePayload`'s own `WireOf` pair once, so the fixtures below are
+ * honestly typed as the wire and the point builders as the model.
  */
 function wrapWire<T>(typeName: string, wire: WireOf<T>): T {
-  return wrapTypePayload(typeName, wire) as unknown as T;
+  return wrapTypePayload<T>(typeName, wire);
 }
 
 function orbitPoint(

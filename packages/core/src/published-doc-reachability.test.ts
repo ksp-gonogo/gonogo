@@ -27,6 +27,9 @@ import {
   TS_QUALIFIER_PATTERNS,
 } from "./published-doc-reachability.allowlist";
 import {
+  baseCounts,
+  baseMapOf,
+  baseStrings,
   ratchetBaseRef,
   readJsonObject,
   sourceAtRatchetBase,
@@ -639,6 +642,22 @@ const CSHARP_TYPES = csharpTypeIndex();
 const TS_SCAN = scanTypeScript(BARRELS, DECLARATIONS, CSHARP_TYPES);
 const CS_SCAN = scanCsharp();
 
+/** The `name` of every `PUBLISHED_PACKAGES` entry at the base ref. */
+function basePackageNames(
+  lists: Record<string, unknown>,
+): string[] | undefined {
+  const packages: unknown = lists.PUBLISHED_PACKAGES;
+  if (!Array.isArray(packages)) return undefined;
+  const names: string[] = [];
+  for (const entry of packages as unknown[]) {
+    if (typeof entry !== "object" || entry === null) return undefined;
+    const name: unknown = Reflect.get(entry, "name");
+    if (typeof name !== "string") return undefined;
+    names.push(name);
+  }
+  return names;
+}
+
 describe("published doc reachability", () => {
   /**
    * INSTRUMENT CHECKS FIRST, before any assertion that could pass by finding
@@ -930,9 +949,12 @@ describe("published doc reachability", () => {
 
     it("DOC_DEBT", () => {
       const at = baseAllowlist();
-      const baseDebt = at?.lists.DOC_DEBT as
-        | Record<string, Partial<Record<Tier, number>>>
-        | undefined;
+      const baseDebt = baseMapOf(
+        at?.lists,
+        "DOC_DEBT",
+        (value): value is Partial<Record<Tier, number>> =>
+          typeof value === "object" && value !== null,
+      );
       if (!at || !baseDebt) return;
       const grown: string[] = [];
       for (const [file, tiers] of Object.entries(DOC_DEBT)) {
@@ -958,9 +980,7 @@ describe("published doc reachability", () => {
 
     it("CS_CAPABILITY_SEAM_DEBT", () => {
       const at = baseAllowlist();
-      const baseDebt = at?.lists.CS_CAPABILITY_SEAM_DEBT as
-        | Record<string, number>
-        | undefined;
+      const baseDebt = baseCounts(at?.lists, "CS_CAPABILITY_SEAM_DEBT");
       // Absent at the base: the list was seeded after it, so every entry is the
       // seed rather than growth. Graded from the next commit onwards.
       if (!at || !baseDebt) return;
@@ -1009,24 +1029,22 @@ describe("published doc reachability", () => {
       );
       compare(
         "PRIVATE_NPM_PACKAGES",
-        base.PRIVATE_NPM_PACKAGES as readonly string[] | undefined,
+        baseStrings(base, "PRIVATE_NPM_PACKAGES"),
         PRIVATE_NPM_PACKAGES,
       );
       compare(
         "CS_PRIVATE_ASSEMBLIES",
-        base.CS_PRIVATE_ASSEMBLIES as readonly string[] | undefined,
+        baseStrings(base, "CS_PRIVATE_ASSEMBLIES"),
         CS_PRIVATE_ASSEMBLIES,
       );
       compare(
         "PUBLISHED_PACKAGES",
-        (
-          base.PUBLISHED_PACKAGES as readonly { name: string }[] | undefined
-        )?.map((p) => p.name),
+        basePackageNames(base),
         PUBLISHED_PACKAGES.map((p) => p.name),
       );
       compare(
         "CS_CAPABILITY_ELECTION_PATTERNS",
-        base.CS_CAPABILITY_ELECTION_PATTERNS as readonly string[] | undefined,
+        baseStrings(base, "CS_CAPABILITY_ELECTION_PATTERNS"),
         CS_CAPABILITY_ELECTION_PATTERNS,
       );
 

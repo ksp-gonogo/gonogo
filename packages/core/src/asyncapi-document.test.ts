@@ -47,9 +47,20 @@ const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), "utf8");
 
 type UnitMap = Record<string, Record<string, string>>;
 
+/**
+ * The parts of the emitted AsyncAPI document these checks read. Declared rather
+ * than reached for off a bag, so a generator that renames one of them fails
+ * here instead of answering `undefined`.
+ */
+interface AsyncApiDocument extends Record<string, unknown> {
+  channels: Record<string, Record<string, unknown>>;
+  operations: Record<string, { action: string; channel: { $ref: string } }>;
+  components: { schemas: Record<string, unknown> };
+}
+
 interface Generator {
   generate: () => {
-    document: Record<string, unknown>;
+    document: AsyncApiDocument;
     contract: {
       interfaces: Map<string, { description?: string }>;
       methodLeaks: string[];
@@ -68,7 +79,32 @@ interface Generator {
  */
 async function loadGenerator(): Promise<Generator> {
   const url = pathToFileURL(join(REPO_ROOT, "scripts/asyncapi-doc.mjs")).href;
-  return (await import(url)) as Generator;
+  return namedExports(await import(url), url, ["generate", "serialise"]);
+}
+
+/**
+ * A module loaded by a non-literal URL, once the functions the caller goes on
+ * to call are present.
+ *
+ * A computed specifier resolves to `any`, so nothing checks that the module has
+ * the shape the caller believes. These are `.mjs` root scripts and a `.d.ts`
+ * restating their exports would be a second copy of a signature that goes
+ * stale, so the check is on the names rather than on a declaration.
+ */
+function namedExports<T>(
+  loaded: unknown,
+  url: string,
+  required: readonly string[],
+): T {
+  if (typeof loaded !== "object" || loaded === null) {
+    throw new Error(`${url} did not load as a module`);
+  }
+  for (const name of required) {
+    if (typeof Reflect.get(loaded, name) !== "function") {
+      throw new Error(`${url} exports no ${name}()`);
+    }
+  }
+  return loaded as T;
 }
 
 /** Keys of one generated map interface, straight out of the emitted TypeScript. */
@@ -82,9 +118,37 @@ function mapKeys(file: string, interfaceName: string): string[] {
 
 const GENERATED = "mod/sitrep-sdk/src/__generated__";
 
+/** The `components` block of a parsed AsyncAPI document, or a failure. */
+function componentsOf(parsed: unknown): { schemas: Record<string, unknown> } {
+  const components: unknown =
+    typeof parsed === "object" && parsed !== null
+      ? Reflect.get(parsed, "components")
+      : undefined;
+  const schemas: unknown =
+    typeof components === "object" && components !== null
+      ? Reflect.get(components, "schemas")
+      : undefined;
+  if (typeof schemas !== "object" || schemas === null) {
+    throw new Error("the shipped document carries no components.schemas");
+  }
+  return { schemas: schemas as Record<string, unknown> };
+}
+
+/** The `types` map of the generated unit descriptor, or a failure. */
+function unitTypesOf(parsed: unknown): UnitMap {
+  const types: unknown =
+    typeof parsed === "object" && parsed !== null
+      ? Reflect.get(parsed, "types")
+      : undefined;
+  if (typeof types !== "object" || types === null) {
+    throw new Error("units.json carries no types map");
+  }
+  return types as UnitMap;
+}
+
 describe("asyncapi.yaml", () => {
   let generator: Generator;
-  let document: Record<string, unknown>;
+  let document: AsyncApiDocument;
   let contract: ReturnType<Generator["generate"]>["contract"];
   let yaml: string;
 
@@ -118,14 +182,10 @@ describe("asyncapi.yaml", () => {
      * parser that reports nothing about `broadcast` is reporting nothing at all,
      * and the clean verdict below would mean nothing either.
      */
-    const operations = document.operations as Record<
-      string,
-      { action: string }
-    >;
-    const planted = structuredClone(document) as typeof document;
+    const operations = document.operations;
+    const planted = structuredClone(document);
     const first = Object.keys(operations)[0];
-    (planted.operations as Record<string, { action: string }>)[first].action =
-      "broadcast";
+    planted.operations[first].action = "broadcast";
     const plantedErrors = await errorsIn(generator.serialise(planted));
     expect(
       plantedErrors.length,
@@ -162,10 +222,10 @@ describe("asyncapi.yaml", () => {
     const model = parsed.document;
     expect(model, "the parser returned no document model").toBeTruthy();
     expect(model?.channels().all().length).toBe(
-      Object.keys(document.channels as object).length,
+      Object.keys(document.channels).length,
     );
     expect(model?.operations().all().length).toBe(
-      Object.keys(document.operations as object).length,
+      Object.keys(document.operations).length,
     );
     expect(model?.info().version()).toMatch(/^\d+\.\d+\.\d+$/);
   });
@@ -182,8 +242,8 @@ describe("asyncapi.yaml", () => {
     expect(topics.length).toBeGreaterThan(60);
     expect(commands.length).toBeGreaterThan(40);
 
-    const channels = document.channels as Record<string, unknown>;
-    const operations = document.operations as Record<string, unknown>;
+    const channels = document.channels;
+    const operations = document.operations;
     for (const topic of topics) {
       expect(channels, `channel for ${topic}`).toHaveProperty([topic]);
       expect(operations, `read operation for ${topic}`).toHaveProperty([
@@ -199,10 +259,7 @@ describe("asyncapi.yaml", () => {
   });
 
   it("gives every channel and command its declared delivery and delay", () => {
-    const channels = document.channels as Record<
-      string,
-      Record<string, unknown>
-    >;
+    const channels = document.channels;
     const topics = mapKeys(
       join(GENERATED, "topic-map.ts"),
       "GeneratedTopicPayloadMap",
@@ -265,12 +322,12 @@ describe("asyncapi.yaml", () => {
      * built from the same parts would agree with it whatever either believed.
      */
     const { parse } = await import("yaml");
-    const shipped = parse(read(generator.OUTPUT)) as {
-      components: { schemas: Record<string, unknown> };
-    };
-    const declared = JSON.parse(read(join(GENERATED, "units.json"))) as {
-      types: UnitMap;
-    };
+    const shippedRaw: unknown = parse(read(generator.OUTPUT));
+    const shipped = { components: componentsOf(shippedRaw) };
+    const declaredRaw: unknown = JSON.parse(
+      read(join(GENERATED, "units.json")),
+    );
+    const declared = { types: unitTypesOf(declaredRaw) };
 
     const unitAt = (node: unknown): string | undefined => {
       if (!node || typeof node !== "object") return undefined;
@@ -279,8 +336,9 @@ describe("asyncapi.yaml", () => {
         return record["x-sitrep-unit"];
       }
       if (record.items) return unitAt(record.items);
-      const arms = (record.anyOf ?? record.allOf) as unknown[] | undefined;
-      for (const arm of arms ?? []) {
+      const combined = record.anyOf ?? record.allOf;
+      const arms: unknown[] = Array.isArray(combined) ? combined : [];
+      for (const arm of arms) {
         const found = unitAt(arm);
         if (found !== undefined) return found;
       }
@@ -294,10 +352,13 @@ describe("asyncapi.yaml", () => {
       const record = node as Record<string, unknown>;
       if (record.properties)
         return record.properties as Record<string, unknown>;
-      const arms = (record.allOf ?? []) as Record<string, unknown>[];
-      return arms.filter((arm) => arm.properties).pop()?.properties as
-        | Record<string, unknown>
-        | undefined;
+      const allOf = record.allOf;
+      const arms: unknown[] = Array.isArray(allOf) ? allOf : [];
+      for (const arm of [...arms].reverse()) {
+        const inner = propertiesOf(arm);
+        if (inner) return inner;
+      }
+      return undefined;
     };
 
     const lost: string[] = [];
@@ -353,9 +414,7 @@ describe("asyncapi.yaml", () => {
   });
 
   it("carries the contract's own prose, verbatim", () => {
-    const schemas = (
-      document.components as { schemas: Record<string, unknown> }
-    ).schemas;
+    const schemas = document.components.schemas;
 
     // Every emitted schema whose contract declaration has a doc comment must
     // carry that doc comment's text somewhere in the document. Derived from the
@@ -403,7 +462,12 @@ describe("asyncapi.yaml", () => {
       const url = pathToFileURL(
         join(REPO_ROOT, "scripts/asyncapi/prose-hygiene.mjs"),
       ).href;
-      hygiene = (await import(url)) as typeof hygiene;
+      hygiene = namedExports(await import(url), url, [
+        "markersIn",
+        "assertDetectorSees",
+        "assertProseHygiene",
+        "assertMarkerWasStripped",
+      ]);
     });
 
     it("can see a planted violation of every family", () => {
@@ -515,14 +579,14 @@ describe("asyncapi.yaml", () => {
     const url = pathToFileURL(
       join(REPO_ROOT, "scripts/asyncapi/json-schema.mjs"),
     ).href;
-    const { SchemaBuilder } = (await import(url)) as {
+    const { SchemaBuilder } = namedExports<{
       SchemaBuilder: new (
         contract: unknown,
       ) => {
         ref: (name: string) => unknown;
         components: () => Record<string, Record<string, unknown>>;
       };
-    };
+    }>(await import(url), url, ["SchemaBuilder"]);
 
     const enumeration = (
       name: string,
