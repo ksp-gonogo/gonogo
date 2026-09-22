@@ -473,7 +473,7 @@ const CompactStatusPill = styled(StatusPill)`
 `;
 
 const CriticalNote = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
   letter-spacing: 0.04em;
 `;
@@ -498,7 +498,7 @@ const RowHeader = styled.div`
 `;
 
 const RowLabel = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -515,7 +515,7 @@ const RowBody = styled.div`
 `;
 
 const PartName = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -543,7 +543,7 @@ const TempReadout = styled.div`
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2) var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
 `;
 
@@ -554,13 +554,13 @@ const TempValue = styled.span`
 
 const MaxTag = styled.span`
   color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   white-space: nowrap;
 `;
 
 const BandTag = styled.span<{ $band: Band }>`
   flex-shrink: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
