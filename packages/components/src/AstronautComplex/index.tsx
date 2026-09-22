@@ -1144,7 +1144,7 @@ const Who = styled.div`
 `;
 
 const Empty = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   padding: var(--space-6) 0;
 `;

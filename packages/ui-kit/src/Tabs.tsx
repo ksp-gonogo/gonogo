@@ -514,7 +514,7 @@ const Tabs__Button = styled.button<{
   color: ${({ $active }) =>
     $active ? "var(--color-text-inverse)" : "var(--color-text-faint)"};
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   text-transform: uppercase;
   border-radius: var(--radius-pill);

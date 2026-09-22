@@ -646,12 +646,12 @@ function ContractManagerComponent({
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-8) 0;
 `;
 
 const Summary = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
@@ -683,7 +683,7 @@ const CardList = styled.div<{ $multiColumn: boolean }>`
 `;
 
 const SectionLabel = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -718,14 +718,14 @@ const ContractCard = Block;
 
 const ContractDeadline = styled.span`
   color: var(--color-text-faint);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 `;
 
 const Agency = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
 `;
 
@@ -745,13 +745,13 @@ const Reward = styled.div`
 `;
 
 const RewardLabel = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
 `;
 
 const RewardValue = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
@@ -770,7 +770,7 @@ const Parameter = styled.li<{ $state: ContractParameterState }>`
   display: flex;
   align-items: baseline;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: ${(p) =>
     p.$state === "Complete"
       ? "var(--color-text-muted)"
@@ -891,7 +891,7 @@ const AltitudeBarFill = styled.span.attrs<{ $frac: number; $inBand: boolean }>(
 `;
 
 const AltitudeBarLabel = styled.span<{ $inBand: boolean }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   color: ${(p) =>
     p.$inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};

@@ -341,7 +341,7 @@ function formatPressure(p: number): string {
    surface primitive expresses a translucent pointer-through notice. */
 const NOTICE_STYLE = {
   flex: "0 0 auto",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   background: "rgba(0, 0, 0, 0.7)",
   padding: "var(--inset-chip)",
@@ -368,7 +368,7 @@ const LIVE_CHIP_STYLE = {
   background: "rgba(0, 0, 0, 0.75)",
   border: "1px solid var(--color-surface-raised)",
   borderRadius: "var(--radius-regular)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   fontVariantNumeric: "tabular-nums",
   pointerEvents: "none",
 } as const;
@@ -384,12 +384,12 @@ const CHIP_LABEL_STYLE = {
   color: "var(--color-text-faint)",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
 } as const;
 
 const CHIP_VALUE_STYLE = {
   color: "var(--color-text-primary)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-value)",
 } as const;
 
 registerComponent<AtmosphereProfileConfig>({

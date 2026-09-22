@@ -396,7 +396,7 @@ const RESET_BUTTON: CSSProperties = {
   // Off the app z-index ladder: local ordering inside Root, paired with the
   // Tooltip's 20 below. Only the relative order matters.
   zIndex: 10,
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   padding: "var(--inset-control)",
   background: "var(--color-surface-raised)",
   color: "var(--color-status-go-fg)",
@@ -427,7 +427,7 @@ const TOOLTIP: CSSProperties = {
   position: "absolute",
   background: "var(--color-surface-sunken)",
   color: "var(--color-text-primary)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   padding: "var(--inset-surface)",
   border: "1px solid var(--color-border-strong)",
   borderRadius: "var(--radius-regular)",

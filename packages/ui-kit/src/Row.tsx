@@ -130,7 +130,7 @@ const Row__Root = styled.li<{
   justify-content: space-between;
   align-items: center;
   gap: var(--space-8, 8px);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-2, 2px) 0;
   ${({ $nested }) => ($nested ? `padding-left: var(--space-12, 12px);` : "")}
   ${({ $wrap }) =>

@@ -375,7 +375,7 @@ const JogWheel__Label = styled.span`
      order in the same stacking context, so no z-index is needed. */
   position: relative;
   font-family: var(--font-family-mono, ui-monospace, monospace);
-  font-size: var(--font-size-sm, 12px);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
   padding: 0 var(--space-2, 2px);

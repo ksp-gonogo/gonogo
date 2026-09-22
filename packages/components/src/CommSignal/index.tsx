@@ -398,7 +398,7 @@ function CommSignalComponent({
           {showSubtitle && (
             <span
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-caption)",
                 color:
                   connected === false
                     ? "var(--color-status-nogo-fg)"

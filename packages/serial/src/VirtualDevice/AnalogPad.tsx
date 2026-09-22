@@ -86,7 +86,7 @@ const Wrap = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-dim);

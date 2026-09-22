@@ -192,7 +192,7 @@ const PopoverPanel = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;

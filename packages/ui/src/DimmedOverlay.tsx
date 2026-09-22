@@ -110,7 +110,7 @@ const Banner = styled.div`
 `;
 
 const BannerMessage = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -118,7 +118,7 @@ const BannerMessage = styled.span`
 `;
 
 const BannerHint = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-faint);
   letter-spacing: 0.04em;
 `;

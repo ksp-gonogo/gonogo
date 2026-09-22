@@ -482,7 +482,7 @@ const WarpButton = styled.button<{ $active: boolean }>`
      Every --inset-* widens faster than it grows, so naming this one would
      transpose it. Stays on the rungs. */
   padding: var(--space-6) var(--space-4);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   letter-spacing: 0.04em;
   cursor: pointer;

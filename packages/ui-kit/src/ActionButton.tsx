@@ -42,7 +42,7 @@ const transmitPulse = keyframes`
 `;
 
 const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
-  font-size: var(--font-size-2xs, 10px);
+  font-size: var(--font-size-caption);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--space-2, 2px) var(--space-8, 8px);

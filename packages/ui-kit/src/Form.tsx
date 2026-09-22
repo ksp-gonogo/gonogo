@@ -41,7 +41,7 @@ export const FieldRow = styled.div`
 `;
 
 export const FieldLabel = styled.label`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -49,7 +49,7 @@ export const FieldLabel = styled.label`
 `;
 
 export const FieldHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -64,7 +64,7 @@ const inputBase = `
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular, 3px);
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-compact);
   padding: var(--space-6, 6px) var(--space-8, 8px);
 
   &:focus {

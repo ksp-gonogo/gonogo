@@ -233,7 +233,7 @@ const LIST: CSSProperties = {
 // its header and bar out in is local.
 // Per-tone `color` is applied inline at the call site.
 const RATE: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   flexShrink: 0,
 };
 
@@ -258,7 +258,7 @@ const BAR_FILL: CSSProperties = {
 };
 
 const FOOTER: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-status-nogo-bg)",
 };
 
@@ -272,7 +272,7 @@ const DOT_SUMMARY: CSSProperties = {
 
 // Per-tone `color` is applied inline at the call site.
 const DOT_HEADLINE: CSSProperties = {
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-compact)",
   fontWeight: 700,
   letterSpacing: "0.04em",
 };

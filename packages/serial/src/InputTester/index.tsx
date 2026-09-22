@@ -278,7 +278,7 @@ const StatusRow = styled.div`
   flex-wrap: wrap;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const StatusLabel = styled.span`
@@ -303,7 +303,7 @@ const AnalogRow = styled.div`
 `;
 
 const AnalogName = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -364,7 +364,7 @@ const AnalogThumb = styled.div<{ $live: boolean }>`
 `;
 
 const AnalogValue = styled.span<{ $live: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: ${({ $live }) =>
@@ -394,7 +394,7 @@ const ButtonPill = styled.div<{ $pressed: boolean }>`
     $pressed ? "var(--color-status-info-bg)" : "var(--color-surface-panel)"};
   color: ${({ $pressed }) =>
     $pressed ? "var(--color-status-info-fg)" : "var(--color-text-primary)"};
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   /* 60ms stays literal: it is deliberately faster than the 80ms binding-row
      highlight in InputMappingTab, and --duration-instant is that 80ms. The
      press echo reads as instant only because it undercuts the other one. */

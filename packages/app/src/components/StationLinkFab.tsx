@@ -279,7 +279,7 @@ const UrlRow = styled.div`
 
 const UrlValue = styled.a`
   color: var(--color-status-info-fg);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   word-break: break-all;
   text-decoration: underline;
   &:hover {
@@ -288,7 +288,7 @@ const UrlValue = styled.a`
 `;
 
 const Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -314,7 +314,7 @@ const QrRow = styled.div`
 
 const Hint = styled.p`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-prose);
   color: var(--color-text-muted);
   line-height: var(--line-height-prose);
 
@@ -329,7 +329,7 @@ const Hint = styled.p`
 
 const Empty = styled.div`
   padding: var(--space-16) 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   text-align: center;
 `;
@@ -344,7 +344,7 @@ const RegenerateWrap = styled.div`
 
 const RegenerateHint = styled.p`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-prose);
   color: var(--color-text-muted);
   line-height: var(--line-height-prose);
 `;

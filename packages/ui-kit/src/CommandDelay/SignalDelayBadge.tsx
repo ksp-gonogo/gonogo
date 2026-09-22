@@ -76,7 +76,7 @@ const SignalDelayBadge__Chip = styled.div`
   flex: 0 0 auto;
   padding: var(--space-2) var(--space-8);
   font-family: monospace;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   white-space: nowrap;
   color: var(--color-text-muted);
   background: var(--color-surface-panel);

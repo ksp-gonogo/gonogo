@@ -74,14 +74,14 @@ const Main = styled.div`
 `;
 
 const Primary = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-status-warning-bg);
   font-weight: 600;
   letter-spacing: 0.02em;
 `;
 
 const Meta = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
   display: inline-flex;

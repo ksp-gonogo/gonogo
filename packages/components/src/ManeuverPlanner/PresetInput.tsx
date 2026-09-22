@@ -219,7 +219,7 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
 }
 
 const PresetDesc = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   padding-top: var(--space-2);
 `;
@@ -240,7 +240,7 @@ const UTModeButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   cursor: pointer;

@@ -212,7 +212,7 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
 const DropdownGroup = styled.div``;
 
 const GroupHeader = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

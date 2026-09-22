@@ -276,13 +276,17 @@ const DialogHeader = styled.div`
   flex-shrink: 0;
 `;
 
+/**
+ * The dialog's own name, not an annotation of something beside it, so it takes
+ * the value size and none of the caption treatment. Set as a caption it read as
+ * a label for whatever sat above it, and it was indistinguishable from the
+ * field labels under it, which genuinely are annotations.
+ */
 const DialogTitle = styled.h2`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-primary);
 `;
 
 const CloseButton = styled.button`
@@ -290,7 +294,6 @@ const CloseButton = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: var(--font-size-base);
   line-height: var(--line-height-flush);
   padding: var(--space-2) var(--space-4);
 
@@ -329,6 +332,6 @@ const DialogFooter = styled.div`
 
 const DiscardPrompt = styled.span`
   margin-right: auto;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
 `;

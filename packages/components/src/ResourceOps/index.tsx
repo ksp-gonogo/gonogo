@@ -130,7 +130,7 @@ const RIGHT_ALIGN = { textAlign: "right" } as const;
  * fix on its own name column).
  */
 const RESOURCE_NAME_STYLE = {
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-value)",
   color: "var(--color-text-primary)",
 } as const;
 

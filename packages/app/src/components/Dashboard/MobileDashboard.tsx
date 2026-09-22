@@ -337,7 +337,7 @@ const MobileCellHeaderRight = styled.div`
 `;
 
 const MobileCellName = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -356,7 +356,7 @@ const WidthToggleBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   margin-left: var(--space-2);
@@ -378,7 +378,7 @@ const ReorderBtn = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
   width: 28px;
   height: 24px;

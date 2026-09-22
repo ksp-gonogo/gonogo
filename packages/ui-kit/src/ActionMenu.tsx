@@ -226,7 +226,7 @@ const Menu = styled.div`
 `;
 
 const GroupHeader = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -242,7 +242,7 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
   background: transparent;
   color: var(--color-text-primary);
   font: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--space-6, 6px) var(--space-8, 8px);
   cursor: pointer;
 
