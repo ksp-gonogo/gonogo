@@ -40,6 +40,7 @@ import {
   reportsFundsDrain,
 } from "../shared/FundsDrain";
 import {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,
@@ -119,7 +120,8 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: Strategy[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const id = typeof e.id === "string" ? e.id : null;
@@ -135,21 +137,21 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
             ? e.department
             : "",
       isActive: e.isActive === true,
-      factor: magnitudeOr(e.factor as Quantityish, 0),
-      dateActivated: magnitudeOr(e.dateActivated as Quantityish, 0),
-      requiredReputation: magnitudeOr(e.requiredReputation as Quantityish, 0),
-      initialCostFunds: magnitudeOr(e.initialCostFunds as Quantityish, 0),
-      initialCostScience: magnitudeOr(e.initialCostScience as Quantityish, 0),
+      factor: magnitudeOr(asQuantityish(e.factor), 0),
+      dateActivated: magnitudeOr(asQuantityish(e.dateActivated), 0),
+      requiredReputation: magnitudeOr(asQuantityish(e.requiredReputation), 0),
+      initialCostFunds: magnitudeOr(asQuantityish(e.initialCostFunds), 0),
+      initialCostScience: magnitudeOr(asQuantityish(e.initialCostScience), 0),
       initialCostReputation: magnitudeOr(
-        e.initialCostReputation as Quantityish,
+        asQuantityish(e.initialCostReputation),
         0,
       ),
       effectiveCostReputation:
-        magnitudeOf(e.effectiveCostReputation as Quantityish) ??
-        magnitudeOr(e.initialCostReputation as Quantityish, 0),
+        magnitudeOf(asQuantityish(e.effectiveCostReputation)) ??
+        magnitudeOr(asQuantityish(e.initialCostReputation), 0),
       hasFactorSlider: e.hasFactorSlider === true,
-      factorSliderDefault: magnitudeOr(e.factorSliderDefault as Quantityish, 0),
-      factorSliderSteps: magnitudeOr(e.factorSliderSteps as Quantityish, 1),
+      factorSliderDefault: magnitudeOr(asQuantityish(e.factorSliderDefault), 0),
+      factorSliderSteps: magnitudeOr(asQuantityish(e.factorSliderSteps), 1),
       /* Three states, and only a real boolean is an answer. An absent field and
          an explicit null both mean the question went unasked. */
       canActivate: typeof e.canActivate === "boolean" ? e.canActivate : null,

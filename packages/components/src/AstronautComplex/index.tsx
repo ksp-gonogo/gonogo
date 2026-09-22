@@ -49,7 +49,7 @@ import {
   reportsFundsDrain,
 } from "../shared/FundsDrain";
 import { type KerbalStatFields, KerbalStats } from "../shared/KerbalStats";
-import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: [
@@ -1037,13 +1037,14 @@ function crewRowKeys(members: readonly CrewRosterRow[]): string[] {
 function readCrewRoster(raw: unknown): CrewRosterRow[] {
   if (!Array.isArray(raw)) return [];
   const out: CrewRosterRow[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
     const e = entry as Record<string, unknown>;
     out.push({
       name: typeof e.name === "string" ? e.name : "",
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOf(e.experienceLevel as Quantityish),
+      experienceLevel: magnitudeOf(asQuantityish(e.experienceLevel)),
       situation: typeof e.situation === "string" ? e.situation : "",
       // Absent only from a mod build older than the crew-standing capability.
       // Falling back to KSP's roster status keeps that case reading exactly as
@@ -1068,16 +1069,16 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
       situationOrdinal:
         typeof e.situationOrdinal === "number" ? e.situationOrdinal : null,
       inactive: e.inactive === true,
-      inactiveUntilUt: magnitudeOf(e.inactiveUntilUt as Quantityish),
-      standingEndsAtUt: magnitudeOf(e.standingEndsAtUt as Quantityish),
-      retiresAtUt: magnitudeOf(e.retiresAtUt as Quantityish),
+      inactiveUntilUt: magnitudeOf(asQuantityish(e.inactiveUntilUt)),
+      standingEndsAtUt: magnitudeOf(asQuantityish(e.standingEndsAtUt)),
+      retiresAtUt: magnitudeOf(asQuantityish(e.retiresAtUt)),
       isApplicant: e.isApplicant === true,
       available: e.available === true,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
-      courage: magnitudeOf(e.courage as Quantityish),
-      stupidity: magnitudeOf(e.stupidity as Quantityish),
-      experienceLevelDelta: magnitudeOf(e.experienceLevelDelta as Quantityish),
+      courage: magnitudeOf(asQuantityish(e.courage)),
+      stupidity: magnitudeOf(asQuantityish(e.stupidity)),
+      experienceLevelDelta: magnitudeOf(asQuantityish(e.experienceLevelDelta)),
       roleDescription:
         typeof e.roleDescription === "string" ? e.roleDescription : "",
       descriptionEffects:
@@ -1090,15 +1091,16 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
 function readApplicants(raw: unknown): Applicant[] {
   if (!Array.isArray(raw)) return [];
   const out: Applicant[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
     const e = entry as Record<string, unknown>;
     out.push({
       name: typeof e.name === "string" ? e.name : "",
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOf(e.experienceLevel as Quantityish),
-      courage: magnitudeOf(e.courage as Quantityish),
-      stupidity: magnitudeOf(e.stupidity as Quantityish),
+      experienceLevel: magnitudeOf(asQuantityish(e.experienceLevel)),
+      courage: magnitudeOf(asQuantityish(e.courage)),
+      stupidity: magnitudeOf(asQuantityish(e.stupidity)),
       roleDescription:
         typeof e.roleDescription === "string" ? e.roleDescription : "",
       descriptionEffects:

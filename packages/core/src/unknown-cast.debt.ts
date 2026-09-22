@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 390 of them
- * across 170 files.
+ * Assertions that escape `unknown`, per file. The tree carries 284 of them
+ * across 160 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 238 of the 390 are
+ * **A test fixture minted through an assertion.** 201 of the 284 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 172 of the 390 are `as unknown as`, and those are worth taking
+ * 138 of the 284 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 62 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 43 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 170 files those would be 170 sentences
+ * sentence per entry: at 160 files those would be 160 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -82,11 +82,11 @@
  * commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 143 in 61 files (18 out of `any`, 114 in tests), walked 390 files
+  // packages/app: 102 in 60 files (15 out of `any`, 77 in tests), walked 390 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 2,
-  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 7,
+  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 2,
   "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
   "packages/app/src/__tests__/dashboard-mobile.test.tsx": 3,
   "packages/app/src/__tests__/gonogo-host-service.test.ts": 6,
@@ -95,7 +95,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/__tests__/maneuver-trigger-roundtrip.test.ts": 4,
   "packages/app/src/__tests__/message-dispatcher.test.ts": 1,
   "packages/app/src/__tests__/peer-client-data-source.test.ts": 2,
-  "packages/app/src/__tests__/peer-client-service.test.ts": 32,
+  "packages/app/src/__tests__/peer-client-service.test.ts": 3,
   "packages/app/src/__tests__/peer-use-data-series.test.tsx": 2,
   "packages/app/src/__tests__/push-host-service.test.ts": 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
@@ -103,11 +103,10 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts": 2,
   "packages/app/src/__tests__/sitrep-stream-wire.test.tsx": 1,
   "packages/app/src/__tests__/telemetry-components.test.tsx": 1,
-  "packages/app/src/alarms/AlarmHostService.test.ts": 6,
+  "packages/app/src/alarms/AlarmHostService.test.ts": 3,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx": 1,
   "packages/app/src/alarms/contractParameterTrigger.test.ts": 1,
-  "packages/app/src/alarms/types.ts": 4,
   "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
   "packages/app/src/components/Dashboard/useDashboardState.test.ts": 1,
   "packages/app/src/components/Dashboard/useDashboardState.ts": 1,
@@ -144,27 +143,23 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/registry.ts": 1,
   "packages/app/src/uplinks/skewOverride.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 139 in 51 files (23 out of `any`, 59 in tests), walked 675 files
+  // packages/components: 74 in 42 files (7 out of `any`, 59 in tests), walked 675 files
   "packages/components/scripts/synthesize-landing-descent.ts": 2,
   "packages/components/scripts/widgetRenderHarness.ts": 5,
-  "packages/components/src/AstronautComplex/index.tsx": 12,
   "packages/components/src/AstronautComplex/renderFixture.test.ts": 1,
   "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/stale.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/undefined.characterise.test.tsx": 1,
-  "packages/components/src/ContractManager/index.tsx": 11,
   "packages/components/src/CrewStatus/badge.test.ts": 2,
   "packages/components/src/CrewStatus/index.tsx": 1,
   "packages/components/src/CurrentOrbit/index.test.tsx": 1,
   "packages/components/src/EscapeProfile/index.test.tsx": 1,
-  "packages/components/src/Experiments/index.tsx": 9,
   "packages/components/src/FuelStatus/index.test.tsx": 6,
   "packages/components/src/Graph/index.test.tsx": 1,
   "packages/components/src/Graph/stream.test.tsx": 1,
   "packages/components/src/KeplerPeriod/dual-run.test.tsx": 1,
   "packages/components/src/KeplerPeriod/index.test.tsx": 1,
-  "packages/components/src/LaunchDirector/index.tsx": 7,
   "packages/components/src/ManeuverPlanner/burnWindow.ts": 1,
   "packages/components/src/ManeuverPlanner/index.test.tsx": 4,
   "packages/components/src/MapView/index.test.tsx": 4,
@@ -173,12 +168,9 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/MapView/useCamera.test.tsx": 4,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
   "packages/components/src/Navball/index.test.tsx": 1,
-  "packages/components/src/Navball/index.tsx": 1,
   "packages/components/src/OrbitalAscent/index.test.tsx": 1,
   "packages/components/src/ScienceData/fixtures.test.tsx": 1,
-  "packages/components/src/ScienceData/parsers.ts": 10,
   "packages/components/src/SemiMajorAxis/index.test.tsx": 1,
-  "packages/components/src/shared/scienceAggregates.ts": 2,
   "packages/components/src/shared/useZoomPan.test.tsx": 4,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
   "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
@@ -186,12 +178,10 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/ShipMap/stale.test.tsx": 1,
   "packages/components/src/ShipMap/undefined.characterise.test.tsx": 2,
   "packages/components/src/Strategies/index.test.tsx": 2,
-  "packages/components/src/Strategies/index.tsx": 11,
   "packages/components/src/Strategies/screens.test.tsx": 1,
   "packages/components/src/SystemView/fixtureFeeds.test.ts": 1,
   "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 1,
   "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
-  "packages/components/src/TechTree/index.tsx": 2,
   "packages/components/src/test/topologyToVesselPartsWire.ts": 2,
   "packages/components/src/test/widgetDomSnapshot.tsx": 3,
   "packages/components/src/TransferWindow/undefined.characterise.test.tsx": 2,
@@ -275,18 +265,18 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 96 in 43 files (0 out of `any`, 84 in tests), walked 390 files
+  // packages/app: 62 in 43 files (0 out of `any`, 50 in tests), walked 390 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
-  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 7,
+  "packages/app/src/__tests__/coverage-sync-host-service.test.ts": 2,
   "packages/app/src/__tests__/dashboard-layout-normalization.test.ts": 1,
   "packages/app/src/__tests__/gonogo-host-service.test.ts": 1,
   "packages/app/src/__tests__/ice-liveness.test.ts": 1,
   "packages/app/src/__tests__/kos-execute-tunnel.test.ts": 1,
   "packages/app/src/__tests__/maneuver-trigger-roundtrip.test.ts": 4,
   "packages/app/src/__tests__/peer-client-data-source.test.ts": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts": 31,
+  "packages/app/src/__tests__/peer-client-service.test.ts": 2,
   "packages/app/src/__tests__/peer-use-data-series.test.tsx": 2,
   "packages/app/src/__tests__/push-host-service.test.ts": 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 3,
@@ -391,7 +381,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2231,
-  assertions: 1787,
+  assertions: 1674,
 } as const;
 
 /**
