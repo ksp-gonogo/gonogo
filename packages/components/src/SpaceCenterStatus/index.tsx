@@ -881,7 +881,7 @@ const FacilityCell = styled.div`
 `;
 
 const FacilityLabel = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -904,7 +904,7 @@ const FacilityLabel = styled.span`
 `;
 
 const FacilityValue = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -941,7 +941,7 @@ const UpgradeRow = styled.div`
 `;
 
 const UpgradeCost = styled.span<{ $afford: boolean }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   /* Unaffordable cost must read as a nogo signal on the dark panel cell.
      The nogo *-fg token is the foreground meant to sit on the red *-bg
      fill: as standalone text on the near-black cell it's a pale pink that
@@ -956,7 +956,7 @@ const UpgradeCost = styled.span<{ $afford: boolean }>`
 `;
 
 const MaxBadge = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
   text-transform: uppercase;
@@ -979,14 +979,14 @@ const TierBlock__Root = styled.div`
 `;
 
 const TierBlock__Heading = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
 `;
 
 const TierBlock__Absent = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -997,7 +997,7 @@ const TierBlock__Absent = styled.span`
 const TierBlock__Label = styled.span`
   flex: 1;
   min-width: 0;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
@@ -1013,7 +1013,7 @@ const TierBlock__Value = styled(Text)`
 const TIER_SPEC_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 const UpgradeButtonStyled = styled(FitLabelButton)`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--inset-control);
@@ -1076,14 +1076,14 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
 `;
 
 const PadStatusLine = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 `;
 
 const UpgradesHeld = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
   /* Same "warning text on a dark surface" treatment as UpgradeCost's
      unaffordable state: the nogo *-fg token is meant to sit on the red fill and
@@ -1093,7 +1093,7 @@ const UpgradesHeld = styled.span`
 `;
 
 const AbsenceLine = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.04em;
   color: var(--color-text-faint);
 `;
@@ -1138,13 +1138,13 @@ const TinyDrain = styled.div`
   /* Its own line under the balance. The smallest rung on the ladder, because at
      the 2x3 minSize the balance itself is pinned at its own floor and a
      qualifier must not out-size what it qualifies. */
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-weight: 400;
   line-height: var(--line-height-flush);
 `;
 
 const TinyPad = styled.span<{ $occupied: boolean }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: ${(p) =>
