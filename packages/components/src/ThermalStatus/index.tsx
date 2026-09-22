@@ -543,7 +543,7 @@ const TempReadout = styled.div`
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2) var(--space-6);
-  font-size: var(--font-size-value);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
 `;
 
