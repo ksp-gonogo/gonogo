@@ -975,18 +975,18 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "ScetAlarm": {
     armedBy: "id",
-    audience: "id",
     firedAtUt: "ut",
     id: "id",
     name: "text",
     state: "enum",
     subject: "id",
+    vantage: "id",
   },
   "ScetAlarmArmArgs": {
-    audience: "id",
     id: "id",
     name: "text",
     subject: "id",
+    vantage: "id",
   },
   "ScetAlarmCondition": {
     fieldPath: "id",
@@ -1002,9 +1002,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
   },
   "ScetAlarmFired": {
-    audience: "id",
     firedAtUt: "ut",
     id: "id",
+    vantage: "id",
   },
   "ScienceCreditEvent": {
     amount: "science",
@@ -1468,17 +1468,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "alarm.scet": {
     armedBy: "id",
-    audience: "id",
     firedAtUt: "ut",
     id: "id",
     name: "text",
     state: "enum",
     subject: "id",
+    vantage: "id",
   },
   "alarm.scet.fired": {
-    audience: "id",
     firedAtUt: "ut",
     id: "id",
+    vantage: "id",
   },
   "career.mode": {
     mode: "enum",

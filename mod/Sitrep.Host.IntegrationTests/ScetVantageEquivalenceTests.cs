@@ -136,7 +136,7 @@ namespace Sitrep.Host.IntegrationTests
             new ScetAlarmArmArgs
             {
                 Id = id,
-                Audience = vantage,
+                Vantage = vantage,
                 Subject = ScetVantageTestUplink.Subject,
                 Condition = new ScetAlarmCondition
                 {

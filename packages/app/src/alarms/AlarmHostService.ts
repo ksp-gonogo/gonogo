@@ -194,7 +194,7 @@ export class AlarmHostService {
    */
   private shadowVerdicts = new Map<
     string,
-    { firedAtUt: number; audience: string }
+    { firedAtUt: number; vantage: string }
   >();
 
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
@@ -263,8 +263,8 @@ export class AlarmHostService {
     this.scetBridge = new ScetAlarmBridge({
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt) => this.onScetFired(id, firedAtUt),
-      onShadowFired: (id, firedAtUt, audience) =>
-        this.onShadowFired(id, firedAtUt, audience),
+      onShadowFired: (id, firedAtUt, vantage) =>
+        this.onShadowFired(id, firedAtUt, vantage),
       onArmRefused: (id, reason) => {
         if (this.scetArmRefusals.get(id) === reason) return;
         this.scetArmRefusals.set(id, reason);
@@ -554,7 +554,7 @@ export class AlarmHostService {
 
   /**
    * The simulation's verdict on a COMMAND-VANTAGE alarm, judged against what
-   * `audience` has been told. Recorded and compared, never acted on.
+   * `vantage` has been told. Recorded and compared, never acted on.
    *
    * <p>Mutating anything from here is the hazard
    * `AlarmStateMachine.updateThresholdTracking` documents: the latch the mod
@@ -563,15 +563,15 @@ export class AlarmHostService {
    * client's answer is the only one that counts for an alarm on the client's
    * clock.</p>
    */
-  private onShadowFired(id: string, firedAtUt: number, audience: string): void {
-    this.shadowVerdicts.set(id, { firedAtUt, audience });
+  private onShadowFired(id: string, firedAtUt: number, vantage: string): void {
+    this.shadowVerdicts.set(id, { firedAtUt, vantage });
     const alarm = this.alarms.find((a) => a.id === id);
     if (!alarm) {
       logger.warn(
         "alarm-shadow: mod fired an alarm this client does not hold",
         {
           id,
-          audience,
+          vantage,
           firedAtUt,
         },
       );
@@ -580,7 +580,7 @@ export class AlarmHostService {
     if (alarm.state === "pending") {
       logger.warn("alarm-shadow: mod fired first, client still pending", {
         id,
-        audience,
+        vantage,
         firedAtUt,
         clientUt: this.observedUT,
       });
@@ -588,7 +588,7 @@ export class AlarmHostService {
     }
     logger.info("alarm-shadow: mod agrees, client had already fired", {
       id,
-      audience,
+      vantage,
       firedAtUt,
       clientEventUt: alarm.eventUT ?? null,
     });
@@ -612,7 +612,7 @@ export class AlarmHostService {
     }
     logger.info("alarm-shadow: client fired, mod had already agreed", {
       id: alarm.id,
-      audience: verdict.audience,
+      vantage: verdict.vantage,
       modFiredAtUt: verdict.firedAtUt,
       clientUt: this.observedUT,
     });

@@ -34,7 +34,7 @@ namespace Sitrep.Host.Alarms
             {
                 return "";
             }
-            return string.IsNullOrEmpty(alarm.Audience) ? alarm.Subject ?? "" : alarm.Audience!;
+            return string.IsNullOrEmpty(alarm.Vantage) ? alarm.Subject ?? "" : alarm.Vantage!;
         }
 
         /// <summary>

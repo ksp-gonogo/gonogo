@@ -63,8 +63,8 @@ type ArmedCondition =
 interface ArmedAlarm {
   condition: ArmedCondition;
   subject: string;
-  /** Whose ledger the mod would judge it against. Empty is the simulation's own. */
-  audience: string;
+  /** Where the mod reads it. Resolved from the arm, so it is never empty. */
+  vantage: string;
 }
 
 /**
@@ -103,10 +103,10 @@ interface ModStandIn {
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
   /**
-   * Publish the mod's SHADOW verdict on an audience alarm: the notice it would
-   * send having judged the condition against what that place has been told.
+   * Publish the mod's SHADOW verdict on a command-vantage alarm: the notice it
+   * would send having judged the condition against what that place has been told.
    */
-  fireForAudience(id: string): void;
+  fireForVantage(id: string): void;
   /**
    * Drive the TRUE value every armed threshold is compared against, which only
    * the stand-in can see.
@@ -170,9 +170,13 @@ function startSession(owlt: number): ModStandIn {
           { code: "E_RANGE" },
         );
       }
+      const subject = String(bag.subject ?? "");
       conditions.set(id, {
-        subject: String(bag.subject ?? ""),
-        audience: String(bag.audience ?? ""),
+        subject,
+        /* Resolved here as the mod resolves it: an arm naming no vantage is
+           read at its own subject, which is where every alarm was read before
+           the field existed. */
+        vantage: String(bag.vantage ?? "") || subject,
         condition: threshold
           ? {
               kind: "threshold",
@@ -222,7 +226,7 @@ function startSession(owlt: number): ModStandIn {
       id,
       name: id,
       armedBy: HOME,
-      audience: arm.audience,
+      vantage: arm.vantage,
       subject: arm.subject,
       condition:
         arm.condition.kind === "time"
@@ -258,7 +262,7 @@ function startSession(owlt: number): ModStandIn {
     armForeign(id) {
       conditions.set(id, {
         subject: "game",
-        audience: "",
+        vantage: "game",
         condition: {
           kind: "threshold",
           topic: "career.status",
@@ -270,13 +274,13 @@ function startSession(owlt: number): ModStandIn {
       });
     },
     armOf: (id) => conditions.get(id),
-    fireForAudience(id) {
+    fireForVantage(id) {
       transport.emit(
         "alarm.scet.fired",
         {
           id,
           firedAtUt: trueUt,
-          audience: conditions.get(id)?.audience ?? HOME,
+          vantage: conditions.get(id)?.vantage ?? HOME,
         },
         { validAt: trueUt, deliveredAt: trueUt, vantage: HOME },
       );
@@ -323,12 +327,12 @@ function startSession(owlt: number): ModStandIn {
       // arm, and it runs whatever the client can currently see.
       for (const [id, arm] of conditions) {
         if (fired.has(id)) continue;
-        /* An AUDIENCE alarm is judged against what one PLACE has been told,
-           out of the Courier's archive, which this fixture does not model and
-           should not: that is the mod's own reveal and it has its own suite.
-           `fireForAudience` stands in for the verdict so the client's handling
-           of one can be exercised. */
-        if (arm.audience !== "") continue;
+        /* An alarm at any vantage but its own subject's is judged against what
+           that PLACE has been told, out of the Courier's archive, which this
+           fixture does not model and should not: that is the mod's own reveal and
+           it has its own suite. `fireForVantage` stands in for the verdict so the
+           client's handling of one can be exercised. */
+        if (arm.vantage !== arm.subject) continue;
         const c = arm.condition;
         if (c.kind === "time") {
           if (!steppedDown.has(id) && ut >= c.ut - c.leadSeconds) {
@@ -970,7 +974,7 @@ describe("SCET alarms", () => {
    * from, so the same alarm gets a second verdict that can be compared.
    */
   describe("command-vantage shadow", () => {
-    it("arms a command-vantage threshold naming the vantage as its audience", async () => {
+    it("arms a command-vantage threshold naming the vantage it is read at", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = new AlarmHostService(null, {
@@ -997,8 +1001,8 @@ describe("SCET alarms", () => {
       svc.dispose();
 
       expect(session.armed()).toEqual([alarm.id]);
-      // This screen chose no vantage, so the audience is the one the mod stamps its frames with: a PLACE, never a connection, which is the whole vocabulary the mod is given.
-      expect(session.armOf(alarm.id)?.audience).toBe(HOME);
+      // This screen chose no vantage, so it names the one the mod stamps its frames with: a PLACE, never a connection, which is the whole vocabulary the mod is given.
+      expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
     });
 
     /**
@@ -1007,7 +1011,7 @@ describe("SCET alarms", () => {
      * authorities for it would clear each other's: until there is evidence they
      * agree, a command-vantage alarm is the client's alone.
      */
-    it("does not latch from the mod's verdict on an audience alarm", async () => {
+    it("does not latch from the mod's verdict on a command-vantage alarm", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = new AlarmHostService(null, {
@@ -1031,9 +1035,9 @@ describe("SCET alarms", () => {
         },
       });
       await run(session, UT_START + 4 * DT);
-      expect(session.armOf(alarm.id)?.audience).toBe(HOME);
+      expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
 
-      session.fireForAudience(alarm.id);
+      session.fireForVantage(alarm.id);
       await run(session, UT_START + 6 * DT);
       const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
       svc.dispose();
