@@ -23,8 +23,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class FlightEndToEndTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         private const string VesselA = "aaaaaaaa-0000-0000-0000-000000000000";
         private const string VesselB = "bbbbbbbb-0000-0000-0000-000000000000";

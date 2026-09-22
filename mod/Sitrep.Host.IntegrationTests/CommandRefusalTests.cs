@@ -32,8 +32,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class CommandRefusalTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan SettleWindow = TimeSpan.FromMilliseconds(300);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan SettleWindow = TestBudgets.Quiet;
 
         [Fact]
         public void UnknownCommandIsRefusedRatherThanDroppedSilently()

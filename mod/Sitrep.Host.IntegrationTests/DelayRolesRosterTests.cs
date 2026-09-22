@@ -25,7 +25,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class DelayRolesRosterTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         private static readonly string FixturePath = Path.Combine(
             AppContext.BaseDirectory, "golden-fixtures", "delay-roles-roster.json");

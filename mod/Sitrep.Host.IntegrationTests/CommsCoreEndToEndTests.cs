@@ -42,8 +42,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class CommsCoreEndToEndTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         // Kerbin-to-Mun-ish one-way distance: a realistic non-zero hop.
         private const double HopDistanceMeters = 12_000_000.0;

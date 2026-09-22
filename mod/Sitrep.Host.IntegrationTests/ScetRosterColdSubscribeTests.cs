@@ -37,8 +37,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class ScetRosterColdSubscribeTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(300);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         /// <summary>
         /// The mechanism, against the real engine: a publish made while nothing
