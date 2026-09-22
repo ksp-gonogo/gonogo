@@ -975,8 +975,8 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * `Meter` dot.
  *
  * So the intent comes from the component rather than from the geometry: the
- * walk asks only about elements carrying `data-not-current-mark` or
- * `data-must-be-visible`, and the out-of-flow rule narrows within that.
+ * walk asks only about elements carrying `data-not-current-mark`, and the
+ * out-of-flow rule narrows within that.
  *
  * **What that gives up**: an undeclared element is none of this gate's
  * business, and a widget clipping its own TEXT for want of room is in-flow, so
@@ -1006,10 +1006,17 @@ async function findClippedContent(page: Page): Promise<string[]> {
     if (!host) return [] as string[];
     const out: string[] = [];
 
-    /* DECLARED marks only: the author says an element must be visible where it
-       is drawn, and the gate never infers it from geometry. */
+    /*
+     * DECLARED marks only: the author says an element must be visible where it
+     * is drawn, and the gate never infers it from geometry.
+     *
+     * A widget opts in by adding its own attribute to this selector. There is
+     * deliberately no general-purpose spelling to reach for, so that whoever
+     * needs the second one names it against the real case rather than against
+     * a guess at what the case will be.
+     */
     for (const el of Array.from(
-      host.querySelectorAll("[data-not-current-mark], [data-must-be-visible]"),
+      host.querySelectorAll("[data-not-current-mark]"),
     )) {
       if (el.namespaceURI !== htmlNs) continue;
       const s = getComputedStyle(el);
@@ -1139,13 +1146,13 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
              with narrower text has room to spare and does not reproduce it. -->
         <span style="display:inline-block;overflow:hidden">
           <span style="position:relative;display:inline-block">value<span
-            id="fires-absolute" data-must-be-visible=""
+            id="fires-absolute" data-not-current-mark=""
             style="position:absolute;left:100%;top:0;width:6px;height:6px;background:#fa0"></span></span>
         </span>
       </div>
       <div style="position:absolute;top:100px;left:0;width:120px;height:20px;overflow:hidden">
         <span style="position:relative;display:inline-block">v<span
-          id="fires-below" data-must-be-visible=""
+          id="fires-below" data-not-current-mark=""
           style="position:absolute;top:100%;left:0;width:6px;height:6px;background:#fa0"></span></span>
       </div>
       <!-- IN-FLOW content below the fold: deliberately NOT caught. A widget
