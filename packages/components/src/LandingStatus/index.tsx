@@ -594,7 +594,17 @@ function LandingStatusComponent({
   const atmospheric = body?.hasAtmosphere ?? false;
   // The one shared ΔV derivation. It already carries a dated budget rather than
   // blanking one, which is the arm policy `describe` gives every other read here.
-  const budget = useProcessor(DELTA_V_BUDGET);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value
+      : undefined;
   const structureReading = useTelemetry("vessel.structure");
   const commsDelayReading = useTelemetry("comms.delay");
   const structure = describe(structureReading);

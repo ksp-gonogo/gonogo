@@ -299,7 +299,18 @@ function ManeuverPlannerComponent({
    * a budget vanishing mid-blackout turns a craft that is demonstrably short
    * into one we have no opinion about, and re-enables the button.
    */
-  const availableDeltaV = magnitudeOf(useProcessor(DELTA_V_BUDGET)?.totalVac);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const availableDeltaV = magnitudeOf(
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value?.totalVac
+      : undefined,
+  );
 
   // Adding, updating and removing a node all actuate the craft's flight plan, so each is subject to signal delay and rides `useCommand`.
   const addNodeCmd = useCommand("vessel.maneuver.add");
