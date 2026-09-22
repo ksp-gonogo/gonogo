@@ -6,8 +6,10 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { KosProcessorInfo } from "../__generated__/contract";
+import { sentCommand, sentCommands } from "../test/recordedCommands";
 import { KosTerminalComponent } from "./index";
 
 // Faithful terminal reconstruction: back the component's @xterm/xterm import
@@ -64,26 +66,7 @@ vi.mock("@xterm/addon-fit", () => ({
 
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
-class MockResizeObserver {
-  private cb: ResizeObserverCallback;
-  constructor(cb: ResizeObserverCallback) {
-    this.cb = cb;
-  }
-  observe(target: Element) {
-    this.cb(
-      [
-        {
-          target,
-          contentRect: { width: 800, height: 400 } as DOMRectReadOnly,
-        } as ResizeObserverEntry,
-      ],
-      this as unknown as ResizeObserver,
-    );
-  }
-  unobserve() {}
-  disconnect() {}
-}
-global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+installFixedSizeResizeObserver({ width: 800, height: 400 });
 
 const ONE_CPU: KosProcessorInfo[] = [
   {
@@ -192,13 +175,11 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     });
 
     await waitFor(() => {
-      const key = f.transport.sentCommands.find(
-        (c) => c.command === "kos.keystroke",
-      );
+      const key = sentCommand(f.transport.sentCommands, "kos.keystroke");
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
       expect(key?.topic).toBe("kos/7");
-      expect((key?.args as { chars: string }).chars).toBe("run.\r");
+      expect(key?.args.chars).toBe("run.\r");
     });
   });
 
@@ -388,9 +369,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
       term().dataHandler("\r");
     });
     await waitFor(() => {
-      const sent = f.transport.sentCommands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const sent = sentCommands(f.transport.sentCommands, "kos.keystroke");
       expect(sent).toHaveLength(1);
     });
 
@@ -399,9 +378,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
       term().dataHandler("\r");
     });
     await waitFor(() => {
-      const sent = f.transport.sentCommands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const sent = sentCommands(f.transport.sentCommands, "kos.keystroke");
       expect(sent).toHaveLength(2);
     });
 
@@ -437,11 +414,10 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
 
     expect(compositionText()).toBe("");
     await waitFor(() => {
-      const interrupt = f.transport.sentCommands.find(
-        (c) =>
-          c.command === "kos.keystroke" &&
-          (c.args as { chars: string }).chars === "\x03",
-      );
+      const interrupt = sentCommands(
+        f.transport.sentCommands,
+        "kos.keystroke",
+      ).find((c) => c.args.chars === "\x03");
       expect(interrupt).toBeDefined();
       expect(interrupt?.topic).toBe("kos/7");
     });
@@ -465,7 +441,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
 
     expect(compositionText()).toBe("ruXn.");
     expect(
-      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+      sentCommands(f.transport.sentCommands, "kos.keystroke"),
     ).toHaveLength(0);
   });
 
@@ -582,12 +558,10 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     act(() => term().dataHandler("\r"));
 
     await waitFor(() => {
-      const key = f.transport.sentCommands.find(
-        (c) => c.command === "kos.keystroke",
-      );
+      const key = sentCommand(f.transport.sentCommands, "kos.keystroke");
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
-      expect((key?.args as { chars: string }).chars).toBe("run.\r");
+      expect(key?.args.chars).toBe("run.\r");
     });
     expect(compositionText()).toBe("");
   });
@@ -661,7 +635,7 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
     // did.
     await Promise.resolve();
     expect(
-      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+      sentCommands(f.transport.sentCommands, "kos.keystroke"),
     ).toHaveLength(0);
 
     // Proof the line never joined history either: up-arrow must NOT recall
@@ -688,7 +662,7 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
 
     await Promise.resolve();
     expect(
-      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+      sentCommands(f.transport.sentCommands, "kos.keystroke"),
     ).toHaveLength(0);
   });
 
@@ -717,7 +691,7 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
     expect(compositionText()).toBe("ruXn.");
     await Promise.resolve();
     expect(
-      f.transport.sentCommands.filter((c) => c.command === "kos.keystroke"),
+      sentCommands(f.transport.sentCommands, "kos.keystroke"),
     ).toHaveLength(0);
   });
 
@@ -746,12 +720,10 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
     act(() => term().dataHandler("\r"));
 
     await waitFor(() => {
-      const key = f.transport.sentCommands.find(
-        (c) => c.command === "kos.keystroke",
-      );
+      const key = sentCommand(f.transport.sentCommands, "kos.keystroke");
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
-      expect((key?.args as { chars: string }).chars).toBe("run.\r");
+      expect(key?.args.chars).toBe("run.\r");
     });
     expect(compositionText()).toBe("");
 
@@ -770,9 +742,7 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
     });
 
     await waitFor(() => {
-      const key = f.transport.sentCommands.find(
-        (c) => c.command === "kos.keystroke",
-      );
+      const key = sentCommand(f.transport.sentCommands, "kos.keystroke");
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
     });

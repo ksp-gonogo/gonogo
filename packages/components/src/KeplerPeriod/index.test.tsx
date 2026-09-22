@@ -5,6 +5,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -42,33 +43,17 @@ const VESSEL_STATE_INPUTS = [
  * `system.bodies` rather than emitting the old legacy keys directly.
  */
 describe("KeplerPeriodComponent", () => {
+  let restoreResizeObserver: () => void = () => {};
   let fixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
     clearBodies();
     registerStockBodies();
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
     fixture = await setupMockDataSource({ keys: GRAPH_KEYS });
     stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -80,6 +65,7 @@ describe("KeplerPeriodComponent", () => {
   afterEach(() => {
     teardownMockDataSource(fixture);
     clearBodies();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 

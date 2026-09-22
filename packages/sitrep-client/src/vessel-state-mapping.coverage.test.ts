@@ -1,8 +1,8 @@
 import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
-import type { DerivedGet } from "./timeline-store";
 import {
   deriveVesselState,
   VESSEL_STATE_FIELDS,
@@ -80,20 +80,15 @@ function flightPoint(): TimelinePoint<VesselFlightPayload> {
 
 /** Every field key `deriveVesselState` actually puts on its output, across both quality bases. */
 function producedVesselStateFields(): Set<string> {
-  const onRailsGet: DerivedGet = (<T>(topic: string) =>
-    topic === "vessel.orbit"
-      ? (orbitPoint(Quality.OnRails) as unknown as TimelinePoint<T>)
-      : undefined) as DerivedGet;
+  const onRailsGet = derivedGetOf({
+    "vessel.orbit": orbitPoint(Quality.OnRails),
+  });
   const onRailsState = deriveVesselState(onRailsGet, 0);
 
-  const loadedPoints: Record<string, TimelinePoint<unknown>> = {
-    "vessel.orbit": orbitPoint(
-      Quality.Loaded,
-    ) as unknown as TimelinePoint<unknown>,
-    "vessel.flight": flightPoint() as unknown as TimelinePoint<unknown>,
-  };
-  const loadedGet: DerivedGet = (<T>(topic: string) =>
-    loadedPoints[topic] as TimelinePoint<T> | undefined) as DerivedGet;
+  const loadedGet = derivedGetOf({
+    "vessel.orbit": orbitPoint(Quality.Loaded),
+    "vessel.flight": flightPoint(),
+  });
   const loadedState = deriveVesselState(loadedGet, 0, loadedGet);
 
   const fields = new Set<string>();

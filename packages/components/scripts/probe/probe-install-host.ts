@@ -1,26 +1,28 @@
-// Installs the injected gonogo host BEFORE a probe entry registers anything
-// through the sdk facade. The planted Uplink (`plantedUplink.ts`) and any
-// facade-sealed registration call `defineUplinkClient` / `registerComponent`
-// (and, at render, `useCommand` / `useStream` / ...), all of which resolve
-// through `getHost()` and throw "the gonogo host has not been installed"
-// without a host. ES imports are hoisted and evaluated in source order, so this
-// module MUST be the FIRST import in each probe entry.
-//
-// The bridge mirrors the app's `buildGonogoHost()` member-for-member, scoped
-// to what a probe-rendered registration calls: wiring the sdk facade's
-// fail-loud shims to the SAME real core / data / sitrep-client singletons the
-// probe already imports. Its own imports carry no facade self-registration, so
-// running it first is safe.
+/*
+ * Installs the injected gonogo host BEFORE a probe entry registers anything
+ * through the sdk facade. The planted Uplink (`plantedUplink.ts`) and any
+ * facade-sealed registration call `defineUplinkClient` (and, at render,
+ * `useCommand` / `useStream` / ...), all of which resolve through `getHost()`
+ * and throw "the gonogo host has not been installed" without a host. ES imports
+ * are hoisted and evaluated in source order, so this module MUST be the FIRST
+ * import in each probe entry.
+ *
+ * The bridge wires the sdk facade's fail-loud shims to the SAME real core /
+ * data / sitrep-client singletons the probe already imports. Its own imports
+ * carry no facade self-registration, so running it first is safe.
+ *
+ * Every key here is one `GonogoHost` declares. The registry calls
+ * (`registerComponent`, `registerDataSource`, `registerUplinkHandle`,
+ * `getDataSource`, `getUplinkHandle`) are NOT host members: they write to the
+ * sdk's own global registry and reach the host only for its logger, so putting
+ * them on the bridge does nothing. An object literal reports one excess
+ * property and stops, so check the whole set rather than the first complaint.
+ */
 import {
   AugmentSlot,
   defineUplinkClient,
-  getDataSource,
-  getUplinkHandle,
   PerfBudget,
   registerAugment,
-  registerComponent,
-  registerDataSource,
-  registerUplinkHandle,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
@@ -46,21 +48,12 @@ installTestHost({
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
     typeof installTestHost
   >[0]["getActiveTelemetryClient"],
-  getDataSource,
-  getUplinkHandle,
   logger,
   registerAugment: registerAugment as Parameters<
     typeof installTestHost
   >[0]["registerAugment"],
-  registerComponent,
-  registerDataSource: registerDataSource as Parameters<
-    typeof installTestHost
-  >[0]["registerDataSource"],
-  registerUplinkHandle: registerUplinkHandle as Parameters<
-    typeof installTestHost
-  >[0]["registerUplinkHandle"],
-  useCommand: (command) =>
-    useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
+  useCommand: ((command: string, options?: { vantage?: string }) =>
+    useCommand(command, options)) as GonogoHost["useCommand"],
   useLatestValue,
   useProcessor: useProcessor as GonogoHost["useProcessor"],
   useRouteCommands: (topic) =>

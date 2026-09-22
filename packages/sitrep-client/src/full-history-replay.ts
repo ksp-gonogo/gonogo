@@ -36,7 +36,9 @@ function stripEpochs(fixture: ReplayFixture): ReplayFixture {
   return {
     ...fixture,
     frames: fixture.frames.map((raw) => {
-      const message = JSON.parse(raw) as ServerMessage;
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== "object" || parsed === null) return raw;
+      const message = parsed as ServerMessage;
       if (message.type === "stream-data" || message.type === "event") {
         message.meta = { ...message.meta, timelineEpoch: 0 };
       }

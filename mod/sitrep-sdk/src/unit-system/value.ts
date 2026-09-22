@@ -788,12 +788,10 @@ const prototype = {
  * "Cannot add Klevin and K". Wrong, but loudly, rather than quietly wrong.
  */
 export function value<U extends string>(unit: U, magnitude: number): Value<U> {
-  const instance = Object.create(prototype) as {
-    magnitude: number;
-    unit: U;
-  };
-  instance.magnitude = magnitude;
-  instance.unit = unit;
+  const instance: { magnitude: number; unit: U } = Object.assign(
+    Object.create(prototype),
+    { magnitude, unit },
+  );
   return instance as Value<U>;
 }
 

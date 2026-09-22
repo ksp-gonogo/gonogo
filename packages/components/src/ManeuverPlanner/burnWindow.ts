@@ -167,7 +167,8 @@ export function burnInstantRows(
       detail: atUt == null ? framing.absentDetail : undefined,
     };
   });
-  return rows as unknown as [BurnInstantRow, BurnInstantRow, BurnInstantRow];
+  const [first, second, third] = rows;
+  return [first, second, third];
 }
 
 /**

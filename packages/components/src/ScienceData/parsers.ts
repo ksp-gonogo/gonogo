@@ -1,8 +1,4 @@
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 /** Fixed-decimal readout with no locale grouping, so the visual gate stays deterministic. */
 export function fixed(value: number, decimals: number): string {
@@ -38,9 +34,10 @@ export interface ParsedExperiment {
 export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
+  const entries: unknown[] = raw;
   const out: ParsedExperiment[] = [];
-  for (let i = 0; i < raw.length; i++) {
-    const entry = raw[i];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const subjectId =
@@ -54,7 +51,7 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
       part,
-      dataAmount: magnitudeOf(e.dataAmount as Quantityish),
+      dataAmount: magnitudeOf(asQuantityish(e.dataAmount)),
       subjectId,
     });
   }
@@ -87,9 +84,10 @@ export function parseExperimentBreakdown(
 ): ExperimentBreakdownEntry[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
+  const entries: unknown[] = raw;
   const out: ExperimentBreakdownEntry[] = [];
-  for (let i = 0; i < raw.length; i++) {
-    const entry = raw[i];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
@@ -98,8 +96,8 @@ export function parseExperimentBreakdown(
       biome: typeof e.biome === "string" ? e.biome : "",
       situation: typeof e.situation === "string" ? e.situation : "",
       expTitle: typeof e.expTitle === "string" ? e.expTitle : "(unnamed)",
-      dataMits: magnitudeOr(e.dataMits as Quantityish, 0),
-      remainingPotential: magnitudeOr(e.remainingPotential as Quantityish, 0),
+      dataMits: magnitudeOr(asQuantityish(e.dataMits), 0),
+      remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
     });
   }
   // Sort by remaining potential desc: subjects with the most science left
@@ -145,9 +143,10 @@ export interface ArchiveSubject {
 export function parseArchive(raw: unknown): ArchiveSubject[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
+  const entries: unknown[] = raw;
   const out: ArchiveSubject[] = [];
-  for (let i = 0; i < raw.length; i++) {
-    const entry = raw[i];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
@@ -159,10 +158,10 @@ export function parseArchive(raw: unknown): ArchiveSubject[] | null {
       situation: typeof e.situation === "string" ? e.situation : "",
       biome: typeof e.biome === "string" ? e.biome : "",
       title: typeof e.title === "string" ? e.title : "(unnamed)",
-      science: magnitudeOr(e.science as Quantityish, 0),
-      scienceCap: magnitudeOr(e.scienceCap as Quantityish, 0),
-      remainingPotential: magnitudeOr(e.remainingPotential as Quantityish, 0),
-      subjectValue: magnitudeOr(e.subjectValue as Quantityish, 0),
+      science: magnitudeOr(asQuantityish(e.science), 0),
+      scienceCap: magnitudeOr(asQuantityish(e.scienceCap), 0),
+      remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
+      subjectValue: magnitudeOr(asQuantityish(e.subjectValue), 0),
     });
   }
   return out;

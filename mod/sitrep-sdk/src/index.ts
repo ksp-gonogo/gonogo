@@ -235,6 +235,7 @@ export * from "./ksp-enum-names";
 // The magnitude unwrap, beside `Value` because that is what it unwraps.
 // ui-kit re-exports these three, so no call site moved.
 export {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,

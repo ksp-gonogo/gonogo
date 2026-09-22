@@ -5,6 +5,7 @@ import { ws } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import type { LinkClient } from "../test/peerFakes";
 
 /**
  * Closes the untested seam from the browser-transport brief: the LIVE
@@ -68,12 +69,10 @@ function Throttle() {
 
 describe("SitrepTelemetryProvider: live WebSocketTransport over MSW", () => {
   it("a frame on the real socket flows through the live transport to a widget re-render", async () => {
-    const serverClients: Array<{ send: (data: string) => void }> = [];
+    const serverClients: LinkClient[] = [];
     server.use(
       link.addEventListener("connection", ({ client }) => {
-        serverClients.push(
-          client as unknown as { send: (data: string) => void },
-        );
+        serverClients.push(client);
       }),
     );
 

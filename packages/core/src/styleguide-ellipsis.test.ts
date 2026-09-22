@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * Design-system guard: the single ellipsis character is banned everywhere in
@@ -81,7 +82,7 @@ function filesContaining(root: string, needle: string): string[] {
     );
   } catch (err) {
     // git grep exits 1 when there are no matches at all anywhere.
-    if ((err as { status?: number }).status === 1) return [];
+    if (exitStatus(err) === 1) return [];
     throw err;
   }
   return out.split("\n").filter(Boolean);

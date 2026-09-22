@@ -6,10 +6,12 @@ import { useDashboardState } from "./useDashboardState";
 const INITIAL = { items: [] as DashboardItem[], layouts: { lg: [] } };
 const item = (i: string): DashboardItem => ({ i, componentId: "test" });
 const idsOf = (items: readonly DashboardItem[]) => items.map((it) => it.i);
-const stored = (key: string) =>
-  JSON.parse(localStorage.getItem(key) ?? "{}") as {
-    items?: DashboardItem[];
-  };
+const stored = (key: string): { items?: DashboardItem[] } => {
+  const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "{}");
+  if (typeof parsed !== "object" || parsed === null) return {};
+  const items = Reflect.get(parsed, "items");
+  return Array.isArray(items) ? { items: items as DashboardItem[] } : {};
+};
 
 describe("useDashboardState: per-scene keys", () => {
   beforeEach(() => {

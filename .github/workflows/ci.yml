@@ -87,7 +87,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
+      # `lint:ci`, not `lint`: the latter is `biome check --write .`, which FIXES
+      # what it finds and then exits 0, so this step could not fail on anything
+      # biome can auto-fix. Measured on one file: `biome check` exits 1 where
+      # `biome check --write` exits 0 having repaired it, and in CI the repair is
+      # discarded with the runner. `lint` stays a fixer because that is what a
+      # human wants from it; `biome ci` never writes.
+      #
+      # The local pre-commit hook already runs the verify-only form, so a
+      # hand-written commit was covered. What was not: a commit that bypasses
+      # hooks, which includes every GITHUB_TOKEN push a workflow makes.
+      - run: pnpm lint:ci
 
       # `pnpm typecheck` is the ONLY thing that runs the workspace's
       # `*.test-d.ts` type-level assertions: vitest goes through esbuild and

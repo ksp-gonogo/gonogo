@@ -392,13 +392,26 @@ export const DEFAULT_WARP_SAFETY_MARGIN_SECONDS = 10;
 export const MIN_WARP_SAFETY_MARGIN_SECONDS = 1;
 export const MAX_WARP_SAFETY_MARGIN_SECONDS = 120;
 
+const ALARM_STATES: readonly AlarmState[] = [
+  "pending",
+  "arming",
+  "firing",
+  "fired",
+];
+
+/** A persisted `state` when it is one this build knows, and `undefined` for a
+ *  record written by a build that named a state this one has never had. */
+function asAlarmState(value: unknown): AlarmState | undefined {
+  return ALARM_STATES.find((state) => state === value);
+}
+
 /** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
  *  v2 `trigger` shape. Idempotent: already-v2 records pass through. */
 export function migrateAlarm(raw: unknown): Alarm | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== "string" || typeof r.name !== "string") return null;
-  const state = r.state as AlarmState | undefined;
+  const state = asAlarmState(r.state);
   const createdBy = typeof r.createdBy === "string" ? r.createdBy : "main";
   const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
   const notes = typeof r.notes === "string" ? r.notes : undefined;
@@ -565,19 +578,13 @@ function parseRequestedBy(raw: unknown): AlarmRequestedBy | undefined {
 
 function parseOnFire(raw: unknown): AlarmFireAction[] | undefined {
   if (!Array.isArray(raw)) return undefined;
+  const items: unknown[] = raw;
   const out: AlarmFireAction[] = [];
-  for (const item of raw) {
-    if (
-      item &&
-      typeof item === "object" &&
-      (item as { kind?: unknown }).kind === "action-group" &&
-      typeof (item as { action?: unknown }).action === "string"
-    ) {
-      out.push({
-        kind: "action-group",
-        action: (item as { action: string }).action,
-      });
-    }
+  for (const item of items) {
+    if (typeof item !== "object" || item === null) continue;
+    if (Reflect.get(item, "kind") !== "action-group") continue;
+    const action: unknown = Reflect.get(item, "action");
+    if (typeof action === "string") out.push({ kind: "action-group", action });
   }
   return out.length > 0 ? out : undefined;
 }

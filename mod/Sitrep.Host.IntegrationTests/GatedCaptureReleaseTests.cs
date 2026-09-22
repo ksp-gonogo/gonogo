@@ -33,7 +33,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class GatedCaptureReleaseTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         [Fact]
         public async Task AGatedCaptureStopsRunningOnceItsLastSubscriberUnsubscribes()

@@ -1,7 +1,6 @@
 import {
   COMMAND_IDS,
   DEFAULT_SITREP_CARRIED_TOPICS,
-  isCommandId,
   splitRawFieldSubtopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";

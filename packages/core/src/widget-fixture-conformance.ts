@@ -221,7 +221,12 @@ export function fixturePayloads(fixture: unknown): FixturePayload[] {
   const raw = fixture as Record<string, unknown>;
   const out: FixturePayload[] = [];
 
-  const stream = raw._stream as
+  const streamBlock = raw._stream;
+  const stream = (
+    typeof streamBlock === "object" && streamBlock !== null
+      ? streamBlock
+      : undefined
+  ) as
     | {
         emits?: Array<{
           topic?: string;

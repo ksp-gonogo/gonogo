@@ -69,9 +69,12 @@ const NAMES = [
 ] as const;
 
 function load(name: string): Fixture {
-  return JSON.parse(
-    readFileSync(join(FIXTURE_DIR, `${name}.json`), "utf8"),
-  ) as Fixture;
+  const path = join(FIXTURE_DIR, `${name}.json`);
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error(`${path} does not hold a JSON object`);
+  }
+  return parsed as Fixture;
 }
 
 const trees: Array<() => void> = [];

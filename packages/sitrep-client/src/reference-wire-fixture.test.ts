@@ -370,8 +370,14 @@ describe.skipIf(!fixtureExists)(
 
         // ---- Drive the whole fixture, in fixture (arrival) order ----
         for (const raw of fixture.frames) {
-          const message = JSON.parse(raw) as ServerMessage;
-          const meta = (message as { meta?: Meta }).meta;
+          const parsed: unknown = JSON.parse(raw);
+          if (typeof parsed !== "object" || parsed === null) continue;
+          const message = parsed as ServerMessage;
+          const rawMeta: unknown = Reflect.get(message, "meta");
+          const meta =
+            typeof rawMeta === "object" && rawMeta !== null
+              ? (rawMeta as Meta)
+              : undefined;
 
           if (meta) {
             // Mid-gap wall-clock advance BEFORE delivering this frame, the

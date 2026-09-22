@@ -21,6 +21,7 @@ import {
   vi,
 } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import type { LinkClient } from "../test/peerFakes";
 import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
@@ -111,10 +112,10 @@ function wrapper({ children }: { children: ReactNode }) {
  */
 function renderSetup(props?: { onFinish?: () => void }) {
   registerDataSource(makeSitrepStub());
-  const wsClients: Array<{ send: (data: string) => void }> = [];
+  const wsClients: LinkClient[] = [];
   server.use(
     link.addEventListener("connection", ({ client }) => {
-      wsClients.push(client as unknown as { send: (data: string) => void });
+      wsClients.push(client);
     }),
   );
   const result = render(<FirstRunSetup {...props} />, { wrapper });
@@ -127,10 +128,7 @@ async function goToUplinks() {
   await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
 }
 
-async function emitRoster(
-  wsClients: Array<{ send: (data: string) => void }>,
-  uplinks: unknown[],
-) {
+async function emitRoster(wsClients: LinkClient[], uplinks: unknown[]) {
   await waitFor(() => expect(wsClients).toHaveLength(1));
   wsClients[0]?.send(streamFrame("system.uplinks", { uplinks }));
 }

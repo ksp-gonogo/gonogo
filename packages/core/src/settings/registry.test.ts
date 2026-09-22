@@ -14,6 +14,20 @@ afterEach(() => {
   __clearSettingsForTests();
 });
 
+interface ExampleSettings {
+  frameName: string;
+  tolerance: number;
+}
+
+/* The example Topic these rows read. A stream-backed row names a Topic the
+   contract carries, so a row pointing at one nothing publishes does not
+   compile rather than rendering nothing forever. */
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    "example.settings": ExampleSettings;
+  }
+}
+
 describe("settings registry: three backings", () => {
   it("stores a client-pref setting (backing omitted defaults to client-pref)", () => {
     registerSetting({
@@ -127,7 +141,7 @@ describe("settings registry: read-only, typed and grouped rows", () => {
       backing: "stream-backed",
       type: "text",
       topic: "example.settings",
-      select: (p) => (p as { frameName: string }).frameName,
+      select: (p) => p.frameName,
       label: "Selected frame",
       category: "Example",
       group: "Plotting frame",
@@ -149,7 +163,7 @@ describe("settings registry: read-only, typed and grouped rows", () => {
       backing: "stream-backed",
       type: "number",
       topic: "example.settings",
-      select: (p) => value("m", (p as { tolerance: number }).tolerance),
+      select: (p) => value("m", p.tolerance),
       label: "Prediction tolerance",
       category: "Example",
     });

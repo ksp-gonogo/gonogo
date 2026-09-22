@@ -500,6 +500,7 @@ export {
   useModalSaveBar,
 } from "./ModalSaveBar";
 export {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,

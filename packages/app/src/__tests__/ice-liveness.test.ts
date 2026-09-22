@@ -1,6 +1,6 @@
-import type { DataConnection } from "peerjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { attachIceDiagnostics } from "../peer/PeerClientService";
+import { asDataConnection } from "../test/peerFakes";
 
 /**
  * Minimal RTCPeerConnection stand-in: just enough surface for
@@ -64,7 +64,7 @@ function wire() {
   const pc = new FakePc();
   const conn = new FakeConn(pc);
   const onDead = vi.fn();
-  attachIceDiagnostics(conn as unknown as DataConnection, onDead);
+  attachIceDiagnostics(asDataConnection(conn), onDead);
   return { pc, conn, onDead };
 }
 

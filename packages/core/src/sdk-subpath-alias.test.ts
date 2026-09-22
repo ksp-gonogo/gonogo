@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 
 /**
  * Every subpath `@ksp-gonogo/sitrep-sdk` exports must be aliased in every Uplink
@@ -36,11 +37,12 @@ const SDK_PKG = join(REPO_ROOT, "mod", "sitrep-sdk", "package.json");
 
 /** The subpath names the sdk publishes, e.g. `["media", "registry", ...]`. */
 function sdkSubpaths(): string[] {
-  const pkg = JSON.parse(readFileSync(SDK_PKG, "utf8")) as {
-    exports: Record<string, unknown>;
-  };
+  const exports = readJsonObject(SDK_PKG).exports;
+  if (typeof exports !== "object" || exports === null) {
+    throw new Error(`${SDK_PKG} declares no exports map.`);
+  }
   return (
-    Object.keys(pkg.exports)
+    Object.keys(exports)
       .filter((key) => key.startsWith("./") && key !== ".")
       .map((key) => key.slice(2))
       // `./biome` and `./tsconfig.base.json` are shared CONFIG files, not

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * One implementation of "take a quantity's magnitude", and this is what keeps
@@ -113,7 +114,7 @@ function grep(root: string, pattern: string): string[] {
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
     ).split("\n");
   } catch (err) {
-    if ((err as { status?: number }).status === 1) return [];
+    if (exitStatus(err) === 1) return [];
     throw err;
   }
 }

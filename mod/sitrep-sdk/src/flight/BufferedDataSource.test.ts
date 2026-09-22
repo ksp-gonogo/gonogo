@@ -27,6 +27,15 @@ const MOCK_META: Record<
 const mockEnrich: KeyEnricher = (key) =>
   MOCK_META[key] ?? { label: key, group: "Other" };
 
+/** A sample's value as a number, or a failure naming what the fixture emitted
+ *  instead: a derived key computing on a non-number is the defect under test. */
+function num(value: unknown): number {
+  if (typeof value !== "number") {
+    throw new Error(`expected a numeric sample, got: ${JSON.stringify(value)}`);
+  }
+  return value;
+}
+
 describe("BufferedDataSource", () => {
   let source: MockDataSource;
   let store: MemoryStore;
@@ -511,7 +520,7 @@ describe("BufferedDataSource: derived keys", () => {
       id: "test.double",
       inputs: ["v.altitude"],
       meta: { label: "Doubled altitude", group: "Test" },
-      fn: ([alt]) => (alt.v as number) * 2,
+      fn: ([alt]) => num(alt.v) * 2,
     });
 
     const spy = vi.fn();
@@ -526,7 +535,7 @@ describe("BufferedDataSource: derived keys", () => {
       id: "test.double",
       inputs: ["v.altitude"],
       meta: { label: "Doubled altitude", group: "Test" },
-      fn: ([alt]) => (alt.v as number) * 2,
+      fn: ([alt]) => num(alt.v) * 2,
     });
 
     const spy = vi.fn();
@@ -542,7 +551,7 @@ describe("BufferedDataSource: derived keys", () => {
       id: "test.sum",
       inputs: ["v.altitude", "v.missionTime"],
       meta: { label: "Sum", group: "Test" },
-      fn: ([alt, mt]) => (alt.v as number) + (mt.v as number),
+      fn: ([alt, mt]) => num(alt.v) + num(mt.v),
     });
 
     const spy = vi.fn();
@@ -576,7 +585,7 @@ describe("BufferedDataSource: derived keys", () => {
       id: "test.double",
       inputs: ["v.altitude"],
       meta: { label: "Doubled altitude", group: "Test" },
-      fn: ([alt]) => (alt.v as number) * 2,
+      fn: ([alt]) => num(alt.v) * 2,
     });
 
     clock = 3000;
@@ -591,7 +600,7 @@ describe("BufferedDataSource: derived keys", () => {
       id: "test.double",
       inputs: ["v.altitude"],
       meta: { label: "Doubled altitude", unit: "m", group: "Test" },
-      fn: ([alt]) => (alt.v as number) * 2,
+      fn: ([alt]) => num(alt.v) * 2,
     });
 
     const schema = buffered.schema();
@@ -609,7 +618,7 @@ describe("BufferedDataSource: derived keys", () => {
       fn: ([alt], previous) => {
         if (previous === null) return undefined;
         const dt = (alt.t - previous[0].t) / 1000;
-        return ((alt.v as number) - (previous[0].v as number)) / dt;
+        return (num(alt.v) - num(previous[0].v)) / dt;
       },
     });
 
@@ -638,9 +647,7 @@ describe("BufferedDataSource: derived keys", () => {
       inputs: ["v.altitude"],
       meta: { label: "Rate", group: "Test" },
       fn: ([alt], previous) =>
-        previous === null
-          ? undefined
-          : (alt.v as number) - (previous[0].v as number),
+        previous === null ? undefined : num(alt.v) - num(previous[0].v),
     });
 
     source.emit("v.altitude", 100); // seeds lastRawSample + derivedPrevious

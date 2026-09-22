@@ -5,7 +5,10 @@ import {
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
@@ -37,6 +40,7 @@ const CARRIED = [
 const NOT_CURRENT = "Atmospheric readings no longer current.";
 
 describe("AtmosphereProfile when the flight reading is not current", () => {
+  let restoreResizeObserver: () => void = () => {};
   let fixture: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -49,31 +53,15 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     });
     // The chart measures itself before it draws anything, and the live chip is
     // gated on the widget being big enough to carry it.
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
   });
 
   afterEach(() => {
     clearBodies();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 

@@ -17,10 +17,6 @@
  * `comment-stacks.scan.ts` for the matcher itself.
  */
 export const COMMENT_STACK_DEBT: Record<string, number> = {
-  "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts": 2,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.test.tsx": 2,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 1,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/snapshots.test.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/index.test.tsx": 5,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/panel-badge.test.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/processor.test.ts": 2,
@@ -41,7 +37,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/ecosystem.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/index.ts": 2,
   "mod/GonogoKerbalismUplink/client/src/processor-notifications.test.tsx": 1,
-  "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 2,
+  "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/reliability.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/science.test.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/shipSystemsProvenance.test.ts": 1,
@@ -221,7 +217,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/scripts/render-crew-status-avatar.ts": 1,
   "packages/components/scripts/render-crew-status-panel-badge.ts": 1,
   "packages/components/scripts/render-delay-rail.ts": 2,
-  "packages/components/scripts/render-descent-envelope-drag.ts": 1,
   "packages/components/scripts/render-systemview-traffic-video.ts": 5,
   "packages/components/scripts/render-vantage-control.ts": 3,
   "packages/components/scripts/synthesize-landing-descent.ts": 1,

@@ -17,7 +17,15 @@ namespace Sitrep.Host
     /// </summary>
     public interface IKspHost
     {
-        /// <summary>Current universal time (KSP's UT clock), in seconds.</summary>
+        /// <summary>
+        /// Current universal time (KSP's UT clock), in seconds.
+        ///
+        /// Throws when there is no UT to read, which for a live host means
+        /// before a save is loaded. A caller skips the work it was about to
+        /// stamp; it must not substitute a number, because every value in this
+        /// range is a real instant and a low one reads downstream as a
+        /// backward jump in the timeline.
+        /// </summary>
         double NowUt();
 
         /// <summary>

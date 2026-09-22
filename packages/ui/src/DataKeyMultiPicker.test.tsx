@@ -1,5 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { DataKeyMultiPicker } from "./DataKeyMultiPicker";
 import type { KeyOption } from "./DataKeyPicker";
@@ -59,7 +60,8 @@ describe("DataKeyMultiPicker", () => {
 
   it("toggling a row emits a new set with that key added", async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange =
+      vi.fn<ComponentProps<typeof DataKeyMultiPicker>["onChange"]>();
     render(
       <DataKeyMultiPicker
         keys={KEYS}
@@ -71,13 +73,14 @@ describe("DataKeyMultiPicker", () => {
     // (pointer-events: none): the <label htmlFor> delegates the click.
     await user.click(screen.getByText("Altitude"));
     expect(onChange).toHaveBeenCalledTimes(1);
-    const next = onChange.mock.calls[0][0] as Set<string>;
+    const next = onChange.mock.calls[0][0];
     expect(Array.from(next).sort()).toEqual(["v.altitude", "v.lat"]);
   });
 
   it("toggling an already-checked row removes that key from the set", async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange =
+      vi.fn<ComponentProps<typeof DataKeyMultiPicker>["onChange"]>();
     render(
       <DataKeyMultiPicker
         keys={KEYS}
@@ -86,7 +89,7 @@ describe("DataKeyMultiPicker", () => {
       />,
     );
     await user.click(screen.getByText("Latitude"));
-    const next = onChange.mock.calls[0][0] as Set<string>;
+    const next = onChange.mock.calls[0][0];
     expect(Array.from(next)).toEqual(["v.altitude"]);
   });
 

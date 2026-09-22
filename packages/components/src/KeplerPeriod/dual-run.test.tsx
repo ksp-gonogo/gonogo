@@ -4,6 +4,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { act, render as rtlRender, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -40,31 +41,26 @@ function unmountAll() {
  * Kepler reference curve renders (the unknown-body degraded path is covered
  * in `stream.test.tsx`).
  */
+let restoreResizeObserver: () => void = () => {};
+
 beforeEach(() => {
   clearBodies();
   registerStockBodies();
-  vi.stubGlobal(
-    "ResizeObserver",
-    class FakeResizeObserver {
-      private cb: ResizeObserverCallback;
-      constructor(cb: ResizeObserverCallback) {
-        this.cb = cb;
-      }
-      observe(_el: Element) {
-        this.cb(
-          [{ contentRect: { width: 400, height: 300 } } as ResizeObserverEntry],
-          this as unknown as ResizeObserver,
-        );
-      }
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  restoreResizeObserver = installFixedSizeResizeObserver({
+    width: 400,
+    height: 300,
+  });
 });
 
 afterEach(() => {
   unmountAll();
   clearBodies();
+  /*
+   * `installFixedSizeResizeObserver` assigns `globalThis.ResizeObserver`
+   * directly rather than through `vi.stubGlobal`, so the closure it returns is
+   * the only way back and `unstubAllGlobals` below does not cover it.
+   */
+  restoreResizeObserver();
   vi.unstubAllGlobals();
 });
 

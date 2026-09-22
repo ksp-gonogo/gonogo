@@ -27,11 +27,7 @@ import {
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: ["career.status", "vessel.state"],
@@ -188,7 +184,8 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: ContractEntry[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     // Accept string (current) OR number (legacy DLL). KSP contract IDs
@@ -210,21 +207,21 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
           ? e.agent
           : "";
     const repCompletion =
-      magnitudeOf(e.repCompletion as Quantityish) ??
-      magnitudeOf(e.reputationCompletion as Quantityish) ??
+      magnitudeOf(asQuantityish(e.repCompletion)) ??
+      magnitudeOf(asQuantityish(e.reputationCompletion)) ??
       0;
     const deadlineUt =
-      magnitudeOf(e.deadlineUt as Quantityish) ??
-      magnitudeOf(e.dateDeadline as Quantityish) ??
+      magnitudeOf(asQuantityish(e.deadlineUt)) ??
+      magnitudeOf(asQuantityish(e.dateDeadline)) ??
       0;
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
       agency,
       state: typeof e.state === "string" ? e.state : "",
-      fundsAdvance: magnitudeOr(e.fundsAdvance as Quantityish, 0),
-      fundsCompletion: magnitudeOr(e.fundsCompletion as Quantityish, 0),
-      scienceCompletion: magnitudeOr(e.scienceCompletion as Quantityish, 0),
+      fundsAdvance: magnitudeOr(asQuantityish(e.fundsAdvance), 0),
+      fundsCompletion: magnitudeOr(asQuantityish(e.fundsCompletion), 0),
+      scienceCompletion: magnitudeOr(asQuantityish(e.scienceCompletion), 0),
       repCompletion,
       deadlineUt,
       parameters: parseParameters(e.parameters),
@@ -236,7 +233,8 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
 function parseParameters(raw: unknown): ContractParameter[] {
   if (!Array.isArray(raw)) return [];
   const out: ContractParameter[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
@@ -246,8 +244,8 @@ function parseParameters(raw: unknown): ContractParameter[] {
       optional: e.optional === true,
       parameterType:
         typeof e.parameterType === "string" ? e.parameterType : undefined,
-      minAltitude: magnitudeOf(e.minAltitude as Quantityish) ?? undefined,
-      maxAltitude: magnitudeOf(e.maxAltitude as Quantityish) ?? undefined,
+      minAltitude: magnitudeOf(asQuantityish(e.minAltitude)) ?? undefined,
+      maxAltitude: magnitudeOf(asQuantityish(e.maxAltitude)) ?? undefined,
       body: typeof e.body === "string" ? e.body : undefined,
       situation: typeof e.situation === "string" ? e.situation : undefined,
       partName: typeof e.partName === "string" ? e.partName : undefined,

@@ -18,7 +18,13 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import { afterAll, describe, expect, it } from "vitest";
-import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
+import {
+  baseStringLists,
+  baseStrings,
+  ratchetBaseRef,
+  readJsonObject,
+  sourceAtRatchetBase,
+} from "./ratchetBaseRef";
 import {
   AUTHOR_SUBPATHS,
   BLOCKED_FILENAMES,
@@ -175,15 +181,9 @@ function scanDeclaredDependencies(): Map<string, Set<ForbiddenPackage>> {
   const found = new Map<string, Set<ForbiddenPackage>>();
   for (const manifest of uplinkManifests()) {
     const rel = relative(REPO_ROOT, manifest).split("\\").join("/");
-    const pkg = JSON.parse(readFileSync(manifest, "utf8")) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
+    const pkg = readJsonObject(manifest);
     const hits = new Set<ForbiddenPackage>();
-    for (const name of Object.keys({
-      ...pkg.dependencies,
-      ...pkg.devDependencies,
-    })) {
+    for (const name of dependencyNames(pkg)) {
       const suffix = name.startsWith("@ksp-gonogo/")
         ? name.slice("@ksp-gonogo/".length)
         : undefined;
@@ -194,6 +194,32 @@ function scanDeclaredDependencies(): Map<string, Set<ForbiddenPackage>> {
     if (hits.size > 0) found.set(rel, hits);
   }
   return found;
+}
+
+/** The dependency and devDependency names a manifest declares. */
+function dependencyNames(pkg: Record<string, unknown>): string[] {
+  const names: string[] = [];
+  for (const field of ["dependencies", "devDependencies"]) {
+    const block: unknown = pkg[field];
+    if (typeof block === "object" && block !== null) {
+      names.push(...Object.keys(block));
+    }
+  }
+  return names;
+}
+
+/** A base-ref debt list keyed by Uplink, whose values name forbidden packages. */
+function baseForbiddenLists(
+  lists: Record<string, unknown>,
+  name: string,
+): Record<string, readonly ForbiddenPackage[]> | undefined {
+  const raw = baseStringLists(lists, name);
+  if (!raw) return undefined;
+  const out: Record<string, readonly ForbiddenPackage[]> = {};
+  for (const [key, entries] of Object.entries(raw)) {
+    out[key] = entries as readonly ForbiddenPackage[];
+  }
+  return out;
 }
 
 describe("uplink isolation", () => {
@@ -565,8 +591,7 @@ describe("uplink isolation", () => {
      */
     function gradedPackages(base: Record<string, unknown>): Set<string> {
       const baseForbidden = new Set(
-        (base.FORBIDDEN_PACKAGES as readonly string[] | undefined) ??
-          FORBIDDEN_PACKAGES,
+        baseStrings(base, "FORBIDDEN_PACKAGES") ?? FORBIDDEN_PACKAGES,
       );
       return new Set(
         FORBIDDEN_PACKAGES.filter((pkg) => baseForbidden.has(pkg)),
@@ -597,9 +622,7 @@ describe("uplink isolation", () => {
     it("INTERNAL_IMPORT_DEBT", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const baseDebt = at.lists.INTERNAL_IMPORT_DEBT as
-        | Record<string, readonly ForbiddenPackage[]>
-        | undefined;
+      const baseDebt = baseForbiddenLists(at.lists, "INTERNAL_IMPORT_DEBT");
       if (!baseDebt) return;
       expect(
         additions(INTERNAL_IMPORT_DEBT, baseDebt, gradedPackages(at.lists)),
@@ -610,9 +633,7 @@ describe("uplink isolation", () => {
     it("DECLARED_DEPENDENCY_DEBT", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const baseDebt = at.lists.DECLARED_DEPENDENCY_DEBT as
-        | Record<string, readonly ForbiddenPackage[]>
-        | undefined;
+      const baseDebt = baseForbiddenLists(at.lists, "DECLARED_DEPENDENCY_DEBT");
       // Absent at the base: the list was seeded after it, so every entry is the
       // seed rather than growth. Graded from the next commit onwards.
       if (!baseDebt) return;
@@ -639,9 +660,7 @@ describe("uplink isolation", () => {
     it("FORBIDDEN_PACKAGES never shrinks", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const baseForbidden = at.lists.FORBIDDEN_PACKAGES as
-        | readonly string[]
-        | undefined;
+      const baseForbidden = baseStrings(at.lists, "FORBIDDEN_PACKAGES");
       if (!baseForbidden) return;
       const now = new Set<string>(FORBIDDEN_PACKAGES);
       expect(
@@ -673,9 +692,7 @@ describe("uplink isolation", () => {
     it("BLOCKED_FILENAMES never shrinks", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const baseBlocked = at.lists.BLOCKED_FILENAMES as
-        | readonly string[]
-        | undefined;
+      const baseBlocked = baseStrings(at.lists, "BLOCKED_FILENAMES");
       if (!baseBlocked) return;
       const now = new Set<string>(BLOCKED_FILENAMES);
       expect(
@@ -782,10 +799,10 @@ describe("uplink subpath isolation", () => {
    * `sdk-subpath-alias.test.ts` does it.
    */
   function publishedSubpaths(manifestPath: string): string[] {
-    const pkg = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-      exports?: Record<string, unknown>;
-    };
-    return Object.keys(pkg.exports ?? {})
+    const exports = readJsonObject(manifestPath).exports;
+    return Object.keys(
+      typeof exports === "object" && exports !== null ? exports : {},
+    )
       .filter((key) => key.startsWith("./") && key !== ".")
       .map((key) => key.slice(2))
       .filter((sub) => sub !== "biome" && !sub.endsWith(".json"));

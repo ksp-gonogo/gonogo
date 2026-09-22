@@ -5,6 +5,7 @@ import type {
 import { classifyCommandRejection } from "./api/command-rejection";
 import type { UseCommandResult } from "./spine/use-command";
 import type { Value } from "./value";
+import type { WireOf } from "./wrap-units";
 
 /** The command the engine registers for this. Not an Uplink's. */
 export const SEND_PLAN_COMMAND = "vessel.maneuver.plan.send";
@@ -147,7 +148,7 @@ export function planSendArgs(
   plan: ComposedPlan,
   composedAtViewUt: number,
 ): SendManeuverPlanArgs {
-  return {
+  const wire: WireOf<SendManeuverPlanArgs> = {
     vesselId: plan.vesselId,
     requestId: plan.requestId,
     composedAtViewUt,
@@ -172,7 +173,10 @@ export function planSendArgs(
       thrust: burn.thrust?.magnitude,
       specificImpulse: burn.specificImpulse?.magnitude,
     })),
-  } as unknown as SendManeuverPlanArgs;
+  };
+  /* `WireOf` IS the relationship between the two: every declared `Value`
+     travels as its magnitude, which is what the block above builds. */
+  return wire as SendManeuverPlanArgs;
 }
 
 /**
