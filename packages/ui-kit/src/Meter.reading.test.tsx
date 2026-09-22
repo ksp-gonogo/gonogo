@@ -271,6 +271,86 @@ describe("Meter, given a reading of a fraction", () => {
     expect(container.querySelector("[data-not-current]")).not.toBeNull();
   });
 
+  it("says the grade in words, once, for the whole meter", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(
+      container.querySelector("[data-not-current-word]")?.textContent,
+    ).toBe("STALE");
+  });
+
+  it("keeps the two grades apart, because they ask for opposite moves", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "last-before-blackout",
+        }}
+      />,
+    );
+    expect(
+      container.querySelector("[data-not-current-word]")?.textContent,
+    ).toBe("BLACKOUT");
+  });
+
+  it("says nothing where a held reading names no grade", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-not-current-word]")).toBeNull();
+  });
+
+  it("says nothing at all while the figure is a reading of now", () => {
+    const { container } = render(
+      <Meter label="Dose" value={banded(value("ratio", 0.39))} />,
+    );
+    expect(container.querySelector("[data-not-current-word]")).toBeNull();
+  });
+
+  it("leaves the band marks alone: a band is doubt, not staleness", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        value={{
+          state: "stale",
+          reckoning: {
+            status: "available",
+            modelled: value("ratio", 0.39),
+            basis: "linear-dead-reckoning",
+            band: bandOf("ratio", 0.379, 0.39, 0.401),
+          },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-not-current-word]")).not.toBeNull();
+    expect(marks(container)).toHaveLength(2);
+  });
+
   it("has no axe violations with the marks drawn", async () => {
     const { container } = render(
       <Meter

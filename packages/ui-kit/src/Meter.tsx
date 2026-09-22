@@ -9,6 +9,7 @@ import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
+import { formatStreamStatus } from "./StreamStatusBadge";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
@@ -234,6 +235,18 @@ export function Meter<U extends string = string>({
     // still the reading it always was; what is no longer known is the axis it
     // is drawn against, and marking the bar would say the wrong half aged.
     trackNotCurrent: held.reading?.state === "stale",
+    /*
+     * The FIGURE's own currency, said once for the whole meter. Taken from the
+     * grade rather than from the state, so a reading that went quiet and one
+     * that went behind a body do not share a word: they ask the operator for
+     * opposite moves, which is the distinction `formatStreamStatus` exists to
+     * keep. A held reading naming no grade says nothing rather than captioning
+     * itself with a missing word.
+     */
+    notCurrentWord:
+      shown.reading?.state === "stale" && shown.reading.grade !== undefined
+        ? formatStreamStatus(shown.reading.grade)
+        : null,
     ...rest,
   };
   // Where the capacity's own doubt puts the end of the track, as a fraction of
@@ -502,6 +515,14 @@ interface MeterBarProps
   fillColor?: string;
   /** Whether the AXIS has stopped being current. See `Meter__Track`. */
   trackNotCurrent: boolean;
+  /**
+   * The grade's word where the FIGURE has stopped being current, else `null`.
+   *
+   * One treatment for the whole meter rather than a mark per entry: a stack of
+   * rows that each grew their own marker reads as the meter's main content
+   * instead of as a statement about it.
+   */
+  notCurrentWord: string | null;
   /** The value for the eye, as markup. */
   display: ReactNode;
   /** The same value for the ear, as the string an attribute can hold. */
@@ -526,6 +547,7 @@ function MeterBar({
   tone,
   fillColor,
   trackNotCurrent,
+  notCurrentWord,
   display,
   spoken,
   bounds,
@@ -536,6 +558,15 @@ function MeterBar({
     <Meter__Root {...rest}>
       <Meter__Head>
         <Meter__Label>{label}</Meter__Label>
+        {/* The grade's own word, never rephrased here, and beside the label
+            rather than over the bar: it is a statement about the whole meter,
+            and the bar is where the figure lives. Silent to a screen reader,
+            which already hears the grade in `aria-valuetext`. */}
+        {notCurrentWord !== null && (
+          <Meter__Grade aria-hidden="true" data-not-current-word="">
+            {notCurrentWord}
+          </Meter__Grade>
+        )}
         <Meter__Value>{display}</Meter__Value>
       </Meter__Head>
       <Meter__Bar>
@@ -552,6 +583,7 @@ function MeterBar({
           <Meter__Fill
             $tone={tone}
             $fillColor={fillColor}
+            $notCurrent={notCurrentWord !== null}
             style={{ width: `${pct}%` }}
           />
         </Meter__Track>
@@ -765,6 +797,20 @@ const Meter__Value = styled.span`
    is how one visual language stops being one. A dash reads as provisional
    whether or not the reader can separate the two greys (WCAG 1.4.1), and the
    words are in `aria-valuetext`. */
+/* The grade, beside the label. Small and warning-toned: it qualifies the figure
+   rather than competing with it, and the figure is what the operator came to
+   read.
+
+   The MUTED warning token, which is the light one meant for a dark surface. Its
+   plain `-fg` sibling is near-black, for dark text ON an orange chip, and using
+   that here rendered the word all but invisible. */
+const Meter__Grade = styled.span`
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.08em;
+  color: var(--color-status-warning-fg-muted);
+  white-space: nowrap;
+`;
+
 const Meter__Track = styled.div<{ $notCurrent: boolean }>`
   width: 100%;
   border-radius: var(--radius-pill);
@@ -837,10 +883,19 @@ const Meter__Bound = styled.div`
   pointer-events: none;
 `;
 
-const Meter__Fill = styled.div<{ $tone: MeterTone; $fillColor?: string }>`
+const Meter__Fill = styled.div<{
+  $tone: MeterTone;
+  $fillColor?: string;
+  $notCurrent: boolean;
+}>`
   height: 100%;
   border-radius: var(--radius-pill);
   transition: width var(--duration-slow) var(--ease-standard);
+  /* Dimmed rather than recoloured, and the FILL rather than the whole meter.
+     A second hue here would be read as the status the fill's colour already
+     carries, and dimming the root would take the label and the figure with it,
+     which is the one thing a held reading must stay readable as. */
+  ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.55;" : "")}
   /* $fillColor wins outright when set: an identity fill (a resource's own
      colour) isn't "one of five tones", it's a fully arbitrary CSS colour,
      so this is a straight override rather than another TONE_FILL entry. */
