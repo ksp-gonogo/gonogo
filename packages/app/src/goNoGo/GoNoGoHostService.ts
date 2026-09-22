@@ -18,11 +18,28 @@ import { getDataSource } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
   dispatchActiveCommandTopic,
-  getVesselState,
+  getVesselIdentity,
+  getViewUt,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
+import { magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
+
+/**
+ * Seconds since liftoff on the view clock, or `null` before the clamps release
+ * and whenever no stream has produced a liftoff instant yet.
+ *
+ * The view clock rather than the wall clock, so the launch state this service
+ * publishes agrees with every mission clock drawn against the same frame.
+ */
+function missionElapsed(): number | null {
+  const launchUt = getVesselIdentity()?.launchUt;
+  const viewUt = getViewUt();
+  if (launchUt == null || viewUt === undefined) return null;
+  const launched = magnitudeOf(launchUt);
+  return launched === null ? null : viewUt - launched;
+}
 
 export type Vote = "go" | "no-go" | null;
 
@@ -168,20 +185,17 @@ export class GoNoGoHostService {
       }),
     );
 
-    // Launch state: prefers the stream's `vessel.state.met` (the
-    // `v.missionTime` migration target: see `map-topic.ts`) via
-    // `onActiveTimelineFrame`, a plain-class non-hook subscription
-    // (`@ksp-gonogo/sitrep-client`) that re-runs on every ingested frame.
-    // The legacy `this.dataSource.subscribe("v.missionTime", ...)` stays
-    // wired as the fallback for whenever no `TelemetryProvider` is mounted
-    // yet or the stream hasn't resolved `vessel.state.met`, the same
-    // "mapped + carried -> stream, else legacy" shape `useTelemetry`'s
-    // shim applies, just without a React tree to read carried-channels
-    // from directly (`getVesselState()` already returns `undefined` in
-    // exactly those cases, so a plain `!= null` check is enough here).
+    // Launch state: prefers the stream, via `onActiveTimelineFrame`, a
+    // plain-class non-hook subscription (`@ksp-gonogo/sitrep-client`) that
+    // re-runs on every ingested frame. The legacy
+    // `this.dataSource.subscribe("v.missionTime", ...)` stays wired as the
+    // fallback for whenever no `TelemetryProvider` is mounted yet or the
+    // stream has not produced a liftoff instant, the same "carried -> stream,
+    // else legacy" shape the hooks apply, just without a React tree to read
+    // from (`missionElapsed()` already answers `null` in exactly those cases).
     this.unsubs.push(
       onActiveTimelineFrame(() => {
-        const met = getVesselState()?.met;
+        const met = missionElapsed();
         if (met != null) this.handleMissionTime(met);
       }),
     );
@@ -189,10 +203,9 @@ export class GoNoGoHostService {
     if (this.dataSource) {
       this.unsubs.push(
         this.dataSource.subscribe("v.missionTime", (value) => {
-          // Ignore the legacy echo once the stream is already resolving
-          // vessel.state.met: the stream read above wins whenever it's
-          // live.
-          if (getVesselState()?.met != null) return;
+          // Ignore the legacy echo once the stream is already answering: the
+          // read above wins whenever it is live.
+          if (missionElapsed() != null) return;
           const mt = typeof value === "number" ? value : 0;
           this.handleMissionTime(mt);
         }),
