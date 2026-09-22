@@ -1,5 +1,6 @@
 import { deriveTimeContexts } from "@ksp-gonogo/core";
 import { memoryStorage } from "@ksp-gonogo/core/test";
+import { logger } from "@ksp-gonogo/logger";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,
@@ -1190,6 +1191,51 @@ describe("SCET alarms", () => {
 
       expect(session.armed()).toEqual([]);
       expect(session.armAttempts(alarm.id)).toBe(1);
+    });
+
+    /**
+     * The shadow log has to be able to record BOTH disagreements, because the
+     * decision it feeds is whether the mod may be trusted with the latch. A log
+     * that can only see the mod firing cannot see the mod FAILING to fire, and
+     * silence would read as agreement.
+     *
+     * This is the half that can be driven here. The other direction needs the
+     * CLIENT to fire, and this fixture deliberately never publishes the craft's
+     * reading to it, so that half is proved in `AlarmHostService.test.ts`
+     * instead. Both are driven rather than read off the source, because a path
+     * that exists and cannot be reached records nothing while looking correct.
+     */
+    it("records the mod firing while the client is still pending", async () => {
+      const warn = vi.spyOn(logger, "warn");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([alarm.id]);
+
+      // The mod reaches its verdict; the client's own reading is nowhere near.
+      session.fireForVantage(alarm.id);
+      await run(session, UT_START + 5 * DT);
+      svc.dispose();
+
+      expect(svc.snapshot().alarms.find((a) => a.id === alarm.id)?.state).toBe(
+        "pending",
+      );
+      expect(
+        warn.mock.calls.some(([m]) =>
+          String(m).includes("mod fired first, client still pending"),
+        ),
+      ).toBe(true);
+      warn.mockRestore();
     });
 
     /**
