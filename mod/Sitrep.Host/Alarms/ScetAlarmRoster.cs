@@ -170,7 +170,6 @@ namespace Sitrep.Host.Alarms
             }
 
             var condition = args.Condition ?? new ScetAlarmCondition();
-            var subject = string.IsNullOrEmpty(args.Subject) ? "game" : args.Subject!;
             var alarm = new ScetAlarm
             {
                 Id = args.Id,
@@ -181,8 +180,8 @@ namespace Sitrep.Host.Alarms
                 // rather than left empty for a reader to interpret, so the
                 // roster a client reconciles against says where each alarm is
                 // read and nowhere has to work it out twice.
-                Vantage = string.IsNullOrEmpty(args.Vantage) ? subject : args.Vantage!,
-                Subject = subject,
+                Vantage = ScetAlarmVantage.Of(args),
+                Subject = ScetAlarmVantage.SubjectOf(args),
                 Condition = Copy(condition),
                 State = ScetAlarmState.Armed,
                 FiredAtUt = null,

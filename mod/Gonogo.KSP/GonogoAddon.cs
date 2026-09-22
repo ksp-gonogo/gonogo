@@ -263,6 +263,12 @@ namespace Gonogo.KSP
                     (topic, holder) => engine.OpenStandingSubscription(topic, holder),
                     (topic, holder) => engine.CloseStandingSubscription(topic, holder));
 
+                // And whether the place an arm names is one at all. The engine's
+                // own predicate is private to it, so this is the same late-bound
+                // install for the same reason.
+                ScetAlarmUplink.ConfigureSelectableVantage(
+                    vantage => engine.IsVantageSelectable(vantage));
+
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
@@ -583,6 +589,7 @@ namespace Gonogo.KSP
             // reads and hand the next scene's alarm arm a dead one.
             ScetAlarmUplink.ConfigureRevealedRead(null);
             ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
+            ScetAlarmUplink.ConfigureSelectableVantage(null);
 
             try
             {

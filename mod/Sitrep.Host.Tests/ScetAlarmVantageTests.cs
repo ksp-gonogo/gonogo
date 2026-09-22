@@ -53,5 +53,72 @@ namespace Sitrep.Host.Tests
             Assert.True(ScetAlarmVantage.IsTheSubjectsOwn(Alarm("game", "")));
             Assert.False(ScetAlarmVantage.IsTheSubjectsOwn(Alarm("game", "ground:Kerbal Space Center")));
         }
+
+        /// <summary>
+        /// An alarm at its own subject asks the ledger nothing, so there is no
+        /// place to get wrong and nothing to check it against. This is the whole
+        /// population that predates command-centre vantages, and an arm naming no
+        /// vantage resolves to it, so the check only ever bites an arm that named
+        /// a place of its own.
+        /// </summary>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        [InlineData(null)]
+        public void ItsOwnSubjectIsArmableWhateverTheSimulationKnowsAboutPlaces(bool? selectable)
+        {
+            Assert.Equal(
+                ScetVantageVerdict.Armable,
+                ScetAlarmVantage.VerdictFor("vessel:abc", "vessel:abc", selectable));
+        }
+
+        [Fact]
+        public void AnActiveCommandCentreIsArmable()
+        {
+            Assert.Equal(
+                ScetVantageVerdict.Armable,
+                ScetAlarmVantage.VerdictFor("ground:Kerbal Space Center", "vessel:abc", true));
+        }
+
+        /// <summary>
+        /// The defect this check exists for: a vantage nothing corresponds to
+        /// reads nothing and never comes due, which an operator cannot tell apart
+        /// from a condition that has not been met.
+        /// </summary>
+        [Fact]
+        public void APlaceTheSimulationDoesNotKnowIsRefused()
+        {
+            Assert.Equal(
+                ScetVantageVerdict.NoSuchPlace,
+                ScetAlarmVantage.VerdictFor("ground:Nowhere", "vessel:abc", false));
+        }
+
+        /// <summary>
+        /// Refused too, and this is the case worth the second verdict. Accepting
+        /// would arm an alarm that reads nothing and that nothing re-checks, which
+        /// is the silent failure the whole check removes. Refusing it as "no such
+        /// place" would state something the simulation has not established, since
+        /// the set is empty at the main menu and before the first capture.
+        /// </summary>
+        [Fact]
+        public void APlaceNamedBeforeAnyIsKnownIsRefusedAsItsOwnVerdict()
+        {
+            Assert.Equal(
+                ScetVantageVerdict.NoPlacesKnown,
+                ScetAlarmVantage.VerdictFor("ground:Kerbal Space Center", "vessel:abc", null));
+        }
+
+        /// <summary>
+        /// A time alarm names no craft, so its subject is the game and an arm
+        /// naming no vantage is armable with nothing loaded at all. That is the
+        /// case that makes the empty set reachable rather than theoretical.
+        /// </summary>
+        [Fact]
+        public void ATimeAlarmIsArmableWithNothingLoaded()
+        {
+            Assert.Equal(
+                ScetVantageVerdict.Armable,
+                ScetAlarmVantage.VerdictFor("game", "game", null));
+        }
     }
 }
