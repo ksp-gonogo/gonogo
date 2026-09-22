@@ -1,6 +1,6 @@
 import { act, render, renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import { makeInteractionElement, pointerEvent } from "../test/pointerStubs";
+import { pointerEvent } from "../test/pointerStubs";
 import { useCamera } from "./useCamera";
 
 /**

@@ -36,7 +36,6 @@ function stubSizedResizeObserver(): void {
 }
 
 describe("Graph: genuinely runs off the stream", () => {
-  const restoreResizeObserver: () => void = () => {};
   beforeEach(stubSizedResizeObserver);
 
   afterEach(() => {
