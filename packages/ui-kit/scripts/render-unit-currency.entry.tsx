@@ -21,6 +21,7 @@ import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DataTable, type DataTableColumn } from "../src/DataTable";
+import { MissionDate } from "../src/MissionDate";
 import { BigReadout, Readout, ReadoutCaption } from "../src/Readout";
 import { Unit } from "../src/Unit";
 
@@ -427,12 +428,53 @@ function Sizes() {
   );
 }
 
+/**
+ * The same mark on an INSTANT rather than a figure, which is the case a date
+ * makes differently: a stale instant stays TRUE, so nothing is withheld and
+ * the only thing the reading adds is the mark. Drawn beside a stale figure so
+ * the two can be read as one vocabulary rather than two.
+ */
+function Dates() {
+  const rows: ReadonlyArray<readonly [string, React.ReactNode]> = [
+    ["A reading of now", <MissionDate key="a" value={observed(AT)} />],
+    ["The last real reading", <MissionDate key="b" value={held(AT)} />],
+    [
+      "Held, on the craft's own clock",
+      <MissionDate key="c" value={held(AT)} context={{ frame: "scet" }} />,
+    ],
+    [
+      "A held FIGURE, for comparison",
+      <Unit key="d" value={held(value("m", 1_234))} />,
+    ],
+  ];
+  return (
+    <div style={{ display: "grid", gap: 18 }}>
+      {rows.map(([label, node]) => (
+        <div key={label} style={{ display: "grid", gap: 10 }}>
+          <div
+            style={{
+              color: "var(--color-text-faint)",
+              font: "700 10px/1.6 ui-monospace, Menlo, monospace",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <BigReadout>{node}</BigReadout>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const SHEETS = [
   { id: "table-current", width: 560, node: <FleetTable map={NONE_STALE} /> },
   { id: "table-some-held", width: 560, node: <FleetTable map={SOME_STALE} /> },
   { id: "table-most-held", width: 560, node: <FleetTable map={MOST_STALE} /> },
   { id: "ruler", width: 640, node: <Ruler /> },
   { id: "sizes", width: 340, node: <Sizes /> },
+  { id: "dates", width: 420, node: <Dates /> },
 ] as const;
 
 function Sheet({ id }: { id: string }) {

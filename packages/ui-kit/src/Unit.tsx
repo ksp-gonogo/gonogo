@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { MicroscopeIcon, StarIcon } from "./Icons";
+import { NotCurrentMark } from "./NotCurrentMark";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 /*
  * The hue the whole app already reads as "this is not current": the
@@ -308,16 +309,6 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
  * than a dot. The hue is `severityDotColor`'s, not a literal, so the cell and
  * the `StreamStatusBadge` above it paint one fact in one colour.
  */
-const Unit__NotCurrentMark = styled.span`
-  position: absolute;
-  left: 100%;
-  top: 0;
-  width: max(0.3em, 4px);
-  height: max(0.3em, 4px);
-  margin-left: 0.14em;
-  border-radius: var(--radius-circle);
-  background: ${severityDotColor("warning")};
-`;
 
 /* Wraps a number and its unit so neither the thin space between them nor a
    compound symbol can be split across a line. Relatively positioned when it
@@ -709,7 +700,7 @@ export function Unit<U extends string = string>({
             carries instead is SHAPE, present or absent, so the meaning does not
             rest on telling amber from grey (WCAG 1.4.1). */}
         {notCurrent && (
-          <Unit__NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+          <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
         )}
         {caption !== null && (
           <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
