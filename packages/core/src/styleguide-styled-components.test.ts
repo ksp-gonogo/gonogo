@@ -44,8 +44,8 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 //
 // A baseline sitting above its live count is permission for that many new
 // imports, which is a gate that has stopped gating while still reporting
-// green. Measured 33 lines in 33 files across 787 scanned files.
-const STYLED_COMPONENTS_IMPORT_BASELINE = 33;
+// green. Measured 29 lines in 29 files across 787 scanned files.
+const STYLED_COMPONENTS_IMPORT_BASELINE = 29;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 

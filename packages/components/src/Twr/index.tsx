@@ -14,7 +14,6 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
 
 type TwrConfig = Record<string, never>;
 
@@ -156,7 +155,9 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 into ".82" at 72 px inner width. Scale the readout font and
                 drop the explicit "g" unit at this size, the panel title is
                 "TWR", the unit is implied. */}
-            <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
+            <span style={{ ...TINY_VALUE_STYLE, color: TONE_COLOR[tone] }}>
+              {twr.toFixed(1)}
+            </span>
           </Section>
         }
       />
@@ -180,7 +181,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
           </Section>
         ),
         <Section key="gauge" full>
-          <GaugeSlot ref={gaugeRef}>
+          <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
             <Gauge
               value={value("1", twr)}
               min={GAUGE_MIN}
@@ -190,11 +191,11 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
               height={gaugeH}
               ariaLabel={`TWR ${writeQuantity(value("1", twr))}`}
             />
-          </GaugeSlot>
+          </div>
         </Section>,
         showSparkline && (
           <Section key="trend" full>
-            <SparkSlot ref={sparkRef}>
+            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
               <Sparkline
                 values={sparkValues}
                 width={sparkWidth}
@@ -202,7 +203,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 color={TONE_COLOR[tone]}
                 ariaLabel="TWR trend"
               />
-            </SparkSlot>
+            </div>
           </Section>
         ),
       ]}
@@ -210,42 +211,47 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
 }
 
-const GaugeSlot = styled.div`
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+/** The dial centres in whatever height the sections leave it. */
+const GAUGE_SLOT_STYLE = {
+  flex: "1 1 auto",
+  width: "100%",
+  minHeight: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+} as const;
 
-const SparkSlot = styled.div`
-  /* Width follows the slot via ResizeObserver: fixed-pixel sparklines used
-     to spill out of narrow columns and paint over the title. */
-  width: 100%;
-  height: 24px;
-  flex: 0 0 auto;
-  /* Tops the section grid's 12px row gap up to the 20px measured clearance
-     the Gauge above needs. The Gauge SVG draws its value label inside its own
-     bottom strip, flush with the SVG box edge, and at the 4x5 default the two
-     collide below 20px. That makes this measured clearance rather than a
-     rhythm step, so it stays off the spacing ladder. */
-  margin-top: 8px;
-`;
+/*
+ * Width follows the slot via ResizeObserver: fixed-pixel sparklines used to
+ * spill out of narrow columns and paint over the title.
+ *
+ * The top margin tops the section grid's 12px row gap up to the 20px measured
+ * clearance the Gauge above needs. The Gauge SVG draws its value label inside
+ * its own bottom strip, flush with the SVG box edge, and at the 4x5 default the
+ * two collide below 20px. That makes this measured clearance rather than a
+ * rhythm step, so it stays off the spacing ladder.
+ */
+const SPARK_SLOT_STYLE = {
+  width: "100%",
+  height: "24px",
+  flex: "0 0 auto",
+  marginTop: "8px",
+} as const;
 
-const TinyValue = styled.span<{ $color: string }>`
-  /* 24 px keeps a three-character value ("1.8") within ~50 px so the
-     leading digit doesn't clip at the panel's ~70 px inner width. The
-     panel title "TWR" supplies the unit context. Comment-locked to that box
-     width, so off the type scale, which in any case stops at 16px. */
-  font-size: 24px;
-  font-weight: 700;
-  color: ${(p) => p.$color};
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  line-height: var(--line-height-flush);
-  white-space: nowrap;
-`;
+/*
+ * 24px keeps a three-character value ("1.8") within ~50px so the leading digit
+ * doesn't clip at the panel's ~70px inner width. The panel title "TWR" supplies
+ * the unit context. Comment-locked to that box width, so off the type scale,
+ * which in any case stops at 16px.
+ */
+const TINY_VALUE_STYLE = {
+  fontSize: "24px",
+  fontWeight: 700,
+  fontVariantNumeric: "tabular-nums",
+  letterSpacing: "0.04em",
+  lineHeight: "var(--line-height-flush)",
+  whiteSpace: "nowrap",
+} as const;
 
 registerComponent<TwrConfig>({
   id: "twr",
