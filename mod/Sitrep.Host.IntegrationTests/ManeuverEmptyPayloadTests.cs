@@ -33,7 +33,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class ManeuverEmptyPayloadTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         private const string VesselId = "11111111-2222-3333-4444-555555555555";
 

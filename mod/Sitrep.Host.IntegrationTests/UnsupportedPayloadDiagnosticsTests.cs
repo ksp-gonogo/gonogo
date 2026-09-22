@@ -32,8 +32,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class UnsupportedPayloadDiagnosticsTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(400);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         /// <summary>
         /// The report's headline case, fixed: a subscriber whose channel

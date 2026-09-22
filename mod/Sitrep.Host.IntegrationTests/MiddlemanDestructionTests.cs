@@ -28,8 +28,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class MiddlemanDestructionTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         private const string Topic = ConnectivityHorizonTestUplink.DelayedTopic;
 

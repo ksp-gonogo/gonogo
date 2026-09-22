@@ -19,7 +19,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class CommsGateCommandTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         [Fact]
         public void DelayedCommandDispatchedDuringCommsLossIsDroppedNeverReachingTheCpu()
