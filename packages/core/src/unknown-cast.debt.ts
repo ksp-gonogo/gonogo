@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 72 of them
- * across 54 files.
+ * Assertions that escape `unknown`, per file. The tree carries 67 of them
+ * across 49 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 36 of the 72 are
+ * **A test fixture minted through an assertion.** 32 of the 67 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 40 of the 72 are `as unknown as`, and those are worth taking
+ * 38 of the 67 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 7 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 4 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 54 files those would be 54 sentences
+ * sentence per entry: at 49 files those would be 49 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -104,14 +104,11 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/test/peerFakes.ts": 3,
   "packages/app/src/uplinks/externals/runtimeLink.test.ts": 1,
   "packages/app/src/uplinks/host.ts": 2,
-  // packages/components: 9 in 8 files (3 out of `any`, 8 in tests), walked 676 files
+  // packages/components: 6 in 5 files (0 out of `any`, 5 in tests), walked 676 files
   "packages/components/src/MapView/paintBaseSurface.test.ts": 1,
   "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
-  "packages/components/src/ScienceData/fixtures.test.tsx": 1,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
-  "packages/components/src/SystemView/fixtureFeeds.test.ts": 1,
-  "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 1,
   "packages/components/src/test/pointerStubs.ts": 1,
   // packages/core: 2 in 2 files (0 out of `any`, 0 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
@@ -132,14 +129,12 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts": 1,
   // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
-  // mod/sitrep-sdk: 20 in 14 files (1 out of `any`, 2 in tests), walked 321 files
+  // mod/sitrep-sdk: 18 in 12 files (1 out of `any`, 1 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/localStorageStore.ts": 1,
   "mod/sitrep-sdk/src/api/settings/SettingsService.ts": 1,
   "mod/sitrep-sdk/src/api/uplink-handles.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.ts": 1,
-  "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
-  "mod/sitrep-sdk/src/plan-composition.ts": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts": 2,
   "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 1,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 6,
@@ -193,10 +188,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/ui-kit/src/augments.ts": 1,
   // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  // mod/sitrep-sdk: 6 in 5 files (0 out of `any`, 2 in tests), walked 321 files
+  // mod/sitrep-sdk: 4 in 3 files (0 out of `any`, 1 in tests), walked 321 files
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts": 1,
-  "mod/sitrep-sdk/src/plan-composition.test.ts": 1,
-  "mod/sitrep-sdk/src/plan-composition.ts": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts": 2,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
 };
@@ -216,7 +209,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2232,
-  assertions: 1419,
+  assertions: 1416,
 } as const;
 
 /**

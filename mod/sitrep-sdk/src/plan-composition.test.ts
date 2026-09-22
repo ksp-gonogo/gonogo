@@ -43,12 +43,13 @@ describe("the shape the command takes", () => {
       423508,
     );
 
-    const burn = (args.burns as unknown as Record<string, unknown>[])[0];
+    const burn = args.burns?.[0];
+    if (!burn) throw new Error("planSendArgs composed no burns");
     for (const field of ["ignitionUt", "dvRadial", "dvNormal", "dvPrograde"]) {
-      expect(typeof burn[field]).toBe("number");
+      expect(typeof Reflect.get(burn, field)).toBe("number");
     }
-    expect(burn.ignitionUt).toBe(424900);
-    expect(burn.dvRadial).toBe(55);
+    expect(Reflect.get(burn, "ignitionUt")).toBe(424900);
+    expect(Reflect.get(burn, "dvRadial")).toBe(55);
     expect(args.observedAtUt).toBe(422560);
     expect(args.composedAtViewUt).toBe(423508);
   });
