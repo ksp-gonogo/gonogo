@@ -777,12 +777,12 @@ const Meter__Value = styled.span`
      left:100% and the overflow above would otherwise eat whole. Measured
      rather than chosen: the mark is max(0.3em, 4px) wide plus a 0.14em
      margin, and a probe of the real clip put its right edge 6px past this
-     box. Anything smaller still clips.
+     box, which is the --space-6 rung exactly. Anything smaller still clips.
 
      Reserved unconditionally, because a width that appeared only when a
      channel went quiet is exactly the reflow the mark is absolutely
      positioned to avoid. */
-  padding-right: max(0.44em, 6px);
+  padding-right: max(0.44em, var(--space-6));
 `;
 
 /* The bar's axis.

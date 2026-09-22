@@ -333,6 +333,39 @@ describe("Meter, given a reading of a fraction", () => {
     expect(container.querySelector("[data-not-current-mark]")).toBeNull();
   });
 
+  it("speaks the mark it draws, because the value IS a Unit", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+
+    /*
+     * Meter draws its value as `<Unit value={value} />`, so the dot, the
+     * caption and the tooltip are all Unit's and arrive together. Asserted
+     * here rather than trusted, because "it inherits it" is the kind of claim
+     * that stays true until someone passes `valueLabel` instead.
+     */
+    const caption = container.querySelector("[data-unit-currency]");
+    expect(caption).not.toBeNull();
+    expect(caption?.textContent).toMatch(/STALE/i);
+    expect(
+      container
+        .querySelector("[data-not-current-mark]")
+        ?.getAttribute("aria-hidden"),
+    ).toBe("true");
+    expect(container.querySelector("[title]")?.getAttribute("title")).toMatch(
+      /STALE/i,
+    );
+  });
+
   it("leaves the band marks alone: a band is doubt, not staleness", () => {
     const { container } = render(
       <Meter
