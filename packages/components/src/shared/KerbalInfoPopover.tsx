@@ -1,4 +1,4 @@
-import { InfoIcon } from "@ksp-gonogo/ui-kit";
+import { InfoIcon, Stack } from "@ksp-gonogo/ui-kit";
 import {
   useCallback,
   useEffect,
@@ -8,7 +8,6 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import styled from "styled-components";
 import { anchoredMenuPosition } from "../ShipMap/anchoredMenuPosition";
 
 /**
@@ -100,9 +99,10 @@ export function KerbalInfoPopover({
 
   return (
     <>
-      <InfoTrigger
+      <button
         ref={triggerRef}
         type="button"
+        style={INFO_TRIGGER_STYLE}
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={label}
@@ -119,87 +119,97 @@ export function KerbalInfoPopover({
         }}
       >
         <InfoIcon size={13} />
-      </InfoTrigger>
+      </button>
       {open &&
         createPortal(
-          <PopoverHost
+          <div
             ref={setHost}
-            style={{ left: pos?.left ?? 0, top: pos?.top ?? 0 }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.stopPropagation();
-                dismiss();
-              }
+            style={{
+              ...POPOVER_HOST_STYLE,
+              left: pos?.left ?? 0,
+              top: pos?.top ?? 0,
             }}
           >
-            <PopoverPanel id={panelId} role="group" aria-label={label}>
+            {/* Escape is caught on the GROUP rather than the positioning
+                wrapper around it: the wrapper draws nothing and holds no
+                focusable area, so a key event can only arrive here by
+                bubbling out of the group anyway. */}
+            <Stack
+              id={panelId}
+              role="group"
+              aria-label={label}
+              style={POPOVER_PANEL_STYLE}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.stopPropagation();
+                  dismiss();
+                }
+              }}
+            >
               {hasContent ? (
                 <>
                   {roleDescription && (
-                    <PopoverText>{roleDescription}</PopoverText>
+                    <p style={POPOVER_TEXT_STYLE}>{roleDescription}</p>
                   )}
                   {descriptionEffects && (
-                    <PopoverText>{descriptionEffects}</PopoverText>
+                    <p style={POPOVER_TEXT_STYLE}>{descriptionEffects}</p>
                   )}
                 </>
               ) : (
-                <PopoverText>No description available</PopoverText>
+                <p style={POPOVER_TEXT_STYLE}>No description available</p>
               )}
-            </PopoverPanel>
-          </PopoverHost>,
+            </Stack>
+          </div>,
           document.body,
         )}
     </>
   );
 }
 
-const InfoTrigger = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-circle, 50%);
-  background: transparent;
-  color: var(--color-text-faint);
-  cursor: pointer;
+/**
+ * An 18px round hit area for a 13px glyph: smaller than any kit control, and
+ * deliberately so, because it sits inline in a crew row and must not push the
+ * line height. The kit's IconButton is sized for a toolbar.
+ */
+const INFO_TRIGGER_STYLE = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "18px",
+  height: "18px",
+  padding: 0,
+  border: "none",
+  borderRadius: "var(--radius-circle, 50%)",
+  background: "transparent",
+  color: "var(--color-text-faint)",
+  cursor: "pointer",
+} as const;
 
-  &:hover {
-    color: var(--color-accent-fg);
-  }
+/* Fixed to the viewport, because the coordinates come from
+   getBoundingClientRect. Carries the popover z rung itself: see the component
+   doc comment for why it cannot live on the panel one level in. */
+const POPOVER_HOST_STYLE = {
+  position: "fixed",
+  zIndex: "var(--z-dropdown, 200)",
+} as const;
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-`;
+/**
+ * The floating surface. Not a `Box`: its border is fixed at the subtle rung and
+ * its padding snaps to the space scale, where this needs the strong edge a
+ * surface floating over arbitrary content has to have, and the surface inset.
+ * The layout half is the kit's Stack, with the gap still named rather than
+ * sized so the surface it floats over can retune it.
+ */
+const POPOVER_PANEL_STYLE = {
+  gap: "var(--gap-related)",
+  maxWidth: "320px",
+  padding: "var(--inset-surface)",
+  background: "var(--color-surface-raised)",
+  border: "1px solid var(--color-border-strong)",
+  borderRadius: "var(--radius-regular)",
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-primary)",
+} as const;
 
-// Fixed to the viewport: coordinates come from getBoundingClientRect, which
-// is viewport-relative. Carries the popover z-index rung itself, see the
-// component doc comment for why it can't live on the panel one level in.
-const PopoverHost = styled.div`
-  position: fixed;
-  z-index: var(--z-dropdown, 200);
-`;
-
-/* Portalled, so it hangs off <body> and never inherits the `Card` tier the
-   button that opens it sits in: both names here resolve at the root. */
-const PopoverPanel = styled.div`
-  max-width: 320px;
-  padding: var(--inset-surface);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular);
-  font-size: var(--font-size-compact);
-  color: var(--color-text-primary);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
-const PopoverText = styled.p`
-  margin: 0;
-  white-space: pre-line;
-`;
+/** Stock trait text arrives with its own line breaks, so they are honoured. */
+const POPOVER_TEXT_STYLE = { margin: 0, whiteSpace: "pre-line" } as const;
