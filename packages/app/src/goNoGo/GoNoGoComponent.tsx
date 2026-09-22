@@ -607,12 +607,12 @@ const CountdownOverlay = styled.span`
   border: 1px solid var(--color-status-warning-bg);
   border-radius: var(--radius-regular);
   color: var(--color-status-warning-bg);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-figure);
   letter-spacing: 0.15em;
 `;
 
 const AbortNotice = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.08em;
   text-transform: none;
@@ -635,7 +635,7 @@ const MainHeader = styled.div`
 `;
 
 const HeaderLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.15em;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -647,7 +647,7 @@ const HeaderRight = styled.div`
 `;
 
 const WarnChip = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.15em;
   padding: var(--inset-chip);
   border: 1px solid var(--color-status-warning-border-muted);
@@ -741,7 +741,7 @@ function cellColor(state: CellState): string {
 }
 
 const CellName = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   letter-spacing: 0.08em;
 `;
 
@@ -763,7 +763,7 @@ const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
 const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
   margin-top: var(--space-4);
   padding: var(--inset-chip);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
   border-radius: var(--radius-pill);
   border: 1px solid ${({ $kind }) => VERSION_CHIP_COLOR[$kind]};
@@ -773,7 +773,7 @@ const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
   text-align: center;
   padding: var(--space-16);

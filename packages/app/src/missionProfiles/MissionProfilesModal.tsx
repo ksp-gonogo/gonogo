@@ -353,13 +353,13 @@ const SaveRow = styled.div`
 
 const Hint = styled.p`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-8) 0;
 `;
 
@@ -387,13 +387,13 @@ const ProfileHeader = styled.div`
 `;
 
 const ProfileName = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   font-weight: 600;
 `;
 
 const ProfileMeta = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -415,7 +415,7 @@ const Warning = styled.div`
   border-radius: var(--radius-regular);
   padding: var(--inset-surface);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const BindingsField = styled.div`
@@ -425,7 +425,7 @@ const BindingsField = styled.div`
 `;
 
 const BindingsLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 

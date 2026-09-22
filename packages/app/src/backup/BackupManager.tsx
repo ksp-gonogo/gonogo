@@ -158,7 +158,7 @@ const Container = styled.div`
 
 const Foot = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const IdentityRow = styled.div`
@@ -185,11 +185,11 @@ const ConfirmRow = styled.div`
 
 const ConfirmText = styled.span`
   margin-right: auto;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
 `;
 
 const Warn = styled.span`
   color: var(--color-status-warning-bg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
