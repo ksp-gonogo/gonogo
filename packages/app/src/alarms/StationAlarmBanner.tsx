@@ -150,7 +150,7 @@ const AckButton = styled.button`
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;

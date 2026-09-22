@@ -20,7 +20,7 @@ export const ConfigForm = styled.div<{ $boxed?: boolean }>`
       ? `
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--space-8) var(--space-10);
 `
       : ""}
@@ -62,7 +62,7 @@ export const FormActions = styled.div`
 const inputBase = `
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   padding: var(--space-6, 6px) var(--space-8, 8px);

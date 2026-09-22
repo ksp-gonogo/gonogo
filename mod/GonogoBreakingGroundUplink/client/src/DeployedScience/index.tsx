@@ -495,7 +495,7 @@ function DeployedScienceComponent(
           <Section key={base.id}>
             <Box
               bordered
-              radius="xs"
+              radius="regular"
               style={{
                 padding: "var(--inset-surface)",
                 borderColor: "var(--color-surface-raised)",

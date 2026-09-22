@@ -408,7 +408,7 @@ function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
         letterSpacing: "0.05em",
         fontWeight: 600,
         padding: "var(--inset-chip)",
-        borderRadius: "var(--radius-sm)",
+        borderRadius: "var(--radius-regular)",
         border: `1px solid ${TONE_HEX[tone]}`,
         color: TONE_HEX[tone],
         whiteSpace: "nowrap",

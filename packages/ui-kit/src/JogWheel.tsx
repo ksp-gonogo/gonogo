@@ -329,7 +329,7 @@ const JogWheel__Root = styled.div<{
   padding: ${(p) =>
     p.$compact ? "var(--space-2, 2px)" : "var(--space-4, 4px)"};
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius-regular, 2px);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   cursor: ${(p) =>

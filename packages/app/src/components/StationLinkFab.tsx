@@ -309,7 +309,7 @@ const QrRow = styled.div`
   justify-content: center;
   padding: var(--space-12);
   background: var(--color-text-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;
 
 const Hint = styled.p`
@@ -322,7 +322,7 @@ const Hint = styled.p`
     background: var(--color-surface-raised);
     border: 1px solid var(--color-border-subtle);
     padding: var(--inset-chip);
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-regular);
     color: var(--color-text-primary);
   }
 `;

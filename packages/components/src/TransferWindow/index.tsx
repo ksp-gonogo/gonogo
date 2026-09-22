@@ -1541,7 +1541,7 @@ const WindowRow = styled.button<{ $selected: boolean }>`
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   font-variant-numeric: tabular-nums;

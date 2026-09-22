@@ -222,7 +222,7 @@ const Backdrop = styled.div`
 const OverlaySurface = styled(Box).attrs({
   surface: "sunken" as const,
   bordered: true,
-  radius: "lg" as const,
+  radius: "floating" as const,
 })`
   pointer-events: auto;
   width: 100%;
@@ -272,7 +272,7 @@ const ItemFrame = styled.div`
   position: absolute;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   /* Grid (not flex) so the body row has a definite height. Widgets whose
      root is @ksp-gonogo/ui's Panel use height: 100% and need a concrete
      percentage reference: flex: 1 + min-height: 0 doesn't reliably

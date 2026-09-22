@@ -147,12 +147,12 @@ function EscapeProfileComponent({
           Matches KeplerPeriod's and AtmosphereProfile's own Notice, which
           already made this switch. */}
       {showNoGmNotice && body && (
-        <Box role="status" radius="xs" style={NOTICE_STYLE}>
+        <Box role="status" radius="regular" style={NOTICE_STYLE}>
           No reference data for {body.name}: plotting trace only.
         </Box>
       )}
       {showNoBodyNotice && (
-        <Box role="status" radius="xs" style={NOTICE_STYLE}>
+        <Box role="status" radius="regular" style={NOTICE_STYLE}>
           Unknown body “{bodyName}”: plotting trace only.
         </Box>
       )}

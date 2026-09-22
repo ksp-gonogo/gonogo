@@ -314,7 +314,7 @@ const MobileCellHeader = styled.div`
   height: 32px;
   flex-shrink: 0;
   background: var(--color-surface-panel);
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   padding: 0 var(--space-4);
 `;
 
@@ -382,7 +382,7 @@ const ReorderBtn = styled.button`
   line-height: var(--line-height-flush);
   width: 28px;
   height: 24px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   display: inline-flex;
   align-items: center;
   justify-content: center;

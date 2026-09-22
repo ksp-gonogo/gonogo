@@ -165,7 +165,7 @@ const Stepper__Step = styled.button`
   font-weight: 600;
   line-height: var(--line-height-flush);
   padding: var(--space-4, 4px) var(--space-8, 8px);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   cursor: pointer;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
@@ -201,7 +201,7 @@ const Stepper__Value = styled.div`
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   padding: var(--space-4, 4px) var(--space-8, 8px);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sunken);
 

@@ -190,7 +190,7 @@ const RatePicker = styled.select`
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const ExitButton = styled.button`
@@ -200,6 +200,6 @@ const ExitButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;

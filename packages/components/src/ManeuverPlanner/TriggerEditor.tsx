@@ -96,7 +96,7 @@ const Editor = styled.div`
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const EditorTitle = styled.div`
@@ -124,7 +124,7 @@ const OpSelect = styled.select`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   padding: var(--inset-control);
   font-size: var(--font-size-sm);
 `;
@@ -133,7 +133,7 @@ const ValueInput = styled.input`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   padding: var(--inset-control);
   font-size: var(--font-size-sm);
   font-family: inherit;

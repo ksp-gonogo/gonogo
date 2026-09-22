@@ -750,7 +750,7 @@ const FilterInput = styled.input`
   padding: var(--inset-control);
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);

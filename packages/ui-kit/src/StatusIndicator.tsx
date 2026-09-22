@@ -94,7 +94,7 @@ const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   min-height: var(--control-height, 28px);
   background: var(--color-surface-raised);
   border: 1px solid;
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
 
   ${({ "data-tone": tone }) => TONE_BORDER[tone]}
 `;

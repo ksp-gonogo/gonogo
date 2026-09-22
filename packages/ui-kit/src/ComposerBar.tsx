@@ -170,7 +170,7 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
       $blocked
         ? "var(--color-status-nogo-fg)"
         : "var(--console-tone-fg, var(--color-accent-fg))"};
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;
 
 /*
@@ -250,7 +250,7 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   font-size: var(--font-size-2xs);
   font-weight: bold;
   letter-spacing: 0.04em;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 
   ${({ $blocked }) =>
     $blocked

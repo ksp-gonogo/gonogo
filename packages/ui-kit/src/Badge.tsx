@@ -194,7 +194,7 @@ const Badge__Body = styled.span<{
      the status/severity pill. */
   border-radius: ${({ $severity }) =>
     $severity === undefined
-      ? "var(--radius-sm, 3px)"
+      ? "var(--radius-regular, 3px)"
       : "var(--radius-pill, 999px)"};
 
   ${({ $size }) => SIZE_STYLES[$size]}

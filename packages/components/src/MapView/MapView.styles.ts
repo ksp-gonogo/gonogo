@@ -111,7 +111,7 @@ export const MapSections = styled.div`
 export const CanvasContainer = styled.div`
   position: relative;
   flex-shrink: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   overflow: hidden;
   cursor: grab;
   touch-action: none;
@@ -166,7 +166,7 @@ export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $variant }) =>
       $variant === "on"

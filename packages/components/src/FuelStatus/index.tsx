@@ -633,7 +633,7 @@ function FuelStatusComponent({
             <Box
               surface="panel"
               bordered
-              radius="xs"
+              radius="regular"
               style={{
                 display: "flex",
                 gap: "var(--gap-section)",

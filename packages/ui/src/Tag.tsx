@@ -67,7 +67,7 @@ export function Tag({ label }: TagProps) {
 const TagBadge = styled.span<{ $bg: string; $fg: string; $border: string }>`
   display: inline-block;
   padding: var(--inset-chip);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.08em;

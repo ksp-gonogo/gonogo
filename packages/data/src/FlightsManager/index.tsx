@@ -670,7 +670,7 @@ const GraphButton = styled.button<{ $open: boolean }>`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
@@ -688,7 +688,7 @@ const ExportButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
@@ -706,7 +706,7 @@ const ReplayButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
 
   @media (hover: hover) {
@@ -741,7 +741,7 @@ const RecordingBadge = styled.span`
   color: var(--color-status-nogo-on-bg);
   font-size: var(--font-size-xs);
   padding: var(--inset-chip);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   letter-spacing: 0.06em;
 `;
 
@@ -786,7 +786,7 @@ const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
   /* A stadium, not a corner: the badge renders about 17px tall (11px x 1.2
      plus 1px padding and 1px border each side), so 8px was already at half
      the height. --radius-pill clamps to the same shape and keeps it there
-     when the chip inset above widens the badge. The --radius-lg that 8px
+     when the chip inset above widens the badge. The --radius-floating that 8px
      maps to by value would visibly square these GO/NO-GO pills. */
   border-radius: var(--radius-pill);
   text-transform: uppercase;
@@ -830,7 +830,7 @@ const DangerButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover { background: var(--color-status-alert-muted); }
 `;
 
@@ -841,7 +841,7 @@ const CancelButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); }
 `;
 
@@ -937,6 +937,6 @@ const ClearAllButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;

@@ -218,7 +218,7 @@ const Menu = styled.div`
   overflow-y: auto;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   padding: var(--space-4, 4px) 0;
   /* The popover-anchored-to-a-control rung, the same one ComboboxListbox's
      Dropdown takes and for the same reason. */

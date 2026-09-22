@@ -60,7 +60,7 @@ const ArmedRow = styled.li`
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const Main = styled.div`
@@ -95,7 +95,7 @@ const CancelButton = styled.button`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

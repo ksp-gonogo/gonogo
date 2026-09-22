@@ -568,7 +568,7 @@ const ErrorLine = styled.div`
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-border-strong);
   padding: var(--inset-surface);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const CommitRow = styled.div`

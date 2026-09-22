@@ -589,7 +589,7 @@ const StationNameChip = styled.div`
   padding: var(--inset-surface);
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   /*
    * --z-sticky, not --z-overlay. The overlay rung is for full-surface overlays
    * that replace the dashboard (PushedDashboardOverlay); this is a

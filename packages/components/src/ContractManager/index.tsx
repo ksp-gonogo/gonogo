@@ -17,6 +17,7 @@ import {
 import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
+  Block,
   CommandButton,
   Panel,
   Section,
@@ -400,16 +401,18 @@ function ContractManagerComponent({
           {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
           <CardList $multiColumn={multiColumn}>
             {active.map((c) => (
-              <ContractCard key={c.id}>
-                <ContractHeader>
-                  <ContractTitle>{c.title}</ContractTitle>
+              <ContractCard
+                key={c.id}
+                title={c.title}
+                titleRight={
                   <ContractDeadline>
                     {formatDeadline(
                       c.deadlineUt,
                       universalTime?.magnitude ?? 0,
                     )}
                   </ContractDeadline>
-                </ContractHeader>
+                }
+              >
                 {c.agency && <Agency>{c.agency}</Agency>}
                 <Rewards>
                   {c.fundsCompletion > 0 && (
@@ -574,16 +577,18 @@ function ContractManagerComponent({
           {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
           <CardList $multiColumn={multiColumn}>
             {offered?.map((c) => (
-              <ContractCard key={c.id}>
-                <ContractHeader>
-                  <ContractTitle>{c.title}</ContractTitle>
+              <ContractCard
+                key={c.id}
+                title={c.title}
+                titleRight={
                   <ContractDeadline>
                     {formatDeadline(
                       c.deadlineUt,
                       universalTime?.magnitude ?? 0,
                     )}
                   </ContractDeadline>
-                </ContractHeader>
+                }
+              >
                 {c.agency && <Agency>{c.agency}</Agency>}
                 <Rewards>
                   {c.fundsCompletion > 0 && (
@@ -695,46 +700,19 @@ const ActiveActions = styled.div`
   margin-top: var(--space-4);
 `;
 
-const ContractCard = styled.div`
-  display: flex;
-  flex-direction: column;
+/**
+ * A contract as a grouping rather than a box. `Block`, not `Card`: this widget
+ * lists many contracts in a panel that is already a surface, and a sunken
+ * record inside it read as a second box for no gain.
+ *
+ * That is exactly the judgement this file made before the kit could express
+ * it, and the way it made it is why this is the site the split was ruled on: a
+ * whole hand-built card family, drawing the panel's own colour with no border,
+ * so three contracts rendered as whitespace-separated paragraphs. Nothing is
+ * drawn here now. The separation is the list gap and the title's own weight.
+ */
+const ContractCard = styled(Block)`
   gap: var(--gap-related);
-  padding: var(--space-8);
-  background: var(--color-surface-panel);
-  border-radius: var(--radius-xs);
-`;
-
-const ContractHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--gap-related);
-  /* At very narrow widths (compact-4x5) the title (flex:1, wrapping text)
-     and the fixed-width deadline label had no room to both sit on one row:
-     the deadline text (flex-shrink:0) claimed its full width regardless,
-     squeezing the title's flex-basis down to its longest unbreakable word
-     with no room left for the gap, so the two ran together with zero
-     space between them ("Buildno deadline"). Let the deadline wrap to its
-     own line instead of collapsing the gap. */
-  flex-wrap: wrap;
-`;
-
-const ContractTitle = styled.span`
-  color: var(--color-text-primary);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  flex: 1;
-  /* A flex-basis:0 item (what plain "flex: 1" gives) always "fits" its
-     flex line at its pre-grow hypothetical size of zero, so ContractHeader's
-     flex-wrap never triggered even when there wasn't room: the title's box
-     shrank to near-nothing while ContractDeadline (flex-shrink:0) claimed
-     its full width, and the title's own unbreakable first word then
-     overflowed that near-zero box straight into the deadline text with no
-     gap at all ("Buildno deadline" at compact-4x5). A real min-width gives
-     the title enough box to hold at least one full word, so when the
-     deadline label can't fit alongside it, flex-wrap actually pushes the
-     deadline onto its own line instead of the two colliding. */
-  min-width: 90px;
 `;
 
 const ContractDeadline = styled.span`
@@ -894,7 +872,7 @@ const AltitudeBarTrack = styled.span`
   /* A stadium, not a corner: the radius is exactly half the track height.
      --radius-pill clamps to half the shorter side, so it renders
      identically today and keeps tracking the height if that changes,
-     which --radius-xs (the value this 2px maps to) would not. */
+     which --radius-regular (the value this 2px maps to) would not. */
   border-radius: var(--radius-pill);
   overflow: hidden;
 `;

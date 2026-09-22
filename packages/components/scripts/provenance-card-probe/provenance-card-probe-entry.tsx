@@ -140,7 +140,7 @@ const ListItem = styled.div`
   padding: var(--space-8) var(--space-12);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const ItemName = styled.span`
@@ -172,6 +172,6 @@ const Tag = styled.span`
   font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
   background: var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   padding: var(--space-hair) var(--space-6);
 `;

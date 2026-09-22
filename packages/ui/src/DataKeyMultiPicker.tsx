@@ -109,7 +109,7 @@ const Container = styled.div`
 const SearchInput = styled.input`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   padding: var(--inset-control);
@@ -133,7 +133,7 @@ const SearchInput = styled.input`
 const List = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   max-height: 260px;
   overflow-y: auto;
 `;
@@ -188,7 +188,7 @@ const CheckIndicator = styled.span<{ $checked: boolean }>`
   color: var(--color-status-go-fg);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   flex: 0 0 auto;
 `;
 

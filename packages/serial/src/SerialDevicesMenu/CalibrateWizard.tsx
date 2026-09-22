@@ -388,7 +388,7 @@ const Wrap = styled.div`
   gap: var(--gap-section);
   padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;
 
@@ -406,7 +406,7 @@ const SampleViewer = styled.div`
   gap: var(--gap-related);
   padding: var(--space-8);
   background: var(--color-surface-app);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   overflow-x: auto;
 `;
 
@@ -471,7 +471,7 @@ const InputRow = styled.div<{ $active: boolean }>`
   flex-direction: column;
   gap: var(--gap-related);
   padding: var(--space-8);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};

@@ -452,7 +452,7 @@ const SingleField = styled.input`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   text-align: right;
   font-variant-numeric: tabular-nums;
   min-width: 0;

@@ -1122,7 +1122,7 @@ const SearchInput = styled.input`
   color: var(--color-text-primary);
   font: inherit;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   outline: none;
 
   &:focus {
@@ -1153,7 +1153,7 @@ const NodeRowWrap = styled.li<{
   background: var(--color-surface-panel);
   border-left: 2px solid
     ${(p) => (p.$unaffordable ? "var(--color-text-faint)" : dsBorder(p.$display))};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   opacity: ${(p) =>
     p.$display === "locked" ? 0.65 : p.$unaffordable ? 0.7 : 1};
 `;
@@ -1234,7 +1234,7 @@ const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: var(--inset-chip);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   color: ${(p) =>
     p.$tone === "go"
       ? "var(--color-status-go-fg)"
@@ -1289,7 +1289,7 @@ const ParentChip = styled.span`
   color: var(--color-text-muted);
   padding: var(--inset-chip);
   background: var(--color-surface-sunken);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const Parts = styled.div`
@@ -1414,7 +1414,7 @@ const LegendItem = styled.span`
 const Swatch = styled.span<{ $kind: DisplayState }>`
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   border: 2px solid ${(p) => dsBorder(p.$kind)};
   background: ${(p) =>
     p.$kind === "owned"
@@ -1427,7 +1427,7 @@ const GraphScroll = styled.div`
   min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-sunken);
   scrollbar-width: thin;
 `;
@@ -1462,7 +1462,7 @@ const GraphCard = styled.button<{
   text-align: left;
   font-family: inherit;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   border: 1px solid ${(p) => dsBorder(p.$ds)};
   border-left-width: 3px;
   background: ${(p) =>
@@ -1543,7 +1543,7 @@ const Detail = styled.div`
   margin-top: var(--space-6);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   max-height: 40%;
   overflow: auto;
 `;
@@ -1572,7 +1572,7 @@ const CloseBtn = styled.button`
   font-size: var(--font-size-base);
   line-height: var(--line-height-flush);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   font-family: inherit;
 
   &:hover {

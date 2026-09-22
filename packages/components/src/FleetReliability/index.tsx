@@ -816,26 +816,24 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
           <Card
             key={part.partId ?? `idx-${index}`}
             tone={CARD_TONE[row.severity]}
+            title={
+              <span title={part.title ?? undefined}>
+                {part.title ?? "Unknown part"}
+              </span>
+            }
+            titleRight={<Badge severity={row.severity}>{row.word}</Badge>}
           >
-            <Stack gap="xs">
-              <Cluster justify="between" align="baseline" gap="sm" wrap>
-                <span title={part.title ?? undefined}>
-                  {part.title ?? "Unknown part"}
-                </span>
-                <Badge severity={row.severity}>{row.word}</Badge>
-              </Cluster>
-              {row.clause !== undefined && <span>{row.clause}</span>}
-              {actionable(part.condition) && (
-                <RepairControl
-                  partId={part.partId ?? ""}
-                  condition={part.condition}
-                  repairTrait={part.repairTrait}
-                  repairLevel={magnitudeOf(part.repairLevel)}
-                  crew={crew}
-                  cost={costOf(part)}
-                />
-              )}
-            </Stack>
+            {row.clause !== undefined && <span>{row.clause}</span>}
+            {actionable(part.condition) && (
+              <RepairControl
+                partId={part.partId ?? ""}
+                condition={part.condition}
+                repairTrait={part.repairTrait}
+                repairLevel={magnitudeOf(part.repairLevel)}
+                crew={crew}
+                cost={costOf(part)}
+              />
+            )}
           </Card>
         ))}
     </Stack>

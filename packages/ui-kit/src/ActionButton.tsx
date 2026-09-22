@@ -46,7 +46,7 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--space-2, 2px) var(--space-8, 8px);
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius-regular, 2px);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);

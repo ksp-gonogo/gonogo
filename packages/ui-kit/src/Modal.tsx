@@ -257,7 +257,7 @@ const Backdrop = styled.div`
 const Dialog = styled.div<{ $width?: string }>`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   min-width: min(320px, 100vw - 16px);
   max-width: ${({ $width }) => $width ?? "560px"};
   width: 90vw;

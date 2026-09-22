@@ -92,7 +92,7 @@ const Banner = styled.div`
   transform: translate(-50%, -50%);
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   /* Shares --inset-control's value and not its class: this is a message you
      read, not a box you press, and the token names the pressable family so
      that its coarse-pointer widening has somewhere to live. Same call as the

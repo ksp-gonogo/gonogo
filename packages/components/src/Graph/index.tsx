@@ -1167,7 +1167,7 @@ const AXIS_WARNING: CSSProperties = {
   color: "var(--color-status-warning-bg)",
   background: "rgba(0, 0, 0, 0.7)",
   padding: "var(--inset-chip)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
 };
 

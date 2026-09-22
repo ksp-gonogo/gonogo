@@ -86,10 +86,9 @@ export const GENERATED_TEST_THEME = {
     xl: "var(--space-16)",
   },
   radii: {
-    xs: "var(--radius-xs)",
-    sm: "var(--radius-sm)",
-    md: "var(--radius-md)",
-    lg: "var(--radius-lg)",
+    regular: "var(--radius-regular)",
+    floating: "var(--radius-floating)",
+    displayFrame: "var(--radius-display-frame)",
     pill: "var(--radius-pill)",
   },
   borders: {

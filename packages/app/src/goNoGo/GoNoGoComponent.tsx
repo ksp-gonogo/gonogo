@@ -560,7 +560,7 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   border: 2px solid ${({ $variant }) => BIG_BUTTON_BORDER[$variant]};
   background: ${({ $variant }) => BIG_BUTTON_BG[$variant]};
   color: ${({ $variant }) => BIG_BUTTON_COLOR[$variant]};
@@ -605,7 +605,7 @@ const CountdownOverlay = styled.span`
   padding: var(--inset-surface);
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-status-warning-bg);
   font-size: var(--font-size-base);
   letter-spacing: 0.15em;
@@ -653,7 +653,7 @@ const WarnChip = styled.span`
   border: 1px solid var(--color-status-warning-border-muted);
   background: rgba(120, 100, 40, 0.25);
   color: var(--color-status-warning-fg-muted);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   text-transform: uppercase;
 `;
 
@@ -688,7 +688,7 @@ const StationBoard = styled(Grid).attrs({
 
 const Cell = styled.div<{ $state: CellState }>`
   padding: var(--inset-surface);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   border: 1px solid ${({ $state }) => cellBorder($state)};
   background: ${({ $state }) => cellBg($state)};
   color: ${({ $state }) => cellColor($state)};

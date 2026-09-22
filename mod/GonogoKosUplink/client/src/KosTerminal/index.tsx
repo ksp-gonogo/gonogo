@@ -1689,7 +1689,7 @@ const NoPathBadge = styled.div`
   color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-on-bg);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   max-width: 50%;
   overflow: hidden;
   white-space: nowrap;

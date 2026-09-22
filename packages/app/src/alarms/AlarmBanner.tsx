@@ -544,7 +544,7 @@ const AckButton = styled.button`
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -573,7 +573,7 @@ const WarpToButton = styled.button`
   color: var(--color-status-go-fg);
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -598,7 +598,7 @@ const StopWarpButton = styled.button`
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -627,7 +627,7 @@ const SafetyInput = styled.input`
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   font-variant-numeric: tabular-nums;
   &:focus-visible {
     /* 1px, not the 2px house value, and off the spacing ladder either way:

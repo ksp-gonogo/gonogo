@@ -31,7 +31,7 @@ export const Button = styled.button`
   gap: var(--space-6, 6px);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: 600;

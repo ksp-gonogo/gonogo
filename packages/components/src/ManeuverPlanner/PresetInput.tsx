@@ -242,7 +242,7 @@ const UTModeButton = styled.button<{ $active: boolean }>`
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;

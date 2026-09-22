@@ -113,7 +113,7 @@ const Backdrop = styled.div`
 const Dialog = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   max-width: 460px;
   width: 90vw;
   padding: var(--space-24);

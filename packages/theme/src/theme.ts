@@ -101,12 +101,12 @@ export interface ThemeSpace {
 }
 
 export interface ThemeRadii {
-  /** Tightest corner: buttons and small controls. */
-  xs: string;
-  sm: string;
-  md: string;
-  /** Widest square corner: overlay and dialog surfaces. */
-  lg: string;
+  /** Every ordinary corner: controls, chips, rows, cells, cards, menus. */
+  regular: string;
+  /** A box that sits above the app: a modal, a dialog, the FAB, the landing surface. */
+  floating: string;
+  /** `FramedDisplay`'s corner, and only that. Steps smaller inside a `Block` side aside. */
+  displayFrame: string;
   /** Fully rounded: chips, avatars, toggle knobs. */
   pill: string;
 }

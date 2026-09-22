@@ -143,10 +143,8 @@ function PerfBudgetsComponent({
                   as="li"
                   key={s.name}
                   tone={KIT_TONE[t]}
-                  style={BUDGET_CARD}
-                >
-                  <div style={ROW_HEADER}>
-                    <span style={NAME}>{s.name}</span>
+                  title={s.name}
+                  titleRight={
                     <span style={{ ...RATE, color: TONE_COLOR[t] }}>
                       {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
                       <Unit
@@ -154,7 +152,8 @@ function PerfBudgetsComponent({
                         decimals={0}
                       />
                     </span>
-                  </div>
+                  }
+                >
                   <div style={BAR}>
                     <div
                       style={{
@@ -232,25 +231,6 @@ const LIST: CSSProperties = {
 
 // The card and its accent rule are the kit's; only the column this budget lays
 // its header and bar out in is local.
-const BUDGET_CARD: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--gap-related)",
-};
-
-const ROW_HEADER: CSSProperties = {
-  display: "flex",
-  alignItems: "baseline",
-  justifyContent: "space-between",
-  gap: "var(--gap-related)",
-};
-
-const NAME: CSSProperties = {
-  fontSize: "var(--font-size-sm)",
-  color: "var(--color-status-go-fg)",
-  wordBreak: "break-word",
-};
-
 // Per-tone `color` is applied inline at the call site.
 const RATE: CSSProperties = {
   fontSize: "var(--font-size-xs)",

@@ -788,7 +788,7 @@ function SignalBars({
               background: color,
               border: `1px solid ${color}`,
               // Off-scale on purpose: optical corner softening at the pixel
-              // limit on a 6px-wide bar. --radius-xs (2px) rounds this into
+              // limit on a 6px-wide bar. --radius-regular (2px) rounds this into
               // a lozenge.
               borderRadius: 1,
               height: `${BAR_HEIGHT_PCT[i - 1]}%`,
