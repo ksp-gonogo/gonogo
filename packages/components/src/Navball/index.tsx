@@ -1744,7 +1744,7 @@ const BANNER: CSSProperties = {
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-status-warning-bg)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
 };
 
 const GROUP: CSSProperties = {

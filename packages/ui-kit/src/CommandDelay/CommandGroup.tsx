@@ -158,7 +158,7 @@ const CommandGroup__CommitButton = styled.button<{
   padding: var(--space-4, 4px) var(--space-12, 12px);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);

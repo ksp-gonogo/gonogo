@@ -126,7 +126,7 @@ function KindSwatch({ kind }: { kind: BurnInstantKind }) {
         flex: "0 0 auto",
         width: 3,
         alignSelf: "stretch",
-        borderRadius: "var(--radius-xs)",
+        borderRadius: "var(--radius-regular)",
         background: KIND_COLOUR[kind],
       }}
     />

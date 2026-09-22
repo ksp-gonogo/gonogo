@@ -139,7 +139,7 @@ const PoiHoverCard = styled.div`
   min-width: 160px;
   max-width: 240px;
   padding: var(--inset-surface);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);

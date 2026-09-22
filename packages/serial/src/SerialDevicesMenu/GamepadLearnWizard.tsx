@@ -277,7 +277,7 @@ const PromptRow = styled.div`
   gap: var(--space-10);
   padding: var(--space-12);
   background: var(--color-surface-raised);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;
 
 const PromptName = styled.span`

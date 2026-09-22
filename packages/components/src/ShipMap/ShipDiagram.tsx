@@ -401,7 +401,7 @@ const RESET_BUTTON: CSSProperties = {
   background: "var(--color-surface-raised)",
   color: "var(--color-status-go-fg)",
   border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   textDecoration: "none",
 };
 
@@ -430,7 +430,7 @@ const TOOLTIP: CSSProperties = {
   fontSize: "var(--font-size-xs)",
   padding: "var(--inset-surface)",
   border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   minWidth: "140px",
   // Off the app z-index ladder: the upper half of the local pair with

@@ -630,7 +630,7 @@ const Totals = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const TotalRow = styled.div`

@@ -179,7 +179,7 @@ const ConfirmRow = styled.div`
   gap: var(--gap-related);
   padding: var(--space-10);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;
 

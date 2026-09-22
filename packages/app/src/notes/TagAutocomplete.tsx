@@ -274,7 +274,7 @@ const inputStyles = `
   color: var(--color-text-primary);
   font: inherit;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   width: 100%;
   outline: none;
 
@@ -300,7 +300,7 @@ const Popover = styled.div`
   z-index: var(--z-dropdown);
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.96));
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   max-height: 240px;
   width: max(280px, 100%);

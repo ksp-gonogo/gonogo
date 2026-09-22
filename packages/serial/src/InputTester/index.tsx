@@ -316,7 +316,7 @@ const AnalogName = styled.span`
  *
  *  - the track's 4px radius is half its 8px height (a stadium) and the fill's
  *    2px is the same half taken one 1px inset further in. They are a matched
- *    pair; --radius-md / --radius-xs would render identically today but stop
+ *    pair; --radius-regular / --radius-regular would render identically today but stop
  *    tracking the height the moment it changes.
  *  - the 1px top/bottom insets are border compensation, cancelling the track's
  *    1px rule so the fill sits inside it rather than under it. That is
@@ -386,7 +386,7 @@ const ButtonPill = styled.div<{ $pressed: boolean }>`
      reading as one run of text. */
   gap: var(--gap-related);
   padding: var(--inset-surface);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $pressed }) =>
       $pressed ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};

@@ -877,7 +877,7 @@ const FacilityCell = styled.div`
   flex-direction: column;
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const FacilityLabel = styled.span`
@@ -1017,7 +1017,7 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
   color: var(--color-text-muted);

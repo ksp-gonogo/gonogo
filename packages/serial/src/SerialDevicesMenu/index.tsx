@@ -233,11 +233,10 @@ function DeviceRow({
   };
 
   return (
-    <DeviceCard>
-      <RowHead>
-        <DeviceName>{device.name}</DeviceName>
-        <Status $status={status}>{status}</Status>
-      </RowHead>
+    <DeviceCard
+      title={device.name}
+      titleRight={<Status $status={status}>{status}</Status>}
+    >
       <RowMeta>
         {type?.name ?? "?"} · {device.transport}
       </RowMeta>
@@ -368,10 +367,7 @@ function TypesTab() {
       </Toolbar>
       {editableTypes.length === 0 && <Empty>No device types yet.</Empty>}
       {editableTypes.map((type) => (
-        <DeviceCard key={type.id}>
-          <RowHead>
-            <DeviceName>{type.name}</DeviceName>
-          </RowHead>
+        <DeviceCard key={type.id} title={type.name}>
           <RowMeta>
             {type.inputs.length} input{type.inputs.length === 1 ? "" : "s"} ·
             parser: {type.parser} · render: {type.renderStyleId ?? "none"}
@@ -456,7 +452,7 @@ const BannerLabel = styled.strong`
 const WebSerialUnavailableBanner = styled.div`
   background: var(--color-border-subtle);
   border: 1px solid var(--color-status-warning-bg);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   color: var(--color-status-warning-bg);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-body);
@@ -471,34 +467,15 @@ const WebSerialUnavailableBanner = styled.div`
     font-size: var(--font-size-xs);
     word-break: break-all;
     background: var(--color-surface-raised);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-regular);
     padding: 0 var(--space-2);
   }
 `;
 
-// Same shape as InputMappingTab's: the kit's Card plus this menu's own
-// padding and the column it lays its head and body out in.
-const DeviceCard = styled(Card)`
-  /* Roomier than Card's own --inset-surface, and standalone for the same reason
-     as InputMappingTab's binding card: this menu holds nothing but these. */
-  padding: var(--inset-surface-standalone);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
-const RowHead = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--gap-related);
-`;
-
-const DeviceName = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  font-weight: 600;
-`;
+/* Standalone for the same reason as InputMappingTab's binding card: this menu
+   holds nothing but these, so each one is a screen rather than a record in a
+   list. Nothing else is this file's; the column and its gap are the kit's. */
+const DeviceCard = styled(Card).attrs({ standalone: true })``;
 
 const RowMeta = styled.span`
   font-size: var(--font-size-xs);
@@ -517,7 +494,7 @@ const PendingPicker = styled.div`
   gap: var(--gap-related);
   padding: var(--space-8);
   background: var(--color-status-warning-bg);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
 `;
 

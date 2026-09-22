@@ -196,7 +196,7 @@ const SetupInstructions = styled.pre`
   padding: var(--inset-surface);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   white-space: pre-wrap;

@@ -326,7 +326,7 @@ const EditButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;
 
@@ -337,7 +337,7 @@ const SaveButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const CancelButton = styled.button`
@@ -347,7 +347,7 @@ const CancelButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); }
 `;
 
@@ -376,7 +376,7 @@ const AddButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   white-space: nowrap;
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;

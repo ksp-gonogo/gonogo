@@ -230,7 +230,7 @@ function DataSourceStatusComponent({
                           <Box
                             surface="sunken"
                             bordered
-                            radius="sm"
+                            radius="regular"
                             style={SETUP_INSTRUCTIONS_STYLE}
                           >
                             {instructions}

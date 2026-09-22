@@ -182,7 +182,7 @@ const Disclosure__Trigger = styled.button<{
     css`
       justify-content: ${$align === "end" ? "flex-end" : "space-between"};
       width: 100%;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-regular);
       &:hover {
         background: var(--color-surface-sunken);
       }
@@ -228,7 +228,7 @@ const Disclosure__ButtonTrigger = styled(GhostButton)<{
       font-size: var(--font-size-2xs, 10px);
       font-weight: 600;
       padding: var(--space-2, 2px) var(--space-8, 8px);
-      border-radius: var(--radius-xs, 2px);
+      border-radius: var(--radius-regular, 2px);
 
       @media (pointer: coarse) {
         min-height: 44px;
@@ -283,5 +283,5 @@ const Disclosure__Panel = styled.div<{
   padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;

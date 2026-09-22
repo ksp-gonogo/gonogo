@@ -460,11 +460,11 @@ const Backdrop = styled.div`
 `;
 
 // The surface, border and radius are the kit's Box; the spotlight geometry is
-// this overlay's. lg was the missing radius that kept this hand-rolled.
+// this overlay's. It floats above the app, so it takes the floating corner.
 const OverlaySurface = styled(Box).attrs({
   surface: "panel" as const,
   bordered: true,
-  radius: "lg" as const,
+  radius: "floating" as const,
 })`
   width: 560px;
   max-width: 95vw;
@@ -498,7 +498,7 @@ const CloseBtn = styled.button`
   font-size: var(--font-size-base);
   cursor: pointer;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover {
     color: var(--color-text-primary);
     background: var(--color-surface-raised);

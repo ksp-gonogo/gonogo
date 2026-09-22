@@ -150,7 +150,7 @@ const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   gap: var(--space-8, 8px);
   padding: var(--space-6, 6px) var(--space-8, 8px);
   border: 1px solid ${({ $tone }) => toneBg($tone)};
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-regular, 4px);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 18%, var(--color-surface-raised))`};
   color: var(--color-text-primary);
@@ -170,7 +170,7 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   font-weight: 700;
   color: ${({ $tone }) => toneFg($tone)};
   border: 1px solid ${({ $tone }) => toneBg($tone)};
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
 `;

@@ -34,7 +34,7 @@ const Dialog = styled.div`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   max-width: 460px;
   width: calc(100% - 2rem);
   padding: 1.5rem;

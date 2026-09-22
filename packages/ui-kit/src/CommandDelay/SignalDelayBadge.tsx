@@ -81,5 +81,5 @@ const SignalDelayBadge__Chip = styled.div`
   color: var(--color-text-muted);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;

@@ -88,7 +88,7 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
   justify-content: center;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   letter-spacing: 0.04em;

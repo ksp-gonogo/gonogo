@@ -29,5 +29,5 @@ const PresetSelect = styled.select`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;

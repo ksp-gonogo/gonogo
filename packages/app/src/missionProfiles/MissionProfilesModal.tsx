@@ -372,7 +372,7 @@ const List = styled.div`
 const ProfileRow = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--inset-surface);
   display: flex;
   flex-direction: column;
@@ -412,7 +412,7 @@ const DangerButton = styled(Button)`
 const Warning = styled.div`
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   padding: var(--inset-surface);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-sm);

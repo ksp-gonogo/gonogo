@@ -277,15 +277,10 @@ function DrillCard({
       // A `go` card is read as "extracting, right now". Held-back run state gets
       // the neutral tone instead of the last green one.
       tone={!drillNotCurrent && drill.running ? "go" : "default"}
-      categoryColor={drill.resource ? resourceColor(drill.resource) : undefined}
-    >
-      <Stack gap="xs">
-        {/* Wraps rather than clips: a no-wrap Cluster cut badges off at the
-            default tile width. */}
-        <Cluster justify="start" gap="xs" wrap>
-          <Text size="sm" tone="default" weight="semibold">
-            {drill.partTitle ?? drill.partId ?? "Drill"}
-          </Text>
+      identityColor={drill.resource ? resourceColor(drill.resource) : undefined}
+      title={drill.partTitle ?? drill.partId ?? "Drill"}
+      titleRight={
+        <Inline gap="xs">
           {/* Deployed is genuinely absent on a harvester with no deploy
               animation, so the chip is omitted rather than shown as a false
               "retracted". */}
@@ -302,7 +297,10 @@ function DrillCard({
           ) : (
             <RunStateBadge running={drill.running} />
           )}
-        </Cluster>
+        </Inline>
+      }
+    >
+      <Stack gap="xs">
         <Grid cols={RESOURCE_TABLE_COLS} gap="sm" rowGap="xs" align="baseline">
           <ResourceCells
             flow={{ resource: drill.resource, rate: drill.rate }}
@@ -384,22 +382,22 @@ function ConverterCard({
             ? "go"
             : "default"
       }
-      categoryColor={
+      identityColor={
         primaryResource ? resourceColor(primaryResource) : undefined
       }
-    >
-      <Stack gap="xs">
-        <Cluster justify="start" gap="xs" wrap>
-          <Text size="sm" tone="default" weight="semibold">
-            {converter.partTitle ?? converter.partId ?? "Converter"}
-          </Text>
+      title={converter.partTitle ?? converter.partId ?? "Converter"}
+      titleRight={
+        <Inline gap="xs">
           {converterNotCurrent ? (
             <Badge severity="info">run state held</Badge>
           ) : (
             <RunStateBadge running={converter.running} />
           )}
           {starved && <Badge severity="warning">no output</Badge>}
-        </Cluster>
+        </Inline>
+      }
+    >
+      <Stack gap="xs">
         {/* The recipe table is the card's core content: every input then every
             output, one row each, columns aligned by the shared Grid template
             rather than the old wrapping inline runs. Either side can be

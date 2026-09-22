@@ -38,7 +38,7 @@ export const FeasibilityBanner = styled.div`
   padding: var(--space-6) var(--space-10);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   color: var(--color-status-nogo-fg);
 `;
 

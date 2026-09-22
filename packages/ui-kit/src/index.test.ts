@@ -37,7 +37,7 @@ describe("ui-kit foundation", () => {
     // Handles onto the ladders, not values. These asserted raw px until the
     // theme stopped keeping its own copy of the numbers; the colours above
     // have always been asserted this way.
-    expect(defaultDarkTheme.radii.xs).toBe("var(--radius-xs)");
+    expect(defaultDarkTheme.radii.regular).toBe("var(--radius-regular)");
     expect(defaultDarkTheme.radii.pill).toBe("var(--radius-pill)");
     expect(defaultDarkTheme.space.md).toBe("var(--space-8)");
   });

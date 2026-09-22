@@ -213,7 +213,7 @@ const Backdrop = styled.div`
 const Dialog = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   max-width: 560px;
   width: 90vw;
   max-height: 80vh;
@@ -282,7 +282,7 @@ const Body = styled.div`
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
     padding: var(--inset-chip);
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-regular);
     font-size: var(--font-size-xs);
   }
   pre {
@@ -295,7 +295,7 @@ const Body = styled.div`
        than further, since this already sits inside the Body inset. The inline
        code run above stays --inset-chip: that one is sized by its text. */
     padding: var(--inset-surface);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-regular);
     font-size: var(--font-size-xs);
     overflow-x: auto;
     margin: 0 0 var(--space-10);

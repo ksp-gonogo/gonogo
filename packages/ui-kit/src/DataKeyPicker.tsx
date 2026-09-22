@@ -213,7 +213,7 @@ const Container = styled.div`
 const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid ${({ $retired }) => ($retired ? "var(--color-status-nogo-fg)" : "var(--color-border-strong)")};
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   color: ${({ $hasValue, $retired }) => {
     if ($retired) return "var(--color-status-nogo-fg)";
     return $hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)";

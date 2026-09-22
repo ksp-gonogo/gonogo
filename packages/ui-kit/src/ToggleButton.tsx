@@ -114,7 +114,7 @@ const ToggleButton__Body = styled.button<{
   /* Sentence case, the same as the kit's Button: this label is the thing being
      chosen, and a row of shouted choices reads as an alarm rather than a
      picker. */
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   cursor: pointer;
   transition: background var(--duration-fast, 100ms), border-color var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
 

@@ -1081,7 +1081,7 @@ const WaitingPanel = styled.div`
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const HyperbolicNotice = styled.p`

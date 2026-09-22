@@ -208,7 +208,7 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   border: 1px solid
     ${({ $completed }) =>
       $completed ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const NodeMain = styled.div`
@@ -252,7 +252,7 @@ const StepButton = styled(IconButton)<{ $active: boolean }>`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -268,7 +268,7 @@ const DeleteButton = styled.button`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -325,7 +325,7 @@ const SecondaryButton = styled.button`
   border: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-xs);
   padding: var(--space-4) var(--space-10);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   &:disabled {
     opacity: 0.5;

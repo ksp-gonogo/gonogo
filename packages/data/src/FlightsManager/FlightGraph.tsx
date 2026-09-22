@@ -316,7 +316,7 @@ const LoadingBadge = styled.div`
   color: var(--color-text-muted);
   background: rgba(0, 0, 0, 0.6);
   padding: var(--inset-chip);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   /* Local sibling ordering inside ChartWrap only: this badge just has to sit
      over the chart canvas beside it. The absolute number is meaningless
      outside that context, so it stays off the app-global z ladder. */
@@ -329,5 +329,5 @@ const ErrorLine = styled.div`
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-status-alert-muted);
   padding: var(--inset-surface);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;

@@ -117,7 +117,7 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
      itself was narrow. This declaration stays for the cqw unit alone. */
   container-type: inline-size;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-regular, 4px);
   /* TOP ONLY, and it is the delay rail's band. Every widget reserves the same
      strip at its own top edge so that a command going in flight draws into
      room that was already standing there, rather than pushing the title down
@@ -550,7 +550,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
         padding: var(--space-8, 8px);
         background: var(--color-surface-panel);
         border: 1px solid var(--color-border-subtle);
-        border-radius: var(--radius-md, 4px);
+        border-radius: var(--radius-regular, 4px);
         box-shadow: 0 var(--space-4, 4px) var(--space-12, 12px)
           rgba(0, 0, 0, 0.35);
       }

@@ -152,7 +152,7 @@ const Row__Root = styled.li<{
   background: transparent;
   color: var(--color-text-primary);
   padding: var(--space-4, 4px) var(--space-6, 6px);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
   font-family: inherit;

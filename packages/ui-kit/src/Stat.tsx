@@ -91,7 +91,7 @@ const Stat__Root = styled.dl`
   padding: var(--space-6, 6px) var(--space-8, 8px);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius-regular, 2px);
 `;
 
 const Stat__Label = styled.dt`

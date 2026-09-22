@@ -97,7 +97,7 @@ const Track = styled.div`
   height: 24px;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   touch-action: none;
 `;

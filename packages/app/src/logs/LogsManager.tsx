@@ -528,7 +528,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-primary)")};
   font-size: var(--font-size-xs);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
 `;
 
@@ -562,7 +562,7 @@ const Foot = styled.div`
   code {
     background: var(--color-surface-raised);
     padding: var(--inset-chip);
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-regular);
   }
 `;
 
@@ -593,13 +593,13 @@ const SentNotice = styled.div`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   padding: var(--inset-surface);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   font-size: var(--font-size-sm);
 
   code {
     background: rgba(0, 0, 0, 0.2);
     padding: var(--inset-chip);
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-regular);
   }
 `;
 
@@ -617,7 +617,7 @@ const ScreenshotThumb = styled.img`
   max-width: 120px;
   max-height: 80px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const ScreenshotMeta = styled.div`

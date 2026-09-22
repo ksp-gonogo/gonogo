@@ -363,7 +363,7 @@ const Item = styled.div`
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const ReorderColumn = styled.div`

@@ -57,7 +57,7 @@ const SelectableRow__Root = styled.button<{
   width: 100%;
   text-align: left;
   padding: ${({ theme }) => `${theme.space.xs} ${theme.space.sm}`};
-  border-radius: ${({ theme }) => theme.radii.sm};
+  border-radius: ${({ theme }) => theme.radii.regular};
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "transparent" : "var(--color-border-subtle)"};

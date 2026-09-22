@@ -476,7 +476,7 @@ const WarpButton = styled.button<{ $active: boolean }>`
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   /* A control by class, but it wants horizontal BELOW vertical: these buttons
      are a dense grid of warp-rate glyphs, so the pair is taller than it is wide.
      Every --inset-* widens faster than it grows, so naming this one would

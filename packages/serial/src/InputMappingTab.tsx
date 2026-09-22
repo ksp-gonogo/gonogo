@@ -316,17 +316,15 @@ const List = styled.div`
   gap: var(--gap-related);
 `;
 
-// The surface, radius and padding come from the kit's Card; only the border
-// that reacts to the listening state is this tab's. Card is sunken where this
-// was raised, which is the deliberate delta.
-const BindingCard = styled(Card)<{ $listening: boolean }>`
+/* The surface, radius and padding come from the kit's Card, the roomier inset
+   from its `standalone` role; only the border that reacts to the listening
+   state is this tab's. Card is sunken where this was raised, which is the
+   deliberate delta. */
+const BindingCard = styled(Card).attrs({ standalone: true })<{
+  $listening: boolean;
+}>`
   border-color: ${({ $listening }) =>
     $listening ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
-  /* Deliberately roomier than Card's own --inset-surface: a binding card holds
-     a select and a Bind button, and this tab holds nothing but these cards, so
-     it is a screen rather than a record in a list. That role is what
-     --inset-surface-standalone names. */
-  padding: var(--inset-surface-standalone);
   transition: border-color var(--duration-instant) var(--ease-linear);
 `;
 

@@ -835,7 +835,7 @@ const CommandButton__Body = styled.button<{
   font-family: inherit;
   font-weight: 600;
   letter-spacing: 0.04em;
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   cursor: pointer;
   transition: background var(--duration-fast, 100ms),
     border-color var(--duration-fast, 100ms),

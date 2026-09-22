@@ -213,7 +213,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
   },
   /**
    * 9 across 5 files. Four in `StationConnectView` (exempt page), and five
-   * hairline or half-height radii deliberately off the four-rung ramp:
+   * hairline or half-height radii deliberately off the semantic names:
    * CommSignal's 1px bar, ActionGroup's focus-ring radius, InputTester's
    * nested pair, OrbitalEventChips' chip.
    */
@@ -838,7 +838,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
       "borderBottomRightRadius",
     ],
     remedy:
-      "use --radius-xs/sm/md/lg, or --radius-pill for a stadium and --radius-circle for a circle (never a hand-computed half-height)",
+      "use --radius-regular for an ordinary corner and --radius-floating for a box above the app, or --radius-pill for a stadium and --radius-circle for a circle (never a hand-computed half-height). --radius-display-frame belongs to FramedDisplay alone",
     hits: (value) => [
       ...nonZeroPx(value),
       ...(value.match(/\b\d*\.?\d+%/g) ?? []),

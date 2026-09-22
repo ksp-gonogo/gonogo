@@ -754,7 +754,7 @@ const TOTALS_CELL: CSSProperties = {
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-surface-raised)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
 };
 
 // The NET cell's tinted background + border (stays on -bg tokens: a fill, not
@@ -826,7 +826,7 @@ const SPARKLINE_ROW: CSSProperties = {
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-surface-raised)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
 };
 
 const SPARKLINE_LABEL: CSSProperties = {
@@ -903,7 +903,7 @@ const PowerRow = styled.div`
   padding: var(--inset-surface);
   font-size: var(--font-size-xs);
   background: var(--color-surface-app);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   &:hover {
     background: var(--color-surface-panel);
   }

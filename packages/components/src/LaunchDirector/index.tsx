@@ -1607,7 +1607,7 @@ const PadRowButton = styled.button<{ $selected: boolean }>`
   border: 1px solid
     ${(p) =>
       p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
@@ -1725,7 +1725,7 @@ const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
   border: 1px solid
     ${(p) =>
       p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: ${(p) => (p.$blocked ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$blocked ? 0.55 : 1)};
   text-align: left;
@@ -1820,7 +1820,7 @@ const CrewChip = styled.button<{
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
   text-align: left;
@@ -1874,7 +1874,7 @@ const FlightStatRow = styled.div`
      clipping the digits off the edge. */
   flex-wrap: wrap;
   padding: var(--inset-surface);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-panel);
 `;
 
@@ -1904,7 +1904,7 @@ const CrashChip = styled.div`
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
   padding: var(--inset-chip);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   letter-spacing: 0.04em;
 `;
 
@@ -1929,7 +1929,7 @@ const armButtonBase = `
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   font-family: inherit;
   border: 1px solid var(--color-surface-raised);
@@ -1991,7 +1991,7 @@ const VesselSwitchPanel = styled.div`
   max-height: 180px;
   overflow-y: auto;
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-app);
   padding: var(--space-2);
 `;
@@ -2005,7 +2005,7 @@ const VesselSwitchRow = styled.button`
   background: transparent;
   color: var(--color-text-primary);
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
   font-family: inherit;

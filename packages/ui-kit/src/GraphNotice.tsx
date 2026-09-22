@@ -63,7 +63,7 @@ const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
      --color-scrim token if a second consumer needs the exact value. */
   background: rgba(0, 0, 0, 0.7);
   padding: ${({ theme }) => theme.space.xs} ${({ theme }) => theme.space.sm};
-  border-radius: ${({ theme }) => theme.radii.xs};
+  border-radius: ${({ theme }) => theme.radii.regular};
   pointer-events: none;
 
   ${({ $placement }) => PLACEMENT_STYLES[$placement]}
