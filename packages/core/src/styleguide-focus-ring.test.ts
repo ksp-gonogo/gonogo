@@ -107,6 +107,31 @@ function offenders(): { file: string; rule: string }[] {
 const MINIMUM_FILES_SCANNED = 80;
 
 describe("design-system: focus rings use the theme's focus role", () => {
+  /**
+   * The premise, asserted separately from the rings that rest on it.
+   *
+   * Every other test here checks that a ring REFERENCES `--color-focus`. None
+   * of them can notice that the ROLE it references has been deleted: the rings
+   * would still agree with each other, this file would still be green, and the
+   * ratchet would go on enforcing a rule with nothing behind it.
+   *
+   * A test that a value is used cannot detect that the reason for using it has
+   * gone, so the reason gets its own test. All three layers, because the role
+   * is only real if the contract declares it, the theme fills it and the
+   * stylesheet defines what it resolves to.
+   */
+  it("still has a focus role in the theme contract to point at", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const read = (rel: string) => readFileSync(join(root, rel), "utf8");
+    expect(read("packages/theme/src/theme.ts")).toMatch(/^\s*focus: string;/m);
+    expect(read("packages/theme/src/defaultDarkTheme.ts")).toMatch(
+      /focus:\s*"var\(--color-focus\)"/,
+    );
+    expect(read("packages/theme/src/tokens.css")).toMatch(
+      /^\s*--color-focus:\s*\S+;/m,
+    );
+  });
+
   it("is actually looking at the kit", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     expect(kitSources(root).length).toBeGreaterThanOrEqual(
