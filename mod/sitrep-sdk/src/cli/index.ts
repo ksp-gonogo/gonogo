@@ -380,10 +380,15 @@ async function forwardToTools(argv: readonly string[]): Promise<number> {
         "`bundle` and `bake-hash` need neither, which is why this is not a dependency of the sdk.",
     );
   }
-  const { run } = (await import(pathToFileURL(entry).href)) as {
-    run: (argv: readonly string[]) => Promise<number>;
-  };
-  return await run(argv);
+  const loaded: unknown = await import(pathToFileURL(entry).href);
+  const run: unknown =
+    typeof loaded === "object" && loaded !== null
+      ? Reflect.get(loaded, "run")
+      : undefined;
+  if (typeof run !== "function") {
+    throw new Error(`${entry} exports no run()`);
+  }
+  return await (run as (argv: readonly string[]) => Promise<number>)(argv);
 }
 
 export async function run(argv: readonly string[]): Promise<number> {

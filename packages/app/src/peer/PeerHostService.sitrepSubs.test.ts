@@ -125,7 +125,7 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
-import type { DataConnection } from "peerjs";
+import { asDataConnection } from "../test/peerFakes";
 import { PeerHostService } from "./PeerHostService";
 
 const TOPIC = "thirdparty.readout";
@@ -156,7 +156,7 @@ async function connectStation(
   const peer = FakeHub.Peer.registry.get(host.peerId ?? "");
   if (!peer) throw new Error("host peer not registered");
   const conn = new FakeHub.DataConnection(peerId, withPeerConnection);
-  peer.emit("connection", conn as unknown as DataConnection);
+  peer.emit("connection", asDataConnection(conn));
   conn.emit("open");
   await Promise.resolve();
   return conn;

@@ -34,10 +34,14 @@ export async function seedKspHostDefaults(
   try {
     const res = await fetchImpl(`${relayBaseUrl()}/bootstrap-config`);
     if (!res.ok) return;
-    const body = (await res.json()) as { kspHost?: unknown };
+    const body: unknown = await res.json();
+    const declared: unknown =
+      typeof body === "object" && body !== null
+        ? Reflect.get(body, "kspHost")
+        : undefined;
     kspHost =
-      typeof body.kspHost === "string" && body.kspHost.trim() !== ""
-        ? body.kspHost.trim()
+      typeof declared === "string" && declared.trim() !== ""
+        ? declared.trim()
         : null;
   } catch {
     // No relay reachable: not a bundle deployment; defaults stand.

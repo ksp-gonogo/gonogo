@@ -50,8 +50,7 @@ export function installFakeAudio(): FakeOscillator[] {
     });
     destination = {};
   }
-  (window as unknown as { AudioContext: unknown }).AudioContext =
-    FakeAudioContext;
+  Reflect.set(window, "AudioContext", FakeAudioContext);
   return oscillators;
 }
 

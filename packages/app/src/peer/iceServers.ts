@@ -39,12 +39,16 @@ export async function fetchHostIceServers(): Promise<RTCIceServer[]> {
       logger.warn(`[ice] relay /ice-config returned ${res.status}`);
       return [];
     }
-    const body = (await res.json()) as IceConfig;
-    if (!Array.isArray(body.iceServers)) {
+    const body: unknown = await res.json();
+    const iceServers: unknown =
+      typeof body === "object" && body !== null
+        ? Reflect.get(body, "iceServers")
+        : undefined;
+    if (!Array.isArray(iceServers)) {
       logger.warn("[ice] relay /ice-config response missing iceServers");
       return [];
     }
-    return body.iceServers;
+    return iceServers as IceConfig["iceServers"];
   } catch (err) {
     logger.warn(
       `[ice] relay /ice-config fetch failed: host will run without TURN (${
