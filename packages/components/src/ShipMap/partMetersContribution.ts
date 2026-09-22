@@ -1,6 +1,6 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import { buildResourcesByFlightId } from "@ksp-gonogo/data";
-import type { VesselParts } from "@ksp-gonogo/sitrep-sdk";
+import { type VesselParts, value } from "@ksp-gonogo/sitrep-sdk";
 import type { ShipMapPartMeterEntry } from "./shipTopology";
 
 // The built-in half of the `ship-map.part-meters` self-contribution, and this
@@ -78,8 +78,8 @@ export function computeBuiltinPartMeters(
         partId: String(flightId),
         resource: name,
         displayName: name,
-        amount: slot.amount,
-        capacity: slot.maxAmount,
+        amount: value("units", slot.amount),
+        capacity: value("units", slot.maxAmount),
         status: statusFor(slot.amount, slot.maxAmount),
       });
     }
