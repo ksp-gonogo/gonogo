@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 515 of them
- * across 217 files.
+ * Assertions that escape `unknown`, per file. The tree carries 460 of them
+ * across 201 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 323 of the 515 are
+ * **A test fixture minted through an assertion.** 278 of the 460 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 208 of the 515 are `as unknown as`, and those are worth taking
+ * 187 of the 460 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 93 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 85 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 217 files those would be 217 sentences
+ * sentence per entry: at 201 files those would be 201 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -245,31 +245,14 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/vessel-state.test.ts": 1,
   "packages/sitrep-client/src/websocket-transport.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.ts": 1,
-  // packages/ui-kit: 5 in 5 files (1 out of `any`, 3 in tests), walked 269 files
+  // packages/ui-kit: 3 in 3 files (1 out of `any`, 1 in tests), walked 269 files
   "packages/ui-kit/src/augments.second-copy.test.ts": 1,
   "packages/ui-kit/src/augments.ts": 1,
-  "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
-  "packages/ui-kit/src/Tabs.test.tsx": 1,
   "packages/ui-kit/src/WidgetScope.tsx": 1,
   // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  // mod/GonogoKerbalismUplink/client: 20 in 7 files (6 out of `any`, 17 in tests), walked 83 files
-  "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
-  "mod/GonogoKerbalismUplink/client/src/isru.test.ts": 2,
-  "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": 2,
-  "mod/GonogoKerbalismUplink/client/src/ResourceOps/processFilters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/science.test.ts": 2,
-  "mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/test/widgetDomSnapshot.tsx": 3,
-  // mod/GonogoKosUplink/client: 34 in 8 files (3 out of `any`, 26 in tests), walked 48 files
-  "mod/GonogoKosUplink/client/src/dataSource/__fixtures__/FakeKosUplink.ts": 1,
-  "mod/GonogoKosUplink/client/src/dataSource/kos-execute-uplink.test.ts": 2,
-  "mod/GonogoKosUplink/client/src/dataSource/kos.ts": 1,
-  "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.test.ts": 2,
-  "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.ts": 3,
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 16,
-  "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 6,
-  "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 3,
+  // mod/GonogoKerbalismUplink/client: 1 in 1 files (1 out of `any`, 0 in tests), walked 84 files
+  "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts": 1,
   // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
   // mod/sitrep-sdk: 81 in 38 files (19 out of `any`, 24 in tests), walked 321 files
@@ -408,21 +391,10 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/vessel-state.test.ts": 1,
   "packages/sitrep-client/src/websocket-transport.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.ts": 1,
-  // packages/ui-kit: 3 in 3 files (0 out of `any`, 2 in tests), walked 269 files
+  // packages/ui-kit: 1 in 1 files (0 out of `any`, 0 in tests), walked 269 files
   "packages/ui-kit/src/augments.ts": 1,
-  "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
-  "packages/ui-kit/src/Tabs.test.tsx": 1,
   // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx": 1,
-  // mod/GonogoKerbalismUplink/client: 13 in 4 files (0 out of `any`, 11 in tests), walked 83 files
-  "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
-  "mod/GonogoKerbalismUplink/client/src/ResourceOps/processFilters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.test.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/test/widgetDomSnapshot.tsx": 2,
-  // mod/GonogoKosUplink/client: 6 in 3 files (0 out of `any`, 4 in tests), walked 48 files
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 2,
-  "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 2,
-  "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 2,
   // mod/sitrep-sdk: 26 in 15 files (0 out of `any`, 9 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/host.ts": 3,
   "mod/sitrep-sdk/src/api/index.ts": 2,
@@ -455,8 +427,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 19,
-  files: 2229,
-  assertions: 1925,
+  files: 2231,
+  assertions: 1856,
 } as const;
 
 /**
@@ -483,8 +455,8 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/ui-kit": 215,
   "packages/uplink-tools": 20,
   "mod/GonogoBreakingGroundUplink/client": 26,
-  "mod/GonogoKerbalismUplink/client": 66,
-  "mod/GonogoKosUplink/client": 38,
+  "mod/GonogoKerbalismUplink/client": 67,
+  "mod/GonogoKosUplink/client": 39,
   "mod/sitrep-kernel": 12,
   "mod/sitrep-sdk": 256,
   "mod/sitrep-server": 10,

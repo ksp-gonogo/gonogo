@@ -1,5 +1,9 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import {
+  type DrivableResizeObservers,
+  expectNoA11yViolations,
+  installDrivableResizeObserver,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -241,29 +245,7 @@ describe("shouldExpandTabs", () => {
  * `Tabs` root, exercising the `expandWhenRoomy` render path end to end
  * (mirrors `Panel.sidebar.test.tsx`'s `DrivableResizeObserver`).
  */
-type Entry = {
-  target: Element;
-  contentRect: { width: number; height: number };
-};
-
-class DrivableResizeObserver {
-  static instances: DrivableResizeObserver[] = [];
-  readonly observed = new Set<Element>();
-  readonly callback: (entries: Entry[]) => void;
-  constructor(callback: (entries: Entry[]) => void) {
-    this.callback = callback;
-    DrivableResizeObserver.instances.push(this);
-  }
-  observe(el: Element) {
-    this.observed.add(el);
-  }
-  unobserve(el: Element) {
-    this.observed.delete(el);
-  }
-  disconnect() {
-    this.observed.clear();
-  }
-}
+let observers: DrivableResizeObservers;
 
 function tabsRoot(): Element {
   return document.querySelector("[data-tabs-root]") as Element;
@@ -278,24 +260,17 @@ function tabsRoot(): Element {
  */
 async function resizeTo(el: Element, width: number) {
   await act(async () => {
-    for (const ro of DrivableResizeObserver.instances) {
-      if (!ro.observed.has(el)) continue;
-      ro.callback([{ target: el, contentRect: { width, height: 100 } }]);
-    }
+    observers.resize(el, { width, height: 100 });
   });
 }
 
 describe("Tabs expandWhenRoomy", () => {
-  const realResizeObserver = globalThis.ResizeObserver;
-
   beforeEach(() => {
-    DrivableResizeObserver.instances = [];
-    globalThis.ResizeObserver =
-      DrivableResizeObserver as unknown as typeof ResizeObserver;
+    observers = installDrivableResizeObserver();
   });
 
   afterEach(() => {
-    globalThis.ResizeObserver = realResizeObserver;
+    observers.uninstall();
   });
 
   it("stays in switch mode (one panel, a tablist) when narrow", async () => {

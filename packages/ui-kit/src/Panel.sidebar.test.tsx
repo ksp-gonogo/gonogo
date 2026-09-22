@@ -1,4 +1,8 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  type DrivableResizeObservers,
+  installDrivableResizeObserver,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 
@@ -19,56 +23,20 @@ import { Panel } from "./Panel";
  * `grid-template-*` defaults to `none`.
  */
 
-/** The observed element's most recent size, as `useElementSize` sees it. */
-type Entry = {
-  target: Element;
-  contentRect: { width: number; height: number };
-};
-
-/**
- * jsdom lays nothing out, so the panel's aspect ratio has to be supplied. The
- * package's global stub is a no-op that never fires; this one records what it
- * observes so a test can hand a specific size to the split box and watch the
- * axis follow.
- */
-class DrivableResizeObserver {
-  static instances: DrivableResizeObserver[] = [];
-  readonly observed = new Set<Element>();
-  readonly callback: (entries: Entry[]) => void;
-  constructor(callback: (entries: Entry[]) => void) {
-    this.callback = callback;
-    DrivableResizeObserver.instances.push(this);
-  }
-  observe(el: Element) {
-    this.observed.add(el);
-  }
-  unobserve(el: Element) {
-    this.observed.delete(el);
-  }
-  disconnect() {
-    this.observed.clear();
-  }
-}
+let observers: DrivableResizeObservers;
 
 function resizeTo(el: Element, width: number, height: number) {
   act(() => {
-    for (const ro of DrivableResizeObserver.instances) {
-      if (!ro.observed.has(el)) continue;
-      ro.callback([{ target: el, contentRect: { width, height } }]);
-    }
+    observers.resize(el, { width, height });
   });
 }
 
-const realResizeObserver = globalThis.ResizeObserver;
-
 beforeEach(() => {
-  DrivableResizeObserver.instances = [];
-  globalThis.ResizeObserver =
-    DrivableResizeObserver as unknown as typeof ResizeObserver;
+  observers = installDrivableResizeObserver();
 });
 
 afterEach(() => {
-  globalThis.ResizeObserver = realResizeObserver;
+  observers.uninstall();
 });
 
 function split(): HTMLElement | null {

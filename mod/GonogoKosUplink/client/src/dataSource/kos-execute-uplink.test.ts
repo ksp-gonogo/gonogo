@@ -1,3 +1,5 @@
+import type { GeneratedCommandArgsMap } from "../__generated__/command-map";
+import { recordDispatch } from "../test/recordedCommands";
 /**
  * `KosDataSource.executeScript`'s Uplink cutover, exercised at the
  * `KosDataSource` boundary (not just the underlying `KosUplinkExecutor`,
@@ -50,17 +52,15 @@ describe("KosDataSource.executeScript: Uplink cutover", () => {
   it("dispatches over kos.run end to end when a TelemetryClient is active", async () => {
     const transport = new StubTransport();
     const client = createTestTelemetryClient(transport);
-    const commands: Array<{
-      coreId: number;
-      requestId: string;
+    const dispatched: Array<{
       command: string;
+      args: GeneratedCommandArgsMap["kos.run"];
     }> = [];
-    transport.setCommandHandler((_command, args) => {
-      commands.push(
-        args as { coreId: number; requestId: string; command: string },
-      );
+    transport.setCommandHandler((command, args) => {
+      recordDispatch<"kos.run">(dispatched, command, args);
       return { success: true, errorCode: 0 };
     });
+    const runArgs = () => dispatched.map((c) => c.args);
     setActiveTelemetryClientForTests(client);
 
     const source = makeSource();
@@ -82,13 +82,14 @@ describe("KosDataSource.executeScript: Uplink cutover", () => {
 
     const pending = source.executeScript("datastream", "0:/foo.ks", [1, "hi"]);
 
-    await waitFor(() => commands.length === 1);
-    expect(commands[0].coreId).toBe(4);
-    expect(commands[0].command).toBe('RUNPATH("0:/foo.ks", 1, "hi").\n');
+    await waitFor(() => runArgs().length === 1);
+    const [first] = runArgs();
+    expect(first.coreId).toBe(4);
+    expect(first.command).toBe('RUNPATH("0:/foo.ks", 1, "hi").\n');
 
     transport.emit("kos.run.4", {
       coreId: 4,
-      requestId: commands[0].requestId,
+      requestId: runArgs()[0].requestId,
       fields: { ok: true },
     } satisfies KosRunResult);
 
@@ -121,11 +122,15 @@ describe("kos.ts module: registerUplinkHandle('kos', ...) registration", () => {
   it("delegates the 'executeScript' relay method to the kosSource singleton", async () => {
     const transport = new StubTransport();
     const client = createTestTelemetryClient(transport);
-    const commands: Array<{ coreId: number; requestId: string }> = [];
-    transport.setCommandHandler((_command, args) => {
-      commands.push(args as { coreId: number; requestId: string });
+    const dispatched: Array<{
+      command: string;
+      args: GeneratedCommandArgsMap["kos.run"];
+    }> = [];
+    transport.setCommandHandler((command, args) => {
+      recordDispatch<"kos.run">(dispatched, command, args);
       return { success: true, errorCode: 0 };
     });
+    const runArgs = () => dispatched.map((c) => c.args);
     setActiveTelemetryClientForTests(client);
     kosSource.attachTelemetryClient(client);
 
@@ -158,8 +163,9 @@ describe("kos.ts module: registerUplinkHandle('kos', ...) registration", () => {
     });
 
     await new Promise((r) => setTimeout(r, 1));
-    expect(commands.length).toBeGreaterThan(0);
-    const last = commands[commands.length - 1];
+    const runs = runArgs();
+    expect(runs.length).toBeGreaterThan(0);
+    const last = runs[runs.length - 1];
     if (!last) throw new Error("expected a dispatched command");
     transport.emit(`kos.run.${last.coreId}`, {
       coreId: last.coreId,
