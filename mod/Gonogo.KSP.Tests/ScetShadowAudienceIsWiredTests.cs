@@ -107,5 +107,58 @@ namespace Gonogo.KSP.Tests
             Assert.Contains(
                 "ScetAlarmUplink.ConfigureRevealedRead(null)", shutdown, StringComparison.Ordinal);
         }
+
+        /// <summary>
+        /// The standing subscriptions are installed and dropped the same way and
+        /// for the same reason, and they are what gives the revealed read
+        /// anything to answer from: the archive holds only what something is
+        /// subscribed to, so without them an audience threshold reads whichever
+        /// Topics a widget happens to be showing.
+        /// </summary>
+        [Fact]
+        public void the_addon_installs_the_standing_subscriptions_and_drops_them_again()
+        {
+            var addon = CurrencyDelaySourceText.ReadRelative("GonogoAddon.cs");
+
+            Assert.Contains(
+                "ScetAlarmUplink.ConfigureStandingSubscriptions(", addon, StringComparison.Ordinal);
+            Assert.Contains("engine.OpenStandingSubscription(", addon, StringComparison.Ordinal);
+            Assert.Contains("engine.CloseStandingSubscription(", addon, StringComparison.Ordinal);
+
+            var shutdown = CurrencyDelaySourceText.MethodBody(addon, "private void Shutdown()");
+            Assert.Contains(
+                "ScetAlarmUplink.ConfigureStandingSubscriptions(null, null)",
+                shutdown,
+                StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The reconciliation runs on the handle, where the roster's OWN changes
+        /// are visible: a rewind clear and an alarm going Unreachable are decided
+        /// inside an evaluation and reach no command handler, so an arm and
+        /// disarm pair would keep a Topic held for an alarm that no longer
+        /// exists.
+        /// </summary>
+        [Fact]
+        public void the_standing_subscriptions_are_reconciled_from_the_handle()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
+
+            var handle = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void HandleOnCourier(object? captured)");
+            Assert.Contains("_subscriptions.Reconcile(", handle, StringComparison.Ordinal);
+
+            foreach (var handler in new[]
+            {
+                "private CommandResult HandleArm(ScetAlarmArmArgs? args, string vantage)",
+                "private CommandResult HandleDisarm(ScetAlarmDisarmArgs? args)",
+            })
+            {
+                Assert.DoesNotContain(
+                    "_subscriptions.Reconcile(",
+                    CurrencyDelaySourceText.MethodBody(uplink, handler),
+                    StringComparison.Ordinal);
+            }
+        }
     }
 }

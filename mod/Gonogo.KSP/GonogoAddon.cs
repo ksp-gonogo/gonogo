@@ -255,6 +255,14 @@ namespace Gonogo.KSP
                 ScetAlarmUplink.ConfigureRevealedRead(
                     (topic, vantage, nowUt) => engine.ReadTopicAtVantage(topic, vantage, nowUt));
 
+                // And what keeps there being something to read: the archive holds
+                // only what something is subscribed to, so without these an
+                // audience threshold answers off whichever Topics a widget
+                // happens to be showing.
+                ScetAlarmUplink.ConfigureStandingSubscriptions(
+                    (topic, holder) => engine.OpenStandingSubscription(topic, holder),
+                    (topic, holder) => engine.CloseStandingSubscription(topic, holder));
+
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
@@ -574,6 +582,7 @@ namespace Gonogo.KSP
             // over that engine: left in place it would outlive the archive it
             // reads and hand the next scene's alarm arm a dead one.
             ScetAlarmUplink.ConfigureRevealedRead(null);
+            ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
 
             try
             {
