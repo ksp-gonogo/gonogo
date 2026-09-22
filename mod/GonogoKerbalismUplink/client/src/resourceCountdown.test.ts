@@ -61,7 +61,7 @@ const AMOUNTS: TopicPayload<"vessel.resources"> = {
 
 /** Food draining at 0.1/s, Kerbalism's accumulators last advanced at UT 1000. */
 const LIFE_SUPPORT = {
-  asOfUt: value("ut", 1000),
+  asOfKerbalismUt: value("ut", 1000),
   rates: { Food: value("units/s", -0.1) },
 } satisfies KerbalismLifeSupport;
 
@@ -131,7 +131,9 @@ describe("what reading the countdown off the model would cost", () => {
     if (crossing === undefined) throw new Error("no crossing was published");
 
     expect(crossing.boundary).toBe("floor");
-    expect(crossing.atUt.magnitude - LIFE_SUPPORT.asOfUt.magnitude).toBeCloseTo(
+    expect(
+      crossing.atUt.magnitude - LIFE_SUPPORT.asOfKerbalismUt.magnitude,
+    ).toBeCloseTo(
       timeToEmptySeconds("Food", LIFE_SUPPORT, STORED) ?? Number.NaN,
     );
   });

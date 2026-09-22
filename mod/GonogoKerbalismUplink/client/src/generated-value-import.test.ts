@@ -75,7 +75,7 @@ describe("generated contract.ts: Value/Vec3Of usage resolves to core", () => {
     // the wire keeps the key: a figure Kerbalism could not read arrives as an
     // explicit null. What these assertions are about is the `Value<>` wrap; the
     // union rides alongside it.
-    expect(src).toMatch(/value\?:\s*Value<"units"> \| null;/);
+    expect(src).toMatch(/problem\?:\s*Value<"units"> \| null;/);
     expect(src).toMatch(/degenPerSec\?:\s*Value<"units\/s"> \| null;/);
     // A star's distance, reached only through spaceweather's `stars` array.
     expect(src).toMatch(/distance\?:\s*Value<"m"> \| null;/);

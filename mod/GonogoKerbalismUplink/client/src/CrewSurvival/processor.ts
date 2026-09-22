@@ -143,7 +143,7 @@ export function ruleFraction(rule: KerbalismCrewRule): number | null {
   // Null rather than 0 on either half. A rule whose accumulator or whose
   // fatal threshold never arrived has no position on the toward-fatal scale,
   // and 0 on that scale is the reading that says the crew is fine.
-  const accumulated = rule.value;
+  const accumulated = rule.problem;
   const threshold = rule.fatalThreshold;
   // `== null`: both are `double?` on the contract and the wire keeps the key,
   // so "never arrived" reaches here as an explicit null rather than as absence.
