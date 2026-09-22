@@ -178,10 +178,11 @@ describe("PeerHostService.handleUplinkRelay (generic)", () => {
     const err = await client
       .sendUplinkRelay("test-uplink", "ping", {})
       .catch((e: Error) => e);
-    expect((err as Error).message).toBe("boom");
-    expect((err as unknown as { meta?: Record<string, unknown> }).meta).toEqual(
-      { classification: "fatal" },
-    );
+    if (!(err instanceof Error)) {
+      throw new Error(`expected a relay Error, got: ${String(err)}`);
+    }
+    expect(err.message).toBe("boom");
+    expect(Reflect.get(err, "meta")).toEqual({ classification: "fatal" });
   });
 
   it("is unaffected by DataSource-registry wrapping (PeerBroadcastingDataSource)", async () => {

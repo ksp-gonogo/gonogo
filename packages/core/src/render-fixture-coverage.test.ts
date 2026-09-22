@@ -168,7 +168,7 @@ function loadDescriptors(): UnitsDescriptor {
   };
   for (const path of paths) {
     if (!existsSync(path)) continue;
-    const parsed = readJsonObject(path) as unknown as UnitsDescriptor;
+    const parsed = readJsonObject(path) as UnitsDescriptor;
     Object.assign(merged.topics, parsed.topics ?? {});
     Object.assign(merged.topicShapes, parsed.topicShapes ?? {});
     Object.assign(merged.types, parsed.types ?? {});

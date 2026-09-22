@@ -22,10 +22,21 @@ function fakeCtx() {
 }
 
 function layer(id: string) {
-  return { id, canvas: { __id: id } as unknown as CanvasImageSource };
+  return { id, canvas: namedSource(id) };
 }
 
-const STOCK = { __id: "stock" } as unknown as CanvasImageSource;
+const STOCK = namedSource("stock");
+
+/**
+ * A drawable stand-in the assertions can tell apart by name.
+ *
+ * `CanvasImageSource` is a union of browser handles with no constructor, and
+ * `paintBaseSurface` only ever passes one to `drawImage`, which the fake
+ * context records rather than draws.
+ */
+function namedSource(id: string): CanvasImageSource {
+  return { __id: id } as unknown as CanvasImageSource;
+}
 
 describe("paintBaseSurface", () => {
   it("paints the stock texture when suppression is off and there are no layers", () => {

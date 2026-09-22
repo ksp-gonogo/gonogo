@@ -61,6 +61,14 @@ import type { PeerHostService } from "../peer/PeerHostService";
 
 const STORAGE_KEY = "gonogo.maneuverTriggers.list";
 
+/** A persisted trigger's frozen plan inputs, and an empty set when the record
+ *  carried none: a trigger with no inputs fires against nothing. */
+function asFrozenPlanInputs(inputs: unknown): FrozenPlanInputs {
+  return typeof inputs === "object" && inputs !== null
+    ? (inputs as FrozenPlanInputs)
+    : ({} as FrozenPlanInputs);
+}
+
 /**
  * Takes a wire quantity's magnitude, for handing to the orbital solver.
  *
@@ -361,7 +369,7 @@ function migrateTrigger(raw: unknown): ArmedTrigger | null {
     dataKey: r.dataKey,
     op: r.op as ThresholdOp,
     value: r.value,
-    inputs: r.inputs as FrozenPlanInputs,
+    inputs: asFrozenPlanInputs(r.inputs),
     vesselName: typeof r.vesselName === "string" ? r.vesselName : null,
     createdAt: typeof r.createdAt === "number" ? r.createdAt : Date.now(),
     createdBy: typeof r.createdBy === "string" ? r.createdBy : "main",

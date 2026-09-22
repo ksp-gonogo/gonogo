@@ -144,8 +144,20 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     registerUplinkHandle("kos", {
       relay: async (method: string, args: unknown) => {
         if (method !== "executeScript") throw new Error("unknown method");
-        const a = args as { cpu: string; script: string; args: unknown[] };
-        return executeScript(a.cpu, a.script, a.args);
+        if (typeof args !== "object" || args === null) {
+          throw new Error("executeScript relay needs an args object");
+        }
+        const cpu: unknown = Reflect.get(args, "cpu");
+        const script: unknown = Reflect.get(args, "script");
+        const scriptArgs: unknown = Reflect.get(args, "args");
+        if (typeof cpu !== "string" || typeof script !== "string") {
+          throw new Error("executeScript relay needs a cpu and a script");
+        }
+        return executeScript(
+          cpu,
+          script,
+          Array.isArray(scriptArgs) ? scriptArgs : [],
+        );
       },
     });
 
@@ -215,9 +227,10 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     const err = await source
       .relay("executeScript", { cpu: "datastream", script: "bad", args: [] })
       .catch((e: Error) => e);
-    expect((err as unknown as { meta?: Record<string, unknown> }).meta).toEqual(
-      { isScriptError: true },
-    );
+    if (typeof err !== "object" || err === null) {
+      throw new Error(`expected a relay rejection object, got: ${String(err)}`);
+    }
+    expect(Reflect.get(err, "meta")).toEqual({ isScriptError: true });
   });
 
   it("errors if the host has no kos relay handle registered", async () => {

@@ -82,9 +82,10 @@ describe("MessageDispatcher", () => {
     );
 
     expect(handler).toHaveBeenCalledTimes(2);
-    expect(
-      (handler.mock.calls[1][0] as Extract<PeerMessage, { type: "data" }>)
-        .value,
-    ).toBe(2);
+    const delivered = handler.mock.calls[1][0];
+    if (delivered.type !== "data") {
+      throw new Error(`expected a data frame, got: ${delivered.type}`);
+    }
+    expect(delivered.value).toBe(2);
   });
 });

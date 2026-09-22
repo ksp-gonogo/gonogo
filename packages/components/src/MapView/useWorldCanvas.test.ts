@@ -41,14 +41,27 @@ const adjustedMap = (_w: number, _h: number, lat: number, lon: number) => ({
   y: lon,
 });
 
+/**
+ * `getContext` answering the fake above.
+ *
+ * The real method is overloaded across four context ids, so a stub for the one
+ * the hook asks for cannot satisfy the declared signature; the erasure is here
+ * rather than in the `beforeEach`.
+ */
+function stubGetContext(
+  ctx: CanvasRenderingContext2D,
+): typeof HTMLCanvasElement.prototype.getContext {
+  return vi.fn(
+    () => ctx,
+  ) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+}
+
 describe("useWorldCanvas", () => {
   let ctx: ReturnType<typeof fakeCtx>;
 
   beforeEach(() => {
     ctx = fakeCtx();
-    HTMLCanvasElement.prototype.getContext = vi.fn(
-      () => ctx,
-    ) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = stubGetContext(ctx);
   });
 
   function setup(initialBodyName = "Kerbin") {
