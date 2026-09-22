@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 284 of them
- * across 160 files.
+ * Assertions that escape `unknown`, per file. The tree carries 261 of them
+ * across 158 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 201 of the 284 are
+ * **A test fixture minted through an assertion.** 183 of the 261 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 138 of the 284 are `as unknown as`, and those are worth taking
+ * 119 of the 261 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 43 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 42 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 160 files those would be 160 sentences
+ * sentence per entry: at 158 files those would be 158 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -143,9 +143,8 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/registry.ts": 1,
   "packages/app/src/uplinks/skewOverride.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 74 in 42 files (7 out of `any`, 59 in tests), walked 675 files
+  // packages/components: 50 in 39 files (6 out of `any`, 41 in tests), walked 676 files
   "packages/components/scripts/synthesize-landing-descent.ts": 2,
-  "packages/components/scripts/widgetRenderHarness.ts": 5,
   "packages/components/src/AstronautComplex/renderFixture.test.ts": 1,
   "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
@@ -155,23 +154,20 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/CrewStatus/index.tsx": 1,
   "packages/components/src/CurrentOrbit/index.test.tsx": 1,
   "packages/components/src/EscapeProfile/index.test.tsx": 1,
-  "packages/components/src/FuelStatus/index.test.tsx": 6,
   "packages/components/src/Graph/index.test.tsx": 1,
   "packages/components/src/Graph/stream.test.tsx": 1,
   "packages/components/src/KeplerPeriod/dual-run.test.tsx": 1,
   "packages/components/src/KeplerPeriod/index.test.tsx": 1,
   "packages/components/src/ManeuverPlanner/burnWindow.ts": 1,
-  "packages/components/src/ManeuverPlanner/index.test.tsx": 4,
-  "packages/components/src/MapView/index.test.tsx": 4,
+  "packages/components/src/MapView/index.test.tsx": 3,
   "packages/components/src/MapView/paintBaseSurface.test.ts": 2,
   "packages/components/src/MapView/undefined.characterise.test.tsx": 1,
-  "packages/components/src/MapView/useCamera.test.tsx": 4,
+  "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
   "packages/components/src/Navball/index.test.tsx": 1,
   "packages/components/src/OrbitalAscent/index.test.tsx": 1,
   "packages/components/src/ScienceData/fixtures.test.tsx": 1,
   "packages/components/src/SemiMajorAxis/index.test.tsx": 1,
-  "packages/components/src/shared/useZoomPan.test.tsx": 4,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
   "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
   "packages/components/src/ShipMap/snapshots.test.ts": 1,
@@ -182,8 +178,9 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/SystemView/fixtureFeeds.test.ts": 1,
   "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 1,
   "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
+  "packages/components/src/test/pointerStubs.ts": 1,
   "packages/components/src/test/topologyToVesselPartsWire.ts": 2,
-  "packages/components/src/test/widgetDomSnapshot.tsx": 3,
+  "packages/components/src/test/widgetDomSnapshot.tsx": 1,
   "packages/components/src/TransferWindow/undefined.characterise.test.tsx": 2,
   "packages/components/src/WarpControl/dual-run.test.tsx": 1,
   // packages/core: 47 in 17 files (13 out of `any`, 42 in tests), walked 226 files
@@ -230,7 +227,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts": 1,
   // mod/sitrep-kernel: 2 in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts": 2,
-  // mod/sitrep-sdk: 36 in 22 files (1 out of `any`, 9 in tests), walked 321 files
+  // mod/sitrep-sdk: 37 in 23 files (1 out of `any`, 9 in tests), walked 321 files
   "mod/sitrep-sdk/src/api/localStorageStore.ts": 1,
   "mod/sitrep-sdk/src/api/logger.test.ts": 1,
   "mod/sitrep-sdk/src/api/settings-registry.test-d.ts": 6,
@@ -251,6 +248,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/use-action-input.ts": 1,
   "mod/sitrep-sdk/src/spine/use-stream-event.ts": 1,
   "mod/sitrep-sdk/src/spine/use-stream.ts": 1,
+  "mod/sitrep-sdk/src/testing/index.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
   "mod/sitrep-sdk/src/wrap-units.test.ts": 3,
 };
@@ -309,8 +307,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/loader.skewOverride.test.ts": 1,
   "packages/app/src/uplinks/loader.test.ts": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 3,
-  // packages/components: 46 in 26 files (0 out of `any`, 37 in tests), walked 675 files
-  "packages/components/scripts/widgetRenderHarness.ts": 4,
+  // packages/components: 27 in 23 files (0 out of `any`, 23 in tests), walked 676 files
   "packages/components/src/AtmosphereProfile/index.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/pressureProfile.test.tsx": 1,
   "packages/components/src/AtmosphereProfile/stale.test.tsx": 1,
@@ -318,24 +315,22 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/components/src/CrewStatus/badge.test.ts": 2,
   "packages/components/src/CurrentOrbit/index.test.tsx": 1,
   "packages/components/src/EscapeProfile/index.test.tsx": 1,
-  "packages/components/src/FuelStatus/index.test.tsx": 6,
   "packages/components/src/Graph/index.test.tsx": 1,
   "packages/components/src/Graph/stream.test.tsx": 1,
   "packages/components/src/KeplerPeriod/dual-run.test.tsx": 1,
   "packages/components/src/KeplerPeriod/index.test.tsx": 1,
   "packages/components/src/ManeuverPlanner/burnWindow.ts": 1,
-  "packages/components/src/MapView/index.test.tsx": 1,
   "packages/components/src/MapView/paintBaseSurface.test.ts": 2,
   "packages/components/src/MapView/undefined.characterise.test.tsx": 1,
-  "packages/components/src/MapView/useCamera.test.tsx": 4,
+  "packages/components/src/MapView/useCamera.test.tsx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts": 2,
   "packages/components/src/OrbitalAscent/index.test.tsx": 1,
   "packages/components/src/SemiMajorAxis/index.test.tsx": 1,
-  "packages/components/src/shared/useZoomPan.test.tsx": 4,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
   "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
   "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
-  "packages/components/src/test/widgetDomSnapshot.tsx": 3,
+  "packages/components/src/test/pointerStubs.ts": 1,
+  "packages/components/src/test/widgetDomSnapshot.tsx": 1,
   // packages/core: 7 in 5 files (0 out of `any`, 4 in tests), walked 226 files
   "packages/core/src/actionGroups.undefined.characterise.test.tsx": 3,
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
@@ -380,8 +375,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 19,
-  files: 2231,
-  assertions: 1674,
+  files: 2232,
+  assertions: 1635,
 } as const;
 
 /**

@@ -250,6 +250,15 @@ interface ProbePayload {
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   profile?: string;
 }
+/*
+ * The two entry points the probe page installs on `window`, declared so the
+ * `page.evaluate` bodies below reach them by name. They are compiled here and
+ * run in the browser, where the probe bundle has already put them there.
+ */
+declare global {
+  var __renderProbe: ((payload: ProbePayload) => Promise<void>) | undefined;
+  var __renderScreen: ((payload: unknown) => Promise<void>) | undefined;
+}
 
 /** Render every (fixture × mode) for one widget, convenience wrapper for
  *  the common single-widget invocation. */
@@ -333,9 +342,7 @@ export async function renderWidgets(
       waitUntil: "domcontentloaded",
     });
     await page.waitForFunction(
-      () =>
-        typeof (window as unknown as { __renderProbe?: unknown })
-          .__renderProbe === "function",
+      () => typeof window.__renderProbe === "function",
       undefined,
       { timeout: 10_000 },
     );
@@ -495,23 +502,16 @@ async function renderOneScreen(
     await installFixedClock(page);
     await page.goto(probeUrl, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(
-      () =>
-        typeof (window as unknown as { __renderScreen?: unknown })
-          .__renderScreen === "function",
+      () => typeof window.__renderScreen === "function",
       undefined,
       { timeout: 10_000 },
     );
 
     for (const state of config.states) {
-      await page.evaluate(
-        (p) =>
-          (
-            window as unknown as {
-              __renderScreen: (payload: unknown) => Promise<void>;
-            }
-          ).__renderScreen(p),
-        { screenId: config.screenId, props: state.props },
-      );
+      await page.evaluate((p) => window.__renderScreen?.(p), {
+        screenId: config.screenId,
+        props: state.props,
+      });
       const outName = `${state.name}--${bp.name}.png`;
       // Full-page screenshot (not `#root`) so the captured frame is exactly
       // the breakpoint viewport: the whole point of a screen render.
@@ -954,7 +954,7 @@ async function renderOneWidget(
     const raw = await readFile(join(fixturesDir, file), "utf8");
     fixtures.push({
       name: file.replace(/\.json$/, ""),
-      data: JSON.parse(raw) as Record<string, unknown>,
+      data: fixtureObject(join(fixturesDir, file), raw),
     });
   }
 
@@ -1004,15 +1004,7 @@ async function renderOneWidget(
         profile,
       };
       try {
-        await page.evaluate(
-          (p) =>
-            (
-              window as unknown as {
-                __renderProbe: (payload: ProbePayload) => Promise<void>;
-              }
-            ).__renderProbe(p),
-          payload,
-        );
+        await page.evaluate((p) => window.__renderProbe?.(p), payload);
       } catch (err) {
         // Record and move to the next mode. A mount that threw produced no
         // widget, so every step below it (the gates, the screenshot) would be
@@ -1390,4 +1382,13 @@ async function cleanArtifacts(
   if (removed > 0) {
     console.log(`Cleaned ${removed} stale artifact(s) from ${dir}`);
   }
+}
+
+/** A fixture file's top-level object, or a failure naming the file. */
+function fixtureObject(path: string, raw: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(raw);
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${path} does not hold a JSON object.`);
+  }
+  return parsed as Record<string, unknown>;
 }

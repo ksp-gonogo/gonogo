@@ -23,6 +23,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
+  installFixedSizeResizeObserver,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -67,33 +68,17 @@ describe("MapViewComponent", () => {
   // Unmount before the state-mutating teardown (buffered.disconnect / clearBodies
   // / clearAugments), which would otherwise re-render a still-mounted tree.
   const trees: Array<() => void> = [];
+  let restoreResizeObserver: () => void = () => {};
 
   beforeEach(async () => {
     clearRegistry();
     clearBodies();
     registerStockBodies();
 
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 600, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 600,
+      height: 300,
+    });
 
     source = new MockDataSource();
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
@@ -105,6 +90,7 @@ describe("MapViewComponent", () => {
     for (const unmount of trees) unmount();
     trees.length = 0;
     buffered.disconnect();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
     clearBodies();
   });
