@@ -41,12 +41,12 @@ function crew(at: number, asOfUt: number, threshold = 1): Crew {
     {
       name: "Jeb",
       trait: "Pilot",
-      asOfUt: value("ut", asOfUt),
+      rulesAsOfKerbalismUt: value("ut", asOfUt),
       deathClockUt: value("ut", asOfUt + 500),
       rules: [
         {
           name: "hunger",
-          value: value("units", at),
+          problem: value("units", at),
           degenPerSec: value("units/s", 0.002),
           fatalThreshold: value("units", threshold),
         },
@@ -195,7 +195,7 @@ describe("carrying an accumulator forward", () => {
     // 0.01/s observed; the newest stamp is UT 1040, asked at UT 1060.
     const jeb = reckonedRun(1060, CLIMBING)[0];
 
-    expect(jeb.rules?.[0].value?.magnitude).toBeCloseTo(0.7, 6);
+    expect(jeb.rules?.[0].problem?.magnitude).toBeCloseTo(0.7, 6);
   });
 
   it("names the accumulator it moved, and nothing else on the kerbal", () => {
@@ -204,7 +204,7 @@ describe("carrying an accumulator forward", () => {
 
     expect(reading.reckoning.modelled.map((f) => f.path)).toEqual([
       "",
-      "0.rules.0.value",
+      "0.rules.0.problem",
     ]);
     expect(reading.reckoning.basis).toBe("rate-integration");
     expect(reading.reckoning.owner).toBe("kerbalism");
@@ -231,7 +231,7 @@ describe("carrying an accumulator forward", () => {
   it("stops at the fatal threshold, which is where this model stops applying", () => {
     // 0.01/s from 0.5 reaches 1.0 in 50 s; asked 200 s past the stamp.
     expect(
-      reckonedRun(1240, CLIMBING)[0].rules?.[0].value?.magnitude,
+      reckonedRun(1240, CLIMBING)[0].rules?.[0].problem?.magnitude,
     ).toBeCloseTo(1, 6);
   });
 
@@ -245,11 +245,10 @@ describe("carrying an accumulator forward", () => {
     if (reading.state !== "observed" && reading.state !== "stale")
       throw new Error("no observation");
 
-    expect(reading.reckoning.value[0].rules?.[0].value?.magnitude).toBeCloseTo(
-      0.7,
-      6,
-    );
-    expect(reading.value[0].rules?.[0].value?.magnitude).toBe(0.5);
+    expect(
+      reading.reckoning.value[0].rules?.[0].problem?.magnitude,
+    ).toBeCloseTo(0.7, 6);
+    expect(reading.value[0].rules?.[0].problem?.magnitude).toBe(0.5);
   });
 
   it("never drives a recovering accumulator below zero", () => {
@@ -259,7 +258,7 @@ describe("carrying an accumulator forward", () => {
       [1049, 0.1, 1040],
     ] as const;
 
-    expect(reckonedRun(1100, recovering)[0].rules?.[0].value?.magnitude).toBe(
+    expect(reckonedRun(1100, recovering)[0].rules?.[0].problem?.magnitude).toBe(
       0,
     );
   });
@@ -279,12 +278,12 @@ describe("joining the window to the observation", () => {
     return people.map(([name, at]) => ({
       name,
       trait: "Pilot",
-      asOfUt: value("ut", asOfUt),
+      rulesAsOfKerbalismUt: value("ut", asOfUt),
       deathClockUt: value("ut", asOfUt + 500),
       rules: [
         {
           name: "hunger",
-          value: value("units", at),
+          problem: value("units", at),
           degenPerSec: value("units/s", 0.002),
           fatalThreshold: value("units", 1e6),
         },
@@ -337,13 +336,12 @@ describe("joining the window to the observation", () => {
 
     expect(reading.reckoning.modelled.map((f) => f.path)).toEqual([
       "",
-      "0.rules.0.value",
+      "0.rules.0.problem",
     ]);
-    expect(reading.reckoning.value[0].rules?.[0].value?.magnitude).toBeCloseTo(
-      0.7,
-      6,
-    );
-    expect(reading.reckoning.value[1].rules?.[0].value?.magnitude).toBe(0.4);
+    expect(
+      reading.reckoning.value[0].rules?.[0].problem?.magnitude,
+    ).toBeCloseTo(0.7, 6);
+    expect(reading.reckoning.value[1].rules?.[0].problem?.magnitude).toBe(0.4);
   });
 
   it("drops samples from another craft, which the store does not cut the window at", () => {
@@ -415,10 +413,10 @@ describe("joining the window to the observation", () => {
     // carried verbatim rather than handed a stranger's decline.
     expect(reading.reckoning.modelled.map((f) => f.path)).toEqual([
       "",
-      "0.rules.0.value",
+      "0.rules.0.problem",
     ]);
     expect(reading.reckoning.value[1].name).toBe("Val");
-    expect(reading.reckoning.value[1].rules?.[0].value?.magnitude).toBe(0.2);
+    expect(reading.reckoning.value[1].rules?.[0].problem?.magnitude).toBe(0.2);
   });
 });
 
@@ -477,7 +475,7 @@ describe("how well it says it knows the answer", () => {
   ) {
     const reading = readRun(viewUt, run, threshold);
     if (reading.reckoning.status !== "available") throw new Error("no model");
-    return bandIn(bandFor(reading.reckoning, "0.rules.0.value"), "units");
+    return bandIn(bandFor(reading.reckoning, "0.rules.0.problem"), "units");
   }
 
   it("keys the band by the same path `modelled` names", () => {
@@ -511,10 +509,13 @@ describe("how well it says it knows the answer", () => {
      */
     const reading = readRun(1060, SCATTERED, 1e6);
     if (reading.reckoning.status !== "available") throw new Error("no model");
-    const band = bandIn(bandFor(reading.reckoning, "0.rules.0.value"), "units");
+    const band = bandIn(
+      bandFor(reading.reckoning, "0.rules.0.problem"),
+      "units",
+    );
 
     expect(band?.value.magnitude).toBe(
-      reading.reckoning.value[0].rules?.[0].value?.magnitude,
+      reading.reckoning.value[0].rules?.[0].problem?.magnitude,
     );
   });
 

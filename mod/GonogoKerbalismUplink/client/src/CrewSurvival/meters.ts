@@ -106,6 +106,17 @@ KERBALISM.registerContribution({
   contributes: "crew-status.meters",
   deps: [CREW_SURVIVAL, CREW_RULE_READINGS],
   requires: "kerbalism",
-  compute: (topics) =>
-    survivalMeters(topics[CREW_SURVIVAL.id], topics[CREW_RULE_READINGS.id]),
+  /*
+   * `CREW_RULE_READINGS` deps on a reading, so it answers with currency and is
+   * unwrapped here. `CREW_SURVIVAL` does not and arrives as it always did.
+   */
+  compute: (topics) => {
+    const rules = topics[CREW_RULE_READINGS.id];
+    return survivalMeters(
+      topics[CREW_SURVIVAL.id],
+      rules?.state === "observed" || rules?.state === "stale"
+        ? rules.value
+        : undefined,
+    );
+  },
 });

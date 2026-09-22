@@ -28,5 +28,15 @@ const NO_BODIES: CelestialBody[] = [];
  * the almanac panels want.
  */
 export function useCelestialBodies(): CelestialBody[] {
-  return useProcessor(CELESTIAL_FACTS)?.bodies ?? NO_BODIES;
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue. Both value-bearing arms, deliberately.
+   */
+  const reading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    reading?.state === "observed" || reading?.state === "stale"
+      ? reading.value
+      : undefined;
+  return facts?.bodies ?? NO_BODIES;
 }

@@ -458,7 +458,17 @@ function FuelStatusComponent({
    * burning and only rises by staging or docking, all events the operator caused,
    * so the last figure is still the figure.
    */
-  const budget = useProcessor(DELTA_V_BUDGET);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value
+      : undefined;
   const budgetNotCurrent = budget?.budget.state === "stale";
   /**
    * The stock ΔV sim has answered about this craft, whatever it answered.

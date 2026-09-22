@@ -171,17 +171,17 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
         rules: [
           {
             name: "radiation",
-            value: 12.5,
+            problem: 12.5,
             degenPerSec: 0.000_002,
             fatalThreshold: 50,
           },
-          { name: "breathing", value: 0, fatalThreshold: 1 },
+          { name: "breathing", problem: 0, fatalThreshold: 1 },
         ],
       },
     ]);
 
     await waitFor(() => {
-      expect(result.current?.[0]?.rules?.[0]?.value).toBeDefined();
+      expect(result.current?.[0]?.rules?.[0]?.problem).toBeDefined();
     });
 
     // The Topic's own field: covered by the TOPIC registry.
@@ -196,7 +196,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     // KerbalismCrewRule is not a Topic and the SDK's generated type map does not
     // know it exists any more.
     const dose = result.current?.[0]?.rules?.[0];
-    expect(dose?.value).toMatchObject({ magnitude: 12.5, unit: "units" });
+    expect(dose?.problem).toMatchObject({ magnitude: 12.5, unit: "units" });
     expect(dose?.degenPerSec).toMatchObject({
       magnitude: 0.000_002,
       unit: "units/s",
@@ -210,7 +210,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     // Every element of the array is walked, not just the first, and a field the
     // frame omitted is not minted (degenPerSec never arrived on this rule).
     const second = result.current?.[0]?.rules?.[1];
-    expect(second?.value).toMatchObject({ magnitude: 0, unit: "units" });
+    expect(second?.problem).toMatchObject({ magnitude: 0, unit: "units" });
     expect(second && "degenPerSec" in second).toBe(false);
   });
 

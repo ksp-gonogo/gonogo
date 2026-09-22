@@ -1,4 +1,5 @@
 import type { PartStateModule } from "@ksp-gonogo/core";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { resourceColor } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
@@ -1077,11 +1078,42 @@ function colorFor(type: PartType): string {
  * doc comment for why the two contexts render differently from one shared
  * data path.
  */
+/**
+ * The quantity a part-meter row carries, on whichever of its two arms it
+ * arrived in.
+ *
+ * Read here rather than through a shared accessor: whether a held figure is
+ * still worth drawing is the drawing site's judgement, and this one draws a
+ * fill bar, so both value-bearing arms are taken. A row carrying no figure has
+ * no bar to draw.
+ */
+function quantityOf(
+  figure: Value<"units"> | Reading<Value<"units">>,
+): Value<"units"> | undefined {
+  if (!("state" in figure)) return figure;
+  return figure.state === "observed" || figure.state === "stale"
+    ? figure.value
+    : undefined;
+}
+
+/**
+ * The fill, 0..1, and the one place a quantity leaves the algebra here.
+ * `dividedBy` checks the two are the same kind and its quotient is
+ * dimensionless, so the magnitude below is on a number that has already
+ * stopped being a quantity. It becomes an SVG length, which cannot hold a unit.
+ */
+function fillRatio(row: ShipMapPartMeterEntry): number | null {
+  const amount = quantityOf(row.amount);
+  const capacity = quantityOf(row.capacity);
+  if (!amount || !capacity || !capacity.isPositive()) return null;
+  return Math.max(0, Math.min(1, amount.dividedBy(capacity).magnitude));
+}
+
 function renderResourceFill(
   meters: readonly ShipMapPartMeterEntry[],
   box: ScreenBox,
 ): React.ReactNode {
-  const drainable = meters.filter((m) => m.capacity > 0);
+  const drainable = meters.filter((m) => fillRatio(m) !== null);
   if (drainable.length === 0) return null;
 
   const padX = Math.max(2, box.w * 0.18);
@@ -1096,7 +1128,7 @@ function renderResourceFill(
   return (
     <g pointerEvents="none">
       {drainable.map((m, i) => {
-        const ratio = Math.max(0, Math.min(1, m.amount / m.capacity));
+        const ratio = fillRatio(m) ?? 0;
         const fillH = innerH * ratio;
         const barX = box.x + padX + i * (barW + gap);
         const barTop = box.y + padY + (innerH - fillH);
@@ -1138,9 +1170,10 @@ export function partAriaLabel(
 ): string {
   const name = p.title || p.name;
   const bits: string[] = [name, p.type, `${p.dryMass.toFixed(2)} tonnes`];
-  for (const m of meters.filter((e) => e.capacity > 0)) {
-    const pct = Math.round((m.amount / m.capacity) * 100);
-    bits.push(`${m.displayName} ${pct} percent`);
+  for (const m of meters) {
+    const ratio = fillRatio(m);
+    if (ratio === null) continue;
+    bits.push(`${m.displayName} ${Math.round(ratio * 100)} percent`);
   }
   const maxK = p.maxTemperatureK ?? p.maxTemp;
   if (p.temperatureK !== undefined && maxK > 0) {

@@ -8,15 +8,17 @@ import {
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the escape-velocity curve needs the
   // body's own radius and gravitational parameter, both reported there.
-  channels: ["vessel.state", "system.bodies"],
+  channels: ["vessel.state", "vessel.identity", "system.bodies"],
   fields: ["vessel.state.altitudeAsl", "vessel.state.orbitalSpeed"],
 });
 
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Stack } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useBodyName } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 export interface EscapeProfileConfig {
@@ -70,13 +72,9 @@ function EscapeProfileComponent({
   config,
   w,
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
-  // Native read: the `vessel.state` DERIVED channel's `parentBodyName`
-  // display map (`vessel.identity.parentBodyIndex` resolved against
-  // `system.bodies`): the same channel `Targeting`/`TargetPicker`/
-  // `ManeuverPlanner`/`CurrentOrbit` read for their own `vessel.state.*`
-  // fields, off the legacy two-arg `data`-source shim.
-  const bodyName =
-    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   /*
    * The body as the running game reports it, matched by name against the same
    * `system.bodies` roster the name came from. A lookup in the bundled stock

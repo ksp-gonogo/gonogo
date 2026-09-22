@@ -48,7 +48,8 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json",
     "render:meter-bands": "node scripts/render-meter-bands.ts",
     "render:unit-currency": "node scripts/render-unit-currency.ts",
-    "render:band-ladder": "node scripts/render-band-ladder.ts"
+    "render:band-ladder": "node scripts/render-band-ladder.ts",
+    "render:instrument-readings": "node scripts/render-instrument-readings.ts"
   },
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",

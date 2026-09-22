@@ -122,7 +122,10 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       });
     });
 
-    const button = await screen.findByRole("button", { name: "SAS ON" });
+    // "SAS: SAS" rather than a bare "SAS ON": the payload names StabilityAssist
+    // as the held mode, and the toggle reports the mode the wire carries. The
+    // stutter is deliberate, see `badgeSasMode`.
+    const button = await screen.findByRole("button", { name: "SAS: SAS" });
     act(() => {
       button.click();
     });
@@ -162,7 +165,10 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       });
     });
 
-    const button = await screen.findByRole("button", { name: "SAS ON" });
+    // "SAS: SAS" rather than a bare "SAS ON": the payload names StabilityAssist
+    // as the held mode, and the toggle reports the mode the wire carries. The
+    // stutter is deliberate, see `badgeSasMode`.
+    const button = await screen.findByRole("button", { name: "SAS: SAS" });
     act(() => {
       button.click();
     });

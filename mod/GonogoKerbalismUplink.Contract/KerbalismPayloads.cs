@@ -687,7 +687,7 @@ public class KerbalismLifeSupport
     /// stamping the read time would claim a freshness we did not measure.</para>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
-    public double? AsOfUt { get; set; }
+    public double? AsOfKerbalismUt { get; set; }
 }
 
 /// <summary>
@@ -705,7 +705,7 @@ public class KerbalismCrewRule
     public string? Name { get; set; }
     /// <summary>Current accumulator value ("problem") from KerbalData.rules.</summary>
     [SitrepUnit(Units.ResourceUnits)]
-    public double? Value { get; set; }
+    public double? Problem { get; set; }
     /// <summary>
     /// Per-rule degeneration rate (units/s) from Profile.rules[].degeneration.
     /// Stage-2 death-clock input. Confirmed against Kerbalism source: `Rule.degeneration`
@@ -800,7 +800,7 @@ public class KerbalismCrewEntry
     /// different craft with different turns.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
-    public double? AsOfUt { get; set; }
+    public double? RulesAsOfKerbalismUt { get; set; }
 }
 
 /// <summary>

@@ -127,12 +127,12 @@
     "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
     "verdict": "coincidence"
   },
-  "KerbalismCrewRule.value": {
+  "KerbalismCrewRule.problem": {
     "rates": ["degenPerSec"],
-    "reason": "Claimed, and NOT by integrating the sibling the rule offered. `degenPerSec` is a config constant off `Profile.rules[].degeneration` that applies only once the rule\u0027s input resource is gone, so integrating it would advance a supplied kerbal towards their fatal threshold on schedule. GonogoKerbalismUplink\u0027s `reckonCrewAccumulators` fits the OBSERVED slope over a declared window instead, against each entry\u0027s own `asOfUt`, and a flat pair is positive evidence the rule is not degenerating at all. So the pairing is real, the offered rate is the wrong one, and the window is what made the honest version possible.",
+    "reason": "Claimed, and NOT by integrating the sibling the rule offered. `degenPerSec` is a config constant off `Profile.rules[].degeneration` that applies only once the rule's input resource is gone, so integrating it would advance a supplied kerbal towards their fatal threshold on schedule. GonogoKerbalismUplink's `reckonCrewAccumulators` fits the OBSERVED slope over a declared window instead, against each entry's own `asOfUt`, and a flat pair is positive evidence the rule is not degenerating at all. So the pairing is real, the offered rate is the wrong one, and the window is what made the honest version possible.",
     "verdict": "modelled"
   },
-  "KerbalismLifeSupport.asOfUt": {
+  "KerbalismLifeSupport.asOfKerbalismUt": {
     "rates": ["ruleEnvModifiers"],
     "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
     "verdict": "coincidence"
@@ -342,7 +342,7 @@
     "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
     "verdict": "coincidence"
   },
-  "kerbalism.lifesupport.asOfUt": {
+  "kerbalism.lifesupport.asOfKerbalismUt": {
     "rates": ["ruleEnvModifiers"],
     "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
     "verdict": "coincidence"

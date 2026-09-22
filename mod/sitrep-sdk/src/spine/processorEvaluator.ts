@@ -1,6 +1,8 @@
 import { hasHost } from "../api/host";
 import { logger } from "../api/logger";
+import { datedFrom } from "../combine-readings";
 import { PerfBudget } from "../perf/PerfBudget";
+import { observedAt, type TopicCurrency } from "../reading";
 import {
   type AnyProcessorDefinition,
   type Dep,
@@ -354,6 +356,18 @@ function resolveDep(dep: Dep, token: { generation: number }): unknown {
   return point ? point.payload : undefined;
 }
 
+/**
+ * Whether a resolved dep is a reading and not a bare payload.
+ *
+ * Narrowed rather than asserted: `resolveDep` answers `unknown`, and a reading
+ * dep resolves to a store read that degrades to a bare `{ state: "pending" }`
+ * with no store mounted. Checking the discriminant is what makes both shapes
+ * safe to read a state off.
+ */
+function isCurrency(value: unknown): value is TopicCurrency<unknown> {
+  return typeof value === "object" && value !== null && "state" in value;
+}
+
 function isReadingDep(dep: Dep): dep is ReadingDep {
   return typeof dep === "object" && dep !== null && "reading" in dep;
 }
@@ -605,9 +619,40 @@ function evaluate(id: string, token: { generation: number }): void {
   // duration from an instant on the wire has a clock without reaching for a
   // wall clock. Here `activeStore` is always non-null: `evaluateAllActive` is
   // the only caller and returns early without one.
-  const next = def.compute(values as never, {
+  const computed = def.compute(values as never, {
     viewUt: activeStore?.currentFrame().viewUt ?? 0,
   });
+  /*
+   * A derivation whose inputs carry currency ANSWERS with it, and one whose
+   * inputs do not answers the bare value it always did. The opt-in is the dep
+   * list rather than a flag: a processor reading only raw topic ids has nothing
+   * to date its answer by, and inventing an instant for it would be a claim
+   * nothing supports.
+   *
+   * `compute` runs either way and runs FIRST. It was handed the readings and
+   * has already decided what a missing one means, so the dating is laid over
+   * the answer rather than deciding whether there is one. See `datedFrom` for
+   * what the resulting state does and does not say.
+   */
+  const carried = def.deps.flatMap((dep, i) => {
+    if (!isReadingDep(dep)) return [];
+    /*
+     * Through `observedAt` rather than reaching `.asOfUt ?? .atUt` by hand. A
+     * reading dep resolves to a WHOLE-TOPIC reading, which maps member access
+     * into field readings, so reaching the instant directly answers a reading
+     * OF the instant instead of the instant.
+     */
+    const reading = values[i];
+    if (!isCurrency(reading)) return [];
+    return [
+      {
+        state: reading.state,
+        instant: observedAt(reading),
+        grade: reading.state === "stale" ? reading.grade : undefined,
+      },
+    ];
+  });
+  const next = carried.length === 0 ? computed : datedFrom(carried, computed);
   recordEvaluation();
   entry.lastFrameGeneration = token.generation;
   // Gated on the RESULT, and on equality rather than identity. Evaluation

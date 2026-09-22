@@ -8,9 +8,10 @@ import {
   registerComponent,
   useActionInput,
   useScreen,
+  useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Field,
   FieldLabel,
@@ -78,12 +79,19 @@ function GoNoGoComponent({
 
 function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
-  // Clean home (R6 §1): the mission clock reads the SDK-derived
-  // `vessel.state.met` field (launch clock reconstructed from
-  // `vessel.identity`'s `launchUt`, see `vessel-state.ts`). `vessel.state` is a
-  // client-derived channel (not a raw wire Topic), so it's read via `useStream`
-  // rather than the canonical `useTelemetry(<TopicId>)`.
-  const missionTime = useStream<VesselState>("vessel.state")?.met;
+  // Elapsed mission time is the view clock measured from liftoff, so it runs
+  // against the same clock this screen reads everything else against. Absent
+  // before the clamps release, `launchUt` being null until then.
+  const identity = useTelemetry("vessel.identity");
+  const launchUt =
+    identity.state === "observed" || identity.state === "stale"
+      ? identity.value.launchUt
+      : undefined;
+  const viewUt = useViewUt();
+  const missionTime =
+    launchUt == null || viewUt === undefined
+      ? undefined
+      : (magnitudeOf(viewUt.minus(launchUt)) ?? undefined);
   const launched = typeof missionTime === "number" && missionTime > 0;
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   const [countdown, setCountdown] = useState<{ t0Ms: number } | null>(null);
@@ -799,7 +807,7 @@ registerComponent<GoNoGoWidgetConfig>({
   minSize: { w: 3, h: 3 },
   component: GoNoGoComponent,
   configComponent: GoNoGoConfigComponent,
-  dataRequirements: ["vessel.state.met"],
+  dataRequirements: ["vessel.identity.launchUt"],
   behaviors: ["gonogo-participant"],
   defaultConfig: {
     countdownSeconds: DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,

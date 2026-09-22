@@ -1,13 +1,14 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
+import { resolveCurrency, type UnitValue } from "./readingCurrency";
 
 export interface DivergingBarProps<U extends string = string> {
   /**
-   * The signed quantity. Its sign picks the direction: `>= 0` grows the fill
-   * rightward from the centre zero line in the "go" green, `< 0` grows it
-   * leftward in the "nogo" red.
+   * The signed quantity, or the whole reading it arrived in. Its sign picks the
+   * direction: `>= 0` grows the fill rightward from the centre zero line in the
+   * "go" green, `< 0` grows it leftward in the "nogo" red.
    */
-  value: Value<U>;
+  value: UnitValue<U>;
   /**
    * The largest `|value|` among the set this bar is being compared against
    * (e.g. every term in a rate ledger), in the SAME unit, which is what makes
@@ -30,6 +31,16 @@ export interface DivergingBarProps<U extends string = string> {
  * number, which is what carries the reading to a screen reader, this is
  * `aria-hidden`.
  *
+ * ## A figure that is no longer current FADES, and says nothing
+ *
+ * `value` takes the reading it arrived in, and a bar drawn from one that has
+ * stopped being current is drawn faintly rather than at full strength. That is
+ * the whole treatment here, where the other instruments also carry a mark and
+ * the model's bounds: this bar is four pixels tall, hides itself at narrow
+ * widths, and is `aria-hidden`, so a dot on it would be a mark nobody can read
+ * and a pair of bounds would be noise. The NUMBER beside it is where the
+ * currency is stated, and it states it as any other readout does.
+ *
  * Ports the `.lbar` design from the kerbalism-graph-mock prototype
  * (`kerbalism-graph-mock/water-entity.html`) into the kit's own token/colour
  * vocabulary (`--color-status-go-bg` / `--color-status-nogo-bg`, the same
@@ -49,6 +60,7 @@ export function DivergingBar<U extends string = string>({
   maxAbs,
   className,
 }: DivergingBarProps<U>) {
+  const { shown, notCurrent } = resolveCurrency(value);
   /*
    * The bar's own share of the track, and the one place a quantity leaves the
    * algebra here. `dividedBy` is what checks the two are the same kind, and
@@ -56,20 +68,28 @@ export function DivergingBar<U extends string = string>({
    * is on a number that has already stopped being a quantity. It goes into a
    * CSS width, which cannot hold a unit.
    */
-  const pct = maxAbs.isPositive()
-    ? value.abs().dividedBy(maxAbs).magnitude * 50
-    : 0;
+  const pct =
+    shown != null && maxAbs.isPositive()
+      ? shown.abs().dividedBy(maxAbs).magnitude * 50
+      : 0;
   return (
     <DivergingBar__Track
       aria-hidden="true"
       data-testid="diverging-bar"
+      data-not-current={notCurrent ? "" : undefined}
       className={className}
     >
       <DivergingBar__Zero />
-      <DivergingBar__Fill
-        $positive={!value.isNegative()}
-        style={{ width: `${pct}%` }}
-      />
+      {/* No fill for a reading carrying no number: a bar of zero width sits on
+          the zero line, which is a reading that the term is producing and
+          consuming nothing. */}
+      {shown != null && (
+        <DivergingBar__Fill
+          $positive={!shown.isNegative()}
+          $notCurrent={notCurrent}
+          style={{ width: `${pct}%` }}
+        />
+      )}
     </DivergingBar__Track>
   );
 }
@@ -103,11 +123,18 @@ const DivergingBar__Zero = styled.div`
   background: var(--color-border-strong);
 `;
 
-const DivergingBar__Fill = styled.div<{ $positive: boolean }>`
+const DivergingBar__Fill = styled.div<{
+  $positive: boolean;
+  $notCurrent: boolean;
+}>`
   position: absolute;
   top: 0;
   bottom: 0;
   border-radius: var(--radius-pill);
+  /* Faint rather than a second hue: the fill's colour already carries the
+     direction, and a third colour on a four-pixel bar would compete with the
+     two that mean something. */
+  ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.45;" : "")}
   ${({ $positive }) =>
     $positive
       ? css`

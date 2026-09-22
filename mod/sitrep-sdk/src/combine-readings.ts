@@ -109,6 +109,79 @@ export function combineReadings<
   };
 }
 
+/** One input's currency, already read off it by the caller. */
+export interface CarriedCurrency {
+  readonly state: ReadingState;
+  /** When the observation behind it was made, where it has one. */
+  readonly instant: Value<"ut"> | undefined;
+  readonly grade?: StaleGrade | undefined;
+}
+
+/**
+ * A value that has ALREADY been computed, dated by the inputs it came from.
+ *
+ * The difference from {@link combineReadings} is the whole point: that function
+ * GATES, refusing to run `compute` when an input carries no value, which is
+ * right for arithmetic where a missing operand means no answer. A derivation
+ * that was handed the readings themselves has already decided what a missing
+ * one means, and gating it a second time would throw away an answer it
+ * deliberately produced from what it did have.
+ *
+ * ## It takes the currency, not the readings
+ *
+ * Deliberately, and it is not ergonomics. A whole-topic reading maps member
+ * access into FIELD readings, so reaching `.atUt` through one answers a reading
+ * of the instant rather than the instant. The caller holds the reading and
+ * knows which kind it has, so it reads the currency off with the accessors that
+ * handle both and hands the answer here.
+ *
+ * ## What the state means, and what it does NOT
+ *
+ * It answers "how current is what this was derived from", not "did everything
+ * arrive". Stale when any value-bearing input is stale, observed otherwise, and
+ * the instant is the oldest one spoken, so the answer is never dated newer than
+ * the oldest thing behind it.
+ *
+ * An input that never arrived is therefore invisible here. That is deliberate
+ * and narrower than it reads: with one input present and another missing, the
+ * state describes the one that is present, which is honest. The case it cannot
+ * describe is a derivation whose inputs are ALL absent, which is a derivation
+ * returning a DEFAULT. A default is a fact rather than a reading, and it comes
+ * back `observed` with no instant, because there is no observation to date it
+ * by.
+ *
+ * ## No band
+ *
+ * A derived figure's uncertainty is not its inputs' uncertainty, and
+ * propagating an interval through arbitrary arithmetic would claim otherwise
+ * over errors nothing here knows to be independent.
+ */
+export function datedFrom<R>(
+  carriers: readonly CarriedCurrency[],
+  value: R,
+): Reading<R> {
+  let instant: Value<"ut"> | undefined;
+  let grade: StaleGrade | undefined;
+  let stale = false;
+  for (const carrier of carriers) {
+    if (!CARRIES_VALUE.has(carrier.state)) continue;
+    if (carrier.state === "stale") stale = true;
+    const spoken = carrier.instant;
+    if (spoken === undefined) continue;
+    if (instant === undefined || spoken.lessThan(instant)) {
+      instant = spoken;
+      grade = carrier.grade;
+    }
+  }
+  return {
+    state: stale ? "stale" : "observed",
+    value,
+    ...(stale ? { asOfUt: instant } : { atUt: instant }),
+    ...(stale && grade !== undefined ? { grade } : {}),
+    reckoning: { status: "none" },
+  };
+}
+
 /** The value types of a tuple of readings, in the same order. */
 export type ReadingValues<Inputs extends readonly Reading<unknown>[]> = {
   [K in keyof Inputs]: Inputs[K] extends Reading<infer V> ? V : never;

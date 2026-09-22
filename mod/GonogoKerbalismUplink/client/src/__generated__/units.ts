@@ -89,16 +89,16 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "KerbalismCrewEntry": {
-    asOfUt: "ut",
     deathClockUt: "ut",
     name: "text",
+    rulesAsOfKerbalismUt: "ut",
     trait: "text",
   },
   "KerbalismCrewRule": {
     degenPerSec: "units/s",
     fatalThreshold: "units",
     name: "text",
-    value: "units",
+    problem: "units",
   },
   "KerbalismFeatures": {
     automation: "flag",
@@ -152,7 +152,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sourceMassThreshold: "t",
   },
   "KerbalismLifeSupport": {
-    asOfUt: "ut",
+    asOfKerbalismUt: "ut",
     rates: "units/s",
     ruleEnvModifiers: "1",
   },
@@ -293,9 +293,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "kerbalism.crew": {
-    asOfUt: "ut",
     deathClockUt: "ut",
     name: "text",
+    rulesAsOfKerbalismUt: "ut",
     trait: "text",
   },
   "kerbalism.features": {
@@ -314,7 +314,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     supplies: "flag",
   },
   "kerbalism.lifesupport": {
-    asOfUt: "ut",
+    asOfKerbalismUt: "ut",
     rates: "units/s",
     ruleEnvModifiers: "1",
   },

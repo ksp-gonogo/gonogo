@@ -218,9 +218,9 @@ function pairsFor(
   for (const point of history) {
     if (point.meta.source !== subject) continue;
     const entry = point.payload?.find((e) => e.name === kerbalName);
-    const asOfUt = magnitudeOf(entry?.asOfUt);
+    const asOfUt = magnitudeOf(entry?.rulesAsOfKerbalismUt);
     const rule = entry?.rules?.find((r) => r.name === ruleName);
-    const at = magnitudeOf(rule?.value);
+    const at = magnitudeOf(rule?.problem);
     if (asOfUt === null || at === null) continue;
     pairs.push([asOfUt, at]);
   }
@@ -244,7 +244,7 @@ function movingAccumulators(
 ): Moving[] {
   const moving: Moving[] = [];
   observed.forEach((entry, kerbal) => {
-    const asOfUt = magnitudeOf(entry.asOfUt);
+    const asOfUt = magnitudeOf(entry.rulesAsOfKerbalismUt);
     if (asOfUt === null) return;
     const elapsed = viewUt - asOfUt;
     if (
@@ -255,14 +255,14 @@ function movingAccumulators(
       return;
     }
     entry.rules?.forEach((rule, index) => {
-      const from = magnitudeOf(rule.value);
+      const from = magnitudeOf(rule.problem);
       if (from === null || entry.name == null || rule.name == null) return;
       const fit = fitSlope(pairsFor(history, subject, entry.name, rule.name));
       if (fit === null || fit.perSecond === 0) return;
       moving.push({
         kerbal,
         rule: index,
-        path: `${kerbal}.rules.${index}.value`,
+        path: `${kerbal}.rules.${index}.problem`,
         from,
         slope: fit.perSecond,
         slopeSigma: fit.sigma,
@@ -335,7 +335,7 @@ export function reckonCrewAccumulators(
       for (const carried of moving) {
         const target = next[carried.kerbal].rules?.[carried.rule];
         if (!target) continue;
-        target.value = value("units", carriedValue(carried, at));
+        target.problem = value("units", carriedValue(carried, at));
       }
       return next;
     },

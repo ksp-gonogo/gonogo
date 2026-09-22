@@ -1,6 +1,8 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { formatKspDate } from "./formatKspDate";
+import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
+import { resolveCurrency } from "./readingCurrency";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
@@ -152,7 +154,14 @@ export interface MissionDateProps {
    * duration renders a date measured from the epoch, which is what it asked
    * for.
    */
-  value: Value<"ut"> | Value<"s"> | number | null | undefined;
+  value:
+    | Value<"ut">
+    | Value<"s">
+    | Reading<Value<"ut">>
+    | Reading<Value<"s">>
+    | number
+    | null
+    | undefined;
   /**
    * Which clock the instant is on, shown after it as `SCET` or `AT KSC`.
    *
@@ -170,11 +179,34 @@ export interface MissionDateProps {
 }
 
 export function MissionDate({ value, context }: MissionDateProps) {
-  const ut = typeof value === "number" ? value : value?.magnitude;
+  /*
+   * A stale INSTANT stays true: a date does not drift the way a figure does,
+   * so nothing is withheld and nothing is recomputed. What a held reading adds
+   * is the mark, and the grade and last-valid instant behind it.
+   */
+  /*
+   * The bare-number arm is split off before the resolver rather than widened
+   * into it. A raw magnitude is this component's own documented input (the
+   * app's interpolated view clock has no declared unit), and it carries no
+   * currency by construction, so there is nothing for the resolver to read.
+   */
+  const carried = typeof value === "number" ? undefined : value;
+  const { shown, notCurrent, caption } = resolveCurrency(carried);
+  const ut = typeof value === "number" ? value : shown?.magnitude;
   const qualifier = context && describeContext(context);
+  const date = formatKspDate(ut ?? Number.NaN);
   return (
     <>
-      {formatKspDate(ut ?? Number.NaN)}
+      {notCurrent ? (
+        /* The component otherwise renders bare text, so the mark has nothing
+           to hang off: this is that box, and nothing else. */
+        <NotCurrentHost data-not-current="" title={caption ?? undefined}>
+          {date}
+          <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+        </NotCurrentHost>
+      ) : (
+        date
+      )}
       {qualifier && (
         <>
           {" "}

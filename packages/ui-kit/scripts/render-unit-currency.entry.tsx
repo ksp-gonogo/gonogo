@@ -20,7 +20,9 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Countdown } from "../src/Countdown";
 import { DataTable, type DataTableColumn } from "../src/DataTable";
+import { MissionDate } from "../src/MissionDate";
 import { BigReadout, Readout, ReadoutCaption } from "../src/Readout";
 import { Unit } from "../src/Unit";
 
@@ -427,12 +429,138 @@ function Sizes() {
   );
 }
 
+/**
+ * The same mark on an INSTANT rather than a figure, which is the case a date
+ * makes differently: a stale instant stays TRUE, so nothing is withheld and
+ * the only thing the reading adds is the mark. Drawn beside a stale figure so
+ * the two can be read as one vocabulary rather than two.
+ */
+function Dates() {
+  const rows: ReadonlyArray<readonly [string, React.ReactNode]> = [
+    ["A reading of now", <MissionDate key="a" value={observed(AT)} />],
+    ["The last real reading", <MissionDate key="b" value={held(AT)} />],
+    [
+      "Held, on the craft's own clock",
+      <MissionDate key="c" value={held(AT)} context={{ frame: "scet" }} />,
+    ],
+    [
+      "A held FIGURE, for comparison",
+      <Unit key="d" value={held(value("m", 1_234))} />,
+    ],
+  ];
+  return (
+    <div style={{ display: "grid", gap: 18 }}>
+      {rows.map(([label, node]) => (
+        <div key={label} style={{ display: "grid", gap: 10 }}>
+          <div
+            style={{
+              color: "var(--color-text-faint)",
+              font: "700 10px/1.6 ui-monospace, Menlo, monospace",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <BigReadout>{node}</BigReadout>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The three kinds of countdown, each shown carried and each shown frozen.
+ *
+ * One example would not show the thing that was ruled: the difference is
+ * whether a model is carrying the value, and that is invisible unless the two
+ * sit next to each other with the same observation behind them.
+ *
+ * Every row's OBSERVATION is 90 seconds. Where a model is carrying it, the
+ * model's answer at this frame is 42 seconds, which is what the clock draws.
+ */
+function Countdowns() {
+  const observed = value("s", 90);
+  const carried: Reading<Value<"s">> = {
+    state: "observed",
+    value: observed,
+    atUt: AT,
+    reckoning: {
+      status: "available",
+      modelled: value("s", 42),
+      basis: "linear-dead-reckoning",
+    },
+  };
+  const carriedAndHeld: Reading<Value<"s">> = {
+    ...carried,
+    state: "stale",
+    asOfUt: AT,
+    grade: "held-stale",
+  };
+  const rows: ReadonlyArray<readonly [string, string, React.ReactNode]> = [
+    [
+      "To a known instant",
+      "computed each frame, so it moves whatever the link does",
+      <Countdown key="a" value={90} clock />,
+    ],
+    [
+      "A reported remaining, carried",
+      "a model is advancing it: the clock draws the model's answer",
+      <Countdown key="b" value={carried} clock />,
+    ],
+    [
+      "A reported remaining, carried but held",
+      "still the model's answer, and marked",
+      <Countdown key="c" value={carriedAndHeld} clock />,
+    ],
+    [
+      "A reported remaining, nothing carrying it",
+      "frozen on the last observation, and marked",
+      <Countdown key="d" value={held(observed)} clock />,
+    ],
+    [
+      "Not a countdown at all",
+      "a burn duration: nothing to advance, marked if held",
+      <Countdown key="e" value={held(observed)} />,
+    ],
+  ];
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      {rows.map(([label, note, node]) => (
+        <div key={label} style={{ display: "grid", gap: 6 }}>
+          <div
+            style={{
+              color: "var(--color-text-faint)",
+              font: "700 10px/1.6 ui-monospace, Menlo, monospace",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <BigReadout>{node}</BigReadout>
+          <div
+            style={{
+              color: "var(--color-text-muted)",
+              font: "400 10px/1.5 ui-monospace, Menlo, monospace",
+            }}
+          >
+            {note}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const SHEETS = [
   { id: "table-current", width: 560, node: <FleetTable map={NONE_STALE} /> },
   { id: "table-some-held", width: 560, node: <FleetTable map={SOME_STALE} /> },
   { id: "table-most-held", width: 560, node: <FleetTable map={MOST_STALE} /> },
   { id: "ruler", width: 640, node: <Ruler /> },
   { id: "sizes", width: 340, node: <Sizes /> },
+  { id: "dates", width: 420, node: <Dates /> },
+  { id: "countdowns", width: 460, node: <Countdowns /> },
 ] as const;
 
 function Sheet({ id }: { id: string }) {

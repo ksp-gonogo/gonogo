@@ -54,6 +54,7 @@ import { deriveDelayClocks } from "./clocks";
 import "./descentLayers";
 import "./crossSectionPlot";
 import "./touchdownReticlePlot";
+import { useBodyName } from "../shared/useBodyName";
 import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
@@ -473,8 +474,7 @@ const NEGLIGIBLE_DENSITY = 0.001; // kg/m³, the base unit a bare operand takes
  * the terrain datum still solves to a finite free-fall time-to-impact, so the
  * pad runs a live descent evaluation, counting down to a commit point and a
  * blind moment for a rocket that has not moved. `Splashed` is here for the same
- * reason, and matches the ordinal-derived
- * `isSplashed` this verdict sits beside.
+ * reason: a hull in the water is down, and this is the one test that says so.
  *
  * An absent or unrecognized situation is not a verdict either way: it yields
  * false, and the caller falls back to its other grounded signals rather than
@@ -508,8 +508,6 @@ function LandingStatusComponent({
   const targetRange = targetStream?.relativePosition
     ? vecMagnitude(bare(targetStream.relativePosition))
     : undefined;
-  const bodyName = vs?.parentBodyName ?? undefined;
-
   const identityReading = useTelemetry("vessel.identity");
   const bodiesReading = useTelemetry("system.bodies");
   const flightReading = useTelemetry("vessel.flight");
@@ -572,6 +570,7 @@ function LandingStatusComponent({
   // craft that was on the pad when the last frame arrived has not since taken
   // off down a link that stopped delivering, so `describe` is the right read.
   const identity = describe(identityReading);
+  const bodyName = useBodyName(identity?.parentBodyIndex);
   const flight = describeReckonable(flightReading);
   const surface = describe(surfaceReading);
   const propulsion = describe(propulsionReading);
@@ -594,7 +593,17 @@ function LandingStatusComponent({
   const atmospheric = body?.hasAtmosphere ?? false;
   // The one shared ΔV derivation. It already carries a dated budget rather than
   // blanking one, which is the arm policy `describe` gives every other read here.
-  const budget = useProcessor(DELTA_V_BUDGET);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value
+      : undefined;
   const structureReading = useTelemetry("vessel.structure");
   const commsDelayReading = useTelemetry("comms.delay");
   const structure = describe(structureReading);
@@ -663,12 +672,10 @@ function LandingStatusComponent({
   // On the ground: a grounded vessel can still report a residual altitude and a
   // stale time-to-impact, so gate the descent clocks on the SITUATION rather
   // than on the impact figure. `vessel.surface.landedAt` (the site KSP records
-  // a vessel as being down at) is the direct signal; the situation ordinal and
-  // the splashed flag back it up where a source populates those instead.
+  // a vessel as being down at) is the direct signal; the situation ordinal
+  // backs it up where a source populates that instead.
   const landed =
-    surface?.landedAt != null ||
-    isGroundedSituation(identity?.situation) ||
-    vs?.isSplashed === true;
+    surface?.landedAt != null || isGroundedSituation(identity?.situation);
 
   const oneWaySeconds = readOneWaySeconds(commsDelay);
   const clocks = deriveDelayClocks({

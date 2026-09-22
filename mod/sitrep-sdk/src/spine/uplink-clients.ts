@@ -13,6 +13,7 @@ import type { TopicId, TopicPayload } from "../topics";
 import { contributeDerivedChannel } from "./contributed-channels";
 import { registerContribution } from "./contributions";
 import type {
+  CarriesCurrency,
   Dep,
   ProcessorFrame,
   ProcessorHandle,
@@ -126,7 +127,7 @@ export interface UplinkClientHandle {
     id: Id;
     deps: Deps;
     compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-  }): ProcessorHandle<R, `${string}:${Id}`>;
+  }): ProcessorHandle<R, `${string}:${Id}`, CarriesCurrency<Deps>>;
   /**
    * Register this client's forward model for a Topic (same bridge shape as
    * registerProcessor: the owner is passed to the registry as a plain id).
@@ -235,7 +236,7 @@ export function defineUplinkClient(cfg: {
       id: Id;
       deps: Deps;
       compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-    }): ProcessorHandle<R, `${string}:${Id}`> {
+    }): ProcessorHandle<R, `${string}:${Id}`, CarriesCurrency<Deps>> {
       return defineProcessor({ ...def, owner: cfg.id });
     },
     registerReckoner<

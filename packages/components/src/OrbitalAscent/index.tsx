@@ -4,20 +4,22 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useBodyName } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the reference curve needs the body's own
   // radius and gravitational parameter, and both are reported there.
-  channels: ["vessel.state", "system.bodies"],
+  channels: ["vessel.state", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.state.altitudeAsl",
     "vessel.state.horizontalSpeed",
-    "vessel.state.parentBodyName",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
@@ -69,17 +71,17 @@ function buildReferenceCurve(
 function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
-  // Body name reads straight off the client-derived `vessel.state` channel
-  // (`parentBodyName`, an index→name display map: see `map-topic.ts`), so no
-  // legacy read-fallback is relied on for this read. The two plotted
-  // series (`v.altitude` / `v.horizontalVelocity`) are consumed only via the
-  // shared `GraphView` → `useDataSeries` path; both map to DERIVED
-  // `vessel.state.*` channels, which have a live value but NO buffered
-  // history, so `useDataSeries` structurally serves their windowed series off
-  // the legacy path (`TimelineStore.sampleRange` returns `undefined` for a
-  // derived topic: see that hook's doc). That is a shared-infra property,
-  // not a gap in this widget.
-  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
+  /*
+   * The two plotted series are consumed only via the shared `GraphView` →
+   * `useDataSeries` path; both name DERIVED `vessel.state.*` channels, which
+   * have a live value but NO buffered history, so `useDataSeries` structurally
+   * serves their windowed series off the legacy path (`TimelineStore
+   * .sampleRange` returns `undefined` for a derived topic: see that hook's
+   * doc). That is a shared-infra property, not a gap in this widget.
+   */
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;

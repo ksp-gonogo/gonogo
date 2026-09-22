@@ -236,7 +236,16 @@ function TransferWindowComponent({
   // The one enriched catalogue, evaluated once per frame however many widgets
   // read it, and it carries the index lookup too rather than each panel
   // repeating one by hand.
-  const facts = useProcessor(CELESTIAL_FACTS);
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue. Both value-bearing arms, deliberately.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
   const bodies = facts?.bodies ?? NO_BODIES;
   // Everything below treats the view time as a bare UT for arithmetic, and the
   // instant type earns nothing threaded through it. Unwrapped once, here, and
@@ -266,7 +275,17 @@ function TransferWindowComponent({
    * and a list that had declined the model in advance would be the wrong default
    * the day someone writes it.
    */
-  const budget = useProcessor(DELTA_V_BUDGET);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value
+      : undefined;
   const budgetDeltaV = magnitudeOf(budget?.totalVac);
   const budgetNotCurrent = budget?.budget.state === "stale";
   /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
