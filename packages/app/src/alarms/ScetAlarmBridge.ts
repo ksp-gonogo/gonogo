@@ -11,7 +11,8 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type Alarm,
-  isScetTrigger,
+  isAtSubjectVantage,
+  modOwnsLatch,
   type ThresholdOp,
   thresholdAddress,
 } from "./types";
@@ -151,12 +152,20 @@ export class ScetAlarmBridge {
    * stopping nothing. An arm the mod REFUSED is absent here too, which an
    * inference could not know.
    *
-   * False before the first roster frame, so the client keeps its own stop until
-   * told otherwise: the cost of being wrong that way is one redundant command
-   * against warp already at zero, and the cost of being wrong the other way is
-   * an alarm that halts nothing.
+   * **UNDEFINED before the first roster frame**, which is a third answer and not
+   * a shy `false`. The two callers want opposite things from "not known yet" and
+   * only one of them is safe defaulting to false:
+   *
+   * - the WARP stop treats it as false and commands anyway. A second
+   *   `setWarpIndex(0)` against warp already at zero is a no-op
+   * - the LATCH must NOT treat it as false. Latching an alarm the mod is about
+   *   to take moves it out of `pending`, `reconcile` only arms from `pending`,
+   *   and the alarm is then never armed, never held, and never latched by
+   *   anybody. The absence of a roster is the one moment that deadlock can
+   *   start
    */
-  holdsAlarm(id: string): boolean {
+  holdsAlarm(id: string): boolean | undefined {
+    if (!this.rosterSeen) return undefined;
     return this.rosterIds.includes(id);
   }
 
@@ -177,7 +186,7 @@ export class ScetAlarmBridge {
       // re-armed after a timeline reset dropped the roster: its instant is in
       // the past, so it would fire again immediately.
       if (alarm.state !== "pending") continue;
-      if (isScetTrigger(alarm.trigger) || isShadowable(alarm)) {
+      if (isAtSubjectVantage(alarm.trigger) || isShadowable(alarm)) {
         wanted.set(alarm.id, alarm);
       }
     }
@@ -209,7 +218,7 @@ export class ScetAlarmBridge {
    * already holds replaces it, so there is no disarm-then-arm to race.
    */
   arm(alarm: Alarm): void {
-    if (!isScetTrigger(alarm.trigger) && !isShadowable(alarm)) return;
+    if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) return;
     const armed = this.buildArmArgs(alarm);
     if (armed === null) return;
     const outcome = dispatchActiveCommandTopic(SCET_ARM_COMMAND, armed);
@@ -228,7 +237,7 @@ export class ScetAlarmBridge {
          refusal is logged and NOT surfaced, which a SCET refusal must be,
          because there the refusal is the whole reason the alarm will never
          fire. */
-      if (!isScetTrigger(alarm.trigger)) {
+      if (!modOwnsLatch(alarm.trigger)) {
         logger.debug("alarm-host: shadow arm refused", {
           id: alarm.id,
           code: refusal.code,
@@ -280,10 +289,10 @@ export class ScetAlarmBridge {
        place has actually been sent: the centre it chose, or until it chooses,
        the one the mod stamped its frames with. */
     const client = getActiveTelemetryClient();
-    const vantage = isScetTrigger(trigger)
+    const vantage = isAtSubjectVantage(trigger)
       ? ""
       : (client?.selectedVantage ?? client?.observedVantage ?? "");
-    if (!isScetTrigger(trigger) && vantage === "") return null;
+    if (!isAtSubjectVantage(trigger) && vantage === "") return null;
     if (trigger.kind === "time") {
       return {
         id: alarm.id,
@@ -357,7 +366,7 @@ export class ScetAlarmBridge {
       const armed = this.ctx
         .getAlarms()
         .find((alarm) => alarm.id === notice.id);
-      if (armed && isScetTrigger(armed.trigger)) {
+      if (armed && modOwnsLatch(armed.trigger)) {
         this.ctx.onFired(notice.id, notice.firedAtUt);
       } else {
         this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.vantage);
@@ -461,7 +470,8 @@ function readFiredNotice(
  */
 function isShadowable(alarm: Alarm): boolean {
   return (
-    !isScetTrigger(alarm.trigger) && thresholdAddress(alarm.trigger) !== null
+    !isAtSubjectVantage(alarm.trigger) &&
+    thresholdAddress(alarm.trigger) !== null
   );
 }
 

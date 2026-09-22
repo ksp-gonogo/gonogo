@@ -10,7 +10,7 @@ import {
   type ContractParameterTargetState,
   type ContractParameterTrigger,
   type EventTrigger,
-  isScetTrigger,
+  modOwnsLatch,
   type ThresholdOp,
   type ThresholdTrigger,
 } from "./types";
@@ -91,7 +91,38 @@ export class AlarmStateMachine {
     private readonly getContracts: () =>
       | readonly CareerContract[]
       | undefined = getContractsActive,
+    /**
+     * Whether the mod REFUSED to arm this alarm, and so will never latch it.
+     *
+     * The other half of {@link modOwnsLatch}, which says only that a kind is
+     * mod-owned. An arm can be refused, for a vantage naming no place or a
+     * Topic with no reading behind it, and an alarm whose kind says the mod
+     * latches it while the mod has declined to hold it is one NOBODY latches:
+     * it sits pending for ever, which reads exactly like a condition not yet
+     * met.
+     *
+     * A REFUSAL rather than roster membership, and the difference is the whole
+     * of why this is not the predicate the warp stop uses. The roster does not
+     * contain an alarm that has merely not been armed YET, and a mod-owned
+     * alarm latched during that window leaves `pending`, which is the only set
+     * the arm reconciles from: it would then never be armed, so never held, so
+     * never latched by anybody. A refusal is the mod having actually answered.
+     *
+     * Defaults to "nothing was refused", which defers to a mod that may not
+     * exist. That is safe because an alarm of a mod-owned kind on a client with
+     * no stream is one the operator cannot be served by either evaluator, and
+     * silently latching it here would claim otherwise.
+     */
+    private readonly modRefused: (alarm: Alarm) => boolean = () => false,
   ) {}
+
+  /**
+   * Whether this side must leave the latch alone: the kind is mod-owned and the
+   * mod has not refused it.
+   */
+  private latchedElsewhere(alarm: Alarm): boolean {
+    return modOwnsLatch(alarm.trigger) && !this.modRefused(alarm);
+  }
 
   /**
    * Update threshold-match state for one alarm. Mutates
@@ -120,7 +151,7 @@ export class AlarmStateMachine {
      * a light-time old by construction, which is the whole reason the arm
      * exists.
      */
-    if (isScetTrigger(alarm.trigger)) return false;
+    if (this.latchedElsewhere(alarm)) return false;
     let changed = false;
     const matched = this.evalThreshold(alarm.trigger);
     if (matched === null) {
@@ -266,7 +297,7 @@ export class AlarmStateMachine {
     previously: number | null = null,
   ): Alarm["state"] {
     if (now === null) return "pending";
-    if (isScetTrigger(alarm.trigger)) {
+    if (this.latchedElsewhere(alarm)) {
       /*
        * Not ours to decide. The instant is on the craft's clock and the mod is
        * what compares against it, upstream of the reveal gate; comparing it to

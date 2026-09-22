@@ -452,7 +452,7 @@ describe("SCET alarms", () => {
 
     const alarm = svc.addAlarm({
       name: "Apoapsis",
-      trigger: { kind: "time", ut: 90_000, leadSeconds: 10, vantage: "scet" },
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
     });
     await run(session, UT_START + 4 * DT);
     expect(session.armed()).toEqual([alarm.id]);
@@ -513,7 +513,7 @@ describe("SCET alarms", () => {
 
     const alarm = svc.addAlarm({
       name: "Launch pad upgrade complete",
-      trigger: { kind: "time", ut: 90_000, leadSeconds: 10, vantage: "scet" },
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
       requestedBy: {
         uplinkId: "rp1",
         uplinkName: "RP-1",
@@ -530,7 +530,7 @@ describe("SCET alarms", () => {
     svc.dispose();
   });
 
-  it("does not arm a command-vantage alarm on the mod", async () => {
+  it("arms a time alarm on the mod whatever clock it was saved against", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
     const svc = new AlarmHostService(null, {
@@ -540,16 +540,20 @@ describe("SCET alarms", () => {
       getOwltSeconds: () => OWLT,
     });
 
-    svc.addAlarm({
+    const alarm = svc.addAlarm({
       name: "Ordinary",
       trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
     });
     await run(session, UT_START + 4 * DT);
-    expect(session.armed()).toEqual([]);
+    /* A universal time is the same instant wherever it is watched from, so a
+       time alarm names no vantage and there is no second opinion for this side
+       to hold: every one of them goes to the mod. */
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(session.armOf(alarm.id)?.subject).toBe("game");
     svc.dispose();
   });
 
-  it("fires the two vantages one light-time apart, and the SCET one when the craft is there", async () => {
+  it("comes due at the same instant however the operator asked for it", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
     const svc = new AlarmHostService(null, {
@@ -559,17 +563,20 @@ describe("SCET alarms", () => {
       getOwltSeconds: () => OWLT,
     });
 
-    /* The same instant, asked for two ways. The SCET alarm fires when the GAME
-       reaches it; the command-vantage one when the operator's own clock does,
-       which is a light-time later in true time, by which point the craft has
-       been past the moment for four minutes. That gap IS the feature. */
+    /* The same instant, asked for twice. A universal time is the same instant
+       wherever it is watched from, so there is no clock to choose between and
+       both come due together, when the GAME reaches it.
+
+       This used to assert the opposite: the two carried a vantage each and
+       fired a light-time apart. That gap was never a fact about a UT, it was
+       the client evaluating one of them against its own delayed clock. */
     const target = UT_START + 200;
-    const scet = svc.addAlarm({
-      name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+    const first = svc.addAlarm({
+      name: "First",
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
-    const command = svc.addAlarm({
-      name: "Command",
+    const second = svc.addAlarm({
+      name: "Second",
       trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
 
@@ -588,8 +595,8 @@ describe("SCET alarms", () => {
     }
     svc.dispose();
 
-    expect(firedAt.get(scet.id)).toBe(target);
-    expect(firedAt.get(command.id)).toBe(target + OWLT);
+    expect(firedAt.get(first.id)).toBe(target);
+    expect(firedAt.get(second.id)).toBe(target);
   });
 
   it("records the instant on the craft's clock, not the one it was told at", async () => {
@@ -605,7 +612,7 @@ describe("SCET alarms", () => {
     const target = UT_START + 100;
     const alarm = svc.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     await run(session, target + 4 * DT);
 
@@ -634,7 +641,7 @@ describe("SCET alarms", () => {
     const target = UT_START + 3000;
     svc.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     // Give the arm a tick to reach the mod before the ladder starts.
     await run(session, UT_START + 2 * DT);
@@ -678,7 +685,7 @@ describe("SCET alarms", () => {
     });
     const alarm = first.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     await run(session, UT_START + 4 * DT);
     // Gone across the fire, the way a browser tab is when it is closed or a
@@ -852,7 +859,7 @@ describe("SCET alarms", () => {
     const target = UT_START + 100;
     const scet = svc.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     const command = svc.addAlarm({
       name: "Command",
@@ -1016,38 +1023,6 @@ describe("SCET alarms", () => {
       // it would arrive after the fact.
       expect(session.gameIndex()).toBe(0);
       expect(session.warpDispatchedAt).toEqual([]);
-    });
-
-    it("keeps its own warp command for an alarm the mod does not hold", async () => {
-      const session = startSession(0);
-      session.emitAt(UT_START);
-      const svc = new AlarmHostService(null, {
-        nowMs: () => nowMs,
-        tickIntervalMs: DT * 1000,
-        storage: memoryStorage(),
-        getOwltSeconds: () => 0,
-      });
-
-      // A TIME alarm at a command vantage. The bridge never arms one, on
-      // purpose: read on the mod it would come due at the SCET instant, which
-      // is a different alarm rather than a second opinion on this one.
-      svc.addAlarm({
-        name: "Burn",
-        trigger: {
-          kind: "time",
-          ut: UT_START + 3 * DT,
-          leadSeconds: 0,
-          vantage: "command",
-        },
-      });
-      await run(session, UT_START + 6 * DT);
-      svc.dispose();
-
-      // Nothing to hold it, so this side is still the only thing that can stop
-      // the warp for it, and does.
-      expect(session.armed()).toEqual([]);
-      expect(session.warpDispatchedAt.length).toBeGreaterThan(0);
-      expect(session.gameIndex()).toBe(0);
     });
   });
 

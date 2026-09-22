@@ -441,14 +441,17 @@ describe("AlarmsModal recommended presets", () => {
   });
 
   /*
-   * The defect this pair exists for. `timeToAp` is read off a Delayed channel
-   * at the view UT, so the sum is the true SCET of apoapsis, and the alarm
-   * pipeline then fires when the VIEW clock reaches it: one light-time after
-   * the craft went past. Invisible on LAN and four to twenty minutes wrong at
-   * Duna. The trigger now lands one light-time earlier, so the alarm goes off
-   * while the event is still ahead of the operator.
+   * The defect this pair exists for, and the second half of its history.
+   * `timeToAp` is read off a Delayed channel at the view UT, so the sum is the
+   * TRUE SCET of apoapsis. The alarm used to be evaluated on this side against
+   * the view clock, which reaches that instant one light-time late, so the
+   * trigger had a light-time subtracted from it to compensate.
+   *
+   * The mod compares against the game's own universal time now, which is the
+   * clock the SCET is already on, so the subtraction became the error it was
+   * invented to cancel. The alarm carries the apsis instant as it stands.
    */
-  it("fires an apsis alarm AT the event on a delayed craft, not a light-time late", async () => {
+  it("arms an apsis alarm at the event's own instant, with no light-time subtracted", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
     const owlt = 240;
@@ -472,10 +475,7 @@ describe("AlarmsModal recommended presets", () => {
       await screen.findByRole("button", { name: /alarm at apoapsis/i }),
     );
 
-    expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(
-      1000 + TIME_TO_AP - owlt,
-      3,
-    );
+    expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(1000 + TIME_TO_AP, 3);
   });
 
   /* The SCET is what the button states, and it says which clock it is on: the
