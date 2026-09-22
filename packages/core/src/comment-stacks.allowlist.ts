@@ -416,7 +416,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/TechTree/stream.test.tsx": 2,
   "packages/components/src/TechTree/undefined.characterise.test.tsx": 1,
   "packages/components/src/ThermalStatus/dual-run.test.tsx": 2,
-  "packages/components/src/ThermalStatus/index.tsx": 3,
+  "packages/components/src/ThermalStatus/index.tsx": 1,
   "packages/components/src/ThermalStatus/undefined.characterise.test.tsx": 2,
   "packages/components/src/TransferWindow/index.tsx": 5,
   "packages/components/src/WarpControl/augment-slot.test.tsx": 1,
