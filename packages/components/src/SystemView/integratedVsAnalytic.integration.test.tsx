@@ -49,9 +49,12 @@ interface ProbeFixture {
 }
 
 function loadFixture(name: string): ProbeFixture {
-  return JSON.parse(
-    readFileSync(join(FIXTURES, `${name}.json`), "utf8"),
-  ) as ProbeFixture;
+  const path = join(FIXTURES, `${name}.json`);
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error(`${path} does not hold a JSON object`);
+  }
+  return parsed as ProbeFixture;
 }
 
 function WithContributions({ children }: { children: ReactNode }) {
