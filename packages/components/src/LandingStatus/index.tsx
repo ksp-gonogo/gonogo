@@ -1090,14 +1090,11 @@ function LandingStatusComponent({
   const commitLayerEl = (
     <CommitLayer
       regime={clocks.regime}
-      roundTripSeconds={clocks.roundTripSeconds}
       live={live}
       mayInstruct={mayInstruct}
       suicideBurnCountdown={solution.suicideBurnCountdown}
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}
-      blindInSeconds={clocks.blindInSeconds}
-      blind={clocks.blind}
       landed={landed}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}
