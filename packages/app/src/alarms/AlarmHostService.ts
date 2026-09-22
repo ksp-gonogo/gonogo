@@ -682,21 +682,20 @@ export class AlarmHostService {
           this.lastTickUt,
         );
         if (nextState !== alarm.state) {
+          /* TWO stop sites, and they take the same rule. The mod sets its own
+             stop at BOTH instants (the step-down at `ut - lead`, and the fire),
+             so an alarm it holds must not be commanded from here at either: that
+             is the round trip the arm exists to remove. An alarm it does not
+             hold keeps both, or it would come due and halt nothing. */
+          const modStops = this.scetBridge.holdsAlarm(alarm.id);
           if (alarm.state !== "arming" && nextState === "arming") {
-            this.warp.stepWarpDown();
+            if (!modStops) this.warp.stepWarpDown();
           }
           if (alarm.state !== "firing" && nextState === "firing") {
             this.notifyFire(alarm);
             this.compareShadowAtClientFire(alarm);
-            // Force warp to 0 again: in case the warp recovered between
-            // `arming` and `firing`, or for threshold alarms where there
-            // was no `arming` phase at all.
-            //
-            // Except for a SCET alarm, which the MOD fired, having already
-            // stopped the warp in the same frame it decided to. Commanding it
-            // again from here is a second authority for one piece of state, and
-            // it would be issued a light-time after the fact.
-            if (!isScetTrigger(alarm.trigger)) this.warp.stepWarpDown();
+            // Force warp to 0 again: the warp may have recovered between `arming` and `firing`, and a threshold alarm has no `arming` phase at all.
+            if (!modStops) this.warp.stepWarpDown();
           }
           alarm.state = nextState;
           changed = true;

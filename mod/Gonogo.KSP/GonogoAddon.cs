@@ -269,6 +269,12 @@ namespace Gonogo.KSP
                 ScetAlarmUplink.ConfigureSelectableVantage(
                     vantage => engine.IsVantageSelectable(vantage));
 
+                // And how the handle reaches the main thread to stop the warp
+                // for an alarm it decided itself. Waited on rather than queued:
+                // see ScetAlarmUplink.StopWarpFromHandle.
+                ScetAlarmUplink.ConfigureMainThreadRunner(
+                    action => engine.RunOnMainThreadAndWait(action));
+
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
@@ -590,6 +596,7 @@ namespace Gonogo.KSP
             ScetAlarmUplink.ConfigureRevealedRead(null);
             ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
             ScetAlarmUplink.ConfigureSelectableVantage(null);
+            ScetAlarmUplink.ConfigureMainThreadRunner(null);
 
             try
             {
