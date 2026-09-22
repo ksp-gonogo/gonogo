@@ -9,6 +9,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
 import { NULL_DISPLAY } from "./NullValue";
+import { formatQuantity } from "./units";
 
 /**
  * The reckoning slot: what `<Meter>` draws when it is handed a whole `Reading`
@@ -310,7 +311,7 @@ describe("Meter, given a reading of a fraction", () => {
     expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
   });
 
-  it("leaves the fill alone where a held reading names no grade", () => {
+  it("dims a held reading that names no grade, and still speaks it", () => {
     const { container } = render(
       <Meter
         label="Dose"
@@ -322,7 +323,22 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-fill-not-current]")).toBeNull();
+
+    /*
+     * A figure can stop being current without anything saying HOW, and it is
+     * no more a reading of now for the silence: all three signals fire, and
+     * the words are grade-neutral because there is no grade to report. The
+     * failure this pins is two signals without the third, a row that reads as
+     * held and carries nothing explaining why.
+     */
+    expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
+    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+
+    const at = formatQuantity(AT.magnitude, AT.unit).value;
+    const caption = container.querySelector("[data-unit-currency]");
+    expect(caption?.textContent).toMatch(/HELD/i);
+    expect(caption?.textContent).not.toMatch(/STALE|BLACKOUT|RECORDED/i);
+    expect(caption?.textContent).toContain(at);
   });
 
   it("says nothing at all while the figure is a reading of now", () => {
@@ -352,18 +368,57 @@ describe("Meter, given a reading of a fraction", () => {
      * caption and the tooltip are all Unit's and arrive together. Asserted
      * here rather than trusted, because "it inherits it" is the kind of claim
      * that stays true until someone passes `valueLabel` instead.
+     *
+     * Both halves of what a held figure owes a reader are pinned: the grade
+     * word, and the instant it was last a reading of now. The time is matched
+     * FORMATTED rather than by a loose /as of/, because the failure worth
+     * catching is a UT arriving as the null token: "as of <null>" matches the
+     * words around it and says nothing, which is what `lastValidAt` refuses.
      */
+    const at = formatQuantity(AT.magnitude, AT.unit).value;
+    expect(at).not.toBe(NULL_DISPLAY);
+
     const caption = container.querySelector("[data-unit-currency]");
-    expect(caption).not.toBeNull();
     expect(caption?.textContent).toMatch(/STALE/i);
-    expect(
-      container
-        .querySelector("[data-not-current-mark]")
-        ?.getAttribute("aria-hidden"),
-    ).toBe("true");
-    expect(container.querySelector("[title]")?.getAttribute("title")).toMatch(
-      /STALE/i,
+    expect(caption?.textContent).toContain(at);
+
+    // Silent by design: the words beside it are what speak.
+    const mark = container.querySelector("[data-not-current-mark]");
+    expect(mark?.getAttribute("aria-hidden")).toBe("true");
+
+    /*
+     * Anchored to the marked quantity rather than the first [title] in the
+     * document. `Unit` also titles the unit SYMBOL, which a `ratio` happens
+     * not to render, so a document-order query passes today and would quietly
+     * start testing the symbol the day one appears.
+     */
+    const hover = mark?.closest("[title]")?.getAttribute("title");
+    expect(hover).toMatch(/STALE/i);
+    expect(hover).toContain(at);
+  });
+
+  it("draws no mark and says nothing where valueLabel bypasses the Unit", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        valueLabel="39%"
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
     );
+
+    /*
+     * The property that makes inheriting safe: the dot and the words are the
+     * same component's, so a call site bypassing `Unit` loses both together
+     * and cannot end up with a silent dot.
+     */
+    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-unit-currency]")).toBeNull();
   });
 
   it("leaves the band marks alone: a band is doubt, not staleness", () => {

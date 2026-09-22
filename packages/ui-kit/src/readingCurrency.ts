@@ -36,9 +36,10 @@ export interface Resolved<U extends string> {
   /** Whether the number on screen is a reading of now. Drives the mark. */
   notCurrent: boolean;
   /**
-   * The grade's caption and, where the reading carries a readable instant, when
-   * the number was last a reading of now. Said rather than shown, and null when
-   * there is nothing to say.
+   * What the mark means in words: the grade where the reading names one, a
+   * grade-neutral word where it does not, and the instant the number was last
+   * a reading of now where that is readable. Said rather than shown, and null
+   * only where nothing was marked.
    */
   caption: string | null;
   /**
@@ -77,6 +78,17 @@ function lastValidAt(asOfUt: Value<"ut"> | undefined): string | null {
  *
  * The grade word is `formatStreamStatus`'s and is never rephrased here.
  */
+/**
+ * The word for a held reading whose grade is not single.
+ *
+ * Deliberately outside `formatStreamStatus`'s vocabulary. `STALE`, `BLACKOUT`
+ * and `RECORDED` name different KINDS of missed update and ask the operator
+ * for different moves, so printing one of them for a reading that named none
+ * asserts a reason nobody reported. This claims only what the state claims:
+ * the number stands, and it is not a reading of now.
+ */
+const HELD_WITHOUT_GRADE = "HELD";
+
 function sayCurrency(
   caption: string | null,
   asOfUt: Value<"ut"> | undefined,
@@ -129,17 +141,26 @@ export function resolveCurrency<U extends string>(
      * optional on every arm, so a held reading carrying none renders the null
      * token, and a staleness dot beside that would be a claim about nothing.
      *
-     * `grade` is optional for the same reason, where the old topic-level arm
-     * made it required. A held reading that names no grade says nothing rather
-     * than captioning its mark with a missing word.
+     * Whatever IS marked gets words. `grade` is optional on the arm, and a
+     * gradeless held reading is an ORDINARY shape rather than a corner case:
+     * a derived reading is stale when ANY input is, and takes its grade from
+     * whichever input speaks for the OLDEST instant, that input's absence of
+     * one included. An observed input that is also the oldest therefore yields
+     * stale, carrying a value, naming no grade. The result is itself an input
+     * to the next combine, so the shape spreads rather than being diluted.
+     *
+     * Staying silent there draws a mark on a number and explains it nowhere,
+     * which leaves the operator worse off than either word would.
      */
     return {
       shown: input.value,
       notCurrent: input.value !== undefined,
-      caption:
+      caption: sayCurrency(
         input.grade === undefined
-          ? null
-          : sayCurrency(formatStreamStatus(input.grade), input.asOfUt),
+          ? HELD_WITHOUT_GRADE
+          : formatStreamStatus(input.grade),
+        input.asOfUt,
+      ),
       band,
     };
   }

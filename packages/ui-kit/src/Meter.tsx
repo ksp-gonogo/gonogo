@@ -235,13 +235,12 @@ export function Meter<U extends string = string>({
     // is drawn against, and marking the bar would say the wrong half aged.
     trackNotCurrent: held.reading?.state === "stale",
     /*
-     * The FIGURE's own currency, which dims the fill. Keyed on the GRADE rather
-     * than on the state alone: a held reading naming no grade leaves the fill
-     * as it is, on the same reasoning the dim inherited from the caption it
-     * used to sit beside.
+     * The FIGURE's own currency, which dims the fill. STALENESS is the whole
+     * condition: a held reading is no longer a reading of now whether or not
+     * anything named a grade for it, and a bright fill over a held figure says
+     * it is current.
      */
-    notCurrent:
-      shown.reading?.state === "stale" && shown.reading.grade !== undefined,
+    notCurrent: shown.reading?.state === "stale",
     ...rest,
   };
   // Where the capacity's own doubt puts the end of the track, as a fraction of
