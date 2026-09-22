@@ -24,6 +24,7 @@ namespace Sitrep.Host.Tests
     /// file, xunit reports it as SKIPPED, with the resolved path as the
     /// reason.
     /// </summary>
+    [Collection("VesselViewProviderStatics")]
     public class ReferenceRecordingReplayTests
     {
         private readonly ITestOutputHelper _output;

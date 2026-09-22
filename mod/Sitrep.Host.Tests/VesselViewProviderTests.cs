@@ -17,6 +17,7 @@ namespace Sitrep.Host.Tests
     /// provenance (<c>meta.source</c>), and the wire-adapter's real
     /// serialization path.
     /// </summary>
+    [Collection("VesselViewProviderStatics")]
     public class VesselViewProviderTests
     {
         private const string VesselGuid = "11111111-2222-3333-4444-555555555555";
