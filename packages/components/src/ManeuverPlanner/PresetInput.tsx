@@ -2,10 +2,11 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   LabeledInput,
   NULL_DISPLAY,
+  Stack,
+  ToggleButton,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
 import { PresetPicker } from "./PresetPicker";
 import { computeRelInc } from "./planning";
 import { PRESETS } from "./presets";
@@ -34,7 +35,7 @@ export function PresetInput({ api, telemetry }: PresetInputProps) {
     <>
       <PresetPicker value={inputs.preset} onChange={setPreset} />
       {selectedPreset?.description && (
-        <PresetDesc>{selectedPreset.description}</PresetDesc>
+        <div style={PRESET_DESC_STYLE}>{selectedPreset.description}</div>
       )}
       <PresetCustomInputs api={api} telemetry={telemetry} />
       <PresetTargetDescription api={api} telemetry={telemetry} />
@@ -56,42 +57,42 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
   if (!selectedPreset?.needsCustomInput) return null;
   if (inputs.preset === "match-inclination") {
     return (
-      <CustomInputs>
+      <Stack style={CUSTOM_INPUTS_STYLE}>
         <LabeledInput
           label="Target inc"
           value={inputs.targetInclination}
           onChange={setTargetInclination}
           suffix="°"
         />
-      </CustomInputs>
+      </Stack>
     );
   }
   if (inputs.preset === "hohmann-to-altitude") {
     return (
-      <CustomInputs>
+      <Stack style={CUSTOM_INPUTS_STYLE}>
         <LabeledInput
           label="Target alt"
           value={inputs.targetAltitudeKm}
           onChange={setTargetAltitudeKm}
           suffix="km"
         />
-      </CustomInputs>
+      </Stack>
     );
   }
   if (inputs.preset === "hohmann-rendezvous-target") {
     return (
-      <CustomInputs>
+      <Stack style={CUSTOM_INPUTS_STYLE}>
         <LabeledInput
           label="Standoff"
           value={inputs.standoffMeters}
           onChange={setStandoffMeters}
           suffix="m"
         />
-      </CustomInputs>
+      </Stack>
     );
   }
   return (
-    <CustomInputs>
+    <Stack style={CUSTOM_INPUTS_STYLE}>
       {inputs.preset === "custom-ut" && (
         <UtModeInputs api={api} currentUT={telemetry.currentUT} />
       )}
@@ -102,7 +103,7 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
       />
       <LabeledInput label="Normal" value={inputs.normal} onChange={setNormal} />
       <LabeledInput label="Radial" value={inputs.radial} onChange={setRadial} />
-    </CustomInputs>
+    </Stack>
   );
 }
 
@@ -115,16 +116,18 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
   const { inputs, setUtMode, setBurnAtUT, setBurnInSeconds } = api;
   return (
     <>
-      <UTModeRow>
-        <UTModeButton
-          $active={inputs.utMode === "relative"}
+      <div style={UT_MODE_ROW_STYLE}>
+        <ToggleButton
+          size="md"
+          active={inputs.utMode === "relative"}
           type="button"
           onClick={() => setUtMode("relative")}
         >
           burn in
-        </UTModeButton>
-        <UTModeButton
-          $active={inputs.utMode === "absolute"}
+        </ToggleButton>
+        <ToggleButton
+          size="md"
+          active={inputs.utMode === "absolute"}
           type="button"
           onClick={() => {
             // Seed the absolute field with "now + 60s" the first time
@@ -136,8 +139,8 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
           }}
         >
           at UT
-        </UTModeButton>
-      </UTModeRow>
+        </ToggleButton>
+      </div>
       {inputs.utMode === "relative" ? (
         <LabeledInput
           label="Burn in"
@@ -169,25 +172,25 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
   } = telemetry;
   if (inputs.preset === "match-target-inclination") {
     return (
-      <PresetDesc>
+      <div style={PRESET_DESC_STYLE}>
         {targetName
           ? `Target: ${targetName} (${writeQuantity(value("°", targetInclinationLive ?? 0), { decimals: 1 })})`
           : "No target selected in-game."}
-      </PresetDesc>
+      </div>
     );
   }
   if (inputs.preset === "match-target-plane") {
     return (
-      <PresetDesc>
+      <div style={PRESET_DESC_STYLE}>
         {targetName && targetLanLive !== undefined
           ? `Target: ${targetName}, i=${writeQuantity(value("°", targetInclinationLive ?? 0), { decimals: 1 })} Ω=${writeQuantity(value("°", targetLanLive), { decimals: 1 })}`
           : "No target selected in-game (or target LAN unavailable)."}
-      </PresetDesc>
+      </div>
     );
   }
   if (inputs.preset === "hohmann-rendezvous-target") {
     if (!targetName) {
-      return <PresetDesc>No target selected in-game.</PresetDesc>;
+      return <div style={PRESET_DESC_STYLE}>No target selected in-game.</div>;
     }
     const planeMismatch = computeRelInc(
       inclination,
@@ -196,7 +199,7 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
       targetLanLive,
     );
     return (
-      <PresetDesc>
+      <div style={PRESET_DESC_STYLE}>
         Target: {targetName}, PeA{" "}
         {targetPeA === undefined
           ? NULL_DISPLAY
@@ -212,38 +215,26 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
         {planeMismatch !== null && planeMismatch > 0.5
           ? " (plane match prepended)"
           : ""}
-      </PresetDesc>
+      </div>
     );
   }
   return null;
 }
 
-const PresetDesc = styled.div`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-dim);
-  padding-top: var(--space-2);
-`;
+const PRESET_DESC_STYLE = {
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-dim)",
+  paddingTop: "var(--space-2)",
+} as const;
 
-const CustomInputs = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  padding-top: var(--space-4);
-`;
+/** Stack carries the column; the gap is named rather than sized so the surface
+ *  around these inputs can retune it, and the seam above them is set here. */
+const CUSTOM_INPUTS_STYLE = {
+  gap: "var(--gap-related)",
+  paddingTop: "var(--space-4)",
+} as const;
 
-const UTModeRow = styled.div`
-  display: flex;
-  gap: var(--gap-related);
-`;
-
-const UTModeButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
-  color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
-  font-size: var(--font-size-compact);
-  padding: var(--inset-control);
-  border-radius: var(--radius-regular);
-  cursor: pointer;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-`;
+const UT_MODE_ROW_STYLE = {
+  display: "flex",
+  gap: "var(--gap-related)",
+} as const;
