@@ -21,7 +21,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class SelectableVantageKnowledgeTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         private const string Centre = "ground:Kerbal Space Center";
 
