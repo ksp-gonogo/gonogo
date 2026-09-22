@@ -485,7 +485,18 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * observed-only read plus a minted `Value` is the ruled behaviour, so this
    * site is not debt a migration can pay. Revisit only if that ruling changes.
    */
-  "packages/components/src/CommSignal/index.tsx": 1,
+  /*
+   * Newly VISIBLE rather than newly written, and the widening that exposed
+   * these three files was on `Countdown`: handing a clock a minted duration
+   * only counts as a dropped currency once the clock can take the reading
+   * instead, which it now can.
+   *
+   * Each is a client-computed `instant - viewUt`, which is the kind that
+   * already advances because the caller recomputes it every frame. What they
+   * cannot yet say is that the INSTANT behind them has stopped arriving, and
+   * that arrives with the topics they read rather than with the primitive.
+   */
+  "packages/components/src/CommSignal/index.tsx": 2,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
   "packages/components/src/Experiments/index.tsx": 1,
@@ -502,10 +513,10 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * beside it as its own `budget.state`.
    */
   "packages/components/src/FuelStatus/index.tsx": 2,
-  "packages/components/src/LandingStatus/index.tsx": 2,
+  "packages/components/src/LandingStatus/index.tsx": 3,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/MapView/index.tsx": 2,
-  "packages/components/src/Navball/index.tsx": 1,
+  "packages/components/src/Navball/index.tsx": 2,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
 };
 

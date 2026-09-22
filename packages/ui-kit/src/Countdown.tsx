@@ -1,6 +1,8 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { formatDuration } from "./formatDuration";
+import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
 import { NULL_DISPLAY } from "./NullValue";
+import { resolveCurrency } from "./readingCurrency";
 
 /**
  * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
@@ -42,7 +44,7 @@ export interface CountdownProps {
    * closing, because the mistake this prevents is passing a WIRE field
    * straight through, and a wire field always arrives as a `Value`.
    */
-  value: Value<"s"> | number | null | undefined;
+  value: Value<"s"> | Reading<Value<"s">> | number | null | undefined;
   /**
    * Prefix the launch-clock sign: `T−` counting down to the event, `T+` once
    * it has passed. Off by default, because a plain "how long until" readout
@@ -65,7 +67,56 @@ export function Countdown({
   clock = false,
   precise = false,
 }: CountdownProps) {
-  const seconds = typeof value === "number" ? value : value?.magnitude;
-  if (seconds === undefined || seconds === null) return NULL_DISPLAY;
-  return <>{formatDuration(seconds, { ms: precise, sign: clock })}</>;
+  /*
+   * A bare number never carries currency, and it is how every client-computed
+   * countdown arrives, so it is split off before the resolver rather than
+   * widened into it.
+   */
+  const carried = typeof value === "number" ? undefined : value;
+  const { notCurrent, caption } = resolveCurrency(carried);
+  const drawn = drawnDuration(value);
+  if (drawn === undefined || drawn === null) return NULL_DISPLAY;
+  const text = formatDuration(drawn, { ms: precise, sign: clock });
+  if (!notCurrent) return <>{text}</>;
+  return (
+    <NotCurrentHost data-not-current="" title={caption ?? undefined}>
+      {text}
+      <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+    </NotCurrentHost>
+  );
+}
+
+/**
+ * The number this clock draws, and the one place it does something `<Unit>`
+ * deliberately refuses to.
+ *
+ * A clock ADVANCES only where a model is carrying it, and FREEZES otherwise.
+ * That decision is not the primitive's to make, so it is read off the
+ * reckoning: `modelled` is what the model says the value is at the frame's
+ * view time, which is what makes a carried countdown move, and the last
+ * observation is what a countdown with no model has to sit still on.
+ *
+ * `<Unit>` never substitutes a modelled figure, because a magnitude quietly
+ * replaced at hundreds of generic readouts is the substitution `Reading`
+ * exists to prevent. A countdown is the case that earns the opposite rule: it
+ * is a claim about a future instant, a frozen one is wrong the moment the
+ * clock moves, and only a model can license advancing it. So the substitution
+ * is the ruled behaviour here rather than a silent one.
+ */
+function drawnDuration(
+  value: Value<"s"> | Reading<Value<"s">> | number | null | undefined,
+): number | null | undefined {
+  if (typeof value === "number") return value;
+  if (value == null) return undefined;
+  /*
+   * The quantity is CHOSEN first and unwrapped once, at the boundary
+   * `formatDuration` puts here: it takes a number of seconds, so the duration
+   * stops being a quantity exactly on the way into it and nowhere else.
+   */
+  const picked = !("state" in value)
+    ? value
+    : value.reckoning.status === "available"
+      ? value.reckoning.modelled
+      : value.value;
+  return picked?.magnitude;
 }
