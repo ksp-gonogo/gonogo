@@ -87,7 +87,17 @@ export interface BlockProps
 const Block__Title = styled.div`
   color: var(--color-text-primary);
   font-weight: 600;
-  font-size: var(--font-size-sm);
+  /* A RELATION, not a rung, which is the whole of what "the title is bigger
+     than the text underneath it" means. A fixed rung is only bigger than some
+     bodies: at the 12px rung the name of a part came out SMALLER than the
+     sentence under it in the fleet roster, which is the complaint inverted
+     rather than fixed. An em holds the relation against whatever the record is
+     written in, so the hierarchy survives a site the kit has never seen.
+
+     The ratio is 12 over 11: a name for the thing over the compact body it
+     heads. Those are the two rungs the semantic font-size vocabulary names, so
+     when that layer lands this becomes those two tokens and the number goes. */
+  font-size: 1.09em;
   line-height: var(--line-height-tight);
   /* A content-sized basis, not a zero one. With a zero basis the title always
      "fits" its flex line at its pre-grow hypothetical size, so the row never
@@ -195,10 +205,10 @@ const Block__Footer = styled.div`
 `;
 
 /**
- * The arrangement, with no surface on it. Exported for `Card` and `Notice` to
- * extend with `styled(Block__Root)`, which is what makes each of them literally
- * this plus a surface rather than a second column that resembles it. NOT on the
- * barrel: outside this package the door is `Block`.
+ * The arrangement, with no surface on it. `Card` and `Notice` extend this very
+ * component rather than wrapping it, which is what makes each of them literally
+ * this plus a surface instead of a second column that resembles it. Internal to
+ * this package: outside it the door is `Block`.
  */
 export const Block__Root = styled.div`
   display: flex;
@@ -293,7 +303,7 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
  * The four block-level asides are `left`, `right`, `top` and `bottom`, not
  * `start`/`end`: there is no RTL anywhere in the app, so the logical pair buys
  * a capability nothing uses, and the four-sided logical set reads badly at a
- * call site. `PanelSidebar` keeps `start`/`end` and its real logical CSS.
+ * call site. A panel's sidebar keeps `start`/`end` and its real logical CSS.
  *
  * `titleRight` is NOT `right`. The badges on a name's line and the content
  * beside a body are different slots with different collapse behaviour, and

@@ -126,10 +126,10 @@ const Card__Root = styled(Block__Root)<{
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular, 3px);
-  padding: ${({ $standalone }) =>
+  ${({ $standalone }) =>
     $standalone
-      ? "var(--inset-surface-standalone)"
-      : "var(--inset-surface, var(--space-6, 6px) var(--space-8, 8px))"};
+      ? "padding: var(--inset-surface-standalone);"
+      : "padding: var(--inset-surface, var(--space-6, 6px) var(--space-8, 8px));"}
   ${({ $tone }) =>
     $tone ? `border-left: 2px solid ${TONE_COLOR[$tone]};` : ""}
   ${({ $identityColor }) =>
