@@ -431,9 +431,10 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * `true` is a compile error at the call site rather than a `Switch` rendering
  * a tolerance.
  */
-export function registerSetting<T extends SettingType = "boolean">(
-  def: SettingDefinitionOf<T>,
-): void;
+export function registerSetting<
+  T extends SettingType = "boolean",
+  Topic extends TopicId = TopicId,
+>(def: SettingDefinitionOf<T, Topic>): void;
 /**
  * Register an ALREADY-TYPED definition, for a client that built its rows as a
  * list and registers them in a loop.
@@ -446,7 +447,9 @@ export function registerSetting<T extends SettingType = "boolean">(
  * exactly the shape a list has.
  */
 export function registerSetting(def: SettingDefinition): void;
-export function registerSetting(def: SettingDefinition): void {
+export function registerSetting(
+  def: SettingDefinitionOf<SettingType, TopicId> | SettingDefinition,
+): void {
   // The cast collapses an unresolved T to the union the host takes. Every
   // instantiation of T IS a member of that union, but TypeScript will not
   // prove it while T is still a parameter.

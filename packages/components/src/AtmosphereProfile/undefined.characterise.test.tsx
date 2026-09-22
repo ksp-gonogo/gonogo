@@ -5,7 +5,10 @@ import {
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
@@ -84,34 +87,19 @@ function emitBody(
 }
 
 describe("AtmosphereProfile: what undefined means today", () => {
+  let restoreResizeObserver: () => void = () => {};
   beforeEach(() => {
     clearBodies();
     registerStockBodies();
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
   });
 
   afterEach(() => {
     clearBodies();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 

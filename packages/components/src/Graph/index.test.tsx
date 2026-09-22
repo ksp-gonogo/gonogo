@@ -2,6 +2,7 @@ import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GraphComponent } from "./index";
 
@@ -15,32 +16,16 @@ import { GraphComponent } from "./index";
  * from the topic-field catalog), is in `stream.test.tsx` beside it.
  */
 describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
+  let restoreResizeObserver: () => void = () => {};
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
   beforeEach(async () => {
     clearRegistry();
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
     source = new MockDataSource({
       keys: [
         { key: "v.name" },
@@ -56,6 +41,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   afterEach(() => {
     buffered.disconnect();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 

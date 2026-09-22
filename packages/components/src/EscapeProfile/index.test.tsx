@@ -5,6 +5,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
@@ -63,34 +64,19 @@ function emitBody(
 }
 
 describe("EscapeProfileComponent", () => {
+  let restoreResizeObserver: () => void = () => {};
   beforeEach(() => {
     clearBodies();
     registerStockBodies();
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
   });
 
   afterEach(() => {
     clearBodies();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 
