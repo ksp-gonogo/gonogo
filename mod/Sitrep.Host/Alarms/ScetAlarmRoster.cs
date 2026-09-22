@@ -32,6 +32,45 @@ namespace Sitrep.Host.Alarms
     }
 
     /// <summary>
+    /// One tick in progress, between <see cref="ScetAlarmRoster.BeginTick"/> and
+    /// <see cref="ScetAlarmRoster.EndTick"/>.
+    ///
+    /// <para>It exists because a tick is evaluated in more than one PASS, on more
+    /// than one thread: the entries read off the simulation's own state are
+    /// evaluated on the Unity main thread, the rest off the archive on the
+    /// Courier. What is genuinely once-per-tick, the rewind clear and the
+    /// off-tick change flag, happens in <c>BeginTick</c> and is carried here, so
+    /// a second pass cannot do it again.</para>
+    /// </summary>
+    public sealed class ScetAlarmTickState
+    {
+        internal readonly double NowUt;
+
+        /// <summary>
+        /// Whether a pass may read anything at all. A non-finite clock and a
+        /// rewind both END the tick where they are found: there is nothing to
+        /// evaluate against a clock that is not a number, and everything held
+        /// across a rewind was armed in a timeline that no longer exists.
+        /// </summary>
+        internal readonly bool Live;
+
+        internal readonly ScetAlarmTick Tick;
+
+        internal ScetAlarmTickState(double nowUt, bool live, ScetAlarmTick tick)
+        {
+            NowUt = nowUt;
+            Live = live;
+            Tick = tick;
+        }
+
+        /// <summary>
+        /// Whether anything has asked for the warp to stop so far this tick.
+        /// Read between passes, by the one that holds the actuator.
+        /// </summary>
+        public bool StopWarp => Tick.StopWarp;
+    }
+
+    /// <summary>
     /// The armed set of SCET alarms and the decision of when each comes due.
     /// KSP-free, clock-free and reading-free: it is told the universal time and
     /// told what the craft's instruments say, and answers what should happen, so
@@ -201,42 +240,85 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// Advance to <paramref name="nowUt"/> and say what is due, reading any
-        /// threshold conditions through <paramref name="state"/>.
+        /// Advance to <paramref name="nowUt"/> and say what is due, reading EVERY
+        /// threshold condition through the one reader <paramref name="state"/>.
         ///
-        /// <para>A universal time that has gone BACKWARDS is a quickload or a
-        /// revert, and everything held was armed in the timeline that was
-        /// abandoned. The roster clears itself rather than carrying a latch
-        /// across; the empty roster it then publishes is what tells a client to
-        /// re-arm, so no separate reset message is needed.</para>
-        ///
-        /// <para><paramref name="state"/> is optional and its absence is not an
-        /// error: a tick with no snapshot to read has nothing to say about any
-        /// threshold, and a roster holding only time alarms never asks. The
-        /// posture either way is that an alarm which cannot be evaluated does
-        /// not fire.</para>
+        /// <para>The whole-roster form of <see cref="BeginTick"/>,
+        /// <see cref="EvaluatePass"/> and <see cref="EndTick"/>, for a caller
+        /// whose entries all read from the same place. A caller whose entries
+        /// read from different places, and therefore on different threads, uses
+        /// the three.</para>
         /// </summary>
         public ScetAlarmTick Evaluate(double nowUt, IScetStateReader? state = null)
         {
-            // Reported once and cleared, on whichever tick comes first: an arm is
-            // a change exactly once, and a tick that cannot evaluate at all still
-            // has to carry it, or a clock that went briefly non-finite would eat
-            // the operator's arm.
+            var tick = BeginTick(nowUt);
+            EvaluatePass(tick, null, _ => state);
+            return EndTick(tick);
+        }
+
+        /// <summary>
+        /// Open a tick at <paramref name="nowUt"/>: the once-per-tick decisions,
+        /// taken before any reading.
+        ///
+        /// <para>Two of them, and they are once-per-tick in the strong sense that
+        /// doing them twice would be wrong rather than merely wasteful. The
+        /// off-tick change flag is reported exactly once, on whichever tick comes
+        /// first, including one that cannot evaluate at all, or a clock that went
+        /// briefly non-finite would eat the operator's arm. And a clock that has
+        /// gone BACKWARDS is a quickload or a revert: everything held was armed
+        /// in the timeline that was abandoned, so the roster clears itself rather
+        /// than carrying a latch across, and the empty roster it then publishes
+        /// is what tells a client to re-arm.</para>
+        /// </summary>
+        public ScetAlarmTickState BeginTick(double nowUt)
+        {
             var tick = new ScetAlarmTick { RosterChanged = _pendingChange };
             _pendingChange = false;
 
             if (double.IsNaN(nowUt) || double.IsInfinity(nowUt))
             {
-                return tick;
+                return new ScetAlarmTickState(nowUt, live: false, tick);
             }
 
             if (_lastEvaluatedUt.HasValue && nowUt < _lastEvaluatedUt.Value - RewindToleranceSeconds)
             {
                 tick.RosterChanged |= Clear();
                 _lastEvaluatedUt = nowUt;
-                return tick;
+                return new ScetAlarmTickState(nowUt, live: false, tick);
             }
             _lastEvaluatedUt = nowUt;
+
+            return new ScetAlarmTickState(nowUt, live: true, tick);
+        }
+
+        /// <summary>
+        /// Evaluate the entries <paramref name="mine"/> accepts, reading each
+        /// through the reader <paramref name="readerFor"/> gives it. A null
+        /// <paramref name="mine"/> takes every entry.
+        ///
+        /// <para>Callable more than once per tick, and meant to be: an entry read
+        /// off the simulation's own state must be evaluated on the Unity main
+        /// thread and one read off the archive on the Courier, so the tick is
+        /// split by WHERE each alarm reads rather than by holding a roster
+        /// each. Every pass in a tick shares one <see cref="ScetAlarmTickState"/>
+        /// and therefore one universal time, which is why a time condition comes
+        /// due on the same tick at every vantage.</para>
+        ///
+        /// <para><paramref name="readerFor"/> may answer null, and its absence is
+        /// not an error: a tick with no snapshot to read has nothing to say about
+        /// any threshold, and a pass over nothing but time alarms never asks. The
+        /// posture either way is that an alarm which cannot be evaluated does not
+        /// fire.</para>
+        /// </summary>
+        public void EvaluatePass(
+            ScetAlarmTickState? state,
+            Func<ScetAlarm, bool>? mine,
+            Func<ScetAlarm, IScetStateReader?>? readerFor)
+        {
+            if (state == null || !state.Live)
+            {
+                return;
+            }
 
             foreach (var entry in _entries)
             {
@@ -249,20 +331,30 @@ namespace Sitrep.Host.Alarms
                 {
                     continue;
                 }
+                if (mine != null && !mine(entry.Alarm))
+                {
+                    continue;
+                }
 
                 switch (condition.Kind)
                 {
                     case ScetAlarmConditionKind.Time:
-                        EvaluateTime(entry, condition, nowUt, tick);
+                        EvaluateTime(entry, condition, state.NowUt, state.Tick);
                         break;
                     case ScetAlarmConditionKind.Threshold:
-                        EvaluateThreshold(entry, condition, nowUt, tick, state);
+                        EvaluateThreshold(
+                            entry,
+                            condition,
+                            state.NowUt,
+                            state.Tick,
+                            readerFor == null ? null : readerFor(entry.Alarm));
                         break;
                 }
             }
-
-            return tick;
         }
+
+        /// <summary>Close the tick and answer what it decided, over every pass.</summary>
+        public ScetAlarmTick EndTick(ScetAlarmTickState state) => state.Tick;
 
         private static void EvaluateTime(
             Entry entry, ScetAlarmCondition condition, double nowUt, ScetAlarmTick tick)

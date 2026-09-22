@@ -21,26 +21,54 @@ namespace Gonogo.KSP.Tests
     public class ScetShadowAudienceIsWiredTests
     {
         /// <summary>
-        /// The audience evaluation runs on the COURIER, and this is the one
-        /// assertion here that is about a crash rather than about a rule. The
-        /// archive it reads is the Courier's own state and nothing guards it;
+        /// The alarms that read the archive are evaluated on the COURIER, and
+        /// this is the one assertion here that is about a crash rather than about
+        /// a rule. The archive is the Courier's own state and nothing guards it;
         /// the capture runs on the Unity main thread while the Courier thread is
         /// free, so the same call from there is a data race with sample
         /// recording.
+        ///
+        /// <para>The split is by WHERE an alarm reads, so what says the capture
+        /// stayed on its own side is the predicate it passes and the reader it
+        /// builds, not which roster it reaches for.</para>
         /// </summary>
         [Fact]
-        public void the_audience_rosters_are_evaluated_on_the_courier_thread()
+        public void the_alarms_that_read_the_archive_are_evaluated_on_the_courier_thread()
         {
             var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
 
             var handle = CurrencyDelaySourceText.MethodBody(
                 uplink, "private void HandleOnCourier(object? captured)");
-            Assert.Contains("new RevealedScetStateReader(", handle, StringComparison.Ordinal);
+            Assert.Contains(
+                "alarm => !ScetAlarmVantage.IsTheSubjectsOwn(alarm)", handle, StringComparison.Ordinal);
 
             var capture = CurrencyDelaySourceText.MethodBody(
                 uplink, "private object? CaptureOnMain(KspSnapshot? snapshot)");
+            Assert.Contains(
+                "ScetAlarmVantage.IsTheSubjectsOwn", capture, StringComparison.Ordinal);
             Assert.DoesNotContain("RevealedScetStateReader", capture, StringComparison.Ordinal);
-            Assert.DoesNotContain("_commandRosters", capture, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// One roster. The per-audience dictionary held nothing an
+        /// <c>Entry</c> does not already carry, and duplicated the two things
+        /// that are once-per-tick: the rewind clear and the off-tick change flag.
+        /// </summary>
+        [Fact]
+        public void there_is_one_roster_and_the_tick_is_split_by_pass()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
+
+            Assert.DoesNotContain("_commandRosters", uplink, StringComparison.Ordinal);
+            Assert.DoesNotContain("SnapshotAll", uplink, StringComparison.Ordinal);
+
+            var capture = CurrencyDelaySourceText.MethodBody(
+                uplink, "private object? CaptureOnMain(KspSnapshot? snapshot)");
+            Assert.Contains("_roster.BeginTick(ut)", capture, StringComparison.Ordinal);
+
+            var handle = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void HandleOnCourier(object? captured)");
+            Assert.Contains("_roster.EndTick(publish.Tick)", handle, StringComparison.Ordinal);
         }
 
         /// <summary>
