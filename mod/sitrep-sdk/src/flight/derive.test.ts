@@ -15,7 +15,7 @@ describe("registerDerivedKey / getDerivedKeys", () => {
       id: "test.double",
       inputs: ["v.altitude"],
       meta: { label: "Doubled altitude", unit: "m", group: "Test" },
-      fn: ([alt]) => (alt.v as number) * 2,
+      fn: ([alt]) => (typeof alt.v === "number" ? alt.v * 2 : undefined),
     });
     const keys = getDerivedKeys();
     expect(keys).toHaveLength(1);

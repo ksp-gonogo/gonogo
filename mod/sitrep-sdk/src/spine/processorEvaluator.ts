@@ -450,6 +450,12 @@ function hasStatelessPrototypeChain(proto: object | null): boolean {
   return verdict;
 }
 
+/** `Object.getPrototypeOf`, which the standard library types as `any`. */
+function prototypeOf(value: object): object | null {
+  const proto: unknown = Object.getPrototypeOf(value);
+  return typeof proto === "object" ? proto : null;
+}
+
 /**
  * Whether `obj`'s own enumerable keys are the whole of what it carries.
  *
@@ -468,7 +474,7 @@ function hasStatelessPrototypeChain(proto: object | null): boolean {
  *   against zero keys would call every such pair equal
  */
 function readableByOwnKeys(obj: object): boolean {
-  const proto = Object.getPrototypeOf(obj) as object | null;
+  const proto = prototypeOf(obj);
   if (proto === Object.prototype || proto === null) return true;
   if (Object.prototype.toString.call(obj) !== "[object Object]") return false;
   if (!hasStatelessPrototypeChain(proto)) return false;
@@ -481,10 +487,13 @@ function describeShape(x: unknown): string {
   if (typeof x !== "object" || x === null) return typeof x;
   const tag = Object.prototype.toString.call(x);
   if (tag !== "[object Object]") return tag;
-  const name = (
-    Object.getPrototypeOf(x) as { constructor?: { name?: string } } | null
-  )?.constructor?.name;
-  return name && name !== "Object" ? `${name} instance` : "object";
+  const proto = prototypeOf(x);
+  const ctor: unknown =
+    proto === null ? undefined : Reflect.get(proto, "constructor");
+  const name: unknown = typeof ctor === "function" ? ctor.name : undefined;
+  return typeof name === "string" && name !== "Object"
+    ? `${name} instance`
+    : "object";
 }
 
 /** Set by `compareResults` alongside an `uncomparable` verdict; read straight after. */

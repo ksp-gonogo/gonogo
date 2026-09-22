@@ -26,7 +26,11 @@ import {
   type Tier,
   TS_QUALIFIER_PATTERNS,
 } from "./published-doc-reachability.allowlist";
-import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
+import {
+  ratchetBaseRef,
+  readJsonObject,
+  sourceAtRatchetBase,
+} from "./ratchetBaseRef";
 
 /**
  * Published-doc reachability: a doc comment on a published barrel's export may
@@ -175,11 +179,11 @@ function declarationIndex(): Map<string, Set<string>> {
   const pkgDirs: { dir: string; name: string }[] = [];
   for (const manifest of manifests) {
     try {
-      const json = JSON.parse(read(manifest)) as { name?: string };
-      if (json.name?.startsWith("@ksp-gonogo/")) {
+      const name = readJsonObject(join(REPO_ROOT, manifest)).name;
+      if (typeof name === "string" && name.startsWith("@ksp-gonogo/")) {
         pkgDirs.push({
           dir: manifest.replace(/package\.json$/, ""),
-          name: json.name,
+          name,
         });
       }
     } catch {

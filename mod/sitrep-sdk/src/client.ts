@@ -46,9 +46,13 @@ const SERVER_TYPES = new Set<string>(
  * bare).
  */
 export function parseServerMessage(raw: string): ServerMessage {
-  const obj = JSON.parse(raw) as { type?: unknown };
-  if (typeof obj.type !== "string" || !SERVER_TYPES.has(obj.type)) {
-    throw new Error(`unknown envelope type: ${String(obj.type)}`);
+  const obj: unknown = JSON.parse(raw);
+  const type: unknown =
+    typeof obj === "object" && obj !== null
+      ? Reflect.get(obj, "type")
+      : undefined;
+  if (typeof type !== "string" || !SERVER_TYPES.has(type)) {
+    throw new Error(`unknown envelope type: ${String(type)}`);
   }
   const message = obj as ServerMessage;
   if (message.type === "stream-data") {

@@ -79,10 +79,8 @@ function installedVersion(fromDir: string, pkg: string): string {
   for (let up = 0; up < 6; up++) {
     const manifest = join(dir, "node_modules", pkg, "package.json");
     if (existsSync(manifest)) {
-      return String(
-        (JSON.parse(readFileSync(manifest, "utf8")) as { version?: string })
-          .version ?? "",
-      );
+      const version: unknown = Reflect.get(readManifest(manifest), "version");
+      return typeof version === "string" ? version : "";
     }
     const parent = dirname(dir);
     if (parent === dir) break;
@@ -331,14 +329,10 @@ function findAuthorsPackage(
     const pkgDir = join(dir, "node_modules", scope, name);
     const manifest = join(pkgDir, "package.json");
     if (existsSync(manifest)) {
-      const exports = (
-        JSON.parse(readFileSync(manifest, "utf8")) as {
-          exports?: Record<string, string | Record<string, string>>;
-        }
-      ).exports;
-      const entry = exports?.[subpath];
-      const file =
-        typeof entry === "string" ? entry : (entry?.import ?? entry?.default);
+      const file = exportedEntryPoint(
+        Reflect.get(readManifest(manifest), "exports"),
+        subpath,
+      );
       if (!file) {
         throw new Error(
           `${pkg} at ${pkgDir} exports no "${subpath}", so this version of it ` +
@@ -408,4 +402,33 @@ export async function run(argv: readonly string[]): Promise<number> {
     console.error(`\n${err instanceof Error ? err.message : String(err)}`);
     return 1;
   }
+}
+
+/** A `package.json`'s top-level object, or a failure naming the file. */
+function readManifest(path: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${path} does not hold a JSON object.`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
+/**
+ * The file an `exports` map serves for `subpath`, reading the conditional
+ * form's `import` then `default`, or `undefined` when it serves none.
+ */
+function exportedEntryPoint(
+  exports: unknown,
+  subpath: string,
+): string | undefined {
+  if (typeof exports !== "object" || exports === null) return undefined;
+  if (!(subpath in exports)) return undefined;
+  const entry: unknown = Reflect.get(exports, subpath);
+  if (typeof entry === "string") return entry;
+  if (typeof entry !== "object" || entry === null) return undefined;
+  for (const condition of ["import", "default"]) {
+    const value: unknown = Reflect.get(entry, condition);
+    if (typeof value === "string") return value;
+  }
+  return undefined;
 }

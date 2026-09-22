@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * Delay-UX standard guard (unified-delay-ux plan, Task 8): the backstop that
@@ -97,7 +98,7 @@ function productionFilesReferencing(term: string): string[] {
       },
     );
   } catch (err) {
-    if ((err as { status?: number }).status === 1) return [];
+    if (exitStatus(err) === 1) return [];
     throw err;
   }
   return out

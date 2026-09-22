@@ -309,8 +309,8 @@ export interface GonogoHost {
 /** The single global slot the app populates at boot. */
 export const GONOGO_HOST_KEY = "__GONOGO_SDK__" as const;
 
-interface HostGlobal {
-  [GONOGO_HOST_KEY]?: GonogoHost;
+declare global {
+  var __GONOGO_SDK__: GonogoHost | undefined;
 }
 
 /**
@@ -319,7 +319,7 @@ interface HostGlobal {
  * mis-bundled Uplink fails loud at first registration rather than vanishing.
  */
 export function getHost(): GonogoHost {
-  const host = (globalThis as unknown as HostGlobal)[GONOGO_HOST_KEY];
+  const host = globalThis[GONOGO_HOST_KEY];
   if (!host) {
     throw new Error(
       "@ksp-gonogo/sitrep-sdk: the gonogo host has not been installed. " +
@@ -334,7 +334,7 @@ export function getHost(): GonogoHost {
 
 /** True when a host is installed. Lets a shim probe without throwing. */
 export function hasHost(): boolean {
-  return Boolean((globalThis as unknown as HostGlobal)[GONOGO_HOST_KEY]);
+  return Boolean(globalThis[GONOGO_HOST_KEY]);
 }
 
 /**
@@ -343,5 +343,5 @@ export function hasHost(): boolean {
  * both use. Not part of the author-facing barrel.
  */
 export function __setGonogoHost(host: GonogoHost | undefined): void {
-  (globalThis as unknown as HostGlobal)[GONOGO_HOST_KEY] = host;
+  globalThis[GONOGO_HOST_KEY] = host;
 }
