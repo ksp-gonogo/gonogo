@@ -72,28 +72,68 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// An audience verdict stops nothing. Warp is a property of the
-        /// simulation, and what one command centre has been told is not a fact
-        /// about the simulation: halting the game on a light-time-old reading
-        /// would stop it for everybody, for an event that already happened, on
-        /// one vantage's say-so.
+        /// EVERY alarm stops the warp, wherever it is read. The vantage decides
+        /// WHEN, never WHETHER, so the pass that reads the archive commands the
+        /// stop for what it decided just as the capture does for its own.
+        ///
+        /// <para>Both halves, because the two would otherwise drift apart: this
+        /// used to assert the opposite for the handle, and a stop moved one call
+        /// deep would have kept that passing while the rule inverted underneath
+        /// it.</para>
         /// </summary>
         [Fact]
-        public void an_audience_verdict_never_touches_the_warp()
+        public void every_vantage_stops_the_warp_from_the_thread_that_decided_it()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
+
+            var handle = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void HandleOnCourier(object? captured)");
+            Assert.Contains("StopWarpFromHandle(", handle, StringComparison.Ordinal);
+
+            var capture = CurrencyDelaySourceText.MethodBody(
+                uplink, "private object? CaptureOnMain(KspSnapshot? snapshot)");
+            Assert.Contains("_actuator.SetWarp(0)", capture, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The handle's stop is MARSHALLED and waited on, never left for the next
+        /// capture. <c>TimeWarp.SetRate</c> is main-thread only, and a capture
+        /// away is one snapshot cadence, which under warp is thousands of seconds
+        /// of the precision the alarm was armed for.
+        /// </summary>
+        [Fact]
+        public void the_handles_stop_crosses_a_thread_and_not_a_tick()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
+            var stop = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void StopWarpFromHandle(double ut)");
+
+            Assert.Contains("run(() => _actuator.SetWarp(0))", stop, StringComparison.Ordinal);
+            Assert.Contains("WarpStopBudget.Record(", stop, StringComparison.Ordinal);
+
+            var addon = CurrencyDelaySourceText.ReadRelative("GonogoAddon.cs");
+            Assert.Contains(
+                "engine.RunOnMainThreadAndWait(action)", addon, StringComparison.Ordinal);
+            Assert.Contains(
+                "ScetAlarmUplink.ConfigureMainThreadRunner(null)",
+                CurrencyDelaySourceText.MethodBody(addon, "private void Shutdown()"),
+                StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// One stop per alarm, however many threads decide. The tick carries ONE
+        /// <c>StopWarp</c> flag for every pass, so the handle has to subtract what
+        /// the capture already acted on or a single alarm commands the warp twice.
+        /// </summary>
+        [Fact]
+        public void the_handle_does_not_repeat_the_captures_stop()
         {
             var uplink = CurrencyDelaySourceText.ReadRelative("ScetAlarmUplink.cs");
             var handle = CurrencyDelaySourceText.MethodBody(
                 uplink, "private void HandleOnCourier(object? captured)");
 
-            Assert.DoesNotContain("SetWarp", handle, StringComparison.Ordinal);
-            Assert.DoesNotContain("WarpStopBudget", handle, StringComparison.Ordinal);
-
-            // And the simulation's own verdict still does, so this is a check on
-            // WHICH roster commands the warp rather than on the feature having
-            // been removed.
-            var capture = CurrencyDelaySourceText.MethodBody(
-                uplink, "private object? CaptureOnMain(KspSnapshot? snapshot)");
-            Assert.Contains("_actuator.SetWarp(0)", capture, StringComparison.Ordinal);
+            Assert.Contains(
+                "tick.StopWarp && !publish.StoppedOnCapture", handle, StringComparison.Ordinal);
         }
 
         /// <summary>

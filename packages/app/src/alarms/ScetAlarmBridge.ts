@@ -140,6 +140,27 @@ export class ScetAlarmBridge {
   }
 
   /**
+   * Whether the MOD holds this alarm, and therefore whether it will stop the
+   * warp when the alarm comes due.
+   *
+   * The mod's own statement rather than this side's inference, which is what
+   * makes it safe to suppress a client warp command on. The two are not the
+   * same set: a command-vantage TIME alarm and a threshold whose key has no
+   * Topic behind it are both a kind the mod evaluates and neither is ever
+   * armed, so a rule reading the trigger would strip their stop and leave them
+   * stopping nothing. An arm the mod REFUSED is absent here too, which an
+   * inference could not know.
+   *
+   * False before the first roster frame, so the client keeps its own stop until
+   * told otherwise: the cost of being wrong that way is one redundant command
+   * against warp already at zero, and the cost of being wrong the other way is
+   * an alarm that halts nothing.
+   */
+  holdsAlarm(id: string): boolean {
+    return this.rosterIds.includes(id);
+  }
+
+  /**
    * Push the mod's roster towards the client's list.
    *
    * Called on every roster frame and after any change to the alarm list. Does

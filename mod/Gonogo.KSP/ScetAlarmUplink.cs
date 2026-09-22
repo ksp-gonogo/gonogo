@@ -180,6 +180,20 @@ namespace Gonogo.KSP
         public static void ConfigureSelectableVantage(Func<string, bool?>? selectable) =>
             _selectableVantage = selectable;
 
+        /// <summary>
+        /// How the handle reaches the Unity main thread, or null on an install
+        /// where nothing wired it. See <see cref="StopWarpFromHandle"/>.
+        /// </summary>
+        private static Action<Action>? _runOnMainThread;
+
+        /// <summary>
+        /// Point the handle's warp stop at an engine's main-thread pump; pass
+        /// null to take it away again, which a test doing so must, because this
+        /// outlives any one engine.
+        /// </summary>
+        public static void ConfigureMainThreadRunner(Action<Action>? run) =>
+            _runOnMainThread = run;
+
         private readonly IVesselActuator _actuator;
 
         private IUplinkHost? _host;
@@ -470,6 +484,7 @@ namespace Gonogo.KSP
                     Ut = ut,
                     HasAudience = hasAudience,
                     Tick = tick,
+                    StoppedOnCapture = stopWarp,
                 };
             }
             catch (Exception ex)
@@ -488,16 +503,20 @@ namespace Gonogo.KSP
         /// it reads is the Courier's own state and nothing guards it (see
         /// <c>ChannelEngine.ReadTopicAtVantage</c>). The subject-vantage pass
         /// stays in the capture for the opposite reason: it reads the tick's
-        /// snapshot and commands the warp, and both belong on the main
-        /// thread.</para>
+        /// snapshot, and a snapshot is a main-thread thing.</para>
         ///
-        /// <para><b>An audience verdict stops nothing.</b> The closed tick's
-        /// <see cref="ScetAlarmTick.StopWarp"/> is read and discarded, on
-        /// purpose and not by omission: warp is a property of the simulation,
-        /// and what one command centre has been told is not a fact about the
-        /// simulation. Halting the game because a light-time-old reading crossed
-        /// a number would stop it for an event that already happened, for
-        /// everybody, on one vantage's say-so.</para>
+        /// <para><b>Every alarm stops the warp, wherever it is read.</b> The
+        /// vantage decides WHEN, never WHETHER: an alarm at a command centre
+        /// comes due when that place learns of the match, and the game halts on
+        /// that tick. The reading stays where it was, so nothing about the craft
+        /// travels early; what crosses is a stop, and a stop is not a
+        /// reading.</para>
+        ///
+        /// <para>The stop this pass decides is issued from HERE rather than
+        /// handed to the next capture, through
+        /// <see cref="StopWarpFromHandle"/>. A capture away is one snapshot
+        /// cadence, and under warp that is thousands of seconds of the very
+        /// precision the alarm was armed for.</para>
         /// </summary>
         private void HandleOnCourier(object? captured)
         {
@@ -518,7 +537,6 @@ namespace Gonogo.KSP
                         alarm => !ScetAlarmVantage.IsTheSubjectsOwn(alarm),
                         alarm => ReaderAt(ScetAlarmVantage.Of(alarm), read, publish.Ut, readers));
                     tick = _roster.EndTick(publish.Tick);
-                    // tick.StopWarp deliberately unread: see the doc comment.
 
                     var publishing = _audience.ShouldPublish(publish.HasAudience, tick.RosterChanged);
                     if (tick.RosterChanged || publishing)
@@ -536,6 +554,15 @@ namespace Gonogo.KSP
                     }
                 }
 
+                // The stop for whatever this pass decided, and ONLY this pass:
+                // the capture already acted on its own and the tick carries one
+                // flag for both, so re-reading it here without the subtraction
+                // would command the warp twice for one alarm.
+                if (tick.StopWarp && !publish.StoppedOnCapture)
+                {
+                    StopWarpFromHandle(publish.Ut);
+                }
+
                 if (roster != null)
                 {
                     _rosterPublisher?.Publish(roster, publish.Ut);
@@ -549,6 +576,32 @@ namespace Gonogo.KSP
             {
                 Debug.LogError("[Gonogo] SCET alarm publish failed: " + ex);
             }
+        }
+
+        /// <summary>
+        /// Stop the warp for an alarm the HANDLE decided, from the Courier.
+        ///
+        /// <para>Marshalled and WAITED ON rather than left for the next capture.
+        /// <c>TimeWarp.SetRate</c> is legal only on the Unity main thread, and
+        /// deferring to the next capture would cost one snapshot cadence, which
+        /// under warp is thousands of seconds of game time: the precision the
+        /// whole arm exists to buy. Parking the Courier for one frame is the
+        /// cheaper side of that.</para>
+        ///
+        /// <para>An install with nothing wired stops nothing, which is the same
+        /// posture the revealed read and the vantage check take: every headless
+        /// test that builds this uplink directly has no engine to marshal
+        /// through.</para>
+        /// </summary>
+        private void StopWarpFromHandle(double ut)
+        {
+            var run = _runOnMainThread;
+            if (run == null)
+            {
+                return;
+            }
+            WarpStopBudget.Record(1, ut);
+            run(() => _actuator.SetWarp(0));
         }
 
         /// <summary>
@@ -587,6 +640,14 @@ namespace Gonogo.KSP
             /// evaluate against one universal time and one rewind decision.
             /// </summary>
             public ScetAlarmTickState? Tick;
+
+            /// <summary>
+            /// Whether the capture already commanded the stop for its own pass.
+            /// The tick carries ONE flag for every pass, so without this the
+            /// handle cannot tell an alarm it decided itself from one the capture
+            /// has already acted on, and one alarm would stop the warp twice.
+            /// </summary>
+            public bool StoppedOnCapture;
         }
     }
 }

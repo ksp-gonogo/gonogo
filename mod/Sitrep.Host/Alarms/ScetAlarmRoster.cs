@@ -97,8 +97,8 @@ namespace Sitrep.Host.Alarms
     ///
     /// <para><b>What is decided here never reaches the wire.</b> The notice
     /// carries an id and an instant. The reading that caused it does not: the
-    /// stop crosses light-time because warp is a property of the simulation, and
-    /// the telemetry stays where it was.</para>
+    /// warp stops where the alarm came due, and the telemetry stays where it
+    /// was.</para>
     /// </summary>
     public sealed class ScetAlarmRoster
     {

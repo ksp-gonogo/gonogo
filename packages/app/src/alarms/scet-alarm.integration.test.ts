@@ -969,6 +969,89 @@ describe("SCET alarms", () => {
   });
 
   /**
+   * WHO stops the warp, and the answer is the mod's roster rather than the
+   * trigger's kind.
+   *
+   * The ruling is that the warp stops because the alarm came due on the back
+   * end, never because the client saw a notice and sent a command back. So for
+   * an alarm the mod HOLDS this side issues none. But "the mod evaluates time
+   * and threshold" is not the same set as "the mod holds this alarm": a
+   * command-vantage TIME alarm is a kind the mod evaluates and is deliberately
+   * never armed there, so a rule reading the kind would take its stop away and
+   * give it nothing. The second case is the one that would have caught that.
+   */
+  describe("who stops the warp", () => {
+    it("issues no warp command for an alarm the mod holds", async () => {
+      const session = startSession(0);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => 0,
+      });
+
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.altitudeAsl",
+          op: ">",
+          value: 100_000,
+          sustainSeconds: 0,
+          vantage: "scet",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+        },
+      });
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([alarm.id]);
+
+      session.setReading(101_000);
+      await run(session, UT_START + 8 * DT);
+      svc.dispose();
+
+      // The mod stopped it, on the tick it decided. Nothing came back the other
+      // way: a command from here would be the round trip the arm removes, and
+      // it would arrive after the fact.
+      expect(session.gameIndex()).toBe(0);
+      expect(session.warpDispatchedAt).toEqual([]);
+    });
+
+    it("keeps its own warp command for an alarm the mod does not hold", async () => {
+      const session = startSession(0);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => 0,
+      });
+
+      // A TIME alarm at a command vantage. The bridge never arms one, on
+      // purpose: read on the mod it would come due at the SCET instant, which
+      // is a different alarm rather than a second opinion on this one.
+      svc.addAlarm({
+        name: "Burn",
+        trigger: {
+          kind: "time",
+          ut: UT_START + 3 * DT,
+          leadSeconds: 0,
+          vantage: "command",
+        },
+      });
+      await run(session, UT_START + 6 * DT);
+      svc.dispose();
+
+      // Nothing to hold it, so this side is still the only thing that can stop
+      // the warp for it, and does.
+      expect(session.armed()).toEqual([]);
+      expect(session.warpDispatchedAt.length).toBeGreaterThan(0);
+      expect(session.gameIndex()).toBe(0);
+    });
+  });
+
+  /**
    * The shadow arm. A COMMAND-vantage threshold is still this side's to
    * evaluate; it is also sent to the mod, naming the place this screen commands
    * from, so the same alarm gets a second verdict that can be compared.

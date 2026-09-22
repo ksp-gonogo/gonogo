@@ -4101,6 +4101,36 @@ namespace Sitrep.Host
         /// independently of (and does not block on) the Courier thread, so it
         /// keeps draining this queue while the Courier waits.
         /// </summary>
+        /// <summary>
+        /// Run <paramref name="action"/> on the Unity main thread and wait for
+        /// it, for a Courier-side decision whose EFFECT is a scene call.
+        ///
+        /// <para>The wait is the point. A decision reached on the Courier that
+        /// was queued for the next capture would land one snapshot cadence late,
+        /// and under warp a cadence is thousands of seconds of game time, which
+        /// is the precision the decision was made for. Parking the Courier for
+        /// one frame is the cheaper side of that trade, and it is what
+        /// <see cref="PlanForVantage"/> already does.</para>
+        ///
+        /// <para>Swallows nothing: a throw from the main thread comes back here,
+        /// and a shutdown in flight raises rather than blocking until the
+        /// timeout. Callers on the Courier are already inside a fail-soft.</para>
+        /// </summary>
+        public void RunOnMainThreadAndWait(Action action)
+        {
+            if (action == null)
+            {
+                return;
+            }
+            RunOnMainThread(
+                _ =>
+                {
+                    action();
+                    return null;
+                },
+                null);
+        }
+
         private object? RunOnMainThread(Func<object?, object?> handler, object? args)
         {
             // F2-fix (shutdown gate): once Stop() has begun, the main-thread
