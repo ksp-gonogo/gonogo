@@ -37,6 +37,7 @@ const SHEETS = [
   { id: "ruler", height: 1400 },
   { id: "sizes", height: 520 },
   { id: "dates", height: 520 },
+  { id: "countdowns", height: 760 },
 ] as const;
 
 interface TableMeasurement {
