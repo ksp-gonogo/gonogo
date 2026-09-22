@@ -55,7 +55,7 @@ import type {
 import {
   DEFAULT_LEAD_SECONDS,
   DEFAULT_SUSTAIN_SECONDS,
-  isScetTrigger,
+  isAtSubjectVantage,
 } from "./types";
 
 /**
@@ -290,11 +290,12 @@ export function AlarmsModal({
       // in quick succession (the modal re-renders on snapshot updates,
       // but a click handler closes over its render-time snapshot).
       const liveUt = snapshotRef.current.ut ?? 0;
-      /* "In n seconds" is n seconds of the operator's waiting, on the clock
-         they are reading. No vantage rides along: a UT is the same instant
-         wherever it is watched from, so the trigger carries the instant and
-         nothing about a place. */
-      const ut = liveUt + offsetN;
+      /* "In n seconds" is n seconds of the operator's WAITING, and the instant
+         that lands on is the game's own universal time, which is what compares
+         against it. `liveUt` is the view clock, one light-time behind, so the
+         light-time is added back: without it the game reaches the instant a
+         whole light-time before the operator finishes waiting for it. */
+      const ut = liveUt + timeContexts.owltSeconds + offsetN;
       const lead = Number.parseFloat(leadSeconds);
       trigger = {
         kind: "time",
@@ -651,7 +652,7 @@ export function AlarmsModal({
                             no instant to qualify until it fires, so without
                             this the row would not say which clock decides it. */}
                         {a.trigger.kind === "threshold" &&
-                          isScetTrigger(a.trigger) && (
+                          isAtSubjectVantage(a.trigger) && (
                             <Badge severity="info" size="sm">
                               SCET
                             </Badge>
@@ -789,25 +790,6 @@ interface PresetSpec {
 }
 
 /**
- * The view-clock instant an alarm must hold to fire AT the event, from the
- * event's SCET.
- *
- * The alarm pipeline ticks on the view clock (`AlarmHostService` reads
- * `getViewUt`), which runs one light-time behind the craft. So an alarm
- * holding a SCET fires one light-time AFTER the thing happened: a "warp to
- * apoapsis" alarm at Duna went off four to twenty minutes past apoapsis, and
- * nothing in the UI or the type system noticed. Subtracting the light-time
- * puts the alarm where the operator asked for it, at the cost of firing
- * BEFORE they can see the event, which is the whole point of a warp target:
- * you want to arrive with the event still ahead of you.
- *
- * At `owlt` 0 this is the identity, so a LAN session is untouched.
- */
-function presetTriggerUt(scetUt: number, owltSeconds: number): number {
-  return scetUt - owltSeconds;
-}
-
-/**
  * Quick-alarm presets backed only by telemetry the app already subscribes to
  * (`vessel.state.timeToAp` / `timeToPe`, `vessel.maneuver`). Each preset
  * appears only when its data is live and still yields a future trigger;
@@ -897,7 +879,7 @@ function RecommendedPresets({
     if (liveUt === null) return;
     const scetUt = preset.computeScet(liveUt);
     if (scetUt === null || !Number.isFinite(scetUt)) return;
-    const ut = presetTriggerUt(scetUt, owltSeconds);
+    const ut = scetUt;
     if (ut <= liveUt) return;
     onAdd({
       name: preset.alarmName,
@@ -922,7 +904,7 @@ function RecommendedPresets({
       : presets.flatMap((p) => {
           const scetUt = p.computeScet(utNow);
           if (scetUt === null || !Number.isFinite(scetUt)) return [];
-          const ut = presetTriggerUt(scetUt, owltSeconds);
+          const ut = scetUt;
           if (ut <= utNow) return [];
           return [{ preset: p, scetUt, ut }];
         });
@@ -985,21 +967,15 @@ function describeTrigger(
   contexts: TimeContexts,
 ): React.ReactNode {
   if (a.trigger.kind === "time") {
-    const scet = a.trigger.vantage === "scet";
-    /* A SCET instant is on the craft's clock and `utNow` is on the view clock,
-       so the countdown has to cross the gap between them or it reads a whole
-       light-time long. The qualifier beside it says which clock the INSTANT is
-       on; this is the same fact applied to the interval. */
-    const triggerOnViewClock = scet
-      ? a.trigger.ut - contexts.owltSeconds
-      : a.trigger.ut;
+    /* The instant is the game's own universal time and `utNow` is the view
+       clock, one light-time behind, so the countdown crosses the gap or it
+       reads a whole light-time long. The qualifier beside it says which clock
+       the INSTANT is on; this is the same fact applied to the interval. */
+    const triggerOnViewClock = a.trigger.ut - contexts.owltSeconds;
     const delta = utNow !== null ? triggerOnViewClock - utNow : null;
     return (
       <>
-        <MissionDate
-          value={a.trigger.ut}
-          context={scet ? contexts.scet : contexts.received}
-        />
+        <MissionDate value={a.trigger.ut} context={contexts.scet} />
         {delta !== null && (
           <>
             {" · "}

@@ -29,10 +29,10 @@ import {
   type AlarmSnapshot,
   type AlarmTrigger,
   DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
-  isScetTrigger,
   MAX_WARP_SAFETY_MARGIN_SECONDS,
   MIN_WARP_SAFETY_MARGIN_SECONDS,
   migrateAlarm,
+  modOwnsLatch,
 } from "./types";
 import { WarpControl } from "./WarpControl";
 import { WarpObserver } from "./WarpObserver";
@@ -48,11 +48,11 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
     trigger.kind === "threshold" ||
     trigger.kind === "contract-parameter" ||
     trigger.kind === "event" ||
-    // A SCET time alarm is latched from OUTSIDE, by the mod's fire notice, the
+    // A mod-owned time alarm is latched from OUTSIDE, by the fire notice, the
     // same way an event alarm is latched by an occurrence. The client's own
     // clock never decides it, so it needs the latch field a plain time alarm
     // does not.
-    isScetTrigger(trigger)
+    modOwnsLatch(trigger)
   );
 }
 
@@ -213,6 +213,8 @@ export class AlarmHostService {
     this.stateMachine = new AlarmStateMachine(
       () => this.observedUT,
       opts.getRevealedEvents,
+      undefined,
+      (alarm) => this.scetArmRefusals.has(alarm.id),
     );
     this.warpPlanner = new AlarmWarpPlanner(
       () => this.alarms,
@@ -528,7 +530,7 @@ export class AlarmHostService {
    */
   private onScetFired(id: string, firedAtUt: number): void {
     const alarm = this.alarms.find((a) => a.id === id);
-    if (!alarm || !isScetTrigger(alarm.trigger)) return;
+    if (!alarm || !modOwnsLatch(alarm.trigger)) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) return;
     // The reveal UT, which is this client's own now: the banner window runs on
     // the clock the operator is watching, while the instant it NAMES is the
@@ -601,7 +603,7 @@ export class AlarmHostService {
    * here.
    */
   private compareShadowAtClientFire(alarm: Alarm): void {
-    if (isScetTrigger(alarm.trigger)) return;
+    if (modOwnsLatch(alarm.trigger)) return;
     const verdict = this.shadowVerdicts.get(alarm.id);
     if (!verdict) {
       logger.warn("alarm-shadow: client fired, mod has not", {

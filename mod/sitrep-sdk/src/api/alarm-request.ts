@@ -26,15 +26,17 @@ import { getHost } from "./host";
 import type { UplinkClientHandle } from "./types";
 
 /**
- * Which clock the alarm's condition is judged on.
+ * Which clock a THRESHOLD's condition is judged on.
  *
  * - `"command"`: the operator's own view, one light-time behind the craft. The
  *   app evaluates it, the way every alarm always has
- * - `"scet"`: the craft's own clock. The simulation evaluates it and stops the
- *   warp for everybody when it comes due, which is the only way to be right
- *   about a condition on a delayed craft
+ * - `"scet"`: the craft's own clock. The simulation evaluates it, and the warp
+ *   stops on the tick that clock reaches the condition
  *
  * Absent means `"command"`.
+ *
+ * A time alarm takes no vantage. Its instant is a universal time, every clock
+ * agrees on one, and there is nothing for a choice to select between.
  *
  * A `"scet"` threshold can be refused: what the simulation is able to read
  * pre-reveal is a table inside the mod, and it is not published anywhere a
@@ -54,8 +56,6 @@ export interface UplinkAlarmTimeTrigger {
    * own default when omitted.
    */
   leadSeconds?: number;
-  /** See {@link UplinkAlarmVantage}. */
-  vantage?: UplinkAlarmVantage;
 }
 
 /** The comparison a threshold makes. */

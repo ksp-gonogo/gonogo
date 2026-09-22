@@ -263,46 +263,69 @@ describe("AlarmHostService", () => {
     expect(snap.alarms[0].state).toBe("pending");
   });
 
-  it("transitions pending → arming and commands warp to 0 within the lead window", async () => {
+  /**
+   * A time alarm is the MOD's, whatever vantage it was saved with: its instant
+   * is a universal time and every clock agrees on one, so there is no second
+   * opinion for this side to hold.
+   *
+   * What this replaces is three cases that drove the client's own time
+   * evaluator: the lead window, the warp step that jumps both instants, and
+   * the two-second firing window. Those behaviours did not go away, they moved:
+   * `Sitrep.Host.Alarms.ScetAlarmRoster.EvaluateTime` decides all three now,
+   * against the game's own clock, and `ScetAlarmRosterTests` asserts them
+   * there. Keeping a copy here would have been a second implementation drifting
+   * from the one that actually decides.
+   */
+  /**
+   * The other half of the warp rule, and it lives here rather than beside its
+   * twin in the integration suite for a fixture reason worth stating: that
+   * fixture emits only `vessel.identity`, so an alarm this side evaluates has
+   * nothing to read and can never come due there.
+   *
+   * The alarm is a THRESHOLD with no Topic address: a key from a live
+   * DataSource rather than from the contract's field catalogue. The mod cannot
+   * be armed with one, so nothing there will stop the warp and this side must
+   * still do it. A rule reading the KIND rather than what the mod holds would
+   * have taken that away.
+   */
+  it("still commands the warp for an alarm the mod cannot hold", async () => {
+    const { svc, telemetry } = makeService();
+    svc.addAlarm({
+      name: "Tank",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.state.altitudeAsl",
+        op: ">=",
+        value: 70_000,
+        sustainSeconds: 0,
+      },
+    });
+    telemetry.set("t.currentRateIndex", 4);
+    telemetry.set("t.currentRate", 50);
+    telemetry.calls.length = 0;
+
+    telemetry.set("vessel.state.altitudeAsl", 70_500);
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(svc.snapshot().alarms[0].state).toBe("firing");
+    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
+  });
+
+  it("leaves a time alarm alone, because the mod decides when it comes due", async () => {
     const { svc, telemetry } = makeService();
     svc.addAlarm({
       name: "Burn",
       trigger: { kind: "time", ut: 1005, leadSeconds: 10 },
     });
-    // Simulate warp at 50× so the host has something to drop.
+    // Warping at 50x, so a client that still evaluated this would have
+    // something to drop and would be seen dropping it.
     telemetry.set("t.currentRateIndex", 4);
     telemetry.set("t.currentRate", 50);
-    await vi.advanceTimersByTimeAsync(1100);
-    expect(svc.snapshot().alarms[0].state).toBe("arming");
-    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
-  });
-
-  it("fires a time alarm whose moment the warp step JUMPED CLEAN OVER", async () => {
-    /*
-     * The host ticks at 1 Hz while `viewUt` advances at the warp rate, so one
-     * tick moves the clock by ~W seconds. `deriveState`'s firing window is a
-     * 2-second CONTAINMENT test (`now >= ut && now - ut < 2`), and the host
-     * only fires on the TRANSITION into `firing`. Above ~1000x neither the
-     * arming window nor the firing window is ever observed: the alarm goes
-     * straight to `fired`, and nothing notifies, nothing broadcasts, no
-     * `onFire` action group runs and warp is never stepped down.
-     */
-    const { svc, telemetry } = makeService();
-    telemetry.set("t.universalTime", 1000);
-    telemetry.set("t.currentRateIndex", 7);
-    telemetry.set("t.currentRate", 10000);
-    svc.addAlarm({
-      name: "Burn",
-      trigger: { kind: "time", ut: 1500, leadSeconds: 10 },
-    });
-    telemetry.calls.length = 0;
-
-    // One tick at 10,000x: the clock lands far past both windows.
-    telemetry.set("t.universalTime", 11000);
+    telemetry.set("t.universalTime", 1006);
     await vi.advanceTimersByTimeAsync(1100);
 
-    expect(svc.snapshot().alarms[0].state).toBe("firing");
-    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
+    expect(svc.snapshot().alarms[0].state).toBe("pending");
+    expect(telemetry.calls).not.toContain("time.setWarpIndex[0]");
   });
 
   it("flags unscheduled warp when none is set and the user didn't announce intent", async () => {
@@ -891,12 +914,13 @@ describe("AlarmHostService", () => {
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
 
-      // Cross into the lead window → alarm transitions to arming, warp-to
-      // hands control back to the alarm system's stepWarpDown.
-      telemetry.set("t.universalTime", 10_995);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().warpTo).toBeNull();
-      expect(svc.snapshot().alarms[0].state).toBe("arming");
+      /* The ladder is what this case is about and it ends here. The HAND-BACK
+         used to be asserted below it, via the alarm transitioning to `arming`,
+         and that is no longer a thing this side does: a time alarm is the mod's,
+         so the mod steps the warp down and `WarpControl.reconcile` ends the
+         session on the stop it observes. Asserting that needs a reading that
+         arrives AFTER the last ladder command, which this fixture cannot
+         currently express. */
     });
 
     it("retargets to a sooner alarm added mid-session", async () => {
@@ -1353,11 +1377,21 @@ describe("AlarmHostService", () => {
 
     it("broadcasts alarm-snapshot on every emit and alarm-fired when an alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
+      /* A THRESHOLD, not a time alarm. A time alarm is the mod's to latch
+         now, so this side never derives a state for one and it cannot be
+         the cheapest thing that fires any more. What this case is about is
+         unchanged; only the kind it reaches for had to move. */
       svc.addAlarm({
         name: "Apoapsis",
-        trigger: { kind: "time", ut: 1000, leadSeconds: 1 },
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.state.altitudeAsl",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
       });
-      telemetry.set("t.universalTime", 1001);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       await vi.advanceTimersByTimeAsync(1100);
       const types = captured.broadcasts.map(
         (m) => (m as { type: string }).type,
@@ -1368,13 +1402,23 @@ describe("AlarmHostService", () => {
 
     it("removes a fired alarm when a peer station acknowledges it", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
+      /* A THRESHOLD, not a time alarm. A time alarm is the mod's to latch
+         now, so this side never derives a state for one and it cannot be
+         the cheapest thing that fires any more. What this case is about is
+         unchanged; only the kind it reaches for had to move. */
       const a = svc.addAlarm({
         name: "Apoapsis",
-        trigger: { kind: "time", ut: 1000, leadSeconds: 1 },
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.state.altitudeAsl",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
       });
-      // Drive the state machine through arming → firing → fired so the
-      // alarm is in the only state acknowledgeAlarm accepts.
-      telemetry.set("t.universalTime", 1001);
+      // Drive the state machine through firing → fired so the alarm is in the
+      // only state acknowledgeAlarm accepts.
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       await vi.advanceTimersByTimeAsync(1100);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
@@ -1456,17 +1500,27 @@ describe("AlarmHostService", () => {
   });
 
   describe("time alarm firing→fired window", () => {
-    it("transitions firing within 2s of UT and to fired thereafter", async () => {
+    it("transitions firing within 2s of the match and to fired thereafter", async () => {
       const { svc, telemetry } = makeService();
+      /* A THRESHOLD, not a time alarm. The two-second banner window belongs to
+         the state machine rather than to any one kind, and a time alarm is the
+         mod's to latch now, so this side derives no state for one. */
       svc.addAlarm({
         name: "Burn",
-        trigger: { kind: "time", ut: 1500, leadSeconds: 5 },
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.state.altitudeAsl",
+          op: ">=",
+          value: 70_000,
+          sustainSeconds: 0,
+        },
       });
-      // Cross UT: within the 2s firing window.
+      // Cross the threshold: within the 2s firing window.
       telemetry.set("t.universalTime", 1500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
-      // Still within the window at UT-pass +1s.
+      // Still within the window a second later.
       telemetry.set("t.universalTime", 1501);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");

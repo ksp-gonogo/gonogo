@@ -40,35 +40,67 @@ export interface TimeTrigger {
    * waste when timing isn't critical.
    */
   leadSeconds: number;
-  /**
-   * Which clock {@link ut} is on. See {@link AlarmVantage}.
-   *
-   * A SCET time alarm is not a nicety a client could fake by subtracting the
-   * light-time itself. It would have to subtract it ONCE, when the operator set
-   * the alarm, and the craft's light-time keeps moving: an alarm armed ten
-   * minutes before a Duna apoapsis fires wrong by however far the geometry
-   * drifted in those ten minutes. Armed on the mod it is right by construction,
-   * because the comparison runs against the game's own clock every tick.
-   */
-  vantage?: AlarmVantage;
 }
 
 /**
- * Whether this trigger is armed on the craft's clock, and therefore owned by
- * the mod rather than by the client's own tick.
+ * Whether this trigger is read at its own subject's vantage: the craft's own
+ * clock and the craft's own state, upstream of the reveal gate.
  *
- * Both arms that can carry a vantage answer here, and every caller that skips
- * client-side evaluation asks this rather than the trigger's kind: what the
- * client must not do is the same for a time arm and a threshold one, because
- * the reason is the same. The mod compares against the craft's true state
- * upstream of the reveal gate, and the client holds only readings a light-time
- * old.
+ * Only the two arms that can carry a vantage can answer, and the question is
+ * about WHERE the condition is compared, nothing else. It is not
+ * {@link modOwnsLatch}: that asks who writes the latch, and the two coincided
+ * until the mod began evaluating alarms at places other than their subject.
  */
-export function isScetTrigger(trigger: AlarmTrigger): boolean {
-  return (
-    (trigger.kind === "time" || trigger.kind === "threshold") &&
-    trigger.vantage === "scet"
-  );
+export function isAtSubjectVantage(trigger: AlarmTrigger): boolean {
+  // A time alarm names no craft and no place. A universal time is the same
+  // instant wherever it is watched from, so it is always read at its own
+  // subject, the game, and there is no vantage to carry.
+  if (trigger.kind === "time") return true;
+  return trigger.kind === "threshold" && trigger.vantage === "scet";
+}
+
+/**
+ * Whether the MOD decides when this alarm fires, and so the client must not
+ * write its latch.
+ *
+ * Two evaluators writing one latch field clear each other's, which is the
+ * hazard `AlarmStateMachine.updateThresholdTracking` describes. This is the
+ * one place that answers it: the body IS the migration table, so a kind moves
+ * in one row and the whole state of the migration reads in ten lines.
+ *
+ * **Necessary, not sufficient.** A kind being mod-owned says the mod SHOULD
+ * hold the alarm; it does not say the mod DOES. An arm can be refused, for a
+ * vantage that names no place or a Topic with no reading behind it, and an
+ * alarm nobody holds whose latch nobody writes never fires at all. A caller
+ * suppressing client behaviour composes this with
+ * `ScetAlarmBridge.holdsAlarm`, which is the mod's own statement of what it
+ * took. This one stops a kind flipping too early; that one stops a flip
+ * landing in a hole.
+ *
+ * Takes the TRIGGER rather than the alarm, because the kind is all it reads: a
+ * caller holding only a trigger would otherwise have to assert a whole alarm
+ * around it, and that assertion becomes a lie the moment this reads a second
+ * field.
+ */
+export function modOwnsLatch(trigger: AlarmTrigger): boolean {
+  switch (trigger.kind) {
+    case "time":
+      // Every time alarm, with no vantage test. The instant is the game's own
+      // universal time and every clock agrees on it, so there is no second
+      // opinion for this side to hold.
+      return true;
+    case "threshold":
+      // Mod-owned where it is read at its own subject, which is the population
+      // the mod has always latched. The COMMAND-vantage half waits on two-sided
+      // shadow quiet over a real session.
+      return isAtSubjectVantage(trigger);
+    case "contract-parameter":
+    case "event":
+      // The mod cannot evaluate either yet. A contract parameter reads a
+      // list-shaped Topic that a dotted path cannot index, and nothing
+      // produces an event occurrence at all.
+      return false;
+  }
 }
 
 export interface ThresholdTrigger {
@@ -389,11 +421,10 @@ export function migrateAlarm(raw: unknown): Alarm | null {
             typeof t.leadSeconds === "number"
               ? t.leadSeconds
               : DEFAULT_LEAD_SECONDS,
-          /* Anything that is not the literal "scet" is the command vantage,
-             which is what every alarm persisted before the SCET arm existed
-             is: the absent field has to mean the old behaviour or a reload
-             silently re-aims somebody's alarm onto another clock. */
-          vantage: t.vantage === "scet" ? "scet" : "command",
+          /* `t.vantage` is deliberately dropped. A time alarm is compared
+             against the game's own universal time, which every clock agrees on,
+             so a persisted vantage names a choice the system can no longer
+             honour and carrying it forward would suggest one exists. */
         },
         state: state ?? "pending",
         createdBy,

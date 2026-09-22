@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { AlarmStateMachine } from "./AlarmStateMachine";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import type { Alarm, ThresholdTrigger } from "./types";
-import { isScetTrigger, migrateAlarm, scetThresholdAddress } from "./types";
+import {
+  isAtSubjectVantage,
+  migrateAlarm,
+  modOwnsLatch,
+  scetThresholdAddress,
+} from "./types";
 
 /**
  * A threshold armed on the craft's clock is the mod's to evaluate, and these
@@ -51,6 +56,9 @@ describe("SCET threshold trigger", () => {
   beforeEach(() => {
     now = 1000;
     alarms = [];
+    /* Nothing refused, which is the default and is what these cases are about:
+       the mod took these alarms, so this side leaves their latch alone. The
+       other half is the kind being mod-owned. */
     sm = new AlarmStateMachine(() => now);
     planner = new AlarmWarpPlanner(
       () => alarms,
@@ -58,9 +66,20 @@ describe("SCET threshold trigger", () => {
     );
   });
 
-  it("is a SCET trigger, and a command-vantage threshold is not", () => {
-    expect(isScetTrigger(scetAlarm().trigger)).toBe(true);
-    expect(isScetTrigger(thresholdAlarm().trigger)).toBe(false);
+  it("is read at its subject's vantage, and a command-vantage threshold is not", () => {
+    expect(isAtSubjectVantage(scetAlarm().trigger)).toBe(true);
+    expect(isAtSubjectVantage(thresholdAlarm().trigger)).toBe(false);
+  });
+
+  /**
+   * The two questions coincide for a threshold and are still not the same
+   * question: this one is the migration table, and the command-vantage half is
+   * what a later step flips once a real session has shown the two evaluators
+   * agreeing.
+   */
+  it("is latched by the mod, and a command-vantage threshold is not yet", () => {
+    expect(modOwnsLatch(scetAlarm().trigger)).toBe(true);
+    expect(modOwnsLatch(thresholdAlarm().trigger)).toBe(false);
   });
 
   it("does not track the match here, and does not touch the latch", () => {
