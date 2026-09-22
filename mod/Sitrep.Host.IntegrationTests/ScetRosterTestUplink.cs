@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -143,6 +144,132 @@ namespace Sitrep.Host.IntegrationTests
             }
             _published = true;
             _publisher?.Publish(captured is double ut ? ut : 0.0, captured is double u ? u : 0.0);
+        }
+    }
+
+    /// <summary>
+    /// A craft whose <c>vessel.flight</c> a SCET threshold can be armed against,
+    /// on a link whose one-way time the test chooses.
+    ///
+    /// <para>The flight channel is mapped by
+    /// <see cref="VesselViewProvider.BuildFlightWire"/>, the same function
+    /// <see cref="ScetThresholdSources"/> resolves a threshold through, so the
+    /// payload the archive records and the payload the snapshot reader builds
+    /// are the same shape from the same source. Two readers disagreeing here
+    /// would be a disagreement about DELAY, which is what the equivalence gate
+    /// is asking about, rather than about the wire.</para>
+    ///
+    /// <para>The delay and connectivity seams are production-shaped, as
+    /// <see cref="FreezeGateTestUplink"/> has them: the whole-network light-time
+    /// a command vantage falls through to is driven by the tick's own
+    /// <c>delay</c>, so one snapshot argument moves the OWLT the gate turns
+    /// on.</para>
+    /// </summary>
+    internal sealed class ScetVantageTestUplink : ISitrepUplink
+    {
+        internal const string VesselGuid = "11111111-2222-3333-4444-555555555555";
+        internal const string Subject = "vessel:" + VesselGuid;
+        internal const string FlightTopic = VesselViewProvider.FlightTopic;
+        internal const string AltitudeField = "altitudeAsl";
+
+        public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "scet-vantage-test",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                new ChannelDeclaration
+                {
+                    Topic = ChannelEngine.CommsDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = FlightTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // Delayed, and an ordinary one: no TrueNow declaration and no
+                    // freeze exemption, so it is NOT routed onto the meta vantage
+                    // and a command vantage pays its own light-time for it. An
+                    // instant-class topic here would make the control unable to
+                    // fail.
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
+            host.AddChannelSource(FlightTopic, VesselViewProvider.BuildFlightWire);
+            host.SetSignalDelaySource(ComputeDelay);
+            host.SetConnectivitySource(_ => true);
+        }
+
+        private static object? MapDelay(KspSnapshot? snapshot) => ComputeDelay(snapshot);
+
+        private static CommsDelay? ComputeDelay(KspSnapshot? snapshot)
+        {
+            if (snapshot == null || !snapshot.Values.TryGetValue("delay", out var raw) || raw == null)
+            {
+                return null;
+            }
+            return new CommsDelay
+            {
+                OneWaySeconds = Convert.ToDouble(raw),
+                Source = CommsDelaySource.SignalDelay,
+            };
+        }
+
+        /// <summary>
+        /// Every key <see cref="VesselViewProvider.BuildFlight"/> requires, since
+        /// it answers null rather than a part-filled payload when one is missing,
+        /// and a part-filled reading is what must never reach a threshold.
+        /// </summary>
+        internal static KspSnapshot Snapshot(double ut, double altitudeAsl, double delay)
+        {
+            return new KspSnapshot
+            {
+                Ut = ut,
+                Values = new Dictionary<string, object?>
+                {
+                    ["delay"] = delay,
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["id"] = VesselGuid },
+                    },
+                    ["vessel"] = new Dictionary<string, object?>
+                    {
+                        ["identity"] = new Dictionary<string, object?>
+                        {
+                            ["id"] = VesselGuid,
+                            ["name"] = "Kerbal X",
+                            ["vesselType"] = "Ship",
+                            ["situation"] = "ORBITING",
+                        },
+                        ["flight"] = new Dictionary<string, object?>
+                        {
+                            ["latitude"] = 0.5,
+                            ["longitude"] = 1.5,
+                            ["altitudeAsl"] = altitudeAsl,
+                            ["altitudeTerrain"] = altitudeAsl - 10,
+                            ["verticalSpeed"] = 120.0,
+                            ["surfaceSpeed"] = 2200.0,
+                            ["orbitalSpeed"] = 2300.0,
+                            ["gForce"] = 1.2,
+                            ["dynamicPressure"] = 0.0,
+                            ["mach"] = 3.4,
+                            ["atmDensity"] = 0.0,
+                            ["externalTemperature"] = 250.0,
+                            ["atmosphericTemperature"] = 251.0,
+                        },
+                    },
+                },
+            };
         }
     }
 }

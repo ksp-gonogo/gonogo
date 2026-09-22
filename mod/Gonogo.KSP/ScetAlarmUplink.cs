@@ -37,6 +37,14 @@ namespace Gonogo.KSP
     /// nothing is subscribed to, so a threshold read through it would fire or
     /// not depending on which widgets the operator happened to have open.</para>
     ///
+    /// <para>An AUDIENCE threshold cannot read the snapshot, because the whole
+    /// question is what one place has been TOLD, and that lives in the archive.
+    /// It meets the same hole one layer down, since the archive records only
+    /// what something is subscribed to. So every armed threshold's Topic is
+    /// held on the record by a standing subscription of its own
+    /// (<see cref="ScetAlarmSubscriptions"/>), and the dashboard stops being
+    /// part of the answer.</para>
+    ///
     /// <para><b>Two kinds of alarm, one roster class, run more than once.</b> An
     /// alarm naming no audience is the SCET one described above: judged against
     /// the simulation, and its stop is universal. An alarm naming a command
@@ -143,6 +151,33 @@ namespace Gonogo.KSP
         public static void ConfigureRevealedRead(Func<string, string, double, object?>? read) =>
             _revealedRead = read;
 
+        /// <summary>
+        /// How to keep a Topic on the record while an alarm needs it, or null on
+        /// an install where nothing wired it. Null costs the audience rosters
+        /// their readings on any Topic no widget happens to be showing, which is
+        /// the state this whole seam exists to leave behind.
+        ///
+        /// <para>Static, late-bound and taken away at shutdown, for the same
+        /// reasons <see cref="_revealedRead"/> is: the engine does not exist when
+        /// this uplink is constructed, and nothing outside holds the instance.
+        /// Both calls are safe from any thread; the engine queues them onto the
+        /// Courier itself.</para>
+        /// </summary>
+        private static Action<string, string>? _openStanding;
+        private static Action<string, string>? _closeStanding;
+
+        /// <summary>
+        /// Point the standing subscriptions at an engine; pass nulls to take it
+        /// away again, which a test doing so must, because this outlives any one
+        /// engine.
+        /// </summary>
+        public static void ConfigureStandingSubscriptions(
+            Action<string, string>? open, Action<string, string>? close)
+        {
+            _openStanding = open;
+            _closeStanding = close;
+        }
+
         private readonly IVesselActuator _actuator;
 
         private IUplinkHost? _host;
@@ -168,6 +203,15 @@ namespace Gonogo.KSP
         /// stopped a cold client arming anything at all.
         /// </summary>
         private readonly ScetRosterAudience _audience = new ScetRosterAudience();
+
+        /// <summary>
+        /// Which Topics the armed thresholds need kept on the record. Guarded by
+        /// <see cref="_gate"/>, and asked only when the roster moved: a
+        /// reconciliation against an unchanged roster answers nothing.
+        /// </summary>
+        private readonly ScetAlarmSubscriptions _subscriptions = new ScetAlarmSubscriptions(
+            (topic, holder) => _openStanding?.Invoke(topic, holder),
+            (topic, holder) => _closeStanding?.Invoke(topic, holder));
 
         /// <summary>
         /// The discovery-required parameterless constructor: a discoverable
@@ -510,9 +554,19 @@ namespace Gonogo.KSP
                         fired.AddRange(tick.Fired);
                     }
 
-                    if (_audience.ShouldPublish(publish.HasAudience, changed))
+                    var publishing = _audience.ShouldPublish(publish.HasAudience, changed);
+                    if (changed || publishing)
                     {
-                        roster = SnapshotAll();
+                        var rows = SnapshotAll();
+                        if (changed)
+                        {
+                            // Here rather than in the arm and disarm handlers,
+                            // because this is the one place that also sees the
+                            // changes no handler makes: the rewind clear, and an
+                            // alarm going Unreachable.
+                            _subscriptions.Reconcile(rows);
+                        }
+                        roster = publishing ? rows : null;
                     }
                 }
 
