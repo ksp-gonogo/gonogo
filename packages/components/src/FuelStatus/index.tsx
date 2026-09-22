@@ -255,7 +255,7 @@ function ResourceListSection({
             cols="minmax(0, 13em) minmax(28px, 1fr) auto"
             gap="md"
             align="center"
-            style={{ fontSize: "var(--font-size-xs)" }}
+            style={{ fontSize: "var(--font-size-compact)" }}
           >
             <Truncate
               style={{
@@ -268,7 +268,7 @@ function ResourceListSection({
                 <span
                   style={{
                     color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-xs)",
+                    fontSize: "var(--font-size-caption)",
                     letterSpacing: "0.05em",
                     textTransform: "uppercase",
                   }}
@@ -281,7 +281,7 @@ function ResourceListSection({
                 <span
                   style={{
                     color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-xs)",
+                    fontSize: "var(--font-size-caption)",
                     letterSpacing: "0.05em",
                     textTransform: "uppercase",
                   }}
@@ -298,7 +298,7 @@ function ResourceListSection({
             <span
               style={{
                 color: "var(--color-text-muted)",
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-compact)",
                 whiteSpace: "nowrap",
               }}
             >
@@ -362,7 +362,7 @@ function StageStackSection({
             gap="md"
             align="center"
             style={{
-              fontSize: "var(--font-size-xs)",
+              fontSize: "var(--font-size-compact)",
               color: active
                 ? "var(--color-status-nogo-fg)"
                 : "var(--color-text-muted)",
@@ -370,7 +370,7 @@ function StageStackSection({
           >
             <span
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-caption)",
                 letterSpacing: "0.02em",
               }}
             >
@@ -388,7 +388,7 @@ function StageStackSection({
             />
             <div
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-compact)",
                 whiteSpace: "nowrap",
                 display: "flex",
                 flexDirection: "column",
@@ -404,7 +404,7 @@ function StageStackSection({
                   <span
                     style={{
                       color: "var(--color-text-faint)",
-                      fontSize: "var(--font-size-xs)",
+                      fontSize: "var(--font-size-compact)",
                     }}
                   >
                     {burn}
@@ -412,7 +412,7 @@ function StageStackSection({
                   <span
                     style={{
                       color: "var(--color-text-faint)",
-                      fontSize: "var(--font-size-xs)",
+                      fontSize: "var(--font-size-compact)",
                     }}
                   >
                     TWR {fmtFixed(twr, 2)}
@@ -422,7 +422,7 @@ function StageStackSection({
                 <span
                   style={{
                     color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-xs)",
+                    fontSize: "var(--font-size-compact)",
                   }}
                 >
                   {burn} · TWR {fmtFixed(twr, 2)}
@@ -669,7 +669,7 @@ function FuelStatusComponent({
                   <span
                     style={{
                       color: "var(--color-text-dim)",
-                      fontSize: "var(--font-size-xs)",
+                      fontSize: "var(--font-size-caption)",
                       letterSpacing: "0.08em",
                     }}
                   >

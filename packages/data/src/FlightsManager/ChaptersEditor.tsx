@@ -262,7 +262,7 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -271,7 +271,7 @@ const Header = styled.div`
 `;
 
 const Hint = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   margin-bottom: var(--space-8);
 `;
@@ -289,7 +289,7 @@ const ChapterRow = styled(Grid).attrs({
   cols: "minmax(120px, 1fr) auto auto auto",
   gap: "md" as const,
 })`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const Label = styled.span`
@@ -308,7 +308,7 @@ const TimeText = styled.span`
 const DurationText = styled.span`
   font-family: monospace;
   color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   white-space: nowrap;
 `;
 
@@ -324,7 +324,7 @@ const EditButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
@@ -335,7 +335,7 @@ const SaveButton = styled.button`
   border: 1px solid var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
 `;
@@ -345,7 +345,7 @@ const CancelButton = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); }
@@ -374,7 +374,7 @@ const AddButton = styled.button`
   border: 1px dashed var(--color-text-faint);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   white-space: nowrap;
@@ -383,6 +383,6 @@ const AddButton = styled.button`
 
 const ErrorText = styled.div`
   margin-top: var(--space-4);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-tag-red-fg);
 `;
