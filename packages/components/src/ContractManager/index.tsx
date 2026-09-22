@@ -667,16 +667,19 @@ const Summary = styled.div`
 // section labels stay full-width and the grouping holds. Both branches carry
 // the same --gap-related, which is what makes them one layout rather than two.
 const CARD_MIN_WIDTH = "240px";
+/* Section, not related: with no box around a contract, the space between two
+   of them is the only thing saying where one ends. At the same rung as a
+   block's own rows they ran together into one paragraph. */
 const CardList = styled.div<{ $multiColumn: boolean }>`
   ${({ $multiColumn }) =>
     $multiColumn
       ? `display: grid;
          grid-template-columns: repeat(auto-fill, minmax(${CARD_MIN_WIDTH}, 1fr));
          align-content: start;
-         gap: var(--gap-related);`
+         gap: var(--gap-section);`
       : `display: flex;
          flex-direction: column;
-         gap: var(--gap-related);`}
+         gap: var(--gap-section);`}
 `;
 
 const SectionLabel = styled.div`
@@ -711,9 +714,7 @@ const ActiveActions = styled.div`
  * so three contracts rendered as whitespace-separated paragraphs. Nothing is
  * drawn here now. The separation is the list gap and the title's own weight.
  */
-const ContractCard = styled(Block)`
-  gap: var(--gap-related);
-`;
+const ContractCard = Block;
 
 const ContractDeadline = styled.span`
   color: var(--color-text-faint);
