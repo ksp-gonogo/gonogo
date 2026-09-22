@@ -170,13 +170,20 @@ export class StubTransport implements Transport {
               meta: makeMeta(),
             });
           } catch (error) {
+            /* A handler may throw an `Error` or a plain refusal bag, and both
+               carry the two fields the error frame needs. */
             const raw: unknown = error;
-            const thrownCode: unknown =
-              typeof raw === "object" && raw !== null
-                ? Reflect.get(raw, "code")
-                : undefined;
+            const named =
+              typeof raw === "object" && raw !== null ? raw : undefined;
+            const thrownCode: unknown = named
+              ? Reflect.get(named, "code")
+              : undefined;
+            const thrownMessage: unknown = named
+              ? Reflect.get(named, "message")
+              : undefined;
             const code = typeof thrownCode === "string" ? thrownCode : "error";
-            const errMessage = raw instanceof Error ? raw.message : String(raw);
+            const errMessage =
+              typeof thrownMessage === "string" ? thrownMessage : String(raw);
             this.deliver({
               type: "error",
               requestId: message.requestId,

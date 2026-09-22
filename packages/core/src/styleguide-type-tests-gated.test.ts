@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, posix, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 
 /**
  * Coverage guard for the workspace's `*.test-d.ts` type-level assertions.
@@ -91,9 +92,22 @@ function includeMatches(pattern: string, path: string): boolean {
 }
 
 function readIncludes(pkgDir: string): string[] {
-  const raw = readFileSync(join(ROOT, pkgDir, "tsconfig.test-d.json"), "utf8");
-  const parsed = JSON.parse(raw) as { include?: string[] };
-  return parsed.include ?? [];
+  const parsed = readJsonObject(join(ROOT, pkgDir, "tsconfig.test-d.json"));
+  const include = parsed.include;
+  return Array.isArray(include)
+    ? include.filter((entry) => typeof entry === "string")
+    : [];
+}
+
+/** One named npm script of a manifest, or `undefined` when it declares none. */
+function scriptNamed(
+  pkg: Record<string, unknown>,
+  name: string,
+): string | undefined {
+  const scripts: unknown = pkg.scripts;
+  if (typeof scripts !== "object" || scripts === null) return undefined;
+  const script: unknown = Reflect.get(scripts, name);
+  return typeof script === "string" ? script : undefined;
 }
 
 describe("type-level tests are actually gated", () => {
@@ -134,10 +148,8 @@ describe("type-level tests are actually gated", () => {
     const broken: string[] = [];
     const pkgDirs = [...new Set(trackedTypeTests().map(owningPackage))];
     for (const pkgDir of pkgDirs) {
-      const pkg = JSON.parse(
-        readFileSync(join(ROOT, pkgDir, "package.json"), "utf8"),
-      ) as { name?: string; scripts?: Record<string, string> };
-      const script = pkg.scripts?.typecheck;
+      const pkg = readJsonObject(join(ROOT, pkgDir, "package.json"));
+      const script = scriptNamed(pkg, "typecheck");
       if (!script) {
         broken.push(`${pkgDir}: no "typecheck" script`);
       } else if (!script.includes("tsconfig.test-d.json")) {

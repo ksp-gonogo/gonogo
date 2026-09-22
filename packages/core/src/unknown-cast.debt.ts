@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 126 of them
- * across 92 files.
+ * Assertions that escape `unknown`, per file. The tree carries 109 of them
+ * across 78 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 78 of the 126 are
+ * **A test fixture minted through an assertion.** 66 of the 109 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,11 +50,11 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 58 of the 126 are `as unknown as`, and those are worth taking
+ * 55 of the 109 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
- * 22 are out of `any` rather than `unknown`, which is worse: `unknown` at
+ * 13 are out of `any` rather than `unknown`, which is worse: `unknown` at
  * least refuses to be read without an assertion, where `any` would have let the
  * same wrong field through with no assertion at all. The assertion is the only
  * reason those are visible here.
@@ -64,7 +64,7 @@
  * The count is a CEILING per file. Each entry sits under its root's group
  * header, whose numbers are measured on every regeneration, and its "why" is the
  * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at 92 files those would be 92 sentences
+ * sentence per entry: at 78 files those would be 78 sentences
  * written in one sitting by someone who had not read the sites, which is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a file and a number, and that `--update` removes it the moment the file
@@ -131,34 +131,20 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/test/pointerStubs.ts": 1,
   "packages/components/src/test/widgetDomSnapshot.tsx": 1,
   "packages/components/src/WarpControl/dual-run.test.tsx": 1,
-  // packages/core: 13 in 12 files (6 out of `any`, 8 in tests), walked 226 files
+  // packages/core: 5 in 5 files (0 out of `any`, 3 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
-  "packages/core/src/published-docs-name-real-packages.test.ts": 1,
   "packages/core/src/reckoning-candidates.test.ts": 1,
   "packages/core/src/render-fixture-coverage.test.ts": 1,
-  "packages/core/src/settings/gameHost.ts": 1,
-  "packages/core/src/styleguide-type-tests-gated.test.ts": 2,
   "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
-  "packages/core/src/typecheck-coverage.test.ts": 1,
-  "packages/core/src/uplink-matrix-coverage.test.ts": 1,
-  "packages/core/src/uplinkVersionCompat.ts": 1,
-  "packages/core/src/widget-fixture-conformance.ts": 1,
   // packages/data: 1 in 1 files (0 out of `any`, 0 in tests), walked 53 files
   "packages/data/src/hooks/useOptionalStreamEvent.ts": 1,
   // packages/serial: 2 in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 12 in 10 files (5 out of `any`, 10 in tests), walked 164 files
-  "packages/sitrep-client/src/client.test.ts": 2,
-  "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/full-history-replay.ts": 1,
-  "packages/sitrep-client/src/processorEvaluator.test.ts": 1,
+  // packages/sitrep-client: 3 in 3 files (2 out of `any`, 3 in tests), walked 164 files
   "packages/sitrep-client/src/reference-wire-fixture.test.ts": 1,
-  "packages/sitrep-client/src/replay-recorder.test.ts": 1,
-  "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
   "packages/sitrep-client/src/version.gate.test.ts": 1,
   "packages/sitrep-client/src/websocket-transport.test.ts": 1,
-  "packages/sitrep-client/src/websocket-transport.ts": 1,
   // packages/ui-kit: 3 in 3 files (1 out of `any`, 1 in tests), walked 269 files
   "packages/ui-kit/src/augments.second-copy.test.ts": 1,
   "packages/ui-kit/src/augments.ts": 1,
@@ -228,18 +214,16 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
   "packages/components/src/test/pointerStubs.ts": 1,
   "packages/components/src/test/widgetDomSnapshot.tsx": 1,
-  // packages/core: 4 in 4 files (0 out of `any`, 1 in tests), walked 226 files
+  // packages/core: 5 in 5 files (0 out of `any`, 3 in tests), walked 226 files
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
-  "packages/core/src/settings/gameHost.ts": 1,
+  "packages/core/src/reckoning-candidates.test.ts": 1,
+  "packages/core/src/render-fixture-coverage.test.ts": 1,
   "packages/core/src/test/helpers.test.ts": 1,
   "packages/core/src/test/legacyTelemetry.ts": 1,
   // packages/serial: 2 in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 5 in 4 files (0 out of `any`, 4 in tests), walked 164 files
-  "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
+  // packages/sitrep-client: 1 in 1 files (0 out of `any`, 1 in tests), walked 164 files
   "packages/sitrep-client/src/websocket-transport.test.ts": 1,
-  "packages/sitrep-client/src/websocket-transport.ts": 1,
   // packages/ui-kit: 1 in 1 files (0 out of `any`, 0 in tests), walked 269 files
   "packages/ui-kit/src/augments.ts": 1,
   // packages/uplink-tools: 1 in 1 files (0 out of `any`, 0 in tests), walked 26 files
@@ -267,7 +251,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 export const SCAN_FLOORS = {
   roots: 19,
   files: 2232,
-  assertions: 1467,
+  assertions: 1455,
 } as const;
 
 /**

@@ -391,10 +391,10 @@ const bespokePrototype = {
 };
 
 function quantity(amount: number, symbol: string): object {
-  const q = Object.create(bespokePrototype) as {
-    amount: number;
-    symbol: string;
-  };
+  const q: { amount: number; symbol: string } = Object.assign(
+    Object.create(bespokePrototype),
+    { amount, symbol },
+  );
   q.amount = amount;
   q.symbol = symbol;
   return q;

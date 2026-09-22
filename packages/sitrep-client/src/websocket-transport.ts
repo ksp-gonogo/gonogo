@@ -275,9 +275,10 @@ export class WebSocketTransport implements Transport {
     this.retryTimeoutMs = options.retryTimeoutMs ?? DEFAULT_RETRY_TIMEOUT_MS;
     this.onStreamFrame = options.onStreamFrame;
     this.onBinaryFrame = options.onBinaryFrame;
+    /* The DOM's constructor and this transport's minimal one differ in the
+       members neither side calls, so the platform's is adopted by shape. */
     this.WebSocketImpl =
-      options.WebSocketImpl ??
-      (globalThis.WebSocket as unknown as WebSocketCtor);
+      options.WebSocketImpl ?? (globalThis.WebSocket as WebSocketCtor);
     this.now = options.now ?? (() => Date.now());
 
     this.open();
