@@ -1,4 +1,5 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
+import { logger } from "@ksp-gonogo/logger";
 import {
   type EventOccurrence,
   resolveValueTopic,
@@ -503,6 +504,47 @@ describe("AlarmHostService", () => {
     expect(alarms).toHaveLength(1);
     expect(alarms[0].name).toBe("Legacy");
     expect(alarms[0].onFire).toBeUndefined();
+  });
+
+  /**
+   * The shadow log's second direction, and the one only this side can see.
+   *
+   * The mod going quiet is indistinguishable from agreement unless the client
+   * says so at its own fire, so this is the half that decides whether the flip
+   * in step 7 can be justified at all. Driven rather than read off the source:
+   * a comparison that is never reached records nothing while looking correct.
+   *
+   * The mod's half is proved in `scet-alarm.integration.test.ts`, which can
+   * publish a verdict but deliberately never gives the client a reading of its
+   * own.
+   */
+  it("records the client firing a command-vantage alarm the mod never answered", async () => {
+    const warn = vi.spyOn(logger, "warn");
+    const { svc, telemetry } = makeService();
+    svc.addAlarm({
+      name: "Above 70 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.state.altitudeAsl",
+        op: ">=",
+        value: 70_000,
+        sustainSeconds: 0,
+        vantage: "command",
+        topic: "vessel.state",
+        fieldPath: "altitudeAsl",
+      },
+    });
+    telemetry.set("vessel.state.altitudeAsl", 70_500);
+    telemetry.set("t.universalTime", 1100);
+    await vi.advanceTimersByTimeAsync(1100);
+    await Promise.resolve();
+
+    expect(
+      warn.mock.calls.some(([m]) =>
+        String(m).includes("client fired, mod has not"),
+      ),
+    ).toBe(true);
+    warn.mockRestore();
   });
 
   describe("onFire side effects", () => {

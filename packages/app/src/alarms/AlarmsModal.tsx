@@ -783,8 +783,9 @@ interface PresetSpec {
    * underlying data isn't usable (off / on the pad / no node). A null result
    * hides the preset entirely.
    *
-   * SCET rather than a trigger UT, because those are two different instants
-   * once the craft is more than a second away. See `presetTriggerUt`.
+   * A SCET, because a SCET is what gets armed: the simulation judges a time
+   * alarm against the game's own clock, so the instant the event happens is
+   * the instant to name.
    */
   computeScet: (viewUt: number) => number | null;
 }
