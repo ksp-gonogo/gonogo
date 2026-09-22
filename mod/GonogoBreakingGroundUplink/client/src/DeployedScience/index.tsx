@@ -308,9 +308,11 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
       partialPower,
       powerAvailable: first?.powerAvailable ?? null,
       powerRequired: first?.powerRequired ?? null,
-      // The mod's derived boolean, not `connectionState === "Connected"`: that
-      // compared against the English rendering of a localised sentence, so a
-      // connected controller read as disconnected in every other language.
+      /*
+       * The mod's derived boolean, not `connectionState === "Connected"`: that
+       * compared against the English rendering of a localised sentence, so a
+       * connected controller read as disconnected in every other language.
+       */
       controllerEnabled: first?.controllerConnected ?? false,
       experimentCount: experiments.length,
       experiments,
