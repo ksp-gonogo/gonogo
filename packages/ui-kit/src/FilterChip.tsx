@@ -37,7 +37,7 @@ const ChipButton = styled.button<{ $selected: boolean }>`
      exceeds half the rendered height, so --radius-pill renders identically and
      survives a padding change. */
   border-radius: var(--radius-pill);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   /* Sentence case, as a control rather than a Badge. It is pill-shaped and it
      sits among badges, but it is a real button carrying aria-pressed: the label
@@ -71,6 +71,6 @@ const ChipButton = styled.button<{ $selected: boolean }>`
 
 const Count = styled.span`
   font-variant-numeric: tabular-nums;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   opacity: 0.75;
 `;

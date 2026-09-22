@@ -83,7 +83,7 @@ export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
 
 const StepHeading = styled.h3`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

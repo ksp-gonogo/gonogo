@@ -516,7 +516,7 @@ const PAIR_LABEL: CSSProperties = {
 };
 
 const PAIR_LABEL_TEXT: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.05em",
 };
