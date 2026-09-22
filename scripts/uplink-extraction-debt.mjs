@@ -52,6 +52,11 @@
  * Regenerate with `pnpm uplink-extraction-probe --update --only <id>` and commit
  * the diff alongside whatever you fixed. Prefer `--only`: a bare `--update`
  * rewrites every entry from one measurement.
+ *
+ * `--update` accepts a count that came in different from its entry, and a count
+ * is the one thing an unmeasured Uplink does not have. So it clears a debt
+ * comparison and never a CANNOT BE EXTRACTED, it leaves the run failing when an
+ * Uplink was blocked, and it refuses to write at all when the run measured none.
  */
 
 export const EXTRACTION_DEBT = {};
