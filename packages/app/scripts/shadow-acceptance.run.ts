@@ -11,8 +11,11 @@ import { runShadowAcceptance } from "../src/alarms/shadowAcceptanceRun";
  *
  * `SITREP_HOST` and `SITREP_PORT` override the default `127.0.0.1:8090`.
  * `SHADOW_LAPS` is how many laps the scenario flies, each of which every armed
- * alarm must agree on. The run fails unless the verdict is PASS, so the exit
- * code is the verdict.
+ * alarm must agree on. `SHADOW_WARP_INDEX` is the `time.setWarpIndex` rung to
+ * hold for the run -- the mod cancels warp itself on every command-vantage
+ * alarm fire, so a lap scenario needs this re-applied or it stalls to the
+ * orbit's real-time period after the first crossing. The run fails unless the
+ * verdict is PASS, so the exit code is the verdict.
  */
 
 const seconds = Number(process.env.SHADOW_SECONDS ?? 900);
@@ -22,6 +25,10 @@ const laps =
   process.env.SHADOW_LAPS === undefined
     ? undefined
     : Number(process.env.SHADOW_LAPS);
+const warpIndex =
+  process.env.SHADOW_WARP_INDEX === undefined
+    ? undefined
+    : Number(process.env.SHADOW_WARP_INDEX);
 
 it(
   `shadow acceptance over ${seconds}s`,
@@ -31,6 +38,7 @@ it(
       port,
       observeMs: seconds * 1000,
       laps,
+      warpIndex,
       write: (line) => console.info(line),
     });
     console.info(JSON.stringify(verdict, null, 2));

@@ -1,7 +1,9 @@
 import { logger } from "@ksp-gonogo/logger";
 import {
   DelayAuthority,
+  dispatchActiveCommandTopic,
   getValue,
+  getWarpState,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -94,6 +96,15 @@ export interface ShadowAcceptanceOptions {
   observeMs: number;
   /** Laps the scenario flies; every armed alarm must agree on each of them. */
   laps?: number;
+  /**
+   * The `time.setWarpIndex` rung to hold for the run's duration, re-applied
+   * whenever the reported index drops below it. The mod itself cancels warp
+   * when a command-vantage alarm comes due -- a shipped feature, not a bug --
+   * so a lap scenario with several alarms per orbit needs this or a run whose
+   * period assumed a warp rung stalls to the real-time period instead.
+   * Undefined leaves warp exactly as the caller set it.
+   */
+  warpIndex?: number;
   /** How often to print a progress line, ms. */
   progressEveryMs?: number;
   write?: (line: string) => void;
@@ -205,6 +216,24 @@ export async function runShadowAcceptance(
   try {
     for (const a of ALARMS) armOne(a);
 
+    function conditionTrue(a: (typeof ALARMS)[number]): boolean {
+      const v = getValue("data", a.dataKey);
+      if (v === undefined) return true; // unreadable: do not re-arm into the unknown
+      const op: string = a.op;
+      switch (op) {
+        case ">=":
+          return v >= a.value;
+        case ">":
+          return v > a.value;
+        case "<=":
+          return v <= a.value;
+        case "<":
+          return v < a.value;
+        default:
+          return true;
+      }
+    }
+
     /*
      * A lap scenario re-arms by creating a fresh alarm per crossing:
      * `AlarmHostService.acknowledgeAlarm` only clears a `fired` alarm and
@@ -213,7 +242,17 @@ export async function runShadowAcceptance(
      * an alarm can fire on a later lap is a brand new id. Only runs when
      * `options.laps` is set: a plain single-shot acceptance run has no lap
      * count to re-arm against and should keep firing each alarm once.
+     *
+     * A threshold alarm is level-triggered (fires on the first tick its
+     * reading satisfies the condition, including one already true at arm
+     * time). Re-arming the instant a fire is acknowledged, while the vessel
+     * is still past the threshold, fires the fresh alarm again immediately --
+     * a self-refire storm keyed to evaluation jitter rather than a real
+     * orbital crossing. `pendingRearm` holds a fired alarm's config until its
+     * OWN reading goes back false, so the next arm only happens once the
+     * vessel has genuinely left the zone and can cross into it again.
      */
+    const pendingRearm = new Set<(typeof ALARMS)[number]>();
     let rearmLoop: ReturnType<typeof setInterval> | undefined;
     if (options.laps !== undefined) {
       rearmLoop = setInterval(() => {
@@ -222,10 +261,36 @@ export async function runShadowAcceptance(
           const name = nameOf.get(alarm.id);
           svc.acknowledgeAlarm(alarm.id);
           const cfg = ALARMS.find((a) => a.name === name);
-          if (cfg) {
-            armOne(cfg);
-            rearmCount++;
-          }
+          if (cfg) pendingRearm.add(cfg);
+        }
+        for (const cfg of pendingRearm) {
+          if (conditionTrue(cfg)) continue; // still past the line, wait
+          pendingRearm.delete(cfg);
+          armOne(cfg);
+          rearmCount++;
+        }
+      }, 2_000);
+    }
+
+    /*
+     * The mod cancels warp itself when a command-vantage alarm comes due --
+     * intentional, not a defect -- so a lap scenario with several alarms per
+     * orbit gets several warp-cancelling events per lap. Left alone, the run
+     * settles to the orbit's REAL-TIME period after the first fire. Holding
+     * the rung is exactly what an operator watching the screen would do, so
+     * re-applying it here is not gaming the scenario.
+     */
+    let warpReapplyCount = 0;
+    let warpReapplyLoop: ReturnType<typeof setInterval> | undefined;
+    if (options.warpIndex !== undefined) {
+      const targetIndex = options.warpIndex;
+      warpReapplyLoop = setInterval(() => {
+        const current = getWarpState()?.warpRateIndex;
+        if (current !== undefined && current < targetIndex) {
+          dispatchActiveCommandTopic("time.setWarpIndex", {
+            index: targetIndex,
+          });
+          warpReapplyCount++;
         }
       }, 2_000);
     }
@@ -249,13 +314,14 @@ export async function runShadowAcceptance(
           .alarms.map((x) => x.state)
           .join(
             ",",
-          )}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}  rearms=${rearmCount}`,
+          )}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}  rearms=${rearmCount}  warpReapplies=${warpReapplyCount}`,
       );
     }, options.progressEveryMs ?? 30_000);
     await new Promise((r) => setTimeout(r, options.observeMs));
     clearInterval(tick);
     clearInterval(reads);
     if (rearmLoop !== undefined) clearInterval(rearmLoop);
+    if (warpReapplyLoop !== undefined) clearInterval(warpReapplyLoop);
     sampleReads();
     const unread = ALARMS.filter((a) => !everRead.has(a.name)).map(
       (a) => a.name,
