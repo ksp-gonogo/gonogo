@@ -1,3 +1,4 @@
+using System;
 using Gonogo.KSP.Career;
 using Sitrep.Contract;
 using Xunit;
@@ -132,6 +133,24 @@ namespace Gonogo.KSP.Tests.Career
 
             Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
             Assert.Contains("space centre", refusal.Detail);
+        }
+
+        /// <summary>
+        /// The refusal may point the operator at the space centre and may not
+        /// tell them it is the only place a tier can change. The caller tests
+        /// for a live <c>UpgradeableFacility</c> and never for a scene, and the
+        /// KSC's components spawn in more than one scene, so an exclusive claim
+        /// is both untestable from here and wrong.
+        /// </summary>
+        [Theory]
+        [InlineData("FLIGHT")]
+        [InlineData(null)]
+        public void AWrongSceneRefusalDoesNotClaimTheSpaceCentreIsTheOnlyPlace(string? sceneName)
+        {
+            var refusal = CareerRefusals.FacilityResolutionRefusal(
+                facilityKnown: true, hasLiveInstance: false, facilityName: "Launch Pad", sceneName: sceneName);
+
+            Assert.DoesNotContain("only", refusal!.Detail, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>A resolved facility is not refused at all.</summary>
