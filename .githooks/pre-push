@@ -24,8 +24,12 @@
 #     read-only (a mismatch fails instead of being silently rewritten).
 #   - Playwright e2e ONLY for changed specs, chromium only. The full matrix
 #     (chromium/firefox/webkit) + visual gate run in CI.
+#   - the C# suites, ONLY when the push changes `mod/`. See
+#     scripts/mod-suite-gate.sh: turbo cannot reach them at all, so this hook
+#     ran nothing C# and two broken ratchets landed on staging green.
 #
 # Skip e2e for a quick push:  SKIP_E2E=1 git push   (CI still runs the matrix)
+# Skip the C# suites:         GONOGO_SKIP_MOD_SUITES=1 git push
 # Bypass the whole hook:      git push --no-verify
 echo "pre-push: lint + affected test gate (CI runs the full matrix)..."
 
@@ -66,6 +70,17 @@ elif ! CI=true pnpm exec turbo run test test:scans --concurrency=1 > "$GONOGO_HO
   exit 1
 fi
 echo "pre-push: tests green ($(grep -cE "^ *Tasks:" "$GONOGO_HOOK_LOG" >/dev/null 2>&1 && grep -E "^ *Tasks:" "$GONOGO_HOOK_LOG" | tail -1 | tr -s " " || echo "turbo run complete"))."
+
+# The C# suites, which the turbo run above cannot see under any configuration:
+# no workspace package exists under mod/Sitrep.* or mod/Gonogo*Uplink, so there
+# is no task for turbo to find. Output is NOT captured here, unlike the two
+# blocks around it: the gate is quiet by construction (one line per project) and
+# its NOT RUN and REDUCED lines have to reach the person pushing.
+if [ "${GONOGO_GATE_DONE:-}" = "1" ]; then
+  : # pnpm push ran it before opening the connection
+elif ! sh "$(git rev-parse --show-toplevel)/scripts/mod-suite-gate.sh"; then
+  exit 1
+fi
 
 # E2E: only the specs affected by this push, on chromium. CI runs the full
 # cross-browser matrix as the gate of record. Playwright's --only-changed
