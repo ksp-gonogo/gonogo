@@ -247,6 +247,8 @@
     <Compile Remove="StrategyPrivateFieldsMirrorTests.cs" />
     <Compile Remove="StrategyActivateBodyTests.cs" />
     <Compile Remove="HarmonyPatchProbeMirrorTests.cs" />
+    <Compile Remove="FacilityLivenessTests.cs" />
+    <Compile Remove="IlSteps.cs" />
     <!-- ActiveVessel/ is otherwise unconditional (EvaParentageTests names no KSP
          type at all), so only its ConfigNode half needs dropping here; it is
          re-added under the gate below beside the other round-trip suites. -->
@@ -463,6 +465,11 @@
     <Compile Include="..\Gonogo.KSP\StockActivationPatch.cs" />
     <Compile Include="StrategyPrivateFieldsMirrorTests.cs" />
     <Compile Include="StrategyActivateBodyTests.cs" />
+    <Compile Include="IlSteps.cs" />
+    <!-- The facility-upgrade gate's predicate against the one SetLevel tests
+         before it will finish an upgrade. -->
+    <Compile Include="..\Gonogo.KSP\Career\FacilityLiveness.cs" />
+    <Compile Include="FacilityLivenessTests.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->

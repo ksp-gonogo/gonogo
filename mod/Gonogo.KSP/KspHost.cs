@@ -3844,6 +3844,10 @@ namespace Gonogo.KSP
                 var facilityName = facility.ToString();
                 var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
 
+                // Not FacilityLiveness, deliberately: that is the WRITE's question,
+                // whether SetLevel will finish. The tier, the tier count and the
+                // price are fields on the component and stay true while it is
+                // inactive, so withholding them would silence a correct reading.
                 if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
                     proto?.facilityRefs == null || proto.facilityRefs.Count == 0 || proto.facilityRefs[0] == null)
                 {
