@@ -97,12 +97,12 @@ const topics = defineTopicManifest({
   /* `system.bodies` is read directly, not just as a `vessel.state` input: the
      mapped body's radius and rotation period come off it, keyed by the name the
      running game reports rather than looked up in the bundled stock table. */
-  channels: ["vessel.flight", "vessel.state", "system.bodies"],
-  // `encounterUt` is an absolute instant, NOT the duration the retired
-  // `o.encounterTime` named. Those were two keys for one event and the field
-  // holds the instant, which is why that key maps to nothing now: an alarm
-  // saved against it reaches no widget at all, recorded in
-  // widgetAlarmAttribution.test.ts.
+  /* `vessel.orbit` is here for the chip row rendered inside this panel, which
+     reads the encounter off the sample and solves the next apsis from the
+     elements. Neither is a field of `vessel.state` any more, and the next apsis
+     is not a field of anything: it is solved, so the channel is what carries
+     it. */
+  channels: ["vessel.flight", "vessel.orbit", "vessel.state", "system.bodies"],
   fields: [
     "vessel.flight.latitude",
     "vessel.flight.longitude",
@@ -110,10 +110,6 @@ const topics = defineTopicManifest({
     "vessel.state.parentBodyName",
     "vessel.state.orbitPatches",
     "vessel.state.encounterExists",
-    "vessel.state.encounterBody",
-    "vessel.state.encounterUt",
-    "vessel.state.nextApsisType",
-    "vessel.state.timeToNextApsis",
   ],
 });
 
@@ -1537,9 +1533,9 @@ registerComponent<MapViewConfig>({
   minSize: { w: 3, h: 4 },
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
-  // The last four are read by `OrbitalEventChips`, rendered inside this
-  // widget rather than by the component body itself: declared here because
-  // the panel that badges and the panel an alarm lights is this one.
+  // `vessel.orbit` is read by `OrbitalEventChips`, rendered inside this widget
+  // rather than by the component body itself: declared here because the panel
+  // that badges and the panel an alarm lights is this one.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {

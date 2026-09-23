@@ -18,8 +18,10 @@ import { CurrentOrbitComponent } from "./index";
  * Every row of this widget is its own absence gate (`x === undefined ?
  * NULL_DISPLAY : <Unit .../>`), plus three structural ones:
  *
- *   - `hasOrbit = sma != null && eccentricity != null && periapsisR != null`
- *     gates the mini diagram, which then reads `sma.magnitude` unguarded
+ *   - `canDrawDiagram = sma != null && eccentricity != null && periapsisR
+ *     != null` gates the mini diagram, which then reads `sma.magnitude`
+ *     unguarded. The slot it sits in also opens on a withheld trajectory, so
+ *     a refusal still has somewhere to be read
  *   - `refBody !== undefined` gates the reference-body caption
  *   - the Pe row's accent comes from `periapsisA !== undefined && periapsisA
  *     < 0`, so absence decides a COLOUR as well as a glyph
@@ -74,7 +76,15 @@ interface OrbitEmission {
   sma: number;
   ecc: number;
   inc?: number;
-  /** Also emit `vessel.identity` + `system.bodies`, which the apsis ALTITUDES and the body caption need. */
+  /**
+   * Give the body a RADIUS, and emit `vessel.identity` beside it, which the
+   * apsis altitudes and the body caption need.
+   *
+   * The roster itself is always emitted: `vessel.orbit`'s conic declares
+   * `system.bodies` as an input, so a scene without it has no model and the
+   * widget has no solve to draw at all, which is a different absence from the
+   * one these tests are about.
+   */
   withBody?: boolean;
 }
 
@@ -105,10 +115,14 @@ function emitOrbit(fixture: StreamFixture, o: OrbitEmission) {
         parentBodyIndex: 0,
         launchUt: 0,
       });
-      fixture.emit("system.bodies", {
-        bodies: [{ index: 0, name: "Kerbin", radius: KERBIN_RADIUS }],
-      });
     }
+    fixture.emit("system.bodies", {
+      bodies: [
+        o.withBody
+          ? { index: 0, name: "Kerbin", radius: KERBIN_RADIUS }
+          : { index: 0, name: "Kerbin" },
+      ],
+    });
   });
 }
 
@@ -140,7 +154,7 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
     // what produces the glyph.
     expect(valueFor("Ap").firstElementChild).toBeNull();
     expect(valueFor("t-Ap").firstElementChild).toBeNull();
-    // `hasOrbit` fires, so the diagram slot never mounts. That matters more
+    // `canDrawDiagram` fires, so the diagram slot never mounts. That matters more
     // than the dashes: the diagram reads `sma.magnitude` and
     // `eccentricity.magnitude` with no optional chaining, so this gate is the
     // only thing between an absent orbit and a throw.
@@ -172,35 +186,37 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
   });
 });
 
-describe("CurrentOrbit: a partial payload, the orbit without its body", () => {
-  it("renders Inc/Ecc/T but dashes Ap/Pe, whose altitudes need the body radius", async () => {
+describe("CurrentOrbit: a partial payload, the body without its radius", () => {
+  it("renders every other row but dashes Ap/Pe, whose altitudes need the radius", async () => {
     const { container, fixture } = renderCurrentOrbit({ w: 9, h: 18 });
     emitOrbit(fixture, { sma: 682500, ecc: 0.00367, inc: 0.3 });
 
     await waitFor(() => expect(visibleText(container)).toContain("0.3°"));
-    // `vessel.orbit` has landed so the raw elements render, but
-    // `apoapsisAlt`/`periapsisAlt` stay `undefined` until `system.bodies`
-    // supplies a radius. Five rows carry values and the two HEADLINE rows
-    // dash, with nothing to say that those two are the absent ones.
+    // Everything the solve can reach from the elements alone renders. The two
+    // ALTITUDES cannot: they are a radius minus the reference body's, and the
+    // roster here carries a body with no radius on it. Five rows carry values
+    // and the two HEADLINE rows dash, with nothing to say that those two are
+    // the absent ones.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
     expect(valueFor("Ap").textContent).toBe(NULL_DISPLAY);
     expect(valueFor("Pe").textContent).toBe(NULL_DISPLAY);
-    // The diagram DOES mount: `hasOrbit` reads the apsis RADII, which come
-    // straight off the elements and need no body.
+    // The diagram DOES mount: `canDrawDiagram` reads the apsis RADII, which
+    // come straight off the elements and need no radius of the body's own.
     expect(container.querySelector("svg")).not.toBeNull();
-    // No reference-body caption: `referenceBodyName` is an index → name
-    // resolution against `system.bodies`, absent here.
-    expect(visibleText(container)).not.toContain("Kerbin");
+    // The caption DOES render: a body's NAME is an index → name resolution
+    // against the roster, which is here, and it is a different question from
+    // the radius the two altitudes wanted.
+    expect(visibleText(container)).toContain("Kerbin");
   });
 });
 
 describe("CurrentOrbit: null (inapplicable) versus undefined (nothing yet)", () => {
-  it("lets a null Ap and a null t-Ap through their gates, and ui-kit renders the dash", async () => {
+  it("catches a null Ap and a null t-Ap at the widget's own gate", async () => {
     const { container, fixture } = renderCurrentOrbit({ w: 9, h: 18 });
-    // A hyperbolic escape (ecc >= 1, sma < 0). `deriveVesselState`'s
-    // elliptical solver degrades rather than throwing, so
-    // apoapsisAlt/apoapsisRadius/timeToAp/timeToPe/period all arrive as
-    // `null` ("confirmed inapplicable") while periapsis stays real.
+    // A hyperbolic escape (ecc >= 1, sma < 0). The elliptical solver degrades
+    // rather than throwing, so apoapsisAlt/apoapsisRadius/timeToAp/timeToPe/
+    // period all arrive as `null` ("confirmed inapplicable") while periapsis
+    // stays real.
     emitOrbit(fixture, { sma: -2000000, ecc: 1.35, withBody: true });
 
     await waitFor(() => expect(visibleText(container)).toContain("Kerbin"));
@@ -210,32 +226,23 @@ describe("CurrentOrbit: null (inapplicable) versus undefined (nothing yet)", () 
       `ORBITKerbinorbit planeAp${NULL_DISPLAY}Pe100.0 kmInc0.3°t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Ecc1.3500T${NULL_DISPLAY}`,
     );
 
-    // Ap's gate is `apoapsisA === undefined`, which a `null` does not
-    // satisfy, and the widget's `hyperbolic` second chance is dead code:
-    // `typeof eccentricity === "number"` is false because `vessel.orbit.ecc`
-    // decodes to a `Value` object ({magnitude: 1.35, unit: "1"}), so
-    // `hyperbolic` is ALWAYS false here. The null reaches `<Unit value=
-    // {value("m", null)} />`, which renders NULL_DISPLAY inside its own span:
-    // that inner element is the proof the widget's gate missed.
-    expect(valueFor("Ap").firstElementChild?.textContent).toBe(NULL_DISPLAY);
-
-    // t-Ap's gate (`timeToAp === undefined || hyperbolic`) misses the null
-    // for both the same reasons; `<Countdown value={null} />` returns the
-    // bare glyph, so this dash looks like a gate hit but is not one.
-    expect(valueFor("t-Ap").textContent).toBe(NULL_DISPLAY);
-
-    // t-Pe is the one row that names `null` explicitly (`timeToPe ===
-    // undefined || timeToPe === null`), so its dash IS the widget's own gate.
+    // Every one of the four dashes is the WIDGET's own gate: a direct text
+    // child, no inner span. The rows fold `null` into `undefined` where they
+    // read the solve, so a quantity the trajectory does not have and one that
+    // has not arrived reach the same arm, which is how this column draws both
+    // anyway. Before that fold, Ap's `=== undefined` test let the null past
+    // and `<Unit value={value("m", null)} />` produced the glyph from inside
+    // its own span.
+    expect(valueFor("Ap").firstElementChild).toBeNull();
+    expect(valueFor("t-Ap").firstElementChild).toBeNull();
     expect(valueFor("t-Pe").firstElementChild).toBeNull();
 
-    // T folds the tombstone into nothing-arrived (`period = vesselState
-    // ?.period ?? undefined`), so the widget cannot distinguish "this
-    // trajectory has no period" from "no frame has arrived": both dash, from
-    // the same gate.
+    // What the widget still cannot distinguish is WHY: "this trajectory has
+    // no period" and "no frame has arrived" dash identically, from one gate.
     expect(valueFor("T").firstElementChild).toBeNull();
 
-    // `hasOrbit` still passes (periapsisRadius is real), so the diagram draws
-    // a hyperbolic trajectory off `apoapsis={apoapsisR ?? 0}`.
+    // `canDrawDiagram` still passes (periapsisRadius is real), so the diagram
+    // draws a hyperbolic trajectory off `apoapsis={apoapsisR ?? 0}`.
     expect(container.querySelector("svg")).not.toBeNull();
   });
 });

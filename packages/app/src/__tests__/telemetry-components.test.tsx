@@ -322,7 +322,7 @@ describe("OrbitViewComponent", () => {
     // propagation seam what shape this trajectory is before drawing one, and a
     // sample with no stated shape gets no conic. This is what the stock
     // analytic producer sends (`AnalyticHorizon()` in `VesselViewProvider.cs`).
-    const stream = setupTelemetryStream(["vessel.orbit"]);
+    const stream = setupTelemetryStream(["vessel.orbit", "system.bodies"]);
     renderWidget(
       <stream.Provider>
         <OrbitViewComponent id="t" />
@@ -338,6 +338,10 @@ describe("OrbitViewComponent", () => {
           trajectoryKind: TrajectoryKindLike.Analytic,
         },
       });
+      // The roster the conic declares alongside the horizon. The apsis radii
+      // the diagram is drawn from are solved through that conic, so without it
+      // there is nothing to draw.
+      stream.emit("system.bodies", { bodies: [] });
     });
     await waitFor(() =>
       expect(

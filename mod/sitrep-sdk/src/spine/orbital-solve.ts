@@ -1,3 +1,4 @@
+import type { VesselOrbit } from "../__generated__/contract";
 import { magnitudeOf, magnitudeOr, type Quantityish } from "../magnitude";
 import type { OrbitElements } from "./kepler";
 import {
@@ -198,6 +199,42 @@ export function solveOrbit(
     periapsisAlt: altitude(periapsisRadius),
     ...nextApsis(timeToAp, timeToPe),
   };
+}
+
+/**
+ * The SELF vessel's solve, or `null` where a caller is not entitled to one.
+ *
+ * `elements` are whatever the caller's own reading is carrying, and `observed`
+ * and `stale` both carry them: `sma`, `ecc` and the rest are constants of the
+ * orbit rather than figures that go out of date, so a model that moves the
+ * phase makes the whole thing current again. That branch is written at each
+ * read, where a reading has to be narrowed anyway.
+ *
+ * The MODEL's refusal is the part that lives here, because a second copy of it
+ * is how a hook and a plain class come to disagree about when an apoapsis
+ * exists. {@link solveOrbit} advances a coast, and the reckoner is what knows
+ * whether these elements describe one: it withdraws under physics, past an SOI
+ * transition, below the atmosphere interface, past the reach the propagation
+ * provider stated, and where no provider vouched for them being a conic at all.
+ * The whole reckoning is taken rather than a boolean, so the condition is
+ * written once in the place that documents it.
+ *
+ * `viewUt` is the instant asked about, and its absence is the third `null`: with
+ * no frame there is nothing to solve FOR.
+ */
+export function solveSelfOrbit(
+  elements: VesselOrbit | undefined,
+  reckoning: { readonly status: string },
+  bodies: BodyRadiusTable | null | undefined,
+  viewUt: number | undefined,
+): OrbitalSolve | null {
+  if (elements === undefined || viewUt === undefined) return null;
+  if (reckoning.status !== "available") return null;
+  return solveOrbit(
+    elements,
+    viewUt,
+    bodyRadiusOf(bodies, elements.referenceBodyIndex),
+  );
 }
 
 /**

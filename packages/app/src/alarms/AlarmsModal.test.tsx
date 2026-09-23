@@ -12,7 +12,12 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { type ManeuverNode, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type ManeuverNode,
+  PropagationHorizonKind,
+  TrajectoryKind,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -347,6 +352,17 @@ function emitOrbitAtApsis(
     meanAnomalyAtEpoch,
     epoch: ORBIT_EPOCH,
     mu: ORBIT_MU,
+    // The reach and shape a live sample states. The countdowns behind these
+    // presets are solved through the conic over these elements, and without
+    // them nothing vouches for that conic, so no preset appears at all.
+    horizon: {
+      kind: PropagationHorizonKind.Unbounded,
+      trajectoryKind: TrajectoryKind.Analytic,
+    },
+  });
+  // That conic's other declared input.
+  emit("system.bodies", {
+    bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
   });
 }
 

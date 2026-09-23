@@ -1,26 +1,24 @@
+import { useOrbitSolve, useTelemetry } from "@ksp-gonogo/core";
 import {
-  useStream,
-  useTopicStatus,
+  CELESTIAL_FACTS,
+  useProcessor,
   useViewUt,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 
 /**
  * Vessel-wide orbital event chips: an SOI encounter / escape and the next
- * apsis. Reads `o.encounterExists / encounterBody / UTsoi` and
- * `o.nextApsisType / timeToNextApsis`. Renders nothing when neither has data.
+ * apsis. Renders nothing when neither has data.
  *
- * `o.encounterExists` is the gate: -1 = escape (leaving current SOI),
- * 0 = none, 1 = encounter (entering another body's SOI). The body / time
- * fields only carry meaningful values when this is non-zero.
+ * Both come off `vessel.orbit`, by two different routes. The encounter is a
+ * field of the sample, carried from the game's own patched-conic solver and
+ * read as it arrives. The next apsis is SOLVED from the elements at the view
+ * instant, so it is absent wherever a conic through them would be wrong, which
+ * is why an encounter chip can stand alone with no apsis chip beside it.
  *
- * `o.nextApsisType`: -1 = Pe, 1 = Ap, 0 = N/A (hyperbolic past Pe).
- *
- * `encounterTime` is an ABSOLUTE UT (`vessel.orbit.encounter.transitionUt`,
- * carried through unchanged), so the countdown is the frame's view time
+ * `transitionUt` is an ABSOLUTE UT, so the countdown is the frame's view time
  * subtracted from it, never the field itself. Rendering it raw put a Mun
  * encounter twenty minutes away on screen as "46d 2h", and the old
  * `encounterTime > 0` gate held the chip up forever because every UT passes
@@ -29,37 +27,37 @@ import type { ReactNode } from "react";
  * same token on both and cannot tell them apart.
  */
 export function OrbitalEventChips() {
-  const vesselState = useStream<VesselState>("vessel.state");
   /*
    * Every chip below is a claim about what happens NEXT, so they all withhold
-   * together when the channel that feeds them stops.
+   * together when the elements behind them stop arriving. An encounter chip is
+   * the sharpest case: "Mun in 20m" held over from a dropped link is an
+   * instruction about a rendezvous that may already have happened.
    *
-   * `vessel.state` is derived and carries no `Reading`, so only the currency
-   * its channel definition computes can tell a current chip from a held-over
-   * one; without it they all draw as confidently as live ones. An encounter
-   * chip is the sharpest case: "Mun in 20m" held over from a dropped link is
-   * an instruction about a rendezvous that may already have happened.
-   *
-   * Read at the same frame as the value, so the pair cannot disagree about
-   * which frame it describes.
+   * The solve reads this same topic at this same frame, so the two halves
+   * cannot disagree about which frame they describe.
    */
-  const stateCurrent = useTopicStatus("vessel.state") === "live";
-  const enc = stateCurrent ? vesselState?.encounterExists : undefined;
-  const encBody = stateCurrent ? vesselState?.encounterBody : undefined;
-  const encUt = stateCurrent ? vesselState?.encounterUt : undefined;
+  const reading = useTelemetry("vessel.orbit");
+  const orbit = reading.state === "observed" ? reading.value : undefined;
+  const solve = useOrbitSolve();
   const viewUt = useViewUt();
-  const apsisType = stateCurrent ? vesselState?.nextApsisType : undefined;
-  const timeToApsis = stateCurrent ? vesselState?.timeToNextApsis : undefined;
+  const facts = useProcessor(CELESTIAL_FACTS);
+  const encounter = orbit?.encounter ?? null;
 
   const encounterKind: "encounter" | "escape" | null =
-    typeof enc === "number" && enc === 1
+    encounter?.transitionType === TransitionType.Encounter
       ? "encounter"
-      : typeof enc === "number" && enc === -1
+      : encounter?.transitionType === TransitionType.Escape
         ? "escape"
         : null;
+  /* The index is how every other Topic names a body, so the name comes from
+     the catalogue that owns that lookup rather than from a second table. */
+  const encBody =
+    encounter?.bodyIndex == null
+      ? undefined
+      : facts?.nameByIndex[encounter.bodyIndex];
   const encIn =
-    typeof encUt === "number" && Number.isFinite(encUt) && viewUt !== undefined
-      ? value("ut", encUt).minus(viewUt).magnitude
+    encounter?.transitionUt.isFinite() === true && viewUt !== undefined
+      ? encounter.transitionUt.minus(viewUt).magnitude
       : undefined;
   const hasEncounter =
     encounterKind !== null &&
@@ -68,10 +66,12 @@ export function OrbitalEventChips() {
     encIn !== undefined &&
     encIn > 0;
 
+  const apsisType = orbit === undefined ? null : (solve?.nextApsisType ?? null);
+  const timeToApsis =
+    orbit === undefined ? null : (solve?.timeToNextApsis ?? null);
   const hasApsis =
-    typeof apsisType === "number" &&
-    apsisType !== 0 &&
-    typeof timeToApsis === "number" &&
+    (apsisType === 1 || apsisType === -1) &&
+    timeToApsis !== null &&
     Number.isFinite(timeToApsis) &&
     timeToApsis >= 0;
 

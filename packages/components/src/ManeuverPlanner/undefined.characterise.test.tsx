@@ -4,6 +4,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -85,7 +86,13 @@ function emitOrbitReady(
     meanAnomalyAtEpoch: 0,
     epoch: PINNED_UT,
     mu: 3.5316e12,
+    // The reach and shape a live sample states, and the roster beside it: the
+    // two declared inputs of the conic the apsis figures are solved through.
+    horizon: ANALYTIC_UNBOUNDED_HORIZON,
     ...overrides,
+  });
+  fixture.emit("system.bodies", {
+    bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
   });
 }
 
