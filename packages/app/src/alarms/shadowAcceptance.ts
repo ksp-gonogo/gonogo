@@ -1,4 +1,6 @@
 import type { LogEntry } from "@ksp-gonogo/logger";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 /**
  * The shadow comparison's verdict, from a run's own log.
@@ -35,14 +37,21 @@ const DISAGREEMENTS = [
  */
 export const MINIMUM_FIRINGS = 10;
 
+/**
+ * How a run prints its delay: in seconds, to the millisecond. The default
+ * duration ladder rounds a 2.675 s link to 2 s, which hides the figure a run is
+ * read for.
+ */
+export const DELAY_FORMAT = { scale: "never", decimals: 3 } as const;
+
 export interface ShadowRunInput {
   entries: readonly LogEntry[];
   /**
-   * One-way light time during the run, seconds. `null` is the mod's own word
+   * One-way light time during the run. `null` is the mod's own word
    * for nothing measurable, and a run without a delay cannot tell the two
    * evaluators apart at all.
    */
-  owltSeconds: number | null;
+  owlt: Value | null;
 }
 
 export interface ShadowRunVerdict {
@@ -80,7 +89,7 @@ export function classifyShadowRun(input: ShadowRunInput): ShadowRunVerdict {
       divergences,
     };
   }
-  if (input.owltSeconds === null || input.owltSeconds <= 0) {
+  if (!input.owlt?.greaterThan(0)) {
     return {
       verdict: "INCONCLUSIVE",
       reason:
@@ -103,7 +112,7 @@ export function classifyShadowRun(input: ShadowRunInput): ShadowRunVerdict {
   }
   return {
     verdict: "PASS",
-    reason: `${agreements} agreements, no disagreements, at a one-way delay of ${input.owltSeconds} seconds`,
+    reason: `${agreements} agreements, no disagreements, at a one-way delay of ${writeQuantity(input.owlt, DELAY_FORMAT)}`,
     agreements,
     disagreements: 0,
     byMessage,

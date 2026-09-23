@@ -1,4 +1,5 @@
 import type { LogEntry } from "@ksp-gonogo/logger";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { classifyShadowRun, MINIMUM_FIRINGS } from "./shadowAcceptance";
 
@@ -21,10 +22,18 @@ describe("classifyShadowRun", () => {
   it("passes only on enough agreements, at a real delay, with nothing else", () => {
     const v = classifyShadowRun({
       entries: agree(MINIMUM_FIRINGS),
-      owltSeconds: 240,
+      owlt: value("s", 240),
     });
     expect(v.verdict).toBe("PASS");
     expect(v.agreements).toBe(MINIMUM_FIRINGS);
+  });
+
+  it("names the delay it passed at to the millisecond", () => {
+    const v = classifyShadowRun({
+      entries: agree(MINIMUM_FIRINGS),
+      owlt: value("s", 2.675),
+    });
+    expect(v.reason).toMatch(/one-way delay of 2\.675\s*s$/);
   });
 
   it.each([
@@ -34,7 +43,7 @@ describe("classifyShadowRun", () => {
   ])("fails on a single '%s', however many agreements surround it", (bad) => {
     const v = classifyShadowRun({
       entries: [...agree(50), entry(bad, "warn")],
-      owltSeconds: 240,
+      owlt: value("s", 240),
     });
     expect(v.verdict).toBe("FAIL");
     expect(v.disagreements).toBe(1);
@@ -42,26 +51,26 @@ describe("classifyShadowRun", () => {
   });
 
   it("refuses to call a zero-delay run a pass, however clean", () => {
-    const v = classifyShadowRun({ entries: agree(500), owltSeconds: 0 });
+    const v = classifyShadowRun({ entries: agree(500), owlt: value("s", 0) });
     expect(v.verdict).toBe("INCONCLUSIVE");
   });
 
   it("refuses a null delay, which is the mod's word for nothing measurable", () => {
-    const v = classifyShadowRun({ entries: agree(500), owltSeconds: null });
+    const v = classifyShadowRun({ entries: agree(500), owlt: null });
     expect(v.verdict).toBe("INCONCLUSIVE");
   });
 
   it("calls a quiet run inconclusive rather than passing it", () => {
     const v = classifyShadowRun({
       entries: agree(MINIMUM_FIRINGS - 1),
-      owltSeconds: 240,
+      owlt: value("s", 240),
     });
     expect(v.verdict).toBe("INCONCLUSIVE");
     expect(v.reason).toContain("inactivity");
   });
 
   it("is not fooled by an empty log, which is the commonest way to see nothing", () => {
-    const v = classifyShadowRun({ entries: [], owltSeconds: 240 });
+    const v = classifyShadowRun({ entries: [], owlt: value("s", 240) });
     expect(v.verdict).toBe("INCONCLUSIVE");
   });
 
@@ -71,7 +80,7 @@ describe("classifyShadowRun", () => {
         ...agree(MINIMUM_FIRINGS),
         entry("alarm-host: something else", "warn"),
       ],
-      owltSeconds: 240,
+      owlt: value("s", 240),
     });
     expect(v.verdict).toBe("PASS");
   });
