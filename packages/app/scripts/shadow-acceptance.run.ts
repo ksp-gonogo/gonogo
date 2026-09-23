@@ -26,7 +26,7 @@ const laps =
 it(
   `shadow acceptance over ${seconds}s`,
   async () => {
-    const { verdict } = await runShadowAcceptance({
+    const { verdict, unread } = await runShadowAcceptance({
       host,
       port,
       observeMs: seconds * 1000,
@@ -34,6 +34,7 @@ it(
       write: (line) => console.info(line),
     });
     console.info(JSON.stringify(verdict, null, 2));
+    expect(unread, "alarms whose reading never resolved").toEqual([]);
     expect(verdict.verdict).toBe("PASS");
   },
   seconds * 1000 + 60_000,

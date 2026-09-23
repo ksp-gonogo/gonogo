@@ -97,6 +97,75 @@ describe("runShadowAcceptance: the delay it reports is the link's", () => {
   });
 });
 
+/**
+ * Streams `vessel.flight` every 200 ms of wall time, 0.2 s of game time apart,
+ * with the altitude `altitudeAt(sample)` returns and no orbital speed, so the
+ * speed alarm has nothing to read.
+ */
+function serveFlight(altitudeAt: (sample: number) => number): void {
+  server.use(
+    link.addEventListener(
+      "connection",
+      ({ client }: { client: LinkClient }) => {
+        let sample = 0;
+        const timer = setInterval(() => {
+          const frame = JSON.parse(
+            streamFrame("vessel.flight", { altitudeAsl: altitudeAt(sample) }),
+          );
+          frame.meta.validAt = 10_000 + sample * 0.2;
+          frame.meta.deliveredAt = frame.meta.validAt;
+          frame.meta.seq = sample;
+          client.send(JSON.stringify(frame));
+          sample++;
+        }, 200);
+        client.addEventListener("close", () => clearInterval(timer));
+      },
+    ),
+  );
+}
+
+describe("runShadowAcceptance: its thresholds read the stream", () => {
+  it("fires an alarm armed while its condition already holds", async () => {
+    serveFlight(() => 250_000);
+
+    const { finalStates, unread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2000,
+    });
+
+    expect(finalStates["Altitude 200 km"]).toBe("firing");
+    expect(finalStates["Altitude 300 km"]).toBe("pending");
+    expect(unread).not.toContain("Altitude 200 km");
+  });
+
+  it("fires on a crossing that lands between two samples", async () => {
+    serveFlight((sample) => (sample < 4 ? 150_000 : 250_000));
+
+    const { finalStates } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+    });
+
+    expect(finalStates["Altitude 200 km"]).toBe("firing");
+  });
+
+  it("names an alarm whose reading never resolved, which looks exactly like one not yet true", async () => {
+    serveFlight(() => 250_000);
+
+    const { finalStates, unread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2000,
+    });
+
+    expect(finalStates["Speed 3 km/s"]).toBe("pending");
+    expect(finalStates["Altitude 300 km"]).toBe("pending");
+    expect(unread).toEqual(["Speed 3 km/s"]);
+  });
+});
+
 describe("reportedOneWay", () => {
   it("reads the decoded seconds value", () => {
     expect(
