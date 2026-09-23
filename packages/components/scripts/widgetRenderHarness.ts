@@ -444,6 +444,15 @@ export async function renderWidgets(
       }
     }
 
+    if (findings.clipSurvey.length > 0) {
+      console.warn(
+        `\n[clipping] ${findings.clipSurvey.length} box(es) holding more than they show. ` +
+          "HIDES is unreachable; SCROLLS is reachable but the panel body suppresses " +
+          "its scrollbar, so nothing says there is more:\n  " +
+          findings.clipSurvey.join("\n  "),
+      );
+    }
+
     if (findings.crushedGraphics.length > 0) {
       const message =
         `${findings.crushedGraphics.length} graphic(s) laid out at zero width or height, ` +
@@ -837,6 +846,104 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
 }
 
 /**
+ * A box short enough to swallow a descender rather than a line of text. Clipping
+ * that matters costs a whole reading; a pixel or two is antialiasing and the
+ * rounding a fractional line height leaves behind.
+ */
+const CLIP_TOLERANCE_PX = 4;
+
+/**
+ * Does any widget hide its own content inside a box the operator cannot scroll?
+ *
+ * The sibling question to {@link findOverlappingSections}, and NOT the same one:
+ * that asks whether two sections paint into one place, which says nothing about
+ * a reading that fell off the bottom of a tile. A widget that clips renders,
+ * asserts and diffs green, so nothing else in the tree fails on it.
+ *
+ * Reported only where the content is UNREACHABLE. An `auto` or `scroll` box is
+ * somebody's scroller and its content is one gesture away; a single line cut
+ * short under `text-overflow: ellipsis` is the documented last resort several
+ * kit primitives take at narrow widths, and both are design rather than defect.
+ * What is left is a box told to hide, holding more than it shows, with no way
+ * to reach the rest.
+ *
+ * Meaningful at the FIXED tile size only. The full-content capture path grows
+ * the box until nothing is clipped, which is the same reason the overlap gate
+ * renders tiles.
+ *
+ * Its caller REFUSES rather than relying on this paragraph. The sentence above
+ * was here first and I still ran the detector through the review path and read
+ * its zero as a clean widget: when you are running something you are not
+ * reading it, so adjacency in a file is not a delivery mechanism.
+ */
+export async function surveyClippedContent(page: Page): Promise<string[]> {
+  return page.evaluate(
+    ([tolerance, htmlNs]) => {
+      const host = document.getElementById("root");
+      if (!host) return [] as string[];
+      const out: string[] = [];
+
+      for (const el of [host, ...Array.from(host.querySelectorAll("*"))]) {
+        if (el.namespaceURI !== htmlNs) continue;
+        const cs = getComputedStyle(el);
+
+        const hidesY = cs.overflowY === "hidden" || cs.overflowY === "clip";
+        const hidesX = cs.overflowX === "hidden" || cs.overflowX === "clip";
+        const scrollsY = cs.overflowY === "auto" || cs.overflowY === "scroll";
+        const scrollsX = cs.overflowX === "auto" || cs.overflowX === "scroll";
+        const clipsY = hidesY || scrollsY;
+        const clipsX = hidesX || scrollsX;
+        if (!clipsY && !clipsX) continue;
+
+        // One line cut short with an ellipsis is a truncation the author asked
+        // for and the reader can see happening.
+        if (cs.textOverflow === "ellipsis" && cs.whiteSpace === "nowrap") {
+          continue;
+        }
+
+        /*
+         * A visually-hidden label: the screen-reader-only pattern is a box
+         * collapsed to about a pixel with its overflow hidden, so it clips its
+         * own text on purpose and every single one of them would report. This
+         * is not a size threshold on the finding, it is how that pattern is
+         * recognised, since a box this small shows nothing to a sighted reader
+         * either way.
+         */
+        if (el.clientWidth <= 2 || el.clientHeight <= 2) continue;
+
+        const overY = clipsY ? el.scrollHeight - el.clientHeight : 0;
+        const overX = clipsX ? el.scrollWidth - el.clientWidth : 0;
+        if (overY <= tolerance && overX <= tolerance) continue;
+
+        const tag = el.tagName.toLowerCase();
+        const id = el.id ? `#${el.id}` : "";
+        const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+        const axis = [
+          overY > tolerance ? `${overY}px below` : "",
+          overX > tolerance ? `${overX}px beyond the right edge` : "",
+        ]
+          .filter(Boolean)
+          .join(" and ");
+        /*
+         * Two verdicts, because they are different defects and only a person
+         * can weigh the second. HIDES is unreachable: the box was told to hide
+         * and the reading is gone. SCROLLS is reachable, but this app's panel
+         * body scrolls with its scrollbar suppressed, so a reading below the
+         * fold looks identical to one that does not exist.
+         */
+        const verb =
+          (overY > tolerance && hidesY) || (overX > tolerance && hidesX)
+            ? "hides"
+            : "scrolls";
+        out.push(`<${tag}${id}> ${verb} ${axis}: "${text.slice(0, 48)}"`);
+      }
+      return out;
+    },
+    [CLIP_TOLERANCE_PX, HTML_NS] as const,
+  );
+}
+
+/**
  * Plants known layouts in the probe page and checks the overlap detector's
  * verdict on each one, before a single widget is rendered.
  *
@@ -1223,10 +1330,25 @@ interface RenderFindings {
   clipped: string[];
   /** Renders that never happened: a throw out of `__renderProbe`. */
   mounts: string[];
+  /**
+   * Content hidden inside a box nobody can scroll, across every element rather
+   * than the declared marks alone. Collected only under
+   * `PROBE_REPORT_CLIPPING=1` and never fatal: the survey is an instrument
+   * while the shape of its noise is still being learned, and a gate whose
+   * allowances were guessed before anyone ran it is the same mistake a
+   * vocabulary invented before measuring would be.
+   */
+  clipSurvey: string[];
 }
 
 function noFindings(): RenderFindings {
-  return { crushedGraphics: [], overlaps: [], clipped: [], mounts: [] };
+  return {
+    crushedGraphics: [],
+    overlaps: [],
+    clipped: [],
+    clipSurvey: [],
+    mounts: [],
+  };
 }
 
 /**
@@ -1489,6 +1611,22 @@ async function renderOneWidget(
         findings.clipped.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${hidden}`,
         );
+      }
+      if (process.env.PROBE_REPORT_CLIPPING === "1") {
+        if (fullContent) {
+          throw new Error(
+            "PROBE_REPORT_CLIPPING=1 with fullContent: the review path grows " +
+              "#root until nothing is clipped, so the survey can only ever " +
+              "report zero here, and a zero from an instrument that cannot " +
+              "detect anything reads as a clean widget. Run it through the " +
+              "visual gate, which renders fixed-tile.",
+          );
+        }
+        for (const clip of await surveyClippedContent(page)) {
+          findings.clipSurvey.push(
+            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${clip}`,
+          );
+        }
       }
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");

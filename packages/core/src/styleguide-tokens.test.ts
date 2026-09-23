@@ -213,7 +213,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
   },
   /**
    * 9 across 5 files. Four in `StationConnectView` (exempt page), and five
-   * hairline or half-height radii deliberately off the four-rung ramp:
+   * hairline or half-height radii deliberately off the semantic names:
    * CommSignal's 1px bar, ActionGroup's focus-ring radius, InputTester's
    * nested pair, OrbitalEventChips' chip.
    */
@@ -562,6 +562,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/SystemView/AlmanacPanel.tsx": 1,
     "packages/components/src/SystemView/VesselInfoPanel.tsx": 1,
     "packages/components/src/Targeting/index.tsx": 1,
+    /* The seam between consecutive readout groups, at the 10px gap rung
+       that has no name over it: each group is a Section, so the Section
+       around them adds its own 2px to the 8 this widget wants, and the sum
+       is what the groups were already spaced by. --gap-related would tighten
+       them by 2px, which is a retune rather than a migration. */
+    "packages/components/src/ThermalStatus/index.tsx": 1,
     /* Four: the meta row's 10px gap, the one gap rung with no name over it, and
        the three insets in the list header that have to agree. Two of those three
        are pressable and the third is the heading they align with, so naming the
@@ -838,7 +844,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
       "borderBottomRightRadius",
     ],
     remedy:
-      "use --radius-xs/sm/md/lg, or --radius-pill for a stadium and --radius-circle for a circle (never a hand-computed half-height)",
+      "use --radius-regular for an ordinary corner and --radius-floating for a box above the app, or --radius-pill for a stadium and --radius-circle for a circle (never a hand-computed half-height). --radius-display-frame belongs to FramedDisplay alone",
     hits: (value) => [
       ...nonZeroPx(value),
       ...(value.match(/\b\d*\.?\d+%/g) ?? []),

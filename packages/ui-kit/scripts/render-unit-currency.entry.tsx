@@ -574,7 +574,7 @@ function Sheet({ id }: { id: string }) {
         background: "var(--color-surface-panel)",
         color: "var(--color-text-primary)",
         fontFamily: "var(--font-family-mono)",
-        fontSize: "var(--font-size-sm)",
+        fontSize: "var(--font-size-value)",
       }}
     >
       {sheet.node}

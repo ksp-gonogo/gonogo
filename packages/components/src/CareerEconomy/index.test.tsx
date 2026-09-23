@@ -244,9 +244,12 @@ describe("CareerEconomy", () => {
     expect(
       screen.queryByText(/no career economy has arrived/i),
     ).not.toBeInTheDocument();
+    /* And nothing says it in words. The fifteen marks above ARE the statement,
+       which is what this test is named for; a sentence repeating them says the
+       same thing twice, in the space the readings need. */
     expect(
-      screen.getByText(/no longer current: these are the last rates/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/no longer current: these are the last rates/i),
+    ).not.toBeInTheDocument();
 
     await act(async () => {});
   });

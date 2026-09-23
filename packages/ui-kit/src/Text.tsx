@@ -83,16 +83,16 @@ const WEIGHT_STYLES = {
 
 const SIZE_STYLES = {
   xs: css`
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-compact);
   `,
   sm: css`
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-value);
   `,
   base: css`
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-prose);
   `,
   lg: css`
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-figure);
   `,
 } as const;
 

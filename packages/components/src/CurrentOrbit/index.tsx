@@ -284,7 +284,7 @@ function CurrentOrbitComponent({
           {showSubtitle && refBody !== undefined && (
             <span
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-caption)",
                 color: "var(--color-text-muted)",
                 letterSpacing: "0.03em",
               }}
@@ -549,7 +549,7 @@ function OrbitLabel({ children }: { children: ReactNode }) {
   return (
     <span
       style={{
-        fontSize: "var(--font-size-xs)",
+        fontSize: "var(--font-size-caption)",
         color: "var(--color-text-faint)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -585,7 +585,7 @@ function FrameCaveat({
     <span
       title={title}
       style={{
-        fontSize: "var(--font-size-xs)",
+        fontSize: "var(--font-size-compact)",
         color: "var(--color-text-faint)",
         fontStyle: "italic",
       }}
@@ -636,7 +636,7 @@ function OrbitValue({
   // on a coarse pointer, which is exactly the size the comment above says
   // clips at 3-4 cols. Only the tight tier lands on a rung of its own.
   if (tight) {
-    style.fontSize = "var(--font-size-2xs)";
+    style.fontSize = "var(--font-size-caption)";
   } else if (narrow) {
     style.fontSize = "12px";
   }

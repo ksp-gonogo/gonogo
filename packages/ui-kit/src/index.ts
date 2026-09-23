@@ -96,6 +96,19 @@ export {
 // the width of a mean orbital element is the number that says whether the orbit
 // is stable.
 export { Band, type BandProps } from "./Band";
+/**
+ * `Block` is the arrangement of a record and `Card` is that same arrangement on
+ * a sunken surface. Both are compound, and their parts are ONE set of objects:
+ * `Card.Title === Block.Title`, because `Card` is assembled from `BLOCK_PARTS`
+ * rather than declaring parts of its own. `Notice` composes the same set.
+ *
+ * Only the compounds are published. `renderBlockAnatomy`, `Block__Root` and
+ * `BLOCK_PARTS` are how the three surfaces share one implementation inside this
+ * package, and a bare part on the barrel would freeze a DOM structure as API to
+ * every Uplink, which is the failure `styleguide-panel-parts.test.ts` already
+ * records for `Panel`.
+ */
+export { Block, type BlockProps, type BlockTitleRowProps } from "./Block";
 export {
   Box,
   type BoxPad,
@@ -508,6 +521,7 @@ export {
 // ── Null-display token ──────────────────────────────────────────────────────
 // The one sanctioned em dash in the codebase; see NullValue.tsx's own header
 // comment for the full rationale and the ratchet that enforces it.
+export { Notice, type NoticeProps } from "./Notice";
 export { NULL_DISPLAY, NullValue } from "./NullValue";
 /**
  * `Panel` is a compound component, and it is the ONLY door to its parts:

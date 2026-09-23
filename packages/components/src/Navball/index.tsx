@@ -1664,7 +1664,7 @@ const READOUT_STACK: CSSProperties = {
  * be free to squeeze it to.
  */
 const READOUT_CELL: CSSProperties = {
-  fontSize: "var(--font-size-lg)",
+  fontSize: "var(--font-size-figure)",
   minWidth: "auto",
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
@@ -1684,7 +1684,7 @@ const READOUT_PAIR: CSSProperties = {
  * nothing that is not aligned.
  */
 const READOUT_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   color: "var(--color-text-faint)",
 };
@@ -1693,7 +1693,7 @@ const READOUT_VALUE: CSSProperties = {
   /* The top of the type scale. A display tier above it would want a token
      rather than a bare px here, and the scale does not carry one; 16px is the
      largest size this readout can take while staying inside the system. */
-  fontSize: "var(--font-size-lg)",
+  fontSize: "var(--font-size-figure)",
   fontWeight: 700,
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
@@ -1709,7 +1709,7 @@ const THROTTLE_COLUMN: CSSProperties = {
 };
 
 const THROTTLE_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   color: "var(--color-text-faint)",
 };
@@ -1736,7 +1736,7 @@ const THROTTLE_FILL: CSSProperties = {
 };
 
 const THROTTLE_VAL: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
 };
@@ -1750,12 +1750,12 @@ const CONTROL_WRAP: CSSProperties = {
 };
 
 const BANNER: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-status-warning-bg)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-status-warning-bg)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
 };
 
 const GROUP: CSSProperties = {
@@ -1765,7 +1765,7 @@ const GROUP: CSSProperties = {
 };
 
 const GROUP_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
@@ -1833,7 +1833,7 @@ const SLIDER_ROW: CSSProperties = {
 const SLIDER: CSSProperties = { flex: 1 };
 
 const SLIDER_VAL: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
   minWidth: "36px",
@@ -1847,7 +1847,7 @@ const FBW_ROW: CSSProperties = {
 };
 
 const FBW_HINT: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
 };
 

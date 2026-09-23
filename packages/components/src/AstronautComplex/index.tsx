@@ -42,7 +42,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import styled from "styled-components";
 import {
   FundsDrain,
   netFundsPerDay,
@@ -460,11 +459,11 @@ function AstronautComplexComponent(
               {fundsStat}
               <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
             </StatStrip>
-            <Empty>
+            <div style={EMPTY_STYLE}>
               {complexConfirmedEmpty
                 ? "No applicant data (career mode only)"
                 : "No applicant data yet (waiting for telemetry)"}
-            </Empty>
+            </div>
           </Section>
         }
       />
@@ -568,7 +567,9 @@ function AstronautComplexComponent(
                            moment the content region has a child, so the host
                            never has to introspect augments it does not own. */
                         <AutoEmptyState
-                          fallback={<Empty>No training right now</Empty>}
+                          fallback={
+                            <div style={EMPTY_STYLE}>No training right now</div>
+                          }
                           gap="lg"
                         >
                           <AugmentSlot
@@ -609,27 +610,22 @@ function ApplicantsPanel({
   hireCmd: CommandButtonHandle;
 }) {
   if (applicants.length === 0) {
-    return <Empty>No applicants right now</Empty>;
+    return <div style={EMPTY_STYLE}>No applicants right now</div>;
   }
   return (
-    <List>
+    <Stack as="ul" style={LIST_STYLE}>
       {applicants.map((a) => (
         // Kerbal names are unique within the applicant pool, so the name is
         // a stable key (no array index).
         <Card as="li" key={a.name}>
-          <Stack>
-            <Cluster justify="between" align="start">
-              <Who>
-                <KerbalStats
-                  kerbal={applicantStats(a)}
-                  showRank={false}
-                  showTraits
-                  showInfo
-                />
-              </Who>
-              {/* The corner: whatever mark the career model wants read WITH
-                  this name, then the action. An applicant gets one too, for the
-                  same reason they get the crew slot. */}
+          {/* Hand-composed from the title row rather than passed as `title`:
+              the subject is a whole KerbalStats block carrying its own type,
+              not a name, so it must not inherit the heading's. The corner
+              holds whatever mark the career model wants read WITH that name,
+              then the action. An applicant gets one too, for the same reason
+              they get the crew slot. */}
+          <Card.TitleRow
+            right={
               <Cluster align="center">
                 <AugmentSlot
                   name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
@@ -653,23 +649,32 @@ function ApplicantsPanel({
                   hireCmd={hireCmd}
                 />
               </Cluster>
-            </Cluster>
-            {/* An applicant has a schedule too under a career overhaul: RP-1
-                gives an applicant a retirement date and retires them out of the
-                pool. Same slot as the Active rows, flagged so an augment can
-                tell which list it is in. */}
-            <AugmentSlot
-              name="astronaut-complex.crew"
-              props={{
-                kerbalName: a.name,
-                standing: CrewStanding.Applicant,
-                isApplicant: true,
-              }}
-            />
-          </Stack>
+            }
+          >
+            <Stack style={WHO_STYLE}>
+              <KerbalStats
+                kerbal={applicantStats(a)}
+                showRank={false}
+                showTraits
+                showInfo
+              />
+            </Stack>
+          </Card.TitleRow>
+          {/* An applicant has a schedule too under a career overhaul: RP-1
+              gives an applicant a retirement date and retires them out of the
+              pool. Same slot as the Active rows, flagged so an augment can
+              tell which list it is in. */}
+          <AugmentSlot
+            name="astronaut-complex.crew"
+            props={{
+              kerbalName: a.name,
+              standing: CrewStanding.Applicant,
+              isApplicant: true,
+            }}
+          />
         </Card>
       ))}
-    </List>
+    </Stack>
   );
 }
 
@@ -711,7 +716,7 @@ function ActivePanel({
   // and must not empty the panel.
   const active = crew.filter((c) => !c.isApplicant);
   if (active.length === 0) {
-    return <Empty>No active crew</Empty>;
+    return <div style={EMPTY_STYLE}>No active crew</div>;
   }
 
   const groups = groupByStanding(active);
@@ -738,7 +743,7 @@ function ActivePanel({
         id: `standing-${standing}`,
         label: `${label} (${members.length})`,
         content: (
-          <List>
+          <Stack as="ul" style={LIST_STYLE}>
             {members.map((m, i) => (
               <Card
                 as="li"
@@ -749,30 +754,21 @@ function ActivePanel({
                     : undefined
                 }
               >
-                <Stack>
-                  {/* The identity line, and the sack control at the END of it
-                      rather than in a column of its own down the side of the
-                      card. Weight follows how often a control is reached for,
-                      and firing an astronaut is close to the rarest thing an
-                      operator does here: given its own full-height column it
-                      claimed a fixed slice of every row on the roster, and took
-                      that width off the schedule underneath, which is the part
-                      that is read on every glance. */}
-                  <Cluster justify="between" align="start">
-                    <Who>
-                      <KerbalStats
-                        kerbal={crewRowStats(m)}
-                        showRank
-                        showTraits
-                        showExperienceProgress
-                        showInfo
-                      />
-                    </Who>
-                    {/* The corner, then the sack control. A career overhaul
-                        knows things about this kerbal that KSP's roster status
-                        does not carry (a naut mid-course still reads
-                        `Available` to KSP), and the corner is where a mark is
-                        read WITH the name rather than in the block below it. */}
+                {/* The identity line, and the sack control at the END of it
+                    rather than in a column of its own down the side of the
+                    card. Weight follows how often a control is reached for,
+                    and firing an astronaut is close to the rarest thing an
+                    operator does here: given its own full-height column it
+                    claimed a fixed slice of every row on the roster, and took
+                    that width off the schedule underneath, which is the part
+                    that is read on every glance.
+
+                    A career overhaul knows things about this kerbal that KSP's
+                    roster status does not carry (a naut mid-course still reads
+                    Available to KSP), and the corner is where a mark is read
+                    WITH the name rather than in the block below it. */}
+                <Card.TitleRow
+                  right={
                     <Cluster align="center">
                       <AugmentSlot
                         name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
@@ -786,23 +782,33 @@ function ActivePanel({
                         <FireButton kerbalName={m.name} fireCmd={fireCmd} />
                       )}
                     </Cluster>
-                  </Cluster>
-                  {/* This kerbal's schedule, contributed by whichever Uplink
-                      manages their career: a retirement date, a training ETA,
-                      the mission training about to lapse. Nothing renders under
-                      stock, which has none of those concepts. */}
-                  <AugmentSlot
-                    name="astronaut-complex.crew"
-                    props={{
-                      kerbalName: m.name,
-                      standing: m.standing,
-                      isApplicant: false,
-                    }}
-                  />
-                </Stack>
+                  }
+                >
+                  <Stack style={WHO_STYLE}>
+                    <KerbalStats
+                      kerbal={crewRowStats(m)}
+                      showRank
+                      showTraits
+                      showExperienceProgress
+                      showInfo
+                    />
+                  </Stack>
+                </Card.TitleRow>
+                {/* This kerbal's schedule, contributed by whichever Uplink
+                    manages their career: a retirement date, a training ETA,
+                    the mission training about to lapse. Nothing renders under
+                    stock, which has none of those concepts. */}
+                <AugmentSlot
+                  name="astronaut-complex.crew"
+                  props={{
+                    kerbalName: m.name,
+                    standing: m.standing,
+                    isApplicant: false,
+                  }}
+                />
               </Card>
             ))}
-          </List>
+          </Stack>
         ),
       };
     },
@@ -1111,19 +1117,17 @@ function readApplicants(raw: unknown): Applicant[] {
 }
 
 /**
- * The roster list. The default gap rather than the tight one: each row is a
- * bordered `Card`, and at a tighter gap two adjacent borders read as one thick
+ * The roster list, at the related gap rather than a tighter rung: each row is a
+ * bordered `Card`, and closer together two adjacent borders read as one thick
  * divider instead of as two records. The list itself is not inside a card, so
  * this resolves to the roomy 8px.
  */
-const List = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
+const LIST_STYLE = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  gap: "var(--gap-related)",
+} as const;
 
 /**
  * The identity column: takes the row's width and lets the name ellipsise.
@@ -1133,19 +1137,17 @@ const List = styled.ul`
  * sits inside a `Card`, which declares the compact tier, so related is 6px here
  * and would be 8px on a panel; this file names neither number.
  */
-const Who = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-  gap: var(--gap-related);
-`;
+const WHO_STYLE = {
+  minWidth: 0,
+  flex: 1,
+  gap: "var(--gap-related)",
+} as const;
 
-const Empty = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  padding: var(--space-6) 0;
-`;
+const EMPTY_STYLE = {
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-faint)",
+  padding: "var(--space-6) 0",
+} as const;
 
 registerComponent<AstronautComplexConfig>({
   id: "astronaut-complex",

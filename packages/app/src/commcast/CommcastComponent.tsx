@@ -1106,7 +1106,7 @@ const Commcast__BarGap = styled.div`
 const Commcast__BarTitle = styled.span`
   flex: 0 1 auto;
   min-width: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1137,7 +1137,7 @@ const Commcast__Back = styled(GhostButton)`
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 /*
@@ -1186,7 +1186,7 @@ const Commcast__Rows = styled.div`
  * sit at the accent colour in both states and say nothing about which.
  */
 const Commcast__RowName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: inherit;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1206,7 +1206,7 @@ const Commcast__RowHead = styled.div`
    is a pointer into a conversation, and a row that grows with the message it
    previews stops being scannable. */
 const Commcast__Preview = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1224,7 +1224,7 @@ const ThreadMarker = styled.div<{ $blocked?: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: ${({ $blocked }) =>
@@ -1256,7 +1256,7 @@ const Commcast__Meta = styled.div`
 `;
 
 const Author = styled.span<{ $pilot: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   color: ${({ $pilot }) =>
     $pilot ? "var(--color-status-go-fg)" : "var(--color-status-info-fg)"};
@@ -1264,7 +1264,7 @@ const Author = styled.span<{ $pilot: boolean }>`
 
 const Commcast__Body = styled.p`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
 `;
@@ -1292,7 +1292,7 @@ const Commcast__Input = styled.input`
   flex: 1 1 auto;
   min-width: 0;
   font: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   background: transparent;
   border: none;

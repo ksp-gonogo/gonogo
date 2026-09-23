@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { groupComboboxOptions } from "./Combobox";
 import { EmptyState } from "./EmptyState";
+import { focusRingInset } from "./focusRing";
 
 /**
  * An anchored menu of actions to fire: the APG `menu` pattern
@@ -218,7 +219,7 @@ const Menu = styled.div`
   overflow-y: auto;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   padding: var(--space-4, 4px) 0;
   /* The popover-anchored-to-a-control rung, the same one ComboboxListbox's
      Dropdown takes and for the same reason. */
@@ -226,7 +227,7 @@ const Menu = styled.div`
 `;
 
 const GroupHeader = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -242,7 +243,7 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
   background: transparent;
   color: var(--color-text-primary);
   font: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--space-6, 6px) var(--space-8, 8px);
   cursor: pointer;
 
@@ -251,15 +252,10 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
     background: var(--color-border-subtle);
   }
 
-  /* An INSET ring, not the usual outset one. A menu item is full-width inside a
-     scroll box, so an outward 2px offset has nowhere to go left or right: both
-     vertical edges are clipped and the ring reads as two loose horizontal bars
-     rather than as a ring around the focused item. Drawing it inside the item's
-     own box keeps all four edges, and the background swap makes the focused row
-     legible as a row even where the ring meets the menu border. */
+  ${focusRingInset}
+  /* The background swap makes the focused row legible as a row even where the
+     ring meets the menu border. */
   &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
     background: var(--color-border-subtle);
   }
 

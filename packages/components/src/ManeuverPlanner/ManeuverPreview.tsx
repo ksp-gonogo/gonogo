@@ -490,7 +490,7 @@ const PreviewGrid = styled.dl`
 `;
 
 const Label = styled.dt`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -506,7 +506,7 @@ const PreviewValue = styled.dd<{ $accent?: "ap" | "pe" }>`
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-6);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
   margin: 0;
@@ -557,18 +557,18 @@ const DiagramWrap = styled.div`
 `;
 
 const Note = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   font-style: italic;
 `;
 
 const ErrorLine = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-border-strong);
   padding: var(--inset-surface);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const CommitRow = styled.div`

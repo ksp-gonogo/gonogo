@@ -672,8 +672,8 @@ const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
      content plus exactly twice that inset, so the inner row's centring
      (below) has zero slack to redistribute and can't push the top inset out
      of step with the left one. */
-  --queue-panel-radius: calc(var(--radius-lg, 6px) * 2);
-  --queue-tile-inset: calc(var(--queue-panel-radius) - var(--radius-sm, 3px));
+  --queue-panel-radius: calc(var(--radius-floating, 6px) * 2);
+  --queue-tile-inset: calc(var(--queue-panel-radius) - var(--radius-regular, 3px));
   padding: var(--queue-tile-inset);
   height: calc(
     ${QUEUE_SQUARE}px + ${QUEUE_BAR}px + (var(--queue-tile-inset) * 2)
@@ -729,7 +729,7 @@ const InFlightQueue__Sq = styled.div`
   padding: 0;
   appearance: none;
   font: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   color: currentColor;
   /* A RAISED tile, lighter than the panel (a tint of the phase colour over the
@@ -738,13 +738,13 @@ const InFlightQueue__Sq = styled.div`
   background: color-mix(in srgb, currentColor 10%, var(--color-surface-raised));
   border: 1px solid currentColor;
   border-right: 0;
-  border-radius: var(--radius-sm, 3px) 0 0 var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px) 0 0 var(--radius-regular, 3px);
   overflow: hidden;
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
     border-right: 1px solid currentColor;
     border-bottom: 0;
-    border-radius: var(--radius-sm, 3px) var(--radius-sm, 3px) 0 0;
+    border-radius: var(--radius-regular, 3px) var(--radius-regular, 3px) 0 0;
   }
 
   .glyph {
@@ -774,6 +774,10 @@ const InFlightQueue__Sq = styled.div`
   &:is(button):focus-visible .glyph {
     opacity: 0;
   }
+  /* Not the kit's shared ring: this tile draws its border, its background tint
+     and its text from currentColor, which is the phase colour, so a ring in the
+     focus token would be the one part of it that ignored the phase. The 1px
+     offset keeps it clear of the neighbouring square. */
   &:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 1px;
@@ -789,12 +793,12 @@ const InFlightQueue__Bar = styled.div`
   overflow: hidden;
   background: var(--color-surface-panel);
   border: 1px solid currentColor;
-  border-radius: 0 var(--radius-sm, 3px) var(--radius-sm, 3px) 0;
+  border-radius: 0 var(--radius-regular, 3px) var(--radius-regular, 3px) 0;
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
     width: var(--s);
     height: ${QUEUE_BAR}px;
-    border-radius: 0 0 var(--radius-sm, 3px) var(--radius-sm, 3px);
+    border-radius: 0 0 var(--radius-regular, 3px) var(--radius-regular, 3px);
   }
 
   .fill {
@@ -821,7 +825,7 @@ const InFlightQueue__Overflow = styled.span`
   align-self: center;
   flex: 0 0 auto;
   padding: 0 ${QUEUE_GAP}px;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 `;
@@ -835,10 +839,10 @@ const InFlightList__Root = styled.div<{ $row: boolean }>`
   gap: var(--space-2, 2px);
   padding: var(--space-4, 4px) var(--space-8, 8px);
   font-family: monospace;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-regular, 4px);
 `;
 
 const PHASE_ROW_STYLES: Record<

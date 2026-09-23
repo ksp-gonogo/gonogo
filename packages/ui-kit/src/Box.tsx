@@ -3,7 +3,8 @@ import styled from "styled-components";
 import { RADIUS_VAR, SPACE_VAR, type SpaceToken } from "./scales";
 
 export type BoxSurface = "app" | "panel" | "raised" | "sunken";
-export type BoxRadius = "xs" | "sm" | "md" | "lg" | "pill";
+/** `displayFrame` is deliberately absent: that corner belongs to `FramedDisplay`. */
+export type BoxRadius = "regular" | "floating" | "pill";
 export type BoxPad = SpaceToken | [SpaceToken, SpaceToken];
 
 export interface BoxProps extends HTMLAttributes<HTMLDivElement> {

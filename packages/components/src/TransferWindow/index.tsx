@@ -1401,20 +1401,20 @@ const NowFacts = styled.div`
 
 const NowLabel = styled.span`
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 `;
 
 const NowValue = styled.span`
   color: var(--color-text-primary);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-figure);
   font-variant-numeric: tabular-nums;
 `;
 
 const Muted = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-compact);
 `;
 
 const ListWrap = styled.div`
@@ -1425,7 +1425,7 @@ const ListWrap = styled.div`
 
 const ListTitle = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 `;
@@ -1474,7 +1474,7 @@ const BudgetReadout = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: var(--gap-related);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -1495,7 +1495,7 @@ const ReachScroll = styled.div`
 const ReachTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const ReachTh = styled.th`
@@ -1506,7 +1506,7 @@ const ReachTh = styled.th`
   padding: var(--space-2) var(--space-4);
   color: var(--color-text-muted);
   font-weight: normal;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--color-border-subtle);
@@ -1530,7 +1530,7 @@ const ReachTdNum = styled(ReachTd)`
 
 const ReachFooter = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const List = styled.ul`
@@ -1560,9 +1560,9 @@ const WindowRow = styled.button<{ $selected: boolean }>`
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 
@@ -1602,12 +1602,12 @@ const ExpRow = styled.div`
 
 const ExpLabel = styled.span`
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const ExpValue = styled.span`
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -1628,11 +1628,11 @@ const PorkchopWrap = styled.div`
 
 const PorkchopTitle = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
 `;
 
 const Inspector = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   font-variant-numeric: tabular-nums;
   min-height: 1.2em;

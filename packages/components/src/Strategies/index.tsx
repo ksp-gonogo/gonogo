@@ -13,6 +13,7 @@ import {
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  Block,
   CommandButton,
   type CommandButtonHandle,
   Divider,
@@ -648,11 +649,40 @@ function ScreenSections({
               <Empty>No active strategies.</Empty>
             ) : (
               active.map((s) => (
-                <StrategyCard key={s.id} $active>
-                  <CardHeader>
-                    <CardTitle>{s.title}</CardTitle>
-                    {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-                  </CardHeader>
+                <StrategyCard
+                  key={s.id}
+                  $active
+                  title={s.title}
+                  titleRight={
+                    showDepartment ? (
+                      <CardDept>{s.departmentName}</CardDept>
+                    ) : undefined
+                  }
+                  footer={
+                    <>
+                      <FactorTag>
+                        factor{" "}
+                        <Unit value={value("%", s.factor * 100)} decimals={0} />
+                      </FactorTag>
+                      <CommandButton
+                        handle={deactivateCmd}
+                        args={{ strategyId: s.id }}
+                        commandLabel={`Deactivate ${s.title}`}
+                        label="Deactivate"
+                        confirmLabel="Confirm deactivate"
+                        pendingLabel="Deactivating..."
+                        active
+                        tone="go"
+                        disabled={!s.canDeactivate}
+                        title={
+                          s.canDeactivate
+                            ? "Deactivate this strategy"
+                            : s.deactivateBlockedReason || "Cannot deactivate"
+                        }
+                      />
+                    </>
+                  }
+                >
                   <StrategyDescription of={s} />
                   <EffectList>
                     {parseEffectLines(s.effect).map((line, i) => (
@@ -662,28 +692,6 @@ function ScreenSections({
                       <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
                     ))}
                   </EffectList>
-                  <CardFooter>
-                    <FactorTag>
-                      factor{" "}
-                      <Unit value={value("%", s.factor * 100)} decimals={0} />
-                    </FactorTag>
-                    <CommandButton
-                      handle={deactivateCmd}
-                      args={{ strategyId: s.id }}
-                      commandLabel={`Deactivate ${s.title}`}
-                      label="Deactivate"
-                      confirmLabel="Confirm deactivate"
-                      pendingLabel="Deactivating..."
-                      active
-                      tone="go"
-                      disabled={!s.canDeactivate}
-                      title={
-                        s.canDeactivate
-                          ? "Deactivate this strategy"
-                          : s.deactivateBlockedReason || "Cannot deactivate"
-                      }
-                    />
-                  </CardFooter>
                 </StrategyCard>
               ))
             )}
@@ -701,13 +709,15 @@ function ScreenSections({
               <>
                 {available.map((s) => strategyRow(s))}
                 {softBlocked.map((s) => (
-                  <StrategyCard key={s.id}>
-                    <CardHeader>
-                      <CardTitle>{s.title}</CardTitle>
-                      {showDepartment && (
+                  <StrategyCard
+                    key={s.id}
+                    title={s.title}
+                    titleRight={
+                      showDepartment ? (
                         <CardDept>{s.departmentName}</CardDept>
-                      )}
-                    </CardHeader>
+                      ) : undefined
+                    }
+                  >
                     <BlockedNote>
                       Deactivate the running strategy first to enable this one.
                     </BlockedNote>
@@ -720,11 +730,15 @@ function ScreenSections({
           {ineligible.length > 0 && (
             <Section as="section" aria-label="Locked" title="Locked" gap="md">
               {ineligible.map((s) => (
-                <StrategyCard key={s.id}>
-                  <CardHeader>
-                    <CardTitle>{s.title}</CardTitle>
-                    {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-                  </CardHeader>
+                <StrategyCard
+                  key={s.id}
+                  title={s.title}
+                  titleRight={
+                    showDepartment ? (
+                      <CardDept>{s.departmentName}</CardDept>
+                    ) : undefined
+                  }
+                >
                   <BlockedNote>{s.activateBlockedReason}</BlockedNote>
                 </StrategyCard>
               ))}
@@ -868,17 +882,51 @@ function AvailableRow({
     (s.initialCostReputation > 0 && overBudget(scaledRep, reputation));
 
   return (
-    <StrategyCard>
-      <CardHeader>
+    <StrategyCard
+      /* The one interactive title in the tree. It stays a `title`: the prop
+         takes a node, so the disclosure button IS the title's content and the
+         heading type lands on it unchanged. A layout primitive does not need an
+         `expandable` concept to express this. */
+      title={
         <ExpandToggle
           type="button"
           onClick={onToggleExpanded}
           aria-expanded={expanded}
         >
-          <CardTitle>{s.title}</CardTitle>
+          {s.title}
         </ExpandToggle>
-        {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-      </CardHeader>
+      }
+      titleRight={
+        showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
+      }
+      footer={
+        <CommandButton
+          handle={activateCmd}
+          args={{ strategyId: s.id, factor }}
+          commandLabel={`Activate ${s.title}`}
+          label="Activate"
+          confirmLabel="Confirm activate"
+          pendingLabel="Activating..."
+          /* An unread eligibility refuses on the same terms as a refusal: the
+             actuator will not dispatch one either, and arming a control that
+             cannot land is the same falsehood pointing the other way. */
+          disabled={s.canActivate !== true || cantAfford}
+          /* A stale balance and a short one both refuse, and the operator does
+             something different about each: top up the treasury, or find out
+             why the link stopped. So the refusal names which it is rather than
+             calling a career it cannot see insufficient. */
+          title={
+            s.canActivate !== true
+              ? s.activateBlockedReason || "Cannot activate"
+              : balancesNotCurrent
+                ? "Career balances are no longer current, so affordability cannot be checked"
+                : cantAfford
+                  ? "Insufficient funds / science / reputation at this factor"
+                  : "Set the factor, then confirm"
+          }
+        />
+      }
+    >
       {/* The description stands without expanding the card, so the operator
           can pick a strategy from the list; expanding the card is what
           reveals the full effect breakdown. */}
@@ -955,33 +1003,6 @@ function AvailableRow({
           </FactorValue>
         </FactorRow>
       )}
-      <CardFooter>
-        <CommandButton
-          handle={activateCmd}
-          args={{ strategyId: s.id, factor }}
-          commandLabel={`Activate ${s.title}`}
-          label="Activate"
-          confirmLabel="Confirm activate"
-          pendingLabel="Activating..."
-          /* An unread eligibility refuses on the same terms as a refusal: the
-             actuator will not dispatch one either, and arming a control that
-             cannot land is the same falsehood pointing the other way. */
-          disabled={s.canActivate !== true || cantAfford}
-          /* A stale balance and a short one both refuse, and the operator does
-             something different about each: top up the treasury, or find out
-             why the link stopped. So the refusal names which it is rather than
-             calling a career it cannot see insufficient. */
-          title={
-            s.canActivate !== true
-              ? s.activateBlockedReason || "Cannot activate"
-              : balancesNotCurrent
-                ? "Career balances are no longer current, so affordability cannot be checked"
-                : cantAfford
-                  ? "Insufficient funds / science / reputation at this factor"
-                  : "Set the factor, then confirm"
-          }
-        />
-      </CardFooter>
     </StrategyCard>
   );
 }
@@ -1023,7 +1044,7 @@ const HeaderMeta = styled.div`
   flex-wrap: wrap;
   gap: var(--gap-related);
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   flex-wrap: wrap;
 `;
 
@@ -1047,7 +1068,7 @@ const Sep = styled.span`
 
 const TinyFundsRow = styled.div`
   padding: 0 var(--space-12) var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1057,7 +1078,7 @@ const TinyFundsRow = styled.div`
 
 const TinyDrainRow = styled.div`
   padding: 0 var(--space-12) var(--space-6);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -1095,46 +1116,47 @@ const Empty = styled.p`
   margin: 0;
   color: var(--color-text-dim);
   font-style: italic;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
-const StrategyCard = styled.article<{ $active?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
+/**
+ * A strategy on its own surface: the kit's arrangement, this widget's box.
+ *
+ * `Block` rather than `Card` because the surface here is not the kit's sunken
+ * record. An active strategy is signalled by a green border and a tint under
+ * it, and a card's own ground would sit between the two.
+ *
+ * Its title, department, body and footer bar are the arrangement's, so the type
+ * and the spacing are the kit's and only the border and the ground are this
+ * file's.
+ */
+const StrategyCard = styled(Block).attrs({
+  /* `forwardedAs`, not `as`: styled-components claims `as` for its own
+     polymorphism and would swap Block out for a bare article, losing the
+     anatomy. `forwardedAs` hands the tag to Block, which is what renders it. */
+  forwardedAs: "article" as const,
+})<{ $active?: boolean }>`
   padding: var(--inset-surface);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-md);
-  /* An active card is signalled by the green border above, not by a fill.
-     This read var(--color-status-go-muted), a token that has never been
-     declared, so the whole declaration was invalid and the background has
-     always resolved to transparent: what is written here now is what has
-     actually rendered all along. Restoring the intended tint needs a
-     go-tone dark added to the palette, which currently carries muted
-     variants for nogo and warning only, and every candidate green drops
-     this card's --color-text-dim text from its present 4.92:1 to below the
-     4.5:1 AA floor. That makes it a design call rather than a rename. */
-  background: transparent;
-`;
+  border-radius: var(--radius-regular);
+  /* The tint an active card has never actually had: this read
+     var(--color-status-go-muted) against a token nobody declared, so the
+     declaration was invalid and the ground resolved to transparent.
 
-const CardHeader = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gap-related);
-`;
-
-const CardTitle = styled.div`
-  color: var(--color-text-primary);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
+     The token exists now, and it is very dark for a reason tokens.css states
+     at length: the card's own --color-text-dim body text has half a ratio
+     point of headroom over the 4.5:1 floor, so a green readable as green would
+     take the text under it. The border carries the green; this carries the
+     fact that the row is different. */
+  background: ${({ $active }) =>
+    $active ? "var(--color-status-go-muted)" : "transparent"};
 `;
 
 const CardDept = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Truncate gracefully at narrow card widths instead of clipping
@@ -1162,7 +1184,7 @@ const ExpandToggle = styled.button`
 const Description = styled.p`
   margin: var(--space-2) 0 var(--space-4);
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
 `;
 
@@ -1177,7 +1199,7 @@ const EffectList = styled.ul`
 
 const EffectLine = styled.li`
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   &::before {
     content: "·";
@@ -1194,7 +1216,7 @@ const CostRow = styled.div`
 `;
 
 const CostChip = styled.span<{ $insufficient?: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
@@ -1288,14 +1310,14 @@ const Slider = styled.input`
 `;
 
 const FactorLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
 
 const FactorTag = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
 `;
@@ -1303,22 +1325,9 @@ const FactorTag = styled.span`
 const FactorValue = styled.span`
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   min-width: 3em;
   text-align: right;
-`;
-
-const CardFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-related);
-  margin-top: var(--space-4);
-  /* At very narrow widths (portrait-5x18) the FactorTag + action button
-     can't sit side by side, wrap the button onto its own line instead of
-     letting it overflow the card's right edge (was clipping "DEACTIVATE"
-     to "DEACTIVAT"). */
-  flex-wrap: wrap;
 `;
 
 /*
@@ -1333,14 +1342,14 @@ const LockedScreen = styled.p`
   margin: 0;
   padding: var(--space-16);
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   text-align: center;
 `;
 
 const BlockedNote = styled.p`
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-style: italic;
 `;
 

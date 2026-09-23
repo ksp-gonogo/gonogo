@@ -259,7 +259,7 @@ const CellHeader = styled.div`
   background: var(--color-surface-panel);
   cursor: grab;
   flex-shrink: 0;
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;

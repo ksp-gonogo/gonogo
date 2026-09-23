@@ -397,7 +397,7 @@ function rowFor(part: ReliabilityPartEntry): Row {
  * state, which is also the right reading order on a row that already has other
  * subsystems' markers on it.
  */
-function Notice({
+function AbsenceLine({
   severity,
   state,
   label,
@@ -744,7 +744,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
    */
   if (notCurrent) {
     return (
-      <Notice
+      <AbsenceLine
         severity="offline"
         state="not current"
         label="Reliability not current"
@@ -758,7 +758,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   // its findings are missing. Two situations, two sentences.
   if (parts === undefined) {
     return (
-      <Notice
+      <AbsenceLine
         severity="offline"
         state={prefixed(source, "parts not reporting")}
         label="Reliability parts not reporting"
@@ -770,7 +770,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   // modelled craft whose parts are all fine.
   if (parts.length === 0) {
     return (
-      <Notice
+      <AbsenceLine
         severity="info"
         state="no parts monitored"
         label="No parts monitored for reliability"
@@ -815,26 +815,24 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
           <Card
             key={part.partId ?? `idx-${index}`}
             tone={CARD_TONE[row.severity]}
+            title={
+              <span title={part.title ?? undefined}>
+                {part.title ?? "Unknown part"}
+              </span>
+            }
+            titleRight={<Badge severity={row.severity}>{row.word}</Badge>}
           >
-            <Stack>
-              <Cluster justify="between" align="baseline" wrap>
-                <span title={part.title ?? undefined}>
-                  {part.title ?? "Unknown part"}
-                </span>
-                <Badge severity={row.severity}>{row.word}</Badge>
-              </Cluster>
-              {row.clause !== undefined && <span>{row.clause}</span>}
-              {actionable(part.condition) && (
-                <RepairControl
-                  partId={part.partId ?? ""}
-                  condition={part.condition}
-                  repairTrait={part.repairTrait}
-                  repairLevel={magnitudeOf(part.repairLevel)}
-                  crew={crew}
-                  cost={costOf(part)}
-                />
-              )}
-            </Stack>
+            {row.clause !== undefined && <span>{row.clause}</span>}
+            {actionable(part.condition) && (
+              <RepairControl
+                partId={part.partId ?? ""}
+                condition={part.condition}
+                repairTrait={part.repairTrait}
+                repairLevel={magnitudeOf(part.repairLevel)}
+                crew={crew}
+                cost={costOf(part)}
+              />
+            )}
           </Card>
         ))}
     </Stack>

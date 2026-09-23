@@ -1,6 +1,7 @@
 import { type ReactNode, useId, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { GhostButton } from "./Button";
+import { focusRing } from "./focusRing";
 import { ChevronRightIcon } from "./Icons";
 
 export interface DisclosureProps {
@@ -182,15 +183,12 @@ const Disclosure__Trigger = styled.button<{
     css`
       justify-content: ${$align === "end" ? "flex-end" : "space-between"};
       width: 100%;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-regular);
       &:hover {
         background: var(--color-surface-sunken);
       }
     `}
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;
 
 /**
@@ -225,10 +223,10 @@ const Disclosure__ButtonTrigger = styled(GhostButton)<{
   ${({ $size }) =>
     $size === "sm" &&
     css`
-      font-size: var(--font-size-2xs, 10px);
+      font-size: var(--font-size-compact);
       font-weight: 600;
       padding: var(--space-2, 2px) var(--space-8, 8px);
-      border-radius: var(--radius-xs, 2px);
+      border-radius: var(--radius-regular, 2px);
 
       @media (pointer: coarse) {
         min-height: 44px;
@@ -283,5 +281,5 @@ const Disclosure__Panel = styled.div<{
   padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;

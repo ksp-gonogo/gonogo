@@ -15,6 +15,6 @@ export { Panel, type PanelProps, ScrollArea } from "@ksp-gonogo/ui-kit";
 
 /** Dim placeholder text for an empty slot. App-side only. */
 export const Placeholder = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;

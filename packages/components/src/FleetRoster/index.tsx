@@ -404,11 +404,11 @@ function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
       aria-hidden="true"
       style={{
         display: "inline-block",
-        fontSize: "var(--font-size-2xs)",
+        fontSize: "var(--font-size-caption)",
         letterSpacing: "0.05em",
         fontWeight: 600,
         padding: "var(--inset-chip)",
-        borderRadius: "var(--radius-sm)",
+        borderRadius: "var(--radius-regular)",
         border: `1px solid ${TONE_HEX[tone]}`,
         color: TONE_HEX[tone],
         whiteSpace: "nowrap",
@@ -549,7 +549,7 @@ function FleetSignalCell({
           margin: 0,
           display: "grid",
           gap: "var(--gap-related)",
-          fontSize: "var(--font-size-xs)",
+          fontSize: "var(--font-size-compact)",
           whiteSpace: "nowrap",
         }}
       >
@@ -557,7 +557,7 @@ function FleetSignalCell({
           <dt
             style={{
               color: "var(--color-text-muted)",
-              fontSize: "var(--font-size-2xs)",
+              fontSize: "var(--font-size-caption)",
               letterSpacing: "0.05em",
             }}
           >
@@ -572,7 +572,7 @@ function FleetSignalCell({
             <dt
               style={{
                 color: "var(--color-text-muted)",
-                fontSize: "var(--font-size-2xs)",
+                fontSize: "var(--font-size-caption)",
                 letterSpacing: "0.05em",
               }}
             >
@@ -751,7 +751,7 @@ function FleetRosterComponent({
                         />
                         <Truncate
                           style={{
-                            fontSize: "var(--font-size-sm)",
+                            fontSize: "var(--font-size-value)",
                             color: "var(--color-text-primary)",
                           }}
                         >
@@ -763,7 +763,7 @@ function FleetRosterComponent({
                         <Truncate
                           title={v.body ?? undefined}
                           style={{
-                            fontSize: "var(--font-size-sm)",
+                            fontSize: "var(--font-size-compact)",
                             color: "var(--color-text-muted)",
                             padding: "0 var(--space-6)",
                           }}
@@ -835,7 +835,7 @@ function ColLabel({
   return (
     <Truncate
       style={{
-        fontSize: "var(--font-size-xs)",
+        fontSize: "var(--font-size-caption)",
         color: "var(--color-text-muted)",
         textTransform: "uppercase",
         letterSpacing: "0.06em",

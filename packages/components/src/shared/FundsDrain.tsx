@@ -1,7 +1,6 @@
 import type { CareerEconomy, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { combineReadings, magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
 
 /**
  * The standing funds rate a career economy reports: its subsidy less its
@@ -153,15 +152,15 @@ export function FundsDrain({
 
   if (netPerDay > 0) {
     return (
-      <FundsDrain__Root
-        $drain={false}
+      <span
+        style={rootStyle(false)}
         title="This programme earns more than it costs to hold"
       >
-        <FundsDrain__Phrase>
+        <span style={PHRASE_STYLE}>
           {lead}
           <Unit value={value("f/day", netPerDay)} /> credit
-        </FundsDrain__Phrase>
-      </FundsDrain__Root>
+        </span>
+      </span>
     );
   }
 
@@ -174,8 +173,8 @@ export function FundsDrain({
 
   if (compact) {
     return (
-      <FundsDrain__Root $drain={true} title={sentence}>
-        <FundsDrain__Phrase>
+      <span style={rootStyle(true)} title={sentence}>
+        <span style={PHRASE_STYLE}>
           {lead}
           {days === null ? (
             <Unit value={value("f/day", perDay)} />
@@ -184,21 +183,21 @@ export function FundsDrain({
               <Unit value={coverDuration(days)} /> left
             </>
           )}
-        </FundsDrain__Phrase>
-      </FundsDrain__Root>
+        </span>
+      </span>
     );
   }
 
   return (
-    <FundsDrain__Root $drain={true} title={sentence}>
+    <span style={rootStyle(true)} title={sentence}>
       {/* The magnitude, unsigned: the word carries the direction. A leading
           minus on a rate is read as a formatting artefact about as often as it
           is read as a direction, which is the reading `CareerEconomy` reached
           for its own "Net drain" row. */}
-      <FundsDrain__Phrase>
+      <span style={PHRASE_STYLE}>
         {lead}
         <Unit value={value("f/day", perDay)} /> drain
-      </FundsDrain__Phrase>
+      </span>
       {/* The separator sits OUTSIDE both phrases, spaces and all: two adjacent
           nowrap spans with no text node between them offer the line breaker no
           opportunity, so the pair behaves as one unbreakable run and clips at
@@ -206,29 +205,32 @@ export function FundsDrain({
       {days !== null && (
         <>
           {" · "}
-          <FundsDrain__Phrase>
+          <span style={PHRASE_STYLE}>
             <Unit value={coverDuration(days)} /> left
-          </FundsDrain__Phrase>
+          </span>
         </>
       )}
-    </FundsDrain__Root>
+    </span>
   );
 }
 
-const FundsDrain__Root = styled.span<{ $drain: boolean }>`
-  font-variant-numeric: tabular-nums;
-  /* The MUTED warning foreground, not the plain one: --color-status-warning-fg
-     is near-black because it is meant to sit on the orange fill, and this text
-     stands alone on a dark panel. Same trap UpgradesHeld names next door. */
-  color: ${({ $drain }) =>
-    $drain
+/*
+ * The MUTED warning foreground, not the plain one: --color-status-warning-fg is
+ * near-black because it is meant to sit on the orange fill, and this text stands
+ * alone on a dark panel. Same trap UpgradesHeld names next door.
+ */
+function rootStyle(drain: boolean) {
+  return {
+    fontVariantNumeric: "tabular-nums",
+    color: drain
       ? "var(--color-status-warning-fg-muted)"
-      : "var(--color-status-go-fg)"};
-`;
+      : "var(--color-status-go-fg)",
+  } as const;
+}
 
-/* Number, unit and the word that qualifies them are one phrase and must not be
-   split across a line break; the phrase as a whole is free to wrap, so a narrow
-   readout takes a second line rather than clipping at the panel edge. */
-const FundsDrain__Phrase = styled.span`
-  white-space: nowrap;
-`;
+/*
+ * Number, unit and the word that qualifies them are one phrase and must not be
+ * split across a line break; the phrase as a whole is free to wrap, so a narrow
+ * readout takes a second line rather than clipping at the panel edge.
+ */
+const PHRASE_STYLE = { whiteSpace: "nowrap" } as const;

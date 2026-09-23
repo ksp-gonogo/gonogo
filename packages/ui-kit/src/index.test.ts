@@ -42,7 +42,7 @@ describe("ui-kit foundation", () => {
     // this package can assert them through a public export.
     expect(SPACE_VAR.md).toBe("var(--space-8)");
     expect(SPACE_VAR.xs).toBe("var(--space-2)");
-    expect(RADIUS_VAR.xs).toBe("var(--radius-xs)");
+    expect(RADIUS_VAR.regular).toBe("var(--radius-regular)");
     expect(RADIUS_VAR.pill).toBe("var(--radius-pill)");
   });
 

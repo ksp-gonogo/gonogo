@@ -8,12 +8,13 @@ import { ThermalStatusComponent } from "./index";
 /**
  * What ThermalStatus does when `vessel.thermal` stops arriving.
  *
- * It used to replace the whole panel with "Thermal readings no longer current",
- * throwing away every figure it was still holding. The comment that justified
- * that said a held reading "leaves nothing to hide behind a notice", which was
- * not true of this payload: the record carries the heat-shield temperature and
- * flux, the hottest part's name and its skin figures, and those are
- * MEASUREMENTS rather than judgements.
+ * It holds every figure it has and withdraws only the bands. The record carries
+ * the heat-shield temperature and flux, the hottest part's name and its skin
+ * figures, and those are MEASUREMENTS rather than judgements, so a dropped link
+ * is no reason to delete them.
+ *
+ * Nothing says so in words. Each held figure carries its own staleness mark, and
+ * a sentence repeating them is the same statement twice.
  *
  * The split now: the band tags and the summary pill go to `unknown`, because a
  * band is read as the situation NOW and a craft that has since flown deeper
@@ -70,12 +71,22 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
       expect(visibleText(container)).toContain("Heat Shield"),
     );
 
+    /* The control for the wait below. Without it, a fixture that never showed a
+       band would satisfy "no longer says nominal" before the link even drops,
+       and the wait would assert nothing. */
+    expect(visibleText(container).toLowerCase()).toContain("nominal");
+
     act(() => {
       fixture.store.setTransportConnected(false);
     });
 
+    /* Waiting on the TRANSITION, not on a word. No sentence announces the drop
+       any more, and "unknown" is not a signal because a band can already be
+       unknown while the link is up: waiting on it returns at once and asserts
+       against the state before the drop. A band that WAS a verdict ceasing to
+       be one only happens after it lands. */
     await waitFor(() =>
-      expect(visibleText(container)).toContain("no longer current"),
+      expect(visibleText(container).toLowerCase()).not.toContain("nominal"),
     );
 
     /* The figures survive. This is the whole point: the part that is hottest
@@ -84,9 +95,10 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
     expect(visibleText(container)).toContain("Heat Shield (2.5m)");
     expect(visibleText(container)).toContain("1177 °C");
 
-    // And the caption says which half is dated, so a populated panel does not
-    // read as a dead one.
-    expect(visibleText(container)).toContain("the temperatures are the last");
+    /* And no sentence says any of it. Each held figure carries its own staleness
+       mark, so a caption repeating them is the same statement twice, in the
+       space the readings need. */
+    expect(visibleText(container)).not.toContain("no longer current");
   });
 
   it("does not keep claiming a band a stale ratio cannot support", async () => {
@@ -104,8 +116,8 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
     });
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("no longer current"),
+      expect(visibleText(container).toLowerCase()).not.toContain("nominal"),
     );
-    expect(visibleText(container).toLowerCase()).not.toContain("nominal");
+    expect(visibleText(container)).not.toContain("no longer current");
   });
 });

@@ -170,7 +170,7 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
       $blocked
         ? "var(--color-status-nogo-fg)"
         : "var(--console-tone-fg, var(--color-accent-fg))"};
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 `;
 
 /*
@@ -199,7 +199,7 @@ const ComposerBar__Prompt = styled.span`
 const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   flex: 0 0 auto;
   margin-left: auto;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 
   ${({ $icon }) =>
     $icon &&
@@ -247,10 +247,10 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   pointer-events: none;
   padding: var(--space-hair) var(--space-6);
   font-family: monospace;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   font-weight: bold;
   letter-spacing: 0.04em;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
 
   ${({ $blocked }) =>
     $blocked

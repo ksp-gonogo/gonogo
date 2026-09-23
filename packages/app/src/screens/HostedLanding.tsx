@@ -108,7 +108,7 @@ const linkReset = `
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   padding: 0.7rem 1.3rem;
   font-size: 1rem;
   font-weight: 600;
