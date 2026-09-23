@@ -741,7 +741,7 @@ const Meter__Head = styled.div`
 `;
 
 const Meter__Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -758,7 +758,7 @@ const Meter__Label = styled.span`
 `;
 
 const Meter__Value = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

@@ -27,7 +27,7 @@
 // version and one pair of hashes, the bundle is still hashed against the index,
 // and the fault is gone rather than hidden once the operator reloads.
 
-import { Badge, Card, Cluster, Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Badge, Cluster, Notice, Stack, Text } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
 import {
   getUplinkOutcomes,
@@ -87,13 +87,7 @@ export function UplinkIntegrityBanner() {
   const measured = failed.filter((o) => !canOverrideSkew(o));
 
   return (
-    <Card
-      as="section"
-      tone="alert"
-      role="status"
-      aria-live="polite"
-      aria-label="Uplink integrity"
-    >
+    <Notice as="section" tone="alert" aria-label="Uplink integrity">
       <Stack gap="md">
         {/* The headline grades on what is actually here. A banner that shouts
             "integrity failure" over nothing but channel skew spends the loud
@@ -145,6 +139,6 @@ export function UplinkIntegrityBanner() {
           </Stack>
         )}
       </Stack>
-    </Card>
+    </Notice>
   );
 }

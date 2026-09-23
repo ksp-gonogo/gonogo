@@ -114,12 +114,12 @@ const ReadOnlyField__Term = styled.dt`
 /* Deliberately the same rungs a writable row's label and description take, so
    a column mixing the two reads as one list rather than as two treatments. */
 const ReadOnlyField__Label = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
 `;
 
 const ReadOnlyField__Description = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   max-width: 32em;
 `;
@@ -130,7 +130,7 @@ const ReadOnlyField__Value = styled.dd<{ $prose?: boolean }>`
   /* Values line up down the right edge of a group, which is what makes a
      column of them scannable. Tabular figures so the digits do too. */
   text-align: right;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
 

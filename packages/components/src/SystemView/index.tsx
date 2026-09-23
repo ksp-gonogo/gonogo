@@ -1340,7 +1340,7 @@ function SystemViewConfigComponent({
 // inline.
 
 const FRAME_CAPTION: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.05em",
   flex: "0 0 auto",
@@ -1365,7 +1365,7 @@ const COMPACT_VALUE: CSSProperties = {
 };
 
 const COMPACT_SUB: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.05em",
 };

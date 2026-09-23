@@ -140,23 +140,23 @@ const ListItem = styled.div`
   padding: var(--space-8) var(--space-12);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const ItemName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   font-weight: 600;
 `;
 
 const ItemDesc = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
 
 const UplinkAddLine = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   line-height: var(--line-height-body);
 `;
@@ -169,9 +169,9 @@ const TagRow = styled.div`
 `;
 
 const Tag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   background: var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   padding: var(--space-hair) var(--space-6);
 `;

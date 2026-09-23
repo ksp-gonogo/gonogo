@@ -304,7 +304,7 @@ const WRAP: CSSProperties = {
   minHeight: 0,
   maxWidth: "100%",
   background: "var(--color-surface-panel)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-muted)",
 };
 
@@ -317,7 +317,7 @@ function Wrap({ children }: { children: ReactNode }) {
 }
 
 const TITLE: CSSProperties = {
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-value)",
   fontWeight: 600,
   color: "var(--color-text-primary)",
   letterSpacing: "0.04em",
@@ -325,7 +325,7 @@ const TITLE: CSSProperties = {
 
 const SUB: CSSProperties = {
   color: "var(--color-text-faint)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.05em",
 };
 
@@ -345,7 +345,7 @@ const ROW_VALUE: CSSProperties = {
 
 const HINT: CSSProperties = {
   color: "var(--color-text-faint)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-compact)",
   lineHeight: "var(--line-height-body)",
 };
 
@@ -354,7 +354,7 @@ const HINT: CSSProperties = {
 const DESCRIPTION: CSSProperties = {
   margin: "var(--space-8) 0 0",
   color: "var(--color-text-muted)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-compact)",
   lineHeight: "var(--line-height-body)",
   whiteSpace: "pre-wrap",
 };

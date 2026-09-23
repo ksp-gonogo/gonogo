@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import styled, { css } from "styled-components";
+import { focusRing } from "../focusRing";
 
 interface CommandGroupOwnProps<V extends Record<string, unknown>> {
   value: V;
@@ -156,9 +157,9 @@ const CommandGroup__CommitButton = styled.button<{
      first, and a commit control squeezed to nothing is one nobody can press. */
   ${({ $orientation }) => $orientation === "row" && "flex-shrink: 0;"}
   padding: var(--space-4, 4px) var(--space-12, 12px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
@@ -181,10 +182,7 @@ const CommandGroup__CommitButton = styled.button<{
       }
     `}
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   ${({ $gated }) =>
     $gated &&

@@ -716,7 +716,7 @@ const CurrentSummaryTop = styled.div`
 `;
 
 const CurrentSummaryName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-status-go-fg);
   overflow: hidden;
@@ -726,7 +726,7 @@ const CurrentSummaryName = styled.span`
 `;
 
 const CurrentSummaryDistance = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
@@ -739,18 +739,18 @@ const CurrentSummaryMeta = styled.div`
      --gap-section is 16, so either alias resizes this meta row rather than
      renaming what its seam is for. */
   gap: var(--space-10);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
 
 const FilterInput = styled.input`
   margin-top: var(--space-6);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
@@ -769,7 +769,7 @@ const ListScroll = styled(ScrollArea)`
 `;
 
 const SuggestedHeading = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -802,7 +802,7 @@ const SectionToggle = styled.button`
   border: none;
   /* Held on the rungs with SuggestedHeading above; see the reason there. */
   padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -845,7 +845,7 @@ const EntryName = styled.span`
 `;
 
 const RowSubtitle = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: currentColor;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -853,7 +853,7 @@ const RowSubtitle = styled.span`
 `;
 
 const RowDistance = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   margin-right: var(--space-6);
@@ -861,7 +861,7 @@ const RowDistance = styled.span`
 `;
 
 const RowTag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--color-status-go-fg);
@@ -869,7 +869,7 @@ const RowTag = styled.span`
 
 const SpaceObjectToggle = styled.button`
   margin-left: auto;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   /* The third of the list-header insets held together; see SuggestedHeading. */
   padding: var(--space-2) var(--space-8);
   border-radius: var(--radius-pill);
@@ -894,7 +894,7 @@ const SpaceObjectToggle = styled.button`
 
 const Hint = styled.div`
   margin-top: var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
@@ -910,14 +910,14 @@ const CompactCurrent = styled.div`
 `;
 
 const CompactName = styled.div`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: 0.04em;
 `;
 
 const CompactDistance = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   letter-spacing: 0.04em;
 `;

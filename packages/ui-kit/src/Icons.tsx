@@ -44,8 +44,18 @@ import { forwardRef } from "react";
 
 export type IconProps = LucideProps;
 
+/**
+ * A `var()` resolves inside the SVG `width`/`height` presentation attribute
+ * lucide writes `size` out as, so the size token reaches the glyph through the
+ * prop and picks up the coarse-pointer step a bare number cannot. Verified in
+ * chromium, firefox and webkit.
+ *
+ * The default is `standalone` because it is calibrated for the Fabs, which are
+ * the only icons that take it by omission; every other site passes its own and
+ * most of them pass something smaller.
+ */
 const ICON_DEFAULTS: LucideProps = {
-  size: 20,
+  size: "var(--icon-size-standalone)",
   strokeWidth: 1.8,
   "aria-hidden": true,
 };

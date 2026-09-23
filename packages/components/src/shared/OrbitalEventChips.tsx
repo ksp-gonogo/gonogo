@@ -135,7 +135,7 @@ function Chip({
   return (
     <Box
       pad={["xs", "md"]}
-      radius="xs"
+      radius="regular"
       style={{
         display: "inline-flex",
         alignItems: "baseline",

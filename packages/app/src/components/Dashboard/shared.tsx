@@ -205,7 +205,6 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   border: none;
   color: ${({ $pushed }) => ($pushed ? "var(--color-status-info-fg)" : "var(--color-text-faint)")};
   cursor: pointer;
-  font-size: var(--font-size-sm);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   margin-left: var(--space-2);
@@ -226,12 +225,12 @@ const WidgetErrorPanel = styled.div`
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   text-align: center;
 `;
 
 const WidgetErrorTitle = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: bold;
   color: var(--color-status-nogo-fg);
 `;
@@ -252,7 +251,7 @@ const WidgetErrorRetry = styled.button`
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     background: var(--color-status-alert-muted);

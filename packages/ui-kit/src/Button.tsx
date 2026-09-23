@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * Default action button: neutral dark style.
@@ -31,9 +32,9 @@ export const Button = styled.button`
   gap: var(--space-6, 6px);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   /* The kit's one control height, so a button lines up with the toggles and
@@ -108,7 +109,7 @@ export const TextButton = styled.button`
   background: none;
   border: none;
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-family: inherit;
   cursor: pointer;
   padding: 0;
@@ -120,10 +121,7 @@ export const TextButton = styled.button`
       color: var(--color-text-primary);
     }
   }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;

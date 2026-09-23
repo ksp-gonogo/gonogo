@@ -552,7 +552,7 @@ registerComponent<OrbitViewConfig>({
 export { OrbitViewComponent };
 
 const NoData = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   padding: var(--space-8) 0;
 `;

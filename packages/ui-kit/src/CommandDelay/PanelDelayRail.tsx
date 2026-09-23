@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styled, { css } from "styled-components";
+import { focusRingInset } from "../focusRing";
 import { CommandDelay } from "./CommandDelay";
 import { CommandFoundList, type RailFound } from "./CommandFoundList";
 import { CommandLossList, type RailLoss } from "./CommandLossList";
@@ -446,10 +447,7 @@ const PanelDelayRail__Rail = styled.button`
     transition: none;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
+  ${focusRingInset}
 
   /* Open (pinned or the hover preview) grows past the band. Both arrive as
      React state now rather than a CSS hover rule, because the published height
@@ -488,7 +486,7 @@ const PanelDelayRail__Summaries = styled.span`
   display: flex;
   gap: var(--space-8, 8px);
   padding: 0 var(--space-16, 16px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   /* Flush, not the browser's metrics-based "normal": this is single-line chrome
      text that never wraps, and it has to fit the reserved band. At the body
      line height an xs glyph carries a 16.8px line box on a coarse pointer,
@@ -520,7 +518,7 @@ const PanelDelayRail__CollapseHint = styled.span`
   position: absolute;
   top: var(--space-4, 4px);
   right: var(--space-16, 16px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;

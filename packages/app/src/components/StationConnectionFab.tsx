@@ -169,7 +169,7 @@ const SwitchRow = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -187,7 +187,7 @@ const Code = styled.code`
 
 const Hint = styled.p`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-prose);
   color: var(--color-text-muted);
   line-height: var(--line-height-prose);
 `;

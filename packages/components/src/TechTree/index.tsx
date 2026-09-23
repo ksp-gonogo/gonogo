@@ -1090,7 +1090,7 @@ const FilterBar = styled.div`
 `;
 
 const FilterBtn = styled.button<{ $active: boolean }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.06em;
   padding: var(--inset-control);
   border-radius: var(--radius-pill);
@@ -1119,7 +1119,7 @@ const SearchInput = styled.input`
   color: var(--color-text-primary);
   font: inherit;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   outline: none;
 
   &:focus {
@@ -1150,7 +1150,7 @@ const NodeRowWrap = styled.li<{
   background: var(--color-surface-panel);
   border-left: 2px solid
     ${(p) => (p.$unaffordable ? "var(--color-text-faint)" : dsBorder(p.$display))};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   opacity: ${(p) =>
     p.$display === "locked" ? 0.65 : p.$unaffordable ? 0.7 : 1};
 `;
@@ -1182,7 +1182,7 @@ const NodeHeader = styled.button`
 `;
 
 const NodeTitle = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   font-weight: 600;
   display: flex;
@@ -1205,7 +1205,7 @@ const NodeTitleText = styled.span`
 `;
 
 const NodeId = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   font-family: monospace;
   color: var(--color-text-faint);
   font-weight: 400;
@@ -1220,18 +1220,18 @@ const NodeMeta = styled.span`
 `;
 
 const Cost = styled.span<{ $insufficient?: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: ${(p) =>
     p.$insufficient ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
   font-variant-numeric: tabular-nums;
 `;
 
 const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: var(--inset-chip);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   color: ${(p) =>
     p.$tone === "go"
       ? "var(--color-status-go-fg)"
@@ -1254,7 +1254,7 @@ const NodeBody = styled.div`
 `;
 
 const Description = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   line-height: var(--line-height-body);
   font-style: italic;
@@ -1268,7 +1268,7 @@ const Parents = styled.div`
 `;
 
 const ParentsLabel = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -1281,12 +1281,12 @@ const ParentsList = styled.span`
 `;
 
 const ParentChip = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   font-family: monospace;
   color: var(--color-text-muted);
   padding: var(--inset-chip);
   background: var(--color-surface-sunken);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const Parts = styled.div`
@@ -1296,7 +1296,7 @@ const Parts = styled.div`
 `;
 
 const PartsLabel = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -1316,7 +1316,7 @@ const PartRow = styled.li<{ $purchased: boolean }>`
   justify-content: space-between;
   align-items: baseline;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--space-hair) 0;
   opacity: ${(p) => (p.$purchased ? 0.7 : 1)};
 `;
@@ -1338,20 +1338,20 @@ const PartMeta = styled.span`
 `;
 
 const PartCategory = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-faint);
 `;
 
 const PartCost = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
 
 const PartPurchased = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
 `;
 
@@ -1362,7 +1362,7 @@ const UnlockRow = styled.div`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--space-12);
   text-align: center;
 `;
@@ -1375,7 +1375,7 @@ const SciReadout = styled.span`
 
 const TechMeta = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   margin-bottom: var(--space-6);
 `;
 
@@ -1403,7 +1403,7 @@ const LegendItem = styled.span`
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
@@ -1411,7 +1411,7 @@ const LegendItem = styled.span`
 const Swatch = styled.span<{ $kind: DisplayState }>`
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   border: 2px solid ${(p) => dsBorder(p.$kind)};
   background: ${(p) =>
     p.$kind === "owned"
@@ -1424,7 +1424,7 @@ const GraphScroll = styled.div`
   min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-sunken);
   scrollbar-width: thin;
 `;
@@ -1459,7 +1459,7 @@ const GraphCard = styled.button<{
   text-align: left;
   font-family: inherit;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   border: 1px solid ${(p) => dsBorder(p.$ds)};
   border-left-width: 3px;
   background: ${(p) =>
@@ -1540,7 +1540,7 @@ const Detail = styled.div`
   margin-top: var(--space-6);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   max-height: 40%;
   overflow: auto;
 `;
@@ -1553,7 +1553,7 @@ const DetailHead = styled.div`
 `;
 
 const DetailTitle = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
   display: inline-flex;
@@ -1569,7 +1569,7 @@ const CloseBtn = styled.button`
   font-size: var(--font-size-base);
   line-height: var(--line-height-flush);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   font-family: inherit;
 
   &:hover {
@@ -1587,7 +1587,7 @@ const DetailMeta = styled.div`
   align-items: baseline;
   gap: var(--gap-section);
   flex-wrap: wrap;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
@@ -1596,7 +1596,7 @@ const ParentsInline = styled.span`
   align-items: baseline;
   gap: var(--gap-related);
   flex-wrap: wrap;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
 `;
 
@@ -1624,7 +1624,7 @@ const TinyLabel = styled.span`
 `;
 
 const TinySci = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 `;

@@ -200,7 +200,7 @@ const NoActiveVessel__Body = styled.div`
   gap: var(--gap-related);
   padding: var(--space-12);
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   text-align: center;
 `;
 

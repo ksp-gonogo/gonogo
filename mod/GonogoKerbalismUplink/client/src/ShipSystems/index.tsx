@@ -20,6 +20,7 @@ import {
   MeterStack,
   magnitudeOf,
   magnitudeOr,
+  Notice,
   NULL_DISPLAY,
   Panel,
   Section,
@@ -484,15 +485,13 @@ function ShipSystemsBody({
         summary.causes.length > 0 && (
           /* Spans, like any warning the sections below it are qualified by.
 
-             Card, the same container every other section in this widget uses:
-             hand-stitching `Box` per section is how some rows end up boxed and
-             some not. */
+             A Notice rather than a Card: this is a statement ABOUT the
+             sections below it, not a record among them, and it is announced
+             when it appears. The announcement contract is the component's, so
+             this site no longer carries a hand-written role and aria-live. */
           <Section key="causes" full>
-            <Card role="status" aria-live="polite">
-              <Stack>
-                <Text tone="nogo" weight="semibold" size="sm">
-                  Limiting factors
-                </Text>
+            <Notice tone="alert" title="Limiting factors">
+              <Stack gap="xs">
                 {summary.causes.flatMap((cause) =>
                   cause.explains.length > 0
                     ? cause.explains.map((explained) => {
@@ -533,7 +532,7 @@ function ShipSystemsBody({
                       ],
                 )}
               </Stack>
-            </Card>
+            </Notice>
           </Section>
         ),
         <Section key="supplies">
@@ -544,7 +543,7 @@ function ShipSystemsBody({
                 key={row.name}
                 row={row}
                 ship={ship}
-                categoryColor={resourceColors.get(row.name)}
+                identityColor={resourceColors.get(row.name)}
               />
             ))}
           </MeterStack>
@@ -558,7 +557,7 @@ function ShipSystemsBody({
                   key={row.name}
                   row={row}
                   ship={ship}
-                  categoryColor={resourceColors.get(row.name)}
+                  identityColor={resourceColors.get(row.name)}
                 />
               ))}
             </MeterStack>
@@ -693,15 +692,15 @@ function SectionHead({
 function ResourceLedgerRow({
   row,
   ship,
-  categoryColor,
+  identityColor,
 }: {
   row: ResourceRow;
   ship: ShipSystems;
   /** This resource's colour from `useResourceColorMap`, rendered as the
-   *  Card's top-edge identity strip. `undefined` renders no strip (the
-   *  colour map is always populated for a row present in `summary`, this
-   *  is just the prop's own honest optionality). */
-  categoryColor?: string;
+   *  Card's top-edge identity tab. `undefined` renders no tab (the colour map
+   *  is always populated for a row present in `summary`, this is just the
+   *  prop's own honest optionality). */
+  identityColor?: string;
 }) {
   const ledger = useMemo<Ledger>(
     () =>
@@ -715,12 +714,12 @@ function ResourceLedgerRow({
   );
 
   return (
-    // testid escape hatch: a plain visual container, no role/label of its
-    // own to query by (the Meter it wraps already carries the accessible
-    // name), so a stable hook is the only way a test can reach THIS row's
-    // own Card to assert its categoryColor strip.
+    // No title: the Meter below already carries the resource's name and its
+    // accessible name, so a heading above it would say the same word twice.
+    // The testid is the escape hatch a test needs to reach THIS row's own card
+    // and assert its identity tab, there being no role or label of its own.
     <Card
-      categoryColor={categoryColor}
+      identityColor={identityColor}
       data-testid={`resource-card-${row.name}`}
     >
       <Stack>
@@ -863,7 +862,7 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
           </Cluster>
         ))
       )}
-      <Divider space="xs" />
+      <Divider />
       <Cluster justify="between" wrap>
         <Text tone="muted" size="xs">
           Net (derived)

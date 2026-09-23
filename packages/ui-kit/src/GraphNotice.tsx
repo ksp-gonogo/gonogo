@@ -56,7 +56,7 @@ export function GraphNotice({
 }
 
 const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   /* No design-system surface token covers this translucent dark scrim ,
      every surface tier in tokens.css is opaque. Kept as the one raw
@@ -64,7 +64,7 @@ const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
      --color-scrim token if a second consumer needs the exact value. */
   background: rgba(0, 0, 0, 0.7);
   padding: ${SPACE_VAR.xs} ${SPACE_VAR.sm};
-  border-radius: ${RADIUS_VAR.xs};
+  border-radius: ${RADIUS_VAR.regular};
   pointer-events: none;
 
   ${({ $placement }) => PLACEMENT_STYLES[$placement]}

@@ -526,15 +526,15 @@ const ModeButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-primary)")};
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
 `;
 
 const ModeHint = styled.span`
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const TagList = styled.div`
@@ -552,17 +552,17 @@ const TagRow = styled.div`
 
 const TagHint = styled.span`
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const Foot = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 
   code {
     background: var(--color-surface-raised);
     padding: var(--inset-chip);
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-regular);
   }
 `;
 
@@ -575,7 +575,7 @@ const BufferRow = styled.div`
 
 const Count = styled.span`
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const ActionRow = styled.div`
@@ -593,13 +593,13 @@ const SentNotice = styled.div`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   padding: var(--inset-surface);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
 
   code {
     background: rgba(0, 0, 0, 0.2);
     padding: var(--inset-chip);
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-regular);
   }
 `;
 
@@ -617,18 +617,18 @@ const ScreenshotThumb = styled.img`
   max-width: 120px;
   max-height: 80px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const ScreenshotMeta = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
 const Warn = styled.span`
   color: var(--color-status-warning-bg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;

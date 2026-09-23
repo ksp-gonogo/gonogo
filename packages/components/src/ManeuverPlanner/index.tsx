@@ -1084,7 +1084,7 @@ const PaddedSection = styled(Stack).attrs({
 `;
 
 const RefBodyCaption = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 `;
 
@@ -1095,11 +1095,11 @@ const WaitingPanel = styled.div`
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const HyperbolicNotice = styled.p`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   margin: 0;
   line-height: var(--line-height-body);

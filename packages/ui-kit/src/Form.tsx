@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * A vertical form body.
@@ -20,7 +21,7 @@ export const ConfigForm = styled.div<{ $boxed?: boolean }>`
       ? `
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--space-8) var(--space-10);
 `
       : ""}
@@ -41,7 +42,7 @@ export const FieldRow = styled.div`
 `;
 
 export const FieldLabel = styled.label`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -49,7 +50,7 @@ export const FieldLabel = styled.label`
 `;
 
 export const FieldHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -62,9 +63,9 @@ export const FormActions = styled.div`
 const inputBase = `
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-compact);
   padding: var(--space-6, 6px) var(--space-8, 8px);
 
   &:focus {
@@ -74,10 +75,7 @@ const inputBase = `
     outline: none;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   @media (pointer: coarse) {
     min-height: 44px;

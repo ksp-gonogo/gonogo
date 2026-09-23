@@ -15,6 +15,17 @@
  */
 import { StatusIndicator } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
+/*
+ * Exempted wholesale, on the same grounds the token ladder already exempts this
+ * file: it needs a page-scale decision rather than a widget-ladder one.
+ *
+ * It is a full-page route, not a dashboard widget, and its CSS says so: a
+ * viewport-height centred card, safe-area insets on all four sides, phone
+ * breakpoints, coarse-pointer tap targets, `::placeholder`, `:disabled` and
+ * descendant heading rules. None of that is expressible as a style object, and
+ * no ui-kit primitive is page-scale.
+ */
+// biome-ignore lint/style/noRestrictedImports: page-scale route, not a widget (see above)
 import styled from "styled-components";
 
 /** Connection lifecycle states surfaced on the connect screen. Mirrors the

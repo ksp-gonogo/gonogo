@@ -162,11 +162,11 @@ const SEVERITY_STYLES: Record<Severity, ReturnType<typeof css>> = {
 
 const SIZE_STYLES = {
   sm: css`
-    font-size: var(--font-size-2xs, 10px);
+    font-size: var(--font-size-caption);
     padding: var(--space-hair, 1px) var(--space-6, 6px);
   `,
   md: css`
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-compact);
     padding: var(--space-hair, 1px) var(--space-8, 8px);
   `,
 } as const;
@@ -194,7 +194,7 @@ const Badge__Body = styled.span<{
      the status/severity pill. */
   border-radius: ${({ $severity }) =>
     $severity === undefined
-      ? "var(--radius-sm, 3px)"
+      ? "var(--radius-regular, 3px)"
       : "var(--radius-pill, 999px)"};
 
   ${({ $size }) => SIZE_STYLES[$size]}

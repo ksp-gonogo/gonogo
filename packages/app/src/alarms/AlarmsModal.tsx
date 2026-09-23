@@ -624,9 +624,34 @@ export function AlarmsModal({
                 setRenameDraft("");
               };
               return (
-                <AlarmListItem key={a.id} tone={ALARM_TONE[a.state]}>
-                  <RowInfo>
-                    {renaming ? (
+                <Card
+                  as="li"
+                  key={a.id}
+                  tone={ALARM_TONE[a.state]}
+                  /* What KIND of alarm, read before the name it qualifies.
+                     The SCET mark is only on the threshold arm: a SCET time
+                     row already states its clock, because `describeTrigger`
+                     renders its instant with the SCET qualifier, while a
+                     threshold has no instant to qualify until it fires, so
+                     without this the row would not say which clock decides
+                     it. */
+                  titleLeft={
+                    renaming ? undefined : (
+                      <>
+                        <Badge size="md">
+                          {a.trigger.kind === "time" ? "TIME" : "COND"}
+                        </Badge>
+                        {a.trigger.kind === "threshold" &&
+                          isAtSubjectVantage(a.trigger) && (
+                            <Badge severity="info" size="sm">
+                              SCET
+                            </Badge>
+                          )}
+                      </>
+                    )
+                  }
+                  title={
+                    renaming ? (
                       <Input
                         type="text"
                         value={renameDraft}
@@ -642,123 +667,116 @@ export function AlarmsModal({
                         }}
                       />
                     ) : (
-                      <AlarmListName>
-                        <Badge size="md">
-                          {a.trigger.kind === "time" ? "TIME" : "COND"}
-                        </Badge>
-                        {/* Only the threshold arm. A SCET time row already
-                            states its clock, because `describeTrigger` renders
-                            its instant with the SCET qualifier; a threshold has
-                            no instant to qualify until it fires, so without
-                            this the row would not say which clock decides it. */}
-                        {a.trigger.kind === "threshold" &&
-                          isAtSubjectVantage(a.trigger) && (
-                            <Badge severity="info" size="sm">
-                              SCET
-                            </Badge>
-                          )}
-                        {a.name}
-                        {a.onFire && a.onFire.length > 0 && (
-                          <Badge severity="info" size="sm">
-                            {a.onFire.length === 1
-                              ? "FIRES 1 ACTION"
-                              : `FIRES ${a.onFire.length} ACTIONS`}
-                          </Badge>
-                        )}
-                      </AlarmListName>
-                    )}
+                      a.name
+                    )
+                  }
+                  titleRight={
+                    !renaming && a.onFire && a.onFire.length > 0 ? (
+                      <Badge severity="info" size="sm">
+                        {a.onFire.length === 1
+                          ? "FIRES 1 ACTION"
+                          : `FIRES ${a.onFire.length} ACTIONS`}
+                      </Badge>
+                    ) : undefined
+                  }
+                  /* The controls sit beside the alarm at a comfortable width
+                     and reflow under it when the modal is narrow. Nothing is
+                     hidden either way: a delete confirm the operator cannot
+                     see is worse than one that moved. */
+                  right={
+                    <RowActions>
+                      {pendingDelete ? (
+                        <>
+                          <GhostButton
+                            type="button"
+                            onClick={() => setPendingDeleteId(null)}
+                          >
+                            Cancel
+                          </GhostButton>
+                          <DangerButton
+                            type="button"
+                            onClick={() => {
+                              onDelete(a.id);
+                              setPendingDeleteId(null);
+                            }}
+                          >
+                            Delete
+                          </DangerButton>
+                        </>
+                      ) : (
+                        <>
+                          <GhostButton
+                            type="button"
+                            onClick={() => {
+                              setRenamingId(a.id);
+                              setRenameDraft(a.name);
+                            }}
+                          >
+                            Rename
+                          </GhostButton>
+                          <GhostButton
+                            type="button"
+                            onClick={() => setPendingDeleteId(a.id)}
+                          >
+                            Delete
+                          </GhostButton>
+                        </>
+                      )}
+                    </RowActions>
+                  }
+                >
+                  <RowMeta>
+                    {describeTrigger(a, snapshot.ut, timeContexts)}
+                  </RowMeta>
+                  {a.onFire && a.onFire.length > 0 && (
                     <RowMeta>
-                      {describeTrigger(a, snapshot.ut, timeContexts)}
+                      <FireList>
+                        {a.onFire.map((fx, i) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
+                          <FireChip key={`${fx.action}-${i}`}>
+                            <code>{fx.action}</code>
+                            <FireRemoveButton
+                              type="button"
+                              aria-label={`Remove ${fx.action} from ${a.name}`}
+                              onClick={() => {
+                                const next = (a.onFire ?? []).filter(
+                                  (_, idx) => idx !== i,
+                                );
+                                onUpdate(a.id, { onFire: next });
+                              }}
+                            >
+                              ×
+                            </FireRemoveButton>
+                          </FireChip>
+                        ))}
+                      </FireList>
                     </RowMeta>
-                    {a.onFire && a.onFire.length > 0 && (
-                      <RowMeta>
-                        <FireList>
-                          {a.onFire.map((fx, i) => (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
-                            <FireChip key={`${fx.action}-${i}`}>
-                              <code>{fx.action}</code>
-                              <FireRemoveButton
-                                type="button"
-                                aria-label={`Remove ${fx.action} from ${a.name}`}
-                                onClick={() => {
-                                  const next = (a.onFire ?? []).filter(
-                                    (_, idx) => idx !== i,
-                                  );
-                                  onUpdate(a.id, { onFire: next });
-                                }}
-                              >
-                                ×
-                              </FireRemoveButton>
-                            </FireChip>
-                          ))}
-                        </FireList>
-                      </RowMeta>
-                    )}
-                    <RowMeta>
-                      <StateTag $state={a.state}>{a.state}</StateTag>
-                    </RowMeta>
-                    {/* An alarm the operator did not create themselves says so.
+                  )}
+                  <RowMeta>
+                    <StateTag $state={a.state}>{a.state}</StateTag>
+                  </RowMeta>
+                  {/* An alarm the operator did not create themselves says so.
                         A row that simply appeared is otherwise indistinguishable
                         from one they set and forgot, and the difference decides
                         whether deleting it is safe. The Uplink's name is the one
                         recorded on the alarm, so the row still reads after the
                         Uplink is uninstalled. */}
-                    {a.requestedBy && (
-                      <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
-                    )}
-                    {/* The simulation would not take this arm, in its own
+                  {a.requestedBy && (
+                    <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
+                  )}
+                  {/* The simulation would not take this arm, in its own
                         words. Without it the row reads `pending` forever and
                         nothing tells the difference between an alarm waiting
                         and an alarm that was never accepted. */}
-                    {snapshot.scetArmRefusals?.[a.id] !== undefined && (
-                      <RowMeta role="status">
-                        <Badge severity="warning" size="sm">
-                          NOT ARMED
-                        </Badge>{" "}
-                        {snapshot.scetArmRefusals[a.id]}
-                      </RowMeta>
-                    )}
-                  </RowInfo>
-                  <RowActions>
-                    {pendingDelete ? (
-                      <>
-                        <GhostButton
-                          type="button"
-                          onClick={() => setPendingDeleteId(null)}
-                        >
-                          Cancel
-                        </GhostButton>
-                        <DangerButton
-                          type="button"
-                          onClick={() => {
-                            onDelete(a.id);
-                            setPendingDeleteId(null);
-                          }}
-                        >
-                          Delete
-                        </DangerButton>
-                      </>
-                    ) : (
-                      <>
-                        <GhostButton
-                          type="button"
-                          onClick={() => {
-                            setRenamingId(a.id);
-                            setRenameDraft(a.name);
-                          }}
-                        >
-                          Rename
-                        </GhostButton>
-                        <GhostButton
-                          type="button"
-                          onClick={() => setPendingDeleteId(a.id)}
-                        >
-                          Delete
-                        </GhostButton>
-                      </>
-                    )}
-                  </RowActions>
-                </AlarmListItem>
+                  {snapshot.scetArmRefusals?.[a.id] !== undefined && (
+                    <RowMeta role="status">
+                      <Badge severity="warning" size="sm">
+                        NOT ARMED
+                      </Badge>{" "}
+                      {snapshot.scetArmRefusals[a.id]}
+                    </RowMeta>
+                  )}
+                </Card>
               );
             })}
           </List>
@@ -1275,7 +1293,7 @@ const KindRow = styled.div`
   display: flex;
   gap: var(--gap-related);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   padding: var(--space-2);
   background: var(--color-surface-sunken);
   width: fit-content;
@@ -1286,8 +1304,8 @@ const KindButton = styled.button<{ $active: boolean }>`
   color: ${(p) => (p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   border: none;
   padding: var(--inset-control);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     color: var(--color-status-go-fg);
@@ -1314,17 +1332,17 @@ const SideBySide = styled.div`
 `;
 
 const OpSelect = styled.select`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const WaitingNote = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const PresetSection = styled.section`
@@ -1340,7 +1358,7 @@ const PresetSummary = styled.button`
   background: transparent;
   border: none;
   padding: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1375,7 +1393,7 @@ const PresetButton = styled.button`
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   &:hover {
     border-color: var(--color-status-go-bg);
@@ -1387,23 +1405,23 @@ const PresetButton = styled.button`
 `;
 
 const PresetButtonLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
 `;
 
 const PresetButtonHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
 const AddedNote = styled.div`
   color: var(--color-status-go-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-12) 0;
 `;
 
@@ -1424,36 +1442,8 @@ const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
   fired: "default",
 };
 
-// A tone-accented card, same family as PerfBudgets. It draws a full
-// state-coloured border where the kit draws a leading accent rule, which is
-// the deliberate delta.
-const AlarmListItem = styled(Card).attrs({ as: "li" as const })`
-  display: flex;
-  align-items: center;
-  /* Section, not related: the info column, the state tag and the buttons are
-     three different kinds of thing. The inset is Card's own, so it is not
-     restated here. */
-  gap: var(--gap-section);
-`;
-
-const RowInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  flex: 1;
-  min-width: 0;
-`;
-
-const AlarmListName = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  font-size: var(--font-size-sm);
-  color: var(--color-status-go-fg);
-`;
-
 const RowMeta = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1462,7 +1452,7 @@ const RowMeta = styled.div`
 
 const StateTag = styled.span<{ $state: Alarm["state"] }>`
   text-transform: uppercase;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   color: ${(p) =>
     p.$state === "firing"
@@ -1485,8 +1475,8 @@ const DangerButton = styled.button`
   color: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-alert-muted);
   padding: var(--inset-control);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     background: var(--color-status-alert-muted);
@@ -1510,8 +1500,8 @@ const FireChip = styled.span`
   padding: var(--inset-chip);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1520,7 +1510,7 @@ const FireChip = styled.span`
 
 const FireMeta = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
 `;
 
 const FireRemoveButton = styled.button`
@@ -1550,10 +1540,10 @@ const PickerRow = styled.div`
 
 const PickerSelect = styled.select`
   flex: 1;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;

@@ -170,7 +170,7 @@ const DataTable__Scroller = styled.div`
 const DataTable__Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 /* Announced, not shown: the visible heading is the widget's own. */
@@ -196,7 +196,7 @@ const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
   z-index: 1;
   background: var(--color-surface-panel);
   color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -209,7 +209,7 @@ const DataTable__SectionCell = styled.th`
   text-align: start;
   background: var(--color-surface-raised);
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;

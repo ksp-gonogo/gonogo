@@ -168,5 +168,5 @@ const LoadingPlaceholder = styled.div`
   min-height: 200px;
   padding: var(--space-24);
   color: var(--color-text-muted);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-compact);
 `;

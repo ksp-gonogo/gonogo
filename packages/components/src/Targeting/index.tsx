@@ -1204,7 +1204,7 @@ function DockingHud(props: DockingHudProps) {
             >
               <Truncate
                 style={{
-                  fontSize: "var(--font-size-sm)",
+                  fontSize: "var(--font-size-value)",
                   color: "var(--color-status-go-fg)",
                   letterSpacing: "0.04em",
                 }}
