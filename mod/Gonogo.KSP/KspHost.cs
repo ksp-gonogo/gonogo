@@ -4078,7 +4078,7 @@ namespace Gonogo.KSP
                         continue;
                     }
 
-                    var entry = BuildStrategyEntry(strategy);
+                    var entry = BuildStrategyEntry(strategy, system);
                     all.Add(entry);
                     if (strategy.IsActive)
                     {
@@ -4111,42 +4111,49 @@ namespace Gonogo.KSP
         /// group tags, funds-on-hand) - no state mutation, safe to call on
         /// every strategy including already-active ones.
         /// </summary>
-        private static Dictionary<string, object?> BuildStrategyEntry(Strategy strategy)
+        private static Dictionary<string, object?> BuildStrategyEntry(
+            Strategy strategy, StrategySystem system)
         {
-            // Whether a strategy can be activated is a question KSP answers only
-            // while the Administration Building is open, and that is structural
-            // rather than occasional: CanBeActivated's first three arms read the
-            // active-strategy count, the concurrent cap and the commit-level
-            // ceiling straight off Administration.Instance, a UI MonoBehaviour
-            // that exists only while the player has that screen up. With it
-            // closed the very first arm throws, for EVERY strategy, on EVERY
-            // tick. KspCareerActuator.ActivateStrategy already refuses on the
-            // same ground; this is the reading half of the same rule.
+            // KSP answers this for itself only while the Administration Building
+            // is open: CanBeActivated's first arm reads the active-strategy count
+            // and the concurrent cap straight off Administration.Instance, a UI
+            // MonoBehaviour that exists only while the player has that screen up,
+            // so with it shut the very first arm throws for EVERY strategy on
+            // EVERY tick. That left a console career unable to learn whether a
+            // single one of its strategies was eligible.
             //
-            // So canActivate is ABSENT rather than false when the answer cannot
-            // be had. A false with "eligibility check failed" beside it is a
+            // So the screen is asked when it is there, and the arms are put one at
+            // a time when it is not. The off-screen route reaches a refusal but
+            // never a yes: the cap arm compares a counter that only exists on that
+            // screen, so what it publishes is the game's own reason for everything
+            // the career refuses, and an honest silence on the rest. The entry says
+            // which route answered, because a derived verdict is a fine thing to
+            // print and not a thing to arm a control from.
+            //
+            // canActivate stays ABSENT rather than false whenever an arm could not
+            // be put. A false with "eligibility check failed" beside it is a
             // fabricated no: it reads as a strategy that was judged and refused,
-            // it reads as intermittent, and neither is true. CanBeDeactivated
-            // touches none of that and is asked unconditionally, which is why an
-            // RP-1 Program reports a real deactivate reason beside an unanswered
-            // activate one.
+            // it reads as intermittent, and neither is true.
             //
-            // The try/catch stays under the guard. A throw from anywhere else in
-            // the eligibility walk must not propagate: BuildCareerStrategies
-            // would lose the ENTIRE strategies channel for every tick one bad
-            // strategy is in the roster.
-            var eligibility = StrategyEligibility.AdministrationClosed();
-            if (Administration.Instance != null)
+            // The try/catch stays. A throw from anywhere in the eligibility walk
+            // must not propagate: BuildCareerStrategies would lose the ENTIRE
+            // strategies channel for every tick one bad strategy is in the roster.
+            StrategyEligibility eligibility;
+            try
             {
-                try
+                if (Administration.Instance != null)
                 {
                     var answer = strategy.CanBeActivated(out var reason);
-                    eligibility = StrategyEligibility.Answered(answer, reason);
+                    eligibility = StrategyEligibility.Screened(answer, reason);
                 }
-                catch (Exception ex)
+                else
                 {
-                    eligibility = StrategyEligibility.Threw(ex.GetType().Name);
+                    eligibility = LiveStrategyArms.Eligibility(strategy, system);
                 }
+            }
+            catch (Exception ex)
+            {
+                eligibility = StrategyEligibility.Threw(ex.GetType().Name);
             }
 
             bool canDeactivate = false;
@@ -4178,6 +4185,7 @@ namespace Gonogo.KSP
                 ["factorSliderSteps"] = strategy.FactorSliderSteps,
                 ["canActivate"] = eligibility.CanActivate,
                 ["activateBlockedReason"] = eligibility.BlockedReason,
+                ["activateVerdictSource"] = eligibility.VerdictSource,
                 ["canDeactivate"] = canDeactivate,
                 ["deactivateBlockedReason"] = deactivateBlockedReason,
                 ["effect"] = strategy.Effect,

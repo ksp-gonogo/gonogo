@@ -493,11 +493,55 @@ public class CareerStrategy
     [SitrepUnit(Units.Count)]
     public int? FactorSliderSteps { get; set; }
 
+    /// <summary>
+    /// Whether KSP would allow this strategy to be committed to right now.
+    /// <c>null</c> means the question could not be put at all, which is NOT a
+    /// refusal: <see cref="ActivateBlockedReason"/> then accounts for why nobody
+    /// answered rather than naming a rule the strategy broke.
+    /// <internal>
+    /// Written from Gonogo.KSP.StrategyEligibility. The absent case used to be
+    /// the whole roster whenever the Administration Building was shut; it is now
+    /// only an arm that genuinely could not be read.
+    /// </internal>
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? CanActivate { get; set; }
 
+    /// <summary>
+    /// KSP's own wording for the rule that refused, or an account of why the
+    /// question could not be put when <see cref="CanActivate"/> is <c>null</c>.
+    /// Empty when the answer was yes.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? ActivateBlockedReason { get; set; }
+
+    /// <summary>
+    /// Which route produced <see cref="CanActivate"/>: <c>"screened"</c> when
+    /// KSP's own check answered, <c>"derived"</c> when the same rules were
+    /// evaluated one at a time because the Administration Building was shut, and
+    /// <c>"none"</c> when there is no verdict to carry.
+    ///
+    /// <para><c>"derived"</c> always accompanies a refusal and never a yes. The
+    /// game stops at its first refusal, so an arm that refuses off-screen would
+    /// have refused on it; but one arm counts the career's running strategies on
+    /// that screen and cannot be asked anywhere else, and permission is owed to
+    /// every arm. A row nothing could refuse therefore arrives unanswered with
+    /// <c>"none"</c> rather than allowed.</para>
+    ///
+    /// <para>Nothing reached off-screen should ARM an activation control either
+    /// way: KSP runs its own commitment only from inside that building.</para>
+    /// <internal>
+    /// StrategyActivationRule walks arms 2-9 of Strategies.Strategy.
+    /// CanBeActivated. The commit ceiling comes from GameVariables, which is
+    /// where Administration.Start reads it from itself and which is virtual so a
+    /// retiering mod's override is inherited. Arm 1 is deliberately not
+    /// reproduced: activeStrategyCount is a scroll-view item counter RP-1
+    /// overwrites, so substituting a roster count would enforce stock's rule on a
+    /// career that has replaced it.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? ActivateVerdictSource { get; set; }
 
     [SitrepUnit(Units.Flag)]
     public bool? CanDeactivate { get; set; }

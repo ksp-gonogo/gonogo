@@ -221,6 +221,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerStrategy": {
     activateBlockedReason: "text",
+    activateVerdictSource: "text",
     canActivate: "flag",
     canDeactivate: "flag",
     dateActivated: "ut",
