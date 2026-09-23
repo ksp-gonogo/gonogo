@@ -214,11 +214,32 @@ export async function runShadowAcceptance(
     nameOf.set(armed.id, a.name);
   };
   try {
-    for (const a of ALARMS) armOne(a);
+    /*
+     * ScetAlarmBridge.buildArmArgs names a command-vantage threshold's shadow
+     * arm at `client.selectedVantage ?? client.observedVantage`; with neither
+     * set it returns null and `arm()` never dispatches `alarm.scet.arm` at
+     * all -- no line, not even a refusal, because nothing was sent. Arming
+     * immediately after construction, before the first frame has stamped
+     * `observedVantage`, loses that alarm's shadow arm PERMANENTLY: the
+     * bridge's reconcile loop marks an id `commandedSinceRoster` on its first
+     * attempt regardless of outcome and never retries the same id. So: wait
+     * for a real vantage before arming anything.
+     */
+    const vantageDeadline = Date.now() + 10_000;
+    while (
+      client.selectedVantage === undefined &&
+      client.observedVantage === undefined &&
+      Date.now() < vantageDeadline
+    ) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    write(
+      `observed vantage before arming: ${client.selectedVantage ?? client.observedVantage ?? "(none after 10s)"}`,
+    );
 
     function conditionTrue(a: (typeof ALARMS)[number]): boolean {
       const v = getValue("data", a.dataKey);
-      if (v === undefined) return true; // unreadable: do not re-arm into the unknown
+      if (v === undefined) return true; // unreadable: do not arm into the unknown
       const op: string = a.op;
       switch (op) {
         case ">=":
@@ -235,27 +256,50 @@ export async function runShadowAcceptance(
     }
 
     /*
+     * `ScetAlarmBridge.arm` is only ever called for an alarm the CLIENT
+     * itself is still watching in `state: "pending"` -- deliberately, per its
+     * own comment: an alarm already fired must not be re-armed after a
+     * timeline reset, since its instant is in the past. A threshold
+     * level-triggers on its first reading, including one already true at arm
+     * time, so an alarm armed while its condition already holds skips
+     * "pending" and goes straight to "firing"/"fired" on the very next tick
+     * -- and the mod is NEVER told to watch it: no `alarm.scet.arm`, no
+     * refusal, nothing, because `arm()` was never called for it at all.
+     *
+     * So every alarm here, first arming included, waits in `pendingRearm`
+     * until its own condition reads false before `armOne` runs -- the same
+     * hysteresis a re-arm needs, now applied uniformly rather than only after
+     * a fire.
+     */
+    const pendingRearm = new Set<(typeof ALARMS)[number]>();
+    for (const a of ALARMS) {
+      if (conditionTrue(a)) pendingRearm.add(a);
+      else armOne(a);
+    }
+
+    /*
      * A lap scenario re-arms by creating a fresh alarm per crossing:
      * `AlarmHostService.acknowledgeAlarm` only clears a `fired` alarm and
      * removes it, it does not reset it to `pending` in place (a same-kind
      * trigger edit would leave `state: "fired"` untouched), so the only way
-     * an alarm can fire on a later lap is a brand new id. Only runs when
-     * `options.laps` is set: a plain single-shot acceptance run has no lap
-     * count to re-arm against and should keep firing each alarm once.
+     * an alarm can fire on a later lap is a brand new id.
      *
-     * A threshold alarm is level-triggered (fires on the first tick its
-     * reading satisfies the condition, including one already true at arm
-     * time). Re-arming the instant a fire is acknowledged, while the vessel
-     * is still past the threshold, fires the fresh alarm again immediately --
-     * a self-refire storm keyed to evaluation jitter rather than a real
-     * orbital crossing. `pendingRearm` holds a fired alarm's config until its
-     * OWN reading goes back false, so the next arm only happens once the
-     * vessel has genuinely left the zone and can cross into it again.
+     * Re-arming the instant a fire is acknowledged, while the vessel is still
+     * past the threshold, would fire the fresh alarm again immediately -- a
+     * self-refire storm keyed to evaluation jitter rather than a real orbital
+     * crossing, the same problem as the unshadowable-first-arm one above.
+     * `pendingRearm` holds a fired alarm's config until its OWN reading goes
+     * back false, so the next arm only happens once the vessel has genuinely
+     * left the zone and can cross into it again.
+     *
+     * The clearing half of this loop (acknowledging a `fired` alarm and
+     * queueing it) only runs when `options.laps` is set: a plain single-shot
+     * acceptance run has no lap count to re-arm against and should keep
+     * firing each alarm once. The arming half runs unconditionally, since it
+     * also covers the first-arm case seeded above.
      */
-    const pendingRearm = new Set<(typeof ALARMS)[number]>();
-    let rearmLoop: ReturnType<typeof setInterval> | undefined;
-    if (options.laps !== undefined) {
-      rearmLoop = setInterval(() => {
+    const rearmLoop: ReturnType<typeof setInterval> = setInterval(() => {
+      if (options.laps !== undefined) {
         for (const alarm of svc.snapshot().alarms) {
           if (alarm.state !== "fired") continue;
           const name = nameOf.get(alarm.id);
@@ -263,14 +307,14 @@ export async function runShadowAcceptance(
           const cfg = ALARMS.find((a) => a.name === name);
           if (cfg) pendingRearm.add(cfg);
         }
-        for (const cfg of pendingRearm) {
-          if (conditionTrue(cfg)) continue; // still past the line, wait
-          pendingRearm.delete(cfg);
-          armOne(cfg);
-          rearmCount++;
-        }
-      }, 2_000);
-    }
+      }
+      for (const cfg of pendingRearm) {
+        if (conditionTrue(cfg)) continue; // still past the line, wait
+        pendingRearm.delete(cfg);
+        armOne(cfg);
+        rearmCount++;
+      }
+    }, 2_000);
 
     /*
      * The mod cancels warp itself when a command-vantage alarm comes due --
@@ -320,7 +364,7 @@ export async function runShadowAcceptance(
     await new Promise((r) => setTimeout(r, options.observeMs));
     clearInterval(tick);
     clearInterval(reads);
-    if (rearmLoop !== undefined) clearInterval(rearmLoop);
+    clearInterval(rearmLoop);
     if (warpReapplyLoop !== undefined) clearInterval(warpReapplyLoop);
     sampleReads();
     const unread = ALARMS.filter((a) => !everRead.has(a.name)).map(
