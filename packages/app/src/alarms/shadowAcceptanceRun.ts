@@ -85,6 +85,8 @@ export interface ShadowAcceptanceOptions {
   host: string;
   port: number;
   observeMs: number;
+  /** Laps the scenario flies; every armed alarm must agree on each of them. */
+  laps?: number;
   /** How often to print a progress line, ms. */
   progressEveryMs?: number;
   write?: (line: string) => void;
@@ -141,9 +143,10 @@ export async function runShadowAcceptance(
   ];
 
   const svc = new AlarmHostService(null, { storage: memoryStorage() });
+  const nameOf = new Map<string, string>();
   try {
     for (const a of ALARMS) {
-      svc.addAlarm({
+      const armed = svc.addAlarm({
         name: a.name,
         trigger: {
           kind: "threshold",
@@ -156,6 +159,7 @@ export async function runShadowAcceptance(
           fieldPath: a.fieldPath,
         },
       });
+      nameOf.set(armed.id, a.name);
     }
 
     write(
@@ -177,6 +181,14 @@ export async function runShadowAcceptance(
     const verdict = classifyShadowRun({
       entries: logger.snapshot(),
       owlt,
+      laps:
+        options.laps === undefined
+          ? undefined
+          : {
+              count: options.laps,
+              alarms: ALARMS.map((a) => a.name),
+              alarmOf: (fire) => nameOf.get(fire.id) ?? fire.id,
+            },
     });
     return { verdict, owlt };
   } finally {
