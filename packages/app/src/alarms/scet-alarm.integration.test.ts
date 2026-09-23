@@ -1324,6 +1324,49 @@ describe("SCET alarms", () => {
       info.mockRestore();
     });
 
+    it("does not let an edited alarm inherit the verdict on the condition it replaced", async () => {
+      const info = vi.spyOn(logger, "info");
+      const warn = vi.spyOn(logger, "warn");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      let ut = UT_START + 4 * DT;
+      await run(session, ut);
+      session.fireForVantage(alarm.id);
+      ut += OWLT + 2 * DT;
+      await run(session, ut);
+
+      svc.updateAlarm(alarm.id, {
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_200_000 },
+      });
+      session.showClientAltitude(1_300_000);
+      ut += OWLT + 4 * DT;
+      await run(session, ut);
+      svc.dispose();
+
+      const logged = (spy: typeof info, message: string) =>
+        spy.mock.calls.filter(
+          ([m, ctx]) =>
+            m === message &&
+            (ctx as { id?: string } | undefined)?.id === alarm.id,
+        ).length;
+      expect(
+        logged(info, "alarm-shadow: client fired, mod had already agreed"),
+      ).toBe(0);
+      expect(logged(warn, "alarm-shadow: client fired, mod has not")).toBe(1);
+      info.mockRestore();
+      warn.mockRestore();
+    });
+
     /**
      * The window this waits out is the main menu, which lasts as long as the
      * operator leaves it there, so the retry is a cadence rather than a tick.
