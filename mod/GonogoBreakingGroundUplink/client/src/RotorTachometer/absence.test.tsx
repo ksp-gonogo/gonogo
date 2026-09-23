@@ -310,6 +310,8 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
         value: true,
       });
     });
+    await act(async () => {});
+
     expect(returned).toEqual({ Direction: "CW" });
   });
 
