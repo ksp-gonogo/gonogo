@@ -103,6 +103,11 @@ interface ModStandIn {
   armForeign(id: string): void;
   /** Every `alarm.scet.arm` this id was the subject of, accepted or refused. */
   armAttempts(id: string): number;
+  /**
+   * Stamp frames with the meta vantage rather than a place, so the client has
+   * observed no command centre yet: the window before the first ordinary frame.
+   */
+  withholdVantage(withheld: boolean): void;
   /** Take the engine back to knowing no command centres, as the main menu does. */
   forgetCommandCentres(): void;
   /** The centre set populates, which is what a save loading looks like. */
@@ -147,6 +152,7 @@ function startSession(owlt: number): ModStandIn {
   const conditions = new Map<string, ArmedAlarm>();
   const armAttemptCounts = new Map<string, number>();
   let centresKnown = true;
+  let stampedVantage = HOME;
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
   const matchedSince = new Map<string, number>();
@@ -292,7 +298,7 @@ function startSession(owlt: number): ModStandIn {
     transport.emit("alarm.scet", lastRoster, {
       validAt: trueUt,
       deliveredAt: trueUt,
-      vantage: HOME,
+      vantage: stampedVantage,
     });
   }
 
@@ -318,6 +324,9 @@ function startSession(owlt: number): ModStandIn {
     },
     armOf: (id) => conditions.get(id),
     armAttempts: (id) => armAttemptCounts.get(id) ?? 0,
+    withholdVantage(withheld) {
+      stampedVantage = withheld ? "meta" : HOME;
+    },
     forgetCommandCentres() {
       centresKnown = false;
     },
@@ -381,7 +390,7 @@ function startSession(owlt: number): ModStandIn {
       transport.emit(
         "vessel.identity",
         { name: "Probe", vesselId: VESSEL_ID },
-        { validAt: ut - owlt, deliveredAt: ut, vantage: HOME },
+        { validAt: ut - owlt, deliveredAt: ut, vantage: stampedVantage },
       );
 
       // The mod's pass, on the game's OWN clock: this is the whole point of the
@@ -444,7 +453,7 @@ function startSession(owlt: number): ModStandIn {
         },
         // `time.warp` is TrueNow on the mod, so the frame is stamped at the
         // instant it was captured rather than a light-time back.
-        { validAt: ut, deliveredAt: ut },
+        { validAt: ut, deliveredAt: ut, vantage: stampedVantage },
       );
       /* Every tick, where the real channel change-gates and leans on
          keyframe-on-subscribe to catch a late subscriber up. A stub transport
@@ -1171,6 +1180,74 @@ describe("SCET alarms", () => {
 
       expect(session.armed()).toEqual([alarm.id]);
       expect(session.armAttempts(alarm.id)).toBeGreaterThan(refused);
+    });
+
+    /**
+     * Level, not edge: the client fires this on the tick that creates it, so it
+     * never sits in `pending`, which is the only state the roster diff arms
+     * from. The mod must be told anyway, and told once.
+     */
+    it("arms an alarm whose condition already holds when it is created", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.showClientAltitude(150_000);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      // Long enough for the reading to reach this screen's delayed view.
+      const revealed = UT_START + OWLT + DT;
+      await run(session, revealed);
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+      const state = svc.snapshot().alarms[0].state;
+      await vi.advanceTimersByTimeAsync(0);
+      const vantage = session.armOf(alarm.id)?.vantage;
+      await run(session, revealed + 6 * DT);
+      svc.dispose();
+
+      expect(state).toBe("firing");
+      expect(vantage).toBe(HOME);
+      expect(session.armAttempts(alarm.id)).toBe(1);
+    });
+
+    /**
+     * An arm that could not be BUILT never leaves, so there is no refusal to
+     * retry from and no roster change to clear the already-commanded set. Only
+     * the reconcile can notice, and only if it does not record the attempt.
+     */
+    it("arms once a vantage is known when it was armed before any frame named one", async () => {
+      const session = startSession(OWLT);
+      session.withholdVantage(true);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+
+      await run(session, UT_START + 4 * DT);
+      expect(session.armAttempts(alarm.id)).toBe(0);
+
+      session.withholdVantage(false);
+      for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+      svc.dispose();
+
+      expect(session.armed()).toEqual([alarm.id]);
+      expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
     });
 
     /**

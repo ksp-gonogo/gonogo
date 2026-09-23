@@ -70,9 +70,9 @@ describe("contract-parameter alarm trigger", () => {
    * Both halves are needed and the split is the class's own: `deriveState` reads
    * `matchSinceUT` and never evaluates the trigger, so calling it alone reports
    * "pending" for everything, which would have made every negative case here
-   * pass for no reason. Latching at 100 and reading at 103 clears the 2-second
-   * "firing" banner window, so a match settles to the "fired" an operator would
-   * still see in the list.
+   * pass for no reason. Reading at 103, past the 2-second banner window of a
+   * latch at 100, still reads "firing": an alarm that has not fired yet fires
+   * however late it is first seen due.
    */
   function tick(alarm: Alarm, active: CareerContract[]): Alarm["state"] {
     const sm = new AlarmStateMachine(
@@ -87,7 +87,7 @@ describe("contract-parameter alarm trigger", () => {
   it("fires when the objective reaches the armed state", () => {
     const alarm = contractAlarm("Complete");
     expect(tick(alarm, contracts({ state: "Complete", stateOrdinal: 1 }))).toBe(
-      "fired",
+      "firing",
     );
   });
 
@@ -106,7 +106,7 @@ describe("contract-parameter alarm trigger", () => {
   it("fires on the ordinal even when KSP's name for the state is one we have never seen", () => {
     const alarm = contractAlarm("Complete");
     expect(tick(alarm, contracts({ state: "Achieved", stateOrdinal: 1 }))).toBe(
-      "fired",
+      "firing",
     );
   });
 
@@ -118,7 +118,7 @@ describe("contract-parameter alarm trigger", () => {
   it("does not fire a Complete alarm on an objective whose ordinal says Failed", () => {
     const failedRows = contracts({ state: "Complete", stateOrdinal: 2 });
     expect(tick(contractAlarm("Complete"), failedRows)).toBe("pending");
-    expect(tick(contractAlarm("Failed"), failedRows)).toBe("fired");
+    expect(tick(contractAlarm("Failed"), failedRows)).toBe("firing");
   });
 
   /**
@@ -165,7 +165,8 @@ describe("contract-parameter alarm trigger", () => {
           const previously = ut === 0 ? null : ut;
           ut = at;
           sm.updateContractParameterTracking(alarm, at, previously);
-          return sm.deriveState(alarm, at, previously);
+          alarm.state = sm.deriveState(alarm, at);
+          return alarm.state;
         },
       };
     }

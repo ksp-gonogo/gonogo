@@ -19,11 +19,19 @@ import {
 } from "./types";
 
 /**
- * How long to leave a vantage the simulation could not check yet before asking
- * again. Long enough that sitting at the main menu is not a command per tick,
- * short enough that an alarm armed before a save loaded is live soon after it.
+ * How long to leave an arm that could not be made yet before asking again: a
+ * vantage the simulation could not check, or one this side could not name.
+ * Long enough that sitting at the main menu is not a command per tick, short
+ * enough that an alarm armed before a save loaded is live soon after it.
  */
 const TRANSIENT_REARM_INTERVAL_MS = 10_000;
+
+/**
+ * `buildArmArgs`'s answer when the arm cannot be stated YET: no vantage has
+ * been observed, or no vessel identity has arrived to name the craft. Distinct
+ * from `null`, which is a condition the mod could never be asked about.
+ */
+const NOT_YET = Symbol("not-yet");
 
 export const SCET_ROSTER_TOPIC = "alarm.scet";
 export const SCET_FIRED_TOPIC = "alarm.scet.fired";
@@ -143,22 +151,45 @@ export class ScetAlarmBridge {
    */
   private commandedSinceRoster = new Set<string>();
   /**
-   * Ids refused for a reason that resolves by waiting, against the earliest
-   * moment worth asking again.
+   * Ids the mod is owed an arm for, against the earliest moment worth asking.
    *
-   * A refused arm never reaches the mod's roster, so the roster does not move,
-   * so no frame arrives and `commandedSinceRoster` is never cleared: without
-   * this the first refusal is the last word until the operator edits the alarm.
-   * Only the transient code is held here; a permanent one stays refused, since
-   * re-asking a question already answered is noise on every tick for ever.
+   * An arm that is never answered moves nothing: it cannot reach the mod's
+   * roster, so no roster frame arrives and `commandedSinceRoster` is never
+   * cleared, and the first attempt would be the last word until the operator
+   * edited the alarm. Three things leave an arm unanswered: one that could not
+   * be stated yet, one that could not be routed, and a refusal for a reason
+   * that resolves by waiting. A permanent refusal is an answer and clears the
+   * debt, since re-asking a settled question is noise on every tick for ever.
+   *
+   * Also how an alarm is armed whatever state it has reached. A new or edited
+   * alarm is owed one even if its condition already holds and it fired on the
+   * tick that created it, which is exactly the alarm that must not be left
+   * unwatched; and an edited one is owed one even though the mod holds its id,
+   * because what the mod holds is the condition that was replaced.
    */
-  private retryTransientAfter = new Map<string, number>();
+  private owed = new Map<string, number>();
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
     this.ctx = ctx;
+  }
+
+  /**
+   * Subscribe to the mod's roster and fire notice. Separate from construction
+   * because the notice is replayed synchronously on subscribe, and what it
+   * calls back into must already hold this bridge.
+   */
+  start(): void {
+    if (this.disposed || this.unsubscribeClient) return;
     this.unsubscribeClient = subscribeActiveTelemetryClient(() => this.bind());
     this.bind();
+  }
+
+  /** The mod is owed an arm for this alarm's current condition, as soon as it can be made. */
+  owe(alarm: Alarm): void {
+    if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) return;
+    this.owed.set(alarm.id, 0);
+    this.commandedSinceRoster.delete(alarm.id);
   }
 
   /**
@@ -180,10 +211,10 @@ export class ScetAlarmBridge {
    * - the WARP stop treats it as false and commands anyway. A second
    *   `setWarpIndex(0)` against warp already at zero is a no-op
    * - the LATCH must NOT treat it as false. Latching an alarm the mod is about
-   *   to take moves it out of `pending`, `reconcile` only arms from `pending`,
-   *   and the alarm is then never armed, never held, and never latched by
-   *   anybody. The absence of a roster is the one moment that deadlock can
-   *   start
+   *   to take moves it out of `pending`, an alarm out of `pending` is armed
+   *   only while an arm is still owed for it, and the alarm is then never
+   *   armed, never held, and never latched by anybody. The absence of a roster
+   *   is the one moment that deadlock can start
    */
   holdsAlarm(id: string): boolean | undefined {
     if (!this.rosterSeen) return undefined;
@@ -203,13 +234,16 @@ export class ScetAlarmBridge {
 
     const wanted = new Map<string, Alarm>();
     for (const alarm of this.ctx.getAlarms()) {
-      // Only a PENDING alarm wants arming. One that already fired must not be
-      // re-armed after a timeline reset dropped the roster: its instant is in
-      // the past, so it would fire again immediately.
-      if (alarm.state !== "pending") continue;
-      if (isAtSubjectVantage(alarm.trigger) || isShadowable(alarm)) {
+      if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) continue;
+      /* A PENDING alarm, or one still owed its arm. An alarm that fired after
+         the mod was told must not be re-armed when a timeline reset drops the
+         roster: its condition is in the past, so it would fire again at once. */
+      if (alarm.state === "pending" || this.owed.has(alarm.id)) {
         wanted.set(alarm.id, alarm);
       }
+    }
+    for (const id of this.owed.keys()) {
+      if (!wanted.has(id)) this.owed.delete(id);
     }
 
     for (const id of this.rosterIds) {
@@ -220,9 +254,10 @@ export class ScetAlarmBridge {
     }
     const held = new Set(this.rosterIds);
     for (const [id, alarm] of wanted) {
-      if (held.has(id) || this.commandedSinceRoster.has(id)) continue;
-      const retryAt = this.retryTransientAfter.get(id);
-      if (retryAt !== undefined && this.ctx.nowMs() < retryAt) continue;
+      if (this.commandedSinceRoster.has(id)) continue;
+      const owedAt = this.owed.get(id);
+      if (owedAt === undefined && held.has(id)) continue;
+      if (owedAt !== undefined && this.ctx.nowMs() < owedAt) continue;
       this.commandedSinceRoster.add(id);
       this.arm(alarm);
     }
@@ -236,22 +271,35 @@ export class ScetAlarmBridge {
   }
 
   /**
-   * Arm one alarm on the mod. Also used on an edit: arming an id the mod
-   * already holds replaces it, so there is no disarm-then-arm to race.
+   * Arm one alarm on the mod. Arming an id the mod already holds replaces it,
+   * so an edit needs no disarm-then-arm to race.
    */
-  arm(alarm: Alarm): void {
-    if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) return;
+  private arm(alarm: Alarm): void {
     const armed = this.buildArmArgs(alarm);
-    if (armed === null) return;
+    if (armed === null) {
+      this.owed.delete(alarm.id);
+      return;
+    }
+    if (armed === NOT_YET) {
+      this.askAgainLater(alarm.id);
+      return;
+    }
     const outcome = dispatchActiveCommandTopic(SCET_ARM_COMMAND, armed);
     if (!outcome.routed) {
       logger.warn("alarm-host: SCET arm not routed", { id: alarm.id });
+      this.askAgainLater(alarm.id);
       return;
+    }
+    /* Held off while the command is in flight: the roster frame that shows it
+       held can arrive before the answer does, and a debt still due then would
+       send it again. */
+    if (this.owed.has(alarm.id)) {
+      this.owed.set(alarm.id, this.ctx.nowMs() + TRANSIENT_REARM_INTERVAL_MS);
     }
     void outcome.settled.then((refusal) => {
       if (this.disposed) return;
       if (refusal === undefined) {
-        this.retryTransientAfter.delete(alarm.id);
+        this.owed.delete(alarm.id);
         this.ctx.onArmAccepted(alarm.id);
         return;
       }
@@ -271,13 +319,9 @@ export class ScetAlarmBridge {
            anyone about. Only an arm naming a place other than its own subject
            can be refused this way, and every one of those is a shadow arm, so
            deciding it after that branch would retry nothing at all. */
-        this.retryTransientAfter.set(
-          alarm.id,
-          this.ctx.nowMs() + TRANSIENT_REARM_INTERVAL_MS,
-        );
-        this.commandedSinceRoster.delete(alarm.id);
+        this.askAgainLater(alarm.id);
       } else {
-        this.retryTransientAfter.delete(alarm.id);
+        this.owed.delete(alarm.id);
       }
       /* A shadow arm that the mod cannot read costs the operator nothing: the
          alarm they are watching is the client's own and is unaffected. So the
@@ -306,6 +350,12 @@ export class ScetAlarmBridge {
     });
   }
 
+  /** Owe this arm again after the transient interval, and let the reconcile send it. */
+  private askAgainLater(id: string): void {
+    this.owed.set(id, this.ctx.nowMs() + TRANSIENT_REARM_INTERVAL_MS);
+    this.commandedSinceRoster.delete(id);
+  }
+
   /** Disarm one alarm on the mod. Harmless for an id it does not hold. */
   disarm(id: string): void {
     const outcome = dispatchActiveCommandTopic(SCET_DISARM_COMMAND, { id });
@@ -317,17 +367,23 @@ export class ScetAlarmBridge {
   }
 
   /**
-   * The `alarm.scet.arm` arguments for one alarm, or null when this side cannot
-   * state the condition honestly.
+   * The `alarm.scet.arm` arguments for one alarm, `NOT_YET` when they cannot be
+   * stated honestly yet, or null when they never can.
    *
-   * Null is only ever reached by a threshold, and only for the two things the
-   * mod would have no way to interpret: a key with no Topic behind it (one from
-   * a live `DataSource` rather than from the contract's field catalogue), and a
-   * craft-scoped Topic at a moment when no vessel identity has arrived. Both
-   * are refusals to GUESS: an arm carrying the wrong subject is accepted and
-   * then never fires, which is the one outcome an alarm must not have.
+   * Every one of those is a refusal to GUESS: an arm carrying the wrong subject
+   * or place is accepted and then never fires, which is the one outcome an
+   * alarm must not have.
+   *
+   * - null: a threshold key with no Topic behind it, one from a live
+   *   `DataSource` rather than the contract's field catalogue, which the mod
+   *   has no way to interpret
+   * - `NOT_YET`: a command-vantage alarm before any frame has named the place
+   *   this screen commands from, or a craft-scoped Topic before any vessel
+   *   identity has arrived. Both are the first moments of a connection
    */
-  private buildArmArgs(alarm: Alarm): Record<string, unknown> | null {
+  private buildArmArgs(
+    alarm: Alarm,
+  ): Record<string, unknown> | null | typeof NOT_YET {
     const trigger = alarm.trigger;
     /* Where the simulation reads this alarm. Empty is sent for a SCET alarm and
        the mod resolves it to the alarm's own subject, which is what a SCET alarm
@@ -339,7 +395,7 @@ export class ScetAlarmBridge {
     const vantage = isAtSubjectVantage(trigger)
       ? ""
       : (client?.selectedVantage ?? client?.observedVantage ?? "");
-    if (!isAtSubjectVantage(trigger) && vantage === "") return null;
+    if (!isAtSubjectVantage(trigger) && vantage === "") return NOT_YET;
     if (trigger.kind === "time") {
       return {
         id: alarm.id,
@@ -367,7 +423,7 @@ export class ScetAlarmBridge {
         id: alarm.id,
         topic: address.topic,
       });
-      return null;
+      return NOT_YET;
     }
     return {
       id: alarm.id,
@@ -429,8 +485,8 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
-    /* A new connection is a new simulation to ask, so nothing is owed a wait. */
-    this.retryTransientAfter.clear();
+    /* A new connection is a new simulation to ask, so every debt is due now. */
+    for (const id of this.owed.keys()) this.owed.set(id, 0);
   }
 }
 

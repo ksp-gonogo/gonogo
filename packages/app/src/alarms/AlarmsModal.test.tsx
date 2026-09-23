@@ -835,6 +835,62 @@ describe("AlarmsModal provenance", () => {
 });
 
 /**
+ * A fire discovered after the fact runs no actions, and a row that still read
+ * "FIRES 1 ACTION" would claim the opposite of what happened.
+ */
+describe("AlarmsModal withheld actions", () => {
+  function firedAlarm(actionsWithheld?: true): Alarm {
+    return {
+      id: "a-stage",
+      name: "Stage at 70 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.state.altitudeAsl",
+        op: ">=",
+        value: 70_000,
+        sustainSeconds: 0,
+        vantage: "command",
+      },
+      state: "fired",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+      onFire: [{ kind: "action-group", action: "AG1" }],
+      actionsWithheld,
+    };
+  }
+
+  it("says the actions did not run", async () => {
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot([firedAlarm(true)])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Stage at 70 km");
+    expect(screen.getByText("ACTIONS NOT RUN")).toBeInTheDocument();
+    expect(screen.queryByText("FIRES 1 ACTION")).not.toBeInTheDocument();
+  });
+
+  it("names the actions it carries when they ran", async () => {
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot([firedAlarm()])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Stage at 70 km");
+    expect(screen.getByText("FIRES 1 ACTION")).toBeInTheDocument();
+    expect(screen.queryByText("ACTIONS NOT RUN")).not.toBeInTheDocument();
+  });
+});
+
+/**
  * An alarm is armed for the FUTURE, so a present-tense reading of the link
  * cannot decide which clock the operator meant. A craft two light-seconds out
  * today may be an hour out by the time the alarm comes due, and the operator

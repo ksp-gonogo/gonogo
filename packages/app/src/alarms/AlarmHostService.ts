@@ -156,10 +156,8 @@ export class AlarmHostService {
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private observedUT: number | null = null;
   /**
-   * The UT of the PREVIOUS tick, so a time alarm can be fired on a CROSSING
-   * rather than on containment. Under warp one tick moves the clock by ~W
-   * seconds, which would otherwise step clean over the firing window in
-   * silence.
+   * The UT of the PREVIOUS tick, so an unreadable read can slide a sustain
+   * latch past the seconds nobody watched rather than let them pay into it.
    */
   private lastTickUt: number | null = null;
   private opts: Required<
@@ -182,6 +180,13 @@ export class AlarmHostService {
    * edited, so it can never outlive the condition it describes.
    */
   private scetArmRefusals = new Map<string, string>();
+
+  /**
+   * Alarms read from storage that no tick has evaluated yet. A fire found on
+   * that first evaluation was reconstructed from what was persisted, not
+   * watched happening, so it is a late fire.
+   */
+  private unevaluated = new Set<string>();
 
   /**
    * What the SIMULATION decided about a command-vantage alarm, by alarm id.
@@ -277,6 +282,9 @@ export class AlarmHostService {
       },
       nowMs: () => this.opts.nowMs(),
     });
+    /* Bound only once assigned: a replayed fire notice ticks the host, and the
+       tick asks the bridge what the mod holds. */
+    this.scetBridge.start();
     this.start();
   }
 
@@ -362,6 +370,9 @@ export class AlarmHostService {
     };
     this.alarms.push(alarm);
     this.persist();
+    // Before the tick, which may fire it at once: an alarm whose condition
+    // already holds is owed an arm like any other.
+    this.scetBridge.owe(alarm);
     this.tick();
     return alarm;
   }
@@ -404,32 +415,37 @@ export class AlarmHostService {
         ? { onFire: patch.onFire.length > 0 ? patch.onFire : undefined }
         : {}),
     };
-    if (patch.trigger && patch.trigger.kind !== prev.trigger.kind) {
-      next.matchSinceUT = requiresMatchTracking(patch.trigger)
+    const reset = patch.trigger && patch.trigger.kind !== prev.trigger.kind;
+    if (reset) {
+      next.matchSinceUT = requiresMatchTracking(next.trigger)
         ? null
         : undefined;
       // The latched occurrence belonged to the trigger being replaced.
       next.eventUT = undefined;
       next.state = "pending";
-    } else {
-      next.state = this.stateMachine.deriveState(next);
     }
     if (patch.trigger) {
       this.stateMachine.forget(id);
       this.warpPlanner.forget(id);
     }
+    if (reset) next.actionsWithheld = undefined;
     this.alarms[idx] = next;
+    if (!reset) {
+      this.commitState(next, this.stateMachine.deriveState(next), true);
+    }
     if (patch.trigger) {
       // A refusal, and a mod verdict, describe the condition that was replaced.
       this.scetArmRefusals.delete(id);
       this.shadowVerdicts.delete(id);
-      /* Re-arm HERE rather than leaving it to the reconcile. The mod already
-         holds this id, so the diff against its roster sees the alarm as armed
-         and would arm nothing: the operator's edit would be kept on this side
-         and never reach the simulation, which would go on watching the
-         condition they replaced. Arming an id the mod holds REPLACES it, so
-         this is the whole of the edit path. */
-      if (next.state === "pending") this.scetBridge.arm(next);
+      /* Owed an arm whatever state the edit left it in, since the mod already
+         holds this id: the diff against its roster sees it as armed, and the
+         simulation would go on watching the condition that was replaced. An
+         alarm that had already fired before the edit is not live any more and
+         is left alone. */
+      if (reset || !hasFired(prev.state)) {
+        this.scetBridge.owe(next);
+        this.scetBridge.reconcile();
+      }
     }
     this.persist();
     this.emit();
@@ -467,6 +483,7 @@ export class AlarmHostService {
 
   /** Everything held per alarm id, dropped when the alarm itself goes. */
   private forgetAlarm(id: string): void {
+    this.unevaluated.delete(id);
     this.stateMachine.forget(id);
     this.warpPlanner.forget(id);
     this.scetArmRefusals.delete(id);
@@ -703,35 +720,21 @@ export class AlarmHostService {
           }
         }
 
-        const nextState = this.stateMachine.deriveState(
-          alarm,
-          ut,
-          this.lastTickUt,
-        );
-        if (nextState !== alarm.state) {
-          /* TWO stop sites, and they take the same rule. The mod sets its own
-             stop at BOTH instants (the step-down at `ut - lead`, and the fire),
-             so an alarm it holds must not be commanded from here at either: that
-             is the round trip the arm exists to remove. An alarm it does not
-             hold keeps both, or it would come due and halt nothing. */
-          const modStops = this.scetBridge.holdsAlarm(alarm.id);
-          if (alarm.state !== "arming" && nextState === "arming") {
-            if (!modStops) this.warp.stepWarpDown();
-          }
-          if (alarm.state !== "firing" && nextState === "firing") {
-            this.notifyFire(alarm);
-            this.compareShadowAtClientFire(alarm);
-            // Force warp to 0 again: the warp may have recovered between `arming` and `firing`, and a threshold alarm has no `arming` phase at all.
-            if (!modStops) this.warp.stepWarpDown();
-          }
-          alarm.state = nextState;
+        const late = this.unevaluated.delete(alarm.id);
+        if (
+          this.commitState(
+            alarm,
+            this.stateMachine.deriveState(alarm, ut),
+            late,
+          )
+        ) {
           changed = true;
         }
       }
       if (changed) this.persist();
-      /* AFTER the loop, so every alarm this tick compares against the same
-         previous clock: a mid-loop update would make the crossing test depend
-         on iteration order. */
+      /* AFTER the loop, so every alarm this tick measures the unobserved gap
+         against the same previous clock rather than one that depends on
+         iteration order. */
       this.lastTickUt = ut;
     }
 
@@ -744,6 +747,49 @@ export class AlarmHostService {
     this.emit();
   }
 
+  /**
+   * Move an alarm to `nextState` and pay whatever the move owes. Returns
+   * whether the state changed.
+   *
+   * A fire is a fact, and every route into it owes the operator the same
+   * notice. The tick, an edit, and the first evaluation after a reload all
+   * arrive here, and the fire is keyed on entering `firing` OR `fired` from a
+   * state that had not fired, so no route can leave an alarm fired without the
+   * operator having been told.
+   *
+   * `late` marks a fire discovered rather than watched: on an edit, or on an
+   * alarm's first evaluation after a reload. The notice still goes out, and the
+   * `onFire` actions do not: dispatched now, they would act on a condition met
+   * arbitrarily long ago, and the row records that they were withheld.
+   */
+  private commitState(
+    alarm: Alarm,
+    nextState: Alarm["state"],
+    late = false,
+  ): boolean {
+    if (nextState === alarm.state) return false;
+    if (!hasFired(nextState)) alarm.actionsWithheld = undefined;
+    /* TWO stop sites, and they take the same rule. The mod sets its own stop
+       at BOTH instants (the step-down at `ut - lead`, and the fire), so an
+       alarm it holds must not be commanded from here at either: that is the
+       round trip the arm exists to remove. An alarm it does not hold keeps
+       both, or it would come due and halt nothing. */
+    const modStops = this.scetBridge.holdsAlarm(alarm.id);
+    if (alarm.state !== "arming" && nextState === "arming" && !modStops) {
+      this.warp.stepWarpDown();
+    }
+    if (!hasFired(alarm.state) && hasFired(nextState)) {
+      const withhold = late && (alarm.onFire?.length ?? 0) > 0;
+      if (withhold) alarm.actionsWithheld = true;
+      this.notifyFire(alarm, !withhold);
+      this.compareShadowAtClientFire(alarm);
+      // Again at the fire: the warp may have recovered since `arming`, and most alarms have no `arming` phase at all.
+      if (!modStops) this.warp.stepWarpDown();
+    }
+    alarm.state = nextState;
+    return true;
+  }
+
   // ── Listeners + persistence ──────────────────────────────────────────
 
   private emit(): void {
@@ -752,10 +798,10 @@ export class AlarmHostService {
     this.peerBridge.broadcastSnapshot(snap);
   }
 
-  private notifyFire(alarm: Alarm): void {
+  private notifyFire(alarm: Alarm, runActions: boolean): void {
     for (const cb of this.fireListeners) cb(alarm);
     this.peerBridge.broadcastFire(alarm, this.observedUT);
-    if (alarm.onFire && alarm.onFire.length > 0) {
+    if (runActions && alarm.onFire && alarm.onFire.length > 0) {
       void this.dispatchOnFire(alarm);
     }
   }
@@ -788,6 +834,7 @@ export class AlarmHostService {
       this.alarms = stored
         .map(migrateAlarm)
         .filter((a): a is Alarm => a !== null);
+      this.unevaluated = new Set(this.alarms.map((a) => a.id));
     }
   }
 
@@ -829,6 +876,10 @@ export function createAlarmHost(
   opts?: AlarmHostOptions,
 ): AlarmHostService {
   return new AlarmHostService(host, opts);
+}
+
+function hasFired(state: Alarm["state"]): boolean {
+  return state === "firing" || state === "fired";
 }
 
 function generateId(): string {
