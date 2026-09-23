@@ -13,7 +13,6 @@ import {
   useManeuverNodes,
   useTopicFieldCatalog,
 } from "@ksp-gonogo/data";
-import { wireAddressBehindRedirect } from "@ksp-gonogo/sitrep-client";
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
@@ -182,7 +181,7 @@ export function AlarmsModal({
    */
   const [vantage, setVantage] = useState<AlarmVantage>("command");
   // Threshold-trigger fields
-  const [dataKey, setDataKey] = useState("vessel.state.altitudeAsl");
+  const [dataKey, setDataKey] = useState("vessel.flight.altitudeAsl");
   const [op, setOp] = useState<ThresholdOp>(">=");
   const [thresholdValue, setThresholdValue] = useState("70000");
   const [sustainSeconds, setSustainSeconds] = useState(
@@ -244,27 +243,18 @@ export function AlarmsModal({
    * The address the simulation would be given for the chosen field: a Topic it
    * publishes and a path into that payload. Null when there is none.
    *
-   * Two resolutions, in this order.
+   * The catalogue entry's own Topic and path, which every entry enumerated from
+   * the contract carries. A key a live `DataSource` supplied from its own
+   * `schema()` has neither, and nothing can be resolved for it. Checked at
+   * PRESS rather than by hiding the row, so the operator still sees a key they
+   * can read on a graph and learns only that this ARM cannot use it.
    *
-   * The picker shows a handful of kinematics under `vessel.state.*`, a channel
-   * this client COMPUTES, because binding widgets to two names for one altitude
-   * is the wart that redirect exists to kill. The simulation has never heard of
-   * that channel, so an arm naming it could not be read, and the case lost
-   * would be the altitude threshold the whole feature was asked for.
-   * `wireAddressBehindRedirect` hands back the wire name the redirect pointed
-   * away from, derived from the redirect table itself.
-   *
-   * Otherwise the catalogue entry's own Topic and path, which every entry
-   * enumerated from the contract carries. A key a live `DataSource` supplied
-   * from its own `schema()` has neither, and nothing can be resolved for it.
-   * Checked at PRESS rather than by hiding the row, so the operator still sees
-   * a key they can read on a graph and learns only that this ARM cannot use
-   * it.
+   * Nothing has to be undone first. The kinematics the picker offers are the
+   * wire spellings now, so what it shows is already an address the simulation
+   * can be given.
    */
   const scetAddress = useMemo(() => {
     if (selectedKey === null) return null;
-    const wire = wireAddressBehindRedirect(selectedKey.key);
-    if (wire !== null) return wire;
     if (selectedKey.topic === "" || selectedKey.fieldPath === "") return null;
     return { topic: selectedKey.topic, fieldPath: selectedKey.fieldPath };
   }, [selectedKey]);

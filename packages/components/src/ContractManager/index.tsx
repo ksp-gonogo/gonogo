@@ -10,9 +10,7 @@ import {
   META_VANTAGE,
   type TopicReading,
   useCommand,
-  useStream,
   useViewUt,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -34,7 +32,7 @@ import {
 } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
-  channels: ["career.status", "vessel.state"],
+  channels: ["career.status", "vessel.flight"],
   // `altitudeAsl` is consumed by AltitudeProgress on altitude-bounded contract
   // parameters; without it the orchestrator never subscribes and the bar stays
   // empty in production.
@@ -42,7 +40,7 @@ const topics = defineTopicManifest({
     "career.status.contracts.active",
     "career.status.contracts.offered",
     "career.status.contracts.completedRecent",
-    "vessel.state.altitudeAsl",
+    "vessel.flight.altitudeAsl",
   ],
 });
 
@@ -325,10 +323,26 @@ function ContractManagerComponent({
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   const universalTime = useViewUt();
-  // `v.altitude` -> derived `vessel.state.altitudeAsl` (`null` in the
-  // propagated basis): collapse to `undefined` for the numeric comparisons.
+  /*
+   * The altitude an altitude-bounded parameter is scored against, off
+   * `vessel.flight`'s own field reading rather than the derived copy, which
+   * went `null` the moment the craft went on rails and took the progress bar
+   * with it.
+   *
+   * Where the model is on offer it is the number to score against: a parameter
+   * bounded at 70 km is asking where the craft IS, and on rails the modelled
+   * altitude is the only answer there is. `magnitudeOf` collapses an absent
+   * reading to `undefined` for the numeric comparisons below.
+   */
+  const altitudeReading = topics.useTelemetry("vessel.flight").altitudeAsl;
   const vAltitude =
-    useStream<VesselState>("vessel.state")?.altitudeAsl ?? undefined;
+    magnitudeOf(
+      altitudeReading.reckoning.status === "available"
+        ? altitudeReading.reckoning.modelled
+        : altitudeReading.state === "observed"
+          ? altitudeReading.value
+          : undefined,
+    ) ?? undefined;
   // Career actions dispatch at the meta-vantage: accepting/declining/cancelling
   // a contract is a program-desk action with no vessel signal delay, so it
   // stays instant regardless of the selected command centre. The handles are

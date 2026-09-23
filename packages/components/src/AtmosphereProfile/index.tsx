@@ -103,10 +103,9 @@ function AtmosphereProfileComponent({
   w,
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
-  // Canonical native reads: `v.body`/`v.altitude` off the `vessel.state`
-  // derived channel (SDK-side `deriveVesselState`: `parentBodyName`/
-  // `altitudeAsl`), `v.atmosphericDensity`/`v.atmosphericTemperature`/
-  // `v.externalTemperature` off the raw `vessel.flight` Topic.
+  // The body name off the `vessel.state` derived channel, which is where the
+  // index→name display map lives; every measured number the chip draws, the
+  // altitude included, off the raw `vessel.flight` Topic below.
   const vesselState = useStream<VesselState>("vessel.state");
   /**
    * All three atmospheric numbers are quantities that drift on their own as the
@@ -147,7 +146,13 @@ function AtmosphereProfileComponent({
      against the bundled table of STOCK bodies: a planet pack renames both
      sides together, and a name lookup in the table missed every one of them. */
   const body = useStreamBody(bodyName);
-  const altitude = vesselState?.altitudeAsl ?? undefined;
+  /*
+   * Off the same reading the three atmospheric numbers come from, so the point
+   * on the curve and the air it claims to be flying through are the same
+   * sample. Read from `flight`, which already carries the modelled fields
+   * overlaid, so the altitude moves with the conic exactly as its siblings do.
+   */
+  const altitude = magnitudeOf(flight?.altitudeAsl) ?? undefined;
   // Magnitudes: all three feed threshold checks and the chart's own
   // number-taking readouts.
   const liveDensity = magnitudeOf(flight?.atmDensity);
@@ -221,7 +226,7 @@ function AtmosphereProfileComponent({
       // with the threshold pulling out the current altitude's pressure.
       series: [],
       windowSec: 60,
-      xKey: "vessel.state.altitudeAsl",
+      xKey: "vessel.flight.altitudeAsl",
       yScalePrimary: "log",
       thresholds,
     }),

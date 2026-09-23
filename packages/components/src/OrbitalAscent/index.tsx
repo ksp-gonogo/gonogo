@@ -13,9 +13,9 @@ import { useStreamBody } from "../shared/useStreamBody";
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the reference curve needs the body's own
   // radius and gravitational parameter, and both are reported there.
-  channels: ["vessel.state", "system.bodies"],
+  channels: ["vessel.state", "vessel.flight", "system.bodies"],
   fields: [
-    "vessel.state.altitudeAsl",
+    "vessel.flight.altitudeAsl",
     "vessel.state.horizontalSpeed",
     "vessel.state.parentBodyName",
   ],
@@ -69,16 +69,20 @@ function buildReferenceCurve(
 function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
-  // Body name reads straight off the client-derived `vessel.state` channel
-  // (`parentBodyName`, an index→name display map: see `map-topic.ts`), so no
-  // legacy read-fallback is relied on for this read. The two plotted
-  // series (`v.altitude` / `v.horizontalVelocity`) are consumed only via the
-  // shared `GraphView` → `useDataSeries` path; both map to DERIVED
-  // `vessel.state.*` channels, which have a live value but NO buffered
-  // history, so `useDataSeries` structurally serves their windowed series off
-  // the legacy path (`TimelineStore.sampleRange` returns `undefined` for a
-  // derived topic: see that hook's doc). That is a shared-infra property,
-  // not a gap in this widget.
+  /*
+   * Body name reads off the client-derived `vessel.state` channel
+   * (`parentBodyName`, an index→name display map). Both plotted series are
+   * consumed only through the shared `GraphView` → `useDataSeries` path.
+   *
+   * The two axes are not alike any more. The X axis is `vessel.flight`'s own
+   * altitude, a raw field subtopic with a buffered history behind it; the
+   * horizontal-speed trace is still a DERIVED `vessel.state.*` channel, which
+   * has a live value and no buffer, so `useDataSeries` serves its window off
+   * the legacy path (`TimelineStore.sampleRange` returns `undefined` for a
+   * derived topic: see that hook's doc). `vessel.orbit` carries no horizontal
+   * speed to move it to, so the trace stays where it is until the widget
+   * computes it.
+   */
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const body = useStreamBody(bodyName);
 
@@ -104,7 +108,7 @@ function OrbitalAscentComponent({
         },
       ],
       windowSec,
-      xKey: "vessel.state.altitudeAsl",
+      xKey: "vessel.flight.altitudeAsl",
     }),
     [windowSec],
   );

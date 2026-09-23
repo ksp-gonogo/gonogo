@@ -1,7 +1,6 @@
 import {
   COMMAND_IDS,
   DEFAULT_SITREP_CARRIED_TOPICS,
-  isCommandId,
   splitRawFieldSubtopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
@@ -20,8 +19,8 @@ describe("getTopicFieldCatalog()", () => {
 
   it("includes the client-derived channels, which no generated map describes", () => {
     const keys = new Set(getTopicFieldCatalog().map((k) => k.key));
-    expect(keys.has("vessel.state.altitudeAsl")).toBe(true);
     expect(keys.has("vessel.state.twr")).toBe(true);
+    expect(keys.has("vessel.state.parentBodyName")).toBe(true);
     // The single largest block of the vocabulary. A regression that stopped
     // registering the declaration would leave the catalogue looking merely
     // shorter rather than broken, so the count is asserted rather than a
@@ -230,21 +229,17 @@ describe("every catalogue key is readable", () => {
 });
 
 describe("one name per value", () => {
-  it("offers the canonical kinematic name and not its wire twin", async () => {
-    const { redirectKinematicSubtopic } = await import(
-      "@ksp-gonogo/sitrep-client"
-    );
+  it("offers the wire kinematic name and not the derived copy of it", () => {
     const keys = new Set(getTopicFieldCatalog().map((entry) => entry.key));
-    expect(keys.has("vessel.state.altitudeAsl")).toBe(true);
-    // Real on the wire, and redirected on read. Offering both would put two
-    // names for one altitude in front of the operator.
-    expect(keys.has("vessel.flight.altitudeAsl")).toBe(false);
-    expect(keys.has("vessel.flight.orbitalSpeed")).toBe(false);
-
-    const redirected = getTopicFieldCatalog().filter(
-      (entry) => redirectKinematicSubtopic(entry.key) !== entry.key,
-    );
-    expect(redirected.map((entry) => entry.key)).toEqual([]);
+    // The Topic the mod publishes, and the one carrying a reckoner, so a key
+    // picked here is observed, dated and banded.
+    expect(keys.has("vessel.flight.altitudeAsl")).toBe(true);
+    expect(keys.has("vessel.flight.orbitalSpeed")).toBe(true);
+    /* The derived channel still computes both, and offering them beside their
+       wire originals would put two names for one altitude in front of the
+       operator. */
+    expect(keys.has("vessel.state.altitudeAsl")).toBe(false);
+    expect(keys.has("vessel.state.orbitalSpeed")).toBe(false);
   });
 
   it("leaves a non-kinematic field of the same Topic alone", () => {

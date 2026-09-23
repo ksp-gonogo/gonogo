@@ -4,7 +4,6 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
-import { redirectKinematicSubtopic } from "./map-topic";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
@@ -14,20 +13,17 @@ import { ViewClock } from "./view-clock";
  * A payload field reached as a plain property off the topic reading, and the
  * one thing about it that is not mechanical: where its BAND comes from.
  *
- * `vessel.flight.altitudeAsl` is the case the whole design turns on.
- * `redirectKinematicSubtopic` sends that widget-facing key to the DERIVED
- * `vessel.state.altitudeAsl`, so a field property built by delegating to the
- * subtopic read would be answered by a derived channel's reckoner, which claims
- * the payload root and offers no `bandAt` at all. The altitude band #64 added
- * and issue 255 fixed would come back `undefined` with nothing to notice: a reading
- * that still says `available`, still carries a modelled number, and quietly
- * draws no interval around it.
+ * `vessel.flight.altitudeAsl` is the case the whole design turns on. A field
+ * property built by delegating to a subtopic read is answered by whichever
+ * reckoner owns whatever that name resolves to, and a reckoner claiming the
+ * payload root offers no `bandAt` at all. The altitude band #64 added and issue
+ * 255 fixed would come back `undefined` with nothing to notice: a reading that
+ * still says `available`, still carries a modelled number, and quietly draws no
+ * interval around it.
  *
  * So the field property is PROJECTED out of the topic reading's own model
- * instead, and these cases are what says so. Removing the redirect is issue 261 and
- * would not make this suite redundant: a projection is correct with or without
- * it, and a delegation is wrong either way for any topic whose model bands one
- * field of several.
+ * instead, and these cases are what says so. A delegation is wrong for any
+ * topic whose model bands one field of several, whatever the name resolves to.
  */
 
 type Flight = TopicPayload<"vessel.flight">;
@@ -183,17 +179,12 @@ describe("a field property carries the band its topic's model produced", () => {
   });
 
   /*
-   * The delegating implementation, spelled out. This is what
-   * `flight.altitudeAsl` would have been answered by: the widget-facing key
-   * resolves to `vessel.state.altitudeAsl`, and `TimelineStore.derivedReckoner`
-   * builds `{ modelled: [{ path: "", basis }], reckon }` with no `bandAt`, so
-   * the reading is `available` with no band anywhere on it.
+   * The delegating implementation, spelled out. A root-claiming reckoner is
+   * the shape `TimelineStore.derivedReckoner` builds, `{ modelled: [{ path:
+   * "", basis }], reckon }` with no `bandAt`, so the reading comes back
+   * `available` with no band anywhere on it.
    */
-  it("would have lost the band through the redirect it does not use", () => {
-    expect(redirectKinematicSubtopic("vessel.flight.altitudeAsl")).toBe(
-      "vessel.state.altitudeAsl",
-    );
-
+  it("loses the band to a root-claiming reckoner, which is what delegating would reach", () => {
     registerReckoner("vessel.flight", "test", {
       deps: [],
       reckon: () => ({

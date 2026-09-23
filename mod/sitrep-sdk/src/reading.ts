@@ -608,14 +608,14 @@ export type TopicCurrency<P, Rk = unknown> =
  * ## Built from the topic's own model, never from a second read
  *
  * The obvious implementation is to have `flight.altitudeAsl` go and sample the
- * subtopic of that name, and it is wrong in a way nothing would notice.
- * `redirectKinematicSubtopic` rewrites `vessel.flight.altitudeAsl` onto the
- * DERIVED `vessel.state.altitudeAsl`, and a derived channel's reckoner claims
- * the root with no `bandAt` at all, so the delegating version would hand back a
- * modelled altitude with the band silently gone. The field reading is therefore
- * projected out of the reading that already exists: its basis from the
- * {@link ModelledField} covering the path, its value from the modelled payload,
- * its band from {@link TopicReckoningAvailable.bands} at that same path.
+ * subtopic of that name, and it is wrong in a way nothing would notice: a
+ * second read resolves whatever channel happens to answer to that name, and a
+ * channel whose reckoner claims the root carries no `bandAt`, so the
+ * delegating version hands back a modelled altitude with the band silently
+ * gone. The field reading is therefore projected out of the reading that
+ * already exists: its basis from the {@link ModelledField} covering the path,
+ * its value from the modelled payload, its band from
+ * {@link TopicReckoningAvailable.bands} at that same path.
  *
  * ## Reserved names lose
  *
@@ -1184,14 +1184,13 @@ function walkField(payload: unknown, path: string): unknown {
  * One path's {@link Reckoning}, projected out of the topic's own model.
  *
  * This is the whole reason a field property exists, and the reason it must not
- * be built by reading the subtopic of the same name instead.
- * `redirectKinematicSubtopic` sends `vessel.flight.altitudeAsl` to the DERIVED
- * `vessel.state.altitudeAsl`, whose reckoner claims the root and offers no
- * `bandAt` at all, so a delegating field property would answer with a modelled
- * altitude and no band and nothing would notice the band had gone. Projecting
- * instead keeps the band the topic's own model produced, because it is read out
- * of {@link TopicReckoningAvailable.bands} at this path and never fetched a
- * second time.
+ * be built by reading the subtopic of the same name instead. A second read
+ * resolves to whichever channel answers to that name, and a reckoner that
+ * claims the root offers no `bandAt` at all, so a delegating field property
+ * would answer with a modelled value and no band and nothing would notice the
+ * band had gone. Projecting instead keeps the band the topic's own model
+ * produced, because it is read out of {@link TopicReckoningAvailable.bands} at
+ * this path and never fetched a second time.
  *
  * A path no {@link ModelledField} covers reckons `"none"`, which is the honest
  * answer: the value sitting at that path in the modelled payload is a verbatim
