@@ -225,6 +225,7 @@ namespace Sitrep.Host.Tests
                                 },
                             },
                             ["activeCount"] = 1,
+                            ["activationPatched"] = true,
                         },
                         ["tech"] = new Dictionary<string, object?>
                         {
@@ -330,6 +331,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(false, strategy["canActivate"]);
             Assert.Equal(true, strategy["canDeactivate"]);
             Assert.Equal(1, strategies["activeCount"]);
+            Assert.Equal(true, strategies["activationPatched"]);
             var allStrategies = Assert.IsType<List<object?>>(strategies["all"]);
             Assert.Equal(2, allStrategies.Count);
             var inactiveStrategy = Assert.IsType<Dictionary<string, object?>>(allStrategies[1]);

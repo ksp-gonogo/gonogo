@@ -217,6 +217,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     mode: "enum",
   },
   "CareerStrategies": {
+    activationPatched: "flag",
     activeCount: "count",
   },
   "CareerStrategy": {

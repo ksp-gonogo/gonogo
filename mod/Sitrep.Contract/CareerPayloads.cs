@@ -442,6 +442,26 @@ public class CareerStrategies
 
     [SitrepUnit(Units.Count)]
     public int ActiveCount { get; set; }
+
+    /// <summary>
+    /// Whether another mod replaces or alters KSP's own strategy activation:
+    /// <c>true</c> when it does, <c>false</c> when the game's activation is its
+    /// own, <c>null</c> when that could not be established.
+    ///
+    /// <para>With the Administration Building shut, <c>career.strategy.activate</c>
+    /// commits a strategy only when this is <c>false</c>, and refuses otherwise:
+    /// a mod that changes activation owns the procedure, and offers its own
+    /// command for it. With the building open the game activates as it always
+    /// does, whatever this says.</para>
+    /// <internal>
+    /// Read from Harmony's patch registry over Strategy.Activate and
+    /// Strategy.CanBeActivated by StockActivationPatch, the same read the
+    /// off-screen activation refuses on, so the roster and the command cannot
+    /// disagree. RP-1 is the career that reads true.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? ActivationPatched { get; set; }
 }
 
 /// <summary>One strategy in <see cref="CareerStrategies.Active"/> / <see cref="CareerStrategies.All"/>.</summary>

@@ -111,15 +111,48 @@ namespace Gonogo.KSP
             return Read(patches);
         }
 
+        /// <summary>
+        /// The Harmony type once found. Only a hit is kept: Harmony loads before
+        /// any mod can patch through it, but a miss is cheap to repeat and caching
+        /// one would hide a Harmony loaded after the first ask.
+        /// </summary>
+        private static Type? _harmony;
+
         private static Type? FindHarmony()
         {
+            if (_harmony != null) return _harmony;
+
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 var type = assembly.GetType(HarmonyTypeName, throwOnError: false);
-                if (type != null) return type;
+                if (type != null) return _harmony = type;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Several methods asked as one: <see cref="PatchState.Unknown"/> if any
+        /// could not be asked, otherwise <see cref="PatchState.Patched"/> if any
+        /// is, naming every owner once.
+        /// </summary>
+        internal static Reading Combine(params Reading[] readings)
+        {
+            var owners = new List<string>();
+            var patched = false;
+            foreach (var reading in readings)
+            {
+                if (reading.State == PatchState.Unknown) return Reading.Unknown;
+                if (reading.State != PatchState.Patched) continue;
+
+                patched = true;
+                foreach (var owner in reading.Owners)
+                {
+                    if (!owners.Contains(owner)) owners.Add(owner);
+                }
+            }
+
+            return patched ? new Reading(PatchState.Patched, owners) : Reading.Unpatched;
         }
 
         /// <summary><c>public static Patches GetPatchInfo(MethodBase)</c>, or null.</summary>

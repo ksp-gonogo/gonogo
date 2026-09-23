@@ -4092,7 +4092,25 @@ namespace Gonogo.KSP
                 ["active"] = active,
                 ["all"] = all,
                 ["activeCount"] = active.Count,
+                ["activationPatched"] = ActivationPatched(),
             };
+        }
+
+        /// <summary>
+        /// <see cref="StockActivationPatch"/>'s reading as the wire carries it:
+        /// null when it could not be read, never a guessed <c>false</c>.
+        /// </summary>
+        private static bool? ActivationPatched()
+        {
+            switch (StockActivationPatch.Read().State)
+            {
+                case HarmonyPatchProbe.PatchState.Patched:
+                    return true;
+                case HarmonyPatchProbe.PatchState.Unpatched:
+                    return false;
+                default:
+                    return null;
+            }
         }
 
         /// <summary>

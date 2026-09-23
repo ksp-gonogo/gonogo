@@ -460,6 +460,7 @@
          reflection resolves at run time, so neither drifts into a compile
          error. -->
     <Compile Include="..\Gonogo.KSP\StrategyPrivateFields.cs" />
+    <Compile Include="..\Gonogo.KSP\StockActivationPatch.cs" />
     <Compile Include="StrategyPrivateFieldsMirrorTests.cs" />
     <Compile Include="StrategyActivateBodyTests.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own

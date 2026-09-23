@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Reflection;
 using Gonogo.KSP.Career;
 using KSP.Localization;
 using Sitrep.Contract;
@@ -35,8 +33,6 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class StockStrategyActivation
     {
-        private delegate bool StockGate(out string reason);
-
         public static CommandResult Activate(Strategy strategy, StrategySystem system, double factor)
         {
             if (!StrategyPrivateFields.Resolved)
@@ -47,7 +43,7 @@ namespace Gonogo.KSP
                         + "so none was attempted");
             }
 
-            var patched = RefuseIfPatched(strategy);
+            var patched = RefuseIfPatched();
             if (patched != null) return patched;
 
             return StrategyCommit.Activate(new OffScreenStrategy(strategy, system), factor);
@@ -59,43 +55,25 @@ namespace Gonogo.KSP
         /// catches: it replaces the whole activation, and its own command commits
         /// a strategy with the screen shut.
         /// </summary>
-        private static CommandResult? RefuseIfPatched(Strategy strategy)
+        private static CommandResult? RefuseIfPatched()
         {
-            var halves = new MethodBase[]
+            var reading = StockActivationPatch.Read();
+            switch (reading.State)
             {
-                new Func<bool>(strategy.Activate).Method,
-                new StockGate(strategy.CanBeActivated).Method,
-            };
-
-            var owners = new List<string>();
-            var patched = false;
-            foreach (var half in halves)
-            {
-                var reading = HarmonyPatchProbe.Of(half);
-                if (reading.State == HarmonyPatchProbe.PatchState.Unknown)
-                {
+                case HarmonyPatchProbe.PatchState.Unpatched:
+                    return null;
+                case HarmonyPatchProbe.PatchState.Patched:
+                    var by = reading.Owners.Count > 0 ? " (" + string.Join(", ", reading.Owners) + ")" : "";
+                    return CommandResult.Fail(
+                        CommandErrorCode.NotClearToProceed,
+                        "another mod" + by + " changes how a strategy activates, so it can be committed "
+                            + "only through that mod's own command or from inside the Administration Building");
+                default:
                     return CommandResult.Fail(
                         CommandErrorCode.Unreadable,
-                        "Harmony is installed and could not be asked whether another mod changes "
-                            + "how a strategy activates, so none was attempted");
-                }
-
-                if (reading.State != HarmonyPatchProbe.PatchState.Patched) continue;
-
-                patched = true;
-                foreach (var owner in reading.Owners)
-                {
-                    if (!owners.Contains(owner)) owners.Add(owner);
-                }
+                        "whether another mod changes how a strategy activates could not be read, "
+                            + "so none was attempted");
             }
-
-            if (!patched) return null;
-
-            var by = owners.Count > 0 ? " (" + string.Join(", ", owners) + ")" : "";
-            return CommandResult.Fail(
-                CommandErrorCode.NotClearToProceed,
-                "another mod" + by + " changes how a strategy activates, so it can be committed "
-                    + "only through that mod's own command or from inside the Administration Building");
         }
 
         /// <summary>
