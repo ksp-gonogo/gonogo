@@ -1,6 +1,7 @@
 import { logger } from "@ksp-gonogo/logger";
 import {
   DelayAuthority,
+  getValue,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -96,6 +97,17 @@ export interface ShadowAcceptanceResult {
   verdict: ShadowRunVerdict;
   /** The last one-way delay `comms.delay` reported, `null` if it never reported one. */
   owlt: Value | null;
+  /**
+   * Alarms, by name, whose reading never resolved to a number during the run.
+   *
+   * A threshold whose value cannot be read stays pending exactly as one whose
+   * condition has not come true, and fires nothing for the classifier to
+   * compare, so a run with any name here is evidence about the harness or the
+   * stream rather than about the two evaluators.
+   */
+  unread: readonly string[];
+  /** Each alarm's state when the run ended, by name. */
+  finalStates: Record<string, string>;
 }
 
 /**
@@ -127,6 +139,24 @@ export async function runShadowAcceptance(
   });
   const store = new TimelineStore(clock);
   const detachStore = client.attachStore(store);
+  /*
+   * A store publishes nothing a reader can sample until a frame is begun, and
+   * the provider is what begins them: one per ingest and one per clock tick,
+   * coalesced. Without it every threshold reads nothing and never fires, while
+   * a direct `subscribe` callback, which bypasses the store, still sees the
+   * stream.
+   */
+  let framePending = false;
+  const scheduleFrame = () => {
+    if (framePending) return;
+    framePending = true;
+    queueMicrotask(() => {
+      framePending = false;
+      store.beginFrame();
+    });
+  };
+  const stopIngestFrames = client.subscribeStore(scheduleFrame);
+  const stopClockFrames = clock.onFrame(scheduleFrame);
   const detachAuthority = authority.attach(client);
   const clearDelaySource = client.setDelaySource(authority.delaySeconds);
   setActiveTelemetryClientForTests(client);
@@ -140,6 +170,8 @@ export async function runShadowAcceptance(
     }),
     client.subscribe("vessel.flight", () => {}),
     client.subscribe("vessel.identity", () => {}),
+    // The store takes each topic's lane from this roster, as the provider has it.
+    client.subscribe("system.uplinks", () => {}),
   ];
 
   const svc = new AlarmHostService(null, { storage: memoryStorage() });
@@ -165,6 +197,13 @@ export async function runShadowAcceptance(
     write(
       `observing for ${writeQuantity(value("s", options.observeMs / 1000))} against ws://${options.host}:${options.port}`,
     );
+    const everRead = new Set<string>();
+    const sampleReads = () => {
+      for (const a of ALARMS) {
+        if (getValue("data", a.dataKey) !== undefined) everRead.add(a.name);
+      }
+    };
+    const reads = setInterval(sampleReads, 250);
     const started = Date.now();
     const tick = setInterval(() => {
       const elapsed = value("s", Math.round((Date.now() - started) / 1000));
@@ -172,11 +211,25 @@ export async function runShadowAcceptance(
         `  ${writeQuantity(elapsed)}  owlt=${owlt === null ? "null" : writeQuantity(owlt, DELAY_FORMAT)}  alarms=${svc
           .snapshot()
           .alarms.map((x) => x.state)
-          .join(",")}`,
+          .join(
+            ",",
+          )}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}`,
       );
     }, options.progressEveryMs ?? 30_000);
     await new Promise((r) => setTimeout(r, options.observeMs));
     clearInterval(tick);
+    clearInterval(reads);
+    sampleReads();
+    const unread = ALARMS.filter((a) => !everRead.has(a.name)).map(
+      (a) => a.name,
+    );
+    if (unread.length > 0) {
+      write(`never read a value for: ${unread.join(", ")}`);
+    }
+    const finalStates: Record<string, string> = {};
+    for (const alarm of svc.snapshot().alarms) {
+      finalStates[nameOf.get(alarm.id) ?? alarm.id] = alarm.state;
+    }
 
     const verdict = classifyShadowRun({
       entries: logger.snapshot(),
@@ -190,12 +243,14 @@ export async function runShadowAcceptance(
               alarmOf: (fire) => nameOf.get(fire.id) ?? fire.id,
             },
     });
-    return { verdict, owlt };
+    return { verdict, owlt, unread, finalStates };
   } finally {
     svc.dispose();
     for (const off of unsubscribes) off();
     clearDelaySource();
     detachAuthority();
+    stopClockFrames();
+    stopIngestFrames();
     detachStore();
     setActiveTelemetryClientForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
