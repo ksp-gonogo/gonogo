@@ -8,7 +8,6 @@ import {
   KspActionGroup,
   KspPartCategory,
   Situation,
-  TargetKind,
   TransitionType,
 } from "../__generated__/contract";
 import { namesOf } from "../enum-names";
@@ -31,9 +30,8 @@ import { CONTROL_STATE_LEVEL, ENUM_NAME_TABLES } from "./vessel-state";
  * where everything looks fine, and it fails at the moment somebody appends an
  * enum member, which is exactly when nobody re-reads the tables.
  *
- * That is not hypothetical. `TARGET_KIND_NAMES` carried three entries for a
- * five-member `TargetKind` for as long as `Position` and `Part` have existed,
- * so a docking-port target published no kind at all.
+ * That is not hypothetical: a three-entry table over a five-member enum once
+ * left two whole kinds of target publishing no name at all.
  *
  * The tables are now derived from the generated enums rather than transcribed
  * beside them, which is what actually removes the drift. This file is the check
@@ -128,7 +126,6 @@ describe("enum name tables cover their enums", () => {
       "CONTROL_STATE_NAMES",
       "SAS_MODE_NAMES",
       "SITUATION_NAMES",
-      "TARGET_KIND_NAMES",
     ]);
   });
 
@@ -249,14 +246,5 @@ describe("enum name tables cover their enums", () => {
     expect(actionGroupNames(-1)).not.toContain("REPLACEWITHDEFAULT");
     expect(actionGroupNames(-1)).not.toContain("None");
     expect(actionGroupNames(-1)).toContain("Custom10");
-  });
-
-  /** The original defect, pinned by name so a regression reads as itself. */
-  it("resolves a name for a docking-port target", () => {
-    const names = ENUM_NAME_TABLES.find(
-      (t) => t.label === "TARGET_KIND_NAMES",
-    )?.names;
-    expect(names?.[TargetKind.Part]).toBe("Part");
-    expect(names?.[TargetKind.Position]).toBe("Position");
   });
 });
