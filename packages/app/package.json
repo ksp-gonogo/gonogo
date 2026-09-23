@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "shadow-acceptance": "vitest run --config vitest.shadow-acceptance.config.ts",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "render-settings": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-settings.ts",
