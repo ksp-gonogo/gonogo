@@ -298,10 +298,31 @@ export async function runShadowAcceptance(
      * firing each alarm once. The arming half runs unconditionally, since it
      * also covers the first-arm case seeded above.
      */
+    /*
+     * The mod's own fired notice for THIS alarm id is the other half of the
+     * evidence (`onShadowFired`/`alarm.scet.fired`), and it arrives on the
+     * mod's own schedule -- at least one owlt round trip after the crossing,
+     * observed directly against the live rig as several seconds. Acknowledging
+     * (and so removing) a fired alarm the moment this loop next polls can beat
+     * that notice home: the mod's verdict then names an id this client no
+     * longer holds, which is exactly "mod fired an alarm this client does not
+     * hold" -- a real divergence caused by the harness's own churn, not by the
+     * two evaluators disagreeing. `firedSeenAt` holds a grace window open so
+     * the slower side has time to arrive before the id is recycled.
+     */
+    const REARM_GRACE_MS = 10_000;
+    const firedSeenAt = new Map<string, number>();
     const rearmLoop: ReturnType<typeof setInterval> = setInterval(() => {
       if (options.laps !== undefined) {
         for (const alarm of svc.snapshot().alarms) {
           if (alarm.state !== "fired") continue;
+          const seenAt = firedSeenAt.get(alarm.id);
+          if (seenAt === undefined) {
+            firedSeenAt.set(alarm.id, Date.now());
+            continue;
+          }
+          if (Date.now() - seenAt < REARM_GRACE_MS) continue;
+          firedSeenAt.delete(alarm.id);
           const name = nameOf.get(alarm.id);
           svc.acknowledgeAlarm(alarm.id);
           const cfg = ALARMS.find((a) => a.name === name);
