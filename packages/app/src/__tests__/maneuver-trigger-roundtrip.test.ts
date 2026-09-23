@@ -24,6 +24,7 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
+import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { ManeuverTriggerClientService } from "../maneuverTriggers/ManeuverTriggerClientService";
 import { ManeuverTriggerHostService } from "../maneuverTriggers/ManeuverTriggerHostService";
@@ -86,6 +87,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   client.attachStore(store);
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
+  client.subscribe("system.bodies", () => {});
 
   const calls: Array<{ command: string; args: unknown }> = [];
   transport.setCommandHandler((command, args) => {
@@ -104,6 +106,10 @@ function buildOrbitStoreFixture(pinnedUt: number) {
     },
     emitIdentity(payload: unknown): void {
       transport.emit("vessel.identity", payload);
+      store.beginFrame();
+    },
+    emitBodies(payload: unknown): void {
+      transport.emit("system.bodies", payload);
       store.beginFrame();
     },
   };
@@ -127,6 +133,15 @@ function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
     epoch: pinnedUt,
     mu: 3.5316e12,
     patches: [],
+    /*
+     * The reach and shape a live sample states. The host service solves its
+     * apsides through the conic over these elements, so without them nothing
+     * vouches for that conic and there is no orbit to plan against.
+     */
+    horizon: {
+      kind: PropagationHorizonKind.Unbounded,
+      trajectoryKind: TrajectoryKind.Analytic,
+    },
   };
 }
 
@@ -219,6 +234,10 @@ describe("Maneuver trigger peer roundtrip", () => {
     // carrying a self-consistent orbit + identity.
     const orbitStore = buildOrbitStoreFixture(1_000_000);
     setActiveTimelineStoreForTests(orbitStore.store);
+    // The roster the conic behind the plan's apsides declares as an input.
+    orbitStore.emitBodies({
+      bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
+    });
     orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000));
     orbitStore.emitIdentity({
       vesselId: "test-vessel",

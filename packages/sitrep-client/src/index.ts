@@ -75,6 +75,7 @@ export {
   getActiveCarriedChannels,
   getActiveTelemetryClient,
   getContractsActive,
+  getOrbitSolve,
   getSystemBodies,
   getValue,
   getVesselIdentity,
@@ -494,6 +495,7 @@ export {
   deriveVesselState,
   deriveVesselStateStatus,
   solveOrbit,
+  solveSelfOrbit,
   vesselStateChannel,
 } from "./vessel-state";
 export type {

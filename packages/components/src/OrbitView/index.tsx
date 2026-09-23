@@ -4,6 +4,7 @@ import {
   defineTopicManifest,
   registerComponent,
   useActionInput,
+  useOrbitSolve,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -33,20 +34,18 @@ import { useStreamBody } from "../shared/useStreamBody";
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.state", "system.bodies"],
   /*
-   * The diagram is drawn from apsis RADII, never the altitudes. Body geometry
-   * comes off `system.bodies`, which is why that channel is carried: the pole
-   * marker's own orientation still uses the static table, for the texture
-   * correction no wire field replaces. Naming the fields drawn, rather than
-   * the whole of `vessel.state` this mounts on, is what keeps their alarms off
-   * a widget that does not draw them.
+   * The diagram is drawn from apsis RADII, never the altitudes, and those are
+   * solved from the elements named here rather than being a field of anything.
+   * Body geometry comes off `system.bodies`, which is why that channel is
+   * carried: the pole marker's own orientation still uses the static table, for
+   * the texture correction no wire field replaces. Naming the fields drawn,
+   * rather than the whole of `vessel.state` this mounts on, is what keeps their
+   * alarms off a widget that does not draw them.
    */
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
     "vessel.orbit.argPe",
-    "vessel.state.apoapsisRadius",
-    "vessel.state.periapsisRadius",
-    "vessel.state.trueAnomaly",
     "vessel.state.parentBodyName",
   ],
 });
@@ -249,15 +248,19 @@ function OrbitViewComponent({
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe ?? undefined;
-  const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const basis = vesselState?.basis;
-  // `null` on a hyperbolic orbit (no apoapsis exists) or in the "measured"
-  // basis (both apsides): see `VesselState.apoapsisRadius`'s doc comment.
-  const apoapsisR = vesselState?.apoapsisRadius;
-  // `null` only in the "measured" basis: always real whenever there's a
-  // resolvable orbit, hyperbolic or not.
-  const periapsisR = vesselState?.periapsisRadius;
+  /*
+   * Solved from the elements above, so the whole group is absent together
+   * wherever a conic through them would be wrong. `apoapsisRadius` is also
+   * `null` on a hyperbolic orbit, which has no apoapsis; `periapsisRadius` is
+   * real on any orbit there is a solve for at all, which is what makes it the
+   * `hasOrbit` signal below.
+   */
+  const solve = useOrbitSolve();
+  const trueAnomaly = solve?.trueAnomaly ?? undefined;
+  const apoapsisR = solve?.apoapsisRadius;
+  const periapsisR = solve?.periapsisRadius;
 
   // What the trajectory IS, asked of the propagation seam rather than decided
   // here. The widget holds `sma` and `ecc` and could draw an ellipse from them
@@ -491,7 +494,13 @@ function OrbitViewComponent({
           centreBodyIndex={orbit?.referenceBodyIndex}
         />
       )}
-      {!hasOrbit ? (
+      {/* A REFUSAL outranks the no-data sentence, and only when there is one.
+          When the provider declines to authorise a curve the solve behind
+          `hasOrbit` goes with it, so without this the panel would answer "no
+          orbital data" to a craft whose elements arrived perfectly well and
+          whose path nobody would vouch for: the wrong sentence, with the
+          wrong remedy, in place of the one that says what happened. */}
+      {!hasOrbit && withheld === null ? (
         <NoData>
           {/* "measured" (Loaded/packed) basis: there IS an orbit, just no
               osculating elements to derive a diagram from, distinct from

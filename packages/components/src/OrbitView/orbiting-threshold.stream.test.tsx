@@ -43,7 +43,7 @@ const EARTH = {
  * apoapsis well outside it: rp = 6371+60 km, ra = 6371+400 km. A craft on a
  * decaying pass, not one in orbit.
  */
-function setup(sma: number, ecc: number) {
+function setup(sma: number, ecc: number, meanAnomalyAtEpoch = 0) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 10,
@@ -64,7 +64,7 @@ function setup(sma: number, ecc: number) {
       inc: 0,
       lan: 0,
       argPe: 0,
-      meanAnomalyAtEpoch: 0,
+      meanAnomalyAtEpoch,
       epoch: 10,
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
       mu: 3.986e14,
@@ -87,7 +87,12 @@ const verdict = () =>
 describe("OrbitView orbiting threshold", () => {
   it("does not call a craft orbiting when its periapsis is inside the air", async () => {
     // rp = 6_431 km (60 km altitude, under the 140 km atmosphere), ra = 6_771 km
-    setup(6_601_000, 0.0257);
+    //
+    // Sampled at APOAPSIS, 400 km up. The craft has to be outside the air for
+    // there to be a conic at all, and that is the state this question is asked
+    // in: the periapsis it is falling towards is the part inside the air, and
+    // the verdict is about where it is going rather than where it is.
+    setup(6_601_000, 0.0257, Math.PI);
     await waitFor(() => expect(verdict()).toBeDefined());
     expect(verdict()).toBe("no");
   });

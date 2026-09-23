@@ -18,17 +18,21 @@ import { CurrentOrbitComponent } from "./index";
  * emitted in this file, never because it's gapped.
  *
  * `o.sma`/`o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are raw
- * fields on `vessel.orbit`; `o.period`/`o.trueAnomaly`/`o.timeToAp`/
- * `o.timeToPe`/`o.ApR`/`o.PeR` are derived fields on `vessel.state`
- * (`deriveVesselState`) that only need `vessel.orbit`'s elements, all
- * emitted below, so all resolve to REAL values (ApR/PeR = sma·(1±ecc), so
- * the mini diagram's `hasOrbit` gate is satisfied and it renders). `o.ApA`/
- * `o.PeA` are derived too but stay `undefined` here: they need
- * `system.bodies` for the reference body's radius (`vessel-state.ts`'s
- * `deriveApsides`), and nothing here emits it: genuine "still resyncing."
- * `o.referenceBody`/`v.body` likewise resolve to their `vessel.state`
- * index→name derivations only once `system.bodies`/`vessel.identity` are
- * carried AND emitted; unemitted here, they render nothing (no subtitle),
+ * fields on `vessel.orbit`; the period, the true anomaly, the two countdowns
+ * and the apsis radii are SOLVED from those same elements at view time, so all
+ * resolve to REAL values (ApR/PeR = sma·(1±ecc), so the mini diagram's
+ * `canDrawDiagram` gate is satisfied and it renders). The two apsis ALTITUDES
+ * stay `undefined`: they need the reference body's radius, and this scene's
+ * orbit names no reference body.
+ *
+ * `system.bodies` IS emitted, empty. The conic behind the solve declares it as
+ * an input, so a scene without it has no model at all and there would be
+ * nothing to draw: an empty roster satisfies the input and still resolves no
+ * radius, which is the state this test is about.
+ *
+ * `o.referenceBody`/`v.body` resolve to their `vessel.state` index→name
+ * derivations only once a body matching the orbit's own reference index is in
+ * that roster; there is none here, so they render nothing (no subtitle),
  * exactly the graceful-degradation this test asserts.
  *
  * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs
@@ -89,6 +93,9 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 10,
       });
+      // The conic's declared input, satisfied and carrying nothing: see this
+      // file's header for why an empty roster is the right shape here.
+      fixture.emit("system.bodies", { bodies: [] });
     });
 
     // Inclination renders off the mapped stream value.

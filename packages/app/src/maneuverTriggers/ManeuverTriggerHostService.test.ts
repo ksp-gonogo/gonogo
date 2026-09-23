@@ -9,7 +9,11 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  PropagationHorizonKind,
+  TrajectoryKind,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerHostService } from "./ManeuverTriggerHostService";
 
@@ -152,6 +156,15 @@ function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
     epoch: pinnedUt,
     mu: 3.5316e12,
     patches: [],
+    /*
+     * The reach and shape a live sample states. The service solves its apsides
+     * through the conic over these elements, so without them nothing vouches
+     * for that conic and there is no orbit to plan against at all.
+     */
+    horizon: {
+      kind: PropagationHorizonKind.Unbounded,
+      trajectoryKind: TrajectoryKind.Analytic,
+    },
   };
 }
 
@@ -171,6 +184,14 @@ const FROZEN: FrozenPlanInputs = {
 function seedKerbinOrbit(pinnedUt = 1_000_000) {
   setActiveViewClockForTests({ viewUt: () => pinnedUt });
   const storeFixture = buildOrbitStoreFixture(pinnedUt);
+  /*
+   * The conic over the elements below declares the roster as an input, so a
+   * scene that never emits one has no model and the service has no orbit to
+   * plan against.
+   */
+  storeFixture.emitBodies({
+    bodies: [{ index: 1, name: "Kerbin", radius: value("m", 600_000) }],
+  });
   storeFixture.emitOrbit(kerbinOrbitPayload(pinnedUt));
   storeFixture.emitIdentity({
     vesselId: "test-vessel",

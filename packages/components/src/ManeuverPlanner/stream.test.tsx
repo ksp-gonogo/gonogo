@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -54,12 +55,13 @@ const CARRIED_ORBIT = [
 const REAL_NODE_ID = "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e";
 
 /**
- * Feeds `vessel.orbit` in the default (OnRails) quality so the derived
- * `vessel.state`'s ApR/PeR/timeToAp/timeToPe/orbitalSpeed/orbitalRadius/mu
- * inputs all resolve: everything `ManeuverPlannerComponent`'s
- * `telemetryStatus` gate needs to clear the "Waiting for telemetry" panel.
- * `epoch` == `pinnedUt` so `trueAnomaly` lands exactly at periapsis (0°),
- * matching the legacy fixture's `o.trueAnomaly: 0`.
+ * Feeds `vessel.orbit` in the default (OnRails) quality, with the horizon and
+ * the body roster a live sample carries beside it, so the conic over those
+ * elements is available and the apsides/countdowns/radius/period solved from
+ * them all resolve: everything `ManeuverPlannerComponent`'s `telemetryStatus`
+ * gate needs to clear the "Waiting for telemetry" panel. `epoch` == `pinnedUt`
+ * so `trueAnomaly` lands exactly at periapsis (0°), matching the legacy
+ * fixture's `o.trueAnomaly: 0`.
  */
 function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
   fixture.emit("vessel.orbit", {
@@ -72,6 +74,10 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
     meanAnomalyAtEpoch: 0,
     epoch: 1_000_000,
     mu: 3.5316e12,
+    horizon: ANALYTIC_UNBOUNDED_HORIZON,
+  });
+  fixture.emit("system.bodies", {
+    bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
   });
 }
 

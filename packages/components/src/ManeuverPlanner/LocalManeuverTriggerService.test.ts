@@ -10,6 +10,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import type { FrozenPlanInputs } from "./triggerTypes";
 
@@ -77,6 +78,9 @@ function fixture() {
     epoch: PINNED_UT,
     mu: 3.986e14,
     patches: [],
+    // The reach and shape a live sample states. The service reads the conic
+    // over these elements, so without them it has no orbit to plan against.
+    horizon: ANALYTIC_UNBOUNDED_HORIZON,
   });
   emit("vessel.identity", {
     vesselId: "test-vessel",

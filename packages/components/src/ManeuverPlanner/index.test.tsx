@@ -16,6 +16,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -207,6 +208,10 @@ const VESSEL_ORBIT_STREAM_FIXTURE = {
   epoch: UT_FIXTURE_VALUE,
   mu: 3.5316e12,
   patches: [],
+  /* The reach and shape a live sample states. Without them nothing vouches for
+     these elements being a conic, the model over them withdraws, and the
+     apsides and countdowns solved from them are absent along with it. */
+  horizon: ANALYTIC_UNBOUNDED_HORIZON,
 };
 
 const VESSEL_IDENTITY_STREAM_FIXTURE = {
@@ -496,6 +501,14 @@ describe("ManeuverPlannerComponent", () => {
         ...VESSEL_ORBIT_STREAM_FIXTURE,
         sma: 850000,
         ecc: 0.1765,
+      });
+      /*
+       * The conic over those elements declares the roster as an input, so this
+       * scene carries it too: without it there is no model, no plan, and the
+       * shortfall this test is about never gets asked.
+       */
+      spent.emit("system.bodies", {
+        bodies: [{ name: "Kerbin", index: 1, radius: 600_000 }],
       });
       // A real stage list whose ΔV is really zero: a fact about the vessel, not the
       // absence of one.

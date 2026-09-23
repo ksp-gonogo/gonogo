@@ -1,3 +1,4 @@
+import { useOrbitSolve } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import { useStreamBody } from "./useStreamBody";
@@ -10,16 +11,21 @@ type OrbitInfo = {
 };
 
 export function useIsOrbiting(): OrbitInfo {
-  // All three reads ride the SDK stream's derived `vessel.state` channel, no
-  // legacy `useTelemetry("data", ...)` fallback: `parentBodyName` (identity
-  // index → `system.bodies` name), and the `periapsisAlt`/`apoapsisAlt` apsis
-  // altitudes the client derives off `vessel.orbit`'s elements. `apoapsisAlt`
-  // is `undefined` on a hyperbolic/escape orbit (no apoapsis), which the
-  // not-orbiting guard below already handles.
-  const vesselState = useStream<VesselState>("vessel.state");
-  const bodyName = vesselState?.parentBodyName ?? undefined;
-  const PeA = vesselState?.periapsisAlt ?? undefined;
-  const ApA = vesselState?.apoapsisAlt ?? undefined;
+  // The two apsis altitudes are solved from `vessel.orbit`'s own elements, so
+  // they are absent together whenever the conic behind them has withdrawn:
+  // under physics, past an SOI transition, below the atmosphere interface.
+  // "Not orbiting" is the right answer in all three, and it is what the guard
+  // below already returns for an absent apsis. `apoapsisAlt` is also absent on
+  // a hyperbolic/escape orbit, which has no apoapsis, and that case reaches the
+  // same guard.
+  //
+  // `parentBodyName` is an index → `system.bodies` name resolution and needs no
+  // conic, so it keeps its own read.
+  const solve = useOrbitSolve();
+  const bodyName =
+    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
+  const PeA = solve?.periapsisAlt ?? undefined;
+  const ApA = solve?.apoapsisAlt ?? undefined;
 
   /*
    * The atmosphere height comes off `system.bodies`, so a caller must carry

@@ -1,4 +1,5 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
@@ -18,10 +19,9 @@ import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
  *  - `useTelemetry("vessel.parts")` → `if (!parts?.parts) return null`, which
  *    means "no bindings known", and renders the action-group option with NO
  *    caption at all rather than a placeholder
- *  - `useStream<VesselState>("vessel.state")` → `vesselState?.timeToAp ??
- *    undefined`, then `typeof timeToAp === "number"`, which means "this preset
- *    is not offerable", and removes the whole Recommended DISCLOSURE, not just
- *    the button
+ *  - `useOrbitSolve()` → `solve?.timeToAp ?? undefined`, then `typeof timeToAp
+ *    === "number"`, which means "this preset is not offerable", and removes the
+ *    whole Recommended DISCLOSURE, not just the button
  *  - `snapshot.ut === null`, which means "cannot schedule yet" and is the ONE
  *    absence this modal narrates to the operator in words. Note the UT arrives
  *    on the `useSnapshot` prop rather than through a telemetry read here; it is
@@ -138,7 +138,20 @@ function emitOrbit(
     meanAnomalyAtEpoch: 0,
     epoch: ORBIT_EPOCH,
     mu: ORBIT_MU,
+    /*
+     * The reach and shape a live sample states: the countdowns behind these
+     * presets are solved through the conic over these elements, and without
+     * them nothing vouches for it.
+     */
+    horizon: {
+      kind: PropagationHorizonKind.Unbounded,
+      trajectoryKind: TrajectoryKind.Analytic,
+    },
     ...overrides,
+  });
+  // That conic's other declared input.
+  emit("system.bodies", {
+    bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
   });
 }
 
@@ -252,11 +265,11 @@ describe("AlarmsModal: the vessel.state preset gate", () => {
   });
 
   it("treats a null timeToAp/timeToPe exactly as never-arrived: no Recommended disclosure", async () => {
-    // Which meaning is implemented: `vesselState?.timeToAp ?? undefined`
-    // rewrites the derived channel's `null` (a CONFIRMED "this orbit has no
-    // time-to-apoapsis", here a degenerate mu) into the same `undefined` that
-    // means "nothing has arrived". The two render identically, so an orbit that
-    // genuinely cannot offer an apsis preset is reported as warmup.
+    // Which meaning is implemented: `solve?.timeToAp ?? undefined` rewrites the
+    // solve's `null` (a CONFIRMED "this orbit has no time-to-apoapsis", here a
+    // degenerate mu) into the same `undefined` that means "nothing has
+    // arrived". The two render identically, so an orbit that genuinely cannot
+    // offer an apsis preset is reported as warmup.
     const fixture = mount(modalWithUt());
     emitOrbit(fixture.emit, { mu: 0 });
 

@@ -17,6 +17,7 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
 import {
   bodyRadiusOf,
   dispatchActiveCommandTopic,
+  getOrbitSolve,
   getSystemBodies,
   getValue,
   getVesselIdentity,
@@ -281,25 +282,34 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
             currentUT,
             bodyRadiusOf(getSystemBodies(), targetOrbit.referenceBodyIndex),
           );
+    /*
+     * The craft's own orbit through the same `solveOrbit` the target's goes
+     * through, reached here by the non-hook `getOrbitSolve` because the model's
+     * refusal is what says whether these figures exist at all, and a payload
+     * read carries no model. `null` from it leaves every figure below
+     * `undefined`, which `buildCurrentOrbit` already treats as nothing to plan
+     * against.
+     */
+    const solve = getOrbitSolve();
     const sma = solverInput(orbit?.sma);
     const orbitalSpeed = state?.orbitalSpeed ?? undefined;
-    const radius = state?.orbitalRadius ?? undefined;
-    const period = state?.period ?? undefined;
+    const radius = solve?.orbitalRadius ?? undefined;
+    const period = solve?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
         sma,
         ecc: solverInput(orbit?.ecc),
-        ApR: state?.apoapsisRadius ?? undefined,
-        PeR: state?.periapsisRadius ?? undefined,
-        timeToAp: state?.timeToAp ?? undefined,
-        timeToPe: state?.timeToPe ?? undefined,
+        ApR: solve?.apoapsisRadius ?? undefined,
+        PeR: solve?.periapsisRadius ?? undefined,
+        timeToAp: solve?.timeToAp ?? undefined,
+        timeToPe: solve?.timeToPe ?? undefined,
       }),
       // Not a data-source key: `t.universalTime` was DROPPED, this is the
       // SDK's own view time, read via the non-hook `getViewUt` accessor rather
       // than the legacy telemetry reader.
       currentUT,
       mu: computeMu(orbitalSpeed, radius, sma, period),
-      trueAnomaly: state?.trueAnomaly ?? undefined,
+      trueAnomaly: solve?.trueAnomaly ?? undefined,
       argPe: solverInput(orbit?.argPe),
       inclination: solverInput(orbit?.inc),
       lan: solverInput(orbit?.lan),

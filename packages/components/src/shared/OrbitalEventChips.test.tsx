@@ -88,13 +88,22 @@ describe("OrbitalEventChips", () => {
     expect(text).not.toContain("1000");
   });
 
-  it("shows no encounter chip once the transition is in the past", async () => {
+  it("shows nothing at all once the transition is in the past", () => {
     // The gate was `encounterTime > 0`, which every absolute UT passes forever.
     // Against the view time it means what it says: an encounter already behind
     // us is not something to count down to.
+    //
+    // The APSIS chip goes with it, and that is the conic's doing rather than
+    // this component's: past the transition these elements describe an orbit
+    // round the body the craft has left, so there is no next apsis on them to
+    // count down to either. Both claims are about what happens next and both
+    // are about the wrong orbit.
+    //
+    // The test above is this one's control: the same scene with the transition
+    // ahead of the view time renders chips, so an empty render here is the
+    // gate and not a fixture that delivered nothing.
     mountAt(VIEW_UT - 60);
 
-    await screen.findByText(/NEXT|AP|PE/);
-    expect(visibleText()).not.toContain("ENC");
+    expect(visibleText()).toBe("");
   });
 });

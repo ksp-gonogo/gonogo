@@ -36,6 +36,7 @@ import {
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
 import { resolveValueTopic } from "./map-topic";
+import { type OrbitalSolve, solveSelfOrbit } from "./orbital-solve";
 import { OwnCraftDelayGate } from "./own-craft-vantage";
 import {
   setActiveTimelineStore as setProcessorEvaluatorStore,
@@ -808,14 +809,18 @@ export function setActiveViewClockForTests(
  * plain classes (`LocalManeuverTriggerService`, the maneuver-trigger and
  * alarm host services) that need a point-in-time read of a fixed Topic
  * (`vessel.orbit`, `vessel.target`, `vessel.identity`, the derived
- * `vessel.state`) without subscribing. Narrowed to the two methods an
- * on-demand sample needs (`sample`/`currentFrame`), matching
- * `activeViewClock`'s narrowing to just `viewUt`. Set/cleared by the same
- * registration effect in `TelemetryProvider` above.
+ * `vessel.state`) without subscribing. Narrowed to the methods an on-demand
+ * sample needs, matching `activeViewClock`'s narrowing to just `viewUt`.
+ * `sampleReading` is among them because the orbital solve is gated on a model
+ * and a payload carries none. Set/cleared by the same registration effect in
+ * `TelemetryProvider` above.
  */
-let activeTimelineStore:
-  | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
-  | undefined;
+type ActiveTimelineStore = Pick<
+  TimelineStore,
+  "sample" | "sampleReading" | "currentFrame" | "subscribeFrame"
+>;
+
+let activeTimelineStore: ActiveTimelineStore | undefined;
 
 /**
  * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, tracked
@@ -938,6 +943,36 @@ export function getSystemBodies(): SystemBodies | undefined {
  */
 export function getVesselState(): VesselState | undefined {
   return sampleActiveTopic<VesselState>(vesselStateChannel.topic);
+}
+
+/**
+ * The self vessel's apsides, their altitudes, the apsis countdowns, true
+ * anomaly, period and orbital radius at the frame's view time, or `null` where
+ * the conic behind them has withdrawn. For a caller that cannot use hooks.
+ *
+ * The other non-hook accessors here hand back a payload, which carries no
+ * model, and the model's refusal is the whole of when these figures may be
+ * drawn. This samples the READING instead and applies the same rule a hook
+ * would, so a maneuver plan and the panel drawing the orbit it plans against
+ * cannot disagree about whether there is an orbit to plan against.
+ */
+export function getOrbitSolve(): OrbitalSolve | null {
+  if (!activeTimelineStore) return null;
+  const reading =
+    activeTimelineStore.sampleReading<VesselOrbit>("vessel.orbit");
+  /* Stale carries its elements too: see `solveSelfOrbit` for why that is as
+     good a starting point as an observed one, and for what decides whether
+     they may be advanced. */
+  const elements =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : undefined;
+  return solveSelfOrbit(
+    elements,
+    reading.reckoning,
+    getSystemBodies(),
+    getViewUt(),
+  );
 }
 
 /**
@@ -1132,9 +1167,7 @@ export function dispatchActiveCommandTopic(
  * later, unrelated suite can't see a stale store left over from this one.
  */
 export function setActiveTimelineStoreForTests(
-  store:
-    | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
-    | undefined,
+  store: ActiveTimelineStore | undefined,
 ): void {
   activeTimelineStore = store;
 }

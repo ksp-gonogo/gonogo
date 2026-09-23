@@ -4,6 +4,7 @@ import {
   type TimeContexts,
   toggleCommandFor,
   useActionGroups,
+  useOrbitSolve,
   useTelemetry,
   useTimeContexts,
 } from "@ksp-gonogo/core";
@@ -12,11 +13,7 @@ import {
   useManeuverNodes,
   useTopicFieldCatalog,
 } from "@ksp-gonogo/data";
-import {
-  useStream,
-  type VesselState,
-  wireAddressBehindRedirect,
-} from "@ksp-gonogo/sitrep-client";
+import { wireAddressBehindRedirect } from "@ksp-gonogo/sitrep-client";
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
@@ -809,8 +806,8 @@ function presetTriggerUt(scetUt: number, owltSeconds: number): number {
 
 /**
  * Quick-alarm presets backed only by telemetry the app already subscribes to
- * (`vessel.state.timeToAp` / `timeToPe`, `vessel.maneuver`). Each preset
- * appears only when its data is live and still yields a future trigger;
+ * (the apsis countdowns solved off `vessel.orbit`, and `vessel.maneuver`). Each
+ * preset appears only when its data is live and still yields a future trigger;
  * clicking it creates a notify-only time alarm via the same `onAdd` path the
  * manual form uses.
  *
@@ -831,12 +828,14 @@ function RecommendedPresets({
   onAdd: AlarmsModalProps["onAdd"];
 }) {
   // `timeToAp` / `timeToPe` are seconds-from-now; the maneuver node UT
-  // is absolute. We read them live so a preset reflects the current orbit
-  // at the moment of the click. Both are derived `vessel.state.*` fields,
-  // read off the canonical stream.
-  const vesselState = useStream<VesselState>("vessel.state");
-  const timeToAp = vesselState?.timeToAp ?? undefined;
-  const timeToPe = vesselState?.timeToPe ?? undefined;
+  // is absolute. We read them live so a preset reflects the current orbit at
+  // the moment of the click. Both are solved from `vessel.orbit`'s elements,
+  // so both are absent wherever a conic through them would be wrong, and the
+  // preset then simply does not appear: an apsis alarm computed from elements
+  // nothing is propagating would fire at an instant the craft never reaches.
+  const solve = useOrbitSolve();
+  const timeToAp = solve?.timeToAp ?? undefined;
+  const timeToPe = solve?.timeToPe ?? undefined;
   const nodes = useManeuverNodes();
   const { owltSeconds, scet } = useTimeContexts();
   const [open, setOpen] = useState(false);

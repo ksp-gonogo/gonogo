@@ -58,6 +58,10 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
     patches: [],
   });
+  // The other declared input of the conic over those elements.
+  fixture.emit("system.bodies", {
+    bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
+  });
 }
 
 /** The captured post-burn conic from `kerbin-finite-burn-window`. */

@@ -289,6 +289,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // running total. Doing it in the algebra would wrap and unwrap once per node
   // for a number that never leaves this function.
   "packages/data/src/hooks/useManeuverFeasibility.ts": 1,
+  // ONE: the view instant, on its way into the Kepler solve. `useViewUt` hands
+  // a `Value<"ut">` and `solveOrbit` takes the plain seconds its own internals
+  // work in (radians, mean motion, a propagated position vector), so this hook
+  // is where the typed instant meets a plain-number API. Nothing it returns is
+  // a string, and every figure a reader sees goes out through `<Unit>`.
+  "packages/core/src/hooks/useOrbitSolve.ts": 1,
   // 4: the burn instant and the plan's own total, unwrapped here because this
   // hook IS the boundary between the wire shape and the plain-number geometry
   // every node consumer works in. The three delta-v components go through
