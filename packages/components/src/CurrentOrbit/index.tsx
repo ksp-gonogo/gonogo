@@ -17,6 +17,7 @@ import {
   type ControlFrame,
   controlFrameLabel,
   frameCaveat,
+  type ReckoningDecline,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -24,6 +25,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Section,
   Stack,
   Unit,
@@ -187,6 +189,19 @@ function CurrentOrbitComponent({
   const withheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
 
+  /*
+   * Why the derived figures are dashes, when the elements arrived and the conic
+   * declined to advance them. A refused TRAJECTORY already says so in its own
+   * note, so this speaks only when that one is silent.
+   */
+  const declined =
+    observedOrbit !== undefined &&
+    withheld === null &&
+    orbitReading.reckoning.status === "declined"
+      ? orbitReading.reckoning.declined
+      : undefined;
+  const modelState = declined ? declinedState(declined) : null;
+
   /* Physics off the wire, presentation from the table: `useStreamBody` merges
    * the two, so `body.radius` is the running game's and `body.color` is still
    * the registry's, which no wire field replaces. */
@@ -277,6 +292,9 @@ function CurrentOrbitComponent({
             trajectory={trajectory}
             centreBodyIndex={orbit?.referenceBodyIndex}
           />
+          {modelState !== null && (
+            <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
+          )}
           {/* The GAME's own view frame, which is a different fact from the frame
             this widget drew in above: that one is this panel's choice and nobody
             else's, this one is what the operator is looking at in the game and
@@ -516,6 +534,34 @@ registerComponent<CurrentOrbitConfig>({
 });
 
 export { CurrentOrbitComponent };
+
+/**
+ * The instrument's state when the conic declined: a word the operator reads
+ * beside the dashes, in the register of `NO DATA` and `TOO LOW`, never a
+ * sentence. Every reason is named so a new one is a compile error here rather
+ * than a silent default.
+ *
+ * `null` for `input-absent`: without elements there is nothing on the panel for
+ * a state to explain, and the dashes already say "not arrived".
+ */
+function declinedState(declined: ReckoningDecline): string | null {
+  const reason = declined.reason;
+  switch (reason) {
+    case "under-physics":
+      return "UNDER PHYSICS";
+    case "beyond-horizon":
+    case "model-inapplicable":
+    case "contested":
+    case "insufficient-history":
+      return "CANNOT MODEL";
+    case "input-absent":
+      return null;
+    default: {
+      const unnamed: never = reason;
+      return unnamed;
+    }
+  }
+}
 
 // Plain elements + inline style rather than ui-kit primitives below: the
 // label/value pair carries font sizes and letter-spacings off the standard
