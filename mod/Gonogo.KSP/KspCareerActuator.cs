@@ -63,18 +63,29 @@ namespace Gonogo.KSP
         /// error, and the caps the old comment here claimed we honoured were
         /// never reached at all.</para>
         ///
-        /// <para>That authority is not substituted for. Nothing here reproduces
-        /// the three Administration arms from numbers of our own: with the
-        /// screen open the game answers every one of them and the refusal is
-        /// quoted verbatim; with it closed the console says so and refuses.
-        /// (The concurrent-strategy cap is NOT declared as a gate on this
-        /// command. It was, over <c>GameVariables.GetActiveStrategyLimit</c>,
-        /// and it was wrong on the careers this runs on: RP-1 exempts Leaders
-        /// from that cap and spends it on program SLOTS, so a raw count of
-        /// active strategies darkened a control the game would have allowed.
-        /// With the screen open <c>CanBeActivated</c> asks the same arm and
-        /// answers with the game's own reason, which is the authority we
-        /// wanted.)</para>
+        /// <para><b>The READING half no longer waits for that screen; this one
+        /// still has to.</b> <see cref="LiveStrategyArms"/> puts arms 2-9 one at a
+        /// time, off the same members stock reads, so a console career is told in
+        /// any scene what its save actually refuses. Knowing that does not make
+        /// the procedure reachable: <c>Activate()</c> asks
+        /// <c>CanBeActivated</c> itself before doing anything, so it throws with
+        /// the screen shut however confidently we could have answered; and its
+        /// body writes <c>isActive</c> and <c>dateActivated</c>, both
+        /// <c>private</c>, so there is no procedure-only entry point to call
+        /// instead. Stock offers no off-screen route, and reproducing the one it
+        /// has -- two private fields and three currency charges -- would be
+        /// inventing a spend rather than asking the game to make it.</para>
+        ///
+        /// <para>That authority is not substituted for, on either half. The one
+        /// threshold the reading half fetches for itself is the commit ceiling,
+        /// from <c>GameVariables</c>, which is where <c>Administration.Start</c>
+        /// fetches it and which is <c>virtual</c> so a retiering mod's override is
+        /// inherited; no number here is one of ours. The concurrent-strategy cap
+        /// is not reproduced at all, and nor is it declared as a gate on this
+        /// command: it was, and it was wrong on the careers this runs on, because
+        /// RP-1 exempts Leaders from that cap and spends it on program SLOTS, so a
+        /// raw count of active strategies darkened a control the game would have
+        /// allowed.</para>
         ///
         /// <para>The commitment itself is <see cref="StrategyCommit"/>'s: the
         /// factor is written before the gate because the cost scales with it,
@@ -102,7 +113,9 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(
                     CommandErrorCode.NotClearToProceed,
-                    "KSP commits a strategy only from the Administration Building, and it is not open");
+                    "KSP runs its own commitment only from inside the Administration Building, "
+                        + "so this needs that screen open. Whether the strategy is eligible is "
+                        + "reported without it; committing to one is not.");
             }
 
             return StrategyCommit.Activate(new LiveStrategy(strategy), factor);
