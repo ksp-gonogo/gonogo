@@ -73,12 +73,15 @@ const ALARMS = [
     value: 300_000,
   },
   {
-    name: "Speed 3 km/s",
+    // A 150-350km periapsis/apoapsis orbit peaks around 2,250-2,300 m/s at
+    // periapsis (measured), never 3km/s -- an unreachable threshold makes
+    // the laps verdict permanently INCONCLUSIVE regardless of lap count.
+    name: "Speed 2 km/s",
     dataKey: "vessel.flight.speedOrbital",
     topic: "vessel.flight",
     fieldPath: "speedOrbital",
     op: ">=" as const,
-    value: 3000,
+    value: 2000,
   },
 ];
 
@@ -175,23 +178,53 @@ export async function runShadowAcceptance(
   ];
 
   const svc = new AlarmHostService(null, { storage: memoryStorage() });
+  // Every id this run has ever armed, mapped back to its logical alarm name
+  // -- grows across re-arms, so `laps.alarmOf` can resolve a fire from any
+  // generation of an alarm, not just the first.
   const nameOf = new Map<string, string>();
+  let rearmCount = 0;
+  const armOne = (a: (typeof ALARMS)[number]): void => {
+    const armed = svc.addAlarm({
+      name: a.name,
+      trigger: {
+        kind: "threshold",
+        dataKey: a.dataKey,
+        op: a.op,
+        value: a.value,
+        sustainSeconds: 0,
+        vantage: "command",
+        topic: a.topic,
+        fieldPath: a.fieldPath,
+      },
+    });
+    nameOf.set(armed.id, a.name);
+  };
   try {
-    for (const a of ALARMS) {
-      const armed = svc.addAlarm({
-        name: a.name,
-        trigger: {
-          kind: "threshold",
-          dataKey: a.dataKey,
-          op: a.op,
-          value: a.value,
-          sustainSeconds: 0,
-          vantage: "command",
-          topic: a.topic,
-          fieldPath: a.fieldPath,
-        },
-      });
-      nameOf.set(armed.id, a.name);
+    for (const a of ALARMS) armOne(a);
+
+    /*
+     * A lap scenario re-arms by creating a fresh alarm per crossing:
+     * `AlarmHostService.acknowledgeAlarm` only clears a `fired` alarm and
+     * removes it, it does not reset it to `pending` in place (a same-kind
+     * trigger edit would leave `state: "fired"` untouched), so the only way
+     * an alarm can fire on a later lap is a brand new id. Only runs when
+     * `options.laps` is set: a plain single-shot acceptance run has no lap
+     * count to re-arm against and should keep firing each alarm once.
+     */
+    let rearmLoop: ReturnType<typeof setInterval> | undefined;
+    if (options.laps !== undefined) {
+      rearmLoop = setInterval(() => {
+        for (const alarm of svc.snapshot().alarms) {
+          if (alarm.state !== "fired") continue;
+          const name = nameOf.get(alarm.id);
+          svc.acknowledgeAlarm(alarm.id);
+          const cfg = ALARMS.find((a) => a.name === name);
+          if (cfg) {
+            armOne(cfg);
+            rearmCount++;
+          }
+        }
+      }, 2_000);
     }
 
     write(
@@ -213,12 +246,13 @@ export async function runShadowAcceptance(
           .alarms.map((x) => x.state)
           .join(
             ",",
-          )}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}`,
+          )}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}  rearms=${rearmCount}`,
       );
     }, options.progressEveryMs ?? 30_000);
     await new Promise((r) => setTimeout(r, options.observeMs));
     clearInterval(tick);
     clearInterval(reads);
+    if (rearmLoop !== undefined) clearInterval(rearmLoop);
     sampleReads();
     const unread = ALARMS.filter((a) => !everRead.has(a.name)).map(
       (a) => a.name,
