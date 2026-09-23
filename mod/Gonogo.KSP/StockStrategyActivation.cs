@@ -152,6 +152,13 @@ namespace Gonogo.KSP
             /// Arm 1, off the roster and the limit <c>Administration.Start</c>
             /// itself reads. See <see cref="StrategyProcedure.ConcurrentCapRefuses"/>
             /// for why the roster count equals the screen's counter here.
+            ///
+            /// <para>That equality holds only because <see cref="RefuseIfPatched"/>
+            /// has already turned away every career that patches activation. RP-1
+            /// writes the screen's counter itself and exempts leaders from the cap,
+            /// so on a patched career the roster count would enforce a rule the
+            /// career has replaced. The two checks are one argument: this one must
+            /// never run without that one having run first.</para>
             /// </summary>
             private CommandResult ConcurrentCap()
             {
