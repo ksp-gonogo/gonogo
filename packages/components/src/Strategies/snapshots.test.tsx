@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
+import adminShut from "./__fixtures__/administration-shut-derived.json";
 import atCap from "./__fixtures__/at-admin-cap.json";
 import unavailable from "./__fixtures__/feature-unavailable.json";
 import highCommit from "./__fixtures__/high-commitment-conversion.json";
@@ -25,6 +26,14 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "over-cap-quirk": overCap,
   "high-commitment-conversion": highCommit,
   "feature-unavailable": unavailable,
+  /*
+   * The only fixture carrying `activateVerdictSource`, and the only one whose
+   * rows were judged without the Administration Building. The DOM snapshot is
+   * where that field is legible at all: its live effect is on the Activate
+   * button's `title`, and every button in this scene is already dark for the
+   * verdict's sake, so a pixel diff would not show it.
+   */
+  "administration-shut-derived": adminShut,
 };
 
 const config = getWidget("strategies");

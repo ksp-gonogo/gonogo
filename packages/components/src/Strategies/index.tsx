@@ -84,6 +84,19 @@ export interface Strategy {
    */
   canActivate: boolean | null;
   activateBlockedReason: string;
+  /**
+   * Who answered: `"screened"` is KSP's own check, `"derived"` is the same rules
+   * put one at a time because the Administration Building was shut, `"none"` is
+   * nobody.
+   *
+   * The career model pairs `"derived"` only with a refusal, never with a yes,
+   * because the arm it cannot reach sits ahead of the ones it can. The widget
+   * still refuses to arm anything that is not `"screened"`: the published type
+   * admits the pair, and KSP's activation runs inside that building whatever we
+   * worked out about eligibility, so such a control would dispatch something
+   * that cannot land.
+   */
+  activateVerdictSource: "screened" | "derived" | "none";
   canDeactivate: boolean;
   deactivateBlockedReason: string;
   effect: string;
@@ -157,6 +170,15 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
         typeof e.activateBlockedReason === "string"
           ? e.activateBlockedReason
           : "",
+      /* An older career model sent no source at all. Treat that as screened:
+         it only ever answered from inside the building, so every verdict it
+         did send was the game's own. */
+      activateVerdictSource:
+        e.activateVerdictSource === "derived"
+          ? "derived"
+          : e.activateVerdictSource === "none"
+            ? "none"
+            : "screened",
       canDeactivate: e.canDeactivate === true,
       deactivateBlockedReason:
         typeof e.deactivateBlockedReason === "string"
@@ -239,10 +261,12 @@ function partition(strategies: readonly Strategy[]): {
 /**
  * The one account a whole bucket shares, or null when they differ.
  *
- * The facility answers eligibility for the entire roster or for none of it, so
+ * A reading that fails usually fails for the whole roster at once, because the
+ * career-wide values every card's verdict rests on are read in one place. So
  * the per-card spelling of an unanswered list is one sentence repeated down the
- * screen. Said once above the list it is a statement about the facility, which
- * is what it actually is.
+ * screen. Said once above the list it is a statement about the reading, which is
+ * what it actually is. Null when the cards genuinely disagree, and then each
+ * says its own.
  */
 function sharedReason(strategies: readonly Strategy[]): string | null {
   const first = strategies[0]?.activateBlockedReason ?? "";
@@ -732,11 +756,17 @@ function ScreenSections({
           {/* Its own list, not a badge in Locked. What the career refuses and
               what nobody could ask are different KINDS of statement: the first
               is a fact about the save the operator has to go and change, the
-              second is a fact about which screen is open. Filing them together
-              is what put a whole roster under a heading reading LOCKED while
-              every card under it said the state was unknown. The cards are the
-              same cards as Available, price included, because the operator's
-              next move is to open the facility and spend. */}
+              second is a fact about a reading that could not be taken. Filing
+              them together is what put a whole roster under a heading reading
+              LOCKED while every card under it said the state was unknown.
+
+              This list used to be the WHOLE roster whenever the Administration
+              Building was shut, because the only route to an answer ran through
+              that screen. The arms are asked one at a time now, so a strategy
+              reaches this list only when a reading genuinely failed, and the
+              shared note above it says which one. The cards are the same cards
+              as Available, price included, because the operator's next move is
+              still to open the facility and spend. */}
           {unknown.length > 0 && (
             <Section
               as="section"
@@ -963,8 +993,20 @@ function AvailableRow({
           pendingLabel="Activating..."
           /* An unread eligibility refuses on the same terms as a refusal: the
              actuator will not dispatch one either, and arming a control that
-             cannot land is the same falsehood pointing the other way. */
-          disabled={s.canActivate !== true || cantAfford}
+             cannot land is the same falsehood pointing the other way.
+
+             The source test is defence in depth rather than a live case. Our
+             career model never pairs a yes with an off-screen source, because
+             the one arm it cannot reach sits ahead of the ones it can. But the
+             published type admits the pair and an Uplink could send it, and the
+             answer would still be no: KSP runs its own commitment from inside
+             that building, so the dispatch could not land however sound the
+             verdict was. */
+          disabled={
+            s.canActivate !== true ||
+            s.activateVerdictSource !== "screened" ||
+            cantAfford
+          }
           /* A stale balance and a short one both refuse, and the operator does
              something different about each: top up the treasury, or find out
              why the link stopped. So the refusal names which it is rather than
@@ -972,11 +1014,13 @@ function AvailableRow({
           title={
             s.canActivate !== true
               ? s.activateBlockedReason || "Cannot activate"
-              : balancesNotCurrent
-                ? "Career balances are no longer current, so affordability cannot be checked"
-                : cantAfford
-                  ? "Insufficient funds / science / reputation at this factor"
-                  : "Set the factor, then confirm"
+              : s.activateVerdictSource !== "screened"
+                ? "Eligible. KSP commits a strategy only from inside the Administration Building, so open that screen to commit to this one."
+                : balancesNotCurrent
+                  ? "Career balances are no longer current, so affordability cannot be checked"
+                  : cantAfford
+                    ? "Insufficient funds / science / reputation at this factor"
+                    : "Set the factor, then confirm"
           }
         />
       </CardFooter>
@@ -1348,7 +1392,7 @@ registerComponent<StrategiesConfig>({
   id: "strategies",
   name: "Admin Building",
   description:
-    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. Committing and cancelling need the Administration Building open: KSP answers whether a strategy may be activated only while that screen exists, and the answer is the game's own rather than one this widget reconstructs.",
+    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. With that building open KSP answers eligibility itself; with it shut the same rules are asked one at a time, which is enough to name what the career refuses but never enough to say yes. Committing runs inside the building either way, because KSP's own activation does.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 2, h: 2 },
