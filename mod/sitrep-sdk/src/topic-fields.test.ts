@@ -140,7 +140,7 @@ describe("enumerateTopicFields on a client-derived channel", () => {
     // hand declaration in `vessel-state.ts`. An empty result here means that
     // declaration stopped being registered, which would silently empty the
     // largest part of the picker's vocabulary.
-    expect(fields.length).toBeGreaterThan(50);
+    expect(fields.length).toBeGreaterThan(25);
     expect(byPath.get("altitudeAsl")).toEqual({
       path: "altitudeAsl",
       unit: "m",
@@ -151,18 +151,15 @@ describe("enumerateTopicFields on a client-derived channel", () => {
     expect(byPath.get("situationName")?.kind).toBe("text");
     // A UT instant, not an interval: the unit distinguishes them.
     expect(byPath.get("encounterUt")?.unit).toBe("ut");
-    // The vector's unit is on its components, which are what a reader indexes.
-    expect(byPath.get("position.x")?.unit).toBe("m");
-    expect(byPath.get("position")).toBeUndefined();
     // A collection is named but not descended into.
-    expect(byPath.get("actionGroupsNamed")?.kind).toBe("collection");
+    expect(byPath.get("orbitPatches")?.kind).toBe("collection");
   });
 
   it("offers every quantity on vessel.state as a threshold subject", () => {
     const quantities = enumerateTopicFields(vesselStateChannel.topic).filter(
       (f) => f.kind === "quantity",
     );
-    expect(quantities.length).toBeGreaterThan(30);
+    expect(quantities.length).toBeGreaterThan(15);
   });
 });
 
@@ -192,11 +189,6 @@ describe("isKnownFieldPath on a vector component", () => {
     // resolves it perfectly well by walking into the payload.
     expect(isKnownFieldPath("vessel.target.relativePosition.x")).toBe(true);
     expect(isKnownFieldPath("vessel.dock.relativeVelocity.z")).toBe(true);
-  });
-
-  it("accepts a vector component on a derived channel too", () => {
-    void vesselStateChannel;
-    expect(isKnownFieldPath("vessel.state.position.y")).toBe(true);
   });
 
   it("refuses a component the vector does not have", () => {

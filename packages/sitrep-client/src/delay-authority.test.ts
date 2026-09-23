@@ -4,7 +4,7 @@ import { TelemetryClient } from "./client";
 import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
 import { createFakeWallClock } from "./fake-wall-clock";
 import type { OrbitElements } from "./kepler";
-import { solve } from "./kepler";
+import { solve, solveAnomalies } from "./kepler";
 import {
   makeMeta,
   StubTransport,
@@ -351,6 +351,19 @@ const CIRCULAR_ELEMENTS: OrbitElements = {
   mu: CIRCULAR_ORBIT.mu as number,
 };
 
+/**
+ * Where the craft is around its orbit at `ut`, in degrees on [0, 360), which
+ * is how the channel publishes it.
+ *
+ * The anomaly is the one quantity here that moves with UT on a circular
+ * fixture: radius and speed are constant around such an orbit, so a test that
+ * read either of those back would pass on a solve taken at any instant at all.
+ */
+function trueAnomalyDegrees(elements: OrbitElements, ut: number): number {
+  const degrees = (solveAnomalies(elements, ut).trueAnomaly * 180) / Math.PI;
+  return ((degrees % 360) + 360) % 360;
+}
+
 function orbitPoint(
   payload: WireOf<VesselOrbitPayload>,
   validAt: number,
@@ -408,25 +421,30 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     expect(store.certaintyHorizonUt()).toBe(100);
 
     const state = store.sample<{
-      position: readonly [number, number, number] | null;
-      velocity: readonly [number, number, number] | null;
+      trueAnomaly: number | null;
       basis: string;
     }>("vessel.state");
 
     // The vessel dead-reckons to the frame's single view UT...
-    const vesselExpected = solve(CIRCULAR_ELEMENTS, frame.viewUt);
     expect(state?.payload?.basis).toBe("propagated");
-    expect(state?.payload?.position).toEqual(vesselExpected.position);
+    expect(state?.payload?.trueAnomaly).toBeCloseTo(
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, frame.viewUt),
+      9,
+    );
+    // ...and not to the confirmed edge, which is the other instant on offer.
+    expect(state?.payload?.trueAnomaly).not.toBeCloseTo(
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, store.certaintyHorizonUt()),
+      3,
+    );
 
-    // ...and a deterministic body, solved at the SAME frame UT, uses the
-    // identical instant: no per-object time. Solving the body at any other
-    // UT would disagree, proving the shared frame UT is load-bearing.
+    // A deterministic body, solved at the SAME frame UT, uses the identical
+    // instant: no per-object time. Solving it at any other UT would disagree,
+    // proving the shared frame UT is load-bearing.
     const bodyAtFrameUt = solve(CIRCULAR_ELEMENTS, frame.viewUt);
     const bodyAtConfirmedEdge = solve(
       CIRCULAR_ELEMENTS,
       store.certaintyHorizonUt(),
     );
-    expect(bodyAtFrameUt.position).toEqual(vesselExpected.position);
     expect(bodyAtFrameUt.position).not.toEqual(bodyAtConfirmedEdge.position);
   });
 
@@ -446,11 +464,12 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
 
     // No wall advance, no delay: confirmed edge == estimate == 100.
     expect(clock.confirmedEdgeUt()).toBe(clock.utNowEstimate());
-    const confirmed = store.sample<{
-      position: readonly [number, number, number] | null;
-    }>("vessel.state");
-    expect(confirmed?.payload?.position).toEqual(
-      solve(CIRCULAR_ELEMENTS, 100).position,
+    const confirmed = store.sample<{ trueAnomaly: number | null }>(
+      "vessel.state",
+    );
+    expect(confirmed?.payload?.trueAnomaly).toBeCloseTo(
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, 100),
+      9,
     );
   });
 });

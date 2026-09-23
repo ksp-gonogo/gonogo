@@ -573,14 +573,14 @@ describe("AlarmHostService", () => {
         name: "Held over",
         trigger: {
           kind: "threshold",
-          dataKey: "vessel.state.surfaceSpeed",
+          dataKey: "vessel.flight.surfaceSpeed",
           op: ">",
           value: 100,
           sustainSeconds: 3,
         },
       });
       // First tick: condition matches, but sustain not satisfied.
-      telemetry.set("vessel.state.surfaceSpeed", 200);
+      telemetry.set("vessel.flight.surfaceSpeed", 200);
       telemetry.set("t.universalTime", 1000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
@@ -609,12 +609,12 @@ describe("AlarmHostService", () => {
        * lets the alarm fire at all.
        */
       const { svc, telemetry } = makeService();
-      telemetry.set("vessel.state.surfaceSpeed", 200);
+      telemetry.set("vessel.flight.surfaceSpeed", 200);
       svc.addAlarm({
         name: "Held over",
         trigger: {
           kind: "threshold",
-          dataKey: "vessel.state.surfaceSpeed",
+          dataKey: "vessel.flight.surfaceSpeed",
           op: ">",
           value: 100,
           sustainSeconds: 10,
@@ -624,7 +624,7 @@ describe("AlarmHostService", () => {
 
       // The read goes dark. Nothing says the condition ended, so the latch
       // must survive, and the unobserved seconds must not count toward it.
-      telemetry.set("vessel.state.surfaceSpeed", null);
+      telemetry.set("vessel.flight.surfaceSpeed", null);
       telemetry.set("t.universalTime", 1004);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1004);
@@ -632,7 +632,7 @@ describe("AlarmHostService", () => {
 
       // The read comes back, still matching: sustain resumes rather than
       // restarting, and the four dark seconds bought nothing.
-      telemetry.set("vessel.state.surfaceSpeed", 200);
+      telemetry.set("vessel.flight.surfaceSpeed", 200);
       telemetry.set("t.universalTime", 1008);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1004);
@@ -656,12 +656,12 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       telemetry.set("t.currentRateIndex", 7);
       telemetry.set("t.currentRate", 10000);
-      telemetry.set("vessel.state.surfaceSpeed", 200);
+      telemetry.set("vessel.flight.surfaceSpeed", 200);
       svc.addAlarm({
         name: "Held over",
         trigger: {
           kind: "threshold",
-          dataKey: "vessel.state.surfaceSpeed",
+          dataKey: "vessel.flight.surfaceSpeed",
           op: ">",
           value: 100,
           sustainSeconds: 60,
