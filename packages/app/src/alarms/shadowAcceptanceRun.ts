@@ -77,9 +77,12 @@ const ALARMS = [
     // periapsis (measured), never 3km/s -- an unreachable threshold makes
     // the laps verdict permanently INCONCLUSIVE regardless of lap count.
     name: "Speed 2 km/s",
-    dataKey: "vessel.flight.speedOrbital",
+    // The wire field is `orbitalSpeed`, not `speedOrbital` -- confirmed
+    // against a live `vessel.flight` payload. The old name never resolved,
+    // so this alarm was permanently `unread` regardless of orbit.
+    dataKey: "vessel.flight.orbitalSpeed",
     topic: "vessel.flight",
-    fieldPath: "speedOrbital",
+    fieldPath: "orbitalSpeed",
     op: ">=" as const,
     value: 2000,
   },
