@@ -314,7 +314,7 @@ export async function runShadowAcceptance(
           .alarms.map((x) => x.state)
           .join(
             ",",
-          )}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}  rearms=${rearmCount}  warpReapplies=${warpReapplyCount}`,
+          )}  pendingRearm=${pendingRearm.size}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}  rearms=${rearmCount}  warpReapplies=${warpReapplyCount}`,
       );
     }, options.progressEveryMs ?? 30_000);
     await new Promise((r) => setTimeout(r, options.observeMs));
