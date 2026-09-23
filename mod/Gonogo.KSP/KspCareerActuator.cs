@@ -410,12 +410,12 @@ namespace Gonogo.KSP
             var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityId);
             var known = ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto)
                 && proto != null;
-            var hasLiveInstance = known
+            var canComplete = known
                 && proto.facilityRefs != null
                 && proto.facilityRefs.Count > 0
-                && proto.facilityRefs[0] != null;
+                && FacilityLiveness.CanComplete(proto.facilityRefs[0]);
             var unresolved = CareerRefusals.FacilityResolutionRefusal(
-                known, hasLiveInstance, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
+                known, canComplete, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
             if (unresolved != null)
             {
                 return unresolved;

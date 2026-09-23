@@ -96,7 +96,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AnUnknownFacilityIsNotFound()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: false, hasLiveInstance: false, facilityName: "Nonesuch", sceneName: "FLIGHT");
+                facilityKnown: false, canComplete: false, facilityName: "Nonesuch", sceneName: "FLIGHT");
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.NotFound, refusal!.ErrorCode);
@@ -112,7 +112,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AKnownFacilityWithNoLiveInstanceIsAWrongSceneRefusalThatNamesTheScene()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, hasLiveInstance: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
+                facilityKnown: true, canComplete: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
@@ -129,7 +129,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AWrongSceneRefusalStillSaysWhereToGoWhenTheSceneIsUnnamed()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, hasLiveInstance: false, facilityName: "Launch Pad", sceneName: null);
+                facilityKnown: true, canComplete: false, facilityName: "Launch Pad", sceneName: null);
 
             Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
             Assert.Contains("space centre", refusal.Detail);
@@ -148,9 +148,24 @@ namespace Gonogo.KSP.Tests.Career
         public void AWrongSceneRefusalDoesNotClaimTheSpaceCentreIsTheOnlyPlace(string? sceneName)
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, hasLiveInstance: false, facilityName: "Launch Pad", sceneName: sceneName);
+                facilityKnown: true, canComplete: false, facilityName: "Launch Pad", sceneName: sceneName);
 
             Assert.DoesNotContain("only", refusal!.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// The caller refuses a component that exists but is inactive as well as
+        /// one that is absent, so the sentence must be true of both: "not built"
+        /// would tell an operator a standing building is not there.
+        /// </summary>
+        [Fact]
+        public void AWrongSceneRefusalDoesNotClaimTheBuildingIsAbsent()
+        {
+            var refusal = CareerRefusals.FacilityResolutionRefusal(
+                facilityKnown: true, canComplete: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
+
+            Assert.DoesNotContain("built", refusal!.Detail, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("not active", refusal.Detail);
         }
 
         /// <summary>A resolved facility is not refused at all.</summary>
@@ -158,7 +173,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AResolvedFacilityProceeds()
         {
             Assert.Null(CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, hasLiveInstance: true, facilityName: "Launch Pad", sceneName: "SPACECENTER"));
+                facilityKnown: true, canComplete: true, facilityName: "Launch Pad", sceneName: "SPACECENTER"));
         }
 }
 }
