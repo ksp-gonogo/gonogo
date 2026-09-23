@@ -39,30 +39,38 @@ const seconds = Number(process.env.SHADOW_SECONDS ?? 1800);
 const host = process.env.SITREP_HOST ?? "127.0.0.1";
 const port = Number(process.env.SITREP_PORT ?? 8090);
 
+// Periapsis ~35,000km / apoapsis ~80,000km around Kerbin: the band where
+// `owlt` reads in the SECONDS (roughly 1.5-2.7s per the coordinator's
+// distance-proportional model, itself inferred from two points and to be
+// checked against a direct reading here). Thresholds sit well inside that
+// span with margin either side, unlike the 200/300km pair (a previous
+// attempt): those forced the craft close enough to Kerbin/KSC that `owlt`
+// collapsed to milliseconds, the one regime the shadow comparison cannot
+// produce evidence in.
 const ALARMS = [
   {
-    name: "Altitude 200 km",
+    name: "Altitude 45,000 km",
     dataKey: "vessel.flight.altitudeAsl",
     topic: "vessel.flight",
     fieldPath: "altitudeAsl",
     op: ">=" as const,
-    value: 200_000,
+    value: 45_000_000,
   },
   {
-    name: "Altitude 300 km",
+    name: "Altitude 60,000 km",
     dataKey: "vessel.flight.altitudeAsl",
     topic: "vessel.flight",
     fieldPath: "altitudeAsl",
     op: ">=" as const,
-    value: 300_000,
+    value: 60_000_000,
   },
   {
-    name: "Speed 2 km/s",
-    dataKey: "vessel.flight.speedOrbital",
+    name: "Altitude 70,000 km",
+    dataKey: "vessel.flight.altitudeAsl",
     topic: "vessel.flight",
-    fieldPath: "speedOrbital",
+    fieldPath: "altitudeAsl",
     op: ">=" as const,
-    value: 2_000,
+    value: 70_000_000,
   },
 ] as const;
 
@@ -169,9 +177,9 @@ it(
       for (const [name, n] of rearmsByName) {
         console.info(`  ${name}: ${n} fire(s) (re-armed each time)`);
       }
-      const altLaps = (rearmsByName.get("Altitude 200 km") ?? 0) / 2;
+      const altLaps = (rearmsByName.get("Altitude 45,000 km") ?? 0) / 2;
       console.info(
-        `approx laps (Altitude 200 km fires / 2, one rising + one falling per lap): ${altLaps}`,
+        `approx laps (Altitude 45,000 km fires / 2, one rising + one falling per lap): ${altLaps}`,
       );
       console.info(JSON.stringify(verdict, null, 2));
 
