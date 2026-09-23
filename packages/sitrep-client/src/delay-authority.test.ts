@@ -410,12 +410,10 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     const state = store.sample<{
       position: readonly [number, number, number] | null;
       velocity: readonly [number, number, number] | null;
-      basis: string;
     }>("vessel.state");
 
     // The vessel dead-reckons to the frame's single view UT...
     const vesselExpected = solve(CIRCULAR_ELEMENTS, frame.viewUt);
-    expect(state?.payload?.basis).toBe("propagated");
     expect(state?.payload?.position).toEqual(vesselExpected.position);
 
     // ...and a deterministic body, solved at the SAME frame UT, uses the

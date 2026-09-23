@@ -583,8 +583,6 @@ export interface VesselState {
    * transition on the current trajectory).
    */
   orbitPatches: LegacyOrbitPatch[];
-  /** Which path produced this record's kinematics: never a widget's choice (this avoids the dual-altitude ambiguity bug). */
-  basis: "propagated" | "measured";
   /** `vessel:<guid>`: subject provenance, from the orbit PAYLOAD's own `meta.source`; empty when the sample carries none. */
   subjectId: string;
 }
@@ -1012,15 +1010,14 @@ function deriveIdentityFlags(get: DerivedGet): {
  *   read `system.bodies` for the reference body's radius (`deriveApsides`).
  *   Both are now declared in `vesselStateChannel.inputs` (see that const's
  *   own doc comment for why growing that array is a real, deliberate,
- *   repo-wide change and not a free extra input to add lightly). `basis:
- *   "propagated"`.
+ *   repo-wide change and not a free extra input to add lightly).
  * - **Loaded** (powered/atmospheric): elements are osculating garbage for
  *   surface quantities, so altitude/vertical/surface speed come off
  *   `vessel.flight` at `viewUt` via `getInterpolated`: a straight-line lerp
  *   between the two buffered `vessel.flight` samples straddling `viewUt`
  *   (`ClientTimeline.straddle` is the seam).
  *   Falls back to hold-last itself when there's nothing to straddle (e.g.
- *   only one `vessel.flight` sample so far). `basis: "measured"`.
+ *   only one `vessel.flight` sample so far).
  *
  * **`undefined` vs `null`, never conflated**: no `vessel.orbit` point
  * at-or-before `viewUt` yet means the input isn't whole yet (cold start, or
@@ -1325,7 +1322,6 @@ export function deriveVesselState(
       // The impact prediction is a surface-frame MEASURED quantity off vessel.flight, so it is null in the propagated basis, like altitudeAsl/horizontalSpeed above.
       ...LANDING_NONE,
       orbitPatches: orbitPatchesLegacy,
-      basis: "propagated",
       subjectId,
     };
   }
@@ -1396,7 +1392,6 @@ export function deriveVesselState(
     // vessel.flight + vessel.orbit.mu + the system.bodies radius.
     ...deriveLanding(get, orbit, flight, orbitPatchesLegacy, viewUt),
     orbitPatches: orbitPatchesLegacy,
-    basis: "measured",
     subjectId,
   };
 }
@@ -1669,7 +1664,6 @@ export const VESSEL_STATE_FIELDS: Readonly<
   altitudeAsl: { unit: "m" },
   apoapsisAlt: { unit: "m" },
   apoapsisRadius: { unit: "m" },
-  basis: { unit: "text" },
   commsControlStateName: { unit: "text" },
   commsControlStateOrdinal: { unit: "enum" },
   encounterBody: { unit: "text" },

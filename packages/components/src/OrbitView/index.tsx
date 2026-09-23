@@ -15,7 +15,11 @@ import {
   useTelemetryStoreOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
+import {
+  apsidesExist,
+  type ControlFrame,
+  type ReckoningDecline,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
@@ -204,9 +208,8 @@ function OrbitViewComponent({
   //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
   //  - `vessel.state` (client-side derived channel) carries
   //    `trueAnomaly` (propagated at view-UT), `parentBodyName` (identity
-  //    index → `system.bodies` name), `basis` ("propagated" | "measured"),
-  //    and the apsis RADII. It isn't a wire `TopicId`, so it reads through
-  //    the provider-optional `useStreamOptional`.
+  //    index → `system.bodies` name) and the apsis RADII. It isn't a wire
+  //    `TopicId`, so it reads through the provider-optional `useStreamOptional`.
   //  - The apsis radii are read from `vessel.state.apoapsisRadius`/
   //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`), that
   //    formula is meaningless for apoapsis on a hyperbolic orbit (sma<0
@@ -249,7 +252,10 @@ function OrbitViewComponent({
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
-  const basis = vesselState?.basis;
+  const declined =
+    orbitReading.reckoning.status === "declined"
+      ? orbitReading.reckoning.declined
+      : undefined;
   /*
    * Solved from the elements above, so the whole group is absent together
    * wherever a conic through them would be wrong. `apoapsisRadius` is also
@@ -501,15 +507,7 @@ function OrbitViewComponent({
           whose path nobody would vouch for: the wrong sentence, with the
           wrong remedy, in place of the one that says what happened. */}
       {!hasOrbit && withheld === null ? (
-        <NoData>
-          {/* "measured" (Loaded/packed) basis: there IS an orbit, just no
-              osculating elements to derive a diagram from, distinct from
-              the genuine no-data case (basis undefined, nothing has
-              arrived yet). */}
-          {basis === "measured"
-            ? "No osculating orbit (packed)"
-            : "No orbital data"}
-        </NoData>
+        <NoData>{noOrbitSentence(declined)}</NoData>
       ) : !showDiagram ? (
         // Tiny mode, and the refusal does NOT displace the pill here. The pill
         // reports the craft's state at this instant, which is a fact the
@@ -554,6 +552,35 @@ registerComponent<OrbitViewConfig>({
 });
 
 export { OrbitViewComponent };
+
+/**
+ * What the empty state says, from WHY the conic withdrew.
+ *
+ * Every reason is named, so a new one is a compile error here rather than a
+ * silent default: the defect this closes is a widget inferring a specific cause
+ * from a general code, and an exhaustive switch is what makes a new cause a
+ * decision instead of a guess.
+ */
+function noOrbitSentence(declined: ReckoningDecline | undefined): string {
+  if (declined === undefined) return "No orbital data";
+  const reason = declined.reason;
+  switch (reason) {
+    case "under-physics":
+      // The orbit exists; the craft is loaded, so its elements are osculating
+      // and there is no coast to draw.
+      return "No osculating orbit (packed)";
+    case "input-absent":
+    case "beyond-horizon":
+    case "model-inapplicable":
+    case "contested":
+    case "insufficient-history":
+      return "No orbital data";
+    default: {
+      const unnamed: never = reason;
+      return unnamed;
+    }
+  }
+}
 
 const NoData = styled.div`
   font-size: var(--font-size-xs);

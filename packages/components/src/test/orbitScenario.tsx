@@ -59,9 +59,9 @@ export interface OrbitScenario {
    */
   meanAnomalyAtEpoch?: number;
   /**
-   * `vessel.orbit`'s sample quality, which drives `vessel.state.basis`
-   * (OnRails → "propagated", Loaded → "measured"). Default `Quality.OnRails`,
-   * every pre-existing scenario/test keeps its prior behaviour unchanged.
+   * `vessel.orbit`'s sample quality. `Quality.Loaded` makes the conic decline
+   * as `"under-physics"`, the packed case. Default `Quality.OnRails`, every
+   * pre-existing scenario/test keeps its prior behaviour unchanged.
    */
   quality?: Quality;
   /**

@@ -108,8 +108,7 @@ describe("the vessel.orbit reckoner", () => {
 
     expect(reading.reckoning.status).toBe("declined");
     if (reading.reckoning.status !== "declined") throw new Error("unreachable");
-    expect(reading.reckoning.declined.reason).toBe("model-inapplicable");
-    expect(reading.reckoning.declined.note).toMatch(/under physics/);
+    expect(reading.reckoning.declined.reason).toBe("under-physics");
   });
 
   /** The observation itself is untouched either way: only the model withdraws. */

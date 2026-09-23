@@ -156,7 +156,10 @@ describe("keplerAdmissibility asks who owns the trajectory", () => {
         300,
       ),
     ).toMatchObject({
-      declined: { input: "@vessel.orbit#horizon" },
+      declined: {
+        reason: "model-inapplicable",
+        input: "@vessel.orbit#horizon",
+      },
     });
   });
 

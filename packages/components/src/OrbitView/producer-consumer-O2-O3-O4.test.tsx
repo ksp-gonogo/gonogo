@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { emitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * Producer↔consumer disagreements O2/O3/O4: hyperbolic orbits and the
- * `vessel.state.basis` contract.
+ * Producer↔consumer disagreements O2/O3/O4: hyperbolic orbits and the packed
+ * (under physics) case.
  *
  * - **O2**: `hasOrbit` must not require apoapsis. Apoapsis is `null` by
  *   design on a hyperbolic orbit (`ecc >= 1`, no apoapsis exists), the gate
@@ -17,7 +17,7 @@ import { emitScenario, renderOrbitViewStream } from "./streamHarness";
  *   computation (finite but GARBAGE-negative for a hyperbolic orbit, since
  *   sma<0 there), that garbage must never reach `overlayContext.scale` or
  *   any augment slot prop.
- * - **O4**: in the "measured" (Loaded/packed) basis, the derived orbital
+ * - **O4**: while the craft is under physics (Loaded/packed), the derived orbital
  *   elements are null-by-design even though raw `vessel.orbit.sma`/`ecc`
  *   are present. The widget must not draw a diagram from those osculating
  *   elements, and must show a distinct "packed" empty state rather than the
