@@ -219,14 +219,13 @@ describe("vessel.state.altitudeAsl on the propagated basis", () => {
     const get = getWith({ orbit: orbitPoint(ENTRY_ARC) });
 
     /*
-     * The existing promise: never a body-less approximation. `verticalSpeed`
-     * and `surfaceSpeed` stay null on this basis either way, being
-     * surface-frame quantities the conic says nothing about.
+     * The existing promise: never a body-less approximation. `horizontalSpeed`
+     * stays null on this basis either way, being a surface-frame quantity the
+     * conic says nothing about.
      */
     const state = deriveVesselState(get, 0);
     expect(state?.altitudeAsl).toBeNull();
-    expect(state?.verticalSpeed).toBeNull();
-    expect(state?.surfaceSpeed).toBeNull();
+    expect(state?.horizontalSpeed).toBeNull();
   });
 
   it("names altitude among the paths the conic MOVES", () => {

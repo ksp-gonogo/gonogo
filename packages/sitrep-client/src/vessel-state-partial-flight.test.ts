@@ -83,15 +83,10 @@ function deriveWithout(dropped: string) {
 }
 
 /**
- * The four fields the measured basis takes straight off the wire. Named
+ * The fields the measured basis takes straight off the wire. Named
  * individually rather than swept, so a failure says WHICH reading escaped.
  */
-const WIRE_SOURCED = [
-  "altitudeAsl",
-  "verticalSpeed",
-  "surfaceSpeed",
-  "orbitalSpeed",
-] as const;
+const WIRE_SOURCED = ["altitudeAsl", "orbitalSpeed"] as const;
 
 describe("vessel.state on a partial vessel.flight frame", () => {
   it("derives a record at all, so the assertions below are about a real one", () => {
@@ -127,8 +122,6 @@ describe("vessel.state on a partial vessel.flight frame", () => {
     // also null a present one, and a test that only checks absence cannot
     // tell those apart.
     expect(state?.altitudeAsl).toBe(1000);
-    expect(state?.verticalSpeed).toBe(5);
-    expect(state?.surfaceSpeed).toBe(100);
     expect(state?.orbitalSpeed).toBe(2200);
   });
 });

@@ -479,7 +479,6 @@ export type {
   OrbitalSolve,
   SasModeName,
   SituationName,
-  TargetKindName,
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselPropulsionPayload,
