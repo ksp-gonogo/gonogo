@@ -671,7 +671,11 @@ export function AlarmsModal({
                     )
                   }
                   titleRight={
-                    !renaming && a.onFire && a.onFire.length > 0 ? (
+                    renaming ? undefined : a.actionsWithheld ? (
+                      <Badge severity="warning" size="sm">
+                        ACTIONS NOT RUN
+                      </Badge>
+                    ) : a.onFire && a.onFire.length > 0 ? (
                       <Badge severity="info" size="sm">
                         {a.onFire.length === 1
                           ? "FIRES 1 ACTION"

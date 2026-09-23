@@ -308,6 +308,14 @@ export interface Alarm {
    * action doesn't block the alarm itself or the rest of the list.
    */
   onFire?: AlarmFireAction[];
+  /**
+   * Set when this alarm fired without its `onFire` actions being dispatched,
+   * because the fire was discovered rather than watched: found already due on
+   * the first evaluation after a reload, or made due by an edit. A command sent
+   * now for a condition met arbitrarily long ago is not a late action but the
+   * wrong one. Cleared when the alarm goes back to waiting.
+   */
+  actionsWithheld?: true;
 }
 
 export interface AlarmWarpState {
@@ -408,6 +416,20 @@ function asAlarmState(value: unknown): AlarmState | undefined {
 /** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
  *  v2 `trigger` shape. Idempotent: already-v2 records pass through. */
 export function migrateAlarm(raw: unknown): Alarm | null {
+  const alarm = migrateAlarmShape(raw);
+  if (
+    alarm &&
+    typeof raw === "object" &&
+    raw !== null &&
+    "actionsWithheld" in raw &&
+    raw.actionsWithheld === true
+  ) {
+    alarm.actionsWithheld = true;
+  }
+  return alarm;
+}
+
+function migrateAlarmShape(raw: unknown): Alarm | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== "string" || typeof r.name !== "string") return null;

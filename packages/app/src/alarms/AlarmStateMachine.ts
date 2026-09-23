@@ -104,9 +104,10 @@ export class AlarmStateMachine {
      * A REFUSAL rather than roster membership, and the difference is the whole
      * of why this is not the predicate the warp stop uses. The roster does not
      * contain an alarm that has merely not been armed YET, and a mod-owned
-     * alarm latched during that window leaves `pending`, which is the only set
-     * the arm reconciles from: it would then never be armed, so never held, so
-     * never latched by anybody. A refusal is the mod having actually answered.
+     * alarm latched during that window leaves `pending`, and out of `pending`
+     * the arm reconciles only an alarm still owed one: it would then never be
+     * armed, so never held, so never latched by anybody. A refusal is the mod
+     * having actually answered.
      *
      * Defaults to "nothing was refused", which defers to a mod that may not
      * exist. That is safe because an alarm of a mod-owned kind on a client with
@@ -236,8 +237,8 @@ export class AlarmStateMachine {
    * Latch an event alarm the moment a matching occurrence is revealed after
    * the alarm began watching. Edge-triggered: `matchSinceUT` is set to the
    * observed UT at reveal (NOT the occurrence's own UT, a delayed occurrence
-   * reveals long after it happened, and the firing window must start from
-   * reveal so the `firing` transition isn't skipped). Once latched it never
+   * reveals long after it happened, and the banner window runs from the moment
+   * the operator could first have known). Once latched it never
    * clears; an occurrence is a fact of the past. Returns true iff it changed.
    *
    * The occurrence's own `ut` is kept separately on `alarm.eventUT`: it is
@@ -273,95 +274,60 @@ export class AlarmStateMachine {
   /**
    * Compute the next state for an alarm given the current observed UT.
    *
-   * `previously` is the UT this same alarm was last evaluated at, and it is
-   * what makes a time alarm (and a sustained threshold or contract-parameter
-   * alarm, which come due at `matchSinceUT + sustainSeconds`) survive warp.
-   * An `event` alarm needs no such companion: it latches `matchSinceUT` at
-   * reveal, so its window opens on the deriving tick itself. A pure
-   * CONTAINMENT firing test (`now - ut < 2`) fails at high warp: the host
-   * fires only on the TRANSITION into `firing`, but the host ticks at 1 Hz
-   * while `viewUt` advances at the warp rate, so one tick moves the clock by
-   * ~W seconds. Above ~1000x neither a 2-second window nor the arming window
-   * would ever be observed: the alarm would go straight to `fired`, with
-   * nothing notified, nothing broadcast, no `onFire` action group run, and
-   * warp never stepped down.
-   *
-   * A CROSSING test is the fix rather than a wider window, because any window
-   * is only a faster warp away from the same silence. Pass `null` (the default)
-   * where there is no previous evaluation to compare against, and the old
-   * containment behaviour is what remains.
+   * Level, not edge: an alarm that is due and has not yet fired goes to
+   * `firing` on whichever evaluation first finds it due, however far past the
+   * due moment that is. The host ticks at 1 Hz while the view clock runs at
+   * the warp rate, a reload can open long after an alarm came due, and an edit
+   * can make a held condition due at once, so "due within the last two
+   * seconds" is a window any of them steps clean over. `firing` settles to
+   * `fired` on a later evaluation two seconds past the due moment, so the
+   * banner window always lasts at least one evaluation, and neither state
+   * falls back to `pending` while the trigger stands.
    */
   deriveState(
     alarm: Alarm,
     now: number | null = this.getObservedUT(),
-    previously: number | null = null,
   ): Alarm["state"] {
     if (now === null) return "pending";
-    if (this.latchedElsewhere(alarm)) {
-      /*
-       * Not ours to decide. The instant is on the craft's clock and the mod is
-       * what compares against it, upstream of the reveal gate; comparing it to
-       * the view clock here would fire the alarm a light-time after the mod
-       * already stopped the warp, which is the drift the SCET arm exists to
-       * remove.
-       *
-       * So this arm is LATCHED from outside, the same shape the `event` arm
-       * uses: the fire notice off `alarm.scet.fired` sets `matchSinceUT`, and
-       * from there the ordinary two-second banner window runs.
-       */
-      if (alarm.state === "fired") return "fired";
-      if (alarm.matchSinceUT == null) return "pending";
-      return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
+    const trigger = alarm.trigger;
+    if (trigger.kind === "time" && !this.latchedElsewhere(alarm)) {
+      // The one arm that can move BACK out of a fire: an edit to a later
+      // instant is a new alarm as far as the operator is concerned.
+      if (now < trigger.ut) {
+        return trigger.ut - now <= trigger.leadSeconds ? "arming" : "pending";
+      }
+      return settleFire(alarm.state, now, trigger.ut);
     }
-    if (alarm.trigger.kind === "time") {
-      const { ut, leadSeconds } = alarm.trigger;
-      // Crossed the moment since the last evaluation, however far the clock
-      // jumped: this tick is the one that owes the operator the banner.
-      const crossed = previously !== null && previously < ut && now >= ut;
-      if (crossed) return "firing";
-      if (now >= ut && now - ut < 2) return "firing";
-      if (now >= ut) return "fired";
-      if (ut - now <= leadSeconds) return "arming";
-      return "pending";
+    const dueAt = this.dueAt(alarm);
+    if (alarm.state === "firing" || alarm.state === "fired") {
+      return settleFire(alarm.state, now, dueAt);
     }
-    if (alarm.trigger.kind === "event") {
-      /*
-       * Edge-triggered: no arming, no sustain. Fire the instant a matching
-       * occurrence latched `matchSinceUT`, hold `firing` for the standard 2s
-       * banner window, then settle to `fired`.
-       *
-       * This containment test needs no crossing companion, and the reason is
-       * the latch UT rather than the window: `updateEventTracking` sets
-       * `matchSinceUT` to the REVEAL UT, which is the same tick that derives
-       * here, so the difference is zero however far a warp step moved the
-       * clock. It is the one arm a jump cannot step over. Move the latch to
-       * the occurrence's own `ut` and that stops being true.
-       */
-      if (alarm.state === "fired") return "fired";
-      if (alarm.matchSinceUT == null) return "pending";
-      return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
-    }
-    if (alarm.state === "fired") return "fired";
-    // Threshold and contract-parameter both use the matchSinceUT +
-    // sustainSeconds shape; the underlying match check differs but the
-    // state transition logic is identical.
+    if (dueAt === null || now < dueAt) return "pending";
+    return "firing";
+  }
+
+  /**
+   * The instant a latched alarm came due, or `null` while nothing has latched.
+   *
+   * An alarm the mod latches, and an `event` alarm, are due AT the latch: the
+   * mod has already waited out any sustain before its notice arrives, and an
+   * occurrence has no sustain. Comparing a mod-owned instant against the view
+   * clock here instead would fire a light-time after the mod already stopped
+   * the warp, which is the drift the SCET arm exists to remove. Threshold and
+   * contract-parameter alarms evaluated on this side come due once the match
+   * has held for `sustainSeconds`.
+   */
+  private dueAt(alarm: Alarm): number | null {
+    if (alarm.matchSinceUT == null) return null;
     const t = alarm.trigger;
-    if (alarm.matchSinceUT == null) return "pending";
-    /*
-     * The moment this alarm comes due, as an instant rather than a duration,
-     * so the same crossing test the time arm uses applies here too. Under warp
-     * one tick can move `heldFor` from 0 to thousands, clean over both the
-     * sustain window and the 2-second firing window that follows it, and the
-     * alarm reached `fired` without ever passing through `firing`: no banner,
-     * no tone, no peer broadcast, no `onFire` action group, no warp step-down.
-     */
-    const dueAt = alarm.matchSinceUT + t.sustainSeconds;
-    if (previously !== null && previously < dueAt && now >= dueAt) {
-      return "firing";
+    if (
+      this.latchedElsewhere(alarm) ||
+      t.kind === "event" ||
+      t.kind === "time"
+    ) {
+      return alarm.matchSinceUT;
     }
-    if (now < dueAt) return "pending";
-    if (now - dueAt < 2) return "firing";
-    return "fired";
+    return alarm.matchSinceUT + t.sustainSeconds;
   }
 
   /**
@@ -459,6 +425,21 @@ export class AlarmStateMachine {
     }
     return null;
   }
+}
+
+/**
+ * The next state of an alarm that is due. One that has not fired yet fires
+ * now; one already firing holds the two-second banner window from the due
+ * moment, and settles to `fired` without it where the moment is gone.
+ */
+function settleFire(
+  state: Alarm["state"],
+  now: number,
+  dueAt: number | null,
+): Alarm["state"] {
+  if (state === "fired") return "fired";
+  if (state !== "firing") return "firing";
+  return dueAt !== null && now - dueAt < 2 ? "firing" : "fired";
 }
 
 function compare(observed: number, op: ThresholdOp, value: number): boolean {

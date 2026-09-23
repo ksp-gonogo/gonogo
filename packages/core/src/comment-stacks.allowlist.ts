@@ -149,7 +149,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/alarms/AlarmBanner.tsx": 2,
   "packages/app/src/alarms/AlarmHostService.test.ts": 4,
   "packages/app/src/alarms/AlarmHostService.ts": 5,
-  "packages/app/src/alarms/AlarmStateMachine.ts": 3,
+  "packages/app/src/alarms/AlarmStateMachine.ts": 2,
   "packages/app/src/alarms/AlarmsModal.test.tsx": 4,
   "packages/app/src/alarms/AlarmsModal.tsx": 4,
   "packages/app/src/alarms/AlarmsModal.undefined.characterise.test.tsx": 1,
