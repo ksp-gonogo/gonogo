@@ -130,7 +130,7 @@ const CAP_REFUSAL = /active strategies at this level/i;
 
 const ARM_ONE_UNREACHED =
   "unknown: KSP counts your running strategies only inside the " +
-  "Administration Building, so the last check cannot be made out here";
+  "Administration Building, so that check is not made in this list";
 
 const derived = (row: Row): Row =>
   row.canActivate === false && !CAP_REFUSAL.test(row.activateBlockedReason)

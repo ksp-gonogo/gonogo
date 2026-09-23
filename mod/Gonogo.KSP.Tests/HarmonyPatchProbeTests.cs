@@ -70,6 +70,40 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void TwoUnpatchedHalvesAreUnpatched()
+        {
+            var reading = HarmonyPatchProbe.Combine(HarmonyPatchProbe.Reading.Unpatched, HarmonyPatchProbe.Reading.Unpatched);
+
+            Assert.Equal(HarmonyPatchProbe.PatchState.Unpatched, reading.State);
+        }
+
+        [Fact]
+        public void EitherHalfPatchedIsPatchedNamingEveryOwnerOnce()
+        {
+            var reading = HarmonyPatchProbe.Combine(
+                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "RP-0" }),
+                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "RP-0", "Other" }));
+
+            Assert.Equal(HarmonyPatchProbe.PatchState.Patched, reading.State);
+            Assert.Equal(new[] { "RP-0", "Other" }, reading.Owners);
+        }
+
+        /// <summary>
+        /// One half patched and the other unreadable is not "patched": the
+        /// unreadable half might carry the patch that matters, and a roster must
+        /// not claim to know which.
+        /// </summary>
+        [Fact]
+        public void AnUnreadableHalfIsUnknownWhateverTheOtherSays()
+        {
+            var reading = HarmonyPatchProbe.Combine(
+                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "RP-0" }),
+                HarmonyPatchProbe.Reading.Unknown);
+
+            Assert.Equal(HarmonyPatchProbe.PatchState.Unknown, reading.State);
+        }
+
+        [Fact]
         public void WithNoHarmonyLoadedNothingIsPatched()
         {
             Assert.Equal(HarmonyPatchProbe.PatchState.Unpatched, HarmonyPatchProbe.Of(Original, harmony: null).State);

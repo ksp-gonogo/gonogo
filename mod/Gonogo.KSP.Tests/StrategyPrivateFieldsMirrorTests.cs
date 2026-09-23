@@ -56,6 +56,19 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
+        /// The two halves of stock's activation the patch read asks Harmony about.
+        /// A half that stopped resolving would make the read Unknown for every
+        /// career, and every shut-screen activation refuse as unreadable.
+        /// </summary>
+        [Fact]
+        public void BothHalvesThePatchReadNamesResolve()
+        {
+            Assert.NotNull(StockActivationPatch.Activate);
+            Assert.NotNull(StockActivationPatch.CanBeActivated);
+            Assert.Equal(typeof(bool), ((MethodInfo)StockActivationPatch.CanBeActivated!).ReturnType);
+        }
+
+        /// <summary>
         /// The write lands where stock's own getters read. An uninitialised
         /// instance, because <c>Strategy</c>'s constructor reaches config the test
         /// process does not have and the getters touch nothing else.

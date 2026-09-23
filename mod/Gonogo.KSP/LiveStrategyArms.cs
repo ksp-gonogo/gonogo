@@ -108,7 +108,7 @@ namespace Gonogo.KSP
                     // career could be asked said yes, and the one arm that lives
                     // on the shut screen could not be asked at all.
                     return "KSP counts your running strategies only inside the "
-                        + "Administration Building, so the last check cannot be made out here";
+                        + "Administration Building, so that check is not made in this list";
                 case StrategyArm.CommitCeiling:
                     return "this career's commitment ceiling could not be read";
                 case StrategyArm.ReputationFloor:

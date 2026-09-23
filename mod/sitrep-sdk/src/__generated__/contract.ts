@@ -530,6 +530,18 @@ export interface CareerStrategies
 	active: CareerStrategy[];
 	all: CareerStrategy[];
 	activeCount: Value<"count">;
+	/**
+	* Whether another mod replaces or alters KSP's own strategy activation: `true`
+	* when it does, `false` when the game's activation is its own, `null` when
+	* that could not be established.
+	*
+	* With the Administration Building shut, `career.strategy.activate` commits a
+	* strategy only when this is `false`, and refuses otherwise: a mod that
+	* changes activation owns the procedure, and offers its own command for it.
+	* With the building open the game activates as it always does, whatever this
+	* says.
+	*/
+	activationPatched?: boolean | null;
 }
 /** One strategy in `CareerStrategies.active` / `CareerStrategies.all`. */
 export interface CareerStrategy
