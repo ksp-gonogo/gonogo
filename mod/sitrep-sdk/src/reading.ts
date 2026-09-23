@@ -309,6 +309,18 @@ export interface TopicModel<T, R = T> {
  * `@vessel.orbit`, `@vessel.orbit#mu`), so the string a widget shows and the
  * string the contract carries are the same string.
  *
+ * `"under-physics"` means the subject is being stepped by the full simulation
+ * rather than coasting, so a closed-form model of its motion does not apply:
+ * a craft whose elements are osculating because something is pushing it. It is
+ * its own member rather than a kind of `"model-inapplicable"` because a
+ * consumer has a different thing to say about it (the orbit exists and the
+ * craft is loaded) and must not have to infer that from `input` or `note`.
+ *
+ * **Every condition a consumer can branch on is a `reason`.** `input` names the
+ * responsible input and several conditions share one; `note` is prose. Neither
+ * says which condition fired, so a consumer that needs to know gets a member
+ * here rather than a pattern to match.
+ *
  * `"insufficient-history"` is the one the STORE raises on the reckoner's behalf
  * without consulting it, and the only rejection {@link ReckonerWindow} has: the
  * declared window held fewer than `minSamples` points of the reckoner's own
@@ -322,11 +334,15 @@ export interface ReckoningDecline {
     | "input-absent"
     | "beyond-horizon"
     | "model-inapplicable"
+    | "under-physics"
     | "contested"
     | "insufficient-history";
   /** The declared input responsible, where the reason has one. */
   readonly input?: string;
-  /** One sentence for an operator. Never a stack, never a code. */
+  /**
+   * One sentence for an operator. Never a stack, never a code, and never read
+   * by a program: a branch on its text is a branch on wording that can change.
+   */
   readonly note?: string;
 }
 

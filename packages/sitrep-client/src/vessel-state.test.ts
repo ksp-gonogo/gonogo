@@ -308,7 +308,6 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/commsCon
     });
 
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.situationName).toBe("Landed");
     expect(state?.sasModeName).toBe("Maneuver");
     expect(state?.commsControlStateName).toBe("None");
@@ -449,7 +448,6 @@ describe("encounter display maps: encounterExists/encounterBody/encounterUt (bat
       "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
     });
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.encounterExists).toBe(1);
     expect(state?.encounterBody).toBe("Kerbin");
     expect(state?.encounterUt).toBe(7);
@@ -538,7 +536,6 @@ describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/
     });
 
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.apoapsisRadius).toBeNull();
     expect(state?.periapsisRadius).toBeNull();
     expect(state?.orbitalRadius).toBeNull();
@@ -577,7 +574,6 @@ describe("deriveVesselState", () => {
       const state = deriveVesselState(get, viewUt);
 
       expect(state).not.toBeNull();
-      expect(state?.basis).toBe("propagated");
 
       const elements: OrbitElements = {
         sma: CIRCULAR_ORBIT.sma,
@@ -662,7 +658,6 @@ describe("deriveVesselState", () => {
 
       const state = deriveVesselState(get, 0);
 
-      expect(state?.basis).toBe("measured");
       expect(state?.altitudeAsl).toBe(MEASURED_FLIGHT.altitudeAsl);
       expect(state?.orbitalSpeed).toBe(MEASURED_FLIGHT.orbitalSpeed);
       // Not propagated: nothing orbital-derived is fabricated from elements.
@@ -671,40 +666,59 @@ describe("deriveVesselState", () => {
     });
   });
 
+  /**
+   * Which path ran, told by the one input that separates them: the measured
+   * path reads `vessel.flight` and the propagated path never does (pinned in
+   * its own block above). The record no longer states the pick, so the pick is
+   * observed rather than read back.
+   */
+  function pathTaken(
+    points: Parameters<typeof fakeGet>[0],
+  ): "propagated" | "measured" {
+    const { get, requestedTopics } = fakeGet(points);
+    deriveVesselState(get, 0);
+    return requestedTopics.includes("vessel.flight")
+      ? "measured"
+      : "propagated";
+  }
+
   describe("quality-pick switch", () => {
-    it("flips basis from propagated to measured and back as the orbit sample's quality changes", () => {
-      const { get: onRailsGet } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
-          quality: Quality.OnRails,
+    it("flips from propagated to measured and back as the orbit sample's quality changes", () => {
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.OnRails,
+          }),
         }),
-      });
-      expect(deriveVesselState(onRailsGet, 0)?.basis).toBe("propagated");
-
-      const { get: loadedGet } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
-        "vessel.flight": flightPoint(MEASURED_FLIGHT),
-      });
-      expect(deriveVesselState(loadedGet, 0)?.basis).toBe("measured");
-
-      const { get: backToOnRailsGet } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
-          quality: Quality.OnRails,
+      ).toBe("propagated");
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.Loaded,
+          }),
+          "vessel.flight": flightPoint(MEASURED_FLIGHT),
         }),
-      });
-      expect(deriveVesselState(backToOnRailsGet, 0)?.basis).toBe("propagated");
+      ).toBe("measured");
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.OnRails,
+          }),
+        }),
+      ).toBe("propagated");
     });
 
     it("the picker reads the ORBIT sample's quality, not any global flag", () => {
       // Orbit says OnRails even though a (possibly stale) flight sample also
       // happens to be available: must still propagate, not measure.
-      const { get } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
-          quality: Quality.OnRails,
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.OnRails,
+          }),
+          "vessel.flight": flightPoint(MEASURED_FLIGHT),
         }),
-        "vessel.flight": flightPoint(MEASURED_FLIGHT),
-      });
-
-      expect(deriveVesselState(get, 0)?.basis).toBe("propagated");
+      ).toBe("propagated");
     });
   });
 
@@ -1070,7 +1084,6 @@ describe("body-NAME display maps: parentBodyName/referenceBodyName (Step-2 migra
     });
 
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.referenceBodyName).toBe("Kerbin");
     expect(state?.parentBodyName).toBe("Kerbin");
   });
@@ -1448,7 +1461,6 @@ describe("hyperbolic orbits: OnRails vessel/target on an escape trajectory never
     );
 
     // Non-orbital fields are entirely unaffected.
-    expect(state?.basis).toBe("propagated");
     expect(state?.subjectId).toBe("vessel:abc-123");
     expect(state?.parentBodyName).toBe("Kerbin");
   });
