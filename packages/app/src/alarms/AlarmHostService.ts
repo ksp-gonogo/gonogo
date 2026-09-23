@@ -576,6 +576,7 @@ export class AlarmHostService {
           id,
           vantage,
           firedAtUt,
+          warpRate: this.warpObserver.rateBefore(firedAtUt),
         },
       );
       return;
@@ -586,6 +587,7 @@ export class AlarmHostService {
         vantage,
         firedAtUt,
         clientUt: this.observedUT,
+        warpRate: this.warpObserver.rateBefore(firedAtUt),
       });
       return;
     }
@@ -594,6 +596,7 @@ export class AlarmHostService {
       vantage,
       firedAtUt,
       clientEventUt: alarm.eventUT ?? null,
+      warpRate: this.warpObserver.rateBefore(firedAtUt),
     });
   }
 
@@ -610,6 +613,7 @@ export class AlarmHostService {
       logger.warn("alarm-shadow: client fired, mod has not", {
         id: alarm.id,
         clientUt: this.observedUT,
+        warpRate: this.clientFireWarpRate(),
       });
       return;
     }
@@ -618,7 +622,19 @@ export class AlarmHostService {
       vantage: verdict.vantage,
       modFiredAtUt: verdict.firedAtUt,
       clientUt: this.observedUT,
+      warpRate: this.clientFireWarpRate(),
     });
+  }
+
+  /**
+   * The rate the game reported in force as this client's fire came due, for
+   * the shadow record: the reading from before the fire's own tick, `null`
+   * when there is none.
+   */
+  private clientFireWarpRate(): number | null {
+    return this.observedUT === null
+      ? null
+      : this.warpObserver.rateBefore(this.observedUT);
   }
 
   // ── Tick loop ─────────────────────────────────────────────────────────

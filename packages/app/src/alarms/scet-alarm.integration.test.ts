@@ -123,6 +123,10 @@ interface ModStandIn {
    * keyed by Topic would only be a second, poorer copy of the mod's field walk.
    */
   setReading(value: number): void;
+  /** The operator changes warp at the game itself, which no command of the client's asked for. */
+  setGameWarp(index: number): void;
+  /** Tell the CLIENT an altitude, stamped now, so its own threshold evaluator has a reading to cross on. */
+  showClientAltitude(altitudeAsl: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
   attach(): void;
   /** The true UT at which the stand-in mod fired each alarm. */
@@ -333,6 +337,17 @@ function startSession(owlt: number): ModStandIn {
     },
     setReading(value) {
       reading = value;
+    },
+    setGameWarp(index) {
+      warpIndex = index;
+    },
+    showClientAltitude(altitudeAsl) {
+      client.subscribe("vessel.flight", () => {});
+      transport.emit(
+        "vessel.flight",
+        { altitudeAsl },
+        { validAt: trueUt, deliveredAt: trueUt },
+      );
     },
     reconnect() {
       /* What a client sees when it comes back: the reliable lane replays the
@@ -1236,6 +1251,77 @@ describe("SCET alarms", () => {
         ),
       ).toBe(true);
       warn.mockRestore();
+    });
+
+    /**
+     * The shadow record has to say whether a fire happened under warp, since
+     * that is where the two clocks part furthest. The same mod-first fire is
+     * run at 1x and at 1000x and must read differently, and the figure is the
+     * rate the game reported rather than the rung it was set to.
+     */
+    it.each([
+      { label: "at 1x", gameIndex: 0, expected: 1 },
+      { label: "under warp", gameIndex: 5, expected: 1000 },
+    ])("records the game's warp rate on a shadow fire $label", async ({
+      gameIndex,
+      expected,
+    }) => {
+      const warn = vi.spyOn(logger, "warn");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      await run(session, UT_START + 4 * DT);
+      session.setGameWarp(gameIndex);
+      await run(session, UT_START + 4 * DT + OWLT + 2 * DT);
+
+      session.fireForVantage(alarm.id);
+      await run(session, UT_START + 4 * DT + 2 * OWLT + 4 * DT);
+      svc.dispose();
+
+      const line = warn.mock.calls.find(([m]) =>
+        String(m).includes("mod fired first, client still pending"),
+      );
+      expect(line?.[1]).toMatchObject({ id: alarm.id, warpRate: expected });
+      warn.mockRestore();
+    });
+
+    it("records the warp rate on the client's own fire under warp", async () => {
+      const info = vi.spyOn(logger, "info");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      await run(session, UT_START + 4 * DT);
+      session.setGameWarp(5);
+      session.fireForVantage(alarm.id);
+      await run(session, UT_START + 4 * DT + OWLT + 2 * DT);
+
+      session.showClientAltitude(1_100_000);
+      await run(session, UT_START + 4 * DT + 2 * OWLT + 4 * DT);
+      svc.dispose();
+
+      const line = info.mock.calls.find(([m]) =>
+        String(m).includes("client fired, mod had already agreed"),
+      );
+      expect(line?.[1]).toMatchObject({ id: alarm.id, warpRate: 1000 });
+      info.mockRestore();
     });
 
     /**
