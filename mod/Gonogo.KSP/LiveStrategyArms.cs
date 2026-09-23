@@ -74,7 +74,7 @@ namespace Gonogo.KSP
             StrategyActivationRule.Verdict verdict;
             try
             {
-                verdict = StrategyActivationRule.Walk(Read(strategy, system));
+                verdict = Walk(strategy, system);
             }
             catch (Exception ex)
             {
@@ -87,11 +87,19 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The walk's own verdict, for a caller that must act on the difference
+        /// between a refusal and an arm that went unasked rather than only report
+        /// it. Throws whatever the live reads throw.
+        /// </summary>
+        public static StrategyActivationRule.Verdict Walk(Strategy strategy, StrategySystem system) =>
+            StrategyActivationRule.Walk(Read(strategy, system));
+
+        /// <summary>
         /// What an operator is told when an arm could not be put. Each names the
         /// thing that was unreadable rather than the arm's number, which means
         /// nothing outside this file.
         /// </summary>
-        private static string UnaskedWording(StrategyArm arm)
+        internal static string UnaskedWording(StrategyArm arm)
         {
             switch (arm)
             {
@@ -243,7 +251,7 @@ namespace Gonogo.KSP
         /// The refusing arm in the game's own words. The two arms that run code we
         /// did not write carry their own wording and are passed through verbatim.
         /// </summary>
-        private static string Wording(StrategyActivationRule.Verdict verdict, Strategy strategy)
+        internal static string Wording(StrategyActivationRule.Verdict verdict, Strategy strategy)
         {
             // No arm 1 case: it is never the refusing arm here, because it is
             // never asked. Its localisation tag is #autoLOC_304820, if that ever

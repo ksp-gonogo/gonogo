@@ -44,52 +44,32 @@ namespace Gonogo.KSP
         /// <summary>
         /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>) and
         /// self-deducting (its up-front funds/science/reputation cost, each
-        /// scaled by <c>Factor</c>), so a <c>false</c> return is a clean
-        /// "not eligible" with no partial spend.
+        /// scaled by <c>Factor</c>), so with the Administration screen open a
+        /// <c>false</c> return is a clean "not eligible" with no partial spend.
         ///
-        /// <para><b>Only from the Administration Building, and that is KSP's
-        /// rule rather than ours.</b> <c>CanBeActivated</c>'s first three arms
-        /// dereference <c>Administration.Instance</c>. The active-strategy count, the
-        /// concurrent cap and the commit-level ceiling all live on that
-        /// component and nowhere else. It is
+        /// <para><b>With that screen shut, stock's method cannot run at all.</b>
+        /// <c>CanBeActivated</c>'s first three arms dereference
+        /// <c>Administration.Instance</c>, which is
         /// <c>KSP.UI.Screens.Administration</c>, a UI <c>MonoBehaviour</c> whose
         /// canvas <c>AdministrationSceneSpawner</c> adds on
         /// <c>onGUIAdministrationFacilitySpawn</c> and removes again on despawn,
-        /// so <c>Instance</c> is null everywhere except while the player has
-        /// that screen open. <c>Activate()</c> calls <c>CanBeActivated</c>
-        /// itself, so with the screen closed BOTH throw: this command used to
-        /// raise a <c>NullReferenceException</c> from inside the game, which
-        /// <c>ChannelEngine</c> rethrew on the Courier thread as an opaque
-        /// error, and the caps the old comment here claimed we honoured were
-        /// never reached at all.</para>
+        /// so <c>Instance</c> is null everywhere except while the player has that
+        /// screen open, and <c>Activate()</c> calls <c>CanBeActivated</c> itself.
+        /// That case goes to <see cref="StockStrategyActivation"/>, which puts the
+        /// gate arm by arm and reproduces the body. A career that patches stock's
+        /// activation (RP-1) is refused there rather than half-activated, and has
+        /// its own command.</para>
         ///
-        /// <para><b>The READING half no longer waits for that screen; this one
-        /// still has to.</b> <see cref="LiveStrategyArms"/> puts arms 2-9 one at a
-        /// time, off the same members stock reads, so a console career is told in
-        /// any scene what its save actually refuses. Knowing that does not make
-        /// the procedure reachable: <c>Activate()</c> asks
-        /// <c>CanBeActivated</c> itself before doing anything, so it throws with
-        /// the screen shut however confidently we could have answered; and its
-        /// body writes <c>isActive</c> and <c>dateActivated</c>, both
-        /// <c>private</c>, so there is no procedure-only entry point to call
-        /// instead. Stock offers no off-screen route, and reproducing the one it
-        /// has -- two private fields and three currency charges -- would be
-        /// inventing a spend rather than asking the game to make it.</para>
-        ///
-        /// <para>That authority is not substituted for, on either half. The one
-        /// threshold the reading half fetches for itself is the commit ceiling,
-        /// from <c>GameVariables</c>, which is where <c>Administration.Start</c>
-        /// fetches it and which is <c>virtual</c> so a retiering mod's override is
-        /// inherited; no number here is one of ours. The concurrent-strategy cap
-        /// is not reproduced at all, and nor is it declared as a gate on this
-        /// command: it was, and it was wrong on the careers this runs on, because
-        /// RP-1 exempts Leaders from that cap and spends it on program SLOTS, so a
-        /// raw count of active strategies darkened a control the game would have
-        /// allowed.</para>
+        /// <para>The concurrent-strategy cap is not declared as a gate on this
+        /// command: it was, and it was wrong on RP-1, which exempts Leaders from
+        /// that cap and spends it on program SLOTS, so a raw count of active
+        /// strategies darkened a control the game would have allowed. The
+        /// off-screen route asks it only on a career that has not patched
+        /// activation, where the roster count is exactly the screen's.</para>
         ///
         /// <para>The commitment itself is <see cref="StrategyCommit"/>'s: the
         /// factor is written before the gate because the cost scales with it,
-        /// and put back if the game refuses.</para>
+        /// and put back if the gate refuses.</para>
         /// </summary>
         public CommandResult ActivateStrategy(string strategyId, double factor)
         {
@@ -111,11 +91,7 @@ namespace Gonogo.KSP
 
             if (Administration.Instance == null)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.NotClearToProceed,
-                    "KSP runs its own commitment only from inside the Administration Building, "
-                        + "so this needs that screen open. Whether the strategy is eligible is "
-                        + "reported without it; committing to one is not.");
+                return StockStrategyActivation.Activate(strategy, system, factor);
             }
 
             return StrategyCommit.Activate(new LiveStrategy(strategy), factor);
@@ -140,7 +116,10 @@ namespace Gonogo.KSP
                 set => _strategy.Factor = value;
             }
 
-            public bool CanBeActivated(out string reason) => _strategy.CanBeActivated(out reason);
+            public CommandResult Gate() =>
+                _strategy.CanBeActivated(out var reason)
+                    ? CommandResult.Ok()
+                    : CommandResult.Fail(CommandErrorCode.WrongState, reason);
 
             public bool Activate() => _strategy.Activate();
         }

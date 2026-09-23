@@ -9207,8 +9207,11 @@ components:
             nothing could refuse therefore arrives unanswered with `"none"` rather than
             allowed.
 
-            Nothing reached off-screen should ARM an activation control either way: KSP
-            runs its own commitment only from inside that building.
+            A `"derived"` verdict never arms an activation control: it can only refuse.
+            Whether a strategy the roster left unanswered may be committed is decided by
+            `career.strategy.activate` itself, which puts every check again at the
+            moment it runs and refuses in the game's words or as unreadable rather than
+            guessing.
         canDeactivate:
           type:
             - boolean

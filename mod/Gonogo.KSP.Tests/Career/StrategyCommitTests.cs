@@ -90,6 +90,28 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Equal("Not enough Funds to set up this Strategy", result.Detail);
         }
 
+        /// <summary>
+        /// A gate that could not be asked is not the game saying no, so its code
+        /// reaches the client as it left the gate.
+        /// </summary>
+        [Fact]
+        public void AGateThatCouldNotBeAskedKeepsItsOwnCodeAndPutsTheFactorBack()
+        {
+            var strategy = new FakeStrategy
+            {
+                HasFactorSlider = true,
+                InitialFactor = 0.1f,
+                Acceptable = false,
+                Refusal = CommandResult.Fail(CommandErrorCode.Unreadable, "KSP's own check on this strategy could not be run"),
+            };
+
+            var result = StrategyCommit.Activate(strategy, 0.9);
+
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
+            Assert.False(strategy.Activated);
+            Assert.Equal(0.1f, strategy.Factor, 4);
+        }
+
         [Fact]
         public void AStrategyWithNoSliderIsNeverGivenAFactor()
         {
@@ -157,6 +179,7 @@ namespace Gonogo.KSP.Tests.Career
             public bool Acceptable { get; set; }
             public bool ActivateSucceeds { get; set; } = true;
             public string Reason { get; set; } = "";
+            public CommandResult? Refusal { get; set; }
             public bool Activated { get; private set; }
             public int FactorWrites { get; private set; }
             public float FactorWhenAsked { get; private set; }
@@ -178,11 +201,10 @@ namespace Gonogo.KSP.Tests.Career
                 }
             }
 
-            public bool CanBeActivated(out string reason)
+            public CommandResult Gate()
             {
                 FactorWhenAsked = _factor;
-                reason = Reason;
-                return Acceptable;
+                return Acceptable ? CommandResult.Ok() : Refusal ?? CommandResult.Fail(CommandErrorCode.WrongState, Reason);
             }
 
             public bool Activate()

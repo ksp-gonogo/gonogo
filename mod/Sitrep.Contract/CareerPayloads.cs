@@ -528,8 +528,11 @@ public class CareerStrategy
     /// every arm. A row nothing could refuse therefore arrives unanswered with
     /// <c>"none"</c> rather than allowed.</para>
     ///
-    /// <para>Nothing reached off-screen should ARM an activation control either
-    /// way: KSP runs its own commitment only from inside that building.</para>
+    /// <para>A <c>"derived"</c> verdict never arms an activation control: it can
+    /// only refuse. Whether a strategy the roster left unanswered may be
+    /// committed is decided by <c>career.strategy.activate</c> itself, which puts
+    /// every check again at the moment it runs and refuses in the game's words
+    /// or as unreadable rather than guessing.</para>
     /// <internal>
     /// StrategyActivationRule walks arms 2-9 of Strategies.Strategy.
     /// CanBeActivated. The commit ceiling comes from GameVariables, which is
@@ -537,7 +540,9 @@ public class CareerStrategy
     /// retiering mod's override is inherited. Arm 1 is deliberately not
     /// reproduced: activeStrategyCount is a scroll-view item counter RP-1
     /// overwrites, so substituting a roster count would enforce stock's rule on a
-    /// career that has replaced it.
+    /// career that has replaced it. The write side asks arm 1 off the roster only
+    /// after confirming nothing has patched stock's activation, which is the one
+    /// case where the roster count and the screen's counter agree.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Text)]

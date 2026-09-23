@@ -113,6 +113,11 @@
     <Compile Include="..\Gonogo.KSP\SceneExitRule.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyActivationRule.cs" />
+    <!-- The reproduced body of Strategy.Activate() over an interface, and the
+         Harmony registry read that decides whether it may run. Neither names a
+         KSP type. -->
+    <Compile Include="..\Gonogo.KSP\Career\StrategyProcedure.cs" />
+    <Compile Include="..\Gonogo.KSP\HarmonyPatchProbe.cs" />
     <!-- CommandCentreReach.cs is the "can CommNet route here at all" rule the
          crewed-vessel enumeration gates on. It names no KSP type on purpose (the
          two node powers arrive as doubles, the part walk is generic over the part),
@@ -206,6 +211,10 @@
   <PropertyGroup>
     <AssemblyCSharpDll>$(KspManaged)\Assembly-CSharp.dll</AssemblyCSharpDll>
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
+    <!-- 0Harmony.dll is not in Managed/; it ships in an install's
+         GameData/000_Harmony, beside the Managed/ this points into. -->
+    <HarmonyDll>$(KspManaged)\..\..\GameData\000_Harmony\0Harmony.dll</HarmonyDll>
+    <HarmonyAvailable Condition="Exists('$(HarmonyDll)')">true</HarmonyAvailable>
     <!-- The robotics suite constructs real Expansions.Serenity servo modules,
          and BaseServo declares ConfigurableJoint/Rigidbody FIELDS, so the CLR
          resolves UnityEngine.PhysicsModule the moment one of those types
@@ -233,6 +242,11 @@
          It compares Sitrep.Contract's KSP-enum mirrors against the real enums in
          Assembly-CSharp, so it is gated like every other KspManaged suite here. -->
     <Compile Remove="KspEnumMirrorTests.cs" />
+    <!-- The same, for the strategy activation's reflected members and stock's
+         Activate() body, both read off Assembly-CSharp. -->
+    <Compile Remove="StrategyPrivateFieldsMirrorTests.cs" />
+    <Compile Remove="StrategyActivateBodyTests.cs" />
+    <Compile Remove="HarmonyPatchProbeMirrorTests.cs" />
     <!-- ActiveVessel/ is otherwise unconditional (EvaParentageTests names no KSP
          type at all), so only its ConfigNode half needs dropping here; it is
          re-added under the gate below beside the other round-trip suites. -->
@@ -441,6 +455,13 @@
          Sitrep.Contract's (reached transitively through the Sitrep.Host
          ProjectReference above). -->
     <Compile Include="KspEnumMirrorTests.cs" />
+    <!-- The two private Strategy fields an off-screen activation writes, and
+         the Activate() body it reproduces, held against the installed build:
+         reflection resolves at run time, so neither drifts into a compile
+         error. -->
+    <Compile Include="..\Gonogo.KSP\StrategyPrivateFields.cs" />
+    <Compile Include="StrategyPrivateFieldsMirrorTests.cs" />
+    <Compile Include="StrategyActivateBodyTests.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->
@@ -462,6 +483,19 @@
 
   <Target Name="WarnIfServoModulesMissing" BeforeTargets="Build" Condition="'$(ServoModulesAvailable)' != 'true'">
     <Warning Text="UnityEngine.PhysicsModule.dll not found under KspManaged=$(KspManaged): ServoCaptureTests SKIPPED (soft-degrade), so nothing is checking that every Breaking Ground servo kind reaches the wire. Point KspManaged at a full KSP_Data/Managed directory to run them." />
+  </Target>
+
+  <!-- HarmonyPatchProbe finds Harmony by name, so a Harmony release that
+       renames what it reads breaks no compile; this suite holds the names. -->
+  <ItemGroup Condition="'$(HarmonyAvailable)' == 'true'">
+    <Reference Include="0Harmony">
+      <HintPath>$(HarmonyDll)</HintPath>
+    </Reference>
+    <Compile Include="HarmonyPatchProbeMirrorTests.cs" />
+  </ItemGroup>
+
+  <Target Name="WarnIfHarmonyMissing" BeforeTargets="Build" Condition="'$(HarmonyAvailable)' != 'true'">
+    <Warning Text="0Harmony.dll not found at $(HarmonyDll): HarmonyPatchProbeMirrorTests SKIPPED, so nothing is checking the Harmony names the off-screen strategy activation reads to refuse a patched career." />
   </Target>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
