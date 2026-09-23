@@ -420,8 +420,9 @@ export class AlarmHostService {
     }
     this.alarms[idx] = next;
     if (patch.trigger) {
-      // A refusal describes the condition that was replaced.
+      // A refusal, and a mod verdict, describe the condition that was replaced.
       this.scetArmRefusals.delete(id);
+      this.shadowVerdicts.delete(id);
       /* Re-arm HERE rather than leaving it to the reconcile. The mod already
          holds this id, so the diff against its roster sees the alarm as armed
          and would arm nothing: the operator's edit would be kept on this side
@@ -438,9 +439,7 @@ export class AlarmHostService {
     const before = this.alarms.length;
     this.alarms = this.alarms.filter((a) => a.id !== id);
     if (this.alarms.length !== before) {
-      this.stateMachine.forget(id);
-      this.warpPlanner.forget(id);
-      this.scetArmRefusals.delete(id);
+      this.forgetAlarm(id);
       this.persist();
       this.emit();
     }
@@ -461,8 +460,17 @@ export class AlarmHostService {
     if (idx < 0) return;
     if (this.alarms[idx].state !== "fired") return;
     this.alarms.splice(idx, 1);
+    this.forgetAlarm(id);
     this.persist();
     this.emit();
+  }
+
+  /** Everything held per alarm id, dropped when the alarm itself goes. */
+  private forgetAlarm(id: string): void {
+    this.stateMachine.forget(id);
+    this.warpPlanner.forget(id);
+    this.scetArmRefusals.delete(id);
+    this.shadowVerdicts.delete(id);
   }
 
   /**
