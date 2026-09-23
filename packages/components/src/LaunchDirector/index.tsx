@@ -534,7 +534,19 @@ function LaunchDirectorComponent({
     undefined,
   )?.name;
   const missionTime = useStream<VesselState>("vessel.state")?.met;
-  const altitudeMeters = useStream<VesselState>("vessel.state")?.altitudeAsl;
+  /*
+   * The pad readout's altitude, off `vessel.flight`'s own field reading. The
+   * derived copy it used to read went `null` on rails, so a craft that made
+   * orbit showed no altitude at the desk that launched it.
+   */
+  const altitudeReading = useTelemetry("vessel.flight").altitudeAsl;
+  const altitudeMeters = magnitudeOf(
+    altitudeReading.reckoning.status === "available"
+      ? altitudeReading.reckoning.modelled
+      : altitudeReading.state === "observed"
+        ? altitudeReading.value
+        : undefined,
+  );
   /**
    * Whether the save still holds a revert point is a capability the game grants
    * and withdraws on events (entering flight, then saving over it), never
@@ -2140,7 +2152,7 @@ registerComponent<LaunchDirectorConfig>({
     "career.status.economy.upkeepPerDay",
     "vessel.identity.name",
     "vessel.state.met",
-    "vessel.state.altitudeAsl",
+    "vessel.flight.altitudeAsl",
     "ksp.revertAvailability.canRevertToLaunch",
     "ksp.revertAvailability.canRevertToEditor",
     "crash.hasRecent",

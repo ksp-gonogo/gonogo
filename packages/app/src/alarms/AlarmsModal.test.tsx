@@ -687,16 +687,16 @@ describe("AlarmsModal threshold trigger key picker", () => {
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
       kind: "threshold",
-      dataKey: "vessel.state.altitudeAsl",
+      dataKey: "vessel.flight.altitudeAsl",
     });
   });
 
   /**
-   * "An alarm for SCET 100km altitude" is also the one the picker's vocabulary
-   * would have lost on its own, because altitude is shown under the derived
-   * `vessel.state` name and the simulation has never heard of that channel.
+   * "An alarm for SCET 100km altitude". The picker offers altitude under the
+   * Topic the mod publishes, so the address the arm carries is the one the
+   * simulation can read.
    */
-  it("arms a SCET threshold at the Topic the simulation publishes, not the derived name", async () => {
+  it("arms a SCET threshold at the Topic the simulation publishes", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
     renderWithStream(
@@ -724,12 +724,12 @@ describe("AlarmsModal threshold trigger key picker", () => {
     expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
       kind: "threshold",
       vantage: "scet",
-      // The wire's name for it, recovered from the redirect that hid it.
+      // Split straight off the catalogue entry, which carries both halves.
       topic: "vessel.flight",
       fieldPath: "altitudeAsl",
-      // And the flat key is kept as it was, because it is what the row reads
-      // out and what a command-vantage copy of the same alarm would compare.
-      dataKey: "vessel.state.altitudeAsl",
+      // And the flat key beside it, because it is what the row reads out and
+      // what a command-vantage copy of the same alarm would compare.
+      dataKey: "vessel.flight.altitudeAsl",
     });
   });
 });

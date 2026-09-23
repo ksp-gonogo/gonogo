@@ -252,8 +252,20 @@ function ManeuverPlannerComponent({
   // `.magnitude` at the read: this widget threads the view time through geometry and
   // solver code typed on plain numbers, and the instant type earns nothing there.
   const currentUT = useViewUt()?.magnitude;
+  /*
+   * Off `vessel.flight`'s own field reading. It feeds `computeMu`, which only
+   * wants a number that is true of the craft NOW, so the modelled speed is
+   * taken where a model is on offer and the observation otherwise.
+   */
+  const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   const orbitalSpeed =
-    useStream<VesselState>("vessel.state")?.orbitalSpeed ?? undefined;
+    magnitudeOf(
+      orbitalSpeedReading.reckoning.status === "available"
+        ? orbitalSpeedReading.reckoning.modelled
+        : orbitalSpeedReading.state === "observed"
+          ? orbitalSpeedReading.value
+          : undefined,
+    ) ?? undefined;
   const radius = solve?.orbitalRadius ?? undefined;
   const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
@@ -1055,7 +1067,7 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.orbit.inc",
     "vessel.orbit.lan",
     "vessel.orbit.argPe",
-    "vessel.state.orbitalSpeed",
+    "vessel.flight.orbitalSpeed",
     "vessel.state.referenceBodyName",
     "vessel.state.parentBodyName",
     "vessel.maneuver.nodes",

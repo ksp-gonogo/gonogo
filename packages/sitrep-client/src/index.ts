@@ -284,9 +284,7 @@ export {} from "./map-command";
 export {
   isKnownFieldPath,
   mapTopic,
-  redirectKinematicSubtopic,
   resolveValueTopic,
-  wireAddressBehindRedirect,
 } from "./map-topic";
 export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";

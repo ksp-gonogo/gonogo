@@ -26,6 +26,17 @@ export const CompactRow = styled.div`
   display: flex;
   align-items: baseline;
   gap: var(--gap-related);
+  /* An altitude arrives with an interval beside it once the model has one to
+     give, and at five columns the pair is wider than the panel: without a wrap
+     the whole readout block grew past both panel edges and took the row labels
+     with it.
+
+     Only the row carrying an interval, because a row with room to spare wraps
+     in preference to shrinking a value that may not break, which put the label
+     above the figure on every scene at the three-column minimum. */
+  &:has([data-unit-band]) {
+    flex-wrap: wrap;
+  }
 `;
 
 export const CompactLabel = styled.span`
@@ -37,17 +48,22 @@ export const CompactLabel = styled.span`
 `;
 
 export const CompactValue = styled.span`
-  /* Off the type scale: --font-size-base is 15px on a coarse pointer, and
-     this value is nowrap with nothing left to give (see the note below), so
-     the bump is width the row does not have at the 3-col minimum size. */
+  /* Off the type scale: --font-size-base is 15px on a coarse pointer, and the
+     figure never breaks (see the note below), so the bump is width the row
+     does not have at the 3-col minimum size. */
   font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
-  /* Numeric readout: never truncate digits. Shrink to fit the row instead
-     of overflowing the panel edge at the 3-col minimum size. */
   min-width: 0;
+  /* Numeric readout: never truncate digits, and never break the figure from
+     its own symbol. The one break offered is before an INTERVAL, which the
+     primitive draws as its own element and keeps intact on whichever line it
+     lands; a row with no interval in it keeps the old rule exactly. */
   white-space: nowrap;
+  &:has([data-unit-band]) {
+    white-space: normal;
+  }
 `;
 
 /**

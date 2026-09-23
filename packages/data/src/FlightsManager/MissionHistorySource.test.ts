@@ -111,7 +111,9 @@ describe("MissionHistorySource", () => {
     it("offers a field with its label and unit", () => {
       const { source } = freshSource();
       const schema = source.schema();
-      const altitude = schema.find((k) => k.key === "vessel.state.altitudeAsl");
+      const altitude = schema.find(
+        (k) => k.key === "vessel.flight.altitudeAsl",
+      );
       expect(altitude).toMatchObject({ label: "Altitude ASL", unit: "m" });
     });
 
