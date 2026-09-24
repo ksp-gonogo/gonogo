@@ -6,11 +6,15 @@
  * (`useUtNow`), and the command Courier (`useCommand`): no new physics.
  */
 
-import type { CommsDelayLike } from "@ksp-gonogo/sitrep-sdk";
-import { useEffect, useRef, useState } from "react";
-import { useUtNow } from "./context";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { useUtNow, useViewClockOptional } from "./context";
 import { type UseCommandResult, useCommand } from "./use-command";
-import { useLatestValue } from "./use-stream";
 
 /** The fire/skip/wait verdict for a lead-compensated dispatch on a given tick. */
 export type AutoDispatchDecision = "wait" | "fire" | "skip-past";
@@ -81,23 +85,9 @@ export function useAutoCommand({
   onSkip,
 }: AutoCommandOptions): AutoCommandStatus {
   const utNow = useUtNow();
-  const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
+  const delaySeconds = useLeadSeconds();
   const cmd = useCommand(command);
   const { send } = cmd;
-  // `comms.delay.oneWaySeconds` (the SignalDelay capability, same source
-  // `DelayAuthority` reads) is the ACTIVE-VESSEL one-way delay today. Per-vessel
-  // delay is being designed; an auto-command for a NON-active vessel will
-  // eventually want THAT vessel's delay. Active-vessel delay is correct for v1
-  // (do not parameterise for per-vessel yet). null/absent/invalid → 0 (LAN /
-  // no-path: dispatch at the event itself, no lead needed).
-  // `.magnitude`, not a `typeof === "number"` guard: the wire declares this
-  // field in seconds, so it arrives as a `Value<"s">` and the guard would be
-  // false for every real frame, leaving the lead at 0 and dispatching an
-  // auto-command with no compensation at all. That is the whole point of the
-  // hook, and it would have failed silently on a live vessel.
-  const raw = commsDelay?.oneWaySeconds?.magnitude;
-  const delaySeconds =
-    typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : 0;
 
   // Ref guard for the single dispatch (StrictMode-safe); `phase` mirrors it for
   // the reactive return.
@@ -133,4 +123,25 @@ export function useAutoCommand({
     dispatchUt: targetUt - delaySeconds,
     command: cmd,
   };
+}
+
+/**
+ * The one-way delay a command dispatched from this session travels under: the
+ * view clock's own delay. The mod times a command from the session's vantage
+ * by the same ledger row it times that vantage's telemetry by, and
+ * `DelayAuthority` restates that row for the clock: the issuing centre's own
+ * delay where it has one, the whole-network `comms.delay` where it has none,
+ * zero aboard the craft itself, and the last measured delay held through a
+ * reading with no path. So the lead, the clock and the header cannot disagree.
+ */
+function useLeadSeconds(): number {
+  const clock = useViewClockOptional();
+  const seconds = useSyncExternalStore(
+    useCallback(
+      (onChange: () => void) => clock?.onFrame(onChange) ?? (() => {}),
+      [clock],
+    ),
+    useCallback(() => clock?.delaySeconds() ?? 0, [clock]),
+  );
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
 }

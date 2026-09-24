@@ -166,8 +166,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * `remainingGameSeconds / margin`, over a remaining-time number the alarm
    * state machine produces bare and a margin the operator types into a plain
    * `<input>`. Neither is a `Value`, so there is no algebra for the delay to
-   * stay inside. `auto-command.ts` spends its one on the same field for the
-   * same reason.
+   * stay inside.
    */
   "packages/app/src/alarms/AlarmHostService.ts": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
@@ -334,7 +333,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // the same boundary said once per field.
   "packages/data/src/hooks/vesselPartsAdapter.ts": 22,
   "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
-  "packages/sitrep-client/src/auto-command.ts": 1,
   // `numOrNull`, the one funnel where a body's wire quantities become the plain
   // numbers the system diagram scales into SVG coordinates. One place,
   // deliberately, and it is why re-pointing that file at the unit system was a

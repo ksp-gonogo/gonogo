@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCommand } from "./auto-command";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
+import { CENTRE_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
 import { createFakeWallClock } from "./fake-wall-clock";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
@@ -32,6 +33,9 @@ function installFakeRaf() {
   };
 }
 
+const FORWARD = "mun-relay";
+const UNROUTED = "minmus-outpost";
+
 function setup() {
   const wall = createFakeWallClock(0);
   const transport = new StubTransport();
@@ -40,12 +44,14 @@ function setup() {
   // handler (which answers on a later microtask).
   transport.setCommandHandler((c, a) => ({ c, a }));
   const client = new TelemetryClient(transport);
-  // The clock's own delaySeconds is irrelevant (utNowEstimate ignores it); the
-  // hook reads the one-way delay from the `comms.delay` topic, emitted below.
+  // Wired the way `TelemetryProvider` wires an auto-built store, so the lead
+  // comes from the same delay the view clock is offset by.
+  const authority = new DelayAuthority();
+  authority.attach(client);
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: authority.delaySeconds,
   });
   const store = new TimelineStore(clock);
   const staged = () =>
@@ -160,5 +166,107 @@ describe("useAutoCommand", () => {
       raf.flush();
     });
     expect(staged()).toHaveLength(0);
+  });
+  it("leads by the issuing centre's own row, not home's light-time", async () => {
+    // Home is 10 s out, the forward centre this session stands at is 2 s out:
+    // target 100 dispatches at 98, not 90.
+    const { wall, transport, clock, staged, Provider } = setup();
+    render(
+      <Provider>
+        <Harness targetUt={100} />
+      </Provider>,
+    );
+    act(() => {
+      transport.emit(
+        "comms.delay",
+        { oneWaySeconds: 10 },
+        { vantage: FORWARD },
+      );
+      transport.emit(
+        CENTRE_DELAY_TOPIC,
+        { centres: [{ id: FORWARD, oneWaySeconds: 2 }] },
+        { vantage: FORWARD },
+      );
+      raf.flush();
+    });
+    act(() => {
+      clock.observeSample(95, 95);
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(0);
+
+    act(() => {
+      wall.advanceBy(3); // utNow -> 98
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(1);
+
+    await act(async () => {});
+  });
+
+  it("an issuing centre with no row leads by the whole-network delay, never zero", async () => {
+    // The unrouted centre is left off the list, so its commands ride
+    // `comms.delay`: target 100 dispatches at 90, the same as home.
+    const { wall, transport, clock, staged, Provider } = setup();
+    render(
+      <Provider>
+        <Harness targetUt={100} />
+      </Provider>,
+    );
+    act(() => {
+      transport.emit(
+        "comms.delay",
+        { oneWaySeconds: 10 },
+        { vantage: UNROUTED },
+      );
+      transport.emit(
+        CENTRE_DELAY_TOPIC,
+        { centres: [{ id: FORWARD, oneWaySeconds: 2 }] },
+        { vantage: UNROUTED },
+      );
+      raf.flush();
+    });
+    act(() => {
+      clock.observeSample(85, 85);
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(0);
+
+    act(() => {
+      wall.advanceBy(5); // utNow -> 90
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(1);
+
+    await act(async () => {});
+  });
+
+  it("holds the last lead through a no-path reading rather than dropping to zero", async () => {
+    // A null one-way is "no path home", not "the craft is here": the lead the
+    // clock runs on stays at 10, so target 100 still dispatches at 90.
+    const { wall, transport, clock, staged, Provider } = setup();
+    render(
+      <Provider>
+        <Harness targetUt={100} />
+      </Provider>,
+    );
+    act(() => {
+      transport.emit("comms.delay", { oneWaySeconds: 10 });
+      transport.emit("comms.delay", { oneWaySeconds: null });
+      raf.flush();
+    });
+    act(() => {
+      clock.observeSample(85, 85);
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(0);
+
+    act(() => {
+      wall.advanceBy(5); // utNow -> 90
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(1);
+
+    await act(async () => {});
   });
 });
