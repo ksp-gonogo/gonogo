@@ -53,6 +53,7 @@ import type {
   ThresholdOp,
 } from "./types";
 import {
+  actionsRunAboard,
   DEFAULT_LEAD_SECONDS,
   DEFAULT_SUSTAIN_SECONDS,
   isAtSubjectVantage,
@@ -272,6 +273,18 @@ export function AlarmsModal({
     return { topic: selectedKey.topic, fieldPath: selectedKey.fieldPath };
   }, [selectedKey]);
   const scetAddressable = scetAddress !== null;
+  const draftAboard =
+    kind === "time" ||
+    (vantage === "scet" &&
+      actionsRunAboard({
+        kind: "threshold",
+        dataKey: trimmedKey,
+        op,
+        value: valueN,
+        sustainSeconds: 0,
+        vantage,
+        ...(scetAddress ?? {}),
+      }));
   const addDisabled =
     trimmedName === "" ||
     (kind === "time" &&
@@ -582,6 +595,7 @@ export function AlarmsModal({
         )}
 
         <OnFireEditor
+          aboard={draftAboard}
           value={draftOnFire}
           onRemove={removeDraftAt}
           pickerValue={pickerAction}
@@ -677,9 +691,11 @@ export function AlarmsModal({
                       </Badge>
                     ) : a.onFire && a.onFire.length > 0 ? (
                       <Badge severity="info" size="sm">
-                        {a.onFire.length === 1
-                          ? "FIRES 1 ACTION"
-                          : `FIRES ${a.onFire.length} ACTIONS`}
+                        {actionsBadge(
+                          a.onFire.length,
+                          actionsRunAboard(a.trigger) &&
+                            snapshot.scetArmRefusals?.[a.id] === undefined,
+                        )}
                       </Badge>
                     ) : undefined
                   }
@@ -1083,7 +1099,19 @@ function describeTrigger(
 // every date, so a game in its third year still read as year one. All three
 // call sites render it as a node, so the component drops straight in.
 
+/**
+ * Whether the actions act aboard in the moment or are sent from the ground and
+ * arrive late: two different promises, so the row never shows one as the
+ * other. An alarm the mod refused to arm runs its actions from this screen.
+ */
+function actionsBadge(count: number, aboard: boolean): string {
+  const noun = count === 1 ? "1 ACTION" : `${count} ACTIONS`;
+  return aboard ? `FIRES ${noun} ABOARD` : `SENDS ${noun} FROM GROUND`;
+}
+
 interface OnFireEditorProps {
+  /** Whether the draft's actions would run aboard the craft rather than be sent from the ground. See `actionsRunAboard`. */
+  aboard: boolean;
   value: AlarmFireAction[];
   onRemove: (idx: number) => void;
   pickerValue: string;
@@ -1201,6 +1229,7 @@ function captionForAg(
 }
 
 function OnFireEditor({
+  aboard,
   value,
   onRemove,
   pickerValue,
@@ -1258,6 +1287,11 @@ function OnFireEditor({
       <FieldHint>
         Each attached action runs in order when the alarm fires. Leave empty for
         a notify-only alarm.
+      </FieldHint>
+      <FieldHint>
+        {aboard
+          ? "Runs aboard the craft in the moment the alarm fires."
+          : "Sent from the ground when the alarm fires, so it reaches the craft one light-time later."}
       </FieldHint>
     </Field>
   );

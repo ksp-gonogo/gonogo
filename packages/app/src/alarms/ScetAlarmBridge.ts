@@ -7,11 +7,15 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   CommandErrorCode,
+  type ScetAlarmAction,
+  ScetAlarmActionKind,
   ScetAlarmConditionKind,
   ScetAlarmThresholdOp,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type Alarm,
+  type AlarmFireAction,
+  actionsRunAboard,
   isAtSubjectVantage,
   modOwnsLatch,
   type ThresholdOp,
@@ -61,10 +65,11 @@ export interface ScetAlarmBridgeContext {
   getAlarms(): readonly Alarm[];
   /**
    * A SCET alarm fired on the mod at `firedAtUt` (the craft's clock) and the
-   * warp is already stopped. Must be idempotent: the notice is replayed to a
-   * reconnecting client on purpose.
+   * warp is already stopped. `actionsWithheld` says its onboard actions did not
+   * run because the craft being flown was not the one they were for. Must be
+   * idempotent: the notice is replayed to a reconnecting client on purpose.
    */
-  onFired(id: string, firedAtUt: number): void;
+  onFired(id: string, firedAtUt: number, actionsWithheld: boolean): void;
   /**
    * The simulation decided a COMMAND-VANTAGE alarm was due, judged against what
    * `vantage` has been told rather than against the craft's true state.
@@ -138,6 +143,8 @@ export class ScetAlarmBridge {
   private unsubscribeFired: (() => void) | null = null;
   /** The ids the mod last said it held. Empty before any roster frame has arrived. */
   private rosterIds: readonly string[] = [];
+  /** The ids the mod last said it holds onboard actions for. */
+  private rosterActing: ReadonlySet<string> = new Set();
   private rosterSeen = false;
   /**
    * Ids already commanded since the last roster frame, so a reconcile running
@@ -219,6 +226,16 @@ export class ScetAlarmBridge {
   holdsAlarm(id: string): boolean | undefined {
     if (!this.rosterSeen) return undefined;
     return this.rosterIds.includes(id);
+  }
+
+  /**
+   * Whether the MOD holds this alarm's `onFire` actions and runs them itself in
+   * the frame it fires. The mod's own statement off the roster, like
+   * {@link holdsAlarm}: sending them from here as well would act on the craft
+   * twice, the second time a light-time late.
+   */
+  actsAboard(id: string): boolean {
+    return this.rosterActing.has(id);
   }
 
   /**
@@ -397,6 +414,7 @@ export class ScetAlarmBridge {
       : (client?.selectedVantage ?? client?.observedVantage ?? "");
     if (!isAtSubjectVantage(trigger) && vantage === "") return NOT_YET;
     if (trigger.kind === "time") {
+      const craft = getVesselIdentity()?.vesselId;
       return {
         id: alarm.id,
         name: alarm.name,
@@ -408,6 +426,11 @@ export class ScetAlarmBridge {
           ut: trigger.ut,
           leadSeconds: trigger.leadSeconds,
         },
+        /* Its actions name the craft being flown as it is armed, so a switch
+           before the fire withholds them rather than landing them elsewhere.
+           With no craft to name they stay on this screen, which sends them from
+           the ground; the alarm itself is armed either way. */
+        ...(craft ? aboard(alarm, `vessel:${craft}`) : {}),
       };
     }
     const address = thresholdAddress(trigger);
@@ -430,6 +453,7 @@ export class ScetAlarmBridge {
       name: alarm.name,
       vantage,
       subject,
+      ...aboard(alarm, subject),
       condition: {
         kind: ScetAlarmConditionKind.Threshold,
         topic: address.topic,
@@ -453,6 +477,7 @@ export class ScetAlarmBridge {
     if (!client) return;
     this.unsubscribeRoster = client.subscribe(SCET_ROSTER_TOPIC, (payload) => {
       this.rosterIds = readRosterIds(payload);
+      this.rosterActing = readActingIds(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
       this.reconcile();
@@ -470,7 +495,7 @@ export class ScetAlarmBridge {
         .getAlarms()
         .find((alarm) => alarm.id === notice.id);
       if (armed && modOwnsLatch(armed.trigger)) {
-        this.ctx.onFired(notice.id, notice.firedAtUt);
+        this.ctx.onFired(notice.id, notice.firedAtUt, notice.actionsWithheld);
       } else {
         this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.vantage);
       }
@@ -483,6 +508,7 @@ export class ScetAlarmBridge {
     this.unsubscribeFired?.();
     this.unsubscribeFired = null;
     this.rosterIds = [];
+    this.rosterActing = new Set();
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
     /* A new connection is a new simulation to ask, so every debt is due now. */
@@ -509,6 +535,72 @@ function subjectFor(topic: string): string | null {
   if (!topic.startsWith("vessel.")) return "game";
   const vesselId = getVesselIdentity()?.vesselId;
   return vesselId ? `vessel:${vesselId}` : null;
+}
+
+/**
+ * An operator's saved group id as the contract's typed action, or null for one
+ * that has no onboard form. A custom group is `AG<index>` and crosses as its
+ * index; a stock singleton crosses as its own kind, so no name reaches the wire
+ * and a custom group a player called "Stage" cannot be read as staging.
+ */
+const STOCK_ONBOARD: Readonly<Record<string, ScetAlarmActionKind>> = {
+  Stage: ScetAlarmActionKind.Stage,
+  SAS: ScetAlarmActionKind.Sas,
+  RCS: ScetAlarmActionKind.Rcs,
+  Light: ScetAlarmActionKind.Lights,
+  Gear: ScetAlarmActionKind.Gear,
+  Brake: ScetAlarmActionKind.Brakes,
+  Abort: ScetAlarmActionKind.Abort,
+};
+
+function onboardAction(fx: AlarmFireAction): ScetAlarmAction | null {
+  const custom = /^AG(\d+)$/.exec(fx.action);
+  if (custom) {
+    const group = Number(custom[1]);
+    return group >= 1 ? { kind: ScetAlarmActionKind.ActionGroup, group } : null;
+  }
+  const kind = STOCK_ONBOARD[fx.action];
+  return kind === undefined ? null : { kind, group: 0 };
+}
+
+/**
+ * The `onFire` and `actsOn` arm fields for an alarm whose actions run aboard,
+ * or nothing. All or none: a list the craft can run only part of stays with
+ * this screen whole, so the operator's order is never split across two places
+ * a light-time apart.
+ */
+function aboard(
+  alarm: Alarm,
+  actsOn: string,
+): { onFire: ScetAlarmAction[]; actsOn: string } | Record<string, never> {
+  if (!alarm.onFire?.length || !actionsRunAboard(alarm.trigger)) return {};
+  const onFire: ScetAlarmAction[] = [];
+  for (const fx of alarm.onFire) {
+    const action = onboardAction(fx);
+    if (action === null) return {};
+    onFire.push(action);
+  }
+  return { onFire, actsOn };
+}
+
+/** The ids of the roster rows that hold onboard actions. */
+function readActingIds(payload: unknown): ReadonlySet<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(payload)) return ids;
+  for (const row of payload) {
+    const id = readId(row);
+    if (
+      id !== null &&
+      typeof row === "object" &&
+      row !== null &&
+      "onFire" in row &&
+      Array.isArray(row.onFire) &&
+      row.onFire.length > 0
+    ) {
+      ids.add(id);
+    }
+  }
+  return ids;
 }
 
 /**
@@ -540,9 +632,12 @@ function readRosterIds(payload: unknown): readonly string[] {
  * keying would deliver the bare number, and a reader of raw frames has to take
  * either.
  */
-function readFiredNotice(
-  payload: unknown,
-): { id: string; firedAtUt: number; vantage: string } | null {
+function readFiredNotice(payload: unknown): {
+  id: string;
+  firedAtUt: number;
+  vantage: string;
+  actionsWithheld: boolean;
+} | null {
   const id = readId(payload);
   if (id === null) return null;
   if (typeof payload !== "object" || payload === null) return null;
@@ -559,7 +654,13 @@ function readFiredNotice(
     "vantage" in payload && typeof payload.vantage === "string"
       ? payload.vantage
       : "";
-  return { id, firedAtUt: magnitude, vantage };
+  return {
+    id,
+    firedAtUt: magnitude,
+    vantage,
+    actionsWithheld:
+      "actionsWithheld" in payload && payload.actionsWithheld === true,
+  };
 }
 
 /**

@@ -871,7 +871,7 @@ describe("AlarmsModal withheld actions", () => {
 
     await screen.findByText("Stage at 70 km");
     expect(screen.getByText("ACTIONS NOT RUN")).toBeInTheDocument();
-    expect(screen.queryByText("FIRES 1 ACTION")).not.toBeInTheDocument();
+    expect(screen.queryByText(/1 ACTION /)).not.toBeInTheDocument();
   });
 
   it("names the actions it carries when they ran", async () => {
@@ -885,8 +885,89 @@ describe("AlarmsModal withheld actions", () => {
     );
 
     await screen.findByText("Stage at 70 km");
-    expect(screen.getByText("FIRES 1 ACTION")).toBeInTheDocument();
+    expect(screen.getByText(/1 ACTION /)).toBeInTheDocument();
     expect(screen.queryByText("ACTIONS NOT RUN")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * An action run aboard in the moment and one sent from the ground that lands a
+ * light-time late are two different promises, and the row must not show one as
+ * the other.
+ */
+describe("AlarmsModal where actions run", () => {
+  function staging(trigger: Alarm["trigger"]): Alarm {
+    return {
+      id: "a-where",
+      name: "Separate the booster",
+      trigger,
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+      onFire: [{ kind: "action-group", action: "Stage" }],
+    };
+  }
+  const threshold = (vantage: "scet" | "command", topic: string) =>
+    ({
+      kind: "threshold",
+      dataKey: `${topic}.value`,
+      op: ">=",
+      value: 1,
+      sustainSeconds: 0,
+      vantage,
+      topic,
+      fieldPath: "value",
+    }) as const;
+
+  async function badgeFor(
+    alarm: Alarm,
+    refusals?: Record<string, string>,
+  ): Promise<string | null> {
+    render(
+      <AlarmsModal
+        useSnapshot={() => ({
+          ...makeSnapshot([alarm]),
+          scetArmRefusals: refusals,
+        })}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    await screen.findByText("Separate the booster");
+    return screen.getByText(/1 ACTION/).textContent;
+  }
+
+  it("says a time alarm's actions run aboard", async () => {
+    expect(
+      await badgeFor(staging({ kind: "time", ut: 5000, leadSeconds: 10 })),
+    ).toBe("FIRES 1 ACTION ABOARD");
+  });
+
+  it("says a SCET threshold on the craft runs its actions aboard", async () => {
+    expect(await badgeFor(staging(threshold("scet", "vessel.flight")))).toBe(
+      "FIRES 1 ACTION ABOARD",
+    );
+  });
+
+  it("says a command-vantage alarm's actions are sent from the ground", async () => {
+    expect(await badgeFor(staging(threshold("command", "vessel.flight")))).toBe(
+      "SENDS 1 ACTION FROM GROUND",
+    );
+  });
+
+  it("says a SCET threshold on the game's own state sends its actions from the ground", async () => {
+    expect(await badgeFor(staging(threshold("scet", "career.status")))).toBe(
+      "SENDS 1 ACTION FROM GROUND",
+    );
+  });
+
+  it("says an alarm the mod refused sends its actions from the ground", async () => {
+    expect(
+      await badgeFor(staging(threshold("scet", "vessel.flight")), {
+        "a-where": "no",
+      }),
+    ).toBe("SENDS 1 ACTION FROM GROUND");
   });
 });
 

@@ -226,6 +226,7 @@ public static class RtConfig
                 // exist.
                 typeof(ScetAlarm),
                 typeof(ScetAlarmCondition),
+                typeof(ScetAlarmAction),
                 typeof(ScetAlarmFired),
                 typeof(ScetAlarmArmArgs),
                 typeof(ScetAlarmDisarmArgs),
