@@ -811,69 +811,75 @@ export async function renderWidgetMode<
     fixture.pendingQueries,
   );
 
-  const config: Cfg = {
-    ...baselineConfig(opts),
-    ...((opts.mode.config ?? {}) as Cfg),
-  };
-  const instanceId = opts.instanceId ?? "snap";
-  const {
-    Wrap,
-    providerMounted,
-    emitVesselParts,
-    emitVesselControl,
-    replayStreamBlock,
-    dropTransport,
-    emitFrame,
-  } = buildStreamWrap(opts.fixture, opts.profile);
-  beginPhase("render");
-  const { container } = render(
-    <Wrap>
-      <DashboardItemContext.Provider value={{ instanceId }}>
-        <WidgetContributions Widget={opts.Widget}>
-          <opts.Widget
-            config={config}
-            id={instanceId}
-            w={opts.mode.w}
-            h={opts.mode.h}
-          />
-        </WidgetContributions>
-      </DashboardItemContext.Provider>
-    </Wrap>,
-  );
+  try {
+    const config: Cfg = {
+      ...baselineConfig(opts),
+      ...((opts.mode.config ?? {}) as Cfg),
+    };
+    const instanceId = opts.instanceId ?? "snap";
+    const {
+      Wrap,
+      providerMounted,
+      emitVesselParts,
+      emitVesselControl,
+      replayStreamBlock,
+      dropTransport,
+      emitFrame,
+    } = buildStreamWrap(opts.fixture, opts.profile);
+    beginPhase("render");
+    const { container } = render(
+      <Wrap>
+        <DashboardItemContext.Provider value={{ instanceId }}>
+          <WidgetContributions Widget={opts.Widget}>
+            <opts.Widget
+              config={config}
+              id={instanceId}
+              w={opts.mode.w}
+              h={opts.mode.h}
+            />
+          </WidgetContributions>
+        </DashboardItemContext.Provider>
+      </Wrap>,
+    );
 
-  beginPhase("seed-emits");
-  act(() => {
-    if (!fixtureEmitsMuted()) {
-      for (const key of fixtureKeys) {
-        source.emit(key, opts.fixture[key]);
+    beginPhase("seed-emits");
+    act(() => {
+      if (!fixtureEmitsMuted()) {
+        for (const key of fixtureKeys) {
+          source.emit(key, opts.fixture[key]);
+        }
       }
-    }
-    emitVesselParts();
-    emitVesselControl();
-  });
-  beginPhase("replay-stream");
-  await act(async () => {
-    await replayStreamBlock();
-  });
-  beginPhase("provider-frame");
-  await flushProviderFrame(providerMounted, emitFrame);
+      emitVesselParts();
+      emitVesselControl();
+    });
+    beginPhase("replay-stream");
+    await act(async () => {
+      await replayStreamBlock();
+    });
+    beginPhase("provider-frame");
+    await flushProviderFrame(providerMounted, emitFrame);
 
-  // Drain the async useDataSeries backfill the testing-library way (see
-  // snapshotWidgetMode) so a11y assertions run against a settled tree.
-  beginPhase("backfill-wait");
-  await waitFor(() => {
-    if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
-  });
-  beginPhase("flush-resize-observers");
-  await flushResizeObservers();
-  beginPhase("stops-arriving");
-  dropTransport();
-  await flushProviderFrame(providerMounted, emitFrame);
-  beginPhase("done");
-  disarm();
-  restoreResizeObserver();
-
-  return { container, teardown: () => teardownMockDataSource(fixture) };
+    // Drain the async useDataSeries backfill the testing-library way (see
+    // snapshotWidgetMode) so a11y assertions run against a settled tree.
+    beginPhase("backfill-wait");
+    await waitFor(() => {
+      if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
+    });
+    beginPhase("flush-resize-observers");
+    await flushResizeObservers();
+    beginPhase("stops-arriving");
+    dropTransport();
+    await flushProviderFrame(providerMounted, emitFrame);
+    beginPhase("done");
+    return { container, teardown: () => teardownMockDataSource(fixture) };
+  } catch (err) {
+    // A caller that never receives the teardown cannot run it.
+    teardownMockDataSource(fixture);
+    throw err;
+  } finally {
+    disarm();
+    restoreResizeObserver();
+  }
 }
 
 /**
