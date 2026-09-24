@@ -84,8 +84,13 @@ namespace Sitrep.Host
         /// <see cref="EditorFacilityKind"/> via the same
         /// <see cref="ParseEditorFacility"/> helper <see cref="HandleRevertToEditor"/>
         /// uses. A null crew list is normalised to empty (launch unmanned).
+        ///
+        /// <para>Then the sender's authority over the site, per
+        /// <see cref="LaunchAuthority"/>: <paramref name="vantage"/> is the
+        /// centre the command was sent from, resolved where it entered, so a
+        /// payload cannot name a centre other than the one sending it.</para>
         /// </summary>
-        public static CommandResult HandleLaunch(IFlightOpsActuator actuator, LaunchArgs args)
+        public static CommandResult HandleLaunch(IFlightOpsActuator actuator, LaunchArgs args, string vantage)
         {
             if (args == null || string.IsNullOrEmpty(args.ShipName))
             {
@@ -95,6 +100,11 @@ namespace Sitrep.Host
             if (facility == EditorFacilityKind.Unknown)
             {
                 return CommandResult.Fail(CommandErrorCode.Range);
+            }
+            var refusal = LaunchAuthority.Refusal(vantage, args.Site, () => actuator.ReachOf(vantage, args.Site));
+            if (refusal != null)
+            {
+                return refusal;
             }
             return actuator.Launch(args.ShipName, facility, args.Site, args.Crew ?? new List<string>());
         }

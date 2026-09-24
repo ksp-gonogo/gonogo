@@ -78,7 +78,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToTrackingStationCommand, args => FlightOpsCommandProvider.HandleToTrackingStation(_actuator, args));
             host.AddCommandHandler<SwitchVesselArgs, CommandResult>(FlightOpsCommandProvider.SwitchVesselCommand, args => FlightOpsCommandProvider.HandleSwitchVessel(_actuator, args));
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RecoverCommand, args => FlightOpsCommandProvider.HandleRecover(_actuator, args));
-            host.AddCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, args => FlightOpsCommandProvider.HandleLaunch(_actuator, args));
+            host.AddVantageCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, (args, vantage) => FlightOpsCommandProvider.HandleLaunch(_actuator, args, vantage));
         }
 
         private static CommandDeclaration Command(string command) => new CommandDeclaration

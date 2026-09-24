@@ -1209,7 +1209,24 @@ export enum CommandErrorCode {
 	* nothing to tell the operator about their vehicle here, because nothing was
 	* learned about it; offering the command again is the only honest next move.
 	*/
-	Unreadable = 23
+	Unreadable = 23,
+	/**
+	* The command acts at a PLACE, and the command centre it was sent from has no
+	* authority there: a launch from a pad in another planet's system.
+	*
+	* Authority, never delay. The command itself is still instant; what this
+	* refuses is the sender, not the moment, so no amount of waiting makes it
+	* succeed. Sending from a centre in the place's own system does.
+	*
+	* `CommandResult.detail` names the centre and the place, and the system each
+	* is in, so an operator learns which seat to move to rather than seeing a
+	* control that simply does nothing.
+	*
+	* Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
+	* carry the command. A centre may be perfectly linked to the place and still
+	* have no authority over it.
+	*/
+	OutOfReach = 24
 }
 /**
 * The ONE result shape every command returns. `CommandResult.success` false

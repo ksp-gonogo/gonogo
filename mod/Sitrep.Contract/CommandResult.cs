@@ -345,6 +345,24 @@ public enum CommandErrorCode
     /// </internal></para>
     /// </summary>
     Unreadable = 23,
+
+    /// <summary>
+    /// The command acts at a PLACE, and the command centre it was sent from has
+    /// no authority there: a launch from a pad in another planet's system.
+    ///
+    /// <para>Authority, never delay. The command itself is still instant; what
+    /// this refuses is the sender, not the moment, so no amount of waiting makes
+    /// it succeed. Sending from a centre in the place's own system does.</para>
+    ///
+    /// <para><see cref="CommandResult.Detail"/> names the centre and the place,
+    /// and the system each is in, so an operator learns which seat to move to
+    /// rather than seeing a control that simply does nothing.</para>
+    ///
+    /// <para>Distinct from <see cref="NoConnection"/>, which is a link that
+    /// cannot carry the command. A centre may be perfectly linked to the place
+    /// and still have no authority over it.</para>
+    /// </summary>
+    OutOfReach = 24,
 }
 
 /// <summary>
