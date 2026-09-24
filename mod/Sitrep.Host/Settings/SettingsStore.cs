@@ -13,10 +13,27 @@ namespace Sitrep.Host.Settings
     /// the file did not contain and then read its effective value while it
     /// registers.</para>
     ///
-    /// <para><b>Nothing re-reads after that.</b> The in-memory document is the
-    /// authority for the process lifetime. A file edited while the game runs is
-    /// not honoured; every consumer would otherwise have to tolerate a setting
-    /// changing under it at an arbitrary frame.</para>
+    /// <para><b>Nothing re-reads for its values after that.</b> The in-memory
+    /// document is the authority for every row this store OWNS, meaning one
+    /// declared or committed this session, for the process lifetime; every
+    /// consumer would otherwise have to tolerate a setting changing under it at
+    /// an arbitrary frame.</para>
+    ///
+    /// <para><b>Every other row is preserved, never rewritten from a
+    /// model.</b> A save is load-modify-save over the whole document read from
+    /// the file, so a block whose declarer did not run this launch (an Uplink
+    /// that is uninstalled, refused, or failed to start) goes back to disk as it
+    /// came off it. When the file has been changed elsewhere since this store
+    /// last touched it, a commit takes every row it does not own from the file
+    /// as it now stands, so a hand edit made while the game runs survives the
+    /// next save instead of being overwritten from memory.</para>
+    ///
+    /// <para><b>Nothing is ever deleted as a side effect.</b> A row whose
+    /// declaration a later version drops stays in the file as an unowned row,
+    /// for good; removing one is an explicit act, not something a save infers
+    /// from a declaration that is missing. An unowned row the operator deletes
+    /// by hand stays deleted. An OWNED row deleted by hand is written back at
+    /// the next save, since memory is its authority.</para>
     ///
     /// <para><b>A failed persist is not a failed change.</b> <see cref="Commit"/>
     /// applies to the document first and reports what became of the write, so a
@@ -49,6 +66,7 @@ namespace Sitrep.Host.Settings
         private readonly Dictionary<string, string> _staged =
             new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<Watch> _watches = new List<Watch>();
+        private readonly HashSet<string> _owned = new HashSet<string>(StringComparer.Ordinal);
 
         public SettingsStore(ISettingsBackingStore backing)
         {
@@ -56,7 +74,7 @@ namespace Sitrep.Host.Settings
             Document = _backing.Read() ?? new SettingsDocument();
         }
 
-        public SettingsDocument Document { get; }
+        public SettingsDocument Document { get; private set; }
 
         /// <summary>Where the document persists, for reporting to an operator.</summary>
         public string Path => _backing.Path;
@@ -84,6 +102,7 @@ namespace Sitrep.Host.Settings
             }
 
             _rows[row.Path] = row;
+            _owned.Add(row.Path);
             if (!Document.Has(row.Path))
             {
                 Document.Set(row.Path, row.DefaultText);
@@ -162,6 +181,12 @@ namespace Sitrep.Host.Settings
         /// </summary>
         public WriteOutcome Commit()
         {
+            var elsewhere = _backing.ReadIfChangedElsewhere();
+            if (elsewhere != null)
+            {
+                Document = TakeUnownedRowsFrom(elsewhere);
+            }
+
             var changed = new List<string>();
             foreach (var staged in _staged)
             {
@@ -170,6 +195,11 @@ namespace Sitrep.Host.Settings
                     Document.Set(staged.Key, staged.Value);
                     changed.Add(staged.Key);
                 }
+            }
+
+            foreach (var path in _staged.Keys)
+            {
+                _owned.Add(path);
             }
 
             _staged.Clear();
@@ -191,6 +221,25 @@ namespace Sitrep.Host.Settings
             }
 
             return LastWrite;
+        }
+
+        /// <summary>
+        /// The file as it now stands, with every row this store owns put back
+        /// to what memory holds for it.
+        /// </summary>
+        private SettingsDocument TakeUnownedRowsFrom(SettingsDocument onDisk)
+        {
+            var merged = onDisk.Copy();
+            foreach (var path in _owned)
+            {
+                var text = Document.Text(path);
+                if (text != null)
+                {
+                    merged.Set(path, text);
+                }
+            }
+
+            return merged;
         }
 
         private string DefaultTextAt(string path) =>

@@ -54,5 +54,17 @@ namespace Sitrep.Host.Settings
         /// is reported rather than raised.
         /// </summary>
         WriteOutcome Write(SettingsDocument document);
+
+        /// <summary>
+        /// The document as the medium now holds it, when something other than
+        /// this store has changed the medium since this store last read or
+        /// wrote it; otherwise null.
+        ///
+        /// <para>Also null when the medium is now absent, unreadable or empty.
+        /// None of those says what the settings are, only that the file cannot
+        /// currently say, and a save that took one as the new content would
+        /// delete every block it could not see.</para>
+        /// </summary>
+        SettingsDocument? ReadIfChangedElsewhere();
     }
 }

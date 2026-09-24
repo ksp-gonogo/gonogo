@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Sitrep.Host.Settings;
 
@@ -31,6 +32,7 @@ namespace Gonogo.KSP.Settings
     internal sealed class ConfigNodeSettingsStore : ISettingsBackingStore
     {
         private readonly Action<string>? _log;
+        private byte[]? _lastSeen;
 
         internal ConfigNodeSettingsStore(string path, Action<string>? log = null)
         {
@@ -47,6 +49,7 @@ namespace Gonogo.KSP.Settings
 
         public SettingsDocument Read()
         {
+            _lastSeen = BytesOnDisk();
             var document = new SettingsDocument();
             try
             {
@@ -58,7 +61,13 @@ namespace Gonogo.KSP.Settings
                 var root = ConfigNode.Load(Path);
                 if (root != null)
                 {
-                    ReadInto(root, document.Root);
+                    var shadowed = new List<string>();
+                    ReadInto(root, document.Root, string.Empty, shadowed);
+                    if (shadowed.Count > 0)
+                    {
+                        Warn(Path + " names a block more than once, and only the first of each is read: "
+                            + string.Join(", ", shadowed) + ". Every copy is kept in the file.");
+                    }
                 }
             }
             catch (Exception ex)
@@ -68,6 +77,24 @@ namespace Gonogo.KSP.Settings
             }
 
             return document;
+        }
+
+        /// <summary>
+        /// Compares the file's bytes with what this store last read or wrote,
+        /// rather than its modification time: a same-length edit inside the
+        /// timestamp's resolution would read as unchanged, and the file is a
+        /// few hundred bytes.
+        /// </summary>
+        public SettingsDocument? ReadIfChangedElsewhere()
+        {
+            var now = BytesOnDisk();
+            if (now == null || SameBytes(now, _lastSeen))
+            {
+                return null;
+            }
+
+            var document = Read();
+            return document.IsEmpty ? null : document;
         }
 
         public WriteOutcome Write(SettingsDocument document)
@@ -98,6 +125,7 @@ namespace Gonogo.KSP.Settings
                 var root = new ConfigNode();
                 WriteFrom(document.Root, root);
                 root.Save(Path);
+                _lastSeen = BytesOnDisk();
                 return WriteOutcome.Written(Path);
             }
             catch (Exception ex)
@@ -116,17 +144,58 @@ namespace Gonogo.KSP.Settings
         /// </summary>
         private static string AsWritten(string? text) => (text ?? string.Empty).Replace('\t', ' ');
 
-        private static void ReadInto(ConfigNode source, SettingsBlock target)
+        /// <summary>
+        /// Carries the file through entry for entry: a repeated value name is a
+        /// list, and a repeated block is kept after the first, which is the one
+        /// every read resolves to.
+        /// </summary>
+        private static void ReadInto(ConfigNode source, SettingsBlock target, string prefix, List<string> shadowed)
         {
             foreach (ConfigNode.Value value in source.values)
             {
-                target.SetValue(AsWritten(value.name), AsWritten(value.value));
+                target.AppendValue(AsWritten(value.name), AsWritten(value.value));
             }
 
             foreach (ConfigNode child in source.nodes)
             {
-                ReadInto(child, target.BlockOrAdd(AsWritten(child.name)));
+                var name = AsWritten(child.name);
+                if (target.Block(name) != null)
+                {
+                    shadowed.Add(prefix + name);
+                }
+
+                ReadInto(child, target.AppendBlock(name), prefix + name + "/", shadowed);
             }
+        }
+
+        private byte[]? BytesOnDisk()
+        {
+            try
+            {
+                return File.Exists(Path) ? File.ReadAllBytes(Path) : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private static bool SameBytes(byte[] a, byte[]? b)
+        {
+            if (b == null || a.Length != b.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static void WriteFrom(SettingsBlock source, ConfigNode target)
