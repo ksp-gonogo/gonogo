@@ -168,7 +168,7 @@ async function releaseWarp(): Promise<string | null> {
       timer = setTimeout(
         () =>
           resolve(
-            `the game did not confirm it within ${WARP_RELEASE_TIMEOUT_MS / 1000} s`,
+            `the game did not confirm it within ${writeQuantity(value("s", WARP_RELEASE_TIMEOUT_MS / 1000))}`,
           ),
         WARP_RELEASE_TIMEOUT_MS,
       );

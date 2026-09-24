@@ -271,19 +271,19 @@ function serveWarpGame(
       "connection",
       ({ client }: { client: LinkClient }) => {
         client.addEventListener("message", (event) => {
-          const msg = JSON.parse(String(event.data)) as {
-            type?: string;
-            topic?: string;
-            command?: string;
-            args?: unknown;
-            requestId?: string;
-          };
+          const msg: unknown = JSON.parse(String(event.data));
+          if (typeof msg !== "object" || msg === null || !("type" in msg)) {
+            return;
+          }
           if (msg.type === "command-request") {
-            sent.push({ command: String(msg.command), args: msg.args });
+            sent.push({
+              command: "command" in msg ? String(msg.command) : "",
+              args: "args" in msg ? msg.args : undefined,
+            });
             client.send(
               JSON.stringify({
                 type: "command-response",
-                requestId: msg.requestId,
+                requestId: "requestId" in msg ? msg.requestId : undefined,
                 result:
                   answer === "confirm"
                     ? { success: true, errorCode: 0 }
@@ -295,6 +295,7 @@ function serveWarpGame(
           if (
             reportsWarp &&
             msg.type === "subscribe" &&
+            "topic" in msg &&
             msg.topic === "time.warp"
           ) {
             client.send(

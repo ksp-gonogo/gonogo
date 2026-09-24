@@ -518,6 +518,19 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/MapView/index.tsx": 2,
   "packages/components/src/Navball/index.tsx": 2,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
+  /*
+   * Newly VISIBLE, through `Gauge` taking a reading. The figure is thrust over
+   * weight, arithmetic across two fields of one reading, so there is no
+   * reading OF the ratio to hand the dial; the widget captions a held figure
+   * instead of marking it.
+   */
+  "packages/components/src/Twr/index.tsx": 1,
+  /*
+   * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as
+   * the three clocks above: the SOI countdown is a client-computed
+   * `transitionUt - viewUt`, recomputed every frame.
+   */
+  "packages/components/src/shared/OrbitalEventChips.tsx": 1,
 };
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {
