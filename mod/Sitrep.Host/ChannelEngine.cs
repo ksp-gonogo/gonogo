@@ -4451,6 +4451,59 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Refuse a frame that names an envelope type this build does not
+        /// support, by that name.
+        ///
+        /// <para>An echo of it is byte-identical to what the client sent, so
+        /// from that side it cannot be told from a frame that was accepted and
+        /// did nothing. The <c>requestId</c> and <c>topic</c> salvaged off the
+        /// frame go on the refusal because the SDK's correlator drops an error
+        /// carrying neither, and a caller would wait out its loss timer having
+        /// been answered.</para>
+        /// </summary>
+        private void RefuseUnknownEnvelopeType(ClientSession session, UnknownEnvelopeTypeException ex)
+        {
+            PublishRefusal(session, new ErrorMsg
+            {
+                RequestId = ex.RequestId,
+                Topic = ex.Topic,
+                Code = "unknown-envelope-type",
+                Message = $"this build does not recognise type '{ex.EnvelopeType}'",
+            });
+        }
+
+        /// <summary>
+        /// Refuse a frame that parsed as a type this dispatch has no case for,
+        /// correlated by whatever <c>RequestId</c> or <c>Topic</c> the parsed
+        /// envelope carries: nothing can know that type's shape in advance.
+        /// </summary>
+        private void RefuseUnhandledEnvelope(ClientSession session, object msg)
+        {
+            PublishRefusal(session, new ErrorMsg
+            {
+                RequestId = StringPropertyOf(msg, "RequestId"),
+                Topic = StringPropertyOf(msg, "Topic"),
+                Code = "unhandled-envelope",
+                Message = $"this build parsed a {msg.GetType().Name} and has nothing to do with it",
+            });
+        }
+
+        private static string? StringPropertyOf(object value, string name) =>
+            value.GetType().GetProperty(name)?.GetValue(value) as string;
+
+        private void PublishRefusal(ClientSession session, ErrorMsg error)
+        {
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }
+            catch (Exception publishEx)
+            {
+                LogHost("could not deliver the " + error.Code + " refusal: " + SafeExceptionMessage(publishEx));
+            }
+        }
+
         private void PublishPayloadSerializationError(ClientSession session, string topic, object? payload, Exception ex)
         {
             var clrType = payload == null ? "null" : payload.GetType().FullName;
@@ -7215,6 +7268,13 @@ namespace Sitrep.Host
                     case SetVantage sv:
                         HandleSetVantage(session, sv);
                         break;
+                    default:
+                        /* Unreachable while ParseClientMessage returns only the
+                           four handled types. A fifth one added without a case
+                           here would otherwise be accepted and do nothing, with
+                           nothing on the wire to say so. */
+                        RefuseUnhandledEnvelope(session, msg);
+                        break;
                     case CommandRequest<object?> req:
                         // Per-call vantage override (delay-UX): a command may pin its
                         // own dispatch vantage (e.g. "meta" for program-meta acts that
@@ -7362,12 +7422,15 @@ namespace Sitrep.Host
                         break;
                 }
             }
+            catch (UnknownEnvelopeTypeException ex) when (ex.EnvelopeType != null)
+            {
+                RefuseUnknownEnvelopeType(session, ex);
+            }
             catch (UnknownEnvelopeTypeException)
             {
-                // Not a recognized envelope: echo back unchanged, matching
-                // GonogoBodiesServer's diagnostic behavior for a stray message.
-                // Nothing more useful can be said about a frame whose type this
-                // build has never heard of.
+                /* No readable type at all: echoed back unchanged. It is the
+                   documented "is anything listening" probe, and a frame that
+                   names nothing gives a refusal nothing to name. */
                 session.Connection.TrySend(payload, SendClass.Response);
             }
             catch (InvalidEnvelopeException ex)
