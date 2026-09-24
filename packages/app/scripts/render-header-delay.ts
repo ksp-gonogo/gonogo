@@ -181,7 +181,7 @@ const SCENES: Scene[] = [
     screen: "main",
     vantage: GS1,
     select: GS1,
-    settled: { after: "DelaySignal delay 42.5s", before: NOT_REPORTED },
+    settled: { after: "DelaySignal delay 42s", before: NOT_REPORTED },
     emit: flight(true),
   },
   {
@@ -190,7 +190,7 @@ const SCENES: Scene[] = [
     screen: "main",
     vantage: MUN_STATION,
     select: MUN_STATION,
-    settled: { after: "DelaySignal delay 3.9s", before: NOT_REPORTED },
+    settled: { after: "DelaySignal delay 3s", before: NOT_REPORTED },
     emit: flight(true),
   },
   {
@@ -223,7 +223,7 @@ const SCENES: Scene[] = [
     select: CRAFT,
     hostCentre: GS1,
     settled: {
-      after: "DelaySignal delay 42.5s",
+      after: "DelaySignal delay 42s",
       before: "DelaySignal delay 0s",
     },
     emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
