@@ -1,4 +1,5 @@
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
@@ -6,6 +7,7 @@ import {
   Bell,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   Columns2,
@@ -102,10 +104,12 @@ export const PauseIcon = makeIcon(Pause);
 export const StopIcon = makeIcon(Square);
 export const ChevronUpIcon = makeIcon(ChevronUp);
 export const ChevronDownIcon = makeIcon(ChevronDown);
+export const ChevronLeftIcon = makeIcon(ChevronLeft);
 export const ChevronRightIcon = makeIcon(ChevronRight);
 export const ArrowLeftIcon = makeIcon(ArrowLeft);
 export const ArrowUpIcon = makeIcon(ArrowUp);
 export const ArrowRightIcon = makeIcon(ArrowRight);
+export const ArrowDownIcon = makeIcon(ArrowDown);
 export const PushUpIcon = makeIcon(ArrowUpToLine);
 export const RecallIcon = makeIcon(Undo2);
 export const HalfWidthIcon = makeIcon(Columns2);
