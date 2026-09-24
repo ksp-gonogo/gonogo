@@ -2191,7 +2191,11 @@ namespace Sitrep.Host
             UplinkSettingsScope scope;
             try
             {
-                scope = new UplinkSettingsScope(Settings, id, uplink.Manifest.Version);
+                scope = new UplinkSettingsScope(
+                    Settings,
+                    id,
+                    uplink.Manifest.Version,
+                    (name, label, value) => _settingsPublisher?.ShowModSetting(id, name, label, value));
             }
             catch (Exception ex)
             {

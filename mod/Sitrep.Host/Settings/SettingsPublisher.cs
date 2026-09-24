@@ -23,6 +23,8 @@ namespace Sitrep.Host.Settings
         private readonly Func<IReadOnlyDictionary<string, string>> _undeclared;
         private readonly Func<double> _nowUt;
         private double? _savedAtUt;
+        private readonly List<(string Owner, string Name, string Label, string Value)> _modSettings =
+            new List<(string Owner, string Name, string Label, string Value)>();
         private volatile Dictionary<string, object?> _snapshot = new Dictionary<string, object?>();
 
         public SettingsPublisher(
@@ -60,7 +62,29 @@ namespace Sitrep.Host.Settings
             }
 
             var (state, reason) = Persistence();
-            _snapshot = SettingsWire.BuildModel(rows, _store.Path, state, _savedAtUt, reason, _undeclared());
+            _snapshot = SettingsWire.BuildModel(
+                rows, _store.Path, state, _savedAtUt, reason, _undeclared(), _modSettings);
+        }
+
+        /// <summary>
+        /// Show one of a host mod's own settings for <paramref name="owner"/>, the
+        /// Uplink that read it. The latest value for a name replaces the last, in
+        /// place, so a setting keeps its position as it changes.
+        /// </summary>
+        public void ShowModSetting(string owner, string name, string label, string value)
+        {
+            var shown = (owner, name, label ?? string.Empty, value ?? string.Empty);
+            var at = _modSettings.FindIndex(s => s.Owner == owner && s.Name == name);
+            if (at >= 0)
+            {
+                _modSettings[at] = shown;
+            }
+            else
+            {
+                _modSettings.Add(shown);
+            }
+
+            Rebuild();
         }
 
         /// <summary>

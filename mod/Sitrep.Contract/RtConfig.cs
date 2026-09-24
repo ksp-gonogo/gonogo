@@ -154,6 +154,7 @@ public static class RtConfig
                 typeof(SettingsRowState),
                 typeof(SettingsPersistence),
                 typeof(SettingsDeclarationFailure),
+                typeof(ModSettingState),
                 typeof(SaveSettingsArgs),
                 typeof(SettingsChange),
                 // comms.* channels

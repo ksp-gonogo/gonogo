@@ -83,9 +83,16 @@ function model(
     reason?: string | null;
   } = { state: SettingsPersistenceState.Saved },
   undeclared: { uplinkId: string; reason: string }[] = [],
+  modSettings: {
+    owner: string;
+    name: string;
+    label: string;
+    value: string;
+  }[] = [],
 ) {
   return {
     rows,
+    modSettings,
     persistence: {
       state: persistence.state,
       path: "GameData/Gonogo/PluginData/gonogo.cfg",
@@ -333,6 +340,70 @@ describe("KspSettings", () => {
       await screen.findByText(
         /Broken's settings could not be read this session/,
       ),
+    ).toBeInTheDocument();
+  });
+
+  /**
+   * What the host mod itself is set to, as its Uplink reads it: shown
+   * collapsed, under that Uplink, with no control, because nothing here can
+   * change it.
+   */
+  it("shows a mod's own settings collapsed and read-only under its Uplink", async () => {
+    registerDataSource(sitrep("connected"));
+    const { fixture, view } = mount();
+    await publish(
+      fixture,
+      model(
+        ROWS,
+        undefined,
+        [],
+        [
+          {
+            owner: "Rp1",
+            name: "difficulty",
+            label: "Career difficulty",
+            value: "Hard",
+          },
+        ],
+      ),
+    );
+
+    const summary = await screen.findByText("What Rp1's mod is set to");
+    const disclosure = summary.closest("details");
+    expect(disclosure).not.toBeNull();
+    expect(disclosure).not.toHaveAttribute("open");
+    expect(
+      disclosure?.querySelector("input, button, [role='switch']"),
+    ).toBeNull();
+    expect(view.container.textContent).toContain("Career difficulty");
+    expect(view.container.textContent).toContain("Hard");
+  });
+
+  it("gives an Uplink that only shows its mod's settings a group of its own", async () => {
+    registerDataSource(sitrep("connected"));
+    const { fixture } = mount();
+    await publish(
+      fixture,
+      model(
+        ROWS,
+        undefined,
+        [],
+        [
+          {
+            owner: "example",
+            name: "detail",
+            label: "Detail level",
+            value: "High",
+          },
+        ],
+      ),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "example" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("What example's mod is set to"),
     ).toBeInTheDocument();
   });
 

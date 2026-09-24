@@ -1812,7 +1812,12 @@ namespace Sitrep.Contract
         /// <see cref="SaveSettingsArgs"/>), with <see cref="SettingKind"/> now on the wire.
         /// Additive, nothing removed or retyped, so an Uplink built against 18.1 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Bumped 2 -&gt; 3:</b> <see cref="SettingsModel.ModSettings"/>, a host
+        /// mod's own settings as its Uplink reads them, shown read-only
+        /// (<see cref="ModSettingState"/>). Additive, nothing removed or retyped, so an
+        /// Uplink built against 18.2 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

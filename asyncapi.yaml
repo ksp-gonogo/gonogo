@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.2.0
+  version: 18.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 55 commands it dispatches, with the payload
@@ -13954,6 +13954,33 @@ components:
             chart interpolates a straight line through an outage it has no readings for,
             which is the one thing an operator must not be shown: the line looks like
             data.
+    ModSettingState:
+      type: object
+      description: |-
+        One of a host mod's own settings, as the Uplink that works with the mod
+        reads it.
+      required:
+        - owner
+        - name
+        - label
+        - value
+      properties:
+        owner:
+          type: string
+          x-sitrep-unit: id
+          description: The Uplink that reported it.
+        name:
+          type: string
+          x-sitrep-unit: id
+          description: The setting's name as the mod knows it.
+        label:
+          type: string
+          x-sitrep-unit: text
+          description: What an operator reads beside the value. May be empty.
+        value:
+          type: string
+          x-sitrep-unit: text
+          description: The mod's value as the Uplink read it, written for an operator.
     NoCommandArgs:
       type: object
       description: |-
@@ -16552,6 +16579,7 @@ components:
         - rows
         - persistence
         - undeclared
+        - modSettings
         - meta
       properties:
         rows:
@@ -16573,6 +16601,14 @@ components:
             Uplinks that are running but whose settings could not be declared this
             session. Their settings are at their defaults and are not listed in
             `SettingsModel.rows`; what the file holds for them is kept as it is.
+        modSettings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModSettingState"
+          description: |-
+            Host mods' own settings as their Uplinks read them, for an operator to see
+            what gonogo is working with. Read-only: the mod is the authority, and
+            nothing gonogo does changes them.
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     SettingsPersistence:

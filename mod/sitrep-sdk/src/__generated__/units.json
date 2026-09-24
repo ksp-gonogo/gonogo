@@ -726,6 +726,12 @@
       "validAt": "ut",
       "vantage": "id"
     },
+    "ModSettingState": {
+      "label": "text",
+      "name": "id",
+      "owner": "id",
+      "value": "text"
+    },
     "OrbitEncounter": {
       "bodyIndex": "id",
       "transitionType": "enum",
@@ -2234,6 +2240,7 @@
     },
     "SettingsModel": {
       "meta": "PayloadMeta",
+      "modSettings": "ModSettingState[]",
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",
       "undeclared": "SettingsDeclarationFailure[]"
@@ -2451,6 +2458,7 @@
     },
     "settings.gonogo": {
       "meta": "PayloadMeta",
+      "modSettings": "ModSettingState[]",
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",
       "undeclared": "SettingsDeclarationFailure[]"

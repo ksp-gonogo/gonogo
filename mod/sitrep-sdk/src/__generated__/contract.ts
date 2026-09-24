@@ -4902,7 +4902,28 @@ export interface SettingsModel
 	* `SettingsModel.rows`; what the file holds for them is kept as it is.
 	*/
 	undeclared: SettingsDeclarationFailure[];
+	/**
+	* Host mods' own settings as their Uplinks read them, for an operator to see
+	* what gonogo is working with. Read-only: the mod is the authority, and
+	* nothing gonogo does changes them.
+	*/
+	modSettings: ModSettingState[];
 	meta: PayloadMeta;
+}
+/**
+* One of a host mod's own settings, as the Uplink that works with the mod
+* reads it.
+*/
+export interface ModSettingState
+{
+	/** The Uplink that reported it. */
+	owner: string;
+	/** The setting's name as the mod knows it. */
+	name: string;
+	/** What an operator reads beside the value. May be empty. */
+	label: string;
+	/** The mod's value as the Uplink read it, written for an operator. */
+	value: string;
 }
 /**
 * One declared setting, described well enough for a client to draw its

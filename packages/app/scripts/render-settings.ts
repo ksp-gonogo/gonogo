@@ -87,8 +87,18 @@ const RECOVERED = 2;
  * What the mod publishes with RP-1 running: its own three rows, and two in
  * RP-1's block, one of them the mod's own choice about delaying a simulation.
  */
-function kspSettings(state: number, reason: string | null = null) {
+function kspSettings(
+  state: number,
+  reason: string | null = null,
+  modSettings: {
+    owner: string;
+    name: string;
+    label: string;
+    value: string;
+  }[] = [],
+) {
   return {
+    modSettings,
     rows: [
       {
         path: "SIGNAL_DELAY/enabled",
@@ -164,6 +174,8 @@ interface Scene {
   screen?: "main" | "station";
   /** Whether KSP reads as connected, which is what lets a KSP setting be changed. */
   connected?: boolean;
+  /** Open every collapsed section before the shot, to show what it holds. */
+  openDisclosures?: boolean;
 }
 
 const SCENES: Scene[] = [
@@ -259,6 +271,32 @@ const SCENES: Scene[] = [
     emit: { [KSP_TOPIC]: kspSettings(SAVED) },
     pxW: 900,
     pxH: 620,
+  },
+  {
+    // RP-1's mod settings as its Uplink reads them, opened to show what the
+    // collapsed section holds: read-only, beside the settings gonogo owns.
+    name: "ksp-mod-settings",
+    tab: "ksp",
+    connected: true,
+    openDisclosures: true,
+    emit: {
+      [KSP_TOPIC]: kspSettings(SAVED, null, [
+        {
+          owner: "rp1",
+          name: "difficulty",
+          label: "Career difficulty",
+          value: "Hard",
+        },
+        {
+          owner: "rp1",
+          name: "startingFunds",
+          label: "Starting funds",
+          value: "40000",
+        },
+      ]),
+    },
+    pxW: 900,
+    pxH: 760,
   },
   {
     // Connected, and the mod has not reported its settings yet.
@@ -371,6 +409,7 @@ async function main(): Promise<void> {
       tab,
       screen,
       connected,
+      openDisclosures,
     } of SCENES) {
       await page.evaluate(
         (s) =>
@@ -381,6 +420,12 @@ async function main(): Promise<void> {
           ).__renderSettings(s),
         { emit, prefs, pxW, pxH, tab, screen, connected },
       );
+      if (openDisclosures) {
+        await page.$$eval("details", (all) => {
+          for (const details of all)
+            (details as HTMLDetailsElement).open = true;
+        });
+      }
       if (scrollToLabel !== undefined) {
         await page
           .getByText(scrollToLabel, { exact: true })

@@ -192,6 +192,18 @@ namespace Sitrep.Contract
         /// </summary>
         void Migrate(string name, string text);
 
+        /// <summary>
+        /// Show an operator one of the host mod's OWN settings as this Uplink
+        /// reads it: what gonogo is working with, which gonogo cannot change.
+        /// It is drawn read-only, apart from this Uplink's settings, and is never
+        /// written to the settings file, since the mod is the authority for it.
+        ///
+        /// <para>Callable at any time, and again whenever the mod's value
+        /// changes; the latest value is the one shown. Call it where every other
+        /// host call is made, on the main thread.</para>
+        /// </summary>
+        void ShowModSetting(string name, string label, string value);
+
         /// <summary>The value in force for a declared setting: the stored one, or the declared default.</summary>
         string? Text(string name);
 

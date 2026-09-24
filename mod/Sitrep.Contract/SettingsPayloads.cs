@@ -42,7 +42,38 @@ public class SettingsModel
     /// </summary>
     public List<SettingsDeclarationFailure> Undeclared { get; set; } = new();
 
+    /// <summary>
+    /// Host mods' own settings as their Uplinks read them, for an operator to see
+    /// what gonogo is working with. Read-only: the mod is the authority, and
+    /// nothing gonogo does changes them.
+    /// </summary>
+    public List<ModSettingState> ModSettings { get; set; } = new();
+
     public PayloadMeta Meta { get; set; } = new();
+}
+
+/// <summary>One of a host mod's own settings, as the Uplink that works with the mod reads it.</summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class ModSettingState
+{
+    /// <summary>The Uplink that reported it.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Owner { get; set; } = "";
+
+    /// <summary>The setting's name as the mod knows it.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Name { get; set; } = "";
+
+    /// <summary>What an operator reads beside the value. May be empty.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Label { get; set; } = "";
+
+    /// <summary>The mod's value as the Uplink read it, written for an operator.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Value { get; set; } = "";
 }
 
 /// <summary>One declared setting, described well enough for a client to draw its control.</summary>

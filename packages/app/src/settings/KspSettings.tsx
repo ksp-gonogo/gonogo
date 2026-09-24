@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
+  type ModSettingState,
   SettingKind,
   type SettingsModel,
   SettingsPersistenceState,
@@ -16,6 +17,7 @@ import {
   Cluster,
   Notice,
   PrimaryButton,
+  ReadOnlyField,
   SectionTitle,
   Stack,
   usePanelDelay,
@@ -129,28 +131,36 @@ export function KspSettings() {
 
   return (
     <SectionStack>
-      {byOwner(model.rows).map(([owner, rows]) => (
-        <Stack as="section" gap="md" key={owner}>
-          <SectionTitle as="h3" $rule>
-            {owner === CORE_OWNER ? "Gonogo" : owner}
-          </SectionTitle>
-          {rows.map((row) => (
-            <KspSettingRow
-              key={row.path}
-              row={row}
-              text={draft[row.path] ?? row.value}
-              disabled={!canEdit}
-              onChange={(text) =>
-                setDraft((current) =>
-                  text === row.value
-                    ? withoutPath(current, row.path)
-                    : { ...current, [row.path]: text },
-                )
-              }
-            />
-          ))}
-        </Stack>
-      ))}
+      {byOwner(model.rows, model.modSettings ?? []).map(
+        ([owner, rows, shown]) => (
+          <Stack as="section" gap="md" key={owner}>
+            <SectionTitle as="h3" $rule>
+              {owner === CORE_OWNER ? "Gonogo" : owner}
+            </SectionTitle>
+            {rows.map((row) => (
+              <KspSettingRow
+                key={row.path}
+                row={row}
+                text={draft[row.path] ?? row.value}
+                disabled={!canEdit}
+                onChange={(text) =>
+                  setDraft((current) =>
+                    text === row.value
+                      ? withoutPath(current, row.path)
+                      : { ...current, [row.path]: text },
+                  )
+                }
+              />
+            ))}
+            {shown.length > 0 && (
+              <ModSettings
+                owner={owner === CORE_OWNER ? "Gonogo" : owner}
+                shown={shown}
+              />
+            )}
+          </Stack>
+        ),
+      )}
       {model.undeclared.length > 0 && (
         <Stack as="section" gap="md">
           <SectionTitle as="h3" $rule>
@@ -323,16 +333,59 @@ function kindName(kind: SettingKind): string {
   }
 }
 
+/**
+ * Every owner in the order it first appears, with its settings and the mod
+ * settings it shows. An Uplink that only shows its mod's settings still gets
+ * a group.
+ */
 function byOwner(
   rows: readonly SettingsRowState[],
-): [string, SettingsRowState[]][] {
-  const groups = new Map<string, SettingsRowState[]>();
-  for (const row of rows) {
-    const group = groups.get(row.owner);
-    if (group) group.push(row);
-    else groups.set(row.owner, [row]);
-  }
-  return [...groups.entries()];
+  modSettings: readonly ModSettingState[],
+): [string, SettingsRowState[], ModSettingState[]][] {
+  const groups = new Map<string, [SettingsRowState[], ModSettingState[]]>();
+  const groupOf = (owner: string) => {
+    let group = groups.get(owner);
+    if (!group) {
+      group = [[], []];
+      groups.set(owner, group);
+    }
+    return group;
+  };
+  for (const row of rows) groupOf(row.owner)[0].push(row);
+  for (const shown of modSettings) groupOf(shown.owner)[1].push(shown);
+  return [...groups.entries()].map(([owner, [own, shown]]) => [
+    owner,
+    own,
+    shown,
+  ]);
+}
+
+/**
+ * What the host mod itself is set to, as its Uplink reads it. Read-only and
+ * collapsed by default: it explains what gonogo is working with, and nothing
+ * here can change it, so it offers no control.
+ */
+function ModSettings({
+  owner,
+  shown,
+}: {
+  owner: string;
+  shown: readonly ModSettingState[];
+}) {
+  return (
+    <ModSettingsDisclosure>
+      <summary>What {owner}'s mod is set to</summary>
+      <Stack gap="sm">
+        {shown.map((setting) => (
+          <ReadOnlyField
+            key={setting.name}
+            label={setting.label || setting.name}
+            value={setting.value}
+          />
+        ))}
+      </Stack>
+    </ModSettingsDisclosure>
+  );
 }
 
 function withoutPath(draft: Draft, path: string): Draft {
@@ -350,6 +403,21 @@ function refusalOf(rejected: unknown): string {
   }
   return "KSP did not confirm the save. What is shown above is what it holds.";
 }
+
+const ModSettingsDisclosure = styled.details`
+  color: var(--color-text-dim);
+  font-size: var(--font-size-compact);
+
+  > summary {
+    cursor: pointer;
+    margin-bottom: var(--gap-related);
+  }
+
+  > summary:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+`;
 
 const Footer = styled(Stack).attrs({ gap: "sm" as const })`
   margin-top: auto;
