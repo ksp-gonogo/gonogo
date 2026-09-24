@@ -7,8 +7,28 @@ import {
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import {
+  type ComputedSeries,
+  type GraphConfig,
+  GraphView,
+  type ReferenceCurve,
+} from "../Graph";
+import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
+
+/** Horizontal speed, computed here: the wire carries its two components, not it. */
+const HORIZONTAL_SPEED_KEY = "orbital-ascent.horizontalSpeed";
+
+/**
+ * The surface-speed split: what is left of the surface speed once the vertical
+ * part is taken out. Clamped before the root, so rounding in two independently
+ * reported speeds never yields NaN.
+ */
+function horizontalOf(surfaceSpeed: number, verticalSpeed: number): number {
+  return Math.sqrt(
+    Math.max(0, surfaceSpeed * surfaceSpeed - verticalSpeed * verticalSpeed),
+  );
+}
 
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the reference curve needs the body's own
@@ -16,7 +36,8 @@ const topics = defineTopicManifest({
   channels: ["vessel.state", "vessel.flight", "system.bodies"],
   fields: [
     "vessel.flight.altitudeAsl",
-    "vessel.state.horizontalSpeed",
+    "vessel.flight.surfaceSpeed",
+    "vessel.flight.verticalSpeed",
     "vessel.state.parentBodyName",
   ],
 });
@@ -71,22 +92,36 @@ function OrbitalAscentComponent({
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
   /*
    * Body name reads off the client-derived `vessel.state` channel
-   * (`parentBodyName`, an index→name display map). Both plotted series are
-   * consumed only through the shared `GraphView` → `useDataSeries` path.
+   * (`parentBodyName`, an index→name display map).
    *
-   * The two axes are not alike any more. The X axis is `vessel.flight`'s own
-   * altitude, a raw field subtopic with a buffered history behind it; the
-   * horizontal-speed trace is still a DERIVED `vessel.state.*` channel, which
-   * has a live value and no buffer, so `useDataSeries` serves its window off
-   * the legacy path (`TimelineStore.sampleRange` returns `undefined` for a
-   * derived topic: see that hook's doc). `vessel.orbit` carries no horizontal
-   * speed to move it to, so the trace stays where it is until the widget
-   * computes it.
+   * Both axes come off `vessel.flight`'s own buffered history: the altitude as
+   * a fetched series, and the horizontal speed computed here from the surface
+   * and vertical speeds on the same samples, because the wire carries no
+   * horizontal speed of its own.
    */
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;
+  const horizontalData = useComputedSeries(
+    "vessel.flight.surfaceSpeed",
+    "vessel.flight.verticalSpeed",
+    windowSec,
+    horizontalOf,
+  );
+  const computedSeries = useMemo<ComputedSeries[]>(
+    () => [
+      {
+        meta: {
+          key: HORIZONTAL_SPEED_KEY,
+          label: "Horizontal velocity",
+          unit: "m/s",
+        },
+        data: horizontalData,
+      },
+    ],
+    [horizontalData],
+  );
 
   const referenceCurve = useMemo(() => {
     if (!body) return null;
@@ -101,7 +136,7 @@ function OrbitalAscentComponent({
       series: [
         {
           id: "ascent-trace",
-          key: "vessel.state.horizontalSpeed",
+          key: HORIZONTAL_SPEED_KEY,
           label: "Horizontal velocity",
           axis: "primary",
           type: "line",
@@ -120,6 +155,7 @@ function OrbitalAscentComponent({
     <Fill>
       <GraphView
         config={graphConfig}
+        computedSeries={computedSeries}
         referenceCurves={referenceCurve ? [referenceCurve] : undefined}
         title="ORBITAL ASCENT"
       />
