@@ -48,6 +48,7 @@ import {
 } from "./processorEvaluator";
 import { StreamRecorder, type StreamRecorderOptions } from "./replay-recorder";
 import { spaceCenterStateChannel } from "./space-center-state";
+import { type ReadTopicResolver, subscribeTopicRead } from "./subscribe-read";
 import { systemStateChannel } from "./system-state";
 import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
@@ -375,9 +376,11 @@ export function TelemetryProvider({
   useEffect(() => {
     activeTelemetryClient = client;
     notifyActiveTelemetryClientListeners();
+    syncTopicHolds();
     return () => {
       if (activeTelemetryClient === client) activeTelemetryClient = undefined;
       notifyActiveTelemetryClientListeners();
+      syncTopicHolds();
     };
   }, [client]);
   // Registers the carried-channels allowlist as `getActiveCarriedChannels()`'s
@@ -872,12 +875,63 @@ function syncTimelineFrameBridge(): void {
 }
 
 /**
- * The one way `activeTimelineStore` changes, so that the frame bridge is
- * never left pointing at a store that is no longer the active one.
+ * The active store's topic resolution, which `holdActiveTopicRead` needs and
+ * an on-demand sample does not. Undefined for a test double that does not
+ * implement it, so a hold simply waits rather than subscribing wrongly.
  */
-function setActiveTimelineStore(store: ActiveTimelineStore | undefined): void {
+let activeReadResolver: ReadTopicResolver | undefined;
+
+/**
+ * The one way `activeTimelineStore` changes, so that the frame bridge and the
+ * topic holds are never left pointing at a store that is no longer the active
+ * one.
+ */
+function setActiveTimelineStore(
+  store: (ActiveTimelineStore & Partial<ReadTopicResolver>) | undefined,
+): void {
   activeTimelineStore = store;
+  activeReadResolver =
+    typeof store?.resolveSubscriptionTopics === "function" &&
+    typeof store.reckonerDepTopics === "function"
+      ? (store as ReadTopicResolver)
+      : undefined;
   syncTimelineFrameBridge();
+  syncTopicHolds();
+}
+
+/**
+ * Every hold `holdActiveTopicRead` has handed out and not yet released, by the
+ * token only its own release function knows.
+ */
+const topicHolds = new Map<symbol, { topic: string; label?: string }>();
+
+/** What each hold has subscribed against the pair below. */
+const topicHoldReleases = new Map<symbol, () => void>();
+let heldClient: TelemetryClient | undefined;
+let heldResolver: ReadTopicResolver | undefined;
+
+/**
+ * Points every hold at the active client and store, moving all of them when
+ * either changes and dropping them while either is missing.
+ */
+function syncTopicHolds(): void {
+  if (
+    activeTelemetryClient !== heldClient ||
+    activeReadResolver !== heldResolver
+  ) {
+    for (const release of topicHoldReleases.values()) release();
+    topicHoldReleases.clear();
+    heldClient = activeTelemetryClient;
+    heldResolver = activeReadResolver;
+  }
+  if (!heldClient || !heldResolver) return;
+  for (const [token, hold] of topicHolds) {
+    if (topicHoldReleases.has(token)) continue;
+    topicHoldReleases.set(
+      token,
+      subscribeTopicRead(heldClient, heldResolver, hold.topic, hold.label),
+    );
+  }
 }
 
 /**
@@ -1101,17 +1155,41 @@ export function getValue(
 ): number | undefined {
   const topic = resolveValueTopic(dataSourceId, key);
   if (topic === undefined) return undefined;
-  const observed = sampleActiveTopic<unknown>(topic);
-  // Both shapes a picked key can arrive in. A field of a RAW Topic carries its
-  // unit by the time it reaches the store, because the decode wraps every
-  // declared quantity (`wrapTopicPayload`) and the store's field-subtopic walk
-  // hands back whatever the parent record holds; a field of a client-DERIVED
-  // channel is computed here and never met the wrap, so it is a plain number.
-  // `magnitudeOf` owns the finite check for both, which is the point of routing
-  // through it: a second spelling of "absent or non-finite" beside it is how
-  // one of them came to answer NaN.
+  return pickedKeyMagnitude(sampleActiveTopic<unknown>(topic));
+}
+
+/**
+ * `getValue` for a caller DECIDING something rather than drawing it: the same
+ * key resolution and the same unwrap, answered only while the reading is
+ * `observed`. A held last payload, a topic nothing has sent yet and a
+ * tombstone all answer `undefined`, because a threshold compared against a
+ * number nobody can date is a decision taken on a guess.
+ */
+export function getObservedValue(
+  dataSourceId: string,
+  key: string,
+): number | undefined {
+  const topic = resolveValueTopic(dataSourceId, key);
+  if (topic === undefined) return undefined;
+  const reading = sampleActiveReading<unknown>(topic);
+  return reading.state === "observed"
+    ? pickedKeyMagnitude(reading.value)
+    : undefined;
+}
+
+/**
+ * The magnitude of a picked key's payload, in both shapes it can arrive in. A
+ * field of a RAW Topic carries its unit by the time it reaches the store,
+ * because the decode wraps every declared quantity (`wrapTopicPayload`) and the
+ * store's field-subtopic walk hands back whatever the parent record holds; a
+ * field of a client-DERIVED channel is computed here and never met the wrap, so
+ * it is a plain number. `magnitudeOf` owns the finite check for both, which is
+ * the point of routing through it: a second spelling of "absent or non-finite"
+ * beside it is how one of them came to answer NaN.
+ */
+function pickedKeyMagnitude(payload: unknown): number | undefined {
   const quantity =
-    isValue(observed) || typeof observed === "number" ? observed : null;
+    isValue(payload) || typeof payload === "number" ? payload : null;
   return magnitudeOf(quantity) ?? undefined;
 }
 
@@ -1297,7 +1375,7 @@ export function dispatchActiveCommandTopic(
  * later, unrelated suite can't see a stale store left over from this one.
  */
 export function setActiveTimelineStoreForTests(
-  store: ActiveTimelineStore | undefined,
+  store: (ActiveTimelineStore & Partial<ReadTopicResolver>) | undefined,
 ): void {
   setActiveTimelineStore(store);
 }
@@ -1316,6 +1394,7 @@ export function setActiveTelemetryClientForTests(
 ): void {
   activeTelemetryClient = client;
   notifyActiveTelemetryClientListeners();
+  syncTopicHolds();
 }
 
 /**
@@ -1364,6 +1443,38 @@ export function onActiveTimelineFrame(cb: () => void): () => void {
   return () => {
     timelineFrameListeners.delete(cb);
     syncTimelineFrameBridge();
+  };
+}
+
+/**
+ * Holds `topic` up on the wire for a caller with no component to mount: a
+ * standing subscription through the same seam every read path uses, so a
+ * derived topic or a field path holds the raw topics that feed it. Returns the
+ * release.
+ *
+ * The non-hook twin of what `useTelemetry` does while mounted, and the answer
+ * to a headless service that samples a topic nothing else is holding: without
+ * it the read is `pending` for ever, or after a widget lets go, the widget's
+ * last payload. Like `onActiveTimelineFrame` it outlives the provider: taken
+ * before one mounts it subscribes when one does, and it follows a provider
+ * that unmounts and remounts.
+ *
+ * A hold makes the topic ARRIVE; it says nothing about how current the next
+ * read is. Until the first frame lands after subscribing, a sample still
+ * answers the previous holder's point, so a caller deciding anything reads
+ * through `sampleActiveReading` and branches on `state`.
+ */
+export function holdActiveTopicRead(
+  topic: string,
+  subscriberLabel?: string,
+): () => void {
+  const token = Symbol(topic);
+  topicHolds.set(token, { topic, label: subscriberLabel });
+  syncTopicHolds();
+  return () => {
+    topicHolds.delete(token);
+    topicHoldReleases.get(token)?.();
+    topicHoldReleases.delete(token);
   };
 }
 

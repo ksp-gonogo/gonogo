@@ -26,6 +26,7 @@ import {
   AlarmStateMachine,
   type RevealedEventsReader,
 } from "./AlarmStateMachine";
+import { AlarmTopicHolds } from "./AlarmTopicHolds";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import { ScetAlarmBridge } from "./ScetAlarmBridge";
 import {
@@ -225,6 +226,7 @@ export class AlarmHostService {
   private warpObserver: WarpObserver;
   private peerBridge: AlarmPeerBridge;
   private scetBridge: ScetAlarmBridge;
+  private topicHolds = new AlarmTopicHolds();
   /**
    * Why the simulation would not arm an alarm, by alarm id.
    *
@@ -623,6 +625,7 @@ export class AlarmHostService {
       this.tickHandle = null;
     }
     this.scetBridge.dispose();
+    this.topicHolds.releaseAll();
   }
 
   /**
@@ -765,6 +768,9 @@ export class AlarmHostService {
     const ut = getViewUt() ?? null;
     this.observedUT = ut ?? this.observedUT;
     this.warpObserver.observeWarp();
+    this.topicHolds.reconcile(this.alarms, (alarm) =>
+      this.stateMachine.latchedElsewhere(alarm),
+    );
 
     if (ut !== null) {
       let changed = false;
@@ -984,14 +990,8 @@ export class AlarmHostService {
 }
 
 /**
- * Convenience factory. Historically wrapped a live `BufferedDataSource`
- * lookup so the host could be constructed at MainScreen-mount time even
- * before the legacy `"data"` source was registered, now that every
- * telemetry read/command dispatch inside `AlarmHostService` rides the
- * stream (`getWarpState`/`getContractsActive`/`getValue`/
- * `dispatchActiveCommand`), there's nothing left to wrap; kept as a thin
- * pass-through so call sites (and `createManeuverTriggerHost`'s identical
- * shape) don't need to change.
+ * Convenience factory, a thin pass-through with the same shape as
+ * `createManeuverTriggerHost`.
  */
 export function createAlarmHost(
   host: PeerHostService | null,

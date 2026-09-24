@@ -1,5 +1,5 @@
 import { slopeFit } from "@ksp-gonogo/core";
-import { getValue } from "@ksp-gonogo/sitrep-client";
+import { getObservedValue } from "@ksp-gonogo/sitrep-client";
 import { type Alarm, isAtSubjectVantage } from "./types";
 
 interface ThresholdSample {
@@ -13,7 +13,9 @@ const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
 
 /**
  * A threshold trigger's saved `dataKey`, read off the stream as a number, or
- * `null` for a read nobody could make.
+ * `null` for a read nobody could make. Only a reading that is `observed` now
+ * answers: a held last payload is the number a widget last drew, not the
+ * craft's, and comparing against it would fire or clear an alarm on history.
  *
  * It lives here rather than beside the evaluator because this is the module
  * that stays: the planner needs it to fill its sample buffer, and
@@ -21,7 +23,7 @@ const MIN_SAMPLE_SPAN_GAME_SECONDS = 1;
  * much longer. The import points the way the deletion goes.
  */
 export function readThresholdTelemetryNumber(key: string): number | null {
-  const v = getValue("data", key);
+  const v = getObservedValue("data", key);
   return v === undefined ? null : v;
 }
 

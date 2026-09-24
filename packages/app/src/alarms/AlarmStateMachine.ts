@@ -1,9 +1,10 @@
 import {
   type EventOccurrence,
-  getContractsActive,
+  sampleActiveReading,
 } from "@ksp-gonogo/sitrep-client";
 import type { CareerContract } from "@ksp-gonogo/sitrep-sdk";
 import { KspParameterState } from "@ksp-gonogo/sitrep-sdk";
+import { CONTRACTS_ACTIVE_TOPIC } from "./AlarmTopicHolds";
 import { readThresholdTelemetryNumber } from "./AlarmWarpPlanner";
 import {
   type Alarm,
@@ -41,6 +42,16 @@ const TARGET_STATE_ORDINAL: Record<
 };
 
 /**
+ * The active contract list while it is `observed`, and `undefined` otherwise:
+ * a list a widget last held is not the career's list now, and matching an
+ * objective against it would fire or clear an alarm on history.
+ */
+function readObservedContracts(): readonly CareerContract[] | undefined {
+  const reading = sampleActiveReading<CareerContract[]>(CONTRACTS_ACTIVE_TOPIC);
+  return reading.state === "observed" ? reading.value : undefined;
+}
+
+/**
  * Owns the per-tick alarm state derivation: contiguous-match tracking for
  * threshold, contract-parameter and event triggers, and the `deriveState`
  * transition that reads the latches they write.
@@ -57,11 +68,12 @@ const TARGET_STATE_ORDINAL: Record<
  * queries. `observedUT` stays a getter callback, owned by the host, so this
  * never holds a stale copy. Threshold
  * `dataKey` reads and the contract-parameter trigger's `contracts.active`
- * read both come off the stream now (`readThresholdTelemetryNumber` over
- * `getValue`, and `getContractsActive`) rather than the legacy `"data"`
- * `DataSource`,
- * `DataKeyPicker`'s Value restriction (`useValueKeys`) guarantees a
- * `ThresholdTrigger.dataKey` always has a stream home.
+ * read both come off the stream (`readThresholdTelemetryNumber` over
+ * `getObservedValue`, and `readObservedContracts`), each answering only while
+ * its reading is `observed`; `AlarmTopicHolds` keeps both Topics subscribed
+ * while an alarm needs them. `DataKeyPicker`'s Value restriction
+ * (`useValueKeys`) guarantees a `ThresholdTrigger.dataKey` always has a stream
+ * home.
  */
 export class AlarmStateMachine {
   /**
@@ -81,16 +93,14 @@ export class AlarmStateMachine {
      * Injected like the three readers above it, and defaulted to the live
      * stream read so no caller changes.
      *
-     * It was a bare module-level `getContractsActive()` call inside the matcher,
-     * which is the one read this class made without a seam: a test could only
-     * reach it by standing up a whole `TelemetryProvider` and keeping a
-     * subscription open, so the trigger's own matching rule had no unit-level
-     * coverage at all. It is the trigger whose failure mode is an alarm that
-     * never fires, so that is the wrong one to leave unreachable.
+     * A seam so the trigger's own matching rule has unit-level coverage
+     * without a whole `TelemetryProvider` and an open subscription: it is the
+     * trigger whose failure mode is an alarm that never fires, so that is the
+     * wrong one to leave unreachable.
      */
     private readonly getContracts: () =>
       | readonly CareerContract[]
-      | undefined = getContractsActive,
+      | undefined = readObservedContracts,
     /**
      * Whether the mod REFUSED to arm this alarm, and so will never latch it.
      *
@@ -119,9 +129,10 @@ export class AlarmStateMachine {
 
   /**
    * Whether this side must leave the latch alone: the kind is mod-owned and the
-   * mod has not refused it.
+   * mod has not refused it. Public so the Topics held for evaluation follow the
+   * same rule as the evaluation itself.
    */
-  private latchedElsewhere(alarm: Alarm): boolean {
+  latchedElsewhere(alarm: Alarm): boolean {
     return modOwnsLatch(alarm.trigger) && !this.modRefused(alarm);
   }
 
@@ -334,11 +345,10 @@ export class AlarmStateMachine {
    * Three answers, not two: the condition holds, the condition does not hold,
    * or `null` for a read we could not make at all.
    *
-   * `getValue` answers `undefined` for four different situations, and its own
-   * doc hands the surface that stored the key the job of telling them apart:
-   * nothing has arrived on the topic yet, the value is currently absent or
-   * non-finite, the link is down, or the saved `dataKey` names a subject that
-   * no longer resolves. Collapsing all four into `false` published a failed
+   * The read answers `null` for several different situations: nothing has
+   * arrived on the topic yet, the reading is no longer current, the value is
+   * absent or non-finite, or the saved `dataKey` names a subject that no longer
+   * resolves. Collapsing all four into `false` published a failed
    * read as the confident fact "the condition is not met", which is what let a
    * dropout clear a sustain latch.
    */
@@ -351,8 +361,8 @@ export class AlarmStateMachine {
   /**
    * Three answers, not two, for the same reason `evalThreshold` gives them.
    *
-   * `getContractsActive` answers a non-array whenever nothing has arrived on
-   * `contracts.active` yet or the link is down, and that is a different claim
+   * The read answers a non-array whenever `contracts.active` has not arrived
+   * or is no longer current, and that is a different claim
    * from an EMPTY list: empty says the contract is no longer active, non-array
    * says nobody could ask.
    *
