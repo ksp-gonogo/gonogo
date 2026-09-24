@@ -6,7 +6,7 @@ import {
   renderModuleUrl,
   resolveUplinkPackage,
 } from "./render/context";
-import { buildManifest, buildReadme } from "./render/docs";
+import { buildManifest, buildReadme, linkedAssets } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 
 /**
@@ -85,19 +85,7 @@ export function checkUplinkPage(
     pkg,
     inventory,
     scenes,
-    assets: scenes.flatMap((scene) =>
-      scene.modes.map((mode) => ({
-        scene,
-        mode: mode.name,
-        file:
-          scene.steps && scene.steps.length > 0
-            ? `${scene.name}--${mode.name}.gif`
-            : `${scene.name}--${mode.name}.png`,
-        kind: (scene.steps && scene.steps.length > 0 ? "motion" : "still") as
-          | "motion"
-          | "still",
-      })),
-    ),
+    assets: linkedAssets(scenes),
     assetDir: "docs/assets",
   };
   const { manifest } = buildManifest(inputs);
@@ -186,6 +174,7 @@ export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
   throw new Error(
     `The generated Uplink page no longer matches the code: ` +
       `${differences.length} difference(s).\n  ${differences.join("\n  ")}\n\n` +
-      "Run `gonogo-uplink docs` and commit the result.",
+      "Run `gonogo-uplink docs --no-assets` to rewrite the prose alone, or " +
+      "`gonogo-uplink docs` to render the pictures as well, and commit the result.",
   );
 }
