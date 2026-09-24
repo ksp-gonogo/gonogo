@@ -80,7 +80,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RecoverCommand, args => FlightOpsCommandProvider.HandleRecover(_actuator, args));
             host.AddVantageCommandHandler<LaunchArgs, CommandResult>(
                 FlightOpsCommandProvider.LaunchCommand,
-                (args, vantage) => FlightOpsCommandProvider.HandleLaunch(_actuator, args, vantage, LaunchSiteProximity.SecondsBetween));
+                (args, vantage) => FlightOpsCommandProvider.HandleLaunch(_actuator, args, vantage, LaunchSiteProximity.Between));
         }
 
         private static CommandDeclaration Command(string command) => new CommandDeclaration
