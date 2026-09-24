@@ -1776,7 +1776,12 @@ namespace Sitrep.Contract
         /// <para><b>Reset to 0 alongside the Major 16 -&gt; 17 bump</b> (see
         /// <see cref="Major"/>). The Minor history above belongs to the Major-16 line
         /// and is retained for provenance.</para>
+        ///
+        /// <para><b>Bumped 0 -&gt; 1:</b> <see cref="WarpState.KeyframeFloorSec"/>, the
+        /// real-time floor on periodic keyframes, so a client inferring staleness from
+        /// keyframe cadence can widen its expected gap under warp. Additive, nothing
+        /// removed or retyped.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

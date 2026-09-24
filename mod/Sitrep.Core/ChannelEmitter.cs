@@ -60,6 +60,7 @@ namespace Sitrep.Core
         {
             public double? LastSampledUt;
             public double? LastKeyframeUt;
+            public double? LastKeyframeRealSec;
             public double? LastEmittedUt;
             public object? LastEmittedValue;
 
@@ -101,13 +102,40 @@ namespace Sitrep.Core
         private const int ChurnRunLength = 4;
         private const int CompareSkipRun = 16;
 
+        /// <summary>
+        /// The shortest real time between two periodic keyframes on one channel,
+        /// in seconds.
+        ///
+        /// <para>A keyframe's cadence is declared in UT because what it resyncs
+        /// is the simulated world, and under warp more of that world happens per
+        /// real second. But UT can outrun any consumer: at high warp every
+        /// policy's interval is satisfied on every tick, and an unconditional
+        /// resend per channel per tick is a flood no client reads. So the UT
+        /// cadence is floored in real time. One second, because every declared
+        /// <see cref="EmissionPolicy.KeyframeIntervalUt"/> is at least one UT
+        /// second and at 1x a UT second IS a real one, so the floor never binds
+        /// at 1x and binds only when UT runs ahead of the clock on the
+        /// wall.</para>
+        ///
+        /// <para>Published on <c>time.warp</c> as <c>keyframeFloorSec</c>: a
+        /// client inferring staleness from keyframe cadence has to widen its
+        /// expected gap to <c>floor × warpRate</c>, or every quiet channel reads
+        /// stale for the moment after each warp step-up.</para>
+        ///
+        /// <para>Only the PERIODIC keyframe is floored. The forced one a new
+        /// subscriber or a timeline reset asks for is not, and a change still
+        /// goes out on its own policy.</para>
+        /// </summary>
+        public const double KeyframeFloorRealSec = 1.0;
+
+        private readonly Func<double> _nowRealSec;
         private readonly Func<string, EmissionPolicy> _policyFor;
         private readonly Func<string, bool>? _repeatIsDataFor;
         private readonly Dictionary<string, ChannelState> _channels = new Dictionary<string, ChannelState>();
 
         /// <summary>Every channel uses the same policy.</summary>
-        public ChannelEmitter(EmissionPolicy uniformPolicy)
-            : this(_ => uniformPolicy)
+        public ChannelEmitter(EmissionPolicy uniformPolicy, Func<double>? nowRealSec = null)
+            : this(_ => uniformPolicy, nowRealSec: nowRealSec)
         {
         }
 
@@ -126,10 +154,25 @@ namespace Sitrep.Core
         /// does not already hold. This class names no uplink; the engine reads
         /// the lane off each channel's own declaration and answers from that.
         /// </param>
-        public ChannelEmitter(Func<string, EmissionPolicy> policyFor, Func<string, bool>? repeatIsDataFor = null)
+        /// <param name="nowRealSec">
+        /// Monotonic real time in seconds, for <see cref="KeyframeFloorRealSec"/>.
+        /// Defaults to a stopwatch; a test passes its own to step real time
+        /// independently of UT.
+        /// </param>
+        public ChannelEmitter(
+            Func<string, EmissionPolicy> policyFor,
+            Func<string, bool>? repeatIsDataFor = null,
+            Func<double>? nowRealSec = null)
         {
             _policyFor = policyFor;
             _repeatIsDataFor = repeatIsDataFor;
+            _nowRealSec = nowRealSec ?? StopwatchSeconds();
+        }
+
+        private static Func<double> StopwatchSeconds()
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            return () => clock.Elapsed.TotalSeconds;
         }
 
         public EmissionDecision Decide(string channelId, object? value, double ut)
@@ -139,7 +182,7 @@ namespace Sitrep.Core
 
             if (state.ForceKeyframe)
             {
-                return EmitKeyframe(state, value, ut);
+                return EmitKeyframe(state, value, ut, _nowRealSec());
             }
 
             var policy = _policyFor(channelId);
@@ -149,10 +192,14 @@ namespace Sitrep.Core
             // evaluated BEFORE that gate. Inverted, a MinSampleIntervalUt >=
             // KeyframeIntervalUt would silently starve every due keyframe. The
             // min-sample gate below throttles only the CHANGE path.
-            var keyframeDue = !state.LastKeyframeUt.HasValue || ut - state.LastKeyframeUt.Value >= policy.KeyframeIntervalUt;
+            var nowReal = _nowRealSec();
+            var keyframeDue = !state.LastKeyframeUt.HasValue
+                || (ut - state.LastKeyframeUt.Value >= policy.KeyframeIntervalUt
+                    && (!state.LastKeyframeRealSec.HasValue
+                        || nowReal - state.LastKeyframeRealSec.Value >= KeyframeFloorRealSec));
             if (keyframeDue)
             {
-                return EmitKeyframe(state, value, ut);
+                return EmitKeyframe(state, value, ut, nowReal);
             }
 
             if (state.LastSampledUt.HasValue && ut - state.LastSampledUt.Value < policy.MinSampleIntervalUt)
@@ -255,11 +302,12 @@ namespace Sitrep.Core
             return state;
         }
 
-        private static EmissionDecision EmitKeyframe(ChannelState state, object? value, double ut)
+        private static EmissionDecision EmitKeyframe(ChannelState state, object? value, double ut, double nowRealSec)
         {
             state.ForceKeyframe = false;
             state.LastSampledUt = ut;
             state.LastKeyframeUt = ut;
+            state.LastKeyframeRealSec = nowRealSec;
             state.LastEmittedUt = ut;
             state.LastEmittedValue = value;
             state.Emitted += 1;

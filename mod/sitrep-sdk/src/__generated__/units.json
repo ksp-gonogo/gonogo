@@ -1419,6 +1419,7 @@
       "maxSkinTempRatio": "ratio"
     },
     "WarpState": {
+      "keyframeFloorSec": "s",
       "paused": "flag",
       "warpMode": "enum",
       "warpRate": "1",
@@ -1814,6 +1815,7 @@
       "yearSeconds": "s"
     },
     "time.warp": {
+      "keyframeFloorSec": "s",
       "paused": "flag",
       "warpMode": "enum",
       "warpRate": "1",

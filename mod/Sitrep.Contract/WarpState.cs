@@ -89,5 +89,22 @@ public class WarpState
     [SitrepUnit(Units.Dimensionless)]
     public double[]? WarpRates { get; set; }
 
+    /// <summary>
+    /// The shortest real time the mod leaves between two periodic keyframes on
+    /// one channel, in seconds.
+    ///
+    /// <para>Keyframe cadences are declared in UT, and under warp UT can pass a
+    /// cadence on every tick, so the mod also waits at least this long in real
+    /// time. The gap a client sees between two keyframes of a quiet channel is
+    /// therefore at least <c>keyframeFloorSec × warpRate</c> UT. A client that
+    /// infers staleness from keyframe cadence has to allow for that, or every
+    /// quiet channel reads stale just after a warp step-up.</para>
+    ///
+    /// <para>On this topic because its only use is that product, and both
+    /// halves then arrive in the same sample.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double KeyframeFloorSec { get; set; }
+
     public PayloadMeta Meta { get; set; } = new();
 }
