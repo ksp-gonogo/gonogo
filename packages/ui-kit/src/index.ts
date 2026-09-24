@@ -27,7 +27,6 @@ import "./styledComponentsTheme";
 // degrade to inherited text and are left bare, matching what shipped before.
 export {
   DefaultThemeProvider,
-  type DefaultThemeProviderProps,
   defaultDarkTheme,
   type ThemeBorders,
   type ThemeColors,
@@ -239,21 +238,12 @@ export {
   useCountdown,
 } from "./CommandDelay/InFlightList";
 export {
-  allRailTags,
   type RailContinuity,
   type RailDelivery,
   type RailDirection,
-  type RailRenderer,
-  type RailTagKey,
   type RailTags,
   railDrawsReturnLeg,
-  railFlow,
-  railMark,
-  railRendererFor,
   railTagKey,
-  railToneToken,
-  reportUnrepresentedRail,
-  unrepresentedRailTags,
 } from "./CommandDelay/railTags";
 export {
   type InFlightCommandLike,
@@ -598,7 +588,6 @@ export {
   type SubjectHeadingProps,
 } from "./SubjectHeading";
 export { Switch } from "./Switch";
-export { STAT_TONE_COLOR, type StatTone } from "./statTone";
 export type { PanelStatusDotProps } from "./status/PanelStatusDot";
 export {
   createPanelStatusStore,
