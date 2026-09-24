@@ -1,0 +1,125 @@
+{
+  "_meta": {
+    "notes": "Small hand-authored tree (not a live capture) used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx) and stream test (stream.test.tsx). career.status.tech.nodes (CareerViewProvider.BuildTechNodes) carries a description as of contract 14.1, read off the tech tree's own config, so the node detail's description line is drawn here from the real wire shape and not only from the legacy capture; the two halves of this file carry the same strings, since a node's flavour line does not depend on which producer sent it. Parts are still absent from the wire and this fixture still omits them, which is why the rich per-node part detail early-career-63-nodes.json exercises stays legacy-only (index.test.tsx). Includes a multi-parent node (stability) to exercise the same tech-tree edge shape the C# synthetic wire fixture covers. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "scenario": "small-career-detail-stopped-arriving"
+  },
+  "tech.nodes": [
+    {
+      "id": "basicRocketry",
+      "title": "Basic Rocketry",
+      "description": "How hard can Rocket Science be anyway?",
+      "scienceCost": 0,
+      "state": "Available",
+      "parents": []
+    },
+    {
+      "id": "engineering101",
+      "title": "General Rocketry",
+      "description": "How hard can Aerospace Engineering be anyway?",
+      "scienceCost": 15,
+      "state": "Available",
+      "parents": ["basicRocketry"]
+    },
+    {
+      "id": "survivability",
+      "title": "Survivability",
+      "description": "The art and science of landing and walking away from it.",
+      "scienceCost": 15,
+      "state": "Available",
+      "parents": ["basicRocketry"]
+    },
+    {
+      "id": "stability",
+      "title": "Stability",
+      "description": "Tumbling out of control may be fun, but our engineers insist there's more to rocket science than that.",
+      "scienceCost": 45,
+      "state": "Unavailable",
+      "parents": ["engineering101", "survivability"]
+    },
+    {
+      "id": "advRocketry",
+      "title": "Advanced Rocketry",
+      "description": "More engines, more fuel, more ambitious ideas.",
+      "scienceCost": 45,
+      "state": "Unavailable",
+      "parents": ["engineering101"]
+    }
+  ],
+  "kc.scene": "SpaceCenter",
+  "career.science": 4854,
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "career.facilities",
+      "spaceCenter.scene"
+    ],
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter"
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 45000,
+            "reputation": 0,
+            "science": 4854
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": {
+            "unlockedCount": 3,
+            "unlockedIds": ["basicRocketry", "engineering101", "survivability"],
+            "nodes": [
+              {
+                "id": "basicRocketry",
+                "title": "Basic Rocketry",
+                "description": "How hard can Rocket Science be anyway?",
+                "scienceCost": 0,
+                "unlocked": true,
+                "parents": []
+              },
+              {
+                "id": "engineering101",
+                "title": "General Rocketry",
+                "description": "How hard can Aerospace Engineering be anyway?",
+                "scienceCost": 15,
+                "unlocked": true,
+                "parents": ["basicRocketry"]
+              },
+              {
+                "id": "survivability",
+                "title": "Survivability",
+                "description": "The art and science of landing and walking away from it.",
+                "scienceCost": 15,
+                "unlocked": true,
+                "parents": ["basicRocketry"]
+              },
+              {
+                "id": "stability",
+                "title": "Stability",
+                "description": "Tumbling out of control may be fun, but our engineers insist there's more to rocket science than that.",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["engineering101", "survivability"]
+              },
+              {
+                "id": "advRocketry",
+                "title": "Advanced Rocketry",
+                "description": "More engines, more fuel, more ambitious ideas.",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["engineering101"]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "pinnedUt": 10,
+    "stopsArriving": true
+  }
+}

@@ -122,6 +122,13 @@ export interface UnknownCastSite {
   file: string;
   /** One-based, so it pastes into an editor. */
   line: number;
+  /**
+   * The named place the assertion sits in: its function, method, variable or
+   * test, as {@link withinName} resolves it. The debt list is keyed on this
+   * rather than the line, so it names an erasure point that survives the file
+   * being edited around it.
+   */
+  within: string;
   /** What the compiler knew about the subject: nothing, or nothing checked. */
   kind: "unknown" | "any";
   /** `x as unknown as T`: an assertion laundered through a widening. */
@@ -193,6 +200,72 @@ export function classifyAssertion(
     kind: type.flags & ts.TypeFlags.Unknown ? "unknown" : "any",
     double,
   };
+}
+
+const TEST_CALLS = new Set([
+  "it",
+  "test",
+  "describe",
+  "beforeEach",
+  "afterEach",
+  "beforeAll",
+  "afterAll",
+]);
+
+/** A declaration's own name, when it has one written as an identifier or string. */
+function declaredName(name: ts.Node | undefined): string | undefined {
+  if (!name) return undefined;
+  if (ts.isIdentifier(name) || ts.isPrivateIdentifier(name)) return name.text;
+  if (ts.isStringLiteral(name) || ts.isNumericLiteral(name)) return name.text;
+  return undefined;
+}
+
+/**
+ * The nearest enclosing place with a name, for keying a site.
+ *
+ * Anonymous callbacks are walked through, so an assertion inside a `.map` in
+ * `readRows` belongs to `readRows`. A test callback takes its call's title,
+ * `it("reads a row")`, because that is the name a reader finds it by. A class
+ * member is qualified by its class. A site in no named place is `(module)`.
+ */
+export function withinName(node: ts.Node): string {
+  for (let at: ts.Node | undefined = node.parent; at; at = at.parent) {
+    if (
+      ts.isFunctionDeclaration(at) ||
+      ts.isMethodDeclaration(at) ||
+      ts.isGetAccessorDeclaration(at) ||
+      ts.isSetAccessorDeclaration(at) ||
+      ts.isPropertyDeclaration(at)
+    ) {
+      const own = declaredName(at.name);
+      if (own === undefined) continue;
+      const owner =
+        ts.isClassLike(at.parent) && at.parent.name
+          ? `${at.parent.name.text}.`
+          : "";
+      return `${owner}${own}`;
+    }
+    if (ts.isVariableDeclaration(at) || ts.isPropertyAssignment(at)) {
+      const own = declaredName(at.name);
+      if (own !== undefined) return own;
+      continue;
+    }
+    if (ts.isCallExpression(at)) {
+      const callee = ts.isPropertyAccessExpression(at.expression)
+        ? at.expression.expression
+        : at.expression;
+      const title = at.arguments[0];
+      if (
+        ts.isIdentifier(callee) &&
+        TEST_CALLS.has(callee.text) &&
+        title &&
+        (ts.isStringLiteral(title) || ts.isNoSubstitutionTemplateLiteral(title))
+      ) {
+        return `${callee.text}(${JSON.stringify(title.text)})`;
+      }
+    }
+  }
+  return "(module)";
 }
 
 function skipParens(node: ts.Expression): ts.Expression {
@@ -267,6 +340,7 @@ export function scanProgram(
           scan.sites.push({
             file: sf.fileName.slice(repoRoot.length + 1),
             line: line + 1,
+            within: withinName(node),
             kind: verdict.kind,
             double: verdict.double,
             text: node.getText().replace(/\s+/g, " ").slice(0, 140),

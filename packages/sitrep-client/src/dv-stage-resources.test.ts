@@ -1,6 +1,7 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import {
   deriveCurrentStageResourceCurrent,
   deriveCurrentStageResourceMax,
@@ -41,12 +42,10 @@ function fakeGet(
   stages: TimelinePoint<StageDeltaVWireEntry[]> | undefined,
   structure: TimelinePoint<VesselStructureWirePayload> | undefined,
 ): DerivedGet {
-  return (<T>(topic: string) => {
-    if (topic === "dv.stages") return stages as unknown as TimelinePoint<T>;
-    if (topic === "vessel.structure")
-      return structure as unknown as TimelinePoint<T>;
-    return undefined;
-  }) as DerivedGet;
+  return derivedGetOf({
+    "dv.stages": stages,
+    "vessel.structure": structure,
+  });
 }
 
 const STAGES: StageDeltaVWireEntry[] = [

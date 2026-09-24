@@ -177,6 +177,59 @@ namespace Sitrep.Host.Settings
         public SettingsDocument Copy() => new SettingsDocument(Root.Copy());
 
         /// <summary>
+        /// The first row or block anywhere in the document that KSP's format
+        /// would change on the way to disk or back, as its path and the reason,
+        /// or null when every name and value survives a round trip.
+        ///
+        /// <para><see cref="SettingsStore.Stage(string, string)"/> refuses such
+        /// a value before it arrives; this is for a writer to check a document
+        /// that was built some other way before it puts it on disk.</para>
+        /// </summary>
+        public string? FirstEncodingViolation() => FirstViolationIn(Root, string.Empty);
+
+        private static string? FirstViolationIn(SettingsBlock block, string prefix)
+        {
+            for (var i = 0; i < block.Values.Count; i++)
+            {
+                var entry = block.Values[i];
+                var path = prefix + entry.Name;
+                var refusal = WrittenNameHazard(entry.Name) ?? SettingsText.RefusalOf(entry.Text);
+                if (refusal != null)
+                {
+                    return path + ": " + refusal;
+                }
+            }
+
+            for (var i = 0; i < block.Blocks.Count; i++)
+            {
+                var child = block.Blocks[i];
+                var path = prefix + child.Name;
+                var refusal = WrittenNameHazard(child.Name);
+                if (refusal != null)
+                {
+                    return path + ": " + refusal;
+                }
+
+                var inner = FirstViolationIn(child, path + "/");
+                if (inner != null)
+                {
+                    return inner;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// A name that would not survive the round trip. An EMPTY name does
+        /// survive it (a hand-typed <c>= 5</c> reads and writes back as itself),
+        /// so it is refused where a name is chosen but never here, where one
+        /// stray line in the file would otherwise block every later save.
+        /// </summary>
+        private static string? WrittenNameHazard(string name) =>
+            name.Length == 0 ? null : SettingsText.RefusalOfName(name);
+
+        /// <summary>
         /// Whether a path lies at or beneath <paramref name="prefix"/>, which is
         /// how a watcher on a whole block hears about one row inside it.
         /// </summary>
@@ -206,6 +259,12 @@ namespace Sitrep.Host.Settings
                 if (segments[i].Length == 0)
                 {
                     throw new ArgumentException("a settings path has no empty segment: " + path, nameof(path));
+                }
+
+                var refusal = SettingsText.RefusalOfName(segments[i]);
+                if (refusal != null)
+                {
+                    throw new ArgumentException(path + ": " + refusal, nameof(path));
                 }
             }
 

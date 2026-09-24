@@ -7,6 +7,14 @@ import { WidgetMetaContext } from "./WidgetMetaContext";
 
 beforeEach(() => clearAugments());
 
+/* The colliding slot the test mounts, declared because an undeclared slot id
+   carries no props at all. */
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface SlotRegistry {
+    "deployed.sections": { row?: string };
+  }
+}
+
 /**
  * A widget-authored slot whose id happens to END IN a framework segment is the
  * same string the universal segment completes to, so both mounts fire and the

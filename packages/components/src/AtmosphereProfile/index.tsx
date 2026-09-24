@@ -5,7 +5,8 @@ import {
   pressureFromProfile,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -17,6 +18,7 @@ import {
 } from "../Graph";
 import { magnitudeOf } from "../shared/magnitude";
 import type { StreamBody } from "../shared/streamBody";
+import { useBodyName } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 export interface AtmosphereProfileConfig {
@@ -25,7 +27,7 @@ export interface AtmosphereProfileConfig {
 }
 
 const topics = defineTopicManifest({
-  channels: ["vessel.flight", "system.bodies"],
+  channels: ["vessel.flight", "vessel.identity", "system.bodies"],
 });
 
 const REFERENCE_SAMPLES = 80;
@@ -102,10 +104,6 @@ function AtmosphereProfileComponent({
   w,
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
-  // The body name off the `vessel.state` derived channel, which is where the
-  // index→name display map lives; every measured number the chip draws, the
-  // altitude included, off the raw `vessel.flight` Topic below.
-  const vesselState = useStream<VesselState>("vessel.state");
   /**
    * All three atmospheric numbers are quantities that drift on their own as the
    * craft climbs or dives, and the HUD chip states them as the air the craft is
@@ -140,7 +138,9 @@ function AtmosphereProfileComponent({
         ? flightReading.value
         : undefined;
   const flightNotCurrent = flightReading.state === "stale";
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   /* Resolved against the same `system.bodies` roster the name came from, not
      against the bundled table of STOCK bodies: a planet pack renames both
      sides together, and a name lookup in the table missed every one of them. */
@@ -347,11 +347,11 @@ function formatPressure(p: number): string {
    surface primitive expresses a translucent pointer-through notice. */
 const NOTICE_STYLE = {
   flex: "0 0 auto",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   background: "rgba(0, 0, 0, 0.7)",
   padding: "var(--inset-chip)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   alignSelf: "flex-start",
   maxWidth: "100%",
@@ -373,8 +373,8 @@ const LIVE_CHIP_STYLE = {
   padding: "var(--inset-surface)",
   background: "rgba(0, 0, 0, 0.75)",
   border: "1px solid var(--color-surface-raised)",
-  borderRadius: "var(--radius-xs)",
-  fontSize: "var(--font-size-xs)",
+  borderRadius: "var(--radius-regular)",
+  fontSize: "var(--font-size-compact)",
   fontVariantNumeric: "tabular-nums",
   pointerEvents: "none",
 } as const;
@@ -390,12 +390,12 @@ const CHIP_LABEL_STYLE = {
   color: "var(--color-text-faint)",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
 } as const;
 
 const CHIP_VALUE_STYLE = {
   color: "var(--color-text-primary)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-value)",
 } as const;
 
 registerComponent<AtmosphereProfileConfig>({

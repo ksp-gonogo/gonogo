@@ -73,13 +73,17 @@ function readBlob(): SettingsBlob {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { version: SCHEMA_VERSION, values: {} };
-    const parsed = JSON.parse(raw) as Partial<SettingsBlob>;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) {
+      return { version: SCHEMA_VERSION, values: {} };
+    }
+    const version: unknown = Reflect.get(parsed, "version");
+    const storedValues: unknown = Reflect.get(parsed, "values");
     return {
-      version:
-        typeof parsed.version === "number" ? parsed.version : SCHEMA_VERSION,
+      version: typeof version === "number" ? version : SCHEMA_VERSION,
       values:
-        parsed.values && typeof parsed.values === "object"
-          ? (parsed.values as Record<string, string>)
+        storedValues && typeof storedValues === "object"
+          ? (storedValues as Record<string, string>)
           : {},
     };
   } catch {

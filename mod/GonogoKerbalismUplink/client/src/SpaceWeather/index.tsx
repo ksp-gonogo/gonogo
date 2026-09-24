@@ -1,6 +1,8 @@
-import type { ComponentProps, VesselState } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CELESTIAL_FACTS,
   registerComponent,
+  useProcessor,
   useStream,
   useTelemetry,
   useViewUt,
@@ -689,17 +691,16 @@ function StormCard({
     storm.targetKind === STORM_TARGET_VESSEL ? " (current vessel)" : "";
 
   return (
-    <Card tone={SEVERITY_CARD_TONE[severity]}>
+    <Card
+      tone={SEVERITY_CARD_TONE[severity]}
+      title={storm.star}
+      titleRight={
+        <Badge severity={severity} size="sm">
+          {stormLabel(storm.state)}
+        </Badge>
+      }
+    >
       <Stack>
-        <Cluster justify="between" align="baseline">
-          <Text tone="default" weight="semibold" size="sm">
-            {storm.star}
-          </Text>
-          <Badge severity={severity} size="sm">
-            {stormLabel(storm.state)}
-          </Badge>
-        </Cluster>
-
         <Text tone="muted" size="xs">
           {`${verb} ${target}${qualifier}`}
         </Text>
@@ -1027,10 +1028,24 @@ function SpaceWeatherComponent({
   // before the first confirmed sample, and substituting UT 0 there measured
   // every storm against year 1 day 1: an ETA years wide, stated to the second.
   const nowUt = magnitudeOf(useViewUt());
-  // Only the FALLBACK target name, for a stream whose mod predates the
-  // named-target capture; see `StormCard`.
+  /*
+   * Only the FALLBACK target name, for a stream whose mod predates the
+   * named-target capture; see `StormCard`.
+   *
+   * The catalogue's own index map answers which body an index is, and the
+   * catalogue is a FACT, so a held one is still the catalogue and both
+   * value-bearing arms are read. Written out rather than taken from a hook
+   * because the hook the app uses for this is app-side.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
+  const parentIndex =
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex;
   const fallbackBodyName =
-    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
+    parentIndex == null ? undefined : facts?.nameByIndex[parentIndex];
 
   if (!read.readable) {
     // No verdict badge in the header either: "Sheltered" is a claim about a
@@ -1136,20 +1151,22 @@ function SpaceWeatherComponent({
                     // predictably. flexShrink 0 keeps that width honest under
                     // `wrap`, so the browser wraps rather than squeezing.
                     style={{ width: 128, flexShrink: 0 }}
-                  >
-                    <Stack>
+                    // The diagram is the picture this card is OF, so it sits
+                    // across the top and the name captions it. A top aside is
+                    // already stacked, so it is the one slot that never moves
+                    // however narrow the row gets.
+                    top={
                       <StarDiagram
                         starName={name}
                         activity={activity}
                         compact={compact}
                       />
-                      <Text tone="default" weight="semibold" size="sm">
-                        {name}
-                      </Text>
-                      <Text tone="muted" size="xs">
-                        <Unit value={star.distance} />
-                      </Text>
-                    </Stack>
+                    }
+                    title={name}
+                  >
+                    <Text tone="muted" size="xs">
+                      <Unit value={star.distance} />
+                    </Text>
                   </Card>
                 );
               })}
@@ -1284,7 +1301,7 @@ const SECTION_HEAD: CSSProperties = {
 };
 
 const SECTION_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
@@ -1292,7 +1309,7 @@ const SECTION_LABEL: CSSProperties = {
 
 function sectionValueStyle(tone: Tone): CSSProperties {
   return {
-    fontSize: "var(--font-size-xs)",
+    fontSize: "var(--font-size-caption)",
     color: TONE_HEX[tone],
     fontVariantNumeric: "tabular-nums",
     textAlign: "right",
@@ -1346,14 +1363,14 @@ const BLACKOUT_TAG: CSSProperties = {
   bottom: "2px",
   left: "50%",
   transform: "translateX(-50%)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
   // Text sitting ON the nogo-bg fill, not beside it: -fg (2.61:1 here) fails
   // the 4.5:1 AA floor. -on-bg is the token for exactly this case.
   color: "var(--color-status-nogo-on-bg)",
   background: "var(--color-status-nogo-bg)",
-  borderRadius: "var(--radius-sm)",
+  borderRadius: "var(--radius-regular)",
   padding: "var(--inset-chip)",
   whiteSpace: "nowrap",
 };
@@ -1366,12 +1383,12 @@ const POSITION_UNKNOWN_TAG: CSSProperties = {
   top: "2px",
   left: "50%",
   transform: "translateX(-50%)",
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
   color: "var(--color-text-muted)",
   border: "1px solid var(--color-border-subtle)",
-  borderRadius: "var(--radius-sm)",
+  borderRadius: "var(--radius-regular)",
   padding: "var(--inset-chip)",
   whiteSpace: "nowrap",
 };
@@ -1404,7 +1421,7 @@ function doseValueStyle(tone: Tone, compact: boolean): CSSProperties {
 }
 
 const DOSE_CAPTION: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
@@ -1441,11 +1458,11 @@ const ENV_ROW: CSSProperties = {
 function envTagStyle(on: boolean, tone?: Tone): CSSProperties {
   const active = TONE_HEX[tone ?? "go"];
   return {
-    fontSize: "var(--font-size-2xs)",
+    fontSize: "var(--font-size-caption)",
     letterSpacing: "0.05em",
     textTransform: "uppercase",
     padding: "var(--inset-chip)",
-    borderRadius: "var(--radius-sm)",
+    borderRadius: "var(--radius-regular)",
     border: `1px solid ${on ? active : "var(--color-border-subtle)"}`,
     color: on ? active : "var(--color-text-muted)",
     opacity: on ? 1 : 0.5,

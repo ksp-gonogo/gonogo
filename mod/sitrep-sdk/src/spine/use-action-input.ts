@@ -67,15 +67,13 @@ export function useActionInput<TActions extends readonly ActionDefinition[]>(
   // preserved. Action ids come from the first render; see the doc
   // comment for the static-action-set assumption.
   useEffect(() => {
-    const actionIds = Object.keys(
-      handlersRef.current as Record<string, unknown>,
-    );
+    const actionIds = Object.keys(handlersRef.current);
     for (const actionId of actionIds) {
       const proxy: ActionHandler = (payload) => {
-        const fn = (
-          handlersRef.current as unknown as Record<string, ActionHandler>
-        )[actionId];
-        return fn?.(payload);
+        const fn: unknown = Reflect.get(handlersRef.current, actionId);
+        return typeof fn === "function"
+          ? (fn as ActionHandler)(payload)
+          : undefined;
       };
       registerActionHandler(instanceId, actionId, proxy);
       ACTION_REGISTER_BUDGET.record();

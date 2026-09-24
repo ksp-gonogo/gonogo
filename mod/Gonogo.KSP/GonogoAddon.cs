@@ -255,6 +255,26 @@ namespace Gonogo.KSP
                 ScetAlarmUplink.ConfigureRevealedRead(
                     (topic, vantage, nowUt) => engine.ReadTopicAtVantage(topic, vantage, nowUt));
 
+                // And what keeps there being something to read: the archive holds
+                // only what something is subscribed to, so without these an
+                // audience threshold answers off whichever Topics a widget
+                // happens to be showing.
+                ScetAlarmUplink.ConfigureStandingSubscriptions(
+                    (topic, holder) => engine.OpenStandingSubscription(topic, holder),
+                    (topic, holder) => engine.CloseStandingSubscription(topic, holder));
+
+                // And whether the place an arm names is one at all. The engine's
+                // own predicate is private to it, so this is the same late-bound
+                // install for the same reason.
+                ScetAlarmUplink.ConfigureSelectableVantage(
+                    vantage => engine.IsVantageSelectable(vantage));
+
+                // And how the handle reaches the main thread to stop the warp
+                // for an alarm it decided itself. Waited on rather than queued:
+                // see ScetAlarmUplink.StopWarpFromHandle.
+                ScetAlarmUplink.ConfigureMainThreadRunner(
+                    action => engine.RunOnMainThreadAndWait(action));
+
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
@@ -574,6 +594,9 @@ namespace Gonogo.KSP
             // over that engine: left in place it would outlive the archive it
             // reads and hand the next scene's alarm arm a dead one.
             ScetAlarmUplink.ConfigureRevealedRead(null);
+            ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
+            ScetAlarmUplink.ConfigureSelectableVantage(null);
+            ScetAlarmUplink.ConfigureMainThreadRunner(null);
 
             try
             {

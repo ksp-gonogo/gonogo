@@ -1148,6 +1148,12 @@ export enum CommandErrorCode {
 	* and the `GameParameters` flags for leaving to the space center and to the
 	* tracking station. The arm rides on `CommandResult.detail`.
 	*
+	* Also the SCET alarm arm, for a vantage it cannot check because no command
+	* centre is known to the simulation yet: the main menu, and the ticks before
+	* the first capture. A vantage that is known and inactive is
+	* `CommandErrorCode.Range` instead, because that one does not resolve by
+	* waiting.
+	*
 	* Distinct from `CommandErrorCode.WrongState`, which is about the entity and
 	* does not resolve by waiting.
 	*/
@@ -4207,10 +4213,10 @@ export interface RotorReverseArgs
 /**
 * Which kind of condition a SCET alarm watches for.
 *
-* A SCET vantage is meaningful exactly where the craft's TRUE state and the
-* state the ground has been told differ, which is why there is no member here
-* for a contract parameter: career bookkeeping is known to the command centre
-* without any link, so there is no gap for a vantage to straddle.
+* Every alarm has a vantage, so a kind is only about WHAT is watched. A
+* contract parameter has no member here yet because it reads a list-shaped
+* Topic and a dotted path cannot index a list, so it needs a matcher of its
+* own rather than a threshold's.
 */
 export enum ScetAlarmConditionKind {
 	/** An instant on the craft's own clock, as a universal time. */
@@ -4390,30 +4396,35 @@ export interface ScetAlarm
 	* The command centre the arm command was sent from, as a
 	* `commandCentre.roster` id.
 	*
-	* Provenance only: a SCET alarm stops the warp for everybody, because warp is
-	* a property of the simulation rather than of any one vantage. This says who
-	* asked for it, never who it applies to.
+	* Who ASKED for the alarm, never where it is read. That is
+	* `ScetAlarm.vantage`, and the two are separate jobs: this is also the one
+	* field a screen at a different vantage may render, because the condition and
+	* the target would tell it something about a craft faster than the light
+	* carrying it.
 	*/
 	armedBy: string;
 	/**
-	* Whose ledger the condition is read against, and therefore who the fire
-	* notice is for. Empty is the simulation itself; anything else is a place,
-	* spelled as a `commandCentre.roster` id (`"ground:<name>"`,
-	* `"vessel:<guid>"`).
+	* The place whose knowledge the condition is read against, and therefore the
+	* place that decides WHEN this alarm comes due. A `commandCentre.roster` id
+	* (`"ground:<name>"`, `"vessel:<guid>"`), or empty, which is read as the
+	* alarm's own `ScetAlarm.subject`.
+	*
+	* A vantage that IS the subject reads the craft's true state, so the alarm
+	* comes due at the instant the condition is met. Any other vantage reads what
+	* that place has been told, which is a light-time old and different
+	* everywhere, so the same condition comes due there when the light carrying it
+	* lands. The vantage decides when, never whether.
 	*
 	* **Distinct from `ScetAlarm.armedBy`, which is provenance.** That says where
-	* the arm command came from and nothing else. This says which body of
-	* knowledge the condition is compared against: empty means the craft's TRUE
-	* state, upstream of the reveal gate, and the warp stop that follows is
-	* universal because warp belongs to the simulation. A named place means what
-	* THAT place has been told, which is a light-time old and different at every
-	* vantage, so the answer is that place's alone and stops nothing.
+	* the arm command came from and nothing else. An operator at one centre may
+	* legitimately ask when ANOTHER centre will know, and where the command
+	* entered cannot express that.
 	*
 	* A place, never a connection. Two operators sharing a command centre share
-	* its ledger and its answer, and a browser reconnecting is the same place it
-	* was before, so the simulation never learns that clients exist.
+	* its knowledge and its answer, and a browser reconnecting is the same place
+	* it was before, so the simulation never learns that clients exist.
 	*/
-	audience: string;
+	vantage: string;
 	/**
 	* What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
 	* something the whole simulation shares. The same vocabulary `meta.source`
@@ -4464,17 +4475,15 @@ export interface ScetAlarmFired
 	/** The universal time it fired at, on the craft's clock. */
 	firedAtUt: Value<"ut">;
 	/**
-	* Whose answer this is, echoing the `ScetAlarm.audience` it was armed under.
-	* Empty is the simulation's own verdict, and the one that stopped the warp.
+	* The place that learned it, echoing the `ScetAlarm.vantage` it was armed at.
 	*
-	* Carried rather than left to the client to look up, because the two kinds of
-	* notice mean different things and a reader that has to consult the roster
-	* first is a reader that will act on the wrong one. A simulation notice is a
-	* fact about the craft and the warp is already stopped; an audience notice is
-	* a statement about what one place has been told, true only there, and nothing
-	* in the game moved because of it.
+	* Carried rather than left to the client to look up, because a reader that has
+	* to consult the roster first is a reader that will act on the wrong notice. A
+	* notice at the subject's own vantage is a fact about the craft at the instant
+	* it happened; a notice at anywhere else is a statement about what that place
+	* has been told, true only there.
 	*/
-	audience: string;
+	vantage: string;
 }
 /**
 * `alarm.scet.arm`'s args: register an alarm with the simulation host, or
@@ -4493,11 +4502,11 @@ export interface ScetAlarmArmArgs
 	id: string;
 	name: string;
 	/**
-	* See `ScetAlarm.audience`. Empty arms against the simulation, which is what
-	* every alarm did before this field existed, so an older client's arm keeps
-	* the behaviour it had.
+	* See `ScetAlarm.vantage`. Empty is accepted and resolved at arm time to
+	* `ScetAlarmArmArgs.subject`, which is the behaviour every alarm already had,
+	* so a client that names no vantage keeps it.
 	*/
-	audience: string;
+	vantage: string;
 	/** See `ScetAlarm.subject`. Empty is read as `"game"`. */
 	subject: string;
 	condition: ScetAlarmCondition;
@@ -5857,9 +5866,16 @@ export interface SystemVessels
 * not a shared contract.
 */
 export enum RosterCommsControlSource {
+	/** A measurement: the vessel has no control source. */
 	None = 0,
 	Partial = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name. Not
+	* `RosterCommsControlSource.None`: nothing was measured to be absent, the
+	* level simply has no tier here yet.
+	*/
+	Unknown = 3
 }
 /**
 * One vessel in the `SystemVessels` roster. Mirrors the exact per-vessel dict

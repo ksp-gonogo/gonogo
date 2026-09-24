@@ -4,6 +4,7 @@ import { act, render } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerClientService } from "../peer/PeerClientService";
+import { asClientService } from "../test/peerFakes";
 
 /**
  * End-to-end check that `useDataSeries` works on a station: it should
@@ -29,7 +30,7 @@ function makeFakeClient(backfill: { t: number[]; v: unknown[] }) {
     sendQueryRange: vi.fn(async () => backfill),
   };
   return {
-    service: fake as unknown as PeerClientService,
+    service: asClientService(fake),
     emitData: (sourceId: string, key: string, value: unknown, t: number) =>
       dataCb?.(sourceId, key, value, t),
   };
@@ -91,7 +92,7 @@ describe("useDataSeries against PeerClientDataSource", () => {
     const source = new PeerClientDataSource(
       "data",
       "Data",
-      rejecting as unknown as PeerClientService,
+      asClientService(rejecting),
     );
     registerDataSource(source);
 

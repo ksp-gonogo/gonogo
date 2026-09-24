@@ -202,5 +202,5 @@ const PilotScreen__CommsBanner = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-status-warning-bg);
   border-top: none;
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  border-radius: 0 0 var(--radius-regular) var(--radius-regular);
 `;

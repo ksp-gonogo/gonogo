@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -69,8 +75,12 @@ function runMatrix(): { legs: Leg[]; failure: string | null } {
       failure: null,
     };
   } catch (error) {
-    const err = error as { stderr?: Buffer | string; message?: string };
-    return { legs: [], failure: String(err.stderr ?? err.message ?? error) };
+    const stderr: unknown =
+      typeof error === "object" && error !== null
+        ? Reflect.get(error, "stderr")
+        : undefined;
+    const message = error instanceof Error ? error.message : undefined;
+    return { legs: [], failure: String(stderr ?? message ?? error) };
   }
 }
 
@@ -297,5 +307,52 @@ describe("the Uplink CI matrix covers every Uplink", () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  it("gives no leg to an untracked directory that only looks like an Uplink", () => {
+    /**
+     * A departed Uplink leaves `obj/` and `dist/` behind and takes every
+     * tracked file with it, so the directory name outlives the Uplink. Four
+     * phantom legs once lived in that gap, and the disagreement ran the wrong
+     * way: red locally, green on a clean CI checkout where the leftovers do not
+     * exist.
+     *
+     * Planted inside the walk fixture rather than in `mod/`, for two reasons.
+     * Nothing else walks that directory, so a crash between plant and cleanup
+     * cannot reach another gate. And the script already asserts EXACTLY ONE leg
+     * over the fixture, so a discovery that counted the phantom refuses to emit
+     * a matrix at all: the assertion is the script's own exit status, not a
+     * second opinion written here.
+     */
+    const phantom = join(
+      ROOT,
+      "mod/Sitrep.Core.Tests/UplinkWalkPlant/GonogoPhantomUplink",
+    );
+    mkdirSync(join(phantom, "obj"), { recursive: true });
+    writeFileSync(join(phantom, "obj", "leftover.txt"), "stale build output\n");
+    try {
+      // The control: the phantom is on disk and its name is one the filter
+      // matches, so the only thing that can exclude it is the tracked check. A
+      // fixture that failed to plant would pass this test having proved nothing.
+      expect(existsSync(phantom)).toBe(true);
+      expect(/^Gonogo.*Uplink$/.test("GonogoPhantomUplink")).toBe(true);
+      expect(
+        execFileSync("git", ["ls-files", "--", phantom], {
+          cwd: ROOT,
+          encoding: "utf8",
+        }),
+      ).toBe("");
+
+      const { legs, failure } = runMatrix();
+      expect(
+        failure,
+        `The discovery counted an untracked directory, so its walk over the ` +
+          `planted fixture found more than the one leg it expects and it ` +
+          `refused to emit a matrix:\n${failure}`,
+      ).toBeNull();
+      expect(legs.map((leg) => leg.id)).not.toContain("GonogoPhantomUplink");
+    } finally {
+      rmSync(phantom, { recursive: true, force: true });
+    }
   });
 });

@@ -67,7 +67,8 @@ class KosUplinkCpuQueue {
     private readonly timeoutMs: number,
   ) {
     this.unsubscribe = client.subscribe(`kos.run.${coreId}`, (payload) => {
-      this.handleResult(payload as KosRunResult);
+      const result = asRunResult(payload);
+      if (result) this.handleResult(result);
     });
   }
 
@@ -113,7 +114,7 @@ class KosUplinkCpuQueue {
 
     result
       .then((ack) => {
-        const r = ack as CommandResult | undefined;
+        const r = asCommandResult(ack);
         if (r && r.success === false) {
           this.settleFailure(
             requestId,
@@ -304,12 +305,12 @@ export class KosUplinkExecutor {
     this.dispose();
     this.client = client;
     this.processorsUnsub = client.subscribe(PROCESSORS_TOPIC, (payload) => {
-      this.handleProcessors(payload as KosProcessorInfo[] | undefined);
+      this.handleProcessors(asProcessorList(payload));
     });
   }
 
   private handleProcessors(info: KosProcessorInfo[] | undefined): void {
-    if (!Array.isArray(info)) return;
+    if (info === undefined) return;
     // Full-snapshot channel: replace, don't merge, so a CPU that goes
     // away (reboot / unload) stops resolving instead of sticking around
     // on a stale coreId.
@@ -333,4 +334,53 @@ export class KosUplinkExecutor {
     this.queues.set(coreId, queue);
     return queue;
   }
+}
+
+/**
+ * The run result a `kos.run.<coreId>` frame carries, and `null` when it carries
+ * no request to correlate against: an uncorrelated frame settles nothing, so it
+ * is dropped rather than read.
+ */
+function asRunResult(payload: unknown): KosRunResult | null {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    typeof Reflect.get(payload, "requestId") !== "string" ||
+    typeof Reflect.get(payload, "coreId") !== "number"
+  ) {
+    return null;
+  }
+  return payload as KosRunResult;
+}
+
+/**
+ * The ack a command resolved with, and `undefined` when it answered something
+ * with no `success` to read: only an explicit `false` is a rejection, so an
+ * unreadable ack is the same as no ack at all.
+ */
+function asCommandResult(ack: unknown): CommandResult | undefined {
+  if (
+    typeof ack !== "object" ||
+    ack === null ||
+    typeof Reflect.get(ack, "success") !== "boolean"
+  ) {
+    return undefined;
+  }
+  return ack as CommandResult;
+}
+
+/**
+ * The CPU snapshot a `kos.processors` frame carries, and `undefined` for
+ * anything that is not a list of entries carrying a `coreId`.
+ */
+function asProcessorList(payload: unknown): KosProcessorInfo[] | undefined {
+  if (!Array.isArray(payload)) return undefined;
+  const entries: unknown[] = payload;
+  const every = entries.every(
+    (entry) =>
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof Reflect.get(entry, "coreId") === "number",
+  );
+  return every ? (entries as KosProcessorInfo[]) : undefined;
 }

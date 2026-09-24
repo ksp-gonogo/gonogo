@@ -1,0 +1,88 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC, in the CURRENT flat `deployed.bases` wire shape (one entry per deployed experiment, grouped client-side by vesselName). Two bases at once, which is the point: a powered Mun base climbing on two experiments, and a Minmus base that has gone unpowered overnight. The pair is what makes the power indicator worth looking at, since a single powered base draws the same green pill whether the state means anything or not. The two carry opposite power balances off the cluster (Mun 6 of 4 power units produced, Minmus 0 of 3), which is the reading that used to be a hardcoded \"EC 0/0\" on every base regardless of state. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "scenario": "mun-and-minmus-bases-stopped-arriving"
+  },
+  "_scene": {
+    "widget": "deployed-science",
+    "caption": "A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight",
+    "modes": ["default", "min"],
+    "paints": ["Mun", "Minmus"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "game.dlc",
+        "payload": {
+          "breakingGround": true,
+          "makingHistory": true
+        }
+      },
+      {
+        "topic": "deployed.bases",
+        "payload": [
+          {
+            "vesselName": "Mun Deployed Base",
+            "partName": "Seismometer",
+            "body": "Mun",
+            "situation": "LANDED",
+            "biome": "Highlands",
+            "experimentId": "seismic",
+            "scienceCompletedPercentage": 75,
+            "scienceTransmittedPercentage": 87,
+            "scienceValue": 45,
+            "scienceLimit": 60,
+            "powerState": "Powered",
+            "connectionState": "Connected",
+            "power": 0,
+            "controllerConnected": true,
+            "powerAvailable": 6,
+            "powerRequired": 4,
+            "deployedOnGround": true
+          },
+          {
+            "vesselName": "Mun Deployed Base",
+            "partName": "Mystery Goo",
+            "body": "Mun",
+            "situation": "LANDED",
+            "biome": "Highlands",
+            "experimentId": "goo",
+            "scienceCompletedPercentage": 40,
+            "scienceTransmittedPercentage": 25,
+            "scienceValue": 12,
+            "scienceLimit": 30,
+            "powerState": "Powered",
+            "connectionState": "Connected",
+            "power": 0,
+            "controllerConnected": true,
+            "powerAvailable": 6,
+            "powerRequired": 4,
+            "deployedOnGround": true
+          },
+          {
+            "vesselName": "Minmus Flats Station",
+            "partName": "Ion Detector",
+            "body": "Minmus",
+            "situation": "LANDED",
+            "biome": "Flats",
+            "experimentId": "ion",
+            "scienceCompletedPercentage": 18,
+            "scienceTransmittedPercentage": 0,
+            "scienceValue": 4,
+            "scienceLimit": 22,
+            "powerState": "Unpowered",
+            "connectionState": "Connected",
+            "power": 1,
+            "controllerConnected": true,
+            "powerAvailable": 0,
+            "powerRequired": 3,
+            "deployedOnGround": true
+          }
+        ]
+      }
+    ],
+    "stopsArriving": true
+  }
+}

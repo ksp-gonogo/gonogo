@@ -78,7 +78,7 @@ function StubAvatar({ crewName }: CrewAvatarContext) {
       style: {
         width: "100%",
         height: "100%",
-        borderRadius: "var(--radius-md)",
+        borderRadius: "var(--radius-regular)",
         overflow: "hidden",
         background: "linear-gradient(135deg, #35507a, #182437)",
         display: "flex",

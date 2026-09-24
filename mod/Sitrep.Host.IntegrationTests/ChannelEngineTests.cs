@@ -22,8 +22,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class ChannelEngineTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         /// <summary>
         /// Reproduces, generically at the engine level (no
@@ -231,7 +231,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(3.0, new KspSnapshot { Ut = 3.0 }, Timeout);
 
                 Assert.True(uplink.CaptureCount >= 1, $"capture should have run once subscribed (was {uplink.CaptureCount})");
-                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                var delivered = await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet);
                 Assert.NotNull(delivered);
                 Assert.Equal(SampledGateTestUplink.Topic, delivered!.Topic);
             }
@@ -278,7 +278,7 @@ namespace Sitrep.Host.IntegrationTests
                     uplink.CaptureCount >= 1,
                     $"capture should have run once subscribed to a dotted dynamic sub-topic (was {uplink.CaptureCount})");
 
-                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                var delivered = await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet);
                 Assert.NotNull(delivered);
                 Assert.Equal(dottedTopic, delivered!.Topic);
             }
@@ -323,7 +323,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.True(
                     uplink.CaptureCount >= 1,
                     $"source must recover once capture stops throwing (was {uplink.CaptureCount})");
-                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                var delivered = await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet);
                 Assert.NotNull(delivered);
                 Assert.Equal(RecoveringSampledSourceTestUplink.Topic, delivered!.Topic);
             }
@@ -502,7 +502,7 @@ namespace Sitrep.Host.IntegrationTests
                 // separate drain call would find the channel already
                 // exhausted by the first (see DrainAllStreamDataAsync's doc
                 // comment).
-                var allFrames = await DrainAllStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                var allFrames = await DrainAllStreamDataAsync(client, TestBudgets.Quiet);
                 var reliableFrames = allFrames.FindAll(f => f.Topic == DeliveryClassTestUplink.ReliableTopic);
                 var lossyFrames = allFrames.FindAll(f => f.Topic == DeliveryClassTestUplink.LossyTopic);
 

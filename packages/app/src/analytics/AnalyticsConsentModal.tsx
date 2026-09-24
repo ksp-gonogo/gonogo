@@ -113,7 +113,7 @@ const Backdrop = styled.div`
 const Dialog = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   max-width: 460px;
   width: 90vw;
   padding: var(--space-24);
@@ -131,14 +131,14 @@ const Dialog = styled.div`
 
 const Title = styled.h2`
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
 `;
 
 const Body = styled.p`
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-prose);
   line-height: var(--line-height-prose);
 `;
 

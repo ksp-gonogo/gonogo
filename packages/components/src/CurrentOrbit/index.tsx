@@ -10,8 +10,8 @@ import {
   type OrbitTrajectory,
   useOrbitTrajectory,
   useStream,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   apsidesExist,
   type ControlFrame,
@@ -35,18 +35,19 @@ import { useEffect, useRef, useState } from "react";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
+import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
     "vessel.orbit.inc",
     "vessel.orbit.argPe",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
+    "vessel.orbit.referenceBodyIndex",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
@@ -123,9 +124,8 @@ function CurrentOrbitComponent({
   //     read off the canonical whole-`vessel.orbit` Topic.
   //   - Ap/Pe/ApR/PeR/timeToAp/timeToPe/trueAnomaly/period are the solve over
   //     those same elements at view-UT, through `useOrbitSolve`.
-  //   - referenceBodyName/parentBodyName are index → name resolved against
-  //     `system.bodies` on the derived `vessel.state` channel, which isn't a
-  //     wire `TopicId` and so reads through `useStream`.
+  //   - the two body names are indices resolved against the `system.bodies`
+  //     catalogue, through `useBodyName`.
   // This widget DRAWS the orbit and the craft's place on it, which is a marker:
   // a positive claim about where it is now. So the elements come from a CURRENT
   // reading, or from a model where one is on offer, and otherwise from nothing,
@@ -168,15 +168,21 @@ function CurrentOrbitComponent({
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;
-  const vesselState = useStream<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe;
   const inclination = orbit?.inc;
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
   const period = solve?.period ?? undefined;
-  const refBody = vesselState?.referenceBodyName ?? undefined;
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  /*
+   * The body's NAME is a label rather than a marker, so it holds off the last
+   * observation the way the subtitle beside it does: which body a craft is
+   * around does not change down a link that has gone quiet.
+   */
+  const refBody = useBodyName(observedOrbit?.referenceBodyIndex);
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
 
@@ -280,7 +286,7 @@ function CurrentOrbitComponent({
           {showSubtitle && refBody !== undefined && (
             <span
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-caption)",
                 color: "var(--color-text-muted)",
                 letterSpacing: "0.03em",
               }}
@@ -520,10 +526,10 @@ registerComponent<CurrentOrbitConfig>({
   minSize: { w: 3, h: 4 },
   component: CurrentOrbitComponent,
   // One entry per NAMED value the component body reads: the raw elements off
-  // `vessel.orbit` and the two body names off `vessel.state`. Declared per
-  // field rather than as the channels so an alarm lands on the widget that
-  // draws THAT value; channel granularity would land it on every widget
-  // reading the channel.
+  // `vessel.orbit`, and the two body indices off `vessel.orbit` and
+  // `vessel.identity`. Declared per field rather than as the channels so an
+  // alarm lands on the widget that draws THAT value; channel granularity would
+  // land it on every widget reading the channel.
   //
   // The apsides, the countdowns and the period are not here because they are
   // not a field of anything: they are solved from the elements above, and the
@@ -579,7 +585,7 @@ function OrbitLabel({ children }: { children: ReactNode }) {
   return (
     <span
       style={{
-        fontSize: "var(--font-size-xs)",
+        fontSize: "var(--font-size-caption)",
         color: "var(--color-text-faint)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -615,7 +621,7 @@ function FrameCaveat({
     <span
       title={title}
       style={{
-        fontSize: "var(--font-size-xs)",
+        fontSize: "var(--font-size-compact)",
         color: "var(--color-text-faint)",
         fontStyle: "italic",
       }}
@@ -666,7 +672,7 @@ function OrbitValue({
   // on a coarse pointer, which is exactly the size the comment above says
   // clips at 3-4 cols. Only the tight tier lands on a rung of its own.
   if (tight) {
-    style.fontSize = "var(--font-size-2xs)";
+    style.fontSize = "var(--font-size-caption)";
   } else if (narrow) {
     style.fontSize = "12px";
   }

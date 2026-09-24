@@ -1,3 +1,4 @@
+import type { TopicId, TopicPayloadMap } from "../topics";
 import type { Value } from "../unit-system";
 import type { Screen } from "./screen";
 
@@ -160,17 +161,41 @@ export interface SourceBackedSettingOf<T extends SettingType>
  * Read-only by construction, so `readOnly` is redundant here and the renderer
  * asks {@link isReadOnlySetting} rather than the flag.
  */
-export interface StreamBackedSettingOf<T extends SettingType>
-  extends SettingDefinitionBase {
+export interface StreamBackedSettingOf<
+  T extends SettingType,
+  Topic extends TopicId = TopicId,
+> extends SettingDefinitionBase {
   backing: "stream-backed";
   type?: T;
   /** The Topic id whose payload carries this row's value. */
-  topic: string;
+  topic: Topic;
   /**
    * Pull this row's value out of the Topic payload. Answer `null`/`undefined`
    * when the payload does not carry it and the row shows a null placeholder,
    * which is the honest rendering of "the mod has not said".
+   *
+   * The argument is the DECLARED payload of `topic`, so an author reads a
+   * field the contract carries or does not compile.
    */
+  select: (
+    payload: TopicPayloadMap[Topic],
+  ) => SettingValueByType[T] | null | undefined;
+  readOnly?: true;
+}
+
+/**
+ * The stream-backed row as the REGISTRY stores it.
+ *
+ * The renderer holds a definition it did not author and has no topic literal
+ * left, so its `select` takes the erased payload: same split as every other
+ * registry in this package, and the precision lives on the authoring type
+ * above where the topic is known.
+ */
+export interface StoredStreamBackedSettingOf<T extends SettingType>
+  extends SettingDefinitionBase {
+  backing: "stream-backed";
+  type?: T;
+  topic: string;
   select: (payload: unknown) => SettingValueByType[T] | null | undefined;
   readOnly?: true;
 }
@@ -183,10 +208,13 @@ export interface StreamBackedSettingOf<T extends SettingType>
  * Reading the registry back hands you {@link SettingDefinition}, the union over
  * all three types, because the renderer has to cope with whatever was declared.
  */
-export type SettingDefinitionOf<T extends SettingType> =
+export type SettingDefinitionOf<
+  T extends SettingType,
+  Topic extends TopicId = TopicId,
+> =
   | ClientPrefSettingOf<T>
   | SourceBackedSettingOf<T>
-  | StreamBackedSettingOf<T>;
+  | StreamBackedSettingOf<T, Topic>;
 
 export type ClientPrefSetting =
   | ClientPrefSettingOf<"boolean">
@@ -199,9 +227,9 @@ export type SourceBackedSetting =
   | SourceBackedSettingOf<"number">;
 
 export type StreamBackedSetting =
-  | StreamBackedSettingOf<"boolean">
-  | StreamBackedSettingOf<"text">
-  | StreamBackedSettingOf<"number">;
+  | StoredStreamBackedSettingOf<"boolean">
+  | StoredStreamBackedSettingOf<"text">
+  | StoredStreamBackedSettingOf<"number">;
 
 /** Any registered row, whatever its backing and whatever its type. */
 export type SettingDefinition =
@@ -233,9 +261,10 @@ const registry = new Map<string, SettingDefinition>();
  * which is what makes `defaultValue`, `read`, `write` and `select` agree with
  * each other and with the row's declared type.
  */
-export function registerSetting<T extends SettingType = "boolean">(
-  def: SettingDefinitionOf<T>,
-): void;
+export function registerSetting<
+  T extends SettingType = "boolean",
+  Topic extends TopicId = TopicId,
+>(def: SettingDefinitionOf<T, Topic>): void;
 /**
  * The forwarding overload: a host relaying an already-typed definition it did
  * not author (`GonogoHost.registerSetting`) has no `type` literal left to infer

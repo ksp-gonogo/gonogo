@@ -69,6 +69,7 @@ interface WireFlight {
 
 interface Fixture {
   _stream?: {
+    stopsArriving?: boolean;
     pinnedUt?: number;
     emits?: Array<{
       channel?: string;
@@ -101,6 +102,11 @@ interface Scene {
 
 const scenes: Scene[] = [];
 for (const [path, mod] of Object.entries(MODULES)) {
+  /*
+   * A scene the link drops out of is its live twin's scene, staged later, so
+   * it is not a scenario of its own. `staleScenes.test.tsx` is what judges it.
+   */
+  if (mod.default._stream?.stopsArriving === true) continue;
   const emits = mod.default._stream?.emits;
   const ut = mod.default._stream?.pinnedUt;
   if (!emits || ut === undefined) continue;

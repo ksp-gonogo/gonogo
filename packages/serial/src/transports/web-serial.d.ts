@@ -14,7 +14,12 @@ interface SerialOptions {
   flowControl?: "none" | "hardware";
 }
 
-interface SerialPort {
+/**
+ * An `EventTarget`, as the spec has it: the port is what `connect` and
+ * `disconnect` name as their target, so a value of `SerialConnectionEvent`
+ * cannot otherwise be made at all.
+ */
+interface SerialPort extends EventTarget {
   open(options: SerialOptions): Promise<void>;
   close(): Promise<void>;
   readable: ReadableStream | null;

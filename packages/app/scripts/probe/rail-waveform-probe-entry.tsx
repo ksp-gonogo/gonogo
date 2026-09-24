@@ -272,7 +272,7 @@ function Harness({
             padding: "var(--space-8, 8px)",
             minHeight: 120,
             color: "var(--color-text-muted)",
-            fontSize: "var(--font-size-sm)",
+            fontSize: "var(--font-size-compact)",
           }}
         >
           widget body

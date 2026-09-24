@@ -105,7 +105,7 @@ const DataLine__Root = styled.div<{ $aligned: boolean }>`
 `;
 
 const DataLine__Label = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -116,7 +116,7 @@ const DataLine__Value = styled.span<{ $tone: StatTone }>`
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-4, 4px) var(--space-6, 6px);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   min-width: 0;
   ${({ $tone }) => STAT_TONE_COLOR[$tone]}

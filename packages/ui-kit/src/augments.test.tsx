@@ -60,6 +60,14 @@ const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
 
 beforeEach(() => clearAugments());
 
+/* The widget-authored segment these cases mount; an undeclared segment carries
+   no props at all. */
+declare module "@ksp-gonogo/ui-kit" {
+  interface AugmentSegmentRegistry {
+    overlay: Record<string, never>;
+  }
+}
+
 describe("augment registry: ordering", () => {
   it("orders augments in a slot by ascending priority, ties in registration order", () => {
     registerAugment({

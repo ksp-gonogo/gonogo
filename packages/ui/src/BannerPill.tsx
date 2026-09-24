@@ -114,7 +114,7 @@ const FixedPill = styled.div<{
   border: 1px solid ${(p) => p.$accent};
   border-radius: var(--radius-pill);
   color: ${(p) => p.$accent};
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.12em;
   pointer-events: none;
   ${(p) => (p.$glow ? css`box-shadow: ${p.$glow};` : "")}
@@ -138,7 +138,7 @@ const InlinePill = styled.div<{
   border: 1px solid ${(p) => p.$accent};
   border-radius: var(--radius-pill);
   color: ${(p) => p.$accent};
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.08em;
   font-family: inherit;
   white-space: nowrap;

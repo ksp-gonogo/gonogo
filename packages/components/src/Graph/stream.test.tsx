@@ -1,6 +1,7 @@
 import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GraphComponent } from "./index";
@@ -21,39 +22,24 @@ import { GraphComponent } from "./index";
  * registered anywhere in this file, so a rendered curve can only have come from
  * the stream.
  */
+let restoreResizeObserver: () => void = () => {};
+
 /**
  * A `ResizeObserver` that reports one fixed box on observe, so the chart has a
- * plot area in jsdom. Shared by every describe in this file: two copies of it
- * meant two copies of the `as unknown as` the callback's second argument needs.
+ * plot area in jsdom. Shared by every describe in this file.
  */
 function stubSizedResizeObserver(): void {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class FakeResizeObserver {
-      private cb: ResizeObserverCallback;
-      constructor(cb: ResizeObserverCallback) {
-        this.cb = cb;
-      }
-      observe(_el: Element) {
-        this.cb(
-          [
-            {
-              contentRect: { width: 400, height: 300 },
-            } as ResizeObserverEntry,
-          ],
-          this as unknown as ResizeObserver,
-        );
-      }
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  restoreResizeObserver = installFixedSizeResizeObserver({
+    width: 400,
+    height: 300,
+  });
 }
 
 describe("Graph: genuinely runs off the stream", () => {
   beforeEach(stubSizedResizeObserver);
 
   afterEach(() => {
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 
@@ -669,6 +655,7 @@ describe("Graph: the region behind a modelled trace", () => {
   beforeEach(stubSizedResizeObserver);
 
   afterEach(() => {
+    restoreResizeObserver();
     vi.unstubAllGlobals();
     clearReckoners();
   });

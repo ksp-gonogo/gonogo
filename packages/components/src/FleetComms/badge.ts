@@ -73,5 +73,18 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "fleet-comms-badge",
   contributes: "system-view.badges",
   deps: [COMMS_LINK],
-  compute: (topics) => commsLinkBadge(topics[COMMS_LINK.id]),
+  /*
+   * Unwrapped on both value-bearing arms, because the processor has ALREADY
+   * made the judgement: it reads `comms.link` observed-only and answers `null`
+   * otherwise, so a held answer is the `null` that reads as UNKNOWN rather than
+   * a stale "connected". Gating again here would only lose the null.
+   */
+  compute: (topics) => {
+    const reading = topics[COMMS_LINK.id];
+    return commsLinkBadge(
+      reading?.state === "observed" || reading?.state === "stale"
+        ? reading.value
+        : undefined,
+    );
+  },
 });

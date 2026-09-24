@@ -167,7 +167,6 @@ export function buildGonogoHost(): GonogoHost {
  */
 export function installGonogoHost(): void {
   if (hasHost()) return;
-  (globalThis as unknown as Record<string, unknown>)[GONOGO_HOST_KEY] =
-    buildGonogoHost();
+  globalThis[GONOGO_HOST_KEY] = buildGonogoHost();
   logger.info("[uplink-loader] SDK host installed on globalThis");
 }

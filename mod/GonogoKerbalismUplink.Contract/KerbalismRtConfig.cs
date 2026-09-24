@@ -183,16 +183,7 @@ public static class KerbalismRtConfig
         {
             Sitrep.Contract.RtConfig.EmitTopicMap(
                 topicMapOut!,
-                typeof(KerbalismRtConfig).Assembly,
-                // <see cref="KerbalismLifeSupport.AsOfUt"/> is spelled like a
-                // Reading currency member, so it cannot be reached as a field
-                // reading: see RtConfig.CheckReservedFieldNames. It is genuinely
-                // an as-of time, which is exactly why it collides, and the
-                // rename that clears it has to keep that meaning legible. A
-                // renamed member on a wire-visible type is breaking, so it costs
-                // a Major. Shrink-only: delete this line in the same commit as
-                // the rename, or the codegen leg refuses it as stale.
-                new[] { "kerbalism.lifesupport.asOfUt" });
+                typeof(KerbalismRtConfig).Assembly);
         }
 
         var unitMapOut = Environment.GetEnvironmentVariable("SITREP_KERBALISM_UNITMAP_OUT");

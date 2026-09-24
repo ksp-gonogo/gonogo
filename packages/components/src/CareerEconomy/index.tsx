@@ -7,7 +7,6 @@ import {
 } from "@ksp-gonogo/core";
 import { combineReadings } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
 import { netFundsPerDay, netFundsPerDayReading } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 
@@ -80,7 +79,6 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
     careerReading.state === "observed" || careerReading.state === "stale"
       ? careerReading.value.economy
       : undefined;
-  const stale = careerReading.state === "stale";
 
   const model = economy?.economyModel;
   const decay = magnitudeOf(economy?.reputationDecayPerDay);
@@ -149,80 +147,75 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
         /* Balances span: the rates and the breakdown below are both about what
            happens to them. */
         <Section key="balances" full>
-          <Balances>
-            <Balance>
-              <BalanceLabel>Funds</BalanceLabel>
-              <BalanceValue>
+          <div style={BALANCES_STYLE}>
+            <div style={BALANCE_STYLE}>
+              <span style={BALANCE_LABEL_STYLE}>Funds</span>
+              <span style={BALANCE_VALUE_STYLE}>
                 <Unit value={economyReading.funds} />
-              </BalanceValue>
-            </Balance>
-            <Balance>
-              <BalanceLabel>Reputation</BalanceLabel>
-              <BalanceValue>
+              </span>
+            </div>
+            <div style={BALANCE_STYLE}>
+              <span style={BALANCE_LABEL_STYLE}>Reputation</span>
+              <span style={BALANCE_VALUE_STYLE}>
                 <Unit value={economyReading.reputation} />
-              </BalanceValue>
-            </Balance>
-          </Balances>
+              </span>
+            </div>
+          </div>
         </Section>,
-        stale && (
-          <Section key="stale" full>
-            <Caption>
-              No longer current: these are the last rates that arrived.
-            </Caption>
-          </Section>
-        ),
         <Section key="rates">
           {economy === undefined ? (
-            <Caption>No career economy has arrived.</Caption>
+            <p style={CAPTION_STYLE}>No career economy has arrived.</p>
           ) : inert ? (
-            <Caption>
+            <p style={CAPTION_STYLE}>
               This career's money does not decay, earns no subsidy and costs
               nothing to hold.
-            </Caption>
+            </p>
           ) : (
-            <Rates>
+            <div style={RATES_STYLE}>
               {decay !== null && decay !== 0 && (
-                <Rate>
-                  <RateLabel>Reputation decay</RateLabel>
-                  <RateValue>
+                <div style={RATE_STYLE}>
+                  <span style={RATE_LABEL_STYLE}>Reputation decay</span>
+                  <span style={RATE_VALUE_STYLE}>
                     <Unit value={economyReading.reputationDecayPerDay} />
-                  </RateValue>
-                </Rate>
+                  </span>
+                </div>
               )}
               {subsidy !== null && (
-                <Rate>
-                  <RateLabel>Subsidy</RateLabel>
-                  <RateValue>
+                <div style={RATE_STYLE}>
+                  <span style={RATE_LABEL_STYLE}>Subsidy</span>
+                  <span style={RATE_VALUE_STYLE}>
                     <Unit value={economyReading.subsidyPerDay} />
-                  </RateValue>
+                  </span>
                   {subsidyMin !== null && subsidyMax !== null && (
-                    <RateRange>
+                    <span style={RATE_RANGE_STYLE}>
                       of <Unit value={economyReading.subsidyMinPerDay} /> to{" "}
                       <Unit value={economyReading.subsidyMaxPerDay} />
-                    </RateRange>
+                    </span>
                   )}
-                </Rate>
+                </div>
               )}
               {upkeep !== null && (
-                <Rate>
-                  <RateLabel>Upkeep</RateLabel>
-                  <RateValue>
+                <div style={RATE_STYLE}>
+                  <span style={RATE_LABEL_STYLE}>Upkeep</span>
+                  <span style={RATE_VALUE_STYLE}>
                     <Unit value={economyReading.upkeepPerDay} />
-                  </RateValue>
-                </Rate>
+                  </span>
+                </div>
               )}
               {net !== null && (
-                <Rate $total>
+                <div style={RATE_TOTAL_STYLE}>
                   {/* Named rather than signed: a leading minus on a rate beside
                     two positive ones is read as a formatting artefact about as
                     often as it is read as a direction. */}
-                  <RateLabel>{net < 0 ? "Net drain" : "Net gain"}</RateLabel>
-                  <RateValue>
+                  <span style={RATE_LABEL_STYLE}>
+                    {net < 0 ? "Net drain" : "Net gain"}
+                  </span>
+                  <span style={RATE_VALUE_STYLE}>
                     <Unit value={netSize} />
-                  </RateValue>
-                </Rate>
+                  </span>
+                </div>
               )}
-            </Rates>
+            </div>
           )}
         </Section>,
         sources.length > 0 && !compact && (
@@ -235,21 +228,21 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 : "Where the upkeep goes"
             }
           >
-            <BreakdownList>
+            <dl style={BREAKDOWN_LIST_STYLE}>
               {sources.map((source) => (
-                <BreakdownRow key={source.label}>
-                  <dt>{source.label}</dt>
-                  <dd>
+                <div key={source.label} style={BREAKDOWN_ROW_STYLE}>
+                  <dt style={BREAKDOWN_TERM_STYLE}>{source.label}</dt>
+                  <dd style={BREAKDOWN_VALUE_STYLE}>
                     <Unit value={source.reading} />
                   </dd>
-                </BreakdownRow>
+                </div>
               ))}
-            </BreakdownList>
+            </dl>
           </Section>
         ),
         model !== undefined && model !== null && (
           <Section key="model" full>
-            <Model>Model: {model}</Model>
+            <p style={MODEL_STYLE}>Model: {model}</p>
           </Section>
         ),
       ]}
@@ -257,106 +250,106 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   );
 }
 
-const Balances = styled.div`
-  display: flex;
-  gap: 1.2rem;
-  flex-wrap: wrap;
-`;
+const BALANCES_STYLE = {
+  display: "flex",
+  gap: "1.2rem",
+  flexWrap: "wrap",
+} as const;
 
-const Balance = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-`;
+const BALANCE_STYLE = {
+  display: "flex",
+  flexDirection: "column",
+  minWidth: 0,
+} as const;
 
-const BalanceLabel = styled.span`
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.7;
-`;
+const BALANCE_LABEL_STYLE = {
+  fontSize: "0.7rem",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  opacity: 0.7,
+} as const;
 
-const BalanceValue = styled.span`
-  font-size: 1.1rem;
-  font-variant-numeric: tabular-nums;
-`;
+const BALANCE_VALUE_STYLE = {
+  fontSize: "1.1rem",
+  fontVariantNumeric: "tabular-nums",
+} as const;
 
-const Caption = styled.p`
-  margin: 0;
-  font-size: 0.8rem;
-  opacity: 0.8;
-`;
+const CAPTION_STYLE = {
+  margin: 0,
+  fontSize: "0.8rem",
+  opacity: 0.8,
+} as const;
 
-const Rates = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
+const RATES_STYLE = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.25rem",
+} as const;
 
-/* `flex-wrap` is load-bearing rather than tidy: `RateRange` asks for a whole
-   line with `flex-basis: 100%`, and on a row that cannot wrap it takes that
-   width from its siblings instead of from a second line. The label then shrinks
-   below its own text and paints under the value, which is what "Subsidy" and
-   "1840.0 f/day" were doing to each other on every career with a subsidy
-   range. */
-const Rate = styled.div<{ $total?: boolean }>`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-variant-numeric: tabular-nums;
-  ${({ $total }) =>
-    $total
-      ? "border-top: 1px solid currentColor; padding-top: 0.25rem; margin-top: 0.15rem;"
-      : ""}
-`;
+/*
+ * `flexWrap` is load-bearing rather than tidy: the range span asks for a whole
+ * line with `flex-basis: 100%`, and on a row that cannot wrap it takes that
+ * width from its siblings instead of from a second line. The label then shrinks
+ * below its own text and paints under the value, which is what "Subsidy" and
+ * "1840.0 f/day" were doing to each other on every career with a subsidy range.
+ */
+const RATE_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "baseline",
+  gap: "0.5rem",
+  fontVariantNumeric: "tabular-nums",
+} as const;
 
-const RateLabel = styled.span`
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 0.85rem;
-`;
+/** The net line, ruled off from the rates it sums. */
+const RATE_TOTAL_STYLE = {
+  ...RATE_STYLE,
+  borderTop: "1px solid currentColor",
+  paddingTop: "0.25rem",
+  marginTop: "0.15rem",
+} as const;
 
-const RateValue = styled.span`
-  flex: 0 0 auto;
-`;
+const RATE_LABEL_STYLE = {
+  flex: "1 1 auto",
+  minWidth: 0,
+  fontSize: "0.85rem",
+} as const;
 
-const RateRange = styled.span`
-  flex-basis: 100%;
-  font-size: 0.75rem;
-  opacity: 0.7;
-`;
+const RATE_VALUE_STYLE = { flex: "0 0 auto" } as const;
 
-const BreakdownList = styled.dl`
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-`;
+const RATE_RANGE_STYLE = {
+  flexBasis: "100%",
+  fontSize: "0.75rem",
+  opacity: 0.7,
+} as const;
 
-const BreakdownRow = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
+const BREAKDOWN_LIST_STYLE = {
+  margin: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.1rem",
+} as const;
 
-  dt {
-    flex: 1 1 auto;
-    min-width: 0;
-    opacity: 0.8;
-  }
+const BREAKDOWN_ROW_STYLE = {
+  display: "flex",
+  gap: "0.5rem",
+  fontSize: "0.8rem",
+  fontVariantNumeric: "tabular-nums",
+} as const;
 
-  dd {
-    margin: 0;
-    flex: 0 0 auto;
-  }
-`;
+const BREAKDOWN_TERM_STYLE = {
+  flex: "1 1 auto",
+  minWidth: 0,
+  opacity: 0.8,
+} as const;
 
-const Model = styled.p`
-  margin: 0;
-  font-size: 0.7rem;
-  opacity: 0.6;
-`;
+const BREAKDOWN_VALUE_STYLE = { margin: 0, flex: "0 0 auto" } as const;
+
+const MODEL_STYLE = {
+  margin: 0,
+  fontSize: "0.7rem",
+  opacity: 0.6,
+} as const;
 
 registerComponent<CareerEconomyConfig>({
   id: "career-economy",

@@ -22,6 +22,17 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
+/*
+ * One block left: `WarpButton` carries a `:focus-visible` ring, which inline
+ * style cannot express and which a control must have.
+ *
+ * It is not exempt the way the SVG focus rings are, it is waiting on a kit
+ * primitive that gives the ring and the disabled treatment at caller-chosen
+ * geometry. `ToggleButton` cannot stand in: its padding is var(--inset-control)
+ * at `md` and 2px 8px at `sm`, and these buttons are a dense grid of warp-rate
+ * glyphs deliberately taller than wide, so either would blow out a
+ * minmax(28px, 1fr) column.
+ */
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { useWarpIntent } from "../shared/WarpIntent";
@@ -283,18 +294,19 @@ function WarpControlComponent({
             message="No active save"
             hint="Time warp works in flight, Space Center, and Tracking Station."
           >
-            <Body>
-              <Rate $tone={rateTone}>
-                <RateValue
+            <div style={BODY_STYLE}>
+              <div style={rateStyle(rateTone)}>
+                <span
+                  style={RATE_VALUE_STYLE}
                   role="img"
                   aria-label={`Time warp rate ${rateLabel}`}
                 >
                   {rateLabel}
-                </RateValue>
+                </span>
                 {showModeCaption && mode !== null && mode !== "" && (
                   <ReadoutCaption>{mode}</ReadoutCaption>
                 )}
-              </Rate>
+              </div>
 
               {/* Pause button only renders when there's room next to the
               rate readout. At minimal-4x3 the pause button crowded
@@ -324,7 +336,12 @@ function WarpControlComponent({
               )}
 
               {showFullLadder && (
-                <FullLadder role="group" aria-label="Time warp levels">
+                // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
+                <div
+                  style={FULL_LADDER_STYLE}
+                  role="group"
+                  aria-label="Time warp levels"
+                >
                   {HIGH_LEVELS.map((lvl) => {
                     const active = currentIndex === lvl.index;
                     return (
@@ -339,11 +356,16 @@ function WarpControlComponent({
                       </WarpButton>
                     );
                   })}
-                </FullLadder>
+                </div>
               )}
 
               {showStepper && (
-                <StepLadder role="group" aria-label="Time warp controls">
+                // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
+                <div
+                  style={STEP_LADDER_STYLE}
+                  role="group"
+                  aria-label="Time warp controls"
+                >
                   <WarpButton
                     type="button"
                     $active={false}
@@ -371,7 +393,7 @@ function WarpControlComponent({
                   >
                     +
                   </WarpButton>
-                </StepLadder>
+                </div>
               )}
 
               {/* Contributed-actions slot: an Uplink adds a warp-target action
@@ -379,7 +401,7 @@ function WarpControlComponent({
               Empty (renders nothing) until an augment binds
               `warp-control.stepper`. */}
               <AugmentSlot name="warp-control.stepper" props={{}} />
-            </Body>
+            </div>
           </DimmedOverlay>
         </Section>
       }
@@ -412,62 +434,72 @@ function formatRate(rate: number | null): string {
 
 /* The centring and the fill are `Panel fitToSize`'s now; what is left here is
    the wrapping row itself. */
-const Body = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-related);
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-`;
+const BODY_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--gap-related)",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 0,
+} as const;
 
-const Rate = styled.div<{ $tone: "physics" | "high" }>`
-  flex: 1 1 70px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--gap-related);
-  min-width: 0;
-  /* Physics warp (≤4×) tints amber: operator at speed in atmosphere
-     needs to know it's NOT on-rails. High warp (≥5×) stays green. */
-  color: ${({ $tone }) =>
-    $tone === "physics"
-      ? "var(--color-status-warning-bg)"
-      : "var(--color-status-go-fg)"};
-`;
+/**
+ * Physics warp (≤4×) tints amber: an operator at speed in atmosphere needs to
+ * know it is NOT on-rails. High warp (≥5×) stays green.
+ */
+function rateStyle(tone: "physics" | "high") {
+  return {
+    flex: "1 1 70px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "var(--gap-related)",
+    minWidth: 0,
+    color:
+      tone === "physics"
+        ? "var(--color-status-warning-bg)"
+        : "var(--color-status-go-fg)",
+  } as const;
+}
 
-const RateValue = styled.span`
-  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
-     is a display-tier readout. */
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: var(--line-height-flush);
-`;
+/*
+ * Off the type scale: the scale stops at --font-size-lg (16px) and this is a
+ * display-tier readout.
+ */
+const RATE_VALUE_STYLE = {
+  fontSize: "24px",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  lineHeight: "var(--line-height-flush)",
+} as const;
 
-const FullLadder = styled.div`
-  flex: 2 1 140px;
-  /* Without min-width:0 a flex child defaults to min-width:auto (min-content),
-     so the grid can't shrink below its 8-button min-content and Panel's
-     overflow:hidden clips the rightmost column. Observed at mobile-9x8. */
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-  gap: var(--gap-related);
-  align-content: center;
-`;
+/*
+ * Without minWidth 0 a flex child defaults to min-width:auto (min-content), so
+ * the grid cannot shrink below its 8-button min-content and Panel's
+ * overflow:hidden clips the rightmost column. Observed at mobile-9x8.
+ */
+const FULL_LADDER_STYLE = {
+  flex: "2 1 140px",
+  minWidth: 0,
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(40px, 1fr))",
+  gap: "var(--gap-related)",
+  alignContent: "center",
+} as const;
 
-// Named for what it is rather than for the shape it takes: the kit's `Stepper`
-// is a spinbutton over a closed set, and this is three warp buttons in a row.
-const StepLadder = styled.div`
-  flex: 1 1 100px;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(28px, 1fr));
-  gap: var(--gap-related);
-  align-content: center;
-`;
+/*
+ * Named for what it is rather than for the shape it takes: the kit's `Stepper`
+ * is a spinbutton over a closed set, and this is three warp buttons in a row.
+ */
+const STEP_LADDER_STYLE = {
+  flex: "1 1 100px",
+  minWidth: 0,
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(28px, 1fr))",
+  gap: "var(--gap-related)",
+  alignContent: "center",
+} as const;
 
 const WarpButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) =>
@@ -476,13 +508,13 @@ const WarpButton = styled.button<{ $active: boolean }>`
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   /* A control by class, but it wants horizontal BELOW vertical: these buttons
      are a dense grid of warp-rate glyphs, so the pair is taller than it is wide.
      Every --inset-* widens faster than it grows, so naming this one would
      transpose it. Stays on the rungs. */
   padding: var(--space-6) var(--space-4);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   letter-spacing: 0.04em;
   cursor: pointer;

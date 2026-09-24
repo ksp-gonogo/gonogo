@@ -255,7 +255,7 @@ function ResourceListSection({
             cols="minmax(0, 13em) minmax(28px, 1fr) auto"
             gap="md"
             align="center"
-            style={{ fontSize: "var(--font-size-xs)" }}
+            style={{ fontSize: "var(--font-size-compact)" }}
           >
             <Truncate
               style={{
@@ -268,7 +268,7 @@ function ResourceListSection({
                 <span
                   style={{
                     color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-xs)",
+                    fontSize: "var(--font-size-caption)",
                     letterSpacing: "0.05em",
                     textTransform: "uppercase",
                   }}
@@ -281,7 +281,7 @@ function ResourceListSection({
                 <span
                   style={{
                     color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-xs)",
+                    fontSize: "var(--font-size-caption)",
                     letterSpacing: "0.05em",
                     textTransform: "uppercase",
                   }}
@@ -298,7 +298,7 @@ function ResourceListSection({
             <span
               style={{
                 color: "var(--color-text-muted)",
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-compact)",
                 whiteSpace: "nowrap",
               }}
             >
@@ -361,7 +361,7 @@ function StageStackSection({
             gap="md"
             align="center"
             style={{
-              fontSize: "var(--font-size-xs)",
+              fontSize: "var(--font-size-compact)",
               color: active
                 ? "var(--color-status-nogo-fg)"
                 : "var(--color-text-muted)",
@@ -369,7 +369,7 @@ function StageStackSection({
           >
             <span
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-caption)",
                 letterSpacing: "0.02em",
               }}
             >
@@ -387,7 +387,7 @@ function StageStackSection({
             />
             <div
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-compact)",
                 whiteSpace: "nowrap",
                 display: "flex",
                 flexDirection: "column",
@@ -403,7 +403,7 @@ function StageStackSection({
                   <span
                     style={{
                       color: "var(--color-text-faint)",
-                      fontSize: "var(--font-size-xs)",
+                      fontSize: "var(--font-size-compact)",
                     }}
                   >
                     {burn}
@@ -411,7 +411,7 @@ function StageStackSection({
                   <span
                     style={{
                       color: "var(--color-text-faint)",
-                      fontSize: "var(--font-size-xs)",
+                      fontSize: "var(--font-size-compact)",
                     }}
                   >
                     TWR {fmtFixed(twr, 2)}
@@ -421,7 +421,7 @@ function StageStackSection({
                 <span
                   style={{
                     color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-xs)",
+                    fontSize: "var(--font-size-compact)",
                   }}
                 >
                   {burn} · TWR {fmtFixed(twr, 2)}
@@ -458,7 +458,17 @@ function FuelStatusComponent({
    * burning and only rises by staging or docking, all events the operator caused,
    * so the last figure is still the figure.
    */
-  const budget = useProcessor(DELTA_V_BUDGET);
+  /*
+   * Both value-bearing arms. A budget that has stopped being current is still
+   * the best figure available, and every readout drawn from it below is a
+   * FIGURE rather than a control: dropping it would blank the panel for a craft
+   * whose link merely went quiet.
+   */
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value
+      : undefined;
   const budgetNotCurrent = budget?.budget.state === "stale";
   /**
    * The stock ΔV sim has answered about this craft, whatever it answered.
@@ -632,7 +642,7 @@ function FuelStatusComponent({
             <Box
               surface="panel"
               bordered
-              radius="xs"
+              radius="regular"
               style={{
                 display: "flex",
                 gap: "var(--gap-section)",
@@ -668,7 +678,7 @@ function FuelStatusComponent({
                   <span
                     style={{
                       color: "var(--color-text-dim)",
-                      fontSize: "var(--font-size-xs)",
+                      fontSize: "var(--font-size-caption)",
                       letterSpacing: "0.08em",
                     }}
                   >

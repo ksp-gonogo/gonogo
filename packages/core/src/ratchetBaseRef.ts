@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -208,3 +209,139 @@ export const RATCHET_ALLOWLIST_PATHS = [
   "packages/core/src/uplink-isolation.allowlist.ts",
   "packages/core/src/widget-fixture-conformance.debt.ts",
 ] as const;
+
+/**
+ * A module's exports as read at the ratchet base.
+ *
+ * Everything in here is `unknown`: the file came off another commit and nothing
+ * typechecked it against today's declarations. The readers below are how a gate
+ * asks for one export at one shape, and each checks the shape it is about to
+ * read rather than asserting it.
+ */
+export type BaseExports = Record<string, unknown>;
+
+function exported(lists: BaseExports | undefined, name: string): unknown {
+  return lists === undefined ? undefined : lists[name];
+}
+
+/** A `number` export, or `undefined` when the base did not carry one. */
+export function baseNumber(
+  lists: BaseExports | undefined,
+  name: string,
+): number | undefined {
+  const value = exported(lists, name);
+  return typeof value === "number" ? value : undefined;
+}
+
+/** A `readonly string[]` export, or `undefined` when the base carried anything else. */
+export function baseStrings(
+  lists: BaseExports | undefined,
+  name: string,
+): readonly string[] | undefined {
+  const value = exported(lists, name);
+  if (!Array.isArray(value)) return undefined;
+  return value.every((entry) => typeof entry === "string")
+    ? (value as string[])
+    : undefined;
+}
+
+/** A per-key COUNT map, the shape most debt lists have. */
+export function baseCounts(
+  lists: BaseExports | undefined,
+  name: string,
+): Record<string, number> | undefined {
+  return baseMapOf(lists, name, (v): v is number => typeof v === "number");
+}
+
+/** A per-key string map, the shape a reason-carrying debt list has. */
+export function baseReasons(
+  lists: BaseExports | undefined,
+  name: string,
+): Record<string, string> | undefined {
+  return baseMapOf(lists, name, (v): v is string => typeof v === "string");
+}
+
+/** A per-key list-of-strings map, the shape a per-Uplink debt list has. */
+export function baseStringLists(
+  lists: BaseExports | undefined,
+  name: string,
+): Record<string, readonly string[]> | undefined {
+  return baseMapOf(
+    lists,
+    name,
+    (v): v is readonly string[] =>
+      Array.isArray(v) && v.every((entry) => typeof entry === "string"),
+  );
+}
+
+/**
+ * An export that is a record of one value shape, or `undefined` when the base
+ * carried something else. One bad value disqualifies the whole export: a
+ * partially-read ratchet list grades against a population nobody wrote.
+ */
+export function baseMapOf<V>(
+  lists: BaseExports | undefined,
+  name: string,
+  isValue: (value: unknown) => value is V,
+): Record<string, V> | undefined {
+  const value = exported(lists, name);
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  const out: Record<string, V> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!isValue(entry)) return undefined;
+    out[key] = entry;
+  }
+  return out;
+}
+
+/**
+ * An export that is an object of NUMBER fields, naming which fields the caller
+ * goes on to read. `undefined` when any of them is missing or is not a number,
+ * for the same reason `baseMapOf` refuses a partial map.
+ */
+export function baseNumberFields<F extends string>(
+  lists: BaseExports | undefined,
+  name: string,
+  fields: readonly F[],
+): Record<F, number> | undefined {
+  const counts = baseCounts(lists, name);
+  if (!counts) return undefined;
+  const out = {} as Record<F, number>;
+  for (const field of fields) {
+    const value = counts[field];
+    if (typeof value !== "number") return undefined;
+    out[field] = value;
+  }
+  return out;
+}
+
+/**
+ * The exit status a child process failed with, and `undefined` when the throw
+ * was something else.
+ *
+ * A `git grep` exiting 1 means "no matches", which several scans have to tell
+ * apart from a real failure. `execFileSync` throws a plain `Error` with a
+ * `status` property bolted on, so there is nothing to `instanceof`.
+ */
+export function exitStatus(err: unknown): number | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
+  const status: unknown = Reflect.get(err, "status");
+  return typeof status === "number" ? status : undefined;
+}
+
+/**
+ * A JSON file's top-level object, or a failure naming the file.
+ *
+ * `JSON.parse` answers `any`, so every field read off it is unchecked. Callers
+ * take the fields they read off the record and check each one, which is how a
+ * `package.json` missing a `name` becomes an error instead of `undefined`.
+ */
+export function readJsonObject(path: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${path} does not hold a JSON object.`);
+  }
+  return parsed as Record<string, unknown>;
+}

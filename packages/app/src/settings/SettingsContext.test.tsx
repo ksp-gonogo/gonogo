@@ -106,8 +106,10 @@ describe("useSetting", () => {
         <FlagReadout keyName="flag" />
       </CatchBoundary>,
     );
-    expect(caught).toBeInstanceOf(Error);
-    expect((caught as Error).message).toMatch(/SettingsProvider/);
+    if (!(caught instanceof Error)) {
+      throw new Error(`expected an Error, got: ${String(caught)}`);
+    }
+    expect(caught.message).toMatch(/SettingsProvider/);
     window.removeEventListener("error", swallowError);
     spy.mockRestore();
   });

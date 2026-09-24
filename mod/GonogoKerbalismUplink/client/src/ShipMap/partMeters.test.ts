@@ -7,23 +7,41 @@ function part(
   id: string,
   resources: Record<string, { amount: number; maxAmount: number }>,
 ): VesselParts["parts"][number] {
-  return {
+  const flows: VesselParts["parts"][number]["resources"] = {};
+  for (const [name, { amount, maxAmount }] of Object.entries(resources)) {
+    flows[name] = {
+      amount: value("units", amount),
+      maxAmount: value("units", maxAmount),
+    };
+  }
+  const built: VesselParts["parts"][number] = {
     id,
     name: id,
     title: id,
-    position: { x: 0, y: 0, z: 0 },
-    bounds: { size: { x: 1, y: 1, z: 1 } },
-    dryMass: 0,
+    position: {
+      x: value("m", 0),
+      y: value("m", 0),
+      z: value("m", 0),
+    },
+    bounds: {
+      size: {
+        x: value("m", 1),
+        y: value("m", 1),
+        z: value("m", 1),
+      },
+    },
+    dryMass: value("t", 0),
     inverseStage: 0,
-    maxTemp: 1000,
+    maxTemp: value("K", 1000),
     category: "FuelTank",
     modules: [],
     isRobotics: false,
     isPowerRelated: false,
-    resources,
+    resources: flows,
     moduleStates: [],
     actionBindings: [],
-  } as unknown as VesselParts["parts"][number];
+  };
+  return built;
 }
 
 function wire(parts: VesselParts["parts"]): VesselParts {
@@ -77,8 +95,8 @@ describe("computeKerbalismPartMeters", () => {
         partId: "3",
         resource: "Water",
         displayName: "Water",
-        amount: 42.3,
-        capacity: 180,
+        amount: value("units", 42.3),
+        capacity: value("units", 180),
         status: null,
       },
     ]);

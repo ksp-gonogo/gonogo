@@ -51,7 +51,7 @@ import type {
 import {
   DEFAULT_LEAD_SECONDS,
   DEFAULT_SUSTAIN_SECONDS,
-  isScetTrigger,
+  isAtSubjectVantage,
 } from "./types";
 
 /**
@@ -277,11 +277,12 @@ export function AlarmsModal({
       // in quick succession (the modal re-renders on snapshot updates,
       // but a click handler closes over its render-time snapshot).
       const liveUt = snapshotRef.current.ut ?? 0;
-      /* "In n seconds" is n seconds of the operator's waiting, on the clock
-         they are reading. No vantage rides along: a UT is the same instant
-         wherever it is watched from, so the trigger carries the instant and
-         nothing about a place. */
-      const ut = liveUt + offsetN;
+      /* "In n seconds" is n seconds of the operator's WAITING, and the instant
+         that lands on is the game's own universal time, which is what compares
+         against it. `liveUt` is the view clock, one light-time behind, so the
+         light-time is added back: without it the game reaches the instant a
+         whole light-time before the operator finishes waiting for it. */
+      const ut = liveUt + timeContexts.owltSeconds + offsetN;
       const lead = Number.parseFloat(leadSeconds);
       trigger = {
         kind: "time",
@@ -610,9 +611,34 @@ export function AlarmsModal({
                 setRenameDraft("");
               };
               return (
-                <AlarmListItem key={a.id} tone={ALARM_TONE[a.state]}>
-                  <RowInfo>
-                    {renaming ? (
+                <Card
+                  as="li"
+                  key={a.id}
+                  tone={ALARM_TONE[a.state]}
+                  /* What KIND of alarm, read before the name it qualifies.
+                     The SCET mark is only on the threshold arm: a SCET time
+                     row already states its clock, because `describeTrigger`
+                     renders its instant with the SCET qualifier, while a
+                     threshold has no instant to qualify until it fires, so
+                     without this the row would not say which clock decides
+                     it. */
+                  titleLeft={
+                    renaming ? undefined : (
+                      <>
+                        <Badge size="md">
+                          {a.trigger.kind === "time" ? "TIME" : "COND"}
+                        </Badge>
+                        {a.trigger.kind === "threshold" &&
+                          isAtSubjectVantage(a.trigger) && (
+                            <Badge severity="info" size="sm">
+                              SCET
+                            </Badge>
+                          )}
+                      </>
+                    )
+                  }
+                  title={
+                    renaming ? (
                       <Input
                         type="text"
                         value={renameDraft}
@@ -628,135 +654,128 @@ export function AlarmsModal({
                         }}
                       />
                     ) : (
-                      <AlarmListName>
-                        <Badge size="md">
-                          {a.trigger.kind === "time" ? "TIME" : "COND"}
-                        </Badge>
-                        {/* Only the threshold arm. A SCET time row already
-                            states its clock, because `describeTrigger` renders
-                            its instant with the SCET qualifier; a threshold has
-                            no instant to qualify until it fires, so without
-                            this the row would not say which clock decides it. */}
-                        {a.trigger.kind === "threshold" &&
-                          isScetTrigger(a.trigger) && (
-                            <Badge severity="info" size="sm">
-                              SCET
-                            </Badge>
-                          )}
-                        {a.name}
-                        {a.onFire && a.onFire.length > 0 && (
-                          <Badge severity="info" size="sm">
-                            {a.onFire.length === 1
-                              ? "FIRES 1 ACTION"
-                              : `FIRES ${a.onFire.length} ACTIONS`}
-                          </Badge>
-                        )}
-                      </AlarmListName>
-                    )}
+                      a.name
+                    )
+                  }
+                  titleRight={
+                    !renaming && a.onFire && a.onFire.length > 0 ? (
+                      <Badge severity="info" size="sm">
+                        {a.onFire.length === 1
+                          ? "FIRES 1 ACTION"
+                          : `FIRES ${a.onFire.length} ACTIONS`}
+                      </Badge>
+                    ) : undefined
+                  }
+                  /* The controls sit beside the alarm at a comfortable width
+                     and reflow under it when the modal is narrow. Nothing is
+                     hidden either way: a delete confirm the operator cannot
+                     see is worse than one that moved. */
+                  right={
+                    <RowActions>
+                      {pendingDelete ? (
+                        <>
+                          <GhostButton
+                            type="button"
+                            onClick={() => setPendingDeleteId(null)}
+                          >
+                            Cancel
+                          </GhostButton>
+                          <DangerButton
+                            type="button"
+                            onClick={() => {
+                              onDelete(a.id);
+                              setPendingDeleteId(null);
+                            }}
+                          >
+                            Delete
+                          </DangerButton>
+                        </>
+                      ) : (
+                        <>
+                          <GhostButton
+                            type="button"
+                            onClick={() => {
+                              setRenamingId(a.id);
+                              setRenameDraft(a.name);
+                            }}
+                          >
+                            Rename
+                          </GhostButton>
+                          <GhostButton
+                            type="button"
+                            onClick={() => setPendingDeleteId(a.id)}
+                          >
+                            Delete
+                          </GhostButton>
+                        </>
+                      )}
+                    </RowActions>
+                  }
+                >
+                  <RowMeta>
+                    {describeTrigger(a, snapshot.ut, timeContexts)}
+                  </RowMeta>
+                  {a.onFire && a.onFire.length > 0 && (
                     <RowMeta>
-                      {describeTrigger(a, snapshot.ut, timeContexts)}
+                      <FireList>
+                        {a.onFire.map((fx, i) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
+                          <FireChip key={`${fx.action}-${i}`}>
+                            <code>{fx.action}</code>
+                            <FireRemoveButton
+                              type="button"
+                              aria-label={`Remove ${fx.action} from ${a.name}`}
+                              onClick={() => {
+                                const next = (a.onFire ?? []).filter(
+                                  (_, idx) => idx !== i,
+                                );
+                                onUpdate(a.id, { onFire: next });
+                              }}
+                            >
+                              ×
+                            </FireRemoveButton>
+                          </FireChip>
+                        ))}
+                      </FireList>
                     </RowMeta>
-                    {a.onFire && a.onFire.length > 0 && (
-                      <RowMeta>
-                        <FireList>
-                          {a.onFire.map((fx, i) => (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
-                            <FireChip key={`${fx.action}-${i}`}>
-                              <code>{fx.action}</code>
-                              <FireRemoveButton
-                                type="button"
-                                aria-label={`Remove ${fx.action} from ${a.name}`}
-                                onClick={() => {
-                                  const next = (a.onFire ?? []).filter(
-                                    (_, idx) => idx !== i,
-                                  );
-                                  onUpdate(a.id, { onFire: next });
-                                }}
-                              >
-                                ×
-                              </FireRemoveButton>
-                            </FireChip>
-                          ))}
-                        </FireList>
-                      </RowMeta>
-                    )}
-                    <RowMeta>
-                      <StateTag $state={a.state}>{a.state}</StateTag>
-                    </RowMeta>
-                    {/* An alarm the operator did not create themselves says so.
+                  )}
+                  <RowMeta>
+                    <StateTag $state={a.state}>{a.state}</StateTag>
+                  </RowMeta>
+                  {/* An alarm the operator did not create themselves says so.
                         A row that simply appeared is otherwise indistinguishable
                         from one they set and forgot, and the difference decides
                         whether deleting it is safe. The Uplink's name is the one
                         recorded on the alarm, so the row still reads after the
                         Uplink is uninstalled. */}
-                    {a.requestedBy && (
-                      <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
-                    )}
-                    {/* The simulation would not take this arm, in its own
+                  {a.requestedBy && (
+                    <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
+                  )}
+                  {/* The simulation would not take this arm, in its own
                         words. Without it the row reads `pending` forever and
                         nothing tells the difference between an alarm waiting
                         and an alarm that was never accepted. */}
-                    {snapshot.scetArmRefusals?.[a.id] !== undefined && (
-                      <RowMeta role="status">
-                        <Badge severity="warning" size="sm">
-                          NOT ARMED
-                        </Badge>{" "}
-                        {snapshot.scetArmRefusals[a.id]}
-                      </RowMeta>
-                    )}
-                    {/* The alarm fired and the action it was set to take did
+                  {snapshot.scetArmRefusals?.[a.id] !== undefined && (
+                    <RowMeta role="status">
+                      <Badge severity="warning" size="sm">
+                        NOT ARMED
+                      </Badge>{" "}
+                      {snapshot.scetArmRefusals[a.id]}
+                    </RowMeta>
+                  )}
+                  {/* The alarm fired and the action it was set to take did
                         not go. Nothing else on the row moves for that, so
                         without this the operator reads `fired` and watches the
                         vessel do nothing. */}
-                    {snapshot.onFireRefusals?.[a.id] !== undefined && (
-                      <RowMeta role="status">
-                        <Badge severity="warning" size="sm">
-                          ACTION NOT SENT
-                        </Badge>{" "}
-                        {snapshot.onFireRefusals[a.id]}
-                      </RowMeta>
-                    )}
-                  </RowInfo>
-                  <RowActions>
-                    {pendingDelete ? (
-                      <>
-                        <GhostButton
-                          type="button"
-                          onClick={() => setPendingDeleteId(null)}
-                        >
-                          Cancel
-                        </GhostButton>
-                        <DangerButton
-                          type="button"
-                          onClick={() => {
-                            onDelete(a.id);
-                            setPendingDeleteId(null);
-                          }}
-                        >
-                          Delete
-                        </DangerButton>
-                      </>
-                    ) : (
-                      <>
-                        <GhostButton
-                          type="button"
-                          onClick={() => {
-                            setRenamingId(a.id);
-                            setRenameDraft(a.name);
-                          }}
-                        >
-                          Rename
-                        </GhostButton>
-                        <GhostButton
-                          type="button"
-                          onClick={() => setPendingDeleteId(a.id)}
-                        >
-                          Delete
-                        </GhostButton>
-                      </>
-                    )}
-                  </RowActions>
-                </AlarmListItem>
+                  {snapshot.onFireRefusals?.[a.id] !== undefined && (
+                    <RowMeta role="status">
+                      <Badge severity="warning" size="sm">
+                        ACTION NOT SENT
+                      </Badge>{" "}
+                      {snapshot.onFireRefusals[a.id]}
+                    </RowMeta>
+                  )}
+                </Card>
               );
             })}
           </List>
@@ -781,29 +800,11 @@ interface PresetSpec {
    * underlying data isn't usable (off / on the pad / no node). A null result
    * hides the preset entirely.
    *
-   * SCET rather than a trigger UT, because those are two different instants
-   * once the craft is more than a second away. See `presetTriggerUt`.
+   * A SCET, because a SCET is what gets armed: the simulation judges a time
+   * alarm against the game's own clock, so the instant the event happens is
+   * the instant to name.
    */
   computeScet: (viewUt: number) => number | null;
-}
-
-/**
- * The view-clock instant an alarm must hold to fire AT the event, from the
- * event's SCET.
- *
- * The alarm pipeline ticks on the view clock (`AlarmHostService` reads
- * `getViewUt`), which runs one light-time behind the craft. So an alarm
- * holding a SCET fires one light-time AFTER the thing happened: a "warp to
- * apoapsis" alarm at Duna went off four to twenty minutes past apoapsis, and
- * nothing in the UI or the type system noticed. Subtracting the light-time
- * puts the alarm where the operator asked for it, at the cost of firing
- * BEFORE they can see the event, which is the whole point of a warp target:
- * you want to arrive with the event still ahead of you.
- *
- * At `owlt` 0 this is the identity, so a LAN session is untouched.
- */
-function presetTriggerUt(scetUt: number, owltSeconds: number): number {
-  return scetUt - owltSeconds;
 }
 
 /**
@@ -898,7 +899,7 @@ function RecommendedPresets({
     if (liveUt === null) return;
     const scetUt = preset.computeScet(liveUt);
     if (scetUt === null || !Number.isFinite(scetUt)) return;
-    const ut = presetTriggerUt(scetUt, owltSeconds);
+    const ut = scetUt;
     if (ut <= liveUt) return;
     onAdd({
       name: preset.alarmName,
@@ -923,7 +924,7 @@ function RecommendedPresets({
       : presets.flatMap((p) => {
           const scetUt = p.computeScet(utNow);
           if (scetUt === null || !Number.isFinite(scetUt)) return [];
-          const ut = presetTriggerUt(scetUt, owltSeconds);
+          const ut = scetUt;
           if (ut <= utNow) return [];
           return [{ preset: p, scetUt, ut }];
         });
@@ -986,21 +987,15 @@ function describeTrigger(
   contexts: TimeContexts,
 ): React.ReactNode {
   if (a.trigger.kind === "time") {
-    const scet = a.trigger.vantage === "scet";
-    /* A SCET instant is on the craft's clock and `utNow` is on the view clock,
-       so the countdown has to cross the gap between them or it reads a whole
-       light-time long. The qualifier beside it says which clock the INSTANT is
-       on; this is the same fact applied to the interval. */
-    const triggerOnViewClock = scet
-      ? a.trigger.ut - contexts.owltSeconds
-      : a.trigger.ut;
+    /* The instant is the game's own universal time and `utNow` is the view
+       clock, one light-time behind, so the countdown crosses the gap or it
+       reads a whole light-time long. The qualifier beside it says which clock
+       the INSTANT is on; this is the same fact applied to the interval. */
+    const triggerOnViewClock = a.trigger.ut - contexts.owltSeconds;
     const delta = utNow !== null ? triggerOnViewClock - utNow : null;
     return (
       <>
-        <MissionDate
-          value={a.trigger.ut}
-          context={scet ? contexts.scet : contexts.received}
-        />
+        <MissionDate value={a.trigger.ut} context={contexts.scet} />
         {delta !== null && (
           <>
             {" · "}
@@ -1299,7 +1294,7 @@ const KindRow = styled.div`
   display: flex;
   gap: var(--gap-related);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   padding: var(--space-2);
   background: var(--color-surface-sunken);
   width: fit-content;
@@ -1310,8 +1305,8 @@ const KindButton = styled.button<{ $active: boolean }>`
   color: ${(p) => (p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   border: none;
   padding: var(--inset-control);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     color: var(--color-status-go-fg);
@@ -1338,17 +1333,17 @@ const SideBySide = styled.div`
 `;
 
 const OpSelect = styled.select`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const WaitingNote = styled.div`
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const PresetSection = styled.section`
@@ -1364,7 +1359,7 @@ const PresetSummary = styled.button`
   background: transparent;
   border: none;
   padding: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1399,7 +1394,7 @@ const PresetButton = styled.button`
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   &:hover {
     border-color: var(--color-status-go-bg);
@@ -1411,23 +1406,23 @@ const PresetButton = styled.button`
 `;
 
 const PresetButtonLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
 `;
 
 const PresetButtonHint = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
 const AddedNote = styled.div`
   color: var(--color-status-go-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-12) 0;
 `;
 
@@ -1448,36 +1443,8 @@ const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
   fired: "default",
 };
 
-// A tone-accented card, same family as PerfBudgets. It draws a full
-// state-coloured border where the kit draws a leading accent rule, which is
-// the deliberate delta.
-const AlarmListItem = styled(Card).attrs({ as: "li" as const })`
-  display: flex;
-  align-items: center;
-  /* Section, not related: the info column, the state tag and the buttons are
-     three different kinds of thing. The inset is Card's own, so it is not
-     restated here. */
-  gap: var(--gap-section);
-`;
-
-const RowInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  flex: 1;
-  min-width: 0;
-`;
-
-const AlarmListName = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  font-size: var(--font-size-sm);
-  color: var(--color-status-go-fg);
-`;
-
 const RowMeta = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1486,7 +1453,7 @@ const RowMeta = styled.div`
 
 const StateTag = styled.span<{ $state: Alarm["state"] }>`
   text-transform: uppercase;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   color: ${(p) =>
     p.$state === "firing"
@@ -1509,8 +1476,8 @@ const DangerButton = styled.button`
   color: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-alert-muted);
   padding: var(--inset-control);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
     background: var(--color-status-alert-muted);
@@ -1534,8 +1501,8 @@ const FireChip = styled.span`
   padding: var(--inset-chip);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
     color: var(--color-status-go-fg);
@@ -1544,7 +1511,7 @@ const FireChip = styled.span`
 
 const FireMeta = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
 `;
 
 const FireRemoveButton = styled.button`
@@ -1574,10 +1541,10 @@ const PickerRow = styled.div`
 
 const PickerSelect = styled.select`
   flex: 1;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;

@@ -17,6 +17,7 @@
 
 import type { ComponentType } from "react";
 import type { CommandArgs, CommandId, CommandReply } from "../commands";
+import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import type { UplinkAlarmRequest } from "./alarm-request";
@@ -142,11 +143,16 @@ export interface GonogoHost {
    * sitrep-client's `ProcessorHandle` (same constraint as
    * `useTelemetryStoreOptional`'s opaque return). Degrades to `undefined` with
    * no provider mounted, or before the processor's first frame lands.
+   *
+   * A processor whose own deps include a reading answers a `Reading<R>`, one
+   * depending only on raw topic ids answers the bare `R`. The handle's own
+   * brand decides which, so a consumer cannot be handed the wrong shape.
    */
-  useProcessor<R>(handle: {
+  useProcessor<R, Carried extends boolean>(handle: {
     readonly id: string;
     readonly __resultType?: R;
-  }): R | undefined;
+    readonly __carriesCurrency?: Carried;
+  }): (Carried extends true ? Reading<R> : R) | undefined;
   useViewClock(): unknown;
   /**
    * Returns the function an Uplink calls to ask the app to CREATE an alarm.
@@ -309,8 +315,8 @@ export interface GonogoHost {
 /** The single global slot the app populates at boot. */
 export const GONOGO_HOST_KEY = "__GONOGO_SDK__" as const;
 
-interface HostGlobal {
-  [GONOGO_HOST_KEY]?: GonogoHost;
+declare global {
+  var __GONOGO_SDK__: GonogoHost | undefined;
 }
 
 /**
@@ -319,7 +325,7 @@ interface HostGlobal {
  * mis-bundled Uplink fails loud at first registration rather than vanishing.
  */
 export function getHost(): GonogoHost {
-  const host = (globalThis as unknown as HostGlobal)[GONOGO_HOST_KEY];
+  const host = globalThis[GONOGO_HOST_KEY];
   if (!host) {
     throw new Error(
       "@ksp-gonogo/sitrep-sdk: the gonogo host has not been installed. " +
@@ -334,7 +340,7 @@ export function getHost(): GonogoHost {
 
 /** True when a host is installed. Lets a shim probe without throwing. */
 export function hasHost(): boolean {
-  return Boolean((globalThis as unknown as HostGlobal)[GONOGO_HOST_KEY]);
+  return Boolean(globalThis[GONOGO_HOST_KEY]);
 }
 
 /**
@@ -343,5 +349,5 @@ export function hasHost(): boolean {
  * both use. Not part of the author-facing barrel.
  */
 export function __setGonogoHost(host: GonogoHost | undefined): void {
-  (globalThis as unknown as HostGlobal)[GONOGO_HOST_KEY] = host;
+  globalThis[GONOGO_HOST_KEY] = host;
 }

@@ -1,6 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { DeviceInstance, DeviceType } from "../types";
 import { DeviceEditor } from "./DeviceEditor";
@@ -43,7 +44,7 @@ describe("DeviceEditor: gamepad transport", () => {
 
   it("saves a brand new gamepad device against the placeholder type, with no chosen label pack", async () => {
     const user = userEvent.setup();
-    const onSave = vi.fn();
+    const onSave = vi.fn<ComponentProps<typeof DeviceEditor>["onSave"]>();
     render(
       <DeviceEditor types={[REAL_TYPE]} onCancel={() => {}} onSave={onSave} />,
     );
@@ -52,7 +53,7 @@ describe("DeviceEditor: gamepad transport", () => {
     await user.click(screen.getByRole("button", { name: "Save device" }));
 
     expect(onSave).toHaveBeenCalledTimes(1);
-    const saved = onSave.mock.calls[0][0] as DeviceInstance;
+    const saved = onSave.mock.calls[0][0];
     expect(saved.typeId).toBe("gamepad-unconfigured");
     expect(saved.transport).toBe("gamepad");
     expect(saved.labelPack).toBeUndefined();
@@ -61,7 +62,7 @@ describe("DeviceEditor: gamepad transport", () => {
 
   it("saves an explicit label pack choice instead of the auto-detect sentinel", async () => {
     const user = userEvent.setup();
-    const onSave = vi.fn();
+    const onSave = vi.fn<ComponentProps<typeof DeviceEditor>["onSave"]>();
     render(
       <DeviceEditor types={[REAL_TYPE]} onCancel={() => {}} onSave={onSave} />,
     );
@@ -70,13 +71,13 @@ describe("DeviceEditor: gamepad transport", () => {
     await user.selectOptions(screen.getByLabelText("Button labels"), "xbox");
     await user.click(screen.getByRole("button", { name: "Save device" }));
 
-    const saved = onSave.mock.calls[0][0] as DeviceInstance;
+    const saved = onSave.mock.calls[0][0];
     expect(saved.labelPack).toBe("xbox");
   });
 
   it("editing an already-paired gamepad device keeps its shape-derived typeId, not the placeholder", async () => {
     const user = userEvent.setup();
-    const onSave = vi.fn();
+    const onSave = vi.fn<ComponentProps<typeof DeviceEditor>["onSave"]>();
     const existing: DeviceInstance = {
       id: "gp1",
       name: "My Pad",
@@ -98,7 +99,7 @@ describe("DeviceEditor: gamepad transport", () => {
     await user.type(screen.getByLabelText("Name"), "Renamed Pad");
     await user.click(screen.getByRole("button", { name: "Save device" }));
 
-    const saved = onSave.mock.calls[0][0] as DeviceInstance;
+    const saved = onSave.mock.calls[0][0];
     expect(saved.typeId).toBe("gamepad-standard-18b-4a");
     expect(saved.labelPack).toBe("playstation");
     expect(saved.name).toBe("Renamed Pad");

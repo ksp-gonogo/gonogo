@@ -10,6 +10,7 @@ import {
 } from "react";
 import type {
   CareerContract,
+  CommandErrorCode,
   SystemBodies,
   VesselIdentity,
   VesselOrbit,
@@ -31,6 +32,7 @@ import {
   getContributedDerivedChannels,
   onContributedChannelsChange,
 } from "./contributed-channels";
+import { noteUndeclaredRead } from "./contribution-scope";
 import { registerCoreReckoners } from "./core-reckoners";
 import { DelayAuthority } from "./delay-authority";
 import {
@@ -793,6 +795,7 @@ export function useUtNow(): number | undefined {
  * contract `useViewUt` returns before its first frame.
  */
 export function getViewUt(): number | undefined {
+  noteUndeclaredRead("getViewUt");
   const ut = activeViewClock?.viewUt();
   return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
@@ -940,6 +943,7 @@ let activeCarriedChannels: ReadonlySet<string> | undefined;
  * answer rather than drawing it wants {@link sampleActiveReading} instead.
  */
 export function sampleActiveTopic<T>(topic: string): T | undefined {
+  noteUndeclaredRead("sampleActiveTopic", topic);
   if (!activeTimelineStore) return undefined;
   const point = activeTimelineStore.sample<T>(
     topic,
@@ -1194,6 +1198,23 @@ export function getActiveCarriedChannels(): ReadonlySet<string> | undefined {
 export interface DispatchCommandRefusal {
   code: string;
   message: string;
+  /**
+   * The mod's TYPED reason, when the refusal came from a command handler rather
+   * than from the transport. Absent on a transport-level failure, which has no
+   * contract code to carry.
+   *
+   * This is the field to branch on. `code` is the constant every refusal of
+   * every command shares, so it distinguishes nothing, and the message is prose
+   * that names the subject it refused.
+   */
+  errorCode?: CommandErrorCode;
+  /**
+   * The mod's own words about this refusal, when it quoted the game. `message`
+   * is synthesised from the code and names the command, so it reads the same
+   * for every refusal of that command; this is the half that names the subject
+   * the operator chose.
+   */
+  detail?: string;
 }
 
 /** Outcome of {@link dispatchActiveCommandTopic}: see its doc comment. */
@@ -1211,13 +1232,24 @@ export type DispatchActiveCommandResult =
  */
 function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
   if (typeof error === "object" && error !== null) {
-    const candidate = error as { code?: unknown; message?: unknown };
+    const candidate = error as {
+      code?: unknown;
+      message?: unknown;
+      errorCode?: unknown;
+      detail?: unknown;
+    };
     return {
       code: typeof candidate.code === "string" ? candidate.code : "",
       message:
         typeof candidate.message === "string"
           ? candidate.message
           : String(error),
+      errorCode:
+        typeof candidate.errorCode === "number"
+          ? (candidate.errorCode as CommandErrorCode)
+          : undefined,
+      detail:
+        typeof candidate.detail === "string" ? candidate.detail : undefined,
     };
   }
   return { code: "", message: String(error) };

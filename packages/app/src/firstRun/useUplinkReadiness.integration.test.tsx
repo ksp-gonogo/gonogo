@@ -13,6 +13,7 @@ import {
   it,
 } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import type { LinkClient } from "../test/peerFakes";
 import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
@@ -72,10 +73,10 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 function listenForClient() {
-  const clients: Array<{ send: (data: string) => void }> = [];
+  const clients: LinkClient[] = [];
   server.use(
     link.addEventListener("connection", ({ client }) => {
-      clients.push(client as unknown as { send: (data: string) => void });
+      clients.push(client);
     }),
   );
   return clients;

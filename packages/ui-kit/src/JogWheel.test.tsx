@@ -210,7 +210,7 @@ describe("JogWheel sizing", () => {
     const rule = [...document.querySelectorAll("style")]
       .map((s) => s.textContent ?? "")
       .join("");
-    expect(rule).toContain("outline:2px solid var(--color-accent-fg)");
+    expect(rule).toContain("outline:2px solid var(--color-focus)");
     expect(screen.getByRole("slider", { name: "Yaw" })).toHaveAttribute(
       "tabindex",
       "0",

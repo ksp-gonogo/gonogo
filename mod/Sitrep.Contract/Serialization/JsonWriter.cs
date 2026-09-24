@@ -1802,9 +1802,9 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendString(sb, a.ArmedBy ?? "");
             sb.Append(',');
-            AppendString(sb, "audience");
+            AppendString(sb, "vantage");
             sb.Append(':');
-            AppendString(sb, a.Audience ?? "");
+            AppendString(sb, a.Vantage ?? "");
             sb.Append(',');
             AppendString(sb, "subject");
             sb.Append(':');
@@ -1883,11 +1883,11 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// The fire notice as <c>{ id, firedAtUt, audience }</c>. Still the
+        /// The fire notice as <c>{ id, firedAtUt, vantage }</c>. Still the
         /// honest minimum: see <see cref="Sitrep.Contract.ScetAlarmFired"/> for
-        /// why nothing about the craft may travel on this channel. The audience
-        /// says WHOSE verdict this is, which is a fact about the alarm rather
-        /// than a reading of anything.
+        /// why nothing about the craft may travel on this channel. The vantage
+        /// is the place the operator named when they armed it, which is a fact
+        /// about the alarm rather than a reading of anything.
         /// </summary>
         private static void AppendScetAlarmFired(
             StringBuilder sb, Sitrep.Contract.ScetAlarmFired f)
@@ -1901,9 +1901,9 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendNumber(sb, f.FiredAtUt);
             sb.Append(',');
-            AppendString(sb, "audience");
+            AppendString(sb, "vantage");
             sb.Append(':');
-            AppendString(sb, f.Audience ?? "");
+            AppendString(sb, f.Vantage ?? "");
             sb.Append('}');
         }
 

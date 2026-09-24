@@ -3,8 +3,9 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider, useModal } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useEffect } from "react";
+import type { Mock } from "vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GAMEPAD_ROLES } from "../gamepadRoles";
 import { MockGamepadAPI, type MockGamepadSpec } from "../mocks/mockGamepad";
@@ -44,6 +45,15 @@ const NON_STANDARD_SPEC: MockGamepadSpec = {
   axisCount: 4,
 };
 
+type ApplyHandler = ComponentProps<typeof GamepadLearnWizard>["onApply"];
+
+/** The inputs the wizard last applied, or a failure saying it never did. */
+function lastApplied(onApply: Mock<ApplyHandler>): DeviceInput[] {
+  const call = onApply.mock.calls.at(-1);
+  if (!call) throw new Error("the wizard never called onApply");
+  return call[0];
+}
+
 describe("GamepadLearnWizard", () => {
   const mock = new MockGamepadAPI();
 
@@ -82,7 +92,7 @@ describe("GamepadLearnWizard", () => {
 
   it("assigns a role to the first input crossing the capture threshold, then advances", async () => {
     const { svc, device, type } = await setup();
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
 
     renderInModal(
       <SerialDeviceProvider service={svc}>
@@ -104,7 +114,7 @@ describe("GamepadLearnWizard", () => {
     });
 
     await waitFor(() => expect(onApply).toHaveBeenCalled());
-    const applied = onApply.mock.calls.at(-1)?.[0] as DeviceInput[];
+    const applied = lastApplied(onApply);
     expect(applied.find((i) => i.id === "button-3")?.role).toBe("face-south");
 
     await waitFor(() => expect(screen.getByText(/2 of 21/i)).not.toBeNull());
@@ -114,7 +124,7 @@ describe("GamepadLearnWizard", () => {
 
   it("Skip leaves the role unassigned and advances without writing anything", async () => {
     const { svc, device, type } = await setup();
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
     const user = userEvent.setup();
 
     renderInModal(
@@ -139,7 +149,7 @@ describe("GamepadLearnWizard", () => {
   it("never changes an input's id, only role: on the applied inputs list", async () => {
     const { svc, device, type } = await setup();
     const originalIds = type.inputs.map((i) => i.id).sort();
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
 
     renderInModal(
       <SerialDeviceProvider service={svc}>
@@ -158,7 +168,7 @@ describe("GamepadLearnWizard", () => {
     });
     await waitFor(() => expect(onApply).toHaveBeenCalled());
 
-    const applied = onApply.mock.calls.at(-1)?.[0] as DeviceInput[];
+    const applied = lastApplied(onApply);
     expect(applied.map((i) => i.id).sort()).toEqual(originalIds);
 
     await svc.destroy();
@@ -192,7 +202,7 @@ describe("GamepadLearnWizard", () => {
     const type = svc.getDeviceType(seeded.id);
     if (!type) throw new Error("seeded type missing");
 
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
     renderInModal(
       <SerialDeviceProvider service={svc}>
         <GamepadLearnWizard
@@ -214,7 +224,7 @@ describe("GamepadLearnWizard", () => {
     });
     await waitFor(() => expect(onApply).toHaveBeenCalled());
 
-    const applied = onApply.mock.calls.at(-1)?.[0] as DeviceInput[];
+    const applied = lastApplied(onApply);
     expect(applied.find((i) => i.id === "button-2")?.role).toBeUndefined();
     expect(applied.find((i) => i.id === "button-7")?.role).toBe("face-south");
     expect(applied.filter((i) => i.role === "face-south")).toHaveLength(1);
@@ -224,7 +234,7 @@ describe("GamepadLearnWizard", () => {
 
   it("a drifting/idle axis below the capture threshold assigns nothing on Confirm", async () => {
     const { svc, device, type } = await setup();
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
     const user = userEvent.setup();
 
     renderInModal(
@@ -264,7 +274,7 @@ describe("GamepadLearnWizard", () => {
 
   it("commits the axis with the largest excursion while the prompt is active, not the first to move", async () => {
     const { svc, device, type } = await setup();
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
     const user = userEvent.setup();
 
     renderInModal(
@@ -300,7 +310,7 @@ describe("GamepadLearnWizard", () => {
     await user.click(screen.getByRole("button", { name: /^confirm$/i }));
 
     await waitFor(() => expect(onApply).toHaveBeenCalled());
-    const applied = onApply.mock.calls.at(-1)?.[0] as DeviceInput[];
+    const applied = lastApplied(onApply);
     expect(applied.find((i) => i.id === "axis-0")?.role).toBe("stick-left-x");
     expect(applied.find((i) => i.id === "axis-1")?.role).toBeUndefined();
 
@@ -362,7 +372,7 @@ describe("GamepadLearnWizard", () => {
 
   it("captures a gamepad press even while the modal's Tab focus trap is active", async () => {
     const { svc, device, type } = await setup();
-    const onApply = vi.fn();
+    const onApply = vi.fn<ApplyHandler>();
 
     renderInModal(
       <SerialDeviceProvider service={svc}>

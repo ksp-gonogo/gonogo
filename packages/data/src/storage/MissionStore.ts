@@ -34,6 +34,29 @@ interface FixtureRow {
   video?: VideoRecordingRef;
 }
 
+/** A stored meta row when it carries the identity and launch instant the list
+ *  view sorts and keys on, and `null` for anything else in the store. */
+function asMissionMeta(row: unknown): MissionMeta | null {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    typeof Reflect.get(row, "id") !== "string" ||
+    typeof Reflect.get(row, "launchedAt") !== "number"
+  ) {
+    return null;
+  }
+  return row as MissionMeta;
+}
+
+/** A stored fixture row when it carries a fixture, and `null` otherwise: a row
+ *  without one has nothing to replay or export. */
+function asFixtureRow(row: unknown): FixtureRow | null {
+  if (typeof row !== "object" || row === null) return null;
+  const fixture: unknown = Reflect.get(row, "fixture");
+  if (typeof fixture !== "object" || fixture === null) return null;
+  return row as FixtureRow;
+}
+
 /**
  * IndexedDB-backed persistence for `StreamRecorder`-produced mission
  * recordings. Deliberately a SEPARATE database from `IndexedDbStore`'s
@@ -79,7 +102,7 @@ export class MissionStore {
       const store = tx.objectStore(META_STORE);
       const getReq = store.get(id);
       getReq.onsuccess = () => {
-        const existing = getReq.result as MissionMeta | undefined;
+        const existing = asMissionMeta(getReq.result);
         if (!existing) return;
         store.put({ ...existing, ...patch });
       };
@@ -95,7 +118,10 @@ export class MissionStore {
     return new Promise<MissionMeta[]>((resolve, reject) => {
       const req = db.transaction(META_STORE).objectStore(META_STORE).getAll();
       req.onsuccess = () => {
-        const list = req.result as MissionMeta[];
+        const rows: unknown[] = req.result;
+        const list = rows
+          .map(asMissionMeta)
+          .filter((row): row is MissionMeta => row !== null);
         list.sort((a, b) => b.launchedAt - a.launchedAt);
         resolve(list);
       };
@@ -108,8 +134,7 @@ export class MissionStore {
     const db = await this.open();
     return new Promise<MissionMeta | null>((resolve, reject) => {
       const req = db.transaction(META_STORE).objectStore(META_STORE).get(id);
-      req.onsuccess = () =>
-        resolve((req.result as MissionMeta | undefined) ?? null);
+      req.onsuccess = () => resolve(asMissionMeta(req.result));
       req.onerror = () => reject(req.error);
     });
   }
@@ -125,7 +150,7 @@ export class MissionStore {
         .objectStore(FIXTURE_STORE)
         .get(id);
       req.onsuccess = () => {
-        const row = req.result as FixtureRow | undefined;
+        const row = asFixtureRow(req.result);
         resolve(row ? { fixture: row.fixture, video: row.video } : null);
       };
       req.onerror = () => reject(req.error);

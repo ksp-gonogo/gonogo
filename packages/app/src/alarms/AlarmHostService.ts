@@ -33,10 +33,10 @@ import {
   type AlarmSnapshot,
   type AlarmTrigger,
   DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
-  isScetTrigger,
   MAX_WARP_SAFETY_MARGIN_SECONDS,
   MIN_WARP_SAFETY_MARGIN_SECONDS,
   migrateAlarm,
+  modOwnsLatch,
 } from "./types";
 import { WarpControl } from "./WarpControl";
 import { WarpObserver } from "./WarpObserver";
@@ -52,11 +52,11 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
     trigger.kind === "threshold" ||
     trigger.kind === "contract-parameter" ||
     trigger.kind === "event" ||
-    // A SCET time alarm is latched from OUTSIDE, by the mod's fire notice, the
+    // A mod-owned time alarm is latched from OUTSIDE, by the fire notice, the
     // same way an event alarm is latched by an occurrence. The client's own
     // clock never decides it, so it needs the latch field a plain time alarm
     // does not.
-    isScetTrigger(trigger)
+    modOwnsLatch(trigger)
   );
 }
 
@@ -259,7 +259,7 @@ export class AlarmHostService {
    */
   private shadowVerdicts = new Map<
     string,
-    { firedAtUt: number; audience: string }
+    { firedAtUt: number; vantage: string }
   >();
 
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
@@ -278,6 +278,8 @@ export class AlarmHostService {
     this.stateMachine = new AlarmStateMachine(
       () => this.observedUT,
       opts.getRevealedEvents,
+      undefined,
+      (alarm) => this.scetArmRefusals.has(alarm.id),
     );
     this.warpPlanner = new AlarmWarpPlanner(
       () => this.alarms,
@@ -328,8 +330,8 @@ export class AlarmHostService {
     this.scetBridge = new ScetAlarmBridge({
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt) => this.onScetFired(id, firedAtUt),
-      onShadowFired: (id, firedAtUt, audience) =>
-        this.onShadowFired(id, firedAtUt, audience),
+      onShadowFired: (id, firedAtUt, vantage) =>
+        this.onShadowFired(id, firedAtUt, vantage),
       onArmRefused: (id, reason) => {
         if (this.scetArmRefusals.get(id) === reason) return;
         this.scetArmRefusals.set(id, reason);
@@ -338,6 +340,7 @@ export class AlarmHostService {
       onArmAccepted: (id) => {
         if (this.scetArmRefusals.delete(id)) this.emit();
       },
+      nowMs: () => this.opts.nowMs(),
     });
     this.start();
   }
@@ -489,8 +492,9 @@ export class AlarmHostService {
     // this edit, so it does not survive one.
     this.onFireRefusals.delete(id);
     if (patch.trigger) {
-      // A refusal describes the condition that was replaced.
+      // A refusal, and a mod verdict, describe the condition that was replaced.
       this.scetArmRefusals.delete(id);
+      this.shadowVerdicts.delete(id);
       /* Re-arm HERE rather than leaving it to the reconcile. The mod already
          holds this id, so the diff against its roster sees the alarm as armed
          and would arm nothing: the operator's edit would be kept on this side
@@ -507,10 +511,7 @@ export class AlarmHostService {
     const before = this.alarms.length;
     this.alarms = this.alarms.filter((a) => a.id !== id);
     if (this.alarms.length !== before) {
-      this.stateMachine.forget(id);
-      this.warpPlanner.forget(id);
-      this.scetArmRefusals.delete(id);
-      this.onFireRefusals.delete(id);
+      this.forgetAlarm(id);
       this.persist();
       this.emit();
     }
@@ -531,8 +532,18 @@ export class AlarmHostService {
     if (idx < 0) return;
     if (this.alarms[idx].state !== "fired") return;
     this.alarms.splice(idx, 1);
+    this.forgetAlarm(id);
     this.persist();
     this.emit();
+  }
+
+  /** Everything held per alarm id, dropped when the alarm itself goes. */
+  private forgetAlarm(id: string): void {
+    this.stateMachine.forget(id);
+    this.warpPlanner.forget(id);
+    this.scetArmRefusals.delete(id);
+    this.shadowVerdicts.delete(id);
+    this.onFireRefusals.delete(id);
   }
 
   /**
@@ -601,7 +612,7 @@ export class AlarmHostService {
    */
   private onScetFired(id: string, firedAtUt: number): void {
     const alarm = this.alarms.find((a) => a.id === id);
-    if (!alarm || !isScetTrigger(alarm.trigger)) return;
+    if (!alarm || !modOwnsLatch(alarm.trigger)) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) return;
     // The reveal UT, which is this client's own now: the banner window runs on
     // the clock the operator is watching, while the instant it NAMES is the
@@ -627,7 +638,7 @@ export class AlarmHostService {
 
   /**
    * The simulation's verdict on a COMMAND-VANTAGE alarm, judged against what
-   * `audience` has been told. Recorded and compared, never acted on.
+   * `vantage` has been told. Recorded and compared, never acted on.
    *
    * <p>Mutating anything from here is the hazard
    * `AlarmStateMachine.updateThresholdTracking` documents: the latch the mod
@@ -636,16 +647,17 @@ export class AlarmHostService {
    * client's answer is the only one that counts for an alarm on the client's
    * clock.</p>
    */
-  private onShadowFired(id: string, firedAtUt: number, audience: string): void {
-    this.shadowVerdicts.set(id, { firedAtUt, audience });
+  private onShadowFired(id: string, firedAtUt: number, vantage: string): void {
+    this.shadowVerdicts.set(id, { firedAtUt, vantage });
     const alarm = this.alarms.find((a) => a.id === id);
     if (!alarm) {
       logger.warn(
         "alarm-shadow: mod fired an alarm this client does not hold",
         {
           id,
-          audience,
+          vantage,
           firedAtUt,
+          warpRate: this.warpObserver.rateBefore(firedAtUt),
         },
       );
       return;
@@ -653,17 +665,19 @@ export class AlarmHostService {
     if (alarm.state === "pending") {
       logger.warn("alarm-shadow: mod fired first, client still pending", {
         id,
-        audience,
+        vantage,
         firedAtUt,
         clientUt: this.observedUT,
+        warpRate: this.warpObserver.rateBefore(firedAtUt),
       });
       return;
     }
     logger.info("alarm-shadow: mod agrees, client had already fired", {
       id,
-      audience,
+      vantage,
       firedAtUt,
       clientEventUt: alarm.eventUT ?? null,
+      warpRate: this.warpObserver.rateBefore(firedAtUt),
     });
   }
 
@@ -674,21 +688,34 @@ export class AlarmHostService {
    * here.
    */
   private compareShadowAtClientFire(alarm: Alarm): void {
-    if (isScetTrigger(alarm.trigger)) return;
+    if (modOwnsLatch(alarm.trigger)) return;
     const verdict = this.shadowVerdicts.get(alarm.id);
     if (!verdict) {
       logger.warn("alarm-shadow: client fired, mod has not", {
         id: alarm.id,
         clientUt: this.observedUT,
+        warpRate: this.clientFireWarpRate(),
       });
       return;
     }
     logger.info("alarm-shadow: client fired, mod had already agreed", {
       id: alarm.id,
-      audience: verdict.audience,
+      vantage: verdict.vantage,
       modFiredAtUt: verdict.firedAtUt,
       clientUt: this.observedUT,
+      warpRate: this.clientFireWarpRate(),
     });
+  }
+
+  /**
+   * The rate the game reported in force as this client's fire came due, for
+   * the shadow record: the reading from before the fire's own tick, `null`
+   * when there is none.
+   */
+  private clientFireWarpRate(): number | null {
+    return this.observedUT === null
+      ? null
+      : this.warpObserver.rateBefore(this.observedUT);
   }
 
   // ── Tick loop ─────────────────────────────────────────────────────────
@@ -755,21 +782,20 @@ export class AlarmHostService {
           this.lastTickUt,
         );
         if (nextState !== alarm.state) {
+          /* TWO stop sites, and they take the same rule. The mod sets its own
+             stop at BOTH instants (the step-down at `ut - lead`, and the fire),
+             so an alarm it holds must not be commanded from here at either: that
+             is the round trip the arm exists to remove. An alarm it does not
+             hold keeps both, or it would come due and halt nothing. */
+          const modStops = this.scetBridge.holdsAlarm(alarm.id);
           if (alarm.state !== "arming" && nextState === "arming") {
-            this.warp.stepWarpDown();
+            if (!modStops) this.warp.stepWarpDown();
           }
           if (alarm.state !== "firing" && nextState === "firing") {
             this.notifyFire(alarm);
             this.compareShadowAtClientFire(alarm);
-            // Force warp to 0 again: in case the warp recovered between
-            // `arming` and `firing`, or for threshold alarms where there
-            // was no `arming` phase at all.
-            //
-            // Except for a SCET alarm, which the MOD fired, having already
-            // stopped the warp in the same frame it decided to. Commanding it
-            // again from here is a second authority for one piece of state, and
-            // it would be issued a light-time after the fact.
-            if (!isScetTrigger(alarm.trigger)) this.warp.stepWarpDown();
+            // Force warp to 0 again: the warp may have recovered between `arming` and `firing`, and a threshold alarm has no `arming` phase at all.
+            if (!modStops) this.warp.stepWarpDown();
           }
           alarm.state = nextState;
           changed = true;

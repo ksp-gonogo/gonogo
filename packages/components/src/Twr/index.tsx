@@ -12,7 +12,6 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
 
@@ -68,8 +67,7 @@ function toneFor(twr: number): Tone {
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // The wire carries thrust and mass, not their ratio, so the headline is the
-  // same arithmetic as the sparkline on the latest reading. A stale reading
-  // still draws: thrust and mass hold until an event changes them.
+  // same arithmetic as the sparkline on the latest reading.
   const propulsionReading = useTelemetry("vessel.propulsion");
   const propulsion =
     propulsionReading.state === "observed" ||
@@ -82,6 +80,17 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     thrust === null || mass === null
       ? undefined
       : (twrOf(thrust, mass) ?? undefined);
+  /*
+   * The figure is HELD and captioned rather than withheld. This widget's whole
+   * content is the one number, and its empty state says there is no engine, so
+   * nulling a dated TWR would tell the operator something false about the
+   * craft rather than about the link.
+   *
+   * A caption rather than the mark `Gauge` can now draw, because the mark
+   * needs a `Reading` of the figure it draws, and this figure is arithmetic
+   * over one rather than an observation of its own.
+   */
+  const twrNotCurrent = propulsionReading.state === "stale";
   // The sparkline history is computed here off `vessel.propulsion`'s own
   // history: the wire carries thrust and mass, not their ratio.
   const series = useComputedSeries(
@@ -177,7 +186,18 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 into ".82" at 72 px inner width. Scale the readout font and
                 drop the explicit "g" unit at this size, the panel title is
                 "TWR", the unit is implied. */}
-            <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
+            {/* Dimmed rather than captioned: at this width there is no room
+                for the word mark the larger layout draws, and a held figure
+                still has to be readable. */}
+            <span
+              style={{
+                ...TINY_VALUE_STYLE,
+                color: TONE_COLOR[tone],
+                ...(twrNotCurrent ? { opacity: 0.55 } : {}),
+              }}
+            >
+              {twr.toFixed(1)}
+            </span>
           </Section>
         }
       />
@@ -200,8 +220,19 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
             </Text>
           </Section>
         ),
+        twrNotCurrent && (
+          <Section key="dated" full>
+            {/* The fact and nothing else. The robotics console names WHICH
+                half of its panel is dated because it has several; this widget
+                draws one figure, so there is no ambiguity for a second clause
+                to resolve and it would be prose. */}
+            <Text tone="warn" size="xs" role="status" aria-live="polite">
+              TWR no longer current
+            </Text>
+          </Section>
+        ),
         <Section key="gauge" full>
-          <GaugeSlot ref={gaugeRef}>
+          <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
             <Gauge
               value={value("1", twr)}
               min={GAUGE_MIN}
@@ -211,11 +242,11 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
               height={gaugeH}
               ariaLabel={`TWR ${writeQuantity(value("1", twr))}`}
             />
-          </GaugeSlot>
+          </div>
         </Section>,
         showSparkline && (
           <Section key="trend" full>
-            <SparkSlot ref={sparkRef}>
+            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
               <Sparkline
                 values={sparkValues}
                 width={sparkWidth}
@@ -223,7 +254,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 color={TONE_COLOR[tone]}
                 ariaLabel="TWR trend"
               />
-            </SparkSlot>
+            </div>
           </Section>
         ),
       ]}
@@ -231,42 +262,47 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
 }
 
-const GaugeSlot = styled.div`
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+/** The dial centres in whatever height the sections leave it. */
+const GAUGE_SLOT_STYLE = {
+  flex: "1 1 auto",
+  width: "100%",
+  minHeight: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+} as const;
 
-const SparkSlot = styled.div`
-  /* Width follows the slot via ResizeObserver: fixed-pixel sparklines used
-     to spill out of narrow columns and paint over the title. */
-  width: 100%;
-  height: 24px;
-  flex: 0 0 auto;
-  /* Tops the section grid's 12px row gap up to the 20px measured clearance
-     the Gauge above needs. The Gauge SVG draws its value label inside its own
-     bottom strip, flush with the SVG box edge, and at the 4x5 default the two
-     collide below 20px. That makes this measured clearance rather than a
-     rhythm step, so it stays off the spacing ladder. */
-  margin-top: 8px;
-`;
+/*
+ * Width follows the slot via ResizeObserver: fixed-pixel sparklines used to
+ * spill out of narrow columns and paint over the title.
+ *
+ * The top margin tops the section grid's 12px row gap up to the 20px measured
+ * clearance the Gauge above needs. The Gauge SVG draws its value label inside
+ * its own bottom strip, flush with the SVG box edge, and at the 4x5 default the
+ * two collide below 20px. That makes this measured clearance rather than a
+ * rhythm step, so it stays off the spacing ladder.
+ */
+const SPARK_SLOT_STYLE = {
+  width: "100%",
+  height: "24px",
+  flex: "0 0 auto",
+  marginTop: "8px",
+} as const;
 
-const TinyValue = styled.span<{ $color: string }>`
-  /* 24 px keeps a three-character value ("1.8") within ~50 px so the
-     leading digit doesn't clip at the panel's ~70 px inner width. The
-     panel title "TWR" supplies the unit context. Comment-locked to that box
-     width, so off the type scale, which in any case stops at 16px. */
-  font-size: 24px;
-  font-weight: 700;
-  color: ${(p) => p.$color};
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  line-height: var(--line-height-flush);
-  white-space: nowrap;
-`;
+/*
+ * 24px keeps a three-character value ("1.8") within ~50px so the leading digit
+ * doesn't clip at the panel's ~70px inner width. The panel title "TWR" supplies
+ * the unit context. Comment-locked to that box width, so off the type scale,
+ * which in any case stops at 16px.
+ */
+const TINY_VALUE_STYLE = {
+  fontSize: "24px",
+  fontWeight: 700,
+  fontVariantNumeric: "tabular-nums",
+  letterSpacing: "0.04em",
+  lineHeight: "var(--line-height-flush)",
+  whiteSpace: "nowrap",
+} as const;
 
 registerComponent<TwrConfig>({
   id: "twr",

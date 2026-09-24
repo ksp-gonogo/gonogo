@@ -51,6 +51,23 @@ export interface StoredMask {
   updatedAt: number;
 }
 
+/**
+ * A stored mask row when it carries the schema version and layer this store
+ * keys on, and `null` for anything else under the key: a row written by a
+ * schema that predates them is absent rather than half-read.
+ */
+function asStoredMask(row: unknown): StoredMask | null {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    typeof Reflect.get(row, "version") !== "number" ||
+    typeof Reflect.get(row, "layerId") !== "string"
+  ) {
+    return null;
+  }
+  return row as StoredMask;
+}
+
 function makeKey(profileId: string, bodyId: string, layerId: string): string {
   return `${profileId}:${bodyId}:${layerId}`;
 }
@@ -110,7 +127,7 @@ export class CoverageMaskStore {
         .objectStore(STORE)
         .get(makeKey(profileId, bodyId, layerId));
       req.onsuccess = () => {
-        const value = req.result as StoredMask | undefined;
+        const value = asStoredMask(req.result);
         if (!value) {
           resolve(null);
           return;
@@ -176,8 +193,8 @@ export class CoverageMaskStore {
       cursorReq.onsuccess = () => {
         const cursor = cursorReq.result;
         if (!cursor) return;
-        const value = cursor.value as StoredMask;
-        if (value.version === MASK_SCHEMA_VERSION) out.push(value);
+        const value = asStoredMask(cursor.value);
+        if (value && value.version === MASK_SCHEMA_VERSION) out.push(value);
         cursor.continue();
       };
       cursorReq.onerror = () => reject(cursorReq.error);
@@ -224,8 +241,8 @@ export class CoverageMaskStore {
       cursorReq.onsuccess = () => {
         const cursor = cursorReq.result;
         if (!cursor) return;
-        const value = cursor.value as StoredMask;
-        cleared.push(value.layerId);
+        const value = asStoredMask(cursor.value);
+        if (value) cleared.push(value.layerId);
         cursor.delete();
         cursor.continue();
       };

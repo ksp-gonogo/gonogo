@@ -25,7 +25,7 @@ describe("filterLayouts", () => {
     const input = {
       lg: [{ i: "a", x: 0, y: 0, w: 3, h: 3 }],
       xxxs: [{ i: "a", x: 0, y: 0, w: 3, h: 3 }],
-    } as unknown as Layouts;
+    } as Layouts;
     const out = filterLayouts(input);
     expect(out.lg).toBeDefined();
     expect((out as Record<string, unknown>).xxxs).toBeUndefined();

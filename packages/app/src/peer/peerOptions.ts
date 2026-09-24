@@ -30,11 +30,16 @@ declare global {
 export function peerBrokerOptions(): PeerOptions {
   const opts: PeerOptions = { key: "gonogo" };
 
-  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
-  const envHost = env?.VITE_PEER_HOST;
-  const envPort = env?.VITE_PEER_PORT;
-  const envPath = env?.VITE_PEER_PATH;
-  const envSecure = env?.VITE_PEER_SECURE;
+  const env: unknown = Reflect.get(import.meta, "env");
+  const read = (name: string): string | undefined => {
+    if (typeof env !== "object" || env === null) return undefined;
+    const value: unknown = Reflect.get(env, name);
+    return typeof value === "string" ? value : undefined;
+  };
+  const envHost = read("VITE_PEER_HOST");
+  const envPort = read("VITE_PEER_PORT");
+  const envPath = read("VITE_PEER_PATH");
+  const envSecure = read("VITE_PEER_SECURE");
   if (envHost) opts.host = envHost;
   if (envPort) {
     const n = Number.parseInt(envPort, 10);

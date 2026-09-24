@@ -13,8 +13,8 @@ import {
   useOrbitTrajectory,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   apsidesExist,
   type ControlFrame,
@@ -31,26 +31,27 @@ import {
   trajectoryWithheldCopy,
   type WithheldTrajectory,
 } from "../shared/trajectoryWithheld";
+import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { usePastTrack } from "../shared/usePastTrack";
 import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
   /*
    * The diagram is drawn from apsis RADII, never the altitudes, and those are
    * solved from the elements named here rather than being a field of anything.
    * Body geometry comes off `system.bodies`, which is why that channel is
    * carried: the pole marker's own orientation still uses the static table, for
    * the texture correction no wire field replaces. Naming the fields drawn,
-   * rather than the whole of `vessel.state` this mounts on, is what keeps their
+   * rather than the whole of each channel this mounts on, is what keeps their
    * alarms off a widget that does not draw them.
    */
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
     "vessel.orbit.argPe",
-    "vessel.state.parentBodyName",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
@@ -206,17 +207,14 @@ function OrbitViewComponent({
   // Every read rides the SDK stream directly, no legacy
   // `useTelemetry("data", ...)` fallback.
   //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
-  //  - `vessel.state` (client-side derived channel) carries
-  //    `trueAnomaly` (propagated at view-UT), `parentBodyName` (identity
-  //    index → `system.bodies` name) and the apsis RADII. It isn't a wire
-  //    `TopicId`, so it reads through the provider-optional `useStreamOptional`.
-  //  - The apsis radii are read from `vessel.state.apoapsisRadius`/
-  //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`), that
-  //    formula is meaningless for apoapsis on a hyperbolic orbit (sma<0
-  //    makes it a finite but GARBAGE negative number) and for both apsides
-  //    in the "measured" basis (Loaded-basis osculating elements). Correctly
-  //    `null` in both cases per `deriveVesselState`'s `trySolve`/
-  //    `trySolveAnomalies` (non-throwing: see `vessel-state.ts`).
+  //  - `trueAnomaly` and the apsis RADII are the solve over those elements at
+  //    view-UT, through `useOrbitSolve`.
+  //  - The body name is `vessel.identity`'s index resolved against the
+  //    `system.bodies` catalogue, through `useBodyName`.
+  //  - The apsis radii come from the solve rather than being computed here
+  //    (`sma·(1±ecc)`): that formula is meaningless for apoapsis on a
+  //    hyperbolic orbit (sma<0 makes it a finite but GARBAGE negative number),
+  //    where the solve answers `null`.
   //  - `useBodyRotation` derives the pole marker client-side from the body's
   //    `rotationPeriod` + view-UT; `useIsOrbiting` stays a shared hook.
   // The elements come from the latest observation, current or held, overlaid
@@ -246,11 +244,12 @@ function OrbitViewComponent({
    * within samples this frame can place.
    */
   const trail = usePastTrack(300, orbit);
-  const vesselState = useStreamOptional<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe ?? undefined;
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStreamOptional<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   const declined =
     orbitReading.reckoning.status === "declined"
       ? orbitReading.reckoning.declined
@@ -582,7 +581,7 @@ function noOrbitSentence(declined: ReckoningDecline | undefined): string {
 }
 
 const NoData = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   padding: var(--space-8) 0;
 `;

@@ -169,7 +169,7 @@ public class LifeSupportResourceCoverageTests
         var payload = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), new List<ProcessRaw>());
 
         Assert.Equal(
-            new[] { "habitat", "processes", "ruleEnvModifiers", "rates", "asOfUt" }
+            new[] { "habitat", "processes", "ruleEnvModifiers", "rates", "asOfKerbalismUt" }
                 .OrderBy(k => k, System.StringComparer.Ordinal),
             payload.Keys.OrderBy(k => k, System.StringComparer.Ordinal).ToArray());
     }

@@ -12,9 +12,11 @@ import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { type DeployedExperimentContext, parseBases } from "./index";
 
-// One flat entry off the new `deployed.bases` wire (see index.tsx's
-// `parseBases`/`groupFlatDeployedEntries`): grouped by `vesselName` into the
-// widget's `DeployedBase[]` display shape client-side.
+/*
+ * One flat entry off the `deployed.bases` wire (see index.tsx's
+ * `parseBases`/`groupFlatDeployedEntries`): grouped by `vesselName` into the
+ * widget's `DeployedBase[]` display shape client-side.
+ */
 const flatEntry = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
@@ -248,9 +250,11 @@ describe("DeployedScienceComponent", () => {
       ]);
     });
 
-    // One augment per experiment card, each carrying its own card's datum
-    // (name + progress + body) in DOM order, proves the per-card props
-    // identity is correct.
+    /*
+     * One augment per experiment card, each carrying its own card's datum
+     * (name + progress + body) in DOM order, proves the per-card props identity
+     * is correct.
+     */
     const sections = await waitFor(() => {
       const found = screen.getAllByTestId("deployed-section");
       expect(found).toHaveLength(2);

@@ -206,7 +206,16 @@ function LibrationPointsComponent({
   config,
   id,
 }: Readonly<ComponentProps<LibrationPointsConfig>>) {
-  const facts = useProcessor(CELESTIAL_FACTS);
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue. Both value-bearing arms, deliberately.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
   const viewUt = useViewUt()?.magnitude;
   const ut = quantiseUt(
     typeof viewUt === "number" ? viewUt : undefined,
@@ -470,7 +479,16 @@ function LibrationPointsConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<LibrationPointsConfig>>) {
-  const facts = useProcessor(CELESTIAL_FACTS);
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue. Both value-bearing arms, deliberately.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
   const candidates = useMemo(() => librationPairsOf(facts), [facts]);
   const [pair, setPair] = useState(config?.pair ?? AUTO_PAIR);
   const candidate = useMemo<LibrationPointsConfig>(() => ({ pair }), [pair]);
@@ -516,7 +534,7 @@ const PAIR_LABEL: CSSProperties = {
 };
 
 const PAIR_LABEL_TEXT: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.05em",
 };

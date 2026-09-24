@@ -10,6 +10,7 @@ import {
   Situation,
   TransitionType,
 } from "../__generated__/contract";
+import { CONTROL_STATE_LEVEL, ENUM_NAME_TABLES } from "../contract-enum-names";
 import { namesOf } from "../enum-names";
 import {
   actionGroupNames,
@@ -18,7 +19,6 @@ import {
 } from "../ksp-enum-names";
 import { TRANSITION_TYPE_NAMES } from "./orbit-patches";
 import { HEALTH_STATE_NAMES } from "./uplink-health";
-import { CONTROL_STATE_LEVEL, ENUM_NAME_TABLES } from "./vessel-state";
 
 /**
  * An ordinal→name table has to cover its enum, entry for entry.

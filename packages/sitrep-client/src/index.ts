@@ -3,11 +3,15 @@
 // keep their existing import site.
 // Re-exported from the SDK, which now owns the clock formula: the delayed-media
 // worker evaluates the same formula off-thread and could not reach a spine copy.
+// The contract's own enum name tables now live in the SDK, beside KSP's: a
+// widget resolving an ordinal it read off the wire needs them, and so does an
+// Uplink. Kept here so app-side callers keep their existing import site.
 export type {
   ClockFormulaInputs,
   ClockFormulaSnapshot,
   CommsDelayLike,
   ConnectivityAt,
+  ControlStateName,
   DelayMode,
   EventOccurrence,
   EventRevealOptions,
@@ -16,10 +20,15 @@ export type {
   PathConnectedDuring,
   PendingEntry,
   PredictedPhase,
+  SasModeName,
+  SituationName,
+  TargetKindName,
 } from "@ksp-gonogo/sitrep-sdk";
 // Carried-topic policy now lives in the SDK: an Uplink needs it at runtime.
 export {
+  CONTROL_STATE_NAMES,
   classifyRetained,
+  collapseControlStateLevel,
   computeConfirmedEdgeUt,
   computeUtNowEstimate,
   currentMode,
@@ -27,8 +36,12 @@ export {
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
   deriveInFlight,
   EventTimeline,
+  enumNameOf,
   isTopicCarried,
   latchForward,
+  SAS_MODE_NAMES,
+  SITUATION_NAMES,
+  TARGET_KIND_NAMES,
 } from "@ksp-gonogo/sitrep-sdk";
 // Generic delayed-media infrastructure (buffer, per-frame pipeline, per-camera
 // sharing). Now published as `@ksp-gonogo/sitrep-sdk/media`; re-exported here so
@@ -480,10 +493,7 @@ export { CLIENT_VERSION } from "./version.generated";
 export type {
   ActionGroupStatePayload,
   BodyRadiusTable,
-  ControlStateName,
   OrbitalSolve,
-  SasModeName,
-  SituationName,
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselPropulsionPayload,
@@ -493,7 +503,6 @@ export type {
 export {
   bodyRadiusOf,
   buildElements,
-  collapseControlStateLevel,
   deriveVesselState,
   deriveVesselStateStatus,
   solveOrbit,

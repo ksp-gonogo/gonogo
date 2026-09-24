@@ -32,7 +32,10 @@ import {
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,6 +47,8 @@ function renderWidget(tree: ReactElement, instanceId = "t") {
   );
 }
 
+let restoreResizeObserver: () => void = () => {};
+
 beforeEach(() => {
   clearRegistry();
   registerStockBodies();
@@ -51,31 +56,15 @@ beforeEach(() => {
   // MapView's `useMapResize` constructs a `ResizeObserver` on mount; jsdom
   // has no implementation. Stub the same fixed-size fake the widget's own
   // `MapView/index.test.tsx` uses so the full-map render path can measure.
-  vi.stubGlobal(
-    "ResizeObserver",
-    class FakeResizeObserver {
-      private cb: ResizeObserverCallback;
-      constructor(cb: ResizeObserverCallback) {
-        this.cb = cb;
-      }
-      observe(_el: Element) {
-        this.cb(
-          [
-            {
-              contentRect: { width: 600, height: 300 },
-            } as ResizeObserverEntry,
-          ],
-          this as unknown as ResizeObserver,
-        );
-      }
-      unobserve() {}
-      disconnect() {}
-    },
-  );
+  restoreResizeObserver = installFixedSizeResizeObserver({
+    width: 600,
+    height: 300,
+  });
 });
 
 afterEach(() => {
   clearBodies();
+  restoreResizeObserver();
   vi.unstubAllGlobals();
 });
 

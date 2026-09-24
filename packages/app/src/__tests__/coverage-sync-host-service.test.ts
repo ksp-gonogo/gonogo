@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { asHostService } from "../test/peerFakes";
 
 // Hand-rolled fakes mirror the surface CoverageSyncHostService actually
 // touches. The service ignores everything else on PeerHostService and
@@ -32,7 +33,7 @@ function makeFakeHost(): FakeHost {
     },
   };
   return {
-    service: fake as unknown as PeerHostService,
+    service: asHostService(fake),
     firePeerConnect: (peerId) => {
       for (const cb of subs) cb(peerId);
     },
@@ -66,6 +67,15 @@ function makeFakeCoverageStore(masks: StoredMask[] = []): FakeCoverageStore {
   return {
     loadAllForProfile: vi.fn().mockResolvedValue(masks),
   };
+}
+
+/**
+ * The fake as the store the service takes. One erasure, here: the real store is
+ * a class with an IndexedDB handle, and `loadAllForProfile` is the only method
+ * the service under test calls.
+ */
+function asStore(fake: FakeCoverageStore): CoverageMaskStore {
+  return fake as unknown as CoverageMaskStore;
 }
 
 // flushMicrotasks lets the service's async sendSnapshot resolve before
@@ -105,7 +115,7 @@ describe("CoverageSyncHostService", () => {
 
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -141,7 +151,7 @@ describe("CoverageSyncHostService", () => {
   it("sends nothing when the store has no masks", async () => {
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -155,7 +165,7 @@ describe("CoverageSyncHostService", () => {
     coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -176,7 +186,7 @@ describe("CoverageSyncHostService", () => {
     );
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
 
@@ -200,7 +210,7 @@ describe("CoverageSyncHostService", () => {
     coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
     sync.stop();
@@ -216,7 +226,7 @@ describe("CoverageSyncHostService", () => {
     coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
     const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      coverageStore: coverageStore as unknown as CoverageMaskStore,
+      coverageStore: asStore(coverageStore),
     });
     sync.start();
     sync.start();

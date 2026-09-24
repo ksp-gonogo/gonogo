@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import { focusRingInset } from "./focusRing";
 import { Grid } from "./Grid";
 import { Section, SectionTitle } from "./Section";
 import { useElementSize } from "./useElementSize";
@@ -514,7 +515,7 @@ const Tabs__Button = styled.button<{
   color: ${({ $active }) =>
     $active ? "var(--color-text-inverse)" : "var(--color-text-faint)"};
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   text-transform: uppercase;
   border-radius: var(--radius-pill);
@@ -561,10 +562,7 @@ const Tabs__Button = styled.button<{
     opacity: 0.4;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
+  ${focusRingInset}
 
   @media (pointer: coarse) {
     min-height: 44px;

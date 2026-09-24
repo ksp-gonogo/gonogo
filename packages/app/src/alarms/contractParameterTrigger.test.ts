@@ -38,7 +38,7 @@ function contracts(parameter: {
         { title: "Reach orbit around Kerbin", ...parameter },
         { title: "Return to Kerbin", state: "Incomplete", stateOrdinal: 0 },
       ],
-    } as unknown as CareerContract,
+    } as CareerContract,
   ];
 }
 

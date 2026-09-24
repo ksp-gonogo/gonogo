@@ -14,6 +14,7 @@ import {
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
 import { useCommandFailures } from "../CommandDelay/useCommandFailures";
+import { focusRing } from "../focusRing";
 import { Spinner } from "../Spinner";
 
 /**
@@ -812,11 +813,11 @@ const TONE_FILLED = {
 
 const SIZE_STYLES = {
   sm: css`
-    font-size: var(--font-size-2xs, 10px);
+    font-size: var(--font-size-caption);
     padding: var(--space-2, 2px) var(--space-8, 8px);
   `,
   md: css`
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-compact);
     padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   `,
 } as const;
@@ -835,7 +836,7 @@ const CommandButton__Body = styled.button<{
   font-family: inherit;
   font-weight: 600;
   letter-spacing: 0.04em;
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   cursor: pointer;
   transition: background var(--duration-fast, 100ms),
     border-color var(--duration-fast, 100ms),
@@ -867,10 +868,7 @@ const CommandButton__Body = styled.button<{
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &:disabled {
     opacity: 0.5;

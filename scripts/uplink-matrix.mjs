@@ -45,8 +45,9 @@
  *   node scripts/uplink-matrix.mjs --ids       one id per line
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -112,11 +113,54 @@ const renderHostPackages = (clientDir, manifest) => {
   return [...names].sort();
 };
 
-/** Every `Gonogo*Uplink` directory directly under `modDir`, as a matrix leg. */
-const discover = (modDir) =>
-  readdirSync(modDir, { withFileTypes: true })
+/**
+ * The immediate subdirectories of `modDir` that git tracks at least one file
+ * under.
+ *
+ * A directory on disk is not evidence of an Uplink. A departed one leaves its
+ * `obj/` and `dist/` behind, and those are untracked, so the name survives a
+ * removal that took every source file with it. Four phantom legs once lived
+ * that way: red locally, green on a clean CI checkout, which is the worst
+ * direction for a disagreement to run because CI is the copy anyone trusts.
+ *
+ * Nothing finer than "has a tracked file" is asked, because the Uplinks are
+ * ragged: one is client-only, others have no client, and requiring a particular
+ * file would drop a shape rather than a phantom.
+ */
+const trackedChildren = (modDir) => {
+  const prefix = relative(ROOT, modDir);
+  const listed = execFileSync(
+    "git",
+    ["ls-files", "-z", "--", prefix === "" ? "." : prefix],
+    { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  const names = new Set();
+  for (const rel of listed.split("\0")) {
+    if (rel === "") continue;
+    const within = prefix === "" ? rel : relative(prefix, rel);
+    const [head, ...rest] = within.split("/");
+    if (rest.length > 0) names.add(head);
+  }
+  return names;
+};
+
+/**
+ * Every tracked `Gonogo*Uplink` directory directly under `modDir`, as a matrix
+ * leg.
+ *
+ * An empty result here is not caught by anything in this function, and does not
+ * need to be: the planted fixture below is discovered the same way, so a walk
+ * that has stopped seeing real directories has stopped seeing that one too and
+ * refuses to emit a matrix at all.
+ */
+const discover = (modDir) => {
+  const tracked = trackedChildren(modDir);
+  return readdirSync(modDir, { withFileTypes: true })
     .filter(
-      (entry) => entry.isDirectory() && /^Gonogo.*Uplink$/.test(entry.name),
+      (entry) =>
+        entry.isDirectory() &&
+        /^Gonogo.*Uplink$/.test(entry.name) &&
+        tracked.has(entry.name),
     )
     .map((entry) => entry.name)
     .sort()
@@ -145,6 +189,7 @@ const discover = (modDir) =>
         renderHosts: renderHostPackages(clientDir, manifest).join(" "),
       };
     });
+};
 
 const planted = discover(PLANT_MOD);
 const plantedWrong =

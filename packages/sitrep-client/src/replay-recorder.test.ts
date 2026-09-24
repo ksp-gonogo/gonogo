@@ -113,9 +113,13 @@ describe("StreamRecorder", () => {
 
     const fixture = recorder.stop();
     expect(fixture.frames).toHaveLength(3);
-    const parsed = fixture.frames.map(
-      (raw) => JSON.parse(raw) as ServerMessage,
-    );
+    const parsed = fixture.frames.map((raw) => {
+      const frame: unknown = JSON.parse(raw);
+      if (typeof frame !== "object" || frame === null) {
+        throw new Error(`a recorded frame is not an object: ${raw}`);
+      }
+      return frame as ServerMessage;
+    });
     expect(parsed[0].type).toBe("stream-data");
     expect(parsed[1]).toEqual(eventMessage);
     expect(parsed[2].type).toBe("stream-data");

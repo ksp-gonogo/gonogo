@@ -46,38 +46,38 @@
             "rules": [
               {
                 "name": "radiation",
-                "value": 1.0,
-                "fatalThreshold": 50.0
+                "fatalThreshold": 50.0,
+                "problem": 1.0
               },
               {
                 "name": "stress",
-                "value": 0.05,
-                "fatalThreshold": 1.0
+                "fatalThreshold": 1.0,
+                "problem": 0.05
               },
               {
                 "name": "eating",
-                "value": 0.02,
-                "fatalThreshold": 1.0
+                "fatalThreshold": 1.0,
+                "problem": 0.02
               },
               {
                 "name": "drinking",
-                "value": 0.02,
-                "fatalThreshold": 1.0
+                "fatalThreshold": 1.0,
+                "problem": 0.02
               },
               {
                 "name": "breathing",
-                "value": 0.85,
-                "fatalThreshold": 1.0
+                "fatalThreshold": 1.0,
+                "problem": 0.85
               },
               {
                 "name": "climatization",
-                "value": 0.03,
-                "fatalThreshold": 1.0
+                "fatalThreshold": 1.0,
+                "problem": 0.03
               },
               {
                 "name": "co2 poisoning",
-                "value": 0.0,
-                "fatalThreshold": 1.0
+                "fatalThreshold": 1.0,
+                "problem": 0.0
               }
             ]
           }

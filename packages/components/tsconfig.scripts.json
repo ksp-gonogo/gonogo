@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  // Three probes render app components (the alarm banner, the alarms modal and
+  // the mission banner) and import app's sources to do it, so app's build-time
+  // globals have to be declared here too.
+  "include": ["scripts/**/*.ts", "scripts/**/*.tsx", "../app/src/vite-env.d.ts"]
+}

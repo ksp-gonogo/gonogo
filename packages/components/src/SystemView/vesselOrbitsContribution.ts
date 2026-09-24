@@ -65,9 +65,23 @@ function commsLabel(
       return "relay";
     case RosterCommsControlSource.None:
       return "none";
-    default:
+    case RosterCommsControlSource.Unknown:
+    case null:
+    case undefined:
       return "unknown";
+    default:
+      return unnamedControlSource(source);
   }
+}
+
+/**
+ * Where a control source this build does not name lands. With every member
+ * cased above, `source` is `never` here, so a member added to the contract is a
+ * type error rather than a silent "unknown"; an ordinal from a newer mod still
+ * arrives at runtime, and reads as unknown because nothing here can name it.
+ */
+function unnamedControlSource(_source: never): string {
+  return "unknown";
 }
 
 function crewLabel(v: VesselRosterEntry): string {

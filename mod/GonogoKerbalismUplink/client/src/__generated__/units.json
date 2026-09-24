@@ -55,16 +55,16 @@
   ],
   "types": {
     "KerbalismCrewEntry": {
-      "asOfUt": "ut",
       "deathClockUt": "ut",
       "name": "text",
+      "rulesAsOfKerbalismUt": "ut",
       "trait": "text"
     },
     "KerbalismCrewRule": {
       "degenPerSec": "units/s",
       "fatalThreshold": "units",
       "name": "text",
-      "value": "units"
+      "problem": "units"
     },
     "KerbalismFeatures": {
       "automation": "flag",
@@ -118,7 +118,7 @@
       "sourceMassThreshold": "t"
     },
     "KerbalismLifeSupport": {
-      "asOfUt": "ut",
+      "asOfKerbalismUt": "ut",
       "rates": "units/s",
       "ruleEnvModifiers": "1"
     },
@@ -254,9 +254,9 @@
   },
   "topics": {
     "kerbalism.crew": {
-      "asOfUt": "ut",
       "deathClockUt": "ut",
       "name": "text",
+      "rulesAsOfKerbalismUt": "ut",
       "trait": "text"
     },
     "kerbalism.features": {
@@ -275,7 +275,7 @@
       "supplies": "flag"
     },
     "kerbalism.lifesupport": {
-      "asOfUt": "ut",
+      "asOfKerbalismUt": "ut",
       "rates": "units/s",
       "ruleEnvModifiers": "1"
     },

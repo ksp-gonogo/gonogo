@@ -1,6 +1,12 @@
 import type { StageInfo } from "@ksp-gonogo/core";
 import { registerDerivedKey } from "@ksp-gonogo/sitrep-sdk";
 
+/** A sample's value when it is a real number, and `undefined` when the stream
+ *  carried anything else, so a derived key yields nothing rather than NaN. */
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
 function asStageArray(value: unknown): StageInfo[] | null {
   return Array.isArray(value) ? (value as StageInfo[]) : null;
 }
@@ -24,7 +30,10 @@ export function registerBuiltinDerivedKeys(): void {
     id: "v.missionTimeHours",
     inputs: ["v.missionTime"],
     meta: { label: "Mission time (hours)", unit: "hr", group: "State" },
-    fn: ([missionTime]) => (missionTime.v as number) / 3600,
+    fn: ([missionTime]) => {
+      const seconds = asNumber(missionTime.v);
+      return seconds === undefined ? undefined : seconds / 3600;
+    },
   });
 
   registerDerivedKey({
@@ -35,7 +44,10 @@ export function registerBuiltinDerivedKeys(): void {
       if (previous === null) return undefined;
       const dt = (altitude.t - previous[0].t) / 1000;
       if (dt <= 0) return undefined;
-      return ((altitude.v as number) - (previous[0].v as number)) / dt;
+      const now = asNumber(altitude.v);
+      const before = asNumber(previous[0].v);
+      if (now === undefined || before === undefined) return undefined;
+      return (now - before) / dt;
     },
   });
 
@@ -49,8 +61,9 @@ export function registerBuiltinDerivedKeys(): void {
     inputs: ["v.orbitalVelocity", "v.verticalSpeed"],
     meta: { label: "Horizontal velocity", unit: "m/s", group: "Velocity" },
     fn: ([orbital, vertical]) => {
-      const vo = orbital.v as number;
-      const vv = vertical.v as number;
+      const vo = asNumber(orbital.v);
+      const vv = asNumber(vertical.v);
+      if (vo === undefined || vv === undefined) return undefined;
       if (!Number.isFinite(vo) || !Number.isFinite(vv)) return undefined;
       const sq = vo * vo - vv * vv;
       // Floating-point noise can push this just below zero on a perfectly

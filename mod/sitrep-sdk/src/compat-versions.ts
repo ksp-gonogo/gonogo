@@ -22,18 +22,18 @@
  * the sdk's package version: bump it when the surface an Uplink compiles against
  * changes, not when the package publishes.
  */
-export const EXTENSION_API_VERSION = "2.1.0";
+export const EXTENSION_API_VERSION = "3.0.0";
 
 /**
  * The wire contract's major, mirroring `ContractVersion.Major` in
  * `mod/Sitrep.Contract/ContractVersion.cs`. A mismatch REFUSES an Uplink: the
  * payload shapes it was built against are not the ones on the wire.
  */
-export const CONTRACT_MAJOR = 17;
+export const CONTRACT_MAJOR = 18;
 
 /**
  * The wire contract's minor, mirroring `ContractVersion.Minor`. An Uplink built
  * against a NEWER minor than the host is refused; an older one loads, since a
  * minor is additive.
  */
-export const CONTRACT_MINOR = 4;
+export const CONTRACT_MINOR = 1;

@@ -92,7 +92,7 @@ function fakeMesh() {
         fromPeers.splice(fromPeers.indexOf(fn), 1);
       };
     },
-  } as unknown as PeerHostService;
+  } as PeerHostService;
 
   function peer(): PeerClientService {
     return {
@@ -134,7 +134,7 @@ function fakeMesh() {
           toPeers.splice(toPeers.indexOf(fn), 1);
         };
       },
-    } as unknown as PeerClientService;
+    } as PeerClientService;
   }
 
   return { host, peer };

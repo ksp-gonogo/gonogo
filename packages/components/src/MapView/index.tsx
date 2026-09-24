@@ -25,7 +25,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselIdentity, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   kspCalendar,
@@ -42,6 +42,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { bodyNamed } from "../shared/streamBody";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
+import { useBodyName } from "../shared/useBodyName";
 import {
   cameraTransform,
   fitCamera,
@@ -102,12 +103,18 @@ const topics = defineTopicManifest({
      elements. Neither is a field of `vessel.state` any more, and the next apsis
      is not a field of anything: it is solved, so the channel is what carries
      it. */
-  channels: ["vessel.flight", "vessel.orbit", "vessel.state", "system.bodies"],
+  channels: [
+    "vessel.flight",
+    "vessel.orbit",
+    "vessel.state",
+    "vessel.identity",
+    "system.bodies",
+  ],
   fields: [
     "vessel.flight.latitude",
     "vessel.flight.longitude",
     "vessel.flight.altitudeAsl",
-    "vessel.state.parentBodyName",
+    "vessel.identity.parentBodyIndex",
     "vessel.state.orbitPatches",
     "vessel.state.encounterExists",
   ],
@@ -493,7 +500,12 @@ function MapViewComponent({
           ? altitudeReading.value
           : undefined,
     ) ?? undefined;
-  const bodyName = vesselState?.parentBodyName ?? undefined;
+  // Collapsed deliberately: MapView draws the name or draws nothing, and has
+  // no third rendering for a catalogue that is a confirmed tombstone.
+  const bodyName =
+    useBodyName(
+      useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+    ) ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
   const speed = flight?.surfaceSpeed?.magnitude;

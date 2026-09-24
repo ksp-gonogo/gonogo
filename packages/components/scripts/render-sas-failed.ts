@@ -35,7 +35,7 @@ const GRID = {
   gap: "var(--space-4)",
 };
 const LABEL = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",

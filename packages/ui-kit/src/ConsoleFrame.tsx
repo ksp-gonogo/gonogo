@@ -246,7 +246,7 @@ const ConsoleFrame__Box = styled.div<{ $tone: ConsoleTone }>`
      one around something already bordered and seal the two halves into one
      console instead of a widget with a control in it. */
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   overflow: hidden;
 
   ${({ $tone }) =>

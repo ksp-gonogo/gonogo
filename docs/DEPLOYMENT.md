@@ -89,6 +89,7 @@ Everything user-facing moves only when a release is cut. A CI-green push to `mai
 | Relay image | `ghcr.io/ksp-gonogo/gonogo-relay:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo-relay:dev` |
 | Mod GameData zips | attached to the GitHub Release, and pushed to SpaceDock | built and kept as a CI artifact only |
 | npm packages | `ui-kit` / `sitrep-sdk`, each only if its own version moved | never published |
+| NuGet package | `KspGonogo.Sitrep.Contract`, only if the contract version moved | packed, gated and probed, never published |
 | App version | `X.Y.Z` | `X.Y.Z-dev.<shortsha>` |
 
 Both images also carry a `sha-<commit>` tag in both channels. `gonogo` and `gonogo-relay` are the only two images; there is no third service image.
@@ -111,6 +112,7 @@ The `bump` input accepts `auto` (the default), `patch`, `minor` or `major`; forc
 - dispatches `publish-mods.yml` with `channel=release`, attaching each mod GameData zip in that workflow's matrix to the Release and pushing it to SpaceDock (a mod whose `vars.SPACEDOCK_MOD_ID_*` repo variable is unset warns and skips the SpaceDock half instead of failing),
 - dispatches `deploy.yml` so the Pages root flips to this release immediately rather than on the next push to `main`,
 - publishes `@ksp-gonogo/ui-kit` and `@ksp-gonogo/sitrep-sdk` to npm, each only if its own `package.json` version has moved. An unchanged version is skipped, but the skip is checked against the published tarball, so a package whose version stopped moving while its code kept moving fails the release instead of going quiet.
+- publishes `KspGonogo.Sitrep.Contract` to nuget.org when its version is not there yet. The version is the contract's own `Major.Minor.0`, read from `ContractVersion.cs`. The `publish-nuget` job packs once, gates that file, builds the kOS Uplink against it outside the repo (plus a planted gap that must fail), and pushes the same file. It authenticates through nuget.org trusted publishing, bound to `release.yml` with no environment, and needs the `NUGET_USER` secret: the nuget.org profile name that owns the policy. There is no API key. Unlike the npm skip, an unchanged version is skipped on the version alone, so a change to TestSupport or `Sitrep.Core` (both ship inside the package) with no contract Minor bump does not reach nuget.org.
 
 The version in `packages/app/package.json` only ever changes through this flow. Never hand-edit it in either direction: `release.yml` refuses a tag that disagrees with it, so an edit breaks the next release rather than undoing the last one.
 
@@ -138,7 +140,7 @@ gh workflow run deploy.yml --ref main                              # root falls 
 gh workflow run publish-images.yml --ref v<previous> -f channel=release   # moves :latest back
 ```
 
-Two things do not come back. An npm publish cannot be undone, so a bad `ui-kit` or `sitrep-sdk` needs a further version. And a version number is spent once: undoing a bump by editing `packages/app/package.json` only desynchronises it from the tags, so roll forward past a bad version instead.
+Two things do not come back. An npm or NuGet publish cannot be undone, so a bad `ui-kit`, `sitrep-sdk` or `KspGonogo.Sitrep.Contract` needs a further version (nuget.org can unlist a version, which hides it from search but still serves it to anyone who pinned it). And a version number is spent once: undoing a bump by editing `packages/app/package.json` only desynchronises it from the tags, so roll forward past a bad version instead.
 
 **Version-skew detection:** Vite bakes the version into the build (`__GONOGO_VERSION__`), the host announces it in the peer `hello` handshake, stations report theirs back in `station-info`. Stations render a mismatch banner per the table below, and the main screen's GO/NO-GO grid shows a version chip per skewed station. The bump size states the wire-compatibility promise:
 

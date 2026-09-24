@@ -22,7 +22,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class UplinkPendingQueueTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         [Fact]
         public async Task DelayedCommandDispatchIsEnqueuedThenPrunedAfterThePredictedRoundTrip()

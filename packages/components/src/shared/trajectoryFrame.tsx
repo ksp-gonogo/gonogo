@@ -45,7 +45,18 @@ export function TrajectoryFrameCaption({
   /** The centre body by name, for a widget that holds a name rather than an index. */
   centreBodyName?: string | undefined;
 }>) {
-  const facts = useProcessor(CELESTIAL_FACTS);
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue and is used as it arrived. Both value-bearing arms, and no
+   * caption: what this draws is a frame's NAME, which does not go out of date
+   * the way a figure does.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
   const named =
     centreBodyName === undefined
       ? undefined

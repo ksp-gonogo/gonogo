@@ -54,20 +54,27 @@
               "name": "drinking",
               "input": "Water",
               "output": "WasteWater",
-              "ratePerSecond": 0.00001
+              "ratePerSecond": 1e-5
             }
           ],
           "processes": [
             {
               "name": "Water Recycler",
               "modifiers": ["_WaterRecycler"],
-              "inputs": { "WasteWater": 0.0002, "ElectricCharge": 0.01 },
-              "outputs": { "Water": 0.00018 }
+              "inputs": {
+                "WasteWater": 0.0002,
+                "ElectricCharge": 0.01
+              },
+              "outputs": {
+                "Water": 0.00018
+              }
             },
             {
               "name": "CO2 Scrubber",
               "modifiers": ["_Scrubber"],
-              "inputs": { "_NonRegenScrubber": 0.00002 },
+              "inputs": {
+                "_NonRegenScrubber": 2e-5
+              },
               "outputs": {}
             }
           ]
@@ -76,7 +83,10 @@
       {
         "topic": "kerbalism.lifesupport",
         "payload": {
-          "rates": { "Water": -0.0005, "ElectricCharge": -0.05 },
+          "rates": {
+            "Water": -0.0005,
+            "ElectricCharge": -0.05
+          },
           "habitat": {
             "pressure": 0.9,
             "poisoning": 0.05,
@@ -100,20 +110,43 @@
             }
           ],
           "greenhouses": [],
-          "asOfUt": 1000000
+          "asOfKerbalismUt": 1000000
         }
       },
       {
         "topic": "vessel.resources",
         "payload": {
           "resources": {
-            "Water": { "current": 50, "max": 500, "active": true },
-            "ElectricCharge": { "current": 20, "max": 400, "active": true },
-            "Oxygen": { "current": 380, "max": 400, "active": true },
-            "WasteWater": { "current": 10, "max": 200, "active": true },
-            "_NonRegenScrubber": { "current": 30, "max": 100, "active": true }
+            "Water": {
+              "current": 50,
+              "max": 500,
+              "active": true
+            },
+            "ElectricCharge": {
+              "current": 20,
+              "max": 400,
+              "active": true
+            },
+            "Oxygen": {
+              "current": 380,
+              "max": 400,
+              "active": true
+            },
+            "WasteWater": {
+              "current": 10,
+              "max": 200,
+              "active": true
+            },
+            "_NonRegenScrubber": {
+              "current": 30,
+              "max": 100,
+              "active": true
+            }
           },
-          "meta": { "source": "vessel:1", "quality": 1 }
+          "meta": {
+            "source": "vessel:1",
+            "quality": 1
+          }
         }
       },
       {
@@ -122,10 +155,19 @@
           "count": 2,
           "capacity": 4,
           "crew": [
-            { "name": "Jebediah Kerman", "trait": "Pilot" },
-            { "name": "Bill Kerman", "trait": "Engineer" }
+            {
+              "name": "Jebediah Kerman",
+              "trait": "Pilot"
+            },
+            {
+              "name": "Bill Kerman",
+              "trait": "Engineer"
+            }
           ],
-          "meta": { "source": "vessel:1", "quality": 1 }
+          "meta": {
+            "source": "vessel:1",
+            "quality": 1
+          }
         }
       }
     ]

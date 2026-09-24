@@ -816,8 +816,12 @@ describe("Kernel", () => {
         thrown = err;
       }
 
-      expect(thrown).toBeInstanceOf(SpineCapabilityUnsatisfiedError);
-      expect((thrown as Error).message).toContain("life-support");
+      if (!(thrown instanceof SpineCapabilityUnsatisfiedError)) {
+        throw new Error(
+          `expected a SpineCapabilityUnsatisfiedError, got: ${String(thrown)}`,
+        );
+      }
+      expect(thrown.message).toContain("life-support");
     });
 
     it("resolves to vanilla (no throw) when a spineCritical capability has a vanilla fallback, even though all providers are version-excluded", () => {

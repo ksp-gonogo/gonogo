@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class InvalidEnvelopeDiagnosticsTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         /// <summary>
         /// The headline case: the error names the envelope AND the field, and
