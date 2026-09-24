@@ -34,4 +34,16 @@
     <KspManaged>$(_KspReferences)</KspManaged>
   </PropertyGroup>
 
+  <!--
+    A switch expression over an enum that misses a declared member is an error.
+    Our own enums compile with the code that reads them, so a member added
+    without deciding what it maps to fails the build, rather than falling into
+    whichever arm happened to be the default. A KSP enum only gets this against
+    the reference assemblies, so its mappings also need a default arm and a test
+    over the real enum for the game a player actually runs.
+  -->
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS8509</WarningsAsErrors>
+  </PropertyGroup>
+
 </Project>

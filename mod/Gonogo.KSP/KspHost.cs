@@ -2015,7 +2015,7 @@ namespace Gonogo.KSP
                 if (conn != null)
                 {
                     connected = conn.IsConnected;
-                    controlSource = MapRosterControlSource(conn.GetControlLevel());
+                    controlSource = RosterControlSource.For(conn.GetControlLevel());
                 }
             }
             catch (Exception ex)
@@ -2027,27 +2027,6 @@ namespace Gonogo.KSP
 
             entry["commsConnected"] = connected;
             entry["commsControlSource"] = controlSource;
-        }
-
-        /// <summary>
-        /// <c>Vessel.ControlLevel</c> -&gt; the roster's raw control-source
-        /// string (mirrors <c>CommNetBackend.MapControlSource</c>'s
-        /// none/partial/full tiering exactly, kept as an independent copy
-        /// here since the roster read is deliberately NOT part of that
-        /// backend -- see <see cref="AddRosterCommsFields"/>).
-        /// </summary>
-        private static string MapRosterControlSource(Vessel.ControlLevel level)
-        {
-            switch (level)
-            {
-                case Vessel.ControlLevel.FULL:
-                    return "Full";
-                case Vessel.ControlLevel.PARTIAL_MANNED:
-                case Vessel.ControlLevel.PARTIAL_UNMANNED:
-                    return "Partial";
-                default:
-                    return "None";
-            }
         }
 
         /// <summary>

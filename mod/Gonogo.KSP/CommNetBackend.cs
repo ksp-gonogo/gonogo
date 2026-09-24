@@ -86,7 +86,7 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            return new CommsLinkState(conn.IsConnected, GradeOf(conn.GetControlLevel()), conn.SignalStrength);
+            return new CommsLinkState(conn.IsConnected, ControlLevelGrade.Of(conn.GetControlLevel()), conn.SignalStrength);
         }
 
         /// <summary>
@@ -136,26 +136,6 @@ namespace Gonogo.KSP
                 node.isHome,
                 node.isControlSource,
                 new Sitrep.Contract.Vector3d(p.x, p.y, p.z));
-        }
-
-        /// <summary>
-        /// Stock's <c>Vessel.ControlLevel</c> in the contract's vocabulary. The
-        /// only mapping this backend owns: the collapse to the three states the
-        /// wire carries happens once, in <see cref="CommsBackendBase"/>.
-        /// </summary>
-        private static CommsControlGrade GradeOf(Vessel.ControlLevel level)
-        {
-            switch (level)
-            {
-                case Vessel.ControlLevel.FULL:
-                    return CommsControlGrade.Full;
-                case Vessel.ControlLevel.PARTIAL_MANNED:
-                    return CommsControlGrade.PartialManned;
-                case Vessel.ControlLevel.PARTIAL_UNMANNED:
-                    return CommsControlGrade.PartialUnmanned;
-                default:
-                    return CommsControlGrade.None;
-            }
         }
 
         /// <summary>

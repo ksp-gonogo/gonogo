@@ -39,10 +39,17 @@ namespace Sitrep.Contract;
 /// </summary>
 public enum CommsControlGrade
 {
+    /// <summary>A measurement: the craft has no control source.</summary>
     None,
     PartialUnmanned,
     PartialManned,
     Full,
+    /// <summary>
+    /// The game reported a control level the backend does not name. Not
+    /// <see cref="None"/>: nothing was measured to be absent, so every derived
+    /// field reads it as unknown rather than as an uncontrolled craft.
+    /// </summary>
+    Unknown,
 }
 
 /// <summary>
