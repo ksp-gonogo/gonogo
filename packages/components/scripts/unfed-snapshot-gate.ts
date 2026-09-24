@@ -64,7 +64,7 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
   "ThermalStatus/no-thermal-data":
     "every reading is the 2.05 K deep-space sentinel under an empty part name, which is the vessel reporting no thermal data rather than a read that failed",
   "Strategies/feature-unavailable":
-    "the Administration Building is not unlocked, so `strategies` is null on the wire and there is no roster to draw; the absence is the scenario",
+    "there is no StrategySystem, which is a save with no career rather than a building left unbuilt, so `strategies` is null on the wire and there is no roster to draw; the absence is the scenario",
   "FuelStatus/no-engine-data":
     "no engines, no stages and every tank 0/0, and at tiny-3x3 the widget is the stage readout alone, so that one mode has nothing left to show; the other seven modes DO render this fixture and fail when starved",
   "KeplerPeriod/no-body-data":

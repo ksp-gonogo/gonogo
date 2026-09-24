@@ -186,10 +186,28 @@ namespace Gonogo.KSP.Career
         /// <para>Two different facts were reaching an operator as one bare
         /// <see cref="CommandErrorCode.NotFound"/>. A facility id the game does
         /// not know IS not-found. A facility the game knows perfectly well but
-        /// has not instantiated is a SCENE fact: tiers exist at the space centre
-        /// only, so away from it every id resolves to a proto with no live ref,
-        /// and "not found" is a claim about the facility that is simply
-        /// untrue.</para>
+        /// has not instantiated is a SCENE fact: the id resolves against
+        /// <c>ScenarioUpgradeableFacilities.protoUpgradeables</c>, which survives
+        /// a scene change, while the <c>facilityRefs</c> behind it are the KSC's
+        /// own <c>UpgradeableFacility</c> components, registered as those
+        /// buildings spawn and destroyed with them. Where they have not spawned
+        /// the entries read null, and "not found" is a claim about the facility
+        /// that is simply untrue.</para>
+        ///
+        /// <para>Which scenes spawn them is not a fixed list, so the test the
+        /// caller makes is for the live component itself and never against
+        /// <c>HighLogic.LoadedScene</c>. The scene is passed here only to name
+        /// where the operator is standing.</para>
+        ///
+        /// <para>Refusing without one is not pedantry. The price is
+        /// <c>UpgradeableFacility.GetUpgradeCost</c>, reading
+        /// <c>upgradeLevels[level + 1].levelCost</c> off that component, and
+        /// <c>SetLevel</c> raises the tier and fires
+        /// <c>OnKSCFacilityUpgrading</c> but then returns before its spawn
+        /// coroutine whenever <c>gameObject.activeInHierarchy</c> is false. A
+        /// tier raised with no live object behind it therefore never fires
+        /// <c>OnKSCFacilityUpgraded</c>, and everything waiting on the finished
+        /// upgrade is left holding the opening half of a pair.</para>
         ///
         /// <para>The second case is transient and the operator can act on it, so
         /// it earns <see cref="CommandErrorCode.WrongScene"/> and a detail naming
@@ -213,8 +231,8 @@ namespace Gonogo.KSP.Career
             return CommandResult.Fail(
                 CommandErrorCode.WrongScene,
                 string.IsNullOrEmpty(sceneName)
-                    ? facilityName + " can only be upgraded at the space centre."
-                    : facilityName + " can only be upgraded at the space centre, and the game is in " + sceneName + ".");
+                    ? facilityName + " is not built in this scene, so its tier cannot be changed from here. Upgrade it at the space centre."
+                    : facilityName + " is not built in the " + sceneName + " scene, so its tier cannot be changed from here. Upgrade it at the space centre.");
         }
 
         /// <summary>

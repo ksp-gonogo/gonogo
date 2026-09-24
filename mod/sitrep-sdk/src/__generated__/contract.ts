@@ -548,8 +548,36 @@ export interface CareerStrategy
 	hasFactorSlider?: boolean | null;
 	factorSliderDefault?: Value<"ratio"> | null;
 	factorSliderSteps?: Value<"count"> | null;
+	/**
+	* Whether KSP would allow this strategy to be committed to right now. `null`
+	* means the question could not be put at all, which is NOT a refusal:
+	* `CareerStrategy.activateBlockedReason` then accounts for why nobody answered
+	* rather than naming a rule the strategy broke.
+	*/
 	canActivate?: boolean | null;
+	/**
+	* KSP's own wording for the rule that refused, or an account of why the
+	* question could not be put when `CareerStrategy.canActivate` is `null`. Empty
+	* when the answer was yes.
+	*/
 	activateBlockedReason?: string | null;
+	/**
+	* Which route produced `CareerStrategy.canActivate`: `"screened"` when KSP's
+	* own check answered, `"derived"` when the same rules were evaluated one at a
+	* time because the Administration Building was shut, and `"none"` when there
+	* is no verdict to carry.
+	*
+	* `"derived"` always accompanies a refusal and never a yes. The game stops at
+	* its first refusal, so an arm that refuses off-screen would have refused on
+	* it; but one arm counts the career's running strategies on that screen and
+	* cannot be asked anywhere else, and permission is owed to every arm. A row
+	* nothing could refuse therefore arrives unanswered with `"none"` rather than
+	* allowed.
+	*
+	* Nothing reached off-screen should ARM an activation control either way: KSP
+	* runs its own commitment only from inside that building.
+	*/
+	activateVerdictSource?: string | null;
 	canDeactivate?: boolean | null;
 	deactivateBlockedReason?: string | null;
 	effect?: string | null;

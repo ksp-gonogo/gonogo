@@ -164,7 +164,7 @@
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
                 "canActivate": null,
-                "activateBlockedReason": "unknown: KSP answers this only while the Administration Building is open",
+                "activateBlockedReason": "unknown: this career's strategy limits could not be read",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
                 "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 610,000 over 4 years on the funding curve.</color></b>\n"
@@ -185,7 +185,7 @@
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
                 "canActivate": null,
-                "activateBlockedReason": "unknown: KSP answers this only while the Administration Building is open",
+                "activateBlockedReason": "unknown: this career's strategy limits could not be read",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
                 "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 800,000 over 3.5 years on the funding curve.</color></b>\n"
@@ -206,7 +206,7 @@
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
                 "canActivate": null,
-                "activateBlockedReason": "unknown: KSP answers this only while the Administration Building is open",
+                "activateBlockedReason": "unknown: this career's strategy limits could not be read",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
                 "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 900,000 over 3 years on the funding curve.</color></b>\n"
