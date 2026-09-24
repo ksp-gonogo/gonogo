@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.1.0
+  version: 18.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -289,11 +289,13 @@ channels:
       and this payload carries nothing that would close that gap early. Whatever
       the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
 
-      The two fields are the honest minimum. The id is the operator's own handle,
-      which tells them nothing they did not already write down. The instant is
-      inseparable from the stop: without it a warp that halted at one universal
-      time is indistinguishable from one that halted at another, and the operator
-      cannot tell which of two armed alarms stopped them.
+      The id and the instant are the honest minimum. The id is the operator's own
+      handle, which tells them nothing they did not already write down. The
+      instant is inseparable from the stop: without it a warp that halted at one
+      universal time is indistinguishable from one that halted at another, and the
+      operator cannot tell which of two armed alarms stopped them. The other
+      fields say where it was learned and whether its actions were withheld for
+      want of the right craft, and neither is a reading of the craft.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
@@ -15515,6 +15517,8 @@ components:
         - subject
         - condition
         - state
+        - onFire
+        - actsOn
       properties:
         id:
           type: string
@@ -15597,6 +15601,89 @@ components:
           description: |-
             The universal time the alarm fired at, or `null` while it is still armed. On
             the craft's clock, like `ScetAlarmCondition.ut`.
+        onFire:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScetAlarmAction"
+          description: |-
+            What the craft does when this alarm fires, in order. Empty for an alarm that
+            only stops the warp and says so. See `ScetAlarmAction`.
+        actsOn:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The craft `ScetAlarm.onFire` acts on, as `"vessel:<guid>"`, or empty while
+            there are no actions.
+
+            The actions run only if this craft is the one being flown when the alarm
+            fires, and are withheld otherwise: a time condition belongs to the game
+            rather than to any craft, so after a vessel switch its actions would
+            otherwise land on whatever happened to be active.
+    ScetAlarmAction:
+      type: object
+      description: |-
+        One thing the craft does in the frame its alarm fires, as a flight computer
+        would: evaluated aboard, fired aboard, acted aboard.
+
+        Held only by an alarm read at its own subject's vantage. An alarm judged
+        against what a command centre has been told comes due a light-time after the
+        craft passed the condition, and acting on the craft in that same frame would
+        carry the ground's decision to the craft faster than light, so such an arm
+        is refused. A ground-side alarm's action travels as an ordinary command
+        instead.
+
+        Every kind but `ScetAlarmActionKind.Stage` TOGGLES, against the state the
+        craft reports at the moment of the fire, which is what pressing the group's
+        key does.
+      required:
+        - kind
+        - group
+      properties:
+        kind:
+          $ref: "#/components/schemas/ScetAlarmActionKind"
+          x-sitrep-unit: enum
+        group:
+          type: number
+          x-sitrep-unit: id
+          description: |-
+            `ScetAlarmActionKind.ActionGroup` only: the custom group's 1-based index, as
+            `vessel.control.setActionGroup` takes it. Zero for every other kind.
+    ScetAlarmActionKind:
+      type: integer
+      description: |-
+        What a SCET alarm's onboard action does to the craft when the alarm fires.
+
+        A typed member for each stock singleton and one for every custom group, so
+        no name ever crosses the wire. A player may call a custom group "Stage", and
+        two custom groups may share a name, so a name is not an identity: a custom
+        group is addressed by its index in `ScetAlarmAction.group`, and cannot be
+        read as the stage command however it is labelled.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: ActionGroup
+          description: Toggle the custom action group whose index is `ScetAlarmAction.group`.
+        - const: 1
+          title: Stage
+          description: Activate the next stage.
+        - const: 2
+          title: Sas
+          description: Toggle SAS.
+        - const: 3
+          title: Rcs
+          description: Toggle RCS.
+        - const: 4
+          title: Lights
+          description: Toggle the lights.
+        - const: 5
+          title: Gear
+          description: Toggle the landing gear.
+        - const: 6
+          title: Brakes
+          description: Toggle the brakes.
+        - const: 7
+          title: Abort
+          description: Toggle the abort action group.
     ScetAlarmArmArgs:
       type: object
       description: |-
@@ -15616,6 +15703,8 @@ components:
         - vantage
         - subject
         - condition
+        - onFire
+        - actsOn
       properties:
         id:
           type: string
@@ -15636,6 +15725,22 @@ components:
           description: See `ScetAlarm.subject`. Empty is read as `"game"`.
         condition:
           $ref: "#/components/schemas/ScetAlarmCondition"
+        onFire:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScetAlarmAction"
+          description: |-
+            See `ScetAlarm.onFire`. Non-empty only where the alarm is read at its own
+            subject's vantage and that subject is a craft, or the condition is a time on
+            the game's clock; any other arm carrying actions is refused rather than
+            accepted with them dropped.
+        actsOn:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            See `ScetAlarm.actsOn`. A time condition carrying actions must name the
+            craft the operator means them for. A threshold on a craft acts on that
+            craft, so empty resolves to its subject and any other craft is refused.
     ScetAlarmCondition:
       type: object
       description: |-
@@ -15646,7 +15751,10 @@ components:
         `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
         `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
         `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-        `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`.
+        `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+        `ScetAlarmConditionKind.ContractParameter` it is
+        `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
+        `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
       required:
         - kind
         - ut
@@ -15656,6 +15764,9 @@ components:
         - op
         - threshold
         - sustainSeconds
+        - contractId
+        - parameterTitle
+        - targetState
       properties:
         kind:
           $ref: "#/components/schemas/ScetAlarmConditionKind"
@@ -15725,8 +15836,9 @@ components:
           type: number
           x-sitrep-unit: s
           description: |-
-            Threshold only: how long the condition must hold, in seconds, before the
-            alarm fires. Zero fires on the first reading that matches.
+            Threshold and contract parameter: how long the condition must hold, in
+            seconds, before the alarm fires. Zero fires on the first reading that
+            matches.
 
             **Warp is stopped at the first match, not at the fire.** A sustain window is
             a span of the craft's time, and under warp one tick covers thousands of
@@ -15736,15 +15848,32 @@ components:
             once and then stops matching has still stopped the warp; that is the
             fail-safe side to err on, because the operator keeps their game and loses
             only the time they were skipping.
+        contractId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Contract parameter only: the contract's id, as
+            `career.status.contracts.active` carries it.
+        parameterTitle:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            Contract parameter only: the objective's title within that contract, matched
+            exactly. The first objective with the title answers.
+        targetState:
+          description: "Contract parameter only: the state the objective must reach."
+          allOf:
+            - $ref: "#/components/schemas/KspParameterState"
+              x-sitrep-unit: enum
     ScetAlarmConditionKind:
       type: integer
       description: |-
         Which kind of condition a SCET alarm watches for.
 
-        Every alarm has a vantage, so a kind is only about WHAT is watched. A
-        contract parameter has no member here yet because it reads a list-shaped
-        Topic and a dotted path cannot index a list, so it needs a matcher of its
-        own rather than a threshold's.
+        Every alarm has a vantage, so a kind is only about WHAT is watched, and each
+        kind names its own matcher: a threshold walks a dotted path to a number, and
+        a contract parameter, which lives in a list no path can index, finds its
+        contract and objective by identity.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -15761,6 +15890,17 @@ components:
             a clock, and a client has one; a threshold needs the craft's true state,
             which reaches the ground a light-time late and by then is no longer the
             answer to "is it above 100 km NOW".
+        - const: 2
+          title: ContractParameter
+          description: |-
+            One objective of one active contract reaching a state the operator chose, as
+            `career.status.contracts.active` reports it.
+
+            Level rather than edge, like the threshold: an objective already in its
+            target state when the alarm is armed is a condition that holds. A contract
+            no longer active leaves the condition unmet for ever, which is the fail-safe
+            answer for a contract that was completed, failed or withdrawn by some other
+            route.
     ScetAlarmDisarmArgs:
       type: object
       description: |-
@@ -15788,15 +15928,18 @@ components:
         and this payload carries nothing that would close that gap early. Whatever
         the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
 
-        The two fields are the honest minimum. The id is the operator's own handle,
-        which tells them nothing they did not already write down. The instant is
-        inseparable from the stop: without it a warp that halted at one universal
-        time is indistinguishable from one that halted at another, and the operator
-        cannot tell which of two armed alarms stopped them.
+        The id and the instant are the honest minimum. The id is the operator's own
+        handle, which tells them nothing they did not already write down. The
+        instant is inseparable from the stop: without it a warp that halted at one
+        universal time is indistinguishable from one that halted at another, and the
+        operator cannot tell which of two armed alarms stopped them. The other
+        fields say where it was learned and whether its actions were withheld for
+        want of the right craft, and neither is a reading of the craft.
       required:
         - id
         - firedAtUt
         - vantage
+        - actionsWithheld
       properties:
         id:
           type: string
@@ -15817,6 +15960,18 @@ components:
             notice at the subject's own vantage is a fact about the craft at the instant
             it happened; a notice at anywhere else is a statement about what that place
             has been told, true only there.
+        actionsWithheld:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether the alarm held onboard actions and they were withheld because the
+            craft named by `ScetAlarm.actsOn` was not the one being flown. False for an
+            alarm with no actions.
+
+            Says nothing about how the craft answered an action that WAS sent. That is a
+            fact aboard the craft, and it reaches the ground the way every other one
+            does, a light-time later in the craft's own telemetry: this notice travels
+            at once and must not carry it.
     ScetAlarmState:
       type: integer
       description: |-

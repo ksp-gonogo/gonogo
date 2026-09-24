@@ -84,6 +84,7 @@ if [ "${#failed[@]}" -gt 0 ]; then
     echo
     echo "  Regenerate and commit the result. The page is derived, so the fix is never to edit it:"
     echo "    pnpm uplink-docs"
+    echo "    pnpm uplink-docs:prose   the prose only; uplink-docs.yml renders the images on Linux"
   else
     echo "✖ ${#failed[@]} of ${#packages[@]} Uplink page(s) could not be generated:"
     for pkg in "${failed[@]}"; do

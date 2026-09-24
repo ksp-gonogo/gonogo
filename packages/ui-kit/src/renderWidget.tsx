@@ -192,6 +192,11 @@ function requireComponent(widgetId: string): ComponentDefinition {
 
 const NOOP = () => {};
 
+/**
+ * Mounts the registered widget `widgetId` inside the provider stack the
+ * dashboard puts around one. The `RenderResult` it returns is named from
+ * `@ksp-gonogo/sitrep-sdk/testing`.
+ */
 export function renderWidget(
   widgetId: string,
   options: RenderWidgetOptions = {},

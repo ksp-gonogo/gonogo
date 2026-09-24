@@ -30,7 +30,6 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -42,6 +41,8 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 // Side-effect import: every built-in widget self-registers on module load.
 import "../../src";
+
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { AlarmsLauncherProvider } from "../../src/shared/AlarmsLauncher";
 
 registerStockBodies();

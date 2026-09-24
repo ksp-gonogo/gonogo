@@ -1,9 +1,22 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { logger } from "@ksp-gonogo/logger";
+import { type TopicId, unitOf, value, WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { LinkClient } from "../test/peerFakes";
-import { reportedOneWay, runShadowAcceptance } from "./shadowAcceptanceRun";
+import {
+  reportedOneWay,
+  runShadowAcceptance,
+  SHADOW_ACCEPTANCE_ALARMS,
+} from "./shadowAcceptanceRun";
 
 /**
  * The acceptance run against a stream whose delay is known, so a harness that
@@ -139,6 +152,42 @@ describe("runShadowAcceptance: its thresholds read the stream", () => {
     expect(unread).not.toContain("Altitude 200 km");
   });
 
+  /**
+   * The verdict is judged from the log, so a log that records nothing must stop
+   * the run rather than hand the classifier an empty buffer it would read as a
+   * quiet session. Planted here by making every shadow line land nowhere.
+   */
+  it("refuses a verdict when alarms fired and the log recorded nothing", async () => {
+    serveFlight(() => 250_000);
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const info = vi.spyOn(logger, "info").mockImplementation(() => {});
+
+    await expect(
+      runShadowAcceptance({ host: "localhost", port: PORT, observeMs: 2000 }),
+    ).rejects.toThrow(/recorded no alarm-shadow line/);
+    warn.mockRestore();
+    info.mockRestore();
+  });
+
+  it("records the shadow lines it is judged from, and leaves the logger as it found it", async () => {
+    serveFlight(() => 250_000);
+    logger.setEnabled(false);
+
+    const { verdict } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2000,
+    });
+
+    expect(verdict.verdict).not.toBeUndefined();
+    expect(logger.isEnabled()).toBe(false);
+    expect(
+      logger
+        .snapshot()
+        .some((entry) => entry.message.includes("client fired, mod has not")),
+    ).toBe(true);
+  });
+
   it("fires on a crossing that lands between two samples", async () => {
     serveFlight((sample) => (sample < 4 ? 150_000 : 250_000));
 
@@ -160,9 +209,130 @@ describe("runShadowAcceptance: its thresholds read the stream", () => {
       observeMs: 2000,
     });
 
-    expect(finalStates["Speed 3 km/s"]).toBe("pending");
+    expect(finalStates["Speed 2 km/s"]).toBe("pending");
     expect(finalStates["Altitude 300 km"]).toBe("pending");
-    expect(unread).toEqual(["Speed 3 km/s"]);
+    expect(unread).toEqual(["Speed 2 km/s"]);
+  });
+});
+
+/**
+ * Answers a `time.warp` subscription with the game sitting at rung 0, as it
+ * does after the mod cancels warp, and collects every command the run sends.
+ */
+function serveWarpDropped(commands: string[]): void {
+  server.use(
+    link.addEventListener(
+      "connection",
+      ({ client }: { client: LinkClient }) => {
+        client.addEventListener("message", (event) => {
+          const msg: unknown = JSON.parse(String(event.data));
+          if (typeof msg !== "object" || msg === null || !("type" in msg)) {
+            return;
+          }
+          if (msg.type === "command-request" && "command" in msg) {
+            commands.push(String(msg.command));
+          }
+          if (
+            msg.type === "subscribe" &&
+            "topic" in msg &&
+            msg.topic === "time.warp"
+          ) {
+            client.send(
+              streamFrame("time.warp", {
+                warpRate: 1,
+                warpRateIndex: 0,
+                warpRates: [1, 5, 10, 50, 100, 1000, 10000, 100000],
+                warpMode: WarpMode.High,
+                paused: false,
+              }),
+            );
+          }
+        });
+      },
+    ),
+  );
+}
+
+describe("runShadowAcceptance: the warp hold", () => {
+  it("puts the rung back when the game has dropped below it", async () => {
+    const commands: string[] = [];
+    serveWarpDropped(commands);
+
+    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+      warpIndex: 3,
+    });
+
+    expect(warpUnread).toBe(false);
+    expect(warpReapplies).toBeGreaterThan(0);
+    await vi.waitFor(() => expect(commands).toContain("time.setWarpIndex"));
+  });
+
+  it("says it never read the rung, rather than reporting a quiet zero", async () => {
+    serveDelay(null);
+
+    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+      warpIndex: 3,
+    });
+
+    expect(warpReapplies).toBe(0);
+    expect(warpUnread).toBe(true);
+  });
+});
+
+/**
+ * The mod still holding an alarm from an earlier run against the same game: it
+ * answers the run's `alarm.scet.fired` subscription with a fire for an id this
+ * run never armed.
+ */
+function serveStrangerFire(): void {
+  server.use(
+    link.addEventListener(
+      "connection",
+      ({ client }: { client: LinkClient }) => {
+        client.addEventListener("message", (event) => {
+          const msg: unknown = JSON.parse(String(event.data));
+          if (
+            typeof msg === "object" &&
+            msg !== null &&
+            "type" in msg &&
+            msg.type === "subscribe" &&
+            "topic" in msg &&
+            msg.topic === "alarm.scet.fired"
+          ) {
+            client.send(
+              streamFrame("alarm.scet.fired", {
+                id: "left-by-an-earlier-run",
+                firedAtUt: 5,
+                vantage: "",
+              }),
+            );
+          }
+        });
+      },
+    ),
+  );
+}
+
+describe("runShadowAcceptance: alarms it never armed", () => {
+  it("sets aside a mod fire for an alarm an earlier run left behind, and names it", async () => {
+    serveStrangerFire();
+
+    const { verdict } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 500,
+    });
+
+    expect(verdict.outcomes["one-sided"]).toBe(0);
+    expect(verdict.excluded.flatMap((x) => x.fires.map((f) => f.id))).toEqual([
+      "left-by-an-earlier-run",
+    ]);
   });
 });
 
@@ -189,5 +359,19 @@ describe("reportedOneWay", () => {
     ["a reading in another unit", { oneWaySeconds: value("m", 3) }],
   ])("returns null for %s", (_label, payload) => {
     expect(reportedOneWay(payload)).toBeNull();
+  });
+});
+
+/**
+ * A threshold naming a field the wire does not carry is never read, and a run
+ * reports it only as an alarm that stayed unread whatever the orbit did. So
+ * every armed field is held to the contract's own declaration of its Topic.
+ */
+describe("the shadow-acceptance alarms", () => {
+  it.each(
+    SHADOW_ACCEPTANCE_ALARMS.map((a) => [a.name, a] as const),
+  )("%s names a field the wire carries", (_, alarm) => {
+    expect(unitOf(alarm.topic as TopicId, alarm.fieldPath)).toBeDefined();
+    expect(alarm.dataKey).toBe(`${alarm.topic}.${alarm.fieldPath}`);
   });
 });

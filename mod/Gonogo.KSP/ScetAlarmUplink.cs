@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
+using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Alarms;
 using UnityEngine;
 
@@ -196,6 +197,9 @@ namespace Gonogo.KSP
 
         private readonly IVesselActuator _actuator;
 
+        /// <summary>The elected action-groups backend, resolved per call. Null until <see cref="Register"/>.</summary>
+        private Func<IActionGroupsBackend?>? _actionGroups;
+
         private IUplinkHost? _host;
 
         /// <summary>
@@ -333,6 +337,14 @@ namespace Gonogo.KSP
         {
             _host = host;
             _thresholds = new ScetThresholdSources(host.Kernel);
+
+            // The same elected backend the vessel uplink's actuator writes
+            // through, so an alarm's custom group means the group a button of
+            // the same index would press. Resolved per call: the election runs
+            // after every uplink has registered.
+            var kernel = host.Kernel;
+            _actionGroups = () => ActionGroupsElection.Elected(kernel);
+            (_actuator as KspVesselActuator)?.SetActionGroupsBackendSource(_actionGroups);
             _rosterPublisher = host.Publisher(RosterTopic);
             _firedPublisher = host.Publisher(FiredTopic);
 
@@ -410,6 +422,20 @@ namespace Gonogo.KSP
                     "no SCET threshold can be read from '" + (condition.Topic ?? "") + "'");
             }
 
+            if (condition != null
+                && condition.Kind == ScetAlarmConditionKind.ContractParameter
+                && (string.IsNullOrEmpty(condition.ContractId) || string.IsNullOrEmpty(condition.ParameterTitle)))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Range, "a contract-parameter alarm names a contract and one of its objectives");
+            }
+
+            var actionRefusal = ScetAlarmActions.RefusalFor(args);
+            if (actionRefusal != null)
+            {
+                return CommandResult.Fail(CommandErrorCode.Range, actionRefusal);
+            }
+
             lock (_gate)
             {
                 // An id belongs to exactly one alarm whatever vantage it names,
@@ -466,17 +492,27 @@ namespace Gonogo.KSP
                 var hasAudience = _host?.IsAnyTopicSubscribed(RosterTopic) ?? false;
                 ScetAlarmTickState tick;
                 bool stopWarp;
+                List<ScetAlarmActionsDue> actionsDue;
                 lock (_gate)
                 {
                     tick = _roster.BeginTick(ut);
                     _roster.EvaluatePass(tick, ScetAlarmVantage.IsTheSubjectsOwn, _ => state);
                     stopWarp = tick.StopWarp;
+                    actionsDue = new List<ScetAlarmActionsDue>(tick.ActionsDue);
                 }
 
                 if (stopWarp)
                 {
                     WarpStopBudget.Record(1, ut);
                     _actuator.SetWarp(0);
+                }
+
+                // In the same frame as the stop, before the notices leave: this is
+                // the flight computer acting, and a withheld action has to be on
+                // its notice before anyone is told the alarm fired.
+                if (actionsDue.Count > 0)
+                {
+                    RunActions(actionsDue);
                 }
 
                 // ALWAYS returned, even with nothing to say. The handle owns
@@ -582,6 +618,74 @@ namespace Gonogo.KSP
             catch (Exception ex)
             {
                 Debug.LogError("[Gonogo] SCET alarm publish failed: " + ex);
+            }
+        }
+
+        /// <summary>
+        /// Run the onboard actions this tick's fires queued, on the main thread.
+        /// A craft that refuses one is logged here and shows in its own telemetry
+        /// a light-time later; the notice says only whether the actions were
+        /// withheld for want of the right craft.
+        /// </summary>
+        private void RunActions(List<ScetAlarmActionsDue> actionsDue)
+        {
+            var vessel = ActiveVesselScope.Current;
+            var flying = vessel != null ? "vessel:" + vessel.id : null;
+            foreach (var due in actionsDue)
+            {
+                var results = ScetAlarmActions.Run(due, flying, _actuator, EngagedNow);
+                if (due.Notice.ActionsWithheld)
+                {
+                    Debug.LogWarning("[Gonogo] SCET alarm " + due.Notice.Id
+                        + " withheld its actions: they act on " + due.ActsOn + ", not " + (flying ?? "no craft"));
+                }
+                for (var i = 0; i < results.Count; i++)
+                {
+                    if (!results[i].Success)
+                    {
+                        Debug.LogWarning("[Gonogo] SCET alarm " + due.Notice.Id + " action "
+                            + due.Actions[i].Kind + " refused: " + results[i].ErrorCode + " " + results[i].Detail);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The state a toggle flips from, read off the craft being flown at the
+        /// moment of the fire. A custom group is asked of the elected backend,
+        /// which is what numbers it; null wherever the craft cannot say.
+        /// </summary>
+        private bool? EngagedNow(ScetAlarmAction action)
+        {
+            var groups = ActiveVesselScope.Current?.ActionGroups;
+            if (groups == null)
+            {
+                return null;
+            }
+            switch (action.Kind)
+            {
+                case ScetAlarmActionKind.Sas: return groups[KSPActionGroup.SAS];
+                case ScetAlarmActionKind.Rcs: return groups[KSPActionGroup.RCS];
+                case ScetAlarmActionKind.Lights: return groups[KSPActionGroup.Light];
+                case ScetAlarmActionKind.Gear: return groups[KSPActionGroup.Gear];
+                case ScetAlarmActionKind.Brakes: return groups[KSPActionGroup.Brakes];
+                case ScetAlarmActionKind.Abort: return groups[KSPActionGroup.Abort];
+                case ScetAlarmActionKind.ActionGroup:
+                    var reported = _actionGroups?.Invoke()?.Groups();
+                    if (reported == null)
+                    {
+                        return null;
+                    }
+                    foreach (var g in reported)
+                    {
+                        if (g.Index == action.Group)
+                        {
+                            return g.State;
+                        }
+                    }
+                    return null;
+                default:
+                    return null;
             }
         }
 

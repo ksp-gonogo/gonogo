@@ -172,6 +172,18 @@ describe("CareerEconomy", () => {
     await act(async () => {});
   });
 
+  it("puts the net ahead of the rates it sums, so a small tile cannot hide it", async () => {
+    mount(OVERHAUL);
+
+    const net = await screen.findByText("Net gain");
+    const subsidy = screen.getByText("Subsidy");
+    expect(
+      net.compareDocumentPosition(subsidy) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await act(async () => {});
+  });
+
   it("names a net drain when the upkeep outruns the subsidy", async () => {
     mount({ ...OVERHAUL, subsidyPerDay: 100 });
 

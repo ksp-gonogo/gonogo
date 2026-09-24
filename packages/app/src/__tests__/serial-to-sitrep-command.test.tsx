@@ -31,12 +31,12 @@ import {
   SerialDeviceService,
 } from "@ksp-gonogo/serial";
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

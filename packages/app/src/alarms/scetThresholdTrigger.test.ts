@@ -95,12 +95,13 @@ describe("SCET threshold trigger", () => {
   it("stays pending until the notice latches it, then runs the banner window", () => {
     const alarm = scetAlarm();
     alarms.push(alarm);
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("pending");
+    expect(sm.deriveState(alarm, now)).toBe("pending");
 
     // What `AlarmHostService.onScetFired` does with the mod's notice.
     alarm.matchSinceUT = now;
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("firing");
-    expect(sm.deriveState(alarm, now + 5, now)).toBe("fired");
+    alarm.state = sm.deriveState(alarm, now);
+    expect(alarm.state).toBe("firing");
+    expect(sm.deriveState(alarm, now + 5)).toBe("fired");
   });
 
   it("does not wait out its own sustain window, because the mod already did", () => {
@@ -111,7 +112,7 @@ describe("SCET threshold trigger", () => {
        one is latched by a notice the mod only sends once the window is already
        satisfied, so adding the window again here would hold the banner back by
        a second copy of a wait that has happened. */
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("firing");
+    expect(sm.deriveState(alarm, now)).toBe("firing");
   });
 
   it("is not a warp-to target, because the stop happens upstream of us", () => {
@@ -134,7 +135,7 @@ describe("SCET threshold trigger", () => {
     // No stream behind it, so the read fails and the latch is left alone: the
     // three-answer rule, unchanged by the SCET arm existing.
     expect(sm.updateThresholdTracking(alarm, now, now - 1)).toBe(false);
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("pending");
+    expect(sm.deriveState(alarm, now)).toBe("pending");
   });
 });
 

@@ -105,3 +105,11 @@ describe("AlarmBanner safety margin", () => {
     expect(container.textContent).not.toContain("light-time");
   });
 });
+
+describe("AlarmBanner on a fire", () => {
+  it("states the facts of the fire beside the alarm", () => {
+    const fired: Alarm = { ...timeAlarm(4000, "fired"), eventUT: 4000 };
+    const { container } = renderBanner(snapshotOf([fired], 4300));
+    expect(container.textContent).toContain("Warp stopped.");
+  });
+});

@@ -6,11 +6,10 @@
   "type": "module",
   "main": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./media": "./src/media/index.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "node ../../scripts/gen-version.mjs CLIENT_VERSION && tsc -p tsconfig.build.json",
+    "build": "node ../../scripts/gen-version.mjs CLIENT_VERSION && tsc -p tsconfig.build.json && node ../../scripts/prune-dist.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

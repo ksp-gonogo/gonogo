@@ -129,8 +129,6 @@ export {
   type DeclaredDelayRoles,
   type DelayLane,
   delayLaneOf,
-  type GeneratedHeldAtHomeTopic,
-  type GeneratedTrueNowTopic,
   type HeldAtHomeTopic,
   isHeldAtHomeTopic,
   isTrueNowTopic,
@@ -178,7 +176,7 @@ export {
   type ProviderExtensions,
 } from "./extensions";
 // The buffered-recording subsystem: wraps a live `DataSource`, persists every
-// sample into a `Store` keyed by inferred flight, and answers columnar range
+// sample into a `FlightStore` keyed by inferred flight, and answers columnar range
 // queries. An Uplink's tests build one to assert what its widgets read, and
 // `data` is `private: true`, so the harness they needed was unbuildable outside
 // this repo. Its transitive imports were this package and itself all along.
@@ -293,7 +291,6 @@ export * from "./reading";
 export {
   type GeneratedReckonableInput,
   type GeneratedReckonableValue,
-  type GeneratedReckoningBasis,
   isReckonableTopic,
   type ReckonableFields,
   type ReckonableTopic,
@@ -520,9 +517,7 @@ export {
   vectorMagnitude,
 } from "./unit-system";
 export {
-  isPluralShape,
   type KnownSitrepUnit,
-  providerExtensionShapes,
   registerProviderExtensionShape,
   registerTopicUnits,
   registerTypeUnits,
@@ -530,7 +525,6 @@ export {
   type SitrepUnit,
   shapesForTopic,
   shapesForType,
-  shapeTypeName,
   type UnitsByField,
   unitOf,
   unitOfTypeField,

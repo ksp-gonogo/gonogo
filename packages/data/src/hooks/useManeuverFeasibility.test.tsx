@@ -1,10 +1,7 @@
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import type { ManeuverNode } from "@ksp-gonogo/sitrep-sdk";
 import type { WireOf } from "@ksp-gonogo/sitrep-sdk/testing";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { useManeuverFeasibility } from "./useManeuverFeasibility";

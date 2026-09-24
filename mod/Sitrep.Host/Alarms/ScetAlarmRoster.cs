@@ -29,6 +29,33 @@ namespace Sitrep.Host.Alarms
         /// only way a tick can learn about a command handler's work.
         /// </summary>
         public bool RosterChanged { get; set; }
+
+        /// <summary>
+        /// The onboard actions this tick's fires owe the craft, in the order the
+        /// alarms were armed. Only an alarm read at its own subject's vantage
+        /// queues any, so these all come due in the main-thread pass, the frame
+        /// the warp stops in.
+        /// </summary>
+        public List<ScetAlarmActionsDue> ActionsDue { get; } = new List<ScetAlarmActionsDue>();
+    }
+
+    /// <summary>One fire's onboard actions, and the notice that reports whether they were withheld.</summary>
+    public sealed class ScetAlarmActionsDue
+    {
+        public ScetAlarmActionsDue(ScetAlarmFired notice, string actsOn, IReadOnlyList<ScetAlarmAction> actions)
+        {
+            Notice = notice;
+            ActsOn = actsOn;
+            Actions = actions;
+        }
+
+        /// <summary>The notice about to be published for this fire. Written to when the actions are withheld.</summary>
+        public ScetAlarmFired Notice { get; }
+
+        /// <summary>See <see cref="ScetAlarm.ActsOn"/>.</summary>
+        public string ActsOn { get; }
+
+        public IReadOnlyList<ScetAlarmAction> Actions { get; }
     }
 
     /// <summary>
@@ -68,6 +95,9 @@ namespace Sitrep.Host.Alarms
         /// Read between passes, by the one that holds the actuator.
         /// </summary>
         public bool StopWarp => Tick.StopWarp;
+
+        /// <summary>The onboard actions queued so far this tick. Read between passes, by the one that holds the actuator.</summary>
+        public IReadOnlyList<ScetAlarmActionsDue> ActionsDue => Tick.ActionsDue;
     }
 
     /// <summary>
@@ -185,6 +215,10 @@ namespace Sitrep.Host.Alarms
                 Condition = Copy(condition),
                 State = ScetAlarmState.Armed,
                 FiredAtUt = null,
+                OnFire = Copy(args.OnFire),
+                ActsOn = args.OnFire != null && args.OnFire.Count > 0
+                    ? ScetAlarmActions.ActsOnOf(args)
+                    : "",
             };
 
             var index = IndexOf(args.Id);
@@ -350,6 +384,14 @@ namespace Sitrep.Host.Alarms
                             state.Tick,
                             readerFor == null ? null : readerFor(entry.Alarm));
                         break;
+                    case ScetAlarmConditionKind.ContractParameter:
+                        EvaluateContractParameter(
+                            entry,
+                            condition,
+                            state.NowUt,
+                            state.Tick,
+                            readerFor == null ? null : readerFor(entry.Alarm));
+                        break;
                 }
             }
         }
@@ -417,7 +459,48 @@ namespace Sitrep.Host.Alarms
                 return;
             }
 
-            if (!Matches(reading.Value, condition.Op, condition.Threshold))
+            Held(entry, condition, Matches(reading.Value, condition.Op, condition.Threshold), nowUt, tick);
+        }
+
+        /// <summary>
+        /// One contract objective against the career the reader hands over, the
+        /// same two instants as a threshold: the warp stops on the first tick the
+        /// objective is in its target state, and the alarm fires once it has
+        /// stayed there for the sustain window.
+        ///
+        /// <para>Career bookkeeping belongs to the save rather than to a craft, so
+        /// it is read at the <c>"game"</c> subject whatever the alarm names, and
+        /// a craft being lost says nothing about it: there is no
+        /// <see cref="ScetAlarmState.Unreachable"/> here.</para>
+        /// </summary>
+        private static void EvaluateContractParameter(
+            Entry entry,
+            ScetAlarmCondition condition,
+            double nowUt,
+            ScetAlarmTick tick,
+            IScetStateReader? state)
+        {
+            if (state?.ReadPayload("game", CareerViewProvider.Topic) is not { } career)
+            {
+                return;
+            }
+            var matched = ScetPayload.MatchContractParameter(
+                career, condition.ContractId ?? "", condition.ParameterTitle ?? "", condition.TargetState);
+            if (matched is { } holds)
+            {
+                Held(entry, condition, holds, nowUt, tick);
+            }
+        }
+
+        /// <summary>
+        /// A condition read as holding or not this tick: stop the warp on its
+        /// first match, start or clear the sustain window, and fire once it has
+        /// held for the whole window.
+        /// </summary>
+        private static void Held(
+            Entry entry, ScetAlarmCondition condition, bool holds, double nowUt, ScetAlarmTick tick)
+        {
+            if (!holds)
             {
                 entry.MatchSinceUt = null;
                 return;
@@ -475,7 +558,7 @@ namespace Sitrep.Host.Alarms
             entry.Alarm.FiredAtUt = nowUt;
             tick.StopWarp = true;
             tick.RosterChanged = true;
-            tick.Fired.Add(new ScetAlarmFired
+            var notice = new ScetAlarmFired
             {
                 Id = entry.Alarm.Id,
                 FiredAtUt = nowUt,
@@ -483,7 +566,17 @@ namespace Sitrep.Host.Alarms
                 // consulting the roster. A notice at the subject's own vantage
                 // is the one the warp stopped for.
                 Vantage = entry.Alarm.Vantage ?? "",
-            });
+            };
+            tick.Fired.Add(notice);
+            // The arm refuses actions anywhere else, and this holds the line
+            // again for an entry that reached the roster by another route: an
+            // action queued from a command centre's verdict would act on the
+            // craft a light-time before the craft could have been told.
+            if (entry.Alarm.OnFire.Count > 0 && ScetAlarmVantage.IsTheSubjectsOwn(entry.Alarm))
+            {
+                tick.ActionsDue.Add(new ScetAlarmActionsDue(
+                    notice, entry.Alarm.ActsOn ?? "", Copy(entry.Alarm.OnFire)));
+            }
         }
 
         /// <summary>
@@ -507,6 +600,8 @@ namespace Sitrep.Host.Alarms
                     Condition = Copy(a.Condition),
                     State = a.State,
                     FiredAtUt = a.FiredAtUt,
+                    OnFire = Copy(a.OnFire),
+                    ActsOn = a.ActsOn,
                 });
             }
             return rows;
@@ -544,7 +639,46 @@ namespace Sitrep.Host.Alarms
                 && string.Equals(held.Condition.FieldPath, incoming.Condition.FieldPath, StringComparison.Ordinal)
                 && held.Condition.Op == incoming.Condition.Op
                 && held.Condition.Threshold == incoming.Condition.Threshold
-                && held.Condition.SustainSeconds == incoming.Condition.SustainSeconds;
+                && held.Condition.SustainSeconds == incoming.Condition.SustainSeconds
+                && string.Equals(held.Condition.ContractId, incoming.Condition.ContractId, StringComparison.Ordinal)
+                && string.Equals(held.Condition.ParameterTitle, incoming.Condition.ParameterTitle, StringComparison.Ordinal)
+                && held.Condition.TargetState == incoming.Condition.TargetState
+                && string.Equals(held.ActsOn, incoming.ActsOn, StringComparison.Ordinal)
+                && SameActions(held.OnFire, incoming.OnFire);
+        }
+
+        private static bool SameActions(List<ScetAlarmAction> held, List<ScetAlarmAction> incoming)
+        {
+            if (held.Count != incoming.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < held.Count; i++)
+            {
+                if (held[i].Kind != incoming[i].Kind || held[i].Group != incoming[i].Group)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>Actions detached from whoever handed them over, for the reason <see cref="Copy(ScetAlarmCondition?)"/> gives.</summary>
+        private static List<ScetAlarmAction> Copy(List<ScetAlarmAction>? actions)
+        {
+            var copy = new List<ScetAlarmAction>(actions?.Count ?? 0);
+            if (actions == null)
+            {
+                return copy;
+            }
+            foreach (var a in actions)
+            {
+                if (a != null)
+                {
+                    copy.Add(new ScetAlarmAction { Kind = a.Kind, Group = a.Group });
+                }
+            }
+            return copy;
         }
 
         /// <summary>
@@ -569,6 +703,9 @@ namespace Sitrep.Host.Alarms
                 Op = c.Op,
                 Threshold = c.Threshold,
                 SustainSeconds = c.SustainSeconds,
+                ContractId = c.ContractId ?? "",
+                ParameterTitle = c.ParameterTitle ?? "",
+                TargetState = c.TargetState,
             };
         }
     }

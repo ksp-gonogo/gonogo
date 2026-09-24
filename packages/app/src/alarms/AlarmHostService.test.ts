@@ -3,7 +3,6 @@ import { logger } from "@ksp-gonogo/logger";
 import {
   type EventOccurrence,
   resolveValueTopic,
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -12,6 +11,7 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
 import { AlarmHostService } from "./AlarmHostService";
@@ -190,6 +190,116 @@ function fakeTelemetry(): FakeTelemetry {
   };
 }
 
+type AddCb = (
+  peerId: string,
+  msg: {
+    name: string;
+    notes?: string;
+    trigger: import("./types").AlarmTrigger;
+    onFire?: import("./types").AlarmFireAction[];
+  },
+) => void;
+type UpdateCb = (
+  peerId: string,
+  msg: {
+    id: string;
+    patch: Partial<
+      Pick<import("./types").Alarm, "name" | "notes" | "trigger" | "onFire">
+    >;
+  },
+) => void;
+type IdCb = (peerId: string, id: string) => void;
+type VoidCb = (peerId: string) => void;
+type PeerConnectCb = (peerId: string) => void;
+interface CapturedHost {
+  addCb: AddCb | null;
+  updateCb: UpdateCb | null;
+  deleteCb: IdCb | null;
+  ackCb: IdCb | null;
+  ackUnscheduledCb: VoidCb | null;
+  warpIntentCb: VoidCb | null;
+  peerConnectCb: PeerConnectCb | null;
+  broadcasts: PeerMessage[];
+  // Targeted sendToPeer messages keyed by peerId.
+  sentToPeer: Array<{ peerId: string; msg: PeerMessage }>;
+}
+
+function makeHost(): {
+  host: import("../peer/PeerHostService").PeerHostService;
+  captured: CapturedHost;
+} {
+  const captured: CapturedHost = {
+    addCb: null,
+    updateCb: null,
+    deleteCb: null,
+    ackCb: null,
+    ackUnscheduledCb: null,
+    warpIntentCb: null,
+    peerConnectCb: null,
+    broadcasts: [],
+    sentToPeer: [],
+  };
+  const host = {
+    onAlarmAdd: (cb: AddCb) => {
+      captured.addCb = cb;
+      return () => {};
+    },
+    onAlarmUpdate: (cb: UpdateCb) => {
+      captured.updateCb = cb;
+      return () => {};
+    },
+    onAlarmDelete: (cb: IdCb) => {
+      captured.deleteCb = cb;
+      return () => {};
+    },
+    onAlarmAcknowledge: (cb: IdCb) => {
+      captured.ackCb = cb;
+      return () => {};
+    },
+    onAlarmAckUnscheduledWarp: (cb: VoidCb) => {
+      captured.ackUnscheduledCb = cb;
+      return () => {};
+    },
+    onAlarmWarpIntent: (cb: VoidCb) => {
+      captured.warpIntentCb = cb;
+      return () => {};
+    },
+    onPeerConnect: (cb: PeerConnectCb) => {
+      captured.peerConnectCb = cb;
+      return () => {};
+    },
+    /* Cloned, as the wire serialises it. A snapshot holds the host's own alarm
+       objects, which it goes on mutating, so a kept reference reads every
+       recorded snapshot as the latest state. */
+    broadcast: (msg: PeerMessage) => {
+      captured.broadcasts.push(structuredClone(msg));
+    },
+    sendToPeer: (peerId: string, msg: PeerMessage) => {
+      captured.sentToPeer.push({ peerId, msg });
+    },
+  } as import("../peer/PeerHostService").PeerHostService;
+  return { host, captured };
+}
+
+/**
+ * An alarm whose only job is to fire, for a test about what a fire DOES rather
+ * than about any trigger kind. The kind is named here and nowhere else: it has
+ * to be one this side still evaluates, so when ownership moves, this changes and
+ * no test that uses it does.
+ */
+const FIRES_ON_DEMAND = {
+  kind: "threshold",
+  dataKey: "vessel.state.altitudeAsl",
+  op: ">=",
+  value: 70_000,
+  sustainSeconds: 0,
+} as const;
+
+/** Makes every `FIRES_ON_DEMAND` alarm due, from the next tick on. */
+function satisfyOnDemand(telemetry: FakeTelemetry): void {
+  telemetry.set("vessel.state.altitudeAsl", 70_500);
+}
+
 describe("AlarmHostService", () => {
   let nowMs: number;
   beforeEach(() => {
@@ -254,13 +364,8 @@ describe("AlarmHostService", () => {
 
   it("fires an event alarm revealed inside a warp step that JUMPED CLEAN OVER it", async () => {
     /*
-     * `deriveState` settles an event alarm on a 2-second CONTAINMENT test
-     * (`now - matchSinceUT < 2`), which looks exposed; it is not, because
-     * `updateEventTracking` latches `matchSinceUT` at the REVEAL UT, i.e. the
-     * very tick doing the deriving, so the difference is zero however far the
-     * clock jumped. This test pins that, because the latch UT is what makes
-     * the window unreachable and a future "use the occurrence's own ut" change
-     * would re-open it.
+     * The occurrence happened thousands of seconds before the tick that sees
+     * it, and the alarm still fires on that tick rather than being judged late.
      */
     const telemetry = fakeTelemetry();
     telemetry.set("t.universalTime", 1000);
@@ -552,19 +657,13 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Stage at 70km",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
         onFire: [
           { kind: "action-group", action: "AG1" },
           { kind: "action-group", action: "Stage" },
         ],
       });
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain the dispatch microtasks (telemetry.execute is awaited).
@@ -589,15 +688,9 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Just notify",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain microtasks (telemetry.execute is async). Don't use
@@ -610,6 +703,8 @@ describe("AlarmHostService", () => {
       const userActions = telemetry.calls.filter(
         (c) => !c.startsWith("time.setWarpIndex"),
       );
+      // It fired, or an empty list would say nothing about onFire at all.
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
       expect(userActions).toEqual([]);
     });
   });
@@ -746,15 +841,7 @@ describe("AlarmHostService", () => {
     });
 
     it("fires a sustained threshold whose sustain window the warp step JUMPED CLEAN OVER", async () => {
-      /*
-       * Same defect as the time arm, in the sustain window instead of the
-       * firing window. `deriveState` settles a threshold on CONTAINMENT
-       * (`heldFor < sustainSeconds + 2`), and the host fires only on the
-       * transition into `firing`. One tick at 10,000x moves `heldFor` from 0
-       * to 10,000, clean over a 60-second sustain plus the 2-second window, so
-       * the alarm went straight to `fired`: no banner, no tone, no peer
-       * broadcast, no `onFire` action group and warp never stepped down.
-       */
+      // One tick at 10,000x carries `heldFor` from 0 to 10,000, past a 60-second sustain and the banner window after it.
       const { svc, telemetry } = makeService();
       telemetry.set("t.currentRateIndex", 7);
       telemetry.set("t.currentRate", 10000);
@@ -1329,94 +1416,6 @@ describe("AlarmHostService", () => {
   });
 
   describe("peer bridge", () => {
-    type AddCb = (
-      peerId: string,
-      msg: {
-        name: string;
-        notes?: string;
-        trigger: import("./types").AlarmTrigger;
-        onFire?: import("./types").AlarmFireAction[];
-      },
-    ) => void;
-    type UpdateCb = (
-      peerId: string,
-      msg: {
-        id: string;
-        patch: Partial<
-          Pick<import("./types").Alarm, "name" | "notes" | "trigger" | "onFire">
-        >;
-      },
-    ) => void;
-    type IdCb = (peerId: string, id: string) => void;
-    type VoidCb = (peerId: string) => void;
-    type PeerConnectCb = (peerId: string) => void;
-    interface CapturedHost {
-      addCb: AddCb | null;
-      updateCb: UpdateCb | null;
-      deleteCb: IdCb | null;
-      ackCb: IdCb | null;
-      ackUnscheduledCb: VoidCb | null;
-      warpIntentCb: VoidCb | null;
-      peerConnectCb: PeerConnectCb | null;
-      broadcasts: PeerMessage[];
-      // Targeted sendToPeer messages keyed by peerId.
-      sentToPeer: Array<{ peerId: string; msg: PeerMessage }>;
-    }
-
-    function makeHost(): {
-      host: import("../peer/PeerHostService").PeerHostService;
-      captured: CapturedHost;
-    } {
-      const captured: CapturedHost = {
-        addCb: null,
-        updateCb: null,
-        deleteCb: null,
-        ackCb: null,
-        ackUnscheduledCb: null,
-        warpIntentCb: null,
-        peerConnectCb: null,
-        broadcasts: [],
-        sentToPeer: [],
-      };
-      const host = {
-        onAlarmAdd: (cb: AddCb) => {
-          captured.addCb = cb;
-          return () => {};
-        },
-        onAlarmUpdate: (cb: UpdateCb) => {
-          captured.updateCb = cb;
-          return () => {};
-        },
-        onAlarmDelete: (cb: IdCb) => {
-          captured.deleteCb = cb;
-          return () => {};
-        },
-        onAlarmAcknowledge: (cb: IdCb) => {
-          captured.ackCb = cb;
-          return () => {};
-        },
-        onAlarmAckUnscheduledWarp: (cb: VoidCb) => {
-          captured.ackUnscheduledCb = cb;
-          return () => {};
-        },
-        onAlarmWarpIntent: (cb: VoidCb) => {
-          captured.warpIntentCb = cb;
-          return () => {};
-        },
-        onPeerConnect: (cb: PeerConnectCb) => {
-          captured.peerConnectCb = cb;
-          return () => {};
-        },
-        broadcast: (msg: PeerMessage) => {
-          captured.broadcasts.push(msg);
-        },
-        sendToPeer: (peerId: string, msg: PeerMessage) => {
-          captured.sentToPeer.push({ peerId, msg });
-        },
-      } as import("../peer/PeerHostService").PeerHostService;
-      return { host, captured };
-    }
-
     function makeServiceWithHost(): {
       svc: AlarmHostService;
       telemetry: FakeTelemetry;
@@ -1494,21 +1493,11 @@ describe("AlarmHostService", () => {
 
     it("broadcasts alarm-snapshot on every emit and alarm-fired when an alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      /* A THRESHOLD, not a time alarm. A time alarm is the mod's to latch
-         now, so this side never derives a state for one and it cannot be
-         the cheapest thing that fires any more. What this case is about is
-         unchanged; only the kind it reaches for had to move. */
       svc.addAlarm({
         name: "Apoapsis",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       await vi.advanceTimersByTimeAsync(1100);
       const types = captured.broadcasts.map((m) => m.type);
       expect(types).toContain("alarm-snapshot");
@@ -1517,23 +1506,13 @@ describe("AlarmHostService", () => {
 
     it("removes a fired alarm when a peer station acknowledges it", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      /* A THRESHOLD, not a time alarm. A time alarm is the mod's to latch
-         now, so this side never derives a state for one and it cannot be
-         the cheapest thing that fires any more. What this case is about is
-         unchanged; only the kind it reaches for had to move. */
       const a = svc.addAlarm({
         name: "Apoapsis",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
       // Drive the state machine through firing → fired so the alarm is in the
       // only state acknowledgeAlarm accepts.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       await vi.advanceTimersByTimeAsync(1100);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
@@ -1546,19 +1525,11 @@ describe("AlarmHostService", () => {
 
     it("carries onFire through alarm-add and dispatches when the alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      // Threshold already met: the tick inside addAlarm will fire it
-      // straight away, so the dispatch path runs without further timer
-      // advances.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      // Already satisfied, so the tick inside addAlarm fires it straight away.
+      satisfyOnDemand(telemetry);
       captured.addCb?.("station-1", {
         name: "Stage at 70km",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
         onFire: [{ kind: "action-group", action: "AG1" }],
       });
       await Promise.resolve();
@@ -1613,25 +1584,16 @@ describe("AlarmHostService", () => {
     });
   });
 
-  describe("time alarm firing→fired window", () => {
+  describe("firing→fired window", () => {
     it("transitions firing within 2s of the match and to fired thereafter", async () => {
       const { svc, telemetry } = makeService();
-      /* A THRESHOLD, not a time alarm. The two-second banner window belongs to
-         the state machine rather than to any one kind, and a time alarm is the
-         mod's to latch now, so this side derives no state for one. */
       svc.addAlarm({
         name: "Burn",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
       // Cross the threshold: within the 2s firing window.
       telemetry.set("t.universalTime", 1500);
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
       // Still within the window a second later.
@@ -1642,6 +1604,272 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", 1502);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("fired");
+    });
+  });
+
+  /**
+   * An alarm is about a condition being met, not the instant of meeting it, so
+   * every route by which an alarm comes to have fired owes the operator the
+   * same consequences. Each case asserts all of them, because the failure this
+   * guards against is SILENCE: an alarm whose state says it fired while nothing
+   * told anyone.
+   */
+  describe("a fire is a fact, whatever route delivers it", () => {
+    const HELD_ALTITUDE = {
+      kind: "threshold",
+      dataKey: "vessel.state.altitudeAsl",
+      op: ">=",
+      value: 70_000,
+      sustainSeconds: 60,
+      vantage: "command",
+      topic: "vessel.state",
+      fieldPath: "altitudeAsl",
+    } as const;
+    const STAGE = [{ kind: "action-group", action: "AG1" }] as const;
+
+    function warpingTelemetry(ut: number): FakeTelemetry {
+      const telemetry = fakeTelemetry();
+      telemetry.set("t.universalTime", ut);
+      telemetry.set("t.currentRateIndex", 7);
+      telemetry.set("t.currentRate", 10000);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      return telemetry;
+    }
+
+    /**
+     * Every consequence of one fire, each exactly once. The banner and the tone
+     * both key on the alarm reaching `firing` or `fired` in a snapshot, and the
+     * snapshots a station receives are the same ones, so the broadcast stream
+     * is where the passage through `firing` is read.
+     *
+     * A fire discovered rather than watched still informs, and withholds its
+     * actions ON THE RECORD: the last snapshot must say so, or a withheld
+     * action would be the same silence as a skipped fire.
+     */
+    async function expectEveryConsequenceOnce(
+      id: string,
+      telemetry: FakeTelemetry,
+      captured: CapturedHost,
+      warn: { mock: { calls: unknown[][] } },
+      actions: "run" | "withheld",
+    ): Promise<void> {
+      await Promise.resolve();
+      await Promise.resolve();
+      const states = captured.broadcasts.flatMap((m) =>
+        m.type === "alarm-snapshot"
+          ? m.snapshot.alarms.filter((a) => a.id === id).map((a) => a.state)
+          : [],
+      );
+      expect.soft(states).toContain("firing");
+      expect
+        .soft(
+          captured.broadcasts.filter(
+            (m) => m.type === "alarm-fired" && m.id === id,
+          ),
+        )
+        .toHaveLength(1);
+      expect
+        .soft(
+          telemetry.calls.filter(
+            (c) => c === "vessel.control.setActionGroup[1=true]",
+          ),
+        )
+        .toHaveLength(actions === "run" ? 1 : 0);
+      const last = captured.broadcasts
+        .flatMap((m) =>
+          m.type === "alarm-snapshot"
+            ? m.snapshot.alarms.filter((a) => a.id === id)
+            : [],
+        )
+        .at(-1);
+      expect
+        .soft(last?.actionsWithheld)
+        .toBe(actions === "withheld" ? true : undefined);
+      expect.soft(telemetry.calls).toContain("time.setWarpIndex[0]");
+      expect
+        .soft(
+          warn.mock.calls.filter(([m]) =>
+            String(m).includes("client fired, mod has not"),
+          ),
+        )
+        .toHaveLength(1);
+    }
+
+    it("fires in full when one warp step carries it past the sustain and the firing window together", async () => {
+      const warn = vi.spyOn(logger, "warn");
+      const telemetry = warpingTelemetry(1000);
+      const { host, captured } = makeHost();
+      const svc = new AlarmHostService(host, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage: memoryStorage(),
+      });
+      const alarm = svc.addAlarm({
+        name: "Held above 70 km",
+        trigger: { ...HELD_ALTITUDE },
+        onFire: [...STAGE],
+      });
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      telemetry.set("t.universalTime", 11_000);
+      await vi.advanceTimersByTimeAsync(1100);
+      telemetry.set("t.universalTime", 21_000);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      await expectEveryConsequenceOnce(
+        alarm.id,
+        telemetry,
+        captured,
+        warn,
+        "run",
+      );
+      expect(svc.snapshot().alarms[0].state).toBe("fired");
+      svc.dispose();
+      warn.mockRestore();
+    });
+
+    it("tells the operator, and runs no actions, when it came due while the app was closed", async () => {
+      const warn = vi.spyOn(logger, "warn");
+      const storage = memoryStorage();
+      storage.setItem(
+        "gonogo.alarms.list",
+        JSON.stringify([
+          {
+            id: "held-while-closed",
+            name: "Held above 70 km",
+            state: "pending",
+            createdBy: "main",
+            createdAt: 1_700_000_000_000,
+            matchSinceUT: 900,
+            trigger: { ...HELD_ALTITUDE },
+            onFire: [...STAGE],
+          },
+        ]),
+      );
+      const telemetry = warpingTelemetry(5000);
+      const { host, captured } = makeHost();
+      const svc = new AlarmHostService(host, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage,
+      });
+      telemetry.set("t.universalTime", 5010);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      await expectEveryConsequenceOnce(
+        "held-while-closed",
+        telemetry,
+        captured,
+        warn,
+        "withheld",
+      );
+      svc.dispose();
+
+      // The record outlives the session that made it.
+      const reopened = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage,
+      });
+      expect.soft(reopened.snapshot().alarms[0].actionsWithheld).toBe(true);
+      reopened.dispose();
+      warn.mockRestore();
+    });
+
+    it("tells the operator, and runs no actions, when the mod's notice is replayed as the service starts", async () => {
+      const error = vi.spyOn(console, "error");
+      const storage = memoryStorage();
+      storage.setItem(
+        "gonogo.alarms.list",
+        JSON.stringify([
+          {
+            id: "burn",
+            name: "Burn",
+            state: "pending",
+            createdBy: "main",
+            createdAt: 1_700_000_000_000,
+            matchSinceUT: null,
+            trigger: { kind: "time", ut: 4000, leadSeconds: 0 },
+            onFire: [...STAGE],
+          },
+        ]),
+      );
+      const telemetry = warpingTelemetry(5000);
+      telemetry.publishTopic("alarm.scet.fired", {
+        id: "burn",
+        firedAtUt: 4000,
+        vantage: "",
+      });
+      const { host, captured } = makeHost();
+      const svc = new AlarmHostService(host, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage,
+      });
+      telemetry.set("t.universalTime", 5001);
+      await vi.advanceTimersByTimeAsync(1100);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const states = captured.broadcasts.flatMap((m) =>
+        m.type === "alarm-snapshot"
+          ? m.snapshot.alarms.filter((a) => a.id === "burn").map((a) => a.state)
+          : [],
+      );
+      expect.soft(error).not.toHaveBeenCalled();
+      expect.soft(states).toContain("firing");
+      expect
+        .soft(
+          captured.broadcasts.filter(
+            (m) => m.type === "alarm-fired" && m.id === "burn",
+          ),
+        )
+        .toHaveLength(1);
+      expect
+        .soft(
+          telemetry.calls.filter(
+            (c) => c === "vessel.control.setActionGroup[1=true]",
+          ),
+        )
+        .toHaveLength(0);
+      expect.soft(svc.snapshot().alarms[0].actionsWithheld).toBe(true);
+      svc.dispose();
+      error.mockRestore();
+    });
+
+    it("tells the operator, and runs no actions, when an edit makes an alarm already due", async () => {
+      const warn = vi.spyOn(logger, "warn");
+      const telemetry = warpingTelemetry(1000);
+      const { host, captured } = makeHost();
+      const svc = new AlarmHostService(host, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage: memoryStorage(),
+      });
+      const alarm = svc.addAlarm({
+        name: "Held above 70 km",
+        trigger: { ...HELD_ALTITUDE, sustainSeconds: 600 },
+        onFire: [...STAGE],
+      });
+      telemetry.set("t.universalTime", 1100);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      svc.updateAlarm(alarm.id, {
+        trigger: { ...HELD_ALTITUDE, sustainSeconds: 10 },
+      });
+      telemetry.set("t.universalTime", 1101);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      await expectEveryConsequenceOnce(
+        alarm.id,
+        telemetry,
+        captured,
+        warn,
+        "withheld",
+      );
+      svc.dispose();
+      warn.mockRestore();
     });
   });
 });

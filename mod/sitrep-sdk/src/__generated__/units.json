@@ -945,6 +945,7 @@
       "totalMass": "t"
     },
     "ScetAlarm": {
+      "actsOn": "id",
       "armedBy": "id",
       "firedAtUt": "ut",
       "id": "id",
@@ -953,18 +954,26 @@
       "subject": "id",
       "vantage": "id"
     },
+    "ScetAlarmAction": {
+      "group": "id",
+      "kind": "enum"
+    },
     "ScetAlarmArmArgs": {
+      "actsOn": "id",
       "id": "id",
       "name": "text",
       "subject": "id",
       "vantage": "id"
     },
     "ScetAlarmCondition": {
+      "contractId": "id",
       "fieldPath": "id",
       "kind": "enum",
       "leadSeconds": "s",
       "op": "enum",
+      "parameterTitle": "text",
       "sustainSeconds": "s",
+      "targetState": "enum",
       "threshold": "n/a",
       "topic": "id",
       "ut": "ut"
@@ -973,6 +982,7 @@
       "id": "id"
     },
     "ScetAlarmFired": {
+      "actionsWithheld": "flag",
       "firedAtUt": "ut",
       "id": "id",
       "vantage": "id"
@@ -1435,6 +1445,7 @@
   },
   "topics": {
     "alarm.scet": {
+      "actsOn": "id",
       "armedBy": "id",
       "firedAtUt": "ut",
       "id": "id",
@@ -1444,6 +1455,7 @@
       "vantage": "id"
     },
     "alarm.scet.fired": {
+      "actionsWithheld": "flag",
       "firedAtUt": "ut",
       "id": "id",
       "vantage": "id"
@@ -2208,10 +2220,12 @@
       "notices": "ResolutionNotice[]"
     },
     "ScetAlarm": {
-      "condition": "ScetAlarmCondition"
+      "condition": "ScetAlarmCondition",
+      "onFire": "ScetAlarmAction[]"
     },
     "ScetAlarmArmArgs": {
-      "condition": "ScetAlarmCondition"
+      "condition": "ScetAlarmCondition",
+      "onFire": "ScetAlarmAction[]"
     },
     "SeededTrajectory": {
       "arc": "TrajectoryArc"
@@ -2344,7 +2358,8 @@
   },
   "topicShapes": {
     "alarm.scet": {
-      "condition": "ScetAlarmCondition"
+      "condition": "ScetAlarmCondition",
+      "onFire": "ScetAlarmAction[]"
     },
     "career.facilities": {
       "facilities": "*CareerFacility"

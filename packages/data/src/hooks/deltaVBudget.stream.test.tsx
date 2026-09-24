@@ -1,12 +1,12 @@
 import {
   DELTA_V_BUDGET,
   type DeltaVBudget,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
 import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 

@@ -2,12 +2,11 @@ import {
   DEAD_READ_SETTLE_MS,
   resetDeadReadWarnings,
   resetGatedReadWarnings,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
-import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+import { installTestHost, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   render,

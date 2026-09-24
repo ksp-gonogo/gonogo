@@ -4213,10 +4213,10 @@ export interface RotorReverseArgs
 /**
 * Which kind of condition a SCET alarm watches for.
 *
-* Every alarm has a vantage, so a kind is only about WHAT is watched. A
-* contract parameter has no member here yet because it reads a list-shaped
-* Topic and a dotted path cannot index a list, so it needs a matcher of its
-* own rather than a threshold's.
+* Every alarm has a vantage, so a kind is only about WHAT is watched, and each
+* kind names its own matcher: a threshold walks a dotted path to a number, and
+* a contract parameter, which lives in a list no path can index, finds its
+* contract and objective by identity.
 */
 export enum ScetAlarmConditionKind {
 	/** An instant on the craft's own clock, as a universal time. */
@@ -4231,7 +4231,18 @@ export enum ScetAlarmConditionKind {
 	* which reaches the ground a light-time late and by then is no longer the
 	* answer to "is it above 100 km NOW".
 	*/
-	Threshold = 1
+	Threshold = 1,
+	/**
+	* One objective of one active contract reaching a state the operator chose, as
+	* `career.status.contracts.active` reports it.
+	*
+	* Level rather than edge, like the threshold: an objective already in its
+	* target state when the alarm is armed is a condition that holds. A contract
+	* no longer active leaves the condition unmet for ever, which is the fail-safe
+	* answer for a contract that was completed, failed or withdrawn by some other
+	* route.
+	*/
+	ContractParameter = 2
 }
 /**
 * How a threshold condition compares the reading to the operator's number.
@@ -4295,7 +4306,10 @@ export enum ScetAlarmState {
 * `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
 * `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
 * `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`.
+* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+* `ScetAlarmConditionKind.ContractParameter` it is
+* `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
+* `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
 */
 export interface ScetAlarmCondition
 {
@@ -4355,8 +4369,9 @@ export interface ScetAlarmCondition
 	*/
 	threshold: number;
 	/**
-	* Threshold only: how long the condition must hold, in seconds, before the
-	* alarm fires. Zero fires on the first reading that matches.
+	* Threshold and contract parameter: how long the condition must hold, in
+	* seconds, before the alarm fires. Zero fires on the first reading that
+	* matches.
 	*
 	* **Warp is stopped at the first match, not at the fire.** A sustain window is
 	* a span of the craft's time, and under warp one tick covers thousands of
@@ -4368,6 +4383,69 @@ export interface ScetAlarmCondition
 	* only the time they were skipping.
 	*/
 	sustainSeconds: Value<"s">;
+	/**
+	* Contract parameter only: the contract's id, as
+	* `career.status.contracts.active` carries it.
+	*/
+	contractId: string;
+	/**
+	* Contract parameter only: the objective's title within that contract, matched
+	* exactly. The first objective with the title answers.
+	*/
+	parameterTitle: string;
+	/** Contract parameter only: the state the objective must reach. */
+	targetState: KspParameterState;
+}
+/**
+* What a SCET alarm's onboard action does to the craft when the alarm fires.
+*
+* A typed member for each stock singleton and one for every custom group, so
+* no name ever crosses the wire. A player may call a custom group "Stage", and
+* two custom groups may share a name, so a name is not an identity: a custom
+* group is addressed by its index in `ScetAlarmAction.group`, and cannot be
+* read as the stage command however it is labelled.
+*/
+export enum ScetAlarmActionKind {
+	/** Toggle the custom action group whose index is `ScetAlarmAction.group`. */
+	ActionGroup = 0,
+	/** Activate the next stage. */
+	Stage = 1,
+	/** Toggle SAS. */
+	Sas = 2,
+	/** Toggle RCS. */
+	Rcs = 3,
+	/** Toggle the lights. */
+	Lights = 4,
+	/** Toggle the landing gear. */
+	Gear = 5,
+	/** Toggle the brakes. */
+	Brakes = 6,
+	/** Toggle the abort action group. */
+	Abort = 7
+}
+/**
+* One thing the craft does in the frame its alarm fires, as a flight computer
+* would: evaluated aboard, fired aboard, acted aboard.
+*
+* Held only by an alarm read at its own subject's vantage. An alarm judged
+* against what a command centre has been told comes due a light-time after the
+* craft passed the condition, and acting on the craft in that same frame would
+* carry the ground's decision to the craft faster than light, so such an arm
+* is refused. A ground-side alarm's action travels as an ordinary command
+* instead.
+*
+* Every kind but `ScetAlarmActionKind.Stage` TOGGLES, against the state the
+* craft reports at the moment of the fire, which is what pressing the group's
+* key does.
+*/
+export interface ScetAlarmAction
+{
+	kind: ScetAlarmActionKind;
+	/**
+	* `ScetAlarmActionKind.ActionGroup` only: the custom group's 1-based index, as
+	* `vessel.control.setActionGroup` takes it. Zero for every other kind.
+	*/
+	group: number;
 }
 /**
 * One armed SCET alarm as the simulation host holds it: the `alarm.scet`
@@ -4451,6 +4529,21 @@ export interface ScetAlarm
 	* the craft's clock, like `ScetAlarmCondition.ut`.
 	*/
 	firedAtUt?: Value<"ut"> | null;
+	/**
+	* What the craft does when this alarm fires, in order. Empty for an alarm that
+	* only stops the warp and says so. See `ScetAlarmAction`.
+	*/
+	onFire: ScetAlarmAction[];
+	/**
+	* The craft `ScetAlarm.onFire` acts on, as `"vessel:<guid>"`, or empty while
+	* there are no actions.
+	*
+	* The actions run only if this craft is the one being flown when the alarm
+	* fires, and are withheld otherwise: a time condition belongs to the game
+	* rather than to any craft, so after a vessel switch its actions would
+	* otherwise land on whatever happened to be active.
+	*/
+	actsOn: string;
 }
 /**
 * The notice that a SCET alarm has fired and the warp has been stopped.
@@ -4462,11 +4555,13 @@ export interface ScetAlarm
 * and this payload carries nothing that would close that gap early. Whatever
 * the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
 *
-* The two fields are the honest minimum. The id is the operator's own handle,
-* which tells them nothing they did not already write down. The instant is
-* inseparable from the stop: without it a warp that halted at one universal
-* time is indistinguishable from one that halted at another, and the operator
-* cannot tell which of two armed alarms stopped them.
+* The id and the instant are the honest minimum. The id is the operator's own
+* handle, which tells them nothing they did not already write down. The
+* instant is inseparable from the stop: without it a warp that halted at one
+* universal time is indistinguishable from one that halted at another, and the
+* operator cannot tell which of two armed alarms stopped them. The other
+* fields say where it was learned and whether its actions were withheld for
+* want of the right craft, and neither is a reading of the craft.
 */
 export interface ScetAlarmFired
 {
@@ -4484,6 +4579,17 @@ export interface ScetAlarmFired
 	* has been told, true only there.
 	*/
 	vantage: string;
+	/**
+	* Whether the alarm held onboard actions and they were withheld because the
+	* craft named by `ScetAlarm.actsOn` was not the one being flown. False for an
+	* alarm with no actions.
+	*
+	* Says nothing about how the craft answered an action that WAS sent. That is a
+	* fact aboard the craft, and it reaches the ground the way every other one
+	* does, a light-time later in the craft's own telemetry: this notice travels
+	* at once and must not carry it.
+	*/
+	actionsWithheld: boolean;
 }
 /**
 * `alarm.scet.arm`'s args: register an alarm with the simulation host, or
@@ -4510,6 +4616,19 @@ export interface ScetAlarmArmArgs
 	/** See `ScetAlarm.subject`. Empty is read as `"game"`. */
 	subject: string;
 	condition: ScetAlarmCondition;
+	/**
+	* See `ScetAlarm.onFire`. Non-empty only where the alarm is read at its own
+	* subject's vantage and that subject is a craft, or the condition is a time on
+	* the game's clock; any other arm carrying actions is refused rather than
+	* accepted with them dropped.
+	*/
+	onFire: ScetAlarmAction[];
+	/**
+	* See `ScetAlarm.actsOn`. A time condition carrying actions must name the
+	* craft the operator means them for. A threshold on a craft acts on that
+	* craft, so empty resolves to its subject and any other craft is refused.
+	*/
+	actsOn: string;
 }
 /**
 * `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds

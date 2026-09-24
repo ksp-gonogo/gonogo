@@ -14,7 +14,6 @@
  */
 
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
@@ -123,6 +122,7 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 

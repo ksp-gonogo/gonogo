@@ -1,11 +1,8 @@
 import { PerfBudget } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { PeerHostService } from "../peer/PeerHostService";

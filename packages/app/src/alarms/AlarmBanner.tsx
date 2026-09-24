@@ -1,3 +1,4 @@
+import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
 import { Cluster, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
@@ -5,6 +6,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
 import { useFireBeep } from "./alarmTone";
+import { FiredFacts } from "./FiredFacts";
 import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
@@ -23,6 +25,12 @@ import {
 export function AlarmBanner() {
   const snap = useAlarmSnapshot();
   const host = useAlarmHost();
+  const timeContexts = useTimeContexts();
+  const delay = useTelemetry("comms.delay");
+  // A reading of NO path, which is a different fact from a delay that merely has not arrived.
+  const noPath =
+    (delay.state === "observed" || delay.state === "stale") &&
+    delay.value.oneWaySeconds == null;
 
   // Force a re-render each second so T-minus counts down even without
   // upstream telemetry ticks.
@@ -113,6 +121,16 @@ export function AlarmBanner() {
                 <CountdownText $tone={tone}>{next}</CountdownText>
               );
             })()}
+            {(nextAlarm.state === "fired" || nextAlarm.state === "firing") && (
+              <FiredFacts
+                alarm={nextAlarm}
+                warpRate={snap.warp.rate}
+                owltSeconds={timeContexts.owltSeconds}
+                noPath={noPath}
+                scet={timeContexts.scet}
+                received={timeContexts.received}
+              />
+            )}
             {(nextAlarm.state === "fired" || nextAlarm.state === "firing") && (
               <AckButton
                 type="button"

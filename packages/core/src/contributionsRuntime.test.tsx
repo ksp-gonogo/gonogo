@@ -1,13 +1,13 @@
 import {
   clearProcessors,
   defineProcessor,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { WidgetMetaContext } from "./contexts/WidgetMetaContext";

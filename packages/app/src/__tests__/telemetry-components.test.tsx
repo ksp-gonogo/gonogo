@@ -19,9 +19,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
   PropagationHorizonKindLike,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -30,6 +28,10 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
