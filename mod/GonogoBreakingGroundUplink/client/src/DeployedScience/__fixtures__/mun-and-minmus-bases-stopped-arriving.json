@@ -6,7 +6,7 @@
   },
   "_scene": {
     "widget": "deployed-science",
-    "caption": "A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight",
+    "caption": "The same bases once the link drops: each completion figure carries its held mark",
     "modes": ["default", "min"],
     "paints": ["Mun", "Minmus"]
   },

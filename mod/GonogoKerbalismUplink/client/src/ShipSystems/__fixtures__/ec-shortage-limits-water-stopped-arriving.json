@@ -6,7 +6,7 @@
   },
   "_scene": {
     "widget": "ship-systems",
-    "caption": "Electric Charge short and named as the limiting factor, with the Water shortage it explains sorted underneath it",
+    "caption": "The same shortage once the link drops: the ledger is drawn as held, and says when it was last current",
     "modes": ["default", "min"],
     "paints": ["Electric Charge", "Water"]
   },

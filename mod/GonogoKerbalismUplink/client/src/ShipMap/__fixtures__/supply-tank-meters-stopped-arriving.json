@@ -7,7 +7,7 @@
   "_scene": {
     "contribution": "kerbalism:ship-map-part-meters",
     "hostWidget": "ship-map",
-    "caption": "Supply tank meters contributed into Ship Map beside the built-in propellant meters, Food drained low enough to carry a status border",
+    "caption": "The same tanks once the link drops",
     "modes": ["default"],
     "size": {
       "w": 8,
