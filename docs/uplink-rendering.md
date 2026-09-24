@@ -440,6 +440,29 @@ and per-OS, so a byte comparison would fail on every machine but the one that
 generated it, and a gate that cries wolf is a gate someone turns off. Only WHICH
 assets exist is checked, plus their recorded shapes.
 
+### When the text half fails, fix it without a browser
+
+The text is derived, so the fix is never to edit `README.md`. Most of the time it
+is not `gonogo-uplink docs` either: that re-rasterises every fixture on the way
+past and rewrites all of your committed PNGs, which on anything but the CI runner
+is the same mistake as committing a locally-rendered visual baseline.
+
+Re-run the Uplink's own page test with the update switch, and it writes the two
+generated files instead of throwing:
+
+```
+GONOGO_UPLINK_PAGE_UPDATE=1 pnpm test
+```
+
+In this repository, `pnpm uplink-pages` does that for every bundled Uplink at
+once. Reach for it on a change that moves the text of every page rather than one:
+a contract Minor bump moves the `Built against` row in all of them, and an
+additive contract change is meant to be free.
+
+The switch is refused when `CI` is set. A gate that rewrites the thing it is
+measuring passes on any tree, so the regeneration belongs in the commit and never
+in the run that was supposed to check it.
+
 ## Your own browser-side glue
 
 Most Uplinks need none. If yours has a fake only you can write (a fake data

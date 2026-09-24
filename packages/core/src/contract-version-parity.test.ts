@@ -111,9 +111,13 @@ describe("published compat versions mirror their sources", () => {
     expect(
       stale,
       `These manifests are pinned to a contract the host no longer speaks, so ` +
-        `the app REFUSES each of them at load with a message about a version ` +
-        `mismatch. Bumping ContractVersion.cs strands every bundled Uplink ` +
-        `until its manifest moves too. Expected ${CONTRACT_MAJOR}.${CONTRACT_MINOR}.`,
+        `bumping ContractVersion.cs strands every bundled Uplink until its ` +
+        `manifest moves too. A stale MAJOR is refused at load with a message ` +
+        `about a version mismatch; a stale MINOR loads, and under-claims what ` +
+        `the Uplink was built against, which is the same file being wrong for ` +
+        `a quieter reason. Expected ${CONTRACT_MAJOR}.${CONTRACT_MINOR}.\n` +
+        `Rewrite every bundled page's prose, with no browser and no change ` +
+        `under docs/assets: pnpm uplink-pages`,
     ).toEqual([]);
   });
 
