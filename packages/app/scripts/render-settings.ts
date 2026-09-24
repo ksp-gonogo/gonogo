@@ -84,8 +84,8 @@ const MEMORY_ONLY = 1;
 const RECOVERED = 2;
 
 /**
- * What the mod publishes for a stock install with RP-1: its own four rows and
- * one Uplink's.
+ * What the mod publishes with RP-1 running: its own three rows, and two in
+ * RP-1's block, one of them the mod's own choice about delaying a simulation.
  */
 function kspSettings(state: number, reason: string | null = null) {
   return {
@@ -108,14 +108,6 @@ function kspSettings(state: number, reason: string | null = null) {
         default: "1",
       },
       {
-        path: "SIGNAL_DELAY/delayInSimulation",
-        owner: "gonogo",
-        kind: BOOL,
-        label: "Apply the delay during a simulation as well as a real flight",
-        value: "False",
-        default: "False",
-      },
-      {
         path: "RECORDING/enabled",
         owner: "gonogo",
         kind: BOOL,
@@ -125,8 +117,16 @@ function kspSettings(state: number, reason: string | null = null) {
         default: "False",
       },
       {
-        path: "Uplinks/Rp1/upgradeSlipWarningDays",
-        owner: "Rp1",
+        path: "Uplinks/rp1/delayInSimulation",
+        owner: "rp1",
+        kind: BOOL,
+        label: "Apply the delay during a simulation as well as a real flight",
+        value: "False",
+        default: "False",
+      },
+      {
+        path: "Uplinks/rp1/upgradeSlipWarningDays",
+        owner: "rp1",
         kind: NUMBER,
         label:
           "Warn before a facility upgrade whose finish date slips past this many days",

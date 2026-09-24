@@ -2152,6 +2152,13 @@ namespace Sitrep.Host
         private SettingsStore? _settings;
         private SettingsPublisher? _settingsPublisher;
 
+        /// <summary>Republish <see cref="SettingsTopic"/> after a row was declared outside discovery.</summary>
+        public void RefreshSettings() => _settingsPublisher?.Rebuild();
+
+        /// <summary>Whether an uplink registered this session and is available, so it is actually running.</summary>
+        public bool IsUplinkRunning(string uplinkId) =>
+            _registeredUplinks.ContainsKey(uplinkId) && IsUplinkAvailable(uplinkId);
+
         /// <summary>
         /// Why an uplink's settings could not be declared, keyed by uplink id.
         /// The uplink itself registered and publishes; only its settings are at
