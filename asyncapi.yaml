@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.3.0
+  version: 18.4.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -10252,10 +10252,18 @@ components:
       oneOf:
         - const: 0
           title: None
+          description: "A measurement: the craft has no control source."
         - const: 1
           title: Partial
         - const: 2
           title: Full
+        - const: 3
+          title: Unknown
+          description: |-
+            The game reported a control level this build does not name. Not
+            `CommsControlSource.None`: nothing was measured to be absent, the level
+            simply has no tier here yet. `CommsConnectivity.hasLocalControl` is false
+            alongside it and says nothing.
     CommsControlStateKind:
       type: integer
       description: Control-state kind for `CommsControl`.
@@ -10263,10 +10271,16 @@ components:
       oneOf:
         - const: 0
           title: None
+          description: "A measurement: the craft cannot be commanded."
         - const: 1
           title: PartialManoeuvre
         - const: 2
           title: Full
+        - const: 3
+          title: Unknown
+          description: |-
+            The game reported a control level this build does not name, so whether the
+            craft can be commanded is not known. Not `CommsControlStateKind.None`.
     CommsDegrade:
       type: object
       description: |-

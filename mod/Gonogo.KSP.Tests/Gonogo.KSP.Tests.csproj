@@ -337,6 +337,7 @@
          DevCommsOverride. All CommNet/CommNode-level types, the same headless
          reference-DLL contract FleetCommsReader.cs above already relies on. -->
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
+    <Compile Include="..\Gonogo.KSP\ControlLevelGrade.cs" />
     <!-- CommsModelPresence.cs is the three live reads behind the no-comms-model
          rule (the CommNet difficulty option, the craft's own control tier, the
          payload meta). CommsCoreUplink.cs calls it, so it has to resolve here;

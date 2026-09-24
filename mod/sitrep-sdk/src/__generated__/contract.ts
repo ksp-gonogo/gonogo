@@ -1368,9 +1368,17 @@ export interface CommandResultOf<T> extends CommandResult
 * partial/full distinction without leaking a KSP enum onto the wire.
 */
 export enum CommsControlSource {
+	/** A measurement: the craft has no control source. */
 	None = 0,
 	Partial = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name. Not
+	* `CommsControlSource.None`: nothing was measured to be absent, the level
+	* simply has no tier here yet. `CommsConnectivity.hasLocalControl` is false
+	* alongside it and says nothing.
+	*/
+	Unknown = 3
 }
 /**
 * The `comms.connectivity` payload: always-present, sourced from the elected
@@ -1402,9 +1410,15 @@ export interface CommsSignal
 }
 /** Control-state kind for `CommsControl`. */
 export enum CommsControlStateKind {
+	/** A measurement: the craft cannot be commanded. */
 	None = 0,
 	PartialManoeuvre = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name, so whether the
+	* craft can be commanded is not known. Not `CommsControlStateKind.None`.
+	*/
+	Unknown = 3
 }
 /**
 * The `comms.control` payload: always-present, elected backend.
