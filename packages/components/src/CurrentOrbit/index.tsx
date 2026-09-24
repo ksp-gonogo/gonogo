@@ -99,12 +99,12 @@ function CurrentOrbitComponent({
    * being re-tested at each of the five readouts.
    */
   const solve = useOrbitSolve();
-  const apoapsisA = solve?.apoapsisAlt ?? undefined;
-  const periapsisA = solve?.periapsisAlt ?? undefined;
+  const apoapsisARaw = solve?.apoapsisAlt ?? undefined;
+  const periapsisARaw = solve?.periapsisAlt ?? undefined;
   const apoapsisR = solve?.apoapsisRadius ?? null;
   const periapsisR = solve?.periapsisRadius ?? null;
-  const timeToAp = solve?.timeToAp ?? undefined;
-  const timeToPe = solve?.timeToPe ?? undefined;
+  const timeToApRaw = solve?.timeToAp ?? undefined;
+  const timeToPeRaw = solve?.timeToPe ?? undefined;
 
   /**
    * What the operator's own view frame does to these two numbers.
@@ -173,7 +173,26 @@ function CurrentOrbitComponent({
   const argPe = orbit?.argPe;
   const inclination = orbit?.inc;
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
-  const period = solve?.period ?? undefined;
+  /*
+   * The derived READOUTS null when the orbit reading is not current, even where
+   * a model would go on solving it: an apsis, a countdown and a period are read
+   * as present-tense claims, and drawn unchanged down a link that has stopped
+   * they leave an operator no way to tell the link has gone.
+   *
+   * NULL rather than a mark: a staleness presentation is earned by figures read
+   * second by second, and an apoapsis is not read that way, so it falls the
+   * same side as `ecc` and `inc` and the column stays consistent.
+   *
+   * The RADII are deliberately NOT nulled: they feed the diagram's own
+   * geometry rather than a readout, and the diagram already refuses to draw a
+   * curve it cannot make current.
+   */
+  const orbitCurrent = orbitReading.state === "observed";
+  const apoapsisA = orbitCurrent ? apoapsisARaw : undefined;
+  const periapsisA = orbitCurrent ? periapsisARaw : undefined;
+  const timeToAp = orbitCurrent ? timeToApRaw : undefined;
+  const timeToPe = orbitCurrent ? timeToPeRaw : undefined;
+  const period = orbitCurrent ? (solve?.period ?? undefined) : undefined;
   /*
    * The body's NAME is a label rather than a marker, so it holds off the last
    * observation the way the subtitle beside it does: which body a craft is

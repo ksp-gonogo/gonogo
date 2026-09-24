@@ -103,10 +103,11 @@ interface Scene {
 const scenes: Scene[] = [];
 for (const [path, mod] of Object.entries(MODULES)) {
   /*
-   * A scene the link drops out of is its live twin's scene, staged later, so
-   * it is not a scenario of its own. `staleScenes.test.tsx` is what judges it.
+   * A stale twin is its live twin's scene, staged later, so it is not a
+   * scenario of its own. `staleScenes.test.tsx` is what judges it. A held scene
+   * that has no live twin is its own scenario and is checked here.
    */
-  if (mod.default._stream?.stopsArriving === true) continue;
+  if (path.endsWith("-stopped-arriving.json")) continue;
   const emits = mod.default._stream?.emits;
   const ut = mod.default._stream?.pinnedUt;
   if (!emits || ut === undefined) continue;

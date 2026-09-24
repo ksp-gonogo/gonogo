@@ -27,14 +27,14 @@ export const ABSENCE_SCENES: AbsenceScene[] = [
     because:
       "vessel.flight is one wire topic among several, published by the flight " +
       "provider, and a session can take orbit and body frames without one. " +
-      "`vessel.state` goes with it rather than surviving beside it, which is " +
-      "that channel's own declared rule and is what the tile has to say",
+      "The body still resolves off `vessel.identity`, so the tile names it and " +
+      "says only that the position is missing",
     expects:
       "the coordinates are withheld AND the tile says why, in the same words " +
       "the full map uses, because two bare em dashes are what a craft that " +
       "has never reported and a craft whose position we hold both look like",
     withholds: ["75.00"],
-    showsMore: [NULL_DISPLAY, "Waiting for telemetry..."],
+    showsMore: [NULL_DISPLAY, "No position data"],
     stillPaints: ["MAP"],
   },
   {
