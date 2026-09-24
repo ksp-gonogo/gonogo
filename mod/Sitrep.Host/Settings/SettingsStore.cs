@@ -67,6 +67,7 @@ namespace Sitrep.Host.Settings
             new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<Watch> _watches = new List<Watch>();
         private readonly HashSet<string> _owned = new HashSet<string>(StringComparer.Ordinal);
+        private readonly List<SettingsRow> _declared = new List<SettingsRow>();
 
         public SettingsStore(ISettingsBackingStore backing)
         {
@@ -105,6 +106,15 @@ namespace Sitrep.Host.Settings
                 throw new ArgumentNullException(nameof(row));
             }
 
+            if (!_rows.ContainsKey(row.Path))
+            {
+                _declared.Add(row);
+            }
+            else
+            {
+                _declared[_declared.FindIndex(r => r.Path == row.Path)] = row;
+            }
+
             _rows[row.Path] = row;
             _owned.Add(row.Path);
             if (!Document.Has(row.Path))
@@ -131,6 +141,39 @@ namespace Sitrep.Host.Settings
 
             _owned.Add(path);
             Document.Set(path, text);
+        }
+
+        /// <summary>Every declared row, in the order it was first declared.</summary>
+        public IReadOnlyList<SettingsRow> DeclaredRows => _declared;
+
+        /// <summary>
+        /// Runs after every <see cref="Commit"/>, whatever changed and whether or
+        /// not the file was written, so a publisher can say what the file now
+        /// holds. A throw is reported to <see cref="DiagnosticLog"/> and ignored.
+        /// </summary>
+        public Action? Committed { get; set; }
+
+        /// <summary>
+        /// Why <paramref name="text"/> cannot be saved at <paramref name="path"/>,
+        /// or null when it can: the path must name a declared row, and the text
+        /// must obey the encoding and be a value of the row's kind. Only a
+        /// declared row can be saved from outside the mod, since an undeclared
+        /// one has nobody to say what it means.
+        /// </summary>
+        public string? RefusalToSave(string path, string text)
+        {
+            if (string.IsNullOrEmpty(path) || !_rows.TryGetValue(path, out var row))
+            {
+                return "no setting is declared at " + (path ?? "(none)");
+            }
+
+            var refusal = SettingsText.RefusalOf(text);
+            if (refusal != null)
+            {
+                return path + ": " + refusal;
+            }
+
+            return row.Accepts(text) ? null : path + " holds a " + row.Kind + " value, not " + text;
         }
 
         public string? Text(string path) => Document.Text(path);
@@ -250,6 +293,22 @@ namespace Sitrep.Host.Settings
                         Invoke(watch);
                         break;
                     }
+                }
+            }
+
+            try
+            {
+                Committed?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    DiagnosticLog?.Invoke("a settings commit hook threw and was ignored: " + ex.Message);
+                }
+                catch (Exception)
+                {
+                    // Never take down a settings change over a failed log message.
                 }
             }
 

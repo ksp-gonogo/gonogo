@@ -81,7 +81,7 @@ namespace Sitrep.Contract.TestSupport
             Refused(declaring, UplinkSettingRow.Text("a//b", "x", "Comment marker"), "a name containing //");
             Refused(declaring, UplinkSettingRow.Text("endpoint", "ws://host:8090", "Comment marker"), "a default containing //");
             Refused(declaring, UplinkSettingRow.Text("brace", "a{b", "Brace"), "a default containing a brace");
-            Refused(declaring, new UplinkSettingRow("flag", UplinkSettingKind.Bool, "maybe", "Wrong kind"), "a default of the wrong kind");
+            Refused(declaring, new UplinkSettingRow("flag", SettingKind.Bool, "maybe", "Wrong kind"), "a default of the wrong kind");
 
             var migrated = Assert.ThrowsAny<ArgumentException>(() => declaring.Migrate("conformanceProbe", "one\ntwo"));
             Assert.False(string.IsNullOrWhiteSpace(migrated.Message), "a refused migration should say why");

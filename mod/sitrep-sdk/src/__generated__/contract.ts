@@ -4872,6 +4872,148 @@ export interface ArchiveEntry
 	subjectValue?: Value<"1"> | null;
 }
 /**
+* The `settings.gonogo` channel payload: every setting the mod and its Uplinks
+* declared, what each holds now, and whether the settings file on the KSP
+* machine holds the same.
+*
+* **The whole model on one topic.** A client renders a control per row from
+* the row's own description, so a setting an Uplink adds needs no client code
+* of its own.
+*
+* **TrueNow.** A setting configures the system the operator is sitting at, not
+* a craft, so there is no vantage from which it is not yet known.
+*
+* **The authority for "did it save".** A save command can time out and still
+* land, so a client reads the outcome of a save here, never from the command's
+* reply.
+*/
+export interface SettingsModel
+{
+	/**
+	* Every declared setting, in declaration order: the mod's own first, then each
+	* Uplink's.
+	*/
+	rows: SettingsRowState[];
+	/** Whether the values here are the ones the settings file holds. */
+	persistence: SettingsPersistence;
+	/**
+	* Uplinks that are running but whose settings could not be declared this
+	* session. Their settings are at their defaults and are not listed in
+	* `SettingsModel.rows`; what the file holds for them is kept as it is.
+	*/
+	undeclared: SettingsDeclarationFailure[];
+	meta: PayloadMeta;
+}
+/**
+* One declared setting, described well enough for a client to draw its
+* control.
+*/
+export interface SettingsRowState
+{
+	/**
+	* Where the setting lives, as blocks and a name separated by `/`:
+	* `SIGNAL_DELAY/enabled`, or `Uplinks/<id>/<name>` for an Uplink's own. This
+	* is the path a save names.
+	*/
+	path: string;
+	/** Who declared it: `"gonogo"` for the mod itself, or the Uplink's id. */
+	owner: string;
+	/** What the value may be, and so which control draws it. */
+	kind: SettingKind;
+	/** What an operator reads beside the control. May be empty. */
+	label: string;
+	/**
+	* The value in force, as text: `True` or `False` for a `SettingKind.Bool`, a
+	* number written with a full stop for a `SettingKind.Number`.
+	*/
+	value: string;
+	/**
+	* The value in force when the settings file holds none for this row, in the
+	* same spelling as `SettingsRowState.value`.
+	*/
+	default: string;
+}
+/** Where the settings in force stand against the settings file. */
+export enum SettingsPersistenceState {
+	/**
+	* The file holds these values: it was read at start-up, or the last save wrote
+	* it.
+	*/
+	Saved = 0,
+	/**
+	* The last save could not write the file. The values are in force for this
+	* session only and revert when KSP restarts; `SettingsPersistence.reason` says
+	* why.
+	*/
+	MemoryOnly = 1,
+	/**
+	* The file was missing, empty or damaged at start-up, and its backup was read
+	* instead. Anything saved after that backup was taken is lost. Clears at the
+	* next successful save.
+	*/
+	Recovered = 2,
+	/**
+	* No settings file exists yet: a first run, every setting at its default until
+	* the first save.
+	*/
+	Defaults = 3,
+	/**
+	* A settings file exists but neither it nor a backup could be read, so every
+	* setting is at its default. Clears at the next successful save, which
+	* replaces the unreadable file.
+	*/
+	Unreadable = 4
+}
+/** Whether the settings file holds what is in force. */
+export interface SettingsPersistence
+{
+	state: SettingsPersistenceState;
+	/** The settings file on the KSP machine. */
+	path: string;
+	/**
+	* The instant of the last save that wrote the file, or null when none has this
+	* session.
+	*/
+	savedAtUt?: Value<"ut"> | null;
+	/**
+	* Why the file could not be written or read, for an operator to read. Null
+	* when nothing went wrong.
+	*/
+	reason?: string | null;
+}
+/** An Uplink whose settings could not be declared this session. */
+export interface SettingsDeclarationFailure
+{
+	uplinkId: string;
+	/** Why, for an operator to read. */
+	reason: string;
+}
+/**
+* Arguments to `settings.save`: one SAVE press, applied together and written
+* to the settings file once.
+*
+* **Safe to send again.** A save sets each row to the value named, so
+* repeating one that already landed changes nothing. That matters because a
+* save that times out may still land.
+*
+* Refused, with nothing changed, when any row is not declared or any value is
+* not one its row can hold. A save that changes the values but cannot write
+* the file is NOT refused: the values are in force, and `settings.gonogo`'s
+* `SettingsModel.persistence` says the file was not written.
+*/
+export interface SaveSettingsArgs
+{
+	changes: SettingsChange[];
+}
+/** One row's new value in a `SaveSettingsArgs`. */
+export interface SettingsChange
+{
+	/** The row, as `SettingsRowState.path` names it. */
+	path: string;
+	/** The new value, spelled as `SettingsRowState.value` is. */
+	value: string;
+}
+/**
 * The `flight.simulation` channel payload: is this a rehearsal, and is signal
 * delay being applied to it.
 *
@@ -6519,6 +6661,26 @@ export interface PendingUplink
 export interface PendingUplinkQueue
 {
 	pending: PendingUplink[];
+}
+/**
+* What a setting may hold, the mod's own or an Uplink's.
+*
+* The set is deliberately small and closed. A setting that needs more than
+* these is a `SettingKind.Text` row that the Uplink checks when it reads it.
+*/
+export enum SettingKind {
+	/**
+	* A single line of text. Also the fallback for anything the other kinds cannot
+	* express.
+	*/
+	Text = 0,
+	/** True or false. */
+	Bool = 1,
+	/**
+	* A number, written with a full stop for the decimal point whatever the
+	* player's locale.
+	*/
+	Number = 2
 }
 /**
 * Args for `vessel.trajectory.forVantage`: where does this craft go, given

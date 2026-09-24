@@ -72,10 +72,6 @@ namespace Sitrep.Core.Tests
             // either. Its own payload is bytes, which by construction is what
             // the lane exists to keep OUT of JsonWriter.
             "StreamBinary",
-            // Inbound only, and the one args type with no [SitrepCommand] of its
-            // own: ComposedBurn is an element of SendManeuverPlanArgs.Burns and
-            // carries the tag through its parent.
-            "ComposedBurn",
 
             // ── Flattened by a producer the scan cannot NAME ─────────────────
             // Every type below is genuinely hand-flattened before Publish. What
@@ -139,8 +135,36 @@ namespace Sitrep.Core.Tests
         /// </summary>
         internal static bool Excused(Type type) =>
             type.IsDefined(typeof(SitrepCommandAttribute), false)
+            || InboundCommandElements.Value.Contains(type)
             || ProducerFieldParityTests.HandFlattenedTypes().Contains(type.Name)
             || FlattenedByProducer.Contains(type.Name);
+
+        /// <summary>
+        /// The element types of a list a command's arguments carry. They arrive
+        /// inside those arguments and are never published, so they owe the writer
+        /// nothing, and a type found here needs no entry in the hand list above.
+        /// </summary>
+        private static readonly Lazy<HashSet<Type>> InboundCommandElements = new(() =>
+            new HashSet<Type>(
+                typeof(CommsDelay).Assembly.GetTypes()
+                    .Where(t => t.IsDefined(typeof(SitrepCommandAttribute), false))
+                    .SelectMany(t => t.GetProperties())
+                    .Select(p => ElementTypeOf(p.PropertyType))
+                    .Where(e => e != null)
+                    .Select(e => e!)));
+
+        private static Type? ElementTypeOf(Type type)
+        {
+            if (type.IsArray)
+            {
+                return type.GetElementType();
+            }
+
+            return type.IsGenericType && type.GetGenericArguments().Length == 1
+                && typeof(System.Collections.IEnumerable).IsAssignableFrom(type)
+                ? type.GetGenericArguments()[0]
+                : null;
+        }
 
         private static IEnumerable<Type> ContractPayloadTypes() =>
             typeof(CommsDelay).Assembly.GetTypes()
