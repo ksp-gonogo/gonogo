@@ -20,7 +20,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
-import type { PeerClientService } from "../peer/PeerClientService";
+import { PeerClientService } from "../peer/PeerClientService";
 import { MissionBanner } from "./MissionBanner";
 
 const KSC = "ground:Kerbal Space Center";
@@ -540,33 +540,47 @@ describe("MissionBanner signal delay at a centre other than home", () => {
   });
 });
 
+/** A peer link that says only where mission control stands, when told to. */
+class PeerAt extends PeerClientService {
+  private centre: string | null = null;
+  private readonly centreListeners = new Set<
+    (centreId: string | null) => void
+  >();
+
+  override getHostCommandCentre(): string | null {
+    return this.centre;
+  }
+
+  override onHostCommandCentreChange(
+    cb: (centreId: string | null) => void,
+  ): () => void {
+    this.centreListeners.add(cb);
+    cb(this.centre);
+    return () => this.centreListeners.delete(cb);
+  }
+
+  tell(centreId: string | null): void {
+    this.centre = centreId;
+    for (const cb of this.centreListeners) cb(centreId);
+  }
+}
+
 /**
  * A pilot's header over a real client and store, told where mission control
  * stands. The pilot's own clock runs aboard at zero, so the store is handed a
  * plain clock rather than the auto-built one; the header reads the delay
- * figures off the wire itself. The peer link is reduced to the one slice the
- * header reads, and the message that feeds it is covered where the service is
- * (`host-command-centre-peer`).
+ * figures off the wire itself. The message that tells a real peer link is
+ * covered where the service is (`host-command-centre-peer`).
  */
 function renderPilot() {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const clock = new ViewClock();
   const store = new TimelineStore(clock);
-  let centre: string | null = null;
-  const listeners = new Set<(centreId: string | null) => void>();
-  const peer = {
-    getHostCommandCentre: () => centre,
-    onHostCommandCentreChange: (cb: (centreId: string | null) => void) => {
-      listeners.add(cb);
-      cb(centre);
-      return () => listeners.delete(cb);
-    },
-  } as unknown as PeerClientService;
+  const peer = new PeerAt();
   const tell = (centreId: string | null) =>
     act(() => {
-      centre = centreId;
-      for (const cb of listeners) cb(centreId);
+      peer.tell(centreId);
     });
   const emit = (topic: string, payload: unknown, validAt = 400) =>
     act(() => {

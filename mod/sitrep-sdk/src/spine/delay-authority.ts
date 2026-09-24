@@ -1,7 +1,5 @@
-import type {
-  CommandCentreActiveVesselDelay,
-  CommsDelay,
-} from "../__generated__/contract";
+import type { CommsDelay } from "../__generated__/contract";
+import { isValue } from "../unit-system/value";
 
 /**
  * The `comms.delay` channel topic: the CORE `SignalDelay` capability's
@@ -35,12 +33,18 @@ export interface DelaySubscribable {
   readonly observedVantage?: string;
 }
 
-/** A wire seconds field, bare or wrapped by the decode, as a finite non-negative number. */
+/**
+ * A wire seconds field, bare or wrapped by the decode, as a finite
+ * non-negative number, or `null` for anything else. The one unwrap in this
+ * file: the view clock takes a plain number.
+ */
 function readSeconds(field: unknown): number | null {
   const seconds =
     typeof field === "number"
       ? field
-      : (field as { magnitude?: unknown } | null | undefined)?.magnitude;
+      : isValue(field)
+        ? field.magnitude
+        : undefined;
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
     return null;
   }
@@ -56,14 +60,14 @@ function readSeconds(field: unknown): number | null {
 export function readCentreDelays(
   payload: unknown,
 ): ReadonlyMap<string, number> | null {
-  const centres = (payload as Partial<CommandCentreActiveVesselDelay> | null)
-    ?.centres;
-  if (!Array.isArray(centres)) return null;
+  if (typeof payload !== "object" || payload === null) return null;
+  if (!("centres" in payload) || !Array.isArray(payload.centres)) return null;
   const delays = new Map<string, number>();
-  for (const entry of centres) {
-    const id = (entry as { id?: unknown } | null)?.id;
+  for (const entry of payload.centres) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const id = "id" in entry ? entry.id : undefined;
     const seconds = readSeconds(
-      (entry as { oneWaySeconds?: unknown } | null)?.oneWaySeconds,
+      "oneWaySeconds" in entry ? entry.oneWaySeconds : undefined,
     );
     if (typeof id === "string" && id !== "" && seconds !== null) {
       delays.set(id, seconds);
@@ -92,16 +96,10 @@ export function readCentreDelays(
  * direction this must never fail in, because a zero pins the whole clock to
  * the predicted present and releases every delayed channel at once.
  */
-function readOneWaySeconds(payload: unknown): number | null {
+export function readOneWaySeconds(payload: unknown): number | null {
   if (!payload || typeof payload !== "object") return null;
   const delay = payload as Partial<CommsDelay>;
-  // `.magnitude`: the field arrives wrapped from the decode. Reading the
-  // object itself as a number silently fails the finiteness check below.
-  const seconds = delay.oneWaySeconds?.magnitude;
-  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
-    return null;
-  }
-  return seconds;
+  return readSeconds(delay.oneWaySeconds);
 }
 
 /**
