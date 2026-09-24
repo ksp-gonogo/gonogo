@@ -183,6 +183,7 @@
       "mode": "enum"
     },
     "CareerStrategies": {
+      "activationPatched": "flag",
       "activeCount": "count"
     },
     "CareerStrategy": {

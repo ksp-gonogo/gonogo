@@ -29,8 +29,9 @@ import { parseStrategies, StrategiesComponent } from "./index";
  * asking KSP was the model's only route to an answer. It has a second route now
  * and the verdict carries a SOURCE to say which was taken, so the last block
  * here is about what that source is for: a refusal reached off-screen is the
- * game's own and belongs in Locked, and nothing reached off-screen may arm a
- * control, because KSP's own commitment still runs inside that building.
+ * game's own and belongs in Locked, and no derived verdict arms a control. What
+ * CAN arm off-screen is a row with no verdict at all, on a career whose
+ * activation is the game's own: the command then puts the missing checks itself.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -105,13 +106,17 @@ const REFUSED = {
   effect: "",
 };
 
-function emitCareer(fixture: StreamFixture, all: unknown[]): void {
+function emitCareer(
+  fixture: StreamFixture,
+  all: unknown[],
+  roster: { activationPatched?: boolean | null } = {},
+): void {
   act(() => {
     fixture.emit("career.status", {
       economy: { funds: 289_848, reputation: 420, science: 145 },
       facilities: null,
       contracts: null,
-      strategies: { active: [], all, activeCount: 0 },
+      strategies: { active: [], all, activeCount: 0, ...roster },
       tech: null,
     });
   });
@@ -252,8 +257,9 @@ describe("Strategies with an eligibility it could not read", () => {
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
 
-    // Disabled on purpose: the actuator refuses on exactly the same ground, so
-    // an armed button here would promise a dispatch that cannot land.
+    /* No word on whether the career's activation is the game's own, so the
+       command may refuse it, and a control that arms only to refuse is worse
+       than a dark one. */
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeDisabled();
     expect(activate).toHaveAttribute("title", UNANSWERED_REASON);
@@ -286,8 +292,8 @@ describe("Strategies with an eligibility it could not read", () => {
  * So this model cannot emit a derived YES, and the last two cases here are
  * defence in depth rather than a description of our own wire. The published type
  * admits the pair, an Uplink could send it, and the rule that matters if one ever
- * arrives is that it must not arm a spend: KSP's own commitment runs inside that
- * building whatever we worked out about eligibility.
+ * arrives is that it must not arm a spend: a yes nobody screened is not an
+ * answer.
  */
 describe("Strategies with a verdict derived off-screen", () => {
   /**
@@ -350,19 +356,18 @@ describe("Strategies with a verdict derived off-screen", () => {
 
   it("does NOT arm Activate on a derived yes, and says what stands in the way", async () => {
     /*
-     * The hero assertion of this block. The verdict is sound and the dispatch
-     * still cannot land, so arming the control would promise a commitment the
-     * actuator refuses. The operator is told both halves: eligible, and where
-     * to go to act on it.
+     * The hero assertion of this block, on the career most able to commit it:
+     * the game's activation is its own, and the derived yes still does not arm,
+     * because nobody screened it.
      */
     const fixture = newFixture();
     renderStrategies(fixture);
-    emitCareer(fixture, [DERIVED_YES]);
+    emitCareer(fixture, [DERIVED_YES], { activationPatched: false });
 
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeDisabled();
     expect(activate.getAttribute("title")).toMatch(
-      /Eligible\. KSP commits a strategy only from inside the Administration Building/,
+      /Nobody screened this answer/,
     );
   });
 
@@ -378,5 +383,78 @@ describe("Strategies with a verdict derived off-screen", () => {
 
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
+  });
+});
+
+/**
+ * With the building shut, a strategy nobody could fully judge can still be
+ * committed from the console: `career.strategy.activate` puts the checks that
+ * could not be made here when it runs, and refuses in the game's words.
+ *
+ * That holds only where the career's activation is the game's own. Where another
+ * mod has changed it (RP-1) the command refuses, so the roster says which, and
+ * the control arms on an explicit `false` and nothing else: arming a button that
+ * then refuses spends the operator's attention before telling them no.
+ */
+describe("Strategies committing a strategy the roster left unanswered", () => {
+  it("arms Activate on an unanswered row when the career's activation is the game's own", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [UNANSWERED], { activationPatched: false });
+
+    const activate = await screen.findByRole("button", { name: "Activate" });
+    expect(activate).toBeEnabled();
+    expect(activate.getAttribute("title")).toMatch(/made when you confirm/);
+  });
+
+  it("keeps it dark when another mod has changed activation", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [UNANSWERED], { activationPatched: true });
+
+    const activate = await screen.findByRole("button", { name: "Activate" });
+    expect(activate).toBeDisabled();
+  });
+
+  it("keeps it dark when whether activation was changed could not be read", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [UNANSWERED], { activationPatched: null });
+
+    const activate = await screen.findByRole("button", { name: "Activate" });
+    expect(activate).toBeDisabled();
+  });
+
+  it("keeps a derived refusal dark whatever the roster says", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(
+      fixture,
+      [
+        {
+          ...UNANSWERED,
+          canActivate: false,
+          activateBlockedReason: "Not enough Funds to set up this Strategy",
+          activateVerdictSource: "derived",
+        },
+      ],
+      { activationPatched: false },
+    );
+
+    const locked = await screen.findByRole("region", { name: "Locked" });
+    expect(within(locked).getByText("Orbital Logistics")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
+  });
+
+  it("still refuses an unanswered row the career cannot afford", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [{ ...UNANSWERED, initialCostFunds: 5_000_000 }], {
+      activationPatched: false,
+    });
+
+    const activate = await screen.findByRole("button", { name: "Activate" });
+    expect(activate).toBeDisabled();
+    expect(activate.getAttribute("title")).toMatch(/Insufficient/);
   });
 });

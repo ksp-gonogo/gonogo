@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 17.4.0
+  version: 17.5.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -9152,6 +9152,21 @@ components:
         activeCount:
           type: number
           x-sitrep-unit: count
+        activationPatched:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether another mod replaces or alters KSP's own strategy activation: `true`
+            when it does, `false` when the game's activation is its own, `null` when
+            that could not be established.
+
+            With the Administration Building shut, `career.strategy.activate` commits a
+            strategy only when this is `false`, and refuses otherwise: a mod that
+            changes activation owns the procedure, and offers its own command for it.
+            With the building open the game activates as it always does, whatever this
+            says.
     CareerStrategy:
       type: object
       description: One strategy in `CareerStrategies.active` / `CareerStrategies.all`.
@@ -9263,8 +9278,11 @@ components:
             nothing could refuse therefore arrives unanswered with `"none"` rather than
             allowed.
 
-            Nothing reached off-screen should ARM an activation control either way: KSP
-            runs its own commitment only from inside that building.
+            A `"derived"` verdict never arms an activation control: it can only refuse.
+            Whether a strategy the roster left unanswered may be committed is decided by
+            `career.strategy.activate` itself, which puts every check again at the
+            moment it runs and refuses in the game's words or as unreadable rather than
+            guessing.
         canDeactivate:
           type:
             - boolean

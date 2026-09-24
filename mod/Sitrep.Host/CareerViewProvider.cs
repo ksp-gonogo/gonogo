@@ -35,7 +35,8 @@ namespace Sitrep.Host
     ///   "economy":    { "funds": double?, "reputation": double?, "science": double? }
     ///   "facilities": { "&lt;SpaceCenterFacility name&gt;": { "currentTier": int?, "maxTier": int?, "upgradeCost": double? }, ... }
     ///   "contracts":  { "active": [ ContractEntry, ... ], "offered": [ ContractEntry, ... ], "completedRecent": [ ContractEntry, ... ] }
-    ///   "strategies": { "active": [ StrategyEntry, ... ], "all": [ StrategyEntry, ... ], "activeCount": int }
+    ///   "strategies": { "active": [ StrategyEntry, ... ], "all": [ StrategyEntry, ... ], "activeCount": int,
+    ///     "activationPatched": bool|null }
     ///   "tech":       { "unlockedCount": int, "unlockedIds": [ string, ... ], "nodes": [ TechNodeEntry, ... ] }
     /// }
     /// // ContractEntry = { "id", "title", "agent", "state", "fundsAdvance",
@@ -421,6 +422,7 @@ namespace Sitrep.Host
                 ["active"] = active,
                 ["all"] = all,
                 ["activeCount"] = GetInt(raw, "activeCount") ?? active.Count,
+                ["activationPatched"] = GetBool(raw, "activationPatched"),
             };
         }
 

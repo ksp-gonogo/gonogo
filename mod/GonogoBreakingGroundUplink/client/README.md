@@ -9,7 +9,7 @@ Drives Breaking Ground robotic joints and rotors from the console, and reports d
 | --- | --- |
 | Uplink id | `breakingGround` |
 | Version | `0.0.1` |
-| Built against | contract 17.4, api 2.1.0, ui-kit 0.1.0 |
+| Built against | contract 17.5, api 2.1.0, ui-kit 0.1.0 |
 
 ## Widgets
 
