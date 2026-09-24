@@ -68,7 +68,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 // Side-effect import: every widget self-registers on module load.
 import "../../src";
-import { AlarmsLauncherProvider } from "../../src/shared/AlarmsLauncher";
+import {
+  AlarmsLauncherProvider,
+  type PendingAlarmSummary,
+} from "../../src/shared/AlarmsLauncher";
 import {
   applyInstallProfile,
   getInstallProfile,
@@ -619,6 +622,13 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
             launcher={() => {}}
             creator={() => {}}
             manager={{ find: () => null, remove: () => {} }}
+            // A scene's `_alarms` stands in for the pipeline's pending list.
+            // Absent means the tree has no pipeline to ask.
+            pending={
+              payload.fixture._alarms as
+                | readonly PendingAlarmSummary[]
+                | undefined
+            }
           >
             {createElement(
               DashboardItemContext.Provider,

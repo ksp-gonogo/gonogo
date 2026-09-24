@@ -3,11 +3,12 @@ import {
   type AlarmManagerLookup,
   type AlarmsLauncher,
   AlarmsLauncherProvider,
+  type PendingAlarmSummary,
 } from "@ksp-gonogo/components";
 import { useModal } from "@ksp-gonogo/ui";
 import { type ReactNode, useCallback, useMemo } from "react";
 import { AlarmsModal, type AlarmsModalProps } from "./AlarmsModal";
-import type { AlarmSnapshot, AlarmTrigger } from "./types";
+import type { Alarm, AlarmSnapshot, AlarmTrigger } from "./types";
 
 /**
  * Provides an `AlarmsLauncher` to the subtree that wraps `useModal().open`
@@ -40,7 +41,10 @@ export function AlarmsLauncherBridge({
           onDelete={onDelete}
           prefill={{
             name: opts.name,
-            onFire: [{ kind: "action-group", action: opts.action }],
+            onFire:
+              opts.action === undefined
+                ? undefined
+                : [{ kind: "action-group", action: opts.action }],
           }}
         />,
         { title: "Mission Alarms" },
@@ -76,15 +80,38 @@ export function AlarmsLauncherBridge({
       },
     };
   }, [snap, onDelete]);
+  const pending = useMemo(() => pendingAlarmSummaries(snap.alarms), [snap]);
   return (
     <AlarmsLauncherProvider
       launcher={launcher}
       creator={creator as AlarmCreator<unknown>}
       manager={manager}
+      pending={pending}
     >
       {children}
     </AlarmsLauncherProvider>
   );
+}
+
+/**
+ * The alarms yet to fire, soonest first. An alarm with no instant sorts after
+ * every alarm with one, in the order it was set.
+ */
+export function pendingAlarmSummaries(
+  alarms: readonly Alarm[],
+): PendingAlarmSummary[] {
+  return alarms
+    .filter((a) => a.state === "pending" || a.state === "arming")
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      ut: a.trigger.kind === "time" ? a.trigger.ut : null,
+    }))
+    .sort((a, b) => {
+      if (a.ut === null) return b.ut === null ? 0 : 1;
+      if (b.ut === null) return -1;
+      return a.ut - b.ut;
+    });
 }
 
 function defaultNameForTrigger(trigger: AlarmTrigger): string {

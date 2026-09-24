@@ -645,6 +645,15 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-4x8", w: 4, h: 8 },
       // Large: generous room for all elements.
       { name: "large-8x7", w: 8, h: 7 },
+      // The alarm requirement switched off: a delayed craft with no alarm set
+      // warps freely, exactly as it did before the requirement existed.
+      {
+        name: "alarm-gate-off-6x5",
+        w: 6,
+        h: 5,
+        config: { requireAlarmUnderDelay: false },
+        forFixtures: ["delayed-no-alarm"],
+      },
     ],
   },
   {
