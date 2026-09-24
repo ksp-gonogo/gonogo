@@ -168,6 +168,7 @@
   <ItemGroup>
     <Compile Include="..\GonogoDevTools\CurrencyProbeVerdicts.cs" />
     <Compile Include="..\GonogoDevTools\AntennaProbeVerdicts.cs" />
+    <Compile Include="..\GonogoDevTools\DevRequestLedger.cs" />
   </ItemGroup>
 
   <!-- StockCurrencyDecision.cs mirrors TransactionReasons as its own plain
