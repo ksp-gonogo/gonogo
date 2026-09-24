@@ -222,9 +222,16 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   mobileHeight?: number;
   dataRequirements?: string[];
   /**
-   * Topics this widget REQUIRES. The widget
-   * only mounts once every one of these Topics is live, so a required Topic's
-   * payload is read non-null through the manifest hook. Typed as
+   * Topics this widget REQUIRES.
+   *
+   * It does NOT mean the widget waits for them. Nothing withholds a widget
+   * until its Topics are live: the orchestrator wraps every one in
+   * `RequiresGuard`, which resolves these ids to an owning Uplink and gates on
+   * that Uplink's HEALTH, so a healthy Uplink that has published nothing on the
+   * topic leaves the widget mounted at full size reading `pending`. A required
+   * Topic's payload is therefore reached through the same written branch as any
+   * other, and this field is a declaration of what the widget consumes, not a
+   * promise about what has arrived. Typed as
    * `readonly WidgetChannelId[]`: the same typed token the read hook is keyed
    * by, so there is no drift between declaration and read. The union's other
    * arm is the client-side derived channels, which a widget consumes exactly as

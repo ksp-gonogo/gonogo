@@ -1252,6 +1252,26 @@ function MapViewComponent({
   const showFollowToggle = showMap && cols >= 9;
   const showBodyLabel = cols >= 5;
 
+  /**
+   * What stands in for a position neither branch can draw, shared so the two
+   * cannot say different things about one state.
+   *
+   * The compact branch made only the middle statement of the three, so a
+   * position that had NEVER arrived rendered there as two bare em dashes with
+   * nothing beside them. That is the case the caption below was written
+   * against: an operator cannot tell a craft that has never reported from one
+   * whose coordinates we hold and no longer vouch for, and one of those is a
+   * craft that may not be flying.
+   */
+  const positionNotice =
+    lat !== undefined && lon !== undefined
+      ? undefined
+      : positionStale
+        ? "Position not current: marker withheld"
+        : targetBodyId === undefined
+          ? "Waiting for telemetry..."
+          : "No position data";
+
   // Slot props. `overlay` carries the live equirectangular projection so an
   // augment can draw in the map's own pixel space, plus the vessel's raw
   // position, so an augment can do its own distance/bearing ranking
@@ -1349,16 +1369,13 @@ function MapViewComponent({
                     </CompactValue>
                   </CompactRow>
                 )}
-                {/* The compact branch needs the same statement the full map makes.
-              Without it a withheld position is a bare em dash, which is exactly
-              "renders nothing and is indistinguishable from broken": the
-              operator cannot tell a craft that never reported from one whose
-              coordinates we have stopped vouching for. */}
-                {positionStale && (
+                {/* The compact branch makes the same statement the full map
+              makes, from the same string. Without it a withheld position is a
+              bare em dash, which is exactly "renders nothing and is
+              indistinguishable from broken". */}
+                {positionNotice !== undefined && (
                   <CompactRow>
-                    <ReadoutCaption>
-                      Position not current: marker withheld
-                    </ReadoutCaption>
+                    <ReadoutCaption>{positionNotice}</ReadoutCaption>
                   </CompactRow>
                 )}
               </CompactReadout>
@@ -1453,14 +1470,8 @@ function MapViewComponent({
                       data-prediction-segments={predictionSegments.length}
                     />
                     <DataCanvas ref={dataRef} />
-                    {(lat === undefined || lon === undefined) && (
-                      <NoSignal>
-                        {positionStale
-                          ? "Position not current: marker withheld"
-                          : targetBodyId === undefined
-                            ? "Waiting for telemetry..."
-                            : "No position data"}
-                      </NoSignal>
+                    {positionNotice !== undefined && (
+                      <NoSignal>{positionNotice}</NoSignal>
                     )}
                     {baseLayerContext && (
                       <AugmentSlot

@@ -408,12 +408,19 @@ function CommSignalComponent({
             >
               {/*
                 "Signal to <centre>" ASSERTS a signal, so it cannot stand for a
-                link that has stopped reporting: the caption nulls with every
+                link this widget cannot vouch for: the caption nulls with every
                 other line and the badge carries the reason. The
                 `connected === false` wording is untouched, because a CONFIRMED
                 disconnection is an observation rather than an absence.
+
+                Both ways of not being able to vouch, not just the one. The rule
+                above was written for a link that HAD reported and stopped, and
+                a link that has never reported at all passed straight through it
+                on `connected === undefined`: the strength beside it comes off
+                its own topic and keeps arriving, so the panel asserted a signal
+                to KSC on the strength of a verdict nothing had given.
               */}
-              {noSignal
+              {noSignal || connected === undefined
                 ? NULL_DISPLAY
                 : connected === false
                   ? "No signal"

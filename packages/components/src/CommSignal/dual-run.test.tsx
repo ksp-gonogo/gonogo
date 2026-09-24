@@ -22,7 +22,8 @@ import { CommSignalComponent } from "./index";
  */
 // Every input `vesselStateChannel` declares (vessel-state.ts): all must be in
 // the allowlist for the derived `vessel.state.commsControlState*` fields to be
-// treated as carried; `comms.delay` backs `comm.signalDelay`.
+// treated as carried; `comms.delay` backs `comm.signalDelay`, and `comms.link`
+// carries the connectivity verdict the caption asserts a signal on.
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -33,6 +34,7 @@ const CARRIED = [
   "vessel.comms",
   "vessel.propulsion",
   "comms.delay",
+  "comms.link",
 ];
 
 describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
@@ -74,6 +76,7 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
         controlState: 4,
       });
       fixture.emit("comms.delay", { oneWaySeconds: 0.0004 });
+      fixture.emit("comms.link", { connected: true });
     });
 
     // A real subscription must have happened for StubTransport (subscription-
