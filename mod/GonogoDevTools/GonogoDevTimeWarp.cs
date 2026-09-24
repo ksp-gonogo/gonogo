@@ -53,11 +53,10 @@ namespace Gonogo.DevTools
         /// </summary>
         private const int SettlePolls = 3;
 
-        private static string? _lastAppliedId;
-
         private float _sinceLastPoll;
         private string? _requestPath;
         private string? _resultPath;
+        private DevRequestLedger? _ledger;
 
         private string? _pendingId;
         private int _pendingRequestedIndex;
@@ -77,6 +76,7 @@ namespace Gonogo.DevTools
                 var pluginData = Path.Combine(assemblyDir, "PluginData");
                 _requestPath = Path.Combine(pluginData, "timewarp-request.cfg");
                 _resultPath = Path.Combine(pluginData, "timewarp-result.cfg");
+                _ledger = new DevRequestLedger(Path.Combine(pluginData, "timewarp-applied.cfg"));
             }
             catch (Exception ex)
             {
@@ -136,8 +136,22 @@ namespace Gonogo.DevTools
                 return;
             }
 
-            if (string.Equals(id, _lastAppliedId, StringComparison.Ordinal))
+            var decision = _ledger!.Admit(id!, File.GetLastWriteTimeUtc(_requestPath), out var stampFailure);
+            if (stampFailure != null)
             {
+                Debug.LogWarning(LogPrefix + "could not stamp id=" + id
+                    + " as applied, so a restart may apply it again: " + stampFailure);
+            }
+
+            if (decision == DevRequestDecision.AlreadyApplied)
+            {
+                return;
+            }
+
+            if (decision == DevRequestDecision.PredatesSession)
+            {
+                Debug.LogWarning(LogPrefix + "request id=" + id + " predates this KSP session; refused");
+                WriteResult(id!, ok: false, DevRequestLedger.PredatesSessionMessage, -1, null);
                 return;
             }
 
@@ -146,8 +160,6 @@ namespace Gonogo.DevTools
 
         private void ApplyRequest(string id, ConfigNode node)
         {
-            _lastAppliedId = id;
-
             try
             {
                 var rawIndex = node.GetValue("index");
