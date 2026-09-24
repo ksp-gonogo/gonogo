@@ -40,10 +40,33 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 
 const STALE_SUFFIX = "-stopped-arriving";
 
+/**
+ * Stale scenes that render byte-identical to their live twin: widgets that give
+ * an operator no way to tell the link has gone. Shrink-only. A scene that
+ * starts to differ must come off, and a new one may not go on.
+ */
+const UNCHANGED_DEBT = new Set([
+  "atmosphere-profile / kerbin-reentry-stopped-arriving",
+  "contract-manager / multiple-active-contracts-stopped-arriving",
+  "experiments / instruments-holding-data-stopped-arriving",
+  "power-systems / 02-battery-draining-high-load-stopped-arriving",
+  "system-view / kerbin-orbit-comms-active-stopped-arriving",
+]);
+
 interface Scene {
   name: string;
   stale: Record<string, unknown>;
   live: Record<string, unknown> | undefined;
+}
+
+/** Whether a fixture's `_stream` block stages the link dropping. */
+function stopsArriving(stream: unknown): boolean {
+  return (
+    typeof stream === "object" &&
+    stream !== null &&
+    "stopsArriving" in stream &&
+    stream.stopsArriving === true
+  );
 }
 
 function staleScenes(fixturesPath: string): Scene[] {
@@ -60,11 +83,7 @@ function staleScenes(fixturesPath: string): Scene[] {
       ]),
   );
   return [...inDir]
-    .filter(
-      ([, fixture]) =>
-        (fixture._stream as { stopsArriving?: boolean } | undefined)
-          ?.stopsArriving === true,
-    )
+    .filter(([, fixture]) => stopsArriving(fixture._stream))
     .map(([name, stale]) => ({
       name,
       stale,
@@ -155,7 +174,7 @@ function outcome(stale: Rendered, live: Rendered | undefined): string {
 
 const results = new Map<
   string,
-  { live?: Rendered; stale?: Rendered; note: string }
+  { live?: Rendered; stale?: Rendered; note: string; id: string }
 >();
 
 describe("every stale scene says the link has gone", () => {
@@ -171,7 +190,10 @@ describe("every stale scene says the link has gone", () => {
     );
     for (const scene of scenes) {
       const key = `${label.padEnd(26)} ${scene.name}`;
-      results.set(key, { note: scene.live ? "" : " (no live twin)" });
+      results.set(key, {
+        note: scene.live ? "" : " (no live twin)",
+        id: `${label} / ${scene.name}`,
+      });
       it(`${label} / ${scene.name} stale`, async () => {
         expect(def, `${widget.widgetId} is registered`).toBeDefined();
         if (!def) return;
@@ -195,6 +217,21 @@ describe("every stale scene says the link has gone", () => {
       }
     }
   }
+  /*
+   * After every scene has rendered, because the verdict needs both halves of a
+   * pair and they mount in separate tests.
+   */
+  it("changes something in every stale scene, beyond the debt it already carries", () => {
+    const unchanged = [...results.values()]
+      .filter(
+        ({ live, stale }) =>
+          live !== undefined && stale !== undefined && live.html === stale.html,
+      )
+      .map(({ id }) => id)
+      .sort();
+    expect(unchanged).toEqual([...UNCHANGED_DEBT].sort());
+  });
+
   it("reports", () => {
     const rows = [...results].map(([key, { live, stale, note }]) => {
       if (!stale) return `${key}  NOT RENDERED`;
