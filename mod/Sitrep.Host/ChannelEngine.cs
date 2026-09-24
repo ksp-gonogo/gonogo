@@ -2900,7 +2900,8 @@ namespace Sitrep.Host
                 GateVerdict verdict;
                 try
                 {
-                    verdict = evaluator.Evaluate(requirement, arguments) ?? GateVerdict.Pass();
+                    verdict = evaluator.Evaluate(requirement, arguments)
+                        ?? GateVerdict.Unknown("the gate evaluation returned nothing");
                 }
                 catch (Exception ex)
                 {
