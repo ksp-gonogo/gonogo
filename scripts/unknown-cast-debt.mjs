@@ -154,12 +154,15 @@ const sorted = (counts) =>
     Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)),
   );
 
-/** Per-file counts for one predicate, in path order. */
+/** The key an erasure point is recorded under: its file and its named place. */
+const pointOf = (site) => `${site.file} :: ${site.within}`;
+
+/** Per-point counts for one predicate, in path order. */
 function tally(predicate) {
   const out = {};
   for (const site of sites) {
     if (!predicate(site)) continue;
-    out[site.file] = (out[site.file] ?? 0) + 1;
+    out[pointOf(site)] = (out[pointOf(site)] ?? 0) + 1;
   }
   return sorted(out);
 }
@@ -183,7 +186,14 @@ function scopedTo(previous, fresh) {
   return sorted(merged);
 }
 
-const quote = (s) => JSON.stringify(s);
+/**
+ * A key as biome prints it: double-quoted, unless it holds a double quote and
+ * no single one, which a test's title point does.
+ */
+const quote = (s) =>
+  s.includes('"') && !s.includes("'") && !s.includes("\\")
+    ? `'${s}'`
+    : JSON.stringify(s);
 
 /**
  * The debt for one record, emitted grouped by root with a COUNTED header per
@@ -206,11 +216,12 @@ function emit(name, counts, note) {
     );
     if (entries.length === 0) continue;
     const total = entries.reduce((n, [, v]) => n + v, 0);
+    const files = new Set(entries.map(([key]) => key.split(" :: ")[0])).size;
     const rootSites = scan.sites.filter((s) =>
       name === "DOUBLE_ASSERTION_DEBT" ? s.double : true,
     );
     lines.push(
-      `  // ${scan.root}: ${total} in ${entries.length} files ` +
+      `  // ${scan.root}: ${total} at ${entries.length} points in ${files} files ` +
         `(${rootSites.filter((s) => s.kind === "any").length} out of \`any\`, ` +
         `${rootSites.filter((s) => /\.test\.tsx?$/.test(s.file)).length} in tests), ` +
         `walked ${scan.files} files`,
@@ -275,7 +286,11 @@ const header = readFileSync(
   .replace(/__DOUBLES__/g, String(doubles.length))
   .replace(/__ANY__/g, String(sites.filter((s) => s.kind === "any").length))
   .replace(/__TESTS__/g, String(inTests.length))
-  .replace(/__FILES__/g, String(new Set(sites.map((s) => s.file)).size));
+  .replace(/__FILES__/g, String(new Set(sites.map((s) => s.file)).size))
+  .replace(
+    /__POINTS__/g,
+    String(new Set(sites.map((s) => `${s.file} :: ${s.within}`)).size),
+  );
 
 const body = [
   header.trimEnd(),
@@ -288,7 +303,8 @@ const body = [
     ),
     [
       "/**",
-      " * Every file carrying an assertion out of `unknown` or `any`, with how many.",
+      " * Every named place carrying an assertion out of `unknown` or `any`, with",
+      " * how many.",
       " *",
       " * SHRINK-ONLY: an entry may be lowered or deleted, never added or raised.",
       " * Regenerate with `node scripts/unknown-cast-debt.mjs --update --only",
@@ -307,7 +323,7 @@ const body = [
       "/**",
       " * The `x as unknown as T` subset, held to its OWN ceiling.",
       " *",
-      " * Two lists rather than one because a file with headroom under the count",
+      " * Two lists rather than one because a place with headroom under the count",
       " * above must still not gain a double. A single assertion out of `unknown` is",
       " * often a boundary someone has not got to yet; a double is the shape you",
       " * reach for after the compiler has already refused the conversion once, and",
