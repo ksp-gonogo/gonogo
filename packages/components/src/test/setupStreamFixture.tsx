@@ -84,6 +84,13 @@ export interface StreamFixtureOptions {
   delaySeconds?: number;
   /** Stop the view clock's animation-frame loop before anything can subscribe, leaving `emitFrame()` the only frame source. See this file's doc comment. */
   suspendFrames?: boolean;
+  /**
+   * Derived channels NOT to register, by topic. For a test proving a widget
+   * reads the wire rather than a derived channel scheduled to go: with the
+   * channel absent, an address on it resolves to a topic nothing publishes and
+   * draws an empty series, which is how that failure looks in production.
+   */
+  withoutDerivedChannels?: readonly string[];
 }
 
 export interface StreamFixture {
@@ -148,7 +155,9 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   //
   // Registering the production list means a channel added there is available
   // here by construction, so this cannot drift again.
+  const omitted = new Set(opts.withoutDerivedChannels ?? []);
   for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    if (omitted.has(channel.topic)) continue;
     store.registerDerivedChannel(channel);
   }
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
