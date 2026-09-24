@@ -323,6 +323,14 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CentreSeparationEntry separationEntry:
                     AppendCentreSeparationEntry(sb, separationEntry);
                     break;
+                case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
+                    // The same boundary as CommandCentreSeparation: the uplink
+                    // publishes the POCO straight over.
+                    AppendCommandCentreActiveVesselDelay(sb, activeVesselDelay);
+                    break;
+                case Sitrep.Contract.CentreDelayEntry centreDelayEntry:
+                    AppendCentreDelayEntry(sb, centreDelayEntry);
+                    break;
                 case Sitrep.Contract.CommandCentreEntry centreEntry:
                     // Same "producer owns the flatten" boundary as
                     // CommandCentreSeparation above, and the fourth time this
@@ -1653,6 +1661,46 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "to");
             sb.Append(':');
             AppendNullableString(sb, e.To);
+            sb.Append(',');
+            AppendString(sb, "oneWaySeconds");
+            sb.Append(':');
+            AppendNumber(sb, e.OneWaySeconds);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// <c>commandCentre.activeVesselDelay</c> as <c>{ centres: [...] }</c>. The
+        /// array is always written, empty included, so "no centre has a delay of
+        /// its own" reads differently from a payload that never arrived.
+        /// </summary>
+        private static void AppendCommandCentreActiveVesselDelay(
+            StringBuilder sb, Sitrep.Contract.CommandCentreActiveVesselDelay d)
+        {
+            sb.Append('{');
+            AppendString(sb, "centres");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            if (d.Centres != null)
+            {
+                foreach (var entry in d.Centres)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    AppendCentreDelayEntry(sb, entry);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCentreDelayEntry(
+            StringBuilder sb, Sitrep.Contract.CentreDelayEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendNullableString(sb, e.Id);
             sb.Append(',');
             AppendString(sb, "oneWaySeconds");
             sb.Append(':');
