@@ -712,7 +712,20 @@ jobs:
             -c Release -o "$RUNNER_TEMP/nuget" --nologo
           node scripts/nuget-contract-package-gate.mjs "$RUNNER_TEMP"/nuget/*.nupkg
 
+      # `always()`, because the gate in the step above is the only reader this
+      # artifact has. Nothing downstream consumes `nuget-sitrep-contract`: a
+      # person downloads it and opens the .nupkg to see which private dependency
+      # escaped, which framework group xunit reached, or which `<internal>`
+      # paragraph shipped in the XML docs. Packed on a default `if`, the package
+      # is built, found defective and then discarded, so the only run where
+      # anyone wants the file is the run that withholds it.
+      #
+      # `if: failure()` would be wrong in the other direction: the packed output
+      # is worth keeping on green too. `if-no-files-found` stays at its `warn`
+      # default, so an earlier step failing before `dotnet pack` ran leaves a log
+      # warning and no artifact rather than a second failure.
       - name: Upload the NuGet package
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nuget-sitrep-contract
