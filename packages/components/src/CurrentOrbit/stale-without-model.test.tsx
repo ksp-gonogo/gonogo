@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
+import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -58,7 +58,13 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
         inc: 0.3,
         argPe: 12.5,
         mu: 3.5316e12,
-        horizon: ANALYTIC_UNBOUNDED_HORIZON,
+        /*
+         * An unbounded reach with no stated shape, so nothing vouches for a
+         * conic and the model declines on the elements themselves. The fixture
+         * carries no body roster, and an absent roster is not a reason to
+         * decline.
+         */
+        horizon: UNBOUNDED_HORIZON,
         meanAnomalyAtEpoch: 0,
         epoch: 10,
       });

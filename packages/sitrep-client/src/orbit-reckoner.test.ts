@@ -1,4 +1,4 @@
-import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
+import { type ConicBodiesInput, Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TopicReading } from "./reading";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
@@ -54,8 +54,14 @@ function point<T>(validAt: number, payload: T, quality: Quality) {
   } as TimelinePoint<T>;
 }
 
-/** A store carrying one orbit sample at the given quality, read at `viewUt`. */
-function scene(quality: Quality) {
+/**
+ * A store carrying one orbit sample at the given quality, read at `viewUt`.
+ * `roster` is the `system.bodies` payload, and `null` leaves the roster out.
+ */
+function scene(
+  quality: Quality,
+  roster: ConicBodiesInput | null = { bodies: [] },
+) {
   let wall = 0;
   const clock = new ViewClock({
     nowWall: () => wall,
@@ -65,7 +71,9 @@ function scene(quality: Quality) {
   clock.setMode("predicted");
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
-  store.ingest("system.bodies", point(0, { bodies: [] }, Quality.OnRails));
+  if (roster !== null) {
+    store.ingest("system.bodies", point(0, roster, Quality.OnRails));
+  }
   store.ingest("vessel.orbit", point(0, orbitPayload(), quality));
   return {
     at(viewUt: number): TopicReading<ReturnType<typeof orbitPayload>> {
@@ -110,6 +118,35 @@ describe("the vessel.orbit reckoner", () => {
     if (reading.reckoning.status !== "declined") throw new Error("unreachable");
     expect(reading.reckoning.declined.reason).toBe("model-inapplicable");
     expect(reading.reckoning.declined.note).toMatch(/under physics/);
+  });
+
+  /**
+   * The roster only places the atmosphere floor, so with none there is no floor
+   * to have crossed, and every orbit read in the frames before the body channel
+   * lands must still be carried.
+   */
+  it("still advances the conic while the body roster has not arrived", () => {
+    const reading = scene(Quality.OnRails, null).at(PERIOD / 4);
+
+    expect(reading.reckoning.status).toBe("available");
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.value.meanAnomalyAtEpoch?.magnitude).toBeCloseTo(
+      Math.PI / 2,
+      6,
+    );
+  });
+
+  /** The roster still bounds the conic once it is there, even held stale. */
+  it("withdraws below the atmosphere interface the roster places", () => {
+    const reading = scene(Quality.OnRails, {
+      bodies: [{ index: 1, radius: 1_900_000, atmosphere: { depth: 200_000 } }],
+    }).at(PERIOD / 4);
+
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+    });
   });
 
   /** The observation itself is untouched either way: only the model withdraws. */
