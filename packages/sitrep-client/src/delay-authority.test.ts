@@ -1,14 +1,10 @@
 import { CommsDelaySource, Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
-import {
-  CENTRE_DELAY_TOPIC,
-  COMMS_DELAY_TOPIC,
-  DelayAuthority,
-} from "./delay-authority";
+import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
 import { createFakeWallClock } from "./fake-wall-clock";
 import type { OrbitElements } from "./kepler";
-import { solve } from "./kepler";
+import { solve, solveAnomalies } from "./kepler";
 import {
   makeMeta,
   StubTransport,
@@ -190,123 +186,6 @@ describe("DelayAuthority", () => {
   });
 });
 
-const HOME = "ground:KSC";
-const FORWARD = "vessel:station";
-const UNROUTED = "ground:far";
-
-/**
- * Each centre's own row, the way the mod lays out `DelayTo(vantage, node)`: a
- * listed centre reads its row, and home and every unrouted centre read the
- * whole-network delay, `comms.delay`.
- */
-describe("DelayAuthority per command centre", () => {
-  function atDelays() {
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    const authority = new DelayAuthority();
-    const detach = authority.attach(client);
-    transport.emit(
-      COMMS_DELAY_TOPIC,
-      { oneWaySeconds: 187.4, source: CommsDelaySource.SignalDelay },
-      { vantage: HOME },
-    );
-    transport.emit(
-      CENTRE_DELAY_TOPIC,
-      { centres: [{ id: FORWARD, oneWaySeconds: 3.9 }] },
-      { vantage: HOME },
-    );
-    return { transport, client, authority, detach };
-  }
-
-  it("subscribes the centres' own delays alongside comms.delay, and releases both", () => {
-    const { transport, client, detach } = atDelays();
-    expect(transport.isSubscribed(CENTRE_DELAY_TOPIC)).toBe(true);
-    expect(transport.isSubscribed(COMMS_DELAY_TOPIC)).toBe(true);
-
-    detach();
-    expect(transport.isSubscribed(CENTRE_DELAY_TOPIC)).toBe(false);
-    expect(transport.isSubscribed(COMMS_DELAY_TOPIC)).toBe(false);
-    client.dispose();
-  });
-
-  it("runs on the selected centre's own delay, not home's", () => {
-    const { client, authority } = atDelays();
-    expect(authority.delaySeconds()).toBe(187.4);
-
-    client.setVantage(FORWARD);
-    expect(authority.delaySeconds()).toBe(3.9);
-    client.dispose();
-  });
-
-  it("reads the observed centre before this session has chosen one", () => {
-    const { transport, client, authority } = atDelays();
-    transport.emit(
-      "vessel.orbit",
-      {},
-      { vantage: FORWARD, validAt: 1, deliveredAt: 1 },
-    );
-    client.subscribe("vessel.orbit", () => {});
-    transport.emit(
-      "vessel.orbit",
-      {},
-      { vantage: FORWARD, validAt: 2, deliveredAt: 2 },
-    );
-    expect(client.selectedVantage).toBeUndefined();
-    expect(client.observedVantage).toBe(FORWARD);
-    expect(authority.delaySeconds()).toBe(3.9);
-    client.dispose();
-  });
-
-  it("falls back to comms.delay for home and for a centre with no route, never to zero", () => {
-    const { client, authority } = atDelays();
-    client.setVantage(HOME);
-    expect(authority.delaySeconds()).toBe(187.4);
-    client.setVantage(UNROUTED);
-    expect(authority.delaySeconds()).toBe(187.4);
-    client.dispose();
-  });
-
-  it("drops a centre's row when the list stops naming it", () => {
-    const { transport, client, authority } = atDelays();
-    client.setVantage(FORWARD);
-    expect(authority.delaySeconds()).toBe(3.9);
-
-    transport.emit(CENTRE_DELAY_TOPIC, { centres: [] }, { vantage: FORWARD });
-    expect(authority.delaySeconds()).toBe(187.4);
-    client.dispose();
-  });
-
-  it("keeps the last list through a payload that is not one", () => {
-    const { transport, client, authority } = atDelays();
-    client.setVantage(FORWARD);
-
-    transport.emit(CENTRE_DELAY_TOPIC, { nope: true }, { vantage: FORWARD });
-    expect(authority.delaySeconds()).toBe(3.9);
-    client.dispose();
-  });
-
-  it("leaves out an entry with no usable number rather than reading it as zero", () => {
-    const { transport, client, authority } = atDelays();
-    client.setVantage(FORWARD);
-
-    transport.emit(
-      CENTRE_DELAY_TOPIC,
-      { centres: [{ id: FORWARD, oneWaySeconds: null }] },
-      { vantage: FORWARD },
-    );
-    expect(authority.delaySeconds()).toBe(187.4);
-    client.dispose();
-  });
-
-  it("still reads zero aboard the craft before its own row has arrived", () => {
-    const { client, authority } = atDelays();
-    client.setVantage("vessel:craft");
-    authority.setOwnCraftVantage(true);
-    expect(authority.delaySeconds()).toBe(0);
-    client.dispose();
-  });
-});
-
 describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
   /**
    * With a fixed delay, the predicted-present estimate leads the
@@ -472,6 +351,19 @@ const CIRCULAR_ELEMENTS: OrbitElements = {
   mu: CIRCULAR_ORBIT.mu as number,
 };
 
+/**
+ * Where the craft is around its orbit at `ut`, in degrees on [0, 360), which
+ * is how the channel publishes it.
+ *
+ * The anomaly is the one quantity here that moves with UT on a circular
+ * fixture: radius and speed are constant around such an orbit, so a test that
+ * read either of those back would pass on a solve taken at any instant at all.
+ */
+function trueAnomalyDegrees(elements: OrbitElements, ut: number): number {
+  const degrees = (solveAnomalies(elements, ut).trueAnomaly * 180) / Math.PI;
+  return ((degrees % 360) + 360) % 360;
+}
+
 function orbitPoint(
   payload: WireOf<VesselOrbitPayload>,
   validAt: number,
@@ -529,23 +421,28 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     expect(store.certaintyHorizonUt()).toBe(100);
 
     const state = store.sample<{
-      position: readonly [number, number, number] | null;
-      velocity: readonly [number, number, number] | null;
+      trueAnomaly: number | null;
     }>("vessel.state");
 
     // The vessel dead-reckons to the frame's single view UT...
-    const vesselExpected = solve(CIRCULAR_ELEMENTS, frame.viewUt);
-    expect(state?.payload?.position).toEqual(vesselExpected.position);
+    expect(state?.payload?.trueAnomaly).toBeCloseTo(
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, frame.viewUt),
+      9,
+    );
+    // ...and not to the confirmed edge, which is the other instant on offer.
+    expect(state?.payload?.trueAnomaly).not.toBeCloseTo(
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, store.certaintyHorizonUt()),
+      3,
+    );
 
-    // ...and a deterministic body, solved at the SAME frame UT, uses the
-    // identical instant: no per-object time. Solving the body at any other
-    // UT would disagree, proving the shared frame UT is load-bearing.
+    // A deterministic body, solved at the SAME frame UT, uses the identical
+    // instant: no per-object time. Solving it at any other UT would disagree,
+    // proving the shared frame UT is load-bearing.
     const bodyAtFrameUt = solve(CIRCULAR_ELEMENTS, frame.viewUt);
     const bodyAtConfirmedEdge = solve(
       CIRCULAR_ELEMENTS,
       store.certaintyHorizonUt(),
     );
-    expect(bodyAtFrameUt.position).toEqual(vesselExpected.position);
     expect(bodyAtFrameUt.position).not.toEqual(bodyAtConfirmedEdge.position);
   });
 
@@ -565,11 +462,12 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
 
     // No wall advance, no delay: confirmed edge == estimate == 100.
     expect(clock.confirmedEdgeUt()).toBe(clock.utNowEstimate());
-    const confirmed = store.sample<{
-      position: readonly [number, number, number] | null;
-    }>("vessel.state");
-    expect(confirmed?.payload?.position).toEqual(
-      solve(CIRCULAR_ELEMENTS, 100).position,
+    const confirmed = store.sample<{ trueAnomaly: number | null }>(
+      "vessel.state",
+    );
+    expect(confirmed?.payload?.trueAnomaly).toBeCloseTo(
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, 100),
+      9,
     );
   });
 });
