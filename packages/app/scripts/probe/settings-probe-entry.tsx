@@ -1,4 +1,9 @@
-import { ScreenProvider } from "@ksp-gonogo/core";
+import {
+  type DataSource,
+  type DataSourceStatus,
+  registerDataSource,
+  ScreenProvider,
+} from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import {
   harnessTheme,
@@ -72,6 +77,33 @@ interface Scene {
   prefs?: Record<string, unknown>;
   pxW: number;
   pxH: number;
+  /** The tab to open on. The General tab when unset. */
+  tab?: string;
+  /** The screen the modal is drawn for. The main screen when unset. */
+  screen?: "main" | "station";
+  /** Whether KSP reads as connected, which is what lets a KSP setting be changed. */
+  connected?: boolean;
+}
+
+/**
+ * The Sitrep stream's connection, as the modal asks after it: only its status
+ * is read, so nothing else here does anything.
+ */
+function sitrepSource(status: DataSourceStatus): DataSource {
+  return {
+    id: "sitrep",
+    name: "Sitrep Stream",
+    status,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    subscribe: () => () => {},
+    execute: async () => {},
+    configSchema: () => [],
+    getConfig: () => ({}),
+    configure: () => {},
+    onStatusChange: () => () => {},
+  };
 }
 
 let root: Root | undefined;
@@ -114,6 +146,10 @@ async function renderScene(scene: Scene): Promise<void> {
     pinnedUt: 1_000_000,
   });
 
+  registerDataSource(
+    sitrepSource(scene.connected ? "connected" : "disconnected"),
+  );
+
   const service = new SettingsService(memoryStorage());
   for (const [id, v] of Object.entries(scene.prefs ?? {})) {
     service.set(id, v);
@@ -122,13 +158,13 @@ async function renderScene(scene: Scene): Promise<void> {
   root = createRoot(host);
   root.render(
     <ThemeProvider theme={harnessTheme}>
-      <ScreenProvider value="main">
+      <ScreenProvider value={scene.screen ?? "main"}>
         <SettingsProvider service={service}>
           <SerialDeviceProvider
             service={new SerialDeviceService({ screenKey: "render-probe" })}
           >
             <fixture.Provider>
-              <SettingsModal initialTabId="general" />
+              <SettingsModal initialTabId={scene.tab ?? "general"} />
             </fixture.Provider>
           </SerialDeviceProvider>
         </SettingsProvider>

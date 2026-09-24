@@ -263,6 +263,10 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // alarms and the notice that one fired and stopped the warp.
   "alarm.scet",
   "alarm.scet.fired",
+  // settings.gonogo: every setting the mod and its Uplinks declared and
+  // whether KSP's settings file holds it. TrueNow, and the settings panel
+  // reads it whenever it opens.
+  "settings.gonogo",
 ];
 
 /**
