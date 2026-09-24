@@ -76,7 +76,7 @@ const FULL_CARRIED = [
 describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   it("reads connected/signalStrength off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms"],
+      carriedChannels: ["vessel.comms", "comms.link"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -98,6 +98,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
 
     act(() => {
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", {
         connected: true,
         signalStrength: 0.87,
@@ -395,7 +396,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
 
   it("names the current command centre instead of assuming KSC", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.commandCentre"],
+      carriedChannels: ["vessel.comms", "comms.link", "comms.commandCentre"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -409,6 +410,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       // The vessel's path resolved to a crewed control-source vessel, not
       // KSC (the vanilla "6-kerbal command center" case): the caption must
@@ -429,7 +431,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
 
   it("falls back to Signal to KSC when no command-centre identity has arrived", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.commandCentre"],
+      carriedChannels: ["vessel.comms", "comms.link", "comms.commandCentre"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -445,6 +447,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
+      /* The caption names a centre, which ASSERTS a signal, so the scene has
+         to carry a link verdict: with `comms.link` never arriving the widget
+         withholds the caption and there is no centre name to assert about. */
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
     });
 
@@ -454,6 +460,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   it("renders the full train-schedule with per-leg distances at a comfortable size", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
+        "comms.link",
         "vessel.comms",
         "comms.commandCentre",
         "comms.path",
@@ -473,6 +480,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("vessel.identity", {
         vesselId: "v1",
@@ -545,7 +553,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     // against the panel's bottom edge with nothing useful visible. The hint
     // stays legible at any size the subtitle itself shows.
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.path"],
+      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -561,6 +569,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [
@@ -578,7 +587,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
 
   it("degrades to a hop-count hint beside the centre name when cramped", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.path"],
+      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -594,6 +603,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [
@@ -612,7 +622,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
 
   it("names a direct link with no relay hint", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.path"],
+      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -628,6 +638,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
+      fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       fixture.emit("comms.path", {
         hops: [{ from: "Active Vessel", to: "home", kind: 0 }],

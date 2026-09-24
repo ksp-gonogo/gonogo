@@ -21,6 +21,7 @@
     "render-promoted-assets": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-promoted-assets.ts",
     "render-navball-scaling": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-scaling.ts",
     "render-widget": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-widget.ts",
+    "render-absence": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-absence.ts",
     "render-affordability": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-affordability.ts",
     "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts",
     "render-provenance-card": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-provenance-card.ts",
