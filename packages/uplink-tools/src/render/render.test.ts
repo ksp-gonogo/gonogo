@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UplinkInventory } from "../render-probe";
-import { refuseToClobberHandWrittenReadme } from "./cli";
+import { compareAssetNames, refuseToClobberHandWrittenReadme } from "./cli";
 import { resolveUplinkPackage } from "./context";
 import { README_GENERATED_MARKER, scenesAssertingNothing } from "./docs";
 import { encodeGif } from "./gif";
@@ -863,5 +863,56 @@ describe("frames become an animation", () => {
         pingPong: false,
       }),
     ).toThrow();
+  });
+});
+
+/**
+ * A rendered PNG's BYTES are not drift, and its NAME is.
+ *
+ * Written down in three places and disbelieved twice, most recently as a finding
+ * that one Uplink's `docs --check` was "a coin flip on PNG bytes, independent of
+ * any change anyone makes". It never was: this comparison has read `readdir`
+ * since the day it was written. But a rule that lives only in prose can be
+ * reversed by a change that looks like a tightening, and the reversal would be
+ * invisible until CI went red on every machine at once.
+ *
+ * Both directions, because a comparison that reported nothing would pass the
+ * first half on its own.
+ */
+describe("what makes an asset stale", () => {
+  // Any bytes at all. This comparison never opens a file, which is the whole
+  // claim, so a PNG that is not a PNG is the honest fixture for it.
+  const bytes = (body: string) => Buffer.from(body, "utf8");
+
+  const assetDir = (files: Record<string, Buffer | string>): string => {
+    const dir = mkdtempSync(join(tmpdir(), "gonogo-assets-"));
+    temporaries.push(dir);
+    for (const [name, body] of Object.entries(files))
+      writeFileSync(join(dir, name), body);
+    return dir;
+  };
+
+  it("is not the bytes: a picture that rasterised differently is current", async () => {
+    const committed = assetDir({ "a--default.png": bytes("one rasteriser") });
+    const generated = assetDir({
+      "a--default.png": bytes("a different rasteriser, same picture"),
+    });
+
+    const differences: string[] = [];
+    await compareAssetNames(committed, generated, differences);
+
+    expect(differences).toEqual([]);
+  });
+
+  it("is the names: a fixture added or deleted moves the page", async () => {
+    const committed = assetDir({ "gone--default.png": bytes("a picture") });
+    const generated = assetDir({ "new--default.png": bytes("a picture") });
+
+    const differences: string[] = [];
+    await compareAssetNames(committed, generated, differences);
+
+    expect(differences).toHaveLength(2);
+    expect(differences.join("\n")).toContain("missing asset new--default.png");
+    expect(differences.join("\n")).toContain("stale asset gone--default.png");
   });
 });

@@ -422,8 +422,13 @@ async function compareText(
  * fixture deleted and its picture left behind. Rasterisation is per-engine and
  * per-OS, so byte-comparing a PNG here would fail on any machine but the one
  * that generated it, which is a gate that cries wolf and then gets turned off.
+ *
+ * Exported for the guard in `render.test.ts`. The rule was written here and read
+ * back out of the repo twice as its opposite, once in a finding that a whole
+ * Uplink's check was a coin flip on PNG bytes. A rule that only exists as prose
+ * is one the next change can reverse with nothing to say so.
  */
-async function compareAssetNames(
+export async function compareAssetNames(
   committed: string,
   generated: string,
   out: string[],
