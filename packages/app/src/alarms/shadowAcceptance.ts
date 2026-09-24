@@ -85,6 +85,28 @@ export interface ShadowExclusion {
   appliesTo(fire: ShadowFire): boolean;
 }
 
+/**
+ * The mod firing an alarm this run never armed.
+ *
+ * The mod keeps its roster across client runs, so a rig that was not restarted
+ * can still hold, and fire, an alarm an earlier run armed. That fire says
+ * nothing about this run's two evaluators. An id this run DID arm stays scored:
+ * the mod firing one the client no longer holds is a real divergence. So is a
+ * line with no id at all, which cannot be shown to be a stranger.
+ */
+export function neverArmedByThisRun(
+  armed: (id: string) => boolean,
+): ShadowExclusion {
+  return {
+    name: "mod fired an alarm this run never armed",
+    appliesTo: (fire) =>
+      fire.id !== "" &&
+      fire.lines.length === 1 &&
+      fire.lines[0].message === SHADOW_LINES.modUnheld &&
+      !armed(fire.id),
+  };
+}
+
 export interface ShadowRunInput {
   entries: readonly LogEntry[];
   /**

@@ -285,6 +285,57 @@ describe("runShadowAcceptance: the warp hold", () => {
   });
 });
 
+/**
+ * The mod still holding an alarm from an earlier run against the same game: it
+ * answers the run's `alarm.scet.fired` subscription with a fire for an id this
+ * run never armed.
+ */
+function serveStrangerFire(): void {
+  server.use(
+    link.addEventListener(
+      "connection",
+      ({ client }: { client: LinkClient }) => {
+        client.addEventListener("message", (event) => {
+          const msg: unknown = JSON.parse(String(event.data));
+          if (
+            typeof msg === "object" &&
+            msg !== null &&
+            "type" in msg &&
+            msg.type === "subscribe" &&
+            "topic" in msg &&
+            msg.topic === "alarm.scet.fired"
+          ) {
+            client.send(
+              streamFrame("alarm.scet.fired", {
+                id: "left-by-an-earlier-run",
+                firedAtUt: 5,
+                vantage: "",
+              }),
+            );
+          }
+        });
+      },
+    ),
+  );
+}
+
+describe("runShadowAcceptance: alarms it never armed", () => {
+  it("sets aside a mod fire for an alarm an earlier run left behind, and names it", async () => {
+    serveStrangerFire();
+
+    const { verdict } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 500,
+    });
+
+    expect(verdict.outcomes["one-sided"]).toBe(0);
+    expect(verdict.excluded.flatMap((x) => x.fires.map((f) => f.id))).toEqual([
+      "left-by-an-earlier-run",
+    ]);
+  });
+});
+
 describe("reportedOneWay", () => {
   it("reads the decoded seconds value", () => {
     expect(

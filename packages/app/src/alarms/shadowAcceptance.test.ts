@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyShadowRun,
   MINIMUM_FIRINGS,
+  neverArmedByThisRun,
   SHADOW_LINES,
   type ShadowRunInput,
 } from "./shadowAcceptance";
@@ -233,5 +234,46 @@ describe("classifyShadowRun", () => {
       },
     ]);
     expect(v.verdict).toBe("PASS");
+  });
+});
+
+describe("neverArmedByThisRun", () => {
+  const armed = new Set(
+    pairedRun(MINIMUM_FIRINGS).map((l) => String(l.context?.id)),
+  );
+  armed.add("mine");
+  const exclusions = [neverArmedByThisRun((id) => armed.has(id))];
+
+  it("sets aside the mod firing an alarm an earlier run left behind, and says so", () => {
+    const verdict = classify(
+      [
+        line(SHADOW_LINES.modUnheld, "left-behind"),
+        ...pairedRun(MINIMUM_FIRINGS),
+      ],
+      { exclusions },
+    );
+
+    expect(verdict.outcomes["one-sided"]).toBe(0);
+    expect(verdict.verdict).toBe("PASS");
+    expect(verdict.excluded[0].fires.map((f) => f.id)).toEqual(["left-behind"]);
+  });
+
+  it("still scores the mod firing an alarm this run armed and no longer holds", () => {
+    const verdict = classify(
+      [line(SHADOW_LINES.modUnheld, "mine"), ...pairedRun(MINIMUM_FIRINGS)],
+      { exclusions },
+    );
+
+    expect(verdict.verdict).toBe("FAIL");
+    expect(verdict.outcomes["one-sided"]).toBe(1);
+  });
+
+  it("still scores a line with no id, which cannot be shown to be a stranger", () => {
+    const verdict = classify(
+      [line(SHADOW_LINES.modUnheld, null), ...pairedRun(MINIMUM_FIRINGS)],
+      { exclusions },
+    );
+
+    expect(verdict.verdict).toBe("FAIL");
   });
 });
