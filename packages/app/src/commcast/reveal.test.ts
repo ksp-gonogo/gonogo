@@ -161,6 +161,22 @@ describe("roundTripFor", () => {
     // effectively instant. That falls out rather than being special-cased.
     expect(roundTripFor(msg({ separationSeconds: 0 }))?.replyUt).toBe(1000);
   });
+
+  it("states no schedule for several recipients, because one separation cannot describe them", () => {
+    /* Every send in the tree names exactly one target, and `to` is a list only
+       so that groups can arrive without a wire change. The arithmetic here did
+       not get that headroom: two recipients at different distances share one
+       separation, so a schedule would put them at the same instant and read as
+       a measurement rather than as the guess it is.
+
+       A group has to go as one message per target. This asserts the refusal so
+       that whoever adds groups meets a null here rather than a plausible,
+       wrong arrival time. The single-recipient case above is the control: it
+       must keep its geometry, or this is passing because the function stopped
+       working rather than because it declined. */
+    expect(roundTripFor(msg({ to: [ARES, WOOMERA] }))).toBeNull();
+    expect(roundTripFor(msg({ to: [ARES] }))).not.toBeNull();
+  });
 });
 
 describe("ackRevealUt", () => {
