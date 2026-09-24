@@ -22,13 +22,16 @@ name: release
 #   5. dispatches deploy.yml so the Pages root flips to this release
 #      immediately instead of on the next push to main,
 #   6. publishes any @ksp-gonogo package whose own version has moved to
-#      public npm (see the publish-packages job at the bottom).
+#      public npm (see the publish-packages job),
+#   7. publishes KspGonogo.Sitrep.Contract to nuget.org when its version has
+#      moved (see the publish-nuget job at the bottom).
 #
 # WHY PACKAGE PUBLISHING LIVES HERE
 #
 # npm's trusted publisher for @ksp-gonogo/ui-kit and @ksp-gonogo/sitrep-sdk
-# names *this file*. That pin is absolute: a publish from any other workflow
-# filename 401s, so this is the only place in the repo that can publish.
+# names *this file*, and so does nuget.org's policy for the ksp-gonogo
+# organisation. That pin is absolute: a publish from any other workflow
+# filename is refused, so this is the only place in the repo that can publish.
 #
 # It also matches the cadence we want. Riding the app's release couples *when*
 # a package may publish, not *what version* it publishes, each package's
@@ -44,13 +47,13 @@ on:
     inputs:
       packages_only:
         description: >-
-          Publish npm packages only. Skips the app release entirely, no GitHub
-          Release, no images, no mod zips, no Pages flip.
+          Publish the npm and NuGet packages only. Skips the app release
+          entirely, no GitHub Release, no images, no mod zips, no Pages flip.
         type: boolean
         default: false
       dry_run:
         description: >-
-          npm packages: build, pack and verify, but do not publish.
+          npm and NuGet packages: build, pack and verify, but do not publish.
         type: boolean
         default: false
 
@@ -360,4 +363,137 @@ jobs:
           else
             echo "📦 Published $NAME@$VERSION with provenance." >> "$GITHUB_STEP_SUMMARY"
             echo "https://www.npmjs.com/package/$NAME/v/$VERSION" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # The C# half of the Uplink surface. nuget.org's trusted-publishing policy for
+  # the ksp-gonogo organisation names this file and no environment, so this is
+  # the only place that can push, and it authenticates with the job's OIDC token
+  # exchanged for a one-hour key. There is no stored API key to add.
+  #
+  # One file is packed and every check runs against it: the package gate, then
+  # the extraction probe building a real Uplink against it outside the repo, then
+  # the plant proving the probe could have failed. The push sends that same file,
+  # never a re-pack, so what shipped is what was tested.
+  publish-nuget:
+    needs: release
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PACKAGE_ID: KspGonogo.Sitrep.Contract
+      KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+      KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+    steps:
+      - uses: actions/checkout@v5
+
+      # The probe compiles a KSP plugin, so it needs the reference assemblies.
+      # No soft-degrade here: a release that could not run the probe has not
+      # proved the package, and must not push it.
+      - name: Checkout the KSP reference assemblies
+        uses: actions/checkout@v5
+        with:
+          repository: ksp-gonogo/ksp-managed
+          token: ${{ secrets.KSP_MANAGED_TOKEN }}
+          path: ksp-managed
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Pack
+        id: pack
+        run: |
+          set -euo pipefail
+          dotnet pack mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj \
+            -c Release -o "$RUNNER_TEMP/nuget" --nologo
+          NUPKG="$(ls "$RUNNER_TEMP"/nuget/"$PACKAGE_ID".*.nupkg)"
+          VERSION="$(basename "$NUPKG" .nupkg)"
+          VERSION="${VERSION#"$PACKAGE_ID".}"
+          {
+            echo "nupkg=$NUPKG"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Gate the packed file
+        run: node scripts/nuget-contract-package-gate.mjs '${{ steps.pack.outputs.nupkg }}'
+
+      - name: An Uplink builds against the packed file, and the probe can see a gap
+        run: |
+          set -euo pipefail
+          node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --plant --uplink GonogoKosUplink
+
+      # NuGet refuses a republish of an existing version, so an unchanged version
+      # is skipped with a notice rather than failing the release. Only a 404 means
+      # "not published": any other answer from the registry fails here, because
+      # reading a registry outage as "absent" would attempt a push and reading it
+      # as "present" would skip one.
+      - name: Is this version already on nuget.org?
+        id: published
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.pack.outputs.version }}'
+          ID_LOWER="$(echo "$PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
+          STATUS="$(curl -s -o "$RUNNER_TEMP/versions.json" -w '%{http_code}' \
+            "https://api.nuget.org/v3-flatcontainer/$ID_LOWER/index.json")"
+          case "$STATUS" in
+            404) echo "skip=false" >> "$GITHUB_OUTPUT"; echo "$PACKAGE_ID has never been published." ;;
+            200)
+              if node -e "process.exit(require(process.argv[1]).versions.includes(process.argv[2].toLowerCase()) ? 0 : 1)" \
+                "$RUNNER_TEMP/versions.json" "$VERSION"; then
+                echo "::notice::$PACKAGE_ID $VERSION is already on nuget.org, no version change."
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "$PACKAGE_ID $VERSION is not on nuget.org yet."
+                echo "skip=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            *) echo "::error::nuget.org answered $STATUS for $PACKAGE_ID's version list."; exit 1 ;;
+          esac
+
+      # The login action exchanges the OIDC token as a named nuget.org account,
+      # the profile name that owns the policy. It is refused before the exchange
+      # when unset, so a missing secret reads as that rather than as a 401.
+      - name: The nuget.org account is configured
+        if: steps.published.outputs.skip == 'false' && !inputs.dry_run
+        env:
+          NUGET_USER: ${{ secrets.NUGET_USER }}
+        run: |
+          if [ -z "$NUGET_USER" ]; then
+            echo "::error::secrets.NUGET_USER is unset. It is the nuget.org profile name (not an email) of the account that owns the ksp-gonogo trusted-publishing policy."
+            exit 1
+          fi
+
+      - name: NuGet login (OIDC to a one-hour key)
+        if: steps.published.outputs.skip == 'false' && !inputs.dry_run
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Pushes the .snupkg beside it as well: `dotnet nuget push` sends a
+      # symbols package of the same name automatically.
+      - name: Publish to nuget.org
+        if: steps.published.outputs.skip == 'false' && !inputs.dry_run
+        run: |
+          dotnet nuget push '${{ steps.pack.outputs.nupkg }}' \
+            --api-key '${{ steps.login.outputs.NUGET_API_KEY }}' \
+            --source https://api.nuget.org/v3/index.json
+
+      - name: Summary
+        run: |
+          VERSION='${{ steps.pack.outputs.version }}'
+          if [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
+            echo "⏭ $PACKAGE_ID $VERSION: already on nuget.org, no version change." >> "$GITHUB_STEP_SUMMARY"
+          elif [ '${{ inputs.dry_run }}' = 'true' ]; then
+            echo "🧪 $PACKAGE_ID $VERSION: packed, gated and probed, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "📦 Published $PACKAGE_ID $VERSION." >> "$GITHUB_STEP_SUMMARY"
+            echo "https://www.nuget.org/packages/$PACKAGE_ID/$VERSION" >> "$GITHUB_STEP_SUMMARY"
           fi
