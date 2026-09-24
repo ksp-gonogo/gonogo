@@ -215,6 +215,11 @@
          local_docs reference sets may not. -->
     <PhysicsModuleDll>$(KspManaged)\UnityEngine.PhysicsModule.dll</PhysicsModuleDll>
     <ServoModulesAvailable Condition="'$(KspManagedAvailable)' == 'true' And Exists('$(PhysicsModuleDll)')">true</ServoModulesAvailable>
+    <!-- Compiled into KspReferenceCoverage.cs as a skipped test per dropped
+         suite, so a degraded run says so in the same summary line as Passed!
+         rather than only in a build warning above it. -->
+    <DefineConstants Condition="'$(KspManagedAvailable)' != 'true'">$(DefineConstants);KSP_MANAGED_ABSENT</DefineConstants>
+    <DefineConstants Condition="'$(ServoModulesAvailable)' != 'true'">$(DefineConstants);KSP_PHYSICS_ABSENT</DefineConstants>
   </PropertyGroup>
 
   <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/**,
@@ -465,6 +470,10 @@
 
   <Target Name="WarnIfServoModulesMissing" BeforeTargets="Build" Condition="'$(ServoModulesAvailable)' != 'true'">
     <Warning Text="UnityEngine.PhysicsModule.dll not found under KspManaged=$(KspManaged): ServoCaptureTests SKIPPED (soft-degrade), so nothing is checking that every Breaking Ground servo kind reaches the wire. Point KspManaged at a full KSP_Data/Managed directory to run them." />
+  </Target>
+
+  <Target Name="RefuseMissingRequestedKspManaged" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true' And '$(_KspManagedDefaulted)' != 'true'">
+    <Error Text="KspManaged=$(KspManaged) was passed, but it holds no Assembly-CSharp.dll. A path given on purpose that resolves to nothing is a mistake, not a machine without KSP: a relative path from a git worktree, where local_docs does not exist, is the usual cause. Pass the directory that holds Assembly-CSharp.dll, or leave KspManaged unset to run without the KSP-linked suites." />
   </Target>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
