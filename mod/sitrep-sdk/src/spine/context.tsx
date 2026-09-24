@@ -30,6 +30,7 @@ import {
   getContributedDerivedChannels,
   onContributedChannelsChange,
 } from "./contributed-channels";
+import { noteUndeclaredRead } from "./contribution-scope";
 import { registerCoreReckoners } from "./core-reckoners";
 import { DelayAuthority } from "./delay-authority";
 import {
@@ -784,6 +785,7 @@ export function useUtNow(): number | undefined {
  * contract `useViewUt` returns before its first frame.
  */
 export function getViewUt(): number | undefined {
+  noteUndeclaredRead("getViewUt");
   const ut = activeViewClock?.viewUt();
   return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
@@ -877,6 +879,7 @@ let activeCarriedChannels: ReadonlySet<string> | undefined;
  * own doc comment already documents for the hook case.
  */
 export function sampleActiveTopic<T>(topic: string): T | undefined {
+  noteUndeclaredRead("sampleActiveTopic", topic);
   if (!activeTimelineStore) return undefined;
   const point = activeTimelineStore.sample<T>(
     topic,

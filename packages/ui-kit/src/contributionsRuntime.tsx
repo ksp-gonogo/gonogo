@@ -13,6 +13,7 @@ import {
   getProcessorValue,
   onContributionsChange,
   type ProcessorHandle,
+  runContributionCompute,
   subscribeTopicRead,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -166,6 +167,17 @@ function shallowEqualValues(
   const keys = Object.keys(a);
   if (keys.length !== Object.keys(b).length) return false;
   return keys.every((k) => Object.hasOwn(b, k) && Object.is(a[k], b[k]));
+}
+
+/** The topics a contribution declared, which it may read through any seam unreported. */
+function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
+  const topics = new Set<string>();
+  for (const d of def.deps ?? []) {
+    if (typeof d === "string") topics.add(d);
+    else if ("reading" in d) topics.add(d.reading);
+  }
+  if (def.requires) topics.add(`${def.requires}.available`);
+  return topics;
 }
 
 /**
@@ -333,7 +345,11 @@ function SlotAggregator({
         continue; // Domain absent: this contribution does not run.
       }
       try {
-        const result = def.compute(topicValues as never);
+        const result = runContributionCompute(
+          def.id,
+          declaredTopicsOf(def),
+          () => def.compute(topicValues as never),
+        );
         if (result) {
           for (const entry of result) {
             if (entry !== null && typeof entry === "object") {
