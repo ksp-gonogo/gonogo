@@ -14,6 +14,24 @@
  * Sized with `width`/`height` in CSS px, the same pair `Dial` and `Tape` take.
  * A corner-sized control (three wheels inside a 232px tile) wants about 72x24,
  * which reads at the scale of a video overlay's own 52x52 aim pad.
+ *
+ * Two known limits, undocumented before and worth knowing before reaching for
+ * this control:
+ *
+ * - The visible caret label and `aria-valuetext` are the SAME computed string
+ *   (`format(value)`, or the rounded value with no `format`). There is no way
+ *   to give a screen reader a fuller value description (units, an axis name)
+ *   while keeping the on-face text short enough for a compact wheel: shrink
+ *   one and the other shrinks with it, since they are not two things, they
+ *   are one string read twice. `ariaLabel` still names the control itself, so
+ *   this only bites when the VALUE needs more context than a bare number.
+ * - The drag axis is `e.clientX` / `e.clientY`, i.e. viewport-relative, not
+ *   relative to the wheel's own element. A wheel styled with a CSS
+ *   `transform: rotate(...)` therefore cannot be dragged along its own drawn
+ *   axis: `orientation` still reads pointer travel against the SCREEN's X/Y,
+ *   so a rotated horizontal wheel's tape runs at its drawn angle while a drag
+ *   across the screen's X axis is what moves it. Do not rotate this control
+ *   until the axis math is made element-relative.
  */
 
 import type { KeyboardEvent, PointerEvent } from "react";
