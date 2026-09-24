@@ -12,7 +12,15 @@ import { defineConfig } from "tsup";
  * The kit is a PEER here, in one direction only. `gridUnits` is the single
  * module this package takes back from it.
  */
+/**
+ * `clean` is off in every entry and the build script empties `dist` before tsup
+ * starts. The three entries build concurrently, and tsup's declaration pass
+ * deletes every `.d.ts` under `outDir` when `clean` is set, so a cleaning entry
+ * removes whichever declarations the other two have already written, a
+ * different set on each run.
+ */
 const shared = {
+  clean: false,
   format: ["esm"] as const,
   outDir: "dist",
   target: "es2022",
@@ -42,7 +50,6 @@ export default defineConfig([
      * because there is nothing left to share.
      */
     entry: ["src/render-probe.tsx"],
-    clean: true,
     splitting: false,
     external: PEERS,
     dts: { resolve: true },
@@ -50,14 +57,13 @@ export default defineConfig([
   {
     ...shared,
     // The NODE half: esbuild, Playwright, the filesystem, the GIF encoder and
-    // the markdown generator. `clean` is off, this appends to the dist above.
+    // the markdown generator.
     //
     // `page-check` is a separate entry because it must NOT pull Playwright: it
     // is the half of the gate an author with no browser can run, and a static
     // import of the driver would make it cost exactly what it exists to avoid.
     entry: ["src/index.ts", "src/page-check.ts"],
     platform: "node",
-    clean: false,
     // Small, pure JS and dependency-free, so inlining keeps this manifest free
     // of runtime dependencies. Reachable only from `dist/index.js`, which a
     // browser bundle never resolves.
@@ -105,7 +111,6 @@ export default defineConfig([
      */
     entry: ["src/widgets.ts"],
     platform: "browser",
-    clean: false,
     splitting: false,
     external: [
       ...PEERS,
