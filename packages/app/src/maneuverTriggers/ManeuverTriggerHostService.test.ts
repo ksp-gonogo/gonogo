@@ -275,6 +275,45 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
+  /**
+   * The same crossing as the test above, in the order `MainScreen` actually
+   * builds these in: the host services come out of `useState` initialisers
+   * during the first render, and the `SitrepTelemetryProvider` that registers
+   * the timeline store is a CHILD, so its effect has not run yet. Every other
+   * test in this file seeds the store first, which is the one arrangement
+   * production never uses.
+   *
+   * `bindVesselWatcher` therefore binds `onActiveTimelineFrame` while no store
+   * is registered, gets the no-op unsubscribe back and never rebinds, so no
+   * frame ever re-evaluates the threshold. The trigger stays armed against the
+   * live vessel and never fires.
+   */
+  // `it.fails` while the defect stands: this goes red the moment it is fixed.
+  it.fails("fires a trigger armed after the provider mounted, when the service was built before it", async () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+
+    // Arming is a later operator action, well after mount, so the store is
+    // live by now: the trigger takes the real vessel name and reads as armed.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 750_000,
+      inputs: FROZEN,
+    });
+    expect(svc.snapshot().triggers).toHaveLength(1);
+    expect(svc.snapshot().triggers[0].vesselName).toBe("Test Vessel");
+    expect(storeFixture.calls).toEqual([]);
+
+    // 707_000 -> 1_010_000, clearing the 750_000 threshold.
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(storeFixture.calls.length).toBe(1);
+    expect(svc.snapshot().triggers).toHaveLength(0);
+  });
+
   it("auto-clears triggers when the active vessel changes", () => {
     const storeFixture = seedKerbinOrbit();
     const svc = makeService();
