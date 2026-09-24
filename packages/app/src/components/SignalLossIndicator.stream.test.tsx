@@ -1,12 +1,14 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";

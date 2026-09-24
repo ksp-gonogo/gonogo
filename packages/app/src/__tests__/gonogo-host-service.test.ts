@@ -6,13 +6,13 @@ import type {
 } from "@ksp-gonogo/sitrep-client";
 import {
   readingFrom,
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   TelemetryClient,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
 import type { PeerHostService } from "../peer/PeerHostService";

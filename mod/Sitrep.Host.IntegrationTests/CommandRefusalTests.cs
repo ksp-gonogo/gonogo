@@ -186,6 +186,35 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// An evaluator that hands back no verdict has not said yes. The command
+        /// is held and the refusal says the gate returned nothing, the same answer
+        /// the main-thread path gives, rather than the handler running as though
+        /// the gate had passed.
+        /// </summary>
+        [Fact]
+        public void AGateThatAnswersNothingHoldsTheCommand()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new GatedTestUplink(answersNothing: true));
+            engine.Start();
+            try
+            {
+                object? result = null;
+                string? refusal = null;
+                engine.DispatchCommandAndWait(
+                    GatedTestUplink.Command, "x", "vantage-1",
+                    r => result = r,
+                    SettleWindow,
+                    onRefused: reason => refusal = reason);
+
+                Assert.Null(result);
+                Assert.NotNull(refusal);
+                Assert.Contains("returned nothing", refusal);
+            }
+            finally { engine.Stop(); }
+        }
+
+        /// <summary>
         /// The seam, C# half: a real <c>ClientWebSocket</c> asks for a command
         /// whose uplink is unavailable and reads what actually comes back off the
         /// wire, then writes that frame to the committed fixture the TS half
@@ -276,10 +305,12 @@ namespace Sitrep.Host.IntegrationTests
             public const string GateKind = "test-pad-mass";
 
             private readonly bool _undecidable;
+            private readonly bool _answersNothing;
 
-            public GatedTestUplink(bool undecidable = false)
+            public GatedTestUplink(bool undecidable = false, bool answersNothing = false)
             {
                 _undecidable = undecidable;
+                _answersNothing = answersNothing;
             }
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -305,18 +336,25 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<string, string>(Command, args => "lifted:" + args);
-                host.AddGateEvaluator(new Evaluator(_undecidable));
+                host.AddGateEvaluator(new Evaluator(_undecidable, _answersNothing));
             }
 
             private sealed class Evaluator : ICommandGateEvaluator
             {
                 private readonly bool _undecidable;
-                public Evaluator(bool undecidable) => _undecidable = undecidable;
+                private readonly bool _answersNothing;
+
+                public Evaluator(bool undecidable, bool answersNothing)
+                {
+                    _undecidable = undecidable;
+                    _answersNothing = answersNothing;
+                }
 
                 public string Kind => GateKind;
 
                 public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
                 {
+                    if (_answersNothing) return null!;
                     return _undecidable
                         ? GateVerdict.Unknown("the scales are down")
                         : GateVerdict.Fail(new LimitBreach

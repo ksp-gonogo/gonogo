@@ -1,10 +1,8 @@
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   type VesselFlightPayload,
   type VesselOrbitPayload,
-  type WireOf,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality, registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -12,7 +10,11 @@ import {
   resetDeadReadWarnings,
   resetGatedReadWarnings,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  installTestHost,
+  StubTransport,
+  type WireOf,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   render,

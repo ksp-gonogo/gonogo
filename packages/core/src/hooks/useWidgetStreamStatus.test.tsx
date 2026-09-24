@@ -1,11 +1,10 @@
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
+import { installDomStubs, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { Panel, PanelStatusStoreProvider } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";

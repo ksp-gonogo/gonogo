@@ -1,13 +1,15 @@
 import {
-  createFakeWallClock,
   PropagationHorizonKindLike,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   TrajectoryKindLike,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import {
   PanelStatusStoreProvider,

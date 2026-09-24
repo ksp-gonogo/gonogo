@@ -4,10 +4,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   clearProcessorRuntime,
-  createFakeWallClock,
-  type FakeWallClock,
   PRODUCTION_DERIVED_CHANNELS,
-  StubTransport,
   setProcessorEvaluationRecorder,
   setProcessorNotificationRecorder,
   TelemetryClient,
@@ -16,8 +13,12 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  type FakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import type { JSX, ReactNode } from "react";
-
 /**
  * The stream test-adapter, minimal version: a migrated widget's test needs
  * to genuinely run OFF THE STREAM (a real `TelemetryProvider` + a real

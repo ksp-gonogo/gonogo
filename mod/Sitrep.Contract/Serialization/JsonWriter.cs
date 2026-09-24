@@ -274,6 +274,10 @@ namespace Sitrep.Contract.Serialization
                     // anything that publishes a condition without the row.
                     AppendScetAlarmCondition(sb, scetAlarmCondition);
                     break;
+                case Sitrep.Contract.ScetAlarmAction scetAlarmAction:
+                    // Reached nested inside a roster row's onFire list.
+                    AppendScetAlarmAction(sb, scetAlarmAction);
+                    break;
                 case Sitrep.Contract.ScetAlarmFired scetAlarmFired:
                     AppendScetAlarmFired(sb, scetAlarmFired);
                     break;
@@ -1775,8 +1779,8 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// One armed SCET alarm as <c>{ id, name, armedBy, subject, condition,
-        /// state, firedAtUt }</c>, the element shape of the <c>alarm.scet</c>
+        /// One armed SCET alarm as <c>{ id, name, armedBy, vantage, subject,
+        /// condition, state, firedAtUt, onFire, actsOn }</c>, the element shape of the <c>alarm.scet</c>
         /// array.
         /// </summary>
         ///
@@ -1828,12 +1832,31 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "firedAtUt");
             sb.Append(':');
             AppendNullableNumber(sb, a.FiredAtUt);
+            sb.Append(',');
+            AppendString(sb, "onFire");
+            sb.Append(':');
+            sb.Append('[');
+            var actions = a.OnFire ?? new System.Collections.Generic.List<Sitrep.Contract.ScetAlarmAction>();
+            for (var i = 0; i < actions.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendScetAlarmAction(sb, actions[i]);
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "actsOn");
+            sb.Append(':');
+            AppendString(sb, a.ActsOn ?? "");
             sb.Append('}');
         }
 
         /// <summary>
         /// A SCET alarm's condition as <c>{ kind, ut, leadSeconds, topic,
-        /// fieldPath, op, threshold, sustainSeconds }</c>.
+        /// fieldPath, op, threshold, sustainSeconds, contractId, parameterTitle,
+        /// targetState }</c>.
         /// </summary>
         ///
         /// <remarks>
@@ -1879,15 +1902,48 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "sustainSeconds");
             sb.Append(':');
             AppendNumber(sb, c.SustainSeconds);
+            sb.Append(',');
+            AppendString(sb, "contractId");
+            sb.Append(':');
+            AppendString(sb, c.ContractId ?? "");
+            sb.Append(',');
+            AppendString(sb, "parameterTitle");
+            sb.Append(':');
+            AppendString(sb, c.ParameterTitle ?? "");
+            sb.Append(',');
+            AppendString(sb, "targetState");
+            sb.Append(':');
+            AppendInteger(sb, (int)c.TargetState);
             sb.Append('}');
         }
 
         /// <summary>
-        /// The fire notice as <c>{ id, firedAtUt, vantage }</c>. Still the
-        /// honest minimum: see <see cref="Sitrep.Contract.ScetAlarmFired"/> for
-        /// why nothing about the craft may travel on this channel. The vantage
-        /// is the place the operator named when they armed it, which is a fact
-        /// about the alarm rather than a reading of anything.
+        /// One onboard action as <c>{ kind, group }</c>, <c>kind</c> as its
+        /// ordinal. <c>group</c> goes every time, zero for a kind that is not a
+        /// custom group, for the reason <see cref="AppendScetAlarmCondition"/>
+        /// writes its unused half.
+        /// </summary>
+        private static void AppendScetAlarmAction(
+            StringBuilder sb, Sitrep.Contract.ScetAlarmAction a)
+        {
+            sb.Append('{');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendInteger(sb, (int)a.Kind);
+            sb.Append(',');
+            AppendString(sb, "group");
+            sb.Append(':');
+            AppendInteger(sb, a.Group);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// The fire notice as <c>{ id, firedAtUt, vantage, actionsWithheld }</c>.
+        /// See <see cref="Sitrep.Contract.ScetAlarmFired"/> for why nothing about
+        /// the craft may travel on this channel. The vantage is the place the
+        /// operator named when they armed it, and <c>actionsWithheld</c> says the
+        /// craft being flown was not the one the actions were for: facts about
+        /// the alarm and the game, not readings of anything aboard.
         /// </summary>
         private static void AppendScetAlarmFired(
             StringBuilder sb, Sitrep.Contract.ScetAlarmFired f)
@@ -1904,6 +1960,10 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "vantage");
             sb.Append(':');
             AppendString(sb, f.Vantage ?? "");
+            sb.Append(',');
+            AppendString(sb, "actionsWithheld");
+            sb.Append(':');
+            AppendBool(sb, f.ActionsWithheld);
             sb.Append('}');
         }
 

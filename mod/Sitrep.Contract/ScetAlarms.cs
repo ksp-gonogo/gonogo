@@ -1,16 +1,17 @@
 #if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
+using System.Collections.Generic;
 
 namespace Sitrep.Contract;
 
 /// <summary>
 /// Which kind of condition a SCET alarm watches for.
 ///
-/// <para>Every alarm has a vantage, so a kind is only about WHAT is watched.
-/// A contract parameter has no member here yet because it reads a list-shaped
-/// Topic and a dotted path cannot index a list, so it needs a matcher of its
-/// own rather than a threshold's.</para>
+/// <para>Every alarm has a vantage, so a kind is only about WHAT is watched,
+/// and each kind names its own matcher: a threshold walks a dotted path to a
+/// number, and a contract parameter, which lives in a list no path can index,
+/// finds its contract and objective by identity.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -32,6 +33,18 @@ public enum ScetAlarmConditionKind
     /// longer the answer to "is it above 100 km NOW".</para>
     /// </summary>
     Threshold,
+
+    /// <summary>
+    /// One objective of one active contract reaching a state the operator
+    /// chose, as <c>career.status.contracts.active</c> reports it.
+    ///
+    /// <para>Level rather than edge, like the threshold: an objective already
+    /// in its target state when the alarm is armed is a condition that holds.
+    /// A contract no longer active leaves the condition unmet for ever, which
+    /// is the fail-safe answer for a contract that was completed, failed or
+    /// withdrawn by some other route.</para>
+    /// </summary>
+    ContractParameter,
 }
 
 /// <summary>
@@ -114,7 +127,10 @@ public enum ScetAlarmState
 /// <see cref="Ut"/> and <see cref="LeadSeconds"/>; for
 /// <see cref="ScetAlarmConditionKind.Threshold"/> it is <see cref="Topic"/>,
 /// <see cref="FieldPath"/>, <see cref="Op"/>, <see cref="Threshold"/> and
-/// <see cref="SustainSeconds"/>.</para>
+/// <see cref="SustainSeconds"/>; for
+/// <see cref="ScetAlarmConditionKind.ContractParameter"/> it is
+/// <see cref="ContractId"/>, <see cref="ParameterTitle"/>,
+/// <see cref="TargetState"/> and <see cref="SustainSeconds"/>.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -190,8 +206,9 @@ public class ScetAlarmCondition
     public double Threshold { get; set; }
 
     /// <summary>
-    /// Threshold only: how long the condition must hold, in seconds, before the
-    /// alarm fires. Zero fires on the first reading that matches.
+    /// Threshold and contract parameter: how long the condition must hold, in
+    /// seconds, before the alarm fires. Zero fires on the first reading that
+    /// matches.
     ///
     /// <para><b>Warp is stopped at the first match, not at the fire.</b> A
     /// sustain window is a span of the craft's time, and under warp one tick
@@ -204,6 +221,98 @@ public class ScetAlarmCondition
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double SustainSeconds { get; set; }
+
+    /// <summary>
+    /// Contract parameter only: the contract's id, as
+    /// <c>career.status.contracts.active</c> carries it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ContractId { get; set; } = "";
+
+    /// <summary>
+    /// Contract parameter only: the objective's title within that contract,
+    /// matched exactly. The first objective with the title answers.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string ParameterTitle { get; set; } = "";
+
+    /// <summary>Contract parameter only: the state the objective must reach.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspParameterState TargetState { get; set; } = KspParameterState.Complete;
+}
+
+/// <summary>
+/// What a SCET alarm's onboard action does to the craft when the alarm fires.
+///
+/// <para>A typed member for each stock singleton and one for every custom
+/// group, so no name ever crosses the wire. A player may call a custom group
+/// "Stage", and two custom groups may share a name, so a name is not an
+/// identity: a custom group is addressed by its index in
+/// <see cref="ScetAlarmAction.Group"/>, and cannot be read as the stage
+/// command however it is labelled.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum ScetAlarmActionKind
+{
+    /// <summary>Toggle the custom action group whose index is <see cref="ScetAlarmAction.Group"/>.</summary>
+    ActionGroup,
+
+    /// <summary>Activate the next stage.</summary>
+    Stage,
+
+    /// <summary>Toggle SAS.</summary>
+    Sas,
+
+    /// <summary>Toggle RCS.</summary>
+    Rcs,
+
+    /// <summary>Toggle the lights.</summary>
+    Lights,
+
+    /// <summary>Toggle the landing gear.</summary>
+    Gear,
+
+    /// <summary>Toggle the brakes.</summary>
+    Brakes,
+
+    /// <summary>Toggle the abort action group.</summary>
+    Abort,
+}
+
+/// <summary>
+/// One thing the craft does in the frame its alarm fires, as a flight computer
+/// would: evaluated aboard, fired aboard, acted aboard.
+///
+/// <para>Held only by an alarm read at its own subject's vantage. An alarm
+/// judged against what a command centre has been told comes due a light-time
+/// after the craft passed the condition, and acting on the craft in that same
+/// frame would carry the ground's decision to the craft faster than light, so
+/// such an arm is refused. A ground-side alarm's action travels as an ordinary
+/// command instead.</para>
+///
+/// <para>Every kind but <see cref="ScetAlarmActionKind.Stage"/> TOGGLES,
+/// against the state the craft reports at the moment of the fire, which is
+/// what pressing the group's key does.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class ScetAlarmAction
+{
+    [SitrepUnit(Units.Enumeration)]
+    public ScetAlarmActionKind Kind { get; set; } = ScetAlarmActionKind.ActionGroup;
+
+    /// <summary>
+    /// <see cref="ScetAlarmActionKind.ActionGroup"/> only: the custom group's
+    /// 1-based index, as <c>vessel.control.setActionGroup</c> takes it. Zero for
+    /// every other kind.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int Group { get; set; }
 }
 
 /// <summary>
@@ -337,6 +446,24 @@ public class ScetAlarm
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? FiredAtUt { get; set; }
+
+    /// <summary>
+    /// What the craft does when this alarm fires, in order. Empty for an alarm
+    /// that only stops the warp and says so. See <see cref="ScetAlarmAction"/>.
+    /// </summary>
+    public List<ScetAlarmAction> OnFire { get; set; } = new();
+
+    /// <summary>
+    /// The craft <see cref="OnFire"/> acts on, as <c>"vessel:&lt;guid&gt;"</c>,
+    /// or empty while there are no actions.
+    ///
+    /// <para>The actions run only if this craft is the one being flown when the
+    /// alarm fires, and are withheld otherwise: a time condition belongs to the
+    /// game rather than to any craft, so after a vessel switch its actions would
+    /// otherwise land on whatever happened to be active.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ActsOn { get; set; } = "";
 }
 
 /// <summary>
@@ -349,11 +476,13 @@ public class ScetAlarm
 /// and this payload carries nothing that would close that gap early. Whatever
 /// the craft was doing at <see cref="FiredAtUt"/> arrives when it arrives.</para>
 ///
-/// <para>The two fields are the honest minimum. The id is the operator's own
+/// <para>The id and the instant are the honest minimum. The id is the operator's own
 /// handle, which tells them nothing they did not already write down. The instant
 /// is inseparable from the stop: without it a warp that halted at one universal
 /// time is indistinguishable from one that halted at another, and the operator
-/// cannot tell which of two armed alarms stopped them.</para>
+/// cannot tell which of two armed alarms stopped them. The other fields say
+/// where it was learned and whether its actions were withheld for want of the
+/// right craft, and neither is a reading of the craft.</para>
 /// <internal>
 /// The spec also proposed echoing the condition back. For a time arm that is
 /// the instant restated, so it adds nothing; for the threshold arm to come it
@@ -391,6 +520,19 @@ public class ScetAlarmFired
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
+
+    /// <summary>
+    /// Whether the alarm held onboard actions and they were withheld because
+    /// the craft named by <see cref="ScetAlarm.ActsOn"/> was not the one being
+    /// flown. False for an alarm with no actions.
+    ///
+    /// <para>Says nothing about how the craft answered an action that WAS sent.
+    /// That is a fact aboard the craft, and it reaches the ground the way every
+    /// other one does, a light-time later in the craft's own telemetry: this
+    /// notice travels at once and must not carry it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool ActionsWithheld { get; set; }
 }
 
 /// <summary>
@@ -431,6 +573,23 @@ public class ScetAlarmArmArgs
     public string Subject { get; set; } = "game";
 
     public ScetAlarmCondition Condition { get; set; } = new ScetAlarmCondition();
+
+    /// <summary>
+    /// See <see cref="ScetAlarm.OnFire"/>. Non-empty only where the alarm is read
+    /// at its own subject's vantage and that subject is a craft, or the condition
+    /// is a time on the game's clock; any other arm carrying actions is refused
+    /// rather than accepted with them dropped.
+    /// </summary>
+    public List<ScetAlarmAction> OnFire { get; set; } = new();
+
+    /// <summary>
+    /// See <see cref="ScetAlarm.ActsOn"/>. A time condition carrying actions
+    /// must name the craft the operator means them for. A threshold on a craft
+    /// acts on that craft, so empty resolves to its subject and any other craft
+    /// is refused.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ActsOn { get; set; } = "";
 }
 
 /// <summary>

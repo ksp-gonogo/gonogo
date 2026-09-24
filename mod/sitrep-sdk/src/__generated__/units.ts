@@ -979,6 +979,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalMass: "t",
   },
   "ScetAlarm": {
+    actsOn: "id",
     armedBy: "id",
     firedAtUt: "ut",
     id: "id",
@@ -987,18 +988,26 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     subject: "id",
     vantage: "id",
   },
+  "ScetAlarmAction": {
+    group: "id",
+    kind: "enum",
+  },
   "ScetAlarmArmArgs": {
+    actsOn: "id",
     id: "id",
     name: "text",
     subject: "id",
     vantage: "id",
   },
   "ScetAlarmCondition": {
+    contractId: "id",
     fieldPath: "id",
     kind: "enum",
     leadSeconds: "s",
     op: "enum",
+    parameterTitle: "text",
     sustainSeconds: "s",
+    targetState: "enum",
     threshold: "n/a",
     topic: "id",
     ut: "ut",
@@ -1007,6 +1016,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
   },
   "ScetAlarmFired": {
+    actionsWithheld: "flag",
     firedAtUt: "ut",
     id: "id",
     vantage: "id",
@@ -1474,6 +1484,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "alarm.scet": {
+    actsOn: "id",
     armedBy: "id",
     firedAtUt: "ut",
     id: "id",
@@ -1483,6 +1494,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     vantage: "id",
   },
   "alarm.scet.fired": {
+    actionsWithheld: "flag",
     firedAtUt: "ut",
     id: "id",
     vantage: "id",
@@ -2273,9 +2285,11 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ScetAlarm": {
     condition: "ScetAlarmCondition",
+    onFire: "ScetAlarmAction[]",
   },
   "ScetAlarmArmArgs": {
     condition: "ScetAlarmCondition",
+    onFire: "ScetAlarmAction[]",
   },
   "SeededTrajectory": {
     arc: "TrajectoryArc",
@@ -2411,6 +2425,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "alarm.scet": {
     condition: "ScetAlarmCondition",
+    onFire: "ScetAlarmAction[]",
   },
   "career.facilities": {
     facilities: "*CareerFacility",

@@ -176,6 +176,28 @@ export function thresholdAddress(
   return { topic, fieldPath };
 }
 
+/**
+ * Whether this alarm's `onFire` actions are meant to run ABOARD: held by the
+ * mod and run in the frame the alarm fires, with no delay. Otherwise this
+ * screen sends them when it learns of the fire, and they reach the craft one
+ * light-time later.
+ *
+ * Aboard only where the craft itself could have judged the condition in that
+ * frame: a time, which a sequencer aboard keeps, or a SCET threshold on a
+ * reading of the craft. A threshold judged against what the command centre
+ * has been told fires a light-time after the craft passed it, and one on the
+ * game's own state (a career's funds) is not aboard any craft, so acting on
+ * the craft in the same frame as either would carry the decision there
+ * faster than light.
+ */
+export function actionsRunAboard(trigger: AlarmTrigger): boolean {
+  if (trigger.kind === "time") return true;
+  if (trigger.kind !== "threshold" || !isAtSubjectVantage(trigger)) {
+    return false;
+  }
+  return thresholdAddress(trigger)?.topic.startsWith("vessel.") ?? false;
+}
+
 export type ContractParameterTargetState = "Complete" | "Failed";
 
 /**
@@ -309,6 +331,14 @@ export interface Alarm {
    * action doesn't block the alarm itself or the rest of the list.
    */
   onFire?: AlarmFireAction[];
+  /**
+   * Set when this alarm fired without its `onFire` actions being dispatched,
+   * because the fire was discovered rather than watched: found already due on
+   * the first evaluation after a reload, or made due by an edit. A command sent
+   * now for a condition met arbitrarily long ago is not a late action but the
+   * wrong one. Cleared when the alarm goes back to waiting.
+   */
+  actionsWithheld?: true;
 }
 
 export interface AlarmWarpState {
@@ -396,6 +426,15 @@ export interface AlarmSnapshot {
    * two.
    */
   onFireRefusals?: Record<string, string>;
+  /**
+   * The ids of alarms the simulation holds as UNREACHABLE: the craft the
+   * condition watches no longer exists, so they can never come due. Absent when
+   * there are none.
+   *
+   * Only the simulation knows a craft is gone. Without this the row reads
+   * `pending` for ever, like an alarm whose condition has not come due yet.
+   */
+  scetUnreachable?: string[];
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;
@@ -420,6 +459,20 @@ function asAlarmState(value: unknown): AlarmState | undefined {
 /** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
  *  v2 `trigger` shape. Idempotent: already-v2 records pass through. */
 export function migrateAlarm(raw: unknown): Alarm | null {
+  const alarm = migrateAlarmShape(raw);
+  if (
+    alarm &&
+    typeof raw === "object" &&
+    raw !== null &&
+    "actionsWithheld" in raw &&
+    raw.actionsWithheld === true
+  ) {
+    alarm.actionsWithheld = true;
+  }
+  return alarm;
+}
+
+function migrateAlarmShape(raw: unknown): Alarm | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== "string" || typeof r.name !== "string") return null;

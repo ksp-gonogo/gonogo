@@ -20,15 +20,10 @@ import {
   GENERATED_RECKONABLE_VALUES,
   type GeneratedReckonableInput,
   type GeneratedReckonableValue,
-  type GeneratedReckoningBasis,
 } from "./__generated__/reckonability";
 import type { TopicId } from "./topics";
 
-export type {
-  GeneratedReckonableInput,
-  GeneratedReckonableValue,
-  GeneratedReckoningBasis,
-};
+export type { GeneratedReckonableInput, GeneratedReckonableValue };
 
 /**
  * A Topic the contract declares at least one reckonable value on.

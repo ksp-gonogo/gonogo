@@ -129,6 +129,18 @@ function parseArgs(argv: readonly string[]): Args {
         throw new Error(`unknown flag "${flag}"`);
     }
   }
+  if (args.noAssets && args.verb !== "docs") {
+    throw new Error(
+      "--no-assets only applies to docs: render writes only images",
+    );
+  }
+  if (args.noAssets && args.check) {
+    throw new Error(
+      "--no-assets and --check do not combine: the prose half of the check " +
+        "is `expectUplinkPageCurrent` in the Uplink's own test suite, and " +
+        "`docs --check` exists for the pictures.",
+    );
+  }
   return args;
 }
 
@@ -186,11 +198,6 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 
   if (args.verb === "render") {
-    if (args.noAssets) {
-      throw new Error(
-        "--no-assets is a docs option: render writes only images",
-      );
-    }
     const outDir = resolve(pkg.dir, args.out ?? "renders");
     const result = await renderUplink(pkg, {
       engine: args.engine,
@@ -210,13 +217,6 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 
   if (args.noAssets) {
-    if (args.check) {
-      throw new Error(
-        "--no-assets and --check do not combine: the prose half of the check " +
-          "is `expectUplinkPageCurrent` in the Uplink's own test suite, and " +
-          "`docs --check` exists for the pictures.",
-      );
-    }
     await writeProseOnly(pkg, args);
     return;
   }

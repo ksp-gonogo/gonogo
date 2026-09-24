@@ -13,8 +13,6 @@ import {
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
-  StubTransport,
   systemUplinkHealthChannel,
   TelemetryClient,
   TelemetryProvider,
@@ -22,6 +20,10 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   fireEvent,

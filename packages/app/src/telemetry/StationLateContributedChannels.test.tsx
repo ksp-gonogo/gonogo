@@ -1,12 +1,12 @@
 import {
   clearContributedDerivedChannels,
   contributeDerivedChannel,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import type { DerivedChannelDefinition } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";

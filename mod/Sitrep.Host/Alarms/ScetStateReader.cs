@@ -76,6 +76,15 @@ namespace Sitrep.Host.Alarms
         /// <see cref="ScetAlarm.Subject"/> uses.
         /// </summary>
         ScetReading Read(string subject, string topic, string fieldPath);
+
+        /// <summary>
+        /// <paramref name="topic"/>'s whole payload, when it is about
+        /// <paramref name="subject"/>; null when there is none to read or it is
+        /// about something else. For a condition that needs more than one number
+        /// out of a payload, under the same provenance rule
+        /// <see cref="Read"/> applies.
+        /// </summary>
+        IDictionary<string, object?>? ReadPayload(string subject, string topic);
     }
 
     /// <summary>
@@ -137,6 +146,57 @@ namespace Sitrep.Host.Alarms
             }
 
             return AsFiniteNumber(current);
+        }
+
+        /// <summary>
+        /// Whether one objective of one active contract is in
+        /// <paramref name="target"/>, read out of a <c>career.status</c> payload.
+        ///
+        /// <para>Three answers, the same three the client's own matcher gives.
+        /// Null when the list could not be read at all, which is a different
+        /// claim from an empty one. False when the contract is not active or has
+        /// no objective of that title, which is a fact about the career, and
+        /// for an objective whose state is not a number. True only on the
+        /// ordinal, never the name, so a renamed state cannot silently stop an
+        /// alarm matching.</para>
+        /// </summary>
+        internal static bool? MatchContractParameter(
+            IDictionary<string, object?> career, string contractId, string parameterTitle, KspParameterState target)
+        {
+            if (!career.TryGetValue("contracts", out var rawContracts)
+                || rawContracts is not IDictionary<string, object?> contracts
+                || !contracts.TryGetValue("active", out var rawActive)
+                || rawActive is not IEnumerable<object?> active)
+            {
+                return null;
+            }
+            foreach (var rawContract in active)
+            {
+                if (rawContract is not IDictionary<string, object?> contract
+                    || !contract.TryGetValue("id", out var id)
+                    || !string.Equals(id as string, contractId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (!contract.TryGetValue("parameters", out var rawParameters)
+                    || rawParameters is not IEnumerable<object?> parameters)
+                {
+                    return null;
+                }
+                foreach (var rawParameter in parameters)
+                {
+                    if (rawParameter is not IDictionary<string, object?> parameter
+                        || !parameter.TryGetValue("title", out var title)
+                        || !string.Equals(title as string, parameterTitle, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    parameter.TryGetValue("stateOrdinal", out var ordinal);
+                    return AsFiniteNumber(ordinal) is { } state && state == (int)target;
+                }
+                return false;
+            }
+            return false;
         }
 
         private static double? AsFiniteNumber(object? value)

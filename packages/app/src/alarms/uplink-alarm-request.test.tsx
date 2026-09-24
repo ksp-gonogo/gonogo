@@ -1,6 +1,5 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -14,6 +13,7 @@ import {
   type UplinkClientHandle,
   useAlarmRequest,
 } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";

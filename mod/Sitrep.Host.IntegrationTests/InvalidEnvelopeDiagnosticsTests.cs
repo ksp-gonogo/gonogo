@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Sitrep.Contract;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Xunit;
 
@@ -114,17 +115,73 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A frame that NAMES a type is on the other side of the line from one
+        /// that names none, because there IS something to say about it: which
+        /// type this build does not support. An echo of it is byte-identical to
+        /// what the client sent, and reads as a frame accepted that did nothing.
+        /// </summary>
+        [Fact]
+        public async Task ATypeThisBuildDoesNotSupportIsRefusedByNameRatherThanEchoed()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                const string frame = "{\"type\":\"teleport\",\"message\":\"hi\"}";
+
+                await client.SendAsync(frame);
+                var reply = await client.ReceiveAsync(Timeout);
+
+                Assert.NotEqual(frame, reply);
+                var error = Assert.IsType<ErrorMsg>(EnvelopeCodec.ParseServerMessage(reply));
+                Assert.Equal("unknown-envelope-type", error.Code);
+                Assert.Contains("teleport", error.Message);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The refusal carries what the frame did so it can be correlated: the
+        /// SDK's correlator drops an error with neither a requestId nor a topic,
+        /// and a caller would wait out its loss timer having been answered.
+        /// </summary>
+        [Fact]
+        public async Task TheRefusalCarriesTheRequestIdAndTopicTheFrameDid()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync("{\"type\":\"teleport\",\"requestId\":\"r-9\",\"topic\":\"vessel.flight\"}");
+
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("unknown-envelope-type", error.Code);
+                Assert.Equal("r-9", error.RequestId);
+                Assert.Equal("vessel.flight", error.Topic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The echo is DELIBERATE for a frame this build cannot identify at
         /// all, and a third-party author may be relying on it as the "is
         /// anything listening" probe. Unparseable text, a JSON value that is
-        /// not an object, a missing discriminant and an unknown one are all
-        /// the same fact: the server does not know what it is holding.
+        /// not an object and a missing discriminant are the same fact: the
+        /// frame names nothing, so the server has nothing to name back.
         /// </summary>
         [Theory]
         [InlineData("just-a-plain-string-not-json")]
         [InlineData("[1,2,3]")]
         [InlineData("{\"message\":\"hi\"}")]
-        [InlineData("{\"type\":\"teleport\",\"message\":\"hi\"}")]
         public async Task AFrameThisBuildCannotIdentifyIsStillEchoedUnchanged(string frame)
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
