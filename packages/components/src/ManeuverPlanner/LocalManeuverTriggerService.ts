@@ -110,13 +110,36 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     if (this.triggers.length !== before) this.emit();
   }
 
+  /**
+   * Drops every `fired` id that no longer names a listed trigger.
+   *
+   * The guard only has to stop a second fire while its trigger is still
+   * listed, which is only the case when a dispatch left it there. Ids are
+   * minted per arm and never reused, so anything else in the set is dead
+   * weight held for as long as the widget is mounted.
+   */
+  private pruneFired(): void {
+    if (this.fired.size === 0) return;
+    const listed = new Set(this.triggers.map((t) => t.id));
+    for (const id of this.fired) {
+      if (!listed.has(id)) this.fired.delete(id);
+    }
+  }
+
   private evaluate(): void {
-    if (this.triggers.length === 0) return;
-    // Auto-clear triggers tied to a different vessel.
+    if (this.triggers.length === 0) {
+      this.fired.clear();
+      return;
+    }
+    // Auto-clear triggers tied to a different vessel. A null live name is "no identity read yet", not a different vessel, so it clears nothing.
     const liveVesselName = this.readVesselName();
     let mutated = false;
     for (const t of [...this.triggers]) {
-      if (t.vesselName !== null && liveVesselName !== t.vesselName) {
+      if (
+        t.vesselName !== null &&
+        liveVesselName !== null &&
+        liveVesselName !== t.vesselName
+      ) {
         this.triggers = this.triggers.filter((x) => x.id !== t.id);
         mutated = true;
         continue;
@@ -130,6 +153,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       this.triggers = this.triggers.filter((x) => x.id !== t.id);
       mutated = true;
     }
+    this.pruneFired();
     if (mutated) this.emit();
   }
 
