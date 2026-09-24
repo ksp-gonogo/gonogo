@@ -113,7 +113,8 @@ describe("published compat versions mirror their sources", () => {
       `These manifests are pinned to a contract the host no longer speaks, so ` +
         `the app REFUSES each of them at load with a message about a version ` +
         `mismatch. Bumping ContractVersion.cs strands every bundled Uplink ` +
-        `until its manifest moves too. Expected ${CONTRACT_MAJOR}.${CONTRACT_MINOR}.`,
+        `until its manifest moves too. Expected ${CONTRACT_MAJOR}.${CONTRACT_MINOR}. ` +
+        "`pnpm uplink-docs:prose` rewrites every manifest and README without re-rendering a picture.",
     ).toEqual([]);
   });
 

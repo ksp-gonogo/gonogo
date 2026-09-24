@@ -3,6 +3,12 @@
 #
 #   scripts/uplink-docs.sh            write README.md, gonogo-uplink.json, docs/assets/
 #   scripts/uplink-docs.sh --check    regenerate in memory and fail on any difference
+#   scripts/uplink-docs.sh --no-assets  write README.md and gonogo-uplink.json only
+#
+# `--no-assets` is for a change that moves every page's prose and none of its
+# pictures, such as a contract or api version bump stamping each "Built against"
+# row. It leaves docs/assets alone, so a machine whose rasterisation is not the
+# committed one can land it without re-rendering a picture.
 #
 # ## Why the check exists alongside the regenerate-on-main workflow
 #
@@ -31,8 +37,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 mode="${1:-}"
-if [ -n "$mode" ] && [ "$mode" != "--check" ]; then
-  echo "usage: scripts/uplink-docs.sh [--check]" >&2
+if [ -n "$mode" ] && [ "$mode" != "--check" ] && [ "$mode" != "--no-assets" ]; then
+  echo "usage: scripts/uplink-docs.sh [--check | --no-assets]" >&2
   exit 2
 fi
 
@@ -51,8 +57,10 @@ done < <(node -e '
 # A run that examines nothing exits clean, which is the failure mode this repo
 # keeps meeting. The floor lives in uplink-matrix.mjs too, and is repeated here
 # because a filter typo above would empty the list without the matrix noticing.
+verb="generated"
+[ "$mode" = "--check" ] && verb="checked"
 if [ "${#packages[@]}" -eq 0 ]; then
-  echo "✖ discovered no client-bearing Uplink, so this ${mode:+checked}${mode:-generated} nothing and"
+  echo "✖ discovered no client-bearing Uplink, so this $verb nothing and"
   echo "  would have exited clean. Discovery is broken rather than the repo being empty."
   exit 1
 fi
@@ -68,7 +76,7 @@ done
 
 if [ "${#failed[@]}" -gt 0 ]; then
   echo
-  if [ -n "$mode" ]; then
+  if [ "$mode" = "--check" ]; then
     echo "✖ ${#failed[@]} of ${#packages[@]} Uplink page(s) no longer describe the code:"
     for pkg in "${failed[@]}"; do
       echo "    $pkg"
@@ -86,8 +94,8 @@ if [ "${#failed[@]}" -gt 0 ]; then
 fi
 
 echo
-if [ -n "$mode" ]; then
+if [ "$mode" = "--check" ]; then
   echo "all ${#packages[@]} Uplink page(s) match the code."
 else
-  echo "all ${#packages[@]} Uplink page(s) regenerated."
+  echo "all ${#packages[@]} Uplink page(s) regenerated${mode:+, prose only}."
 fi
