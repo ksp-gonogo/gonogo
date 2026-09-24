@@ -183,6 +183,38 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// The last sample in <paramref name="list"/> with <c>ValidAt &lt;=
+        /// <paramref name="sceneUt"/></c>, or null when there is none. The list is
+        /// ascending by ValidAt with equal instants in record order, so this is
+        /// the newest of several sharing an instant, found by binary search: a
+        /// delivery reads once per sample per subscriber, and a released reveal
+        /// buffer is thousands of both. A scene that is not a number compares
+        /// below nothing and so answers the newest sample.
+        /// </summary>
+        private static Sample? LatestAtOrBefore(List<Sample> list, double sceneUt)
+        {
+            if (double.IsNaN(sceneUt))
+            {
+                return list.Count == 0 ? null : list[list.Count - 1];
+            }
+            var lo = 0;
+            var hi = list.Count;
+            while (lo < hi)
+            {
+                var mid = lo + (hi - lo) / 2;
+                if (list[mid].ValidAt > sceneUt)
+                {
+                    hi = mid;
+                }
+                else
+                {
+                    lo = mid + 1;
+                }
+            }
+            return lo == 0 ? null : list[lo - 1];
+        }
+
+        /// <summary>
         /// Read <paramref name="topic"/> as of a scene instant the caller
         /// already knows exactly, WITHOUT reading
         /// <paramref name="vantage"/>'s cursor. Returns the latest sample with
@@ -218,15 +250,7 @@ namespace Sitrep.Core
                 return null;
             }
 
-            Sample? found = null;
-            foreach (var sample in list)
-            {
-                if (sample.ValidAt > sceneUt)
-                {
-                    break;
-                }
-                found = sample;
-            }
+            var found = LatestAtOrBefore(list, sceneUt);
 
             return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
         }
@@ -276,15 +300,7 @@ namespace Sitrep.Core
                 return null;
             }
 
-            Sample? found = null;
-            foreach (var sample in list)
-            {
-                if (sample.ValidAt > scene)
-                {
-                    break;
-                }
-                found = sample;
-            }
+            var found = LatestAtOrBefore(list, scene);
 
             return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
         }

@@ -55,11 +55,22 @@ namespace Sitrep.Core
         private sealed class PendingCallback
         {
             public double AtUt;
+            public long Seq;
             public Action Fn = null!;
             public bool Cancelled;
         }
 
         private double _currentUt;
+        private long _nextSeq;
+
+        /*
+         * A binary min-heap on (AtUt, Seq), so the next due callback is found
+         * in log time rather than by scanning every pending one. Seq is the
+         * insertion order, which is what breaks a tie. A delayed reveal
+         * releasing a long buffer schedules one delivery per sample per
+         * subscriber in a single tick, and a scan per fire made that drain
+         * quadratic in the size of the release.
+         */
         private readonly List<PendingCallback> _pending = new List<PendingCallback>();
 
         public ManualClock(double startUt = 0)
@@ -71,8 +82,15 @@ namespace Sitrep.Core
 
         public Action Schedule(double atUt, Action fn)
         {
-            var callback = new PendingCallback { AtUt = atUt, Fn = fn, Cancelled = false };
-            _pending.Add(callback);
+            // A NaN instant has no place in the order, so it is due at once.
+            var callback = new PendingCallback
+            {
+                AtUt = double.IsNaN(atUt) ? double.NegativeInfinity : atUt,
+                Seq = _nextSeq++,
+                Fn = fn,
+                Cancelled = false,
+            };
+            Push(callback);
             return () => callback.Cancelled = true;
         }
 
@@ -87,7 +105,7 @@ namespace Sitrep.Core
         /// This drains rather than snapshotting the due batch up front: a
         /// firing callback may itself <see cref="Schedule"/> a new callback at
         /// <c>AtUt &lt;= ut</c> (e.g. a zero-delay re-entrant delivery). The
-        /// loop re-scans pending callbacks after every fire so that
+        /// loop takes the next due callback afresh after every fire so that
         /// newly-scheduled, already-due callbacks are picked up and fired
         /// within the same <see cref="AdvanceTo"/> call, instead of getting
         /// stranded until a later advance. A callback that perpetually
@@ -104,34 +122,59 @@ namespace Sitrep.Core
 
             _currentUt = ut;
 
-            while (true)
+            while (_pending.Count > 0 && !(_pending[0].AtUt > ut))
             {
-                var dueIndex = -1;
-                for (var i = 0; i < _pending.Count; i++)
-                {
-                    var callback = _pending[i];
-                    if (callback.Cancelled || callback.AtUt > ut)
-                    {
-                        continue;
-                    }
-                    if (dueIndex == -1 || callback.AtUt < _pending[dueIndex].AtUt)
-                    {
-                        dueIndex = i;
-                    }
-                }
-
-                if (dueIndex == -1)
-                {
-                    break;
-                }
-
-                var due = _pending[dueIndex];
-                _pending.RemoveAt(dueIndex);
+                var due = Pop();
                 if (!due.Cancelled)
                 {
                     due.Fn();
                 }
             }
+        }
+
+        private static bool Before(PendingCallback a, PendingCallback b) =>
+            a.AtUt < b.AtUt || (a.AtUt == b.AtUt && a.Seq < b.Seq);
+
+        private void Push(PendingCallback callback)
+        {
+            _pending.Add(callback);
+            var i = _pending.Count - 1;
+            while (i > 0)
+            {
+                var parent = (i - 1) / 2;
+                if (!Before(_pending[i], _pending[parent]))
+                {
+                    break;
+                }
+                (_pending[i], _pending[parent]) = (_pending[parent], _pending[i]);
+                i = parent;
+            }
+        }
+
+        private PendingCallback Pop()
+        {
+            var top = _pending[0];
+            var last = _pending.Count - 1;
+            _pending[0] = _pending[last];
+            _pending.RemoveAt(last);
+            var i = 0;
+            while (true)
+            {
+                var left = 2 * i + 1;
+                if (left >= _pending.Count)
+                {
+                    break;
+                }
+                var right = left + 1;
+                var child = right < _pending.Count && Before(_pending[right], _pending[left]) ? right : left;
+                if (!Before(_pending[child], _pending[i]))
+                {
+                    break;
+                }
+                (_pending[i], _pending[child]) = (_pending[child], _pending[i]);
+                i = child;
+            }
+            return top;
         }
 
         /// <summary>
