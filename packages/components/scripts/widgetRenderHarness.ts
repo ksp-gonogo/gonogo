@@ -244,6 +244,8 @@ interface ProbePayload {
   h: number;
   pxW: number;
   pxH: number;
+  /** Mount inside the dashboard's own cell; see `renderWidgets`' `gridCell`. */
+  gridCell?: boolean;
   config?: Record<string, unknown>;
   instanceId?: string;
   series?: Record<string, readonly ProbeSeriesSample[]>;
@@ -289,6 +291,17 @@ export async function renderWidgets(
      * unaffected.
      */
     fullContent?: boolean;
+    /**
+     * Mount each widget inside the dashboard's own cell rather than straight
+     * into `#root`: the drag header above it and the clipping wrapper the
+     * widget actually lives in, sized to the tile. Only a fixed-tile render
+     * takes it, since a grown root has no cell edge to be clipped by.
+     *
+     * Without it a widget gets the whole tile and no header, so anything it
+     * draws in the rows the header would have taken, or below its own panel,
+     * reaches the PNG and never reaches the operator.
+     */
+    gridCell?: boolean;
     /**
      * Render only this declared install rather than every one a scene names.
      * An iteration convenience: looking at one install's shots while working
@@ -372,6 +385,7 @@ export async function renderWidgets(
         findings,
         opts.profile,
         opts.fixture,
+        opts.gridCell ?? false,
       );
     }
 
@@ -1402,6 +1416,8 @@ async function renderOneWidget(
   onlyProfile?: string,
   /** Render only this scene; see `renderWidgets`' `fixture`. */
   onlyFixture?: string,
+  /** Mount inside the dashboard cell; see `renderWidgets`' `gridCell`. */
+  gridCell = false,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -1473,6 +1489,7 @@ async function renderOneWidget(
         h: mode.h,
         pxW,
         pxH,
+        gridCell: gridCell && !fullContent,
         config: mode.config,
         series: seriesData,
         clicks: mode.clicks,
@@ -1594,10 +1611,10 @@ async function renderOneWidget(
           const out: string[] = [];
           for (const el of Array.from(document.querySelectorAll(selector))) {
             const box = el.getBoundingClientRect();
-            // A hidden element has no box and is not a clipping failure; a
-            // visible one must END above the panel's own bottom edge.
-            if (box.height === 0) continue;
-            if (box.bottom > limit + 0.5) {
+            /* No box at all is the same failure as a box below the edge: the
+               author declared this element must be seen, and a readout folded
+               away inside a collapsed aside is in the DOM and drawn nowhere. */
+            if (box.height === 0 || box.bottom > limit + 0.5) {
               out.push((el.textContent ?? "").trim().slice(0, 60));
             }
           }
@@ -1607,7 +1624,7 @@ async function renderOneWidget(
           throw new Error(
             `${config.widgetId} @ ${mode.name} (${sceneLabel}): ` +
               `${clipped.length} element(s) matching "${config.mustBeVisible.selector}" ` +
-              "are cut off by the panel edge, so they render but cannot be read:\n  " +
+              "are cut off by the panel edge or drawn with no box, so they are in the DOM but cannot be read:\n  " +
               clipped.join("\n  ") +
               "\n(This widget declares mustBeVisible because a DOM assertion " +
               "cannot see the fold. If this mode is genuinely too small to hold " +
