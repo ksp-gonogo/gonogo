@@ -35,7 +35,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, IDisposable
+    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, CommandCentres.IHomeCommandReachWriter, IDisposable
     {
         public const string NodeId = "system";
 
@@ -2316,6 +2316,18 @@ namespace Sitrep.Host
             // is what makes "send this from a deep-space centre to the home
             // centre" a lookup rather than a missing number.
             _network.SetDelay(fromCentreId, CentreNodePrefix + toCentreId, oneWaySeconds);
+        }
+
+        /*
+         * The centres whose route reaches no ground station, as of the last
+         * SetOffTheGroundNetwork. Courier-thread-only, like every ledger write,
+         * and read by ProcessDispatchCommand on the same thread.
+         */
+        private HashSet<string> _offTheGroundNetwork = new HashSet<string>();
+
+        public void SetOffTheGroundNetwork(IReadOnlyCollection<string> centreIds)
+        {
+            _offTheGroundNetwork = new HashSet<string>(centreIds);
         }
 
         public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
@@ -6591,7 +6603,12 @@ namespace Sitrep.Host
             // the CPU during signal loss. _commsConnected is Courier-thread
             // state (set by the tick job in ApplyConnectivity), read here on
             // that same thread.
-            if (!SubjectConnected(node))
+            //
+            // The home command's ledger is the exception to asking about the
+            // subject's link: it is never out of contact with itself, so what
+            // can be down is the SENDER's route to the ground network.
+            if (!SubjectConnected(node)
+                || (node == HomeCommandNode && _offTheGroundNetwork.Contains(job.Vantage)))
             {
                 job.Done?.Set();
                 return;

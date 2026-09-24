@@ -205,6 +205,45 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
+        /// The active centres that cannot reach the home command's ledger at all,
+        /// so a command addressed to it from one of them is dropped like any other
+        /// command sent into a link that is down.
+        ///
+        /// <para>The home centre and every ground station stand on the ground
+        /// network and always reach it. Any other centre reaches it only over a
+        /// route that ends at a ground station, and it does not matter which one:
+        /// every station carries the ledger. A centre whose reach cannot be read is
+        /// not listed, the same way an unreadable connectivity source leaves a
+        /// link up.</para>
+        /// </summary>
+        /// <param name="activeCentres">The registry's currently-active centres.</param>
+        /// <param name="homeCentreId">The centre the roster marks home, or null.</param>
+        /// <param name="reachesGround">
+        /// KSP-layer read of whether a non-ground centre's route ends at a ground
+        /// station, or null when it cannot be read.
+        /// </param>
+        public IReadOnlyList<string> OffTheGroundNetwork(
+            IReadOnlyList<ICommandCentre> activeCentres,
+            string? homeCentreId,
+            Func<ICommandCentre, bool?> reachesGround)
+        {
+            var off = new List<string>();
+            foreach (var centre in activeCentres)
+            {
+                if (centre.Id == homeCentreId || centre.Kind == CommandCentreKind.GroundStation)
+                {
+                    continue;
+                }
+
+                if (reachesGround(centre) == false)
+                {
+                    off.Add(centre.Id);
+                }
+            }
+            return off;
+        }
+
+        /// <summary>
         /// Populates the CENTRE-to-CENTRE half of the same matrix: for every
         /// ordered pair of active centres, the delay from the first (as a
         /// vantage) to the second (as a destination <see cref="CentreNode"/>).
