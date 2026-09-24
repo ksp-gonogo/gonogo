@@ -112,10 +112,12 @@ export function delayRequiringAlarm(
   delay: Pick<CommsDelay, "oneWaySeconds"> | undefined,
 ): "delay" | "no-path" | null {
   if (delay === undefined) return null;
-  if (delay.oneWaySeconds === null) return "no-path";
-  const seconds = magnitudeOf(delay.oneWaySeconds);
-  if (seconds === null || seconds <= ALARM_REQUIRED_ABOVE_SECONDS) return null;
-  return "delay";
+  const oneWay = delay.oneWaySeconds;
+  if (oneWay === null) return "no-path";
+  if (oneWay === undefined || !oneWay.isFinite()) return null;
+  return oneWay.greaterThan(value("s", ALARM_REQUIRED_ABOVE_SECONDS))
+    ? "delay"
+    : null;
 }
 
 // Declaration-merge this widget's slot ids → props type into core's
