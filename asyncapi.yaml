@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.3.0
+  version: 18.4.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 55 commands it dispatches, with the payload
@@ -16684,6 +16684,7 @@ components:
         - owner
         - kind
         - label
+        - description
         - value
         - default
       properties:
@@ -16707,6 +16708,12 @@ components:
           type: string
           x-sitrep-unit: text
           description: What an operator reads beside the control. May be empty.
+        description:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            Why the setting matters or what it needs, read under the label. May be
+            empty.
         value:
           type: string
           x-sitrep-unit: text

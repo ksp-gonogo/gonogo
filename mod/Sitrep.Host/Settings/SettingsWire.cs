@@ -40,7 +40,13 @@ namespace Sitrep.Host.Settings
             foreach (var row in rows)
             {
                 wireRows.Add(BuildRowState(
-                    row.Declared.Path, row.Owner, row.Declared.Kind, row.Declared.Label, row.Value, row.Declared.DefaultText));
+                    row.Declared.Path,
+                    row.Owner,
+                    row.Declared.Kind,
+                    row.Declared.Label,
+                    row.Declared.Description,
+                    row.Value,
+                    row.Declared.DefaultText));
             }
 
             var wireModSettings = new List<object?>();
@@ -72,13 +78,14 @@ namespace Sitrep.Host.Settings
         }
 
         internal static Dictionary<string, object?> BuildRowState(
-            string path, string owner, SettingKind kind, string label, string value, string defaultValue) =>
+            string path, string owner, SettingKind kind, string label, string description, string value, string defaultValue) =>
             new Dictionary<string, object?>
             {
                 ["path"] = path,
                 ["owner"] = owner,
                 ["kind"] = kind,
                 ["label"] = label,
+                ["description"] = description,
                 ["value"] = value,
                 ["default"] = defaultValue,
             };

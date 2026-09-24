@@ -236,7 +236,7 @@ namespace Sitrep.Host.Settings
             // row, the vocabulary's stated fallback, and the Uplink checks the
             // value itself when it reads it.
             var kind = Enum.IsDefined(typeof(SettingKind), row.Kind) ? row.Kind : SettingKind.Text;
-            return new SettingsRow(PathOf(row.Name), kind, row.DefaultText, row.Label);
+            return new SettingsRow(PathOf(row.Name), kind, row.DefaultText, row.Label, row.Description);
         }
 
         private string? DefaultOf(string name)

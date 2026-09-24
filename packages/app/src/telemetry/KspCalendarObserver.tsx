@@ -61,11 +61,9 @@ export function KspCalendarObserver() {
   const minute = calendar?.minuteSeconds?.magnitude;
 
   // The anchor, when the running game has one. A FACT about the game, adopted
-  // unconditionally like the four lengths beside it; whether dates are
-  // RENDERED against it is the operator's choice and lives in the kit's own
-  // preference (`initCalendarSettings`), not here. Keeping the two apart is
-  // what lets this component stay outside the settings provider, which is
-  // where the telemetry tree puts it.
+  // unconditionally like the four lengths beside it, and the only thing that
+  // decides whether a date renders as a real one: the mod sends it only when
+  // the game's date formatter models a real calendar.
   const epochIso = calendar?.epoch;
   // `== null`, not `=== undefined`: an explicit null is the NORMAL answer
   // here, since stock KSP has no real calendar and so no anchor to send.

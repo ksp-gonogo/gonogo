@@ -14,7 +14,7 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public sealed class SettingsRow
     {
-        public SettingsRow(string path, SettingKind kind, string defaultText, string? label = null)
+        public SettingsRow(string path, SettingKind kind, string defaultText, string? label = null, string? description = null)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -26,6 +26,7 @@ namespace Sitrep.Host.Settings
             Kind = kind;
             DefaultText = defaultText ?? string.Empty;
             Label = label ?? string.Empty;
+            Description = description ?? string.Empty;
             var refusal = SettingsText.RefusalOf(DefaultText);
             if (refusal != null)
             {
@@ -39,14 +40,14 @@ namespace Sitrep.Host.Settings
             }
         }
 
-        public static SettingsRow Bool(string path, bool defaultValue, string? label = null) =>
-            new SettingsRow(path, SettingKind.Bool, SettingsText.FromBool(defaultValue), label);
+        public static SettingsRow Bool(string path, bool defaultValue, string? label = null, string? description = null) =>
+            new SettingsRow(path, SettingKind.Bool, SettingsText.FromBool(defaultValue), label, description);
 
-        public static SettingsRow Number(string path, double defaultValue, string? label = null) =>
-            new SettingsRow(path, SettingKind.Number, SettingsText.FromNumber(defaultValue), label);
+        public static SettingsRow Number(string path, double defaultValue, string? label = null, string? description = null) =>
+            new SettingsRow(path, SettingKind.Number, SettingsText.FromNumber(defaultValue), label, description);
 
-        public static SettingsRow Text(string path, string defaultValue, string? label = null) =>
-            new SettingsRow(path, SettingKind.Text, defaultValue, label);
+        public static SettingsRow Text(string path, string defaultValue, string? label = null, string? description = null) =>
+            new SettingsRow(path, SettingKind.Text, defaultValue, label, description);
 
         public string Path { get; }
 
@@ -56,6 +57,9 @@ namespace Sitrep.Host.Settings
 
         /// <summary>What an operator reads beside the control, and the start of the comment written beside the row.</summary>
         public string Label { get; }
+
+        /// <summary>Why the row matters or what it needs, read under its label. Empty when the label says enough.</summary>
+        public string Description { get; }
 
         /// <summary>
         /// The comment written beside the row: its label, what it may hold, and

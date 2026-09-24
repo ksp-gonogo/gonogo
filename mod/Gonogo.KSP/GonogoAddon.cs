@@ -183,6 +183,7 @@ namespace Gonogo.KSP
                     RecordingEnabledRow,
                     _ => _recordingEnabled = settings.Bool(RecordingEnabledRow));
                 Debug.Log("[Gonogo] Recording enabled=" + _recordingEnabled);
+                Sitrep.Host.Settings.ConsoleSettings.Declare(settings);
                 // The fleet.<guid>.* namespace: core vessel-network-presence
                 // facts, unconditional and independent of whether any comms
                 // backend is ever elected (see FleetChannels's own doc

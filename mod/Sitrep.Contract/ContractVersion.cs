@@ -1817,7 +1817,11 @@ namespace Sitrep.Contract
         /// mod's own settings as its Uplink reads them, shown read-only
         /// (<see cref="ModSettingState"/>). Additive, nothing removed or retyped, so an
         /// Uplink built against 18.2 is unaffected.</para>
+        ///
+        /// <para><b>Bumped 3 -&gt; 4:</b> <see cref="SettingsRowState.Description"/>, so a
+        /// setting can say what it needs as well as what it is. Additive, nothing removed
+        /// or retyped, so an Uplink built against 18.3 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }

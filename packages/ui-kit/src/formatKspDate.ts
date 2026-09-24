@@ -4,34 +4,6 @@ import { NULL_DISPLAY } from "./NullValue";
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
- * Whether a UT renders as a real date when the game has an anchor for one.
- *
- * Off until the operator asks, because both notations are correct readouts for
- * different games and only the operator knows which one they are flying. Held
- * as module state for the same reason the calendar is: the formatters it gates
- * are plain functions called from SVG labels and `title` attributes, where a
- * hook cannot reach. The app primes it from the persisted setting through
- * `initCalendarSettings`, the same shape as the sound flag.
- */
-let realDatesPreferred = false;
-
-/** Adopt the operator's date-notation choice. See {@link realDatesWanted}. */
-export function setRealDatesPreferred(preferred: boolean): void {
-  realDatesPreferred = preferred;
-}
-
-/**
- * Whether real dates are BOTH wanted and available.
- *
- * Two independent conditions, and neither implies the other: a stock career
- * has no anchor to render against however the setting reads, and an RSS career
- * still shows `Y# D#` until asked otherwise.
- */
-export function realDatesWanted(): boolean {
-  return realDatesPreferred && kspCalendar().epochMs !== undefined;
-}
-
-/**
  * Formats a KSP universal time (UT, seconds) as a date, in whichever of the
  * two calendars the running game actually has.
  *
@@ -42,12 +14,13 @@ export function realDatesWanted(): boolean {
  * matching `formatDuration`'s KSP-time unit sizes. This is stock KSP, and it
  * is what KSP's own UI prints there.
  *
- * **An epoch, and the operator asked for it**: `14 Mar 1957 03:22:37`, the
- * real instant that many seconds after the anchor. A game running a real
- * calendar is one where the offset form says nothing an operator can
- * cross-reference: RP-1 schedules a career against history, and "day 2,341"
- * does not appear anywhere in it. Both conditions are required, and see
- * {@link realDatesWanted} for why neither implies the other.
+ * **An epoch**: `14 Mar 1957 03:22:37`, the real instant that many seconds
+ * after the anchor. A game running a real calendar is one where the offset
+ * form says nothing an operator can cross-reference: RP-1 schedules a career
+ * against history, and "day 2,341" does not appear anywhere in it. Which form
+ * applies is a property of the game, never a choice: the mod reports an
+ * anchor only when the running game's date formatter models a real calendar,
+ * and every screen of that game reads the same one.
  *
  * The day and year lengths, and whether there is an anchor at all, come from
  * the calendar the GAME reported rather than from constants: a planet pack or
@@ -85,7 +58,7 @@ export function formatKspDate(ut: number): string {
 
   const clamped = Math.max(0, ut);
 
-  if (epochMs !== undefined && realDatesPreferred) {
+  if (epochMs !== undefined) {
     return formatRealDate(epochMs + clamped * 1000);
   }
 

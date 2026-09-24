@@ -34,8 +34,7 @@ import { SettingsService } from "../../src/settings/SettingsService";
  * that would render its null placeholder in the app renders it here: the whole
  * point of a render is to see the state a reviewer would actually meet.
  *
- * The Uplink rows are a planted Uplink's (`plantedSettings.ts`), not a real
- * one's. `SettingsModal` is in a package an Uplink may not import, so no
+ * The rows are a planted Uplink's (`plantedSettings.ts`), not a real one's. `SettingsModal` is in a package an Uplink may not import, so no
  * Uplink's own harness can render its settings rows, and the app depends on no
  * Uplink it could import for them instead.
  */
@@ -59,15 +58,7 @@ setQuantityLocale("en-GB");
  * statement in this file, so `registerSetting` would run against an
  * uninstalled host and throw.
  */
-const registered = Promise.all([
-  // The app's own rows, for the `dependsOn` pair: mission history's two
-  // children go inert when the parent is off, which no Uplink row can show
-  // because no Uplink row is writable.
-  import("../../src/settings/missionHistorySettings"),
-  // A planted Uplink's read-only rows. No Uplink in this repo is the app's to
-  // import for a render, so the stream-backed axis is shown on a stand-in.
-  import("./plantedSettings"),
-]);
+const registered = import("./plantedSettings");
 
 /** What one shot asks for. */
 interface Scene {

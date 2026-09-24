@@ -104,6 +104,10 @@ public class SettingsRowState
     [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
+    /// <summary>Why the setting matters or what it needs, read under the label. May be empty.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Description { get; set; } = "";
+
     /// <summary>
     /// The value in force, as text: <c>True</c> or <c>False</c> for a
     /// <see cref="SettingKind.Bool"/>, a number written with a full stop for a

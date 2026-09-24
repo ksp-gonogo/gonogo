@@ -4944,6 +4944,11 @@ export interface SettingsRowState
 	/** What an operator reads beside the control. May be empty. */
 	label: string;
 	/**
+	* Why the setting matters or what it needs, read under the label. May be
+	* empty.
+	*/
+	description: string;
+	/**
 	* The value in force, as text: `True` or `False` for a `SettingKind.Bool`, a
 	* number written with a full stop for a `SettingKind.Number`.
 	*/
