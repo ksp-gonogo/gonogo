@@ -9,7 +9,11 @@
  * none of. The emit shape is that file's `{ channel, value }`, kept so the two
  * moved fixtures came across byte-for-byte.
  */
-import { act, type StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  type StreamFixture,
+  stopArriving,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 
 /**
@@ -23,6 +27,8 @@ export interface StreamFixtureBlock {
   pinnedUt?: number;
   /** Fixed network/display delay in seconds. */
   delaySeconds?: number;
+  /** Stage the link dropping once the emits have landed: see `stopArriving`. */
+  stopsArriving?: boolean;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ channel: string; value: unknown }>;
 }
@@ -65,6 +71,10 @@ export async function replayStreamBlock(
     act(() => {
       stream.emit(e.channel, e.value);
     });
+    await flushProviderFrame();
+  }
+  if (block.stopsArriving === true) {
+    act(() => stopArriving(stream));
     await flushProviderFrame();
   }
 }

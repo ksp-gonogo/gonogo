@@ -5,7 +5,7 @@
   },
   "_scene": {
     "widget": "space-weather",
-    "caption": "A CME in transit, the tracker naming its target body, its transit progress and its impact ETA",
+    "caption": "The same storm once the link drops: the forecast is withdrawn rather than held",
     "modes": ["default"]
   },
   "_stream": {

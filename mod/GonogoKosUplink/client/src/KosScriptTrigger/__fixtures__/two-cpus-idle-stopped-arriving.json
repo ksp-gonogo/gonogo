@@ -5,7 +5,7 @@
   },
   "_scene": {
     "widget": "kos-script-trigger",
-    "caption": "Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing",
+    "caption": "The same two CPUs once the link drops",
     "config": {
       "scriptPath": "0:/descent.ks"
     },

@@ -1,6 +1,6 @@
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
-import { CREW_SURVIVAL, type CrewSurvival } from "./processor";
+import { CREW_SURVIVAL, type CrewSurvival, survivalFrom } from "./processor";
 
 // ---------------------------------------------------------------------------
 // CrewStatus's panel badge (mirrors `ShipSystems/badge.ts`'s
@@ -26,11 +26,23 @@ import { CREW_SURVIVAL, type CrewSurvival } from "./processor";
 
 function survivalBadges(
   survival: CrewSurvival | undefined,
+  held = false,
 ): BadgeEntry[] | null {
   if (!survival) return null;
   const critical = survival.kerbals.filter((k) => k.tone === "nogo").length;
   if (critical === 0) return null;
-  const label = critical === 1 ? "Crew critical" : `${critical} crew critical`;
+  /*
+   * The held form drops "crew" to make room for "held": the header is titled
+   * Crew, and a longer label than the live one collapses the header's badges
+   * into bare dots at the default tile, which would hide the mark it carries.
+   */
+  const label = held
+    ? critical === 1
+      ? "Critical · held"
+      : `${critical} critical · held`
+    : critical === 1
+      ? "Crew critical"
+      : `${critical} crew critical`;
   return [{ id: "crew-survival-status", label, tone: "nogo" }];
 }
 
@@ -39,7 +51,10 @@ KERBALISM.registerContribution({
   contributes: "crew-status.badges",
   deps: [CREW_SURVIVAL],
   requires: "kerbalism",
-  compute: (topics) => survivalBadges(topics[CREW_SURVIVAL.id]),
+  compute: (topics) => {
+    const answer = survivalFrom(topics[CREW_SURVIVAL.id]);
+    return survivalBadges(answer?.survival, answer?.held);
+  },
 });
 
 export { survivalBadges };

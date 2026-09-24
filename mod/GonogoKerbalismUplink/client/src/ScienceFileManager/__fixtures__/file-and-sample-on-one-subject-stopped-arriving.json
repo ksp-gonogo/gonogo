@@ -7,7 +7,7 @@
   "_scene": {
     "augment": "science-data-aboard-row-file-manager",
     "hostWidget": "science-data",
-    "caption": "File Manager controls under a Science Data Aboard row: one subject carrying a file and a sample, so every verb the augment knows renders at once",
+    "caption": "The same records once the link drops: the archive reads offline and the situation is awaited again",
     "modes": ["default"],
     "size": {
       "w": 10,

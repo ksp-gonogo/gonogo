@@ -11,6 +11,7 @@ import {
   CREW_SURVIVAL,
   type CrewSurvival,
   type KerbalSurvival,
+  survivalFrom,
 } from "./processor";
 
 /**
@@ -82,20 +83,25 @@ function warningFor(
  *
  * Still an augment, unlike the meters: what it draws is a CONSEQUENCE, and it
  * is the one thing here whose rendering the host has no rule for.
+ *
+ * A held answer is drawn and says so in the label, in the short word a badge
+ * has room for; a row of badges clips a long one. The host marks its own
+ * figures in the same row, and a death clock left unmarked beside them would
+ * read as current on the strength of their marks.
  */
 function CrewSurvivalBadgeAugment({
   crewName,
   crewIndex,
 }: SlotProps<"crew-status.row-badges">) {
-  const survival = useProcessor(CREW_SURVIVAL);
-  if (!survival) return null;
-  const kerbal = findKerbal(survival, crewName, crewIndex);
+  const answer = survivalFrom(useProcessor(CREW_SURVIVAL));
+  if (!answer) return null;
+  const kerbal = findKerbal(answer.survival, crewName, crewIndex);
   if (!kerbal) return null;
   const warning = warningFor(kerbal);
   if (!warning) return null;
   return (
     <Badge severity={warning.severity} size="sm">
-      {warning.label}
+      {answer.held ? `${warning.label} · held` : warning.label}
     </Badge>
   );
 }
