@@ -28,6 +28,7 @@
     "uplink-matrix": "node scripts/uplink-matrix.mjs",
     "uplink-docs": "bash scripts/uplink-docs.sh",
     "uplink-docs:check": "bash scripts/uplink-docs.sh --check",
+    "uplink-docs:prose": "bash scripts/uplink-docs.sh --no-assets",
     "uplink-docs-gate": "node scripts/uplink-docs-gate.mjs",
     "uplink-shape-gate": "node scripts/uplink-shape-gate.mjs",
     "uplink-shape-engines": "node scripts/uplink-shape-engines.mjs",
