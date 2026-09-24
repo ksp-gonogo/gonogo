@@ -6,6 +6,7 @@ import {
   delayLaneOf,
   readDeclaredDelayRoles,
 } from "../delay-roles";
+import { magnitudeOr, type Quantityish } from "../magnitude";
 import { PerfBudget } from "../perf/PerfBudget";
 import { splitRawFieldSubtopic } from "../raw-field-split";
 import type {
@@ -2990,9 +2991,27 @@ export class TimelineStore {
       topic,
       this.clock.certaintyHorizonUt(),
       this.clock.confidence(),
+      this.keyframeFloorGapUt(token),
     )
       ? "held-stale"
       : "live";
+  }
+
+  /**
+   * The least UT the mod leaves between two keyframes right now: its
+   * real-time keyframe floor times the warp rate, both off the latest
+   * `time.warp` sample so the two are from the same instant. Zero without
+   * one, which widens nothing and is right at 1x.
+   */
+  private keyframeFloorGapUt(token: FrameToken): number {
+    const warp = this.sample<{
+      warpRate?: Quantityish;
+      keyframeFloorSec?: Quantityish;
+    }>("time.warp", token)?.payload;
+    if (!warp) return 0;
+    const gap =
+      magnitudeOr(warp.warpRate, 0) * magnitudeOr(warp.keyframeFloorSec, 0);
+    return Number.isFinite(gap) && gap > 0 ? gap : 0;
   }
 
   /**

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 17.0.0
+  version: 17.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -19432,6 +19432,7 @@ components:
         - warpRateIndex
         - warpMode
         - paused
+        - keyframeFloorSec
         - meta
       properties:
         warpRate:
@@ -19465,5 +19466,21 @@ components:
             Without it a client can only learn a rung's rate by warping at it, which is
             exactly the experiment that costs the game clock the overshoot it was trying
             to avoid.
+        keyframeFloorSec:
+          type: number
+          x-sitrep-unit: s
+          description: |-
+            The shortest real time the mod leaves between two periodic keyframes on one
+            channel, in seconds.
+
+            Keyframe cadences are declared in UT, and under warp UT can pass a cadence
+            on every tick, so the mod also waits at least this long in real time. The
+            gap a client sees between two keyframes of a quiet channel is therefore at
+            least `keyframeFloorSec × warpRate` UT. A client that infers staleness from
+            keyframe cadence has to allow for that, or every quiet channel reads stale
+            just after a warp step-up.
+
+            On this topic because its only use is that product, and both halves then
+            arrive in the same sample.
         meta:
           $ref: "#/components/schemas/PayloadMeta"
