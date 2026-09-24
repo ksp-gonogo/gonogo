@@ -11,6 +11,7 @@ import {
   dispatchActiveCommandTopic,
   getActiveCarriedChannels,
   getActiveTelemetryClient,
+  sampleActiveReading,
   TelemetryProvider,
   useTelemetryStore,
   useViewClock,
@@ -602,6 +603,53 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     unmount();
     expect(getActiveTelemetryClient()).toBeUndefined();
     expect(getActiveCarriedChannels()).toBeUndefined();
+    client.dispose();
+  });
+});
+
+describe("sampleActiveReading: the non-hook read that carries its own currency", () => {
+  it("answers pending when no TelemetryProvider has ever mounted", () => {
+    const reading = sampleActiveReading("vessel.control");
+    expect(reading.state).toBe("pending");
+  });
+
+  it("answers the same reading the hook path would, off the mounted store", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const store = new TimelineStore(
+      new ViewClock({
+        nowWall: () => 0,
+        warpRate: () => 1,
+        delaySeconds: () => 0,
+      }),
+    );
+    client.attachStore(store);
+    client.subscribe("vessel.control", () => {});
+
+    const { unmount } = render(
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={["vessel.control"]}
+      >
+        <div />
+      </TelemetryProvider>,
+    );
+
+    await act(async () => {
+      transport.emit("vessel.control", { sas: true });
+      store.beginFrame();
+    });
+
+    const reading = sampleActiveReading<{ sas: boolean }>("vessel.control");
+    expect(reading.state).toBe("observed");
+    if (reading.state === "observed") {
+      expect(reading.value).toEqual({ sas: true });
+      // The same object the store hands the hook, not a copy minted here.
+      expect(reading).toBe(store.sampleReading("vessel.control"));
+    }
+
+    unmount();
     client.dispose();
   });
 });
