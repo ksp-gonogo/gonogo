@@ -89,12 +89,19 @@ export interface CrewSurvival {
  */
 const SOON_DEATH_SEC = 600;
 
+/**
+ * Where a rule's fraction toward fatal becomes critical. The one definition of
+ * danger in this widget: the tones, the header badge and the band badge all
+ * read it, so no two of them can disagree about when a kerbal is in trouble.
+ */
+export const CRITICAL_FRACTION = 0.8;
+
 /** Tone for a single rule's own fraction, independent of the kerbal's
  *  overall tone (which a death clock can force to `nogo` even when every
  *  individual rule reads calm). Exported so the per-rule meters in the
  *  `.survival` augment (index.tsx) can colour each rule by its own reading. */
 export function toneFor(fraction: number): SurvivalTone {
-  if (fraction >= 0.8) return "nogo";
+  if (fraction >= CRITICAL_FRACTION) return "nogo";
   if (fraction >= 0.5) return "warn";
   return "go";
 }
