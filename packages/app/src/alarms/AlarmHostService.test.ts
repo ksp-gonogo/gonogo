@@ -281,6 +281,25 @@ function makeHost(): {
   return { host, captured };
 }
 
+/**
+ * An alarm whose only job is to fire, for a test about what a fire DOES rather
+ * than about any trigger kind. The kind is named here and nowhere else: it has
+ * to be one this side still evaluates, so when ownership moves, this changes and
+ * no test that uses it does.
+ */
+const FIRES_ON_DEMAND = {
+  kind: "threshold",
+  dataKey: "vessel.state.altitudeAsl",
+  op: ">=",
+  value: 70_000,
+  sustainSeconds: 0,
+} as const;
+
+/** Makes every `FIRES_ON_DEMAND` alarm due, from the next tick on. */
+function satisfyOnDemand(telemetry: FakeTelemetry): void {
+  telemetry.set("vessel.state.altitudeAsl", 70_500);
+}
+
 describe("AlarmHostService", () => {
   let nowMs: number;
   beforeEach(() => {
@@ -638,19 +657,13 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Stage at 70km",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
         onFire: [
           { kind: "action-group", action: "AG1" },
           { kind: "action-group", action: "Stage" },
         ],
       });
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain the dispatch microtasks (telemetry.execute is awaited).
@@ -675,15 +688,9 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Just notify",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain microtasks (telemetry.execute is async). Don't use
@@ -696,6 +703,8 @@ describe("AlarmHostService", () => {
       const userActions = telemetry.calls.filter(
         (c) => !c.startsWith("time.setWarpIndex"),
       );
+      // It fired, or an empty list would say nothing about onFire at all.
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
       expect(userActions).toEqual([]);
     });
   });
@@ -1484,21 +1493,11 @@ describe("AlarmHostService", () => {
 
     it("broadcasts alarm-snapshot on every emit and alarm-fired when an alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      /* A THRESHOLD, not a time alarm. A time alarm is the mod's to latch
-         now, so this side never derives a state for one and it cannot be
-         the cheapest thing that fires any more. What this case is about is
-         unchanged; only the kind it reaches for had to move. */
       svc.addAlarm({
         name: "Apoapsis",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       await vi.advanceTimersByTimeAsync(1100);
       const types = captured.broadcasts.map((m) => m.type);
       expect(types).toContain("alarm-snapshot");
@@ -1507,23 +1506,13 @@ describe("AlarmHostService", () => {
 
     it("removes a fired alarm when a peer station acknowledges it", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      /* A THRESHOLD, not a time alarm. A time alarm is the mod's to latch
-         now, so this side never derives a state for one and it cannot be
-         the cheapest thing that fires any more. What this case is about is
-         unchanged; only the kind it reaches for had to move. */
       const a = svc.addAlarm({
         name: "Apoapsis",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
       // Drive the state machine through firing → fired so the alarm is in the
       // only state acknowledgeAlarm accepts.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       await vi.advanceTimersByTimeAsync(1100);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
@@ -1536,19 +1525,11 @@ describe("AlarmHostService", () => {
 
     it("carries onFire through alarm-add and dispatches when the alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      // Threshold already met: the tick inside addAlarm will fire it
-      // straight away, so the dispatch path runs without further timer
-      // advances.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      // Already satisfied, so the tick inside addAlarm fires it straight away.
+      satisfyOnDemand(telemetry);
       captured.addCb?.("station-1", {
         name: "Stage at 70km",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
         onFire: [{ kind: "action-group", action: "AG1" }],
       });
       await Promise.resolve();
@@ -1603,25 +1584,16 @@ describe("AlarmHostService", () => {
     });
   });
 
-  describe("time alarm firing→fired window", () => {
+  describe("firing→fired window", () => {
     it("transitions firing within 2s of the match and to fired thereafter", async () => {
       const { svc, telemetry } = makeService();
-      /* A THRESHOLD, not a time alarm. The two-second banner window belongs to
-         the state machine rather than to any one kind, and a time alarm is the
-         mod's to latch now, so this side derives no state for one. */
       svc.addAlarm({
         name: "Burn",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
+        trigger: FIRES_ON_DEMAND,
       });
       // Cross the threshold: within the 2s firing window.
       telemetry.set("t.universalTime", 1500);
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      satisfyOnDemand(telemetry);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
       // Still within the window a second later.
