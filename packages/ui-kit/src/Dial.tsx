@@ -25,8 +25,8 @@ import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import {
   InstrumentBound,
-  InstrumentNotCurrentDot,
-  sayNotCurrent,
+  InstrumentHeldMark,
+  sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
@@ -196,7 +196,7 @@ export function Dial<U extends string = string>({
   return (
     <Dial__Meter
       role="meter"
-      aria-label={sayNotCurrent(ariaLabel ?? "Dial", caption)}
+      aria-label={sayHeld(ariaLabel ?? "Dial", caption)}
       data-not-current={notCurrent ? "" : undefined}
       aria-valuenow={display}
       aria-valuemin={axisMin}
@@ -338,7 +338,7 @@ export function Dial<U extends string = string>({
         >
           {centreLabel ?? NULL_DISPLAY}
           {notCurrent && centreLabel !== null && (
-            <InstrumentNotCurrentDot size={6} />
+            <InstrumentHeldMark size={6} />
           )}
         </text>
       </svg>
