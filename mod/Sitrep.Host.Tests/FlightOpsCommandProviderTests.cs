@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -142,7 +143,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            var result = Launch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
@@ -164,7 +165,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            var result = Launch(actuator, new LaunchArgs
             {
                 ShipName = shipName!,
                 Facility = "VAB",
@@ -183,7 +184,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            var result = Launch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = facility,
@@ -201,7 +202,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            Launch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = facility,
@@ -215,7 +216,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            Launch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
@@ -231,7 +232,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator { LaunchResult = CommandResult.Fail(CommandErrorCode.ModeUnavailable) };
 
-            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
+            var result = Launch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
@@ -241,20 +242,28 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
         }
 
+        private static readonly Func<string, string, LaunchSiteReach> Beside =
+            (_, _) => LaunchSiteReach.Measured("KSC", "Launch Pad", 0.02);
+
+        private static CommandResult Launch(FakeFlightOpsActuator actuator, LaunchArgs args) =>
+            FlightOpsCommandProvider.HandleLaunch(actuator, args, "ground:KSC", Beside);
+
         private static LaunchArgs PadLaunch() => new LaunchArgs { ShipName = "Kestrel", Facility = "VAB", Site = "LaunchPad" };
 
+        private static CommandResult LaunchFrom(FakeFlightOpsActuator actuator, LaunchSiteReach reach) =>
+            FlightOpsCommandProvider.HandleLaunch(actuator, PadLaunch(), "vessel:far", (_, _) => reach);
+
         [Fact]
-        public void ALaunchFromAVantageFurtherThanTheProximityLimitIsRefusedNamingBoth()
+        public void ALaunchFromAVantageFurtherThanTheProximityLimitIsRefusedNamingBothByDisplayName()
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = FlightOpsCommandProvider.HandleLaunch(
-                actuator, PadLaunch(), "vessel:far", (_, _) => FlightOpsCommandProvider.LaunchProximitySeconds + 0.5);
+            var result = LaunchFrom(actuator, LaunchSiteReach.Measured("KSC-2", "Launch Pad A", 14.0));
 
             Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotAtSite, result.ErrorCode);
+            Assert.Equal("KSC-2 is 14 light-seconds from Launch Pad A", result.Detail);
             Assert.Null(actuator.LastLaunchShipName);
-            Assert.Contains("vessel:far", result.Detail);
-            Assert.Contains("LaunchPad", result.Detail);
         }
 
         [Theory]
@@ -270,7 +279,7 @@ namespace Sitrep.Host.Tests
             {
                 askedVantage = vantage;
                 askedSite = site;
-                return seconds;
+                return LaunchSiteReach.Measured("KSC", "Launch Pad", seconds);
             });
 
             Assert.True(result.Success);
@@ -279,18 +288,66 @@ namespace Sitrep.Host.Tests
             Assert.Equal("LaunchPad", askedSite);
         }
 
+        /// <summary>The meta vantage, or any vantage that is not a centre, stands nowhere and so is near nothing.</summary>
         [Fact]
-        public void ALaunchWhoseDistanceCannotBeMeasuredGoesAhead()
+        public void ALaunchFromAVantageThatIsNoPlaceIsRefused()
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = FlightOpsCommandProvider.HandleLaunch(actuator, PadLaunch(), "meta", (_, _) => null);
+            var result = LaunchFrom(actuator, LaunchSiteReach.NoPlace("meta", "Launch Pad"));
 
-            Assert.True(result.Success);
+            Assert.Equal(CommandErrorCode.NotAtSite, result.ErrorCode);
+            Assert.Equal("meta is not a command centre, so it is not near Launch Pad", result.Detail);
+            Assert.Null(actuator.LastLaunchShipName);
         }
 
         [Fact]
-        public void AMalformedLaunchIsRefusedForItsArgumentsBeforeDistanceIsAsked()
+        public void ALaunchToASiteWithNoPlacedSpawnPointIsRefusedAsUnread()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = LaunchFrom(actuator, LaunchSiteReach.SiteUnplaced("KSC", "Island Airfield"));
+
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
+            Assert.Null(actuator.LastLaunchShipName);
+        }
+
+        [Fact]
+        public void ALaunchToNoSuchSiteIsRefusedAsNotFound()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = LaunchFrom(actuator, LaunchSiteReach.NoSuchSite("KSC", "Nowhere"));
+
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastLaunchShipName);
+        }
+
+        [Fact]
+        public void AReadThatFailedRefusesRatherThanLaunching()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = LaunchFrom(actuator, LaunchSiteReach.Unread("vessel:far", "LaunchPad"));
+
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
+            Assert.Null(actuator.LastLaunchShipName);
+        }
+
+        /// <summary>With no comms network there is no light-time between any two places to hold a launch to.</summary>
+        [Fact]
+        public void ASaveWithNoCommsNetworkLaunchesFromAnywhere()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = LaunchFrom(actuator, LaunchSiteReach.Unconstrained());
+
+            Assert.True(result.Success);
+            Assert.Equal("Kestrel", actuator.LastLaunchShipName);
+        }
+
+        [Fact]
+        public void AMalformedLaunchIsRefusedForItsArgumentsBeforeProximityIsAsked()
         {
             var actuator = new FakeFlightOpsActuator();
             var asked = false;
@@ -299,7 +356,7 @@ namespace Sitrep.Host.Tests
                 actuator, new LaunchArgs { ShipName = "", Facility = "VAB" }, "vessel:far", (_, _) =>
                 {
                     asked = true;
-                    return 1000.0;
+                    return LaunchSiteReach.Measured("far", "Launch Pad", 1000.0);
                 });
 
             Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);

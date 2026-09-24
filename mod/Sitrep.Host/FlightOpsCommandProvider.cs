@@ -95,25 +95,18 @@ namespace Sitrep.Host
         /// <see cref="EditorFacilityKind"/> via the same
         /// <see cref="ParseEditorFacility"/> helper <see cref="HandleRevertToEditor"/>
         /// uses. A null crew list is normalised to empty (launch unmanned).
-        /// </summary>
-        public static CommandResult HandleLaunch(IFlightOpsActuator actuator, LaunchArgs args) =>
-            HandleLaunch(actuator, args, "", (_, _) => null);
-
-        /// <summary>
-        /// The same launch, refused when the sending vantage is further than
-        /// <see cref="LaunchProximitySeconds"/> from the site it names.
         ///
-        /// <para><paramref name="secondsToSite"/> answers the one-way light-time
-        /// from a vantage to a site, or null when either cannot be placed, and a
-        /// launch it cannot measure goes ahead: there is nothing to say the vantage
-        /// is far away. Asked only after the arguments have passed, so a malformed
-        /// launch is refused for being malformed.</para>
+        /// <para>Then held to where the order came from: <paramref name="reach"/>
+        /// says how <paramref name="vantage"/> stands relative to the named site,
+        /// and <see cref="ProximityRefusal"/> refuses anything further than
+        /// <see cref="LaunchProximitySeconds"/>. Asked only after the arguments
+        /// pass, so a malformed launch is refused for being malformed.</para>
         /// </summary>
         public static CommandResult HandleLaunch(
             IFlightOpsActuator actuator,
             LaunchArgs args,
             string vantage,
-            Func<string, string, double?> secondsToSite)
+            Func<string, string, LaunchSiteReach> reach)
         {
             if (args == null || string.IsNullOrEmpty(args.ShipName))
             {
@@ -124,16 +117,57 @@ namespace Sitrep.Host
             {
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
-            var seconds = secondsToSite(vantage, args.Site);
-            if (seconds > LaunchProximitySeconds)
+            var refusal = ProximityRefusal(reach(vantage, args.Site));
+            if (refusal != null)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.NotClearToProceed,
-                    vantage + " is "
-                        + seconds.Value.ToString("0.#", CultureInfo.InvariantCulture)
-                        + " light-seconds from " + args.Site);
+                return refusal;
             }
             return actuator.Launch(args.ShipName, facility, args.Site, args.Crew ?? new List<string>());
+        }
+
+        /// <summary>
+        /// Why a launch from where the vantage stands is refused, or null when it
+        /// may go ahead.
+        ///
+        /// <para>Only a vantage that is somewhere may launch. The meta vantage is a
+        /// delay exemption for program acts rather than a place, and an operator in
+        /// ordinary play is never dispatching from it: a connection that has chosen
+        /// nothing stands at home or at a ground station, both command centres. So
+        /// a vantage with no place is refused, because being unable to say where
+        /// the launch was ordered from is not evidence that it was ordered from
+        /// beside the pad. The one exception is a save with no comms network,
+        /// where no centre exists to stand at and no light-time separates any two
+        /// places, so there is no distance for the rule to hold anyone to.</para>
+        /// </summary>
+        private static CommandResult? ProximityRefusal(LaunchSiteReach where)
+        {
+            switch (where.Kind)
+            {
+                case LaunchSiteReach.Standing.Unconstrained:
+                    return null;
+                case LaunchSiteReach.Standing.NoPlace:
+                    return CommandResult.Fail(
+                        CommandErrorCode.NotAtSite,
+                        where.VantageName + " is not a command centre, so it is not near " + where.SiteName);
+                case LaunchSiteReach.Standing.NoSuchSite:
+                    return CommandResult.Fail(CommandErrorCode.NotFound, "no launch site is named " + where.SiteName);
+                case LaunchSiteReach.Standing.Unread:
+                    return CommandResult.Fail(
+                        CommandErrorCode.Unreadable,
+                        "where " + where.VantageName + " stands relative to " + where.SiteName + " could not be read");
+                case LaunchSiteReach.Standing.SiteUnplaced:
+                    return CommandResult.Fail(
+                        CommandErrorCode.Unreadable,
+                        where.SiteName + " has no placed spawn point to measure to");
+                default:
+                    return where.Seconds > LaunchProximitySeconds
+                        ? CommandResult.Fail(
+                            CommandErrorCode.NotAtSite,
+                            where.VantageName + " is "
+                                + where.Seconds.ToString("0.#", CultureInfo.InvariantCulture)
+                                + " light-seconds from " + where.SiteName)
+                        : null;
+            }
         }
 
         private static EditorFacilityKind ParseEditorFacility(string? editor)
