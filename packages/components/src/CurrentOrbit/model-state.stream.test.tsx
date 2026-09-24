@@ -77,11 +77,11 @@ function scene(orbit: Record<string, unknown>, quality = Quality.OnRails) {
 }
 
 describe("CurrentOrbit names why the figures are dashes", () => {
-  it("says CANNOT MODEL for a loaded craft, with the condition in its note", () => {
+  it("says nothing for a loaded craft, whose apsides it is drawing", () => {
+    // A state word beside a drawn apoapsis would deny it.
     scene({}, Quality.Loaded);
 
-    const state = screen.getByText("CANNOT MODEL");
-    expect(state.getAttribute("title")).toMatch(/under physics/);
+    expect(screen.queryByText("CANNOT MODEL")).toBeNull();
   });
 
   it("says CANNOT MODEL for a coast inside the air", () => {

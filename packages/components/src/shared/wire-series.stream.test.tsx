@@ -192,7 +192,11 @@ describe("useComputedSeries", () => {
   });
 });
 
-describe("no production series is addressed on vessel.state", () => {
+/* A whole-tree git grep: well under a second on a quiet machine, many
+   seconds on a loaded one, and a timeout here would read as a finding. */
+describe("no production series is addressed on vessel.state", {
+  timeout: 60_000,
+}, () => {
   // jsdom gives this file an http URL, not a path, so git finds the root.
   const repo = execFileSync("git", ["rev-parse", "--show-toplevel"], {
     encoding: "utf8",

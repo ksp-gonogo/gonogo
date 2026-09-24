@@ -1,5 +1,6 @@
 import type { VesselOrbit } from "../__generated__/contract";
 import { magnitudeOf, magnitudeOr, type Quantityish } from "../magnitude";
+import type { ReckoningDecline } from "../reading";
 import type { OrbitElements } from "./kepler";
 import {
   buildElements,
@@ -201,6 +202,10 @@ export function solveOrbit(
   };
 }
 
+/** What {@link solveSelfOrbit} reads off a `VesselOrbit`, and nothing else. */
+export type SelfOrbitElements = WireOrbitElements &
+  Pick<VesselOrbit, "referenceBodyIndex">;
+
 /**
  * The SELF vessel's solve, or `null` where a caller is not entitled to one.
  *
@@ -221,20 +226,66 @@ export function solveOrbit(
  *
  * `viewUt` is the instant asked about, and its absence is the third `null`: with
  * no frame there is nothing to solve FOR.
+ *
+ * ## Under physics, what needs no advancing is still answered
+ *
+ * The under-physics refusal is a refusal to ADVANCE: osculating elements are
+ * not a coast a conic can carry to the view time. Most of the solve does not
+ * advance anything. The apsides, their altitudes and the period are algebra on
+ * the elements as they stand, and the craft's anomaly and radius at the
+ * elements' own epoch are where it was when they were taken. So a CURRENT
+ * observation under physics is solved at its own epoch, and only what counts
+ * forward from it (the two countdowns and the next apsis) is withheld. That is
+ * what an operator flying the craft sees in stock, which is nearly always
+ * under physics.
+ *
+ * `current` says the elements are an observation of now. A stale reading does
+ * not qualify here: under thrust the elements are not constants of the orbit,
+ * so old ones say nothing about the one the craft is on.
  */
 export function solveSelfOrbit(
-  elements: VesselOrbit | undefined,
-  reckoning: { readonly status: string },
+  elements: SelfOrbitElements | undefined,
+  reckoning:
+    | { readonly status: "declined"; readonly declined: ReckoningDecline }
+    | { readonly status: string },
   bodies: BodyRadiusTable | null | undefined,
   viewUt: number | undefined,
+  current = false,
 ): OrbitalSolve | null {
   if (elements === undefined || viewUt === undefined) return null;
-  if (reckoning.status !== "available") return null;
-  return solveOrbit(
-    elements,
-    viewUt,
-    bodyRadiusOf(bodies, elements.referenceBodyIndex),
+  const radius = bodyRadiusOf(bodies, elements.referenceBodyIndex);
+  if (reckoning.status === "available") {
+    return solveOrbit(elements, viewUt, radius);
+  }
+  if (current && declinedUnderPhysics(reckoning)) {
+    return withoutCountdowns(
+      solveOrbit(elements, magnitudeOr(elements.epoch, Number.NaN), radius),
+    );
+  }
+  return null;
+}
+
+function declinedUnderPhysics(
+  reckoning:
+    | { readonly status: "declined"; readonly declined: ReckoningDecline }
+    | { readonly status: string },
+): boolean {
+  return (
+    reckoning.status === "declined" &&
+    "declined" in reckoning &&
+    reckoning.declined.reason === "under-physics"
   );
+}
+
+/** The solve with everything that counts forward from its instant removed. */
+function withoutCountdowns(solve: OrbitalSolve): OrbitalSolve {
+  return {
+    ...solve,
+    timeToAp: null,
+    timeToPe: null,
+    nextApsisType: null,
+    timeToNextApsis: null,
+  };
 }
 
 /**

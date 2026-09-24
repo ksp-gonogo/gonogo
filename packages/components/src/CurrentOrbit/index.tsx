@@ -192,11 +192,14 @@ function CurrentOrbitComponent({
   /*
    * Why the derived figures are dashes, when the elements arrived and the conic
    * declined to advance them. A refused TRAJECTORY already says so in its own
-   * note, so this speaks only when that one is silent.
+   * note, so this speaks only when that one is silent, and only when the solve
+   * gave nothing: under physics a current reading is still solved for what
+   * needs no advancing, and a state word beside a drawn apoapsis would deny it.
    */
   const declined =
     observedOrbit !== undefined &&
     withheld === null &&
+    solve === null &&
     orbitReading.reckoning.status === "declined"
       ? orbitReading.reckoning.declined
       : undefined;

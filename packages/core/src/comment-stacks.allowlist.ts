@@ -337,7 +337,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/OrbitView/producer-consumer-O2-O3-O4.test.tsx": 2,
   "packages/components/src/OrbitView/snapshots.test.tsx": 1,
   "packages/components/src/OrbitView/stream.test.tsx": 1,
-  "packages/components/src/OrbitView/undefined.characterise.test.tsx": 5,
+  "packages/components/src/OrbitView/undefined.characterise.test.tsx": 4,
   "packages/components/src/OrbitalAscent/index.test.tsx": 2,
   "packages/components/src/PerfBudgets/index.tsx": 1,
   "packages/components/src/Plots/PlotBoard.tsx": 1,

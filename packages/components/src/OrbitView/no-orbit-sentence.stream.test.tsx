@@ -84,12 +84,10 @@ function scene(
 }
 
 describe("OrbitView's empty sentence follows the reason the conic withdrew", () => {
-  it("says packed for a craft under physics", () => {
+  it("gives a craft under physics no empty sentence at all: its orbit is drawn", () => {
     scene({}, Quality.Loaded);
 
-    expect(
-      screen.getByText("No osculating orbit (packed)"),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/No orbital data|packed/)).toBeNull();
   });
 
   it("does not say packed for a coast inside the air", () => {

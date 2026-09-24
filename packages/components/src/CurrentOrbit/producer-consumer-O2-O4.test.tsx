@@ -89,8 +89,8 @@ describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
   });
 });
 
-describe("CurrentOrbit: O4: 'measured' basis suppresses the diagram, not the grid", () => {
-  it("shows the grid with NULL_DISPLAY apsides and no diagram in the measured basis", async () => {
+describe("CurrentOrbit: O4: under physics, only what counts forward is withheld", () => {
+  it("draws a loaded craft's apsides and diagram, and dashes its countdowns", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
@@ -151,15 +151,18 @@ describe("CurrentOrbit: O4: 'measured' basis suppresses the diagram, not the gri
       });
     });
 
-    // The raw eccentricity readout (a `vessel.orbit` element, not derived)
-    // confirms the orbit landed, even though the derived apsides are null.
     await waitFor(() => expect(getEccentricityCell(container)).toBe("0.0051"));
 
-    expect(container.querySelector("svg")).toBeNull();
-    // Ap/Pe are gated on `hasOrbit`, which is false here (periapsisR null in
-    // the measured basis): they render as NULL_DISPLAY, never a stale/garbage value.
-    expect(getValueCell(container, "Ap")).toBe(NULL_DISPLAY);
-    expect(getValueCell(container, "Pe")).toBe(NULL_DISPLAY);
+    // sma(1 ± ecc) less Kerbin's 600 km, off the elements as they stand.
+    await waitFor(() =>
+      expect(getValueCell(container, "Ap")).toMatch(/^85\.0/),
+    );
+    expect(getValueCell(container, "Pe")).toMatch(/^78\.0/);
+    expect(container.querySelector("svg")).not.toBeNull();
+    // Counting forward to an apsis advances the conic, which under physics it
+    // will not do.
+    expect(getValueCell(container, "t-Ap")).toBe(NULL_DISPLAY);
+    expect(getValueCell(container, "t-Pe")).toBe(NULL_DISPLAY);
   });
 });
 
