@@ -77,6 +77,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
+import { mountGridCell } from "./gridCell";
 // Side-effect import: the planted Uplink's contributions into built-in
 // widgets, for a fixture whose subject is a built-in widget WITH an Uplink's
 // contributions. Each requires the planted Domain, so only a fixture emitting
@@ -238,6 +239,12 @@ export interface ProbePayload {
   h: number;
   pxW: number;
   pxH: number;
+  /**
+   * Mount inside the dashboard's own cell: `#root` becomes the cell, with the
+   * drag header across its top and the widget in the clipping wrapper below
+   * it. See `renderWidgets`' `gridCell`.
+   */
+  gridCell?: boolean;
   config?: Record<string, unknown>;
   instanceId?: string;
   /**
@@ -637,7 +644,14 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     return createElement(PanelBadgesProvider, { badges }, tree);
   };
 
-  activeRoot = createRoot(root);
+  if (!payload.gridCell) {
+    // A cell left by an earlier render on this page would still be laying the
+    // widget out.
+    root.replaceChildren();
+    root.style.display = "";
+    root.style.flexDirection = "";
+  }
+  activeRoot = createRoot(payload.gridCell ? mountGridCell(root) : root);
   activeRoot.render(
     // ui-kit-composed widgets read design tokens off the styled-components
     // theme (e.g. `theme.space.md` in Stack): without a ThemeProvider the

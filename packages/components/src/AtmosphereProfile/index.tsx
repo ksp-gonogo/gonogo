@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -215,9 +215,13 @@ function AtmosphereProfileComponent({
         label,
         color: "var(--color-status-warning-bg)",
         dashed: false,
+        /* The altitude behind this line is the craft's own, so it is only as
+           current as the flight record it came from, and a held record marks
+           the label rather than leaving a present-tense figure unqualified. */
+        reading: readingOf(flightReading, (f) => f.altitudeAsl),
       },
     ];
-  }, [currentPressure, altitude, narrow]);
+  }, [currentPressure, altitude, narrow, flightReading]);
 
   const graphConfig: GraphConfig = useMemo(
     () => ({
