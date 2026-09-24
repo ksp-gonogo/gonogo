@@ -37,8 +37,11 @@ import type { PeerHostService } from "../peer/PeerHostService";
  *   - Maintain the canonical trigger list (persisted in localStorage so a
  *     reload doesn't lose armed conditions, including ones armed by a
  *     station, which is the whole point of moving them off the widget).
- *   - Tick at 1 Hz (alarm-style) plus on every stream frame, evaluating each
- *     trigger's condition and firing once when the comparison first holds.
+ *   - Evaluate every trigger's condition on each ingested stream frame, and
+ *     once more at arm time so a condition that already holds fires without
+ *     waiting for the next one. A trigger fires once, when the comparison
+ *     first holds. The stream frame is the only clock here: there is no
+ *     independent timer, so a trigger is only ever as live as the stream.
  *   - On fire: recompute the plan from the trigger's frozen inputs against
  *     the *current* orbit, then dispatch each burn via the stream.
  *   - Auto-clear triggers whose observed vessel identity no longer matches
@@ -195,11 +198,12 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     // frame tick re-evaluates every armed trigger's `dataKey` threshold below
     // (`evaluate()`).
     this.vesselUnsub = onActiveTimelineFrame(() => {
-      // Vessel changed: drop triggers for the old one.
+      // Vessel changed: drop triggers for the old one. A `live` of null is
+      // "no identity read yet", not "a different vessel", so it drops nothing.
       const live = this.readVesselName();
       const before = this.triggers.length;
       this.triggers = this.triggers.filter(
-        (t) => t.vesselName === null || t.vesselName === live,
+        (t) => t.vesselName === null || live === null || t.vesselName === live,
       );
       const removedIds = this.triggers
         .filter((t) => !this.triggers.includes(t))
@@ -219,8 +223,10 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const live = this.readVesselName();
     let mutated = false;
     for (const t of [...this.triggers]) {
-      // Vessel mismatch: drop.
-      if (t.vesselName !== null && t.vesselName !== live) {
+      // Vessel mismatch: drop. Only against a vessel identity we actually
+      // have, so a trigger restored from storage before the first frame
+      // survives until there is a live name to disagree with.
+      if (t.vesselName !== null && live !== null && t.vesselName !== live) {
         this.triggers = this.triggers.filter((x) => x.id !== t.id);
         mutated = true;
         continue;
