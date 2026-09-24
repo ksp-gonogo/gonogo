@@ -106,6 +106,12 @@ echo "pre-push: tests green ($(grep -cE "^ *Tasks:" "$GONOGO_HOOK_LOG" >/dev/nul
 # its NOT RUN and REDUCED lines have to reach the person pushing.
 if [ "${GONOGO_GATE_DONE:-}" = "1" ]; then
   : # pnpm push ran it before opening the connection
+elif [ "$GONOGO_CI_DEV_ONLY" = "1" ]; then
+  # Same reasoning as the suite above: CI runs the `mod` job on every ci-dev
+  # push, and nothing reaches staging until that run is green. The comment at
+  # the top of this block is about a push to STAGING, where nothing downstream
+  # re-validates; it does not apply to the fold lane.
+  echo "pre-push: ci-dev push, skipping the C# gate (CI's mod job runs it, then forwards staging)."
 elif ! sh "$(git rev-parse --show-toplevel)/scripts/mod-suite-gate.sh"; then
   exit 1
 fi
