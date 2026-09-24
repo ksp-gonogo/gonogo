@@ -206,10 +206,21 @@ export interface RoundTrip {
   overdueUt: number;
 }
 
-/** `msg`'s round trip to its recipient, or `null` when it never left. */
+/**
+ * `msg`'s round trip to its recipient, or `null` when it never left or names
+ * more than one.
+ *
+ * Every figure below derives from ONE separation, so this describes ONE
+ * recipient. `to` is a list, and today every list holds a single entry; a
+ * message carrying two would get one arrival time for two distances, which is
+ * a statement about a journey that did not happen rather than an approximation
+ * of one. A group has to go as one message per target, each with its own
+ * separation, never as one message naming several.
+ */
 export function roundTripFor(msg: CommsMessage): RoundTrip | null {
   const s = msg.separationSeconds;
   if (s === null || !Number.isFinite(s) || s < 0) return null;
+  if (msg.to.length !== 1) return null;
   return {
     reachUt: msg.lastSentUt + s,
     replyUt: msg.lastSentUt + 2 * s,
