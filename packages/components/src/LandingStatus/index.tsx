@@ -596,9 +596,7 @@ function LandingStatusComponent({
   // The one shared ΔV derivation. It already carries a dated budget rather than
   // blanking one, which is the arm policy `describe` gives every other read here.
   const budget = useProcessor(DELTA_V_BUDGET);
-  const structureReading = useTelemetry("vessel.structure");
   const commsDelayReading = useTelemetry("comms.delay");
-  const structure = describe(structureReading);
   /*
    * `describeReckonable` since the contract declared `oneWaySeconds` carriable:
    * the model moves that one field, so the projection has to be overlaid rather
@@ -1093,14 +1091,11 @@ function LandingStatusComponent({
   const commitLayerEl = (
     <CommitLayer
       regime={clocks.regime}
-      roundTripSeconds={clocks.roundTripSeconds}
       live={live}
       mayInstruct={mayInstruct}
       suicideBurnCountdown={solution.suicideBurnCountdown}
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}
-      blindInSeconds={clocks.blindInSeconds}
-      blind={clocks.blind}
       landed={landed}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}

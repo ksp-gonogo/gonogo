@@ -9,13 +9,10 @@ const live = {
   // where the inputs are what goes stale.
   mayInstruct: true,
   regime: "live" as const,
-  roundTripSeconds: 0,
   live: true,
   suicideBurnCountdown: 8,
   commitInSeconds: null,
   committed: false,
-  blindInSeconds: null,
-  blind: false,
 };
 
 describe("CommitLayer", () => {
@@ -30,7 +27,6 @@ describe("CommitLayer", () => {
         {...live}
         regime="autonomous"
         live={false}
-        roundTripSeconds={16}
         commitInSeconds={-2}
         committed
       />,
@@ -44,7 +40,6 @@ describe("CommitLayer", () => {
         {...live}
         regime="autonomous"
         live={false}
-        roundTripSeconds={16}
         commitInSeconds={-2}
         committed
         noLandingVector
@@ -61,7 +56,6 @@ describe("CommitLayer", () => {
         {...live}
         regime="autonomous"
         live={false}
-        roundTripSeconds={16}
         commitInSeconds={-2}
         committed
         noLandingVector={false}
@@ -88,7 +82,6 @@ describe("CommitLayer", () => {
         {...live}
         regime="autonomous"
         live={false}
-        roundTripSeconds={8.4}
         suicideBurnCountdown={3}
         commitInSeconds={-1.2}
         committed
@@ -102,9 +95,7 @@ describe("CommitLayer", () => {
   it("interrupts only for the ignition cue", () => {
     // The one ABORT-class event in this widget, per the a11y rule that reserves
     // assertive for events that must cut through.
-    render(
-      <CommitLayer {...live} roundTripSeconds={0} suicideBurnCountdown={0} />,
-    );
+    render(<CommitLayer {...live} suicideBurnCountdown={0} />);
     const region = screen.getByRole("alert");
     expect(region).toHaveAttribute("aria-live", "assertive");
     expect(region).toHaveTextContent(/IGNITE/i);
@@ -116,19 +107,15 @@ describe("CommitLayer", () => {
         {...live}
         regime="autonomous"
         live={false}
-        roundTripSeconds={4}
         suicideBurnCountdown={null}
         commitInSeconds={null}
         committed={false}
-        blindInSeconds={50}
-        blind={false}
         landed
       />,
     );
     expect(screen.getByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
-    // No stale future "Blind in 50s" and no commit countdown once landed.
-    expect(screen.queryByText(/Blind in/i)).toBeNull();
+    // No commit countdown left running once landed.
     expect(screen.queryByText(/COMMIT IN/i)).toBeNull();
     expect(screen.queryByText(/UNCOMMANDABLE/i)).toBeNull();
   });
