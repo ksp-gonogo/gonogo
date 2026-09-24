@@ -27,7 +27,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { renderWidget } from "./widgetRenderHarness";
+import { renderWidgets } from "./widgetRenderHarness";
 
 const execFileAsync = promisify(execFile);
 
@@ -131,13 +131,15 @@ async function main(): Promise<void> {
       );
     }
 
-    await renderWidget(
-      {
-        widgetId: "system-view",
-        fixturesPath: fixturesRel,
-        outPath: "renders/contact-timeline-frames",
-        modes: [{ name: "f", w: 10, h: 12 }],
-      },
+    await renderWidgets(
+      [
+        {
+          widgetId: "system-view",
+          fixturesPath: fixturesRel,
+          outPath: "renders/contact-timeline-frames",
+          modes: [{ name: "f", w: 10, h: 12 }],
+        },
+      ],
       { engine: "chromium" },
     );
 

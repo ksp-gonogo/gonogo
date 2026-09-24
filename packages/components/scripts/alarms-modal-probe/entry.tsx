@@ -85,20 +85,18 @@ async function renderAlarms(payload: AlarmsProbePayload): Promise<void> {
     createElement(
       ThemeProvider,
       { theme: defaultDarkTheme },
-      createElement(
-        TelemetryProvider,
-        {
-          client,
-          store,
-          carriedChannels: new Set(["vessel.control", "commandCentre.roster"]),
-        },
-        createElement(AlarmsModal, {
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={new Set(["vessel.control", "commandCentre.roster"])}
+      >
+        {createElement(AlarmsModal, {
           useSnapshot: () => SNAPSHOT,
           onAdd: () => {},
           onUpdate: () => {},
           onDelete: () => {},
-        }),
-      ),
+        })}
+      </TelemetryProvider>,
     ),
   );
 

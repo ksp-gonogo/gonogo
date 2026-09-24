@@ -16,6 +16,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium, firefox, type Page, webkit } from "playwright";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
+import type { ScreenProbePayload } from "./probe/screen-entry";
 
 const require = createRequire(import.meta.url);
 
@@ -214,8 +215,8 @@ export interface ScreenBreakpoint {
 export interface ScreenState {
   /** Slug used in the output filename. */
   name: string;
-  /** Prop set forwarded to the screen probe. Shape matches the screen view. */
-  props: Record<string, unknown>;
+  /** Prop set forwarded to the screen probe, typed by what the screen view takes. */
+  props: ScreenProbePayload["props"];
 }
 
 export interface ScreenRenderConfig {
@@ -257,7 +258,9 @@ interface ProbePayload {
  */
 declare global {
   var __renderProbe: ((payload: ProbePayload) => Promise<void>) | undefined;
-  var __renderScreen: ((payload: unknown) => Promise<void>) | undefined;
+  var __renderScreen:
+    | ((payload: ScreenProbePayload) => Promise<void>)
+    | undefined;
 }
 
 /** Render every (fixture × mode) for one widget, convenience wrapper for
