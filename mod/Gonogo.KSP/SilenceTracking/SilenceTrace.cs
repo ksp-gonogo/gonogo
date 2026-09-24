@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace Gonogo.KSP.SilenceTracking
@@ -74,12 +75,10 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         public static void FrameCheckFailed(double liveMeters, double predictedMeters, double residualMeters)
         {
-            // Bucketed to the nearest km so an ordinary drifting residual does
-            // not spam, while a genuinely different failure still prints.
             var line = "frame self-check failed: live=" + liveMeters.ToString("F0")
                 + "m predicted=" + predictedMeters.ToString("F0")
                 + "m residual=" + residualMeters.ToString("F0") + "m";
-            var key = ((long)(residualMeters / 1000.0)).ToString();
+            var key = FrameCheckKey(residualMeters);
             if (key == _lastFrameCheck) return;
             _lastFrameCheck = key;
             Debug.Log(Prefix + line);
@@ -157,10 +156,41 @@ namespace Gonogo.KSP.SilenceTracking
         {
             var line = "decompose: vesselAboutParent live=" + (long)liveVessel + " pred=" + (long)predictedVessel
                 + " | link0 live=" + (long)liveLink + " pred=" + (long)predictedLink;
-            if (line == _lastDecomp) return;
-            _lastDecomp = line;
+            var key = DecomposeKey(liveVessel, predictedVessel, liveLink, predictedLink);
+            if (key == _lastDecomp) return;
+            _lastDecomp = key;
             Debug.Log(Prefix + line);
         }
+
+        /// <summary>
+        /// What makes one frame-check failure a different one worth printing:
+        /// the residual to three significant figures.
+        ///
+        /// <para>A RELATIVE bucket, because the residual moves every frame by an
+        /// amount that scales with the geometry. A fixed kilometre bucket holds
+        /// a low-orbit residual of a few hundred kilometres steady, and at
+        /// interplanetary range, where the residual is an AU and shifts by more
+        /// than a kilometre per frame, it matches nothing and logs every frame.
+        /// Three figures keep kilometre resolution below a thousand kilometres
+        /// and let a change of scale or of a tenth of a percent through at any
+        /// range.</para>
+        /// </summary>
+        internal static string FrameCheckKey(double residualMeters) =>
+            SignificantFigures(residualMeters);
+
+        /// <summary>
+        /// The <see cref="Decompose"/> line's four terms under the same relative
+        /// bucket as <see cref="FrameCheckKey"/>. Each is a position magnitude
+        /// that changes every frame a craft moves, so the exact-metre line never
+        /// repeats.
+        /// </summary>
+        internal static string DecomposeKey(
+            double liveVessel, double predictedVessel, double liveLink, double predictedLink) =>
+            SignificantFigures(liveVessel) + "|" + SignificantFigures(predictedVessel)
+            + "|" + SignificantFigures(liveLink) + "|" + SignificantFigures(predictedLink);
+
+        private static string SignificantFigures(double meters) =>
+            meters.ToString("G3", CultureInfo.InvariantCulture);
 
         private static string? _lastNetwork;
 
