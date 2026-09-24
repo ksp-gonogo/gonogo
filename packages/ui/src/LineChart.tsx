@@ -81,11 +81,20 @@ export interface ChartSeriesData {
 }
 
 /**
- * What a chord the value's own model contradicts becomes. `"break"` draws
- * nothing across the span, the way a known hole is drawn. `"model"` draws the
- * model's own path across it, muted and dashed like any other reckoned run.
+ * What a chord the value's own model contradicts becomes. `"break"` draws nothing
+ * across the span, the way a known hole is drawn. `"model"` draws the model's
+ * own path across it, muted and dashed like any other reckoned run.
+ * `"model-marked"` draws that path and marks each observed sample it runs
+ * through, so the instants that were measured stay distinguishable from the
+ * line the model drew between them.
  */
-const CONTRADICTED_CHORD: "break" | "model" = "break";
+const CONTRADICTED_CHORD: "break" | "model" | "model-marked" = "break";
+
+/**
+ * An observed sample on a modelled span, drawn larger than the stroke so it
+ * reads as a point on the dashed path rather than as one of its dashes.
+ */
+const OBSERVED_MARK_RADIUS = 2.5;
 
 /**
  * Render type for a single series.
@@ -655,7 +664,7 @@ export function LineChart({
             s.data.reckoned,
           ),
           modelled:
-            CONTRADICTED_CHORD === "model"
+            CONTRADICTED_CHORD !== "break"
               ? contradicted.map((bridge) => ({
                   basis: bridge.basis,
                   d: buildPath(
@@ -664,6 +673,20 @@ export function LineChart({
                     scaleX,
                     scaleY,
                   ),
+                }))
+              : [],
+          observed:
+            CONTRADICTED_CHORD === "model-marked"
+              ? [
+                  ...new Set(
+                    contradicted.flatMap((bridge) => [
+                      bridge.to - 1,
+                      bridge.to,
+                    ]),
+                  ),
+                ].map((i) => ({
+                  cx: scaleX(s.data.x[i]),
+                  cy: scaleY(s.data.y[i]),
                 }))
               : [],
         };
@@ -1038,6 +1061,26 @@ export function LineChart({
               strokeLinecap="round"
               strokeOpacity={RECKONED_STROKE_OPACITY}
               strokeDasharray={RECKONED_DASHARRAY}
+            />
+          )),
+        )}
+
+      {/* The measured instants on a modelled span. */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.observed.map((p, i) => (
+            <circle
+              // biome-ignore lint/suspicious/noArrayIndexKey: an observed sample has no identity beyond its position in the series
+              key={`${d.id}-observed-${i}`}
+              cx={p.cx}
+              cy={p.cy}
+              r={OBSERVED_MARK_RADIUS}
+              fill={d.color}
+              data-observed-sample=""
             />
           )),
         )}
