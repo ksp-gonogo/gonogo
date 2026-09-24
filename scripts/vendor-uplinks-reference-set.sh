@@ -16,12 +16,19 @@
 #   vendor/contract/codegen/Reinforced.Typings.dll      the twin's attribute assembly
 #   vendor/contract/CodegenTwin.props                   the shape every Uplink's codegen twin imports
 #   vendor/devkit/Sitrep.Contract.TestSupport.dll       fakes and rule assertions for a Tests project
+#   vendor/devkit/Sitrep.Core.dll                       the real Courier/Archive delay engine
 #   vendor/{contract,devkit}/VENDORED_FROM              the gonogo commit sha
 #
-# TestSupport needs nothing else beside it: it references Sitrep.Contract, which
-# the Tests project already takes from vendor/contract/netstandard2.0 (the same
-# build TestSupport compiled against here), and xunit.assert, which arrives with
-# the Tests project's own xunit package.
+# The devkit needs nothing else beside it. TestSupport references
+# Sitrep.Contract, which the Tests project already takes from
+# vendor/contract/netstandard2.0 (the same build TestSupport compiled against
+# here), and xunit.assert, which arrives with the Tests project's own xunit
+# package. Sitrep.Core is BCL-only apart from that same Sitrep.Contract.
+#
+# Sitrep.Core is the netstandard2.0 leg, which is what TestSupport's own net10.0
+# build resolved and what a net10.0 Tests project resolves. It is here so a Tests
+# project can drive the real delay engine rather than a double of it; a PLUGIN
+# still binds Sitrep.Core out of GameData, never from here.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
@@ -60,9 +67,10 @@ git -C "$ROOT" archive "$SHA" \
   mod/Sitrep.Contract \
   mod/Sitrep.Contract.Codegen \
   mod/Sitrep.Contract.TestSupport \
+  mod/Sitrep.Core \
   | tar -x -C "$WORK"
 
-for project in Sitrep.Contract Sitrep.Contract.Codegen Sitrep.Contract.TestSupport; do
+for project in Sitrep.Contract Sitrep.Contract.Codegen Sitrep.Contract.TestSupport Sitrep.Core; do
   dotnet build "$WORK/mod/$project/$project.csproj" -c Release --nologo -v quiet -clp:ErrorsOnly
 done
 
@@ -80,6 +88,7 @@ cp "$BIN/Sitrep.Contract.Codegen/bin/Release/netstandard2.0/Sitrep.Contract.dll"
 cp "$BIN/Sitrep.Contract.Codegen/bin/Release/netstandard2.0/Reinforced.Typings.dll" "$STAGE/contract/codegen/"
 cp "$BIN/CodegenTwin.props" "$STAGE/contract/"
 cp "$BIN/Sitrep.Contract.TestSupport/bin/Release/net10.0/Sitrep.Contract.TestSupport.dll" "$STAGE/devkit/"
+cp "$BIN/Sitrep.Core/bin/Release/netstandard2.0/Sitrep.Core.dll" "$STAGE/devkit/"
 
 echo "$SHA" > "$STAGE/contract/VENDORED_FROM"
 echo "$SHA" > "$STAGE/devkit/VENDORED_FROM"

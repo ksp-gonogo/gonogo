@@ -13,9 +13,12 @@
  *      tells the story, and `Sitrep.Core.Tests/ContractEnumRenderingTests`
  *      guards the assembly). Nothing guarded the PACKAGE.
  *   2. THE TEST FRAMEWORK REACHES A KSP PLUGIN. TestSupport ships inside this
- *      one package, in the net10.0 group only (#272). A net48 Uplink plugin
- *      resolves the net472 assets and must see no TestSupport and restore no
- *      xunit; get the grouping wrong and a test framework lands in GameData.
+ *      one package, in the net10.0 group only (#272), and carries Sitrep.Core
+ *      with it so a Tests project can drive the real delay engine. A net48
+ *      Uplink plugin resolves the net472 assets and must see neither of them
+ *      and restore no xunit; get the grouping wrong and a test framework lands
+ *      in GameData, or a plugin ships a second Sitrep.Core that shadows the
+ *      one GonogoCore already loaded into the shared AppDomain.
  *   3. MAINTAINER PROSE IS PUBLISHED. A contract doc comment's `<internal>`
  *      subtree is for whoever maintains the type, not for an Uplink author's
  *      IntelliSense (CLAUDE.md, "Contract doc comments"). `RtDocText` drops it
@@ -70,7 +73,11 @@ const EXPECTED_GROUPS = {
   net472: { assemblies: ["Sitrep.Contract"], dependencies: [] },
   "netstandard2.0": { assemblies: ["Sitrep.Contract"], dependencies: [] },
   "net10.0": {
-    assemblies: ["Sitrep.Contract", "Sitrep.Contract.TestSupport"],
+    assemblies: [
+      "Sitrep.Contract",
+      "Sitrep.Contract.TestSupport",
+      "Sitrep.Core",
+    ],
     dependencies: ["xunit.assert"],
   },
 };
@@ -235,7 +242,8 @@ export function auditPackage(pkg, expectedVersion) {
       failures.push(
         `lib/${tfm} holds [${assemblies.join(", ") || "nothing"}], expected ` +
           `[${expected.assemblies.join(", ")}]. A net48 Uplink plugin resolves the ` +
-          `net472 assets and must never see a test-support assembly.`,
+          `net472 assets and must never see a test-support assembly or a second ` +
+          `copy of Sitrep.Core.`,
       );
     }
 
@@ -440,7 +448,8 @@ const snupkg = nupkg.replace(/\.nupkg$/, ".snupkg");
 console.log(
   `${pkg.id} ${pkg.version} is clean: ` +
     `net472 and netstandard2.0 carry Sitrep.Contract alone with no dependencies, ` +
-    `net10.0 adds Sitrep.Contract.TestSupport and xunit.assert, no Reinforced.Typings ` +
+    `net10.0 adds Sitrep.Contract.TestSupport, Sitrep.Core and xunit.assert, ` +
+    `no Reinforced.Typings ` +
     `anywhere, and no <internal> prose in ${Object.keys(pkg.xmlDocs).length} packed XML docs. ` +
     `${PLANTS.length} planted violations were all caught. ` +
     `Symbols: ${existsSync(snupkg) ? "present" : "ABSENT"}.`,

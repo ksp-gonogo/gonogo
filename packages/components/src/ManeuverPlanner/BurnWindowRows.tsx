@@ -150,7 +150,7 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
         }}
       >
         <KindSwatch kind={row.kind} />
-        <Stack gap="xs" style={{ minWidth: 0 }}>
+        <Stack style={{ minWidth: 0 }}>
           <Cluster align="baseline" style={{ gap: "var(--gap-related)" }}>
             <span style={{ ...KIND_CHIP, color: KIND_COLOUR[row.kind] }}>
               {row.label}
@@ -168,7 +168,7 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
           )}
         </Stack>
       </Cluster>
-      <Stack gap="xs" style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
+      <Stack style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
         <Text tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
           {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
         </Text>
@@ -285,7 +285,7 @@ export function BurnWindowRows({
   const duration = burnDurationSeconds(burn);
 
   return (
-    <Stack gap="xs">
+    <Stack>
       {/* No "Burn window" caption here: the section heading above already
           says "Burn windows", and restating it on the first row said nothing
           the heading hadn't. The duration is the one fact this line adds. */}
@@ -309,11 +309,7 @@ export function BurnWindowRows({
           )}
         </span>
       </Cluster>
-      <Stack
-        as="ul"
-        gap="xs"
-        style={{ listStyle: "none", margin: 0, padding: 0 }}
-      >
+      <Stack as="ul" style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {rows.map((row) => (
           <InstantRow key={row.kind} row={row} nowUt={nowUt} />
         ))}

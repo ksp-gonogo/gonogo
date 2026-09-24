@@ -411,7 +411,6 @@ function Notice({
     <Cluster
       justify="start"
       align="baseline"
-      gap="sm"
       wrap
       role="status"
       aria-label={label}
@@ -597,14 +596,14 @@ function RepairControl({
 
   if (!open) {
     return (
-      <Cluster justify="start" gap="sm">
+      <Cluster justify="start">
         <GhostButton onClick={() => setOpen(true)}>{verb}</GhostButton>
       </Cluster>
     );
   }
 
   return (
-    <Stack gap="xs">
+    <Stack>
       {lines.map((line) => (
         <span key={line.name}>
           {`${line.needed} ${line.label} · ${line.carried} carried · ${line.reserve} aboard`}
@@ -800,8 +799,8 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
    * keeps the badge a badge and lets the sentence run on.
    */
   return (
-    <Stack gap="xs" role="group" aria-label="Reliability updates">
-      <Cluster justify="start" gap="sm">
+    <Stack role="group" aria-label="Reliability updates">
+      <Cluster justify="start">
         <Badge severity={severity}>
           {`${rows.length} ${atRisk ? "at risk" : "to watch"}`}
         </Badge>
@@ -817,8 +816,8 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
             key={part.partId ?? `idx-${index}`}
             tone={CARD_TONE[row.severity]}
           >
-            <Stack gap="xs">
-              <Cluster justify="between" align="baseline" gap="sm" wrap>
+            <Stack>
+              <Cluster justify="between" align="baseline" wrap>
                 <span title={part.title ?? undefined}>
                   {part.title ?? "Unknown part"}
                 </span>

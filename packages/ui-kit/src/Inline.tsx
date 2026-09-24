@@ -1,9 +1,14 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
-  /** Gap between children, snapped to the space scale. Defaults to `sm`. */
+  /**
+   * Gap between children, snapped to the space scale. Omit it and the gap is
+   * `--gap-related`, inherited from whichever container the cluster lands in,
+   * so the same cluster is 8px on a panel and 6px inside a card. Pass a size
+   * only from a container deciding the spacing for what it holds.
+   */
   gap?: SpaceToken;
   /**
    * Adds `margin-left: 6px` so this cluster sits apart from a preceding
@@ -32,7 +37,7 @@ export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
  * Replaces ScienceOfficer's `Badges`/`LabBadges`/`Actions`.
  */
 export function Inline({
-  gap = "sm",
+  gap,
   inset = false,
   wrap = false,
   children,
@@ -46,12 +51,13 @@ export function Inline({
 }
 
 const Inline__Root = styled.span<{
-  $gap: SpaceToken;
+  $gap?: SpaceToken;
   $inset: boolean;
   $wrap: boolean;
 }>`
   display: inline-flex;
-  gap: ${({ theme, $gap }) => theme.space[$gap]};
+  gap: ${({ $gap }) =>
+    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
   flex-shrink: ${({ $wrap }) => ($wrap ? 1 : 0)};
   ${({ $wrap }) => $wrap && `flex-wrap: wrap; min-width: 0;`}
   ${({ $inset }) => $inset && `margin-left: var(--space-6, 6px);`}

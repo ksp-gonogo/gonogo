@@ -16,16 +16,23 @@ shape.
 | framework | what you get | dependencies |
 | --- | --- | --- |
 | `net472`, `netstandard2.0` | `Sitrep.Contract.dll` | none |
-| `net10.0` | `Sitrep.Contract.dll` and `Sitrep.Contract.TestSupport.dll` | `xunit.assert` |
+| `net10.0` | `Sitrep.Contract.dll`, `Sitrep.Contract.TestSupport.dll` and `Sitrep.Core.dll` | `xunit.assert` |
 
 An Uplink plugin builds against `net48` (what KSP runs) and therefore resolves the `net472`
 assets: no test framework comes with it, and nothing but the contract lands in `GameData`. A
 `net10.0` test project resolves the `net10.0` assets and additionally gets `TestSupport`, the
-shared conformance assertions the bundled Uplinks use on their own contract slices.
+shared conformance assertions the bundled Uplinks use on their own contract slices, and
+`Sitrep.Core`, the delay engine itself for a test that wants the real `Courier`/`Archive` path
+end to end rather than a double of it.
 
 That split is deliberate and load-bearing: an assembly KSP loads must reference nothing it
-cannot find beside itself, and `TestSupport` needs xunit. The two are separate assemblies for
-the same reason, so a plugin never carries a metadata reference to a test framework.
+cannot find beside itself, `TestSupport` needs xunit, and `Sitrep.Core` is already in
+`GameData` where a second copy would shadow the one Gonogo loaded. So a plugin never carries a
+metadata reference to a test framework and never ships its own core.
+
+`Sitrep.Core` is not part of the wire contract and carries no compatibility promise: it moves
+with the app, not with `Major.Minor` below. A core change that breaks your test is showing you
+Uplink work rather than reporting a broken package.
 
 ## Versioning
 

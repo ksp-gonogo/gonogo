@@ -68,6 +68,55 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(0.0, rows["vessel:H"]);
         }
 
+        private static IReadOnlyList<string> OffTheGround(
+            IReadOnlyList<ICommandCentre> centres,
+            string? homeId,
+            System.Func<ICommandCentre, bool?> reachesGround) =>
+            new AuthorityMatrixPass().OffTheGroundNetwork(centres, homeId, reachesGround);
+
+        [Fact]
+        public void AVesselWhoseRouteReachesNoGroundStationIsOffTheGroundNetwork()
+        {
+            var off = OffTheGround(
+                new ICommandCentre[]
+                {
+                    new FakeCommandCentre("ground:Cape"),
+                    new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+                    new FakeCommandCentre("vessel:R", CommandCentreKind.CrewedVessel),
+                },
+                "ground:Cape",
+                centre => centre.Id == "vessel:R");
+
+            Assert.Equal(new[] { "vessel:G" }, off);
+        }
+
+        [Fact]
+        public void GroundStationsAndHomeAreNeverOffTheGroundNetwork()
+        {
+            var off = OffTheGround(
+                new ICommandCentre[]
+                {
+                    new FakeCommandCentre("ground:Cape"),
+                    new FakeCommandCentre("ground:Goldstone"),
+                    new FakeCommandCentre("vessel:H", CommandCentreKind.CrewedVessel),
+                },
+                "vessel:H",
+                _ => false);
+
+            Assert.Empty(off);
+        }
+
+        [Fact]
+        public void AReachThatCannotBeReadIsNotOffTheGroundNetwork()
+        {
+            var off = OffTheGround(
+                new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel) },
+                null,
+                _ => null);
+
+            Assert.Empty(off);
+        }
+
         [Fact]
         public void ACentreWithNoMeasurablePathHomeGetsNoRow()
         {

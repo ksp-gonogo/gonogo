@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Cluster, type ClusterAlign } from "./Cluster";
-import type { SpaceToken } from "./Stack";
+import type { SpaceToken } from "./scales";
 
 export interface SubjectHeadingProps {
   /** What the line is ABOUT: a Program's title, a course's name, a vessel. */

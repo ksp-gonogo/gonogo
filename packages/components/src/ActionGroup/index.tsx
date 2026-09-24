@@ -485,9 +485,9 @@ function ActionGroupView({
         /* The name-and-toggle row spans: the warning under it and any Uplink
            status block are both about the group it names. */
         <Section key="control" full>
-          <Cluster justify="between" align="start" gap="md" wrap>
+          <Cluster justify="between" align="start" wrap>
             {editing ? (
-              <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
+              <Stack style={{ flex: 1, minWidth: 0 }}>
                 <Input
                   ref={inputRef}
                   value={draft}
@@ -504,7 +504,6 @@ function ActionGroupView({
               // keydown handler or focus-visible CSS needed.
               <Stack
                 as="button"
-                gap="xs"
                 onClick={startEditing}
                 aria-label={`Rename ${currentLabel}`}
                 title="Click to rename"
@@ -532,7 +531,7 @@ function ActionGroupView({
                   )}
               </Stack>
             )}
-            <Inline gap="sm">
+            <Inline>
               {showBell && group.toggle && (
                 <IconButton
                   type="button"

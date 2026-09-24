@@ -1,5 +1,6 @@
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
+using Sitrep.Host.Settings;
 using Xunit;
 
 namespace Gonogo.KSP.Tests.Comms
@@ -152,25 +153,83 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// The config and the kernel behind the accessor are process statics,
-        /// so a case that left either set would change the answer for whatever
-        /// ran next. Restores both, whatever the body does.
+        /// The press reaches the FILE, and the file says so.
+        ///
+        /// <para>This is the assertion the suite lacked. The command was
+        /// already exercised here, but its write resolved its own path from
+        /// <c>KSPUtil.ApplicationRootPath</c>, which reads a live Unity player,
+        /// so headlessly the whole body threw into a catch that logged and
+        /// returned. Every case above passed whether or not a byte was ever
+        /// written, and the persistence had only ever been observed by hand.</para>
         /// </summary>
-        private static void WithDelayOn(System.Action body)
+        [Fact]
+        public void TheCommandLandsInTheSettingsFile()
+        {
+            var directory = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(), "gonogo-delay-" + System.Guid.NewGuid().ToString("N"));
+            var path = System.IO.Path.Combine(directory, "PluginData", "gonogo.cfg");
+            try
+            {
+                WithDelayOn(
+                    () =>
+                    {
+                        var applied = CommsCoreUplink.SetSimulationDelayPolicy(
+                            new SetSimulationDelayPolicyArgs { ApplyDuringSimulation = true });
+
+                        Assert.True(applied.Success);
+                        Assert.True(System.IO.File.Exists(path), path + " was never written");
+                        Assert.Equal(
+                            "SIGNAL_DELAY\n"
+                            + "{\n"
+                            + "\tenabled = True\n"
+                            + "\tlightSpeedScale = 1\n"
+                            + "\tdelayInSimulation = True\n"
+                            + "}\n",
+                            System.IO.File.ReadAllText(path).Replace("\r\n", "\n"));
+                    },
+                    path);
+            }
+            finally
+            {
+                try
+                {
+                    if (System.IO.Directory.Exists(directory))
+                    {
+                        System.IO.Directory.Delete(directory, recursive: true);
+                    }
+                }
+                catch (System.IO.IOException)
+                {
+                    // A temp directory the OS is still holding is not a test result.
+                }
+            }
+        }
+
+        /// <summary>
+        /// The config, the kernel and the settings store behind the accessor
+        /// are process statics, so a case that left any of them set would
+        /// change the answer for whatever ran next. Restores all three, whatever
+        /// the body does.
+        ///
+        /// <para>Passing a path binds the policy to a real settings file at
+        /// that location; otherwise it gets an in-memory one, which applies
+        /// every change and remembers none of it.</para>
+        /// </summary>
+        private static void WithDelayOn(System.Action body, string? settingsPath = null)
         {
             var authored = CommsCoreUplink.AuthoredSignalDelayConfig;
             try
             {
-                CommsCoreUplink.ConfigureSignalDelay(new SignalDelayConfig
-                {
-                    Enabled = true,
-                    LightSpeedScale = 1.0,
-                });
+                CommsCoreUplink.BindSettings(new SettingsStore(
+                    settingsPath == null
+                        ? (ISettingsBackingStore)new InMemorySettingsStore()
+                        : new Gonogo.KSP.Settings.ConfigNodeSettingsStore(settingsPath, _ => { })));
                 body();
             }
             finally
             {
                 CommsCoreUplink.ConfigureSimulationKernel(null);
+                CommsCoreUplink.BindSettings(new SettingsStore(new InMemorySettingsStore()));
                 CommsCoreUplink.ConfigureSignalDelay(authored);
             }
         }

@@ -672,7 +672,7 @@ function TierBlock({ heading, text }: { heading: string; text: string }) {
       {specs.length === 0 ? (
         <TierBlock__Absent>{NULL_DISPLAY}</TierBlock__Absent>
       ) : (
-        <Stack gap="xs" as="ul" style={TIER_SPEC_LIST}>
+        <Stack as="ul" style={TIER_SPEC_LIST}>
           {specs.map((spec) =>
             spec.kind === "pair" ? (
               <Row key={spec.id}>

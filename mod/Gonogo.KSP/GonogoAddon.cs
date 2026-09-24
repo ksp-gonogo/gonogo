@@ -6,6 +6,7 @@ using Sitrep.Host.Economy;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Propagation;
+using Sitrep.Host.Settings;
 using UnityEngine;
 using Sitrep.Contract;
 
@@ -70,6 +71,9 @@ namespace Gonogo.KSP
         // with warp.
         private const double FlushIntervalSeconds = 60.0;
 
+        /// <summary>The dev-capture recorder's opt-in row in the settings document.</summary>
+        private const string RecordingEnabledRow = "RECORDING/enabled";
+
         /// <summary>
         /// M3 R3's shared id registry, hoisted to a mod-wide static so the
         /// discovery-required parameterless <c>VesselUplink()</c> constructor
@@ -83,6 +87,7 @@ namespace Gonogo.KSP
 
         private KspHost? _host;
         private Recorder? _recorder;
+
         // Dev-capture recorder gate. OFF by default: the recorder writes a
         // growing session-*.json every flush and spams the log heartbeat, which
         // is pure overhead for a normal launch, it's only wanted when actively
@@ -92,6 +97,11 @@ namespace Gonogo.KSP
         // drives the live stream is guarded on `_recorder != null`); this flag
         // gates only the Record + flush calls, never the live emit.
         private bool _recordingEnabled;
+
+        // The settings document, read once at startup and the authority for the
+        // rest of the process. Held so a later surface can stage and commit
+        // against the same store every consumer is subscribed to.
+        private SettingsStore? _settings;
         private ChannelEngine? _engine;
         private bool _shutDown;
         private double? _lastSampledUt;
@@ -140,14 +150,38 @@ namespace Gonogo.KSP
                 // comms election is correct regardless of the order the
                 // assembly scan happens to return uplinks in; see
                 // ChannelEngine.RegisterDiscoveredUplinks / the two-pass fix.
-                // Enable the light-time delay capability BEFORE discovery, so
-                // the comms uplink's SignalDelay source is configured at
-                // Register time. Config comes from
-                // PluginData/gonogo.cfg (a SIGNAL_DELAY node with `enabled` +
-                // `lightSpeedScale`) so delay can be tuned without a rebuild;
-                // absent config = ON at real light-speed (scale 1.0).
-                CommsCoreUplink.ConfigureSignalDelay(ReadSignalDelayConfig());
-                _recordingEnabled = ReadRecordingEnabled();
+                // The settings document is read here, BEFORE any uplink
+                // registers, so a declarer can seed a default into a row
+                // gonogo.cfg did not carry and read its effective value while
+                // it registers. Nothing re-reads the file afterwards: the
+                // document is the authority for the rest of the process.
+                var settings = new SettingsStore(
+                    new Settings.ConfigNodeSettingsStore(
+                        Settings.ConfigNodeSettingsStore.LivePath,
+                        msg => Debug.LogWarning("[Gonogo] " + msg)))
+                {
+                    DiagnosticLog = msg => Debug.LogWarning("[Gonogo] " + msg),
+                };
+                _settings = settings;
+
+                // Bind the light-time delay capability BEFORE discovery, so the
+                // comms uplink's SignalDelay source is configured at Register
+                // time. The subscription fires as it is made, which is what
+                // carries SIGNAL_DELAY's stored values in.
+                CommsCoreUplink.BindSettings(settings);
+                var delay = CommsCoreUplink.AuthoredSignalDelayConfig;
+                Debug.Log("[Gonogo] SignalDelay enabled=" + delay.Enabled
+                    + " lightSpeedScale=" + delay.LightSpeedScale
+                    + " delayInSimulation=" + delay.DelayInSimulation);
+
+                // The dev-capture recorder's own row. Off unless the file says
+                // otherwise, unlike signal delay: recording costs disk and log
+                // on every launch and is wanted only while capturing a fixture.
+                settings.Declare(SettingsRow.Bool(RecordingEnabledRow, false));
+                settings.OnChanged(
+                    RecordingEnabledRow,
+                    _ => _recordingEnabled = settings.Bool(RecordingEnabledRow));
+                Debug.Log("[Gonogo] Recording enabled=" + _recordingEnabled);
                 // The fleet.<guid>.* namespace: core vessel-network-presence
                 // facts, unconditional and independent of whether any comms
                 // backend is ever elected (see FleetChannels's own doc
@@ -403,81 +437,6 @@ namespace Gonogo.KSP
             {
                 Debug.LogWarning("[Gonogo] could not read the derived-currency arms: " + ex.Message);
             }
-        }
-
-        private static Sitrep.Host.Comms.SignalDelayConfig ReadSignalDelayConfig()
-        {
-            var cfg = new Sitrep.Host.Comms.SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
-            try
-            {
-                var path = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "gonogo.cfg");
-                if (File.Exists(path))
-                {
-                    var root = ConfigNode.Load(path);
-                    var node = root?.GetNode("SIGNAL_DELAY");
-                    if (node != null)
-                    {
-                        if (node.HasValue("enabled") && bool.TryParse(node.GetValue("enabled"), out var en))
-                        {
-                            cfg.Enabled = en;
-                        }
-                        if (node.HasValue("lightSpeedScale") && double.TryParse(node.GetValue("lightSpeedScale"), out var scale) && scale > 0.0)
-                        {
-                            cfg.LightSpeedScale = scale;
-                        }
-                        // Absent means OFF: a simulation cuts the delay unless
-                        // the operator asked to rehearse under it. Written back
-                        // here by the console's own command, see
-                        // GonogoConfigFile.
-                        if (node.HasValue("delayInSimulation") && bool.TryParse(node.GetValue("delayInSimulation"), out var inSim))
-                        {
-                            cfg.DelayInSimulation = inSim;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] signal-delay config read failed, using defaults: " + ex.Message);
-            }
-
-            Debug.Log("[Gonogo] SignalDelay enabled=" + cfg.Enabled
-                + " lightSpeedScale=" + cfg.LightSpeedScale
-                + " delayInSimulation=" + cfg.DelayInSimulation);
-            return cfg;
-        }
-
-        /// <summary>
-        /// Reads the dev-capture recorder toggle from
-        /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>RECORDING</c> node:
-        /// <c>enabled = true|false</c>). Defaults to <b>false</b> (off), unlike
-        /// <see cref="ReadSignalDelayConfig"/>, absent config means OFF, because
-        /// recording is a dev fixture-capture tool that only wastes disk + log
-        /// on a normal launch. Opt in only when actively capturing a fixture.
-        /// </summary>
-        private static bool ReadRecordingEnabled()
-        {
-            var enabled = false;
-            try
-            {
-                var path = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "gonogo.cfg");
-                if (File.Exists(path))
-                {
-                    var root = ConfigNode.Load(path);
-                    var node = root?.GetNode("RECORDING");
-                    if (node != null && node.HasValue("enabled") && bool.TryParse(node.GetValue("enabled"), out var en))
-                    {
-                        enabled = en;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] recording config read failed, defaulting off: " + ex.Message);
-            }
-
-            Debug.Log("[Gonogo] Recording enabled=" + enabled);
-            return enabled;
         }
 
         /// <summary>

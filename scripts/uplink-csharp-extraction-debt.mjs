@@ -59,7 +59,4 @@ export const CSHARP_EXTRACTION_DEBT = {};
  * reference set, so the entry has to be deleted rather than quietly outliving
  * what justified it.
  */
-export const MISSING_REFERENCE_OK = {
-  GonogoMechJebUplink:
-    "MechJeb2/Plugins/MechJeb2.dll|MechJeb2.dll is not vendored in ksp-gonogo/ksp-managed, and this Uplink binds MuMech types at compile time rather than reflectively, so there is nothing to compile it against. Same cause and same resolutions as the exemption in scripts/uplink-mod-build.sh: vendor the DLL, or bring the Uplink onto the reflection pattern every other one follows. Either deletes both lines.",
-};
+export const MISSING_REFERENCE_OK = {};

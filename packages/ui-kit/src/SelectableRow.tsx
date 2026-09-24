@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { RADIUS_VAR, SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface SelectableRowProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
@@ -53,11 +53,11 @@ const SelectableRow__Root = styled.button<{
 }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme, $gap }) => theme.space[$gap]};
+  gap: ${({ $gap }) => SPACE_VAR[$gap]};
   width: 100%;
   text-align: left;
-  padding: ${({ theme }) => `${theme.space.xs} ${theme.space.sm}`};
-  border-radius: ${({ theme }) => theme.radii.sm};
+  padding: ${SPACE_VAR.xs} ${SPACE_VAR.sm};
+  border-radius: ${RADIUS_VAR.sm};
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "transparent" : "var(--color-border-subtle)"};

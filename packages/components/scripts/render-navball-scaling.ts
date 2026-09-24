@@ -48,7 +48,7 @@ const PANELS: ReadonlyArray<{
   label: string;
   config?: Record<string, unknown>;
 }> = [
-  { mode: "tiny-3x4", w: 3, h: 4, label: "3x4  ·  readout" },
+  { mode: "tiny-4x5", w: 4, h: 5, label: "4x5  ·  readout" },
   { mode: "medium-4x7", w: 4, h: 7, label: "4x7  ·  dial + tape" },
   { mode: "wide-5x8", w: 5, h: 8, label: "5x8  ·  dial + throttle" },
   {

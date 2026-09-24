@@ -458,9 +458,9 @@ function RotorTachometerComponent({
               The reason rides the accessible NAME rather than a visual-only
               greying, so a screen reader hears why the control will not act,
               and the readout beside it says the same thing on screen. */}
-          <Cluster justify="between" gap="md" wrap>
+          <Cluster justify="between" wrap>
             <ReadoutCaption>RPM cap</ReadoutCaption>
-            <Inline gap="sm">
+            <Inline>
               <ActionButton
                 tone="ghost"
                 type="button"
@@ -493,9 +493,9 @@ function RotorTachometerComponent({
             </Inline>
           </Cluster>
 
-          <Cluster justify="between" gap="md" wrap>
+          <Cluster justify="between" wrap>
             <ReadoutCaption>Torque</ReadoutCaption>
-            <Inline gap="sm">
+            <Inline>
               <ActionButton
                 tone="ghost"
                 type="button"
@@ -550,7 +550,7 @@ function RotorTachometerComponent({
             </Inline>
           </Cluster>
 
-          <Cluster justify="start" gap="sm" wrap>
+          <Cluster justify="start" wrap>
             {/* Motor and lock each send an ABSOLUTE `enabled` chosen by
                 inverting the state read back, so an unread flag gets a third,
                 disabled rung rather than defaulting to off/unlocked. */}

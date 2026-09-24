@@ -506,7 +506,7 @@ function CommsPathRoute({
   if (nodes.length === 0) return null;
   const bottleneckId = commsBottleneckHopId(hops, rateByHopId);
   return (
-    <Stack gap="xs" style={{ minWidth: 0 }}>
+    <Stack style={{ minWidth: 0 }}>
       <Text tone="muted" size="xs" style={ROUTE_LABEL_STYLE}>
         Route
       </Text>
@@ -606,11 +606,7 @@ function CommsPathLeg({
     >
       <RailSlot stop={false} />
       {hasDetail && (
-        <Cluster
-          gap="xs"
-          align="baseline"
-          style={{ color: "var(--color-text-dim)" }}
-        >
+        <Cluster align="baseline" style={{ color: "var(--color-text-dim)" }}>
           {hop.distanceMeters !== undefined && (
             <Text tone="muted" size="xs">
               <Unit value={hop.distanceMeters} />

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.Comms;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -78,6 +79,14 @@ namespace Gonogo.KSP
         /// for a host that has no journey ledger at all.
         /// </summary>
         private IVesselJourneyWriter? _journeyWriter;
+
+        /// <summary>
+        /// Every vessel's retained route, for its breaks. Main-thread only,
+        /// written by the gated capture, so a route is compared only on the
+        /// ticks the fleet read runs, which are the ticks it writes the delays
+        /// those breaks act on.
+        /// </summary>
+        private readonly FleetPathBreaks _pathBreaks = new FleetPathBreaks();
 
         // Main-thread-only bookkeeping: the last UT each vessel was observed
         // connected. Trivial derived state (no hysteresis, no model), so it
@@ -179,6 +188,8 @@ namespace Gonogo.KSP
             var ut = snapshot != null ? snapshot.Ut : 0.0;
             var config = CommsCoreUplink.SignalDelayConfig;
             var captures = new List<FleetVesselCapture>(all.Count);
+            var breaks = BreakObservation(all, config);
+            var present = new HashSet<string>();
             foreach (var vessel in all)
             {
                 if (vessel == null)
@@ -189,15 +200,30 @@ namespace Gonogo.KSP
                 var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 var id = vessel.id.ToString();
+                present.Add(id);
                 if (connected)
                 {
                     _lastContactUt[id] = ut;
+                }
+                PathBreak? pathBreak = null;
+                if (breaks.Index != null)
+                {
+                    var index = breaks.Index;
+                    pathBreak = _pathBreaks.Observe(
+                        id,
+                        vessel.connection?.Comm,
+                        FleetCommsReader.ReadVesselRoute(vessel, config),
+                        node => FleetCommsReader.NameNode(index, node),
+                        config.LightSpeedScale,
+                        ut,
+                        breaks.RouteBetween);
                 }
                 captures.Add(new FleetVesselCapture
                 {
                     Id = id,
                     OneWaySeconds = oneWay,
                     Journey = journey,
+                    PathBreak = pathBreak,
                     Connected = connected,
                     Orbit = orbit,
                     LastContactUt = _lastContactUt.TryGetValue(id, out var last) ? (double?)last : null,
@@ -210,7 +236,32 @@ namespace Gonogo.KSP
                     Resources = ReadResources(vessel, id, ut),
                 });
             }
+            _pathBreaks.Retain(present);
             return new FleetCapture { Ut = ut, Vessels = captures };
+        }
+
+        /// <summary>
+        /// What this pass needs to observe breaks, or no index when it should
+        /// not: delay off, no comms model, no host that can record a break, or
+        /// no elected backend to tell a reroute from a destruction. Each of
+        /// those forgets every retained route, because the next comparison
+        /// would span a situation it does not belong to.
+        ///
+        /// <para>One walk of the vessel list names every node the pass can
+        /// meet, so no hop costs a scan of its own.</para>
+        /// </summary>
+        private (VesselNodeIndex? Index, System.Func<object?, object?, IReadOnlyList<CommsRouteHop>?>? RouteBetween) BreakObservation(
+            List<Vessel> all,
+            SignalDelayConfig config)
+        {
+            var backend = _host != null ? CommsElection.Elected(_host.Kernel) : null;
+            if (_journeyWriter == null || backend == null || config == null
+                || !config.Enabled || config.CutForNoCommsModel)
+            {
+                _pathBreaks.Forget();
+                return (null, null);
+            }
+            return (VesselNodeIndex.From(all), backend.RouteBetween);
         }
 
         /// <summary>
@@ -299,6 +350,12 @@ namespace Gonogo.KSP
                         _journeyWriter?.SetVesselJourney(v.Id, v.Journey);
                     }
                 }
+                // Handles run before the tick's clock advance, so the break is
+                // on the books before any delivery it dooms can fire.
+                if (v.PathBreak != null)
+                {
+                    _journeyWriter?.SetVesselPathBreak(v.Id, v.PathBreak.Value);
+                }
                 // Per-subject freeze (Plan 2b): this vessel freezes on its own link.
                 // Reported here as well as by HandleLinksOnCourier because the
                 // order matters on a disconnect tick: after the delay, so the last
@@ -347,6 +404,7 @@ namespace Gonogo.KSP
             public string Id { get; set; } = string.Empty;
             public double? OneWaySeconds { get; set; }
             public Journey? Journey { get; set; }
+            public PathBreak? PathBreak { get; set; }
             public bool Connected { get; set; }
             public object? Orbit { get; set; }
             public double? LastContactUt { get; set; }

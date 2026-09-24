@@ -154,25 +154,133 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// A drop says nothing about light sent AFTER it. That light rides
-        /// whatever route the ledger now holds, and if there is no route at all
-        /// the reveal gate withholds it a layer up; either way it never goes near
-        /// the break the drop describes.
+        /// THE BLIND WINDOW. A relay four light-seconds out dies at UT 6. The
+        /// craft cannot know: word of the death has to travel back down the same
+        /// four seconds of route, so it goes on transmitting into a path that
+        /// stops carrying part-way along until UT 10, and every sample it sends
+        /// in that window is lost exactly as the tail was.
         ///
-        /// <para>Without this the reroute case would break: a relay that dies at
-        /// UT 6 would go on dooming everything the craft sent down its new path
-        /// for as long as the break stayed on the books.</para>
+        /// <para>At UT 10 it finds out and re-targets, and from there the light
+        /// rides whatever route the ledger now holds and never goes near this
+        /// break. Without that half the reroute case would break: the relay
+        /// would go on dooming everything the craft sent down its new path for
+        /// as long as the break stayed on the books.</para>
+        ///
+        /// <para>The instant of discovery is the whole point. A drop that
+        /// released the craft at UT 6 would model a craft that learned of a
+        /// death at the moment it happened, four light-seconds away.</para>
         /// </summary>
         [Fact]
-        public void ADropDoesNotReachLightSentAfterIt()
+        public void TheNodeFeedsTheDeadRouteUntilWordOfTheBreakReachesIt()
         {
             var network = new StubNetwork(delay: 0);
             network.SetDefaultDelay(8.0);
             network.DropPath(Node, atUt: 6.0, lightSecondsOut: 4.0);
 
+            // The tail: short of the relay when it died.
             Assert.True(network.Lost(Node, 5.0));
-            Assert.False(network.Lost(Node, 6.5));
+
+            // Sent into a route the craft has no way of knowing is dead.
+            Assert.True(network.Lost(Node, 6.0));
+            Assert.True(network.Lost(Node, 6.5));
+            Assert.True(network.Lost(Node, 9.999));
+
+            // Word has arrived; the craft is on a new route.
+            Assert.False(network.Lost(Node, 10.0));
             Assert.False(network.Lost(Node, 20.0));
+        }
+
+        /// <summary>
+        /// A break the craft cannot yet be routing through is not recorded. At
+        /// UT 6 a relay four seconds out dies; at UT 8 another relay, further
+        /// out, stops carrying on the route the GRAPH now holds. The craft is
+        /// still blind to the first break until UT 10 and has not moved onto
+        /// that route at all.
+        ///
+        /// <para>Recorded, the second break's own blind window would run to
+        /// UT 14 and retire four seconds of light that left after the craft had
+        /// re-targeted, on a route it never sat on. A wrongly-declared break
+        /// deletes telemetry that physically arrived, so the uncertainty
+        /// resolves to delivering.</para>
+        /// </summary>
+        [Fact]
+        public void ABreakOpeningWhileTheNodeIsStillBlindIsNotRecorded()
+        {
+            var network = new StubNetwork(delay: 0);
+            network.SetDefaultDelay(8.0);
+            network.DropPath(Node, atUt: 6.0, lightSecondsOut: 4.0);
+            network.DropPath(Node, atUt: 8.0, lightSecondsOut: 6.0);
+
+            // The first break still governs its own window, unextended.
+            Assert.True(network.Lost(Node, 9.0));
+            Assert.False(network.Lost(Node, 10.0));
+            Assert.False(network.Lost(Node, 13.0));
+        }
+
+        /// <summary>
+        /// A break opening after the craft has re-targeted is an ordinary second
+        /// break and IS recorded: the craft is feeding the route it describes.
+        /// The pair with the test above is the whole rule, since a blind window
+        /// is a statement about one route rather than a quiet period during
+        /// which nothing can be recorded.
+        /// </summary>
+        [Fact]
+        public void ABreakOpeningAfterTheNodeHasReTargetedIsRecorded()
+        {
+            var network = new StubNetwork(delay: 0);
+            network.SetDefaultDelay(8.0);
+            network.DropPath(Node, atUt: 6.0, lightSecondsOut: 4.0);
+            network.DropPath(Node, atUt: 12.0, lightSecondsOut: 3.0);
+
+            // Clear of the first break, caught by the second.
+            Assert.True(network.Lost(Node, 12.0));
+            Assert.True(network.Lost(Node, 14.0));
+            Assert.False(network.Lost(Node, 15.0));
+        }
+
+        /// <summary>
+        /// The whole shape over one stream: five samples out under an 8 s path
+        /// when a relay 4 s out dies at UT 6, the craft blind until UT 10, and
+        /// the stream re-established on the route the ledger holds afterwards.
+        ///
+        /// <para>Three outcomes from one break, which is what the position buys:
+        /// the head of the tail is past the relay and lands, the rest of the
+        /// tail and everything sent through the blind window is retired, and the
+        /// samples sent after the re-target arrive at the delay they were sent
+        /// under.</para>
+        /// </summary>
+        [Fact]
+        public void TheStreamResumesAtTheReTargetRatherThanAtTheBreak()
+        {
+            var clock = new ManualClock();
+            var network = new StubNetwork(delay: 0);
+            network.SetDefaultDelay(8.0);
+            var courier = new Courier(clock, network);
+            var wire = Subscribe(courier);
+
+            foreach (var ut in new[] { 1.0, 2.0, 3.0, 4.0, 5.0 })
+            {
+                clock.AdvanceTo(ut);
+                courier.Record(Node, Topic, 100.0 + ut, ut);
+            }
+
+            clock.AdvanceTo(6.0);
+            network.DropPath(Node, atUt: 6.0, lightSecondsOut: 4.0);
+
+            foreach (var ut in new[] { 6.0, 7.0, 8.0, 9.0, 10.0, 11.0 })
+            {
+                clock.AdvanceTo(ut);
+                courier.Record(Node, Topic, 100.0 + ut, ut);
+            }
+
+            clock.AdvanceTo(40.0);
+
+            // UT 1 and 2 were past the relay (1 + 4 and 2 + 4, the latter
+            // exactly, which counts as crossed). UT 3 to 9 were either short of
+            // it or sent into it unknowing. UT 10 is the re-target.
+            Assert.Equal(new[] { 1.0, 2.0, 10.0, 11.0 }, wire.ValidAts.OrderBy(v => v).ToArray());
+            Assert.Equal(18.0, wire.ArrivalOf(10.0));
+            Assert.Equal(19.0, wire.ArrivalOf(11.0));
         }
 
         /// <summary>

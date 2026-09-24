@@ -345,6 +345,22 @@ public enum CommandErrorCode
     /// </internal></para>
     /// </summary>
     Unreadable = 23,
+
+    /// <summary>
+    /// The vantage the command was sent from is not at the place the command
+    /// acts on: a launch ordered from further from its launch site than a launch
+    /// may be commanded, or from a vantage that is no place at all.
+    ///
+    /// <para>Not a delay. A launch is instant for every vantage, so distance
+    /// cannot be expressed by holding it; it is expressed by refusing it. Moving
+    /// the order to a centre beside the site is the operator's next move, and
+    /// nothing about the craft or the site stands in the way.</para>
+    ///
+    /// <para><see cref="CommandResult.Detail"/> names both ends by their display
+    /// names and, when both could be placed, the one-way light-time between
+    /// them.</para>
+    /// </summary>
+    NotAtSite = 24,
 }
 
 /// <summary>

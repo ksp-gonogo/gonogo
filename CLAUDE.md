@@ -54,7 +54,9 @@ mod/         : The Gonogo mod (C#) and the generated `sitrep-sdk`, plus each
                 in the Sitrep section above
 ```
 
-**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope. Only `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` are published; every other workspace package is `private: true` and unreachable by a third-party Uplink.
+**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope. **Three packages are publishable** (not `private: true`): `@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/ui-kit`, and `@ksp-gonogo/uplink-tools`. Every other workspace package is `private: true` and unreachable by a third-party Uplink.
+
+`release.yml`'s publish matrix is hand-listed and names only the sdk and the kit, so `uplink-tools` does not reach npm today and is not there (`npm view` 404s). But the flag, not the matrix, is what the isolation gates read: `uplink-isolation.test.ts`'s `discoverPublished()` excludes a package on `private === true` "matching what `npm publish` would actually do, rather than a second list to keep in step", and its floor is `MIN_PUBLISHED_PACKAGES = 3`. So treat `uplink-tools` as a published surface when reasoning about what an Uplink may reach, and do not describe the published set as two.
 
 ---
 
@@ -256,7 +258,11 @@ If you want a passive, on-interval, no-args feed shared by many subscribers, tha
 
 ## CI/CD
 
-- `.github/workflows/ci.yml`: runs on pushes to `main`, `ci-dev` and `staging`, and on PRs targeting `main` or `staging`. Three jobs run in parallel: `test` (lint + `pnpm test`), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way; see below).
+- `.github/workflows/ci.yml`: runs on pushes to `main`, `ci-dev` and `staging`, and on PRs targeting `main` or `staging`. **Five** jobs run in parallel: `test` (lint + `pnpm test`), `act-warnings` (the act-warning ratchet; see Testing Philosophy), `mod` (the C# solution, the Uplink plugin assemblies, and every `dotnet test` project), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way; see below).
+
+**`mod` retries each project up to four times and then fails.** Its own comment is explicit that **every project in its list is a hard gate with no exemption mechanism**: `Sitrep.Host.IntegrationTests` was exempt from 2026-07-12, and that exemption has been removed. So a WS suite that needs retries is a green that is a probability rather than a fact, which is why its load budgets matter.
+
+**The `test` job's lint step currently gates NOTHING that biome can auto-fix.** `pnpm lint` is `biome check --write .`, so it rewrites the tree and exits 0 rather than reporting; CI runs exactly that. This covers rules set to `error`, not just warnings. `.githooks/pre-commit` is the only verify-only run (`biome check .`, no `--write`, deliberately), so ordinary commits are gated but `--no-verify`, uninstalled hooks and `GITHUB_TOKEN` pushes from workflows are not. **To ask whether a tree is clean, run `pnpm exec biome check .`, never `pnpm lint`, which edits your files and then tells you everything is fine.** Tracked as Saga #403.
 - `.github/workflows/uplink-staleness.yml`: the "does every generated Uplink page still describe the code" check (`pnpm uplink-docs:check`), on the same triggers as `ci.yml`. It was a step of the blocking `test` job until 2026-09-02, when four runs in one day landed red on it and stayed red: the pages are derived and the only sanctioned regeneration is `uplink-docs.yml`, which runs on every push to `staging` (plus a nightly and on dispatch), so a stale page is normally repaired by the run that made it stale. **NON-BLOCKING, but it still goes RED**: same script, same build filter, same triggers, and on failure it writes the stale pages and the heal command to the run's summary page. What it no longer does is fail `CI`, so it no longer holds up a merge or the dev-channel deploy that gates on CI's conclusion. Heal with `gh workflow run uplink-docs.yml --ref <branch>` when the push-triggered run did not cover it (a `GITHUB_TOKEN` push triggers no workflow of its own)
 - `.github/workflows/uplink.yml`: one leg per Uplink, **discovered** by `scripts/uplink-matrix.mjs` rather than hand-listed. Each leg builds, tests, typechecks and lints its own Uplink, and runs the **extraction probe** (`scripts/uplink-extraction-probe.mjs`), which materialises the client OUTSIDE the pnpm workspace and checks it against the PUBLISHED `sitrep-sdk` and `ui-kit`. That is the only check that means "this Uplink can leave": the isolation ratchets gate imports, and the build still resolves through workspace links, so an Uplink can pass every gate and depend on API that was never published. Non-blocking for now (`continue-on-error`), running alongside `ci.yml` rather than replacing it. Debt lives in `scripts/uplink-extraction-debt.mjs` and is **empty**: a new Uplink is held to zero.
   - It asks four things, and three of them are not typechecks, because a typecheck-only probe reported zero errors while the published sdk could not be imported at all: (1) a control typechecks clean under **both** `moduleResolution: bundler` and `nodenext`, (2) every published entry point **LOADS** in a bare `node` import, (3) the types it typechecked against came out of `dist` and not the `src` the sdk also ships, (4) each of those can be seen to FAIL, via a planted bad export and a planted missing subpath.
@@ -406,9 +412,14 @@ All ten of those entries were `Sitrep.Contract.TestSupport`, and they CLEARED on
 2026-09-15: TestSupport is a shipped surface now, vendored to `vendor/devkit` by
 `scripts/vendor-uplinks-reference-set.sh` and carried in the `net10.0` group of
 the `KspGonogo.Sitrep.Contract` NuGet package, so the gate reads it as private to
-a PLUGIN and shipped to a Tests project (`ShippedToTestProjects`). What is left is
-four entries reaching `Sitrep.Host` or `Sitrep.Core`, which are still private in
-both directions. Full rules and the reasoning: `docs/uplink-isolation.md`.
+a PLUGIN and shipped to a Tests project (`ShippedToTestProjects`). **Both lists
+are EMPTY as of 2026-09-21**: `Sitrep.Core` joined `ShippedToTestProjects` the
+same way, riding into both places behind TestSupport's ProjectReference, which
+cleared the last entry (`GonogoKosUplink.Tests`, for its headless terminal
+harness's real `Courier`/`Archive`). `Sitrep.Core` is still private to a PLUGIN:
+the `net472` and `netstandard2.0` groups a KSP plugin resolves carry
+`Sitrep.Contract` alone, and `scripts/nuget-contract-package-gate.mjs` fails if
+that changes. Full rules and the reasoning: `docs/uplink-isolation.md`.
 
 ---
 

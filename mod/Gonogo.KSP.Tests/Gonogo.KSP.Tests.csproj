@@ -218,8 +218,9 @@
   </PropertyGroup>
 
   <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/**,
-       CommandCentres/** and Career/**; drop them all unless Assembly-CSharp.dll
-       is present, then re-add them (and the KSP-touching sources) below. -->
+       CommandCentres/**, Career/** and Settings/**; drop them all unless
+       Assembly-CSharp.dll is present, then re-add them (and the KSP-touching
+       sources) below. -->
   <ItemGroup>
     <Compile Remove="CurrencyDelay\**\*.cs" />
     <Compile Remove="SilenceTracking\**\*.cs" />
@@ -227,6 +228,7 @@
     <Compile Remove="CommandCentres\**\*.cs" />
     <Compile Remove="Career\**\*.cs" />
     <Compile Remove="Robotics\**\*.cs" />
+    <Compile Remove="Settings\**\*.cs" />
     <!-- KspEnumMirrorTests.cs sits at the project root rather than in a folder,
          so the blanket folder Removes above do not reach it and it needs its own.
          It compares Sitrep.Contract's KSP-enum mirrors against the real enums in
@@ -338,11 +340,13 @@
     <Compile Include="..\Gonogo.KSP\CommsModelPresence.cs" />
     <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
     <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
-    <!-- GonogoConfigFile.cs is CommsCoreUplink's write side for the simulation
-         delay policy: ConfigNode plus UnityEngine.Debug, so it sits under this
-         gate with its caller. Every failure path inside it is soft, which is
-         what lets the policy command run headlessly at all. -->
-    <Compile Include="..\Gonogo.KSP\GonogoConfigFile.cs" />
+    <!-- ConfigNodeSettingsStore.cs is the settings document's one translation
+         to gonogo.cfg: ConfigNode plus UnityEngine.Debug, so it sits under this
+         gate. Its path is a constructor argument, so a test here writes to a
+         temp file and reads the bytes back, which is the whole point of the
+         type and was unreachable while the path came from KSPUtil. -->
+    <Compile Include="..\Gonogo.KSP\Settings\ConfigNodeSettingsStore.cs" />
+    <Compile Include="Settings\**\*.cs" />
     <!-- FleetSilenceChannels.cs is CommsCoreUplink.Register's direct dependency
          (comms registers the SilenceTracker's reckoning when elected, see that
          call site), so it has to resolve here too. It walks FlightGlobals.Vessels
