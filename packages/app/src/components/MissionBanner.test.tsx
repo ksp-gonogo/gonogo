@@ -521,7 +521,8 @@ describe("MissionBanner signal delay at a centre other than home", () => {
     expect(delayValue()?.innerHTML).not.toContain(unitMarkup(187.4));
   });
 
-  it("says disconnected for a centre with no route of its own, not home's figure", async () => {
+  it("reads home's delay, marked as via home, for a centre with no route of its own", async () => {
+    const atHome = unitMarkup(187.4);
     const fixture = setupDelayedStream();
     render(
       <fixture.Provider>
@@ -534,6 +535,30 @@ describe("MissionBanner signal delay at a centre other than home", () => {
     await fixture.flyAt(187.4, "ground:unrouted");
     centreDelaysAt(fixture, "ground:unrouted", 0, 187.4);
 
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("via home");
+    });
+    expect(delayValue()?.innerHTML).toContain(atHome);
+    expect(delayValue()?.textContent).not.toContain("disconnected");
+  });
+
+  it("still says disconnected at a centre with no route of its own once the link is down", async () => {
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.client.setVantage("ground:unrouted");
+    });
+    await fixture.flyAt(187.4, "ground:unrouted");
+    centreDelaysAt(fixture, "ground:unrouted", 0, 187.4);
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("via home");
+    });
+
+    fixture.linkAt(false, 1000, 187.4, "ground:unrouted");
     await waitFor(() => {
       expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
     });
@@ -668,10 +693,22 @@ describe("MissionBanner signal delay aboard the craft", () => {
     });
   });
 
-  it("says disconnected for a centre with no route to the craft", async () => {
+  it("reads home's delay, marked as via home, when mission control's centre has no route of its own", async () => {
+    const atHome = unitMarkup(187.4);
     const { tell, fly } = renderPilot();
     tell("ground:unrouted");
     await fly(true);
+
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("via home");
+    });
+    expect(delayValue()?.innerHTML).toContain(atHome);
+  });
+
+  it("says disconnected at mission control's unrouted centre once the link is down", async () => {
+    const { tell, fly } = renderPilot();
+    tell("ground:unrouted");
+    await fly(false);
 
     await waitFor(() => {
       expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
