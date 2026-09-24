@@ -210,9 +210,10 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
 
   it("omits the EVA suit meters when vessel.resources never arrives on an EVA kerbal", async () => {
     // `resources?.resources?.Oxygen` absence gate, isolated: everything else
-    // the block needs is present (isEVA true, so the "EVA" caption renders),
-    // and the undefined resources Topic silently removes the whole meter group
-    // rather than drawing empty tanks.
+    // the block needs is present (isEVA true with a resolved single name, so
+    // the header names the kerbal per #384), and the undefined resources
+    // Topic silently removes the whole meter group rather than drawing empty
+    // tanks.
     const fixture = newFixture();
     renderCrew(fixture, { w: 6, h: 8 });
     act(() => {
@@ -225,7 +226,9 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     });
 
-    await waitFor(() => expect(screen.getByText("EVA")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Jebediah Kerman/)).toBeInTheDocument(),
+    );
     expect(
       screen.queryByLabelText("EVA suit resources"),
     ).not.toBeInTheDocument();
