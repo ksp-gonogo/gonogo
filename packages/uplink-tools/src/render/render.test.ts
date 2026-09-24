@@ -18,7 +18,11 @@ import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UplinkInventory } from "../render-probe";
-import { compareAssetNames, refuseToClobberHandWrittenReadme } from "./cli";
+import {
+  compareAssetNames,
+  refuseToClobberHandWrittenReadme,
+  wholePageRestyle,
+} from "./cli";
 import { resolveUplinkPackage } from "./context";
 import { README_GENERATED_MARKER, scenesAssertingNothing } from "./docs";
 import { encodeGif } from "./gif";
@@ -914,5 +918,93 @@ describe("what makes an asset stale", () => {
     expect(differences).toHaveLength(2);
     expect(differences.join("\n")).toContain("missing asset new--default.png");
     expect(differences.join("\n")).toContain("stale asset gone--default.png");
+  });
+});
+
+/**
+ * "Every picture moved, none of them in tree or text" is a different fact from
+ * "this picture moved", and the per-asset lines cannot say which happened.
+ *
+ * The negatives matter more than the positive here. A note that appears under
+ * every red is a note nobody reads, and a kit change is the ONE cause that
+ * reaches every asset at once while leaving every element count and every string
+ * alone.
+ */
+describe("naming a whole-page restyle", () => {
+  const shape = (hash: string, elements = 40, text = "the same words") => ({
+    hash,
+    elements,
+    text,
+  });
+  const verdict = (
+    stale: {
+      file: string;
+      was: ReturnType<typeof shape>;
+      now: ReturnType<typeof shape>;
+    }[],
+    unrecorded: string[] = [],
+  ) => ({ stale, unrecorded });
+
+  it("fires when every recorded asset moved and none moved in tree or text", () => {
+    const note = wholePageRestyle(
+      verdict([
+        { file: "a.png", was: shape("1"), now: shape("2") },
+        { file: "b.png", was: shape("3"), now: shape("4") },
+      ]),
+      2,
+    );
+
+    expect(note).toContain("All 2 recorded asset(s) moved");
+    expect(note).toContain("kit or theme change");
+  });
+
+  it("stays silent when only some of the page moved, which is a widget edit", () => {
+    expect(
+      wholePageRestyle(
+        verdict([{ file: "a.png", was: shape("1"), now: shape("2") }]),
+        3,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("stays silent when the tree moved, whatever else did", () => {
+    expect(
+      wholePageRestyle(
+        verdict([
+          { file: "a.png", was: shape("1", 40), now: shape("2", 41) },
+          { file: "b.png", was: shape("3"), now: shape("4") },
+        ]),
+        2,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("stays silent when the visible text moved", () => {
+    expect(
+      wholePageRestyle(
+        verdict([
+          { file: "a.png", was: shape("1"), now: shape("2", 40, "new words") },
+        ]),
+        1,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("counts against what was RECORDED, not against every asset rendered", () => {
+    // An unrecorded asset cannot be stale, so a page that is half unrecorded
+    // still reads as wholly restyled when every recorded one moved.
+    expect(
+      wholePageRestyle(
+        verdict(
+          [{ file: "a.png", was: shape("1"), now: shape("2") }],
+          ["b.png"],
+        ),
+        2,
+      ),
+    ).toContain("All 1 recorded asset(s) moved");
+  });
+
+  it("stays silent when nothing is stale at all", () => {
+    expect(wholePageRestyle(verdict([]), 4)).toBeUndefined();
   });
 });
