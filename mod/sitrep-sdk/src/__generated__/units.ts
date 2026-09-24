@@ -261,6 +261,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     researchSalary: "f/day",
     training: "f/day",
   },
+  "CentreDelayEntry": {
+    id: "id",
+    oneWaySeconds: "s",
+  },
   "CentreSeparationEntry": {
     from: "id",
     oneWaySeconds: "s",
@@ -2095,6 +2099,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ChannelEmissionReport": {
     channels: "ChannelEmissionEntry[]",
   },
+  "CommandCentreActiveVesselDelay": {
+    centres: "CentreDelayEntry[]",
+  },
   "CommandCentreSeparation": {
     pairs: "CentreSeparationEntry[]",
   },
@@ -2409,6 +2416,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
     strategies: "CareerStrategies",
     tech: "CareerTech",
+  },
+  "commandCentre.activeVesselDelay": {
+    centres: "CentreDelayEntry[]",
   },
   "commandCentre.separation": {
     pairs: "CentreSeparationEntry[]",
