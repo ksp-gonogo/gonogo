@@ -205,10 +205,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       this.triggers = this.triggers.filter(
         (t) => t.vesselName === null || live === null || t.vesselName === live,
       );
-      const removedIds = this.triggers
-        .filter((t) => !this.triggers.includes(t))
-        .map((t) => t.id);
-      for (const id of removedIds) this.fired.delete(id);
+      this.pruneFired();
       if (this.triggers.length !== before) {
         this.persist();
       }
@@ -218,8 +215,27 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     });
   }
 
+  /**
+   * Drops every `fired` id that no longer names a listed trigger.
+   *
+   * `fired` exists to stop a trigger firing twice while it is still listed,
+   * which is only the case when a dispatch left it there. A trigger removed on
+   * firing, on a vessel swap or by the operator can never be seen again, so
+   * its id is dead weight: ids are minted per arm and never reused.
+   */
+  private pruneFired(): void {
+    if (this.fired.size === 0) return;
+    const listed = new Set(this.triggers.map((t) => t.id));
+    for (const id of this.fired) {
+      if (!listed.has(id)) this.fired.delete(id);
+    }
+  }
+
   private evaluate(): void {
-    if (this.triggers.length === 0) return;
+    if (this.triggers.length === 0) {
+      this.fired.clear();
+      return;
+    }
     const live = this.readVesselName();
     let mutated = false;
     for (const t of [...this.triggers]) {
@@ -240,6 +256,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       this.triggers = this.triggers.filter((x) => x.id !== t.id);
       mutated = true;
     }
+    this.pruneFired();
     if (mutated) {
       this.persist();
       this.emit();

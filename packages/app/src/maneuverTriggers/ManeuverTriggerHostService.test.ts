@@ -181,6 +181,21 @@ function seedKerbinOrbit(pinnedUt = 1_000_000) {
   return storeFixture;
 }
 
+/**
+ * Every id the service is still guarding against a second fire whose trigger
+ * is no longer listed.
+ *
+ * Reaches into `fired` on purpose. The guard only has an observable effect
+ * while its trigger is still listed, so a set that has been accumulating ids
+ * all session behaves exactly like a pruned one from outside, and nothing but
+ * the set itself can tell them apart.
+ */
+function strandedFiredIds(svc: ManeuverTriggerHostService): string[] {
+  const listed = svc.snapshot().triggers.map((t) => t.id);
+  // biome-ignore lint/complexity/useLiteralKeys: `fired` is private, so dot access does not compile
+  return [...svc["fired"]].filter((id) => !listed.includes(id));
+}
+
 describe("ManeuverTriggerHostService", () => {
   let storage: Storage;
   /**
@@ -327,6 +342,44 @@ describe("ManeuverTriggerHostService", () => {
       situation: 0,
     });
     expect(svc.snapshot().triggers).toHaveLength(0);
+  });
+
+  /**
+   * `fired` is the guard that stops a listed trigger firing twice, so it only
+   * ever needs ids that are still listed. An id left in it after its trigger
+   * has gone cannot suppress anything, ids being minted per arm and never
+   * reused, but it is held for the service's lifetime, which is the app's.
+   */
+  it("holds no fired id for a trigger that is no longer listed", () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+
+    // Stays pending: 707_000 is below 800_000.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 800_000,
+      inputs: FROZEN,
+    });
+    // Already true at 707_000, so this one fires as it is armed and leaves the list immediately, putting its id in `fired`.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 700_000,
+      inputs: FROZEN,
+    });
+    expect(svc.snapshot().triggers).toHaveLength(1);
+    expect(strandedFiredIds(svc)).toEqual([]);
+
+    // The vessel swap drops the pending one, leaving nothing listed at all.
+    storeFixture.emitIdentity({
+      vesselId: "different-vessel",
+      name: "Different Vessel",
+      vesselType: 0,
+      situation: 0,
+    });
+    expect(svc.snapshot().triggers).toHaveLength(0);
+    expect(strandedFiredIds(svc)).toEqual([]);
   });
 
   it("persists triggers across construction and restores them on load", () => {
