@@ -1,0 +1,77 @@
+name: Forward ci-dev to staging
+
+# `ci-dev` is the integration-candidate branch: fold work onto it, push, and let
+# CI run the full matrix on runners rather than on the dev box. When that run is
+# green this fast-forwards `staging` to the exact commit CI validated.
+#
+# Fast-forward only. If `staging` moved while CI was running (its own
+# `chore: regenerate Uplink pages` push does this), the forward is refused and
+# reported rather than forced, because the commit CI validated is then no longer
+# the commit `staging` would become.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [ci-dev]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forward-ci-dev-to-staging
+  cancel-in-progress: false
+
+jobs:
+  forward:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the commit CI validated
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Fast-forward staging, or refuse and say why
+        env:
+          VALIDATED: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin staging
+
+          before="$(git rev-parse origin/staging)"
+          echo "staging before: $before"
+          echo "CI validated:   $VALIDATED"
+
+          if [ "$before" = "$VALIDATED" ]; then
+            echo "staging is already at the validated commit, nothing to do."
+            exit 0
+          fi
+
+          if ! git merge-base --is-ancestor "$before" "$VALIDATED"; then
+            {
+              echo "### Forward refused"
+              echo
+              echo "staging moved while CI was running, so the validated commit is not a"
+              echo "fast-forward of it. Forwarding would ship a tree CI never saw."
+              echo
+              echo "Re-fold ci-dev onto the current staging and push again."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "refusing: not a fast-forward"
+            exit 1
+          fi
+
+          git push origin "$VALIDATED:refs/heads/staging"
+
+          after="$(git ls-remote origin refs/heads/staging | cut -f1)"
+          if [ "$after" != "$VALIDATED" ]; then
+            echo "push reported success but staging is at $after, not $VALIDATED"
+            exit 1
+          fi
+
+          {
+            echo "### staging forwarded"
+            echo
+            echo "$before to $VALIDATED, verified by ls-remote after the push."
+          } >> "$GITHUB_STEP_SUMMARY"
