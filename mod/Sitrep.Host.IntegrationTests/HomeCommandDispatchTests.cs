@@ -15,8 +15,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class HomeCommandDispatchTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(300);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Settle = TestBudgets.Quiet;
 
         private const string Vessel = "vessel:G";
         private const double ActiveVesselDelay = 240.0;
