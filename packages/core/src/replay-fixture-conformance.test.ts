@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,13 +42,17 @@ import {
  * cannot produce it, so the fixture is describing a wire that does not exist.
  * A topic id the contract does not declare is fatal for the same reason.
  *
- * A field the contract declares but the fixture omits is REPORTED, not fatal.
- * Partial payloads are a real and deliberate scenario here: both fixtures' doc
- * comments lean on absence to drive widgets into their "waiting"/"no target"
- * branches, and `vessel.target` is fed a literal `null`. A check that forbade
- * omission would force every fixture to carry every field of every topic, which
- * would change what several specs assert, and it would be switched off within a
- * week. The count is printed instead, so a sudden jump is still visible.
+ * A field the contract REQUIRES that the fixture omits is fatal too. The mod
+ * sends every required field on every sample, so its absence is again a wire
+ * that does not exist, and it is the more dangerous direction: whatever reads
+ * that field sees it missing only here, and a reckoner that needs it refuses,
+ * which surfaces as an unrelated-looking widget or e2e failure a long way from
+ * the fixture. The refusal names where each missing field is read.
+ *
+ * An OPTIONAL field is never reported, and absence stays available as a
+ * scenario: leave the whole topic out, publish it as a literal `null` the way
+ * `vessel.target` is, or send `null` for a field the contract types as
+ * nullable, which is what the mod itself sends.
  *
  * A fixture that genuinely needs to send a non-conforming payload (to exercise
  * a refusal path) declares it in that file's exported
@@ -84,6 +89,67 @@ const FIXTURES = [
     exempt: new Set<string>(),
   },
 ] as const;
+
+/**
+ * Where a field is read, as `file:line` property accesses under the client
+ * source roots, so a refusal names the consumer that will see it missing.
+ * Tests and generated code are left out: neither is a reader that refuses.
+ */
+function readersOf(field: string): string[] {
+  let out: string;
+  try {
+    out = execFileSync(
+      "git",
+      [
+        "grep",
+        "-n",
+        "-E",
+        // No `\b`: git's ERE does not support it and silently matches nothing.
+        `[.]${field}([^A-Za-z0-9_]|$)`,
+        "--",
+        ":(glob)packages/*/src/**/*.ts",
+        ":(glob)packages/*/src/**/*.tsx",
+        ":(glob)mod/sitrep-sdk/src/**/*.ts",
+        ":(glob)mod/sitrep-sdk/src/**/*.tsx",
+        ":(exclude,glob)**/__generated__/**",
+        ":(exclude,glob)**/*.test.*",
+        ":(exclude,glob)**/*.test-d.*",
+      ],
+      { cwd: repoRoot, encoding: "utf8" },
+    );
+  } catch (error) {
+    // Exit 1 is git grep's "no match". Anything else is the lookup failing,
+    // and a failed lookup must not read as a field nobody reads.
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      error.status === 1
+    ) {
+      return [];
+    }
+    throw error;
+  }
+  return out
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) => line.split(":").slice(0, 2).join(":"));
+}
+
+function describeOmitted(report: ConformanceReport): string {
+  return report.omittedFields
+    .map((f) => {
+      const readers = readersOf(f.field);
+      const where =
+        readers.length === 0
+          ? "read nowhere in client source"
+          : readers.length > 3
+            ? `read in ${readers.length} places, first ${readers.slice(0, 3).join(", ")}`
+            : `read at ${readers.join(", ")}`;
+      return `  ${f.topic}${f.path === "(root)" ? "" : f.path}.${f.field}, ${where}`;
+    })
+    .join("\n");
+}
 
 function describeUndeclared(report: ConformanceReport): string {
   return report.undeclaredFields
@@ -146,6 +212,15 @@ describe("e2e replay fixtures conform to the Sitrep contract", () => {
         ).toEqual([]);
       });
 
+      it("omits no field the contract requires", () => {
+        expect(
+          report.omittedFields,
+          `${fixture.file} omits fields the contract requires, which the mod always sends:\n` +
+            `${describeOmitted(report)}\n` +
+            "Send each one, or exempt the topic in NONCONFORMING_FIXTURE_TOPICS with the reason.",
+        ).toEqual([]);
+      });
+
       it("reports how much it checked", () => {
         const expectedTopics = fixture.file.endsWith("broker.mjs")
           ? 0
@@ -156,17 +231,10 @@ describe("e2e replay fixtures conform to the Sitrep contract", () => {
         // have. Zero of them today; an entry means the walk stopped early.
         expect(report.unresolvedPositions).toEqual([]);
 
-        const omitted = report.omittedFields
-          .map(
-            (f) => `${f.topic}${f.path === "(root)" ? "" : f.path}.${f.field}`,
-          )
-          .join(", ");
         process.stdout.write(
           `[fixture-conformance] ${fixture.file}: ` +
             `${report.topicsChecked} topics, ${report.nodesVisited} nodes, ` +
-            `${report.fieldsChecked} fields checked; ` +
-            `${report.omittedFields.length} declared-but-omitted (reported, not fatal)` +
-            `${omitted ? `: ${omitted}` : ""}\n`,
+            `${report.fieldsChecked} fields checked\n`,
         );
       });
     });
@@ -290,6 +358,30 @@ describe("the conformance check can fail", () => {
     expect(first.topic).toBe("dv.stages");
     expect(first.path).toBe("[0]");
     expect(first.declared).toContain("dvActual");
+  });
+
+  it("catches a required field the fixture leaves out, and names who reads it", () => {
+    // `time.warp` without the floor the mod sends on every sample. The gap
+    // model multiplies it by the warp rate, so a fixture without it describes
+    // a stream the client would widen no gaps for.
+    const warp: unknown = SNAPSHOT["time.warp"];
+    if (typeof warp !== "object" || warp === null) {
+      throw new Error("the base fixture's time.warp is not an object");
+    }
+    const warpWithoutFloor = Object.fromEntries(
+      Object.entries(warp).filter(([key]) => key !== "keyframeFloorSec"),
+    );
+    const report = checkFixturePayloads(resolver, {
+      ...SNAPSHOT,
+      "time.warp": warpWithoutFloor,
+    } as Record<string, unknown>);
+
+    expect(report.omittedFields).toEqual([
+      { topic: "time.warp", path: "(root)", field: "keyframeFloorSec" },
+    ]);
+    expect(describeOmitted(report)).toMatch(
+      /time\.warp\.keyframeFloorSec, read at mod\/sitrep-sdk\/src\/spine\/timeline-store\.ts:\d+/,
+    );
   });
 
   it("a checker that does not descend into arrays catches none of them", () => {
