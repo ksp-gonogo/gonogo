@@ -156,6 +156,7 @@ export {
   DelayAuthority,
   type DelaySubscribable,
   readCentreDelays,
+  readOneWaySeconds,
 } from "./delay-authority";
 export {
   type BudgetProvenance,
