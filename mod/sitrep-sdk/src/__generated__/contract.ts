@@ -7128,10 +7128,9 @@ export interface VesselFlight
 * The `vessel.identity` channel payload: kills V-13 (one typed
 * `VesselIdentity.situation` enum replaces the v.situation/v.situationString/
 * v.landedAt triplet) and moves `missionTime` off the wire entirely:
-* `VesselIdentity.launchUt` is static after liftoff (sampleUt - missionTime),
-* so MET (mission elapsed time) is a consumer-side derivation (viewUt -
-* launchUt) rather than a tick-rate field that would force this whole record
-* to re-emit every tick.
+* `VesselIdentity.launchUt` is static after liftoff, so MET (mission elapsed
+* time) is a consumer-side derivation (viewUt - launchUt) rather than a
+* tick-rate field that would force this whole record to re-emit every tick.
 */
 export interface VesselIdentity
 {
@@ -7150,8 +7149,9 @@ export interface VesselIdentity
 	*/
 	parentBodyIndex?: number | null;
 	/**
-	* sampleUt - missionTime; null before the vessel's launch clock has started.
-	* See the class doc comment.
+	* The UT the vessel's mission clock started from, fixed from liftoff. `null`
+	* while the vessel is in `PreLaunch` and whenever the clock is unknown, never
+	* the current UT. See the class doc comment.
 	*/
 	launchUt?: Value<"ut"> | null;
 	meta: PayloadMeta;
