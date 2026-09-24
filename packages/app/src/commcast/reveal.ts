@@ -1,3 +1,21 @@
+/**
+ * When a Commcast message or radio transmission becomes visible to a reader.
+ *
+ * This reveal is applied by the receiving client, so it is not enforced.
+ * Messages and radio travel screen to screen over the PeerJS data channel and
+ * never enter the mod, which means the Courier cannot hold them back the way it
+ * holds a telemetry sample. The light-time NUMBER is the server's (the
+ * `commandCentre.separation` matrix, solved once by the mod); the WITHHOLDING
+ * is done here, in the reader's own browser, against that number.
+ *
+ * The difference in guarantee: anything the mod delays, no client can see
+ * early, because the bytes have not been sent to it yet. Anything this module
+ * delays has already arrived, so a modified client could read it the moment it
+ * lands. That is acceptable for a co-operative game, and it is a weaker promise
+ * than telemetry makes. Radio carried through the mod's binary lane would move
+ * the audio onto the enforced side; messages stay on this one until they
+ * travel through the mod as well.
+ */
 import { LOSS_MARGIN } from "@ksp-gonogo/sitrep-client";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type {
