@@ -114,6 +114,12 @@ interface ModStandIn {
   /** Every `alarm.scet.arm` this id was the subject of, accepted or refused. */
   armAttempts(id: string): number;
   /**
+   * Lose the next `count` arms in transit: each is counted as an attempt and
+   * then answered with the loss a command gets when no confirmation came back,
+   * which is no answer at all rather than a refusal.
+   */
+  loseArms(count: number): void;
+  /**
    * Stamp frames with the meta vantage rather than a place, so the client has
    * observed no command centre yet: the window before the first ordinary frame.
    */
@@ -169,6 +175,7 @@ function startSession(owlt: number): ModStandIn {
   const armAttemptCounts = new Map<string, number>();
   const commands: string[] = [];
   let withholdActions = false;
+  let armsToLose = 0;
   let centresKnown = true;
   let stampedVantage = HOME;
   const steppedDown = new Set<string>();
@@ -203,6 +210,13 @@ function startSession(owlt: number): ModStandIn {
     if (command === "alarm.scet.arm") {
       const id = String(bag.id ?? "");
       armAttemptCounts.set(id, (armAttemptCounts.get(id) ?? 0) + 1);
+      if (armsToLose > 0) {
+        armsToLose -= 1;
+        throw {
+          code: "E_LOST",
+          message: "command lost: no confirmation received by predicted ETA",
+        };
+      }
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
       const contractParameter = Number(condition.kind ?? 0) === 2;
@@ -376,6 +390,9 @@ function startSession(owlt: number): ModStandIn {
     },
     armOf: (id) => conditions.get(id),
     armAttempts: (id) => armAttemptCounts.get(id) ?? 0,
+    loseArms: (count) => {
+      armsToLose = count;
+    },
     withholdVantage(withheld) {
       stampedVantage = withheld ? "meta" : HOME;
     },
@@ -1209,6 +1226,121 @@ describe("SCET alarms", () => {
     expect(snap.alarms.find((a) => a.id === alarm.id)?.state).toBe("pending");
     // The mod's own words, carrying the Topic the operator chose.
     expect(snap.scetArmRefusals?.[alarm.id]).toContain("career.economy");
+  });
+
+  /** A SCET altitude threshold the simulation can read, for the arm outcomes below. */
+  const SCET_ALTITUDE = {
+    kind: "threshold",
+    dataKey: "vessel.flight.altitudeAsl",
+    op: ">=",
+    value: 100_000,
+    sustainSeconds: 0,
+    vantage: "scet",
+    topic: "vessel.flight",
+    fieldPath: "altitudeAsl",
+  } as const;
+
+  /**
+   * A lost arm is no answer, not a refusal: nothing about the alarm was
+   * wrong, so it is asked again and the operator is not told it was refused.
+   * No roster frame follows a lost arm, so only the arm's own outcome can
+   * decide the retry.
+   */
+  it("asks again about an arm that was lost, and does not call it refused", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    session.loseArms(2);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: { ...SCET_ALTITUDE },
+    });
+
+    await run(session, UT_START + 8 * DT);
+    const snap = svc.snapshot();
+    svc.dispose();
+
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(session.armAttempts(alarm.id)).toBe(3);
+    expect(snap.scetArmRefusals?.[alarm.id]).toBeUndefined();
+  });
+
+  /**
+   * And not for ever. An arm that is never answered is given up on after a
+   * bounded number of tries, and the operator is told, because an alarm only
+   * the simulation can fire will otherwise sit looking watched and never fire.
+   */
+  it("stops asking about an arm that is never answered, and says so", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    session.loseArms(Number.POSITIVE_INFINITY);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: { ...SCET_ALTITUDE },
+    });
+
+    await run(session, UT_START + 20 * DT);
+    const snap = svc.snapshot();
+    svc.dispose();
+
+    expect(session.armAttempts(alarm.id)).toBe(5);
+    expect(snap.scetArmRefusals?.[alarm.id]).toContain("never answered");
+  });
+
+  /**
+   * A refusal that cannot change is not asked again when some other alarm moves
+   * the roster. A roster frame clears the in-flight guard for every id, and
+   * the refused alarm is still pending and still not held, so without a record
+   * of the answer it would be re-sent on every frame that followed.
+   */
+  it("does not re-send a settled refusal when another alarm moves the roster", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const refused = svc.addAlarm({
+      name: "Funds",
+      trigger: {
+        kind: "threshold",
+        dataKey: "career.economy.funds",
+        op: "<",
+        value: 1000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "career.economy",
+        fieldPath: "funds",
+      },
+    });
+    await run(session, UT_START + 2 * DT);
+
+    const other = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: { ...SCET_ALTITUDE },
+    });
+    for (let ut = UT_START + 3 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+      session.emitAt(ut);
+      nowMs += DT * 1000;
+      await vi.advanceTimersByTimeAsync(DT * 1000);
+    }
+    svc.dispose();
+
+    expect(session.armed()).toEqual([other.id]);
+    expect(session.armAttempts(refused.id)).toBe(1);
   });
 
   it("fires both vantages on the same tick when there is no delay to tell them apart", async () => {
