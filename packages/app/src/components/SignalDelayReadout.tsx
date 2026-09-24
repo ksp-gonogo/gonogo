@@ -18,8 +18,15 @@ import { useActiveCentres } from "./VantageControl";
 /** What the header can truthfully say about the delay in force. */
 type SignalDelayState =
   | { kind: "delay"; seconds: number }
+  | { kind: "via-home"; seconds: number | undefined }
   | { kind: "disconnected" }
   | { kind: "unknown"; spoken: string };
+
+/**
+ * What a centre with no route of its own to the craft is called. It still has
+ * a link: its traffic rides the whole-network delay, home's.
+ */
+const VIA_HOME_LABEL = "via home";
 
 const LINK_UNKNOWN = "Signal delay unknown, no link report yet";
 const NOT_REPORTED = "Signal delay from this command centre is not reported";
@@ -31,8 +38,9 @@ const NOT_REPORTED = "Signal delay from this command centre is not reported";
  * `centreDelays` is `commandCentre.activeVesselDelay`: each centre with a delay
  * of its own, or `undefined` before that list has arrived. Home is never on it,
  * because home's delay is `comms.delay`, so `homeSeconds` answers for home. Any
- * other centre the list leaves out has no route to the craft, which is a path
- * that is down, and is said the same way a lost link home is.
+ * other centre the list leaves out has no route of its own, yet its traffic
+ * still arrives, timed by the whole-network delay, which is home's: so it reads
+ * home's figure marked as borrowed, never "disconnected".
  *
  * A link reported down wins over every number, because the number held through
  * a blackout is right for the clock and would be a falsehood in a readout. A
@@ -72,7 +80,7 @@ function deriveSignalDelay({
   }
   const seconds = centreDelays.get(centreId);
   return seconds === undefined
-    ? { kind: "disconnected" }
+    ? { kind: "via-home", seconds: homeSeconds }
     : { kind: "delay", seconds };
 }
 
@@ -115,7 +123,7 @@ function OwnCraftAwareSignalDelay() {
  * A command-centre screen's own delay, keyed on the centre the picker shows.
  * Whatever number it prints is the view clock's, which reads the same row, so
  * the header can never quote a light-time the clock is not running on; the
- * list decides only whether this centre has a path at all.
+ * list decides only whether that light-time is this centre's own or home's.
  */
 function CentreSignalDelayValue({
   ownCraftVantage,
@@ -141,7 +149,9 @@ function CentreSignalDelayValue({
   return (
     <SignalDelayValue
       state={
-        state.kind === "delay" ? { kind: "delay", seconds: owltSeconds } : state
+        state.kind === "delay" || state.kind === "via-home"
+          ? { ...state, seconds: owltSeconds }
+          : state
       }
     />
   );
@@ -219,6 +229,20 @@ function SignalDelayValue({ state }: { state: SignalDelayState }) {
         <>
           <VisuallyHidden>Signal delay </VisuallyHidden>
           <Unit value={value("s", state.seconds)} />
+        </>
+      );
+    case "via-home":
+      return (
+        <>
+          <VisuallyHidden>Signal delay </VisuallyHidden>
+          {state.seconds !== undefined && (
+            <>
+              <Unit value={value("s", state.seconds)} />{" "}
+            </>
+          )}
+          <Text tone="muted" size="xs">
+            {VIA_HOME_LABEL}
+          </Text>
         </>
       );
     case "disconnected":

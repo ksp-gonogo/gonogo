@@ -98,7 +98,7 @@ const SIGNAL_DELAY = 1;
 /**
  * Each centre's own route to the active craft, as the mod publishes it: home is
  * absent because its delay is `comms.delay`, Ground Station 2 is absent because
- * it has no route, and the craft itself is its own zero.
+ * it has no route of its own, and the craft itself is its own zero.
  */
 const CENTRE_DELAYS = {
   centres: [
@@ -194,13 +194,26 @@ const SCENES: Scene[] = [
     emit: flight(true),
   },
   {
-    // A centre with no route to the craft at all.
-    name: "no-path",
+    // A centre with no route of its own to the craft: its traffic still
+    // arrives, timed by home's delay.
+    name: "non-home-centre-unrouted",
+    screen: "main",
+    vantage: GS2,
+    select: GS2,
+    settled: {
+      after: "DelaySignal delay 3min 7s via home",
+      before: NOT_REPORTED,
+    },
+    emit: flight(true),
+  },
+  {
+    // The same centre once the link itself is down.
+    name: "non-home-centre-unrouted-disconnected",
     screen: "main",
     vantage: GS2,
     select: GS2,
     settled: { after: "DelaySignal delay: disconnected", before: NOT_REPORTED },
-    emit: flight(true),
+    emit: flight(false),
   },
   {
     // A pilot aboard the craft, mission control at home.
@@ -224,6 +237,19 @@ const SCENES: Scene[] = [
     hostCentre: GS1,
     settled: {
       after: "DelaySignal delay 42s",
+      before: "DelaySignal delay 0s",
+    },
+    emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
+  },
+  {
+    // A pilot aboard, mission control at a centre with no route of its own.
+    name: "pilot-aboard-unrouted",
+    screen: "pilot",
+    vantage: CRAFT,
+    select: CRAFT,
+    hostCentre: GS2,
+    settled: {
+      after: "DelaySignal delay 3min 7s via home",
       before: "DelaySignal delay 0s",
     },
     emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
