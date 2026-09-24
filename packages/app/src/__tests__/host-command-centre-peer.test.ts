@@ -123,9 +123,10 @@ describe("host-command-centre over peer", () => {
     const client = new PeerClientService();
     expect(client.getHostCommandCentre()).toBeNull();
 
-    (
-      client as unknown as { handleMessage: (m: PeerMessage) => void }
-    ).handleMessage({ type: "host-command-centre", centreId: "ground:gs1" });
+    client["handleMessage"]({
+      type: "host-command-centre",
+      centreId: "ground:gs1",
+    });
 
     const seen: (string | null)[] = [];
     client.onHostCommandCentreChange((c) => seen.push(c));

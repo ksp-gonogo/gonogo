@@ -1,10 +1,11 @@
 import { useScreen, useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import {
   readCentreDelays,
+  readOneWaySeconds,
   useObservedVantage,
   useSelectedVantage,
 } from "@ksp-gonogo/sitrep-client";
-import { type CommsDelay, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   useLatestValue,
   useOwnCraftVantage,
@@ -158,8 +159,7 @@ function PilotSignalDelay() {
   const linkConnected = useLinkConnected();
   const centreDelays = useCentreDelays();
   const homeSeconds =
-    useLatestValue<Partial<CommsDelay>>("comms.delay")?.oneWaySeconds
-      ?.magnitude;
+    readOneWaySeconds(useLatestValue<unknown>("comms.delay")) ?? undefined;
 
   const state: SignalDelayState =
     hostCentre === null
@@ -171,8 +171,7 @@ function PilotSignalDelay() {
           centreId: hostCentre,
           isOwnCraft: hostCentre === aboard,
           isHome: hostCentre === homeId,
-          homeSeconds:
-            typeof homeSeconds === "number" ? homeSeconds : undefined,
+          homeSeconds,
           centreDelays,
           linkConnected,
         });
