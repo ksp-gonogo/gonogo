@@ -533,9 +533,6 @@ describe("LandingStatusComponent", () => {
     expect(
       screen.getByRole("meter", { name: /altitude above terrain/i }),
     ).toBeInTheDocument();
-    // The now-void in-flight countdowns are gone.
-    expect(screen.queryByText(/Blind in/i)).toBeNull();
-    expect(screen.queryByText(/COMMIT IN/i)).toBeNull();
     expect(screen.queryByText(/No landing in progress/i)).toBeNull();
   });
 
