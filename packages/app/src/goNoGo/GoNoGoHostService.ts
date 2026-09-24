@@ -18,9 +18,11 @@ import { getDataSource } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
   dispatchActiveCommandTopic,
+  getVesselIdentity,
   getVesselState,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
+import { Situation } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
 
@@ -181,6 +183,13 @@ export class GoNoGoHostService {
     // exactly those cases, so a plain `!= null` check is enough here).
     this.unsubs.push(
       onActiveTimelineFrame(() => {
+        // A craft on the pad has no launch clock, so `met` is null there rather
+        // than 0, and a null is also what a frame without identity yet reads. The
+        // situation is what says "on the pad", which a revert to launch needs.
+        if (getVesselIdentity()?.situation === Situation.PreLaunch) {
+          this.handleMissionTime(0);
+          return;
+        }
         const met = getVesselState()?.met;
         if (met != null) this.handleMissionTime(met);
       }),

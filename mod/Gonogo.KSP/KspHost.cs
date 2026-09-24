@@ -647,6 +647,7 @@ namespace Gonogo.KSP
                 ["id"] = vessel.id.ToString(),
                 ["situation"] = vessel.situation.ToString(),
                 ["parentBody"] = parentBody != null ? parentBody.bodyName : null,
+                ["launchTime"] = vessel.launchTime,
             };
         }
 

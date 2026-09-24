@@ -8,6 +8,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { Situation, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -168,6 +169,7 @@ describe("GoNoGoHostService", () => {
     dispatched.filter((d) => d.command === "vessel.control.setAbort");
   let transport: StubTransport;
   let telemetryClient: TelemetryClient | undefined;
+  let store: TimelineStore;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -178,7 +180,7 @@ describe("GoNoGoHostService", () => {
     dispatched = [];
     transport = new StubTransport();
     telemetryClient = new TelemetryClient(transport);
-    const store = new TimelineStore(
+    store = new TimelineStore(
       new ViewClock({
         nowWall: () => 0,
         warpRate: () => 1,
@@ -414,5 +416,34 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
     ds.emit("v.missionTime", 1);
     expect(svc.getSnapshot().countdown).toBeNull();
+  });
+
+  it("reads a craft back on the pad as not launched, which a revert to launch needs", () => {
+    /* The stream sends no launch clock in PreLaunch, so `met` is null on the pad
+       rather than 0, and the situation is the only thing left that says so. */
+    telemetryClient?.subscribe("vessel.identity", () => {});
+    host.fireConnect("peer-1");
+    ds.emit("v.missionTime", 10);
+    host.fireAbort("peer-1");
+    expect(svc.getSnapshot().launched).toBe(true);
+
+    transport.emit("vessel.identity", {
+      vesselId: "8cbc9ce1-8f6f-4b60-87fa-e9ecf2cc1e98",
+      name: "Muna 1",
+      vesselType: VesselType.Probe,
+      situation: Situation.PreLaunch,
+      parentBodyIndex: 1,
+      launchUt: null,
+      meta: {
+        source: "vessel:8cbc9ce1-8f6f-4b60-87fa-e9ecf2cc1e98",
+        quality: 0,
+      },
+    });
+    store.beginFrame();
+
+    expect(svc.getSnapshot().launched).toBe(false);
+    expect(svc.getSnapshot().abort).toBeNull();
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
   });
 });
