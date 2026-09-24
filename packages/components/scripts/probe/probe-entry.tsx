@@ -557,7 +557,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   const instanceId = payload.instanceId ?? "probe";
 
   // The widget tree proper: shared by both provider-wrap branches below.
-  function buildWidgetTree(): React.ReactNode {
+  const buildWidgetTree = (): React.ReactNode => {
     // Wrap with a no-op AlarmsLauncherProvider so widgets that opt into
     // alarm chrome (`useAlarmsLauncher` / `useAlarmCreator` /
     // `useAlarmManager`) get a real launcher reference and render their
@@ -599,14 +599,12 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
         createElement(
           ContributionsProvider,
           null,
-          createElement(
-            AlarmsLauncherProvider,
-            {
-              launcher: () => {},
-              creator: () => {},
-              manager: { find: () => null, remove: () => {} },
-            },
-            createElement(
+          <AlarmsLauncherProvider
+            launcher={() => {}}
+            creator={() => {}}
+            manager={{ find: () => null, remove: () => {} }}
+          >
+            {createElement(
               DashboardItemContext.Provider,
               { value: { instanceId } },
               createElement(WidgetComponent, {
@@ -615,8 +613,8 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
                 w: payload.w,
                 h: payload.h,
               }),
-            ),
-          ),
+            )}
+          </AlarmsLauncherProvider>,
         ),
       ),
     );
@@ -637,7 +635,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     const badges = payload.fixture._badges as readonly BadgeEntry[] | undefined;
     if (!badges || badges.length === 0) return tree;
     return createElement(PanelBadgesProvider, { badges }, tree);
-  }
+  };
 
   activeRoot = createRoot(root);
   activeRoot.render(
