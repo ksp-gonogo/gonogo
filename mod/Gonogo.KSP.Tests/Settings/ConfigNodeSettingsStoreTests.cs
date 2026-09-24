@@ -61,11 +61,13 @@ namespace Gonogo.KSP.Tests.Settings
             Assert.True(outcome.Success, outcome.Reason);
             Assert.True(File.Exists(_path), _path + " was never written");
             Assert.Equal(
-                "SIGNAL_DELAY\n"
+                "// " + ConfigNodeSettingsStore.Header + "\n"
+                + "\n"
+                + "SIGNAL_DELAY\n"
                 + "{\n"
-                + "\tenabled = True\n"
-                + "\tlightSpeedScale = 0.1\n"
-                + "\tdelayInSimulation = True\n"
+                + "\tenabled = True // True or False, default True\n"
+                + "\tlightSpeedScale = 0.1 // A number, default 1\n"
+                + "\tdelayInSimulation = True // True or False, default False\n"
                 + "}\n",
                 File.ReadAllText(_path).Replace("\r\n", "\n"));
         }

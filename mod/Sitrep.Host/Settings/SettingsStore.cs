@@ -227,6 +227,15 @@ namespace Sitrep.Host.Settings
             }
 
             _staged.Clear();
+            foreach (var row in _rows.Values)
+            {
+                var entry = Document.Entry(row.Path);
+                if (entry != null)
+                {
+                    entry.Comment = row.Comment.Length > 0 ? row.Comment : null;
+                }
+            }
+
             LastWrite = _backing.Write(Document) ?? WriteOutcome.Failed(Path, "the backing store reported nothing");
 
             // After the write, so a watcher that reports on persistence reads

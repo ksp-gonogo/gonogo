@@ -26,13 +26,22 @@ namespace Gonogo.KSP.Settings
     /// and goes to <c>UnityEngine.Debug</c>, which KSP captures and
     /// <c>Console.Error</c> is not.</para>
     ///
-    /// <para><b>Rewrites the whole file.</b> <c>ConfigNode</c> has no in-place
-    /// edit, so every block the document holds is written back; comments and
-    /// formatting do not survive, which is what any ConfigNode round trip
-    /// costs.</para>
+    /// <para><b>Rewrites the whole file, comments included.</b> <c>ConfigNode</c>
+    /// has no in-place edit and its reader drops every comment, so a comment
+    /// typed into the file cannot be kept. The comments a save writes are
+    /// generated from each declared row instead, and the header says so.</para>
     /// </summary>
     internal sealed class ConfigNodeSettingsStore : ISettingsBackingStore
     {
+        /// <summary>
+        /// The first line of every save. KSP's reader drops every comment, so
+        /// the comments a save writes are generated from each row's declaration,
+        /// and one typed by hand is gone at the next save. A note worth keeping
+        /// goes in a value of its own.
+        /// </summary>
+        internal const string Header =
+            "Written by Gonogo. Comments are regenerated on every save and any other comment is lost: keep a note as a value named <row>.notes";
+
         private readonly AtomicSettingsFile _file;
 
         internal ConfigNodeSettingsStore(string path, Action<string>? log = null)
@@ -136,7 +145,7 @@ namespace Gonogo.KSP.Settings
 
                 var root = new ConfigNode();
                 WriteFrom(document.Root, root);
-                root.Save(path);
+                root.Save(path, Header);
             }
 
             public void Copy(string source, string destination) => File.Copy(source, destination, overwrite: true);
@@ -184,7 +193,15 @@ namespace Gonogo.KSP.Settings
             {
                 for (var i = 0; i < source.Values.Count; i++)
                 {
-                    target.AddValue(source.Values[i].Name, source.Values[i].Text);
+                    var entry = source.Values[i];
+                    if (string.IsNullOrEmpty(entry.Comment))
+                    {
+                        target.AddValue(entry.Name, entry.Text);
+                    }
+                    else
+                    {
+                        target.AddValue(entry.Name, entry.Text, entry.Comment);
+                    }
                 }
 
                 for (var i = 0; i < source.Blocks.Count; i++)

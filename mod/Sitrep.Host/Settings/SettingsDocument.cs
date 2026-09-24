@@ -15,6 +15,13 @@ namespace Sitrep.Host.Settings
         public string Name { get; }
 
         public string Text { get; internal set; }
+
+        /// <summary>
+        /// A comment to write beside the row, generated from its declaration.
+        /// Never read back: KSP's reader drops comments, so a comment says what
+        /// a row is, never what its value is.
+        /// </summary>
+        public string? Comment { get; set; }
     }
 
     /// <summary>
@@ -78,20 +85,23 @@ namespace Sitrep.Host.Settings
             return added;
         }
 
-        public string? Value(string name)
+        public string? Value(string name) => Entry(name)?.Text;
+
+        public bool HasValue(string name) => Value(name) != null;
+
+        /// <summary>The first row named <paramref name="name"/>, or null.</summary>
+        public SettingsEntry? Entry(string name)
         {
             for (var i = 0; i < _values.Count; i++)
             {
                 if (string.Equals(_values[i].Name, name, StringComparison.Ordinal))
                 {
-                    return _values[i].Text;
+                    return _values[i];
                 }
             }
 
             return null;
         }
-
-        public bool HasValue(string name) => Value(name) != null;
 
         public void SetValue(string name, string text)
         {
@@ -124,7 +134,7 @@ namespace Sitrep.Host.Settings
             var copy = new SettingsBlock(Name);
             for (var i = 0; i < _values.Count; i++)
             {
-                copy._values.Add(new SettingsEntry(_values[i].Name, _values[i].Text));
+                copy._values.Add(new SettingsEntry(_values[i].Name, _values[i].Text) { Comment = _values[i].Comment });
             }
 
             for (var i = 0; i < _blocks.Count; i++)
@@ -156,7 +166,12 @@ namespace Sitrep.Host.Settings
         public SettingsBlock Root { get; }
 
         /// <summary>The text at <paramref name="path"/>, or null when no such row exists.</summary>
-        public string? Text(string path)
+        public string? Text(string path) => Entry(path)?.Text;
+
+        public bool Has(string path) => Text(path) != null;
+
+        /// <summary>The row at <paramref name="path"/>, or null when no such row exists.</summary>
+        public SettingsEntry? Entry(string path)
         {
             var segments = Split(path);
             var block = Root;
@@ -171,10 +186,8 @@ namespace Sitrep.Host.Settings
                 block = child;
             }
 
-            return block.Value(segments[segments.Length - 1]);
+            return block.Entry(segments[segments.Length - 1]);
         }
-
-        public bool Has(string path) => Text(path) != null;
 
         /// <summary>Write <paramref name="text"/> at <paramref name="path"/>, creating any block above it that is missing.</summary>
         public void Set(string path, string text)

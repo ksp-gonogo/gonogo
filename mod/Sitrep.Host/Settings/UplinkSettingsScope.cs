@@ -156,6 +156,10 @@ namespace Sitrep.Host.Settings
                 _store.Seed(PathOf(migration.Key), migration.Value);
             }
 
+            // The stamp names the version that last SAVED the block, so the file
+            // keeps naming the older one until the operator's next save, and a
+            // migration runs again at every start-up before then. That is why a
+            // migration has to settle.
             if (_version.Length > 0)
             {
                 _store.Seed(PathOf(WrittenByName), _version);
@@ -211,16 +215,16 @@ namespace Sitrep.Host.Settings
             switch (row.Kind)
             {
                 case UplinkSettingKind.Bool:
-                    return new SettingsRow(path, SettingsRowKind.Bool, row.DefaultText);
+                    return new SettingsRow(path, SettingsRowKind.Bool, row.DefaultText, row.Label);
                 case UplinkSettingKind.Number:
-                    return new SettingsRow(path, SettingsRowKind.Number, row.DefaultText);
+                    return new SettingsRow(path, SettingsRowKind.Number, row.DefaultText, row.Label);
                 case UplinkSettingKind.Text:
-                    return new SettingsRow(path, SettingsRowKind.Text, row.DefaultText);
+                    return new SettingsRow(path, SettingsRowKind.Text, row.DefaultText, row.Label);
                 default:
                     // A kind from a newer contract than this host knows. A text row
                     // is the vocabulary's stated fallback, and the Uplink checks the
                     // value itself when it reads it.
-                    return new SettingsRow(path, SettingsRowKind.Text, row.DefaultText);
+                    return new SettingsRow(path, SettingsRowKind.Text, row.DefaultText, row.Label);
             }
         }
 
