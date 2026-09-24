@@ -5,6 +5,7 @@ import {
   NO_TELEMETRY_HOST_MESSAGE,
   useDataSources,
   useScreen,
+  useTelemetry,
   useTelemetryHostDown,
 } from "@ksp-gonogo/core";
 import {
@@ -17,7 +18,11 @@ import type {
   UplinkHealthStateName,
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { isValue, value as quantity } from "@ksp-gonogo/sitrep-sdk";
+import {
+  isValue,
+  value as quantity,
+  SettingsPersistenceState,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   GhostButton,
   Placeholder,
@@ -27,8 +32,6 @@ import {
 } from "@ksp-gonogo/ui";
 import {
   Badge,
-  Cluster,
-  Input,
   NULL_DISPLAY,
   ReadOnlyField,
   type ReadOnlyFieldValue,
@@ -55,6 +58,7 @@ import {
 import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../uplinks/UplinkIntegrityDetail";
 import { UplinkSkewOverride } from "../uplinks/UplinkSkewOverride";
+import { KspSettings } from "./KspSettings";
 import type {
   SettingDefinition,
   SettingValue,
@@ -69,6 +73,17 @@ import {
 } from "./registry";
 import { useSetting } from "./SettingsContext";
 import { ConnectionRow, Name, SitrepConnection } from "./SitrepConnection";
+import {
+  Empty,
+  GroupTitle,
+  RowDesc,
+  RowLabel,
+  RowText,
+  SectionStack,
+  SettingInput,
+  SettingLine,
+  SettingReadOnlyLine,
+} from "./settingsLayout";
 
 export interface SettingsModalProps {
   /** Force the initially-active tab (e.g. "data-sources" for the first-run
@@ -115,6 +130,16 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
       uplinkIssue);
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
+  // The KSP tab's dot: the settings file does not hold what is in force, or
+  // could not be read. A first run with no file yet is not a problem.
+  const kspSettings = useTelemetry("settings.gonogo");
+  const kspIssue =
+    kspSettings.state === "observed" || kspSettings.state === "stale"
+      ? kspSettings.value.persistence.state !==
+          SettingsPersistenceState.Saved &&
+        kspSettings.value.persistence.state !==
+          SettingsPersistenceState.Defaults
+      : false;
 
   const hasGeneral = settings.length > 0 || showConsent;
 
@@ -128,6 +153,12 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
       ),
     });
   }
+  tabs.push({
+    id: "ksp",
+    label: "KSP",
+    content: <KspSettings />,
+    indicator: kspIssue,
+  });
   if (showDataSources) {
     tabs.push({
       id: "data-sources",
@@ -751,72 +782,6 @@ const Wrap = styled.div`
   max-width: 80vw;
   height: min(70vh, 640px);
   min-height: 0;
-`;
-
-const SectionStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-section);
-  overflow-y: auto;
-  min-height: 0;
-`;
-
-// align="start" is what unblocked this one: the row's label must sit at the
-// TOP when its control wraps to two lines, and Cluster only centred. The
-// indent for a dependent setting is genuinely this modal's.
-const SettingLine = styled(Cluster).attrs({
-  align: "start" as const,
-  gap: "xl" as const,
-})<{ $indented?: boolean }>`
-  /* Interpolated, so no CSS token pass reaches it. Migrated by hand onto the
-     same 20 -> 16 snap the Empty padding below takes, otherwise this
-     dependent-setting indent is the one 20px left in the file. */
-  margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
-`;
-
-/* A read-only row owns its own label/value pairing (a `<dl>`), so it takes the
-   line's indent and width and nothing else of the switch-row furniture. */
-const SettingReadOnlyLine = styled.div<{ $indented?: boolean }>`
-  margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
-`;
-/* A named group inside a category: an h4 under the category's h3, so the
-   heading order a screen reader walks matches the nesting it is shown. */
-const GroupTitle = styled.h4`
-  margin: 0;
-  font-size: var(--font-size-value);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-`;
-const SettingInput = styled(Input)`
-  width: 10em;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-`;
-const RowText = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  min-width: 0;
-`;
-
-const RowLabel = styled.span`
-  color: var(--color-text-primary);
-  font-size: var(--font-size-value);
-`;
-
-const RowDesc = styled.span`
-  color: var(--color-text-dim);
-  font-size: var(--font-size-compact);
-  max-width: 32em;
-`;
-
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-compact);
-  padding: var(--space-16);
-  text-align: center;
 `;
 
 // --- Data Sources tab (per-Uplink health; ConnectionRow/Name come from

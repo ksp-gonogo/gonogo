@@ -75,6 +75,75 @@ const PLANTED_LIVE = {
   journaling: false,
 };
 
+/** The mod's settings Topic, and its enums as the wire carries them: ordinals. */
+const KSP_TOPIC = "settings.gonogo";
+const BOOL = 1;
+const NUMBER = 2;
+const SAVED = 0;
+const MEMORY_ONLY = 1;
+const RECOVERED = 2;
+
+/**
+ * What the mod publishes for a stock install with RP-1: its own four rows and
+ * one Uplink's.
+ */
+function kspSettings(state: number, reason: string | null = null) {
+  return {
+    rows: [
+      {
+        path: "SIGNAL_DELAY/enabled",
+        owner: "gonogo",
+        kind: BOOL,
+        label: "Apply light-time delay to commands and telemetry",
+        value: "True",
+        default: "True",
+      },
+      {
+        path: "SIGNAL_DELAY/lightSpeedScale",
+        owner: "gonogo",
+        kind: NUMBER,
+        label:
+          "One-way light time as a fraction of c, where 1 is real light speed",
+        value: "0.1",
+        default: "1",
+      },
+      {
+        path: "SIGNAL_DELAY/delayInSimulation",
+        owner: "gonogo",
+        kind: BOOL,
+        label: "Apply the delay during a simulation as well as a real flight",
+        value: "False",
+        default: "False",
+      },
+      {
+        path: "RECORDING/enabled",
+        owner: "gonogo",
+        kind: BOOL,
+        label:
+          "Record a development capture of this session, which costs disk and log",
+        value: "False",
+        default: "False",
+      },
+      {
+        path: "Uplinks/Rp1/upgradeSlipWarningDays",
+        owner: "Rp1",
+        kind: NUMBER,
+        label:
+          "Warn before a facility upgrade whose finish date slips past this many days",
+        value: "30",
+        default: "30",
+      },
+    ],
+    persistence: {
+      state,
+      path: "GameData/Gonogo/PluginData/gonogo.cfg",
+      savedAtUt: null,
+      reason,
+    },
+    undeclared: [],
+  };
+}
+
 interface Scene {
   name: string;
   emit?: Record<string, unknown>;
@@ -89,6 +158,12 @@ interface Scene {
    * gains a line.
    */
   scrollToLabel?: string;
+  /** The tab to open on. The General tab when unset. */
+  tab?: string;
+  /** The screen the modal is drawn for. The main screen when unset. */
+  screen?: "main" | "station";
+  /** Whether KSP reads as connected, which is what lets a KSP setting be changed. */
+  connected?: boolean;
 }
 
 const SCENES: Scene[] = [
@@ -134,6 +209,64 @@ const SCENES: Scene[] = [
     prefs: { "mission.historyEnabled": false },
     pxW: 900,
     pxH: 460,
+  },
+  {
+    // The KSP tab, connected: every row drawn from the wire, grouped by who
+    // declared it, and SAVE waiting for a change.
+    name: "ksp-connected",
+    tab: "ksp",
+    connected: true,
+    emit: { [KSP_TOPIC]: kspSettings(SAVED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // The last save could not write the file: in force for this session only,
+    // and the standing line says so and why.
+    name: "ksp-memory-only",
+    tab: "ksp",
+    connected: true,
+    emit: {
+      [KSP_TOPIC]: kspSettings(MEMORY_ONLY, "Access to the path is denied"),
+    },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // The file was damaged at start-up and its backup was read.
+    name: "ksp-recovered",
+    tab: "ksp",
+    connected: true,
+    emit: { [KSP_TOPIC]: kspSettings(RECOVERED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // KSP is not connected: the last values stay readable, and nothing can be
+    // changed, which the footer says.
+    name: "ksp-disconnected",
+    tab: "ksp",
+    connected: false,
+    emit: { [KSP_TOPIC]: kspSettings(SAVED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // A station reads the settings and has no SAVE.
+    name: "ksp-station",
+    tab: "ksp",
+    screen: "station",
+    emit: { [KSP_TOPIC]: kspSettings(SAVED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // Connected, and the mod has not reported its settings yet.
+    name: "ksp-waiting",
+    tab: "ksp",
+    connected: true,
+    pxW: 900,
+    pxH: 300,
   },
 ];
 
@@ -228,7 +361,17 @@ async function main(): Promise<void> {
       { timeout: 15_000 },
     );
 
-    for (const { name, emit, prefs, pxW, pxH, scrollToLabel } of SCENES) {
+    for (const {
+      name,
+      emit,
+      prefs,
+      pxW,
+      pxH,
+      scrollToLabel,
+      tab,
+      screen,
+      connected,
+    } of SCENES) {
       await page.evaluate(
         (s) =>
           (
@@ -236,7 +379,7 @@ async function main(): Promise<void> {
               __renderSettings: (p: unknown) => Promise<void>;
             }
           ).__renderSettings(s),
-        { emit, prefs, pxW, pxH },
+        { emit, prefs, pxW, pxH, tab, screen, connected },
       );
       if (scrollToLabel !== undefined) {
         await page
