@@ -157,6 +157,54 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// An evaluator that answers NOTHING is read as an evaluator that said
+        /// yes, so the gate it was declared to hold authorises its command.
+        ///
+        /// <para><c>ChannelEngine.EvaluateGatesHere</c> coalesces a null verdict
+        /// with <c>GateVerdict.Pass()</c>. Every neighbouring arm of the same
+        /// method coalesces the identical null the opposite way, and the method
+        /// states the rule in its own words a few lines above: an unevaluable
+        /// gate must not read as no gate. Both surfaces that ask a gate anything
+        /// run through this one method, so the advisory sampler publishes the
+        /// control as live AND the dispatch that is supposed to re-check it lets
+        /// the command through.</para>
+        ///
+        /// <para><b>This asserts the DEFECT, not the requirement.</b> It is
+        /// green on today's tree and goes red the moment the coalesce is
+        /// corrected, which is deliberate: the <c>mod</c> CI job is a hard gate
+        /// with no exemption mechanism, so a plain red test would break the
+        /// build for everyone until the operator has ruled on the fix. When the
+        /// coalesce answers Unknown, this test wants the assertions its sibling
+        /// below already makes: a null <c>result</c>, and a <c>refusal</c>
+        /// naming the gate kind that returned nothing. Rename it then.</para>
+        /// </summary>
+        [Fact]
+        public void AnEvaluatorThatAnswersNothingStillAuthorisesTheCommand()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new GatedTestUplink(answersNothing: true));
+            engine.Start();
+            try
+            {
+                object? result = null;
+                string? refusal = null;
+                engine.DispatchCommandAndWait(
+                    GatedTestUplink.Command, "x", "vantage-1",
+                    r => result = r,
+                    SettleWindow,
+                    onRefused: reason => refusal = reason);
+
+                Assert.True(
+                    result is string,
+                    "the gate no longer authorises a command whose evaluator answered nothing, so the "
+                        + "defect this test pins is fixed: invert it to assert the refusal and rename it");
+                Assert.Null(refusal);
+                Assert.Equal("lifted:x", result);
+            }
+            finally { engine.Stop(); }
+        }
+
+        /// <summary>
         /// The other half of the split: a gate that could not decide is still an
         /// error frame. Abstain and Unknown mean a bad declaration or unreadable
         /// live state, which IS the machinery-broke class, and the prose naming
@@ -266,8 +314,9 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A command that declares a gate, plus the evaluator that answers it.
-        /// The evaluator either decides no with numbers, or cannot decide at all,
-        /// which are the two sides of the split under test.
+        /// The evaluator decides no with numbers, or cannot decide at all, which
+        /// are the two sides of the split under test, or answers nothing, which
+        /// is neither and is the third case the host has to have an answer for.
         /// </summary>
         private sealed class GatedTestUplink : ISitrepUplink
         {
@@ -276,10 +325,12 @@ namespace Sitrep.Host.IntegrationTests
             public const string GateKind = "test-pad-mass";
 
             private readonly bool _undecidable;
+            private readonly bool _answersNothing;
 
-            public GatedTestUplink(bool undecidable = false)
+            public GatedTestUplink(bool undecidable = false, bool answersNothing = false)
             {
                 _undecidable = undecidable;
+                _answersNothing = answersNothing;
             }
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -305,18 +356,32 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<string, string>(Command, args => "lifted:" + args);
-                host.AddGateEvaluator(new Evaluator(_undecidable));
+                host.AddGateEvaluator(new Evaluator(_undecidable, _answersNothing));
             }
 
             private sealed class Evaluator : ICommandGateEvaluator
             {
                 private readonly bool _undecidable;
-                public Evaluator(bool undecidable) => _undecidable = undecidable;
+                private readonly bool _answersNothing;
+
+                public Evaluator(bool undecidable, bool answersNothing)
+                {
+                    _undecidable = undecidable;
+                    _answersNothing = answersNothing;
+                }
 
                 public string Kind => GateKind;
 
                 public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
                 {
+                    // A third-party Uplink compiles against its own copy of the
+                    // contract and may have nullable reference types off
+                    // entirely, so the annotation on this signature constrains
+                    // nobody and the host receives the null regardless. null!
+                    // is how that arrives here without the suppression becoming
+                    // the thing under test.
+                    if (_answersNothing) return null!;
+
                     return _undecidable
                         ? GateVerdict.Unknown("the scales are down")
                         : GateVerdict.Fail(new LimitBreach
