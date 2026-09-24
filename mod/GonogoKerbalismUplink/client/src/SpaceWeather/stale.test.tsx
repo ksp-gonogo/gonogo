@@ -14,19 +14,22 @@ import "./index";
 /**
  * What SpaceWeather does when its readings stop being current.
  *
- * The decision: it stops drawing the board. Every field on
- * the space-weather Topic becomes a verdict here (a dose tone, a storm
- * headline, lit belt rings, a "Sheltered" pill, a toned shielding meter), and a
- * verdict cannot be dated: the operator reads a green "Sheltered" as a statement
- * about the habitat now. A craft that has since flown into a belt would keep
- * showing "Sheltered" for as long as the link stayed down.
+ * The decision: it keeps the board and withholds the VERDICTS on it. A green
+ * "Sheltered" pill is a statement about the habitat now, and a craft that has
+ * since flown into a belt would keep wearing it for as long as the link stayed
+ * down, so the pill, the storm reassurance, the lit belt rings and the "you are
+ * here" dot all go. The dose rate, the shielding pair, the stars and the CMEs
+ * are measurements and timeline facts, so they stay, dated.
  *
- * The assertions that earn this file are the ones about the REASON. A widget that
- * draws nothing satisfies almost every test ever written about it, so each case
- * below checks that the withholding is visible and says which of the three
- * reasons it is: not current, confirmed to have no data, or not yet arrived. All
- * three used to render the same fabricated board, and the first two must not now
- * render each other's wording.
+ * This file previously asserted the opposite, that the whole board was
+ * withheld. That half is rewritten rather than deleted, and the case that
+ * earned it survives intact one test down: the verdict must still not persist.
+ *
+ * The other assertions that earn this file are the ones about the REASON, since
+ * a widget that draws nothing satisfies almost every test ever written about
+ * it. Each case below checks which of the reasons it is: dated, confirmed to
+ * have no data, or not yet arrived. All three used to render the same fabricated
+ * board, and none may render another's wording.
  */
 
 /**
@@ -109,7 +112,12 @@ describe("SpaceWeather when its readings are not current", () => {
     expect(visibleText(container)).not.toContain(NOT_CURRENT);
   });
 
-  it("withholds the whole board and says the readings are no longer current", async () => {
+  it("holds every measurement on the board and says they are dated", async () => {
+    /* REWRITTEN DELIBERATELY. This case used to assert the opposite, that the
+       whole board was withheld. That was a ratchet holding an answer the
+       operator has since overruled: a widget that collapses to a sentence
+       rather than marking the figures it still has is the stale style. The
+       verdict half of the old behaviour is still asserted, one case below. */
     const { container } = mount();
     emitSheltered();
     await waitFor(() =>
@@ -119,9 +127,12 @@ describe("SpaceWeather when its readings are not current", () => {
     loseContact();
 
     await waitFor(() => expect(visibleText(container)).toContain(NOT_CURRENT));
-    // The reason is announced, not just drawn: the live region the verdict pill
-    // used to hold now carries the withholding.
-    expect(screen.getByRole("status")).toHaveTextContent(NOT_CURRENT);
+    // The dose survives, which is the figure an operator on a dropped link most
+    // wants: it is the rate their crew is still accumulating.
+    expect(visibleText(container)).toContain("0.014 rad/h");
+    // So does the shielding meter, both halves off the same held delivery, so
+    // the ratio is dated rather than assembled from one known and one unknown.
+    expect(screen.queryByRole("meter", { name: "Shielding" })).not.toBeNull();
   });
 
   it("withholds the verdict rather than holding the last one", async () => {
@@ -136,10 +147,49 @@ describe("SpaceWeather when its readings are not current", () => {
 
     await waitFor(() => expect(visibleText(container)).toContain(NOT_CURRENT));
     expect(visibleText(container)).not.toContain("Sheltered");
-    // Nor any of the other verdicts built from the same record.
-    expect(visibleText(container)).not.toContain("rad/h");
+    /* "No storm activity" is the other reassurance on this board, and a dated
+       one is worth nothing: `stormState` goes to `unknown` rather than keeping
+       a promise nobody can still vouch for. */
     expect(visibleText(container)).not.toContain("No storm activity");
-    expect(screen.queryByRole("meter", { name: "Shielding" })).toBeNull();
+    /* The MEASUREMENTS are deliberately NOT asserted absent here any more. This
+       case used to require "rad/h" and the shielding meter to disappear too,
+       which is the over-reach the sweep removed: withholding a verdict is not a
+       reason to discard the figures it was computed from. */
+  });
+
+  it("withholds the verdict even when a held FIGURE would fire an arm on its own", async () => {
+    /* The defect a render caught and this file did not. `emitSheltered` is a
+       low-dose vessel, so every case above exercises the "Sheltered" arm. The
+       FIRST arm of `statusFor` fires on a dose of 3 rad/h alone, independent of
+       the storm state, so a board whose belts had gone dark and whose storm
+       state had gone unknown still wore a red "Storm in progress" off a held
+       figure. Withholding through the record's own fields could never reach it;
+       the badge is gated on the reading instead. */
+    const { container } = mount();
+    act(() => {
+      stream.emit(TOPIC, {
+        radiationRadPerSecond: 10.38 / 3600,
+        magnetosphere: false,
+        innerBelt: true,
+        outerBelt: false,
+        stormIncoming: false,
+        stormInProgress: false,
+        blackout: false,
+        inSunlight: true,
+        shieldingAmount: 1.2,
+        shieldingCapacity: 3.308,
+      });
+    });
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("Storm in progress"),
+    );
+
+    loseContact();
+
+    await waitFor(() => expect(visibleText(container)).toContain(NOT_CURRENT));
+    expect(visibleText(container)).not.toContain("Storm in progress");
+    // And the figure that would have fired it is still on screen, dated.
+    expect(visibleText(container)).toContain("10.38 rad/h");
   });
 
   it("does not accuse the link of dropping before anything has arrived", async () => {
