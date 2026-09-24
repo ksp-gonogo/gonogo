@@ -4,10 +4,14 @@ namespace Sitrep.Contract.Serialization
 {
     /// <summary>
     /// The frame's <c>type</c> discriminant is absent, unreadable, or names no
-    /// envelope this build knows, so there is nothing to say about it beyond
-    /// "not mine". A server that receives one echoes it back as a diagnostic
-    /// (see <c>ChannelEngine.OnMessageReceived</c>): it genuinely cannot tell
-    /// a client newer than itself from a stray message on the socket.
+    /// envelope this build knows.
+    ///
+    /// <para>The two halves want different answers, which is what
+    /// <see cref="EnvelopeType"/> tells apart. A frame with no readable type
+    /// says nothing a server could name, and is echoed back as the "is anything
+    /// listening" probe. A frame that NAMES a type this build does not support
+    /// is refused by that name, because an echo of it is byte-identical to the
+    /// frame the client sent and reads as a reply.</para>
     /// </summary>
     public class UnknownEnvelopeTypeException : FormatException
     {
@@ -20,6 +24,23 @@ namespace Sitrep.Contract.Serialization
             : base(message, innerException)
         {
         }
+
+        public UnknownEnvelopeTypeException(string message, string envelopeType, string? requestId, string? topic)
+            : base(message)
+        {
+            EnvelopeType = envelopeType;
+            RequestId = requestId;
+            Topic = topic;
+        }
+
+        /// <summary>The type the frame named, or null when it named none that could be read.</summary>
+        public string? EnvelopeType { get; }
+
+        /// <summary>The frame's <c>requestId</c> where it carried a readable one, so a refusal can be correlated.</summary>
+        public string? RequestId { get; }
+
+        /// <summary>The frame's <c>topic</c> where it carried a readable one, for the same reason.</summary>
+        public string? Topic { get; }
     }
 
     /// <summary>
