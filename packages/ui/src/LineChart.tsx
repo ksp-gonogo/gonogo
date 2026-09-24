@@ -74,25 +74,18 @@ export interface ChartSeriesData {
   reckoned?: readonly SeriesReckonedSpan[];
   /**
    * What the value's model says happened inside a gap nothing observed. Where
-   * the chord into `to` departs from it by more than a pixel the chord is not
-   * drawn: see {@link CONTRADICTED_CHORD} for what is drawn instead.
+   * the chord into `to` departs from it by more than a pixel, the chord is
+   * withheld and the model's own path is drawn in the reckoned style, with the
+   * observed samples at its ends marked, because a reader cannot otherwise tell
+   * which points on a reckoned line were measured.
    */
   bridges?: readonly SeriesBridge[];
 }
 
 /**
- * What a chord the value's own model contradicts becomes. `"break"` draws nothing
- * across the span, the way a known hole is drawn. `"model"` draws the model's
- * own path across it, muted and dashed like any other reckoned run.
- * `"model-marked"` draws that path and marks each observed sample it runs
- * through, so the instants that were measured stay distinguishable from the
- * line the model drew between them.
- */
-const CONTRADICTED_CHORD: "break" | "model" | "model-marked" = "break";
-
-/**
- * An observed sample on a modelled span, drawn larger than the stroke so it
- * reads as a point on the dashed path rather than as one of its dashes.
+ * An observed sample on a modelled span. Larger than `SCATTER_RADIUS` on
+ * purpose: a scatter dot sits alone, while this one has to hold its own against
+ * a dashed line crossing it, and at the stroke's own size it reads as a dash.
  */
 const OBSERVED_MARK_RADIUS = 2.5;
 
@@ -663,32 +656,23 @@ export function LineChart({
             s.data.spans,
             s.data.reckoned,
           ),
-          modelled:
-            CONTRADICTED_CHORD !== "break"
-              ? contradicted.map((bridge) => ({
-                  basis: bridge.basis,
-                  d: buildPath(
-                    [s.data.x[bridge.to - 1], ...bridge.t, s.data.x[bridge.to]],
-                    [s.data.y[bridge.to - 1], ...bridge.v, s.data.y[bridge.to]],
-                    scaleX,
-                    scaleY,
-                  ),
-                }))
-              : [],
-          observed:
-            CONTRADICTED_CHORD === "model-marked"
-              ? [
-                  ...new Set(
-                    contradicted.flatMap((bridge) => [
-                      bridge.to - 1,
-                      bridge.to,
-                    ]),
-                  ),
-                ].map((i) => ({
-                  cx: scaleX(s.data.x[i]),
-                  cy: scaleY(s.data.y[i]),
-                }))
-              : [],
+          modelled: contradicted.map((bridge) => ({
+            basis: bridge.basis,
+            d: buildPath(
+              [s.data.x[bridge.to - 1], ...bridge.t, s.data.x[bridge.to]],
+              [s.data.y[bridge.to - 1], ...bridge.v, s.data.y[bridge.to]],
+              scaleX,
+              scaleY,
+            ),
+          })),
+          observed: [
+            ...new Set(
+              contradicted.flatMap((bridge) => [bridge.to - 1, bridge.to]),
+            ),
+          ].map((i) => ({
+            cx: scaleX(s.data.x[i]),
+            cy: scaleY(s.data.y[i]),
+          })),
         };
       });
   }, [series, scaleX, scaleYPrimary, scaleYSecondary]);

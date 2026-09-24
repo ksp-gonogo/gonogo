@@ -177,8 +177,9 @@ const strokedPaths = (
 /**
  * A chord across a gap nothing observed, against what the value's model says
  * happened there. The flat chord between two equal samples is contradicted by a
- * model that swung between them, so the chart does not draw it; the rising one
- * beside it agrees with its model and stays.
+ * model that swung between them, so the chart draws the model's path instead,
+ * reckoned, and marks the two samples it joins; the rising one beside it agrees
+ * with its model and stays.
  */
 describe("LineChart bridges", () => {
   const swung = (to: number, lo: number, hi: number) => ({
@@ -200,12 +201,16 @@ describe("LineChart bridges", () => {
       },
     },
   ];
+  const measured = (container: HTMLElement) =>
+    strokedPaths(container, "#00ff88").filter(
+      (p) => p.getAttribute("data-reckoning-basis") === null,
+    );
   const subpaths = (container: HTMLElement) =>
-    strokedPaths(container, "#00ff88")
+    measured(container)
       .map((p) => (p.getAttribute("d") ?? "").match(/M/g)?.length ?? 0)
       .reduce((a, b) => a + b, 0);
 
-  it("withholds a chord its model contradicts", () => {
+  it("draws the model's path for a chord it contradicts, and marks what was measured", () => {
     const { container } = render(
       <LineChart
         series={series([swung(1, 0, 1000)])}
@@ -215,6 +220,17 @@ describe("LineChart bridges", () => {
       />,
     );
     expect(subpaths(container)).toBe(2);
+    const reckoned = strokedPaths(container, "#00ff88").filter(
+      (p) => p.getAttribute("data-reckoning-basis") === "kepler-propagation",
+    );
+    expect(reckoned).toHaveLength(1);
+    expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
+    expect(
+      container.querySelectorAll("circle[data-observed-sample]"),
+    ).toHaveLength(2);
+    expect(chartName(container)).toMatch(
+      /Altitude: part of this trace is reckoned/,
+    );
   });
 
   it("keeps a chord its model agrees with", () => {
@@ -233,6 +249,9 @@ describe("LineChart bridges", () => {
       />,
     );
     expect(subpaths(container)).toBe(1);
+    expect(
+      container.querySelectorAll("circle[data-observed-sample]"),
+    ).toHaveLength(0);
   });
 });
 
