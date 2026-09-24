@@ -60,17 +60,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   constructor(opts: { sourceId?: string; nowMs?: () => number } = {}) {
     this.sourceId = opts.sourceId ?? "data";
     this.nowMs = opts.nowMs ?? (() => Date.now());
-    // Deliberately NOT subscribing here: `onActiveTimelineFrame` reads
-    // whichever `TelemetryProvider` is ALREADY mounted at call time and
-    // never retroactively attaches (see its own doc comment), but this
-    // service is built via `useState(() => new LocalManeuverTriggerService())`,
-    // whose lazy initializer runs during the FIRST render, before ANY
-    // `useEffect` (including the enclosing `TelemetryProvider`'s own
-    // store-registration effect) has fired. Subscribing here would silently
-    // no-op for the service's entire lifetime. `arm()` establishes the
-    // subscription instead: arming always happens well after mount
-    // (a later user action or peer message), by which point the provider
-    // (if any) has settled.
+    // No frame subscription here: a service holding no triggers has nothing
+    // to re-evaluate, so `arm()` takes it out on the first one.
   }
 
   dispose(): void {
@@ -92,8 +83,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   }
 
   arm(input: ArmTriggerInput): void {
-    // Lazily established (not in the constructor: see its doc comment):
-    // re-evaluates every armed trigger's dataKey threshold, plus the
+    // Re-evaluates every armed trigger's dataKey threshold, plus the
     // vessel-swap auto-clear check, on every subsequent stream frame.
     this.vesselUnsub ??= onActiveTimelineFrame(() => this.evaluate());
     const id = generateId();
