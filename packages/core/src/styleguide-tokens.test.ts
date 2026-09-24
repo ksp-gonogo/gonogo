@@ -1153,8 +1153,9 @@ function assertFamily(family: Family): void {
     );
   }
 
-  // Cleanups warn rather than fail, so removing a literal lands green. Report
-  // per file, because that is what the author has to edit.
+  // A count below its baseline fails as one above it does: slack is permission
+  // for that many new literals. Reported per file, because that is what the
+  // author has to edit.
   const cleaned: string[] = [];
   for (const [file, allowed] of Object.entries(baseline)) {
     const now = byFile.get(file)?.length ?? 0;
@@ -1165,9 +1166,12 @@ function assertFamily(family: Family): void {
     }
   }
   if (cleaned.length > 0) {
-    console.warn(
-      `[styleguide] ${spec.label} baseline can be lowered in ` +
-        `packages/core/src/styleguide-tokens.test.ts:\n${cleaned.join("\n")}`,
+    throw new Error(
+      `The ${spec.label} baseline sits above what the tree carries:\n${cleaned.join("\n")}\n` +
+        `That slack is permission for the same number of new literals, which is ` +
+        `why this fails instead of warning. Lower each entry to the count shown, ` +
+        `or delete the key, in BASELINES.${family} in ` +
+        `packages/core/src/styleguide-tokens.test.ts.`,
     );
   }
 
