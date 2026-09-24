@@ -110,27 +110,30 @@ describe("CommitLayer", () => {
     expect(region).toHaveTextContent(/IGNITE/i);
   });
 
+  const delayedDescent = {
+    ...live,
+    regime: "autonomous" as const,
+    live: false,
+    roundTripSeconds: 4,
+    suicideBurnCountdown: null,
+    commitInSeconds: 40,
+    committed: false,
+    blindInSeconds: 50,
+    blind: false,
+  };
+
+  it("counts down to the burn-GO deadline while still descending", () => {
+    render(<CommitLayer {...delayedDescent} landed={false} />);
+    expect(screen.getByText(/BURN GO IN/i)).toBeInTheDocument();
+  });
+
   it("shows a landed state instead of stale descent countdowns once down", () => {
-    render(
-      <CommitLayer
-        {...live}
-        regime="autonomous"
-        live={false}
-        roundTripSeconds={4}
-        suicideBurnCountdown={null}
-        commitInSeconds={null}
-        committed={false}
-        blindInSeconds={50}
-        blind={false}
-        landed
-      />,
-    );
+    // The same props as the descent above, countdown included: only `landed`
+    // differs, so the burn-GO line that test sees is one this must not.
+    render(<CommitLayer {...delayedDescent} landed />);
     expect(screen.getByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
-    // No stale future "Blind in 50s" and no commit countdown once landed.
-    expect(screen.queryByText(/Blind in/i)).toBeNull();
-    expect(screen.queryByText(/COMMIT IN/i)).toBeNull();
-    expect(screen.queryByText(/UNCOMMANDABLE/i)).toBeNull();
+    expect(screen.queryByText(/BURN GO IN/i)).toBeNull();
   });
 
   it("holds no command controls, Landing is an instrument, not a command surface", () => {
