@@ -33,7 +33,7 @@ const warpIndex =
 it(
   `shadow acceptance over ${seconds}s`,
   async () => {
-    const { verdict, unread } = await runShadowAcceptance({
+    const { verdict, unread, warpUnread } = await runShadowAcceptance({
       host,
       port,
       observeMs: seconds * 1000,
@@ -43,6 +43,7 @@ it(
     });
     console.info(JSON.stringify(verdict, null, 2));
     expect(unread, "alarms whose reading never resolved").toEqual([]);
+    expect(warpUnread, "a warp hold that never read the warp rung").toBe(false);
     expect(verdict.verdict).toBe("PASS");
   },
   seconds * 1000 + 60_000,
