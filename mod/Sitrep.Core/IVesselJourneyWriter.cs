@@ -3,7 +3,7 @@ namespace Sitrep.Core
     /// <summary>
     /// Writes a fleet vessel's route into the delay ledger as its ordered
     /// <see cref="Hop"/>s, rather than as the single scalar
-    /// <c>SetVesselDelay</c> carries.
+    /// <c>SetVesselDelay</c> carries, and the breaks observed in it.
     ///
     /// <para>Lives here rather than on <c>IUplinkHost</c> so it can name
     /// <see cref="Journey"/> directly: <c>Sitrep.Core</c> depends on
@@ -24,5 +24,12 @@ namespace Sitrep.Core
         /// held before.
         /// </summary>
         void SetVesselJourney(string vesselId, Journey journey);
+
+        /// <summary>
+        /// Record a break in <paramref name="vesselId"/>'s route home against
+        /// that vessel's own node, so light it sent that had not crossed the
+        /// break never arrives (see <c>INetwork.DropPath</c>).
+        /// </summary>
+        void SetVesselPathBreak(string vesselId, Sitrep.Contract.PathBreak found);
     }
 }

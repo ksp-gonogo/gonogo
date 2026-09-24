@@ -118,6 +118,58 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The same route again as measured hops, each carrying its two
+        /// endpoint nodes, for break observation: the break watch compares
+        /// routes by the nodes they pass through, which a light-time cannot
+        /// show.
+        ///
+        /// <para>Null when there is nothing to compare: no vessel, no
+        /// connection, or a save with no comms model, where no route ever
+        /// exists to break. A null ControlPath is an empty list, as in
+        /// <see cref="ReadVessel"/>.</para>
+        /// </summary>
+        internal static IReadOnlyList<CommsRouteHop>? ReadVesselRoute(Vessel vessel, SignalDelayConfig config)
+        {
+            try
+            {
+                if (vessel == null || (config != null && config.CutForNoCommsModel))
+                {
+                    return null;
+                }
+                var conn = vessel.connection;
+                return conn == null ? null : ToHops(conn.ControlPath, withNodes: true);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVesselRoute failed (treating as nothing to compare): " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// A route node's id in the same space <c>CommsHop.To</c> uses: the
+        /// owning vessel's id through <paramref name="index"/>, else a ground
+        /// station's own name. Null for a node with neither, which a caller must
+        /// not compare, since two such nodes would read as one.
+        /// </summary>
+        internal static string? NameNode(VesselNodeIndex index, object? handle)
+        {
+            if (handle is not CommNode node)
+            {
+                return null;
+            }
+            if (index.TryId(node, out var id))
+            {
+                return id;
+            }
+            if (!string.IsNullOrEmpty(node.displayName))
+            {
+                return node.displayName;
+            }
+            return string.IsNullOrEmpty(node.name) ? null : node.name;
+        }
+
+        /// <summary>
         /// A vessel's connectivity alone, by the same rules as
         /// <see cref="ReadVessel"/>'s flag, without walking its control path.
         /// Cheap enough to ask of every vessel in the save on every tick, which
@@ -229,8 +281,13 @@ namespace Gonogo.KSP
         /// hop list, not a null one: only the caller knows whether "no links"
         /// means unroutable. Links with a torn-down endpoint are skipped rather
         /// than contributing a zero-length hop.
+        ///
+        /// <para>Nodes are attached only when <paramref name="withNodes"/>
+        /// asks: a delay read's hops end up in the ledger on the Courier
+        /// thread, and a live <see cref="CommNode"/> has no business being held
+        /// there.</para>
         /// </summary>
-        private static List<CommsRouteHop> ToHops(IEnumerable<CommLink>? path)
+        private static List<CommsRouteHop> ToHops(IEnumerable<CommLink>? path, bool withNodes = false)
         {
             var hops = new List<CommsRouteHop>();
             if (path == null)
@@ -244,9 +301,11 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                hops.Add(new CommsRouteHop(
-                    (link.a.precisePosition - link.b.precisePosition).magnitude,
-                    link.b.isHome || link.a.isHome));
+                var metres = (link.a.precisePosition - link.b.precisePosition).magnitude;
+                var touchesHome = link.b.isHome || link.a.isHome;
+                hops.Add(withNodes
+                    ? new CommsRouteHop(metres, touchesHome, link.a, link.b)
+                    : new CommsRouteHop(metres, touchesHome));
             }
             return hops;
         }
