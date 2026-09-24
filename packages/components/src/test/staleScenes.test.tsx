@@ -46,7 +46,6 @@ const STALE_SUFFIX = "-stopped-arriving";
  * starts to differ must come off, and a new one may not go on.
  */
 const UNCHANGED_DEBT = new Set([
-  "atmosphere-profile / kerbin-reentry-stopped-arriving",
   "contract-manager / multiple-active-contracts-stopped-arriving",
   "experiments / instruments-holding-data-stopped-arriving",
   "power-systems / 02-battery-draining-high-load-stopped-arriving",

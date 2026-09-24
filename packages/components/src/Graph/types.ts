@@ -1,6 +1,7 @@
 export type { AxisScale, SeriesType } from "@ksp-gonogo/ui";
 
 import type { AxisScale, SeriesType } from "@ksp-gonogo/ui";
+import type { UnitValue } from "@ksp-gonogo/ui-kit";
 
 /** Sentinel `xKey` value meaning "plot against wall-clock time". */
 export const TIME_AXIS = "$time";
@@ -40,6 +41,8 @@ export interface GraphThresholdConfig {
   label?: string;
   color?: string;
   dashed?: boolean;
+  /** The reading the line was drawn from; a held one marks the label. */
+  reading?: UnitValue;
 }
 
 /**

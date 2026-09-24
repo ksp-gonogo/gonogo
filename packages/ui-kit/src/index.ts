@@ -442,6 +442,12 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
+// A reading's currency in the form an SVG instrument can draw, where a span
+// cannot go: what the reading says about how current it is, the dot that marks
+// a figure, and the words its accessible name carries. The hue, shape and
+// wording are `<Unit>`'s, so a chart drawn outside this package marks a held
+// figure the same way a readout inside it does.
+export { InstrumentNotCurrentDot, sayNotCurrent } from "./instrumentCurrency";
 export {
   JOG_WHEEL_MIN_TARGET_PX,
   JogWheel,
@@ -566,6 +572,7 @@ export {
   StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
+export { resolveCurrency } from "./readingCurrency";
 export { resourceColor } from "./resourceColor";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {

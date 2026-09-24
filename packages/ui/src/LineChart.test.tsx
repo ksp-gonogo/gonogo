@@ -1,3 +1,4 @@
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import type { ChartSeries } from "./LineChart";
@@ -450,5 +451,65 @@ describe("LineChart uncertainty band", () => {
     const name = chartName(container);
     expect(name).toMatch(/the value is inside/i);
     expect(name).not.toMatch(/two thirds of the time/i);
+  });
+});
+
+/**
+ * A threshold drawn from a reading is a figure like any other: a held one wears
+ * the dot on its label and says so in the chart's name, and a current one draws
+ * exactly as a bare number does.
+ */
+describe("LineChart threshold currency", () => {
+  const AT = value("ut", 1_000);
+  const altitude = value("m", 30_000);
+  const live: Reading<Value<"m">> = {
+    state: "observed",
+    value: altitude,
+    atUt: AT,
+    reckoning: { status: "none" },
+  };
+  const held: Reading<Value<"m">> = {
+    state: "stale",
+    value: altitude,
+    asOfUt: AT,
+    grade: "held-stale",
+    reckoning: { status: "none" },
+  };
+
+  function chartWith(reading: Reading<Value<"m">> | undefined) {
+    return render(
+      <LineChart
+        series={[]}
+        xDomain={[0, 70_000]}
+        yDomainPrimary={[1, 100_000]}
+        thresholds={[
+          {
+            id: "current",
+            value: 400,
+            axis: "primary",
+            label: "400 pascals @ 30 km",
+            reading,
+          },
+        ]}
+        width={400}
+        height={200}
+      />,
+    ).container;
+  }
+
+  it("marks a held reading's label and names it in words", () => {
+    const container = chartWith(held);
+    expect(
+      container.querySelector("text [data-not-current-mark]"),
+    ).not.toBeNull();
+    expect(chartName(container)).toMatch(/400 pascals @ 30 km, .+/);
+  });
+
+  it("draws a current reading, or none, exactly as a bare line", () => {
+    for (const reading of [live, undefined]) {
+      const container = chartWith(reading);
+      expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+      expect(chartName(container)).not.toMatch(/400 pascals/);
+    }
   });
 });

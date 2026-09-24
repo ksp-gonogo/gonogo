@@ -4,7 +4,13 @@ import type {
   ReckoningBasis,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
-import { bandClaim } from "@ksp-gonogo/ui-kit";
+import {
+  bandClaim,
+  InstrumentNotCurrentDot,
+  resolveCurrency,
+  sayNotCurrent,
+  type UnitValue,
+} from "@ksp-gonogo/ui-kit";
 import React, { useId, useMemo } from "react";
 import {
   buildBandPath,
@@ -110,6 +116,13 @@ export interface ThresholdRule {
   label?: string;
   color?: string;
   dashed?: boolean;
+  /**
+   * The reading the line was drawn from, when it is one. A held reading marks
+   * the label with the not-current dot and says so in the chart's accessible
+   * name, the way `<Unit>` marks a figure; a current one, or none, draws the
+   * line exactly as before.
+   */
+  reading?: UnitValue;
 }
 
 export type AxisScale = "linear" | "log";
@@ -639,6 +652,7 @@ export function LineChart({
     return thresholds.map((t) => ({
       id: t.id,
       label: t.label,
+      currency: resolveCurrency(t.reading),
       color: t.color ?? "var(--color-text-faint)",
       dashed: t.dashed ?? true,
       y:
@@ -683,10 +697,17 @@ export function LineChart({
     return clauses;
   });
 
+  /* The dot on a threshold label is a shape, so the same fact goes into the
+     name in words. */
+  const thresholdClauses = thresholdLines
+    .filter((t) => t.currency.notCurrent)
+    .map((t) => sayNotCurrent(t.label ?? t.id, t.currency.caption));
+
   const chartLabel = [
     ariaLabel ?? "Telemetry line chart",
     ...plotLayerDescriptions(layers ?? []),
     ...reckonedClauses,
+    ...thresholdClauses,
   ].join("; ");
 
   const layerFrame: PlotLayerFrame = {
@@ -1027,6 +1048,7 @@ export function LineChart({
               fontSize={10}
             >
               {t.label}
+              {t.currency.notCurrent && <InstrumentNotCurrentDot size={10} />}
             </text>
           )}
         </React.Fragment>
