@@ -1,7 +1,16 @@
+import { logger } from "@ksp-gonogo/logger";
 import { type TopicId, unitOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { LinkClient } from "../test/peerFakes";
 import {
   reportedOneWay,
@@ -141,6 +150,42 @@ describe("runShadowAcceptance: its thresholds read the stream", () => {
     expect(finalStates["Altitude 200 km"]).toBe("firing");
     expect(finalStates["Altitude 300 km"]).toBe("pending");
     expect(unread).not.toContain("Altitude 200 km");
+  });
+
+  /**
+   * The verdict is judged from the log, so a log that records nothing must stop
+   * the run rather than hand the classifier an empty buffer it would read as a
+   * quiet session. Planted here by making every shadow line land nowhere.
+   */
+  it("refuses a verdict when alarms fired and the log recorded nothing", async () => {
+    serveFlight(() => 250_000);
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const info = vi.spyOn(logger, "info").mockImplementation(() => {});
+
+    await expect(
+      runShadowAcceptance({ host: "localhost", port: PORT, observeMs: 2000 }),
+    ).rejects.toThrow(/recorded no alarm-shadow line/);
+    warn.mockRestore();
+    info.mockRestore();
+  });
+
+  it("records the shadow lines it is judged from, and leaves the logger as it found it", async () => {
+    serveFlight(() => 250_000);
+    logger.setEnabled(false);
+
+    const { verdict } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2000,
+    });
+
+    expect(verdict.verdict).not.toBeUndefined();
+    expect(logger.isEnabled()).toBe(false);
+    expect(
+      logger
+        .snapshot()
+        .some((entry) => entry.message.includes("client fired, mod has not")),
+    ).toBe(true);
   });
 
   it("fires on a crossing that lands between two samples", async () => {
