@@ -19,8 +19,11 @@ namespace Sitrep.Core
     ///    starts in this state, so the very first call for any channel is
     ///    always a keyframe.
     /// 2. Keyframe cadence: unconditional emit if
-    ///    <c>ut - lastKeyframeUt &gt;= KeyframeIntervalUt</c>, regardless of
-    ///    whether the value changed. Evaluated BEFORE the UT-cadence gate
+    ///    <c>ut - lastKeyframeUt &gt;= KeyframeIntervalUt</c> and at least
+    ///    <see cref="KeyframeFloorRealSec"/> of real time has passed since the
+    ///    last keyframe, regardless of whether the value changed. A keyframe
+    ///    held by the floor falls through to the gates below, so a moved
+    ///    value still goes out. Evaluated BEFORE the UT-cadence gate
     ///    below and independent of it: a due keyframe is the correctness
     ///    baseline and must not be starved even when
     ///    <c>MinSampleIntervalUt &gt;= KeyframeIntervalUt</c>.
@@ -47,12 +50,12 @@ namespace Sitrep.Core
     /// ut)" framing: per-channel state is a private dictionary entry,
     /// created lazily on first use.
     ///
-    /// All UT, never wall-clock: this class has no notion of "now" beyond
-    /// whatever <c>ut</c> the caller passes into each <see cref="Decide"/>
-    /// call. Calling <see cref="Decide"/> repeatedly at the SAME ut (e.g. a
-    /// host that hasn't advanced the physics clock yet) can never itself
-    /// produce more than the gates above already allow, there is no
-    /// <c>DateTime.Now</c>/<c>Stopwatch</c> anywhere in this file.
+    /// Every cadence is in UT, the <c>ut</c> the caller passes into each
+    /// <see cref="Decide"/> call. The one wall-clock reading is the keyframe
+    /// floor's, through the injected real clock, and it can only HOLD a
+    /// keyframe, never cause an emission: calling <see cref="Decide"/>
+    /// repeatedly at the SAME ut (e.g. a host that hasn't advanced the physics
+    /// clock yet) can never itself produce more than the UT gates allow.
     /// </summary>
     public sealed class ChannelEmitter
     {
@@ -247,8 +250,8 @@ namespace Sitrep.Core
         /// current timeline.
         ///
         /// <paramref name="ut"/> is accepted purely for call-site symmetry
-        /// with those two methods: <see cref="ChannelEmitter"/> has no
-        /// independent notion of "now" (see the class doc comment), so there
+        /// with those two methods: <see cref="ChannelEmitter"/> has no UT of
+        /// its own beyond what each Decide is handed, so there
         /// is nothing here to stamp it against; the effect is entirely
         /// "the next Decide, at whatever ut it's called with, is a keyframe".
         /// </summary>

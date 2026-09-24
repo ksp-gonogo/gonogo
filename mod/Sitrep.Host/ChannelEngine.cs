@@ -422,13 +422,12 @@ namespace Sitrep.Host
         internal const double GateEvaluationBudget = 100;
 
         /*
-         * The last built system.channels roster, and the wall clock that paces
-         * rebuilding it. Courier-thread-only: unlike _commandGateReport above,
-         * nothing here crosses a thread, because every input (the emitter, the
-         * subscription registry, _born, _availability) is Courier-owned and the
-         * mapper runs on the Courier thread too. So no Volatile, and no lock.
+         * The last built system.channels roster, and when it was built.
+         * Courier-thread-only: unlike _commandGateReport above, nothing here
+         * crosses a thread, because every input (the emitter, the subscription
+         * registry, _born, _availability) is Courier-owned and the mapper runs
+         * on the Courier thread too. So no Volatile, and no lock.
          */
-        private readonly System.Diagnostics.Stopwatch _channelCounterClock = System.Diagnostics.Stopwatch.StartNew();
         private double _lastChannelCounterAtSec = double.NegativeInfinity;
         private double _channelCounterIntervalSec = ChannelCounterIntervalSec;
         private ChannelEmissionReport _channelCounterReport = new ChannelEmissionReport();
@@ -447,11 +446,29 @@ namespace Sitrep.Host
         /// <para>Five seconds because this is a counter, not a sample. Nobody
         /// reads a monotonic total to watch it move; they read it to see whether
         /// it moved at all, and the answer to that does not improve with
-        /// cadence. Emission follows the throttle for free: an unchanged report
-        /// is the same object, so the change-gate declines it, which is why the
-        /// declaration below needs no deadband of its own.</para>
+        /// cadence. The change path follows the throttle for free: an unchanged
+        /// report is the same object, so the change-gate declines it, which is
+        /// why the declaration below needs no deadband of its own. The periodic
+        /// keyframe resends it whatever it holds, on the declaration's UT
+        /// interval floored by <see cref="ChannelEmitter.KeyframeFloorRealSec"/>,
+        /// so under warp the roster goes out once per real second rather than
+        /// once per rebuild.</para>
         /// </summary>
         internal const double ChannelCounterIntervalSec = 5.0;
+
+        /*
+         * Monotonic real seconds, read by both the emitter's keyframe floor and
+         * the roster throttle above, so the two agree on how much wall-clock
+         * time has passed. Replaceable before Start for tests that step real
+         * time independently of UT.
+         */
+        private Func<double> _nowRealSec = StopwatchSeconds();
+
+        private static Func<double> StopwatchSeconds()
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            return () => clock.Elapsed.TotalSeconds;
+        }
 
         /// <summary>
         /// Soft cap on channel rows published per second from
@@ -1315,7 +1332,8 @@ namespace Sitrep.Host
              */
             _emitter = new ChannelEmitter(
                 topic => _channelDeclarations[topic].Emission,
-                topic => _channelDeclarations[topic].Delivery == Delivery.ReliableOrdered);
+                topic => _channelDeclarations[topic].Delivery == Delivery.ReliableOrdered,
+                () => _nowRealSec());
 
             // Built-in system.uplinks declaration + source: see
             // UplinksTopic's doc comment for why this is registered directly
@@ -1507,7 +1525,7 @@ namespace Sitrep.Host
         /// </summary>
         private ChannelEmissionReport ChannelEmissionRoster()
         {
-            var nowSec = _channelCounterClock.Elapsed.TotalSeconds;
+            var nowSec = _nowRealSec();
             if (nowSec - _lastChannelCounterAtSec < _channelCounterIntervalSec)
             {
                 return _channelCounterReport;
@@ -4906,6 +4924,14 @@ namespace Sitrep.Host
         /// for.</para>
         /// </summary>
         internal void SetChannelCounterIntervalForTests(double seconds) => _channelCounterIntervalSec = seconds;
+
+        /// <summary>
+        /// Test-only: the engine's real clock, in monotonic seconds, for a test
+        /// that drives UT fast while controlling how much wall-clock time the
+        /// ticks span. Call BEFORE <see cref="Start"/>, under the same
+        /// single-writer-before-start rule as the seam above.
+        /// </summary>
+        internal void SetRealClockForTests(Func<double> nowRealSec) => _nowRealSec = nowRealSec;
 
         /// <summary>
         /// Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>)
