@@ -476,7 +476,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
-  "packages/components/src/Experiments/index.tsx": 1,
   "packages/components/src/LandingStatus/index.tsx": 2,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/MapView/index.tsx": 2,

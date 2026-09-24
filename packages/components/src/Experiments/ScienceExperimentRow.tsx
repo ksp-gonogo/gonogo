@@ -1,10 +1,13 @@
+import type { StaleGrade } from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
   CommandButton,
   type CommandButtonHandle,
+  formatStreamStatus,
   Inline,
   Row,
   RowName,
+  severityFromStreamStatus,
 } from "@ksp-gonogo/ui-kit";
 import type { Instrument } from "./instrument";
 
@@ -21,6 +24,19 @@ export interface ScienceExperimentRowProps {
   deployCmd?: CommandButtonHandle;
   /** The transmit command. Omit for a read-only listing; see `deployCmd`. */
   transmitCmd?: CommandButtonHandle;
+  /**
+   * The grade of the instrument list this row was built from, when that list is
+   * no longer arriving: every badge below is then the last state reported rather
+   * than the state now. Nothing while it is current.
+   *
+   * It gates the CONTROLS as well as the badges, and that is the half that
+   * matters: a Transmit pressed against a held row spends the one shot at a
+   * science return on an instrument that may already have been emptied, and the
+   * operator would have no way of knowing until the link came back. The badges
+   * being old is a readout problem; the button is an action the operator
+   * believes they have taken.
+   */
+  heldGrade?: StaleGrade;
 }
 
 /**
@@ -43,7 +59,10 @@ export function ScienceExperimentRow({
   instrument,
   deployCmd,
   transmitCmd,
+  heldGrade,
 }: Readonly<ScienceExperimentRowProps>) {
+  const notCurrent = heldGrade !== undefined;
+  const heldReason = `${instrument.partTitle}: instrument state is no longer current`;
   return (
     /* Wrapping, because how many badges this row carries is the instrument's
        business and not the layout's: all four draw at once for a one-shot that
@@ -61,6 +80,22 @@ export function ScienceExperimentRow({
         {instrument.deployed && <Badge>DEPLOYED</Badge>}
         {!instrument.rerunnable && <Badge>ONE-SHOT</Badge>}
         {instrument.inoperable && <Badge severity="critical">INOPERABLE</Badge>}
+        {/* A word rather than a shade over the badges beside it: dimming them
+            would put the whole statement in a colour, which is the reading a
+            colour-blind operator never gets (WCAG 1.4.1). Per row rather than
+            once for the widget, because the row is what the button acts on. */}
+        {heldGrade !== undefined && (
+          /* `Badge` rather than `StreamStatusBadge`, which announces as a live
+             region: eight rows going held at once is one event, and eight
+             announcements of it is the flood the live-region rule exists to
+             stop. The word and the severity are still the canonical ones. */
+          <Badge
+            severity={severityFromStreamStatus(heldGrade)}
+            title={heldReason}
+          >
+            {formatStreamStatus(heldGrade)}
+          </Badge>
+        )}
       </Inline>
       {/* Inoperable instruments can't deploy or transmit. Hide the controls
           entirely rather than greying them out: the INOPERABLE badge
@@ -75,6 +110,8 @@ export function ScienceExperimentRow({
               commandLabel={`Deploy ${instrument.partTitle}`}
               label="Deploy"
               pendingLabel="Deploying..."
+              disabled={notCurrent}
+              title={notCurrent ? heldReason : undefined}
             />
           )}
           {instrument.hasData && transmitCmd && (
@@ -86,6 +123,8 @@ export function ScienceExperimentRow({
               label="Transmit"
               confirmLabel="Confirm transmit"
               pendingLabel="Transmitting..."
+              disabled={notCurrent}
+              title={notCurrent ? heldReason : undefined}
             />
           )}
         </Inline>
