@@ -75,6 +75,7 @@ export {
   getActiveCarriedChannels,
   getActiveTelemetryClient,
   getContractsActive,
+  getOrbitSolve,
   getSystemBodies,
   getValue,
   getVesselIdentity,
@@ -283,9 +284,7 @@ export {} from "./map-command";
 export {
   isKnownFieldPath,
   mapTopic,
-  redirectKinematicSubtopic,
   resolveValueTopic,
-  wireAddressBehindRedirect,
 } from "./map-topic";
 export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
@@ -480,7 +479,6 @@ export type {
   OrbitalSolve,
   SasModeName,
   SituationName,
-  TargetKindName,
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselPropulsionPayload,
@@ -494,6 +492,7 @@ export {
   deriveVesselState,
   deriveVesselStateStatus,
   solveOrbit,
+  solveSelfOrbit,
   vesselStateChannel,
 } from "./vessel-state";
 export type {

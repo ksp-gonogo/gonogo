@@ -22,11 +22,10 @@ import {
   type OrbitTrajectory,
   useOrbitTrajectory,
   useStream,
-  useTopicStatus,
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { type VesselManeuver, value } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   kspCalendar,
@@ -39,6 +38,7 @@ import {
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { magnitudeOf } from "../shared/magnitude";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { bodyNamed } from "../shared/streamBody";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
@@ -97,23 +97,19 @@ const topics = defineTopicManifest({
   /* `system.bodies` is read directly, not just as a `vessel.state` input: the
      mapped body's radius and rotation period come off it, keyed by the name the
      running game reports rather than looked up in the bundled stock table. */
-  channels: ["vessel.flight", "vessel.state", "system.bodies"],
-  // `encounterUt` is an absolute instant, NOT the duration the retired
-  // `o.encounterTime` named. Those were two keys for one event and the field
-  // holds the instant, which is why that key maps to nothing now: an alarm
-  // saved against it reaches no widget at all, recorded in
-  // widgetAlarmAttribution.test.ts.
+  /* `vessel.orbit` is here for the chip row rendered inside this panel, which
+     reads the encounter off the sample and solves the next apsis from the
+     elements. Neither is a field of `vessel.state` any more, and the next apsis
+     is not a field of anything: it is solved, so the channel is what carries
+     it. */
+  channels: ["vessel.flight", "vessel.orbit", "vessel.state", "system.bodies"],
   fields: [
     "vessel.flight.latitude",
     "vessel.flight.longitude",
-    "vessel.state.altitudeAsl",
+    "vessel.flight.altitudeAsl",
     "vessel.state.parentBodyName",
     "vessel.state.orbitPatches",
     "vessel.state.encounterExists",
-    "vessel.state.encounterBody",
-    "vessel.state.encounterUt",
-    "vessel.state.nextApsisType",
-    "vessel.state.timeToNextApsis",
   ],
 });
 
@@ -463,40 +459,40 @@ function MapViewComponent({
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
   /*
-   * The altitude NULLS when its own channel stops feeding it, which the marker
-   * caption above cannot speak for.
+   * TWO answers off one reading, on the two sides of one boundary: what an
+   * operator READS is not what the diagram is DRAWN from.
    *
-   * `positionStale` is a true statement about `vessel.flight`, the reading the
-   * MARKER comes from. The altitude does not come from there: it rides derived
-   * `vessel.state`, which carries no `Reading`, so without that channel's own
-   * currency it draws a confident figure beside a withheld marker and beside
-   * the caption explaining the withholding. `useTopicStatus` reads the
-   * currency `deriveStatus` computes on the channel definition, at the same
-   * frame as the value.
+   * `altitudeReading` is the field reading `vessel.flight` carries for its own
+   * altitude, so it states its currency and its band itself and needs no
+   * second channel's status to speak for it. That is what the readout is
+   * handed: `<Unit>` draws the figure, marks it when it is not current, and
+   * draws the interval where the model has one to give.
    *
-   * NULL rather than a mark, matching the orbit grid: a staleness presentation
-   * is earned by figures read second by second, and an altitude on a map
-   * readout is not read that way.
+   * `altSea` is the last OBSERVED magnitude, ungated, because it feeds
+   * `useTrajectoryBuffer`, which accumulates the FLOWN TRAIL: that is a record
+   * of where the craft has been, and a modelled altitude does not belong in
+   * it. The trail already declines to append without `lat`/`lon`, which come
+   * from the same reading and are withheld on their own terms.
    */
-  const vesselStateStatus = useTopicStatus("vessel.state");
-  const altSea = vesselState?.altitudeAsl ?? undefined;
+  const altitudeReading = flightReading.altitudeAsl;
+  const altSea =
+    (altitudeReading.state === "observed" || altitudeReading.state === "stale"
+      ? magnitudeOf(altitudeReading.value)
+      : undefined) ?? undefined;
   /*
-   * TWO values off one channel, on the two sides of one boundary: gating may
-   * govern a readout, but it must not interfere with the diagram's own
-   * reckoning of the vessel's basic motion and orbit.
-   *
-   * `altSeaReadout` is the figure an operator READS, so it nulls when its
-   * channel stops feeding it. `altSea` itself stays ungated because it also
-   * feeds `useTrajectoryBuffer`, which accumulates the FLOWN TRAIL: that is
-   * the diagram depicting basic motion, and gating it would stop the trail
-   * growing while the marker beside it is still being drawn and still moving.
-   * The trail already declines to append without `lat`/`lon`, which come from
-   * the flight reading and are withheld on their own terms.
-   *
-   * One channel, one status, two answers, because the question is what the
-   * value is FOR rather than where it came from.
+   * The number the imaging verdict is computed from: where the model puts the
+   * craft if one is on offer, and the observation while the link is live.
+   * "IMAGING" is a verdict about NOW, so an observation the reading has
+   * stopped vouching for is not one to compute it from.
    */
-  const altSeaReadout = vesselStateStatus === "live" ? altSea : undefined;
+  const altSeaReadout =
+    magnitudeOf(
+      altitudeReading.reckoning.status === "available"
+        ? altitudeReading.reckoning.modelled
+        : altitudeReading.state === "observed"
+          ? altitudeReading.value
+          : undefined,
+    ) ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
@@ -1345,7 +1341,7 @@ function MapViewComponent({
                   <CompactRow>
                     <CompactLabel>Alt</CompactLabel>
                     <CompactValue>
-                      <Unit value={value("m", altSeaReadout)} />
+                      <Unit value={altitudeReading} />
                     </CompactValue>
                   </CompactRow>
                 )}
@@ -1537,9 +1533,9 @@ registerComponent<MapViewConfig>({
   minSize: { w: 3, h: 4 },
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
-  // The last four are read by `OrbitalEventChips`, rendered inside this
-  // widget rather than by the component body itself: declared here because
-  // the panel that badges and the panel an alarm lights is this one.
+  // `vessel.orbit` is read by `OrbitalEventChips`, rendered inside this widget
+  // rather than by the component body itself: declared here because the panel
+  // that badges and the panel an alarm lights is this one.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {

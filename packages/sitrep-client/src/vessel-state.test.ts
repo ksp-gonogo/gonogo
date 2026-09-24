@@ -16,7 +16,6 @@ import {
   type VesselIdentityPayload,
   type VesselOrbitPayload,
   type VesselPropulsionPayload,
-  type VesselTargetPayload,
 } from "./vessel-state";
 
 /** Kerbin's mean radius, metres, a realistic reference body for the apsides tests. */
@@ -141,7 +140,6 @@ function fakeGet(points: {
   "vessel.identity"?: TimelinePoint<VesselIdentityPayload>;
   "system.bodies"?: TimelinePoint<SystemBodiesPayload>;
   "vessel.control"?: TimelinePoint<VesselControlPayload>;
-  "vessel.target"?: TimelinePoint<VesselTargetPayload>;
   "vessel.comms"?: TimelinePoint<VesselCommsPayload>;
 }): { get: DerivedGet; requestedTopics: string[] } {
   const requestedTopics: string[] = [];
@@ -226,26 +224,6 @@ function controlPoint(
   };
 }
 
-function targetPoint(
-  payload: WireOf<VesselTargetPayload> | null,
-): TimelinePoint<VesselTargetPayload> {
-  return {
-    validAt: 0,
-    // Wraps the nested `orbit` too: `vessel.target` holds a whole VesselOrbit
-    // and the wrap follows it, same as the decode does.
-    payload:
-      payload === null
-        ? null
-        : wrapWire<VesselTargetPayload>("VesselTarget", { ...payload }),
-    meta: makeMeta({
-      validAt: 0,
-      quality: Quality.OnRails,
-      source: "vessel:abc-123",
-    }),
-    epoch: 0,
-  };
-}
-
 function commsPoint(
   payload: VesselCommsPayload | null,
 ): TimelinePoint<VesselCommsPayload> {
@@ -261,7 +239,7 @@ function commsPoint(
   };
 }
 
-describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKind/commsControlState* (enum-ordinal→string-name migration)", () => {
+describe("enum-ordinal → NAME display maps: situationName/sasModeName/commsControlState* (enum-ordinal→string-name migration)", () => {
   const IDENTITY: VesselIdentityPayload = {
     vesselId: "vessel:abc-123",
     name: "Test Ship",
@@ -276,14 +254,12 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
       "vessel.identity": identityPoint({ ...IDENTITY, situation: 3 }), // Orbiting
       "vessel.control": controlPoint({ sasMode: 1 }), // Prograde
-      "vessel.target": targetPoint({ kind: 1 }), // Body
       "vessel.comms": commsPoint({ controlState: 4 }), // Full
     });
 
     const state = deriveVesselState(get, 0);
     expect(state?.situationName).toBe("Orbiting");
     expect(state?.sasModeName).toBe("Prograde");
-    expect(state?.targetKind).toBe("Body");
     expect(state?.commsControlStateName).toBe("Full");
     expect(state?.commsControlStateOrdinal).toBe(2);
   });
@@ -293,27 +269,23 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
       "vessel.identity": identityPoint({ ...IDENTITY, situation: 8 }), // Unknown (last)
       "vessel.control": controlPoint({ sasMode: 0 }), // StabilityAssist (first)
-      "vessel.target": targetPoint({ kind: 0 }), // Vessel (first)
       "vessel.comms": commsPoint({ controlState: 11 }), // Unknown (last)
     });
 
     const state = deriveVesselState(get, 0);
     expect(state?.situationName).toBe("Unknown");
     expect(state?.sasModeName).toBe("StabilityAssist");
-    expect(state?.targetKind).toBe("Vessel");
     expect(state?.commsControlStateName).toBe("Unknown");
     // ControlState.Unknown maps to NO legacy level → undefined ordinal.
     expect(state?.commsControlStateOrdinal).toBeUndefined();
   });
 
-  it("targetKind maps TargetKind.Other, and commsControlStateOrdinal collapses richer levels (Partial→1, ProbeNone→0)", () => {
+  it("commsControlStateOrdinal collapses richer levels (Partial→1, ProbeNone→0)", () => {
     const partial = fakeGet({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({ kind: 2 }), // Other
       "vessel.comms": commsPoint({ controlState: 3 }), // Partial
     });
     const s1 = deriveVesselState(partial.get, 0);
-    expect(s1?.targetKind).toBe("Other");
     expect(s1?.commsControlStateName).toBe("Partial");
     expect(s1?.commsControlStateOrdinal).toBe(1);
 
@@ -336,7 +308,6 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
     });
 
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.situationName).toBe("Landed");
     expect(state?.sasModeName).toBe("Maneuver");
     expect(state?.commsControlStateName).toBe("None");
@@ -352,7 +323,6 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
     const state = deriveVesselState(get, 0);
     expect(state?.situationName).toBeUndefined();
     expect(state?.sasModeName).toBeUndefined();
-    expect(state?.targetKind).toBeUndefined();
     expect(state?.commsControlStateName).toBeUndefined();
     expect(state?.commsControlStateOrdinal).toBeUndefined();
   });
@@ -374,14 +344,12 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
       "vessel.identity": identityPoint(null),
       "vessel.control": controlPoint(null),
-      "vessel.target": targetPoint(null),
       "vessel.comms": commsPoint(null),
     });
 
     const state = deriveVesselState(get, 0);
     expect(state?.situationName).toBeNull();
     expect(state?.sasModeName).toBeNull();
-    expect(state?.targetKind).toBeNull();
     expect(state?.commsControlStateName).toBeNull();
     expect(state?.commsControlStateOrdinal).toBeNull();
   });
@@ -480,77 +448,9 @@ describe("encounter display maps: encounterExists/encounterBody/encounterUt (bat
       "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
     });
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.encounterExists).toBe(1);
     expect(state?.encounterBody).toBe("Kerbin");
     expect(state?.encounterUt).toBe(7);
-  });
-});
-
-describe("targetRelativeSpeed: signed range-rate (batch-2: tar.o.relativeVelocity off vessel.target Vec3s)", () => {
-  it("NEGATIVE when closing (relVel points toward us along the line of sight)", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 100, y: 0, z: 0 },
-        relativeVelocity: { x: -5, y: 0, z: 0 },
-      }),
-    });
-    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeCloseTo(-5, 6);
-  });
-
-  it("POSITIVE when opening; projects onto the line of sight (non-axis-aligned)", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 0, y: 0, z: 10 },
-        relativeVelocity: { x: 3, y: 4, z: 2 }, // only z projects onto position
-      }),
-    });
-    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeCloseTo(2, 6);
-  });
-
-  it("undefined at zero range (no line of sight; never divides by zero)", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 0, y: 0, z: 0 },
-        relativeVelocity: { x: 1, y: 1, z: 1 },
-      }),
-    });
-    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeUndefined();
-  });
-
-  it("undefined when vessel.target absent or a vector isn't available this tick", () => {
-    const noTarget = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-    });
-    expect(
-      deriveVesselState(noTarget.get, 0)?.targetRelativeSpeed,
-    ).toBeUndefined();
-
-    const noVec = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: null,
-        relativeVelocity: { x: 1, y: 0, z: 0 },
-      }),
-    });
-    expect(
-      deriveVesselState(noVec.get, 0)?.targetRelativeSpeed,
-    ).toBeUndefined();
-  });
-
-  it("null on a confirmed vessel.target tombstone", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint(null),
-    });
-    expect(deriveVesselState(get, 0)?.targetRelativeSpeed).toBeNull();
   });
 });
 
@@ -636,7 +536,6 @@ describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/
     });
 
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.apoapsisRadius).toBeNull();
     expect(state?.periapsisRadius).toBeNull();
     expect(state?.orbitalRadius).toBeNull();
@@ -662,151 +561,6 @@ describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/
   });
 });
 
-describe("target scalar distance + target orbit elements (A-tranche: tar.distance / tar.o.PeA / tar.o.period / tar.o.trueAnomaly)", () => {
-  const TARGET_ORBIT: WireOrbit = {
-    referenceBodyIndex: 1, // Kerbin
-    sma: 800_000,
-    ecc: 0.2,
-    inc: 0,
-    lan: null,
-    argPe: null,
-    meanAnomalyAtEpoch: 0,
-    epoch: 0,
-    mu: 3.5316e12,
-  };
-
-  it("targetDistance = |vessel.target.relativePosition| (a defined 0 at zero range, not undefined)", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 3, y: 4, z: 12 },
-        relativeVelocity: { x: 0, y: 0, z: 0 },
-      }),
-    });
-    expect(deriveVesselState(get, 0)?.targetDistance).toBeCloseTo(13, 6);
-
-    const zero = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 0, y: 0, z: 0 },
-        relativeVelocity: null,
-      }),
-    });
-    expect(deriveVesselState(zero.get, 0)?.targetDistance).toBe(0);
-  });
-
-  it("targetDistance is undefined with no target / no relativePosition; null on a tombstone", () => {
-    const none = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-    });
-    expect(deriveVesselState(none.get, 0)?.targetDistance).toBeUndefined();
-
-    const noVec = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({ kind: 0, relativePosition: null }),
-    });
-    expect(deriveVesselState(noVec.get, 0)?.targetDistance).toBeUndefined();
-
-    const tomb = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint(null),
-    });
-    expect(deriveVesselState(tomb.get, 0)?.targetDistance).toBeNull();
-  });
-
-  it("targetPeriod/targetTrueAnomaly derive off vessel.target.orbit (no body table needed)", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: TARGET_ORBIT,
-      }),
-    });
-
-    const state = deriveVesselState(get, 0);
-    const expectedPeriod =
-      2 * Math.PI * Math.sqrt(TARGET_ORBIT.sma ** 3 / TARGET_ORBIT.mu);
-    expect(state?.targetPeriod).toBeCloseTo(expectedPeriod, 6);
-    // meanAnomalyAtEpoch 0, epoch 0, viewUt 0 -> true anomaly 0.
-    expect(state?.targetTrueAnomaly).toBe(0);
-  });
-
-  it("targetPeriapsisAlt = sma·(1-ecc) - bodyRadius once system.bodies carries the target's reference body", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: TARGET_ORBIT,
-      }),
-      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
-    });
-
-    const expected = TARGET_ORBIT.sma * (1 - TARGET_ORBIT.ecc) - KERBIN_RADIUS;
-    expect(deriveVesselState(get, 0)?.targetPeriapsisAlt).toBeCloseTo(
-      expected,
-      6,
-    );
-  });
-
-  it("targetPeriapsisAlt is undefined (resyncing) while system.bodies is absent, period/trueAnomaly still resolve", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: TARGET_ORBIT,
-      }),
-      // no system.bodies
-    });
-
-    const state = deriveVesselState(get, 0);
-    expect(state?.targetPeriapsisAlt).toBeUndefined();
-    expect(state?.targetPeriod).not.toBeUndefined();
-    expect(state?.targetTrueAnomaly).not.toBeUndefined();
-  });
-
-  it("all three target-orbit fields are undefined when the target has no orbit; null on a tombstone; derived in the measured basis too", () => {
-    const noOrbit = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: null,
-      }),
-    });
-    const s1 = deriveVesselState(noOrbit.get, 0);
-    expect(s1?.targetPeriapsisAlt).toBeUndefined();
-    expect(s1?.targetPeriod).toBeUndefined();
-    expect(s1?.targetTrueAnomaly).toBeUndefined();
-
-    const tomb = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint(null),
-    });
-    const s2 = deriveVesselState(tomb.get, 0);
-    expect(s2?.targetPeriod).toBeNull();
-    expect(s2?.targetTrueAnomaly).toBeNull();
-
-    const measured = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
-      "vessel.flight": flightPoint(MEASURED_FLIGHT),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: TARGET_ORBIT,
-      }),
-    });
-    const s3 = deriveVesselState(measured.get, 0, measured.get);
-    expect(s3?.basis).toBe("measured");
-    expect(s3?.targetPeriod).not.toBeNull();
-    expect(s3?.targetTrueAnomaly).toBe(0);
-  });
-});
-
 describe("deriveVesselState", () => {
   describe("OnRails: propagated from vessel.orbit elements", () => {
     it("matches kepler.solve(orbit, viewUt) at the frozen viewUt", () => {
@@ -820,7 +574,6 @@ describe("deriveVesselState", () => {
       const state = deriveVesselState(get, viewUt);
 
       expect(state).not.toBeNull();
-      expect(state?.basis).toBe("propagated");
 
       const elements: OrbitElements = {
         sma: CIRCULAR_ORBIT.sma,
@@ -834,11 +587,15 @@ describe("deriveVesselState", () => {
       };
       const expected = solve(elements, viewUt);
 
-      expect(state?.position).toEqual(expected.position);
-      expect(state?.velocity).toEqual(expected.velocity);
+      const speed = Math.hypot(
+        expected.velocity[0],
+        expected.velocity[1],
+        expected.velocity[2],
+      );
+      expect(state?.orbitalSpeed).toBeCloseTo(speed, 6);
     });
 
-    it("advancing the frame's viewUt moves the propagated position along the orbit", () => {
+    it("advancing the frame's viewUt moves the propagated state along the orbit", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
           quality: Quality.OnRails,
@@ -848,7 +605,7 @@ describe("deriveVesselState", () => {
       const atZero = deriveVesselState(get, 0);
       const later = deriveVesselState(get, 500);
 
-      expect(atZero?.position).not.toEqual(later?.position);
+      expect(atZero?.trueAnomaly).not.toEqual(later?.trueAnomaly);
     });
 
     it("does not read vessel.flight at all, OnRails kinematics never touch measured samples", () => {
@@ -876,8 +633,7 @@ describe("deriveVesselState", () => {
       const state = deriveVesselState(get, 0);
 
       expect(state?.altitudeAsl).toBeNull();
-      expect(state?.verticalSpeed).toBeNull();
-      expect(state?.surfaceSpeed).toBeNull();
+      expect(state?.horizontalSpeed).toBeNull();
       expect(state?.orbitalSpeed).not.toBeNull(); // derivable from |velocity| alone
     });
 
@@ -902,51 +658,67 @@ describe("deriveVesselState", () => {
 
       const state = deriveVesselState(get, 0);
 
-      expect(state?.basis).toBe("measured");
       expect(state?.altitudeAsl).toBe(MEASURED_FLIGHT.altitudeAsl);
-      expect(state?.verticalSpeed).toBe(MEASURED_FLIGHT.verticalSpeed);
-      expect(state?.surfaceSpeed).toBe(MEASURED_FLIGHT.surfaceSpeed);
       expect(state?.orbitalSpeed).toBe(MEASURED_FLIGHT.orbitalSpeed);
-      // Not propagated: no position/velocity vector fabricated from elements.
-      expect(state?.position).toBeNull();
-      expect(state?.velocity).toBeNull();
+      // Not propagated: nothing orbital-derived is fabricated from elements.
+      expect(state?.orbitalRadius).toBeNull();
+      expect(state?.trueAnomaly).toBeNull();
     });
   });
 
+  /**
+   * Which path ran, told by the one input that separates them: the measured
+   * path reads `vessel.flight` and the propagated path never does (pinned in
+   * its own block above). The record no longer states the pick, so the pick is
+   * observed rather than read back.
+   */
+  function pathTaken(
+    points: Parameters<typeof fakeGet>[0],
+  ): "propagated" | "measured" {
+    const { get, requestedTopics } = fakeGet(points);
+    deriveVesselState(get, 0);
+    return requestedTopics.includes("vessel.flight")
+      ? "measured"
+      : "propagated";
+  }
+
   describe("quality-pick switch", () => {
-    it("flips basis from propagated to measured and back as the orbit sample's quality changes", () => {
-      const { get: onRailsGet } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
-          quality: Quality.OnRails,
+    it("flips from propagated to measured and back as the orbit sample's quality changes", () => {
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.OnRails,
+          }),
         }),
-      });
-      expect(deriveVesselState(onRailsGet, 0)?.basis).toBe("propagated");
-
-      const { get: loadedGet } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
-        "vessel.flight": flightPoint(MEASURED_FLIGHT),
-      });
-      expect(deriveVesselState(loadedGet, 0)?.basis).toBe("measured");
-
-      const { get: backToOnRailsGet } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
-          quality: Quality.OnRails,
+      ).toBe("propagated");
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.Loaded,
+          }),
+          "vessel.flight": flightPoint(MEASURED_FLIGHT),
         }),
-      });
-      expect(deriveVesselState(backToOnRailsGet, 0)?.basis).toBe("propagated");
+      ).toBe("measured");
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.OnRails,
+          }),
+        }),
+      ).toBe("propagated");
     });
 
     it("the picker reads the ORBIT sample's quality, not any global flag", () => {
       // Orbit says OnRails even though a (possibly stale) flight sample also
       // happens to be available: must still propagate, not measure.
-      const { get } = fakeGet({
-        "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
-          quality: Quality.OnRails,
+      expect(
+        pathTaken({
+          "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, {
+            quality: Quality.OnRails,
+          }),
+          "vessel.flight": flightPoint(MEASURED_FLIGHT),
         }),
-        "vessel.flight": flightPoint(MEASURED_FLIGHT),
-      });
-
-      expect(deriveVesselState(get, 0)?.basis).toBe("propagated");
+      ).toBe("propagated");
     });
   });
 
@@ -1312,7 +1084,6 @@ describe("body-NAME display maps: parentBodyName/referenceBodyName (Step-2 migra
     });
 
     const state = deriveVesselState(get, 0, get);
-    expect(state?.basis).toBe("measured");
     expect(state?.referenceBodyName).toBe("Kerbin");
     expect(state?.parentBodyName).toBe("Kerbin");
   });
@@ -1627,125 +1398,6 @@ describe("R6 identity flags: isEVA / isSplashed off vessel.identity (v.isEVA / v
   });
 });
 
-describe("R6 action groups: vessel.state.actionGroups map + actionGroup{n} (v.ag{n}Value)", () => {
-  it("splits the named list into a keyed map + per-index booleans", () => {
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.control": pt<VesselControlPayload>({
-        sasMode: 0,
-        actionGroups: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((index) => ({
-          index,
-          name: `AG${index}`,
-          state: index === 1 || index === 3 || index === 10,
-        })),
-      }),
-    });
-    const state = deriveVesselState(get, 0);
-    expect(state?.actionGroup1).toBe(true);
-    expect(state?.actionGroup2).toBe(false);
-    expect(state?.actionGroup3).toBe(true);
-    expect(state?.actionGroup10).toBe(true);
-    expect(state?.actionGroups).toEqual({
-      "1": true,
-      "2": false,
-      "3": true,
-      "4": false,
-      "5": false,
-      "6": false,
-      "7": false,
-      "8": false,
-      "9": false,
-      "10": true,
-    });
-  });
-
-  /**
-   * The AGX-readiness guarantee. Keys must come from each entry's OWN `index`,
-   * never from array position: under AGX the reported range is legitimately
-   * sparse and unsorted, so a position-derived key would silently mislabel
-   * every group. (This is exactly what the old positional `bool[]` could not
-   * express, and why the contract was retyped.)
-   */
-  it("keys by each group's own index, not array position (sparse, unsorted, >10)", () => {
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.control": pt<VesselControlPayload>({
-        sasMode: 0,
-        actionGroups: [
-          { index: 250, name: "Abort Sequence", state: true },
-          { index: 3, name: "Solar Panels", state: true },
-          { index: 42, name: "Science Bay", state: false },
-        ],
-      }),
-    });
-    const state = deriveVesselState(get, 0);
-    expect(state?.actionGroups).toEqual({
-      "250": true,
-      "3": true,
-      "42": false,
-    });
-    // Position 0 is group 250, a positional read would have called it group 1.
-    expect(state?.actionGroup1).toBeUndefined();
-    expect(state?.actionGroup3).toBe(true);
-  });
-
-  it("passes the named list through verbatim for the registry to derive from", () => {
-    const groups = [
-      { index: 1, name: "Solar Panels", state: true },
-      { index: 2, name: "Radiators", state: false },
-    ];
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.control": pt<VesselControlPayload>({
-        sasMode: 0,
-        actionGroups: groups,
-      }),
-    });
-    const state = deriveVesselState(get, 0);
-    expect(state?.actionGroupsNamed).toEqual(groups);
-  });
-
-  /**
-   * A group the backend could not READ is a third answer, and this derivation
-   * used to have exactly two: `!!group.state` turned it into `false`, which
-   * says the group is disengaged. Absence of a group (`undefined`) and a group
-   * whose state nobody read (`null`) are also different facts, so both survive
-   * the split.
-   */
-  it("carries an unread group's null through rather than flattening it to false", () => {
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.control": pt<VesselControlPayload>({
-        sasMode: 0,
-        actionGroups: [
-          { index: 1, name: "Solar Panels", state: null },
-          { index: 2, name: "Radiators", state: false },
-          { index: 3, name: "Science Bay", state: true },
-        ],
-      }),
-    });
-    const state = deriveVesselState(get, 0);
-    expect(state?.actionGroups).toEqual({ "1": null, "2": false, "3": true });
-    expect(state?.actionGroup1).toBeNull();
-    // The neighbours prove the null is carried rather than the whole map
-    // having gone unknown.
-    expect(state?.actionGroup2).toBe(false);
-    // A group nobody reported stays `undefined`: a different fact again.
-    expect(state?.actionGroup4).toBeUndefined();
-  });
-
-  it("undefined (all) when the array is absent; keys still present", () => {
-    const get = getFrom({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
-      "vessel.control": pt<VesselControlPayload>({ sasMode: 0 }),
-    });
-    const state = deriveVesselState(get, 0);
-    expect(state?.actionGroups).toBeUndefined();
-    expect(state?.actionGroup1).toBeUndefined();
-    expect(Object.hasOwn(state ?? {}, "actionGroup1")).toBe(true);
-  });
-});
-
 describe("hyperbolic orbits: OnRails vessel/target on an escape trajectory never throws (ecc >= 1 crash fix)", () => {
   // A genuine hyperbolic orbit (fast escape/flyby): ecc > 1, and by the same
   // convention `orbitalPeriod`/vis-viva use everywhere else in this package,
@@ -1778,13 +1430,6 @@ describe("hyperbolic orbits: OnRails vessel/target on an escape trajectory never
         launchUt: 0,
       }),
       "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
-      // An elliptical target sharing the same reference body -- exercises
-      // the target-relative derivations' handling of a hyperbolic self orbit.
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 100, y: 0, z: 0 },
-        orbit: { ...CIRCULAR_ORBIT },
-      }),
     });
 
     let state: ReturnType<typeof deriveVesselState>;
@@ -1816,40 +1461,12 @@ describe("hyperbolic orbits: OnRails vessel/target on an escape trajectory never
     );
 
     // Non-orbital fields are entirely unaffected.
-    expect(state?.basis).toBe("propagated");
     expect(state?.subjectId).toBe("vessel:abc-123");
     expect(state?.parentBodyName).toBe("Kerbin");
   });
-
-  it("a hyperbolic vessel.target orbit does not throw; targetPeriod/targetTrueAnomaly degrade to null, targetPeriapsisAlt still resolves", () => {
-    const { get } = fakeGet({
-      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
-      "vessel.target": targetPoint({
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: HYPERBOLIC_ORBIT,
-      }),
-      "system.bodies": bodiesPoint(KERBIN_SYSTEM_BODIES),
-    });
-
-    let state: ReturnType<typeof deriveVesselState>;
-    expect(() => {
-      state = deriveVesselState(get, 0);
-    }).not.toThrow();
-
-    expect(state?.targetPeriod).toBeNull();
-    expect(state?.targetTrueAnomaly).toBeNull();
-
-    const expectedTargetPeriapsisAlt =
-      HYPERBOLIC_ORBIT.sma * (1 - HYPERBOLIC_ORBIT.ecc) - KERBIN_RADIUS;
-    expect(state?.targetPeriapsisAlt).toBeCloseTo(
-      expectedTargetPeriapsisAlt,
-      6,
-    );
-  });
 });
 
-describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpact/bestSpeedAtImpact/suicideBurnCountdown)", () => {
+describe("landing prediction: vessel.state.landingPredictedLat/Lon (land.predictedLat/predictedLon)", () => {
   // Synthetic body chosen so gravity is a round g = mu/(radius+altitudeAsl)²:
   // mu = 8e10, radius = 200_000, altitudeAsl = 0 → g = 8e10/200000² = 2.0 m/s².
   const LANDING_BODIES: SystemBodiesPayload = {
@@ -1921,96 +1538,6 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
         : pt(opts.prop ?? LANDING_PROP, Quality.Loaded),
     });
   }
-
-  it("derives the full ballistic set on a descent (g=2, h=100, vDown=10, aMax=6)", () => {
-    const s = deriveVesselState(landingGet(), 0);
-    // t = (-10 + √(10² + 2·2·100)) / 2 = (-10 + √500)/2
-    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(500)) / 2, 6);
-    // √(20² + 2·2·100) = √800
-    expect(s?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
-    // aNet = 6-2 = 4, burn d = 10²/(2·4) = 12.5 ≤ 100 → perfect landing reachable
-    expect(s?.landingBestSpeedAtImpact).toBe(0);
-    // ignition at h-d = 87.5: t = (-10 + √(100 + 2·2·87.5))/2 = (-10 + √450)/2
-    expect(s?.landingSuicideBurnCountdown).toBeCloseTo(
-      (-10 + Math.sqrt(450)) / 2,
-      6,
-    );
-  });
-
-  it("gravity uses altitudeAsl, not just the body radius (r = radius + altitudeAsl)", () => {
-    // altitudeAsl = 200_000 → r = 400_000 → g = 8e10/400000² = 0.5 m/s².
-    const s = deriveVesselState(landingGet({ altitudeAsl: 200_000 }), 0);
-    // t = (-10 + √(100 + 2·0.5·100)) / 0.5 = (-10 + √200)/0.5
-    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(200)) / 0.5, 6);
-  });
-
-  it("residual best-speed is positive when the burn can't fit (d > h)", () => {
-    // h = 5, d = 12.5 > 5 → best = √(vDown² - 2·aNet·h) = √(100 - 40) = √60,
-    // and ignition height 5 - 12.5 < 0 → IGNITE now (countdown 0).
-    const s = deriveVesselState(landingGet({ altitudeTerrain: 5 }), 0);
-    expect(s?.landingBestSpeedAtImpact).toBeCloseTo(Math.sqrt(60), 6);
-    expect(s?.landingSuicideBurnCountdown).toBe(0);
-  });
-
-  it("burn fields are null when thrust can't beat gravity (TWR ≤ 1)", () => {
-    // aMax = 1 < g = 2.
-    const s = deriveVesselState(
-      landingGet({}, { prop: { ...LANDING_PROP, availableThrust: 1 } }),
-      0,
-    );
-    // Impact fields still derive (no thrust needed for a ballistic fall).
-    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(500)) / 2, 6);
-    expect(s?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
-    expect(s?.landingBestSpeedAtImpact).toBeNull();
-    expect(s?.landingSuicideBurnCountdown).toBeNull();
-  });
-
-  it("impact fields still derive with no vessel.propulsion; burn fields null", () => {
-    const s = deriveVesselState(landingGet({}, { noProp: true }), 0);
-    expect(s?.landingTimeToImpact).toBeCloseTo((-10 + Math.sqrt(500)) / 2, 6);
-    expect(s?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
-    expect(s?.landingBestSpeedAtImpact).toBeNull();
-    expect(s?.landingSuicideBurnCountdown).toBeNull();
-  });
-
-  it("all four are null when not descending (verticalSpeed ≥ 0)", () => {
-    const climbing = deriveVesselState(landingGet({ verticalSpeed: 10 }), 0);
-    expect(climbing?.landingTimeToImpact).toBeNull();
-    expect(climbing?.landingSpeedAtImpact).toBeNull();
-    expect(climbing?.landingBestSpeedAtImpact).toBeNull();
-    expect(climbing?.landingSuicideBurnCountdown).toBeNull();
-
-    const level = deriveVesselState(landingGet({ verticalSpeed: 0 }), 0);
-    expect(level?.landingTimeToImpact).toBeNull();
-  });
-
-  it("all four are null at or below the terrain (altitudeTerrain ≤ 0)", () => {
-    const s = deriveVesselState(landingGet({ altitudeTerrain: 0 }), 0);
-    expect(s?.landingTimeToImpact).toBeNull();
-    expect(s?.landingSpeedAtImpact).toBeNull();
-    expect(s?.landingBestSpeedAtImpact).toBeNull();
-    expect(s?.landingSuicideBurnCountdown).toBeNull();
-  });
-
-  it("all four are null without a system.bodies radius (can't compute gravity)", () => {
-    const s = deriveVesselState(landingGet({}, { noBodies: true }), 0);
-    expect(s?.landingTimeToImpact).toBeNull();
-    expect(s?.landingSpeedAtImpact).toBeNull();
-    expect(s?.landingBestSpeedAtImpact).toBeNull();
-    expect(s?.landingSuicideBurnCountdown).toBeNull();
-  });
-
-  it("all four are null in the propagated (OnRails) basis", () => {
-    const s = deriveVesselState(
-      landingGet({}, { quality: Quality.OnRails }),
-      0,
-    );
-    expect(s?.basis).toBe("propagated");
-    expect(s?.landingTimeToImpact).toBeNull();
-    expect(s?.landingSpeedAtImpact).toBeNull();
-    expect(s?.landingBestSpeedAtImpact).toBeNull();
-    expect(s?.landingSuicideBurnCountdown).toBeNull();
-  });
 
   // A short (12s) synthetic period so half a period (the apoapsis→periapsis
   // crossing) comfortably fits inside the ~9s horizon `landingTimeToImpact`

@@ -1,0 +1,207 @@
+{
+  "_meta": {
+    "scenario": "kerbin-reentry-held",
+    "notes": "The kerbin-reentry descent with the link down and four flight samples behind it. The air model carries the altitude seven seconds past the last one it heard and bands it by the descent fit's own standard error, which is the reading a map readout on vessel.flight can draw and one on the derived channel cannot."
+  },
+  "v.body": "Kerbin",
+  "v.lat": -2.5,
+  "v.long": -30.2,
+  "v.altitude": 28000,
+  "n.pitch": -6.6,
+  "n.heading": 96,
+  "v.dynamicPressure": 19544,
+  "v.mach": 6.395,
+  "v.surfaceSpeed": 1820,
+  "v.verticalSpeed": -210,
+  "t.universalTime": 9876550,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "land.predictedLat": -3.9373,
+  "land.predictedLon": -15.2856,
+  "a.physicsMode": "Atmospheric",
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 487578.402,
+          "ecc": 0.30503003,
+          "inc": 6,
+          "lan": 15.0,
+          "argPe": 10.563957,
+          "meanAnomalyAtEpoch": 3.577845994,
+          "epoch": 9876543,
+          "mu": 3531600000000,
+          "patches": [
+            {
+              "sma": 487578.402,
+              "ecc": 0.30503003,
+              "inc": 6,
+              "lan": 15.0,
+              "argPe": 10.563957,
+              "meanAnomalyAtEpoch": 3.577845994,
+              "epoch": 9876543,
+              "period": 1138.311,
+              "startUt": 9876543,
+              "endUt": 9876629.75,
+              "patchStartTransition": 0,
+              "patchEndTransition": 5,
+              "peA": -261147.652,
+              "apA": 36304.455,
+              "semiLatusRectum": 442212.489,
+              "semiMinorAxis": 464341.748,
+              "referenceBody": "Kerbin",
+              "referenceBodyIndex": 1,
+              "mu": 3531600000000
+            }
+          ],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "validAt": 9876543,
+          "deliveredAt": 9876543
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": -2.5,
+          "longitude": -30.2,
+          "altitudeAsl": 29552.5,
+          "altitudeTerrain": 29552.5,
+          "verticalSpeed": -240,
+          "surfaceSpeed": 1855,
+          "orbitalSpeed": 2000.997,
+          "gForce": 2,
+          "dynamicPressureKPa": 14.1,
+          "mach": 6.6,
+          "atmDensity": 0.0082
+        },
+        "meta": {
+          "validAt": 9876536,
+          "deliveredAt": 9876536,
+          "seq": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": -2.5,
+          "longitude": -30.2,
+          "altitudeAsl": 29310.0,
+          "altitudeTerrain": 29310.0,
+          "verticalSpeed": -250,
+          "surfaceSpeed": 1848,
+          "orbitalSpeed": 2000.997,
+          "gForce": 2,
+          "dynamicPressureKPa": 14.9,
+          "mach": 6.57,
+          "atmDensity": 0.0086
+        },
+        "meta": {
+          "validAt": 9876537,
+          "deliveredAt": 9876537,
+          "seq": 2
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": -2.5,
+          "longitude": -30.2,
+          "altitudeAsl": 29072.5,
+          "altitudeTerrain": 29072.5,
+          "verticalSpeed": -230,
+          "surfaceSpeed": 1841,
+          "orbitalSpeed": 2000.997,
+          "gForce": 2,
+          "dynamicPressureKPa": 15.6,
+          "mach": 6.55,
+          "atmDensity": 0.009
+        },
+        "meta": {
+          "validAt": 9876538,
+          "deliveredAt": 9876538,
+          "seq": 3
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": -2.5,
+          "longitude": -30.2,
+          "altitudeAsl": 28000.0,
+          "altitudeTerrain": 28000.0,
+          "verticalSpeed": -210,
+          "surfaceSpeed": 1820,
+          "orbitalSpeed": 2000.997,
+          "gForce": 2,
+          "dynamicPressureKPa": 19.544,
+          "mach": 6.395,
+          "atmDensity": 0.011801
+        },
+        "meta": {
+          "validAt": 9876543,
+          "deliveredAt": 9876543,
+          "seq": 4
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 5,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        },
+        "meta": {
+          "validAt": 9876543,
+          "deliveredAt": 9876543
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null,
+              "surfaceGravity": 1.00034160493135,
+              "rotationPeriod": 21549.4251830899,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true
+              }
+            }
+          ]
+        },
+        "meta": {
+          "validAt": 9876536,
+          "deliveredAt": 9876536
+        }
+      }
+    ],
+    "pinnedUt": 9876550,
+    "stopsArriving": true
+  }
+}

@@ -49,12 +49,14 @@ describe("useDataSchema", () => {
     );
 
     expect(captured.length).toBeGreaterThan(0);
-    const altitude = captured.find((k) => k.key === "vessel.state.altitudeAsl");
+    const altitude = captured.find(
+      (k) => k.key === "vessel.flight.altitudeAsl",
+    );
     expect(altitude).toMatchObject({
-      key: "vessel.state.altitudeAsl",
+      key: "vessel.flight.altitudeAsl",
       label: "Altitude ASL",
       unit: "m",
-      group: "vessel.state",
+      group: "vessel.flight",
     });
   });
 
@@ -68,7 +70,7 @@ describe("useDataSchema", () => {
       />,
     );
 
-    expect(captured.some((k) => k.key === "vessel.state.altitudeAsl")).toBe(
+    expect(captured.some((k) => k.key === "vessel.flight.altitudeAsl")).toBe(
       true,
     );
   });

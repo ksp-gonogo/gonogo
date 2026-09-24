@@ -1,53 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isKnownFieldPath,
-  mapTopic,
-  redirectKinematicSubtopic,
-  wireAddressBehindRedirect,
-} from "./map-topic";
-
-describe("wireAddressBehindRedirect", () => {
-  it("recovers the Topic and path a redirected reading was pointed away from", () => {
-    /* The redirect is right for a widget and wrong for anyone outside this
-       client: the mod publishes `vessel.flight`, and has never heard of
-       `vessel.state`, which this client computes. */
-    expect(wireAddressBehindRedirect("vessel.state.altitudeAsl")).toEqual({
-      topic: "vessel.flight",
-      fieldPath: "altitudeAsl",
-    });
-    expect(wireAddressBehindRedirect("vessel.state.orbitalSpeed")).toEqual({
-      topic: "vessel.flight",
-      fieldPath: "orbitalSpeed",
-    });
-  });
-
-  it("agrees with the redirect it is derived from, in both directions", () => {
-    // The ratchet. Either half moving without the other is what would put an address on the wire that names a field the contract does not declare.
-    for (const key of [
-      "vessel.state.altitudeAsl",
-      "vessel.state.orbitalSpeed",
-    ]) {
-      const address = wireAddressBehindRedirect(key);
-      expect(address).not.toBeNull();
-      if (address === null) continue;
-      expect(
-        redirectKinematicSubtopic(`${address.topic}.${address.fieldPath}`),
-      ).toBe(key);
-    }
-  });
-
-  it("answers null for a key that was never redirected", () => {
-    // A surface-frame measurement with no elements-derived twin: nothing was collapsed, so there is nothing behind it.
-    expect(wireAddressBehindRedirect("vessel.flight.mach")).toBeNull();
-  });
-
-  it("answers null for a derivation the wire has no twin for", () => {
-    /* `vessel.state` computes plenty the mod never sends. A guess here would
-       arm a SCET alarm against a Topic that cannot be read, which is exactly
-       the answer the refusal path exists to give instead. */
-    expect(wireAddressBehindRedirect("vessel.state.apoapsis")).toBeNull();
-  });
-});
+import { isKnownFieldPath, mapTopic } from "./map-topic";
 
 describe("isKnownFieldPath", () => {
   it("resolves a contract field that no legacy key ever named", () => {
@@ -87,54 +39,6 @@ describe("isKnownFieldPath", () => {
     expect(
       isKnownFieldPath("career.facilities.facilities.LaunchPad.maxTier"),
     ).toBe(false);
-  });
-});
-
-describe("redirectKinematicSubtopic (T3: new-SDK topic safety net)", () => {
-  it("routes short kinematic keys onto vessel.state.*", () => {
-    expect(redirectKinematicSubtopic("altitude")).toBe(
-      "vessel.state.altitudeAsl",
-    );
-    expect(redirectKinematicSubtopic("altitudeAsl")).toBe(
-      "vessel.state.altitudeAsl",
-    );
-    expect(redirectKinematicSubtopic("position")).toBe("vessel.state.position");
-    expect(redirectKinematicSubtopic("velocity")).toBe("vessel.state.velocity");
-    expect(redirectKinematicSubtopic("orbitalSpeed")).toBe(
-      "vessel.state.orbitalSpeed",
-    );
-  });
-
-  it("redirects a widget asking for the raw altitude topic directly onto the derived surface (V-12 prevention)", () => {
-    expect(redirectKinematicSubtopic("vessel.flight.altitudeAsl")).toBe(
-      "vessel.state.altitudeAsl",
-    );
-  });
-
-  it("redirects a widget asking for the raw orbital-speed topic directly onto the derived surface, the real raw twin lives on vessel.flight, not vessel.orbit (elements-only, no orbitalSpeed field)", () => {
-    expect(redirectKinematicSubtopic("vessel.flight.orbitalSpeed")).toBe(
-      "vessel.state.orbitalSpeed",
-    );
-  });
-
-  it("leaves non-kinematic topics, including other raw vessel.flight fields, unchanged (identity fallback)", () => {
-    expect(redirectKinematicSubtopic("vessel.flight.mach")).toBe(
-      "vessel.flight.mach",
-    );
-    expect(redirectKinematicSubtopic("vessel.flight.dynamicPressureKPa")).toBe(
-      "vessel.flight.dynamicPressureKPa",
-    );
-    expect(redirectKinematicSubtopic("vessel.identity.name")).toBe(
-      "vessel.identity.name",
-    );
-    expect(redirectKinematicSubtopic("some.unrelated.topic")).toBe(
-      "some.unrelated.topic",
-    );
-    // vessel.orbit is elements-only, it never had an orbitalSpeed field, so
-    // nothing should route away from it under that name either.
-    expect(redirectKinematicSubtopic("vessel.orbit.orbitalSpeed")).toBe(
-      "vessel.orbit.orbitalSpeed",
-    );
   });
 });
 

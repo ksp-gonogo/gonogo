@@ -11,7 +11,7 @@ const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.state", "system.bodies"],
   fields: [
     "vessel.orbit.sma",
-    "vessel.state.period",
+    "vessel.orbit.mu",
     "vessel.state.referenceBodyName",
     "vessel.state.parentBodyName",
   ],
@@ -20,8 +20,28 @@ const topics = defineTopicManifest({
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import {
+  type ComputedSeries,
+  type GraphConfig,
+  GraphView,
+  type ReferenceCurve,
+} from "../Graph";
+import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
+
+/** The current orbit's period, computed here: the wire carries no `period`. */
+const CURRENT_PERIOD_KEY = "kepler-period.currentPeriod";
+
+/**
+ * Kepler's third law on the orbit's own elements: `2π·√(sma³/μ)`. `null` for a
+ * non-positive semi-major axis, which is an escape trajectory and has no
+ * period.
+ */
+function periodOf(sma: number, mu: number): number | null {
+  return sma > 0 && mu > 0
+    ? 2 * Math.PI * Math.sqrt((sma * sma * sma) / mu)
+    : null;
+}
 
 export interface KeplerPeriodConfig {
   /**
@@ -95,6 +115,21 @@ function KeplerPeriodComponent({
   const body = useStreamBody(referenceBody, bodyName);
 
   const windowSec = config?.windowSec ?? 60;
+  const periodData = useComputedSeries(
+    "vessel.orbit.sma",
+    "vessel.orbit.mu",
+    windowSec,
+    periodOf,
+  );
+  const computedSeries = useMemo<ComputedSeries[]>(
+    () => [
+      {
+        meta: { key: CURRENT_PERIOD_KEY, label: "Current orbit", unit: "s" },
+        data: periodData,
+      },
+    ],
+    [periodData],
+  );
 
   const referenceCurve = useMemo(() => {
     if (!body) return null;
@@ -111,7 +146,7 @@ function KeplerPeriodComponent({
       series: [
         {
           id: "current-orbit",
-          key: "vessel.state.period",
+          key: CURRENT_PERIOD_KEY,
           label: "Current orbit",
           axis: "primary",
           type: "scatter",
@@ -134,6 +169,7 @@ function KeplerPeriodComponent({
       <Fill grow>
         <GraphView
           config={graphConfig}
+          computedSeries={computedSeries}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title="KEPLER PERIOD"
         />

@@ -1,4 +1,5 @@
 import type { AlarmRequestedBy } from "@ksp-gonogo/components";
+import { migrateValueKey } from "../telemetry/renamedValueKeys";
 
 export type { AlarmRequestedBy };
 
@@ -425,7 +426,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         notes,
         trigger: {
           kind: "threshold",
-          dataKey: t.dataKey,
+          dataKey: migrateValueKey(t.dataKey),
           op: t.op as ThresholdOp,
           value: t.value,
           sustainSeconds:

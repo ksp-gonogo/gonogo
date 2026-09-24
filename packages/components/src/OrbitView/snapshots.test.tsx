@@ -23,6 +23,10 @@ const SCENARIOS: Record<string, OrbitScenario | null> = {
     sma: 3800000,
     ecc: 0.85,
     argPe: 45,
+    // Periapsis is 30 km inside Kerbin, so the default phase would sample the
+    // craft underground. A quarter turn along puts it out at the semi-major
+    // axis, where an eccentric orbit is actually observed from.
+    meanAnomalyAtEpoch: 0.7208,
   },
   // NOTE: a hyperbolic escape trajectory (ecc≥1) is deliberately NOT covered
   // here. The shared `useIsOrbiting` hook reads `o.PeA`/`o.ApA`
@@ -37,6 +41,10 @@ const SCENARIOS: Record<string, OrbitScenario | null> = {
     sma: 820000,
     ecc: 0.27,
     argPe: 0,
+    // Periapsis is 1.4 km inside Kerbin, which is what makes this sub-orbital.
+    // The craft is sampled a third of the way round from it, 109 km up and
+    // falling towards a surface it will reach rather than pass.
+    meanAnomalyAtEpoch: 0.8134,
   },
   "mun-orbit": {
     bodyName: "Mun",

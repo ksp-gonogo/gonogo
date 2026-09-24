@@ -8,8 +8,8 @@ import {
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the escape-velocity curve needs the
   // body's own radius and gravitational parameter, both reported there.
-  channels: ["vessel.state", "system.bodies"],
-  fields: ["vessel.state.altitudeAsl", "vessel.state.orbitalSpeed"],
+  channels: ["vessel.state", "vessel.flight", "system.bodies"],
+  fields: ["vessel.flight.altitudeAsl", "vessel.flight.orbitalSpeed"],
 });
 
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
@@ -112,14 +112,14 @@ function EscapeProfileComponent({
       series: [
         {
           id: "speed-trace",
-          key: "vessel.state.orbitalSpeed",
+          key: "vessel.flight.orbitalSpeed",
           label: "Orbital speed",
           axis: "primary",
           type: "scatter",
         },
       ],
       windowSec,
-      xKey: "vessel.state.altitudeAsl",
+      xKey: "vessel.flight.altitudeAsl",
     }),
     [windowSec],
   );

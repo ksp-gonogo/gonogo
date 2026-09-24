@@ -44,7 +44,7 @@ export * from "./hooks/useDataSourceSubscription";
 export * from "./hooks/useDataSources";
 export * from "./hooks/useDataStreamStatus";
 export * from "./hooks/useGameContext";
-export * from "./hooks/useOrbitElements";
+export * from "./hooks/useOrbitSolve";
 export * from "./hooks/useTelemetry";
 export * from "./hooks/useTelemetryHostStatus";
 export * from "./hooks/useTimeContexts";

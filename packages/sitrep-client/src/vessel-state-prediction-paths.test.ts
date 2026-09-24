@@ -10,7 +10,6 @@ import {
   type VesselFlightPayload,
   type VesselOrbitPayload,
   type VesselPropulsionPayload,
-  type VesselTargetPayload,
 } from "./vessel-state";
 
 /**
@@ -41,13 +40,6 @@ const COAST = {
   epoch: 0,
   mu: MU_KERBIN,
   horizon: { kind: 1, trajectoryKind: 1 },
-} satisfies WireOf<VesselOrbitPayload>;
-
-/** The target's own conic, deliberately unlike the self craft's. */
-const TARGET_ORBIT = {
-  ...COAST,
-  sma: KERBIN_RADIUS + 400_000,
-  ecc: 0.2,
 } satisfies WireOf<VesselOrbitPayload>;
 
 const BODIES: SystemBodiesPayload = {
@@ -120,7 +112,7 @@ function getFrom(map: Record<string, TimelinePoint<unknown> | undefined>) {
     map[topic] as TimelinePoint<T> | undefined) as DerivedGet;
 }
 
-/** A coasting craft with a target: the frame the conic owns. */
+/** A coasting craft: the frame the conic owns. */
 function onRailsGet(): DerivedGet {
   return getFrom({
     "vessel.orbit": point(
@@ -128,15 +120,6 @@ function onRailsGet(): DerivedGet {
       Quality.OnRails,
     ),
     "system.bodies": point(BODIES, Quality.OnRails),
-    // The wrap follows the nested `orbit` too, the same way the decode does.
-    "vessel.target": point(
-      wrapWire<VesselTargetPayload>("VesselTarget", {
-        kind: 0,
-        relativePosition: { x: 1, y: 0, z: 0 },
-        orbit: { ...TARGET_ORBIT },
-      }),
-      Quality.OnRails,
-    ),
   });
 }
 
@@ -166,25 +149,15 @@ describe("the conic: deriveVesselStateReckoning", () => {
   });
 });
 
-describe("the ballistic landing set: deriveLanding", () => {
-  it("produces its six scalars on a frame that offers no model at all", () => {
+describe("the ballistic landing prediction: deriveLanding", () => {
+  it("carries no reckoning on a frame that offers no model at all", () => {
     const get = descendingGet();
-    const state = deriveVesselState(get, 0);
-
-    // Real numbers, off the wire at this instant: g = 2, h = 100, vDown = 10.
-    expect(state?.landingTimeToImpact).toBeCloseTo(
-      (-10 + Math.sqrt(500)) / 2,
-      6,
-    );
-    expect(state?.landingSpeedAtImpact).toBeCloseTo(Math.sqrt(800), 6);
-    expect(state?.landingSuicideBurnCountdown).not.toBeNull();
 
     /*
-     * And the whole reason the set needs no model of its own: a craft under
+     * The whole reason the prediction needs no model of its own: a craft under
      * physics is one `keplerAdmissibility` withdraws from, so this record
-     * carries no reckoning for anything to carry the landing set forward on.
-     * The six scalars are only ever the answer for the instant that produced
-     * them.
+     * carries no reckoning for anything to carry the prediction forward on.
+     * It is only ever the answer for the instant that produced it.
      */
     expect(deriveVesselStateReckoning(get, 0)).toBeUndefined();
   });
@@ -194,34 +167,12 @@ describe("the ballistic landing set: deriveLanding", () => {
 
     expect(deriveVesselStateReckoning(get, 600)).toBeDefined();
     const state = deriveVesselState(get, 600);
-    expect(state?.landingTimeToImpact).toBeNull();
-    expect(state?.landingSpeedAtImpact).toBeNull();
-    expect(state?.landingBestSpeedAtImpact).toBeNull();
-    expect(state?.landingSuicideBurnCountdown).toBeNull();
     expect(state?.landingPredictedLat).toBeNull();
     expect(state?.landingPredictedLon).toBeNull();
   });
 
-  it("claims no path, so a reckoned tail can never draw one of the six", () => {
+  it("claims no path, so a reckoned tail can never draw the prediction", () => {
     const paths = modelledPaths(onRailsGet(), 600) ?? [];
     expect(paths.filter((path) => path.startsWith("landing"))).toEqual([]);
-  });
-});
-
-describe("the target's conic: deriveTargetOrbit", () => {
-  it("solves the target at the view time on a record the self conic models", () => {
-    const state = deriveVesselState(onRailsGet(), 600);
-
-    expect(state?.targetPeriod).toBeCloseTo(
-      2 * Math.PI * Math.sqrt(TARGET_ORBIT.sma ** 3 / MU_KERBIN),
-      6,
-    );
-    expect(state?.targetTrueAnomaly).not.toBeNull();
-    expect(state?.targetPeriapsisAlt).not.toBeNull();
-  });
-
-  it("claims no path, so the self craft's horizon never bounds the target's arc", () => {
-    const paths = modelledPaths(onRailsGet(), 600) ?? [];
-    expect(paths.filter((path) => path.startsWith("target"))).toEqual([]);
   });
 });

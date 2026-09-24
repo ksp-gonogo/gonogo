@@ -20,10 +20,9 @@ import { type StreamFixture, setupStreamFixture } from "./setupStreamFixture";
 /**
  * All eight `vessel.state` inputs. A widget's own reads
  * (`useTelemetry`/`useStreamOptional`) don't consult the carried-channels
- * allowlist, but the shared `useIsOrbiting` hook still reads `o.PeA`/`o.ApA`
- * (→ `vessel.state.periapsisAlt`/`apoapsisAlt`) through the legacy
- * `useDataValue` shim, whose carried gate is parent-channel-scoped: it only
- * routes to the stream once ALL EIGHT `vessel.state` inputs are carried.
+ * allowlist, but the body-name reads that still ride `vessel.state` go through
+ * a carried gate that is parent-channel-scoped: it only routes to the stream
+ * once ALL EIGHT of that channel's inputs are carried.
  */
 export const VESSEL_STATE_INPUTS = [
   "vessel.orbit",
@@ -49,12 +48,20 @@ export interface OrbitScenario {
   sma: number;
   ecc: number;
   argPe?: number;
-  /** Mean anomaly at epoch (radians). Default 0 → vessel sits at periapsis for a viewUt-0 clock. */
+  /**
+   * Mean anomaly at epoch (radians). Default 0 → vessel sits at periapsis for
+   * a viewUt-0 clock.
+   *
+   * State one whenever the periapsis is BELOW the body's surface. The default
+   * then puts the craft underground at the sampled instant, which is not a
+   * position the game can report, and the conic rightly refuses to advance
+   * elements whose current radius is inside the body.
+   */
   meanAnomalyAtEpoch?: number;
   /**
-   * `vessel.orbit`'s sample quality, which drives `vessel.state.basis`
-   * (OnRails → "propagated", Loaded → "measured"). Default `Quality.OnRails`,
-   * every pre-existing scenario/test keeps its prior behaviour unchanged.
+   * `vessel.orbit`'s sample quality. `Quality.Loaded` makes the conic decline
+   * as `"under-physics"`, the packed case. Default `Quality.OnRails`, every
+   * pre-existing scenario/test keeps its prior behaviour unchanged.
    */
   quality?: Quality;
   /**
@@ -123,16 +130,27 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
         parentBodyIndex: bodyIndex,
         launchUt: 0,
       });
-      fixture.emit("system.bodies", {
-        bodies: [
-          {
-            index: bodyIndex,
-            name: s.bodyName,
-            radius: s.bodyRadius ?? 600000,
-          },
-        ],
-      });
     }
+    /*
+     * The roster is emitted whatever the scenario says, EMPTY where it names
+     * no body: `vessel.orbit`'s conic declares `system.bodies` as an input, so
+     * a scene that never emits it has no model, and every quantity solved from
+     * those elements is absent for a reason that has nothing to do with the
+     * body. A body-less scenario wants the orbit solved and the two apsis
+     * ALTITUDES unresolvable, which is what an empty roster gives.
+     */
+    fixture.emit("system.bodies", {
+      bodies:
+        s.bodyName === undefined
+          ? []
+          : [
+              {
+                index: bodyIndex,
+                name: s.bodyName,
+                radius: s.bodyRadius ?? 600000,
+              },
+            ],
+    });
   });
 }
 

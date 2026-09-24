@@ -3,7 +3,7 @@ import {
   defineTopicManifest,
   registerComponent,
   useActionInput,
-  useOrbitElements,
+  useOrbitSolve,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -17,6 +17,7 @@ import {
   type ControlFrame,
   controlFrameLabel,
   frameCaveat,
+  type ReckoningDecline,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -24,6 +25,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Section,
   Stack,
   Unit,
@@ -43,14 +45,6 @@ const topics = defineTopicManifest({
     "vessel.orbit.ecc",
     "vessel.orbit.inc",
     "vessel.orbit.argPe",
-    "vessel.state.apoapsisAlt",
-    "vessel.state.periapsisAlt",
-    "vessel.state.apoapsisRadius",
-    "vessel.state.periapsisRadius",
-    "vessel.state.timeToAp",
-    "vessel.state.timeToPe",
-    "vessel.state.trueAnomaly",
-    "vessel.state.period",
     "vessel.state.referenceBodyName",
     "vessel.state.parentBodyName",
   ],
@@ -89,39 +83,27 @@ function CurrentOrbitComponent({
     },
   });
 
-  const {
-    apoapsisAltitude: apoapsisARaw,
-    periapsisAltitude: periapsisARaw,
-    apoapsisRadius: apoapsisR,
-    periapsisRadius: periapsisR,
-    timeToApoapsis: timeToApRaw,
-    timeToPeriapsis: timeToPeRaw,
-    status: derivedStatus,
-  } = useOrbitElements();
   /*
-   * The derived figures NULL when their channel is no longer current, which is
-   * the same answer the reading-backed elements below already give.
+   * Every figure below is solved from the craft's own elements for the instant
+   * being viewed, and the whole solve is absent together whenever the conic
+   * that authorises it has withdrawn. That is one answer for the whole group
+   * rather than six, and it is the same answer the reading-backed elements
+   * further down already give: an apsis, a countdown and a period are claims
+   * about a coast, and there is no coast to make them about.
    *
-   * These ride `vessel.state`, which carries no `Reading`, so the channel's
-   * own currency is the only thing that can say whether they are still
-   * arriving. Without it a stale orbit with no model nulls `sma`, `ecc` and
-   * `inc` and goes on drawing Ap, Pe and both countdowns as confident
-   * present-tense claims, side by side in one column.
-   *
-   * NULL rather than a mark: a staleness presentation is earned by figures
-   * read second by second, and an apoapsis is not read that way, so it falls
-   * the same side as `ecc` and `inc` and the column stays consistent.
-   *
-   * The RADII are deliberately NOT nulled: they feed the diagram's own
-   * geometry rather than a readout, and the diagram already refuses to draw a
-   * curve it cannot make current. Gating may govern a readout; it must not
-   * reach the diagram's own reckoning of basic motion.
+   * `?? undefined` on each: the solve says `null` for a quantity the orbit
+   * does not have (no apoapsis on a hyperbolic trajectory) and `undefined`
+   * while the reference body's radius has not resolved. Both are an absence
+   * this column draws the same way, so they are folded once here instead of
+   * being re-tested at each of the five readouts.
    */
-  const derivedCurrent = derivedStatus === "live";
-  const apoapsisA = derivedCurrent ? apoapsisARaw : undefined;
-  const periapsisA = derivedCurrent ? periapsisARaw : undefined;
-  const timeToAp = derivedCurrent ? timeToApRaw : undefined;
-  const timeToPe = derivedCurrent ? timeToPeRaw : undefined;
+  const solve = useOrbitSolve();
+  const apoapsisA = solve?.apoapsisAlt ?? undefined;
+  const periapsisA = solve?.periapsisAlt ?? undefined;
+  const apoapsisR = solve?.apoapsisRadius ?? null;
+  const periapsisR = solve?.periapsisRadius ?? null;
+  const timeToAp = solve?.timeToAp ?? undefined;
+  const timeToPe = solve?.timeToPe ?? undefined;
 
   /**
    * What the operator's own view frame does to these two numbers.
@@ -139,12 +121,11 @@ function CurrentOrbitComponent({
   // ...)` fallback:
   //   - sma/eccentricity/inclination/argPe are raw `vessel.orbit.*` elements,
   //     read off the canonical whole-`vessel.orbit` Topic.
-  //   - trueAnomaly/period (+ Ap/Pe/ApR/PeR/timeToAp/timeToPe via
-  //     `useOrbitElements`) and referenceBody/bodyName are SDK-derived
-  //     `vessel.state.*` fields (deriveVesselState: trueAnomaly propagated at
-  //     view-UT, referenceBodyName/parentBodyName resolved index → name against
-  //     `system.bodies`). `vessel.state` isn't a wire `TopicId`, so it reads
-  //     through `useStream`.
+  //   - Ap/Pe/ApR/PeR/timeToAp/timeToPe/trueAnomaly/period are the solve over
+  //     those same elements at view-UT, through `useOrbitSolve`.
+  //   - referenceBodyName/parentBodyName are index → name resolved against
+  //     `system.bodies` on the derived `vessel.state` channel, which isn't a
+  //     wire `TopicId` and so reads through `useStream`.
   // This widget DRAWS the orbit and the craft's place on it, which is a marker:
   // a positive claim about where it is now. So the elements come from a CURRENT
   // reading, or from a model where one is on offer, and otherwise from nothing,
@@ -192,25 +173,37 @@ function CurrentOrbitComponent({
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe;
   const inclination = orbit?.inc;
-  const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
-  /* Same rule as the four above: a period drawn from a channel that has stopped
-     arriving is a present-tense claim this widget does not get to make. */
-  const period = derivedCurrent
-    ? (vesselState?.period ?? undefined)
-    : undefined;
+  const trueAnomaly = solve?.trueAnomaly ?? undefined;
+  const period = solve?.period ?? undefined;
   const refBody = vesselState?.referenceBodyName ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
 
   // What the mini diagram's curve IS, asked of the propagation seam rather than
-  // decided here. The numbers in the grid above are a different question and go
-  // on rendering either way: `sma`, `ecc` and the apsides were measured at the
-  // sample instant and are true whoever computed them. Only the CURVE claims
-  // what the craft will fly, so only the curve is refusable.
+  // decided here. `sma`, `ecc` and `inc` go on rendering either way: those were
+  // measured at the sample instant and are true whoever computed them. The
+  // apsides beside them were not measured, they are a derivation at view time
+  // through the same propagation capability, so a refusal takes them with it.
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
   const withheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
+
+  /*
+   * Why the derived figures are dashes, when the elements arrived and the conic
+   * declined to advance them. A refused TRAJECTORY already says so in its own
+   * note, so this speaks only when that one is silent, and only when the solve
+   * gave nothing: under physics a current reading is still solved for what
+   * needs no advancing, and a state word beside a drawn apoapsis would deny it.
+   */
+  const declined =
+    observedOrbit !== undefined &&
+    withheld === null &&
+    solve === null &&
+    orbitReading.reckoning.status === "declined"
+      ? orbitReading.reckoning.declined
+      : undefined;
+  const modelState = declined ? declinedState(declined) : null;
 
   /* Physics off the wire, presentation from the table: `useStreamBody` merges
    * the two, so `body.radius` is the running game's and `body.color` is still
@@ -232,13 +225,12 @@ function CurrentOrbitComponent({
   }, []);
 
   // Apoapsis is intentionally NOT required, it's `null` on a hyperbolic
-  // orbit (no apoapsis exists) by design (`VesselState.apoapsisRadius`), not
-  // an error. Periapsis is always real whenever there's a resolvable orbit,
-  // so it (plus sma/eccentricity) is the true "do we have an orbit" signal.
-  // `!= null` catches both `null` and `undefined`, `apoapsisR`/`periapsisR`
-  // are `useOrbitElements`' apsis radii, which pass `null` through as-is
-  // (see that hook's own doc comment).
-  const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
+  // orbit (no apoapsis exists), not an error. Periapsis is always real
+  // whenever there IS a solve, so it (plus sma/eccentricity) is the true
+  // "is there a curve to draw" signal. `!= null` catches both `null` and
+  // `undefined`.
+  const canDrawDiagram =
+    sma != null && eccentricity != null && periapsisR != null;
 
   // Selective rendering: Ap/Pe always; supplementary rows drop bottom-up
   // as height shrinks. Diagram needs real area to be readable.
@@ -255,8 +247,16 @@ function CurrentOrbitComponent({
   // diagram out of exactly the wide-short mode (e.g. 12×6) the flex-flip
   // was built for, leaving ~60% dead space. Allow either a tall panel
   // or a wide one.
+  /* A REFUSAL opens the slot too. When the provider declines to authorise a
+     curve the solve goes with it, so there is nothing to draw and, without
+     this, nothing to read either: the slot would close and take the sentence
+     naming the refusal with it, leaving a column of dashes and no account of
+     why. The refusal is the most useful thing on the panel in that state. */
   const showDiagramSlot =
-    showDiagram && hasOrbit && cols >= 5 && (rows >= 8 || cols >= 10);
+    showDiagram &&
+    (canDrawDiagram || withheld !== null) &&
+    cols >= 5 &&
+    (rows >= 8 || cols >= 10);
   // Tiny widget: at minSize 3×4 the formatted "85.0 km" wraps to two
   // lines inside the 1fr value column. Drop the label column to 2.2em
   // and the value font to 11 px so a one-line value fits inside ~80 px
@@ -295,6 +295,9 @@ function CurrentOrbitComponent({
             trajectory={trajectory}
             centreBodyIndex={orbit?.referenceBodyIndex}
           />
+          {modelState !== null && (
+            <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
+          )}
           {/* The GAME's own view frame, which is a different fact from the frame
             this widget drew in above: that one is this panel's choice and nobody
             else's, this one is what the operator is looking at in the game and
@@ -415,17 +418,14 @@ function CurrentOrbitComponent({
                   <OrbitLabel>t-Pe</OrbitLabel>
                   <OrbitValue accent="pe" tight={tight} narrow={narrow}>
                     {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
-                      elliptical solver degrades timeToPe to null (and a legacy
-                      0-sentinel source would read as "arriving now"), render an
-                      em-dash rather than a countdown. `=== undefined` alone
-                      misses `null` (`null === undefined` is false). */}
+                      elliptical solver has no periapsis countdown to give (and a
+                      legacy 0-sentinel source would read as "arriving now"),
+                      render an em-dash rather than a countdown. */}
                     {noApsidesHere ? (
                       <FrameCaveat title={frameCaveat(apsides, "periapsis")}>
                         no Pe here
                       </FrameCaveat>
-                    ) : timeToPe === undefined ||
-                      timeToPe === null ||
-                      hyperbolic ? (
+                    ) : timeToPe === undefined || hyperbolic ? (
                       NULL_DISPLAY
                     ) : (
                       <Countdown value={timeToPe} />
@@ -473,31 +473,33 @@ function CurrentOrbitComponent({
                 {withheld ? (
                   <TrajectoryWithheldNote withheld={withheld} compact />
                 ) : (
-                  <OrbitDiagram
-                    variant="mini"
-                    // The seam's answer, drawn as given. `null` on the conic arm,
-                    // where the diagram's own conic renderer is what the provider
-                    // said is right.
-                    trajectoryPath={
-                      trajectory?.shape === "arc" ? trajectory.points : null
-                    }
-                    trajectoryFarEnd={
-                      trajectory?.shape === "arc" ? trajectory.farEnd : null
-                    }
-                    sma={sma.magnitude}
-                    ecc={eccentricity.magnitude}
-                    // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
-                    // already detects that itself (`ecc >= 1 || sma <= 0`) and
-                    // ignores this value in that branch, so the fallback below is
-                    // never actually rendered from.
-                    apoapsis={apoapsisR ?? 0}
-                    periapsis={periapsisR}
-                    trueAnomaly={trueAnomaly ?? 0}
-                    argPe={argPe?.magnitude ?? 0}
-                    bodyColor={body?.color}
-                    bodyRadius={body?.radius}
-                    isOrbiting={isOrbiting}
-                  />
+                  canDrawDiagram && (
+                    <OrbitDiagram
+                      variant="mini"
+                      // The seam's answer, drawn as given. `null` on the conic arm,
+                      // where the diagram's own conic renderer is what the provider
+                      // said is right.
+                      trajectoryPath={
+                        trajectory?.shape === "arc" ? trajectory.points : null
+                      }
+                      trajectoryFarEnd={
+                        trajectory?.shape === "arc" ? trajectory.farEnd : null
+                      }
+                      sma={sma.magnitude}
+                      ecc={eccentricity.magnitude}
+                      // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
+                      // already detects that itself (`ecc >= 1 || sma <= 0`) and
+                      // ignores this value in that branch, so the fallback below is
+                      // never actually rendered from.
+                      apoapsis={apoapsisR ?? 0}
+                      periapsis={periapsisR}
+                      trueAnomaly={trueAnomaly ?? 0}
+                      argPe={argPe?.magnitude ?? 0}
+                      bodyColor={body?.color}
+                      bodyRadius={body?.radius}
+                      isOrbiting={isOrbiting}
+                    />
+                  )
                 )}
               </Stack>
             )}
@@ -517,12 +519,15 @@ registerComponent<CurrentOrbitConfig>({
   defaultSize: { w: 9, h: 18 },
   minSize: { w: 3, h: 4 },
   component: CurrentOrbitComponent,
-  // One entry per value the component body actually reads, in the two groups
-  // its own comment describes: raw elements off `vessel.orbit`, everything
-  // else off the derived `vessel.state` (six of them through
-  // `useOrbitElements`). Declared per field rather than as the two channels so
-  // an alarm lands on the widget that draws THAT value; channel granularity
-  // would land it on every widget reading the channel.
+  // One entry per NAMED value the component body reads: the raw elements off
+  // `vessel.orbit` and the two body names off `vessel.state`. Declared per
+  // field rather than as the channels so an alarm lands on the widget that
+  // draws THAT value; channel granularity would land it on every widget
+  // reading the channel.
+  //
+  // The apsides, the countdowns and the period are not here because they are
+  // not a field of anything: they are solved from the elements above, and the
+  // channel entry is what carries them.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: { showDiagram: true },
@@ -532,6 +537,35 @@ registerComponent<CurrentOrbitConfig>({
 });
 
 export { CurrentOrbitComponent };
+
+/**
+ * The instrument's state when the conic declined: a word the operator reads
+ * beside the dashes, in the register of `NO DATA` and `TOO LOW`, never a
+ * sentence. One word for every decline, because a state that has to be looked
+ * up is worse than the dashes it explains; which condition declined reaches the
+ * operator in the note on hover. Every reason is still named, so a new one is a
+ * compile error here rather than a silent default.
+ *
+ * `null` for `input-absent`: without elements there is nothing on the panel for
+ * a state to explain, and the dashes already say "not arrived".
+ */
+function declinedState(declined: ReckoningDecline): string | null {
+  const reason = declined.reason;
+  switch (reason) {
+    case "under-physics":
+    case "beyond-horizon":
+    case "model-inapplicable":
+    case "contested":
+    case "insufficient-history":
+      return "CANNOT MODEL";
+    case "input-absent":
+      return null;
+    default: {
+      const unnamed: never = reason;
+      return unnamed;
+    }
+  }
+}
 
 // Plain elements + inline style rather than ui-kit primitives below: the
 // label/value pair carries font sizes and letter-spacings off the standard
