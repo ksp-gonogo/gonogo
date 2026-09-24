@@ -3,7 +3,7 @@ info:
   title: Gonogo Sitrep contract
   version: 17.0.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -154,7 +154,7 @@ info:
     - name: career
       description: 3 telemetry channels, 9 commands
     - name: commandCentre
-      description: 2 telemetry channels, 0 commands
+      description: 3 telemetry channels, 0 commands
     - name: comms
       description: 10 telemetry channels, 1 command
     - name: crash
@@ -587,6 +587,38 @@ channels:
         $ref: "#/components/messages/commandRequest.career.tech.unlock"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.tech.unlock"
+  commandCentre.activeVesselDelay:
+    address: commandCentre.activeVesselDelay
+    description: |-
+      Carries a `CommandCentreActiveVesselDelay`.
+
+      How far each command centre is from the active craft, one-way, along its own
+      routed path: the delay every ordinary channel reaches that centre at, and
+      the delay a command from it takes to arrive.
+
+      **Sparse, and that is the contract.** A centre is listed only when it has a
+      delay of its own. The home centre is never listed: its delay is
+      `comms.delay`, which also carries the hold through a loss of signal. A
+      centre other than home that is not listed has no route to the craft. Neither
+      absence is a zero, and a reader that finds a centre missing must not quote
+      one for it.
+
+      The crewed centre that IS the active craft is listed at an explicit zero: a
+      craft is no distance from itself.
+
+      DELAYED, on the same reasoning as `comms.delay`: each centre learns the
+      figures one of its own light-times after they held, so a centre's own entry
+      is the delay it was under when the frame left.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.commandCentre.activeVesselDelay"
+      event:
+        $ref: "#/components/messages/event"
   commandCentre.roster:
     address: commandCentre.roster
     description: |-
@@ -4459,6 +4491,17 @@ operations:
     messages:
       - $ref: "#/channels/career.status/messages/streamData"
       - $ref: "#/channels/career.status/messages/event"
+  read:commandCentre.activeVesselDelay:
+    action: receive
+    channel:
+      $ref: "#/channels/commandCentre.activeVesselDelay"
+    title: Read commandCentre.activeVesselDelay
+    description: Delivered only after `subscribe` names `commandCentre.activeVesselDelay` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: commandCentre
+    messages:
+      - $ref: "#/channels/commandCentre.activeVesselDelay/messages/streamData"
+      - $ref: "#/channels/commandCentre.activeVesselDelay/messages/event"
   read:commandCentre.roster:
     action: receive
     channel:
@@ -6917,6 +6960,19 @@ components:
                 const: career.status
               payload:
                 $ref: "#/components/schemas/CareerStatus"
+    streamData.commandCentre.activeVesselDelay:
+      name: stream-data
+      title: A frame on commandCentre.activeVesselDelay
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `commandCentre.activeVesselDelay`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: commandCentre.activeVesselDelay
+              payload:
+                $ref: "#/components/schemas/CommandCentreActiveVesselDelay"
     streamData.commandCentre.roster:
       name: stream-data
       title: A frame on commandCentre.roster
@@ -9313,6 +9369,23 @@ components:
             - "null"
           x-sitrep-unit: f/day
           description: Engineer salaries on the integration teams.
+    CentreDelayEntry:
+      type: object
+      description: |-
+        One command centre's own one-way delay to the active craft, in the
+        `commandCentre.activeVesselDelay` channel.
+      required:
+        - id
+        - oneWaySeconds
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: The centre, as a roster `Id`.
+        oneWaySeconds:
+          type: number
+          x-sitrep-unit: s
+          description: One-way signal time along the centre's own routed path to the active craft.
     CentreSeparationEntry:
       type: object
       description: |-
@@ -9370,6 +9443,34 @@ components:
           type: number
           x-sitrep-unit: m
           description: Separation (metres) at `ClosestApproach.time`.
+    CommandCentreActiveVesselDelay:
+      type: object
+      description: |-
+        How far each command centre is from the active craft, one-way, along its own
+        routed path: the delay every ordinary channel reaches that centre at, and
+        the delay a command from it takes to arrive.
+
+        **Sparse, and that is the contract.** A centre is listed only when it has a
+        delay of its own. The home centre is never listed: its delay is
+        `comms.delay`, which also carries the hold through a loss of signal. A
+        centre other than home that is not listed has no route to the craft. Neither
+        absence is a zero, and a reader that finds a centre missing must not quote
+        one for it.
+
+        The crewed centre that IS the active craft is listed at an explicit zero: a
+        craft is no distance from itself.
+
+        DELAYED, on the same reasoning as `comms.delay`: each centre learns the
+        figures one of its own light-times after they held, so a centre's own entry
+        is the delay it was under when the frame left.
+      required:
+        - centres
+      properties:
+        centres:
+          type: array
+          items:
+            $ref: "#/components/schemas/CentreDelayEntry"
+          description: Every centre with a delay of its own to the active craft.
     CommandCentreEntry:
       type: object
       description: |-
