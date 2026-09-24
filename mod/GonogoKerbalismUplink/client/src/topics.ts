@@ -23,6 +23,7 @@
 // ambient augmentation), so importing the package wires every half.
 import {
   registerBarePrimitiveTopic,
+  registerCollectionTopic,
   registerTopicUnits,
   registerTypeUnits,
   type TopicPayload,
@@ -34,6 +35,7 @@ import type {
   KerbalismProfile,
   KerbalismSpaceWeather,
 } from "./__generated__/contract";
+import { GENERATED_COLLECTION_TOPIC_IDS } from "./__generated__/topic-map";
 import {
   GENERATED_TOPIC_SHAPES,
   GENERATED_TOPIC_UNITS,
@@ -80,6 +82,12 @@ registerBarePrimitiveTopic(KERBALISM_PROFILE_TOPIC);
 registerBarePrimitiveTopic(KERBALISM_LIFESUPPORT_TOPIC);
 registerBarePrimitiveTopic(KERBALISM_CREW_TOPIC);
 registerBarePrimitiveTopic(KERBALISM_FEATURES_TOPIC);
+
+// `kerbalism.crew`'s unit map describes one kerbal, not the list, so a field
+// path under it names no value of the Topic's own.
+for (const topic of GENERATED_COLLECTION_TOPIC_IDS) {
+  registerCollectionTopic(topic);
+}
 
 // The runtime half of the relocation, and this Domain needs BOTH registries
 // more than any relocated slice before it.
