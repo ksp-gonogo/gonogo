@@ -81,45 +81,22 @@ export interface ThemeTypography {
   };
 }
 
-/**
- * The handles a layout primitive resolves a size prop against.
- *
- * Five. It briefly had seven: `sm+` and `md+` were added to reach the 6 and 10
- * rungs, on the reasoning that the layer widgets are steered towards should be
- * able to name the commonest gap in the app. Needing a half-step says the
- * ladder being aliased is not the ladder the design uses, and the handles are
- * not where that gets fixed: spacing a widget cannot express belongs to the
- * semantic layer over panels, cards and containers, which resolves by context
- * rather than by size. Neither `+` handle ever had a call site.
- */
-export interface ThemeSpace {
-  xs: string;
-  sm: string;
-  md: string;
-  lg: string;
-  xl: string;
-}
-
-export interface ThemeRadii {
-  /** Tightest corner: buttons and small controls. */
-  xs: string;
-  sm: string;
-  md: string;
-  /** Widest square corner: overlay and dialog surfaces. */
-  lg: string;
-  /** Fully rounded: chips, avatars, toggle knobs. */
-  pill: string;
-}
-
 export interface ThemeBorders {
   subtle: string;
   strong: string;
 }
 
+/**
+ * What a theme supplies: colour, type and borders.
+ *
+ * Spacing and corner radii are not here. They are handles onto the ladders in
+ * `tokens.css` rather than choices a theme makes, so the kit's layout
+ * primitives carry their own and a theme that wants different geometry ships a
+ * sheet redefining the rungs. A theme author therefore never has to name a
+ * scale type to write one.
+ */
 export interface UiKitTheme {
   colors: ThemeColors;
   typography: ThemeTypography;
-  space: ThemeSpace;
-  radii: ThemeRadii;
   borders: ThemeBorders;
 }

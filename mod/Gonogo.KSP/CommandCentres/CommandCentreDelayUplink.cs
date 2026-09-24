@@ -257,9 +257,19 @@ namespace Gonogo.KSP.CommandCentres
                 centre => SecondsToHome(centre, config),
                 (vantage, seconds) => Row(vantage, ChannelEngine.HomeCommandNode, seconds));
 
+            var offTheGround = pass.OffTheGroundNetwork(
+                centres,
+                HomeCentreId(centres, _home()),
+                centre => ReachesGround(centre, vessels, config));
+
             PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
 
-            return new LedgerCapture { Rows = rows, Ut = snapshot != null ? snapshot.Ut : 0.0 };
+            return new LedgerCapture
+            {
+                Rows = rows,
+                OffTheGround = offTheGround,
+                Ut = snapshot != null ? snapshot.Ut : 0.0,
+            };
         }
 
         /// <summary>COURIER-THREAD handle: write the explicit-pair delays into the engine's ledger.</summary>
@@ -306,6 +316,7 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             _host?.SetActiveVesselDelays(activeVesselRows);
+            (_host as IHomeCommandReachWriter)?.SetOffTheGroundNetwork(cap.OffTheGround);
 
             PublishSeparation(cap);
             PublishActiveVesselDelay(activeVesselRows, cap.Ut);
@@ -474,6 +485,24 @@ namespace Gonogo.KSP.CommandCentres
         private const string CrewedVesselIdPrefix = "vessel:";
 
         /// <summary>
+        /// Whether a crewed-vessel centre's route ends at a ground station. Null for
+        /// any other kind, and for a craft the roster does not hold, neither of
+        /// which has a route of its own to read.
+        /// </summary>
+        private static bool? ReachesGround(ICommandCentre centre, IList<Vessel> vessels, SignalDelayConfig? config)
+        {
+            if (centre.Kind != CommandCentreKind.CrewedVessel
+                || !centre.Id.StartsWith(CrewedVesselIdPrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var guid = centre.Id.Substring(CrewedVesselIdPrefix.Length);
+            var vessel = vessels.FirstOrDefault(v => v != null && v.id.ToString() == guid);
+            return vessel == null ? null : FleetCommsReader.ReachesGround(vessel, config);
+        }
+
+        /// <summary>
         /// The centre the roster marks home: the claimant's answer, or the ground
         /// station standing in for it. Null when neither exists.
         /// </summary>
@@ -566,6 +595,7 @@ namespace Gonogo.KSP.CommandCentres
         internal sealed class LedgerCapture
         {
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
+            public IReadOnlyList<string> OffTheGround = new List<string>();
             public double Ut;
         }
 

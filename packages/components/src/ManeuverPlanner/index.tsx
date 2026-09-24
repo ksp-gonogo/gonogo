@@ -736,7 +736,7 @@ function ManeuverPlannerComponent({
     return (
       <PaddedSection>
         <SectionTitle as="h4">Burn windows</SectionTitle>
-        <Stack gap="sm">
+        <Stack>
           {nodes.map((burn) => (
             <BurnWindowRows
               // UT, the same key the burn tracker uses: stable across KSP
@@ -769,7 +769,7 @@ function ManeuverPlannerComponent({
     return (
       <PaddedSection>
         <SectionTitle as="h4">Conformance</SectionTitle>
-        <Stack gap="xs">
+        <Stack>
           {nodes.map((node) => {
             const first = node.orbitPatches[0];
             // ONE conformance reading feeding both the row and the plot's
@@ -783,7 +783,7 @@ function ManeuverPlannerComponent({
               thrustLatch,
             );
             return (
-              <Stack key={node.UT} gap="xs">
+              <Stack key={node.UT}>
                 <BurnConformanceRow conformance={conformance} />
                 <ConformancePlot
                   current={

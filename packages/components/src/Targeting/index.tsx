@@ -481,7 +481,7 @@ function TargetingComponent({
               of the bare text it ran together into one accessible string
               ("No target set in KSPconfirmed 0s ago"), which is how a screen
               reader would have read it out. */}
-          <Stack gap="xs">
+          <Stack>
             <span>No target set in KSP</span>
             {ageSec !== undefined && (
               <ReadoutCaption>
@@ -573,10 +573,7 @@ function TargetingComponent({
 
   return (
     <TargetPanel>
-      <Stack
-        gap="sm"
-        style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
-      >
+      <Stack style={{ flex: 1, justifyContent: "center", minHeight: 0 }}>
         {showTargetName && (
           <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
             {tarName}

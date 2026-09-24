@@ -22,11 +22,9 @@ import { describe, expect, it } from "vitest";
  *
  * The first design for this was a Proxy deriving the CSS variable from the
  * property path (kebab-case the path, singularise the group). It cannot work, and
- * this test is what proved it: 18 of the 45 leaves do not follow the path.
- * `space.md` is `--space-8`, because the t-shirt names are the published
- * `ThemeSpace` contract and are deliberately not renamed to match the rung
- * numbers. `typography.size.xs` is `--font-size-xs`. `typography.weight.regular` is
- * the number `400`. `borders.subtle` is `"1px solid var(--color-border-subtle)"`.
+ * this test is what proved it: many leaves do not follow the path.
+ * `typography.size.xs` is `--font-size-xs`. `typography.weight.regular` is the
+ * number `400`. `borders.subtle` is `"1px solid var(--color-border-subtle)"`.
  * No derivation recovers an arbitrary mapping, so the values are copied.
  */
 
@@ -60,10 +58,10 @@ describe("sdk/testing harnessTheme conforms to the real theme", () => {
    */
   it("actually walked the real theme", () => {
     const found = leaves(defaultDarkTheme);
-    expect(found.length).toBeGreaterThan(40);
+    expect(found.length).toBeGreaterThan(30);
     // Groups, not just leaf count: a theme collapsed to one branch would still
-    // clear a count threshold.
-    expect(Object.keys(defaultDarkTheme).length).toBeGreaterThanOrEqual(5);
+    // clear a count threshold. Three of them: colour, type, borders.
+    expect(Object.keys(defaultDarkTheme).length).toBeGreaterThanOrEqual(3);
   });
 
   it("carries every leaf of defaultDarkTheme, byte for byte", () => {

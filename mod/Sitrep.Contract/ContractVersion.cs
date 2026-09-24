@@ -1789,7 +1789,23 @@ namespace Sitrep.Contract
         /// client observing from anywhere else sized its view clock by home's
         /// light-time over frames that were arriving at a different one, and could not
         /// say how far its own centre was from the craft at all.</para>
+        ///
+        /// <para><b>Major-17 line, Bumped 1 -&gt; 2: a launch is held to where it was
+        /// ordered from.</b> <see cref="CommandErrorCode"/> gains
+        /// <see cref="CommandErrorCode.NotAtSite"/>, appended to a wire enum that
+        /// already declares <see cref="CommandErrorCode.Unknown"/> as the
+        /// forward-compat fallback, so a consumer that has not heard of it reads an
+        /// unrecognised refusal rather than the wrong one. Nothing removed, renamed or
+        /// renumbered, so an Uplink built against 17.0 is unaffected and the frozen
+        /// Major-17 floor is NOT re-frozen.</para>
+        ///
+        /// <para>A launch is instant for every vantage, so the distance between the
+        /// vantage and the pad cannot be expressed as a delay, and without a refusal
+        /// any vantage could launch from any pad, including one on another world.
+        /// Reusing an existing arm would have told the operator the flight was not
+        /// clear or the craft was wrong, when what is wrong is where they are
+        /// standing.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

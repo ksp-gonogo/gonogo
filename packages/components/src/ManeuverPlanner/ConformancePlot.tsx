@@ -231,7 +231,7 @@ export function ConformancePlot({
       ? currentTrajectory
       : null;
   return (
-    <Stack gap="xs" data-conformance-plot="">
+    <Stack data-conformance-plot="">
       {/* The chip alone, with what the gap means carried as its title rather
           than as a second line. PLANNED / BURNING / FLOWN / MISSED already say
           which reading applies, and the sentence spelling it out was the widest

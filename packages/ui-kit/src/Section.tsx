@@ -1,6 +1,7 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { type SpaceToken, Stack } from "./Stack";
+import { Stack } from "./Stack";
+import type { SpaceToken } from "./scales";
 
 /**
  * Marks a section that should span every column of a panel's section grid. The

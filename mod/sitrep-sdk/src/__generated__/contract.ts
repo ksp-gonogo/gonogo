@@ -1244,7 +1244,21 @@ export enum CommandErrorCode {
 	* nothing to tell the operator about their vehicle here, because nothing was
 	* learned about it; offering the command again is the only honest next move.
 	*/
-	Unreadable = 23
+	Unreadable = 23,
+	/**
+	* The vantage the command was sent from is not at the place the command acts
+	* on: a launch ordered from further from its launch site than a launch may be
+	* commanded, or from a vantage that is no place at all.
+	*
+	* Not a delay. A launch is instant for every vantage, so distance cannot be
+	* expressed by holding it; it is expressed by refusing it. Moving the order to
+	* a centre beside the site is the operator's next move, and nothing about the
+	* craft or the site stands in the way.
+	*
+	* `CommandResult.detail` names both ends by their display names and, when both
+	* could be placed, the one-way light-time between them.
+	*/
+	NotAtSite = 24
 }
 /**
 * The ONE result shape every command returns. `CommandResult.success` false

@@ -1,8 +1,12 @@
 /**
  * Binds the project's theme contract onto styled-components' `DefaultTheme`,
- * so every `${({ theme }) => theme.space.md}` callback is typed rather than
- * `any`-adjacent: for this package's own primitives *and* for consumers of
- * the published kit.
+ * so a consumer's `${({ theme }) => theme.colors.text.primary}` callback is
+ * typed rather than `any`-adjacent.
+ *
+ * It is entirely for consumers now. This package's own primitives read nothing
+ * off the styled-components context: colour goes through `var(--color-*)` and
+ * size through the maps in `scales.ts`, so the augmentation has no local call
+ * site left to prove it works.
  *
  * ## Why this lives here, and not in `@ksp-gonogo/theme`
  *
@@ -18,14 +22,15 @@
  * The import looks pointless: this module has no runtime surface, and the
  * bundler correctly emits zero bytes for it. It is load-bearing for *types*:
  *
- *  - `tsc --noEmit` (lint/typecheck) picks the file up via `include: ["src"]`
- *    whether or not anything imports it, so the primitives typecheck locally.
- *  - The **`dts` build does not**. It builds its program from the entry graph,
- *    not from tsconfig's `include`. Without the import, `styledComponentsTheme`
- *    drops out of that program and the declaration build fails outright with
- *    `Property 'space' does not exist on type 'DefaultTheme'` in `Box`/`Stack`.
+ * `tsc --noEmit` picks the file up via `include: ["src"]` whether or not
+ * anything imports it. The **`dts` build does not**: it builds its program from
+ * the entry graph, so without the import this module drops out and the emitted
+ * `.d.ts` carries no augmentation at all.
  *
- * So the import is what keeps `pnpm build` green. Do not "clean it up".
+ * That failure is now SILENT here. While the primitives still read `theme.space`
+ * the declaration build went red on `Property 'space' does not exist on type
+ * 'DefaultTheme'`; they no longer do, so dropping the import costs a consumer
+ * their typed theme with nothing going red in this repo. Do not "clean it up".
  *
  * ## It does survive emit, verified
  *
@@ -39,10 +44,9 @@
  * rolled-up declaration carries real value imports of `styled-components`
  * (the components' own prop types need them), so the module reference resolves
  * in-file and the augmentation binds. Confirmed against a packed tarball
- * installed into a clean project: `theme.space.md` typechecks, and
- * `theme.space.bogus` errors with `Property 'bogus' does not exist on type
- * 'ThemeSpace'`. Consumers inherit the typed theme: which is what a design
- * system should do.
+ * installed into a clean project: `theme.colors.text.primary` typechecks, and
+ * `theme.colors.text.bogus` errors with `Property 'bogus' does not exist`.
+ * Consumers inherit the typed theme: which is what a design system should do.
  *
  * The load-bearing part is the *bundled* emit. Reverting to a plain `tsc`
  * build, or splitting this into its own entry, silently returns it to a dead

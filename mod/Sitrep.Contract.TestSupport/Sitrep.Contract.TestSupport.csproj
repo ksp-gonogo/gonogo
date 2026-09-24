@@ -41,5 +41,17 @@
        surface, the same three things every Uplink contract slice reaches for. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+    <!-- Sitrep.Core is referenced but not compiled against: nothing in this
+         assembly names a Core type. The reference is the carrier. It puts
+         Sitrep.Core.dll beside this assembly everywhere this assembly goes,
+         so a Tests project that wires a real Courier/Archive delay engine gets
+         the engine itself alongside the fakes rather than a double of it.
+
+         Which means: the net10.0 group of KspGonogo.Sitrep.Contract and
+         vendor/devkit both carry Sitrep.Core.dll, and a Tests project resolves
+         it the same way it resolves this assembly. A PLUGIN still may not:
+         Sitrep.Core stays out of the net472 and netstandard2.0 groups, which
+         are what KSP resolves. -->
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -71,6 +71,56 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(engine.LedgerDelayFor("KSC", node), journey.TotalSeconds);
         }
 
+        /// <summary>
+        /// A relay two light-seconds along a background vessel's four-second
+        /// route stops carrying at UT 6. That vessel's tail splits at the relay:
+        /// the samples from UT 2 to 4 had crossed it and land, the UT 5 one had
+        /// not and never does. A second vessel on the same light-time, whose
+        /// route did not break, delivers its UT 5 sample on time, so the break
+        /// is held against the vessel it happened to and nobody else.
+        /// </summary>
+        [Fact]
+        public async Task ABreakInABackgroundVesselsRouteRetiresOnlyThatVesselsTail()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.near.orbit", Timeout);
+                await SubscribeAsync(client, "fleet.far.orbit", Timeout);
+
+                for (var ut = 0.0; ut <= 5.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FleetFixture(ut, ("near", 4.0), ("far", 4.0)), Timeout);
+                }
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                var delivered = new List<StreamData>();
+                for (var ut = 6.0; ut <= 14.0; ut += 1.0)
+                {
+                    var snapshot = FleetFixture(ut, ("near", 4.0), ("far", 4.0));
+                    var far = (Dictionary<string, object?>)((List<object?>)snapshot.Values["vessels"]!)[1]!;
+                    far["connected"] = false;
+                    if (ut == 6.0)
+                    {
+                        far["breakOut"] = 2.0;
+                    }
+                    engine.TickAndWait(ut, snapshot, Timeout);
+                    delivered.AddRange(await DrainAllStreamDataAsync(client, Quiet));
+                }
+
+                Assert.Contains(delivered, f => f.Topic == "fleet.far.orbit" && f.Meta.ValidAt == 4.0);
+                Assert.DoesNotContain(delivered, f => f.Topic == "fleet.far.orbit" && f.Meta.ValidAt == 5.0);
+                Assert.Contains(delivered, f => f.Topic == "fleet.near.orbit" && f.Meta.ValidAt == 5.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task FleetVesselsEmitPerVesselOrbitTopics()
         {

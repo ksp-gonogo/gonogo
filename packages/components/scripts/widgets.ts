@@ -121,7 +121,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Navball/__fixtures__",
     outPath: "renders/navball-widget",
     modes: [
-      { name: "tiny-3x4", w: 3, h: 4 },
+      // The widget's own floor. Rendering it any smaller renders a size an
+      // operator cannot select, and the stacked readout clips there.
+      { name: "tiny-4x5", w: 4, h: 5 },
       { name: "medium-4x7", w: 4, h: 7 },
       { name: "wide-5x8", w: 5, h: 8 },
       // 7×12 is below the control-surface threshold (rows≥18, cols≥7) so

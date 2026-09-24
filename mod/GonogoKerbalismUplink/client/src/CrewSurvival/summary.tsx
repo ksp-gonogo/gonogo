@@ -85,7 +85,6 @@ function CrewRadiationSummaryAugment(_props: SlotProps<"crew-status.summary">) {
     weather?.habitatRadiationRadPerSecond ?? weather?.radiationRadPerSecond;
   return (
     <Cluster
-      gap="xs"
       wrap
       align="center"
       role="status"

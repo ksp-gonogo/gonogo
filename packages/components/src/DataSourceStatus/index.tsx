@@ -146,7 +146,7 @@ function DataSourceStatusComponent({
             {sources.length === 0 ? (
               <Placeholder>No data sources registered</Placeholder>
             ) : (
-              <Stack as="ul" gap="sm" style={LIST_STYLE}>
+              <Stack as="ul" style={LIST_STYLE}>
                 {sources.map((s) => (
                   <li key={s.id}>
                     <StatusIndicator
@@ -173,12 +173,12 @@ function DataSourceStatusComponent({
           {sources.length === 0 ? (
             <Placeholder>No data sources registered</Placeholder>
           ) : (
-            <Stack as="ul" gap="md" style={LIST_STYLE}>
+            <Stack as="ul" style={LIST_STYLE}>
               {sources.map((source) => {
                 const schema = getDataSource(source.id)?.configSchema() ?? [];
                 const isConfiguring = configuringId === source.id;
                 return (
-                  <Stack as="li" gap="sm" key={source.id}>
+                  <Stack as="li" key={source.id}>
                     <Cluster justify="start">
                       <Truncate style={SOURCE_NAME_STYLE}>
                         {source.name}

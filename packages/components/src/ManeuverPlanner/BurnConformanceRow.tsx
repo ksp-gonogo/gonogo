@@ -64,7 +64,6 @@ export function BurnConformanceRow({
         {phase.label}
       </span>
       <Stack
-        gap="xs"
         style={{ alignItems: "flex-end", flex: "0 0 auto" }}
         title="Delivered delta-v against what the plan asked for. Independent of who planned the burn."
       >

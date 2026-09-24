@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 import styled from "styled-components";
-import type { SpaceToken } from "./Stack";
+import { SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
   /**
@@ -25,5 +25,5 @@ const Divider__Root = styled.hr<{ $space?: SpaceToken }>`
   border: 0;
   border-top: 1px solid var(--color-border-subtle);
   width: 100%;
-  margin: ${({ theme, $space }) => ($space ? `${theme.space[$space]} 0` : "0")};
+  margin: ${({ $space }) => ($space ? `${SPACE_VAR[$space]} 0` : "0")};
 `;

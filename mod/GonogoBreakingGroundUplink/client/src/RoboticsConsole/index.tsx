@@ -467,9 +467,9 @@ function RoboticsConsoleComponent({
               The reason rides the accessible NAME rather than a visual-only
               greying, so a screen reader hears why the control will not act,
               and the readout beside it says the same thing on screen. */}
-          <Cluster justify="between" gap="md" wrap>
+          <Cluster justify="between" wrap>
             <ReadoutCaption>Target</ReadoutCaption>
-            <Inline gap="sm">
+            <Inline>
               <ActionButton
                 tone="ghost"
                 type="button"
@@ -519,7 +519,7 @@ function RoboticsConsoleComponent({
               inverting the state read back, so an unread flag gets a third,
               disabled rung rather than defaulting to off/unlocked. */}
           {showToggles && (
-            <Cluster justify="start" gap="sm" wrap>
+            <Cluster justify="start" wrap>
               <ToggleButton
                 size="sm"
                 active={selected.motorEngaged === true}
