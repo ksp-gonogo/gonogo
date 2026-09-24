@@ -3,6 +3,7 @@ import { logger } from "../api/logger";
 import { datedFrom } from "../combine-readings";
 import { PerfBudget } from "../perf/PerfBudget";
 import { observedAt, type TopicCurrency } from "../reading";
+import { runOutsideContributionScope } from "./contribution-scope";
 import {
   type AnyProcessorDefinition,
   type Dep,
@@ -619,9 +620,11 @@ function evaluate(id: string, token: { generation: number }): void {
   // duration from an instant on the wire has a clock without reaching for a
   // wall clock. Here `activeStore` is always non-null: `evaluateAllActive` is
   // the only caller and returns early without one.
-  const computed = def.compute(values as never, {
-    viewUt: activeStore?.currentFrame().viewUt ?? 0,
-  });
+  const computed = runOutsideContributionScope(() =>
+    def.compute(values as never, {
+      viewUt: activeStore?.currentFrame().viewUt ?? 0,
+    }),
+  );
   /*
    * A derivation whose inputs carry currency ANSWERS with it, and one whose
    * inputs do not answers the bare value it always did. The opt-in is the dep
