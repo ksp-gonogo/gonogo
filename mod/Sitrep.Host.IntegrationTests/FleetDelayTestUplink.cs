@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Core;
 
 namespace Sitrep.Host.IntegrationTests
 {
@@ -123,7 +122,6 @@ namespace Sitrep.Host.IntegrationTests
                 return null;
             }
             var captures = new List<(string Id, object? Orbit, double? Delay, bool Connected)>();
-            var breaks = new Dictionary<string, PathBreak>();
             foreach (var entryObj in roster)
             {
                 if (entryObj is not IDictionary<string, object?> entry) { continue; }
@@ -133,13 +131,9 @@ namespace Sitrep.Host.IntegrationTests
                     double? delay = entry.TryGetValue("delay", out var d) && d is double dd ? dd : (double?)null;
                     var connected = !(entry.TryGetValue("connected", out var cObj) && cObj is bool cb) || cb;
                     captures.Add((id, orbit, delay, connected));
-                    if (entry.TryGetValue("breakOut", out var b) && b is double breakOut)
-                    {
-                        breaks[id] = new PathBreak(snapshot.Ut, breakOut);
-                    }
                 }
             }
-            return new Captured { Ut = snapshot.Ut, Vessels = captures, Breaks = breaks };
+            return new Captured { Ut = snapshot.Ut, Vessels = captures };
         }
 
         internal void HandleOnCourier(object? captured)
@@ -154,13 +148,6 @@ namespace Sitrep.Host.IntegrationTests
                 // After the delay, so the disconnect tick snapshots the last
                 // connected light-time, and before the publishes, so they freeze.
                 _host?.SetVesselConnectivity(id, connected);
-                // A roster entry carrying breakOut is a relay on that vessel's
-                // route stopping carrying this tick, recorded the way
-                // production's fleet capture records one.
-                if (cap.Breaks.TryGetValue(id, out var found))
-                {
-                    (_host as IVesselJourneyWriter)?.SetVesselPathBreak(id, found);
-                }
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
                 // The SilenceTracker's per-vessel contact report (mirroring the
                 // production FleetChannels publisher): the ONE field under a
@@ -206,7 +193,6 @@ namespace Sitrep.Host.IntegrationTests
             public double Ut { get; set; }
             public List<(string Id, object? Orbit, double? Delay, bool Connected)> Vessels { get; set; }
                 = new List<(string, object?, double?, bool)>();
-            public Dictionary<string, PathBreak> Breaks { get; set; } = new Dictionary<string, PathBreak>();
         }
     }
 }
