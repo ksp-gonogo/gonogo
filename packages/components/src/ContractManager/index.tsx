@@ -16,10 +16,13 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   BellIcon,
   CommandButton,
+  formatStreamStatus,
   Panel,
   Section,
+  severityFromStreamStatus,
   Unit,
   usePanelDelay,
   writeQuantity,
@@ -27,6 +30,7 @@ import {
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
+import { heldGrade } from "../shared/heldGrade";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -315,10 +319,16 @@ function ContractManagerComponent({
   // computed from a FIXED `deadlineUt` against the frame's view UT, and that
   // view time is the confirmed edge, so with nothing arriving it holds where the
   // last sample left it rather than inventing progress the link cannot support.
-  const contracts = stillTrue(
-    useTelemetry("career.status"),
-    undefined,
-  )?.contracts;
+  const careerReading = useTelemetry("career.status");
+  const contracts = stillTrue(careerReading, undefined)?.contracts;
+  /*
+   * The board is held, so every card below states what the programme was, not
+   * what it is. Each card says so for itself, beside its own deadline, and the
+   * accept/decline/cancel controls go dead with it: a Cancel pressed against a
+   * held board forfeits a contract the operator cannot see the current state of,
+   * and the press would read as having worked.
+   */
+  const boardHeld = heldGrade(careerReading);
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
@@ -409,6 +419,19 @@ function ContractManagerComponent({
                       universalTime?.magnitude ?? 0,
                     )}
                   </ContractDeadline>
+                  {boardHeld !== undefined && (
+                    /* On the card, not once above the list: an operator reads
+                       one card at a time and decides about that contract, and
+                       a statement out of their eyeline while they look at a
+                       Cancel button is a statement they do not get. */
+                    <Badge
+                      severity={severityFromStreamStatus(boardHeld)}
+                      size="sm"
+                      title="Contract board is no longer current"
+                    >
+                      {formatStreamStatus(boardHeld)}
+                    </Badge>
+                  )}
                 </ContractHeader>
                 {c.agency && <Agency>{c.agency}</Agency>}
                 <Rewards>
@@ -565,7 +588,12 @@ function ContractManagerComponent({
                     confirmLabel="Forfeit contract"
                     confirmTone="nogo"
                     pendingLabel="Cancelling..."
-                    title="Cancel this contract: forfeits all progress"
+                    disabled={boardHeld !== undefined}
+                    title={
+                      boardHeld === undefined
+                        ? "Cancel this contract: forfeits all progress"
+                        : "Contract board is no longer current: cancelling would forfeit a contract whose state cannot be read"
+                    }
                   />
                 </ActiveActions>
               </ContractCard>
@@ -583,6 +611,19 @@ function ContractManagerComponent({
                       universalTime?.magnitude ?? 0,
                     )}
                   </ContractDeadline>
+                  {boardHeld !== undefined && (
+                    /* On the card, not once above the list: an operator reads
+                       one card at a time and decides about that contract, and
+                       a statement out of their eyeline while they look at a
+                       Cancel button is a statement they do not get. */
+                    <Badge
+                      severity={severityFromStreamStatus(boardHeld)}
+                      size="sm"
+                      title="Contract board is no longer current"
+                    >
+                      {formatStreamStatus(boardHeld)}
+                    </Badge>
+                  )}
                 </ContractHeader>
                 {c.agency && <Agency>{c.agency}</Agency>}
                 <Rewards>
@@ -618,6 +659,12 @@ function ContractManagerComponent({
                     tone="go"
                     label="Accept"
                     pendingLabel="Accepting..."
+                    disabled={boardHeld !== undefined}
+                    title={
+                      boardHeld === undefined
+                        ? undefined
+                        : "Contract board is no longer current: this offer may already be gone"
+                    }
                   />
                   <CommandButton
                     handle={declineCmd}
@@ -628,6 +675,12 @@ function ContractManagerComponent({
                     confirmLabel="Confirm decline"
                     confirmTone="nogo"
                     pendingLabel="Declining..."
+                    disabled={boardHeld !== undefined}
+                    title={
+                      boardHeld === undefined
+                        ? undefined
+                        : "Contract board is no longer current: this offer may already be gone"
+                    }
                   />
                 </OfferedActions>
               </ContractCard>

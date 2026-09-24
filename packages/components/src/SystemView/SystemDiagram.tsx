@@ -112,6 +112,15 @@ export interface SystemDiagramProps {
    */
   vesselPlotState?: VesselPlotState;
   /**
+   * Whether the read the vessel's position was plotted from is being HELD.
+   *
+   * Separate from `vesselPlotState`, which says how the position was ARRIVED
+   * at (observed, reckoned, overdue, lost) and is contributed from the comms
+   * graph. This says whether the read behind it is still a read of now, and the
+   * two are orthogonal: an observed position can be minutes old.
+   */
+  vesselPositionHeld?: boolean;
+  /**
    * Live phase angles (deg, to active vessel) keyed by body index. When
    * provided, each body gets a tiny numeric label rendered next to its
    * orbit dot. The vessel's own parent body (if any) should be excluded
@@ -183,6 +192,7 @@ export function SystemDiagram({
   vessel,
   vesselTrajectory = null,
   vesselPlotState = "observed",
+  vesselPositionHeld = false,
   phaseAngles,
   transferStatuses,
   onFocusBodyChange,
@@ -695,6 +705,7 @@ export function SystemDiagram({
             crowdAnchor={placed.parent}
             zoom={zoom}
             state={vesselPlotState}
+            held={vesselPositionHeld}
           />
         )}
       </svg>
@@ -1242,11 +1253,14 @@ function VesselMarker({
   crowdAnchor,
   zoom,
   state = "observed",
+  held = false,
 }: Readonly<{
   at: PlacedPoint;
   crowdAnchor: PlacedPoint;
   zoom: number;
   state?: VesselPlotState;
+  /** The read this position came off is no longer arriving; see the prop on the diagram. */
+  held?: boolean;
 }>) {
   const pos = { x: at.x, y: at.y };
   const { marker, leaderFrom } = resolveVesselMarkerPlacement(
@@ -1255,9 +1269,29 @@ function VesselMarker({
     crowdAnchor,
   );
   const r = 5 / zoom;
-  const { colour, filled, opacity } = markerStyle(state);
+  const style = markerStyle(state);
+  const { colour, opacity } = style;
+  /*
+   * Hollow and dashed, the language the diagram already uses for a position
+   * that was computed rather than reported: a held dot is the same claim, that
+   * the craft is drawn where it was last seen rather than where it is. Shape
+   * and not shade, because a dimmed dot says nothing to an operator who cannot
+   * tell the two apart (WCAG 1.4.1), and the marker carries no text of its own.
+   */
+  const filled = style.filled && !held;
   return (
-    <g pointerEvents="none" opacity={opacity}>
+    <g
+      pointerEvents="none"
+      opacity={opacity}
+      data-vessel-position={held ? "held" : "current"}
+    >
+      {/* SVG's own naming element rather than an `aria-label`, which needs a
+          `role` to be honoured and cannot have one here: a `<g>` takes no
+          non-interactive role. This is also the half of the mark that is not
+          shape, so a reader who cannot see the ring still gets the statement. */}
+      <title>
+        {held ? "Vessel position, no longer current" : "Vessel position"}
+      </title>
       <DepthRing
         cx={marker.x}
         cy={marker.y}
@@ -1280,6 +1314,7 @@ function VesselMarker({
         />
       )}
       <circle
+        data-vessel-marker=""
         cx={marker.x}
         cy={marker.y}
         r={r}

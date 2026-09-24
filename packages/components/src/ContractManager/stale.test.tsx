@@ -143,6 +143,38 @@ describe("ContractManager when career telemetry is no longer current", () => {
     expect(visibleText(container)).not.toContain("expired");
   });
 
+  it("marks each held card and kills the controls that act on it", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 100,
+      suspendFrames: true,
+    });
+    const container = mount(fixture);
+    emitBoard(fixture);
+    await waitFor(() =>
+      expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument(),
+    );
+    // Live: nothing said, and every control live. The control for the two
+    // assertions below, without which they would pass on a widget that marked
+    // and disabled unconditionally.
+    expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeEnabled();
+
+    goStale(fixture);
+
+    // One per card, beside its own deadline: the operator decides about one
+    // contract at a time and the statement has to be where they are looking.
+    expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
+    // The half that matters. A Cancel pressed here forfeits a contract whose
+    // current state cannot be read, and the press would look like it worked.
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Accept/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Decline/ })).toBeDisabled();
+    // Not by hiding them: a missing control reads as a contract that cannot be
+    // cancelled, which is a different and wrong statement.
+    expect(visibleText(container)).toContain("Cancel");
+  });
+
   it("still shows the cold-start placeholder when nothing ever arrived", async () => {
     // The control for the sentence above: a link that never delivered is a
     // different statement from one that stopped, and the placeholder belongs
