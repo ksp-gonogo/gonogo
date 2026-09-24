@@ -33,13 +33,23 @@ const warpIndex =
 it(
   `shadow acceptance over ${seconds}s`,
   async () => {
+    /* A Ctrl-C ends the run through its own cleanup, so a rung it was holding
+       is released rather than left behind with the process. */
+    const interrupt = new AbortController();
+    const onSignal = (signal: NodeJS.Signals) => interrupt.abort(signal);
+    process.once("SIGINT", onSignal);
+    process.once("SIGTERM", onSignal);
     const { verdict, unread, warpUnread } = await runShadowAcceptance({
       host,
       port,
       observeMs: seconds * 1000,
       laps,
       warpIndex,
+      signal: interrupt.signal,
       write: (line) => console.info(line),
+    }).finally(() => {
+      process.off("SIGINT", onSignal);
+      process.off("SIGTERM", onSignal);
     });
     console.info(JSON.stringify(verdict, null, 2));
     expect(unread, "alarms whose reading never resolved").toEqual([]);
