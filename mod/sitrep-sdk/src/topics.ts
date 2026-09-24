@@ -52,8 +52,14 @@ import type {
   PendingUplinkQueue,
 } from "./__generated__/contract";
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
-import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
-import { noteRuntimeTopic } from "./runtime-topic-registry";
+import {
+  GENERATED_COLLECTION_TOPIC_IDS,
+  GENERATED_TOPIC_IDS,
+} from "./__generated__/topic-map";
+import {
+  noteRuntimeTopic,
+  noteRuntimeTopicMetadata,
+} from "./runtime-topic-registry";
 
 /**
  * `system.uplinks`: the engine-aggregated Uplink roster/health channel. `ChannelEngine`
@@ -349,6 +355,36 @@ export function isTopicId(value: string): value is TopicId {
   return TOPIC_ID_SET.has(value) || barePrimitiveTopicIds.has(value);
 }
 
+const collectionTopicIds = new Set<string>(GENERATED_COLLECTION_TOPIC_IDS);
+
+/**
+ * Self-register an Uplink-owned Topic whose payload is a bare JSON array of an
+ * element type. Called at module load by the owning Uplink's client package,
+ * normally by looping over the collection list its own codegen emits beside
+ * its Topic map. Idempotent, so a double import is harmless.
+ *
+ * The unit and shape maps registered for such a Topic describe one ELEMENT, so
+ * without this a field path like `<topic>.name` looks like a field of the Topic
+ * when it is a field of every row and of none of them.
+ */
+export function registerCollectionTopic(id: string): void {
+  if (collectionTopicIds.has(id)) return;
+  collectionTopicIds.add(id);
+  noteRuntimeTopicMetadata();
+}
+
+/**
+ * Whether `id`'s payload is a bare array of elements: an SDK-owned Topic the
+ * contract marks as one, or an Uplink Topic registered through
+ * {@link registerCollectionTopic}.
+ *
+ * A read of `<id>.<field>` walks into the array itself, which has no such
+ * property, so a field path under a collection Topic never carries a value.
+ */
+export function isCollectionTopic(id: string): boolean {
+  return collectionTopicIds.has(id);
+}
+
 /**
  * The client-side DERIVED channels, which a widget may declare and read exactly
  * as it declares and reads a wire Topic, and which are not `TopicId`s.
@@ -448,6 +484,26 @@ type _MissingFromRuntime = Exclude<SdkOwnedTopicId, (typeof TOPIC_IDS)[number]>;
 type _ExtraInRuntime = Exclude<(typeof TOPIC_IDS)[number], SdkOwnedTopicId>;
 export type _AssertNoMissingTopics = AssertNever<_MissingFromRuntime>;
 export type _AssertNoExtraTopics = AssertNever<_ExtraInRuntime>;
+
+// `GENERATED_COLLECTION_TOPIC_IDS` must list exactly the SDK-owned Topics whose payload
+// type is an array, so the runtime list and the `[]` in the payload map cannot disagree.
+type SdkOwnedCollectionTopicId = {
+  [K in SdkOwnedTopicId]: SdkOwnedTopicPayloadMap[K] extends readonly unknown[]
+    ? K
+    : never;
+}[SdkOwnedTopicId];
+type _CollectionMissingFromRuntime = Exclude<
+  SdkOwnedCollectionTopicId,
+  (typeof GENERATED_COLLECTION_TOPIC_IDS)[number]
+>;
+type _CollectionExtraInRuntime = Exclude<
+  (typeof GENERATED_COLLECTION_TOPIC_IDS)[number],
+  SdkOwnedCollectionTopicId
+>;
+export type _AssertNoMissingCollectionTopics =
+  AssertNever<_CollectionMissingFromRuntime>;
+export type _AssertNoExtraCollectionTopics =
+  AssertNever<_CollectionExtraInRuntime>;
 
 // No SDK-owned Topic resolves to `unknown`. `IsUnknown<T>` is true ONLY for exactly
 // `unknown` (excluding `any`, for which `unknown extends T` is also true); mapping it over

@@ -35,11 +35,13 @@
 // relocation.
 import {
   registerBarePrimitiveTopic,
+  registerCollectionTopic,
   registerTopicUnits,
   registerTypeUnits,
   type TopicPayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { KosProcessorInfo } from "./__generated__/contract";
+import { GENERATED_COLLECTION_TOPIC_IDS } from "./__generated__/topic-map";
 import {
   GENERATED_TOPIC_SHAPES,
   GENERATED_TOPIC_UNITS,
@@ -61,6 +63,12 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 }
 
 registerBarePrimitiveTopic(KOS_PROCESSORS_TOPIC);
+
+// The unit map below describes one CPU, not the list, so a field path under
+// `kos.processors` names no value of the Topic's own.
+for (const topic of GENERATED_COLLECTION_TOPIC_IDS) {
+  registerCollectionTopic(topic);
+}
 
 // The runtime half of the relocation. Both registries are fed, by looping over
 // the generated maps rather than naming entries, so a Topic or type added to

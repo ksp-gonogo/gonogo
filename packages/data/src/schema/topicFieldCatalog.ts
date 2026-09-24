@@ -13,6 +13,7 @@ import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   enumerateTopicFields,
   getRuntimeRegisteredTopicIds,
+  isCollectionTopic,
   isCommandId,
   splitRawFieldSubtopic,
   type TopicField,
@@ -114,6 +115,7 @@ function entryFor(topic: string, field: TopicField): TopicFieldKey {
 interface BuiltCatalog {
   keys: TopicFieldKey[];
   undescribed: string[];
+  collections: string[];
 }
 
 /**
@@ -179,7 +181,17 @@ function buildTopicFieldCatalog(
 
   const keys: TopicFieldKey[] = [];
   const undescribed: string[] = [];
+  const collections: string[] = [];
   for (const topic of topics) {
+    // The contract describes an ELEMENT of a collection Topic, so every field it
+    // enumerates here is a property of one row, and a read of `<topic>.<field>`
+    // walks into the array itself and finds nothing. Nothing in a key names an
+    // element by identity (a numeric segment would name whichever row happens
+    // to sit at that position), so no key under it is worth offering.
+    if (isCollectionTopic(topic)) {
+      collections.push(topic);
+      continue;
+    }
     const fields = enumerateTopicFields(topic).filter((field) =>
       readLandsOnTopic(topic, field.path, derivedTopics),
     );
@@ -199,7 +211,7 @@ function buildTopicFieldCatalog(
       keys.push(entryFor(topic, field));
     }
   }
-  return { keys, undescribed };
+  return { keys, undescribed, collections };
 }
 
 /**
@@ -319,4 +331,20 @@ export function getUndescribedCarriedTopics(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
 ): readonly string[] {
   return builtFor(carried, registered).undescribed;
+}
+
+/**
+ * Carried Topics whose payload is a collection, which the catalogue offers
+ * nothing under: the contract describes their elements, and a key can name a
+ * field of the Topic but not of one of its rows.
+ *
+ * Reported rather than dropped for the same reason as
+ * {@link getUndescribedCarriedTopics}: a Topic missing from every picker should
+ * be missing for a stated reason. The two lists never overlap.
+ */
+export function getCollectionCarriedTopics(
+  carried?: ReadonlySet<string>,
+  registered: readonly string[] = getRuntimeRegisteredTopicIds(),
+): readonly string[] {
+  return builtFor(carried, registered).collections;
 }
