@@ -760,6 +760,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     validAt: "ut",
     vantage: "id",
   },
+  "ModSettingState": {
+    label: "text",
+    name: "id",
+    owner: "id",
+    value: "text",
+  },
   "OrbitEncounter": {
     bodyIndex: "id",
     transitionType: "enum",
@@ -2298,6 +2304,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "SettingsModel": {
     meta: "PayloadMeta",
+    modSettings: "ModSettingState[]",
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",
     undeclared: "SettingsDeclarationFailure[]",
@@ -2517,6 +2524,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "settings.gonogo": {
     meta: "PayloadMeta",
+    modSettings: "ModSettingState[]",
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",
     undeclared: "SettingsDeclarationFailure[]",

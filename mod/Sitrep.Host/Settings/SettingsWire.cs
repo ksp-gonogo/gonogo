@@ -33,13 +33,20 @@ namespace Sitrep.Host.Settings
             SettingsPersistenceState state,
             double? savedAtUt,
             string? reason,
-            IReadOnlyDictionary<string, string> undeclared)
+            IReadOnlyDictionary<string, string> undeclared,
+            IReadOnlyList<(string Owner, string Name, string Label, string Value)> modSettings)
         {
             var wireRows = new List<object?>();
             foreach (var row in rows)
             {
                 wireRows.Add(BuildRowState(
                     row.Declared.Path, row.Owner, row.Declared.Kind, row.Declared.Label, row.Value, row.Declared.DefaultText));
+            }
+
+            var wireModSettings = new List<object?>();
+            foreach (var shown in modSettings)
+            {
+                wireModSettings.Add(BuildModSettingState(shown.Owner, shown.Name, shown.Label, shown.Value));
             }
 
             var wireUndeclared = new List<object?>();
@@ -53,6 +60,7 @@ namespace Sitrep.Host.Settings
                 ["rows"] = wireRows,
                 ["persistence"] = BuildPersistence(path, state, savedAtUt, reason),
                 ["undeclared"] = wireUndeclared,
+                ["modSettings"] = wireModSettings,
                 // Settings are the game install's own configuration, about no
                 // vessel, and exact whenever they can be read at all.
                 ["meta"] = new Dictionary<string, object?>
@@ -83,6 +91,16 @@ namespace Sitrep.Host.Settings
                 ["path"] = path,
                 ["savedAtUt"] = savedAtUt,
                 ["reason"] = reason,
+            };
+
+        internal static Dictionary<string, object?> BuildModSettingState(
+            string owner, string name, string label, string value) =>
+            new Dictionary<string, object?>
+            {
+                ["owner"] = owner,
+                ["name"] = name,
+                ["label"] = label,
+                ["value"] = value,
             };
 
         internal static Dictionary<string, object?> BuildDeclarationFailure(string uplinkId, string reason) =>

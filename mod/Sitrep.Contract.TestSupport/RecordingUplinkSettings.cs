@@ -20,6 +20,8 @@ namespace Sitrep.Contract.TestSupport
         private readonly Dictionary<string, string> _values;
         private readonly List<UplinkSettingRow> _declared = new List<UplinkSettingRow>();
         private readonly List<Action<IUplinkSettings>> _watches = new List<Action<IUplinkSettings>>();
+        private readonly Dictionary<string, (string Label, string Value)> _shown =
+            new Dictionary<string, (string Label, string Value)>(StringComparer.Ordinal);
         private bool _open = true;
 
         public RecordingUplinkSettings(IReadOnlyDictionary<string, string>? stored = null, string? writtenBy = null)
@@ -102,6 +104,19 @@ namespace Sitrep.Contract.TestSupport
             }
 
             _values[name] = text;
+        }
+
+        /// <summary>Every mod setting shown, by name, with the latest label and value for each.</summary>
+        public IReadOnlyDictionary<string, (string Label, string Value)> ShownModSettings => _shown;
+
+        public void ShowModSetting(string name, string label, string value)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentException("a mod setting names itself", nameof(name));
+            }
+
+            _shown[name] = (label ?? string.Empty, value ?? string.Empty);
         }
 
         public string? Text(string name)

@@ -304,6 +304,73 @@ namespace Sitrep.Host.Tests.Settings
                 () => uplink.Handle!.Declare(UplinkSettingRow.Bool("late", true, "Late")));
         }
 
+        private static List<Dictionary<string, object?>> ModSettingsOf(ChannelEngine engine)
+        {
+            var model = (Dictionary<string, object?>)engine.PayloadOf(ChannelEngine.SettingsTopic)!;
+            var shown = new List<Dictionary<string, object?>>();
+            foreach (var entry in (List<object?>)model["modSettings"]!)
+            {
+                shown.Add((Dictionary<string, object?>)entry!);
+            }
+
+            return shown;
+        }
+
+        /// <summary>
+        /// A mod's own setting, shown by its Uplink, reaches the settings model
+        /// under that Uplink. Shown again later with a new value, it keeps its
+        /// place and carries the latest value, because a mod's settings can
+        /// change while the game runs.
+        /// </summary>
+        [Fact]
+        public void AModSettingAnUplinkShowsIsPublishedAndItsLatestValueWins()
+        {
+            var store = new SettingsStore(new InMemorySettingsStore());
+            var uplink = new SettingsUplink("rp1", "0.4.1", s =>
+            {
+                s.ShowModSetting("difficulty", "Career difficulty", "Normal");
+                s.ShowModSetting("procedural", "Procedural parts", "On");
+            });
+
+            var engine = Discover(store, uplink);
+            uplink.Handle!.ShowModSetting("difficulty", "Career difficulty", "Hard");
+
+            var shown = ModSettingsOf(engine);
+            Assert.Equal(new[] { "difficulty", "procedural" }, shown.ConvertAll(s => (string)s["name"]!));
+            Assert.Equal("Hard", shown[0]["value"]);
+            Assert.Equal("rp1", shown[0]["owner"]);
+            Assert.Equal("Career difficulty", shown[0]["label"]);
+        }
+
+        /// <summary>
+        /// A mod's setting is a fact about the mod, not part of the Uplink's own
+        /// declaration, so one shown before a declarer throws is still shown.
+        /// </summary>
+        [Fact]
+        public void AModSettingShownBeforeTheDeclarerThrewIsStillShown()
+        {
+            var store = new SettingsStore(new InMemorySettingsStore());
+            var uplink = new SettingsUplink("rp1", "0.4.1", s =>
+            {
+                s.ShowModSetting("difficulty", "Career difficulty", "Normal");
+                throw new InvalidOperationException("descriptor typo");
+            });
+
+            var engine = Discover(store, uplink);
+
+            Assert.Single(ModSettingsOf(engine));
+        }
+
+        [Fact]
+        public void NoModSettingIsShownUnlessAnUplinkShowsOne()
+        {
+            var store = new SettingsStore(new InMemorySettingsStore());
+
+            var engine = Discover(store, new SettingsUplink("rp1", "0.4.1", _ => { }));
+
+            Assert.Empty(ModSettingsOf(engine));
+        }
+
         /// <summary>One uplink's block as a document of its own, so two can be compared entry for entry.</summary>
         private static SettingsDocument RowsOf(SettingsDocument document, string uplinkId)
         {

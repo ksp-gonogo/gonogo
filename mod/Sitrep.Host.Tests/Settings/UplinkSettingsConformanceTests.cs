@@ -54,6 +54,8 @@ namespace Sitrep.Host.Tests.Settings
 
             public void Migrate(string name, string text) => _values[name] = text;
 
+            public void ShowModSetting(string name, string label, string value) { }
+
             public string? Text(string name) => _values.TryGetValue(name, out var text) ? text : null;
 
             public bool Bool(string name) => Text(name) == "True";

@@ -25,6 +25,7 @@ namespace Sitrep.Host.Settings
 
         private readonly SettingsStore _store;
         private readonly string _version;
+        private readonly Action<string, string, string>? _showModSetting;
         private readonly List<UplinkSettingRow> _rows = new List<UplinkSettingRow>();
         private readonly List<KeyValuePair<string, string>> _migrations = new List<KeyValuePair<string, string>>();
         private readonly List<Deferred> _pendingWatches = new List<Deferred>();
@@ -33,9 +34,14 @@ namespace Sitrep.Host.Settings
         private bool _open = true;
         private bool _applied;
 
-        public UplinkSettingsScope(SettingsStore store, string uplinkId, string uplinkVersion)
+        public UplinkSettingsScope(
+            SettingsStore store,
+            string uplinkId,
+            string uplinkVersion,
+            Action<string, string, string>? showModSetting = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
+            _showModSetting = showModSetting;
             var refusal = SettingsText.RefusalOfName(uplinkId);
             if (refusal != null)
             {
@@ -97,6 +103,21 @@ namespace Sitrep.Host.Settings
             }
 
             _migrations.Add(new KeyValuePair<string, string>(name, text));
+        }
+
+        /// <summary>
+        /// Straight through, whether the declarer is running, returned or threw:
+        /// a mod's setting is a fact about the mod, not part of this Uplink's
+        /// declaration.
+        /// </summary>
+        public void ShowModSetting(string name, string label, string value)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentException("a mod setting names itself", nameof(name));
+            }
+
+            _showModSetting?.Invoke(name, label ?? string.Empty, value ?? string.Empty);
         }
 
         public string? Text(string name)
