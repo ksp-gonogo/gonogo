@@ -209,22 +209,28 @@ describe("TimelineStore.gapModel", () => {
 
   /**
    * An input that lands after the first judgement is asked about again. Here
-   * the roster is the input: without it this branch's conic declines at the
-   * sample and makes no claim, and a judgement kept from then would say so for
-   * as long as the sample stays in the window.
+   * the input is the body roster under an altitude: the altitude is measured
+   * from the body's radius, which only the roster publishes, so without it the
+   * flight model declines at the sample and makes no claim, and a judgement
+   * kept from then would say so for as long as the sample stays in the window.
    */
   it("asks again once a declared input arrives", () => {
     const s = store();
+    const flight = (altitude: number) => ({
+      altitudeAsl: value("m", altitude),
+      atmDensity: 0,
+    });
     s.ingest("time.warp", point(0, warp(2000)));
     s.ingest("vessel.orbit", point(0, orbit()));
-    s.ingest(
-      "vessel.orbit",
-      point(2000, orbit({ meanAnomalyAtEpoch: value("rad", 1) })),
-    );
-    expect(gapAt(s, "vessel.orbit.meanAnomalyAtEpoch")).toBeUndefined();
+    s.ingest("vessel.flight", point(0, flight(1_400_000)));
+    s.ingest("vessel.flight", point(2000, flight(1_400_000 + 1)));
+    expect(gapAt(s, "vessel.flight.altitudeAsl")).toBeUndefined();
 
-    s.ingest("system.bodies", point(0, { bodies: [] }));
-    expect(gapAt(s, "vessel.orbit.meanAnomalyAtEpoch")).toMatchObject({
+    s.ingest(
+      "system.bodies",
+      point(0, { bodies: [{ index: 1, radius: 600_000 }] }),
+    );
+    expect(gapAt(s, "vessel.flight.altitudeAsl")).toMatchObject({
       carried: true,
     });
   });
