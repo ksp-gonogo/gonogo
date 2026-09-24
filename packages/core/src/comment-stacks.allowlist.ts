@@ -297,7 +297,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/LibrationPoints/index.tsx": 2,
   "packages/components/src/LibrationPoints/stationaryMarkers.integration.test.tsx": 2,
   "packages/components/src/ManeuverPlanner/ConformancePlot.tsx": 1,
-  "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 3,
+  "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 2,
   "packages/components/src/ManeuverPlanner/ManeuverPreview.tsx": 1,
   "packages/components/src/ManeuverPlanner/NodeRow.tsx": 1,
   "packages/components/src/ManeuverPlanner/burnWindow.test.ts": 2,

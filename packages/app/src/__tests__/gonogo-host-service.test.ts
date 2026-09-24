@@ -1,5 +1,5 @@
-import type { DataKey, DataSource, DataSourceStatus } from "@ksp-gonogo/core";
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import { clearRegistry } from "@ksp-gonogo/core";
+import type { FrameToken, TimelinePoint } from "@ksp-gonogo/sitrep-client";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,
@@ -90,46 +90,43 @@ class FakeHost {
   }
 }
 
-class FakeDataSource implements DataSource {
-  readonly id = "data";
-  readonly name = "data";
-  status: DataSourceStatus = "connected";
-  executed: string[] = [];
-  private subs = new Map<string, Set<(v: unknown) => void>>();
+/**
+ * Stands in for the store a mounted `TelemetryProvider` registers, so launch
+ * state is driven the way the app drives it: `vessel.state.met` sampled off an
+ * ingested frame.
+ *
+ * There is deliberately no `DataSource` behind this. The service's legacy
+ * fallback asks for the id `"data"`, and the app registers no source under
+ * that id, so a fake one here would exercise a branch the app cannot reach.
+ */
+class FakeTimelineStore {
+  private met: number | null = null;
+  private frameListeners = new Set<() => void>();
 
-  async connect() {}
-  disconnect() {}
-  schema(): DataKey[] {
-    return [{ key: "v.missionTime" }];
+  sample<T>(topic: string): TimelinePoint<T> | undefined {
+    if (topic !== "vessel.state") return undefined;
+    return {
+      validAt: 0,
+      epoch: 0,
+      meta: {} as TimelinePoint<T>["meta"],
+      payload: { met: this.met } as T,
+    };
   }
-  subscribe(key: string, cb: (v: unknown) => void) {
-    let bucket = this.subs.get(key);
-    if (!bucket) {
-      bucket = new Set();
-      this.subs.set(key, bucket);
-    }
-    bucket.add(cb);
-    return () => bucket?.delete(cb);
+  /** Never inspected: this store's `sample` ignores the frame it is handed. */
+  currentFrame(): FrameToken {
+    return {} as FrameToken;
   }
-  onStatusChange() {
-    return () => {};
-  }
-  async execute(action: string) {
-    this.executed.push(action);
-  }
-  configSchema() {
-    return [];
-  }
-  configure() {}
-  getConfig() {
-    return {};
+  subscribeFrame(cb: () => void): () => void {
+    this.frameListeners.add(cb);
+    return () => {
+      this.frameListeners.delete(cb);
+    };
   }
 
-  // Driver
-  emit(key: string, value: unknown) {
-    const bucket = this.subs.get(key);
-    if (!bucket) return;
-    for (const cb of bucket) cb(value);
+  /** Driver: a newly ingested frame carrying this MET. */
+  emitMet(met: number | null): void {
+    this.met = met;
+    for (const cb of [...this.frameListeners]) cb();
   }
 }
 
@@ -149,7 +146,7 @@ async function drainDispatch(): Promise<void> {
 
 describe("GoNoGoHostService", () => {
   let host: FakeHost;
-  let ds: FakeDataSource;
+  let timeline: FakeTimelineStore;
   let svc: GoNoGoHostService;
   let oscillators: ReturnType<typeof installFakeAudio>;
   let unsubSound: (() => void) | null = null;
@@ -186,7 +183,6 @@ describe("GoNoGoHostService", () => {
       }),
     );
     telemetryClient.attachStore(store);
-    setActiveTimelineStoreForTests(store);
     transport.setCommandHandler((command, args) => {
       dispatched.push({ command, args });
       return null;
@@ -198,9 +194,16 @@ describe("GoNoGoHostService", () => {
     __resetSoundEnabledForTests();
     useSound(true);
     host = new FakeHost();
-    ds = new FakeDataSource();
-    registerDataSource(ds);
-    svc = new GoNoGoHostService(host.asHost(), "data");
+    /*
+     * `MainScreen`'s order: the service is built in a `useState` initialiser
+     * during the first render, and the provider that registers the store is a
+     * child whose effect has not run yet. Constructing it store-first is the
+     * one arrangement the app never uses, and it hides a subscription that
+     * never attaches.
+     */
+    svc = new GoNoGoHostService(host.asHost());
+    timeline = new FakeTimelineStore();
+    setActiveTimelineStoreForTests(timeline);
   });
 
   afterEach(() => {
@@ -313,9 +316,9 @@ describe("GoNoGoHostService", () => {
     expect(oscillators).toHaveLength(0);
   });
 
-  it("marks launched when v.missionTime goes positive", () => {
+  it("marks launched when the stream MET goes positive", () => {
     expect(svc.getSnapshot().launched).toBe(false);
-    ds.emit("v.missionTime", 1.5);
+    timeline.emitMet(1.5);
     expect(svc.getSnapshot().launched).toBe(true);
   });
 
@@ -333,7 +336,7 @@ describe("GoNoGoHostService", () => {
   it("aborts and records station name + peerId when a station aborts post-launch", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
-    ds.emit("v.missionTime", 10);
+    timeline.emitMet(10);
     host.fireAbort("peer-1");
     await drainDispatch();
     expect(dispatched).toContainEqual({
@@ -354,7 +357,7 @@ describe("GoNoGoHostService", () => {
   it("plays the abort alert tone on the genuine first abort, but not on re-notify", () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
-    ds.emit("v.missionTime", 10);
+    timeline.emitMet(10);
     host.fireAbort("peer-1");
     const afterFirst = oscillators.length;
     expect(afterFirst).toBeGreaterThan(0);
@@ -367,7 +370,7 @@ describe("GoNoGoHostService", () => {
   it("re-notifies (doesn't re-fire) when an already-aborted station resends", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
-    ds.emit("v.missionTime", 10);
+    timeline.emitMet(10);
     host.fireAbort("peer-1");
     await drainDispatch();
     expect(abortDispatches()).toHaveLength(1);
@@ -390,7 +393,7 @@ describe("GoNoGoHostService", () => {
     host.fireConnect("peer-2");
     host.fireStationInfo("peer-1", "A");
     host.fireStationInfo("peer-2", "B");
-    ds.emit("v.missionTime", 10);
+    timeline.emitMet(10);
     host.fireAbort("peer-1");
     host.fireAbort("peer-2");
     await drainDispatch();
@@ -398,13 +401,13 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().abort?.stationName).toBe("A");
   });
 
-  it("clears abort on revert (missionTime back to 0)", () => {
+  it("clears abort on revert (MET back to 0)", () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
-    ds.emit("v.missionTime", 10);
+    timeline.emitMet(10);
     host.fireAbort("peer-1");
     expect(svc.getSnapshot().abort).not.toBeNull();
-    ds.emit("v.missionTime", 0);
+    timeline.emitMet(0);
     expect(svc.getSnapshot().abort).toBeNull();
   });
 
@@ -412,7 +415,7 @@ describe("GoNoGoHostService", () => {
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
     expect(svc.getSnapshot().countdown).not.toBeNull();
-    ds.emit("v.missionTime", 1);
+    timeline.emitMet(1);
     expect(svc.getSnapshot().countdown).toBeNull();
   });
 });

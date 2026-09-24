@@ -31,6 +31,32 @@
 # Skip e2e for a quick push:  SKIP_E2E=1 git push   (CI still runs the matrix)
 # Skip the C# suites:         GONOGO_SKIP_MOD_SUITES=1 git push
 # Bypass the whole hook:      git push --no-verify
+# `ci-dev` is the cloud route to staging: work is folded onto it, pushed, and CI
+# runs the full matrix on runners before ci-dev-forward.yml fast-forwards staging
+# to the commit CI validated. Running the local suite here would duplicate that on
+# one core of the dev box, and it is the WEAKER of the two: this hook cannot run
+# the C# mod job, the three-browser e2e matrix, the visual gate or the
+# act-warning ratchet, and CI runs all four. So a ci-dev push keeps lint and skips
+# the suite. Pushes to staging and main are unchanged, because nothing downstream
+# re-validates those.
+#
+# Starts at 0 so that reading NO refs leaves the gate ON: an empty stdin means
+# this hook could not see what is being pushed, and "could not tell" must never
+# read as "cleared to skip".
+GONOGO_CI_DEV_ONLY=0
+GONOGO_SAW_A_REF=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  if [ "$GONOGO_SAW_A_REF" = "0" ]; then
+    GONOGO_SAW_A_REF=1
+    GONOGO_CI_DEV_ONLY=1
+  fi
+  case "$remote_ref" in
+    refs/heads/ci-dev) ;;
+    *) GONOGO_CI_DEV_ONLY=0 ;;
+  esac
+done
+
 echo "pre-push: lint + affected test gate (CI runs the full matrix)..."
 
 # Output is captured and only shown on FAILURE. A successful run of this hook
@@ -64,6 +90,8 @@ echo "pre-push: lint clean."
 # rather than hold the socket open for a second full pass.
 if [ "${GONOGO_GATE_DONE:-}" = "1" ]; then
   echo "pre-push: gate already run by pnpm push, not repeating it."
+elif [ "$GONOGO_CI_DEV_ONLY" = "1" ]; then
+  echo "pre-push: ci-dev push, skipping the local suite (CI runs the full matrix, then forwards staging)."
 elif ! CI=true pnpm exec turbo run test test:scans --concurrency=1 > "$GONOGO_HOOK_LOG" 2>&1; then
   cat "$GONOGO_HOOK_LOG"
   echo "✖ pre-push: tests failed (this is what CI would have caught)."

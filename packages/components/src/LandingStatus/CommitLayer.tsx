@@ -8,12 +8,10 @@
  * - Hero: live → the ignition countdown; delayed → the burn-GO clock (the last
  *   instant a GO can still reach the vessel to START the burn, T_ignition − N) →
  *   BURN LOCKED once past it.
- * - UNCOMMANDABLE banner: when the round-trip exceeds the remaining burn window,
- *   a command sent now cannot be confirmed in time. Arguably the single most
- *   valuable thing this widget can say.
- * - COMMIT POINT line: the last instant a command's RESULT can still be seen
- *   before impact (T_impact − 2N); past it the outcome is fixed and merely not
- *   yet visible. (The spaceflight-standard term for what was internally "blind".)
+ * - No separate UNCOMMANDABLE or COMMIT POINT banner: both would just restate
+ *   round trip vs. remaining burn window, which the panel header already says
+ *   once, in the header's own vocabulary of round trip beside regime. See the
+ *   comment at the foot of this component for why.
  *
  * Landing is an INSTRUMENT, not a command surface, gear/brakes are fired from
  * the operator's own action-group widgets placed alongside, so this layer holds
@@ -101,17 +99,6 @@ export function CommitLayer({
   impactSpeed = null,
 }: Readonly<CommitLayerProps>) {
   const countdown = suicideBurnCountdown;
-
-  // Uncommandable: a full round-trip no longer fits inside the remaining burn
-  // window, so a command sent now cannot be confirmed (or corrected) in time.
-  // Void once landed: there is no burn window left.
-  const _uncommandable =
-    !landed &&
-    roundTripSeconds != null &&
-    roundTripSeconds > 0 &&
-    countdown != null &&
-    countdown > 0 &&
-    roundTripSeconds > countdown;
 
   let heroValue: ReactNode;
   let heroCaption: string;

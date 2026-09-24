@@ -507,6 +507,13 @@ function CrewStatusComponent({
     return map;
   }, [rowToneContributions]);
 
+  // Same `crew-status.meters` segment `WidgetMeters` itself reads (both calls
+  // share `useWidgetMeta()`'s auto-namespacing, so this resolves to the same
+  // entries). Read here too, ahead of the roster, so the EVA solo-row check
+  // below can tell whether THIS kerbal has a meter contributed without
+  // rendering `WidgetMeters` twice.
+  const meterContributions = useContributions("meters");
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
@@ -553,6 +560,28 @@ function CrewStatusComponent({
   // kerbal there's nothing left to show, and the line drops entirely.
   const crewSummary = known && isEVA === true ? "EVA" : "";
 
+  // On an EVA the active vessel IS the kerbal: the suit meters below are
+  // about THEM, not about "EVA" as an abstract mode, so the header names
+  // them rather than restating the mode. Requires exactly one resolved name:
+  // an EVA vessel always carries one kerbal, but a transient state (isEVA
+  // true, roster not yet resolved) falls back to the bare "EVA" caption
+  // rather than pick a stale or wrong name.
+  const evaKerbalName =
+    known && isEVA === true && names.length === 1 ? names[0] : undefined;
+
+  // Whether the roster's own Card for that kerbal has anything to show
+  // beyond their bare name: an avatar, a row-badge augment, a row-tone
+  // contribution, or a contributed meter. With the header above already
+  // carrying the name, a Card with none of these bound would be an empty box
+  // repeating a fact the operator already read once; a Card with something
+  // bound still earns its place as the container for that content.
+  const evaRowHasBoundContent =
+    evaKerbalName !== undefined &&
+    (getAugmentsForSlot("crew-status.avatar").length > 0 ||
+      getAugmentsForSlot("crew-status.row-badges").length > 0 ||
+      rowToneByName.has(evaKerbalName) ||
+      meterContributions.some((entry) => entry.row === evaKerbalName));
+
   return (
     <Panel
       panelTitle="CREW"
@@ -562,7 +591,11 @@ function CrewStatusComponent({
           Uplink's radiation-environment reading), never a per-kerbal one.
           Renders nothing until an Uplink binds it. */}
           <AugmentSlot name="crew-status.summary" props={{}} />
-          {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
+          {evaKerbalName ? (
+            <ReadoutCaption>{evaKerbalName} · EVA</ReadoutCaption>
+          ) : (
+            crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>
+          )}
           <EvaSuitReadout
             oxygen={suitOxygen}
             electricCharge={suitElectricCharge}
@@ -574,6 +607,17 @@ function CrewStatusComponent({
               names,
               avatarSizePx,
               rowToneByName,
+              // The EVA kerbal's own row: omit the Card entirely once the
+              // header already named them and nothing else is bound to
+              // them. Otherwise keep the Card but drop its now-redundant
+              // name text.
+              omitCardFor:
+                evaKerbalName !== undefined && !evaRowHasBoundContent
+                  ? evaKerbalName
+                  : undefined,
+              suppressNameFor: evaRowHasBoundContent
+                ? evaKerbalName
+                : undefined,
             })}
           </div>
         </Section>
@@ -588,12 +632,20 @@ function renderBody({
   names,
   avatarSizePx,
   rowToneByName,
+  omitCardFor,
+  suppressNameFor,
 }: {
   known: boolean;
   crewCount: number | undefined;
   names: string[];
   avatarSizePx: number;
   rowToneByName: ReadonlyMap<string, ReadoutTone>;
+  /** Skip this row's Card entirely: the EVA header already named this
+   *  kerbal and nothing else is bound to their row. */
+  omitCardFor?: string;
+  /** Keep this row's Card, but drop its name text: the EVA header already
+   *  named this kerbal, and the Card still has other content to show. */
+  suppressNameFor?: string;
 }): React.ReactNode {
   if (!known) return <EmptyState>Waiting for telemetry...</EmptyState>;
 
@@ -645,6 +697,12 @@ function renderBody({
   return (
     <Stack as="ul" style={rosterListStyle}>
       {names.map((name, index) => {
+        // The EVA header already named this kerbal (see `omitCardFor` /
+        // `suppressNameFor` above): with nothing else bound to their row,
+        // an otherwise-empty Card here would just be a box around a name
+        // the operator already read once. So skip the row entirely.
+        if (name === omitCardFor) return null;
+        const suppressName = name === suppressNameFor;
         return (
           // Per-crew row: a padded, rounded `Card` (operator feedback: the
           // previous bare `Stack`/`Cluster` row gave the roster no visual
@@ -655,7 +713,16 @@ function renderBody({
           // kerbal critical (`rowToneByName` above); with none bound, or
           // this kerbal not flagged, the card renders with its default
           // untinted border, identical to every other nominal row.
-          <Card as="li" key={name} tone={rowToneByName.get(name)}>
+          <Card
+            as="li"
+            key={name}
+            tone={rowToneByName.get(name)}
+            // Only set while the visible name text below is suppressed: the
+            // EVA header carries it instead. The row's identity still needs
+            // to reach an accessibility tree that has no other text naming
+            // which kerbal this row is about.
+            aria-label={suppressName ? name : undefined}
+          >
             {/* A leading avatar COLUMN (when bound) beside a right-hand
                 column carrying the WHOLE rest of the row (name + wrapping
                 badge + survival section), not just the name. `align="start"`
@@ -700,12 +767,17 @@ function renderBody({
                   {/* `flex: 1 1 auto` (not the shared `Truncate`'s default
                       `flex: 1` = `1 1 0%`, overridden via inline `style`
                       since that wins over the class-based rule without a
-                      bespoke styled wrapper): the name commands its own
+                      bespoke wrapper): the name commands its own
                       natural width in the wrap decision below, so a trailing
                       badge wraps onto its own line instead of shrinking the
                       name into an ellipsis. Still truncates in the rare case
-                      the panel itself is too narrow for the name alone. */}
-                  <Truncate style={NAME_FLEX_STYLE}>{name}</Truncate>
+                      the panel itself is too narrow for the name alone.
+                      Omitted when `suppressName`: the EVA header above
+                      already carries it, and the Card's own `aria-label`
+                      (above) keeps it reachable for a screen reader. */}
+                  {!suppressName && (
+                    <Truncate style={NAME_FLEX_STYLE}>{name}</Truncate>
+                  )}
                   {/* Per-crew inline badges slot. Renders nothing until an
                       Uplink (e.g. a habitation or radiation backend) binds,
                       the props carry this row's kerbal identity so the augment

@@ -16,6 +16,7 @@ describe("component-id migration", () => {
     expect(migrateComponentId("mission-director")).toBe("contract-manager");
     expect(migrateComponentId("mission-status")).toBe("objectives");
     expect(migrateComponentId("distance-to-target")).toBe("targeting");
+    expect(migrateComponentId("aero-state")).toBe("aerodynamics");
   });
 
   it("leaves a current id untouched", () => {

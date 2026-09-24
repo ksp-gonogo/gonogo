@@ -68,6 +68,26 @@ const CONFIGS: WidgetRenderConfig[] = [
         h: 14,
         forFixtures: ["1-admin-building-shut"],
       },
+      /*
+       * The same career and the same shut facility, once the arms are asked one
+       * at a time. Same tile, same offsets, so the pair differs only where the
+       * change does: what the model was able to say. Rendered against fixture 1
+       * rather than against the old code, because the change is what reaches
+       * the widget rather than what the widget does with it.
+       */
+      {
+        name: "wide-9x14-scrolled",
+        w: 9,
+        h: 14,
+        scroll: 700,
+        forFixtures: ["3-admin-building-shut-derived"],
+      },
+      {
+        name: "wide-9x14-at-rest",
+        w: 9,
+        h: 14,
+        forFixtures: ["3-admin-building-shut-derived"],
+      },
     ],
   },
   {

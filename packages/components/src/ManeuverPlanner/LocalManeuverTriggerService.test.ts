@@ -93,6 +93,42 @@ function fixture() {
   return { commands };
 }
 
+/**
+ * Registers a second store carrying the orbit but no vessel identity, the
+ * shape a provider remount leaves behind until the first identity frame
+ * lands. Returns a driver for a frame against it.
+ */
+function remountWithoutIdentity(): () => void {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: () => 0,
+    warpRate: () => 1,
+    delaySeconds: () => 0,
+  });
+  clock.scrubTo(PINNED_UT);
+  const store = new TimelineStore(clock);
+  store.registerDerivedChannel(vesselStateChannel);
+  client.attachStore(store);
+  client.subscribe("vessel.orbit", () => {});
+  setActiveTimelineStoreForTests(store);
+  return () => store.beginFrame();
+}
+
+/**
+ * Every id the service is still guarding against a second fire whose trigger
+ * is no longer listed.
+ *
+ * Reaches into `fired` on purpose: the guard only has an observable effect
+ * while its trigger is still listed, so a set that has been accumulating all
+ * session behaves exactly like a pruned one from outside.
+ */
+function strandedFiredIds(svc: LocalManeuverTriggerService): string[] {
+  const listed = svc.snapshot().triggers.map((t) => t.id);
+  // biome-ignore lint/complexity/useLiteralKeys: `fired` is private, so dot access does not compile
+  return [...svc["fired"]].filter((id) => !listed.includes(id));
+}
+
 const FROZEN: FrozenPlanInputs = {
   preset: "hohmann-to-altitude",
   prograde: 0,
@@ -126,6 +162,54 @@ describe("LocalManeuverTriggerService", () => {
         inputs: FROZEN,
       });
       await vi.waitFor(() => expect(commands).toContain("vessel.maneuver.add"));
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("holds no fired id for a trigger that is no longer listed", () => {
+    fixture();
+    const svc = new LocalManeuverTriggerService();
+    try {
+      // apoapsisRadius is 6_838_710, so this one stays pending.
+      svc.arm({
+        dataKey: "vessel.state.apoapsisRadius",
+        op: ">=",
+        value: 99_000_000,
+        inputs: FROZEN,
+      });
+      // Already true, so this one fires as it is armed and leaves the list, putting its id in `fired`.
+      svc.arm({
+        dataKey: "vessel.state.apoapsisRadius",
+        op: ">=",
+        value: 6_000_000,
+        inputs: FROZEN,
+      });
+      expect(svc.snapshot().triggers).toHaveLength(1);
+      expect(strandedFiredIds(svc)).toEqual([]);
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("keeps a trigger armed against a named vessel when the identity read goes away", () => {
+    fixture();
+    const svc = new LocalManeuverTriggerService();
+    try {
+      // Stays pending, so nothing here depends on the fired-id bookkeeping.
+      svc.arm({
+        dataKey: "vessel.state.apoapsisRadius",
+        op: ">=",
+        value: 99_000_000,
+        inputs: FROZEN,
+      });
+      expect(svc.snapshot().triggers[0].vesselName).toBe("Test Vessel");
+
+      const frame = remountWithoutIdentity();
+      frame();
+
+      expect(svc.snapshot().triggers).toHaveLength(1);
+      expect(svc.snapshot().triggers[0].vesselName).toBe("Test Vessel");
     } finally {
       svc.dispose();
     }

@@ -112,6 +112,7 @@
          Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\SceneExitRule.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
+    <Compile Include="..\Gonogo.KSP\StrategyActivationRule.cs" />
     <!-- CommandCentreReach.cs is the "can CommNet route here at all" rule the
          crewed-vessel enumeration gates on. It names no KSP type on purpose (the
          two node powers arrive as doubles, the part walk is generic over the part),

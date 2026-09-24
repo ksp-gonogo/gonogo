@@ -189,16 +189,26 @@ namespace Sitrep.Core.Tests
                     "Two uses, neither a capture of UI state. EditorLogic.fetch and the EditorFacility "
                     + "enum are how KSP exposes which editor is open and what is in it, and there is "
                     + "no non-UI namespace they live in. Administration.Instance is read as a null "
-                    + "check to decide whether a command can run, never for a value: a precondition "
-                    + "that a building is open is a fact about the command, not a telemetry reading.",
+                    + "check to pick which ROUTE answers strategy eligibility, never for a value: "
+                    + "open, KSP's own CanBeActivated answers; shut, LiveStrategyArms puts the same "
+                    + "arms one at a time off GameVariables and the strategy itself. The verdict is "
+                    + "the same either way, which is the point -- this window used to decide whether "
+                    + "there was a reading at all. What the window does still decide is "
+                    + "activateVerdictSource, and that field is a statement about WHO answered "
+                    + "rather than a reading of the game, published precisely so a consumer can "
+                    + "decline to arm a control from the derived route.",
                     "KSP.UI"),
 
                 ["Gonogo.KSP/KspCareerActuator.cs"] = new UiReach(
                     "Administration.Instance as a command precondition, and this file is the clearest "
                     + "case of the rule being obeyed rather than bent: KSP commits a strategy only "
                     + "from the Administration Building, so the actuator REFUSES with that reason when "
-                    + "the building is closed. It publishes nothing that depends on the window. The "
-                    + "remaining matches are the SpaceCenterFacility enum, which is not a UI type.",
+                    + "the building is closed. It publishes nothing that depends on the window. That "
+                    + "refusal is not the reading half's twin any more -- eligibility is answered in "
+                    + "every scene now -- because Strategy.Activate asks CanBeActivated itself and "
+                    + "writes two private fields, so knowing the answer does not make the procedure "
+                    + "reachable. The remaining matches are the SpaceCenterFacility enum, which is "
+                    + "not a UI type.",
                     "KSP.UI"),
 
                 ["Gonogo.KSP/KspVesselActuator.cs"] = new UiReach(
