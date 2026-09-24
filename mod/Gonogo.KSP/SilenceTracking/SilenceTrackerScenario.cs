@@ -1,4 +1,5 @@
 using System;
+using Sitrep.Host;
 using Sitrep.Host.Comms;
 using Sitrep.Host.Propagation;
 using UnityEngine;
@@ -72,7 +73,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// advances UT nor steady under load.</para>
         /// </summary>
         private static double ObservationQuantumSeconds() =>
-            Math.Max(1.0, TimeWarp.fixedDeltaTime);
+            SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUt, TimeWarp.fixedDeltaTime);
 
         public override void OnLoad(ConfigNode node)
         {

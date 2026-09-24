@@ -33,6 +33,7 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
       breaks: [],
       spans: [],
       reckoned: [],
+      bridges: [],
       // Carried rather than reindexed: it is an instant on the same clock as
       // `t`, not a position in it, so the numeric filter below cannot move it.
       windowEndAt: raw.windowEndAt,
@@ -85,6 +86,13 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
         bandAt.set(i, { lo: bandLo[at], hi: bandHi[at], kind: bandKind });
       }
     }
+    /*
+     * A bridge names the chord ending at its sample, so it survives only where
+     * that chord does: both samples kept, next to each other, with no break
+     * between. Anything else and the chord the chart draws is a different one.
+     */
+    const bridgeAt = new Map((raw.bridges ?? []).map((b) => [b.to, b]));
+    const outAt = new Map<number, number>();
     let open: SeriesStatusSpan | null = null;
     let openReckoned: SeriesReckonedSpan | null = null;
     let pendingBreak = false;
@@ -93,8 +101,19 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
       const n = Number(raw.v[i]);
       if (Number.isNaN(n)) continue;
       const out = numeric.t.length;
-      if (pendingBreak && out > 0) numeric.breaks?.push(out);
+      const broken = pendingBreak && out > 0;
+      if (broken) numeric.breaks?.push(out);
       pendingBreak = false;
+      outAt.set(i, out);
+      const bridge = bridgeAt.get(i);
+      if (
+        bridge !== undefined &&
+        !broken &&
+        outAt.get(i - 1) === out - 1 &&
+        bridge.v.every(Number.isFinite)
+      ) {
+        numeric.bridges?.push({ ...bridge, to: out });
+      }
       numeric.t.push(raw.t[i]);
       numeric.v.push(n);
       const status = statusAt.get(i);

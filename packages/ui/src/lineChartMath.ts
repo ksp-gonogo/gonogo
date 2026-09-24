@@ -3,6 +3,7 @@
 import type {
   BandKind,
   ReckoningBasis,
+  SeriesBridge,
   SeriesReckonedSpan,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -15,6 +16,40 @@ import type {
  * every existing import site reads the same.
  */
 export type { SeriesReckonedSpan };
+
+/**
+ * How far, in drawn pixels, a chord may stray from the model's own path before
+ * it is a claim the model contradicts. Below a pixel there is nothing to see.
+ */
+export const CHORD_TOLERANCE_PX = 1;
+
+/**
+ * Whether the straight segment a chart draws into `bridge.to` departs from what
+ * the value's model says happened across the same span by more than
+ * {@link CHORD_TOLERANCE_PX}, measured vertically at every instant the model
+ * answered for. Judged in the chart's own pixels because a tolerance in the
+ * value's units would mean something different on every axis.
+ */
+export function chordDeparts(
+  xs: readonly number[],
+  ys: readonly number[],
+  bridge: SeriesBridge,
+  scaleX: (v: number) => number,
+  scaleY: (v: number) => number,
+): boolean {
+  const i = bridge.to;
+  if (i < 1 || i >= xs.length) return false;
+  const x0 = scaleX(xs[i - 1]);
+  const x1 = scaleX(xs[i]);
+  const y0 = scaleY(ys[i - 1]);
+  const y1 = scaleY(ys[i]);
+  if (!(x1 > x0)) return false;
+  return bridge.t.some((t, k) => {
+    const x = scaleX(t);
+    const chord = y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+    return Math.abs(scaleY(bridge.v[k]) - chord) > CHORD_TOLERANCE_PX;
+  });
+}
 
 /** Linear scale: maps input domain to output pixel range. */
 export function makeScale(
@@ -83,6 +118,10 @@ export function formatTimeLabel(t: number, spanMs: number): string {
  * chart shows a gap rather than a straight line across a span it has no
  * readings for. See `SeriesRange.breaks`, which is where the indices come from,
  * and `Meta.gapSinceUt`, which is where the server states the hole.
+ *
+ * A run of ONE sample, with a break on both sides, is still an observation. A
+ * bare `M` draws nothing, so it gets a zero-length segment, which the chart's
+ * round caps draw as a dot.
  */
 export function buildPath(
   ts: number[],
@@ -98,8 +137,18 @@ export function buildPath(
     const y = scaleY(vs[i]).toFixed(2);
     const starts = i === 0 || breaks.includes(i);
     parts.push(`${starts ? "M" : "L"}${x},${y}`);
+    if (starts && isolated(i, ts.length, breaks)) parts.push(`L${x},${y}`);
   }
   return parts.join(" ");
+}
+
+/** Whether the run starting at `i` ends there: the next index opens a break, or there is none. */
+function isolated(
+  i: number,
+  length: number,
+  breaks: readonly number[],
+): boolean {
+  return i + 1 >= length || breaks.includes(i + 1);
 }
 
 /**
@@ -117,7 +166,9 @@ export function buildStepPath(
   if (ts.length === 0) return "";
   const parts: string[] = [];
   let prevY = scaleY(vs[0]).toFixed(2);
-  parts.push(`M${scaleX(ts[0]).toFixed(2)},${prevY}`);
+  const x0 = scaleX(ts[0]).toFixed(2);
+  parts.push(`M${x0},${prevY}`);
+  if (isolated(0, ts.length, breaks)) parts.push(`L${x0},${prevY}`);
   for (let i = 1; i < ts.length; i++) {
     const x = scaleX(ts[i]).toFixed(2);
     const y = scaleY(vs[i]).toFixed(2);
@@ -126,6 +177,7 @@ export function buildStepPath(
       // assertion that the value did not change, and across a blackout that is
       // precisely what nobody knows. See buildPath's own note.
       parts.push(`M${x},${y}`);
+      if (isolated(i, ts.length, breaks)) parts.push(`L${x},${y}`);
       prevY = y;
       continue;
     }

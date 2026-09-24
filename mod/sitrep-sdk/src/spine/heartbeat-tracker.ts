@@ -164,8 +164,12 @@ export class HeartbeatTracker {
    * tests can assert directly that the margin widens under a degraded
    * estimate.
    */
-  marginUt(topic: string, confidence: ViewClockConfidence): number {
-    const interval = this.intervalFor(topic);
+  marginUt(
+    topic: string,
+    confidence: ViewClockConfidence,
+    floorGapUt = 0,
+  ): number {
+    const interval = Math.max(this.intervalFor(topic), floorGapUt);
     const base =
       interval * (this.options.marginMultiplier ?? 1) +
       (this.options.jitterAllowanceUt ?? 0);
@@ -180,16 +184,25 @@ export class HeartbeatTracker {
    * the `"resyncing"` case (no point at all), handled one layer up in
    * `TimelineStore.sampleStatus`; a heartbeat miss is specifically about a
    * topic we HAVE heard from before going quiet.
+   *
+   * `floorGapUt` is the least UT the mod leaves between two keyframes at the
+   * current warp: its real-time keyframe floor times the warp rate. The
+   * learned cadence can be far shorter, because it was learned at a lower
+   * warp, and without the floor a quiet channel reads overdue the moment warp
+   * steps up and until the new gaps are learned. The expected interval is
+   * whichever is longer.
    */
   isOverdue(
     topic: string,
     viewUt: number,
     confidence: ViewClockConfidence,
+    floorGapUt = 0,
   ): boolean {
     const last = this.lastHeartbeatUt.get(topic);
     if (last === undefined) return false;
+    const interval = Math.max(this.intervalFor(topic), floorGapUt);
     return (
-      viewUt > last + this.intervalFor(topic) + this.marginUt(topic, confidence)
+      viewUt > last + interval + this.marginUt(topic, confidence, floorGapUt)
     );
   }
 }
