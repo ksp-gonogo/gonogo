@@ -28,7 +28,31 @@ import { commandSection, readWireSurface, wireSection } from "./wire";
  * and asking it for a `shape` would either force that path to fabricate one or
  * put the freshness question somewhere that structurally cannot answer it.
  */
-type PageAsset = Omit<RenderedAsset, "shape">;
+export type PageAsset = Omit<RenderedAsset, "shape">;
+
+/**
+ * The assets a render of these scenes writes, named from the scenes alone.
+ *
+ * The page links images by filename, so the prose can be built without a render
+ * as long as the names come out as the renderer's would. The rule mirrors
+ * `renderOneScene`: a motion scene records its first size as a GIF, and every
+ * other size of any scene is a still.
+ */
+export function linkedAssets(scenes: readonly Scene[]): PageAsset[] {
+  return scenes.flatMap((scene) =>
+    scene.modes.map((mode, index): PageAsset => {
+      const motion = scene.steps !== undefined && scene.steps.length > 0;
+      const kind = motion && index === 0 ? "motion" : "still";
+      const ext = kind === "motion" ? "gif" : "png";
+      return {
+        scene,
+        mode: mode.name,
+        file: `${scene.name}--${mode.name}.${ext}`,
+        kind,
+      };
+    }),
+  );
+}
 
 /**
  * The manifest first, the page from it.

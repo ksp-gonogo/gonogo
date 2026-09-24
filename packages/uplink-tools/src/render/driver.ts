@@ -160,29 +160,39 @@ export interface RenderedAsset {
   shape: AssetShape;
 }
 
-export interface RenderResult {
+export interface RenderResult extends UplinkScenes {
+  assets: RenderedAsset[];
+}
+
+type ProbeWindow = Record<typeof RENDER_PROBE_GLOBAL, RenderProbeApi>;
+
+/** What a probe page knows before any scene is mounted. */
+export interface UplinkScenes {
   inventory: UplinkInventory;
   scenes: Scene[];
-  assets: RenderedAsset[];
   /** `augment:<id>` / `contribution:<id>` with no scene. Named on the page. */
   unpreviewed: string[];
   fontMode: "locked" | "fallback";
   fontAdvice?: string;
 }
 
-type ProbeWindow = Record<typeof RENDER_PROBE_GLOBAL, RenderProbeApi>;
+type ProbeOptions = Pick<RenderOptions, "engine" | "uplinkId" | "withModules">;
 
-export async function renderUplink(
+/**
+ * Load the Uplink into a probe page, read what it registers, and hand the open
+ * tab to `body`. Every scene is built and coverage asserted before `body` runs.
+ */
+async function withProbe<T>(
   pkg: UplinkPackage,
-  opts: RenderOptions,
-): Promise<RenderResult> {
+  opts: ProbeOptions,
+  body: (tab: Page, read: UplinkScenes, pageErrors: string[]) => Promise<T>,
+): Promise<T> {
   const page = await buildProbePage(pkg, [
     ...pkg.renderWith,
     ...(opts.withModules ?? []),
   ]);
   const browser = await (await engine(opts.engine)).launch();
   const pageErrors: string[] = [];
-  const assets: RenderedAsset[] = [];
   try {
     const context = await browser.newContext({
       viewport: { width: 900, height: 900 },
@@ -222,8 +232,42 @@ export async function renderUplink(
       [RENDER_PROBE_GLOBAL, opts.uplinkId] as const,
     );
 
-    const all = buildScenes(pkg, inventory);
-    const { unpreviewed } = assertEveryWidgetCovered(all, inventory);
+    const scenes = buildScenes(pkg, inventory);
+    const { unpreviewed } = assertEveryWidgetCovered(scenes, inventory);
+    return await body(
+      tab,
+      {
+        inventory,
+        scenes,
+        unpreviewed,
+        fontMode: page.font.mode,
+        fontAdvice: page.font.advice,
+      },
+      pageErrors,
+    );
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
+ * Everything the page's prose is built from, with no scene mounted and no file
+ * written. The registrations only exist once the client has run, which is why
+ * this still opens a browser, but it renders nothing.
+ */
+export async function readUplinkScenes(
+  pkg: UplinkPackage,
+  opts: ProbeOptions,
+): Promise<UplinkScenes> {
+  return withProbe(pkg, opts, async (_tab, read) => read);
+}
+
+export async function renderUplink(
+  pkg: UplinkPackage,
+  opts: RenderOptions,
+): Promise<RenderResult> {
+  return withProbe(pkg, opts, async (tab, read, pageErrors) => {
+    const all = read.scenes;
     const scenes = opts.scene ? all.filter((s) => s.name === opts.scene) : all;
     if (scenes.length === 0) {
       throw new Error(
@@ -235,6 +279,7 @@ export async function renderUplink(
     await mkdir(opts.outDir, { recursive: true });
     await cleanPngsAndGifs(opts.outDir);
 
+    const assets: RenderedAsset[] = [];
     for (const scene of scenes) {
       await renderOneScene(tab, scene, opts, assets);
     }
@@ -249,17 +294,8 @@ export async function renderUplink(
           `is trustworthy:\n  ${unique.join("\n  ")}`,
       );
     }
-    return {
-      inventory,
-      scenes: all,
-      assets,
-      unpreviewed,
-      fontMode: page.font.mode,
-      fontAdvice: page.font.advice,
-    };
-  } finally {
-    await browser.close();
-  }
+    return { ...read, assets };
+  });
 }
 
 /**
