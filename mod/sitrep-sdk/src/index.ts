@@ -129,8 +129,6 @@ export {
   type DeclaredDelayRoles,
   type DelayLane,
   delayLaneOf,
-  type GeneratedHeldAtHomeTopic,
-  type GeneratedTrueNowTopic,
   type HeldAtHomeTopic,
   isHeldAtHomeTopic,
   isTrueNowTopic,
@@ -292,7 +290,6 @@ export * from "./reading";
 export {
   type GeneratedReckonableInput,
   type GeneratedReckonableValue,
-  type GeneratedReckoningBasis,
   isReckonableTopic,
   type ReckonableFields,
   type ReckonableTopic,
