@@ -183,7 +183,7 @@ describe("Strategies when the career balances are no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText()).toBe("Strategies0 activefunds not current"),
+      expect(visibleText()).toBe("Strategiesfunds not current· 0 active"),
     );
     // "funds unknown" is the never-arrived wording and it is still reachable;
     // reaching it from here would deny having ever been told a balance.

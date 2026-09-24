@@ -428,48 +428,53 @@ function StrategiesComponent({
 
   // ── Tiny mode ─────────────────────────────────────────────────────────
   if (bucket === "tiny") {
+    const tinyFundsTitle = balancesNotCurrent
+      ? "The funds balance is no longer current, so affordability is not being checked"
+      : funds != null
+        ? speakQuantity(funds, { decimals: 0 })
+        : "No funds balance has arrived";
     return (
       <Panel
         panelTitle="Strategies"
         compactTitle={["ADMIN", "ADM"]}
-        panelAside={
-          <Tally $overCap={overCap}>
-            {active.length} active
-            {overCap && ` / ${inferredCap}`}
-          </Tally>
-        }
         sections={
           <Section full>
             {/* Strategies spends career funds (activate cost), so the balance
-            must stay visible even in the tiny bucket (CLAUDE.md "spending
-            funds: always show the balance"). A dedicated row below the
-            header rather than inlined into the Header's own flex-wrap
-            group: Panel has no scroll area in tiny mode, so competing for
-            space inside Header's wrap could push the figure below the
-            visible panel bounds (it did, in an earlier version of this
-            fix: the balance wrapped clean off the bottom of a 3x3 box).
-            Compact k/M formatting plus nowrap+ellipsis keeps this to one
-            line that always fits. */}
-            {balancesNotCurrent ? (
-              /* Withheld, and said so in the operator's own words. "funds unknown"
-             below would accuse the link of never having delivered a balance it
-             did deliver, and a bare dash would leave the refusal unexplained. */
-              <TinyFundsRow title="The funds balance is no longer current, so affordability is not being checked">
-                funds not current
-              </TinyFundsRow>
-            ) : funds != null ? (
-              <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
-                {formatCompactNumber(funds.magnitude, 0)}
-                <Unit>funds</Unit>
-              </TinyFundsRow>
-            ) : (
-              /* An absent balance is the state that rule exists for: it is when the
-             activate buttons refuse, so the row has to say so rather than
-             vanish and leave the refusal unexplained. */
-              <TinyFundsRow title="No funds balance has arrived">
-                funds unknown
-              </TinyFundsRow>
-            )}
+                must stay visible even in the tiny bucket (CLAUDE.md "spending
+                funds: always show the balance"). The active count rides at the
+                END of the same row rather than in the panel aside: an aside that
+                does not fit beside the title folds into a chevron row of its
+                own, and in a 3x3 dashboard cell that row is the one the balance
+                needed. Funds first, so an ellipsis cuts the count, never the
+                balance. Compact k/M formatting plus nowrap keeps it to one line. */}
+            <TinyFundsRow data-balance-row="" title={tinyFundsTitle}>
+              <TinyFundsFigure>
+                {balancesNotCurrent ? (
+                  /* Withheld, and said so in the operator's own words. "funds
+                   unknown" would accuse the link of never having delivered a
+                   balance it did deliver, and a bare dash would leave the
+                   refusal unexplained. */
+                  "funds not current"
+                ) : funds != null ? (
+                  <>
+                    {formatCompactNumber(funds.magnitude, 0)}
+                    <Unit>funds</Unit>
+                  </>
+                ) : (
+                  /* An absent balance is the state that rule exists for: it is
+                   when the activate buttons refuse, so the row has to say so
+                   rather than vanish and leave the refusal unexplained. */
+                  "funds unknown"
+                )}
+              </TinyFundsFigure>
+              <TinyTally>
+                <Sep>·</Sep>{" "}
+                <Tally $overCap={overCap}>
+                  {active.length} active
+                  {overCap && ` / ${inferredCap}`}
+                </Tally>
+              </TinyTally>
+            </TinyFundsRow>
             {/* Its own row rather than appended to the balance above: that row is
             nowrap + ellipsis by construction, so anything added to it is the
             part that gets cut. */}
@@ -492,58 +497,60 @@ function StrategiesComponent({
     <Panel
       panelTitle="Admin Building"
       compactTitle={["ADMIN", "ADM"]}
-      /* The tallies wrap to a second row at narrow widths, which Panel.Header
-         now does for any aside rather than each widget arranging its own.
-         Funds must stay visible at every width: Strategies spends career funds
-         on activate (CLAUDE.md "spending funds: always show the balance").
-         Rep/sci are supplementary and still drop below cols 6, where even a
-         wrapped row cannot hold them. */
       panelAside={
-        <HeaderMeta>
-          <Tally $overCap={overCap}>
-            {active.length} active
-            {overCap && ` / ${inferredCap}`}
-          </Tally>
-          <Sep>·</Sep>
-          {balancesNotCurrent ? (
-            /* One statement replaces all three figures. Three dashes would read
-               as a career with nothing in it, and dashes are already what an
-               absent economy renders, so the rail has to name the link instead
-               of showing the operator the same nothing twice over. */
-            <NotCurrentTally title="The career balances are no longer current, so affordability is not being checked">
-              balances not current
-            </NotCurrentTally>
-          ) : (
-            <>
-              <Tally>
-                <Balance balance={funds} unit="funds" />
-              </Tally>
-              {reportsFundsDrain(netFunds) && (
-                <>
-                  <Sep>·</Sep>
-                  <FundsDrain funds={magnitudeOf(funds)} netPerDay={netFunds} />
-                </>
-              )}
-              {(w ?? 9) >= 6 && (
-                <>
-                  <Sep>·</Sep>
-                  <Tally>
-                    <Balance balance={reputation} unit="rep" />
-                  </Tally>
-                  <Sep>·</Sep>
-                  <Tally>
-                    <Balance balance={science} unit="science" />
-                  </Tally>
-                </>
-              )}
-            </>
-          )}
-        </HeaderMeta>
+        <Tally $overCap={overCap}>
+          {active.length} active
+          {overCap && ` / ${inferredCap}`}
+        </Tally>
       }
       /* ONE section: the body is a screen switch, and a tab strip beside
          anything reads as two widgets rather than as one panel. */
       sections={
         <Section full>
+          {/* Strategies spends career funds, so the balances live in the body,
+              which keeps them at every width. The panel aside folds behind a
+              chevron at the default size, which would hide a balance exactly
+              where the operator is deciding to spend it. Funds always, rep and
+              science where the row can hold them, or one statement in place of
+              all three once they stop being current. */}
+          <BalanceRow data-balance-row="">
+            {balancesNotCurrent ? (
+              /* One statement replaces all three figures. Three dashes would
+                 read as a career with nothing in it, and dashes are already what
+                 an absent economy renders, so the row has to name the link
+                 instead of showing the operator the same nothing twice over. */
+              <NotCurrentTally title="The career balances are no longer current, so affordability is not being checked">
+                balances not current
+              </NotCurrentTally>
+            ) : (
+              <>
+                <Tally>
+                  <Balance balance={funds} unit="funds" />
+                </Tally>
+                {reportsFundsDrain(netFunds) && (
+                  <>
+                    <Sep>·</Sep>
+                    <FundsDrain
+                      funds={magnitudeOf(funds)}
+                      netPerDay={netFunds}
+                    />
+                  </>
+                )}
+                {(w ?? 9) >= 6 && (
+                  <>
+                    <Sep>·</Sep>
+                    <Tally>
+                      <Balance balance={reputation} unit="rep" />
+                    </Tally>
+                    <Sep>·</Sep>
+                    <Tally>
+                      <Balance balance={science} unit="science" />
+                    </Tally>
+                  </>
+                )}
+              </>
+            )}
+          </BalanceRow>
           {screens.length === 0 ? (
             <ScreenSections {...sectionProps} strategies={strategies} />
           ) : (
@@ -1038,14 +1045,13 @@ function Balance<U extends string>({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const HeaderMeta = styled.div`
+const BalanceRow = styled.div`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: var(--gap-related);
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
-  flex-wrap: wrap;
 `;
 
 const Tally = styled.span<{ $overCap?: boolean }>`
@@ -1067,11 +1073,23 @@ const Sep = styled.span`
 `;
 
 const TinyFundsRow = styled.div`
+  display: flex;
+  gap: var(--gap-related);
   padding: 0 var(--space-12) var(--space-6);
   font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+`;
+
+/** The balance never gives up width: the tally beside it does. */
+const TinyFundsFigure = styled.span`
+  flex: none;
+`;
+
+const TinyTally = styled.span`
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
