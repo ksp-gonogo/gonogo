@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.1.0
+  version: 18.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -15600,7 +15600,10 @@ components:
         `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
         `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
         `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-        `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`.
+        `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+        `ScetAlarmConditionKind.ContractParameter` it is
+        `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
+        `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
       required:
         - kind
         - ut
@@ -15610,6 +15613,9 @@ components:
         - op
         - threshold
         - sustainSeconds
+        - contractId
+        - parameterTitle
+        - targetState
       properties:
         kind:
           $ref: "#/components/schemas/ScetAlarmConditionKind"
@@ -15679,8 +15685,9 @@ components:
           type: number
           x-sitrep-unit: s
           description: |-
-            Threshold only: how long the condition must hold, in seconds, before the
-            alarm fires. Zero fires on the first reading that matches.
+            Threshold and contract parameter: how long the condition must hold, in
+            seconds, before the alarm fires. Zero fires on the first reading that
+            matches.
 
             **Warp is stopped at the first match, not at the fire.** A sustain window is
             a span of the craft's time, and under warp one tick covers thousands of
@@ -15690,15 +15697,32 @@ components:
             once and then stops matching has still stopped the warp; that is the
             fail-safe side to err on, because the operator keeps their game and loses
             only the time they were skipping.
+        contractId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Contract parameter only: the contract's id, as
+            `career.status.contracts.active` carries it.
+        parameterTitle:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            Contract parameter only: the objective's title within that contract, matched
+            exactly. The first objective with the title answers.
+        targetState:
+          description: "Contract parameter only: the state the objective must reach."
+          allOf:
+            - $ref: "#/components/schemas/KspParameterState"
+              x-sitrep-unit: enum
     ScetAlarmConditionKind:
       type: integer
       description: |-
         Which kind of condition a SCET alarm watches for.
 
-        Every alarm has a vantage, so a kind is only about WHAT is watched. A
-        contract parameter has no member here yet because it reads a list-shaped
-        Topic and a dotted path cannot index a list, so it needs a matcher of its
-        own rather than a threshold's.
+        Every alarm has a vantage, so a kind is only about WHAT is watched, and each
+        kind names its own matcher: a threshold walks a dotted path to a number, and
+        a contract parameter, which lives in a list no path can index, finds its
+        contract and objective by identity.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -15715,6 +15739,17 @@ components:
             a clock, and a client has one; a threshold needs the craft's true state,
             which reaches the ground a light-time late and by then is no longer the
             answer to "is it above 100 km NOW".
+        - const: 2
+          title: ContractParameter
+          description: |-
+            One objective of one active contract reaching a state the operator chose, as
+            `career.status.contracts.active` reports it.
+
+            Level rather than edge, like the threshold: an objective already in its
+            target state when the alarm is armed is a condition that holds. A contract
+            no longer active leaves the condition unmet for ever, which is the fail-safe
+            answer for a contract that was completed, failed or withdrawn by some other
+            route.
     ScetAlarmDisarmArgs:
       type: object
       description: |-

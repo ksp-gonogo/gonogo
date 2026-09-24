@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   CommandErrorCode,
+  KspParameterState,
   type ScetAlarmAction,
   ScetAlarmActionKind,
   ScetAlarmConditionKind,
@@ -441,6 +442,26 @@ export class ScetAlarmBridge {
         ...(craft ? aboard(alarm, `vessel:${craft}`) : {}),
       };
     }
+    if (trigger.kind === "contract-parameter") {
+      /* Career bookkeeping belongs to the save rather than to any craft, so it
+         is read at the game's own subject, the same way funds are. */
+      return {
+        id: alarm.id,
+        name: alarm.name,
+        vantage,
+        subject: "game",
+        condition: {
+          kind: ScetAlarmConditionKind.ContractParameter,
+          contractId: String(trigger.contractId),
+          parameterTitle: trigger.parameterTitle,
+          targetState:
+            trigger.targetState === "Failed"
+              ? KspParameterState.Failed
+              : KspParameterState.Complete,
+          sustainSeconds: trigger.sustainSeconds,
+        },
+      };
+    }
     const address = thresholdAddress(trigger);
     if (address === null || trigger.kind !== "threshold") {
       logger.warn("alarm-host: SCET threshold has no Topic to read", {
@@ -694,9 +715,10 @@ function readFiredNotice(payload: unknown): {
 
 /**
  * Whether this alarm is one the simulation can be asked to shadow: a
- * command-vantage THRESHOLD carrying the Topic-and-path address.
+ * command-vantage THRESHOLD carrying the Topic-and-path address, or a contract
+ * objective, which the simulation reads off the career it already builds.
  *
- * Thresholds only, and the exclusion of the time arm is not an oversight. The
+ * Never a time alarm, and that exclusion is not an oversight. The
  * mod judges a command vantage's conditions against the readings that place
  * has been told, but against the GAME's clock, because there is no one clock a
  * vantage keeps: how far behind it sits depends on which craft it is listening
@@ -704,6 +726,7 @@ function readFiredNotice(payload: unknown): {
  * instant, which is a different alarm rather than a second opinion on this one.
  */
 function isShadowable(alarm: Alarm): boolean {
+  if (alarm.trigger.kind === "contract-parameter") return true;
   return (
     !isAtSubjectVantage(alarm.trigger) &&
     thresholdAddress(alarm.trigger) !== null

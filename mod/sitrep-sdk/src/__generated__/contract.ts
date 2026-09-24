@@ -4136,10 +4136,10 @@ export interface RotorReverseArgs
 /**
 * Which kind of condition a SCET alarm watches for.
 *
-* Every alarm has a vantage, so a kind is only about WHAT is watched. A
-* contract parameter has no member here yet because it reads a list-shaped
-* Topic and a dotted path cannot index a list, so it needs a matcher of its
-* own rather than a threshold's.
+* Every alarm has a vantage, so a kind is only about WHAT is watched, and each
+* kind names its own matcher: a threshold walks a dotted path to a number, and
+* a contract parameter, which lives in a list no path can index, finds its
+* contract and objective by identity.
 */
 export enum ScetAlarmConditionKind {
 	/** An instant on the craft's own clock, as a universal time. */
@@ -4154,7 +4154,18 @@ export enum ScetAlarmConditionKind {
 	* which reaches the ground a light-time late and by then is no longer the
 	* answer to "is it above 100 km NOW".
 	*/
-	Threshold = 1
+	Threshold = 1,
+	/**
+	* One objective of one active contract reaching a state the operator chose, as
+	* `career.status.contracts.active` reports it.
+	*
+	* Level rather than edge, like the threshold: an objective already in its
+	* target state when the alarm is armed is a condition that holds. A contract
+	* no longer active leaves the condition unmet for ever, which is the fail-safe
+	* answer for a contract that was completed, failed or withdrawn by some other
+	* route.
+	*/
+	ContractParameter = 2
 }
 /**
 * How a threshold condition compares the reading to the operator's number.
@@ -4218,7 +4229,10 @@ export enum ScetAlarmState {
 * `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
 * `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
 * `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`.
+* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+* `ScetAlarmConditionKind.ContractParameter` it is
+* `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
+* `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
 */
 export interface ScetAlarmCondition
 {
@@ -4278,8 +4292,9 @@ export interface ScetAlarmCondition
 	*/
 	threshold: number;
 	/**
-	* Threshold only: how long the condition must hold, in seconds, before the
-	* alarm fires. Zero fires on the first reading that matches.
+	* Threshold and contract parameter: how long the condition must hold, in
+	* seconds, before the alarm fires. Zero fires on the first reading that
+	* matches.
 	*
 	* **Warp is stopped at the first match, not at the fire.** A sustain window is
 	* a span of the craft's time, and under warp one tick covers thousands of
@@ -4291,6 +4306,18 @@ export interface ScetAlarmCondition
 	* only the time they were skipping.
 	*/
 	sustainSeconds: Value<"s">;
+	/**
+	* Contract parameter only: the contract's id, as
+	* `career.status.contracts.active` carries it.
+	*/
+	contractId: string;
+	/**
+	* Contract parameter only: the objective's title within that contract, matched
+	* exactly. The first objective with the title answers.
+	*/
+	parameterTitle: string;
+	/** Contract parameter only: the state the objective must reach. */
+	targetState: KspParameterState;
 }
 /**
 * What a SCET alarm's onboard action does to the craft when the alarm fires.

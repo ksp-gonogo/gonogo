@@ -961,11 +961,14 @@
       "vantage": "id"
     },
     "ScetAlarmCondition": {
+      "contractId": "id",
       "fieldPath": "id",
       "kind": "enum",
       "leadSeconds": "s",
       "op": "enum",
+      "parameterTitle": "text",
       "sustainSeconds": "s",
+      "targetState": "enum",
       "threshold": "n/a",
       "topic": "id",
       "ut": "ut"

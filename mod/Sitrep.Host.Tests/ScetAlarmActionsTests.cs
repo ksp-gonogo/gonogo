@@ -20,6 +20,8 @@ namespace Sitrep.Host.Tests
         {
             public ScetReading Next = ScetReading.NotObservable;
 
+            public IDictionary<string, object?>? ReadPayload(string subject, string topic) => null;
+
             public ScetReading Read(string subject, string topic, string fieldPath) => Next;
         }
 

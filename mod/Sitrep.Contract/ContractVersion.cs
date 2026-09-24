@@ -1816,7 +1816,18 @@ namespace Sitrep.Contract
         /// Held by the simulation it runs in the fire's own frame, which is only
         /// honest where the craft itself could have judged the condition, so an
         /// arm carrying actions anywhere else is refused.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 1 -&gt; 2: a SCET alarm can watch a
+        /// contract objective.</b> One new member,
+        /// <see cref="ScetAlarmConditionKind.ContractParameter"/>, and three new
+        /// fields on <see cref="ScetAlarmCondition"/>:
+        /// <see cref="ScetAlarmCondition.ContractId"/>,
+        /// <see cref="ScetAlarmCondition.ParameterTitle"/> and
+        /// <see cref="ScetAlarmCondition.TargetState"/>. Appended, so no existing
+        /// ordinal moves, and every new field defaults to what an alarm of the
+        /// two existing kinds never reads, so an Uplink built against 18.1 is
+        /// unaffected.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }
