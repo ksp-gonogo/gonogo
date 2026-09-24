@@ -151,6 +151,7 @@ namespace Sitrep.Host.Tests
         [InlineData(CommsControlSource.Full, CommsControlStateKind.Full, true)]
         [InlineData(CommsControlSource.Partial, CommsControlStateKind.PartialManoeuvre, true)]
         [InlineData(CommsControlSource.None, CommsControlStateKind.None, false)]
+        [InlineData(CommsControlSource.Unknown, CommsControlStateKind.Unknown, false)]
         public void ModelAbsent_TakesControlFromTheCraftNotTheLink(
             CommsControlSource local,
             CommsControlStateKind expectedState,
@@ -256,10 +257,11 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The probe reads live KSP on the capture path; a scene-settle throw
-        /// must not escape onto it, and must not be read as "controllable".
+        /// must not escape onto it, and must be read neither as "controllable"
+        /// nor as a craft with nothing aboard to command it.
         /// </summary>
         [Fact]
-        public void AThrowingControlProbe_ReadsAsNoCommandSource()
+        public void AThrowingControlProbe_ReadsAsUnknown()
         {
             var wrapped = CommsModelPolicy.Effective(
                 new StubBackend(connected: false),
@@ -267,7 +269,10 @@ namespace Sitrep.Host.Tests
                 () => throw new InvalidOperationException("torn-down vessel"),
                 () => new PayloadMeta());
 
-            Assert.Equal(CommsControlSource.None, wrapped!.Connectivity().ControlSource);
+            Assert.Equal(CommsControlSource.Unknown, wrapped!.Connectivity().ControlSource);
+            Assert.False(wrapped.Connectivity().HasLocalControl);
+            Assert.Equal(CommsControlStateKind.Unknown, wrapped.ControlState().Level);
+            Assert.Null(wrapped.ControlState().Reason);
             // Still connected: the link is not what threw.
             Assert.True(wrapped.Connectivity().Connected);
         }

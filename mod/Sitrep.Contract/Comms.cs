@@ -38,9 +38,17 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum CommsControlSource
 {
+    /// <summary>A measurement: the craft has no control source.</summary>
     None,
     Partial,
     Full,
+    /// <summary>
+    /// The game reported a control level this build does not name. Not
+    /// <see cref="None"/>: nothing was measured to be absent, the level simply
+    /// has no tier here yet. <see cref="CommsConnectivity.HasLocalControl"/> is
+    /// false alongside it and says nothing.
+    /// </summary>
+    Unknown,
 }
 
 /// <summary>
@@ -102,9 +110,15 @@ public class CommsSignal
 [SitrepContract]
 public enum CommsControlStateKind
 {
+    /// <summary>A measurement: the craft cannot be commanded.</summary>
     None,
     PartialManoeuvre,
     Full,
+    /// <summary>
+    /// The game reported a control level this build does not name, so whether
+    /// the craft can be commanded is not known. Not <see cref="None"/>.
+    /// </summary>
+    Unknown,
 }
 
 /// <summary>

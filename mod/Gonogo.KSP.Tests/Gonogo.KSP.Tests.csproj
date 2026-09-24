@@ -329,6 +329,7 @@
          DevCommsOverride. All CommNet/CommNode-level types, the same headless
          reference-DLL contract FleetCommsReader.cs above already relies on. -->
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
+    <Compile Include="..\Gonogo.KSP\ControlLevelGrade.cs" />
     <!-- CommsModelPresence.cs is the three live reads behind the no-comms-model
          rule (the CommNet difficulty option, the craft's own control tier, the
          payload meta). CommsCoreUplink.cs calls it, so it has to resolve here;
@@ -392,6 +393,7 @@
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommNetHomeAccess.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
+    <Compile Include="..\Gonogo.KSP\RosterControlSource.cs" />
     <!-- The career refusal RULES, carved out of KspCareerActuator so a headless
          test can enter them at all: the actuator's own bodies reach Funding /
          ScenarioUpgradeableFacilities / ContractSystem, every one a MonoBehaviour

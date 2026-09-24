@@ -116,7 +116,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// <c>KspHost.MapRosterControlSource</c>'s raw "None"/"Partial"/"Full"
+        /// <c>RosterControlSource.For</c>'s raw "None"/"Partial"/"Full"/"Unknown"
         /// string mapped onto <see cref="RosterCommsControlSource"/>. Null
         /// input (the producer's own "nothing to read this tick" case) maps
         /// to null, not a fabricated <c>None</c>: see
@@ -130,6 +130,7 @@ namespace Sitrep.Host
                 "Full" => RosterCommsControlSource.Full,
                 "Partial" => RosterCommsControlSource.Partial,
                 "None" => RosterCommsControlSource.None,
+                "Unknown" => RosterCommsControlSource.Unknown,
                 _ => null,
             };
         }
