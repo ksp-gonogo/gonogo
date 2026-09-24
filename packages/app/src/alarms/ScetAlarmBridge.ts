@@ -109,6 +109,14 @@ export interface ScetAlarmBridgeContext {
   nowMs(): number;
   /** The arm went through, so any refusal recorded against this id is stale. */
   onArmAccepted(id: string): void;
+  /**
+   * The ids this install has asked the mod to hold, kept across a reload so an
+   * alarm deleted while the link was down is still retracted when it returns.
+   */
+  armedIds: {
+    get(): readonly string[];
+    set(ids: readonly string[]): void;
+  };
 }
 
 /**
@@ -129,13 +137,18 @@ export interface ScetAlarmBridgeContext {
  *
  * ## Reconciliation, not a handshake
  *
- * The client stays the authority: alarms live in its own localStorage list and
- * only the SCET-armed subset crosses. On every roster frame the bridge arms
- * what the mod does not hold and disarms what it holds that no pending SCET
- * alarm of ours accounts for. That is the only shape that survives a
- * disconnect without leaving arms in the mod that nothing remembers making,
- * and it is self-healing: after a quickload the mod publishes an empty roster
- * and the next reconcile re-arms everything.
+ * The client stays the authority for its own alarms: they live in its own
+ * localStorage list and only the SCET-armed subset crosses. On every roster
+ * frame the bridge arms what the mod does not hold, and disarms what it holds
+ * that this install once asked for and no pending alarm of ours accounts for
+ * any more. It is self-healing: after a quickload the mod publishes an empty
+ * roster and the next reconcile re-arms everything.
+ *
+ * The roster is global, so it also carries alarms other screens armed: a
+ * pilot's own list, an Uplink arming for itself. Those are left alone. An id
+ * this install never asked for is one it knows nothing about, and its absence
+ * from our list is not an instruction to delete it. Retracting on absence
+ * alone had two screens disarming each other's alarms on every frame.
  *
  * ## What the SHADOW arm adds
  *
@@ -200,10 +213,21 @@ export class ScetAlarmBridge {
    * clears the in-flight guard does not re-send a question already answered.
    */
   private settled = new Set<string>();
+  /**
+   * The ids this install has asked the mod to hold and not yet seen leave its
+   * roster: the only ids a reconcile may disarm unasked.
+   */
+  private readonly armedIds: Set<string>;
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
     this.ctx = ctx;
+    const stored: unknown = ctx.armedIds.get();
+    this.armedIds = new Set(
+      Array.isArray(stored)
+        ? stored.filter((id): id is string => typeof id === "string")
+        : [],
+    );
   }
 
   /**
@@ -295,13 +319,35 @@ export class ScetAlarmBridge {
       if (!wanted.has(id)) this.owed.delete(id);
     }
 
+    const held = new Set(this.rosterIds);
+    const before = this.armedIds.size;
+    let forgot = false;
+    for (const id of wanted.keys()) this.armedIds.add(id);
     for (const id of this.rosterIds) {
-      if (!wanted.has(id) && !this.commandedSinceRoster.has(id)) {
+      if (
+        !wanted.has(id) &&
+        this.armedIds.has(id) &&
+        !this.commandedSinceRoster.has(id)
+      ) {
         this.commandedSinceRoster.add(id);
         this.disarm(id);
       }
     }
-    const held = new Set(this.rosterIds);
+    /* Forgotten once off the roster, but not while a command is in flight: an
+       arm that lands after its alarm was deleted must still be ours to retract. */
+    for (const id of this.armedIds) {
+      if (
+        !wanted.has(id) &&
+        !held.has(id) &&
+        !this.commandedSinceRoster.has(id)
+      ) {
+        this.armedIds.delete(id);
+        forgot = true;
+      }
+    }
+    if (forgot || this.armedIds.size !== before) {
+      this.ctx.armedIds.set([...this.armedIds]);
+    }
     for (const [id, alarm] of wanted) {
       if (this.commandedSinceRoster.has(id) || this.settled.has(id)) continue;
       const owedAt = this.owed.get(id);

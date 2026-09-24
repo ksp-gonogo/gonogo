@@ -647,7 +647,7 @@ describe("SCET alarms", () => {
     svc.dispose();
   });
 
-  it("disarms one an Uplink armed for itself, because no alarm of ours accounts for it", async () => {
+  it("leaves alone an entry it never asked for, such as one an Uplink armed for itself", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
     const svc = new AlarmHostService(null, {
@@ -665,22 +665,103 @@ describe("SCET alarms", () => {
 
     await run(session, UT_START + 4 * DT);
 
-    expect(session.armed()).toEqual([]);
-    svc.dispose();
+    try {
+      /* Missing from this client's list says only that this client does not
+         know it. Any screen may still disarm it deliberately. */
+      expect(session.armed()).toEqual(["rp1-fund-target"]);
+      expect(session.commands).not.toContain("alarm.scet.disarm");
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("leaves another screen's alarm armed, so two screens with their own lists do not disarm each other", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const ground = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = ground.addAlarm({
+      name: "Apoapsis",
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
+    });
+    await run(session, UT_START + 4 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+
+    // A pilot's screen: its own service, its own storage, none of our alarms.
+    const pilot = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    try {
+      for (let step = 5; step <= 12; step++) {
+        await run(session, UT_START + step * DT);
+        expect(session.armed()).toEqual([alarm.id]);
+      }
+      expect(session.armAttempts(alarm.id)).toBe(1);
+      expect(session.commands).not.toContain("alarm.scet.disarm");
+    } finally {
+      ground.dispose();
+      pilot.dispose();
+    }
+  });
+
+  it("still retracts an alarm deleted while the link was down, after a reload", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const storage = memoryStorage();
+    const before = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage,
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = before.addAlarm({
+      name: "Apoapsis",
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
+    });
+    await run(session, UT_START + 4 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+
+    setActiveTelemetryClientForTests(undefined);
+    before.deleteAlarm(alarm.id);
+    before.dispose();
+
+    const after = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage,
+      getOwltSeconds: () => OWLT,
+    });
+    try {
+      session.attach();
+      session.reconnect();
+      for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+      expect(session.armed()).toEqual([]);
+    } finally {
+      after.dispose();
+    }
   });
 
   it("keeps an alarm an Uplink asked for armed, because the app made it", async () => {
     /*
      * The wall this feature had to get past, and the shape that gets past it.
      *
-     * `reconcile` reads the mod's roster and disarms every id the APP's own
-     * list cannot account for, with no filter on who armed what. An Uplink
-     * dispatching `alarm.scet.arm` for itself is therefore disarmed a frame or
-     * two later, and nothing reports it: the test above measures exactly that,
-     * by deleting the alarm and watching the arm go.
+     * An Uplink dispatching `alarm.scet.arm` for itself gets an alarm no
+     * screen's list holds, so nothing arms it again after a quickload and no
+     * screen fires it as its own.
      *
-     * A REQUESTED alarm is an ordinary entry in that list, so the diff finds it
-     * and leaves it armed. The provenance rides along and changes nothing about
+     * A REQUESTED alarm is an ordinary entry in the app's list, so the diff
+     * finds it and keeps it armed. The provenance rides along and changes nothing about
      * the reconcile, which is the property being asserted: an alarm an Uplink
      * asked for is not a special case anywhere downstream of `addAlarm`.
      */
