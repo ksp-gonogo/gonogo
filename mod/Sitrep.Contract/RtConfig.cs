@@ -375,6 +375,11 @@ public static class RtConfig
                 // words take to reach a human at another
                 typeof(CommandCentreSeparation),
                 typeof(CentreSeparationEntry),
+                // commandCentre.activeVesselDelay: each centre's own delay to
+                // the active craft, the number that centre's telemetry and
+                // commands are timed by
+                typeof(CommandCentreActiveVesselDelay),
+                typeof(CentreDelayEntry),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

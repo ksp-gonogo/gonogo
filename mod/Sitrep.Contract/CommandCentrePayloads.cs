@@ -190,3 +190,58 @@ public class CommandCentreSeparation
     /// <summary>Every ordered pair with a routed path, plus each centre's own zero.</summary>
     public IReadOnlyList<CentreSeparationEntry> Pairs { get; set; } = new List<CentreSeparationEntry>();
 }
+
+/// <summary>
+/// One command centre's own one-way delay to the active craft, in the
+/// <c>commandCentre.activeVesselDelay</c> channel.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CentreDelayEntry
+{
+    /// <summary>The centre, as a roster <c>Id</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Id { get; set; } = "";
+
+    /// <summary>One-way signal time along the centre's own routed path to the active craft.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double OneWaySeconds { get; set; }
+}
+
+/// <summary>
+/// How far each command centre is from the active craft, one-way, along its own
+/// routed path: the delay every ordinary channel reaches that centre at, and
+/// the delay a command from it takes to arrive.
+///
+/// <para><b>Sparse, and that is the contract.</b> A centre is listed only when
+/// it has a delay of its own. The home centre is never listed: its delay is
+/// <c>comms.delay</c>, which also carries the hold through a loss of signal. A
+/// centre other than home that is not listed has no route to the craft. Neither
+/// absence is a zero, and a reader that finds a centre missing must not quote
+/// one for it.</para>
+///
+/// <para>The crewed centre that IS the active craft is listed at an explicit
+/// zero: a craft is no distance from itself.</para>
+///
+/// <para>DELAYED, on the same reasoning as <c>comms.delay</c>: each centre
+/// learns the figures one of its own light-times after they held, so a centre's
+/// own entry is the delay it was under when the frame left.
+/// <internal>
+/// Published from the rows <c>CommandCentreDelayUplink.CaptureLedgerOnMain</c>
+/// builds against <c>ChannelEngine.NodeId</c>, the same set
+/// <c>IUplinkHost.SetActiveVesselDelays</c> writes into the ledger, so the
+/// readout and the ledger cannot disagree about which centre has a row.
+/// </internal></para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("commandCentre.activeVesselDelay")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommandCentreActiveVesselDelay
+{
+    /// <summary>Every centre with a delay of its own to the active craft.</summary>
+    public IReadOnlyList<CentreDelayEntry> Centres { get; set; } = new List<CentreDelayEntry>();
+}

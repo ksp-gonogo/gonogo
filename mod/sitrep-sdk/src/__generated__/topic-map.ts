@@ -33,6 +33,7 @@ import type {
   CareerFacilities,
   CareerMode,
   CareerStatus,
+  CommandCentreActiveVesselDelay,
   CommandCentreEntry,
   CommandCentreSeparation,
   CommsCommandCentre,
@@ -113,6 +114,7 @@ export interface GeneratedTopicPayloadMap {
   "career.facilities": CareerFacilities;
   "career.mode": CareerMode;
   "career.status": CareerStatus;
+  "commandCentre.activeVesselDelay": CommandCentreActiveVesselDelay;
   "commandCentre.roster": CommandCentreEntry[];
   "commandCentre.separation": CommandCentreSeparation;
   "comms.commandCentre": CommsCommandCentre;
@@ -193,6 +195,7 @@ export const GENERATED_TOPIC_IDS = [
   "career.facilities",
   "career.mode",
   "career.status",
+  "commandCentre.activeVesselDelay",
   "commandCentre.roster",
   "commandCentre.separation",
   "comms.commandCentre",
