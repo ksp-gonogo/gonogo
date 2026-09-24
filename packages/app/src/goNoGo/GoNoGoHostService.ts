@@ -22,7 +22,7 @@ import {
   getViewUt,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
-import { magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, Situation } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
 
@@ -195,6 +195,13 @@ export class GoNoGoHostService {
     // from (`missionElapsed()` already answers `null` in exactly those cases).
     this.unsubs.push(
       onActiveTimelineFrame(() => {
+        // A craft on the pad has no launch clock, so `met` is null there rather
+        // than 0, and a null is also what a frame without identity yet reads. The
+        // situation is what says "on the pad", which a revert to launch needs.
+        if (getVesselIdentity()?.situation === Situation.PreLaunch) {
+          this.handleMissionTime(0);
+          return;
+        }
         const met = missionElapsed();
         if (met != null) this.handleMissionTime(met);
       }),

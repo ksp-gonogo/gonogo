@@ -99,6 +99,57 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildIdentityPrefersTheVesselsOwnLaunchTimeOverSampleUtMinusMissionTime()
+        {
+            // The two halves of Ut - missionTime are captured at different moments, so under
+            // warp their difference wanders by seconds between samples; launchTime does not.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?>
+                {
+                    ["id"] = VesselGuid,
+                    ["name"] = "commsat",
+                    ["vesselType"] = "Relay",
+                    ["situation"] = "ORBITING",
+                    ["launchTime"] = 100.0,
+                },
+                flight: new Dictionary<string, object?> { ["missionTime"] = 38.0 },
+                bodies: null);
+            snapshot.Ut = 140.0;
+
+            var identity = VesselViewProvider.BuildIdentity(snapshot);
+
+            Assert.Equal(100.0, identity!.LaunchUt);
+        }
+
+        [Fact]
+        public void BuildIdentitySendsNoLaunchUtForACraftStillOnThePad()
+        {
+            /*
+             * KSP re-stamps launchTime to the current UT on every update in PRELAUNCH,
+             * so either input would name "now". A launchUt that moves with the clock
+             * makes viewUt - launchUt a positive mission time on the pad, which a
+             * consumer reads as a launch.
+             */
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?>
+                {
+                    ["id"] = VesselGuid,
+                    ["name"] = "Muna 1",
+                    ["vesselType"] = "Probe",
+                    ["situation"] = "PRELAUNCH",
+                    ["launchTime"] = 140.0,
+                },
+                flight: new Dictionary<string, object?> { ["missionTime"] = 0.0 },
+                bodies: null);
+            snapshot.Ut = 140.0;
+
+            var identity = VesselViewProvider.BuildIdentity(snapshot);
+
+            Assert.Equal(Situation.PreLaunch, identity!.Situation);
+            Assert.Null(identity.LaunchUt);
+        }
+
+        [Fact]
         public void BuildIdentityLeavesParentBodyIndexAndLaunchUtNullWhenTheirInputsAreAbsent()
         {
             var snapshot = SnapshotWith(
