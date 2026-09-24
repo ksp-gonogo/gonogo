@@ -71,7 +71,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
 
   it("a warp-ladder click dispatches a COMMAND (time.setWarpIndex), never the legacy execute()", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp", "time.setWarpIndex"],
+      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -121,7 +121,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
    */
   it("announces warp intent to its own screen before commanding a warp", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp", "time.setWarpIndex"],
+      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -162,7 +162,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
    */
   it("commands a warp with no announcer mounted at all", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp", "time.setWarpIndex"],
+      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -200,12 +200,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
 
   it("pause/unpause dispatch the absolute time.setPaused command", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "time.warp",
-        "time.setWarpIndex",
-        "time.setPaused",
-        "vessel.identity",
-      ],
+      carriedChannels: ["time.warp", "vessel.identity"],
       pinnedUt: 10,
       suspendFrames: true,
     });
