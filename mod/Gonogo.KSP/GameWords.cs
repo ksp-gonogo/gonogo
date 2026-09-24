@@ -91,20 +91,56 @@ namespace Gonogo.KSP
         {
             try
             {
-                var formatted = args == null || args.Length == 0
-                    ? Localizer.Format(key)
-                    : Localizer.Format(key, args);
-                if (string.IsNullOrWhiteSpace(formatted) ||
-                    formatted.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return fallback;
-                }
-                return formatted;
+                return Resolved(
+                    args == null || args.Length == 0 ? Localizer.Format(key) : Localizer.Format(key, args),
+                    fallback);
             }
             catch (Exception)
             {
                 return fallback;
             }
         }
+
+        /// <summary>
+        /// A name the game stores as either a localisation tag or plain text, as
+        /// the player sees it in game. A stock craft is named
+        /// <c>#autoLOC_8006417</c> in its save and a player's own craft by what
+        /// they typed; <c>Localizer.Format</c> resolves the first and passes the
+        /// second through, which is all <c>Vessel.GetDisplayName</c> does.
+        ///
+        /// <para>Checked the same way as <see cref="Sentence"/>, because the
+        /// Localizer fails silently in both directions: empty when it is not up,
+        /// the tag itself when its table has no entry. Either way the answer is
+        /// <paramref name="fallback"/>.</para>
+        /// </summary>
+        public static string Name(string stored, string fallback)
+        {
+            try
+            {
+                return Resolved(Localizer.Format(stored), fallback);
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
+        }
+
+        /// <summary>
+        /// A craft's name as the player sees it in game, for anything that names
+        /// it to an operator. A craft with no name at all is <c>Vessel</c>.
+        /// </summary>
+        public static string VesselName(Vessel vessel) =>
+            string.IsNullOrEmpty(vessel.vesselName) ? "Vessel" : Name(vessel.vesselName, vessel.vesselName);
+
+        /// <summary>
+        /// A string KSP has already put through <c>Localizer</c>, or
+        /// <paramref name="fallback"/> when that produced nothing a player could
+        /// read: blank, or a tag that did not resolve.
+        /// </summary>
+        public static string Resolved(string? formatted, string fallback) =>
+            string.IsNullOrWhiteSpace(formatted) ||
+            formatted!.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0
+                ? fallback
+                : formatted;
     }
 }
