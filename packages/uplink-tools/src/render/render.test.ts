@@ -20,7 +20,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { UplinkInventory } from "../render-probe";
 import { refuseToClobberHandWrittenReadme } from "./cli";
 import { resolveUplinkPackage } from "./context";
-import { README_GENERATED_MARKER, scenesAssertingNothing } from "./docs";
+import {
+  linkedAssets,
+  README_GENERATED_MARKER,
+  scenesAssertingNothing,
+} from "./docs";
 import { encodeGif } from "./gif";
 import { generateEntry, oneCopyPerPage } from "./page";
 import { decodePng } from "./png";
@@ -680,6 +684,20 @@ describe("fixtures become scenes", () => {
         INVENTORY,
       ),
     ).toThrow(/cannot both be set/);
+  });
+
+  it("names the assets a render writes: a motion scene's first size is a GIF, every other size a still", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({
+        _scene: { widget: "reactor", steps: [{ advanceUt: 60, frames: 4 }] },
+      }),
+    );
+    expect(
+      linkedAssets(buildScenes(pkg, INVENTORY)).map((a) => [a.file, a.kind]),
+    ).toEqual([
+      ["hot--default.gif", "motion"],
+      ["hot--min.png", "still"],
+    ]);
   });
 
   it("defaults every emission's instant to the pinned clock", () => {
