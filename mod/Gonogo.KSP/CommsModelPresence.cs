@@ -71,16 +71,7 @@ namespace Gonogo.KSP
             {
                 return CommsControlSource.None;
             }
-            switch (vessel.CurrentControlLevel)
-            {
-                case Vessel.ControlLevel.FULL:
-                    return CommsControlSource.Full;
-                case Vessel.ControlLevel.PARTIAL_MANNED:
-                case Vessel.ControlLevel.PARTIAL_UNMANNED:
-                    return CommsControlSource.Partial;
-                default:
-                    return CommsControlSource.None;
-            }
+            return ControlLevelGrade.SourceOf(vessel.CurrentControlLevel);
         }
 
         /// <summary>

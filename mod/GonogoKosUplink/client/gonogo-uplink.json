@@ -9,7 +9,7 @@
   "apiVersion": "3.0.0",
   "uiKitVersion": "0.1.0",
   "contractMajor": 18,
-  "contractMinor": 3,
+  "contractMinor": 4,
   "bundleUrl": "kos/kos.client.js",
   "integrity": "",
   "sdkVersion": "0.0.1"

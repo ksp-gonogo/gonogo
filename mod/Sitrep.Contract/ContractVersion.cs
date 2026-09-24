@@ -1876,7 +1876,14 @@ namespace Sitrep.Contract
         /// ordinal moves, and every new field defaults to what an alarm of the
         /// two existing kinds never reads, so an Uplink built against 18.2 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 3 -&gt; 4:</b> an appended <c>Unknown</c> on
+        /// <see cref="CommsControlSource"/>, <see cref="CommsControlStateKind"/> and
+        /// <see cref="CommsControlGrade"/>, the comms half of the roster's own
+        /// <c>Unknown</c> above, for a control level the producer cannot name, which it
+        /// had been reporting as <c>None</c>. Additive, nothing removed or retyped, so
+        /// an Uplink built against 18.3 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }
