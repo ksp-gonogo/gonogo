@@ -28,8 +28,10 @@ import { VantageControl } from "./VantageControl";
  * matters when it does can still declare its own live region, and the station's
  * vantage readout is one.
  *
- * The signal delay sits beside the command centre because it is that centre's
- * distance from the craft, and it is only there while a craft is flying.
+ * The signal delay sits beside the command centre because on a command-centre
+ * screen it is that centre's distance from the craft. A pilot's is the distance
+ * back to the centre mission control stands at. Either way it is only there
+ * while a craft is flying.
  */
 export function MissionBanner() {
   const ut = useViewUt();
