@@ -185,6 +185,42 @@ describe("TimelineStore: raw record field-subtopic resolution", () => {
     );
   });
 
+  it("a raw field subtopic goes stale when its parent stops arriving", () => {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock, {
+      heartbeatOptions: {
+        defaultKeyframeIntervalUt: 30,
+        marginMultiplier: 1,
+        jitterAllowanceUt: 0,
+      },
+    });
+    const warp = { warpRate: 5, warpRateIndex: 1, warpMode: 0, paused: false };
+    const pacer = (validAt: number): TimelinePoint<number> => ({
+      validAt,
+      payload: 1,
+      meta: makeMeta({ validAt, deliveredAt: validAt, source: "game" }),
+      epoch: 0,
+    });
+
+    for (const t of [0, 30, 60, 90]) {
+      store.ingest("pacer.tick", pacer(t));
+      store.ingest("time.warp", warpPoint(warp, { validAt: t }));
+    }
+    store.beginFrame();
+    expect(store.sampleStatus("time.warp.warpRate")).toBe("live");
+
+    // time.warp goes silent while another topic keeps the clock moving, well
+    // past its last keyframe plus interval plus margin.
+    store.ingest("pacer.tick", pacer(160));
+    const token = store.beginFrame();
+
+    expect(store.sampleStatus("time.warp", token)).toBe("held-stale");
+    expect(store.sampleStatus("time.warp.warpRate", token)).toBe("held-stale");
+    expect(store.sampleReading("time.warp.warpRate", token).state).toBe(
+      "stale",
+    );
+  });
+
   it("a genuinely 2-segment raw topic (no field to split) is unaffected; reads its own literal timeline exactly as before", () => {
     const store = newStore();
     store.ingest("vessel.orbit", {

@@ -3110,32 +3110,42 @@ export class TimelineStore {
       );
     }
 
+    /*
+     * A raw field subtopic with no literal point of its own takes its parent's
+     * status outright, by recursing on the parent, which lands in the ordinary
+     * raw branch and memoizes there. A topic that genuinely IS its own literal
+     * raw topic, even a 3+-segment one fed directly, keeps its own status.
+     *
+     * Asked BEFORE the literal read, because that read goes through
+     * `sample()`, which already walks the field out of the parent: it finds a
+     * point, and the heartbeat tracker is then asked about a topic string no
+     * frame ever carried and answers "not overdue", so the field would read
+     * `live` off a parent that has gone stale.
+     */
+    const rawFieldParent = this.resolveRawFieldSubtopic(topic);
+    if (rawFieldParent && !this.hasLiteralPoint(topic, effectiveToken)) {
+      return this.sampleStatus(rawFieldParent.rawTopic, effectiveToken);
+    }
+
     // Fold epoch into the raw-status key too. A status memoized before a
     // mid-frame epoch bump must not survive it, or it would disagree with the
     // (epoch-folded) value read for the same topic and could report the dead
     // timeline's status for the rest of the frame.
     const epoch = this.clock.getEpoch();
-    const literalStatus = this.memoize(
+    return this.memoize(
       effectiveToken,
       `\0status\0${topic}\0epoch\0${epoch}`,
       () => this.sampleRawStatus(topic, effectiveToken),
     );
-    // `"resyncing"` from the literal read means "no point ever recorded
-    // under this exact topic string" (`sampleRawStatus`'s own first check),
-    // the same signal `sample()`'s literal-first fallback uses. Only then
-    // try the raw record field-subtopic interpretation (mirrors
-    // `sample()`'s matching branch): a field subtopic's status IS its real
-    // parent raw topic's status outright, delegated by recursing straight
-    // into this same method against `rawTopic`, that call hits the ordinary
-    // raw-status branch directly (a 2-segment topic never itself splits
-    // further) and memoizes there, so this delegation adds no extra caching
-    // layer. A topic that genuinely IS its own literal raw topic (even a
-    // 3+-segment one fed directly, same caveat as `sample()`'s doc) keeps
-    // its own literal status once it has one.
-    if (literalStatus !== "resyncing") return literalStatus;
-    const rawField = this.resolveRawFieldSubtopic(topic);
-    if (!rawField) return literalStatus;
-    return this.sampleStatus(rawField.rawTopic, effectiveToken);
+  }
+
+  /** Whether `topic` has a point recorded under its own literal string, in this epoch, by the frame's view time. */
+  private hasLiteralPoint(topic: string, token: FrameToken): boolean {
+    const timeline = this.timelines.get(topic);
+    if (!timeline || timeline.epoch < this.clock.getEpoch()) return false;
+    return (
+      timeline.at(this.viewUtFor(token, this.laneForTopic(topic))) !== undefined
+    );
   }
 
   /**
