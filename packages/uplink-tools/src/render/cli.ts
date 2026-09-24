@@ -2,15 +2,21 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { display, resolveRenderModule, resolveUplinkPackage } from "./context";
+import {
+  display,
+  resolveRenderModule,
+  resolveUplinkPackage,
+  type UplinkPackage,
+} from "./context";
 import {
   buildManifest,
   buildReadme,
   type DocsInputs,
+  linkedAssets,
   README_GENERATED_MARKER,
   scenesAssertingNothing,
 } from "./docs";
-import { type Engine, renderUplink } from "./driver";
+import { type Engine, readUplinkScenes, renderUplink } from "./driver";
 import {
   type AssetShape,
   compareShapes,
@@ -28,6 +34,7 @@ import {
  *   gonogo-uplink render --scene <name>
  *   gonogo-uplink docs                      README.md + gonogo-uplink.json + assets
  *   gonogo-uplink docs --check              CI gate: fail on drift
+ *   gonogo-uplink docs --no-assets          README.md + gonogo-uplink.json only
  *
  * Zero required `package.json` script lines. An Uplink that wants
  * `pnpm ... render` adds one alias.
@@ -47,6 +54,7 @@ interface Args {
   bundle?: string;
   frames: boolean;
   check: boolean;
+  noAssets: boolean;
   withModules: string[];
 }
 
@@ -58,6 +66,7 @@ function parseArgs(argv: readonly string[]): Args {
     assetDir: "docs/assets",
     frames: false,
     check: false,
+    noAssets: false,
     withModules: [],
   };
   for (let i = 1; i < argv.length; i++) {
@@ -113,6 +122,9 @@ function parseArgs(argv: readonly string[]): Args {
       case "--check":
         args.check = true;
         break;
+      case "--no-assets":
+        args.noAssets = true;
+        break;
       default:
         throw new Error(`unknown flag "${flag}"`);
     }
@@ -125,6 +137,10 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   render                 render every fixture to ./renders/
   docs                   write README.md, gonogo-uplink.json and docs/assets/
   docs --check           regenerate in memory and fail on any difference
+  docs --no-assets       write README.md and gonogo-uplink.json only, and
+                         leave docs/assets/ as it is. For a change that moves
+                         the prose (a scene added or removed) on a machine whose
+                         renders are not the ones committed
 
   --root <dir>           the Uplink client package (default: cwd)
   --entry <file>         the client entry to bundle (default: src/index.ts)
@@ -170,6 +186,11 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 
   if (args.verb === "render") {
+    if (args.noAssets) {
+      throw new Error(
+        "--no-assets is a docs option: render writes only images",
+      );
+    }
     const outDir = resolve(pkg.dir, args.out ?? "renders");
     const result = await renderUplink(pkg, {
       engine: args.engine,
@@ -186,6 +207,18 @@ async function main(argv: readonly string[]): Promise<void> {
 
   if (args.verb !== "docs") {
     throw new Error(`unknown verb "${args.verb}"\n\n${USAGE}`);
+  }
+
+  if (args.noAssets) {
+    if (args.check) {
+      throw new Error(
+        "--no-assets and --check do not combine: the prose half of the check " +
+          "is `expectUplinkPageCurrent` in the Uplink's own test suite, and " +
+          "`docs --check` exists for the pictures.",
+      );
+    }
+    await writeProseOnly(pkg, args);
+    return;
   }
 
   const assetOut = args.check
@@ -313,6 +346,46 @@ async function main(argv: readonly string[]): Promise<void> {
     );
   }
   console.log("\ndocs --check: the committed page matches the code.");
+}
+
+/**
+ * `docs --no-assets`: the page's text, and nothing under the asset directory.
+ *
+ * The prose links every picture by name, so it can be written from the scenes
+ * without rendering one, and the names come from the same rule the renderer
+ * follows. The pictures a new scene links are then missing until the next
+ * regeneration on the machine whose renders are committed, which `docs --check`
+ * reports as a missing asset rather than hiding. The shape record is left alone
+ * for the same reason: it describes the committed pictures, and none of them moved.
+ */
+async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
+  const read = await readUplinkScenes(pkg, {
+    engine: args.engine,
+    uplinkId: args.uplink,
+    withModules: args.withModules,
+  });
+  const inputs: DocsInputs = {
+    pkg,
+    inventory: read.inventory,
+    scenes: read.scenes,
+    assets: linkedAssets(read.scenes),
+    bundle: args.bundle,
+    assetDir: args.assetDir,
+  };
+  const { manifest, warning } = buildManifest(inputs);
+  if (warning) console.warn(`\n  warning: ${warning}`);
+  const readmePath = join(pkg.dir, "README.md");
+  const manifestPath = join(pkg.dir, "gonogo-uplink.json");
+  await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
+  await writeFile(readmePath, buildReadme(inputs, manifest), "utf8");
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
+  console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
+  console.log(`wrote ${display(pkg.dir, manifestPath)}`);
+  console.log(`left ${args.assetDir}/ untouched`);
 }
 
 /**
