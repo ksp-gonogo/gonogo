@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,9 +48,12 @@ import { describe, expect, it } from "vitest";
  * `Value.toWire()` is the second act, named. It is counted HERE, by
  * {@link WIRE_BUDGET}, on the same shrink-only terms: a separate ceiling, not
  * an exemption. An uncounted exit would just be `.magnitude` with a better
- * name, and `magnitudeOf` is the standing demonstration of that: it is a
- * perfectly honest funnel that this scan cannot see, and it has grown to
- * several hundred call sites nobody has ever had to justify.
+ * name.
+ *
+ * `magnitudeOf` and `magnitudeOr` are the same case from the other side: an
+ * honest funnel whose one `.magnitude` is spent on behalf of every caller, so
+ * the property scan cannot see any of them. {@link FUNNEL_BUDGET} counts their
+ * CALLS instead, again as a separate ceiling rather than an exemption.
  *
  * A name is not a guard, so there is also
  * {@link WIRE_ARITHMETIC_PATTERNS}, which has no debt list at all and fails on
@@ -467,6 +476,31 @@ const WIRE_BUDGET: Record<string, number> = {
 };
 
 /**
+ * Per-PACKAGE ceiling on calls to `magnitudeOf` and `magnitudeOr`. Otherwise
+ * the same terms: each entry EQUALS its package's live count, a package absent
+ * from this map may not call either, and both arms below fail.
+ *
+ * Per package rather than per file because the calls are spread thin. Most
+ * files that make any make one to three, so a per-file map would be as long as
+ * the set of calling files and its entries would carry no reason worth
+ * reading. A package total still says where the growth is, and the failure
+ * narrows that to the file by counting the same package at `HEAD`.
+ *
+ * What a total cannot do is stop one file growing while another in the same
+ * package shrinks by as much. That is the price of a list short enough to be
+ * read, and the shrink arm still makes every fall permanent.
+ */
+const FUNNEL_BUDGET: Record<string, number> = {
+  "mod/GonogoBreakingGroundUplink": 2,
+  "mod/GonogoKerbalismUplink": 69,
+  "mod/sitrep-sdk": 25,
+  "packages/app": 8,
+  "packages/components": 152,
+  "packages/data": 5,
+  "packages/ui-kit": 8,
+};
+
+/**
  * Used as a guard on the guard. If the search silently stops matching (a bad
  * regex, a moved root, a renamed extension) every count reads as zero and the
  * budget reports success while checking nothing.
@@ -541,6 +575,27 @@ const WIRE_ARITHMETIC_PATTERNS = [
 ];
 
 /**
+ * A call of either funnel, {@link FUNNEL_BUDGET}'s subject. The `(` is what
+ * separates a call from an import or a `{@link}`.
+ *
+ * The leading class CONSUMES whatever identifier characters or backtick sit
+ * before the name, and {@link isFunnelCall} then drops any match that picked
+ * one up: `vecmagnitudeOf(` is another function, and a backticked
+ * `magnitudeOf(x)` is prose. The more obvious `(^|[^A-Za-z0-9_$])` prefix
+ * cannot be used, because `-o` takes matches without overlap, so in
+ * `magnitudeOr(magnitudeOf(x), 0)` the first match swallows the `(` the
+ * second one needs as its prefix and the inner call goes uncounted.
+ */
+const FUNNEL_CALL = "[A-Za-z0-9_$`]*magnitude(Of|Or)\\(";
+
+function isFunnelCall(match: string): boolean {
+  return match.startsWith("magnitude");
+}
+
+/** Where the pair is implemented, and so the one file whose calls are not uses. */
+const FUNNEL_DEFINITION = "mod/sitrep-sdk/src/magnitude.ts";
+
+/**
  * `-o` is what makes this scan count OCCURRENCES. Without it `git grep` emits
  * one record per matching LINE and the tally below counts records, so two
  * unwraps on one source line scored as one: sixteen lines across the tree were
@@ -597,22 +652,44 @@ function isNoMatchExit(err: unknown): boolean {
   );
 }
 
+/**
+ * `rev` scans a commit instead of the working tree, and `keep` sees each
+ * match's text so a pattern can be narrowed after the engine that counts has
+ * matched it.
+ */
+interface ScanOptions {
+  rev?: string;
+  keep?: (match: string) => boolean;
+}
+
 function countsByFile(
   root: string,
   pattern: string = PROPERTY_ACCESS,
+  { rev, keep }: ScanOptions = {},
 ): Map<string, number> {
   let out: string;
   try {
     out = execFileSync(
       "git",
-      // `--untracked` is load-bearing: `git grep` alone searches only
-      // TRACKED files, so a violation introduced in a BRAND-NEW file is
-      // invisible to this scan until the moment it is staged, and a local
-      // run before `git add` reports success while not looking at it. It
-      // still honours .gitignore, so build output stays out. `GREP_FLAGS`
-      // carries the `-o` that makes the tally below count occurrences rather
-      // than matching lines; see its own note.
-      ["grep", "--untracked", GREP_FLAGS, pattern, "--", ...SEARCH_GLOBS],
+      /*
+       * `--untracked` is load-bearing: `git grep` alone searches only TRACKED
+       * files, so a violation introduced in a BRAND-NEW file is invisible to
+       * this scan until the moment it is staged, and a local run before `git
+       * add` reports success while not looking at it. It still honours
+       * .gitignore, so build output stays out. A commit has no untracked
+       * files, and git refuses the flag beside a revision. `GREP_FLAGS`
+       * carries the `-o` that makes the tally below count occurrences rather
+       * than matching lines; see its own note.
+       */
+      [
+        "grep",
+        ...(rev ? [] : ["--untracked"]),
+        GREP_FLAGS,
+        pattern,
+        ...(rev ? [rev] : []),
+        "--",
+        ...SEARCH_GLOBS,
+      ],
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
     );
   } catch (err) {
@@ -623,13 +700,117 @@ function countsByFile(
     throw err;
   }
   const counts = new Map<string, number>();
-  for (const line of out.split("\n")) {
+  for (const raw of out.split("\n")) {
+    const line =
+      rev && raw.startsWith(`${rev}:`) ? raw.slice(rev.length + 1) : raw;
     if (!line || EXCLUDED.test(line)) continue;
-    const file = line.slice(0, line.indexOf(":"));
+    const fileEnd = line.indexOf(":");
+    const file = line.slice(0, fileEnd);
     if (!file) continue;
+    if (keep && !keep(line.slice(line.indexOf(":", fileEnd + 1) + 1))) continue;
     counts.set(file, (counts.get(file) ?? 0) + 1);
   }
   return counts;
+}
+
+/** The workspace a file belongs to: `packages/<name>` or `mod/<name>`. */
+function packageOf(file: string): string {
+  return file.split("/").slice(0, 2).join("/");
+}
+
+function funnelCountsByFile(root: string, rev?: string): Map<string, number> {
+  const counts = countsByFile(root, FUNNEL_CALL, { rev, keep: isFunnelCall });
+  counts.delete(FUNNEL_DEFINITION);
+  return counts;
+}
+
+function totalsByPackage(counts: Map<string, number>): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const [file, used] of counts) {
+    const pkg = packageOf(file);
+    totals.set(pkg, (totals.get(pkg) ?? 0) + used);
+  }
+  return totals;
+}
+
+/**
+ * The files in `pkg` that call the funnel more than they did at `HEAD`, which
+ * is what a package total cannot say on its own. A growth that is already
+ * committed has nothing to diff against, so then every calling file in the
+ * package is listed, largest first, and the grown one is among them.
+ */
+function grownFunnelFiles(
+  pkg: string,
+  now: Map<string, number>,
+  head: Map<string, number>,
+): string[] {
+  const inPkg = [...now].filter(([file]) => packageOf(file) === pkg);
+  const grown = inPkg
+    .filter(([file, used]) => used > (head.get(file) ?? 0))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([file, used]) => `    ${file}: ${head.get(file) ?? 0} -> ${used}`);
+  if (grown.length > 0) return ["    grown since HEAD:", ...grown];
+  return [
+    "    no file differs from HEAD, so the growth is committed; every caller:",
+    ...inPkg
+      .sort(([fa, a], [fb, b]) => b - a || fa.localeCompare(fb))
+      .map(([file, used]) => `    ${file}: ${used}`),
+  ];
+}
+
+/**
+ * Every workspace that can hold a call: each package under `packages/`, the
+ * sdk, and each Uplink that ships a client. Read off the filesystem rather
+ * than off the scan, so a walk that quietly narrowed cannot also narrow the
+ * list it is checked against. A workspace is a directory with a
+ * `package.json`, so one left behind holding only its `node_modules` is not
+ * expected to have sources.
+ */
+function expectedRoots(root: string): string[] {
+  const dirs = (parent: string) =>
+    readdirSync(join(root, parent), { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  const isWorkspace = (dir: string) =>
+    existsSync(join(root, dir, "package.json"));
+  return [
+    ...dirs("packages")
+      .map((d) => `packages/${d}`)
+      .filter(isWorkspace),
+    "mod/sitrep-sdk",
+    ...dirs("mod")
+      .filter((d) => /^Gonogo.*Uplink$/.test(d))
+      .filter((d) => isWorkspace(`mod/${d}/client`))
+      .map((d) => `mod/${d}`),
+  ].sort();
+}
+
+/** The workspaces the scan's own walk reaches: every file it would search. */
+function walkedRoots(root: string): Set<string> {
+  const out = execFileSync(
+    "git",
+    ["grep", "--untracked", "-lE", ".", "--", ...SEARCH_GLOBS],
+    { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
+  );
+  return new Set(out.split("\n").filter(Boolean).map(packageOf));
+}
+
+/**
+ * Packages over their ceiling or absent from it, then packages under it. A
+ * pure function of its inputs so the planted check can drive both arms with a
+ * synthetic pair whose answer is known.
+ */
+function funnelCeilingBreaches(
+  budget: Record<string, number>,
+  totals: Map<string, number>,
+): { over: string[]; stale: string[] } {
+  const over: string[] = [];
+  for (const [pkg, used] of [...totals].sort()) {
+    const allowed = budget[pkg];
+    if (allowed === undefined) over.push(`  ${pkg}: ${used} (not on the list)`);
+    else if (used > allowed) over.push(`  ${pkg}: ${used}, ceiling ${allowed}`);
+  }
+  return { over, stale: staleEntries(budget, totals) };
 }
 
 /**
@@ -1099,5 +1280,140 @@ describe("the named wire exit is priced, not exempt", () => {
       );
     }
     expect(hits).toEqual([]);
+  });
+});
+
+describe("the magnitude funnel is priced, not exempt", () => {
+  const counts = funnelCountsByFile(root);
+  const totals = totalsByPackage(counts);
+
+  it("walks every workspace that can hold a call", () => {
+    /*
+     * A scan that stopped reaching a workspace reports that workspace at zero,
+     * and zero passes. The roots come from the filesystem and are checked
+     * against what the walk itself saw, so a narrowed walk fails here rather
+     * than reading as a clean package.
+     */
+    const expected = expectedRoots(root);
+    const walked = walkedRoots(root);
+    expect(expected).toEqual(
+      expect.arrayContaining(["mod/sitrep-sdk", "packages/components"]),
+    );
+    expect(
+      expected.filter((r) => !walked.has(r)),
+      "workspaces the scan did not walk",
+    ).toEqual([]);
+    expect(
+      Object.keys(FUNNEL_BUDGET).filter((pkg) => !expected.includes(pkg)),
+      "ceilings on a workspace that no longer exists, delete them",
+    ).toEqual([]);
+  });
+
+  it("counts a call, and nothing that only names one (planted)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "funnel-ratchet-"));
+    try {
+      writeFileSync(
+        join(dir, "p.ts"),
+        [
+          'import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";',
+          "const a = magnitudeOf(x);",
+          "const b = magnitudeOr(y, 0);",
+          "const c = magnitudeOr(magnitudeOf(z), 1);", // TWO, one inside the other
+          "const d = sdk.magnitudeOf(w);",
+          "const e = vecmagnitudeOf(v);", // a different function
+          "// prose about `magnitudeOf(x)` is not a use of it",
+          "/** See {@link magnitudeOr} for the default. */",
+        ].join("\n"),
+      );
+      const matches = execFileSync(
+        "git",
+        ["grep", "--no-index", GREP_FLAGS, FUNNEL_CALL, "--", "p.ts"],
+        { cwd: dir, encoding: "utf8" },
+      )
+        .trim()
+        .split("\n")
+        .map((line) => line.split(":").slice(2).join(":"));
+      /*
+       * Five. Fewer means the nested call went uncounted, which is what the
+       * obvious prefix does; more means the prose, the link or the other
+       * function started being charged.
+       */
+      expect(matches.filter(isFunnelCall)).toHaveLength(5);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails a package over its ceiling, absent from it, or under it (planted)", () => {
+    const { over, stale } = funnelCeilingBreaches(
+      { "packages/a": 3, "packages/b": 2, "packages/c": 4 },
+      new Map([
+        ["packages/a", 3],
+        ["packages/b", 5],
+        ["packages/c", 1],
+        ["packages/new", 1],
+      ]),
+    );
+    expect(over).toEqual([
+      "  packages/b: 5, ceiling 2",
+      "  packages/new: 1 (not on the list)",
+    ]);
+    expect(stale).toEqual(["  packages/c: 4 -> 1"]);
+  });
+
+  it("names the file that grew", () => {
+    const now = new Map([
+      ["packages/a/src/x.ts", 4],
+      ["packages/a/src/y.ts", 1],
+      ["packages/b/src/z.ts", 9],
+    ]);
+    expect(
+      grownFunnelFiles(
+        "packages/a",
+        now,
+        new Map([["packages/a/src/x.ts", 2]]),
+      ),
+    ).toEqual([
+      "    grown since HEAD:",
+      "    packages/a/src/x.ts: 2 -> 4",
+      "    packages/a/src/y.ts: 0 -> 1",
+    ]);
+    expect(grownFunnelFiles("packages/a", now, now)).toEqual([
+      "    no file differs from HEAD, so the growth is committed; every caller:",
+      "    packages/a/src/x.ts: 4",
+      "    packages/a/src/y.ts: 1",
+    ]);
+    // The diff is only useful if HEAD can be read at all.
+    expect(funnelCountsByFile(root, "HEAD").size).toBeGreaterThan(0);
+  });
+
+  it("has no package over its ceiling, under it, or absent from it", () => {
+    const { over, stale } = funnelCeilingBreaches(FUNNEL_BUDGET, totals);
+    if (over.length > 0) {
+      const head = funnelCountsByFile(root, "HEAD");
+      const detail = over.flatMap((entry) => [
+        entry,
+        ...grownFunnelFiles(entry.trim().split(":")[0] ?? "", counts, head),
+      ]);
+      throw new Error(
+        "`magnitudeOf` and `magnitudeOr` are the `.magnitude` escape hatch " +
+          "behind a function, and these packages call them more than the " +
+          "ceiling allows. The same advice applies as to `.magnitude` itself: " +
+          "arithmetic belongs in the algebra (a.minus(b), a.per(b), .in(unit)), " +
+          "and a figure going on screen belongs to `<Unit>`, `writeQuantity` " +
+          "or `speakQuantity`. Only a genuine plain-number boundary earns a " +
+          "raise, and the commit that raises a ceiling says which boundary:\n" +
+          detail.join("\n"),
+      );
+    }
+    if (stale.length > 0) {
+      throw new Error(
+        "These funnel ceilings sit above what their package calls, and the " +
+          "gap is permission for that many new calls. Lower each one, or " +
+          "delete it where the package now calls neither:\n" +
+          stale.join("\n"),
+      );
+    }
+    expect({ over, stale }).toEqual({ over: [], stale: [] });
   });
 });
