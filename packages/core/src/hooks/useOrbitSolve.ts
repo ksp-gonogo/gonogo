@@ -19,6 +19,10 @@ import { useMemo } from "react";
  * withdrew. A caller has nothing different to say about the three, because in
  * all of them the honest thing on screen is the absence.
  *
+ * Under physics the model refuses to ADVANCE, and a current observation is
+ * still solved at its own epoch with only the countdowns withheld; see
+ * `solveSelfOrbit`.
+ *
  * ## The model's refusal is the gate, and it is wider than "under physics"
  *
  * `vessel.orbit` carries a conic that declines rather than answering when
@@ -61,8 +65,9 @@ export function useOrbitSolve(): OrbitalSolve | null {
   /* Memoised on the frame's own inputs: a Kepler solve per widget per render
      is the cost otherwise, and several widgets read this. */
   const reckoning = reading.reckoning;
+  const current = reading.state === "observed";
   return useMemo(
-    () => solveSelfOrbit(elements, reckoning, bodies, at),
-    [elements, reckoning, bodies, at],
+    () => solveSelfOrbit(elements, reckoning, bodies, at, current),
+    [elements, reckoning, bodies, at, current],
   );
 }

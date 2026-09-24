@@ -146,7 +146,9 @@ describe("keplerAdmissibility names each withdrawal", () => {
   });
 });
 
-describe("under-physics has exactly one emitter", () => {
+/* A whole-tree git grep: well under a second on a quiet machine, many
+   seconds on a loaded one, and a timeout here would read as a finding. */
+describe("under-physics has exactly one emitter", { timeout: 60_000 }, () => {
   const repo = resolve(
     fileURLToPath(new URL(".", import.meta.url)),
     "../../../..",

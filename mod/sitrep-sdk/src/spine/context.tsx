@@ -972,6 +972,7 @@ export function getOrbitSolve(): OrbitalSolve | null {
     reading.reckoning,
     getSystemBodies(),
     getViewUt(),
+    reading.state === "observed",
   );
 }
 

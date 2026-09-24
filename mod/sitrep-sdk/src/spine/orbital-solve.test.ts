@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WireOrbitElements } from "./kepler-reckoning";
-import { bodyRadiusOf, solveOrbit } from "./orbital-solve";
+import { bodyRadiusOf, solveOrbit, solveSelfOrbit } from "./orbital-solve";
 
 /**
  * The orbital solve, pinned as a pure function before anything is wired to it.
@@ -153,5 +153,84 @@ describe("bodyRadiusOf", () => {
     expect(bodyRadiusOf(table, 4)).toBeUndefined();
     // Nothing to resolve.
     expect(bodyRadiusOf(table, null)).toBeUndefined();
+  });
+});
+
+/**
+ * Which of the solve survives a reckoning that declines, split by whether a
+ * field has to ADVANCE the elements to the view time.
+ *
+ * Under physics the elements are osculating: a conic cannot be carried forward
+ * from them, but the apsides and the period are algebra on them as they stand,
+ * and the craft's anomaly at their own epoch is where it was when they were
+ * taken. Only what counts forward (the countdowns, the next apsis) goes.
+ */
+describe("solveSelfOrbit under a declining reckoning", () => {
+  const ELEMENTS = { ...circular(SMA, 0.2), referenceBodyIndex: 1 };
+  const BODIES = { bodies: [{ index: 1, radius: { magnitude: BODY_RADIUS } }] };
+  const UNDER_PHYSICS = {
+    status: "declined" as const,
+    declined: { reason: "under-physics" as const, input: "@vessel.orbit" },
+  };
+
+  it("answers the apsides, period and anomaly of a CURRENT reading under physics", () => {
+    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, true);
+
+    expect(s?.apoapsisRadius).toBeCloseTo(SMA * 1.2, 6);
+    expect(s?.periapsisRadius).toBeCloseTo(SMA * 0.8, 6);
+    expect(s?.apoapsisAlt).toBeCloseTo(SMA * 1.2 - BODY_RADIUS, 6);
+    expect(s?.period).toBeCloseTo(PERIOD, 6);
+    // At the elements' own epoch (UT 0, periapsis), not advanced to UT 500.
+    expect(s?.trueAnomaly).toBeCloseTo(0, 6);
+    expect(s?.orbitalRadius).toBeCloseTo(SMA * 0.8, 6);
+  });
+
+  it("withholds everything that counts forward from that instant", () => {
+    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, true);
+
+    expect(s?.timeToAp).toBeNull();
+    expect(s?.timeToPe).toBeNull();
+    expect(s?.nextApsisType).toBeNull();
+    expect(s?.timeToNextApsis).toBeNull();
+  });
+
+  it("answers nothing for a STALE reading under physics: under thrust old elements describe no current orbit", () => {
+    expect(
+      solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, false),
+    ).toBeNull();
+  });
+
+  it("answers nothing for any other decline", () => {
+    for (const reason of [
+      "beyond-horizon",
+      "model-inapplicable",
+      "input-absent",
+      "contested",
+      "insufficient-history",
+    ] as const) {
+      expect(
+        solveSelfOrbit(
+          ELEMENTS,
+          { status: "declined", declined: { reason } },
+          BODIES,
+          500,
+          true,
+        ),
+      ).toBeNull();
+    }
+  });
+
+  it("advances to the view time when the model is available", () => {
+    // The control: the same elements, a live model, and the anomaly moves.
+    const s = solveSelfOrbit(
+      ELEMENTS,
+      { status: "available" },
+      BODIES,
+      PERIOD / 4,
+      true,
+    );
+
+    expect(s?.trueAnomaly).toBeGreaterThan(0);
+    expect(s?.timeToAp).not.toBeNull();
   });
 });
