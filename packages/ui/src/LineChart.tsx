@@ -6,9 +6,9 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   bandClaim,
-  InstrumentNotCurrentDot,
+  InstrumentHeldMark,
   resolveCurrency,
-  sayNotCurrent,
+  sayHeld,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import React, { useId, useMemo } from "react";
@@ -117,10 +117,10 @@ export interface ThresholdRule {
   color?: string;
   dashed?: boolean;
   /**
-   * The reading the line was drawn from, when it is one. A held reading marks
-   * the label with the not-current dot and says so in the chart's accessible
-   * name, the way `<Unit>` marks a figure; a current one, or none, draws the
-   * line exactly as before.
+   * The reading the line was drawn from, when it is one. A held reading gives
+   * the label the held-reading mark and says so in the chart's accessible name,
+   * the way `<Unit>` marks a figure; a current one, or none, draws the line
+   * exactly as before.
    */
   reading?: UnitValue;
 }
@@ -701,7 +701,7 @@ export function LineChart({
      name in words. */
   const thresholdClauses = thresholdLines
     .filter((t) => t.currency.notCurrent)
-    .map((t) => sayNotCurrent(t.label ?? t.id, t.currency.caption));
+    .map((t) => sayHeld(t.label ?? t.id, t.currency.caption));
 
   const chartLabel = [
     ariaLabel ?? "Telemetry line chart",
@@ -1048,7 +1048,7 @@ export function LineChart({
               fontSize={10}
             >
               {t.label}
-              {t.currency.notCurrent && <InstrumentNotCurrentDot size={10} />}
+              {t.currency.notCurrent && <InstrumentHeldMark size={10} />}
             </text>
           )}
         </React.Fragment>

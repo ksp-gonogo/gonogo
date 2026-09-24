@@ -22,8 +22,8 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
   InstrumentBound,
-  InstrumentNotCurrentDot,
-  sayNotCurrent,
+  InstrumentHeldMark,
+  sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
@@ -230,7 +230,7 @@ export function Tape<U extends string = string>({
     <Tape__Meter
       ref={wrapRef}
       role="meter"
-      aria-label={sayNotCurrent(ariaLabel ?? "Tape", caption)}
+      aria-label={sayHeld(ariaLabel ?? "Tape", caption)}
       data-not-current={notCurrent ? "" : undefined}
       aria-valuenow={clamped}
       aria-valuemin={axisMin}
@@ -406,7 +406,7 @@ export function Tape<U extends string = string>({
               fill="var(--color-accent-fg)"
             >
               {scale.mark(safe)}
-              {notCurrent && <InstrumentNotCurrentDot size={5} />}
+              {notCurrent && <InstrumentHeldMark size={5} />}
             </text>
           </>
         )}

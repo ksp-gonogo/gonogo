@@ -447,7 +447,7 @@ export { Inline, type InlineProps } from "./Inline";
 // a figure, and the words its accessible name carries. The hue, shape and
 // wording are `<Unit>`'s, so a chart drawn outside this package marks a held
 // figure the same way a readout inside it does.
-export { InstrumentNotCurrentDot, sayNotCurrent } from "./instrumentCurrency";
+export { InstrumentHeldMark, sayHeld } from "./instrumentCurrency";
 export {
   JOG_WHEEL_MIN_TARGET_PX,
   JogWheel,
