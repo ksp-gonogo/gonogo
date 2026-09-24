@@ -122,6 +122,14 @@ export interface ShadowAcceptanceResult {
   unread: readonly string[];
   /** Each alarm's state when the run ended, by name. */
   finalStates: Record<string, string>;
+  /** How many times the run put `warpIndex` back after the game dropped below it. */
+  warpReapplies: number;
+  /**
+   * A `warpIndex` was asked for and the run never read the game's warp rung,
+   * so the hold could not have acted and `warpReapplies` being 0 says nothing
+   * about whether warp was lost. Always false when no `warpIndex` was given.
+   */
+  warpUnread: boolean;
 }
 
 /**
@@ -193,6 +201,9 @@ export async function runShadowAcceptance(
     client.subscribe("vessel.identity", () => {}),
     // The store takes each topic's lane from this roster, as the provider has it.
     client.subscribe("system.uplinks", () => {}),
+    // The warp hold reads this through `getWarpState`, which answers only for
+    // a topic something here has subscribed to and is otherwise undefined.
+    client.subscribe("time.warp", () => {}),
   ];
 
   const svc = new AlarmHostService(null, { storage: memoryStorage() });
@@ -337,11 +348,13 @@ export async function runShadowAcceptance(
      * re-applying it here is not gaming the scenario.
      */
     let warpReapplyCount = 0;
+    let warpEverRead = false;
     let warpReapplyLoop: ReturnType<typeof setInterval> | undefined;
     if (options.warpIndex !== undefined) {
       const targetIndex = options.warpIndex;
       warpReapplyLoop = setInterval(() => {
         const current = getWarpState()?.warpRateIndex;
+        if (current !== undefined) warpEverRead = true;
         if (current !== undefined && current < targetIndex) {
           dispatchActiveCommandTopic("time.setWarpIndex", {
             index: targetIndex,
@@ -385,6 +398,10 @@ export async function runShadowAcceptance(
     if (unread.length > 0) {
       write(`never read a value for: ${unread.join(", ")}`);
     }
+    const warpUnread = options.warpIndex !== undefined && !warpEverRead;
+    if (warpUnread) {
+      write("never read the warp rung, so the warp hold could not act");
+    }
     const finalStates: Record<string, string> = {};
     for (const alarm of svc.snapshot().alarms) {
       finalStates[nameOf.get(alarm.id) ?? alarm.id] = alarm.state;
@@ -419,7 +436,14 @@ export async function runShadowAcceptance(
               alarmOf: (fire) => nameOf.get(fire.id) ?? fire.id,
             },
     });
-    return { verdict, owlt, unread, finalStates };
+    return {
+      verdict,
+      owlt,
+      unread,
+      finalStates,
+      warpReapplies: warpReapplyCount,
+      warpUnread,
+    };
   } finally {
     logger.setEnabled(loggingWas);
     svc.dispose();

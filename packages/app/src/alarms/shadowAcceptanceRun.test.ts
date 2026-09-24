@@ -1,5 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
-import { type TopicId, unitOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { type TopicId, unitOf, value, WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -212,6 +212,76 @@ describe("runShadowAcceptance: its thresholds read the stream", () => {
     expect(finalStates["Speed 2 km/s"]).toBe("pending");
     expect(finalStates["Altitude 300 km"]).toBe("pending");
     expect(unread).toEqual(["Speed 2 km/s"]);
+  });
+});
+
+/**
+ * Answers a `time.warp` subscription with the game sitting at rung 0, as it
+ * does after the mod cancels warp, and collects every command the run sends.
+ */
+function serveWarpDropped(commands: string[]): void {
+  server.use(
+    link.addEventListener(
+      "connection",
+      ({ client }: { client: LinkClient }) => {
+        client.addEventListener("message", (event) => {
+          const msg: unknown = JSON.parse(String(event.data));
+          if (typeof msg !== "object" || msg === null || !("type" in msg)) {
+            return;
+          }
+          if (msg.type === "command-request" && "command" in msg) {
+            commands.push(String(msg.command));
+          }
+          if (
+            msg.type === "subscribe" &&
+            "topic" in msg &&
+            msg.topic === "time.warp"
+          ) {
+            client.send(
+              streamFrame("time.warp", {
+                warpRate: 1,
+                warpRateIndex: 0,
+                warpRates: [1, 5, 10, 50, 100, 1000, 10000, 100000],
+                warpMode: WarpMode.High,
+                paused: false,
+              }),
+            );
+          }
+        });
+      },
+    ),
+  );
+}
+
+describe("runShadowAcceptance: the warp hold", () => {
+  it("puts the rung back when the game has dropped below it", async () => {
+    const commands: string[] = [];
+    serveWarpDropped(commands);
+
+    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+      warpIndex: 3,
+    });
+
+    expect(warpUnread).toBe(false);
+    expect(warpReapplies).toBeGreaterThan(0);
+    await vi.waitFor(() => expect(commands).toContain("time.setWarpIndex"));
+  });
+
+  it("says it never read the rung, rather than reporting a quiet zero", async () => {
+    serveDelay(null);
+
+    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+      warpIndex: 3,
+    });
+
+    expect(warpReapplies).toBe(0);
+    expect(warpUnread).toBe(true);
   });
 });
 
