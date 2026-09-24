@@ -25,7 +25,6 @@ import { NULL_DISPLAY, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
-import { DescribedFromLastKnown } from "../shared/DescribedFromLastKnown";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import {
@@ -221,11 +220,10 @@ function OrbitViewComponent({
   //  - `useBodyRotation` derives the pole marker client-side from the body's
   //    `rotationPeriod` + view-UT; `useIsOrbiting` stays a shared hook.
   // The elements come from the latest observation, current or held, overlaid
-  // by the model's phase where one is on offer. A held orbit keeps drawing and
-  // the panel captions it as not current; the diagram's own absent-value
-  // rendering takes over only when no orbit has arrived at all.
+  // by the model's phase where one is on offer. A held orbit keeps drawing; the
+  // diagram's own absent-value rendering takes over only when no orbit has
+  // arrived at all.
   const orbitReading = useTelemetry("vessel.orbit");
-  const dated = orbitReading.state === "stale" ? ["orbit"] : [];
   /*
    * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
    * is the phase. Written here rather than in a helper because the spread IS
@@ -446,7 +444,6 @@ function OrbitViewComponent({
               </Text>
             )}
             <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
-            <DescribedFromLastKnown readings={dated} />
           </LandscapeChrome>
         }
         sidebarSide="start"
@@ -496,7 +493,6 @@ function OrbitViewComponent({
           own frame's name. Gated on `showDiagram`: below that threshold there
           is no drawing for the caption to be about, only the status pill,
           which already says everything this size has room to say. */}
-      <DescribedFromLastKnown readings={dated} />
       {showDiagram && (
         <TrajectoryFrameCaption
           trajectory={trajectory}
