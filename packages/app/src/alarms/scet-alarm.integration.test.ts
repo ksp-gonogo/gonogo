@@ -137,6 +137,8 @@ interface ModStandIn {
   commands: readonly string[];
   /** The next fire notice says its onboard actions were withheld, as a switch to another craft would. */
   withholdNextActions(): void;
+  /** The craft this alarm reads is gone, as the mod decides when the known-vessel roster no longer lists it. */
+  markUnreachable(id: string): void;
   /** Tell the CLIENT an altitude, stamped now, so its own threshold evaluator has a reading to cross on. */
   showClientAltitude(altitudeAsl: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
@@ -164,6 +166,7 @@ function startSession(owlt: number): ModStandIn {
   let stampedVantage = HOME;
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
+  const unreachable = new Set<string>();
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
@@ -297,7 +300,7 @@ function startSession(owlt: number): ModStandIn {
               threshold: arm.condition.threshold,
               sustainSeconds: arm.condition.sustainSeconds,
             },
-      state: fired.has(id) ? 1 : 0,
+      state: unreachable.has(id) ? 2 : fired.has(id) ? 1 : 0,
       firedAtUt: null,
       onFire: arm.onFire,
       actsOn: arm.actsOn,
@@ -378,6 +381,9 @@ function startSession(owlt: number): ModStandIn {
     commands,
     withholdNextActions() {
       withholdActions = true;
+    },
+    markUnreachable(id) {
+      unreachable.add(id);
     },
     showClientAltitude(altitudeAsl) {
       client.subscribe("vessel.flight", () => {});
@@ -1063,6 +1069,44 @@ describe("SCET alarms", () => {
       expect(row?.actionsWithheld).toBe(true);
       expect(sentFromHere(session)).toEqual([]);
     });
+  });
+
+  /**
+   * Only the simulation knows a craft is gone, and without saying so the row
+   * reads `pending` for ever, exactly like a condition not yet come due.
+   */
+  it("says an alarm whose craft is gone can never fire", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.flight.altitudeAsl",
+        op: ">=",
+        value: 100_000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "vessel.flight",
+        fieldPath: "altitudeAsl",
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    const before = svc.snapshot().scetUnreachable;
+
+    session.markUnreachable(alarm.id);
+    await run(session, UT_START + 6 * DT);
+    const after = svc.snapshot().scetUnreachable;
+    svc.dispose();
+
+    expect(before).toBeUndefined();
+    expect(after).toEqual([alarm.id]);
   });
 
   it("says why an unreadable Topic was refused instead of sitting pending", async () => {

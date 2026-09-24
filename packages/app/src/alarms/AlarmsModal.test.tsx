@@ -895,6 +895,36 @@ describe("AlarmsModal withheld actions", () => {
  * light-time late are two different promises, and the row must not show one as
  * the other.
  */
+describe("AlarmsModal unreachable", () => {
+  it("says an alarm whose craft is gone can never fire", async () => {
+    const alarm: Alarm = {
+      id: "a-gone",
+      name: "Debris below 70 km",
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+    };
+    render(
+      <AlarmsModal
+        useSnapshot={() => ({
+          ...makeSnapshot([alarm]),
+          scetUnreachable: ["a-gone"],
+        })}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Debris below 70 km");
+    expect(screen.getByText("UNREACHABLE")).toBeInTheDocument();
+    expect(
+      screen.getByText(/the craft this alarm reads no longer exists/i),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("AlarmsModal where actions run", () => {
   function staging(trigger: Alarm["trigger"]): Alarm {
     return {

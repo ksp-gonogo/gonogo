@@ -414,6 +414,15 @@ export interface AlarmSnapshot {
    * cannot tell apart from a condition that simply has not come due.
    */
   scetArmRefusals?: Record<string, string>;
+  /**
+   * The ids of alarms the simulation holds as UNREACHABLE: the craft the
+   * condition watches no longer exists, so they can never come due. Absent when
+   * there are none.
+   *
+   * Only the simulation knows a craft is gone. Without this the row reads
+   * `pending` for ever, like an alarm whose condition has not come due yet.
+   */
+  scetUnreachable?: string[];
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;

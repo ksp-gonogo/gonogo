@@ -784,6 +784,14 @@ export function AlarmsModal({
                       {snapshot.scetArmRefusals[a.id]}
                     </RowMeta>
                   )}
+                  {snapshot.scetUnreachable?.includes(a.id) && (
+                    <RowMeta role="status">
+                      <Badge severity="warning" size="sm">
+                        UNREACHABLE
+                      </Badge>{" "}
+                      The craft this alarm reads no longer exists.
+                    </RowMeta>
+                  )}
                 </Card>
               );
             })}
