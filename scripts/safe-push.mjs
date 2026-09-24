@@ -147,9 +147,9 @@ if (
 // The C# suites. `turbo run test test:scans` above cannot reach them under any
 // configuration: there is no workspace package under mod/Sitrep.* or
 // mod/Gonogo*Uplink for turbo to find a task on, so without this the whole
-// push path was blind to them, and two broken C# ratchets landed on staging
-// green. The gate runs them only when the push changes mod/, and says NOT RUN
-// in every other case rather than staying quiet.
+// push path is blind to them and a broken C# ratchet reaches staging green.
+// The gate runs them only when the push changes mod/, and says NOT RUN in
+// every other case rather than staying quiet.
 console.log("push: C# suites...");
 if (run("sh", ["scripts/mod-suite-gate.sh"]) !== 0) {
   console.error("push: C# suites failed, nothing pushed.");
