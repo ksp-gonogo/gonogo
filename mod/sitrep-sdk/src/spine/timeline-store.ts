@@ -1574,6 +1574,81 @@ export class TimelineStore {
   }
 
   /**
+   * Whether a line drawn between two consecutive samples of `topic` crosses a
+   * span that no observation covers and the topic's own model will not carry
+   * the earlier sample across.
+   *
+   * ## Only the span the sampling missed is asked about
+   *
+   * `time.warp.observationQuantumUt` is how far apart the mod's samples of the
+   * game were, read off the `time.warp` sample in force at the later point. A
+   * gap wider than that is a quiet channel: the mod looked once a quantum and
+   * found nothing worth sending. So the unobserved span is the smaller of the
+   * gap and the quantum, which at 1x is one second and under high warp is one
+   * physics tick of thousands.
+   *
+   * ## The model's own answer is the threshold
+   *
+   * The model is asked twice from the earlier sample, both times as a held
+   * reading: at the sample itself, then at the far end of the unobserved span.
+   * A model that makes no claim on the plotted path even at the sample (no
+   * reckoner, a field it copies rather than moves, a decline on the sample's
+   * own terms) says nothing about the span either, and the line is left
+   * alone. One that
+   * claims the path at the sample and withdraws before the span ends is the
+   * case this exists for: a conic on rails carries any gap it has not left the
+   * patch or entered air during, a first-order dead reckoning does not carry
+   * two thousand seconds.
+   *
+   * Declared inputs resolve at the current frame, as they do for the reckoned
+   * tail. Every input a shipped model declares is a fact that does not move
+   * between two samples of a warp.
+   */
+  gapOutrunsModel(
+    topic: string,
+    before: TimelinePoint<unknown>,
+    after: TimelinePoint<unknown>,
+  ): boolean {
+    const gap = after.validAt - before.validAt;
+    if (!(gap > 0)) return false;
+    const warp = this.sampleRange<{
+      observationQuantumUt?: Quantityish | null;
+    }>("time.warp", Number.NEGATIVE_INFINITY, after.validAt)?.at(-1)?.payload;
+    const quantum = magnitudeOr(warp?.observationQuantumUt, Number.NaN);
+    if (!(quantum > 0)) return false;
+    const span = Math.min(gap, quantum);
+
+    const parsed = this.resolveRawFieldSubtopic(topic);
+    const rawTopic = parsed?.rawTopic ?? topic;
+    const fieldPath = parsed?.fieldPath ?? [];
+    const reckoner = this.registeredReckonerFn<unknown>(
+      rawTopic,
+      this.currentToken,
+    );
+    if (!reckoner) return false;
+    const anchor = parsed
+      ? this.sampleRange<unknown>(
+          rawTopic,
+          before.validAt,
+          before.validAt,
+        )?.find((point) => point.validAt === before.validAt)
+      : before;
+    if (!anchor || anchor.payload === null) return false;
+    /*
+     * A path the model MOVES. The root entry every model carries only says the
+     * record is under its claim, and a field copied verbatim beside a moved one
+     * is the last observation, which says nothing about the span.
+     */
+    const claims = (at: number): boolean =>
+      reckoner(anchor, "held-stale", at)?.modelled.some((entry) =>
+        fieldPath.length === 0
+          ? entry.path === ""
+          : entry.path !== "" && coversPath(entry.path, fieldPath),
+      ) === true;
+    return claims(before.validAt) && !claims(before.validAt + span);
+  }
+
+  /**
    * A derived channel's tail: `derive` replayed at an instant nothing arrived
    * at, labelled by the same `deriveReckoning` the point layer asks.
    *
@@ -2600,7 +2675,7 @@ export class TimelineStore {
       return { points: [], truncatedAtBreak: false };
     }
     if (!window) return { points: [anchor], truncatedAtBreak: false };
-    const key = `reckon-window:${topic}:${window.spanUt}:${window.maxSamples}`;
+    const key = `reckon-window:${topic}:${anchor.validAt}:${window.spanUt}:${window.maxSamples}`;
     return this.memoize(token, key, () => {
       const raw = this.sampleRange<T>(
         topic,

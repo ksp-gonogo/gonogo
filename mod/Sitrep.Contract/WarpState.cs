@@ -106,5 +106,25 @@ public class WarpState
     [SitrepUnit(Units.Seconds)]
     public double KeyframeFloorSec { get; set; }
 
+    /// <summary>
+    /// The UT that actually passes between two samples at the current warp
+    /// rate, in seconds, or <c>null</c> where the host did not report its
+    /// physics step.
+    ///
+    /// <para>One second while a physics tick advances the game by less than
+    /// that, and one tick from then on, which under high warp is thousands.
+    /// Nothing between two consecutive samples was observed, so a line drawn
+    /// between two samples that differ asserts a path across this span that
+    /// only a model of the value can stand behind. Two samples further apart
+    /// than this are a channel that did not change in between.</para>
+    ///
+    /// <para>On this topic beside <see cref="KeyframeFloorSec"/> because it is
+    /// the other thing warp does to cadence, and it changes only when the rate
+    /// does. A client judging a gap reads the quantum in force when the later
+    /// sample was taken.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? ObservationQuantumUt { get; set; }
+
     public PayloadMeta Meta { get; set; } = new();
 }

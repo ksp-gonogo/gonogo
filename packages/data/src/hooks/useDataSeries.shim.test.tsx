@@ -227,6 +227,52 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
       expect(readProbe()).toBe("t:10,20,90,100|v:1,2,3,4|breaks:2"),
     );
   });
+
+  /**
+   * Under high warp one physics tick outruns the mod's one-second sampling, so
+   * two samples a tick apart have nothing observed between them. A distance
+   * carried by its last velocity is honest for seconds, so a line joining two
+   * of them that differ is drawn across two thousand seconds nobody saw.
+   *
+   * The flat run beside it is the control: the emitter withholds only a sample
+   * that compares equal, so two equal samples are what every unsent one said.
+   */
+  it("breaks a moved value across a warped tick its model cannot carry, and joins a flat one", async () => {
+    const fixture = buildStreamFixture({
+      carriedChannels: ["vessel.dock", "time.warp"],
+      pinnedUt: 6000,
+    });
+    await buildLegacySource("vessel.dock.distance");
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.dock.distance" windowSec={7000} />
+      </fixture.Provider>,
+    );
+
+    const dock = (distance: number) => ({
+      relativePosition: { x: distance, y: 0, z: 0 },
+      relativeVelocity: { x: 0.5, y: 0, z: 0 },
+      distance,
+    });
+    act(() => {
+      fixture.transport.emit(
+        "time.warp",
+        { warpRate: 100_000, observationQuantumUt: 2000 },
+        { validAt: 0 },
+      );
+      fixture.transport.emit("vessel.dock", dock(100), { validAt: 0 });
+      fixture.transport.emit("vessel.dock", dock(100), { validAt: 2000 });
+      fixture.transport.emit("vessel.dock", dock(1100), { validAt: 4000 });
+      fixture.transport.emit("vessel.dock", dock(2100), { validAt: 6000 });
+    });
+
+    await waitFor(() =>
+      expect(readProbe()).toBe(
+        "t:0,2000,4000,6000|v:100,100,1100,2100|breaks:2,3",
+      ),
+    );
+  });
 });
 
 describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series computed from raw stream inputs", () => {
