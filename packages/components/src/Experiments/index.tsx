@@ -5,25 +5,33 @@ import {
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type TopicReading, useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  readingOf,
+  type StaleGrade,
+  type TopicReading,
+  useCommand,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
   Divider,
   EmptyState,
+  formatStreamStatus,
   Inline,
   Panel,
   RowName,
   Section,
   SectionTitle,
   Stack,
+  severityFromStreamStatus,
   Text,
   Unit,
   usePanelDelay,
   useRowFilter,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
+import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import type { Instrument } from "./instrument";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
@@ -238,17 +246,20 @@ function ExperimentsComponent({
    * change when an event changes them, and a confirmed-none is an empty list rather
    * than a wait.
    */
-  const instrumentsRaw = stillTrue(
-    useTelemetry("science.instruments"),
-    EMPTY_INSTRUMENTS,
-  );
+  const instrumentsReading = useTelemetry("science.instruments");
+  const instrumentsRaw = stillTrue(instrumentsReading, EMPTY_INSTRUMENTS);
+  /*
+   * The list is kept and marked rather than dropped. An instrument's badges are
+   * the last thing KSP said about it, which is still the best answer available;
+   * what stops being true is that they describe the vessel NOW, and that is what
+   * the mark on each row says, and why the row's controls go dead with it.
+   */
+  const instrumentsHeld = heldGrade(instrumentsReading);
   // No pre-aggregated data field on the wire, so the vessel-wide total is
   // derived client-side from the same `science.experiments` Topic ScienceData
   // reads, on the same aggregate semantics.
-  const experimentsRaw = stillTrue(
-    useTelemetry("science.experiments"),
-    EMPTY_EXPERIMENTS,
-  );
+  const experimentsReading = useTelemetry("science.experiments");
+  const experimentsRaw = stillTrue(experimentsReading, EMPTY_EXPERIMENTS);
   const instruments = parseInstruments(instrumentsRaw);
   const deployCmd = useCommand("science.experiment.deploy");
   const transmitCmd = useCommand("science.experiment.transmit");
@@ -265,8 +276,10 @@ function ExperimentsComponent({
    * after a conditional return is a hooks-order bug waiting to happen.
    */
   const filter = useRowFilter({ placeholder: "Filter instruments..." });
-  const labRaw = stillTrue(useTelemetry("science.lab"), undefined);
+  const labReading = useTelemetry("science.lab");
+  const labRaw = stillTrue(labReading, undefined);
   const labs = parseLab(labRaw);
+  const labHeld = heldGrade(labReading);
 
   /**
    * Instruments aboard that this widget cannot observe for itself, off the
@@ -303,7 +316,7 @@ function ExperimentsComponent({
         ),
         showLab && (
           <Section key="lab">
-            <LabSection labs={labs} />
+            <LabSection labs={labs} heldGrade={labHeld} />
           </Section>
         ),
       ]}
@@ -355,6 +368,7 @@ function ExperimentsComponent({
               instrument={inst}
               deployCmd={deployCmd}
               transmitCmd={transmitCmd}
+              heldGrade={instrumentsHeld}
             />
             {/* Per-instrument section slot: passes this instrument
                 down so an on-vessel-lab augment can extend the row.
@@ -423,7 +437,16 @@ function ExperimentsComponent({
                 : ""}
               {totalDataMits > 0 && (
                 <Text spaced title="Total stored science data (mits)">
-                  · <Unit value={value("Mit", totalDataMits)} decimals={1} />
+                  ·{" "}
+                  {/* The whole reading, not the bare number: an archive that
+                      stopped arriving draws the same total with the staleness
+                      mark and the instant it was last a reading of now. */}
+                  <Unit
+                    value={readingOf(experimentsReading, () =>
+                      value("Mit", totalDataMits),
+                    )}
+                    decimals={1}
+                  />
                 </Text>
               )}
             </Text>
@@ -431,7 +454,7 @@ function ExperimentsComponent({
         ),
         showLab && (
           <Section key="lab" full>
-            <LabSection labs={labs} />
+            <LabSection labs={labs} heldGrade={labHeld} />
           </Section>
         ),
         sectionNodes.length === 0 && contributedNodes.length === 0 ? (
@@ -453,7 +476,14 @@ function ExperimentsComponent({
  * lab (`[]`): same "silent until real content" contract as the rest of the
  * widget, so a lab-less vessel's layout is unaffected.
  */
-function LabSection({ labs }: { labs: LabStatus[] | null }) {
+function LabSection({
+  labs,
+  heldGrade: labGrade,
+}: {
+  labs: LabStatus[] | null;
+  /** `science.lab` stopped arriving: every badge and count below is held. */
+  heldGrade: StaleGrade | undefined;
+}) {
   if (labs === null || labs.length === 0) return null;
   return (
     <>
@@ -481,6 +511,14 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
                       : "OFFLINE"}
                 </Badge>
                 {lab.processingData === true && <Badge>PROCESSING</Badge>}
+                {labGrade !== undefined && (
+                  <Badge
+                    severity={severityFromStreamStatus(labGrade)}
+                    title={`${lab.partName}: lab state is no longer current`}
+                  >
+                    {formatStreamStatus(labGrade)}
+                  </Badge>
+                )}
               </Inline>
             </Cluster>
             <Inline>
