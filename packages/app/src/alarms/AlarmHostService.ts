@@ -10,12 +10,16 @@ import {
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
-  type DispatchActiveCommandResult,
   dispatchActiveCommandTopic,
   getViewUt,
+  sampleActiveReading,
   sampleActiveTopic,
 } from "@ksp-gonogo/sitrep-client";
-import type { CommsDelay, VesselControl } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  CommsDelay,
+  TopicReading,
+  VesselControl,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import {
@@ -121,6 +125,33 @@ function readOwltSeconds(): number {
 }
 
 /**
+ * What came of one `onFire` action group: either it went, or the reason it did
+ * not, in words the operator's own row can carry.
+ */
+type ActionGroupDispatch =
+  | { routed: true; settled: Promise<unknown> }
+  | { routed: false; refusal: string };
+
+/**
+ * Why a toggle had nothing safe to invert, separating the two conditions a
+ * bare payload cannot tell apart: a reading that is merely OLD, and one that
+ * never came. Both end in the same refusal, and an operator chasing a group
+ * that did not move needs to know which.
+ */
+function toggleRefusal(
+  groupName: string,
+  state: TopicReading<VesselControl>["state"],
+): string {
+  if (state === "stale") {
+    return `"${groupName}": the vessel.control reading is stale, and a toggle needs a current state to invert`;
+  }
+  if (state === "observed") {
+    return `"${groupName}": the vessel reports no state for this group`;
+  }
+  return `"${groupName}": no vessel.control reading has arrived, so there is nothing to invert`;
+}
+
+/**
  * Fire one action group, named by the id a save spells it with.
  *
  * Resolves the id against the LIVE registry, because the custom half of it is
@@ -128,25 +159,48 @@ function readOwltSeconds(): number {
  * not have resolves to nothing and dispatches nothing, which is the honest
  * answer for a saved action whose group is gone.
  *
- * The toggle-to-absolute bridge needs the group's current state to invert, and
- * this is a headless caller with no widget of its own, so it samples
- * `vessel.control` directly. A group whose state has not arrived yields
- * `TOGGLE_INVALID` and dispatches nothing rather than a blind set: an alarm
- * that guesses which way to flip a group is worse than one that does not fire.
+ * The toggle-to-absolute bridge inverts the group's current state, so the read
+ * is `sampleActiveReading` rather than `sampleActiveTopic`: the store is
+ * hold-last and keeps a released topic's final payload for the life of the
+ * epoch, so a bare payload cannot say whether the state it carries is the
+ * vessel's now or the one a widget last saw before it unmounted. Only an
+ * `observed` reading is inverted. `vessel.control` has no relative form to fall
+ * back on (every actuation command in the contract is an ABSOLUTE set, which is
+ * the point of the toggle-to-absolute bridge existing at all), so a stale
+ * reading refuses, and the refusal reaches the alarm's own row.
+ *
+ * The group NAMES are taken off a stale reading too, the same way
+ * `useActionGroups` does: "AG1: Solar Panels" is still called that whatever the
+ * link is doing. Only the VALUE decays.
  */
-function dispatchActionGroup(
-  actionGroupId: string,
-): DispatchActiveCommandResult {
-  const control = sampleActiveTopic<VesselControl>("vessel.control");
-  const group = actionGroupsFrom(control?.actionGroups).find(
+function dispatchActionGroup(actionGroupId: string): ActionGroupDispatch {
+  const reading = sampleActiveReading<VesselControl>("vessel.control");
+  const named =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : undefined;
+  const group = actionGroupsFrom(named?.actionGroups).find(
     (g) => actionGroupIdOf(g) === actionGroupId,
   );
-  if (!group) return { routed: false };
+  if (!group) {
+    return {
+      routed: false,
+      refusal: `no action group "${actionGroupId}" on this vessel`,
+    };
+  }
   const command = toggleCommandFor(group);
-  if (command === null) return { routed: false };
-  const args = buildToggleArgs(group, resolveGroupValue(group, control));
-  if (args === TOGGLE_INVALID) return { routed: false };
-  return dispatchActiveCommandTopic(command, args);
+  if (command === null) {
+    return { routed: false, refusal: `"${group.name}" has no command to fire` };
+  }
+  const current = reading.state === "observed" ? reading.value : undefined;
+  const args = buildToggleArgs(group, resolveGroupValue(group, current));
+  if (args === TOGGLE_INVALID) {
+    return { routed: false, refusal: toggleRefusal(group.name, reading.state) };
+  }
+  const outcome = dispatchActiveCommandTopic(command, args);
+  return outcome.routed
+    ? outcome
+    : { routed: false, refusal: "no telemetry stream carried the command" };
 }
 
 export class AlarmHostService {
@@ -182,6 +236,17 @@ export class AlarmHostService {
    * edited, so it can never outlive the condition it describes.
    */
   private scetArmRefusals = new Map<string, string>();
+
+  /**
+   * Why this alarm's `onFire` list did not all reach the wire, by alarm id.
+   *
+   * Not persisted, for the same reason the arm refusals are not: it describes
+   * one firing against the vessel and the link as they were at that moment,
+   * and the next run of the same alarm decides for itself. An entry is replaced
+   * on the alarm's next fire and dropped when it fires cleanly, is edited, or
+   * is deleted.
+   */
+  private onFireRefusals = new Map<string, string>();
 
   /**
    * What the SIMULATION decided about a command-vantage alarm, by alarm id.
@@ -291,6 +356,10 @@ export class AlarmHostService {
       scetArmRefusals:
         this.scetArmRefusals.size > 0
           ? Object.fromEntries(this.scetArmRefusals)
+          : undefined,
+      onFireRefusals:
+        this.onFireRefusals.size > 0
+          ? Object.fromEntries(this.onFireRefusals)
           : undefined,
     };
   }
@@ -416,6 +485,9 @@ export class AlarmHostService {
       this.warpPlanner.forget(id);
     }
     this.alarms[idx] = next;
+    // The refusal describes a firing of the alarm as it was configured before
+    // this edit, so it does not survive one.
+    this.onFireRefusals.delete(id);
     if (patch.trigger) {
       // A refusal describes the condition that was replaced.
       this.scetArmRefusals.delete(id);
@@ -438,6 +510,7 @@ export class AlarmHostService {
       this.stateMachine.forget(id);
       this.warpPlanner.forget(id);
       this.scetArmRefusals.delete(id);
+      this.onFireRefusals.delete(id);
       this.persist();
       this.emit();
     }
@@ -736,24 +809,52 @@ export class AlarmHostService {
 
   private async dispatchOnFire(alarm: Alarm): Promise<void> {
     if (!alarm.onFire) return;
+    const refusals: string[] = [];
     for (const fx of alarm.onFire) {
       switch (fx.kind) {
         case "action-group": {
           const outcome = dispatchActionGroup(fx.action);
-          if (outcome.routed) {
-            try {
-              await outcome.settled;
-            } catch {
-              // Swallow individual action failures so one missing action
-              // group (e.g. `f.ag5` not bound on this vessel) doesn't
-              // block the rest of the list. The visible alarm fire still
-              // shows up regardless.
-            }
+          if (!outcome.routed) {
+            refusals.push(outcome.refusal);
+            break;
+          }
+          try {
+            await outcome.settled;
+          } catch {
+            // Swallow individual action failures so one missing action
+            // group (e.g. `f.ag5` not bound on this vessel) doesn't
+            // block the rest of the list. The visible alarm fire still
+            // shows up regardless.
           }
           break;
         }
       }
     }
+    this.recordFireRefusals(alarm.id, refusals);
+  }
+
+  /**
+   * Carry, or clear, why this alarm's `onFire` list did not all go.
+   *
+   * A refusal that nobody can see is the defect it was meant to fix wearing
+   * another hat: the alarm still reads `fired`, the operator still watches the
+   * gear stay down, and nothing anywhere connects the two. So it rides the
+   * snapshot to the row, the same way a SCET arm refusal does, and every
+   * station's copy of the row gets it too.
+   */
+  private recordFireRefusals(id: string, refusals: readonly string[]): void {
+    if (refusals.length === 0) {
+      if (this.onFireRefusals.delete(id)) this.emit();
+      return;
+    }
+    const reason = refusals.join("; ");
+    logger.warn("alarm-host: onFire action group not dispatched", {
+      id,
+      reason,
+    });
+    if (this.onFireRefusals.get(id) === reason) return;
+    this.onFireRefusals.set(id, reason);
+    this.emit();
   }
 
   private loadAlarms(): void {
