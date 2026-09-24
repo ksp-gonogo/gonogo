@@ -10,16 +10,24 @@ import type { ComponentDefinition, Seat } from "@ksp-gonogo/core";
  * so a widget that reads any of these has no business on their screen.
  *
  * Every other domain describes the craft, its surroundings, or the stream
- * itself, and is as meaningful aboard as it is at KSC. That includes
- * `commandCentre`, although it names places on the ground: its roster and
- * separation say where the command centres are and how far away each one is,
- * which is addressing a crew needs as much as the ground does, not a facility
- * anybody aboard would be trying to operate.
+ * itself, and is as meaningful aboard as it is at KSC.
  */
 const GROUND_DOMAINS: ReadonlySet<string> = new Set([
   "spaceCenter",
   "career",
+  "commandCentre",
   "recovery",
+]);
+
+/**
+ * Topics inside a ground domain that are addressing rather than a facility: who
+ * the command centres are and how far away each one is. A crew needs both to
+ * talk to the ground at all, so reading them does not make a widget a ground
+ * instrument. The rest of `commandCentre` still does.
+ */
+const ADDRESSING_TOPICS: ReadonlySet<string> = new Set([
+  "commandCentre.roster",
+  "commandCentre.separation",
 ]);
 
 /**
@@ -37,12 +45,25 @@ export function declaredDomains(
     "channels" | "optionalChannels" | "dataRequirements"
   >,
 ): ReadonlySet<string> {
-  const domains = new Set<string>();
-  for (const topic of [
+  return domainsOf(declaredTopics(def));
+}
+
+function declaredTopics(
+  def: Pick<
+    ComponentDefinition,
+    "channels" | "optionalChannels" | "dataRequirements"
+  >,
+): readonly string[] {
+  return [
     ...(def.channels ?? []),
     ...(def.optionalChannels ?? []),
     ...(def.dataRequirements ?? []),
-  ]) {
+  ];
+}
+
+function domainsOf(topics: readonly string[]): ReadonlySet<string> {
+  const domains = new Set<string>();
+  for (const topic of topics) {
     const dot = topic.indexOf(".");
     domains.add(dot === -1 ? topic : topic.slice(0, dot));
   }
@@ -75,10 +96,7 @@ export function availableAtSeat(
 ): boolean {
   if (def.seats) return def.seats.includes(seat);
   if (seat !== "pilot") return true;
-  for (const domain of declaredDomains(def)) {
-    if (GROUND_DOMAINS.has(domain)) return false;
-  }
-  return true;
+  return groundDomainsOf(def).length === 0;
 }
 
 /** Which of a widget's declared domains keep it off the pilot's screen. */
@@ -88,5 +106,6 @@ export function groundDomainsOf(
     "channels" | "optionalChannels" | "dataRequirements"
   >,
 ): readonly string[] {
-  return [...declaredDomains(def)].filter((d) => GROUND_DOMAINS.has(d)).sort();
+  const topics = declaredTopics(def).filter((t) => !ADDRESSING_TOPICS.has(t));
+  return [...domainsOf(topics)].filter((d) => GROUND_DOMAINS.has(d)).sort();
 }

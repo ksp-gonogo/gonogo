@@ -89,15 +89,25 @@ describe("availableAtSeat", () => {
     expect(
       availableAtSeat(
         {
-          channels: [
-            "commandCentre.roster",
-            "commandCentre.separation",
-            "commandCentre.activeVesselDelay",
-          ],
+          channels: ["commandCentre.roster", "commandCentre.separation"],
         },
         "pilot",
       ),
     ).toBe(true);
+  });
+
+  it("still counts the rest of the command-centre domain as ground", () => {
+    expect(
+      availableAtSeat(
+        {
+          channels: [
+            "commandCentre.roster",
+            "commandCentre.activeVesselDelay" as never,
+          ],
+        },
+        "pilot",
+      ),
+    ).toBe(false);
   });
 
   it("lets a widget that declares no topic at all aboard", () => {
