@@ -215,14 +215,14 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     );
     /*
      * `Balance` renders the null token beside each currency's own symbol, so
-     * the header rail reads as three labelled dashes rather than dropping the
+     * the balance row reads as three labelled dashes rather than dropping the
      * balances (or, as a bare `<Unit value>` would, dropping the symbol that
      * says which dash is which).
      */
     const dashes = screen.getAllByText(NULL_DISPLAY);
     expect(dashes).toHaveLength(3);
     expect(dashes[0]?.parentElement?.textContent).toBe(
-      `0 active·${NULL_DISPLAY}f funds·${NULL_DISPLAY} reputation·${NULL_DISPLAY} science`,
+      `${NULL_DISPLAY}f funds·${NULL_DISPLAY} reputation·${NULL_DISPLAY} science`,
     );
   });
 
@@ -295,7 +295,7 @@ describe("Strategies: tiny mode keeps the balance row", () => {
     // uses, so wait on the active tally instead: that only exists once the
     // strategy list has resolved off the stream.
     await waitFor(() => expect(visibleText()).toContain("0 active"));
-    expect(visibleText()).toBe("Strategies0 activefunds unknown");
+    expect(visibleText()).toBe("Strategiesfunds unknown· 0 active");
 
     emitCareer(fixture, {
       economy: { funds: 1234, reputation: 0, science: 0 },
@@ -303,6 +303,6 @@ describe("Strategies: tiny mode keeps the balance row", () => {
     });
 
     // The other side of the gate: the compact balance appears.
-    await waitFor(() => expect(visibleText()).toBe("Strategies0 active1kf"));
+    await waitFor(() => expect(visibleText()).toBe("Strategies1kf· 0 active"));
   });
 });

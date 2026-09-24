@@ -940,6 +940,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "strategies",
     fixturesPath: "Strategies/__fixtures__",
     outPath: "renders/strategies-widget",
+    // Activate spends career funds, so the balance (or the statement standing
+    // in for it) has to be readable at every size the widget is rendered at.
+    mustBeVisible: { selector: "[data-balance-row]" },
     modes: [
       // tiny bucket (w<5 or h<4): header-only showing just the active count
       // tally; no ScrollArea, no section lists.
