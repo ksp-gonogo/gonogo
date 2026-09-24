@@ -4,8 +4,6 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -13,7 +11,11 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { type ManeuverNode, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  createFakeWallClock,
+  MockDataSource,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";

@@ -1,5 +1,4 @@
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -9,6 +8,7 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import type { FrozenPlanInputs } from "./triggerTypes";

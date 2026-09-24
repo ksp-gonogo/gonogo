@@ -1,7 +1,4 @@
 import {
-  createFakeWallClock,
-  type FakeWallClock,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -9,8 +6,12 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  type FakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import type { JSX, ReactNode } from "react";
-
 /**
  * A stream test-adapter for app-side tests, the same minimal shape the Uplink
  * clients use: a real `TelemetryProvider` over a real

@@ -160,7 +160,6 @@ vi.mock("peerjs", () => {
 
 import { registerUplinkHandle, unregisterUplinkHandle } from "@ksp-gonogo/core";
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   type TimelineStore,
@@ -175,6 +174,7 @@ import {
   useHostIceServers,
   useUplinkRelay,
 } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";

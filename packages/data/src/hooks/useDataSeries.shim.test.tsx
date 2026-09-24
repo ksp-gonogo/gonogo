@@ -1,10 +1,8 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
   DEAD_READ_SETTLE_MS,
   resetDeadReadWarnings,
   resetGatedReadWarnings,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -18,8 +16,10 @@ import {
   registerTopicUnits,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  createFakeWallClock,
   installTestHost,
   MockDataSource,
+  StubTransport,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";

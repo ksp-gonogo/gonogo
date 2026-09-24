@@ -3,7 +3,6 @@ import { logger } from "@ksp-gonogo/logger";
 import {
   type EventOccurrence,
   resolveValueTopic,
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -12,6 +11,7 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
 import { AlarmHostService } from "./AlarmHostService";
