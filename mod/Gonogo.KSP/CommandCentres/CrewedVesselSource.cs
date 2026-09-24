@@ -80,7 +80,7 @@ namespace Gonogo.KSP.CommandCentres
 
                 yield return new KspCommandCentre(
                     "vessel:" + vessel.id,
-                    string.IsNullOrEmpty(vessel.vesselName) ? "Vessel" : vessel.vesselName,
+                    GameWords.VesselName(vessel),
                     CommandCentreKind.CrewedVessel,
                     BodyIndexOf(vessel.mainBody),
                     comm,
