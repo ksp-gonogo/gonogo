@@ -41,6 +41,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PlotBoard } from "../Plots/PlotBoard";
+import { DescribedFromLastKnown } from "../shared/DescribedFromLastKnown";
 import { bare, vecMagnitude } from "../shared/dockAngles";
 import { bodyAtIndex } from "../shared/streamBody";
 import { AltitudeRail } from "./AltitudeRail";
@@ -1247,11 +1248,7 @@ function LandingStatusComponent({
               naming which readings are no longer current, because losing contact
               mid-descent is the expected case and a blank board is the worst answer
               available. The ignition instant is refused separately, in CommitLayer. */}
-            {datedInputs.length > 0 && (
-              <ReadoutCaption>
-                {`Described from last known ${datedInputs.join(", ")}, not current`}
-              </ReadoutCaption>
-            )}
+            <DescribedFromLastKnown readings={datedInputs} />
           </Section>
         ) : null,
         /* The rail and the readouts beside it are the instrument: they take
