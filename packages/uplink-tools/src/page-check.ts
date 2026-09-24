@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readInventory } from "@ksp-gonogo/uplink-tools/render-probe";
 import {
@@ -40,6 +40,11 @@ import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
  * What it deliberately cannot see: whether the committed images are current, and
  * whether any of them is a render of nothing. Both need a browser, and both stay
  * with `docs --check`.
+ *
+ * The same read also WRITES, through {@link writeUplinkPage}: a generated file
+ * whose only remedy costs a browser and a rasteriser is one people fix by
+ * editing it by hand or by committing 170 re-rendered pictures, and both have
+ * happened here.
  */
 
 export interface PageCheckOptions {
@@ -72,9 +77,24 @@ function withoutIntegrity(json: string): string {
   return JSON.stringify(manifest, null, 2);
 }
 
-export function checkUplinkPage(
-  options: PageCheckOptions = {},
-): PageCheckResult {
+/** The two prose files of a page, and where they belong. */
+interface GeneratedPage {
+  readmePath: string;
+  readme: string;
+  manifestPath: string;
+  manifestJson: string;
+  root: string;
+}
+
+/**
+ * The page's prose, from the registrations, with no browser anywhere.
+ *
+ * One function behind both the check and the write, for the same reason the
+ * check calls the generator's own `buildReadme` rather than describing a page
+ * itself: two implementations of "what does this page say" drift, and the one
+ * that drifts silently is the one nothing compares.
+ */
+function generatePage(options: PageCheckOptions): GeneratedPage {
   const pkg = resolveUplinkPackage(options.root ?? process.cwd());
   const inventory = readInventory(options.uplink);
 
@@ -94,23 +114,97 @@ export function checkUplinkPage(
   };
   const { manifest } = buildManifest(inputs);
   const readme = buildReadme(inputs, manifest);
+  const manifestPath = join(pkg.dir, "gonogo-uplink.json");
+
+  return {
+    readmePath: join(pkg.dir, "README.md"),
+    readme,
+    manifestPath,
+    // The one field generated here is always empty, because a working copy has
+    // no distributed file to hash. Carrying the committed value through is what
+    // lets the writer below rewrite a released manifest without blanking the
+    // hash the release stamped into it.
+    manifestJson: `${JSON.stringify({ ...manifest, integrity: committedIntegrity(manifestPath) }, null, 2)}\n`,
+    root: pkg.dir,
+  };
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The `integrity` a committed manifest already carries, or the empty claim. */
+function committedIntegrity(manifestPath: string): string {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+    if (isJsonObject(parsed) && typeof parsed.integrity === "string") {
+      return parsed.integrity;
+    }
+  } catch {
+    // No manifest yet, or one nothing can parse. Either way there is no hash to
+    // preserve, and the caller is about to write a whole new file over it.
+  }
+  return "";
+}
+
+export function checkUplinkPage(
+  options: PageCheckOptions = {},
+): PageCheckResult {
+  const page = generatePage(options);
 
   const differences: string[] = [];
   compare(
-    join(pkg.dir, "README.md"),
-    readme,
+    page.readmePath,
+    page.readme,
     (a, b) => a === b,
-    pkg.dir,
+    page.root,
     differences,
   );
   compare(
-    join(pkg.dir, "gonogo-uplink.json"),
-    `${JSON.stringify(manifest, null, 2)}\n`,
+    page.manifestPath,
+    page.manifestJson,
     (a, b) => withoutIntegrity(a) === withoutIntegrity(b),
-    pkg.dir,
+    page.root,
     differences,
   );
   return { differences };
+}
+
+/**
+ * Rewrite the page's prose in place, leaving `docs/assets` untouched.
+ *
+ * The counterpart to {@link checkUplinkPage}, and the reason it exists is the
+ * cost of the alternative. `gonogo-uplink docs` is the only other way to move
+ * these two files, and it re-rasterises every picture on the way past: on a
+ * developer's machine that produces a diff of 170 PNGs nobody asked for, of the
+ * same kind as a locally-rendered visual baseline, for a change that moved one
+ * line of markdown. An additive contract bump is exactly that change, and it
+ * moves the "Built against" row of every bundled Uplink at once.
+ *
+ * So the prose has a writer of its own, on the same registry read the check
+ * uses. It needs no browser, produces the same bytes on any operating system,
+ * and cannot touch an asset because it never renders one.
+ */
+export function writeUplinkPage(options: PageCheckOptions = {}): {
+  written: string[];
+} {
+  const page = generatePage(options);
+  const written: string[] = [];
+  for (const [file, content] of [
+    [page.readmePath, page.readme],
+    [page.manifestPath, page.manifestJson],
+  ] as const) {
+    let committed: string | undefined;
+    try {
+      committed = readFileSync(file, "utf8");
+    } catch {
+      committed = undefined;
+    }
+    if (committed === content) continue;
+    writeFileSync(file, content, "utf8");
+    written.push(display(page.root, file));
+  }
+  return { written };
 }
 
 function compare(
@@ -171,14 +265,55 @@ export async function loadHostWidgets(
   }
 }
 
+/**
+ * The environment variable that turns this gate into its own fix.
+ *
+ * The same affordance a snapshot assertion has, and for the same reason: the
+ * expected value is GENERATED, so the person who broke it is never being asked
+ * to write anything, only to re-derive it. The difference from a snapshot is
+ * that the derivation is cheap and exact, so there is nothing to review in the
+ * result beyond the diff itself.
+ */
+export const PAGE_UPDATE_ENV = "GONOGO_UPLINK_PAGE_UPDATE";
+
+/**
+ * A gate that rewrites the thing it is measuring reports success no matter what
+ * the tree says, so the switch is refused where nobody is reading the output.
+ * CI healing itself and printing green is the failure this repo has already
+ * paid for twice.
+ */
+function updateRequested(): boolean {
+  if (process.env[PAGE_UPDATE_ENV] !== "1") return false;
+  if (process.env.CI) {
+    throw new Error(
+      `${PAGE_UPDATE_ENV}=1 is set in CI, where regenerating the page would ` +
+        "make this gate pass on any tree and commit nothing. Unset it: the " +
+        "page is regenerated locally and pushed, never healed by the run that " +
+        "was supposed to check it.",
+    );
+  }
+  return true;
+}
+
 /** {@link checkUplinkPage}, throwing the differences. For a test body. */
 export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
   const { differences } = checkUplinkPage(options);
   if (differences.length === 0) return;
+  if (updateRequested()) {
+    const { written } = writeUplinkPage(options);
+    console.info(`rewrote ${written.join(", ")}`);
+    return;
+  }
   throw new Error(
     `The generated Uplink page no longer matches the code: ` +
       `${differences.length} difference(s).\n  ${differences.join("\n  ")}\n\n` +
-      "Run `gonogo-uplink docs --no-assets` to rewrite the prose alone, or " +
-      "`gonogo-uplink docs` to render the pictures as well, and commit the result.",
+      `Regenerate the prose in place, with no browser and no change under ` +
+      `docs/assets:\n` +
+      `      pnpm uplink-pages\n` +
+      `  or, for this Uplink alone, re-run its suite with ${PAGE_UPDATE_ENV}=1.\n\n` +
+      "  `gonogo-uplink docs` also fixes it, and re-renders every picture " +
+      "through this machine's\n  rasteriser on the way past. The pictures are " +
+      "regenerated on Linux by `uplink-docs.yml`;\n  a local render of them is " +
+      "the same mistake as a locally-rendered visual baseline.",
   );
 }
