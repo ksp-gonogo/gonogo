@@ -45,7 +45,7 @@
     "lint": "tsc --noEmit",
     "render:markers": "node scripts/render-markers.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json && tsc -p tsconfig.scripts.json",
     "render:meter-bands": "node scripts/render-meter-bands.ts",
     "render:unit-currency": "node scripts/render-unit-currency.ts",
     "render:band-ladder": "node scripts/render-band-ladder.ts"

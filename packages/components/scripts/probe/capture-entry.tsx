@@ -146,27 +146,23 @@ async function renderCapture(payload: CapturePayload): Promise<void> {
   const tree = createElement(
     ThemeProvider,
     { theme: defaultDarkTheme },
-    createElement(
-      TelemetryProvider,
-      {
-        client,
-        store: timelineStore,
-        carriedChannels: payload.carriedChannels,
-      },
-      createElement(
+    <TelemetryProvider
+      client={client}
+      store={timelineStore}
+      carriedChannels={payload.carriedChannels}
+    >
+      {createElement(
         WidgetMetaContext.Provider,
         { value: meta },
         createElement(
           ContributionsProvider,
           null,
-          createElement(
-            AlarmsLauncherProvider,
-            {
-              launcher: () => {},
-              creator: () => {},
-              manager: { find: () => null, remove: () => {} },
-            },
-            createElement(
+          <AlarmsLauncherProvider
+            launcher={() => {}}
+            creator={() => {}}
+            manager={{ find: () => null, remove: () => {} }}
+          >
+            {createElement(
               DashboardItemContext.Provider,
               { value: { instanceId: "capture" } },
               createElement(WidgetComponent, {
@@ -175,11 +171,11 @@ async function renderCapture(payload: CapturePayload): Promise<void> {
                 w: payload.w,
                 h: payload.h,
               }),
-            ),
-          ),
+            )}
+          </AlarmsLauncherProvider>,
         ),
-      ),
-    ),
+      )}
+    </TelemetryProvider>,
   );
 
   activeRoot = createRoot(root);

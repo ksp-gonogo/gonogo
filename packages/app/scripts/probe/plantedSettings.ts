@@ -3,7 +3,7 @@ import type {
   SettingDefinitionOf,
   SettingType,
 } from "@ksp-gonogo/sitrep-sdk";
-import { registerSetting } from "@ksp-gonogo/sitrep-sdk";
+import { registerSetting, value } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * A planted Uplink's settings rows, standing in for a real Uplink's so the
@@ -36,17 +36,26 @@ interface PlantedSettings {
   frameName?: string;
   frameCentre?: string;
   frameHasApsides?: boolean;
-  toleranceMetres?: { magnitude: number; unit: string };
-  maxSteps?: { magnitude: number; unit: string };
-  windowSeconds?: { magnitude: number; unit: string };
-  historySeconds?: { magnitude: number; unit: string };
-  markersHidden?: { magnitude: number; unit: string };
+  toleranceMetres?: number;
+  maxSteps?: number;
+  windowSeconds?: number;
+  historySeconds?: number;
+  markersHidden?: number;
   logThreshold?: string;
   journaling?: boolean;
 }
 
 function settings(payload: unknown): PlantedSettings | undefined {
   return (payload ?? undefined) as PlantedSettings | undefined;
+}
+
+/**
+ * Wrap a bare magnitude off the wire in its unit, the way the SDK does for a
+ * real Uplink. Absence passes straight through so a silent Topic still shows
+ * its placeholder.
+ */
+function quantity<U extends string>(unit: U, magnitude: number | undefined) {
+  return magnitude === undefined ? undefined : value(unit, magnitude);
 }
 
 const row = <T extends SettingType = "boolean">(
@@ -114,7 +123,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.toleranceMetres,
+    select: (p) => quantity("m", settings(p)?.toleranceMetres),
     category: CATEGORY,
     group: GROUP.prediction,
     label: "Prediction tolerance",
@@ -126,7 +135,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.maxSteps,
+    select: (p) => quantity("count", settings(p)?.maxSteps),
     category: CATEGORY,
     group: GROUP.prediction,
     label: "Prediction step limit",
@@ -138,7 +147,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.windowSeconds,
+    select: (p) => quantity("s", settings(p)?.windowSeconds),
     category: CATEGORY,
     group: GROUP.prediction,
     label: "Analysis window",
@@ -149,7 +158,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.historySeconds,
+    select: (p) => quantity("s", settings(p)?.historySeconds),
     category: CATEGORY,
     group: GROUP.history,
     label: "History length",
@@ -160,7 +169,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.markersHidden,
+    select: (p) => quantity("count", settings(p)?.markersHidden),
     category: CATEGORY,
     group: GROUP.history,
     label: "Frames hiding markers",

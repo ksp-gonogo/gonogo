@@ -145,7 +145,6 @@ function RowView({ row }: { row: Row }) {
           always wanted to be. */}
       <Meter
         label={row.label}
-        size="md"
         value={reading.altitudeAsl}
         capacity={value("m", row.capacityM)}
       />

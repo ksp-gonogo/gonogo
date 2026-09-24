@@ -148,7 +148,7 @@ PLANTED_UPLINK.registerContribution({
       rules.map(([label, fraction]) => ({
         id: `${name}:${label}`,
         label,
-        value: fraction,
+        value: value("ratio", fraction),
         tone: toneFor(fraction),
         valueLabel: writeQuantity(value("%", fraction * 100), { decimals: 0 }),
         row: name,

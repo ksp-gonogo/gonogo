@@ -16,6 +16,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium, firefox, type Page, webkit } from "playwright";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
+import type { ScreenProbePayload } from "./probe/screen-entry";
 
 const require = createRequire(import.meta.url);
 
@@ -214,8 +215,8 @@ export interface ScreenBreakpoint {
 export interface ScreenState {
   /** Slug used in the output filename. */
   name: string;
-  /** Prop set forwarded to the screen probe. Shape matches the screen view. */
-  props: Record<string, unknown>;
+  /** Prop set forwarded to the screen probe, typed by what the screen view takes. */
+  props: ScreenProbePayload["props"];
 }
 
 export interface ScreenRenderConfig {
@@ -249,6 +250,18 @@ interface ProbePayload {
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   profile?: string;
+}
+
+/*
+ * The two entry points the probe page installs on `window`, declared so the
+ * `page.evaluate` bodies below reach them by name. They are compiled here and
+ * run in the browser, where the probe bundle has already put them there.
+ */
+declare global {
+  var __renderProbe: ((payload: ProbePayload) => Promise<void>) | undefined;
+  var __renderScreen:
+    | ((payload: ScreenProbePayload) => Promise<void>)
+    | undefined;
 }
 
 /** Render every (fixture × mode) for one widget, convenience wrapper for
