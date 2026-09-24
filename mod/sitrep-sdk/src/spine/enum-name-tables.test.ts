@@ -121,11 +121,12 @@ describe("enum name tables cover their enums", () => {
     });
   }
 
-  it("has a table registered for every enum vessel-state resolves a name for", () => {
+  it("has a table registered for every contract enum the sdk publishes names for", () => {
     expect(ENUM_NAME_TABLES.map((t) => t.label).sort()).toEqual([
       "CONTROL_STATE_NAMES",
       "SAS_MODE_NAMES",
       "SITUATION_NAMES",
+      "TARGET_KIND_NAMES",
     ]);
   });
 

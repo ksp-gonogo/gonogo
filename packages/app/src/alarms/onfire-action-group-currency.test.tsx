@@ -68,7 +68,7 @@ function Tree({ holding }: { holding: boolean }) {
       enabled
       host="localhost"
       port={8090}
-      carriedChannels={["vessel.control", "comms.delay"]}
+      carriedChannels={["vessel.control", "comms.delay", "alarm.scet.fired"]}
     >
       {holding && <Holder />}
     </SitrepTelemetryProvider>
@@ -144,6 +144,16 @@ function hostWithAlarm(): AlarmHostService {
   return svc;
 }
 
+/**
+ * The mod's notice that it fired `id` at `ut`. A time alarm is the mod's to
+ * evaluate, so this, not the clock crossing the instant, is what moves it out
+ * of `pending`; the `onFire` list is the client's to send because no roster
+ * has said the mod acts on it aboard.
+ */
+function fired(id: string, ut: number): string {
+  return frame("alarm.scet.fired", { id, firedAtUt: ut, vantage: "" }, ut);
+}
+
 function actionGroupCommands(received: readonly WireMessage[]) {
   return received.filter(
     (m) =>
@@ -157,12 +167,13 @@ describe("an alarm's onFire action group and the currency of what it inverts", (
     const { view, received, send } = await mountWithControl();
     const svc = hostWithAlarm();
 
-    /* The clock crosses the alarm's instant, and `vessel.control` keeps its
-       keyframe cadence across the crossing: the reading at fire time is this
-       frame's, not the one the mount served. */
+    /* The clock crosses the alarm's instant and the mod reports the fire, and
+       `vessel.control` keeps its keyframe cadence across the crossing: the
+       reading at fire time is this frame's, not the one the mount served. */
     await act(async () => {
       send(frame("comms.delay", DELAY, 600));
       send(frame("vessel.control", CONTROL, 600));
+      send(fired(svc.snapshot().alarms[0].id, 400));
     });
     await waitFor(() => expect(actionGroupCommands(received)).toHaveLength(1));
 
@@ -193,6 +204,7 @@ describe("an alarm's onFire action group and the currency of what it inverts", (
     const svc = hostWithAlarm();
     await act(async () => {
       send(frame("comms.delay", DELAY, 600));
+      send(fired(svc.snapshot().alarms[0].id, 400));
     });
 
     /* The alarm itself fires: the condition came due and the operator gets
