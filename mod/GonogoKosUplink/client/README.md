@@ -9,7 +9,7 @@ Puts a kOS CPU's real terminal on the dashboard, streamed in process with no pro
 | --- | --- |
 | Uplink id | `kos` |
 | Version | `0.0.1` |
-| Built against | contract 17.1, api 2.0.0, ui-kit 0.1.0 |
+| Built against | contract 17.2, api 2.1.0, ui-kit 0.1.0 |
 
 ## Wire
 
