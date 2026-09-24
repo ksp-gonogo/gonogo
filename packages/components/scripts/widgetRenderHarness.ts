@@ -296,6 +296,12 @@ export async function renderWidgets(
      * {@link renderProfilesFor}.
      */
     profile?: string;
+    /**
+     * Render only the scene with this fixture name, and clear only its own
+     * previous shots. For looking at one scene without re-rendering, or
+     * deleting, the rest of its widget's.
+     */
+    fixture?: string;
   } = {},
 ): Promise<void> {
   if (configs.length === 0) {
@@ -365,6 +371,7 @@ export async function renderWidgets(
         config.fullContent ?? fullContent,
         findings,
         opts.profile,
+        opts.fixture,
       );
     }
 
@@ -1393,17 +1400,25 @@ async function renderOneWidget(
   findings: RenderFindings = noFindings(),
   /** Render only this declared install; see {@link renderProfilesFor}. */
   onlyProfile?: string,
+  /** Render only this scene; see `renderWidgets`' `fixture`. */
+  onlyFixture?: string,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
 
   await mkdir(outDir, { recursive: true });
-  await cleanArtifacts(outDir, ARTIFACT_EXTS, (name) =>
-    artifactMatchesSuffix(name, outSuffix),
+  await cleanArtifacts(
+    outDir,
+    ARTIFACT_EXTS,
+    (name) =>
+      artifactMatchesSuffix(name, outSuffix) &&
+      (onlyFixture === undefined || name.startsWith(`${onlyFixture}--`)),
   );
 
-  const fixtureFiles = (await readdir(fixturesDir)).filter((e) =>
-    e.endsWith(".json"),
+  const fixtureFiles = (await readdir(fixturesDir)).filter(
+    (e) =>
+      e.endsWith(".json") &&
+      (onlyFixture === undefined || e === `${onlyFixture}.json`),
   );
   if (fixtureFiles.length === 0) {
     console.error(`[${config.widgetId}] No fixtures found in ${fixturesDir}`);
