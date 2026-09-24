@@ -743,8 +743,8 @@ jobs:
             echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
             exit 0
           fi
-          node scripts/nuget-extraction-probe.mjs --uplink GonogoKosUplink
-          node scripts/nuget-extraction-probe.mjs --plant --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --plant --uplink GonogoKosUplink
 
       # Every Uplink, reported rather than gated: one that reaches a repo path no
       # package carries is a finding about that Uplink, and this step names it.
@@ -759,7 +759,7 @@ jobs:
             echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
             exit 0
           fi
-          node scripts/nuget-extraction-probe.mjs
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
 
   e2e:
     runs-on: ubuntu-latest

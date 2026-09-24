@@ -28,13 +28,17 @@
  * serves". The temporary tree is left for the OS: it is outside the repo and
  * deleting it file by file costs more than it saves.
  *
+ * `--nupkg <file>` probes that package instead of packing one, so a release can
+ * prove the very file it is about to push.
+ *
  * Usage:
- *   node scripts/nuget-extraction-probe.mjs [--uplink <GonogoXUplink>] [--plant]
+ *   node scripts/nuget-extraction-probe.mjs [--uplink <GonogoXUplink>] [--plant] [--nupkg <file>]
  *
  * Needs KSP_MANAGED and KSP_GAMEDATA, the same reference set the `mod` job uses.
  */
 import { spawnSync } from "node:child_process";
 import {
+  copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -62,6 +66,8 @@ const args = process.argv.slice(2);
 const plant = args.includes("--plant");
 const uplinkAt = args.indexOf("--uplink");
 const onlyUplink = uplinkAt >= 0 ? args[uplinkAt + 1] : null;
+const nupkgAt = args.indexOf("--nupkg");
+const givenNupkg = nupkgAt >= 0 ? resolve(args[nupkgAt + 1]) : null;
 
 const kspManaged = process.env.KSP_MANAGED;
 const kspGameData = process.env.KSP_GAMEDATA;
@@ -72,8 +78,19 @@ if (!kspManaged || !kspGameData) {
   process.exit(1);
 }
 
+/**
+ * Every dotnet call restores into a package cache of its own. The shared cache
+ * is keyed by id and version, and the package under test never changes version
+ * between two packs of one tree, so a restore would take whatever copy of it was
+ * cached first and the probe would test that copy instead of this one.
+ */
+const probeEnv = () => ({
+  ...process.env,
+  NUGET_PACKAGES: join(work, "packages"),
+});
+
 function run(cmd, argv, cwd) {
-  const r = spawnSync(cmd, argv, { cwd, encoding: "utf8" });
+  const r = spawnSync(cmd, argv, { cwd, encoding: "utf8", env: probeEnv() });
   return { ok: r.status === 0, out: `${r.stdout ?? ""}\n${r.stderr ?? ""}` };
 }
 
@@ -101,28 +118,47 @@ const work = mkdtempSync(join(tmpdir(), "nuget-extraction-"));
 const feed = join(work, "feed");
 mkdirSync(feed);
 
-const pack = run(
-  "dotnet",
-  [
-    "pack",
-    join(MOD, "Sitrep.Contract.Package", "Sitrep.Contract.Package.csproj"),
-    "-c",
-    "Release",
-    "-o",
-    feed,
-    "--nologo",
-  ],
-  ROOT,
-);
+if (givenNupkg) {
+  if (
+    !existsSync(givenNupkg) ||
+    !basename(givenNupkg).startsWith(`${PACKAGE_ID}.`)
+  ) {
+    console.error(
+      `nuget extraction probe: --nupkg must name an existing ${PACKAGE_ID} package, got ${givenNupkg}`,
+    );
+    process.exit(1);
+  }
+  copyFileSync(givenNupkg, join(feed, basename(givenNupkg)));
+} else {
+  const pack = run(
+    "dotnet",
+    [
+      "pack",
+      join(MOD, "Sitrep.Contract.Package", "Sitrep.Contract.Package.csproj"),
+      "-c",
+      "Release",
+      "-o",
+      feed,
+      "--nologo",
+    ],
+    ROOT,
+  );
+  if (!pack.ok) {
+    console.error(`nuget extraction probe: packing failed\n${pack.out}`);
+    process.exit(1);
+  }
+}
 const nupkg = readdirSync(feed).find(
   (f) => f.startsWith(`${PACKAGE_ID}.`) && f.endsWith(".nupkg"),
 );
-if (!pack.ok || !nupkg) {
-  console.error(`nuget extraction probe: packing failed\n${pack.out}`);
+if (!nupkg) {
+  console.error(`nuget extraction probe: no ${PACKAGE_ID} package in ${feed}`);
   process.exit(1);
 }
 const version = nupkg.slice(PACKAGE_ID.length + 1, -".nupkg".length);
-console.log(`packed ${PACKAGE_ID} ${version} into ${feed}`);
+console.log(
+  `${givenNupkg ? "probing" : "packed"} ${PACKAGE_ID} ${version} in ${feed}`,
+);
 
 const referenceRe =
   /<ProjectReference\s+Include="([^"]+)"[^>]*?(?:\/>|>[\s\S]*?<\/ProjectReference>)/g;
