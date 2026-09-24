@@ -380,10 +380,6 @@ export { fitBox, fitMask } from "./fitBox";
 // be handed a bare number under the wrong ladder. The formatter itself now
 // leaves this package only through `<Unit>`, `<Countdown>` and
 // `<MissionDate>`, and `styleguide-unit-exclusive.test.ts` is the guard.
-// The date NOTATION lever. `formatKspDate` itself stays internal: a caller
-// reads `<MissionDate>`, and the choice between the two notations is the
-// operator's, primed once per screen from the persisted setting.
-export { realDatesWanted, setRealDatesPreferred } from "./formatKspDate";
 // ── Formatters ───────────────────────────────────────────────────────────────
 export { Gauge, type GaugeProps, type GaugeZone } from "./Gauge";
 export {

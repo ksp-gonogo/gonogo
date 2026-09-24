@@ -117,23 +117,24 @@ namespace Sitrep.Contract
         /// <summary>The name a block stores <see cref="IUplinkSettings.WrittenBy"/> under, reserved for it.</summary>
         public const string WrittenByName = "writtenBy";
 
-        public UplinkSettingRow(string name, SettingKind kind, string defaultText, string label)
+        public UplinkSettingRow(string name, SettingKind kind, string defaultText, string label, string description = "")
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Kind = kind;
             DefaultText = defaultText ?? throw new ArgumentNullException(nameof(defaultText));
             Label = label ?? string.Empty;
+            Description = description ?? string.Empty;
         }
 
-        public static UplinkSettingRow Bool(string name, bool defaultValue, string label) =>
-            new UplinkSettingRow(name, SettingKind.Bool, defaultValue ? "True" : "False", label);
+        public static UplinkSettingRow Bool(string name, bool defaultValue, string label, string description = "") =>
+            new UplinkSettingRow(name, SettingKind.Bool, defaultValue ? "True" : "False", label, description);
 
-        public static UplinkSettingRow Number(string name, double defaultValue, string label) =>
+        public static UplinkSettingRow Number(string name, double defaultValue, string label, string description = "") =>
             new UplinkSettingRow(
-                name, SettingKind.Number, defaultValue.ToString("R", CultureInfo.InvariantCulture), label);
+                name, SettingKind.Number, defaultValue.ToString("R", CultureInfo.InvariantCulture), label, description);
 
-        public static UplinkSettingRow Text(string name, string defaultValue, string label) =>
-            new UplinkSettingRow(name, SettingKind.Text, defaultValue, label);
+        public static UplinkSettingRow Text(string name, string defaultValue, string label, string description = "") =>
+            new UplinkSettingRow(name, SettingKind.Text, defaultValue, label, description);
 
         public string Name { get; }
 
@@ -144,6 +145,9 @@ namespace Sitrep.Contract
 
         /// <summary>What an operator reads beside the control.</summary>
         public string Label { get; }
+
+        /// <summary>Why the setting matters or what it needs, read under the label. Empty when the label says enough.</summary>
+        public string Description { get; }
     }
 
     /// <summary>

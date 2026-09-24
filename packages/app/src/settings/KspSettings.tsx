@@ -277,6 +277,7 @@ function KspSettingRow({
     <SettingLine>
       <RowText>
         <RowLabel>{label}</RowLabel>
+        {row.description && <RowDesc>{row.description}</RowDesc>}
         <RowDesc>
           {valid ? `Default ${row.default}` : `Not a ${kindName(row.kind)}.`}
         </RowDesc>

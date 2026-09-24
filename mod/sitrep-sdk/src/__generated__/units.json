@@ -1100,6 +1100,7 @@
     },
     "SettingsRowState": {
       "default": "text",
+      "description": "text",
       "kind": "enum",
       "label": "text",
       "owner": "id",

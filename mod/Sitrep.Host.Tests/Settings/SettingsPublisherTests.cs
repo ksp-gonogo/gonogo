@@ -23,7 +23,7 @@ namespace Sitrep.Host.Tests.Settings
         {
             var backing = new InMemorySettingsStore();
             var store = new SettingsStore(backing);
-            store.Declare(SettingsRow.Bool(Enabled, true, "Apply light-time delay"));
+            store.Declare(SettingsRow.Bool(Enabled, true, "Apply light-time delay", "Holds every command for the light time to the craft"));
             store.Declare(SettingsRow.Number(Scale, 1.0, "Light speed scale"));
             store.Declare(SettingsRow.Number(Slip, 30, "Slip warning"));
             return (store, backing);
@@ -73,6 +73,8 @@ namespace Sitrep.Host.Tests.Settings
             Assert.Equal(SettingKind.Bool, rows[0]["kind"]);
             Assert.Equal(SettingKind.Number, rows[1]["kind"]);
             Assert.Equal("Apply light-time delay", rows[0]["label"]);
+            Assert.Equal("Holds every command for the light time to the craft", rows[0]["description"]);
+            Assert.Equal("", rows[1]["description"]);
             Assert.Equal("True", rows[0]["value"]);
             Assert.Equal("1", rows[1]["default"]);
         }

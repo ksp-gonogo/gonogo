@@ -1,45 +1,14 @@
-import { registerSetting } from "./registry";
 import { useSetting } from "./SettingsContext";
 
+/**
+ * What mission history records. The settings are the game's, kept in KSP's
+ * settings file under `CONSOLE/` by these ids, and read here from the copy
+ * `ConsoleSettingsFromHost` keeps.
+ */
 export const MISSION_HISTORY_ENABLED_SETTING = "mission.historyEnabled";
 export const MISSION_RECORD_ALL_TOPICS_SETTING = "mission.recordAllTopics";
 export const MISSION_VIDEO_RECORDING_ENABLED_SETTING =
   "mission.videoRecordingEnabled";
-
-registerSetting({
-  id: MISSION_HISTORY_ENABLED_SETTING,
-  type: "boolean",
-  label: "Record mission history",
-  description:
-    "Lets the Flight History panel record the live stream as a replayable mission. Subscription-scoped by default, it only captures the topics your dashboard already carries, so this is cheap to leave on.",
-  category: "Mission History",
-  defaultValue: true,
-  screens: ["main"],
-});
-
-registerSetting({
-  id: MISSION_RECORD_ALL_TOPICS_SETTING,
-  type: "boolean",
-  label: "Record every telemetry topic",
-  description:
-    "Subscribes to every telemetry topic while recording, not just what the dashboard has open, so a replay can surface any widget's history. Trades completeness for cost: raises the mod's produce load and the recording's size. Off by default.",
-  category: "Mission History",
-  defaultValue: false,
-  screens: ["main"],
-  dependsOn: MISSION_HISTORY_ENABLED_SETTING,
-});
-
-registerSetting({
-  id: MISSION_VIDEO_RECORDING_ENABLED_SETTING,
-  type: "boolean",
-  label: "Record camera video with missions",
-  description:
-    "Captures the connected camera feed alongside telemetry, synchronized for replay. Not yet implemented, this toggle reserves the setting for that fast-follow.",
-  category: "Mission History",
-  defaultValue: false,
-  screens: ["main"],
-  dependsOn: MISSION_HISTORY_ENABLED_SETTING,
-});
 
 export interface MissionHistorySettings {
   missionHistoryEnabled: boolean;

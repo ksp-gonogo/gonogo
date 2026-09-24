@@ -105,6 +105,8 @@ function kspSettings(
         owner: "gonogo",
         kind: BOOL,
         label: "Apply light-time delay to commands and telemetry",
+        description:
+          "Holds each command and each reading for the light time between the craft and the command centre.",
         value: "True",
         default: "True",
       },
@@ -209,7 +211,7 @@ const SCENES: Scene[] = [
     // `dependsOn`, both ways. The parent is on: the two children are live
     // switches an operator can reach.
     name: "dependson-parent-on",
-    prefs: { "mission.historyEnabled": true },
+    prefs: { "planted.settings.parent": true },
     pxW: 900,
     pxH: 460,
   },
@@ -218,7 +220,7 @@ const SCENES: Scene[] = [
     // the consuming hook AND-combines them and a switch that would change
     // nothing must not look like one that would.
     name: "dependson-parent-off",
-    prefs: { "mission.historyEnabled": false },
+    prefs: { "planted.settings.parent": false },
     pxW: 900,
     pxH: 460,
   },

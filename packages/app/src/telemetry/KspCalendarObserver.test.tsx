@@ -4,11 +4,12 @@ import {
   kspCalendar,
   MissionDate,
   setKspCalendar,
-  setRealDatesPreferred,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { SettingsProvider } from "../settings/SettingsContext";
+import { SettingsService } from "../settings/SettingsService";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KspCalendarObserver } from "./KspCalendarObserver";
 
@@ -27,7 +28,6 @@ afterEach(() => {
   // Module state in the kit: leak it and the next test in this file, or any
   // other, formats on somebody else's calendar.
   setKspCalendar();
-  setRealDatesPreferred(false);
 });
 
 describe("KspCalendarObserver", () => {
@@ -86,11 +86,7 @@ describe("KspCalendarObserver", () => {
     await waitFor(() => expect(visibleText()).toContain("Y1 D2 00:00:00"));
   });
 
-  it("carries the epoch through to a real date, once asked for", async () => {
-    // The anchor is a FACT the observer adopts unconditionally; the notation
-    // is the operator's choice, primed separately by initCalendarSettings.
-    // Both are needed, which is why both are here.
-    setRealDatesPreferred(true);
+  it("carries the epoch through to a real date", async () => {
     const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
     const tree = () => (
       <fixture.Provider>
@@ -120,10 +116,106 @@ describe("KspCalendarObserver", () => {
     await waitFor(() => expect(visibleText()).toContain("1 Jan 1951 00:00:00"));
   });
 
+  /**
+   * The observer is what keeps every screen's dates on the game's calendar,
+   * and it sits in the telemetry tree both screens mount. A screen that took
+   * the anchor once and never again would keep writing real dates for a game
+   * that no longer has them, so it is driven through each direction.
+   */
+  it("follows the anchor through every change, not only the first", async () => {
+    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const tree = () => (
+      <fixture.Provider>
+        <KspCalendarObserver />
+        <MissionDate value={0} />
+      </fixture.Provider>
+    );
+    const { rerender } = render(tree());
+    const report = (epoch?: string) =>
+      act(() => {
+        fixture.emit("time.calendar", {
+          minuteSeconds: 60,
+          hourSeconds: 3600,
+          daySeconds: 86_400,
+          yearSeconds: 365 * 86_400,
+          ...(epoch ? { epoch } : {}),
+          kerbinTime: false,
+        });
+        fixture.wall.advanceBy(1);
+        fixture.store.beginFrame();
+      });
+
+    report("1951-01-01T00:00:00Z");
+    await waitFor(() =>
+      expect(kspCalendar().epochMs).toBe(Date.UTC(1951, 0, 1)),
+    );
+
+    report();
+    await waitFor(() => expect(kspCalendar().epochMs).toBeUndefined());
+    rerender(tree());
+    await waitFor(() => expect(visibleText()).toContain("Y1 D1 00:00:00"));
+
+    report("1951-01-01T00:00:00Z");
+    await waitFor(() =>
+      expect(kspCalendar().epochMs).toBe(Date.UTC(1951, 0, 1)),
+    );
+    rerender(tree());
+    await waitFor(() => expect(visibleText()).toContain("1 Jan 1951 00:00:00"));
+  });
+
+  /**
+   * The notation was once a stored choice. A screen that still holds the old
+   * value must render what the game's calendar says, whichever way it was set.
+   */
+  it("renders a real date for an anchored game whatever notation a screen once stored", async () => {
+    const stored = new Map([
+      ["gonogo.settings", JSON.stringify({ "time.realCalendarDates": false })],
+    ]);
+    const service = new SettingsService({
+      getItem: (k) => stored.get(k) ?? null,
+      setItem: (k, v) => void stored.set(k, v),
+      removeItem: (k) => void stored.delete(k),
+      clear: () => stored.clear(),
+      key: () => null,
+      get length() {
+        return stored.size;
+      },
+    });
+    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const tree = () => (
+      <SettingsProvider service={service}>
+        <fixture.Provider>
+          <KspCalendarObserver />
+          <MissionDate value={0} />
+        </fixture.Provider>
+      </SettingsProvider>
+    );
+    const { rerender } = render(tree());
+
+    act(() => {
+      fixture.emit("time.calendar", {
+        minuteSeconds: 60,
+        hourSeconds: 3600,
+        daySeconds: 86_400,
+        yearSeconds: 365 * 86_400,
+        epoch: "1951-01-01T00:00:00Z",
+        kerbinTime: false,
+      });
+      fixture.wall.advanceBy(1);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() =>
+      expect(kspCalendar().epochMs).toBe(Date.UTC(1951, 0, 1)),
+    );
+    rerender(tree());
+    await waitFor(() => expect(visibleText()).toContain("1 Jan 1951 00:00:00"));
+    service.dispose();
+  });
+
   it("leaves the calendar unanchored when the game reports no epoch", async () => {
     // Stock, and every planet pack with no real-calendar formatter beside it.
     // Absent is the correct answer, not a gap: KSP's own UI prints Y1 D1 here.
-    setRealDatesPreferred(true);
     const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
     render(
       <fixture.Provider>

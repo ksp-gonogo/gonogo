@@ -1134,6 +1134,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "SettingsRowState": {
     default: "text",
+    description: "text",
     kind: "enum",
     label: "text",
     owner: "id",
