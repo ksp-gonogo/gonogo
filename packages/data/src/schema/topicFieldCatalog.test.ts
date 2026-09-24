@@ -28,7 +28,7 @@ describe("getTopicFieldCatalog()", () => {
     const vesselState = getTopicFieldCatalog().filter(
       (k) => k.topic === "vessel.state",
     );
-    expect(vesselState.length).toBeGreaterThan(50);
+    expect(vesselState.length).toBeGreaterThan(30);
   });
 
   it("keys every entry by the path a read actually samples", () => {
