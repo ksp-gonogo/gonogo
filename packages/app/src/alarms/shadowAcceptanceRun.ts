@@ -101,8 +101,18 @@ export interface ShadowAcceptanceOptions {
    * so a lap scenario with several alarms per orbit needs this or a run whose
    * period assumed a warp rung stalls to the real-time period instead.
    * Undefined leaves warp exactly as the caller set it.
+   *
+   * A run given a rung returns warp to rung 0 however it ends: finished,
+   * failed, thrown or interrupted. A run that finishes but cannot get the game
+   * to confirm the release fails, because it has left the game warping for
+   * every run and every operator after it.
    */
   warpIndex?: number;
+  /**
+   * Ends the run early. An interrupted run fails, and still releases everything
+   * it acquired on the way out, warp included.
+   */
+  signal?: AbortSignal;
   /** How often to print a progress line, ms. */
   progressEveryMs?: number;
   write?: (line: string) => void;
@@ -131,6 +141,66 @@ export interface ShadowAcceptanceResult {
    * about whether warp was lost. Always false when no `warpIndex` was given.
    */
   warpUnread: boolean;
+}
+
+/** How long the run waits for the game to confirm warp is back at rung 0. */
+const WARP_RELEASE_TIMEOUT_MS = 5_000;
+
+/**
+ * Commands warp back to rung 0 and waits for the game to take it. Resolves
+ * null once the game has confirmed it, otherwise with why it has not.
+ */
+async function releaseWarp(): Promise<string | null> {
+  let dispatch: ReturnType<typeof dispatchActiveCommandTopic>;
+  try {
+    dispatch = dispatchActiveCommandTopic("time.setWarpIndex", { index: 0 });
+  } catch (error) {
+    // Called from a `finally`, where a throw would replace the run's own error.
+    return `sending it threw: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  if (!dispatch.routed) return "there was no stream to send it on";
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    dispatch.settled.then((refusal) =>
+      refusal === undefined ? null : `the game refused it: ${refusal.message}`,
+    ),
+    new Promise<string>((resolve) => {
+      timer = setTimeout(
+        () =>
+          resolve(
+            `the game did not confirm it within ${WARP_RELEASE_TIMEOUT_MS / 1000} s`,
+          ),
+        WARP_RELEASE_TIMEOUT_MS,
+      );
+    }),
+  ]);
+  clearTimeout(timer);
+  return outcome;
+}
+
+/** Resolves after `ms`, or rejects as soon as `signal` aborts. */
+function wait(ms: number, signal: AbortSignal | undefined): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const interrupted = () =>
+      new Error(
+        typeof signal?.reason === "string"
+          ? `the run was interrupted: ${signal.reason}`
+          : "the run was interrupted",
+      );
+    if (signal?.aborted) {
+      reject(interrupted());
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(interrupted());
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /**
@@ -231,6 +301,17 @@ export async function runShadowAcceptance(
     });
     nameOf.set(armed.id, a.name);
   };
+  /* Every loop the run starts, so an exit on any path stops them all. The warp
+     hold above all: left running past the release, it would put the rung
+     straight back. */
+  const loops = new Set<ReturnType<typeof setInterval>>();
+  const every = (fn: () => void, ms: number) => {
+    const loop = setInterval(fn, ms);
+    loops.add(loop);
+    return loop;
+  };
+  let result: ShadowAcceptanceResult;
+  let warpNotReleased: string | null = null;
   try {
     /*
      * A command-vantage threshold's shadow arm names the place this screen
@@ -245,7 +326,7 @@ export async function runShadowAcceptance(
       client.observedVantage === undefined &&
       Date.now() < vantageDeadline
     ) {
-      await new Promise((r) => setTimeout(r, 100));
+      await wait(100, options.signal);
     }
     write(
       `observed vantage before arming: ${client.selectedVantage ?? client.observedVantage ?? "(none after 10s)"}`,
@@ -315,7 +396,7 @@ export async function runShadowAcceptance(
      */
     const REARM_GRACE_MS = 10_000;
     const firedSeenAt = new Map<string, number>();
-    const rearmLoop: ReturnType<typeof setInterval> = setInterval(() => {
+    const rearmLoop = every(() => {
       if (options.laps !== undefined) {
         for (const alarm of svc.snapshot().alarms) {
           if (alarm.state !== "fired") continue;
@@ -353,7 +434,7 @@ export async function runShadowAcceptance(
     let warpReapplyLoop: ReturnType<typeof setInterval> | undefined;
     if (options.warpIndex !== undefined) {
       const targetIndex = options.warpIndex;
-      warpReapplyLoop = setInterval(() => {
+      warpReapplyLoop = every(() => {
         const current = getWarpState()?.warpRateIndex;
         if (current !== undefined) warpEverRead = true;
         if (current !== undefined && current < targetIndex) {
@@ -374,9 +455,9 @@ export async function runShadowAcceptance(
         if (getValue("data", a.dataKey) !== undefined) everRead.add(a.name);
       }
     };
-    const reads = setInterval(sampleReads, 250);
+    const reads = every(sampleReads, 250);
     const started = Date.now();
-    const tick = setInterval(() => {
+    const tick = every(() => {
       const elapsed = value("s", Math.round((Date.now() - started) / 1000));
       write(
         `  ${writeQuantity(elapsed)}  owlt=${owlt === null ? "null" : writeQuantity(owlt, DELAY_FORMAT)}  alarms=${svc
@@ -387,7 +468,7 @@ export async function runShadowAcceptance(
           )}  pendingRearm=${pendingRearm.size}  read=${SHADOW_ACCEPTANCE_ALARMS.filter((a) => everRead.has(a.name)).length}/${SHADOW_ACCEPTANCE_ALARMS.length}  rearms=${rearmCount}  warpReapplies=${warpReapplyCount}`,
       );
     }, options.progressEveryMs ?? 30_000);
-    await new Promise((r) => setTimeout(r, options.observeMs));
+    await wait(options.observeMs, options.signal);
     clearInterval(tick);
     clearInterval(reads);
     clearInterval(rearmLoop);
@@ -438,7 +519,7 @@ export async function runShadowAcceptance(
             },
       exclusions: [neverArmedByThisRun((id) => nameOf.has(id))],
     });
-    return {
+    result = {
       verdict,
       owlt,
       unread,
@@ -447,6 +528,16 @@ export async function runShadowAcceptance(
       warpUnread,
     };
   } finally {
+    for (const loop of loops) clearInterval(loop);
+    /* Released only when this run took it: a run with no rung leaves warp to
+       whoever set it. Sent while the stream is still up, so before any of the
+       teardown below. */
+    if (options.warpIndex !== undefined) {
+      warpNotReleased = await releaseWarp();
+      if (warpNotReleased !== null) {
+        write(`warp was not returned to 1x: ${warpNotReleased}`);
+      }
+    }
     logger.setEnabled(loggingWas);
     svc.dispose();
     for (const off of unsubscribes) off();
@@ -461,4 +552,12 @@ export async function runShadowAcceptance(
     client.dispose();
     transport.dispose();
   }
+  /* Reached only when the run itself succeeded; a run that threw keeps its own
+     error, with the release failure written above it. */
+  if (warpNotReleased !== null) {
+    throw new Error(
+      `the run held warp at rung ${options.warpIndex} and could not return it to 1x: ${warpNotReleased}`,
+    );
+  }
+  return result;
 }
