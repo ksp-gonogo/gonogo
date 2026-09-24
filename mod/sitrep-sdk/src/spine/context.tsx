@@ -18,6 +18,8 @@ import type {
 } from "../__generated__/contract";
 import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "../default-carried-topics";
 import { magnitudeOf } from "../magnitude";
+import type { TopicReading } from "../reading";
+import { topicReading } from "../reading";
 import {
   getRuntimeRegisteredTopicIds,
   subscribeRuntimeTopicRegistry,
@@ -814,7 +816,10 @@ export function setActiveViewClockForTests(
  * registration effect in `TelemetryProvider` above.
  */
 let activeTimelineStore:
-  | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
+  | Pick<
+      TimelineStore,
+      "sample" | "sampleReading" | "currentFrame" | "subscribeFrame"
+    >
   | undefined;
 
 /**
@@ -874,6 +879,10 @@ let activeCarriedChannels: ReadonlySet<string> | undefined;
  * ARBITRARY topic decided at call time: `GoNoGoHostService`'s
  * `vessel.state.met` read, the same "dynamic topic" shape `useTelemetry`'s
  * own doc comment already documents for the hook case.
+ *
+ * Answers a DISPLAY value, and a hold-last one: this cannot say how old it is,
+ * or whether anything is still feeding the topic. Anything ACTING on the
+ * answer rather than drawing it wants {@link sampleActiveReading} instead.
  */
 export function sampleActiveTopic<T>(topic: string): T | undefined {
   if (!activeTimelineStore) return undefined;
@@ -882,6 +891,44 @@ export function sampleActiveTopic<T>(topic: string): T | undefined {
     activeTimelineStore.currentFrame(),
   );
   return point ? (point.payload as T | undefined) : undefined;
+}
+
+/**
+ * One shared `pending` for the no-provider answer, so repeated calls hand back
+ * one object rather than a fresh one each time.
+ */
+const NO_PROVIDER_READING = topicReading<never>({
+  state: "pending",
+  reckoning: { status: "none" },
+});
+
+/**
+ * `sampleActiveTopic`'s currency-carrying twin: the same on-demand read off
+ * whichever `TelemetryProvider` mounted last, answering the whole
+ * `TopicReading` a widget's `useTelemetry(topic)` would get on the same frame
+ * rather than the bare payload.
+ *
+ * A bare payload is a DISPLAY value. The store is hold-last by design, and a
+ * timeline is never dropped when its last subscriber lets go, so
+ * `sampleActiveTopic` answers a released topic's final payload for as long as
+ * the epoch stands. That is the right answer for a readout under a staleness
+ * mark and the wrong one for a headless caller deciding something: a decision
+ * taken on a payload has no way to ask how old it is, and the last holder's
+ * unmount is not an event the caller sees.
+ *
+ * So anything acting on a reading rather than drawing it reads here, branches
+ * on `state`, and treats `stale` as a reason to stop. One store call, the same
+ * `sampleReading` the hook path uses, so the two cannot drift.
+ *
+ * Answers `pending` when no provider has ever mounted, matching what
+ * `useTelemetry` returns outside a provider.
+ */
+export function sampleActiveReading<T>(topic: string): TopicReading<T> {
+  if (!activeTimelineStore) return NO_PROVIDER_READING as TopicReading<T>;
+  return activeTimelineStore.sampleReading<T>(
+    topic,
+    activeTimelineStore.currentFrame(),
+  );
 }
 
 /**
@@ -1133,7 +1180,10 @@ export function dispatchActiveCommandTopic(
  */
 export function setActiveTimelineStoreForTests(
   store:
-    | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
+    | Pick<
+        TimelineStore,
+        "sample" | "sampleReading" | "currentFrame" | "subscribeFrame"
+      >
     | undefined,
 ): void {
   activeTimelineStore = store;

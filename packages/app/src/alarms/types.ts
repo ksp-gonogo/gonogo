@@ -352,6 +352,17 @@ export interface AlarmSnapshot {
    * cannot tell apart from a condition that simply has not come due.
    */
   scetArmRefusals?: Record<string, string>;
+  /**
+   * Why an alarm's `onFire` list did not all reach the wire the last time it
+   * fired, keyed by alarm id. Absent when nothing has been refused.
+   *
+   * An action group is toggled by sending its INVERSE as an absolute set, so a
+   * fire whose `vessel.control` reading is stale has nothing current to invert
+   * and sends nothing. Without this the alarm reads `fired` while the gear sits
+   * exactly where it was, and the row gives the operator no way to connect the
+   * two.
+   */
+  onFireRefusals?: Record<string, string>;
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;
