@@ -1327,8 +1327,6 @@ registerComponent({
     "comms.delay",
     "comms.link",
   ],
-  // Aboard AND on the ground: the whole point is that both ends are in it.
-  seats: ["mission-control", "pilot"],
   defaultConfig: {},
   actions: [],
   pushable: false,

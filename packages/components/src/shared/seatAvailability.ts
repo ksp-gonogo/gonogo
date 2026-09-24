@@ -9,14 +9,16 @@ import type { ComponentDefinition, Seat } from "@ksp-gonogo/core";
  * cannot act on the VAB, cannot hire a kerbal, and cannot approve a contract,
  * so a widget that reads any of these has no business on their screen.
  *
- * Four of the twenty-one domains on the wire. The other seventeen describe the
- * craft, its surroundings, or the stream itself, and every one of them is as
- * meaningful aboard as it is at KSC.
+ * Every other domain describes the craft, its surroundings, or the stream
+ * itself, and is as meaningful aboard as it is at KSC. That includes
+ * `commandCentre`, although it names places on the ground: its roster and
+ * separation say where the command centres are and how far away each one is,
+ * which is addressing a crew needs as much as the ground does, not a facility
+ * anybody aboard would be trying to operate.
  */
 const GROUND_DOMAINS: ReadonlySet<string> = new Set([
   "spaceCenter",
   "career",
-  "commandCentre",
   "recovery",
 ]);
 
