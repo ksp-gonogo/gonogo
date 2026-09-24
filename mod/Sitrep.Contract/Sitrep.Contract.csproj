@@ -3,6 +3,13 @@
     <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- CS8509 (a switch expression over an enum this assembly owns does not
+         handle every member) is a build error here, not a warning: it is the
+         compile-time exhaustiveness check for an own-enum switch that used to
+         fall through to a runtime `default:`, e.g. CommsBackendBase.SourceOf
+         over CommsControlGrade. Scoped to this one code so it says nothing
+         about the rest of the project's warning posture. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS8509</WarningsAsErrors>
     <!-- The doc comments ARE the contract's documentation: an Uplink author
          hovering a channel type is reading these, the same prose
          `scripts/asyncapi/prose-hygiene.mjs` keeps client-facing. Shipping the
