@@ -729,6 +729,38 @@ jobs:
           path: ${{ runner.temp }}/nuget/*
           retention-days: 7
 
+      # Whether an Uplink's C# half builds from the PACKAGE rather than the
+      # source tree, which every other build here uses. Blocking for the Uplink
+      # known to leave cleanly, and for the planted gap, which must fail or the
+      # probe could not see a real one. The script's header has the reasoning.
+      - name: An Uplink builds against the packed contract
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
+            exit 0
+          fi
+          node scripts/nuget-extraction-probe.mjs --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --plant --uplink GonogoKosUplink
+
+      # Every Uplink, reported rather than gated: one that reaches a repo path no
+      # package carries is a finding about that Uplink, and this step names it.
+      - name: Which Uplinks build against the packed contract
+        continue-on-error: true
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
+            exit 0
+          fi
+          node scripts/nuget-extraction-probe.mjs
+
   e2e:
     runs-on: ubuntu-latest
     strategy:
