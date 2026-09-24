@@ -215,26 +215,86 @@ describe("runShadowAcceptance: its thresholds read the stream", () => {
   });
 });
 
+describe("runShadowAcceptance: the warp hold", () => {
+  it("puts the rung back when the game has dropped below it", async () => {
+    const sent: SentCommand[] = [];
+    serveWarpGame(sent);
+
+    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+      warpIndex: 3,
+    });
+
+    expect(warpUnread).toBe(false);
+    expect(warpReapplies).toBeGreaterThan(0);
+    expect(warpCommands(sent)).toContainEqual({ index: 3 });
+  });
+
+  it("says it never read the rung, rather than reporting a quiet zero", async () => {
+    serveDelay(null);
+    serveWarpGame([], { reportsWarp: false });
+
+    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+      host: "localhost",
+      port: PORT,
+      observeMs: 2500,
+      warpIndex: 3,
+    });
+
+    expect(warpReapplies).toBe(0);
+    expect(warpUnread).toBe(true);
+  });
+});
+
+interface SentCommand {
+  command: string;
+  args: unknown;
+}
+
 /**
- * Answers a `time.warp` subscription with the game sitting at rung 0, as it
- * does after the mod cancels warp, and collects every command the run sends.
+ * A game sitting at rung 0, as it does after the mod cancels warp, that records
+ * every command with its arguments and answers each one: `"confirm"` as a
+ * success, `"refuse"` as the game saying no. `reportsWarp: false` answers the
+ * commands and never the `time.warp` subscription.
  */
-function serveWarpDropped(commands: string[]): void {
+function serveWarpGame(
+  sent: SentCommand[],
+  {
+    answer = "confirm",
+    reportsWarp = true,
+  }: { answer?: "confirm" | "refuse"; reportsWarp?: boolean } = {},
+): void {
   server.use(
     link.addEventListener(
       "connection",
       ({ client }: { client: LinkClient }) => {
         client.addEventListener("message", (event) => {
-          const msg: unknown = JSON.parse(String(event.data));
-          if (typeof msg !== "object" || msg === null || !("type" in msg)) {
-            return;
-          }
-          if (msg.type === "command-request" && "command" in msg) {
-            commands.push(String(msg.command));
+          const msg = JSON.parse(String(event.data)) as {
+            type?: string;
+            topic?: string;
+            command?: string;
+            args?: unknown;
+            requestId?: string;
+          };
+          if (msg.type === "command-request") {
+            sent.push({ command: String(msg.command), args: msg.args });
+            client.send(
+              JSON.stringify({
+                type: "command-response",
+                requestId: msg.requestId,
+                result:
+                  answer === "confirm"
+                    ? { success: true, errorCode: 0 }
+                    : { success: false, errorCode: 13, detail: "not now" },
+                meta: JSON.parse(streamFrame("x", null)).meta,
+              }),
+            );
           }
           if (
+            reportsWarp &&
             msg.type === "subscribe" &&
-            "topic" in msg &&
             msg.topic === "time.warp"
           ) {
             client.send(
@@ -253,35 +313,99 @@ function serveWarpDropped(commands: string[]): void {
   );
 }
 
-describe("runShadowAcceptance: the warp hold", () => {
-  it("puts the rung back when the game has dropped below it", async () => {
-    const commands: string[] = [];
-    serveWarpDropped(commands);
+const warpCommands = (sent: SentCommand[]) =>
+  sent.filter((c) => c.command === "time.setWarpIndex").map((c) => c.args);
 
-    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+/*
+ * Every exit path, because the one that skips the release is always the one
+ * nobody tests: a run that only let go of warp on success would pass the first
+ * case here and leave the game warping on every other.
+ */
+describe("runShadowAcceptance: warp goes back to 1x however the run ends", () => {
+  it("after a run that finishes", async () => {
+    const sent: SentCommand[] = [];
+    serveWarpGame(sent);
+
+    await runShadowAcceptance({
       host: "localhost",
       port: PORT,
       observeMs: 2500,
       warpIndex: 3,
     });
 
-    expect(warpUnread).toBe(false);
-    expect(warpReapplies).toBeGreaterThan(0);
-    await vi.waitFor(() => expect(commands).toContain("time.setWarpIndex"));
+    expect(warpCommands(sent)).toContainEqual({ index: 3 });
+    expect(warpCommands(sent).at(-1)).toEqual({ index: 0 });
   });
 
-  it("says it never read the rung, rather than reporting a quiet zero", async () => {
-    serveDelay(null);
+  it("after a run that throws", async () => {
+    const sent: SentCommand[] = [];
+    serveWarpGame(sent);
+    serveFlight(() => 250_000);
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const info = vi.spyOn(logger, "info").mockImplementation(() => {});
 
-    const { warpReapplies, warpUnread } = await runShadowAcceptance({
+    await expect(
+      runShadowAcceptance({
+        host: "localhost",
+        port: PORT,
+        observeMs: 2500,
+        warpIndex: 3,
+      }),
+    ).rejects.toThrow(/recorded no alarm-shadow line/);
+    warn.mockRestore();
+    info.mockRestore();
+
+    expect(warpCommands(sent)).toContainEqual({ index: 3 });
+    expect(warpCommands(sent).at(-1)).toEqual({ index: 0 });
+  });
+
+  it("after a run that is interrupted", async () => {
+    const sent: SentCommand[] = [];
+    serveWarpGame(sent);
+    const interrupt = new AbortController();
+    setTimeout(() => interrupt.abort("SIGINT"), 2500);
+
+    await expect(
+      runShadowAcceptance({
+        host: "localhost",
+        port: PORT,
+        observeMs: 600_000,
+        warpIndex: 3,
+        signal: interrupt.signal,
+      }),
+    ).rejects.toThrow("the run was interrupted: SIGINT");
+
+    expect(warpCommands(sent)).toContainEqual({ index: 3 });
+    expect(warpCommands(sent).at(-1)).toEqual({ index: 0 });
+  });
+
+  it("fails a finished run the game would not let go of warp for", async () => {
+    const sent: SentCommand[] = [];
+    serveWarpGame(sent, { answer: "refuse" });
+
+    await expect(
+      runShadowAcceptance({
+        host: "localhost",
+        port: PORT,
+        observeMs: 500,
+        warpIndex: 3,
+      }),
+    ).rejects.toThrow(
+      /held warp at rung 3 and could not return it to 1x: the game refused it/,
+    );
+  });
+
+  it("leaves warp alone when the run was given no rung to hold", async () => {
+    const sent: SentCommand[] = [];
+    serveWarpGame(sent);
+
+    await runShadowAcceptance({
       host: "localhost",
       port: PORT,
-      observeMs: 2500,
-      warpIndex: 3,
+      observeMs: 500,
     });
 
-    expect(warpReapplies).toBe(0);
-    expect(warpUnread).toBe(true);
+    expect(warpCommands(sent)).toEqual([]);
   });
 });
 
