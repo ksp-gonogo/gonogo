@@ -356,16 +356,15 @@ namespace Sitrep.Core
         /// Recording a drop therefore changes no delay and invalidates no
         /// <see cref="StampFor"/> cache.</para>
         ///
-        /// <para>FED, by exactly one production caller:
-        /// <c>ChannelEngine.ApplyPathBreak</c>, scoped to the active vessel's
-        /// own node. What raises it is <c>PathBreakWatch</c>, which retains the
-        /// ordered hop list (<c>CommsBackendBase.Path</c>) that
+        /// <para>FED by two production callers, each against the node whose
+        /// route broke: <c>ChannelEngine.ApplyPathBreak</c> for the active
+        /// vessel's own node, and <c>ChannelEngine.SetVesselPathBreak</c> for
+        /// each fleet vessel's <c>fleet.&lt;id&gt;</c> node. What raises both is
+        /// <c>PathBreakWatch</c>, which retains the ordered hop list that
         /// <c>SignalDelay.Compute</c> sums into a single scalar, and keeps the
         /// per-hop cumulative light-times that scalar discards: those are the
-        /// break's POSITION, which is the quantity this seam could not be given
-        /// before. The per-vessel fleet delays and the command-centre matrix
-        /// still raise nothing, because their routes carry no node ids to name a
-        /// break on.</para>
+        /// break's POSITION. The command-centre matrix raises nothing, because
+        /// its route hops are never named.</para>
         ///
         /// <para>Bounded by warp, and the bound is enforced in the watch rather
         /// than assumed here: at a rate where one physics tick spans more UT than

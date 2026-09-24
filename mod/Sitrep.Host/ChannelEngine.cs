@@ -2294,6 +2294,11 @@ namespace Sitrep.Host
             _network.SetNodeJourney(FleetNodePrefix + vesselId, journey);
         }
 
+        public void SetVesselPathBreak(string vesselId, PathBreak found)
+        {
+            _network.DropPath(FleetNodePrefix + vesselId, found.AtUt, found.LightSecondsOut);
+        }
+
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
         {
             // Per-(authority, subject) command delay (Plan 3): the explicit
@@ -5386,12 +5391,11 @@ namespace Sitrep.Host
         /// subject's re-target as well as splitting the tail (see
         /// <see cref="IUplinkHost.SetPathBreakSource"/>).
         ///
-        /// <para>Scoped to <see cref="NodeId"/>, the active vessel's own node,
-        /// and that is where the hop identity a break needs actually exists: the
-        /// per-vessel fleet delays are routed light-times with no node ids on
-        /// them, and the command-centre matrix's route hops structurally carry
-        /// none. A fleet subject going dark is still handled the way it always
-        /// was, by the reveal gate freezing it.</para>
+        /// <para>Scoped to <see cref="NodeId"/>, the active vessel's own node.
+        /// Every fleet vessel's route, the active one's included, raises its
+        /// breaks against its own <c>fleet.&lt;id&gt;</c> node through
+        /// <see cref="SetVesselPathBreak"/> instead. The command-centre matrix
+        /// raises none: its route hops are never named.</para>
         ///
         /// <para>Fail-soft in the safe direction: a source that threw raises
         /// nothing, because a break that cannot be established must behave
