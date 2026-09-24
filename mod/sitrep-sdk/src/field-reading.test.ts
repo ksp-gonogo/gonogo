@@ -83,6 +83,7 @@ describe("a field reading reaches through the payload", () => {
 
   it("walks a MAP KEY, in both spellings, to the same reading", () => {
     const r = crewReading();
+    // biome-ignore lint/complexity/useLiteralKeys: the two spellings ARE the assertion. Collapsing the computed key to a dot key leaves `toBe` comparing one expression with itself, which passes whatever the proxy does.
     expect(r.crew.Bill.rules[0]).toBe(r.crew["Bill"].rules[0]);
   });
 
