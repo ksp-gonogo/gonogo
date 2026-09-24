@@ -1,9 +1,13 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type TopicId, unitOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { LinkClient } from "../test/peerFakes";
-import { reportedOneWay, runShadowAcceptance } from "./shadowAcceptanceRun";
+import {
+  reportedOneWay,
+  runShadowAcceptance,
+  SHADOW_ACCEPTANCE_ALARMS,
+} from "./shadowAcceptanceRun";
 
 /**
  * The acceptance run against a stream whose delay is known, so a harness that
@@ -160,9 +164,9 @@ describe("runShadowAcceptance: its thresholds read the stream", () => {
       observeMs: 2000,
     });
 
-    expect(finalStates["Speed 3 km/s"]).toBe("pending");
+    expect(finalStates["Speed 2 km/s"]).toBe("pending");
     expect(finalStates["Altitude 300 km"]).toBe("pending");
-    expect(unread).toEqual(["Speed 3 km/s"]);
+    expect(unread).toEqual(["Speed 2 km/s"]);
   });
 });
 
@@ -189,5 +193,19 @@ describe("reportedOneWay", () => {
     ["a reading in another unit", { oneWaySeconds: value("m", 3) }],
   ])("returns null for %s", (_label, payload) => {
     expect(reportedOneWay(payload)).toBeNull();
+  });
+});
+
+/**
+ * A threshold naming a field the wire does not carry is never read, and a run
+ * reports it only as an alarm that stayed unread whatever the orbit did. So
+ * every armed field is held to the contract's own declaration of its Topic.
+ */
+describe("the shadow-acceptance alarms", () => {
+  it.each(
+    SHADOW_ACCEPTANCE_ALARMS.map((a) => [a.name, a] as const),
+  )("%s names a field the wire carries", (_, alarm) => {
+    expect(unitOf(alarm.topic as TopicId, alarm.fieldPath)).toBeDefined();
+    expect(alarm.dataKey).toBe(`${alarm.topic}.${alarm.fieldPath}`);
   });
 });
