@@ -274,8 +274,8 @@ export const UNIT_DEFINITIONS = {
     kind: "power",
     ladder: "power",
   },
-  // Descends below the base unit, which nothing else here needs to: the
-  // upper atmosphere runs to fractions of a pascal.
+  // Descends below the base unit: the upper atmosphere runs to fractions of a
+  // pascal.
   mPa: {
     dim: { kg: 1, m: -1, s: -2 },
     ratio: 1e-3,
@@ -294,7 +294,20 @@ export const UNIT_DEFINITIONS = {
     kind: "pressure",
     ladder: "pressure",
   },
-  "kg/m³": { dim: { kg: 1, m: -3 }, ratio: 1, kind: "density" },
+  // Descends below the base unit for the same reason mPa does: air density
+  // falls from about a kilogram per cubic metre at sea level to grams and less.
+  "g/m³": {
+    dim: { kg: 1, m: -3 },
+    ratio: 1e-3,
+    kind: "density",
+    ladder: "density",
+  },
+  "kg/m³": {
+    dim: { kg: 1, m: -3 },
+    ratio: 1,
+    kind: "density",
+    ladder: "density",
+  },
   // Multiples of standard gravity, the convention KSP's own geeForce reports.
   g: { dim: { m: 1, s: -2 }, ratio: STANDARD_GRAVITY, kind: "acceleration" },
   "m/s²": { dim: { m: 1, s: -2 }, ratio: 1, kind: "acceleration" },
