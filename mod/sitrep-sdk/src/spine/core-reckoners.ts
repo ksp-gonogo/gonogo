@@ -620,8 +620,8 @@ function registerCommsDelayReckoner(): void {
  *
  * `system.bodies` is a DEP without being a contract input: the mark needs only
  * `@vessel.orbit#mu`, and the roster is wanted for the atmosphere floor. Being a
- * dep makes an absent roster a decline here, which is stricter than
- * `deriveVesselStateReckoning`'s posture on the same fact and deliberately so:
+ * bare Topic dep makes an absent roster a decline here, which is stricter than
+ * `vessel.orbit`'s posture on the same fact and deliberately so:
  * this channel is dev-only by convention, so a frame withheld while the
  * once-a-second body channel lands costs nothing, and the alternative is a conic
  * drawn through air with no way to know it.
@@ -738,14 +738,24 @@ function registerOrbitTruthReckoner(): void {
  * below the atmosphere interface. Offering the choice here would let a widget
  * read a conic past the point anybody stands behind it, which is the one thing
  * this must not do.
+ *
+ * ## The roster is a READING, so its absence is not a decline
+ *
+ * The roster only places the atmosphere floor, and `keplerAdmissibility` takes
+ * an absent one as no floor to have crossed. A bare Topic dep would decline
+ * `input-absent` before that posture was ever asked, withdrawing every
+ * propagated orbit for the frames before the body channel first lands. A body
+ * catalogue is a fact, so a stale one is still the catalogue and is used as-is.
  */
 function registerOrbitReckoner(): void {
   registerReckoner("vessel.orbit", CORE_RECKONER_OWNER, {
-    deps: ["system.bodies"],
-    reckon(point, [bodiesPoint], { viewUt }) {
+    deps: [{ reading: "system.bodies" }],
+    reckon(point, [roster], { viewUt }) {
       const admissible = keplerAdmissibility(
         point,
-        bodiesPoint?.payload ?? undefined,
+        roster.state === "observed" || roster.state === "stale"
+          ? roster.value
+          : undefined,
         viewUt,
       );
       if ("declined" in admissible) return admissible;
