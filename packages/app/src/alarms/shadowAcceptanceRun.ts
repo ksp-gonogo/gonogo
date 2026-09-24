@@ -140,6 +140,13 @@ export async function runShadowAcceptance(
   options: ShadowAcceptanceOptions,
 ): Promise<ShadowAcceptanceResult> {
   const write = options.write ?? (() => {});
+  /* The verdict is read off the logger's buffer, and the logger turns itself
+     off under NODE_ENV=test, which is how this run is invoked. Switched on
+     here rather than left to an environment variable someone has to
+     remember, and put back afterwards. */
+  const loggingWas = logger.isEnabled();
+  logger.setEnabled(true);
+  const runStart = new Date().toISOString();
   const transport = new WebSocketTransport({
     host: options.host,
     port: options.port,
@@ -189,6 +196,8 @@ export async function runShadowAcceptance(
   ];
 
   const svc = new AlarmHostService(null, { storage: memoryStorage() });
+  let clientFires = 0;
+  unsubscribes.push(svc.onFire(() => clientFires++));
   /* Every id this run has ever armed, mapped back to its logical alarm name.
      It grows across re-arms, so `laps.alarmOf` can resolve a fire from any
      generation of an alarm, not just the first. */
@@ -381,8 +390,25 @@ export async function runShadowAcceptance(
       finalStates[nameOf.get(alarm.id) ?? alarm.id] = alarm.state;
     }
 
+    const entries = logger
+      .snapshot()
+      .filter((entry) => entry.timestamp >= runStart);
+    /* Every client fire of a command-vantage alarm writes a shadow line, so a
+       fire with none recorded means the log is not recording. That must not
+       reach the classifier, which would read an empty log as a quiet run and
+       answer INCONCLUSIVE: "found nothing" and "recorded nothing" have to be
+       different outcomes. */
+    if (
+      clientFires > 0 &&
+      !entries.some((entry) => entry.message.includes("alarm-shadow"))
+    ) {
+      throw new Error(
+        `the run saw ${clientFires} alarm fire(s) and recorded no alarm-shadow line, so the log it is judged from is not recording and no verdict can be given`,
+      );
+    }
+
     const verdict = classifyShadowRun({
-      entries: logger.snapshot(),
+      entries,
       owlt,
       laps:
         options.laps === undefined
@@ -395,6 +421,7 @@ export async function runShadowAcceptance(
     });
     return { verdict, owlt, unread, finalStates };
   } finally {
+    logger.setEnabled(loggingWas);
     svc.dispose();
     for (const off of unsubscribes) off();
     clearDelaySource();
