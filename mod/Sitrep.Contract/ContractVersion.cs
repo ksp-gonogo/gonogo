@@ -1781,7 +1781,12 @@ namespace Sitrep.Contract
         /// real-time floor on periodic keyframes, so a client inferring staleness from
         /// keyframe cadence can widen its expected gap under warp. Additive, nothing
         /// removed or retyped.</para>
+        ///
+        /// <para><b>Bumped 1 -&gt; 2:</b> <see cref="WarpState.ObservationQuantumUt"/>, how far
+        /// apart the mod's samples of the game are at the current warp, so a client can
+        /// tell a span no observation covers from a channel that did not change.
+        /// Additive, nothing removed or retyped.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

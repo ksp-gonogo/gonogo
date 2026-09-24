@@ -56,7 +56,7 @@ namespace Gonogo.KSP
         // tick but only calls the (comparatively expensive) Sample() once
         // this many UT seconds have elapsed since the last sample - warp
         // safe because it's gated on game time, not wall-clock/tick count.
-        private const double SampleIntervalUt = 1.0;
+        private const double SampleIntervalUt = SampleCadence.IntervalUt;
 
         // Periodic recording flush. Writing only at quit means a serialization
         // bug surfaces only at quit, by which point the whole session is lost.

@@ -405,12 +405,33 @@ export function useDataSeries(
     // the store and stopped: `SeriesRange` was `{t, v}`, so every chart in the
     // tree joined across an outage it had no readings for. Index rather than UT
     // because a chart splits its path by position, not by time.
+    // Magnitudes: a series feeds a sparkline and a graph axis, which plot
+    // numbers. A declared quantity arrives wrapped from the decode, so
+    // without this every stream-backed chart drew nothing.
+    const nextV = observed.map((p) => plotValue(p.payload));
     const nextBreaks: number[] = [];
     for (let i = 0; i < observed.length; i++) {
       // The FIRST point cannot open a break in the drawn series: there is no
       // segment before it to break. The hole is real, and it is off the left
       // edge of the window, where a chart already draws nothing.
-      if (i > 0 && observed[i].meta.gapSinceUt != null) nextBreaks.push(i);
+      if (i === 0) continue;
+      if (observed[i].meta.gapSinceUt != null) {
+        nextBreaks.push(i);
+        continue;
+      }
+      /*
+       * A value that did not move is left joined: the emitter only withholds a
+       * sample that compares equal, so a flat segment is what every unsent
+       * observation between the two said. One that moved across a span the
+       * sampling missed, and that the topic's own model will not carry, is a
+       * line nothing measured.
+       */
+      if (
+        !Object.is(nextV[i], nextV[i - 1]) &&
+        store.gapOutrunsModel(topic, observed[i - 1], observed[i])
+      ) {
+        nextBreaks.push(i);
+      }
     }
     /*
      * Which runs of the window came off the craft's own recorder rather than
@@ -420,10 +441,6 @@ export function useDataSeries(
      * exists to make.
      */
     const nextSpans = buildSpans(observed);
-    // Magnitudes: a series feeds a sparkline and a graph axis, which plot
-    // numbers. A declared quantity arrives wrapped from the decode, so
-    // without this every stream-backed chart drew nothing.
-    const nextV = observed.map((p) => plotValue(p.payload));
     /*
      * The tail lands AFTER every observation and never among them: it starts at
      * the newest one and runs to the frame's view time, so appending is what
