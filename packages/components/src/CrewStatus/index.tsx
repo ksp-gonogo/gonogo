@@ -509,7 +509,7 @@ function CrewStatusComponent({
 
   // Same `crew-status.meters` segment `WidgetMeters` itself reads (both calls
   // share `useWidgetMeta()`'s auto-namespacing, so this resolves to the same
-  // entries): read here too, ahead of the roster, so the EVA solo-row check
+  // entries). Read here too, ahead of the roster, so the EVA solo-row check
   // below can tell whether THIS kerbal has a meter contributed without
   // rendering `WidgetMeters` twice.
   const meterContributions = useContributions("meters");
@@ -592,7 +592,7 @@ function CrewStatusComponent({
           Renders nothing until an Uplink binds it. */}
           <AugmentSlot name="crew-status.summary" props={{}} />
           {evaKerbalName ? (
-            <ReadoutCaption>{evaKerbalName} — EVA</ReadoutCaption>
+            <ReadoutCaption>{evaKerbalName} · EVA</ReadoutCaption>
           ) : (
             crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>
           )}
@@ -609,7 +609,7 @@ function CrewStatusComponent({
               rowToneByName,
               // The EVA kerbal's own row: omit the Card entirely once the
               // header already named them and nothing else is bound to
-              // them, otherwise keep the Card but drop its now-redundant
+              // them. Otherwise keep the Card but drop its now-redundant
               // name text.
               omitCardFor:
                 evaKerbalName !== undefined && !evaRowHasBoundContent
@@ -696,7 +696,7 @@ function renderBody({
         // The EVA header already named this kerbal (see `omitCardFor` /
         // `suppressNameFor` above): with nothing else bound to their row,
         // an otherwise-empty Card here would just be a box around a name
-        // the operator already read once, so skip the row entirely.
+        // the operator already read once. So skip the row entirely.
         if (name === omitCardFor) return null;
         const suppressName = name === suppressNameFor;
         return (
@@ -714,9 +714,9 @@ function renderBody({
             key={name}
             tone={rowToneByName.get(name)}
             // Only set while the visible name text below is suppressed: the
-            // EVA header carries it instead, and the row's identity still
-            // needs to reach an accessibility tree that has no other text
-            // naming which kerbal this row is about.
+            // EVA header carries it instead. The row's identity still needs
+            // to reach an accessibility tree that has no other text naming
+            // which kerbal this row is about.
             aria-label={suppressName ? name : undefined}
           >
             {/* A leading avatar COLUMN (when bound) beside a right-hand
