@@ -1,6 +1,11 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import type { FrameToken, TimelinePoint } from "@ksp-gonogo/sitrep-client";
+import type {
+  FrameToken,
+  TimelinePoint,
+  TopicReading,
+} from "@ksp-gonogo/sitrep-client";
 import {
+  readingFrom,
   StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
@@ -112,6 +117,17 @@ class FakeTimelineStore {
       payload: { met: this.met } as T,
     };
   }
+  /*
+   * Built from this store's OWN `sample` through the real `readingFrom`, so the
+   * two reads cannot disagree: `vessel.state` carries the MET it just emitted
+   * and reads live, and every other topic is pending because nothing has
+   * arrived on it. Hand-writing the union here would let the fake answer a
+   * currency question this store has no way to know.
+   */
+  sampleReading<T>(topic: string): TopicReading<T> {
+    return readingFrom<T>(this.sample<T>(topic), "live", 0);
+  }
+
   /** Never inspected: this store's `sample` ignores the frame it is handed. */
   currentFrame(): FrameToken {
     return {} as FrameToken;

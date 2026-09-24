@@ -872,11 +872,7 @@ function syncTimelineFrameBridge(): void {
  * The one way `activeTimelineStore` changes, so that the frame bridge is
  * never left pointing at a store that is no longer the active one.
  */
-function setActiveTimelineStore(
-  store:
-    | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
-    | undefined,
-): void {
+function setActiveTimelineStore(store: ActiveTimelineStore | undefined): void {
   activeTimelineStore = store;
   syncTimelineFrameBridge();
 }
