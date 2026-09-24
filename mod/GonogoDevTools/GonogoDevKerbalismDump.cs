@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using Gonogo.DevTools;
 using UnityEngine;
 
 namespace GonogoDevTools
@@ -34,10 +35,9 @@ namespace GonogoDevTools
     public sealed class GonogoDevKerbalismDump : MonoBehaviour
     {
         private const string LogPrefix = "[Gonogo] dev-kerbalism-dump: ";
-        private static string? _lastAppliedId;
-
         private string? _requestPath;
         private string? _resultPath;
+        private DevRequestLedger? _ledger;
         private string? _pluginData;
 
         // Candidate resource names for the (Vessel,string) API methods (ResourceAmount/Capacity/AverageRate/...).
@@ -71,6 +71,7 @@ namespace GonogoDevTools
                 Directory.CreateDirectory(_pluginData);
                 _requestPath = Path.Combine(_pluginData, "kerbalism-dump-request.cfg");
                 _resultPath = Path.Combine(_pluginData, "kerbalism-dump-result.cfg");
+                _ledger = new DevRequestLedger(Path.Combine(_pluginData, "kerbalism-dump-applied.cfg"));
                 Debug.Log(LogPrefix + "armed; polling " + _requestPath);
             }
             catch (Exception ex)
@@ -87,8 +88,20 @@ namespace GonogoDevTools
             var node = root?.GetNode("KERBDUMP");
             if (node == null) return;
             var id = node.GetValue("id");
-            if (string.IsNullOrEmpty(id) || id == _lastAppliedId) return;
-            _lastAppliedId = id;
+            if (string.IsNullOrEmpty(id) || _ledger == null) return;
+            var decision = _ledger.Admit(id, File.GetLastWriteTimeUtc(_requestPath), out var stampFailure);
+            if (stampFailure != null)
+            {
+                Debug.LogWarning(LogPrefix + "could not stamp id=" + id
+                    + " as applied, so a restart may apply it again: " + stampFailure);
+            }
+            if (decision == DevRequestDecision.AlreadyApplied) return;
+            if (decision == DevRequestDecision.PredatesSession)
+            {
+                Debug.LogWarning(LogPrefix + "request id=" + id + " predates this KSP session; refused");
+                WriteResult(id, false, "", DevRequestLedger.PredatesSessionMessage);
+                return;
+            }
             var scenario = node.GetValue("scenario") ?? "default";
             try { Dump(id, scenario); }
             catch (Exception ex)
