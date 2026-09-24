@@ -108,6 +108,7 @@ type ClientEventMap = {
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
+  hostCommandCentre: [centreId: string | null];
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
   brokerReachable: [reachable: boolean];
@@ -172,6 +173,10 @@ export class PeerClientService {
   // state on subscribe. Privacy-first default: disabled until the first
   // `analytics-consent` message lands.
   private analyticsConsent = false;
+  // The command centre the host's main screen stands at, as it last said.
+  // Kept through a lost link: a pilot cut off from mission control still
+  // knows where mission control was.
+  private hostCommandCentre: string | null = null;
 
   private pendingQueries = new RequestTracker<{
     t: number[];
@@ -859,6 +864,21 @@ export class PeerClientService {
     });
   }
 
+  /** The command centre the host's main screen stands at, or `null` before it has said. */
+  getHostCommandCentre(): string | null {
+    return this.hostCommandCentre;
+  }
+
+  /**
+   * Notified whenever the host's command centre moves. Fires immediately with
+   * the cached value so a late subscriber does not wait for the next move.
+   */
+  onHostCommandCentreChange(cb: (centreId: string | null) => void): () => void {
+    const remove = this.events.on("hostCommandCentre", cb);
+    cb(this.hostCommandCentre);
+    return remove;
+  }
+
   /** Latest flight snapshot pushed by the host. Synchronous. */
   getCurrentFlight(): FlightRecord | null {
     return this.currentFlight;
@@ -1161,6 +1181,10 @@ export class PeerClientService {
     },
     "trigger-snapshot": (msg) => {
       this.events.emit("triggerSnapshot", msg.snapshot);
+    },
+    "host-command-centre": (msg) => {
+      this.hostCommandCentre = msg.centreId;
+      this.events.emit("hostCommandCentre", msg.centreId);
     },
     "analytics-consent": (msg) => {
       this.analyticsConsent = msg.enabled;
