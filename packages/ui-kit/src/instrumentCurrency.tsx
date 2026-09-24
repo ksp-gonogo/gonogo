@@ -21,10 +21,10 @@ import { severityDotColor } from "./status/severityDotColor";
  * telling amber from grey (WCAG 1.4.1).
  *
  * Silent to a screen reader. The instrument says it in words through
- * {@link sayNotCurrent} on its accessible name, where a bullet read out after
+ * {@link sayHeld} on its accessible name, where a bullet read out after
  * every figure would only bury it.
  */
-export function InstrumentNotCurrentDot({ size }: { size: number }) {
+export function InstrumentHeldMark({ size }: { size: number }) {
   return (
     <tspan
       // Raised against the digits rather than sitting on the baseline, which is
@@ -86,7 +86,7 @@ export function InstrumentBound({
  * Nothing is appended when the figure is current, so an unconverted instrument
  * announces exactly what it announced before.
  */
-export function sayNotCurrent(name: string, caption: string | null): string {
+export function sayHeld(name: string, caption: string | null): string {
   return caption === null ? name : `${name}, ${caption}`;
 }
 

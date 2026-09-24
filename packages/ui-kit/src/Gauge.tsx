@@ -2,9 +2,9 @@ import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
   InstrumentBound,
+  InstrumentHeldMark,
   InstrumentNoFigure,
-  InstrumentNotCurrentDot,
-  sayNotCurrent,
+  sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
@@ -189,7 +189,7 @@ export function Gauge<U extends string = string>({
         height={Math.max(0, height)}
         viewBox={`0 0 ${Math.max(0, width)} ${Math.max(0, height)}`}
         role="img"
-        aria-label={sayNotCurrent(ariaLabel ?? `Gauge: ${spoken}`, caption)}
+        aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
         style={{ display: "block", maxWidth: "100%", height: "auto" }}
       >
         <title>{ariaLabel ?? "Gauge"}</title>
@@ -216,7 +216,7 @@ export function Gauge<U extends string = string>({
       // `overflow: hidden`. No-op when the slot is already >= `width`.
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={sayNotCurrent(ariaLabel ?? `Gauge: ${spoken}`, caption)}
+      aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
       data-not-current={notCurrent ? "" : undefined}
       style={{
         display: "block",
@@ -301,7 +301,7 @@ export function Gauge<U extends string = string>({
           fill="var(--color-text-primary)"
         >
           {centreLabel}
-          {notCurrent && <InstrumentNotCurrentDot size={7} />}
+          {notCurrent && <InstrumentHeldMark size={7} />}
         </text>
       )}
     </svg>
