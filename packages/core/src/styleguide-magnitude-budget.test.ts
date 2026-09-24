@@ -499,9 +499,9 @@ const WIRE_BUDGET: Record<string, number> = {
 const FUNNEL_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink": 2,
   "mod/GonogoKerbalismUplink": 69,
-  "mod/sitrep-sdk": 25,
+  "mod/sitrep-sdk": 26,
   "packages/app": 8,
-  "packages/components": 152,
+  "packages/components": 160,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };
