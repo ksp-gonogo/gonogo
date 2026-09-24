@@ -374,7 +374,7 @@ function InboxView({
             {threads.length === 0 && (
               <EmptyState>
                 {canCompose
-                  ? "No conversations yet."
+                  ? "No conversations."
                   : "No conversations, and no correspondents."}
               </EmptyState>
             )}
@@ -625,7 +625,7 @@ function ThreadView({
         <Commcast__Scroll>
           <Commcast__List>
             {thread.entries.length === 0 && thread.outbound.length === 0 && (
-              <EmptyState>Nothing said yet.</EmptyState>
+              <EmptyState>No messages.</EmptyState>
             )}
             {thread.entries.map((entry) => (
               <MessageRow
@@ -1327,8 +1327,6 @@ registerComponent({
     "comms.delay",
     "comms.link",
   ],
-  // Aboard AND on the ground: the whole point is that both ends are in it.
-  seats: ["mission-control", "pilot"],
   defaultConfig: {},
   actions: [],
   pushable: false,

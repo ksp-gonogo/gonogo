@@ -1,8 +1,18 @@
-import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
+import {
+  type ReplayFixture,
+  setActiveCarriedChannelsForTests,
+} from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { describe, expect, it } from "vitest";
-import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
+import {
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  Quality,
+  Staleness,
+} from "@ksp-gonogo/sitrep-sdk";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  getTopicFieldCatalog,
+  type TopicFieldKey,
+} from "../schema/topicFieldCatalog";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
 import { MissionHistorySource } from "./MissionHistorySource";
@@ -10,6 +20,10 @@ import { MissionHistorySource } from "./MissionHistorySource";
 // fake-indexeddb is installed via setupFiles (src/test/setup.ts).
 
 let dbCounter = 0;
+
+/** A record Topic the first-party default does not promote, and one it does. */
+const EXTRA = "vessel.landing";
+const DROPPED = "career.status";
 
 function frame(
   topic: string,
@@ -123,6 +137,41 @@ describe("MissionHistorySource", () => {
       // wire. That drift is what the retired hand-written table did.
       const { source } = freshSource();
       expect(source.schema()).toBe(getTopicFieldCatalog());
+    });
+
+    describe("under a mounted provider's carried set", () => {
+      afterEach(() => {
+        setActiveCarriedChannelsForTests(undefined);
+      });
+
+      function topicsOf(schema: readonly { key: string }[]): Set<string> {
+        return new Set(
+          (schema as readonly TopicFieldKey[]).map((entry) => entry.topic),
+        );
+      }
+
+      it("offers a Topic the provider carries beyond the default", () => {
+        const { source } = freshSource();
+        expect(topicsOf(source.schema()).has(EXTRA)).toBe(false);
+
+        const carried = new Set([...DEFAULT_SITREP_CARRIED_TOPICS, EXTRA]);
+        setActiveCarriedChannelsForTests(carried);
+
+        const schema = source.schema();
+        expect(topicsOf(schema).has(EXTRA)).toBe(true);
+        expect(schema).toBe(getTopicFieldCatalog(carried));
+      });
+
+      it("stops offering a Topic the provider does not carry", () => {
+        const { source } = freshSource();
+        expect(topicsOf(source.schema()).has(DROPPED)).toBe(true);
+
+        setActiveCarriedChannelsForTests(
+          new Set(DEFAULT_SITREP_CARRIED_TOPICS.filter((t) => t !== DROPPED)),
+        );
+
+        expect(topicsOf(source.schema()).has(DROPPED)).toBe(false);
+      });
     });
   });
 

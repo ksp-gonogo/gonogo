@@ -870,6 +870,13 @@ registerComponent<FleetRosterConfig>({
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
   channels: topics.channels,
+  /*
+   * Mission control only, by declaration. Nothing this reads is ground-only, so
+   * the derivation alone would put a whole-fleet table on a pilot's screen, and
+   * whether it belongs there is a question about that screen rather than about
+   * what the table reads.
+   */
+  seats: ["mission-control"],
   defaultConfig: {},
   actions: [],
   requires: ["flight"],

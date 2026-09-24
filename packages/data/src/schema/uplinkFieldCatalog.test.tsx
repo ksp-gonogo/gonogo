@@ -1,10 +1,16 @@
 import {
   registerBarePrimitiveTopic,
+  registerCollectionTopic,
   registerTopicUnits,
   registerTypeUnits,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { getTopicFieldCatalog, isThresholdSubject } from "./topicFieldCatalog";
+import {
+  getCollectionCarriedTopics,
+  getTopicFieldCatalog,
+  getUndescribedCarriedTopics,
+  isThresholdSubject,
+} from "./topicFieldCatalog";
 
 /**
  * A third-party Uplink this repo has never heard of, registering exactly what
@@ -24,6 +30,17 @@ registerTopicUnits(
   { limits: "AcmeReactorLimits" },
 );
 registerTypeUnits("AcmeReactorLimits", { maxTempK: "K" });
+
+/**
+ * The same Uplink's collection Topic: a bare array of rods, whose unit map
+ * describes one rod. Registered exactly as the reactor is, plus the collection
+ * mark, so the reactor is its control.
+ */
+const RODS = "acme.rods";
+
+registerBarePrimitiveTopic(RODS);
+registerTopicUnits(RODS, { insertion: "ratio", rodTempK: "K" });
+registerCollectionTopic(RODS);
 
 describe("an Uplink's own fields", () => {
   it("are offered by the picker every graph and alarm reads from", () => {
@@ -85,5 +102,34 @@ describe("an Uplink's own fields", () => {
     expect(resolveValueTopic("data", "acme.reactor.coreTempK")).toBe(
       "acme.reactor.coreTempK",
     );
+  });
+});
+
+describe("an Uplink's collection Topic", () => {
+  it("offers no field of an element, and says it left the Topic out", () => {
+    expect(
+      getTopicFieldCatalog().filter((entry) => entry.topic === RODS),
+    ).toEqual([]);
+    expect(getCollectionCarriedTopics()).toContain(RODS);
+    expect(getUndescribedCarriedTopics()).not.toContain(RODS);
+  });
+
+  it("keeps an element field out of the picker the editors read", async () => {
+    const { render } = await import("@ksp-gonogo/test-utils");
+    const { useValueKeys } = await import("../hooks/useValueKeys");
+    let keys: readonly { key: string }[] = [];
+    function Probe() {
+      keys = useValueKeys("data");
+      return null;
+    }
+    render(<Probe />);
+    const offered = keys.map((entry) => entry.key);
+    expect(offered).not.toContain("acme.rods.rodTempK");
+    // The control: the record Topic registered beside it is still offered.
+    expect(offered).toContain("acme.reactor.coreTempK");
+  });
+
+  it("leaves the record Topic's own report alone", () => {
+    expect(getCollectionCarriedTopics()).not.toContain(REACTOR);
   });
 });

@@ -97,9 +97,9 @@ function renderControlNavball(
 }
 
 describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => {
-  it("SAS toggle dispatches vessel.control.setSas when promoted (bridge 1: toggle -> absolute)", async () => {
+  it("SAS toggle dispatches vessel.control.setSas (bridge 1: toggle -> absolute)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control", "vessel.control.setSas"],
+      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -174,9 +174,9 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     );
   });
 
-  it("SAS-mode Prograde button dispatches vessel.control.setSasMode when promoted (bridge 3: positional -> named enum)", async () => {
+  it("SAS-mode Prograde button dispatches vessel.control.setSasMode (bridge 3: positional -> named enum)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control", "vessel.control.setSasMode"],
+      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });

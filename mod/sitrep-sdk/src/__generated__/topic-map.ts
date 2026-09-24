@@ -33,6 +33,7 @@ import type {
   CareerFacilities,
   CareerMode,
   CareerStatus,
+  CommandCentreActiveVesselDelay,
   CommandCentreEntry,
   CommandCentreSeparation,
   CommsCommandCentre,
@@ -113,6 +114,7 @@ export interface GeneratedTopicPayloadMap {
   "career.facilities": CareerFacilities;
   "career.mode": CareerMode;
   "career.status": CareerStatus;
+  "commandCentre.activeVesselDelay": CommandCentreActiveVesselDelay;
   "commandCentre.roster": CommandCentreEntry[];
   "commandCentre.separation": CommandCentreSeparation;
   "comms.commandCentre": CommsCommandCentre;
@@ -193,6 +195,7 @@ export const GENERATED_TOPIC_IDS = [
   "career.facilities",
   "career.mode",
   "career.status",
+  "commandCentre.activeVesselDelay",
   "commandCentre.roster",
   "commandCentre.separation",
   "comms.commandCentre",
@@ -265,4 +268,28 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.surface",
   "vessel.target",
   "vessel.thermal",
+] as const;
+
+// The Topics whose payload is a bare JSON array of the element type, so a
+// field path under one names a field of an element and not of the Topic.
+// The `[]` above says the same to the type system, and a type is erased.
+export const GENERATED_COLLECTION_TOPIC_IDS = [
+  "alarm.scet",
+  "commandCentre.roster",
+  "deployed.bases",
+  "dv.stages",
+  "isru.converters",
+  "isru.drills",
+  "reliability.parts",
+  "robotics.servos",
+  "science.archive",
+  "science.experimentBreakdown",
+  "science.experiments",
+  "science.instruments",
+  "science.lab",
+  "science.sensors",
+  "spaceCenter.crewRoster",
+  "spaceCenter.launchSites",
+  "spaceCenter.pois",
+  "spaceCenter.savedShips",
 ] as const;

@@ -123,10 +123,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "unit renderer: a decimals-by-magnitude ladder over resource units",
   },
-  "packages/components/src/shared/formatDensity.ts": {
-    count: 1,
-    why: "unit renderer: a genuine kg/m3 <-> g/m3 RUNG ladder, exactly what units.ts owns",
-  },
   "packages/core/src/utils/format.ts": {
     count: 4,
     why: "two already delegate to writeQuantity; formatCompactNumber and formatCompactCurrency are still k/M ladders",
