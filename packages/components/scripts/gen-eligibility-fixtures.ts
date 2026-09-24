@@ -29,6 +29,14 @@ const OUT_DIR = resolve(HERE, "../src/Strategies/__render_unknown__");
  * the same sentence.
  */
 const UNANSWERED_REASON =
+  "unknown: this career's strategy limits could not be read";
+
+/**
+ * What the model USED to publish on every row whenever that screen was shut,
+ * kept so the before-and-after pair can be rendered from one generator. Nothing
+ * emits this any more.
+ */
+const LEGACY_UNANSWERED_REASON =
   "unknown: KSP answers this only while the Administration Building is open";
 
 interface Row {
@@ -36,6 +44,7 @@ interface Row {
   isActive: boolean;
   canActivate: boolean | null;
   activateBlockedReason: string;
+  activateVerdictSource?: string;
   [key: string]: unknown;
 }
 
@@ -92,6 +101,47 @@ const unanswered = (row: Row): Row => ({
   activateBlockedReason: UNANSWERED_REASON,
 });
 
+/** The whole-roster silence a shut facility used to produce. */
+const legacyUnanswered = (row: Row): Row => ({
+  ...row,
+  canActivate: null,
+  activateBlockedReason: LEGACY_UNANSWERED_REASON,
+});
+
+/**
+ * What the career model can say about a row with the screen shut.
+ *
+ * The source roster was captured with the Administration Building OPEN, so its
+ * verdicts are the game's own, which is what makes it the honest basis for this
+ * scene. Off-screen the model puts the same arms one at a time and reaches two
+ * of the three answers:
+ *
+ * - a refusal from arms 2-9 survives verbatim, because stock returns on its
+ *   FIRST refusal, so an arm that fires off-screen would have fired on it
+ * - everything else stops short of a verdict. Arm 1 is the concurrent-strategy
+ *   cap, it compares a counter that only exists while that screen is up, and a
+ *   pass is owed to every arm -- so a row nothing refused is UNANSWERED, not a
+ *   yes, and a row the cap itself refused never gets that far
+ *
+ * The cap refusals are therefore rewritten rather than kept: they are the one
+ * kind of no this route cannot reach.
+ */
+const CAP_REFUSAL = /active strategies at this level/i;
+
+const ARM_ONE_UNREACHED =
+  "unknown: KSP counts your running strategies only inside the " +
+  "Administration Building, so the last check cannot be made out here";
+
+const derived = (row: Row): Row =>
+  row.canActivate === false && !CAP_REFUSAL.test(row.activateBlockedReason)
+    ? { ...row, activateVerdictSource: "derived" }
+    : {
+        ...row,
+        canActivate: null,
+        activateBlockedReason: ARM_ONE_UNREACHED,
+        activateVerdictSource: "none",
+      };
+
 async function main(): Promise<void> {
   const source = JSON.parse(await readFile(SOURCE, "utf8")) as Fixture;
   const all = strategiesOf(careerOf(source)).all;
@@ -104,7 +154,7 @@ async function main(): Promise<void> {
    * real boolean. The two running programmes stay active, because `isActive`
    * is read off the strategy itself and not off the question nobody asked.
    */
-  const shut = all.map((row) => (row.isActive ? row : unanswered(row)));
+  const shut = all.map((row) => (row.isActive ? row : legacyUnanswered(row)));
   await writeFile(
     join(OUT_DIR, "1-admin-building-shut.json"),
     `${JSON.stringify(
@@ -154,8 +204,30 @@ async function main(): Promise<void> {
     )}\n`,
   );
 
+  /*
+   * The SAME shut facility, as the career model reports it now that the arms
+   * are asked one at a time. This is the after half of the pair: a roster that
+   * used to arrive as one undifferentiated silence now carries the game's own
+   * refusal on everything the career genuinely refuses, and says plainly which
+   * single check it could not make on the rest.
+   */
+  const shutDerived = all.map((row) => (row.isActive ? row : derived(row)));
+  await writeFile(
+    join(OUT_DIR, "3-admin-building-shut-derived.json"),
+    `${JSON.stringify(
+      withRoster(source, shutDerived, {
+        scenario: "admin-building-shut-derived",
+        synthetic: true,
+        notes:
+          "DERIVED from the same 91-row RP-1 fixture as 1-admin-building-shut.json, and deliberately its twin: same career, same shut facility, same rows, differing only in what the career model can now say about them. A row the source captured as refused by arms 2-9 keeps that verdict and the game's own wording, marked activateVerdictSource=derived, because stock returns on its first refusal so an arm that fires off-screen would have fired on it. Every other row is unanswered with activateVerdictSource=none, naming arm 1: the concurrent-strategy cap compares a counter that exists only while that screen is up, and a pass is owed to every arm. Rendered beside fixture 1 this is the whole of the change from the operator's side: one silent heap becomes a real Locked list plus a much smaller unknown one, and every Activate button stays dark because KSP's own commitment runs inside that building either way.",
+      }),
+      null,
+      2,
+    )}\n`,
+  );
+
   console.log(
-    `Wrote 1-admin-building-shut.json (${shut.length} rows) and 2-three-buckets.json (${mixed.length} rows) to ${OUT_DIR}`,
+    `Wrote 1-admin-building-shut.json (${shut.length} rows), 2-three-buckets.json (${mixed.length} rows) and 3-admin-building-shut-derived.json (${shutDerived.length} rows) to ${OUT_DIR}`,
   );
 }
 

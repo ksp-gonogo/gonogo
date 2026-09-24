@@ -14,11 +14,9 @@ import { parseStrategies, StrategiesComponent } from "./index";
 /**
  * Eligibility is a THREE-valued reading and the widget has to draw all three.
  *
- * The career model publishes `canActivate` as a nullable flag on purpose: the
- * game answers the question only from inside the facility screen, and with that
- * screen shut nobody can answer it for any strategy on the roster. A null is
- * therefore an account of which screen is open, and a false is a judgement the
- * game made about the strategy. Collapsing the first into the second puts a
+ * The career model publishes `canActivate` as a nullable flag on purpose. A
+ * null is an account of a question nobody could put, and a false is a judgement
+ * the game made about the strategy. Collapsing the first into the second puts a
  * whole roster under a heading reading LOCKED while every card underneath says
  * the state is unknown, which is what a live career showed.
  *
@@ -26,6 +24,13 @@ import { parseStrategies, StrategiesComponent } from "./index";
  * unanswered strategy must not be in the Locked list, must say in the
  * operator's view WHY it is unanswered, and must still show its price, because
  * the operator's next move is to open the facility and spend.
+ *
+ * The null used to be EVERY inactive row whenever that building was shut, since
+ * asking KSP was the model's only route to an answer. It has a second route now
+ * and the verdict carries a SOURCE to say which was taken, so the last block
+ * here is about what that source is for: a refusal reached off-screen is the
+ * game's own and belongs in Locked, and nothing reached off-screen may arm a
+ * control, because KSP's own commitment still runs inside that building.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -56,9 +61,16 @@ function renderStrategies(fixture: StreamFixture) {
   return result;
 }
 
-/** Verbatim what the career model publishes beside a null eligibility. */
+/**
+ * Verbatim what the career model publishes beside a null eligibility.
+ *
+ * It used to name the Administration Building, because that screen was the only
+ * route to an answer and so the whole roster arrived unanswered whenever it was
+ * shut. The arms are asked one at a time now, so this reason means what it says:
+ * a reading that genuinely failed.
+ */
 const UNANSWERED_REASON =
-  "unknown: KSP answers this only while the Administration Building is open";
+  "unknown: this career's strategy limits could not be read";
 
 /** Eligibility could not be read at all. Not a refusal. */
 const UNANSWERED = {
@@ -258,5 +270,113 @@ describe("Strategies with an eligibility it could not read", () => {
     await waitFor(() => expect(visibleText()).toContain("Eligibility unknown"));
 
     await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * A verdict is now a pair: the answer, and who gave it.
+ *
+ * With the Administration Building shut the career model puts the arms one at a
+ * time, off the same members KSP reads them from, and reaches two of the three
+ * answers. A refusal survives, because stock returns on its FIRST refusal, so an
+ * arm that fires off-screen would have fired on-screen too. A pass does not:
+ * arm 1 compares a counter living on the shut screen, and permission is owed to
+ * every arm.
+ *
+ * So this model cannot emit a derived YES, and the last two cases here are
+ * defence in depth rather than a description of our own wire. The published type
+ * admits the pair, an Uplink could send it, and the rule that matters if one ever
+ * arrives is that it must not arm a spend: KSP's own commitment runs inside that
+ * building whatever we worked out about eligibility.
+ */
+describe("Strategies with a verdict derived off-screen", () => {
+  /**
+   * A pair our career model never sends. Kept because the widget must refuse it
+   * anyway, and because the refusal is about the SOURCE rather than the verdict.
+   */
+  const DERIVED_YES = {
+    ...REFUSED,
+    id: "DerivedYes",
+    title: "Open Door Policy",
+    canActivate: true,
+    activateBlockedReason: "",
+    activateVerdictSource: "derived",
+  };
+
+  /** The game's own rule, quoted from off-screen. */
+  const DERIVED_NO = {
+    ...REFUSED,
+    id: "DerivedNo",
+    title: "Patriotism Drive",
+    canActivate: false,
+    activateBlockedReason: "You cannot afford this strategy.",
+    activateVerdictSource: "derived",
+  };
+
+  it("reads the source off the wire, defaulting to screened when absent", () => {
+    /*
+     * An older career model wrote no source at all, and every verdict it sent
+     * was the game's own, so the absent case is the screened one rather than a
+     * third unknown to draw.
+     */
+    const parsed = parseStrategies([DERIVED_YES, REFUSED]);
+    expect(parsed?.[0].activateVerdictSource).toBe("derived");
+    expect(parsed?.[1].activateVerdictSource).toBe("screened");
+  });
+
+  it("files a derived refusal in Locked, with the game's own reason", async () => {
+    // The whole gain. This strategy used to sit in Eligibility unknown beside
+    // the entire rest of the roster, under a sentence about a building.
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [DERIVED_NO]);
+
+    const locked = await screen.findByRole("region", { name: "Locked" });
+    expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
+    expect(
+      within(locked).getByText("You cannot afford this strategy."),
+    ).toBeInTheDocument();
+    expect(visibleText()).not.toContain("Eligibility unknown");
+  });
+
+  it("shows a derived yes as Available, if one ever arrives", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [DERIVED_YES]);
+
+    const available = await screen.findByRole("region", { name: "Available" });
+    expect(within(available).getByText("Open Door Policy")).toBeInTheDocument();
+  });
+
+  it("does NOT arm Activate on a derived yes, and says what stands in the way", async () => {
+    /*
+     * The hero assertion of this block. The verdict is sound and the dispatch
+     * still cannot land, so arming the control would promise a commitment the
+     * actuator refuses. The operator is told both halves: eligible, and where
+     * to go to act on it.
+     */
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [DERIVED_YES]);
+
+    const activate = await screen.findByRole("button", { name: "Activate" });
+    expect(activate).toBeDisabled();
+    expect(activate.getAttribute("title")).toMatch(
+      /Eligible\. KSP commits a strategy only from inside the Administration Building/,
+    );
+  });
+
+  it("DOES arm Activate on the same yes once the game itself screened it", async () => {
+    // The control for the assertion above: identical verdict, identical costs,
+    // and the only difference is who answered. Without this pair the test would
+    // also pass on a widget that had simply stopped arming anything.
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture, [
+      { ...DERIVED_YES, activateVerdictSource: "screened" },
+    ]);
+
+    const activate = await screen.findByRole("button", { name: "Activate" });
+    expect(activate).toBeEnabled();
   });
 });

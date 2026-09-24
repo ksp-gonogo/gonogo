@@ -106,12 +106,29 @@ namespace Gonogo.KSP.Gates
                 CareerGates.ClearToSave,
             };
 
-            // Launch's scene rule, plus the two PreFlightTests that need no
-            // built ship. The pad being occupied is the case that used to wedge
-            // KSP, and the game has always known it in advance. The mass, size,
-            // part-count and experimental-part tests all take the built
-            // ShipConstruct, which this mod does not have at gate time; they are
-            // the natural next requirement.
+            /*
+             * Launch's scene rule, plus the two PreFlightTests that need no
+             * built ship. The pad being occupied is the case that used to wedge
+             * KSP, and the game has always known it in advance. The mass, size,
+             * part-count and experimental-part tests all take the built
+             * ShipConstruct, which this mod does not have at gate time; they are
+             * the natural next requirement.
+             *
+             * The scene arm is the one requirement in this table that is a
+             * CHOICE rather than a necessity, and it is marked as one so that
+             * nobody later hardens it against a crash that cannot happen.
+             * FlightDriver.StartWithNewLaunch reads no scene state at all: every
+             * input is an argument or a static it assigns itself, and it ends in
+             * HighLogic.LoadScene(GameScenes.FLIGHT). LaunchPreflight names
+             * neither HighLogic nor GameScenes. So there is no call that needs
+             * the space centre or an editor and no reference that would come
+             * back null anywhere else.
+             *
+             * What the arm holds the command to is the game's own launch flow:
+             * a craft goes to the pad from the place a player would send it
+             * from. Widening it is a question about that flow, to be answered
+             * on its own merits, and not a defect to be quietly fixed here.
+             */
             table[FlightOpsCommandProvider.LaunchCommand] = new[]
             {
                 CareerGates.Scene(GameScenes.SPACECENTER, GameScenes.EDITOR),
