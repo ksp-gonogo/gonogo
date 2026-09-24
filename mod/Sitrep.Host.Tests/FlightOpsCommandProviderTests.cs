@@ -240,5 +240,70 @@ namespace Sitrep.Host.Tests
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
         }
+
+        private static LaunchArgs PadLaunch() => new LaunchArgs { ShipName = "Kestrel", Facility = "VAB", Site = "LaunchPad" };
+
+        [Fact]
+        public void ALaunchFromAVantageFurtherThanTheProximityLimitIsRefusedNamingBoth()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleLaunch(
+                actuator, PadLaunch(), "vessel:far", (_, _) => FlightOpsCommandProvider.LaunchProximitySeconds + 0.5);
+
+            Assert.False(result.Success);
+            Assert.Null(actuator.LastLaunchShipName);
+            Assert.Contains("vessel:far", result.Detail);
+            Assert.Contains("LaunchPad", result.Detail);
+        }
+
+        [Theory]
+        [InlineData(0.02)]
+        [InlineData(FlightOpsCommandProvider.LaunchProximitySeconds)]
+        public void ALaunchFromAVantageWithinTheProximityLimitGoesAhead(double seconds)
+        {
+            var actuator = new FakeFlightOpsActuator();
+            string? askedVantage = null;
+            string? askedSite = null;
+
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, PadLaunch(), "ground:KSC", (vantage, site) =>
+            {
+                askedVantage = vantage;
+                askedSite = site;
+                return seconds;
+            });
+
+            Assert.True(result.Success);
+            Assert.Equal("Kestrel", actuator.LastLaunchShipName);
+            Assert.Equal("ground:KSC", askedVantage);
+            Assert.Equal("LaunchPad", askedSite);
+        }
+
+        [Fact]
+        public void ALaunchWhoseDistanceCannotBeMeasuredGoesAhead()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, PadLaunch(), "meta", (_, _) => null);
+
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public void AMalformedLaunchIsRefusedForItsArgumentsBeforeDistanceIsAsked()
+        {
+            var actuator = new FakeFlightOpsActuator();
+            var asked = false;
+
+            var result = FlightOpsCommandProvider.HandleLaunch(
+                actuator, new LaunchArgs { ShipName = "", Facility = "VAB" }, "vessel:far", (_, _) =>
+                {
+                    asked = true;
+                    return 1000.0;
+                });
+
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.False(asked);
+        }
     }
 }
