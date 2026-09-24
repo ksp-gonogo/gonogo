@@ -162,7 +162,8 @@ for proj in $PROJECTS; do
       say "✖ $name FAILED after $attempt attempt(s) (this is what CI's \`mod\` job would have caught)."
       exit 1
     fi
-    say "  ⚠ $name failed attempt $attempt/$allowed, retrying"
+    say "  ⚠ $name failed attempt $attempt/$allowed, retrying. What failed, before the retry replaces it:"
+    grep -E "\[FAIL\]|^Failed!" "$LOG" | head -10 | sed "s/^/pre-push[mod]:     /"
     attempt=$((attempt + 1))
   done
   COUNT=$((COUNT + 1))
