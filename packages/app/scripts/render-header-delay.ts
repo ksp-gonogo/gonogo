@@ -6,9 +6,9 @@
  * Run: `pnpm --filter @ksp-gonogo/app render-header-delay`
  * Output: local_docs/renders/header-delay/ (HEADER_DELAY_RENDER_OUT overrides)
  *
- * `HEADER_DELAY_CODE=before` renders the header as it was before the delay
- * field, with the pre-change `MissionBanner` checked out, so a before and after
- * pair come from the same scenes. Each shot waits for the header's text to
+ * `HEADER_DELAY_CODE=before` renders the header as it was before each command
+ * centre's own delay reached it, with the pre-change header checked out, so a
+ * before and after pair come from the same scenes. Each shot waits for the header's text to
  * settle on what that code state should show, and fails naming what it read
  * instead.
  *
@@ -34,8 +34,10 @@ const OUT_DIR =
   resolve(HERE, "../../../local_docs/renders/header-delay");
 
 /**
- * Which header the harness is rendering: `after` has the delay field, `before`
- * is the header as it was, rendered through this same harness for comparison.
+ * Which header the harness is rendering: `after` reads each command centre's
+ * own delay to the active craft, `before` is the header as it was when the wire
+ * carried only the home centre's, rendered through this same harness from the
+ * code as it stood.
  */
 type CodeState = "before" | "after";
 const CODE_STATE: CodeState =
@@ -43,6 +45,9 @@ const CODE_STATE: CodeState =
 
 const KSC = "ground:Kerbal Space Center";
 const GS1 = "ground:Ground Station 1";
+const GS2 = "ground:Ground Station 2";
+const MUN_STATION = "vessel:mun-station";
+const CRAFT = "vessel:kerbal-x";
 
 const ROSTER = [
   {
@@ -61,14 +66,79 @@ const ROSTER = [
     isHome: false,
     isHomeFallback: false,
   },
+  {
+    id: GS2,
+    displayName: "Ground Station 2",
+    kind: "GroundStation",
+    active: true,
+    isHome: false,
+    isHomeFallback: false,
+  },
+  {
+    id: MUN_STATION,
+    displayName: "Mun Station",
+    kind: "CrewedVessel",
+    active: true,
+    isHome: false,
+    isHomeFallback: false,
+  },
+  {
+    id: CRAFT,
+    displayName: "Kerbal X",
+    kind: "CrewedVessel",
+    active: true,
+    isHome: false,
+    isHomeFallback: false,
+  },
 ];
 
 /** `CommsDelaySource.SignalDelay`, spelled as the wire carries it. */
 const SIGNAL_DELAY = 1;
 
+/**
+ * Each centre's own route to the active craft, as the mod publishes it: home is
+ * absent because its delay is `comms.delay`, Ground Station 2 is absent because
+ * it has no route, and the craft itself is its own zero.
+ */
+const CENTRE_DELAYS = {
+  centres: [
+    { id: GS1, oneWaySeconds: 42.5 },
+    { id: MUN_STATION, oneWaySeconds: 3.9 },
+    { id: CRAFT, oneWaySeconds: 0 },
+  ],
+};
+
+/** The active craft's orbit, naming itself so a pilot's session knows it is aboard. */
+const CRAFT_ORBIT = {
+  referenceBodyIndex: 1,
+  sma: 700_000,
+  ecc: 0.01,
+  inc: 0,
+  lan: 0,
+  argPe: 0,
+  meanAnomalyAtEpoch: 0,
+  epoch: 10,
+  mu: 3.5316e12,
+  meta: { source: CRAFT, quality: 0 },
+};
+
+const flight = (connected: boolean): [string, unknown][] => [
+  ["commandCentre.roster", ROSTER],
+  ["spaceCenter.scene", { scene: "Flight" }],
+  ["comms.delay", { oneWaySeconds: 187.4, source: SIGNAL_DELAY }],
+  ...(connected
+    ? []
+    : ([["comms.delay", { source: 0 }]] as [string, unknown][])),
+  ["commandCentre.activeVesselDelay", CENTRE_DELAYS],
+  ["comms.link", { connected }],
+];
+
 interface Scene {
   name: string;
+  screen: "main" | "pilot";
   vantage: string;
+  select?: string;
+  hostCentre?: string;
   emit: [string, unknown][];
   /**
    * How the header's text ends once the scene has settled, for each code
@@ -79,53 +149,101 @@ interface Scene {
   settled: Record<CodeState, string>;
 }
 
+const NOT_REPORTED = "Signal delay from this command centre is not reported";
+
 const SCENES: Scene[] = [
   {
     // A craft a little over three light-minutes from home, observed from home.
-    name: "flight-at-delay",
+    name: "home-centre",
+    screen: "main",
     vantage: KSC,
-    settled: { after: "DelaySignal delay 3min 7s", before: "CCKSCHome" },
-    emit: [
-      ["commandCentre.roster", ROSTER],
-      ["spaceCenter.scene", { scene: "Flight" }],
-      ["comms.delay", { oneWaySeconds: 187.4, source: SIGNAL_DELAY }],
-      ["comms.link", { connected: true }],
-    ],
+    settled: {
+      after: "DelaySignal delay 3min 7s",
+      before: "DelaySignal delay 3min 7s",
+    },
+    emit: flight(true),
   },
   {
     // The path home is gone. The authority holds the last light-time, and the
     // header must not present that held figure as a live one.
-    name: "flight-disconnected",
+    name: "home-centre-disconnected",
+    screen: "main",
     vantage: KSC,
     settled: {
       after: "DelaySignal delay: disconnected",
-      before: "CCKSCHome",
+      before: "DelaySignal delay: disconnected",
     },
-    emit: [
-      ["commandCentre.roster", ROSTER],
-      ["spaceCenter.scene", { scene: "Flight" }],
-      ["comms.delay", { oneWaySeconds: 187.4, source: SIGNAL_DELAY }],
-      ["comms.delay", { source: 0 }],
-      ["comms.link", { connected: false }],
-    ],
+    emit: flight(false),
   },
   {
-    // Observed from a centre the wire carries no delay for.
-    name: "flight-non-home-centre",
+    // A second ground station with a route of its own to the craft.
+    name: "ground-station",
+    screen: "main",
     vantage: GS1,
+    select: GS1,
+    settled: { after: "DelaySignal delay 42.5s", before: NOT_REPORTED },
+    emit: flight(true),
+  },
+  {
+    // A crewed forward centre, a few light-seconds from the craft.
+    name: "non-home-centre",
+    screen: "main",
+    vantage: MUN_STATION,
+    select: MUN_STATION,
+    settled: { after: "DelaySignal delay 3.9s", before: NOT_REPORTED },
+    emit: flight(true),
+  },
+  {
+    // A centre with no route to the craft at all.
+    name: "no-path",
+    screen: "main",
+    vantage: GS2,
+    select: GS2,
+    settled: { after: "DelaySignal delay: disconnected", before: NOT_REPORTED },
+    emit: flight(true),
+  },
+  {
+    // A pilot aboard the craft, mission control at home.
+    name: "pilot-aboard",
+    screen: "pilot",
+    vantage: CRAFT,
+    select: CRAFT,
+    hostCentre: KSC,
     settled: {
-      after: "Signal delay from this command centre is not reported",
-      before: "CCGround Station 1",
+      after: "DelaySignal delay 3min 7s",
+      before: "DelaySignal delay 0s",
     },
-    emit: [
-      ["commandCentre.roster", ROSTER],
-      ["spaceCenter.scene", { scene: "Flight" }],
-      ["comms.delay", { oneWaySeconds: 187.4, source: SIGNAL_DELAY }],
-      ["comms.link", { connected: true }],
-    ],
+    emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
+  },
+  {
+    // A pilot aboard the craft, mission control at a second ground station.
+    name: "pilot-aboard-ground-station",
+    screen: "pilot",
+    vantage: CRAFT,
+    select: CRAFT,
+    hostCentre: GS1,
+    settled: {
+      after: "DelaySignal delay 42.5s",
+      before: "DelaySignal delay 0s",
+    },
+    emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
+  },
+  {
+    // A pilot aboard a craft that has lost its path to mission control.
+    name: "pilot-blackout",
+    screen: "pilot",
+    vantage: CRAFT,
+    select: CRAFT,
+    hostCentre: KSC,
+    settled: {
+      after: "DelaySignal delay: disconnected",
+      before: "DelaySignal delay 0s",
+    },
+    emit: [...flight(false), ["vessel.orbit", CRAFT_ORBIT]],
   },
   {
     name: "no-active-vessel",
+    screen: "main",
     vantage: KSC,
     settled: { after: "CCKSCHome", before: "CCKSCHome" },
     emit: [
@@ -228,26 +346,29 @@ async function main(): Promise<void> {
       { timeout: 15_000 },
     );
 
-    for (const { name, vantage, emit, settled } of SCENES) {
+    for (const scene of SCENES) {
+      const { name, emit, settled } = scene;
       const flying = emit.some(
         ([topic, payload]) =>
           topic === "spaceCenter.scene" &&
           (payload as { scene?: string }).scene === "Flight",
       );
       /*
-       * What the header under test subscribes. The header as it was reads only
-       * the roster, plus the `comms.delay` the provider's authority always
-       * holds; the delay field adds the scene, and reads the link only in flight.
+       * What the header under test subscribes, beyond the `comms.delay` the
+       * provider's authority always holds: the roster and the scene, the link
+       * in flight, and the centres' own delays once the header reads them. A
+       * pilot's session also has to learn it is aboard, off the craft's orbit.
        */
-      const awaitTopics =
-        CODE_STATE === "before"
-          ? ["commandCentre.roster", "comms.delay"]
-          : [
-              "commandCentre.roster",
-              "comms.delay",
-              "spaceCenter.scene",
-              ...(flying ? ["comms.link"] : []),
-            ];
+      const awaitTopics = [
+        "commandCentre.roster",
+        "comms.delay",
+        "spaceCenter.scene",
+        ...(flying ? ["comms.link"] : []),
+        ...(flying && CODE_STATE === "after"
+          ? ["commandCentre.activeVesselDelay"]
+          : []),
+        ...(scene.screen === "pilot" ? ["vessel.orbit"] : []),
+      ];
       await page.evaluate(
         (s) =>
           (
@@ -257,7 +378,10 @@ async function main(): Promise<void> {
           ).__renderHeaderDelay(s),
         {
           emit,
-          vantage,
+          vantage: scene.vantage,
+          screen: scene.screen,
+          select: scene.select,
+          hostCentre: scene.hostCentre,
           awaitTopics,
           pxW: PX_W,
           pxH: PX_H,

@@ -387,6 +387,8 @@ export class PeerHostService {
   // disabled until the host's consent service drives it via
   // setAnalyticsConsent.
   private analyticsConsent = false;
+  /** Where this screen is standing, retained so a peer that joins later is told on connect. */
+  private commandCentre: string | null = null;
   // peerId → stationKey, populated from incoming station-info. Used to
   // evict the ghost connection when a refreshed station rejoins with a
   // fresh peerId: without this the GO/NO-GO list shows the same station
@@ -718,6 +720,10 @@ export class PeerHostService {
         conn.send({
           type: "analytics-consent",
           enabled: this.analyticsConsent,
+        } satisfies PeerMessage);
+        conn.send({
+          type: "host-command-centre",
+          centreId: this.commandCentre,
         } satisfies PeerMessage);
         // Missions have no live "currently recording" concept: a mission only
         // exists once StreamRecorder finishes and saveMission is called, so
@@ -1379,6 +1385,17 @@ export class PeerHostService {
       this.broadcast({ type: "analytics-consent", enabled });
     }
     void this.relayRegistration.postAnalyticsConfig();
+  }
+
+  /**
+   * Record the command centre this screen stands at and tell every peer when
+   * it moves. Called by the main screen whenever its selection or, before it
+   * has chosen, the centre its frames arrive from changes.
+   */
+  setCommandCentre(centreId: string | null): void {
+    if (this.commandCentre === centreId) return;
+    this.commandCentre = centreId;
+    this.broadcast({ type: "host-command-centre", centreId });
   }
 
   /** Current retained consent: exposed for the heartbeat re-assert and

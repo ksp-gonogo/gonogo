@@ -1,4 +1,7 @@
-import type { CommsDelay } from "../__generated__/contract";
+import type {
+  CommandCentreActiveVesselDelay,
+  CommsDelay,
+} from "../__generated__/contract";
 
 /**
  * The `comms.delay` channel topic: the CORE `SignalDelay` capability's
@@ -11,9 +14,62 @@ import type { CommsDelay } from "../__generated__/contract";
  */
 export const COMMS_DELAY_TOPIC = "comms.delay";
 
-/** The minimal client surface `DelayAuthority` needs, just topic subscription. */
+/**
+ * The `commandCentre.activeVesselDelay` channel topic: each command centre's
+ * own delay to the active craft, the rows the mod's ledger times that centre's
+ * traffic by (`mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs`).
+ * Sparse: home and any centre without a route are absent, and both ride
+ * `comms.delay` in the ledger.
+ */
+export const CENTRE_DELAY_TOPIC = "commandCentre.activeVesselDelay";
+
+/**
+ * The minimal client surface `DelayAuthority` needs: topic subscription, and
+ * the vantage the session stands at, which picks whose delay applies.
+ */
 export interface DelaySubscribable {
   subscribe(topic: string, cb: (payload: unknown) => void): () => void;
+  /** The centre this session asked to observe from, if it has asked. */
+  readonly selectedVantage?: string;
+  /** The centre the latest ordinary frame was delayed from. */
+  readonly observedVantage?: string;
+}
+
+/** A wire seconds field, bare or wrapped by the decode, as a finite non-negative number. */
+function readSeconds(field: unknown): number | null {
+  const seconds =
+    typeof field === "number"
+      ? field
+      : (field as { magnitude?: unknown } | null | undefined)?.magnitude;
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
+    return null;
+  }
+  return seconds;
+}
+
+/**
+ * Each listed centre's own delay to the active craft, keyed by centre id, or
+ * `null` for a payload that is not one. An entry with no usable number is left
+ * out rather than read as zero, which puts that centre back on `comms.delay`
+ * exactly as a missing ledger row does.
+ */
+export function readCentreDelays(
+  payload: unknown,
+): ReadonlyMap<string, number> | null {
+  const centres = (payload as Partial<CommandCentreActiveVesselDelay> | null)
+    ?.centres;
+  if (!Array.isArray(centres)) return null;
+  const delays = new Map<string, number>();
+  for (const entry of centres) {
+    const id = (entry as { id?: unknown } | null)?.id;
+    const seconds = readSeconds(
+      (entry as { oneWaySeconds?: unknown } | null)?.oneWaySeconds,
+    );
+    if (typeof id === "string" && id !== "" && seconds !== null) {
+      delays.set(id, seconds);
+    }
+  }
+  return delays;
 }
 
 /**
@@ -49,10 +105,15 @@ function readOneWaySeconds(payload: unknown): number | null {
 }
 
 /**
- * The client-side delay authority. Holds
- * the latest `comms.delay.oneWaySeconds` off the wire and exposes it as a
- * `delaySeconds()` accessor wired into the ONE `ViewClock`
- * (`ViewClockOptions.delaySeconds`).
+ * The client-side delay authority. Holds the delay this session's frames are
+ * timed by and exposes it as a `delaySeconds()` accessor wired into the ONE
+ * `ViewClock` (`ViewClockOptions.delaySeconds`).
+ *
+ * The number is the mod's ledger lookup, restated: the session's own centre's
+ * row on `commandCentre.activeVesselDelay` where it has one, and otherwise
+ * `comms.delay`, the whole-network delay every centre without a row is timed
+ * by. So a session at a forward centre runs its clock on that centre's own
+ * light-time, and one at home runs it on home's.
  *
  * **This is legibility, NOT enforcement.** The mod's reveal gate
  * (`ChannelEngine`) has already withheld each channel's samples
@@ -77,6 +138,8 @@ function readOneWaySeconds(payload: unknown): number | null {
 export class DelayAuthority {
   private oneWaySeconds = 0;
   private ownCraftVantage = false;
+  private centreDelays: ReadonlyMap<string, number> = new Map();
+  private vantageSource: DelaySubscribable | undefined;
 
   /**
    * Feed one `comms.delay` payload. A frame that reports a measurable one-way
@@ -116,26 +179,34 @@ export class DelayAuthority {
   }
 
   /**
+   * Feed one `commandCentre.activeVesselDelay` payload: each listed centre's
+   * own delay to the active craft replaces the last set whole, since a centre
+   * dropped from the list has lost its row. A payload that is not one leaves
+   * the last set standing.
+   *
+   * Nothing here is held per centre through a blackout because nothing needs
+   * to be: the channel is Delayed, so it stops arriving while the craft is out
+   * of contact, and the last set stands until it resumes.
+   */
+  observeCentreDelays(payload: unknown): void {
+    const delays = readCentreDelays(payload);
+    if (delays === null) return;
+    this.centreDelays = delays;
+  }
+
+  /**
    * Tell the authority whether this session's selected vantage is the craft
    * its own telemetry is about (`isOwnCraftVantage`). While it is, the delay
    * is 0 whatever `comms.delay` reports.
    *
-   * The override is needed because `comms.delay` is ONE global number, the
-   * active craft's CommNet path home, published once and read by every
-   * session. The mod already delivers a session at the active craft's own
-   * vantage with no delay at all (`AuthorityMatrixPass.PopulateActiveVessel`
-   * writes that centre a zero row against the node every ordinary channel
-   * records under), so the frames are live while the readout still says the
-   * ground's light-time. Left alone, the clock holds live frames back by a
-   * delay that is not being applied to them: at a light-time under the
-   * timeline's retention the pilot simply reads what the ground reads, and
-   * over it `ClientTimeline.at(viewUt)` falls below the oldest retained point
-   * and every widget goes absent on a live feed.
-   *
-   * It is a flag rather than a second delay source because there is no second
-   * NUMBER to be had: nothing on the wire carries a per-vantage delay, so the
-   * only two answers available are "the global reading" and "none", and this
-   * says which of them applies to this session.
+   * The craft's own centre is also listed at zero on
+   * `commandCentre.activeVesselDelay`, and this flag covers the moment before
+   * that list reaches the new session: a pilot's vantage changes on the frame
+   * the craft names itself, and until then the clock would read home's
+   * `comms.delay` over frames the mod is already delivering live. At a
+   * light-time over the timeline's retention that is not merely late:
+   * `ClientTimeline.at(viewUt)` falls below the oldest retained point and
+   * every widget goes absent on a live feed.
    */
   setOwnCraftVantage(ownCraft: boolean): void {
     this.ownCraftVantage = ownCraft;
@@ -148,22 +219,42 @@ export class DelayAuthority {
    * when handed off as a bare function reference.
    *
    * Zero while the session is at its own craft's vantage, per
-   * `setOwnCraftVantage`. The held `comms.delay` reading is kept rather than
-   * cleared, so a vantage that moves back to the ground reports the last
-   * measured light-time immediately instead of waiting a whole one to
-   * re-learn it.
+   * `setOwnCraftVantage`. Otherwise the selected centre's own row, or the
+   * observed one's before this session has chosen, and `comms.delay` for a
+   * centre with no row. Both are kept rather than cleared on a vantage change,
+   * so a move to another centre reports that centre's last measured
+   * light-time immediately instead of waiting a whole one to re-learn it.
    */
-  delaySeconds = (): number => (this.ownCraftVantage ? 0 : this.oneWaySeconds);
+  delaySeconds = (): number => {
+    if (this.ownCraftVantage) return 0;
+    const vantage =
+      this.vantageSource?.selectedVantage ??
+      this.vantageSource?.observedVantage;
+    const own =
+      vantage === undefined ? undefined : this.centreDelays.get(vantage);
+    return own ?? this.oneWaySeconds;
+  };
 
   /**
-   * Subscribe to `comms.delay` on `client`, keeping `delaySeconds()` current.
-   * `TelemetryClient.subscribe` replays its sticky last value immediately, so
-   * a late-attaching authority still learns the current delay on the next
-   * delivery: no full-cycle wait. Returns the unsubscribe function.
+   * Subscribe to `comms.delay` and `commandCentre.activeVesselDelay` on
+   * `client`, keeping `delaySeconds()` current, and read the session's vantage
+   * off it from then on. `TelemetryClient.subscribe` replays its sticky last
+   * value immediately, so a late-attaching authority still learns the current
+   * delay on the next delivery: no full-cycle wait. Returns the unsubscribe
+   * function.
    */
   attach(client: DelaySubscribable): () => void {
-    return client.subscribe(COMMS_DELAY_TOPIC, (payload) =>
+    this.vantageSource = client;
+    const detachHome = client.subscribe(COMMS_DELAY_TOPIC, (payload) =>
       this.observe(payload),
     );
+    const detachCentres = client.subscribe(CENTRE_DELAY_TOPIC, (payload) =>
+      this.observeCentreDelays(payload),
+    );
+    return () => {
+      detachCentres();
+      detachHome();
+      if (this.vantageSource === client) this.vantageSource = undefined;
+    };
   }
 }
