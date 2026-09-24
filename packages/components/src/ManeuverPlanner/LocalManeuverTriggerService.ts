@@ -60,17 +60,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   constructor(opts: { sourceId?: string; nowMs?: () => number } = {}) {
     this.sourceId = opts.sourceId ?? "data";
     this.nowMs = opts.nowMs ?? (() => Date.now());
-    // Deliberately NOT subscribing here: `onActiveTimelineFrame` reads
-    // whichever `TelemetryProvider` is ALREADY mounted at call time and
-    // never retroactively attaches (see its own doc comment), but this
-    // service is built via `useState(() => new LocalManeuverTriggerService())`,
-    // whose lazy initializer runs during the FIRST render, before ANY
-    // `useEffect` (including the enclosing `TelemetryProvider`'s own
-    // store-registration effect) has fired. Subscribing here would silently
-    // no-op for the service's entire lifetime. `arm()` establishes the
-    // subscription instead: arming always happens well after mount
-    // (a later user action or peer message), by which point the provider
-    // (if any) has settled.
+    // No frame subscription here: a service holding no triggers has nothing
+    // to re-evaluate, so `arm()` takes it out on the first one.
   }
 
   dispose(): void {
@@ -92,8 +83,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   }
 
   arm(input: ArmTriggerInput): void {
-    // Lazily established (not in the constructor: see its doc comment):
-    // re-evaluates every armed trigger's dataKey threshold, plus the
+    // Re-evaluates every armed trigger's dataKey threshold, plus the
     // vessel-swap auto-clear check, on every subsequent stream frame.
     this.vesselUnsub ??= onActiveTimelineFrame(() => this.evaluate());
     const id = generateId();
@@ -120,13 +110,36 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     if (this.triggers.length !== before) this.emit();
   }
 
+  /**
+   * Drops every `fired` id that no longer names a listed trigger.
+   *
+   * The guard only has to stop a second fire while its trigger is still
+   * listed, which is only the case when a dispatch left it there. Ids are
+   * minted per arm and never reused, so anything else in the set is dead
+   * weight held for as long as the widget is mounted.
+   */
+  private pruneFired(): void {
+    if (this.fired.size === 0) return;
+    const listed = new Set(this.triggers.map((t) => t.id));
+    for (const id of this.fired) {
+      if (!listed.has(id)) this.fired.delete(id);
+    }
+  }
+
   private evaluate(): void {
-    if (this.triggers.length === 0) return;
-    // Auto-clear triggers tied to a different vessel.
+    if (this.triggers.length === 0) {
+      this.fired.clear();
+      return;
+    }
+    // Auto-clear triggers tied to a different vessel. A null live name is "no identity read yet", not a different vessel, so it clears nothing.
     const liveVesselName = this.readVesselName();
     let mutated = false;
     for (const t of [...this.triggers]) {
-      if (t.vesselName !== null && liveVesselName !== t.vesselName) {
+      if (
+        t.vesselName !== null &&
+        liveVesselName !== null &&
+        liveVesselName !== t.vesselName
+      ) {
         this.triggers = this.triggers.filter((x) => x.id !== t.id);
         mutated = true;
         continue;
@@ -140,6 +153,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       this.triggers = this.triggers.filter((x) => x.id !== t.id);
       mutated = true;
     }
+    this.pruneFired();
     if (mutated) this.emit();
   }
 
