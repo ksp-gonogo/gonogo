@@ -60,20 +60,20 @@ namespace Gonogo.KSP.SilenceTracking
         /// The UT gap between consecutive looks at a vessel's contact state.
         ///
         /// <para>Two gates stack. The capture tick lives in
-        /// <c>GonogoAddon.FixedUpdate</c> and admits one sample per UT second
-        /// (<c>SampleIntervalUt</c>), and a FixedUpdate itself covers
-        /// <c>TimeWarp.fixedDeltaTime</c> of UT, which already multiplies by the
-        /// warp rate on the high-warp path (0.02 s per tick becomes 20 s at
-        /// 1000x and 2000 s at 100000x). The coarser of the two is the interval
-        /// at which anyone is actually looking, so it both floors the sweep step
-        /// and sets the largest term in the declare-lost grace.</para>
+        /// <c>GonogoAddon.FixedUpdate</c> and admits one sample per
+        /// <c>SampleCadence.IntervalUtAt</c> of the current rate (one UT second
+        /// at 1x, the rate's worth of UT under warp), and a FixedUpdate itself
+        /// covers <c>TimeWarp.fixedDeltaTime</c> of UT. The coarser of the two
+        /// is the interval at which anyone is actually looking, so it both
+        /// floors the sweep step and sets the largest term in the declare-lost
+        /// grace.</para>
         ///
         /// <para>Read off <c>fixedDeltaTime</c> rather than the frame rate: the
         /// gate is a physics-tick gate, and wall-clock frames are neither what
         /// advances UT nor steady under load.</para>
         /// </summary>
         private static double ObservationQuantumSeconds() =>
-            SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUt, TimeWarp.fixedDeltaTime);
+            SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUtAt(TimeWarp.CurrentRate), TimeWarp.fixedDeltaTime);
 
         public override void OnLoad(ConfigNode node)
         {

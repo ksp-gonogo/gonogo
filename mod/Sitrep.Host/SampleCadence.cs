@@ -1,3 +1,5 @@
+using System;
+
 namespace Sitrep.Host
 {
     /// <summary>
@@ -9,8 +11,10 @@ namespace Sitrep.Host
     /// <c>Sitrep.Host.Tests</c>.
     ///
     /// Forward cadence: skip until <paramref name="intervalUt"/> UT has
-    /// elapsed since the last sample - warp-safe, driven by game time, not
-    /// wall-clock/tick count.
+    /// elapsed since the last sample, driven by game time, not tick count.
+    /// The interval a caller passes is <see cref="IntervalUtAt"/> of the
+    /// current warp rate, so under warp the gate still admits about one
+    /// sample per real second rather than one per physics tick.
     ///
     /// Backward jump (F9 quickload): KSP's UT can rewind. A forward-only
     /// <c>ut - lastSampledUt &lt; interval</c> gate goes strongly negative
@@ -31,13 +35,39 @@ namespace Sitrep.Host
         public const double IntervalUt = 1.0;
 
         /// <summary>
+        /// The least real time the mod leaves between two samples, in seconds.
+        ///
+        /// <para>A UT interval alone is satisfied on every physics tick once
+        /// warp runs a tick past it, so the sample rate, and every channel's
+        /// change rate with it, climbs to the physics rate: thirty-odd samples
+        /// a real second at high warp for a stream sized for one. One second,
+        /// because at 1x a UT second IS a real one, so the floor never binds at
+        /// 1x and warp leaves the wire rate where 1x has it.</para>
+        /// </summary>
+        public const double FloorRealSec = 1.0;
+
+        /// <summary>
+        /// The UT the gate waits between two samples at <paramref name="warpRate"/>:
+        /// <see cref="IntervalUt"/>, or <see cref="FloorRealSec"/> of game time
+        /// at that rate where that is longer. Expressed through the rate rather
+        /// than read off a wall clock, so the UT between two samples is a figure
+        /// the mod can state exactly (see <see cref="ObservationQuantumUt"/>).
+        /// A rate that is not a positive number is treated as 1x.
+        /// </summary>
+        public static double IntervalUtAt(double warpRate) =>
+            warpRate > 1.0 && !double.IsInfinity(warpRate)
+                ? Math.Max(IntervalUt, FloorRealSec * warpRate)
+                : IntervalUt;
+
+        /// <summary>
         /// The UT that actually passes between two samples when one physics
         /// tick advances the game by <paramref name="tickUt"/>: the interval
         /// at which anyone is looking.
         ///
-        /// <para>The gate is only asked once per tick, so once a single tick
-        /// outruns <paramref name="intervalUt"/> every tick is sampled and the
-        /// quantum is the tick itself. Rounding the interval up to a whole
+        /// <para><paramref name="intervalUt"/> is the gate's interval at the
+        /// current rate, <see cref="IntervalUtAt"/>. The gate is only asked
+        /// once per tick, so were a single tick to outrun it every tick would
+        /// be sampled and the quantum would be the tick itself. Rounding the interval up to a whole
         /// number of ticks below that point is deliberately left out: it is
         /// finer than the interval, and a figure that moved with every sub-step
         /// rate would resend the topic carrying it for nothing.</para>

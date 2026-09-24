@@ -9,7 +9,7 @@ namespace Sitrep.Host.Propulsion
     ///
     /// <para><b>Why a latch and not an edge.</b> Every vessel channel is
     /// declared <c>Delivery.LossyLatest</c> and the whole snapshot is gated at
-    /// <c>SampleIntervalUt</c>, so intermediate values are dropped by design.
+    /// <c>SampleCadence.IntervalUtAt</c>, so intermediate values are dropped by design.
     /// An edge ("thrust just ended") is a one-shot that a lossy transport is
     /// entitled to eat, and a consumer that missed it cannot tell that from
     /// nothing having happened. A latched instant is idempotent: it is still

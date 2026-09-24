@@ -13,7 +13,7 @@ namespace Sitrep.Contract
     ///
     /// <para>Keyed on whatever time axis the caller already samples on
     /// (typically UT, since a KSP-side capture cadence is driven by UT, not
-    /// wall clock - see <c>GonogoAddon.SampleIntervalUt</c>). Nothing here
+    /// wall clock - see <c>SampleCadence.IntervalUtAt</c>). Nothing here
     /// calls a clock itself, so it stays KSP-free and unit-testable.</para>
     /// </summary>
     public sealed class PerfBudget

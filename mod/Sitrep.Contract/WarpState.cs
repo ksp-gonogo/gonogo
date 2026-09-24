@@ -111,8 +111,9 @@ public class WarpState
     /// rate, in seconds, or <c>null</c> where the host did not report its
     /// physics step.
     ///
-    /// <para>One second while a physics tick advances the game by less than
-    /// that, and one tick from then on, which under high warp is thousands.
+    /// <para>One second at 1x. Under warp the mod samples about once a real
+    /// second, so this is the rate's worth of UT (100,000 at 100,000x), or one
+    /// physics tick where a tick advances the game further than that.
     /// Nothing between two consecutive samples was observed, so a line drawn
     /// between two samples that differ asserts a path across this span that
     /// only a model of the value can stand behind. Two samples further apart

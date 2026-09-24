@@ -1481,7 +1481,7 @@ namespace Sitrep.Host
                 WarpRates = GetDoubleArray(time, "warpRates"),
                 KeyframeFloorSec = Sitrep.Core.ChannelEmitter.KeyframeFloorRealSec,
                 ObservationQuantumUt = GetDouble(time, "tickUt") is { } tickUt
-                    ? SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUt, tickUt)
+                    ? SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUtAt(warpRate.Value), tickUt)
                     : null,
                 WarpMode = ParseWarpMode(GetString(time, "warpMode")),
                 Paused = paused.Value,

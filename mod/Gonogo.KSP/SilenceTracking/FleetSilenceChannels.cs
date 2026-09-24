@@ -28,8 +28,8 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// Soft cap on the always-run silence capture, sized generously above
         /// a realistic career-scale fleet (a few hundred vessels) sampled at
-        /// the ~1 UT-second cadence <c>GonogoAddon.SampleIntervalUt</c> uses
-        /// at 1x warp.
+        /// the one-sample-per-real-second cadence <c>SampleCadence.IntervalUtAt</c>
+        /// keeps at any warp rate.
         /// </summary>
         private static readonly PerfBudget SilenceCaptureBudget = new PerfBudget(
             "FleetSilenceChannels silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");

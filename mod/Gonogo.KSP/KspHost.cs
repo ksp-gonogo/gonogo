@@ -73,8 +73,8 @@ namespace Gonogo.KSP
         /// <see cref="ThrustObserver"/> for why the fact is latched rather than
         /// emitted as an edge.
         ///
-        /// <para>Fed once per capture, so its instants resolve to
-        /// <c>GonogoAddon.SampleIntervalUt</c>. A burn shorter than that may
+        /// <para>Fed once per capture, so its instants resolve to the sample
+        /// interval, <c>SampleCadence.IntervalUtAt</c>. A burn shorter than that may
         /// never be observed under thrust at all, in which case both latches
         /// simply stay where they were: the failure mode is a refusal to say
         /// anything, never a wrong instant. Reading engine thrust every physics
