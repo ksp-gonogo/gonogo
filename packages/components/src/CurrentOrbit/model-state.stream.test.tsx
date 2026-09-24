@@ -15,9 +15,9 @@ import { CurrentOrbitComponent } from "./index";
  *
  * Five dashes and nothing else cannot be told from a broken widget, and the two
  * want opposite reactions: one is the model declining by design, the other is
- * a fault. The word is the instrument's state, not an explanation, and it comes
- * from the decline's reason, so each scene below declines for a different
- * reason and says the word that reason earns.
+ * a fault. The word is the instrument's state, not an explanation, one word
+ * for every decline; each scene below declines for a different reason, and the
+ * control at the end declines for none.
  */
 const CARRIED = [
   "vessel.orbit",
@@ -77,18 +77,17 @@ function scene(orbit: Record<string, unknown>, quality = Quality.OnRails) {
 }
 
 describe("CurrentOrbit names why the figures are dashes", () => {
-  it("says UNDER PHYSICS for a loaded craft", () => {
+  it("says CANNOT MODEL for a loaded craft, with the condition in its note", () => {
     scene({}, Quality.Loaded);
 
-    expect(screen.getByText("UNDER PHYSICS")).toBeInTheDocument();
-    expect(screen.queryByText("CANNOT MODEL")).toBeNull();
+    const state = screen.getByText("CANNOT MODEL");
+    expect(state.getAttribute("title")).toMatch(/under physics/);
   });
 
   it("says CANNOT MODEL for a coast inside the air", () => {
     scene({ sma: 6371000 + 60000 });
 
     expect(screen.getByText("CANNOT MODEL")).toBeInTheDocument();
-    expect(screen.queryByText("UNDER PHYSICS")).toBeNull();
   });
 
   it("says CANNOT MODEL past the SOI transition", () => {
@@ -103,7 +102,7 @@ describe("CurrentOrbit names why the figures are dashes", () => {
     scene({ horizon: UNBOUNDED_HORIZON });
 
     expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(screen.queryByText(/CANNOT MODEL|UNDER PHYSICS/)).toBeNull();
+    expect(screen.queryByText(/CANNOT MODEL/)).toBeNull();
   });
 
   it("says nothing when the conic advances the orbit", () => {
@@ -111,6 +110,6 @@ describe("CurrentOrbit names why the figures are dashes", () => {
     // that printed a state word unconditionally.
     scene({});
 
-    expect(screen.queryByText(/CANNOT MODEL|UNDER PHYSICS/)).toBeNull();
+    expect(screen.queryByText(/CANNOT MODEL/)).toBeNull();
   });
 });

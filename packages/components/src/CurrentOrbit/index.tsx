@@ -538,8 +538,10 @@ export { CurrentOrbitComponent };
 /**
  * The instrument's state when the conic declined: a word the operator reads
  * beside the dashes, in the register of `NO DATA` and `TOO LOW`, never a
- * sentence. Every reason is named so a new one is a compile error here rather
- * than a silent default.
+ * sentence. One word for every decline, because a state that has to be looked
+ * up is worse than the dashes it explains; which condition declined reaches the
+ * operator in the note on hover. Every reason is still named, so a new one is a
+ * compile error here rather than a silent default.
  *
  * `null` for `input-absent`: without elements there is nothing on the panel for
  * a state to explain, and the dashes already say "not arrived".
@@ -548,7 +550,6 @@ function declinedState(declined: ReckoningDecline): string | null {
   const reason = declined.reason;
   switch (reason) {
     case "under-physics":
-      return "UNDER PHYSICS";
     case "beyond-horizon":
     case "model-inapplicable":
     case "contested":
