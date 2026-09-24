@@ -113,6 +113,26 @@ namespace Sitrep.Host.Settings
             }
         }
 
+        /// <summary>
+        /// Put a value into the document as a row this store owns, without
+        /// persisting it or telling a watcher: it reaches the file with the next
+        /// <see cref="Commit"/>. For a value decided at start-up rather than by
+        /// the operator, such as a migration or the version stamped beside a
+        /// block.
+        /// </summary>
+        public void Seed(string path, string text)
+        {
+            SettingsDocument.Split(path);
+            var refusal = SettingsText.RefusalOf(text);
+            if (refusal != null)
+            {
+                throw new ArgumentException(path + ": " + refusal, nameof(text));
+            }
+
+            _owned.Add(path);
+            Document.Set(path, text);
+        }
+
         public string? Text(string path) => Document.Text(path);
 
         /// <summary>The boolean at <paramref name="path"/>, falling back to the declared default when the row is absent or unparseable.</summary>

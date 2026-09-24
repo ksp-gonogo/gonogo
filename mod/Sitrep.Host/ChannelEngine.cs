@@ -10,6 +10,7 @@ using Sitrep.Propagation;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Contract.Serialization;
+using Sitrep.Host.Settings;
 using Sitrep.Transport;
 
 using StreamData = Sitrep.Contract.StreamData<object?>;
@@ -2020,6 +2021,7 @@ namespace Sitrep.Host
                 return;
             }
 
+            DeclareUplinkSettings(uplink);
             RegisterUplink(uplink);
         }
 
@@ -2069,6 +2071,17 @@ namespace Sitrep.Host
                 DeclareUplinkCapabilities(uplink);
             }
 
+            // Between the passes: each uplink's settings, so Register can read
+            // them. Fail-soft on its own terms: a throw here costs the settings,
+            // never the uplink.
+            foreach (var uplink in accepted)
+            {
+                if (IsUplinkAvailable(uplink.Manifest.Id))
+                {
+                    DeclareUplinkSettings(uplink);
+                }
+            }
+
             // Pass B: run Register (providers/channels/samplers). Skip any
             // uplink whose Pass-A declaration already failed it.
             foreach (var uplink in accepted)
@@ -2078,6 +2091,79 @@ namespace Sitrep.Host
                     continue;
                 }
                 RegisterUplink(uplink);
+            }
+        }
+
+        /// <summary>
+        /// The settings document uplinks declare into. Set before discovery;
+        /// while it is null, an uplink's settings are not asked for and its
+        /// stored block is left as it is.
+        /// </summary>
+        public SettingsStore? Settings { get; set; }
+
+        /// <summary>
+        /// Why an uplink's settings could not be declared, keyed by uplink id.
+        /// The uplink itself registered and publishes; only its settings are at
+        /// their defaults for the session.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> SettingsDeclarationFailures => _settingsFailures;
+
+        private readonly Dictionary<string, string> _settingsFailures =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// One uplink's <see cref="IUplinkSettingsDeclarer.DeclareSettings"/>,
+        /// run into a scope that holds everything back until it returns.
+        ///
+        /// <para>Deliberately NOT inside <see cref="DeclareUplinkCapabilities"/>'s
+        /// pass: a throw there marks the whole uplink unavailable and skips its
+        /// Register, so one mistyped settings row would silence every channel the
+        /// uplink publishes. Here a throw is recorded, the uplink stays
+        /// available, and nothing it declared before the throw reaches the
+        /// document, so its stored block goes back to disk untouched.</para>
+        /// </summary>
+        private void DeclareUplinkSettings(ISitrepUplink uplink)
+        {
+            if (uplink is not IUplinkSettingsDeclarer declarer || Settings == null)
+            {
+                return;
+            }
+
+            var id = uplink.Manifest.Id;
+            UplinkSettingsScope scope;
+            try
+            {
+                scope = new UplinkSettingsScope(Settings, id, uplink.Manifest.Version);
+            }
+            catch (Exception ex)
+            {
+                RecordSettingsFailure(id, SafeExceptionMessage(ex));
+                return;
+            }
+
+            try
+            {
+                declarer.DeclareSettings(scope);
+                scope.Apply();
+            }
+            catch (Exception ex)
+            {
+                scope.Abandon();
+                RecordSettingsFailure(id, "settings declaration threw: " + SafeExceptionMessage(ex));
+            }
+        }
+
+        private void RecordSettingsFailure(string id, string reason)
+        {
+            _settingsFailures[id] = reason;
+            try
+            {
+                _diagnosticLog?.Invoke("uplink " + id + ": " + reason
+                    + ". Its settings are at their defaults for this session and its stored block is kept as it was.");
+            }
+            catch (Exception)
+            {
+                // Never take down registration over a failed log message.
             }
         }
 

@@ -163,6 +163,7 @@ namespace Gonogo.KSP
                     DiagnosticLog = msg => Debug.LogWarning("[Gonogo] " + msg),
                 };
                 _settings = settings;
+                _engine.Settings = settings;
 
                 // Bind the light-time delay capability BEFORE discovery, so the
                 // comms uplink's SignalDelay source is configured at Register
