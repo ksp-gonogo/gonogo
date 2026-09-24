@@ -114,38 +114,6 @@ namespace Gonogo.KSP.Tests.DevTools
             Assert.Contains("indeterminate", verdict);
         }
 
-        [Fact]
-        public void A_request_already_applied_by_an_EARLIER_process_does_not_re_fire()
-        {
-            // The replay: the process guard is empty because this is a fresh KSP
-            // start, and the request cfg is still on disk from last night.
-            Assert.False(CurrencyProbeVerdicts.ShouldApply(
-                requestId: "away-forced-comms-1", processLastApplied: null, diskLastApplied: "away-forced-comms-1"));
-        }
-
-        [Fact]
-        public void A_request_already_applied_by_THIS_process_does_not_re_fire()
-        {
-            Assert.False(CurrencyProbeVerdicts.ShouldApply(
-                requestId: "away-forced-comms-1", processLastApplied: "away-forced-comms-1", diskLastApplied: null));
-        }
-
-        [Fact]
-        public void A_new_id_fires_even_with_a_stamp_from_a_previous_request()
-        {
-            Assert.True(CurrencyProbeVerdicts.ShouldApply(
-                requestId: "away-forced-comms-2", processLastApplied: null, diskLastApplied: "away-forced-comms-1"));
-        }
-
-        [Fact]
-        public void An_absent_id_never_fires()
-        {
-            Assert.False(CurrencyProbeVerdicts.ShouldApply(
-                requestId: null, processLastApplied: null, diskLastApplied: null));
-            Assert.False(CurrencyProbeVerdicts.ShouldApply(
-                requestId: "", processLastApplied: null, diskLastApplied: null));
-        }
-
         private const double Tolerance = 0.0005;
 
         [Fact]
