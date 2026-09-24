@@ -6,6 +6,8 @@ import {
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  COMMAND_LOST,
+  COMMAND_UNDELIVERED,
   CommandErrorCode,
   KspParameterState,
   type ScetAlarmAction,
@@ -31,6 +33,16 @@ import {
  * enough that an alarm armed before a save loaded is live soon after it.
  */
 const TRANSIENT_REARM_INTERVAL_MS = 10_000;
+
+/**
+ * How many arms in a row may go unanswered before this side stops asking and
+ * says so. An arm lost in transit, or never sent because the link gave up on
+ * it, is no answer at all rather than a refusal, so it is asked again; but an
+ * arm that is never answered however often it is sent is not going to be, and
+ * sending it every ten seconds for ever would leave the operator believing an
+ * alarm is watched that nothing is watching.
+ */
+const MAX_UNANSWERED_ARMS = 5;
 
 /**
  * `buildArmArgs`'s answer when the arm cannot be stated YET: no vantage has
@@ -179,6 +191,15 @@ export class ScetAlarmBridge {
    * because what the mod holds is the condition that was replaced.
    */
   private owed = new Map<string, number>();
+  /** Arms sent in a row with no answer, per id; reset by any answer. */
+  private unanswered = new Map<string, number>();
+  /**
+   * Ids with a settled outcome for their current condition: refused for a
+   * reason waiting cannot change, or given up on after too many unanswered
+   * arms. Not armed again until the alarm is edited, so a roster frame that
+   * clears the in-flight guard does not re-send a question already answered.
+   */
+  private settled = new Set<string>();
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
@@ -201,6 +222,8 @@ export class ScetAlarmBridge {
     if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) return;
     this.owed.set(alarm.id, 0);
     this.commandedSinceRoster.delete(alarm.id);
+    this.unanswered.delete(alarm.id);
+    this.settled.delete(alarm.id);
   }
 
   /**
@@ -280,7 +303,7 @@ export class ScetAlarmBridge {
     }
     const held = new Set(this.rosterIds);
     for (const [id, alarm] of wanted) {
-      if (this.commandedSinceRoster.has(id)) continue;
+      if (this.commandedSinceRoster.has(id) || this.settled.has(id)) continue;
       const owedAt = this.owed.get(id);
       if (owedAt === undefined && held.has(id)) continue;
       if (owedAt !== undefined && this.ctx.nowMs() < owedAt) continue;
@@ -326,9 +349,21 @@ export class ScetAlarmBridge {
       if (this.disposed) return;
       if (refusal === undefined) {
         this.owed.delete(alarm.id);
+        this.unanswered.delete(alarm.id);
         this.ctx.onArmAccepted(alarm.id);
         return;
       }
+      /* Lost in transit, or never sent because the link gave up on it: nobody
+         decided anything, so it is not a refusal and nothing about the alarm is
+         wrong. Asked again, up to a point. */
+      if (
+        refusal.code === COMMAND_LOST ||
+        refusal.code === COMMAND_UNDELIVERED
+      ) {
+        this.noAnswer(alarm, refusal.message);
+        return;
+      }
+      this.unanswered.delete(alarm.id);
       /* The mod's own words when it quoted the game, which name the Topic or
          the vantage the operator picked. `message` is built from the code and
          names only the command, so it reads identically for every refusal of
@@ -348,6 +383,7 @@ export class ScetAlarmBridge {
         this.askAgainLater(alarm.id);
       } else {
         this.owed.delete(alarm.id);
+        this.settled.add(alarm.id);
       }
       /* A shadow arm that the mod cannot read costs the operator nothing: the
          alarm they are watching is the client's own and is unaffected. So the
@@ -374,6 +410,40 @@ export class ScetAlarmBridge {
       });
       this.ctx.onArmRefused(alarm.id, reason);
     });
+  }
+
+  /**
+   * One more arm with no answer. Asked again on the slow cadence until
+   * {@link MAX_UNANSWERED_ARMS} have gone unanswered in a row, and then given
+   * up on and said: to the operator for an alarm only the simulation can fire,
+   * since that alarm will now never fire, and to the log for a shadow arm,
+   * whose alarm is still the client's own.
+   */
+  private noAnswer(alarm: Alarm, message: string): void {
+    const count = (this.unanswered.get(alarm.id) ?? 0) + 1;
+    if (count < MAX_UNANSWERED_ARMS) {
+      this.unanswered.set(alarm.id, count);
+      this.askAgainLater(alarm.id);
+      return;
+    }
+    this.unanswered.delete(alarm.id);
+    this.owed.delete(alarm.id);
+    this.settled.add(alarm.id);
+    const reason = `the simulation never answered ${count} requests to watch this alarm`;
+    if (!modOwnsLatch(alarm.trigger)) {
+      logger.warn("alarm-host: shadow arm never answered", {
+        id: alarm.id,
+        attempts: count,
+        message,
+      });
+      return;
+    }
+    logger.warn("alarm-host: SCET arm never answered", {
+      id: alarm.id,
+      attempts: count,
+      message,
+    });
+    this.ctx.onArmRefused(alarm.id, reason);
   }
 
   /** Owe this arm again after the transient interval, and let the reconcile send it. */
