@@ -388,6 +388,7 @@ export {
   ROW_HEIGHT,
 } from "./gridUnits";
 export {
+  ArrowDownIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowUpIcon,
@@ -395,6 +396,7 @@ export {
   BroadcastIcon,
   CheckIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
   ChevronRightIcon,
   ChevronUpIcon,
   CloseIcon,
