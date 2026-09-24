@@ -915,6 +915,9 @@ namespace Sitrep.Core
             {
                 return;
             }
+            // Nothing is re-read here, but the vantage has now been told about
+            // this scene, and retention prunes to what each vantage has been told.
+            ArchiveFor(node).NoteRead(topic, subscriber.Vantage, forwarded.ValidAt);
             subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, forwarded, fireUt, isCatchUp: false));
         }
 
