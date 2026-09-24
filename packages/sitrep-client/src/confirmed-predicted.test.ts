@@ -1,7 +1,7 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { OrbitElements } from "./kepler";
-import { solve } from "./kepler";
+import { solveAnomalies } from "./kepler";
 import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
@@ -17,6 +17,19 @@ import { ViewClock } from "./view-clock";
  * `vessel.state`, and the composition of `certainty` alongside
  * `StreamStatusValue`'s held-stale status and plain undefined/null absence.
  */
+
+/**
+ * Where the craft is around its orbit at `ut`, in degrees on [0, 360), which
+ * is how the channel publishes it.
+ *
+ * The anomaly is the one quantity here that moves with UT on a circular
+ * fixture: radius and speed are constant around such an orbit, so a test that
+ * read either of those back would pass on a solve taken at any instant at all.
+ */
+function trueAnomalyDegrees(elements: OrbitElements, ut: number): number {
+  const degrees = (solveAnomalies(elements, ut).trueAnomaly * 180) / Math.PI;
+  return ((degrees % 360) + 360) % 360;
+}
 
 /** A wall clock a test can advance explicitly, instead of racing real time. */
 function fakeWall(start = 0) {
@@ -208,7 +221,7 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
 });
 
 describe("predicted-range reads (M2 design §3.3)", () => {
-  it("vessel.state (orbital) past the horizon equals kepler.solve(elements, viewUt), propagated, marked predicted", () => {
+  it("vessel.state (orbital) past the horizon is solved AT the view UT, propagated, marked predicted", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -235,8 +248,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     expect(store.certaintyHorizonUt()).toBe(100);
 
     const state = store.sample<{
-      position: readonly [number, number, number] | null;
-      velocity: readonly [number, number, number] | null;
+      trueAnomaly: number | null;
     }>("vessel.state");
 
     // Off the WIRE fixture, which is bare numbers: the solver's own contract.
@@ -250,10 +262,17 @@ describe("predicted-range reads (M2 design §3.3)", () => {
       epoch: CIRCULAR_ORBIT.epoch as number,
       mu: CIRCULAR_ORBIT.mu as number,
     };
-    const expected = solve(elements, 150);
 
-    expect(state?.payload?.position).toEqual(expected.position);
-    expect(state?.payload?.velocity).toEqual(expected.velocity);
+    expect(state?.payload?.trueAnomaly).toBeCloseTo(
+      trueAnomalyDegrees(elements, 150),
+      9,
+    );
+    // Solved at the horizon instead, the same read lands ~9 degrees behind, so
+    // this is what says the propagation used the view UT rather than the edge.
+    expect(state?.payload?.trueAnomaly).not.toBeCloseTo(
+      trueAnomalyDegrees(elements, 100),
+      3,
+    );
   });
 
   it("certainty flips exactly at the horizon for a real TimelineStore frame", () => {
