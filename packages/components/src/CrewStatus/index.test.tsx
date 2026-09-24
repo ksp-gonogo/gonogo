@@ -254,6 +254,65 @@ describe("CrewStatusComponent", () => {
   });
 
   /**
+   * #384: on an EVA the active vessel IS the kerbal, so the meters belong to
+   * them and the header names them, heading the meters, rather than a bare
+   * "EVA" caption that leaves the name to a roster `Card` below.
+   */
+  describe("EVA header names the kerbal (#384)", () => {
+    function evaOnSuit(fixture: ReturnType<typeof newFixture>) {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+      fixture.emit("vessel.orbit", ORBIT);
+      fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
+    }
+
+    it("heads the meters with the kerbal's name instead of a bare EVA caption", async () => {
+      const fixture = newFixture();
+      renderCrew(fixture);
+      act(() => evaOnSuit(fixture));
+
+      await waitFor(() =>
+        expect(screen.getByText(/Jebediah Kerman/)).toBeInTheDocument(),
+      );
+      expect(screen.queryByText("EVA")).not.toBeInTheDocument();
+    });
+
+    it("omits the roster Card for the solo EVA kerbal once the header already names them and nothing else is bound to their row", async () => {
+      const fixture = newFixture();
+      renderCrew(fixture);
+      act(() => evaOnSuit(fixture));
+
+      await waitFor(() =>
+        expect(screen.getByText(/Jebediah Kerman/)).toBeInTheDocument(),
+      );
+      // The name appears exactly once: in the header, not repeated in an
+      // otherwise-empty roster Card below it.
+      expect(screen.getAllByText(/Jebediah Kerman/)).toHaveLength(1);
+      expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    });
+
+    it("keeps the roster Card for the solo EVA kerbal when a meter is contributed to their row, but drops the row's own name text", async () => {
+      const fixture = newFixture();
+      renderCrew(fixture, [
+        { id: "dose", row: "Jebediah Kerman", label: "Dose", value: 0.2 },
+      ]);
+      act(() => evaOnSuit(fixture));
+
+      await waitFor(() => expect(screen.getByText("Dose")).toBeInTheDocument());
+      // Named once (the header); the Card holding the contributed meter is
+      // still present but no longer repeats the name inside it.
+      expect(screen.getAllByText(/Jebediah Kerman/)).toHaveLength(1);
+      const row = screen.getByRole("listitem");
+      // The identity the visible text no longer carries survives on the
+      // Card itself, for an accessibility tree with no other text naming it.
+      expect(row).toHaveAccessibleName("Jebediah Kerman");
+    });
+  });
+
+  /**
    * The suit meters had exactly one assertion in the tree and it was the
    * negative one, so nothing rendered them and nothing would have noticed if
    * they stopped rendering. These are the two halves of what the keyed field
