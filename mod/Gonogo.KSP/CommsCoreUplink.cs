@@ -228,6 +228,9 @@ namespace Gonogo.KSP
         public static void ConfigureCommandCentreRegistry(CommandCentreRegistry registry) =>
             _commandCentreRegistry = registry;
 
+        /// <summary>The shared command-centre registry, or null before <see cref="GonogoAddon"/> has built it.</summary>
+        internal static CommandCentreRegistry? CommandCentres => _commandCentreRegistry;
+
         private IChannelPublisher? _connectivity;
         private IChannelPublisher? _signal;
         private IChannelPublisher? _control;

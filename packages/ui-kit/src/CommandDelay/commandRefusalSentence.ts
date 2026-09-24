@@ -135,6 +135,8 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   // it", and it earns that by having been told so. Distinct from
   // `ModeUnavailable` above, which is missing a REASON for an answer it got.
   [CommandErrorCode.Unreadable]: "the game would not answer",
+  [CommandErrorCode.OutOfReach]:
+    "this command centre has no authority over that place",
 };
 
 /**

@@ -209,6 +209,32 @@ describe("what an operator reads when the game says no", () => {
     );
   });
 
+  it("names the centre and the site when the sender has no authority over the pad", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.OutOfReach,
+        command: "ksp.launch",
+        args: { shipName: "Kerbal X" },
+        detail:
+          "Ike Base is in the Duna system, and a launch from Launch Pad needs a command centre in the Kerbin system",
+      }),
+    ).toBe(
+      "Launch Kerbal X refused: Ike Base is in the Duna system, and a launch from Launch Pad needs a command centre in the Kerbin system.",
+    );
+  });
+
+  it("says the general thing for an out-of-reach refusal that carried no reason", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.OutOfReach,
+        command: "ksp.launch",
+        args: { shipName: "Kerbal X" },
+      }),
+    ).toBe(
+      "Launch Kerbal X refused: this command centre has no authority over that place.",
+    );
+  });
+
   // NotReady is its own arm precisely so it does not read as a limit: the
   // vehicle is not over anything, it has not been built yet, and an operator
   // does something entirely different about each.
