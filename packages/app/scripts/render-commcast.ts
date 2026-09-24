@@ -224,7 +224,7 @@ const SCENES: Scene[] = [
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: 0.4,
-    settleOn: "Nothing said yet",
+    settleOn: "No messages",
     pxW: 460,
     pxH: 460,
   },
@@ -514,7 +514,7 @@ const SCENES: Scene[] = [
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
-    settleOn: "Nothing said yet",
+    settleOn: "No messages",
     pxW: 460,
     pxH: 460,
   },
@@ -543,7 +543,7 @@ const SCENES: Scene[] = [
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: 0.4,
-    settleOn: "Nothing said yet",
+    settleOn: "No messages",
     pxW: 460,
     pxH: 460,
   },
@@ -776,7 +776,7 @@ const SCENES: Scene[] = [
     // The other empty: this screen has no log at all, which is a station whose
     // host has gone rather than a mission with nothing said. The two must not
     // read the same and this is the pair that shows it: this one reads "No log
-    // yet", the one above "Nothing said yet".
+    // yet", the one above "No messages".
     name: "no-log",
     panes: [
       {
