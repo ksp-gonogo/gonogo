@@ -50,6 +50,7 @@ const topics = defineTopicManifest({
   channels: ["career.status"],
   fields: [
     "career.status.strategies.all",
+    "career.status.strategies.activationPatched",
     "career.status.economy.funds",
     "career.status.economy.reputation",
     "career.status.economy.science",
@@ -91,10 +92,8 @@ export interface Strategy {
    *
    * The career model pairs `"derived"` only with a refusal, never with a yes,
    * because the arm it cannot reach sits ahead of the ones it can. The widget
-   * still refuses to arm anything that is not `"screened"`: the published type
-   * admits the pair, and KSP's activation runs inside that building whatever we
-   * worked out about eligibility, so such a control would dispatch something
-   * that cannot land.
+   * never arms on a `"derived"` verdict either way: the published type admits a
+   * derived yes, and a yes nobody screened is not an answer.
    */
   activateVerdictSource: "screened" | "derived" | "none";
   canDeactivate: boolean;
@@ -294,6 +293,11 @@ interface ScreenSectionsProps {
    * does.
    */
   showDepartment?: boolean;
+  /**
+   * Whether `career.strategy.activate` can commit a strategy the roster has no
+   * verdict for. See `AvailableRow`'s own prop of the same name.
+   */
+  commitsUnanswered: boolean;
   funds: Quantityish | undefined;
   reputation: Quantityish | undefined;
   science: Quantityish | undefined;
@@ -337,7 +341,12 @@ function StrategiesComponent({
   // longer vouch for is the exact harm the balance-visibility rule exists for, so
   // a stale balance is withheld and the refusal says why.
   const careerReading = topics.useTelemetry("career.status");
-  const stratsRaw = stillTrue(careerReading, undefined)?.strategies?.all;
+  const rosterRaw = stillTrue(careerReading, undefined)?.strategies;
+  const stratsRaw = rosterRaw?.all;
+  /* Whether the command can commit a strategy the roster left unanswered. Only
+     an explicit false says the game's activation is its own; an older career
+     model sends nothing, and a null is a reading that failed. */
+  const commitsUnanswered = rosterRaw?.activationPatched === false;
   /* A verdict may only rest on an observation, and `career.status` declares no
      reckonable value, so there is no model that could stand in for one. */
   const economy =
@@ -435,6 +444,7 @@ function StrategiesComponent({
   const overCap = inferredCap !== null && active.length > inferredCap;
 
   const sectionProps = {
+    commitsUnanswered,
     funds,
     reputation,
     science,
@@ -608,6 +618,7 @@ function ScreenSections({
   strategies,
   screenId,
   showDepartment = true,
+  commitsUnanswered,
   funds,
   reputation,
   science,
@@ -636,6 +647,7 @@ function ScreenSections({
       key={s.id}
       strategy={s}
       showDepartment={showDepartment}
+      commitsUnanswered={commitsUnanswered}
       funds={magnitudeOf(funds)}
       reputation={magnitudeOf(reputation)}
       science={magnitudeOf(science)}
@@ -765,8 +777,9 @@ function ScreenSections({
               that screen. The arms are asked one at a time now, so a strategy
               reaches this list only when a reading genuinely failed, and the
               shared note above it says which one. The cards are the same cards
-              as Available, price included, because the operator's next move is
-              still to open the facility and spend. */}
+              as Available, price included, and on a career whose activation is
+              the game's own they commit from here: the command puts the checks
+              that could not be made, when it runs. */}
           {unknown.length > 0 && (
             <Section
               as="section"
@@ -825,9 +838,41 @@ function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
   );
 }
 
+/**
+ * What the Activate control says to a pointer resting on it. A refusal names
+ * which kind it is, because the operator does something different about each:
+ * a stale balance wants the link looked at, a short one wants funds.
+ */
+function activateTitle(
+  s: Strategy,
+  commitsUnanswered: boolean,
+  balancesNotCurrent: boolean,
+  cantAfford: boolean,
+): string {
+  const unanswered = s.canActivate === null && commitsUnanswered;
+  if (!unanswered) {
+    if (s.canActivate !== true) {
+      return s.activateBlockedReason || "Cannot activate";
+    }
+    if (s.activateVerdictSource !== "screened") {
+      return "Nobody screened this answer, so it cannot be committed from here.";
+    }
+  }
+  if (balancesNotCurrent) {
+    return "Career balances are no longer current, so affordability cannot be checked";
+  }
+  if (cantAfford) {
+    return "Insufficient funds / science / reputation at this factor";
+  }
+  return unanswered
+    ? "Set the factor, then confirm. The checks that could not be made here are made when you confirm."
+    : "Set the factor, then confirm";
+}
+
 function AvailableRow({
   strategy: s,
   showDepartment,
+  commitsUnanswered,
   funds,
   reputation,
   science,
@@ -842,6 +887,11 @@ function AvailableRow({
   strategy: Strategy;
   /** See `ScreenSections`'s own derivation of this. */
   showDepartment: boolean;
+  /**
+   * The career's activation is the game's own, so the command commits a
+   * strategy with no verdict by putting every check itself when it runs.
+   */
+  commitsUnanswered: boolean;
   funds: number | null;
   reputation: number | null;
   science: number | null;
@@ -991,37 +1041,35 @@ function AvailableRow({
           label="Activate"
           confirmLabel="Confirm activate"
           pendingLabel="Activating..."
-          /* An unread eligibility refuses on the same terms as a refusal: the
-             actuator will not dispatch one either, and arming a control that
-             cannot land is the same falsehood pointing the other way.
+          /* Two ways to arm, and neither is a derived verdict. A screened yes
+             is the game's own answer. A row with NO verdict arms only where
+             the command commits one itself: it puts every check again when it
+             runs and refuses in the game's words, so the control offers to try
+             rather than claiming the answer is yes. Where another mod owns
+             activation the command would refuse, and a control that arms only
+             to refuse is worse than a dark one.
 
-             The source test is defence in depth rather than a live case. Our
-             career model never pairs a yes with an off-screen source, because
-             the one arm it cannot reach sits ahead of the ones it can. But the
-             published type admits the pair and an Uplink could send it, and the
-             answer would still be no: KSP runs its own commitment from inside
-             that building, so the dispatch could not land however sound the
-             verdict was. */
+             A derived false never arms. Nor does a derived true: our career
+             model cannot produce one, but the published type admits the pair
+             and an Uplink could send it, and a yes nobody screened is not an
+             answer. */
           disabled={
-            s.canActivate !== true ||
-            s.activateVerdictSource !== "screened" ||
-            cantAfford
+            !(
+              (s.canActivate === true &&
+                s.activateVerdictSource === "screened") ||
+              (s.canActivate === null && commitsUnanswered)
+            ) || cantAfford
           }
           /* A stale balance and a short one both refuse, and the operator does
              something different about each: top up the treasury, or find out
              why the link stopped. So the refusal names which it is rather than
              calling a career it cannot see insufficient. */
-          title={
-            s.canActivate !== true
-              ? s.activateBlockedReason || "Cannot activate"
-              : s.activateVerdictSource !== "screened"
-                ? "Eligible. KSP commits a strategy only from inside the Administration Building, so open that screen to commit to this one."
-                : balancesNotCurrent
-                  ? "Career balances are no longer current, so affordability cannot be checked"
-                  : cantAfford
-                    ? "Insufficient funds / science / reputation at this factor"
-                    : "Set the factor, then confirm"
-          }
+          title={activateTitle(
+            s,
+            commitsUnanswered,
+            balancesNotCurrent,
+            cantAfford,
+          )}
         />
       </CardFooter>
     </StrategyCard>
@@ -1392,7 +1440,7 @@ registerComponent<StrategiesConfig>({
   id: "strategies",
   name: "Admin Building",
   description:
-    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. With that building open KSP answers eligibility itself; with it shut the same rules are asked one at a time, which is enough to name what the career refuses but never enough to say yes. Committing runs inside the building either way, because KSP's own activation does.",
+    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. With that building open KSP answers eligibility itself; with it shut the same rules are asked one at a time, which is enough to name what the career refuses but never enough to say yes. A strategy left unanswered can still be committed from here when no other mod has changed how activation works: the remaining checks are made when you confirm.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 2, h: 2 },

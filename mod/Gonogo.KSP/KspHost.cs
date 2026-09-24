@@ -3848,6 +3848,10 @@ namespace Gonogo.KSP
                 var facilityName = facility.ToString();
                 var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
 
+                // Not FacilityLiveness, deliberately: that is the WRITE's question,
+                // whether SetLevel will finish. The tier, the tier count and the
+                // price are fields on the component and stay true while it is
+                // inactive, so withholding them would silence a correct reading.
                 if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
                     proto?.facilityRefs == null || proto.facilityRefs.Count == 0 || proto.facilityRefs[0] == null)
                 {
@@ -4096,7 +4100,25 @@ namespace Gonogo.KSP
                 ["active"] = active,
                 ["all"] = all,
                 ["activeCount"] = active.Count,
+                ["activationPatched"] = ActivationPatched(),
             };
+        }
+
+        /// <summary>
+        /// <see cref="StockActivationPatch"/>'s reading as the wire carries it:
+        /// null when it could not be read, never a guessed <c>false</c>.
+        /// </summary>
+        private static bool? ActivationPatched()
+        {
+            switch (StockActivationPatch.Read().State)
+            {
+                case HarmonyPatchProbe.PatchState.Patched:
+                    return true;
+                case HarmonyPatchProbe.PatchState.Unpatched:
+                    return false;
+                default:
+                    return null;
+            }
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "administration-shut-derived",
-    "notes": "The Administration Building is SHUT, so the career model puts CanBeActivated's arms one at a time instead of calling it. Two rows carry a refusal the game itself makes, in its own wording, with activateVerdictSource=derived: a refusal is sound off-screen because stock returns on its FIRST refusal, so an arm that fires here would have fired there. Two carry no verdict at all, activateVerdictSource=none, because the concurrent-strategy cap is counted on that screen and nowhere else and a pass is owed to every arm. No row is a derived YES and none can be: that pair is unreachable by design. Committing still needs the building open, so every Activate here is dark whichever answer produced it. The only fixture carrying activateVerdictSource, and the scenario Saga #335 exists for."
+    "notes": "The Administration Building is SHUT, so the career model puts CanBeActivated's arms one at a time instead of calling it. Two rows carry a refusal the game itself makes, in its own wording, with activateVerdictSource=derived: a refusal is sound off-screen because stock returns on its FIRST refusal, so an arm that fires here would have fired there. Two carry no verdict at all, activateVerdictSource=none, because the concurrent-strategy cap is counted on that screen and nowhere else and a pass is owed to every arm. No row is a derived YES and none can be: that pair is unreachable by design. The career's activation is the game's own (activationPatched=false), so the two rows with no verdict arm Activate: the command puts the checks that could not be made here when it runs. The two derived refusals stay dark. The only fixture carrying activateVerdictSource, and the scenario Saga #335 exists for."
   },
   "strategies.all": [
     {
@@ -21,7 +21,7 @@
       "factorSliderDefault": 1.0,
       "factorSliderSteps": 1,
       "canActivate": null,
-      "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so the last check cannot be made out here",
+      "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
       "canDeactivate": true,
       "deactivateBlockedReason": "",
       "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 800,000 over 9 years on the funding curve.</color></b>\n\n",
@@ -90,7 +90,7 @@
       "factorSliderDefault": 1.0,
       "factorSliderSteps": 1,
       "canActivate": null,
-      "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so the last check cannot be made out here",
+      "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
       "canDeactivate": false,
       "deactivateBlockedReason": "",
       "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 300,000 over 4 years on the funding curve.</color></b>\n\n",
@@ -131,7 +131,7 @@
                 "factorSliderDefault": 1.0,
                 "factorSliderSteps": 1,
                 "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so the last check cannot be made out here",
+                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
                 "canDeactivate": true,
                 "deactivateBlockedReason": "",
                 "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 800,000 over 9 years on the funding curve.</color></b>\n\n",
@@ -156,7 +156,7 @@
                 "factorSliderDefault": 1.0,
                 "factorSliderSteps": 1,
                 "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so the last check cannot be made out here",
+                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
                 "canDeactivate": true,
                 "deactivateBlockedReason": "",
                 "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 800,000 over 9 years on the funding curve.</color></b>\n\n",
@@ -225,14 +225,15 @@
                 "factorSliderDefault": 1.0,
                 "factorSliderSteps": 1,
                 "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so the last check cannot be made out here",
+                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "",
                 "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 300,000 over 4 years on the funding curve.</color></b>\n\n",
                 "activateVerdictSource": "none"
               }
             ],
-            "activeCount": 1
+            "activeCount": 1,
+            "activationPatched": false
           },
           "tech": null
         }

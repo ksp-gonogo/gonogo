@@ -442,6 +442,26 @@ public class CareerStrategies
 
     [SitrepUnit(Units.Count)]
     public int ActiveCount { get; set; }
+
+    /// <summary>
+    /// Whether another mod replaces or alters KSP's own strategy activation:
+    /// <c>true</c> when it does, <c>false</c> when the game's activation is its
+    /// own, <c>null</c> when that could not be established.
+    ///
+    /// <para>With the Administration Building shut, <c>career.strategy.activate</c>
+    /// commits a strategy only when this is <c>false</c>, and refuses otherwise:
+    /// a mod that changes activation owns the procedure, and offers its own
+    /// command for it. With the building open the game activates as it always
+    /// does, whatever this says.</para>
+    /// <internal>
+    /// Read from Harmony's patch registry over Strategy.Activate and
+    /// Strategy.CanBeActivated by StockActivationPatch, the same read the
+    /// off-screen activation refuses on, so the roster and the command cannot
+    /// disagree. RP-1 is the career that reads true.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? ActivationPatched { get; set; }
 }
 
 /// <summary>One strategy in <see cref="CareerStrategies.Active"/> / <see cref="CareerStrategies.All"/>.</summary>
@@ -528,8 +548,11 @@ public class CareerStrategy
     /// every arm. A row nothing could refuse therefore arrives unanswered with
     /// <c>"none"</c> rather than allowed.</para>
     ///
-    /// <para>Nothing reached off-screen should ARM an activation control either
-    /// way: KSP runs its own commitment only from inside that building.</para>
+    /// <para>A <c>"derived"</c> verdict never arms an activation control: it can
+    /// only refuse. Whether a strategy the roster left unanswered may be
+    /// committed is decided by <c>career.strategy.activate</c> itself, which puts
+    /// every check again at the moment it runs and refuses in the game's words
+    /// or as unreadable rather than guessing.</para>
     /// <internal>
     /// StrategyActivationRule walks arms 2-9 of Strategies.Strategy.
     /// CanBeActivated. The commit ceiling comes from GameVariables, which is
@@ -537,7 +560,9 @@ public class CareerStrategy
     /// retiering mod's override is inherited. Arm 1 is deliberately not
     /// reproduced: activeStrategyCount is a scroll-view item counter RP-1
     /// overwrites, so substituting a roster count would enforce stock's rule on a
-    /// career that has replaced it.
+    /// career that has replaced it. The write side asks arm 1 off the roster only
+    /// after confirming nothing has patched stock's activation, which is the one
+    /// case where the roster count and the screen's counter agree.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Text)]

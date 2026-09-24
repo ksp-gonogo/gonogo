@@ -3,8 +3,8 @@ using Sitrep.Contract;
 namespace Gonogo.KSP.Career
 {
     /// <summary>
-    /// A strategy, as the commitment sequence needs it: the two questions the
-    /// game answers and the one field the sequence writes.
+    /// A strategy, as the commitment sequence needs it: the gate, the
+    /// activation, and the one field the sequence writes.
     ///
     /// <para>An interface rather than <c>Strategies.Strategy</c> itself so the
     /// ORDER of those four operations can be entered by a test. A real
@@ -20,7 +20,13 @@ namespace Gonogo.KSP.Career
 
         float Factor { get; set; }
 
-        bool CanBeActivated(out string reason);
+        /// <summary>
+        /// <see cref="CommandResult.Ok"/> to proceed, or the failure to return.
+        /// Typed rather than a bool and a sentence, because a gate that could not
+        /// be asked is <see cref="CommandErrorCode.Unreadable"/> and must not
+        /// arrive looking like the game's refusal.
+        /// </summary>
+        CommandResult Gate();
 
         bool Activate();
     }
@@ -61,10 +67,11 @@ namespace Gonogo.KSP.Career
                 strategy.Factor = Clamp01(factor);
             }
 
-            if (!strategy.CanBeActivated(out var reason))
+            var gate = strategy.Gate();
+            if (!gate.Success)
             {
                 if (wanted) strategy.Factor = previous;
-                return CommandResult.Fail(CommandErrorCode.WrongState, reason);
+                return gate;
             }
 
             if (strategy.Activate())
@@ -72,7 +79,7 @@ namespace Gonogo.KSP.Career
                 return CommandResult.Ok();
             }
 
-            // CanBeActivated said yes and Activate still said no, so nothing
+            // The gate said yes and Activate still said no, so nothing
             // happened and the commitment must not survive it either.
             if (wanted) strategy.Factor = previous;
             return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is not eligible");

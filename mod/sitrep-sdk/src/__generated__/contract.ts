@@ -530,6 +530,18 @@ export interface CareerStrategies
 	active: CareerStrategy[];
 	all: CareerStrategy[];
 	activeCount: Value<"count">;
+	/**
+	* Whether another mod replaces or alters KSP's own strategy activation: `true`
+	* when it does, `false` when the game's activation is its own, `null` when
+	* that could not be established.
+	*
+	* With the Administration Building shut, `career.strategy.activate` commits a
+	* strategy only when this is `false`, and refuses otherwise: a mod that
+	* changes activation owns the procedure, and offers its own command for it.
+	* With the building open the game activates as it always does, whatever this
+	* says.
+	*/
+	activationPatched?: boolean | null;
 }
 /** One strategy in `CareerStrategies.active` / `CareerStrategies.all`. */
 export interface CareerStrategy
@@ -574,8 +586,11 @@ export interface CareerStrategy
 	* nothing could refuse therefore arrives unanswered with `"none"` rather than
 	* allowed.
 	*
-	* Nothing reached off-screen should ARM an activation control either way: KSP
-	* runs its own commitment only from inside that building.
+	* A `"derived"` verdict never arms an activation control: it can only refuse.
+	* Whether a strategy the roster left unanswered may be committed is decided by
+	* `career.strategy.activate` itself, which puts every check again at the
+	* moment it runs and refuses in the game's words or as unreadable rather than
+	* guessing.
 	*/
 	activateVerdictSource?: string | null;
 	canDeactivate?: boolean | null;

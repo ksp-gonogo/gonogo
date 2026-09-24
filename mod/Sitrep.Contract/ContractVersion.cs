@@ -1815,7 +1815,12 @@ namespace Sitrep.Contract
         /// apart the mod's samples of the game are at the current warp, so a client can
         /// tell a span no observation covers from a channel that did not change.
         /// Additive, nothing removed or retyped.</para>
+        ///
+        /// <para><b>Major-17 line, Bumped 4 -&gt; 5:</b> <see cref="CareerStrategies.ActivationPatched"/>,
+        /// whether another mod alters KSP's own strategy activation, which decides
+        /// whether <c>career.strategy.activate</c> can commit with the Administration
+        /// Building shut. Additive, nothing removed or retyped.</para>
         /// </remarks>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }
