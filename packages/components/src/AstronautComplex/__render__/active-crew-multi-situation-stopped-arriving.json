@@ -1,0 +1,158 @@
+{
+  "_meta": {
+    "notes": "Active tab, one sub-tab per CrewStanding present: five hired kerbals spanning every stock standing plus a real RP-1 retiree, and Bill standing down for post-flight R&R. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. RP-1 appends no RosterStatus. It writes stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every RP-1 retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it, which is exactly what the wire carries on a live RP-1 career. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here. Nedcas Kerman stands beside Ludrey in Available carrying no rank, courage, stupidity or progress at all, the shape a capture that read none of them sends: every one of those chips reads as a dash, so a reading nobody has cannot be mistaken for the rookie stats of an L0. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "scenario": "active-crew-multi-situation-stopped-arriving"
+  },
+  "_stream": {
+    "carriedChannels": [
+      "spaceCenter.astronautComplex",
+      "spaceCenter.crewRoster",
+      "career.status"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 289848
+          }
+        }
+      },
+      {
+        "channel": "spaceCenter.astronautComplex",
+        "value": {
+          "applicants": [
+            {
+              "name": "Desdin Kerman",
+              "trait": "Scientist",
+              "experienceLevel": 0,
+              "courage": 0.65,
+              "stupidity": 0.2
+            }
+          ],
+          "activeCrew": 6,
+          "crewCapacity": 13,
+          "nextHireCost": 24000
+        }
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": [
+          {
+            "name": "Ludrey Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 1,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.45,
+            "stupidity": 0.4,
+            "experienceLevelDelta": 0.15,
+            "standing": 2,
+            "roleDescription": "Engineers can repair the wheels and landing gear of a vessel, as well as fixing parts that have broken due to fatigue.",
+            "descriptionEffects": "Level 1: Can repair wheels and landing gear."
+          },
+          {
+            "name": "Nedcas Kerman",
+            "trait": "Engineer",
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "standing": 2
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 2,
+            "situation": "Resting",
+            "situationOrdinal": 0,
+            "available": false,
+            "unavailableReason": "Standing down",
+            "courage": 0.5,
+            "stupidity": 0.3,
+            "experienceLevelDelta": 0.4,
+            "roleDescription": "Engineers can repair the wheels and landing gear of a vessel, as well as fixing parts that have broken due to fatigue.",
+            "descriptionEffects": "Level 2: Can repair broken parts and fix wheels/landing gear.",
+            "standing": 5,
+            "inactive": true,
+            "inactiveUntilUt": 8000000,
+            "standingEndsAtUt": 8000000
+          },
+          {
+            "name": "Jeb Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 3,
+            "situation": "Assigned",
+            "situationOrdinal": 1,
+            "available": false,
+            "unavailableReason": "On mission",
+            "courage": 0.9,
+            "stupidity": 0.1,
+            "experienceLevelDelta": 0.2,
+            "standing": 3
+          },
+          {
+            "name": "Lodan Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 1,
+            "situation": "Training",
+            "situationOrdinal": 0,
+            "available": false,
+            "unavailableReason": "In training",
+            "courage": 0.6,
+            "stupidity": 0.2,
+            "experienceLevelDelta": 0.6,
+            "standing": 4,
+            "standingSource": "rp1",
+            "standingEndsAtUt": 9000000
+          },
+          {
+            "name": "Val Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 1,
+            "situation": "Dead",
+            "situationOrdinal": 2,
+            "available": false,
+            "unavailableReason": "Dead",
+            "courage": 0.6,
+            "stupidity": 0.2,
+            "experienceLevelDelta": 0.6,
+            "standing": 7
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "experienceLevel": 5,
+            "situation": "Missing",
+            "situationOrdinal": 3,
+            "available": false,
+            "unavailableReason": "Missing",
+            "courage": 0.7,
+            "stupidity": 0.25,
+            "experienceLevelDelta": 1,
+            "standing": 8
+          },
+          {
+            "name": "Gus Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 4,
+            "situation": "Retired",
+            "situationOrdinal": 2,
+            "available": false,
+            "unavailableReason": "Retired",
+            "courage": 0.55,
+            "stupidity": 0.35,
+            "experienceLevelDelta": 0.9,
+            "standing": 6,
+            "standingSource": "rp1"
+          }
+        ]
+      }
+    ],
+    "stopsArriving": true
+  },
+  "notes": "Active tab, one sub-tab per CrewStanding present: six hired kerbals spanning every stock standing plus the two a career overhaul contributes, a real RP-1 retiree and a kerbal mid-course. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. RP-1 appends no RosterStatus. It writes stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every RP-1 retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it. BILL AND LODAN ARE THE SECOND HALF OF THE SAME LESSON. Bill's roster status is Available and he is standing down after a flight; Lodan's is Available and he is part-way through a course. This fixture used to show Bill as Available and free to fly, because the flag reached the wire with nothing deriving from it. Both now carry a derived standing, available:false and a standingEndsAtUt the client formats, which is what a widget that has never heard of RP-1 renders from. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here."
+}

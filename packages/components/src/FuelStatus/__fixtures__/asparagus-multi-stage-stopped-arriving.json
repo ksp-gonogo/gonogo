@@ -1,0 +1,295 @@
+{
+  "_meta": {
+    "scenario": "asparagus-multi-stage-stopped-arriving",
+    "notes": "Asparagus-staged rocket with 5 stages. Each outer booster pair decouples carrying symmetric LF/Ox load. Stages have widely varying deltaV values to exercise the bar-scaling logic (maxStageDv divides all bars). Stage 4 has the highest ΔV; stage 0 (lander) has the lowest. Tests RESOURCES filter, stage-bar proportional widths, and TWR column across modes. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+  },
+  "v.currentStage": 4,
+  "dv.stageCount": 5,
+  "dv.totalDVVac": 7840.0,
+  "dv.totalDVASL": 6700.0,
+  "dv.totalDVActual": 6700.0,
+  "dv.totalBurnTime": 620.0,
+  "r.resource[LiquidFuel]": 2880.0,
+  "r.resourceMax[LiquidFuel]": 2880.0,
+  "r.resourceCurrent[LiquidFuel]": 960.0,
+  "r.resourceCurrentMax[LiquidFuel]": 960.0,
+  "r.resource[Oxidizer]": 3520.0,
+  "r.resourceMax[Oxidizer]": 3520.0,
+  "r.resourceCurrent[Oxidizer]": 1172.0,
+  "r.resourceCurrentMax[Oxidizer]": 1172.0,
+  "r.resource[MonoPropellant]": 30.0,
+  "r.resourceMax[MonoPropellant]": 30.0,
+  "r.resourceCurrent[MonoPropellant]": 30.0,
+  "r.resourceCurrentMax[MonoPropellant]": 30.0,
+  "r.resource[XenonGas]": 0.0,
+  "r.resourceMax[XenonGas]": 0.0,
+  "r.resourceCurrent[XenonGas]": 0.0,
+  "r.resourceCurrentMax[XenonGas]": 0.0,
+  "r.resource[ElectricCharge]": 200.0,
+  "r.resourceMax[ElectricCharge]": 200.0,
+  "r.resourceCurrent[ElectricCharge]": 200.0,
+  "r.resourceCurrentMax[ElectricCharge]": 200.0,
+  "dv.stages": [
+    {
+      "stage": 4,
+      "dryMass": 10.0,
+      "fuelMass": 32.0,
+      "startMass": 42.0,
+      "endMass": 10.0,
+      "burnTime": 180.0,
+      "dvVac": 2800.0,
+      "dvAsl": 2400.0,
+      "dvActual": 2400.0,
+      "twrVac": 2.4,
+      "twrAsl": 2.1,
+      "twrActual": 2.1,
+      "thrustVac": 1000.0,
+      "thrustAsl": 860.0,
+      "thrustActual": 860.0
+    },
+    {
+      "stage": 3,
+      "dryMass": 8.0,
+      "fuelMass": 20.0,
+      "startMass": 28.0,
+      "endMass": 8.0,
+      "burnTime": 140.0,
+      "dvVac": 2100.0,
+      "dvAsl": 1800.0,
+      "dvActual": 1800.0,
+      "twrVac": 2.2,
+      "twrAsl": 1.9,
+      "twrActual": 1.9,
+      "thrustVac": 615.0,
+      "thrustAsl": 530.0,
+      "thrustActual": 530.0
+    },
+    {
+      "stage": 2,
+      "dryMass": 5.0,
+      "fuelMass": 11.0,
+      "startMass": 16.0,
+      "endMass": 5.0,
+      "burnTime": 155.0,
+      "dvVac": 1540.0,
+      "dvAsl": 1350.0,
+      "dvActual": 1350.0,
+      "twrVac": 2.0,
+      "twrAsl": 1.7,
+      "twrActual": 1.7,
+      "thrustVac": 320.0,
+      "thrustAsl": 280.0,
+      "thrustActual": 280.0
+    },
+    {
+      "stage": 1,
+      "dryMass": 2.5,
+      "fuelMass": 4.0,
+      "startMass": 6.5,
+      "endMass": 2.5,
+      "burnTime": 98.0,
+      "dvVac": 800.0,
+      "dvAsl": 690.0,
+      "dvActual": 690.0,
+      "twrVac": 1.8,
+      "twrAsl": 1.5,
+      "twrActual": 1.5,
+      "thrustVac": 115.0,
+      "thrustAsl": 100.0,
+      "thrustActual": 100.0
+    },
+    {
+      "stage": 0,
+      "dryMass": 1.0,
+      "fuelMass": 1.8,
+      "startMass": 2.8,
+      "endMass": 1.0,
+      "burnTime": 47.0,
+      "dvVac": 600.0,
+      "dvAsl": 460.0,
+      "dvActual": 460.0,
+      "twrVac": 1.2,
+      "twrAsl": 0.9,
+      "twrActual": 0.9,
+      "thrustVac": 33.0,
+      "thrustAsl": 30.0,
+      "thrustActual": 30.0
+    }
+  ],
+  "_stream": {
+    "carriedChannels": [
+      "vessel.resources",
+      "vessel.structure",
+      "dv.summary",
+      "dv.stages"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "LiquidFuel": {
+              "current": 2880.0,
+              "max": 2880.0,
+              "active": true
+            },
+            "Oxidizer": {
+              "current": 3520.0,
+              "max": 3520.0,
+              "active": true
+            },
+            "MonoPropellant": {
+              "current": 30.0,
+              "max": 30.0,
+              "active": true
+            },
+            "XenonGas": {
+              "current": 0.0,
+              "max": 0.0,
+              "active": false
+            },
+            "ElectricCharge": {
+              "current": 200.0,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 4
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "stageCount": 5,
+          "totalDvVac": 7840.0,
+          "totalDvAsl": 6700.0,
+          "totalDvActual": 6700.0,
+          "totalBurnTime": 620.0
+        }
+      },
+      {
+        "channel": "dv.stages",
+        "value": [
+          {
+            "stage": 4,
+            "dryMass": 10.0,
+            "fuelMass": 32.0,
+            "startMass": 42.0,
+            "endMass": 10.0,
+            "burnTime": 180.0,
+            "dvVac": 2800.0,
+            "dvAsl": 2400.0,
+            "dvActual": 2400.0,
+            "twrVac": 2.4,
+            "twrAsl": 2.1,
+            "twrActual": 2.1,
+            "thrustVac": 1000.0,
+            "thrustAsl": 860.0,
+            "thrustActual": 860.0,
+            "resources": {
+              "LiquidFuel": {
+                "current": 960.0,
+                "max": 960.0,
+                "active": true
+              },
+              "Oxidizer": {
+                "current": 1172.0,
+                "max": 1172.0,
+                "active": true
+              },
+              "MonoPropellant": {
+                "current": 30.0,
+                "max": 30.0,
+                "active": true
+              },
+              "XenonGas": {
+                "current": 0.0,
+                "max": 0.0,
+                "active": false
+              },
+              "ElectricCharge": {
+                "current": 200.0,
+                "max": 200.0,
+                "active": true
+              }
+            }
+          },
+          {
+            "stage": 3,
+            "dryMass": 8.0,
+            "fuelMass": 20.0,
+            "startMass": 28.0,
+            "endMass": 8.0,
+            "burnTime": 140.0,
+            "dvVac": 2100.0,
+            "dvAsl": 1800.0,
+            "dvActual": 1800.0,
+            "twrVac": 2.2,
+            "twrAsl": 1.9,
+            "twrActual": 1.9,
+            "thrustVac": 615.0,
+            "thrustAsl": 530.0,
+            "thrustActual": 530.0
+          },
+          {
+            "stage": 2,
+            "dryMass": 5.0,
+            "fuelMass": 11.0,
+            "startMass": 16.0,
+            "endMass": 5.0,
+            "burnTime": 155.0,
+            "dvVac": 1540.0,
+            "dvAsl": 1350.0,
+            "dvActual": 1350.0,
+            "twrVac": 2.0,
+            "twrAsl": 1.7,
+            "twrActual": 1.7,
+            "thrustVac": 320.0,
+            "thrustAsl": 280.0,
+            "thrustActual": 280.0
+          },
+          {
+            "stage": 1,
+            "dryMass": 2.5,
+            "fuelMass": 4.0,
+            "startMass": 6.5,
+            "endMass": 2.5,
+            "burnTime": 98.0,
+            "dvVac": 800.0,
+            "dvAsl": 690.0,
+            "dvActual": 690.0,
+            "twrVac": 1.8,
+            "twrAsl": 1.5,
+            "twrActual": 1.5,
+            "thrustVac": 115.0,
+            "thrustAsl": 100.0,
+            "thrustActual": 100.0
+          },
+          {
+            "stage": 0,
+            "dryMass": 1.0,
+            "fuelMass": 1.8,
+            "startMass": 2.8,
+            "endMass": 1.0,
+            "burnTime": 47.0,
+            "dvVac": 600.0,
+            "dvAsl": 460.0,
+            "dvActual": 460.0,
+            "twrVac": 1.2,
+            "twrAsl": 0.9,
+            "twrActual": 0.9,
+            "thrustVac": 33.0,
+            "thrustAsl": 30.0,
+            "thrustActual": 30.0
+          }
+        ]
+      }
+    ],
+    "stopsArriving": true
+  }
+}

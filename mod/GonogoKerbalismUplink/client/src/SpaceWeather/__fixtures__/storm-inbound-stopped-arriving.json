@@ -1,0 +1,66 @@
+{
+  "_meta": {
+    "scenario": "storm-inbound-stopped-arriving",
+    "notes": "Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+  },
+  "_scene": {
+    "widget": "space-weather",
+    "caption": "A CME in transit, the tracker naming its target body, its transit progress and its impact ETA",
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 149489,
+    "emits": [
+      {
+        "topic": "kerbalism.spaceweather",
+        "payload": {
+          "radiationRadPerSecond": 0.0001388888888888889,
+          "habitatRadiationRadPerSecond": 0.0001388888888888889,
+          "magnetosphere": true,
+          "innerBelt": false,
+          "outerBelt": false,
+          "stormIncoming": true,
+          "stormInProgress": false,
+          "blackout": false,
+          "inSunlight": true,
+          "shieldingAmount": 2.5,
+          "shieldingCapacity": 3.308,
+          "stars": [
+            {
+              "star": "Kerbol",
+              "direction": {
+                "x": 0.31,
+                "y": -0.04,
+                "z": 0.95
+              },
+              "distance": {
+                "magnitude": 13400000000,
+                "unit": "m"
+              }
+            }
+          ],
+          "storms": [
+            {
+              "star": "Kerbol",
+              "stormState": 1,
+              "stormTime": 149569,
+              "stormDuration": 386,
+              "dist": 13400000000,
+              "targetKind": 0,
+              "targetName": "Kerbin"
+            }
+          ],
+          "stormEjectionSpeed": 98931511.14
+        }
+      },
+      {
+        "topic": "vessel.flight",
+        "payload": {
+          "altitudeAsl": 120000,
+          "altitudeTerrain": 120000
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}

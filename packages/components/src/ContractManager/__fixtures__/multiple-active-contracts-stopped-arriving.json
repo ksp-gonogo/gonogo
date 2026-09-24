@@ -1,0 +1,195 @@
+{
+  "_meta": {
+    "scenario": "multiple-active-contracts-stopped-arriving",
+    "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range) to exercise the contractIdToSafeNumber null path. No offered contracts. Deadline formats: days+hours, hours, no-deadline. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+  },
+  "contracts.active": [
+    {
+      "id": "193244571874398123",
+      "title": "Build an orbital station around Kerbin",
+      "agency": "Kerbin Space Program",
+      "state": "Active",
+      "fundsAdvance": 50000,
+      "fundsCompletion": 200000,
+      "scienceCompletion": 0,
+      "repCompletion": 25,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Have at least 3 crew docking ports",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "optional": false
+        },
+        {
+          "title": "Have at least 15 crew capacity",
+          "state": "Complete",
+          "stateOrdinal": 1,
+          "optional": false
+        },
+        {
+          "title": "Have a science lab",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "optional": true
+        }
+      ]
+    },
+    {
+      "id": "100",
+      "title": "Fly by the Mun",
+      "agency": "Periapsis Rocket Parts",
+      "state": "Active",
+      "fundsAdvance": 3000,
+      "fundsCompletion": 10000,
+      "scienceCompletion": 3,
+      "repCompletion": 2,
+      "deadlineUt": 128940,
+      "parameters": [
+        {
+          "title": "Reach Mun SOI",
+          "state": "Complete",
+          "stateOrdinal": 1,
+          "optional": false
+        }
+      ]
+    },
+    {
+      "id": "101",
+      "title": "Crew Report from Upper Atmosphere",
+      "agency": "Research & Development Dept.",
+      "state": "Active",
+      "fundsAdvance": 1000,
+      "fundsCompletion": 5000,
+      "scienceCompletion": 8,
+      "repCompletion": 1,
+      "deadlineUt": 130740,
+      "parameters": [
+        {
+          "title": "Crew report from upper atmosphere",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "optional": false,
+          "parameterType": "ReachAltitudeEnvelope",
+          "minAltitude": 18000,
+          "maxAltitude": 70000
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [],
+  "contracts.completedRecent": [
+    {
+      "id": "90",
+      "title": "Launch a new vessel",
+      "agency": "Kerbin Space Program",
+      "state": "Completed",
+      "fundsAdvance": 0,
+      "fundsCompletion": 3000,
+      "scienceCompletion": 0,
+      "repCompletion": 1,
+      "deadlineUt": 0,
+      "parameters": []
+    }
+  ],
+  "t.universalTime": 125340,
+  "v.altitude": 25000,
+  "_stream": {
+    "carriedChannels": ["career.status", "career.facilities"],
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "193244571874398123",
+                "title": "Build an orbital station around Kerbin",
+                "state": "Active",
+                "fundsAdvance": 50000,
+                "fundsCompletion": 200000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Have at least 3 crew docking ports",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  },
+                  {
+                    "title": "Have at least 15 crew capacity",
+                    "state": "Complete",
+                    "stateOrdinal": 1
+                  },
+                  {
+                    "title": "Have a science lab",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 25,
+                "dateDeadline": 0
+              },
+              {
+                "id": "100",
+                "title": "Fly by the Mun",
+                "state": "Active",
+                "fundsAdvance": 3000,
+                "fundsCompletion": 10000,
+                "scienceCompletion": 3,
+                "parameters": [
+                  {
+                    "title": "Reach Mun SOI",
+                    "state": "Complete",
+                    "stateOrdinal": 1
+                  }
+                ],
+                "agent": "Periapsis Rocket Parts",
+                "reputationCompletion": 2,
+                "dateDeadline": 128940
+              },
+              {
+                "id": "101",
+                "title": "Crew Report from Upper Atmosphere",
+                "state": "Active",
+                "fundsAdvance": 1000,
+                "fundsCompletion": 5000,
+                "scienceCompletion": 8,
+                "parameters": [
+                  {
+                    "title": "Crew report from upper atmosphere",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ],
+                "agent": "Research & Development Dept.",
+                "reputationCompletion": 1,
+                "dateDeadline": 130740
+              }
+            ],
+            "offered": [],
+            "completedRecent": [
+              {
+                "id": "90",
+                "title": "Launch a new vessel",
+                "state": "Completed",
+                "fundsAdvance": 0,
+                "fundsCompletion": 3000,
+                "scienceCompletion": 0,
+                "parameters": [],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 1,
+                "dateDeadline": 0
+              }
+            ]
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 125340,
+    "stopsArriving": true
+  }
+}
