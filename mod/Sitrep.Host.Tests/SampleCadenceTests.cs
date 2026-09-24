@@ -82,14 +82,73 @@ namespace Sitrep.Host.Tests
             Assert.True(SampleCadence.ShouldSample(ut: 51.0, last, IntervalUt));
         }
 
+        /// <summary>
+        /// The raw quantum at a fixed interval: the interval until one tick
+        /// outruns it, then the tick. The interval here is held at one UT
+        /// second whatever the tick, which the gate no longer does under warp
+        /// (see the rate-driven cases below), so these pin the function rather
+        /// than the regime.
+        /// </summary>
         [Theory]
-        [InlineData(0.02, 1.0)] // 1x
-        [InlineData(1.0, 1.0)] // 50x: one tick is exactly the interval
-        [InlineData(2.0, 2.0)] // 100x: every tick is sampled
-        [InlineData(2000.0, 2000.0)] // 100,000x
+        [InlineData(0.02, 1.0)]
+        [InlineData(1.0, 1.0)]
+        [InlineData(2.0, 2.0)]
+        [InlineData(2000.0, 2000.0)]
         public void QuantumIsTheIntervalUntilOneTickOutrunsIt(double tickUt, double expected)
         {
             Assert.Equal(expected, SampleCadence.ObservationQuantumUt(IntervalUt, tickUt));
+        }
+
+        [Theory]
+        [InlineData(1.0, 1.0)]
+        [InlineData(0.0, 1.0)]
+        [InlineData(double.NaN, 1.0)]
+        [InlineData(double.PositiveInfinity, 1.0)]
+        [InlineData(4.0, 4.0)]
+        [InlineData(1_000.0, 1_000.0)]
+        [InlineData(100_000.0, 100_000.0)]
+        public void TheIntervalIsOneUtSecondAt1xAndOneRealSecondOfGameTimeUnderWarp(double warpRate, double expected)
+        {
+            Assert.Equal(expected, SampleCadence.IntervalUtAt(warpRate));
+        }
+
+        /// <summary>
+        /// The gate driven the way <c>GonogoAddon.FixedUpdate</c> drives it: a
+        /// physics tick of <c>0.02 x rate</c> UT at fifty ticks a real second,
+        /// the fastest the game steps it, for forty real seconds. At every rate
+        /// the mod samples at most once a real second, and every gap between two
+        /// samples is the quantum <c>time.warp</c> states for that rate, give or
+        /// take the one tick the gate can overshoot by.
+        /// </summary>
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(4.0)]
+        [InlineData(1_000.0)]
+        [InlineData(10_000.0)]
+        [InlineData(100_000.0)]
+        public void WarpLeavesTheSampleRateWhere1xHasItAndTheStatedQuantumTrue(double warpRate)
+        {
+            const double tickHz = 50;
+            const double windowRealSec = 40;
+            var tickUt = 0.02 * warpRate;
+            var quantum = SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUtAt(warpRate), tickUt);
+
+            double? last = null;
+            var gaps = new List<double>();
+            var samples = 0;
+            for (var tick = 0; tick < tickHz * windowRealSec; tick++)
+            {
+                var ut = tick * tickUt;
+                if (!SampleCadence.ShouldSample(ut, last, SampleCadence.IntervalUtAt(warpRate))) continue;
+                if (last.HasValue) gaps.Add(ut - last.Value);
+                last = ut;
+                samples++;
+            }
+
+            var perRealSec = samples / windowRealSec;
+            Assert.True(perRealSec <= 1.0 / SampleCadence.FloorRealSec + 1 / windowRealSec, $"{perRealSec}/real s at {warpRate}x");
+            Assert.True(perRealSec >= 0.9, $"only {perRealSec}/real s at {warpRate}x");
+            Assert.All(gaps, gap => Assert.InRange(gap, quantum, quantum + tickUt));
         }
 
         [Fact]
@@ -97,16 +156,19 @@ namespace Sitrep.Host.Tests
         {
             // The gate is asked once per tick, so the gap it produces is the
             // quantum claimed, measured rather than restated.
+            const double warpRate = 100_000.0;
             const double tickUt = 2000.0;
+            var intervalUt = SampleCadence.IntervalUtAt(warpRate);
             double? last = null;
             var sampled = new List<double>();
-            for (var ut = 0.0; ut <= 10_000.0; ut += tickUt)
+            for (var ut = 0.0; ut <= 1_000_000.0; ut += tickUt)
             {
-                if (!SampleCadence.ShouldSample(ut, last, IntervalUt)) continue;
+                if (!SampleCadence.ShouldSample(ut, last, intervalUt)) continue;
                 if (last.HasValue) sampled.Add(ut - last.Value);
                 last = ut;
             }
-            Assert.All(sampled, gap => Assert.Equal(SampleCadence.ObservationQuantumUt(IntervalUt, tickUt), gap));
+            Assert.NotEmpty(sampled);
+            Assert.All(sampled, gap => Assert.Equal(SampleCadence.ObservationQuantumUt(intervalUt, tickUt), gap));
         }
     }
 }

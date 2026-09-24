@@ -12,10 +12,14 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// How often <c>system.channels</c> goes out when UT runs fast, driven the
-    /// way the addon drives the engine: a physics tick at a fixed real rate,
-    /// each advancing UT by <c>warpRate / tickHz</c>, and an engine tick only
-    /// where <see cref="SampleCadence.ShouldSample"/> lets one through.
+    /// How often <c>system.channels</c> goes out when UT runs fast: a physics
+    /// tick at a fixed real rate, each advancing UT by <c>warpRate / tickHz</c>,
+    /// and an engine tick wherever <see cref="SampleCadence.ShouldSample"/> at
+    /// the one-UT-second <see cref="SampleCadence.IntervalUt"/> lets one
+    /// through. That is every physics tick from 1000x up. The addon's gate
+    /// widens its interval with the rate and would thin those to one a real
+    /// second, so it is left out: what is measured is the emitter's own bound,
+    /// on the worst case of a roster offered on every tick.
     ///
     /// <para>Real time is the test's own clock, stepped one physics tick at a
     /// time, so a forty-second window is forty seconds to every wall-clock gate
@@ -41,9 +45,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The ceiling is one keyframe per <see cref="ChannelEmitter.KeyframeFloorRealSec"/>
         /// plus one change per roster rebuild, whatever the warp rate, and at 1x
-        /// the rate is the one the rig measured. The engine ticks
-        /// once per physics tick from 1000x up, so what is being bounded is a
-        /// roster offered to the emitter 34 times a real second.
+        /// the rate is the one the rig measured. What is being bounded from
+        /// 1000x up is a roster offered to the emitter 34 times a real second.
         /// </summary>
         [Theory]
         [InlineData(1.0)]

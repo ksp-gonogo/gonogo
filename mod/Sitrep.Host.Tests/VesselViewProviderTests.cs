@@ -2465,17 +2465,24 @@ namespace Sitrep.Host.Tests
             Assert.Null(warp!.WarpRates);
         }
 
-        [Fact]
-        public void BuildWarpStatesTheSampleSpacingTheTickAllows()
+        /// <summary>
+        /// The spacing the sample gate leaves at the snapshot's own rate: one
+        /// UT second at 1x, and at 100,000x the rate's worth of UT rather than
+        /// the 2000 UT tick, because the gate waits about a real second.
+        /// </summary>
+        [Theory]
+        [InlineData(1.0, 0.02, 1.0)]
+        [InlineData(100000.0, 2000.0, 100000.0)]
+        public void BuildWarpStatesTheSampleSpacingTheRateAndTickAllow(double warpRate, double tickUt, double expected)
         {
             var snapshot = SnapshotWith(
                 identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
-                time: new Dictionary<string, object?> { ["warpRate"] = 100000.0, ["warpRateIndex"] = 7, ["warpMode"] = "HIGH", ["paused"] = false, ["tickUt"] = 2000.0 });
+                time: new Dictionary<string, object?> { ["warpRate"] = warpRate, ["warpRateIndex"] = 7, ["warpMode"] = "HIGH", ["paused"] = false, ["tickUt"] = tickUt });
 
             var warp = VesselViewProvider.BuildWarp(snapshot);
 
             Assert.NotNull(warp);
-            Assert.Equal(2000.0, warp!.ObservationQuantumUt);
+            Assert.Equal(expected, warp!.ObservationQuantumUt);
         }
 
         [Fact]

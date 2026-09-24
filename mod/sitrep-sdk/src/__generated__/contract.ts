@@ -9105,8 +9105,9 @@ export interface WarpState
 	* The UT that actually passes between two samples at the current warp rate, in
 	* seconds, or `null` where the host did not report its physics step.
 	*
-	* One second while a physics tick advances the game by less than that, and one
-	* tick from then on, which under high warp is thousands. Nothing between two
+	* One second at 1x. Under warp the mod samples about once a real second, so
+	* this is the rate's worth of UT (100,000 at 100,000x), or one physics tick
+	* where a tick advances the game further than that. Nothing between two
 	* consecutive samples was observed, so a line drawn between two samples that
 	* differ asserts a path across this span that only a model of the value can
 	* stand behind. Two samples further apart than this are a channel that did not

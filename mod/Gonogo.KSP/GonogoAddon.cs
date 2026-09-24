@@ -51,24 +51,14 @@ namespace Gonogo.KSP
         // joins through the host's share code instead of this port.
         private const string BindUri = "ws://0.0.0.0:8090";
 
-        // UT-cadence sampling: sampling the host on every physics tick is,
-        // under time-warp, far more often than any consumer needs.
-        // FixedUpdate below checks NowUt() cheaply every
-        // tick but only calls the (comparatively expensive) Sample() once
-        // this many UT seconds have elapsed since the last sample - warp
-        // safe because it's gated on game time, not wall-clock/tick count.
-        private const double SampleIntervalUt = SampleCadence.IntervalUt;
-
         // Periodic recording flush. Writing only at quit means a serialization
         // bug surfaces only at quit, by which point the whole session is lost.
         // Flushing every ~60s of REAL (wall-clock) time - not UT - means the
         // file exists and grows almost immediately, a bad serialize throws on
         // the FIRST flush (visible in KSP.log within a minute, not at quit),
         // and a crash mid-session only loses the last partial interval instead
-        // of the whole flight. Wall-clock,
-        // gated via FlushCadence, is deliberately steady under time-warp -
-        // unlike SampleIntervalUt above, this must NOT speed up/slow down
-        // with warp.
+        // of the whole flight. Wall-clock, gated via FlushCadence, is
+        // deliberately steady under time-warp.
         private const double FlushIntervalSeconds = 60.0;
 
         /// <summary>The dev-capture recorder's opt-in row in the settings document.</summary>
@@ -541,9 +531,10 @@ namespace Gonogo.KSP
                 // NowUt() is cheap (wraps Planetarium.GetUniversalTime()) so
                 // it's fine to call every physics tick just to check the
                 // cadence gate; Sample() is the comparatively expensive call
-                // (walks live KSP/Unity state), so it's only made once this
-                // much UT has actually elapsed since the last sample - warp
-                // safe, since it's driven by game time, not tick count.
+                // (walks live KSP/Unity state), so it's only made once the
+                // interval at the current warp rate has elapsed in UT since
+                // the last sample: one UT second at 1x, about one real second
+                // under warp. See SampleCadence.IntervalUtAt.
                 //
                 // SampleCadence.ShouldSample also forces an immediate
                 // resample on a BACKWARD UT jump (F9 quickload): a
@@ -553,7 +544,7 @@ namespace Gonogo.KSP
                 // Tick is never reached) across exactly the event most worth
                 // capturing. See SampleCadence's doc comment.
                 var ut = _host.NowUt();
-                if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleIntervalUt))
+                if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleCadence.IntervalUtAt(TimeWarp.CurrentRate)))
                 {
                     return;
                 }
