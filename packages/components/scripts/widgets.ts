@@ -33,7 +33,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/landing-widget",
     // Full-content capture at the real 12-col tile width, the whole tile,
     // uncropped, so the composed instrument can actually be reviewed.
-    modes: [{ name: "full-w12", w: 12, h: 16 }],
+    modes: [
+      { name: "full-w12", w: 12, h: 16 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x6", w: 18, h: 6 },
+    ],
   },
   {
     // CURRENCY showcase: whether an operator can tell, at a glance, which
@@ -55,7 +59,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fullContent: true,
     modes: [
       { name: "full-w12", w: 12, h: 16 },
-      { name: "compact-4x5", w: 4, h: 5 },
+      { name: "compact-4x6", w: 4, h: 6 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x6", w: 18, h: 6 },
     ],
   },
   {
@@ -68,7 +74,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "LandingStatus/__render_terrains__",
     outPath: "renders/landing-status/terrains",
     fullContent: true,
-    modes: [{ name: "full-w12", w: 12, h: 16 }],
+    modes: [
+      { name: "full-w12", w: 12, h: 16 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x6", w: 18, h: 6 },
+    ],
   },
   {
     // Atmospheric descent showcase: the mod's terminal-velocity model (from
@@ -83,6 +93,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       { name: "tall-8x12", w: 8, h: 12 },
       { name: "standard-6x9", w: 6, h: 9 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x6", w: 18, h: 6 },
     ],
   },
   {
@@ -153,9 +165,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/orbit-view-widget",
     modes: [
       // Pill fallback: both thresholds unmet; only status pill rendered.
-      { name: "pill-3x3", w: 3, h: 3 },
+      { name: "pill-3x4", w: 3, h: 4 },
       // Landscape-relaxed diagram: cols≥8 && rows≥3 branch.
-      { name: "landscape-10x3", w: 10, h: 3 },
+      { name: "landscape-10x4", w: 10, h: 4 },
       // Minimum square diagram: just above the 5×5 threshold.
       { name: "square-5x5", w: 5, h: 5 },
       // Default registered size for the widget.
@@ -220,8 +232,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // No subtitle, no sparkline: value only.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // Subtitle appears, sparkline still suppressed (cols<3).
-      { name: "subtitle-2x4", w: 2, h: 4 },
+      // Sparkline appears (cols≥3, rows≥4), subtitle still suppressed (cols<4).
+      { name: "narrow-3x4", w: 3, h: 4 },
       // Default: subtitle + sparkline both visible.
       { name: "default-4x4", w: 4, h: 4 },
       // Extra vertical room: sparkline has more breathing space.
@@ -257,7 +269,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "EscapeProfile/__fixtures__",
     outPath: "renders/escape-profile-widget",
     modes: [
-      { name: "tiny-4x4", w: 4, h: 4 },
+      { name: "tiny-5x4", w: 5, h: 4 },
       { name: "small-5x6", w: 5, h: 6 },
       { name: "default-10x8", w: 10, h: 8 },
       { name: "wide-14x10", w: 14, h: 10 },
@@ -269,9 +281,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/targeting-widget",
     modes: [
       {
-        name: "tiny-3x4",
+        name: "tiny-3x5",
         w: 3,
-        h: 4,
+        h: 5,
         config: { autoSwitch: true, hudMode: "hud" },
       },
       {
@@ -306,7 +318,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fullContent: true,
     modes: [
       // Minimum size: suicide-burn row only.
-      { name: "compact-4x5", w: 4, h: 5 },
+      { name: "compact-4x6", w: 4, h: 6 },
       // Subtitle appears + impact/speed rows begin.
       { name: "medium-6x7", w: 6, h: 7 },
       // Altitude + descent rows added (rows>=8).
@@ -315,6 +327,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-8x11", w: 8, h: 11 },
       // Tall atmospheric view: rows>=9 unlocks the ambient section.
       { name: "tall-atm-8x12", w: 8, h: 12 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x6", w: 18, h: 6 },
     ],
   },
   {
@@ -590,9 +604,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ContractManager/__fixtures__",
     outPath: "renders/contract-manager-widget",
     modes: [
-      // Minimum size: title only, no subtitle (h<4 branch). Catches
-      // overflow on the tightest plausible placement.
-      { name: "tiny-4x3", w: 4, h: 3 },
       // Compact: title + subtitle; contract cards start rendering.
       { name: "compact-4x5", w: 4, h: 5 },
       // Default registered size: subtitle + full card list + scroll.
@@ -621,9 +632,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "WarpControl/__fixtures__",
     outPath: "renders/warp-control-widget",
     modes: [
-      // Below full-ladder threshold (cols*rows=12 < 20): stepper only (cols≥3,
-      // rows≥3). Mode caption suppressed (rows=3 < 4).
-      { name: "minimal-4x3", w: 4, h: 3 },
+      // minSize 4×4, below the full-ladder threshold (cols*rows=16 < 20):
+      // stepper only (cols≥3, rows≥3). Mode caption visible (rows=4≥4).
+      { name: "minimal-4x4", w: 4, h: 4 },
       // Default registered size: full 8-button ladder (cols*rows=30≥20,
       // cols=6≥4, rows=5≥3). Mode caption visible (rows=5≥4).
       { name: "default-6x5", w: 6, h: 5 },
@@ -735,9 +746,9 @@ const WIDGETS: WidgetRenderConfig[] = [
         forFixtures: ["crew-mixed-standings"],
       },
       {
-        name: "crew-landscape-18x5",
+        name: "crew-landscape-18x6",
         w: 18,
-        h: 5,
+        h: 6,
         clicks: [{ selector: "[data-ship-row]" }],
         forFixtures: ["crew-mixed-standings"],
       },
@@ -765,9 +776,9 @@ const WIDGETS: WidgetRenderConfig[] = [
         forFixtures: ["crew-mixed-standings"],
       },
       {
-        name: "crew-opened-18x5",
+        name: "crew-opened-18x6",
         w: 18,
-        h: 5,
+        h: 6,
         clicks: [
           { selector: "[data-ship-row]" },
           { selector: '[aria-expanded="false"]' },
@@ -832,6 +843,8 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: '[data-pad-row][aria-pressed="false"]' }],
         forFixtures: ["pre-launch-mixed"],
       },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x6", w: 18, h: 6 },
     ],
   },
   /*
@@ -1026,10 +1039,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "SystemView/__fixtures__",
     outPath: "renders/system-view-widget",
     modes: [
-      // minSize 3×4: smallest diagram.
-      { name: "min-3x4", w: 3, h: 4 },
+      // minSize 6×8: smallest diagram.
+      { name: "min-6x8", w: 6, h: 8 },
       // square: confirms the system diagram doesn't squish.
-      { name: "square-6x6", w: 6, h: 6 },
+      { name: "square-8x8", w: 8, h: 8 },
       // defaultSize 10×12: the common operator view.
       { name: "default-10x12", w: 10, h: 12 },
       // wide landscape.
@@ -1069,6 +1082,9 @@ const WIDGETS: WidgetRenderConfig[] = [
           projection: "system-view.parent-direction.1",
         },
       },
+      // The aspect extremes at this widget's minSize, where the shared 5x18 and 18x5 fall below it.
+      { name: "portrait-6x18", w: 6, h: 18 },
+      { name: "landscape-18x8", w: 18, h: 8 },
     ],
   },
   {
@@ -1613,11 +1629,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       // clipped-and-unreachable), which is the same accepted degradation as the
       // two sizes above, and the gate is what reported it rather than a reading
       // of the render.
-      mayScroll: ["landscape-18x5", "mobile-9x8", "min-6x9"],
+      mayScroll: ["landscape-18x9", "mobile-9x9", "min-7x9"],
     },
     modes: [
-      // minSize 6×9: node editor at its tightest.
-      { name: "min-6x9", w: 6, h: 9 },
+      // minSize 7×9: node editor at its tightest.
+      { name: "min-7x9", w: 7, h: 9 },
       // defaultSize 10×18: the common operator view.
       { name: "default-10x18", w: 10, h: 18 },
       // wide landscape.
@@ -1635,8 +1651,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       // The same tab at the widget's MINIMUM width, since every widget defect
       // found in this batch was at a small breakpoint.
       {
-        name: "conformance-6x9",
-        w: 6,
+        name: "conformance-7x9",
+        w: 7,
         h: 9,
         clicks: [{ selector: "[id$='conformance-tab']" }],
       },
@@ -1653,6 +1669,10 @@ const WIDGETS: WidgetRenderConfig[] = [
         config: { defaultPreset: "hohmann-rendezvous-target" },
         forFixtures: ["kerbin-rendezvous-target"],
       },
+      // The mobile tile and aspect extremes at this widget's minSize, where the shared 9x8, 5x18 and 18x5 fall below it.
+      { name: "mobile-9x9", w: 9, h: 9 },
+      { name: "portrait-7x18", w: 7, h: 18 },
+      { name: "landscape-18x9", w: 18, h: 9 },
     ],
   },
   {
@@ -1660,10 +1680,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ScienceData/__fixtures__",
     outPath: "renders/science-data-widget",
     modes: [
-      // minSize 4×4: Aboard tab, tight.
+      // minSize 5×4: Aboard tab, tight.
       {
-        name: "min-4x4",
-        w: 4,
+        name: "min-5x4",
+        w: 5,
         h: 4,
         forFixtures: ["kerbin-flight-partial-science"],
       },
@@ -1770,6 +1790,10 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 10,
         forFixtures: ["earth-mars-reach-band", "earth-mars-no-budget"],
       },
+      // The mobile tile and aspect extremes at this widget's minSize, where the shared 9x8, 5x18 and 18x5 fall below it.
+      { name: "mobile-9x10", w: 9, h: 10 },
+      { name: "portrait-6x18", w: 6, h: 18 },
+      { name: "landscape-18x10", w: 18, h: 10 },
     ],
   },
   /*
