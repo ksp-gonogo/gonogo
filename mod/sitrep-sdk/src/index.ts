@@ -514,9 +514,7 @@ export {
   vectorMagnitude,
 } from "./unit-system";
 export {
-  isPluralShape,
   type KnownSitrepUnit,
-  providerExtensionShapes,
   registerProviderExtensionShape,
   registerTopicUnits,
   registerTypeUnits,
@@ -524,7 +522,6 @@ export {
   type SitrepUnit,
   shapesForTopic,
   shapesForType,
-  shapeTypeName,
   type UnitsByField,
   unitOf,
   unitOfTypeField,
