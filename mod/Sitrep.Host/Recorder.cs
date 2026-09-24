@@ -45,9 +45,32 @@ namespace Sitrep.Host
             _session = new RecordedSession
             {
                 SchemaVersion = schemaVersion,
-                StartUt = host.NowUt(),
+                StartUt = StartUtOf(host),
             };
             _host.Lifecycle += OnLifecycle;
+        }
+
+        /// <summary>
+        /// UT at construction, or 0 when the host has none to give.
+        ///
+        /// The only call in the tree that cannot take <c>NowUt()</c>'s refusal:
+        /// the recorder is built during the addon's <c>Awake</c>, before any
+        /// save is loaded, so a host with no universal time yet is the ordinary
+        /// case here rather than a fault, and a throw would abort mod startup.
+        /// The 0 reaches nothing that reads a timeline: every entry carries its
+        /// own <c>T</c>, and this field is provenance on the recording as a
+        /// whole.
+        /// </summary>
+        private static double StartUtOf(IKspHost host)
+        {
+            try
+            {
+                return host.NowUt();
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         /// <summary>The timeline captured so far. Grows in place as <see cref="Tick"/> is called and <see cref="IKspHost.Lifecycle"/> events fire.</summary>

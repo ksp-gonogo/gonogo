@@ -6,15 +6,24 @@ import {
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  CommandErrorCode,
   ScetAlarmConditionKind,
   ScetAlarmThresholdOp,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type Alarm,
-  isScetTrigger,
+  isAtSubjectVantage,
+  modOwnsLatch,
   type ThresholdOp,
   thresholdAddress,
 } from "./types";
+
+/**
+ * How long to leave a vantage the simulation could not check yet before asking
+ * again. Long enough that sitting at the main menu is not a command per tick,
+ * short enough that an alarm armed before a save loaded is live soon after it.
+ */
+const TRANSIENT_REARM_INTERVAL_MS = 10_000;
 
 export const SCET_ROSTER_TOPIC = "alarm.scet";
 export const SCET_FIRED_TOPIC = "alarm.scet.fired";
@@ -50,7 +59,7 @@ export interface ScetAlarmBridgeContext {
   onFired(id: string, firedAtUt: number): void;
   /**
    * The simulation decided a COMMAND-VANTAGE alarm was due, judged against what
-   * `audience` has been told rather than against the craft's true state.
+   * `vantage` has been told rather than against the craft's true state.
    *
    * Shadow only. The client is still the authority for this alarm and keeps
    * evaluating it; this exists so the two verdicts can be compared. Latching
@@ -58,7 +67,7 @@ export interface ScetAlarmBridgeContext {
    * the latch the mod would write is the same field the client's own tracking
    * writes, so two authorities for it would clear each other's.
    */
-  onShadowFired(id: string, firedAtUt: number, audience: string): void;
+  onShadowFired(id: string, firedAtUt: number, vantage: string): void;
   /**
    * The simulation refused to arm this alarm, and said why in its own words.
    *
@@ -69,6 +78,8 @@ export interface ScetAlarmBridgeContext {
    * operator picked the Topic.
    */
   onArmRefused(id: string, reason: string): void;
+  /** Wall clock, injected so the retry interval is drivable from a test. */
+  nowMs(): number;
   /** The arm went through, so any refusal recorded against this id is stale. */
   onArmAccepted(id: string): void;
 }
@@ -102,9 +113,9 @@ export interface ScetAlarmBridgeContext {
  * ## What the SHADOW arm adds
  *
  * A command-vantage threshold carrying a Topic address is armed too, naming the
- * vantage this screen commands from as its AUDIENCE. The mod then evaluates it
- * against what that place has been told, and publishes its verdict on the same
- * fire channel tagged with the audience.
+ * vantage this screen commands from. The mod then evaluates it against what that
+ * place has been told, and publishes its verdict on the same fire channel tagged
+ * with the vantage.
  *
  * Nothing latches from it. The client keeps evaluating the same alarm itself,
  * and the two answers are compared and logged. That is the only configuration
@@ -131,12 +142,52 @@ export class ScetAlarmBridge {
    * command that resolved but changed nothing.
    */
   private commandedSinceRoster = new Set<string>();
+  /**
+   * Ids refused for a reason that resolves by waiting, against the earliest
+   * moment worth asking again.
+   *
+   * A refused arm never reaches the mod's roster, so the roster does not move,
+   * so no frame arrives and `commandedSinceRoster` is never cleared: without
+   * this the first refusal is the last word until the operator edits the alarm.
+   * Only the transient code is held here; a permanent one stays refused, since
+   * re-asking a question already answered is noise on every tick for ever.
+   */
+  private retryTransientAfter = new Map<string, number>();
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
     this.ctx = ctx;
     this.unsubscribeClient = subscribeActiveTelemetryClient(() => this.bind());
     this.bind();
+  }
+
+  /**
+   * Whether the MOD holds this alarm, and therefore whether it will stop the
+   * warp when the alarm comes due.
+   *
+   * The mod's own statement rather than this side's inference, which is what
+   * makes it safe to suppress a client warp command on. The two are not the
+   * same set: a command-vantage TIME alarm and a threshold whose key has no
+   * Topic behind it are both a kind the mod evaluates and neither is ever
+   * armed, so a rule reading the trigger would strip their stop and leave them
+   * stopping nothing. An arm the mod REFUSED is absent here too, which an
+   * inference could not know.
+   *
+   * **UNDEFINED before the first roster frame**, which is a third answer and not
+   * a shy `false`. The two callers want opposite things from "not known yet" and
+   * only one of them is safe defaulting to false:
+   *
+   * - the WARP stop treats it as false and commands anyway. A second
+   *   `setWarpIndex(0)` against warp already at zero is a no-op
+   * - the LATCH must NOT treat it as false. Latching an alarm the mod is about
+   *   to take moves it out of `pending`, `reconcile` only arms from `pending`,
+   *   and the alarm is then never armed, never held, and never latched by
+   *   anybody. The absence of a roster is the one moment that deadlock can
+   *   start
+   */
+  holdsAlarm(id: string): boolean | undefined {
+    if (!this.rosterSeen) return undefined;
+    return this.rosterIds.includes(id);
   }
 
   /**
@@ -156,7 +207,7 @@ export class ScetAlarmBridge {
       // re-armed after a timeline reset dropped the roster: its instant is in
       // the past, so it would fire again immediately.
       if (alarm.state !== "pending") continue;
-      if (isScetTrigger(alarm.trigger) || isShadowable(alarm)) {
+      if (isAtSubjectVantage(alarm.trigger) || isShadowable(alarm)) {
         wanted.set(alarm.id, alarm);
       }
     }
@@ -169,10 +220,11 @@ export class ScetAlarmBridge {
     }
     const held = new Set(this.rosterIds);
     for (const [id, alarm] of wanted) {
-      if (!held.has(id) && !this.commandedSinceRoster.has(id)) {
-        this.commandedSinceRoster.add(id);
-        this.arm(alarm);
-      }
+      if (held.has(id) || this.commandedSinceRoster.has(id)) continue;
+      const retryAt = this.retryTransientAfter.get(id);
+      if (retryAt !== undefined && this.ctx.nowMs() < retryAt) continue;
+      this.commandedSinceRoster.add(id);
+      this.arm(alarm);
     }
   }
 
@@ -188,7 +240,7 @@ export class ScetAlarmBridge {
    * already holds replaces it, so there is no disarm-then-arm to race.
    */
   arm(alarm: Alarm): void {
-    if (!isScetTrigger(alarm.trigger) && !isShadowable(alarm)) return;
+    if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) return;
     const armed = this.buildArmArgs(alarm);
     if (armed === null) return;
     const outcome = dispatchActiveCommandTopic(SCET_ARM_COMMAND, armed);
@@ -199,19 +251,44 @@ export class ScetAlarmBridge {
     void outcome.settled.then((refusal) => {
       if (this.disposed) return;
       if (refusal === undefined) {
+        this.retryTransientAfter.delete(alarm.id);
         this.ctx.onArmAccepted(alarm.id);
         return;
+      }
+      /* The mod's own words when it quoted the game, which name the Topic or
+         the vantage the operator picked. `message` is built from the code and
+         names only the command, so it reads identically for every refusal of
+         the arm and tells an operator nothing about their alarm. */
+      const reason = refusal.detail ?? refusal.message;
+      if (refusal.errorCode === CommandErrorCode.NotClearToProceed) {
+        /* Nothing about the alarm is wrong: the simulation has not been told
+           what places exist yet, which is the main menu and the ticks before
+           the first capture. Asked again on a slow cadence rather than every
+           tick, because that window lasts as long as the operator leaves it.
+
+           Decided BEFORE the shadow branch below, because whether a refusal can
+           be re-asked is a different question from whether it is worth telling
+           anyone about. Only an arm naming a place other than its own subject
+           can be refused this way, and every one of those is a shadow arm, so
+           deciding it after that branch would retry nothing at all. */
+        this.retryTransientAfter.set(
+          alarm.id,
+          this.ctx.nowMs() + TRANSIENT_REARM_INTERVAL_MS,
+        );
+        this.commandedSinceRoster.delete(alarm.id);
+      } else {
+        this.retryTransientAfter.delete(alarm.id);
       }
       /* A shadow arm that the mod cannot read costs the operator nothing: the
          alarm they are watching is the client's own and is unaffected. So the
          refusal is logged and NOT surfaced, which a SCET refusal must be,
          because there the refusal is the whole reason the alarm will never
          fire. */
-      if (!isScetTrigger(alarm.trigger)) {
+      if (!modOwnsLatch(alarm.trigger)) {
         logger.debug("alarm-host: shadow arm refused", {
           id: alarm.id,
-          code: refusal.code,
-          reason: refusal.message,
+          code: refusal.errorCode,
+          reason,
         });
         return;
       }
@@ -222,10 +299,10 @@ export class ScetAlarmBridge {
          table we deliberately do not hold. */
       logger.warn("alarm-host: SCET arm refused", {
         id: alarm.id,
-        code: refusal.code,
-        reason: refusal.message,
+        code: refusal.errorCode,
+        reason,
       });
-      this.ctx.onArmRefused(alarm.id, refusal.message);
+      this.ctx.onArmRefused(alarm.id, reason);
     });
   }
 
@@ -252,21 +329,22 @@ export class ScetAlarmBridge {
    */
   private buildArmArgs(alarm: Alarm): Record<string, unknown> | null {
     const trigger = alarm.trigger;
-    /* Whose knowledge the simulation judges this against. Empty is the
-       simulation itself, which is what a SCET alarm means. A command-vantage
-       alarm names the place this screen is commanding from, so the mod compares
-       against the readings that place has actually been sent: the centre it
-       chose, or until it chooses, the one the mod stamped its frames with. */
+    /* Where the simulation reads this alarm. Empty is sent for a SCET alarm and
+       the mod resolves it to the alarm's own subject, which is what a SCET alarm
+       has always been read at. A command-vantage alarm names the place this
+       screen is commanding from, so the mod compares against the readings that
+       place has actually been sent: the centre it chose, or until it chooses,
+       the one the mod stamped its frames with. */
     const client = getActiveTelemetryClient();
-    const audience = isScetTrigger(trigger)
+    const vantage = isAtSubjectVantage(trigger)
       ? ""
       : (client?.selectedVantage ?? client?.observedVantage ?? "");
-    if (!isScetTrigger(trigger) && audience === "") return null;
+    if (!isAtSubjectVantage(trigger) && vantage === "") return null;
     if (trigger.kind === "time") {
       return {
         id: alarm.id,
         name: alarm.name,
-        audience,
+        vantage,
         // A time condition is about the game's own clock, so it names no craft.
         subject: "game",
         condition: {
@@ -294,7 +372,7 @@ export class ScetAlarmBridge {
     return {
       id: alarm.id,
       name: alarm.name,
-      audience,
+      vantage,
       subject,
       condition: {
         kind: ScetAlarmConditionKind.Threshold,
@@ -326,14 +404,19 @@ export class ScetAlarmBridge {
     this.unsubscribeFired = client.subscribe(SCET_FIRED_TOPIC, (payload) => {
       const notice = readFiredNotice(payload);
       if (!notice) return;
-      /* The audience is what separates a fact from an opinion. An empty one is
-         the simulation's own verdict: the warp is already stopped and this side
-         latches. A named one is what ONE PLACE has been told, which this side
-         holds its own answer to, so it is compared and never acted on. */
-      if (notice.audience === "") {
+      /* Which notices this side latches from is the same question as which
+         alarms it delegated, so it is asked the same way the arm asks it. The
+         vantage on the notice cannot answer it: the mod resolves an empty one to
+         the alarm's own subject, and a command centre commanding its own crewed
+         craft names that subject too. An id this side does not hold falls to the
+         shadow arm, which says so. */
+      const armed = this.ctx
+        .getAlarms()
+        .find((alarm) => alarm.id === notice.id);
+      if (armed && modOwnsLatch(armed.trigger)) {
         this.ctx.onFired(notice.id, notice.firedAtUt);
       } else {
-        this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.audience);
+        this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.vantage);
       }
     });
   }
@@ -346,6 +429,8 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
+    /* A new connection is a new simulation to ask, so nothing is owed a wait. */
+    this.retryTransientAfter.clear();
   }
 }
 
@@ -401,7 +486,7 @@ function readRosterIds(payload: unknown): readonly string[] {
  */
 function readFiredNotice(
   payload: unknown,
-): { id: string; firedAtUt: number; audience: string } | null {
+): { id: string; firedAtUt: number; vantage: string } | null {
   const id = readId(payload);
   if (id === null) return null;
   if (typeof payload !== "object" || payload === null) return null;
@@ -412,14 +497,13 @@ function readFiredNotice(
       ? raw.magnitude
       : raw;
   if (typeof magnitude !== "number" || !Number.isFinite(magnitude)) return null;
-  /* Absent reads as the simulation's own verdict, which is what every notice
-     meant before the field existed. A host older than this client is therefore
-     understood rather than ignored. */
-  const audience =
-    "audience" in payload && typeof payload.audience === "string"
-      ? payload.audience
+  /* Absent reads as unstated rather than as a place. Nothing routes on it, so a
+     host that does not send one is understood rather than ignored. */
+  const vantage =
+    "vantage" in payload && typeof payload.vantage === "string"
+      ? payload.vantage
       : "";
-  return { id, firedAtUt: magnitude, audience };
+  return { id, firedAtUt: magnitude, vantage };
 }
 
 /**
@@ -427,7 +511,7 @@ function readFiredNotice(
  * command-vantage THRESHOLD carrying the Topic-and-path address.
  *
  * Thresholds only, and the exclusion of the time arm is not an oversight. The
- * mod judges an audience roster's conditions against the readings that place
+ * mod judges a command vantage's conditions against the readings that place
  * has been told, but against the GAME's clock, because there is no one clock a
  * vantage keeps: how far behind it sits depends on which craft it is listening
  * to. A command-vantage time alarm evaluated there would fire at the SCET
@@ -435,7 +519,8 @@ function readFiredNotice(
  */
 function isShadowable(alarm: Alarm): boolean {
   return (
-    !isScetTrigger(alarm.trigger) && thresholdAddress(alarm.trigger) !== null
+    !isAtSubjectVantage(alarm.trigger) &&
+    thresholdAddress(alarm.trigger) !== null
   );
 }
 

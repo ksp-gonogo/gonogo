@@ -669,7 +669,7 @@ export interface KerbalismLifeSupport
 	* a statement of ignorance and never a substituted capture time: stamping the
 	* read time would claim a freshness we did not measure.
 	*/
-	asOfUt?: Value<"ut"> | null;
+	asOfKerbalismUt?: Value<"ut"> | null;
 }
 /**
 * One survival rule for a kerbal: the current accumulator value (from
@@ -680,7 +680,7 @@ export interface KerbalismCrewRule
 {
 	name?: string | null;
 	/** Current accumulator value ("problem") from KerbalData.rules. */
-	value?: Value<"units"> | null;
+	problem?: Value<"units"> | null;
 	/**
 	* Per-rule degeneration rate (units/s) from Profile.rules[].degeneration.
 	* Stage-2 death-clock input. Confirmed against Kerbalism source:
@@ -723,20 +723,19 @@ export interface KerbalismCrewEntry
 	* rather than an enormous one.
 	*
 	* **An INSTANT, not a remaining duration, and that is the whole reason for the
-	* name.** The deadline is derived from a reading taken at
-	* `KerbalismCrewEntry.asOfUt`, which for a background craft can be N ticks
-	* behind the read time, so a "seconds remaining" figure is only true measured
-	* from that stamp and a consumer rendering it raw is off by however long ago
-	* the stamp was. That is the same defect as an absolute UT reaching a
-	* countdown, and it had the same cause: `"s"` said nothing about what the
-	* duration was measured FROM.
+	* name.** The deadline is derived from a reading taken at AsOfUt, which for a
+	* background craft can be N ticks behind the read time, so a "seconds
+	* remaining" figure is only true measured from that stamp and a consumer
+	* rendering it raw is off by however long ago the stamp was. That is the same
+	* defect as an absolute UT reaching a countdown, and it had the same cause:
+	* `"s"` said nothing about what the duration was measured FROM.
 	*
 	* Emitting `AsOfUt + remaining` instead loses nothing (the same information,
-	* and `KerbalismCrewEntry.asOfUt` is still published beside it as provenance)
-	* and makes the arithmetic unskippable: the field is a `Value<"ut">`,
-	* `<Countdown>` refuses one outright, and a consumer has to subtract the
-	* frame's view time. It is NOT restamped to now: nothing is advanced, the
-	* instant is exactly the one the stamped-at reading implied.
+	* and AsOfUt is still published beside it as provenance) and makes the
+	* arithmetic unskippable: the field is a `Value<"ut">`, `<Countdown>` refuses
+	* one outright, and a consumer has to subtract the frame's view time. It is
+	* NOT restamped to now: nothing is advanced, the instant is exactly the one
+	* the stamped-at reading implied.
 	*
 	* **Telling "nothing is closing in" from "this install cannot compute
 	* deadlines at all".** Both are null here, and they are not the same news: the
@@ -756,11 +755,10 @@ export interface KerbalismCrewEntry
 	* kerbal aboard a background craft can be well behind the read time: the
 	* accumulators move on their vessel's Kerbalism turn, and unloaded craft take
 	* those turns one per tick, in rotation. Same meaning and same
-	* null-is-ignorance rule as `KerbalismLifeSupport.asOfUt`, on each entry
-	* rather than on the list because two kerbals can be on different craft with
-	* different turns.
+	* null-is-ignorance rule as AsOfUt, on each entry rather than on the list
+	* because two kerbals can be on different craft with different turns.
 	*/
-	asOfUt?: Value<"ut"> | null;
+	rulesAsOfKerbalismUt?: Value<"ut"> | null;
 }
 /**
 * Kerbalism feature toggles (auto-detected from the loaded profile). Drives

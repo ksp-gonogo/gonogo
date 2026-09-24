@@ -31,13 +31,21 @@ export const SPACE_VAR = {
   xl: "var(--space-16)",
 } as const satisfies Record<SpaceToken, string>;
 
+/**
+ * The corner handles a surface primitive accepts.
+ *
+ * Three, and they name a role rather than a size: an ordinary corner, a corner
+ * on something floating above the app, and a stadium. `displayFrame` is not
+ * here because that corner belongs to `FramedDisplay` alone, and `circle` is
+ * not a corner at all.
+ */
+export type RadiusToken = "regular" | "floating" | "pill";
+
 export const RADIUS_VAR = {
-  /** Tightest corner: buttons and small controls. */
-  xs: "var(--radius-xs)",
-  sm: "var(--radius-sm)",
-  md: "var(--radius-md)",
-  /** Widest square corner: overlay and dialog surfaces. */
-  lg: "var(--radius-lg)",
+  /** Every ordinary corner: controls, chips, rows, cells, cards, menus. */
+  regular: "var(--radius-regular)",
+  /** A box that sits above the app: a modal, a dialog, the FAB, the landing surface. */
+  floating: "var(--radius-floating)",
   /** Fully rounded: chips, avatars, toggle knobs. */
   pill: "var(--radius-pill)",
-} as const;
+} as const satisfies Record<RadiusToken, string>;

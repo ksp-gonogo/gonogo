@@ -31,7 +31,12 @@ const PART_LIVE = new Map<number, PartLiveWireInput>(
     .filter(([key]) => key !== "_comment")
     .map(([flightId, modules]) => [
       Number(flightId),
-      { partState: { seq: 0, modules: modules as PartStateModule[] } },
+      {
+        partState: {
+          seq: 0,
+          modules: Array.isArray(modules) ? (modules as PartStateModule[]) : [],
+        },
+      },
     ]),
 );
 

@@ -109,9 +109,9 @@ const Container = styled.div`
 const SearchInput = styled.input`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   width: 100%;
 
@@ -133,7 +133,7 @@ const SearchInput = styled.input`
 const List = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   max-height: 260px;
   overflow-y: auto;
 `;
@@ -141,7 +141,7 @@ const List = styled.div`
 const Group = styled.div``;
 
 const GroupHeader = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -186,20 +186,20 @@ const CheckIndicator = styled.span<{ $checked: boolean }>`
   border: 1px solid ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-text-faint)")};
   background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   color: var(--color-status-go-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   flex: 0 0 auto;
 `;
 
 const ItemLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
   flex: 1;
 `;
 
 const ItemUnit = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   /* A gap wearing margin's clothes: this separates a unit from the label it
      sits BESIDE on one line, and the parent is not a flex box. The vocabulary
@@ -215,7 +215,7 @@ const Empty = styled.div`
      vertical. The empty state wants the height to read as deliberate space
      rather than a collapsed list, so it stays a pair of rungs. */
   padding: var(--space-12) var(--space-8);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   text-align: center;
 `;

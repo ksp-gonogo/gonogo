@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 
 /**
  * Every Uplink client must build on a tsconfig that TRAVELS with it.
@@ -35,11 +36,7 @@ const ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 const SHIPPED = "mod/sitrep-sdk/tsconfig.base.json";
 const AUTHOR_BASE = "@ksp-gonogo/sitrep-sdk/tsconfig.base.json";
 
-const readJson = (relative: string) =>
-  JSON.parse(readFileSync(join(ROOT, relative), "utf8")) as Record<
-    string,
-    unknown
-  >;
+const readJson = (relative: string) => readJsonObject(join(ROOT, relative));
 
 function uplinkClientTsconfigs(): string[] {
   const mod = join(ROOT, "mod");

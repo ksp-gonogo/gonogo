@@ -91,6 +91,11 @@ export {
   CONTRACT_MINOR,
   EXTENSION_API_VERSION,
 } from "./compat-versions";
+// The contract's own enums as value-to-name tables and closed name unions,
+// the sibling of `ksp-enum-names` below. A widget resolving an ordinal it read
+// off the wire needs them, and a table it typed itself is how a name no build
+// emits comes to compile.
+export * from "./contract-enum-names";
 export {
   type ControlChannelHandle,
   type ControlChannelId,
@@ -236,6 +241,7 @@ export * from "./ksp-enum-names";
 // The magnitude unwrap, beside `Value` because that is what it unwraps.
 // ui-kit re-exports these three, so no call site moved.
 export {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,

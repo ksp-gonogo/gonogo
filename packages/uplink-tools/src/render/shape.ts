@@ -354,14 +354,16 @@ export function foldShape(captures: readonly ShapeCapture[]): AssetShape {
 export function readShapeRecord(assetDir: string): ShapeRecord | undefined {
   const file = join(assetDir, SHAPE_RECORD_FILE);
   if (!existsSync(file)) return undefined;
-  const parsed = JSON.parse(readFileSync(file, "utf8")) as ShapeRecord;
+  const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
   if (
-    typeof parsed?.version !== "number" ||
-    typeof parsed?.assets !== "object"
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof Reflect.get(parsed, "version") !== "number" ||
+    typeof Reflect.get(parsed, "assets") !== "object"
   ) {
     throw new Error(`${file} is not a shape record`);
   }
-  return parsed;
+  return parsed as ShapeRecord;
 }
 
 export async function writeShapeRecord(

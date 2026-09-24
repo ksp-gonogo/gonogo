@@ -32,6 +32,10 @@
          checkout), so the "could not resolve Assembly-CSharp" message points
          at where the DLLs SHOULD go. -->
     <KspManaged>$(_KspReferences)</KspManaged>
+    <!-- Marks the path above as a guess rather than a request, so a project that
+         cannot find the assemblies can tell "none on this machine" from "the path
+         you passed is wrong". -->
+    <_KspManagedDefaulted>true</_KspManagedDefaulted>
   </PropertyGroup>
 
 </Project>

@@ -1,7 +1,22 @@
-import type { AddressInfo } from "node:net";
 import Fastify from "fastify";
 import { afterEach, describe, expect, it } from "vitest";
 import { registerAnalyticsConfigRoutes } from "../analyticsConfig.js";
+
+/** The TCP port a listening Fastify instance bound, or a failure naming what it reported instead. */
+function boundPort(app: ReturnType<typeof Fastify>): number {
+  const address: unknown = app.server.address();
+  if (
+    typeof address !== "object" ||
+    address === null ||
+    !("port" in address) ||
+    typeof address.port !== "number"
+  ) {
+    throw new Error(
+      `server is not listening on a TCP port: ${JSON.stringify(address)}`,
+    );
+  }
+  return address.port;
+}
 
 describe("analytics-config routes (fastify.inject)", () => {
   async function buildApp() {
@@ -140,7 +155,7 @@ describe("analytics-config SSE stream (real listen)", () => {
     app = Fastify();
     const controller = registerAnalyticsConfigRoutes(app);
     await app.listen({ port: 0, host: "127.0.0.1" });
-    const { port } = app.server.address() as AddressInfo;
+    const port = boundPort(app);
     const base = `http://127.0.0.1:${port}`;
 
     const ac = new AbortController();
@@ -167,7 +182,7 @@ describe("analytics-config SSE stream (real listen)", () => {
     app = Fastify();
     const controller = registerAnalyticsConfigRoutes(app);
     await app.listen({ port: 0, host: "127.0.0.1" });
-    const { port } = app.server.address() as AddressInfo;
+    const port = boundPort(app);
     const base = `http://127.0.0.1:${port}`;
 
     const ac = new AbortController();

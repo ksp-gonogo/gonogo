@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * An optional chain that reaches a `.magnitude` must stay optional the whole
@@ -79,7 +80,7 @@ function grepFor(root: string, pattern: string): string[] {
     );
   } catch (err) {
     // git grep exits 1 when nothing matches, which is the goal state.
-    if ((err as { status?: number }).status === 1) return [];
+    if (exitStatus(err) === 1) return [];
     throw err;
   }
   return (

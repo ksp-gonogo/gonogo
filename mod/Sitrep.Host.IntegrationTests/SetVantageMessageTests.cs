@@ -29,8 +29,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class SetVantageMessageTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(400);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         [Fact]
         public async Task AnActiveCentre_IsSelectable_AndNoIdIsSelectableJustForItsSpelling()

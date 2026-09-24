@@ -38,13 +38,17 @@ describe("deriveCrewSurvival", () => {
         {
           name: "Jebediah Kerman",
           rules: [
-            { name: "radiation", value: units(45), fatalThreshold: units(50) },
+            {
+              name: "radiation",
+              problem: units(45),
+              fatalThreshold: units(50),
+            },
           ],
         },
         {
           name: "Bill Kerman",
           rules: [
-            { name: "stress", value: units(0.1), fatalThreshold: units(1) },
+            { name: "stress", problem: units(0.1), fatalThreshold: units(1) },
           ],
         },
       ],
@@ -78,8 +82,12 @@ describe("deriveCrewSurvival", () => {
         {
           name: "Val",
           rules: [
-            { name: "stress", value: units(0.2), fatalThreshold: units(1) },
-            { name: "radiation", value: units(45), fatalThreshold: units(50) },
+            { name: "stress", problem: units(0.2), fatalThreshold: units(1) },
+            {
+              name: "radiation",
+              problem: units(45),
+              fatalThreshold: units(50),
+            },
           ],
         },
       ],
@@ -108,7 +116,11 @@ describe("deriveCrewSurvival", () => {
         {
           name: "Val",
           rules: [
-            { name: "radiation", value: units(45), fatalThreshold: units(50) },
+            {
+              name: "radiation",
+              problem: units(45),
+              fatalThreshold: units(50),
+            },
           ],
         },
       ],
@@ -132,10 +144,10 @@ describe("deriveCrewSurvival", () => {
         {
           name: "Val",
           rules: [
-            { name: "radiation", value: units(5), fatalThreshold: units(50) },
+            { name: "radiation", problem: units(5), fatalThreshold: units(50) },
             {
               name: "some-custom-rule",
-              value: units(0.95),
+              problem: units(0.95),
               fatalThreshold: units(1),
             },
           ],
@@ -223,7 +235,7 @@ describe("deriveCrewSurvival", () => {
         {
           name: "Val",
           rules: [
-            { name: "stress", value: units(0.9), fatalThreshold: units(1) },
+            { name: "stress", problem: units(0.9), fatalThreshold: units(1) },
           ],
         },
       ],

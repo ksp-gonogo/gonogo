@@ -6,15 +6,18 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { type TopicReading, useStream } from "@ksp-gonogo/sitrep-client";
 import {
-  type TopicReading,
-  useStream,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+  enumNameOf,
+  SITUATION_NAMES,
+  type SituationName,
+  type VesselIdentity,
+} from "@ksp-gonogo/sitrep-sdk";
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
+import { useBodyName } from "../shared/useBodyName";
 import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
 import {
@@ -28,6 +31,8 @@ import {
 const topics = defineTopicManifest({
   channels: [
     "vessel.state",
+    "vessel.identity",
+    "system.bodies",
     "vessel.surface",
     "science.experiments",
     "science.experimentBreakdown",
@@ -35,8 +40,8 @@ const topics = defineTopicManifest({
     "career.status",
   ],
   fields: [
-    "vessel.state.parentBodyName",
-    "vessel.state.situationName",
+    "vessel.identity.parentBodyIndex",
+    "vessel.identity.situation",
     "vessel.surface.landedAt",
     "vessel.surface.biome",
     "science.experiments",
@@ -77,9 +82,14 @@ function ScienceDataComponent({
   const { inFlight, hasGameSignal, isCareerLike } = useGameContext();
   const noVessel = hasGameSignal && !inFlight;
 
-  const vesselState = useStream<VesselState>("vessel.state");
-  const body = vesselState?.parentBodyName ?? undefined;
-  const situation = vesselState?.situationName ?? undefined;
+  const identity = useStream<VesselIdentity>("vessel.identity");
+  // Collapsed deliberately: the Aboard tab names the body or names nothing,
+  // with no third rendering for a tombstoned catalogue.
+  const body = useBodyName(identity?.parentBodyIndex) ?? undefined;
+  const situation = enumNameOf<SituationName>(
+    SITUATION_NAMES,
+    identity?.situation,
+  );
   /**
    * The locale is the one reading here that drifts on its own. It names the
    * biome a sample would be taken from, and a vessel that is flying moves
@@ -146,8 +156,9 @@ function ScienceDataComponent({
   // balance received is still the balance and the panel's stream badge beside
   // it already tells the operator how fresh the panel is.
   const careerScience = magnitudeOf(
-    stillTrue(useTelemetry("career.status"), undefined)?.economy
-      ?.science as Quantityish,
+    asQuantityish(
+      stillTrue(useTelemetry("career.status"), undefined)?.economy?.science,
+    ),
   );
 
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];

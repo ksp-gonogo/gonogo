@@ -1,7 +1,7 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { EmptyState, TextButton } from "@ksp-gonogo/ui";
+import { Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import styled from "styled-components";
 import type { CompletedEntry } from "./BurnCompletionTracker";
 import { type NodeEditPatch, NodeRow } from "./NodeRow";
 
@@ -60,7 +60,7 @@ export function ManeuverNodeList({
       {displayedNodes.length === 0 ? (
         <EmptyState>No maneuver nodes planned.</EmptyState>
       ) : (
-        <NodeListUL>
+        <Stack as="ul" style={NODE_LIST_STYLE}>
           {displayedNodes.map((d) => (
             <NodeRow
               key={d.phantom ? `phantom-${d.node.UT}` : d.node.id}
@@ -74,30 +74,32 @@ export function ManeuverNodeList({
               }
             />
           ))}
-        </NodeListUL>
+        </Stack>
       )}
       {nodes.length > 1 && (
-        <ClearAllRow>
+        <div style={CLEAR_ALL_ROW_STYLE}>
           <TextButton type="button" onClick={() => void onClearAll()}>
             Clear all
           </TextButton>
-        </ClearAllRow>
+        </div>
       )}
     </>
   );
 }
 
-const NodeListUL = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
+/** A list that is a Stack: the bullets and the browser's own list insets go,
+ *  the semantic `ul` stays. The gap is named rather than sized so a card
+ *  around this list tightens it the way it tightens everything else. */
+const NODE_LIST_STYLE = {
+  gap: "var(--gap-related)",
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+} as const;
 
-const ClearAllRow = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding-top: var(--space-2);
-`;
+/** Trails the clear-all control, set off from the last row above it. */
+const CLEAR_ALL_ROW_STYLE = {
+  display: "flex",
+  justifyContent: "flex-end",
+  paddingTop: "var(--space-2)",
+} as const;

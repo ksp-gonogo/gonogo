@@ -555,3 +555,19 @@ export type PeerMessage =
       bytes?: Uint8Array;
       error?: string;
     };
+
+/**
+ * A frame off a peer data channel AS a protocol message, and `null` for
+ * anything that does not carry a `type` to dispatch on.
+ *
+ * PeerJS hands `data` through as `unknown`: the channel is a pipe and the
+ * sender is another browser, so nothing on this side has checked what arrived.
+ * A frame with no `type` reaches no handler, and dropping it here is the same
+ * outcome the dispatcher's default arm reaches, stated once.
+ */
+export function asPeerMessage(raw: unknown): PeerMessage | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  return typeof Reflect.get(raw, "type") === "string"
+    ? (raw as PeerMessage)
+    : null;
+}

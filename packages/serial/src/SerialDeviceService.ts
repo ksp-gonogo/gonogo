@@ -83,6 +83,33 @@ interface ServiceOptions {
   storage?: Storage;
 }
 
+/** A stored device-type row when it carries the id the registry keys on, and
+ *  `null` for anything else that turns up under the key. */
+function asDeviceType(row: unknown): DeviceType | null {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    typeof Reflect.get(row, "id") !== "string"
+  ) {
+    return null;
+  }
+  return row as DeviceType;
+}
+
+/** A stored device row when it carries the id and the type it is an instance
+ *  of; a row missing either cannot be registered against a type at all. */
+function asDeviceInstance(row: unknown): DeviceInstance | null {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    typeof Reflect.get(row, "id") !== "string" ||
+    typeof Reflect.get(row, "typeId") !== "string"
+  ) {
+    return null;
+  }
+  return row as DeviceInstance;
+}
+
 export class SerialDeviceService {
   private screenKey: string;
   private transportFactory: TransportFactory;
@@ -995,8 +1022,13 @@ export class SerialDeviceService {
     try {
       const raw = this.storage.getItem(DEVICE_TYPES_KEY);
       if (!raw) return;
-      const list = JSON.parse(raw) as DeviceType[];
-      for (const t of list) this.deviceTypes.set(t.id, t);
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const rows: unknown[] = parsed;
+      for (const row of rows) {
+        const t = asDeviceType(row);
+        if (t) this.deviceTypes.set(t.id, t);
+      }
     } catch (err) {
       logger.warn("[SerialDeviceService] failed to load device types", {
         err: String(err),
@@ -1019,9 +1051,16 @@ export class SerialDeviceService {
     try {
       const raw = this.storage.getItem(this.devicesKey());
       if (!raw) return;
-      const list = JSON.parse(raw) as DeviceInstance[];
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const rows: unknown[] = parsed;
       let droppedAny = false;
-      for (const inst of list) {
+      for (const row of rows) {
+        const inst = asDeviceInstance(row);
+        if (!inst) {
+          droppedAny = true;
+          continue;
+        }
         const type = this.deviceTypes.get(inst.typeId);
         if (!type) {
           logger.warn(

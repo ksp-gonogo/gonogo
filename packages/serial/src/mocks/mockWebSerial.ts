@@ -21,7 +21,7 @@ interface MockPortOptions {
   info?: SerialPortInfo;
 }
 
-export class MockSerialPort implements SerialPort {
+export class MockSerialPort extends EventTarget implements SerialPort {
   private info: SerialPortInfo;
 
   // deviceToHost: bytes the "device" sends go in, the transport reads out.
@@ -37,6 +37,7 @@ export class MockSerialPort implements SerialPort {
   writable: WritableStream<Uint8Array>;
 
   constructor(opts: MockPortOptions = {}) {
+    super();
     this.info = opts.info ?? {};
     this.readable = this.deviceToHost.readable;
     this.writable = this.hostToDevice.writable;
@@ -103,23 +104,24 @@ interface InstallOptions {
 
 type SerialEventListener = (event: SerialConnectionEvent) => void;
 
-interface SerialLike {
-  requestPort(options?: { filters?: SerialPortFilter[] }): Promise<SerialPort>;
-  getPorts(): Promise<SerialPort[]>;
-  addEventListener(
-    type: "connect" | "disconnect",
-    listener: SerialEventListener,
-  ): void;
-  removeEventListener(
-    type: "connect" | "disconnect",
-    listener: SerialEventListener,
-  ): void;
+/**
+ * A real `Event` carrying the port on `target`, the way the browser delivers
+ * one. `target` is a getter on `Event.prototype`, so it has to be defined on
+ * the instance rather than assigned.
+ */
+function connectionEvent(
+  type: "connect" | "disconnect",
+  port: MockSerialPort,
+): SerialConnectionEvent {
+  const event = new Event(type);
+  Object.defineProperty(event, "target", { value: port });
+  return event as SerialConnectionEvent;
 }
 
 export class MockWebSerial {
   private ports: MockSerialPort[] = [];
   private queue: MockSerialPort[] = [];
-  private previous: unknown = undefined;
+  private previous: Serial | undefined = undefined;
   private installed = false;
   private connectListeners = new Set<SerialEventListener>();
   private disconnectListeners = new Set<SerialEventListener>();
@@ -131,8 +133,8 @@ export class MockWebSerial {
     }
     const nav = globalThis.navigator;
     if ("serial" in nav && !opts.force) return;
-    this.previous = (nav as { serial?: unknown }).serial;
-    (nav as unknown as { serial: SerialLike }).serial = {
+    this.previous = nav.serial;
+    nav.serial = {
       requestPort: async () => {
         const next = this.queue.shift();
         if (!next) throw new Error("MockWebSerial: no port available");
@@ -157,23 +159,21 @@ export class MockWebSerial {
    * `event.port`; tests passed but real browsers were silently broken.)
    */
   fireConnect(port: MockSerialPort): void {
-    const evt = { target: port } as unknown as SerialConnectionEvent;
+    const evt = connectionEvent("connect", port);
     for (const cb of Array.from(this.connectListeners)) cb(evt);
   }
 
   /** Fire a synthetic 'disconnect' event. See fireConnect for the shape. */
   fireDisconnect(port: MockSerialPort): void {
-    const evt = { target: port } as unknown as SerialConnectionEvent;
+    const evt = connectionEvent("disconnect", port);
     for (const cb of Array.from(this.disconnectListeners)) cb(evt);
   }
 
   /** Restore the original `navigator.serial` (or delete it). */
   restore(): void {
     if (!this.installed) return;
-    const nav = globalThis.navigator as unknown as {
-      serial?: unknown;
-    };
-    if (this.previous === undefined) delete nav.serial;
+    const nav = globalThis.navigator;
+    if (this.previous === undefined) Reflect.deleteProperty(nav, "serial");
     else nav.serial = this.previous;
     this.installed = false;
     this.ports = [];

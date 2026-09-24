@@ -9,7 +9,7 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 | --- | --- |
 | Uplink id | `kerbalism` |
 | Version | `0.0.1` |
-| Built against | contract 17.4, api 2.1.0, ui-kit 0.1.0 |
+| Built against | contract 18.1, api 3.0.0, ui-kit 0.1.0 |
 
 ## Wire
 
@@ -23,7 +23,7 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 
 | Payload | Fields |
 | --- | --- |
-| `KerbalismCrewRule` | `degenPerSec` units/s, `fatalThreshold` units, `name` text, `value` units |
+| `KerbalismCrewRule` | `degenPerSec` units/s, `fatalThreshold` units, `name` text, `problem` units |
 | `KerbalismGreenhouseEntry` | `active` flag, `artificial` W/m², `cropResource` text, `ecRateMaxPerSec` units/s, `foodRatePerSec` units/s, `issue` text, `lampEcDrawPerSec` units/s, `lightToleranceWm2` W/m², `natural` W/m², `pressureTolerance` ratio, `radiationToleranceRadPerSec` rad/s |
 | `KerbalismHabitat` | `comfort` ratio, `livingSpace` ratio, `poisoning` ratio, `pressure` ratio, `shielding` ratio, `surface` m², `volume` m³ |
 | `KerbalismIsruConverterExtension` | `broken` flag, `capacity` units, `processToken` text, `title` text, `valveIndex` count |

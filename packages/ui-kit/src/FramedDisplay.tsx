@@ -69,7 +69,16 @@ const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
      panel's own border for the eye. */
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  /* The corner is what separates a box that is LOOKED AT from a box that is
+     READ. A frame and a card were both drawn at the regular 3px, so that
+     distinction existed in this file's prose and nowhere in the pixels.
+
+     The frame never knows its own size: a frame holding a map and a frame
+     holding a 40px avatar both write this one name, and the container answers
+     with a corner proportioned to the box it is giving them (a Block side
+     aside re-declares it). A frame that measured itself would have to agree
+     with its container about what "small" is, and the two would drift. */
+  border-radius: var(--radius-display-frame);
   overflow: hidden;
   padding: ${({ $padded }) => ($padded ? "var(--space-4)" : "0")};
 

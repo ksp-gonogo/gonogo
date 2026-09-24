@@ -123,10 +123,11 @@ function stillTrue<T, A>(
  */
 export function parseRotors(raw: unknown): RotorInfo[] {
   if (!Array.isArray(raw)) return [];
+  const entries: unknown[] = raw;
   const out: RotorInfo[] = [];
   // Indexed, because `srcIndex` must be the position in the DELIVERED array
   // and the two `continue`s below make that differ from the output position.
-  for (const [srcIndex, entry] of raw.entries()) {
+  for (const [srcIndex, entry] of entries.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     if (e.type !== "rotor") continue;

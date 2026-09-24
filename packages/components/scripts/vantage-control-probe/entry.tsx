@@ -75,18 +75,18 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
 
   activeRoot = createRoot(root);
   activeRoot.render(
-    createElement(
-      TelemetryProvider,
-      { client, store, carriedChannels: ["commandCentre.roster"] },
-      createElement(
-        ScreenProvider,
-        { value: payload.screen ?? "main" },
-        createElement(MissionBanner),
-        payload.notice
+    <TelemetryProvider
+      client={client}
+      store={store}
+      carriedChannels={["commandCentre.roster"]}
+    >
+      <ScreenProvider value={payload.screen ?? "main"}>
+        {createElement(MissionBanner)}
+        {payload.notice
           ? createElement(BannerStack, null, createElement(HomeFallbackNotice))
-          : null,
-      ),
-    ),
+          : null}
+      </ScreenProvider>
+    </TelemetryProvider>,
   );
 
   // Two frames: commit + let styled-components inject + ResizeObserver

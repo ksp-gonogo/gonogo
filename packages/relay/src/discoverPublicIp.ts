@@ -22,9 +22,19 @@ const LOOKUP_URLS = [
 
 const LOOKUP_TIMEOUT_MS = 4_000;
 
+/**
+ * The whole of `fetch` a lookup uses. Narrower than `typeof fetch` on purpose:
+ * the global carries properties a plain function cannot supply, so a stand-in
+ * typed against it has to be minted through an assertion rather than written.
+ */
+export type LookupFetch = (
+  url: string,
+  init: { signal: AbortSignal },
+) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
+
 export interface DiscoverOptions {
   override?: string;
-  fetchImpl?: typeof fetch;
+  fetchImpl?: LookupFetch;
   timeoutMs?: number;
   urls?: readonly string[];
 }
@@ -54,7 +64,7 @@ export async function discoverPublicIp(
 async function attemptLookup(
   url: string,
   timeoutMs: number,
-  fetchImpl: typeof fetch,
+  fetchImpl: LookupFetch,
 ): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

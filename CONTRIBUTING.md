@@ -46,8 +46,12 @@ Run all three and make sure they're clean:
 ```bash
 pnpm test          # vitest across every package (via Turborepo)
 pnpm lint          # Biome formats and lints; --write fixes in place
+pnpm lint:ci       # the same rules, verify-only: what CI runs
 pnpm build         # type-check + build all packages
 ```
+
+`lint` fixes and `lint:ci` reports. Reach for `lint` while you work; `lint:ci` is the one that
+can fail, because a run that repairs what it finds has nothing left to fail on.
 
 CI runs `pnpm test` on every push and pull request (`.github/workflows/ci.yml`). All tests must pass.
 

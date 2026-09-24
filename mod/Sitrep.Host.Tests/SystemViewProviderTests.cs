@@ -830,6 +830,7 @@ namespace Sitrep.Host.Tests
         [InlineData("None", RosterCommsControlSource.None)]
         [InlineData("Partial", RosterCommsControlSource.Partial)]
         [InlineData("Full", RosterCommsControlSource.Full)]
+        [InlineData("Unknown", RosterCommsControlSource.Unknown)]
         public void BuildSystemVesselsMapsEveryRosterControlSourceTier(string raw, RosterCommsControlSource expected)
         {
             var snapshot = new KspSnapshot

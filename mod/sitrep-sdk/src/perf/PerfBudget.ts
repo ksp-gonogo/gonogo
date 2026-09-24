@@ -11,6 +11,10 @@ import { logger } from "../api/logger";
  */
 const PERF_BUDGET_REGISTRY_KEY = "__GONOGO_PERF_BUDGETS__" as const;
 
+declare global {
+  var __GONOGO_PERF_BUDGETS__: Set<PerfBudget> | undefined;
+}
+
 /**
  * Soft performance budget. Tracks an event-rate (or volume per second)
  * over a rolling window and emits a warn-level log when the threshold is
@@ -189,11 +193,8 @@ export class PerfBudget {
    * host that may not be installed yet.
    */
   private static get registry(): Set<PerfBudget> {
-    const g = globalThis as unknown as {
-      [PERF_BUDGET_REGISTRY_KEY]?: Set<PerfBudget>;
-    };
-    g[PERF_BUDGET_REGISTRY_KEY] ??= new Set<PerfBudget>();
-    return g[PERF_BUDGET_REGISTRY_KEY];
+    globalThis[PERF_BUDGET_REGISTRY_KEY] ??= new Set<PerfBudget>();
+    return globalThis[PERF_BUDGET_REGISTRY_KEY];
   }
 
   static getAll(): readonly PerfBudget[] {
@@ -222,9 +223,10 @@ export class PerfBudget {
    * available (i.e. outside a test runner).
    */
   static installTestGate(): void {
-    type Hook = (cb: () => void | Promise<void>) => void;
-    const before = (globalThis as unknown as { beforeEach?: Hook }).beforeEach;
-    const after = (globalThis as unknown as { afterEach?: Hook }).afterEach;
+    /* The runner's, read reflectively: declaring them would collide with the
+       types vitest itself contributes wherever both are in one program. */
+    const before: unknown = Reflect.get(globalThis, "beforeEach");
+    const after: unknown = Reflect.get(globalThis, "afterEach");
     if (typeof before !== "function" || typeof after !== "function") return;
 
     let snapshot = new Map<string, number>();

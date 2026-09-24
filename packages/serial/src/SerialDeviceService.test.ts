@@ -2,10 +2,16 @@ import { memoryStorage } from "@ksp-gonogo/core/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MockGamepadAPI } from "./mocks/mockGamepad";
 import { SerialDeviceService } from "./SerialDeviceService";
+import type {
+  DeviceTransport,
+  InputEvent,
+  SchemaUpdate,
+  TransportStatus,
+} from "./transports/DeviceTransport";
 import { GamepadPoller } from "./transports/GamepadPoller";
 import { GamepadTransport } from "./transports/GamepadTransport";
 import type { VirtualTransport } from "./transports/VirtualTransport";
-import type { DeviceInput, DeviceInstance, DeviceType } from "./types";
+import type { DeviceInstance, DeviceType } from "./types";
 
 const TYPE: DeviceType = {
   id: "demo",
@@ -201,24 +207,15 @@ describe("SerialDeviceService: json-state schema updates", () => {
    * Fake transport that pretends to be a WebSerialTransport: it hosts
    * onSchema listeners and lets the test fire schema updates manually.
    */
-  class FakeJsonTransport {
+  class FakeJsonTransport implements DeviceTransport {
     readonly id: string;
     status = "connected" as const;
     type: DeviceType;
     lastFrame: string | Uint8Array | null = null;
 
-    private inputSubs = new Set<
-      (e: { inputId: string; value: boolean | number }) => void
-    >();
-    private statusSubs = new Set<
-      (s: "disconnected" | "connected" | "error") => void
-    >();
-    private schemaSubs = new Set<
-      (u: {
-        inputs?: DeviceInput[] | null;
-        screen?: { type: string; [k: string]: unknown } | null;
-      }) => void
-    >();
+    private inputSubs = new Set<(e: InputEvent) => void>();
+    private statusSubs = new Set<(s: TransportStatus) => void>();
+    private schemaSubs = new Set<(u: SchemaUpdate) => void>();
 
     constructor(id: string, type: DeviceType) {
       this.id = id;
@@ -230,20 +227,15 @@ describe("SerialDeviceService: json-state schema updates", () => {
     async write(data: string | Uint8Array) {
       this.lastFrame = data;
     }
-    onInput(cb: (e: { inputId: string; value: boolean | number }) => void) {
+    onInput(cb: (e: InputEvent) => void) {
       this.inputSubs.add(cb);
       return () => this.inputSubs.delete(cb);
     }
-    onStatus(cb: (s: "disconnected" | "connected" | "error") => void) {
+    onStatus(cb: (s: TransportStatus) => void) {
       this.statusSubs.add(cb);
       return () => this.statusSubs.delete(cb);
     }
-    onSchema(
-      cb: (u: {
-        inputs?: DeviceInput[] | null;
-        screen?: { type: string; [k: string]: unknown } | null;
-      }) => void,
-    ) {
+    onSchema(cb: (u: SchemaUpdate) => void) {
       this.schemaSubs.add(cb);
       return () => this.schemaSubs.delete(cb);
     }
@@ -252,10 +244,7 @@ describe("SerialDeviceService: json-state schema updates", () => {
     }
 
     // test-only: drive a schema update as if it had come from the wire
-    fireSchema(update: {
-      inputs?: DeviceInput[] | null;
-      screen?: { type: string; [k: string]: unknown } | null;
-    }) {
+    fireSchema(update: SchemaUpdate) {
       for (const cb of this.schemaSubs) cb(update);
     }
   }
@@ -286,13 +275,7 @@ describe("SerialDeviceService: json-state schema updates", () => {
       transportFactory: (instance, type) => {
         const t = new FakeJsonTransport(instance.id, type);
         transport = t;
-        return t as unknown as ReturnType<
-          NonNullable<
-            ConstructorParameters<
-              typeof SerialDeviceService
-            >[0]["transportFactory"]
-          >
-        >;
+        return t;
       },
     });
     for (const d of svc.getDevices()) await svc.removeDevice(d.id);

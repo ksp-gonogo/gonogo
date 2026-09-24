@@ -460,7 +460,7 @@ const Wrap = styled.div<{ $tone: Tone }>`
   border: 1px solid ${({ $tone }) => TONE_BORDER[$tone]};
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   /* Rungs, not --inset-surface. This is the floating-chrome band on the 16px
      gutter lock, and nothing names it: taking a banner that overlays the
      dashboard to (6,8) would halve its gutter to make a ratchet number
@@ -493,7 +493,7 @@ const Wrap = styled.div<{ $tone: Tone }>`
 `;
 
 const Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -542,9 +542,9 @@ const AckButton = styled.button`
   background: none;
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -571,9 +571,9 @@ const WarpToButton = styled.button`
   background: var(--color-status-go-bg);
   border: 1px solid var(--color-status-go-bg);
   color: var(--color-status-go-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -596,9 +596,9 @@ const StopWarpButton = styled.button`
   background: var(--color-status-warning-bg);
   border: 1px solid var(--color-status-warning-bg);
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -622,12 +622,12 @@ const SafetyInput = styled.input`
      plus the number spinner, and the control inset takes 24px of a border-box
      width before any of them get a look in. */
   width: 6em;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   font-variant-numeric: tabular-nums;
   &:focus-visible {
     /* 1px, not the 2px house value, and off the spacing ladder either way:

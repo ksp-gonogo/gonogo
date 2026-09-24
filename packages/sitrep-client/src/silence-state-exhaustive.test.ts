@@ -54,6 +54,17 @@ const CLIENT_STATES: ReadonlyArray<FleetVesselSilence["state"]> = [
   "Lost",
 ];
 
+/**
+ * A silence block naming a state this client has never heard of, which is what
+ * a mod AHEAD of it reports and the only way such a value reaches the phase.
+ */
+function asReportedSilence(silence: {
+  state: string;
+  predictedReacquisitionUt?: number;
+}): FleetVesselSilence {
+  return silence as FleetVesselSilence;
+}
+
 describe("SilenceState stays in step with the mod", () => {
   it("reads the enum members out of the C# source at all", () => {
     // Guards the reader: an extractor that returned nothing would make any
@@ -81,15 +92,15 @@ describe("contactPhase and a state it does not recognize", () => {
    * than as a claim of routine silence.
    */
   it("refuses to report an unknown state as a routine wait", () => {
-    const silence = { state: "Destroyed" } as unknown as FleetVesselSilence;
+    const silence = asReportedSilence({ state: "Destroyed" });
     expect(contactPhase(silence, 100)).toBeUndefined();
   });
 
   it("refuses it whether or not a reacquisition was predicted", () => {
-    const silence = {
+    const silence = asReportedSilence({
       state: "Destroyed",
       predictedReacquisitionUt: 50,
-    } as unknown as FleetVesselSilence;
+    });
     // With a prediction in the past this used to read "overdue", which is a
     // statement about a vessel we have no state for.
     expect(contactPhase(silence, 100)).toBeUndefined();

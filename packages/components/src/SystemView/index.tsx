@@ -372,7 +372,16 @@ function SystemViewComponent({
   const bodies = useCelestialBodies();
   // The same catalogue the list above comes from, kept whole because a read
   // frame needs the index lookups and the parent links, not just the bodies.
-  const facts = useProcessor(CELESTIAL_FACTS);
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue. Both value-bearing arms, deliberately.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
   // Streamed Topics: raw `vessel.*` records read straight off the Uplink
   // store via the canonical `useTelemetry(TopicId)` hook: no legacy
   // `DataSource` fallback. The trueAnomaly / next-apsis / encounter scalars
@@ -1227,7 +1236,16 @@ function SystemViewConfigComponent({
   onSave,
 }: Readonly<ConfigComponentProps<SystemViewConfig>>) {
   const bodies = useCelestialBodies();
-  const facts = useProcessor(CELESTIAL_FACTS);
+  /*
+   * A catalogue is a FACT: it changes when the game changes, and nothing
+   * changes it down a link that is not delivering, so a held one is still the
+   * catalogue. Both value-bearing arms, deliberately.
+   */
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "stale"
+      ? factsReading.value
+      : undefined;
   const [frame, setFrame] = useState(config?.frame ?? "auto");
   const [projection, setProjection] = useState(config?.projection ?? "");
 
@@ -1322,7 +1340,7 @@ function SystemViewConfigComponent({
 // inline.
 
 const FRAME_CAPTION: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.05em",
   flex: "0 0 auto",
@@ -1347,7 +1365,7 @@ const COMPACT_VALUE: CSSProperties = {
 };
 
 const COMPACT_SUB: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.05em",
 };

@@ -186,9 +186,9 @@ const ButtonGrid = styled.div`
 const MomentaryButton = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   padding: var(--space-10) 0;
   cursor: pointer;
@@ -216,7 +216,7 @@ const MomentaryButton = styled.button`
 const Frame = styled.pre`
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   color: var(--color-status-info-fg);
   /* Both literal: this pre renders the device's 21x8 ASCII frame buffer, so
      11px is the cell width that keeps 21 columns on one line (--font-size-xs

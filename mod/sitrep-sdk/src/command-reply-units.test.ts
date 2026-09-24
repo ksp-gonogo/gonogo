@@ -2,12 +2,13 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { GENERATED_COMMAND_REPLY_TYPES } from "./__generated__/command-map";
 import type {
   CommandResultOf,
   RepairOutcome,
   VantagePlanReply,
 } from "./__generated__/contract";
-import { COMMAND_REPLY_TYPES, wrapCommandReply } from "./command-reply-units";
+import { wrapCommandReply } from "./command-reply-units";
 import { isValue } from "./unit-system";
 
 const GENERATED_COMMAND_MAP = join(
@@ -17,13 +18,13 @@ const GENERATED_COMMAND_MAP = join(
 );
 
 /**
- * The generated reply map, read as TEXT.
+ * The generated reply map's INTERFACE half, read as TEXT.
  *
  * `GeneratedCommandReplyMap` is an interface, so it is erased before anything
- * can compare against it at runtime and a `test-d` assertion cannot check a
- * table of strings. Reading the file is the only instrument that can see both
- * halves at once, and it is the same one `wire-payload-coverage.mjs` already
- * uses on this interface.
+ * can compare against it at runtime, and a `test-d` assertion cannot check a
+ * table of strings. Reading the file is the only instrument that can see the
+ * interface and its runtime twin at once, and it is the same one
+ * `wire-payload-coverage.mjs` already uses on this interface.
  */
 function parseGeneratedReplyMap(): Record<string, string> {
   const source = readFileSync(GENERATED_COMMAND_MAP, "utf8");
@@ -43,27 +44,27 @@ function parseGeneratedReplyMap(): Record<string, string> {
   return entries;
 }
 
-describe("the hand-written command reply-type table", () => {
+describe("the generated reply-type map's two halves", () => {
   const generated = parseGeneratedReplyMap();
 
   /*
    * The guard on the guard. A regex that stopped matching would parse an empty
-   * map, every comparison below would hold vacuously, and the table could then
-   * say anything at all. 50 is well under the live count so ordinary growth
-   * never trips it, and a parse that collapses can never reach it.
+   * map, every comparison below would hold vacuously, and the runtime half
+   * could then say anything at all. 50 is well under the live count so ordinary
+   * growth never trips it, and a parse that collapses can never reach it.
    */
   it("parsed the generated interface at all", () => {
     expect(Object.keys(generated).length).toBeGreaterThan(50);
   });
 
-  it("names the same commands the generated map does", () => {
-    expect(Object.keys(COMMAND_REPLY_TYPES).sort()).toEqual(
+  it("names the same commands in both halves", () => {
+    expect(Object.keys(GENERATED_COMMAND_REPLY_TYPES).sort()).toEqual(
       Object.keys(generated).sort(),
     );
   });
 
   it("names the same type for each of them, spelled identically", () => {
-    expect(COMMAND_REPLY_TYPES).toEqual(generated);
+    expect({ ...GENERATED_COMMAND_REPLY_TYPES }).toEqual(generated);
   });
 });
 

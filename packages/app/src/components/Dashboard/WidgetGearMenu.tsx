@@ -173,7 +173,6 @@ const GearBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
 

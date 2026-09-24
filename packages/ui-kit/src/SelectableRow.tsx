@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 import { RADIUS_VAR, SPACE_VAR, type SpaceToken } from "./scales";
 
 export interface SelectableRowProps
@@ -57,7 +58,7 @@ const SelectableRow__Root = styled.button<{
   width: 100%;
   text-align: left;
   padding: ${SPACE_VAR.xs} ${SPACE_VAR.sm};
-  border-radius: ${RADIUS_VAR.sm};
+  border-radius: ${RADIUS_VAR.regular};
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "transparent" : "var(--color-border-subtle)"};
@@ -67,8 +68,5 @@ const SelectableRow__Root = styled.button<{
     $selected ? "var(--color-status-go-fg)" : "inherit"};
   cursor: pointer;
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;

@@ -55,7 +55,9 @@ function sidecarOf(raw: Record<string, unknown>): PartStateSidecar {
   const out: PartStateSidecar = {};
   for (const [flightId, modules] of Object.entries(raw)) {
     if (flightId === "_comment") continue;
-    out[flightId] = modules as PartStateModule[];
+    out[flightId] = Array.isArray(modules)
+      ? (modules as PartStateModule[])
+      : [];
   }
   return out;
 }

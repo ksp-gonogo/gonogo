@@ -16,6 +16,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
+import type { PeerMessage } from "../peer/protocol";
 import type { SettingsService } from "../settings";
 import { __resetSharedAudioContextForTests } from "../sound/audio";
 import {
@@ -23,13 +24,14 @@ import {
   initSoundSettings,
 } from "../sound/soundSettings";
 import { installFakeAudio, makeSoundService } from "../test/fakeAudio";
+import { asHostService } from "../test/peerFakes";
 
 // ---------------------------------------------------------------------------
 // Fakes: small stand-ins so we can drive events deterministically
 // ---------------------------------------------------------------------------
 
 class FakeHost {
-  broadcasts: unknown[] = [];
+  broadcasts: PeerMessage[] = [];
   private listeners = {
     connect: new Set<(peerId: string) => void>(),
     disconnect: new Set<(peerId: string) => void>(),
@@ -43,7 +45,7 @@ class FakeHost {
     abort: new Set<(peerId: string) => void>(),
   };
 
-  broadcast(msg: unknown): void {
+  broadcast(msg: PeerMessage): void {
     this.broadcasts.push(msg);
   }
 
@@ -91,7 +93,7 @@ class FakeHost {
   }
 
   asHost(): PeerHostService {
-    return this as unknown as PeerHostService;
+    return asHostService(this);
   }
 }
 
@@ -158,6 +160,24 @@ class FakeTimelineStore {
 async function drainDispatch(): Promise<void> {
   await Promise.resolve();
   await Promise.resolve();
+}
+
+/**
+ * The service's most recent broadcast at the given type, or a failure naming
+ * what it sent instead. `PeerMessage` is a discriminated union, so narrowing on
+ * `type` is what gives the assertions below the fields they read.
+ */
+function lastBroadcast<T extends PeerMessage["type"]>(
+  host: FakeHost,
+  type: T,
+): Extract<PeerMessage, { type: T }> {
+  const msg = host.broadcasts.at(-1);
+  if (!msg || msg.type !== type) {
+    throw new Error(
+      `expected a ${type} broadcast, got: ${msg?.type ?? "none"}`,
+    );
+  }
+  return msg as Extract<PeerMessage, { type: T }>;
 }
 
 describe("GoNoGoHostService", () => {
@@ -255,11 +275,7 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).toBeNull();
     host.fireVote("peer-2", "go");
     expect(svc.getSnapshot().countdown).not.toBeNull();
-    const countdownStart = host.broadcasts.at(-1) as {
-      type: string;
-      t0Ms: number;
-    };
-    expect(countdownStart.type).toBe("gonogo-countdown-start");
+    const countdownStart = lastBroadcast(host, "gonogo-countdown-start");
     expect(countdownStart.t0Ms).toBeGreaterThan(Date.now());
   });
 
@@ -269,8 +285,7 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
     host.fireVote("peer-1", "no-go");
     expect(svc.getSnapshot().countdown).toBeNull();
-    const cancel = host.broadcasts.at(-1) as { type: string; reason?: string };
-    expect(cancel.type).toBe("gonogo-countdown-cancel");
+    const cancel = lastBroadcast(host, "gonogo-countdown-cancel");
     expect(cancel.reason).toContain("no-go");
   });
 
@@ -280,7 +295,7 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
     host.fireConnect("peer-2");
     expect(svc.getSnapshot().countdown).toBeNull();
-    const cancel = host.broadcasts.at(-1) as { type: string; reason?: string };
+    const cancel = lastBroadcast(host, "gonogo-countdown-cancel");
     expect(cancel.reason).toContain("new station");
   });
 
@@ -362,11 +377,7 @@ describe("GoNoGoHostService", () => {
     const snap = svc.getSnapshot();
     expect(snap.abort?.stationName).toBe("CAPCOM");
     expect(snap.abort?.peerId).toBe("peer-1");
-    const notify = host.broadcasts.at(-1) as {
-      type: string;
-      stationName: string;
-    };
-    expect(notify.type).toBe("gonogo-abort-notify");
+    const notify = lastBroadcast(host, "gonogo-abort-notify");
     expect(notify.stationName).toBe("CAPCOM");
   });
 
@@ -396,11 +407,7 @@ describe("GoNoGoHostService", () => {
     host.fireAbort("peer-1");
     await drainDispatch();
     expect(abortDispatches()).toHaveLength(1);
-    const notify = host.broadcasts.at(-1) as {
-      type: string;
-      stationName: string;
-    };
-    expect(notify.type).toBe("gonogo-abort-notify");
+    const notify = lastBroadcast(host, "gonogo-abort-notify");
     expect(notify.stationName).toBe("CAPCOM");
   });
 

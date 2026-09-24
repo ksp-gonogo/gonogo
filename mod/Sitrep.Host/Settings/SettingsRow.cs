@@ -32,6 +32,12 @@ namespace Sitrep.Host.Settings
             Path = path;
             Kind = kind;
             DefaultText = defaultText ?? string.Empty;
+            var refusal = SettingsText.RefusalOf(DefaultText);
+            if (refusal != null)
+            {
+                throw new ArgumentException(path + ": " + refusal, nameof(defaultText));
+            }
+
             if (!Accepts(DefaultText))
             {
                 throw new ArgumentException(
@@ -79,6 +85,80 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public static class SettingsText
     {
+        /// <summary>
+        /// Why <paramref name="text"/> cannot be stored as a settings value, or
+        /// null when it can.
+        ///
+        /// <para>A value is a single line with no <c>//</c>, no brace, no tab
+        /// and no leading or trailing whitespace. Each of those is changed by
+        /// KSP's own parser or writer without an error: <c>//</c> is read back
+        /// as the start of a comment and the rest of the value is lost, a brace
+        /// is rewritten to a bracket on the way out, a tab becomes a space, edge
+        /// whitespace is trimmed on the way in, and a line break reaching
+        /// <c>ConfigNode.SetValue</c> is written literally and breaks the file's
+        /// structure. There is no escape in the format, so a value that needs
+        /// any of them is split into several rows rather than encoded.</para>
+        ///
+        /// <para><c>=</c>, <c>:</c> and an empty value are all safe.</para>
+        /// </summary>
+        public static string? RefusalOf(string? text) => HazardIn(text, "value");
+
+        /// <summary>
+        /// Why <paramref name="name"/> cannot name a settings row or block, or
+        /// null when it can: everything a value refuses, plus emptiness and
+        /// <c>=</c>, which KSP's reader takes as the end of the name.
+        /// </summary>
+        public static string? RefusalOfName(string? name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return "a settings name cannot be empty";
+            }
+
+            if (name!.IndexOf('=') >= 0)
+            {
+                return "a settings name cannot contain =, which KSP reads as the end of the name";
+            }
+
+            return HazardIn(name, "name");
+        }
+
+        private static string? HazardIn(string? text, string what)
+        {
+            if (text == null)
+            {
+                return "a settings " + what + " cannot be null";
+            }
+
+            if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)
+            {
+                return "a settings " + what + " is a single line, and this one spans several";
+            }
+
+            if (text.IndexOf("//", StringComparison.Ordinal) >= 0)
+            {
+                return "a settings " + what
+                    + " cannot contain //, which KSP reads back as the start of a comment and truncates";
+            }
+
+            if (text.IndexOf('{') >= 0 || text.IndexOf('}') >= 0)
+            {
+                return "a settings " + what + " cannot contain a brace, which KSP rewrites to a bracket when it saves";
+            }
+
+            if (text.IndexOf('\t') >= 0)
+            {
+                return "a settings " + what + " cannot contain a tab, which KSP writes as a space";
+            }
+
+            if (text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1])))
+            {
+                return "a settings " + what + " cannot start or end with whitespace, which KSP trims when it reads";
+            }
+
+            return null;
+        }
+
         public static string FromBool(bool value) => value ? "True" : "False";
 
         public static string FromNumber(double value) =>

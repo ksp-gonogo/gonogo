@@ -396,18 +396,18 @@ registerComponent<KosScriptTriggerConfig>({
 export { KosScriptTriggerComponent };
 
 const NoCpuNotice = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
 const StaticCpu = styled.div`
   font-family: monospace;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
 `;
 
 const RoundTrip = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
@@ -419,7 +419,7 @@ const Running = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
@@ -439,7 +439,7 @@ const FieldRowLine = styled.div`
   display: flex;
   gap: var(--gap-related);
   font-family: monospace;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const FieldKey = styled.span`
@@ -452,13 +452,13 @@ const FieldValue = styled.span`
 `;
 
 const FieldsEmpty = styled.div`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
 const ErrorText = styled.div`
   font-family: monospace;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
   word-break: break-word;
 `;

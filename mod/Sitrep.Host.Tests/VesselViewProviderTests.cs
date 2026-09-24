@@ -17,6 +17,7 @@ namespace Sitrep.Host.Tests
     /// provenance (<c>meta.source</c>), and the wire-adapter's real
     /// serialization path.
     /// </summary>
+    [Collection("VesselViewProviderStatics")]
     public class VesselViewProviderTests
     {
         private const string VesselGuid = "11111111-2222-3333-4444-555555555555";
@@ -2864,16 +2865,15 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void PayloadMetaHasNoValidAtEvenAtTheNowUtSentinelZero()
+        public void PayloadMetaHasNoValidAtAtUtZero()
         {
-            // KspHost.NowUt() returns 0 as a fallback sentinel when
-            // Planetarium.GetUniversalTime() throws -- e.g. at the main
-            // menu, before any save is loaded (KspHost.cs:79-83). Before
-            // Fix C that 0 leaked onto EVERY payload's own meta as a
-            // fabricated "validAt":0; PayloadMeta doesn't carry the field
-            // at all now, so there's nothing left for the sentinel to leak
-            // into. Uses time.warp (BuildWarp), the one channel that
-            // legitimately emits with snapshot.Ut == 0 and no active vessel.
+            // UT 0 is reachable: a recording whose host had no clock yet
+            // stamps its start there, and ManualClock begins there. Before
+            // Fix C a 0 UT leaked onto EVERY payload's own meta as a
+            // fabricated "validAt":0; PayloadMeta doesn't carry the field at
+            // all now, so there is nothing left for it to leak into. Uses
+            // time.warp (BuildWarp), the one channel that legitimately emits
+            // with snapshot.Ut == 0 and no active vessel.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,

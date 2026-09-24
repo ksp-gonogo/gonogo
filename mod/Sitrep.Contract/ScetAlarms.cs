@@ -7,10 +7,10 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Which kind of condition a SCET alarm watches for.
 ///
-/// <para>A SCET vantage is meaningful exactly where the craft's TRUE state and
-/// the state the ground has been told differ, which is why there is no member
-/// here for a contract parameter: career bookkeeping is known to the command
-/// centre without any link, so there is no gap for a vantage to straddle.</para>
+/// <para>Every alarm has a vantage, so a kind is only about WHAT is watched.
+/// A contract parameter has no member here yet because it reads a list-shaped
+/// Topic and a dotted path cannot index a list, so it needs a matcher of its
+/// own rather than a threshold's.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -248,9 +248,11 @@ public class ScetAlarm
     /// The command centre the arm command was sent from, as a
     /// <c>commandCentre.roster</c> id.
     ///
-    /// <para>Provenance only: a SCET alarm stops the warp for everybody,
-    /// because warp is a property of the simulation rather than of any one
-    /// vantage. This says who asked for it, never who it applies to.</para>
+    /// <para>Who ASKED for the alarm, never where it is read. That is
+    /// <see cref="Vantage"/>, and the two are separate jobs: this is also the
+    /// one field a screen at a different vantage may render, because the
+    /// condition and the target would tell it something about a craft faster
+    /// than the light carrying it.</para>
     /// <internal>
     /// Resolved by the engine from where the command entered
     /// (<c>AddVantageCommandHandler</c>) rather than taken from the arm
@@ -269,38 +271,38 @@ public class ScetAlarm
     public string ArmedBy { get; set; } = "";
 
     /// <summary>
-    /// Whose ledger the condition is read against, and therefore who the fire
-    /// notice is for. Empty is the simulation itself; anything else is a place,
-    /// spelled as a <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
-    /// <c>"vessel:&lt;guid&gt;"</c>).
+    /// The place whose knowledge the condition is read against, and therefore
+    /// the place that decides WHEN this alarm comes due. A
+    /// <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
+    /// <c>"vessel:&lt;guid&gt;"</c>), or empty, which is read as the alarm's own
+    /// <see cref="Subject"/>.
+    ///
+    /// <para>A vantage that IS the subject reads the craft's true state, so the
+    /// alarm comes due at the instant the condition is met. Any other vantage
+    /// reads what that place has been told, which is a light-time old and
+    /// different everywhere, so the same condition comes due there when the
+    /// light carrying it lands. The vantage decides when, never whether.</para>
     ///
     /// <para><b>Distinct from <see cref="ArmedBy"/>, which is provenance.</b>
-    /// That says where the arm command came from and nothing else. This says
-    /// which body of knowledge the condition is compared against: empty means
-    /// the craft's TRUE state, upstream of the reveal gate, and the warp stop
-    /// that follows is universal because warp belongs to the simulation. A
-    /// named place means what THAT place has been told, which is a light-time
-    /// old and different at every vantage, so the answer is that place's alone
-    /// and stops nothing.</para>
+    /// That says where the arm command came from and nothing else. An operator
+    /// at one centre may legitimately ask when ANOTHER centre will know, and
+    /// where the command entered cannot express that.</para>
     ///
     /// <para>A place, never a connection. Two operators sharing a command
-    /// centre share its ledger and its answer, and a browser reconnecting is
+    /// centre share its knowledge and its answer, and a browser reconnecting is
     /// the same place it was before, so the simulation never learns that
     /// clients exist.</para>
     /// <internal>
     /// Taken from the arm ARGUMENTS rather than resolved from where the command
-    /// entered, which is the opposite of <see cref="ArmedBy"/> and deliberate:
-    /// an operator at one centre may legitimately ask what ANOTHER centre can
-    /// currently see, and the entering vantage cannot express that. It is not a
-    /// trust hole, because nothing an audience can decide leaves that audience:
-    /// see <c>Gonogo.KSP.ScetAlarmUplink</c>, where a non-empty audience routes
-    /// into its own <c>ScetAlarmRoster</c> whose <c>StopWarp</c> is discarded.
-    /// Readings for it come from <c>Sitrep.Host.Alarms.RevealedScetStateReader</c>,
-    /// which goes through <c>Archive.ReadAtVantage</c>.
+    /// entered, which is the opposite of <see cref="ArmedBy"/>. Resolved to
+    /// <see cref="Subject"/> at arm time when empty, which is what keeps the
+    /// rename off a flag day: an older client's arm still lands somewhere
+    /// correct. <c>Sitrep.Host.Alarms.ScetAlarmVantage</c> holds the rule, and
+    /// which of the two readers an entry gets follows from it.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
-    public string Audience { get; set; } = "";
+    public string Vantage { get; set; } = "";
 
     /// <summary>
     /// What the condition is about: <c>"vessel:&lt;guid&gt;"</c> for a craft, or
@@ -378,19 +380,17 @@ public class ScetAlarmFired
     public double FiredAtUt { get; set; }
 
     /// <summary>
-    /// Whose answer this is, echoing the <see cref="ScetAlarm.Audience"/> it was
-    /// armed under. Empty is the simulation's own verdict, and the one that
-    /// stopped the warp.
+    /// The place that learned it, echoing the <see cref="ScetAlarm.Vantage"/> it
+    /// was armed at.
     ///
-    /// <para>Carried rather than left to the client to look up, because the two
-    /// kinds of notice mean different things and a reader that has to consult
-    /// the roster first is a reader that will act on the wrong one. A
-    /// simulation notice is a fact about the craft and the warp is already
-    /// stopped; an audience notice is a statement about what one place has been
-    /// told, true only there, and nothing in the game moved because of it.</para>
+    /// <para>Carried rather than left to the client to look up, because a reader
+    /// that has to consult the roster first is a reader that will act on the
+    /// wrong notice. A notice at the subject's own vantage is a fact about the
+    /// craft at the instant it happened; a notice at anywhere else is a
+    /// statement about what that place has been told, true only there.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
-    public string Audience { get; set; } = "";
+    public string Vantage { get; set; } = "";
 }
 
 /// <summary>
@@ -419,12 +419,12 @@ public class ScetAlarmArmArgs
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// See <see cref="ScetAlarm.Audience"/>. Empty arms against the simulation,
-    /// which is what every alarm did before this field existed, so an older
-    /// client's arm keeps the behaviour it had.
+    /// See <see cref="ScetAlarm.Vantage"/>. Empty is accepted and resolved at
+    /// arm time to <see cref="Subject"/>, which is the behaviour every alarm
+    /// already had, so a client that names no vantage keeps it.
     /// </summary>
     [SitrepUnit(Units.Id)]
-    public string Audience { get; set; } = "";
+    public string Vantage { get; set; } = "";
 
     /// <summary>See <see cref="ScetAlarm.Subject"/>. Empty is read as <c>"game"</c>.</summary>
     [SitrepUnit(Units.Id)]

@@ -258,6 +258,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // unwrap is the reconstruction rather than an escape.
   "packages/components/src/Navball/index.tsx": 1,
   "packages/components/src/OrbitView/index.tsx": 6,
+  /*
+   * ONE, on a quotient `dividedBy` has already made dimensionless: a part
+   * meter's fill, which becomes an SVG length and a spoken percentage. The
+   * division is the dimension check, and the single unwrap is where the
+   * fraction stops being a quantity.
+   */
+  "packages/components/src/ShipMap/ShipDiagramSvg.tsx": 1,
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
   // 1: the view instant, unwrapped to bound a history window. sampleRange
   // takes plain UT numbers because a store index is not a quantity.
@@ -276,7 +283,17 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // `magnitudeOf` instead and so does not count here. What is left is the five
   // elements the shared Kepler solver takes as canonical SI numbers.
   "packages/components/src/SystemView/usePhaseAngles.ts": 5,
-  "packages/components/src/Targeting/index.tsx": 5,
+  /*
+   * THREE, and each is a boundary rather than arithmetic: the view UT the
+   * widget subtracts from, a stream field that arrives as a bare number, and a
+   * dot product handed to a reticle that draws in bare numbers.
+   *
+   * The age the widget shows is no longer among them. It is carried as the
+   * quantity it is, from the subtraction all the way to the `<Unit>` that
+   * writes it, and clamped by the algebra's own `max(0)` rather than by
+   * `Math.max` on an unwrapped magnitude.
+   */
+  "packages/components/src/Targeting/index.tsx": 3,
   "packages/components/src/ThermalStatus/index.tsx": 13,
   // 1: the Δv budget the reach list compares against.
   // `calc/transfer.ts` and the porkchop are deliberately plain-SI ("no React,
@@ -375,11 +392,22 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * Tape spends the most because it has the most axis props (value, min, max,
    * tickStep, groundLine, plus a zone pair and a marker each). DivergingBar
    * spends ONE, on a quotient that `dividedBy` has already made dimensionless.
+   *
+   * Each of the three now funnels every OTHER quantity through one named step
+   * onto its own geometry, so a zone bound, a marker and a band end share the
+   * single unwrap rather than taking one each. What made that possible is the
+   * comparison moving into the algebra: `min`/`max` convert before they
+   * compare, where `Math.min` on two magnitudes orders a bound written on
+   * another rung of the same kind by its bare number.
+   *
+   * The ordering and the emptiness of a zone stay decided on QUANTITIES rather
+   * than on the pixels they become. Deciding them on the geometry would flip
+   * every zone on a dial drawn with a negative sweep.
    */
-  "packages/ui-kit/src/Dial.tsx": 6,
+  "packages/ui-kit/src/Dial.tsx": 5,
   "packages/ui-kit/src/DivergingBar.tsx": 1,
-  "packages/ui-kit/src/Gauge.tsx": 5,
-  "packages/ui-kit/src/Tape.tsx": 8,
+  "packages/ui-kit/src/Gauge.tsx": 4,
+  "packages/ui-kit/src/Tape.tsx": 6,
   /*
    * ONE, and it is the fill fraction every primitive drawn from an
    * amount/capacity pair is derived by. Moved here from Meter.tsx, which held
@@ -401,24 +429,23 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   /*
-   * 5. Three of the five are the seam `units.ts` spends
-   * its three on: `formatQuantity` takes the magnitude and the unit as two
-   * plain arguments, so a quantity object cannot be handed over whole. One of
-   * those three is the staleness hover rendering the reading's own `asOfUt` on
-   * the game's calendar, through the formatter rather than around it, so a held
-   * number and a `<MissionDate>` beside it cannot print two spellings of one
-   * instant, and one is the single writer every end of the band goes through.
+   * TWO, and both are the seam `units.ts` spends its three on: `formatQuantity`
+   * takes the magnitude and the unit as two plain arguments, so a quantity
+   * cannot be handed over whole. One is the single writer every end of the band
+   * goes through, and the other is the figure itself.
    *
-   * The OTHER TWO are an API gap and are worth widening `Value` to close.
-   * `minus` is declared over `Addend<U>`, which a bare `U extends string`
-   * cannot be shown to satisfy, so `band.hi.minus(band.value)` does not compile
-   * inside a component generic over its unit even though both operands are one
-   * `Value<U>`. The two half-widths are therefore subtracted on magnitudes,
-   * with the dimension already established by `bandIn` having narrowed all
-   * three ends to the same unit. Give `minus` a same-unit overload and this
-   * entry falls to 3 on its own.
+   * The two half-widths that used to sit here are gone: they are `minus` now,
+   * which is the same dimension check `bandIn` has already applied to all three
+   * ends.
    */
-  "packages/ui-kit/src/Unit.tsx": 5,
+  "packages/ui-kit/src/Unit.tsx": 2,
+  /*
+   * ONE, on the same `formatQuantity` seam: the staleness caption renders the
+   * reading's own `asOfUt` on the game's calendar through the formatter rather
+   * than around it, so a held number and a `<MissionDate>` beside it cannot
+   * print two spellings of one instant.
+   */
+  "packages/ui-kit/src/readingCurrency.ts": 1,
   /*
    * ONE, and it is the same fill fraction `fillQuantity.ts` spends its own on:
    * `Meter` takes the pair as two props, so the division belongs to this file,

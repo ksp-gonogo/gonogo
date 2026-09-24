@@ -1,4 +1,9 @@
-import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Quality,
+  type Reading,
+  Staleness,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   activateProcessor,
   clearProcessorRuntime,
@@ -82,8 +87,17 @@ afterEach(() => {
 
 // Reads whatever store `setActiveTimelineStore` last made active, which is why
 // it takes no store: the one it used to accept was never looked at.
+function readReading(): Reading<ShipSystems> | undefined {
+  return getProcessorValue(SHIP_SYSTEMS.id) as Reading<ShipSystems> | undefined;
+}
+
+/* The summary itself. This processor deps on a reading, so what it answers with
+   is a reading of the summary, and both value-bearing arms carry one. */
 function read(): ShipSystems | undefined {
-  return getProcessorValue(SHIP_SYSTEMS.id) as ShipSystems | undefined;
+  const reading = readReading();
+  return reading?.state === "observed" || reading?.state === "stale"
+    ? reading.value
+    : undefined;
 }
 
 describe("a Ship Systems summary reports the currency of its levels", () => {
@@ -101,6 +115,50 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
     // what lets an age be a subtraction rather than a helper.
     expect(read()?.levels.asOfUt).toEqual(value("ut", 100));
     expect(read()?.levels.ageSec).toBe(0);
+  });
+
+  it("dates its own answer, not just the levels inside it", () => {
+    /*
+     * The processor deps on a reading, so the ANSWER carries currency too. The
+     * `levels` field above is the summary's own statement about the resources
+     * it reasoned across; this is the reading the consumer is handed, and a
+     * widget marks its panel from it without reaching inside.
+     */
+    const wall = fakeWall();
+    const store = predictedStore(wall);
+    setActiveTimelineStore(store);
+    deactivate = activateProcessor(SHIP_SYSTEMS.id);
+
+    store.ingest("vessel.resources", resourcesPoint(100, 80));
+    store.beginFrame();
+    expect(readReading()?.state).toBe("observed");
+
+    wall.advanceBy(1200);
+    store.setTransportConnected(false);
+    store.beginFrame();
+
+    const reading = readReading();
+    expect(reading?.state).toBe("stale");
+    // Dated by the OBSERVATION behind it, never by the frame that read it.
+    expect(reading?.asOfUt).toEqual(value("ut", 100));
+    // The summary survives the staleness: holding it is the whole point.
+    expect(reading?.value?.levels.state).toBe("stale");
+  });
+
+  it("still answers when a dep never arrived, rather than gating on it", () => {
+    /*
+     * `compute` was handed the reading and had already decided what an absent
+     * one means, so the dating is laid over its answer rather than deciding
+     * whether there is one. Gating here would blank a summary the derivation
+     * deliberately produced.
+     */
+    const wall = fakeWall();
+    const store = predictedStore(wall);
+    setActiveTimelineStore(store);
+    deactivate = activateProcessor(SHIP_SYSTEMS.id);
+
+    store.beginFrame();
+    expect(readReading()?.value).toBeDefined();
   });
 
   it("says STALE, and how old, once the levels stop arriving", () => {

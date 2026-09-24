@@ -4,12 +4,11 @@
  * `scripts/chart-provenance-probe/__fixtures__/`, to a PNG under
  * `local_docs/renders/reckoning/`.
  *
- * Uses a dedicated probe (the pattern `render-descent-envelope-drag.ts` sets)
- * rather than the widget-fixture harness, for a reason that is the point of
- * the renders: the reckoned state has NO PRODUCER on the stream, so no
- * telemetry fixture can drive it. `LineChart` is presentational (arrays in,
- * SVG out), so it mounts here with explicit props and the picture shows the
- * presentation the moment a model exists to fill it.
+ * Uses a dedicated probe rather than the widget-fixture harness, for a reason
+ * that is the point of the renders: the reckoned state has NO PRODUCER on the
+ * stream, so no telemetry fixture can drive it. `LineChart` is presentational
+ * (arrays in, SVG out), so it mounts here with explicit props and the picture
+ * shows the presentation the moment a model exists to fill it.
  */
 import {
   mkdir,

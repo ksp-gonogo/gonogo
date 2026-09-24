@@ -92,10 +92,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     /*
      * ShipSystems: the Kerbalism vessel-wide resource ledger. Carried over
      * from `@ksp-gonogo/components`'s widgets.ts unchanged, fixtures and all,
-     * so a render keeps the name it had. The committed baselines under
-     * `packages/components/visual-baselines/<engine>/kerbalism-ship-systems`
-     * stay where they are and go unvisited until a driver runs here, the same
-     * state space-weather's have been in since it moved.
+     * so a render keeps the name it had. No committed baseline is diffed
+     * against these renders: a visual gate for this Uplink holds its own
+     * baselines beside it, since it cannot read another package's.
      *
      * They live in a `probe/` SUBFOLDER of the widget's own `__fixtures__/`,
      * apart from the `_scene` fixtures beside them: the `gonogo-uplink render`

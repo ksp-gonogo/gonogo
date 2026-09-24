@@ -34,7 +34,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class KosProcessorsWireTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         // Mirrors Gonogo.KosUplink.KosExtension exactly: a Delayed channel backed by
         // Publisher + AddSampledSource, whose captured payload is a
@@ -111,7 +111,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(1001.0, new KspSnapshot { Ut = 1001.0 }, Timeout);
                 engine.TickAndWait(1002.0, new KspSnapshot { Ut = 1002.0 }, Timeout);
 
-                var delivered = await DrainToLatestStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                var delivered = await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet);
                 Assert.NotNull(delivered);
                 Assert.Equal(ProcessorsStyleUplink.Topic, delivered!.Topic);
             }

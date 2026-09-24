@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { CONTRACT_MAJOR, CONTRACT_MINOR } from "@ksp-gonogo/sitrep-sdk";
 import { UI_KIT_VERSION } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 
 /**
  * The published compat numbers must equal the things they mirror.
@@ -64,12 +65,9 @@ describe("published compat versions mirror their sources", () => {
   });
 
   it("UI_KIT_VERSION equals the kit's package version", () => {
-    const pkg = JSON.parse(
-      readFileSync(
-        join(REPO_ROOT, "packages", "ui-kit", "package.json"),
-        "utf8",
-      ),
-    ) as { version: string };
+    const pkg = readJsonObject(
+      join(REPO_ROOT, "packages", "ui-kit", "package.json"),
+    );
     expect(UI_KIT_VERSION).toBe(pkg.version);
   });
 

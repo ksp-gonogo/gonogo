@@ -211,7 +211,7 @@ function offencesIn(code: string): string[] {
 
 describe("A: the primitives are declared over the per-value Reading", () => {
   it.each([
-    ["packages/ui-kit/src/Unit.tsx", "UnitValue"],
+    ["packages/ui-kit/src/readingCurrency.ts", "UnitValue"],
     ["packages/ui-kit/src/Meter.tsx", "MeterValue"],
   ])("%s types %s over Reading and never TopicReading", (file, alias) => {
     const code = readFileSync(join(REPO_ROOT, file), "utf8");

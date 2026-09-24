@@ -417,14 +417,18 @@ interface DocsExempt {
 }
 
 async function readDocsExempt(dir: string): Promise<DocsExempt> {
+  const file = join(dir, "docs-exempt.json");
+  let parsed: unknown;
   try {
-    return JSON.parse(
-      await readFile(join(dir, "docs-exempt.json"), "utf8"),
-    ) as DocsExempt;
+    parsed = JSON.parse(await readFile(file, "utf8"));
   } catch {
     // Absent is the normal case and means "every augment must render".
     return {};
   }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${file} does not hold a JSON object.`);
+  }
+  return parsed as DocsExempt;
 }
 
 /**

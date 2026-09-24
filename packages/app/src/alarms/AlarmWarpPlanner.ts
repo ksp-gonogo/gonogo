@@ -1,6 +1,6 @@
 import { slopeFit } from "@ksp-gonogo/core";
 import { getValue } from "@ksp-gonogo/sitrep-client";
-import { type Alarm, isScetTrigger } from "./types";
+import { type Alarm, isAtSubjectVantage } from "./types";
 
 interface ThresholdSample {
   ut: number;
@@ -80,11 +80,17 @@ export class AlarmWarpPlanner {
    */
   recordThresholdSample(alarm: Alarm, ut: number): void {
     if (alarm.trigger.kind !== "threshold") return;
-    /* Samples exist to fit an ETA for the warp-to ladder, and a SCET threshold
-       has no use for one: the mod stops the warp itself, in the frame it
-       decides to, so a ladder planned from delayed samples would only be a
-       second authority arriving late. */
-    if (isScetTrigger(alarm.trigger)) return;
+    /* Samples exist to fit an ETA for the warp-to ladder, and a mod-stopped
+       threshold has no use for one: the mod stops the warp itself, in the frame
+       it decides to, so a ladder planned from delayed samples would only be a
+       second authority arriving late.
+
+       Asks the WARP-STOP question, not the vantage one. They coincide today
+       because every alarm the mod holds is at its own subject's vantage or is
+       a command-vantage threshold it does not yet latch. They diverge when
+       that threshold flips: this then wants `ScetAlarmBridge.holdsAlarm`, and
+       the planner has no bridge to ask. */
+    if (isAtSubjectVantage(alarm.trigger)) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) {
       this.thresholdSamples.delete(alarm.id);
       return;
@@ -122,13 +128,12 @@ export class AlarmWarpPlanner {
       if (a.state !== "pending") continue;
       let remaining: number;
       if (a.trigger.kind === "time") {
-        /* A SCET instant is on the craft's clock and `ut` is on the view
-           clock, so the light-time comes off it: the mod will stop the warp
-           when the GAME reaches `ut - lead`, which the operator's screen
-           reaches one light-time earlier. */
-        const vantageOffset = isScetTrigger(a.trigger)
-          ? safeOwltSeconds(this.getOwltSeconds())
-          : 0;
+        /* Every time instant is the game's own universal time and `ut` is the
+           view clock, so the light-time always comes off it: the mod stops the
+           warp when the GAME reaches `ut - lead`, which the operator's screen
+           reaches one light-time later. Not conditional, because a time alarm
+           carries no vantage to be conditional on. */
+        const vantageOffset = safeOwltSeconds(this.getOwltSeconds());
         remaining = a.trigger.ut - vantageOffset - a.trigger.leadSeconds - ut;
       } else {
         const eta = this.estimateThresholdEta(a);
@@ -154,11 +159,17 @@ export class AlarmWarpPlanner {
       // there's no scalar to warp toward, so they're not warp-targetable.
       if (a.trigger.kind === "contract-parameter") continue;
       if (a.trigger.kind === "event") continue;
-      /* A SCET threshold is not warp-targetable either, for a different
-         reason: there IS a scalar, but the mod is watching it and will stop the
-         warp on its own. A ladder aimed at it would be planning against
-         readings a light-time behind the comparison that decides it. */
-      if (isScetTrigger(a.trigger)) continue;
+      /* Not warp-targetable either, for a different reason: there IS a scalar,
+         but the mod is watching it and will stop the warp on its own. A ladder
+         aimed at it would be planning against readings a light-time behind the
+         comparison that decides it.
+
+         Asks the WARP-STOP question, not the vantage one. They coincide today
+         because every alarm the mod holds is at its own subject's vantage or is
+         a command-vantage threshold it does not yet latch. They diverge when
+         that threshold flips: this then wants `ScetAlarmBridge.holdsAlarm`, and
+         the planner has no bridge to ask. */
+      if (isAtSubjectVantage(a.trigger)) continue;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") continue;
       if (a.matchSinceUT != null) continue;
@@ -177,11 +188,17 @@ export class AlarmWarpPlanner {
       if (a.id === target.id) return false;
       if (a.state !== "pending") return false;
       if (a.trigger.kind !== "threshold") return false;
-      /* Never a SCET threshold. This caps the warp so an unmodelable alarm has
-         ticks to register in, and a mod-owned one needs none: the stop happens
+      /* Never one the mod stops. This caps the warp so an unmodelable alarm has
+         ticks to register in, and a mod-stopped one needs none: the stop happens
          upstream of everything this side can see, at whatever rate the game is
-         running. */
-      if (isScetTrigger(a.trigger)) return false;
+         running.
+
+         Asks the WARP-STOP question, not the vantage one. They coincide today
+         because every alarm the mod holds is at its own subject's vantage or is
+         a command-vantage threshold it does not yet latch. They diverge when
+         that threshold flips: this then wants `ScetAlarmBridge.holdsAlarm`, and
+         the planner has no bridge to ask. */
+      if (isAtSubjectVantage(a.trigger)) return false;
       if (a.matchSinceUT != null) return false;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") return true;
@@ -191,11 +208,11 @@ export class AlarmWarpPlanner {
 
   private estimateThresholdEta(alarm: Alarm): number | null {
     if (alarm.trigger.kind !== "threshold") return null;
-    /* See `recordThresholdSample`: no samples are kept for a SCET threshold, so
-       this would answer null anyway. Said here as well, because a reader
+    /* See `recordThresholdSample`: no samples are kept for one the mod stops,
+       so this would answer null anyway. Said here as well, because a reader
        deciding whether a warp-to can target one should not have to trace it
-       through an empty buffer. */
-    if (isScetTrigger(alarm.trigger)) return null;
+       through an empty buffer. It carries the same expiry as that one. */
+    if (isAtSubjectVantage(alarm.trigger)) return null;
     const t = alarm.trigger;
     if (t.op === "==" || t.op === "!=") return null;
     if (alarm.matchSinceUT != null) return null;

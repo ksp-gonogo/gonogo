@@ -108,7 +108,15 @@ describe("ComponentOverlay: add → configure → persist", () => {
     // addItem fired with a fresh DashboardItem. Capture its id so we can
     // assert the updateItemConfig call routes to the same instance.
     expect(addItem).toHaveBeenCalledTimes(1);
-    const newItem = addItem.mock.calls[0][0] as { i: string };
+    const first: unknown = addItem.mock.calls[0][0];
+    const gridId: unknown =
+      typeof first === "object" && first !== null
+        ? Reflect.get(first, "i")
+        : undefined;
+    if (typeof gridId !== "string") {
+      throw new Error("addItem was not given an item with a grid id");
+    }
+    const newItem = { i: gridId };
 
     // The config modal should have opened (openConfigOnAdd). Edit + save.
     // The input has defaultValue="default", so clear before typing.

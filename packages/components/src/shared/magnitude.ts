@@ -5,4 +5,9 @@
 // every importer) so the many existing `../shared/magnitude` imports across
 // this package's widgets don't need touching. See ui-kit's own doc comment
 // on `magnitudeOr` for the full rationale.
-export { magnitudeOf, magnitudeOr, type Quantityish } from "@ksp-gonogo/ui-kit";
+export {
+  asQuantityish,
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "@ksp-gonogo/ui-kit";

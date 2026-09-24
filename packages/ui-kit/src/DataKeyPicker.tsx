@@ -15,6 +15,7 @@ import {
   groupComboboxOptions,
   moveComboboxActiveIndex,
 } from "./Combobox";
+import { focusRing } from "./focusRing";
 
 export interface KeyOption extends ComboboxOption {
   unit?: string;
@@ -213,12 +214,12 @@ const Container = styled.div`
 const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid ${({ $retired }) => ($retired ? "var(--color-status-nogo-fg)" : "var(--color-border-strong)")};
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   color: ${({ $hasValue, $retired }) => {
     if ($retired) return "var(--color-status-nogo-fg)";
     return $hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)";
   }};
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   padding: var(--space-6, 6px) var(--space-8, 8px);
   width: 100%;
 
@@ -227,10 +228,7 @@ const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
     outline: none;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &::placeholder {
     color: var(--color-text-faint);
@@ -263,17 +261,17 @@ const ClearButton = styled.button`
  */
 const RetiredNote = styled.div`
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   margin-top: var(--space-2, 2px);
 `;
 
 const ItemLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
 `;
 
 const ItemUnit = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   margin-left: var(--space-6, 6px);
 `;

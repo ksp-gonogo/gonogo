@@ -9,7 +9,7 @@ export const Header = styled.div`
 `;
 
 export const BodyLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.05em;
 `;
@@ -40,7 +40,7 @@ export const CompactRow = styled.div`
 `;
 
 export const CompactLabel = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
   min-width: 28px;
@@ -127,7 +127,7 @@ export const MapSections = styled.div`
 export const CanvasContainer = styled.div`
   position: relative;
   flex-shrink: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   overflow: hidden;
   cursor: grab;
   touch-action: none;
@@ -170,7 +170,7 @@ export const NoSignal = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-faint);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -179,10 +179,10 @@ export const NoSignal = styled.div`
 
 export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
   padding: var(--inset-chip);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $variant }) =>
       $variant === "on"

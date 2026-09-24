@@ -34,11 +34,13 @@ function loadState(key: string): PersistedState | null {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedState;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const state = parsed as PersistedState;
     // Forward-map any renamed widget ids so old placements survive a rename.
     return {
-      ...parsed,
-      items: migrateDashboardItems(parsed.items ?? []),
+      ...state,
+      items: migrateDashboardItems(state.items ?? []),
     };
   } catch {
     return null;

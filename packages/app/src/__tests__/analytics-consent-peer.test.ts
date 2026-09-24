@@ -61,6 +61,18 @@ function analyticsMsgs(conn: FakeDataConnection): PeerMessage[] {
   );
 }
 
+/**
+ * The client's private message intake, which this case drives directly.
+ *
+ * `handleMessage` is private, so no narrowing reaches it and the compiler has
+ * nothing to check: the erasure is here, once, rather than at the call.
+ */
+function intake(svc: PeerClientService): {
+  handleMessage: (m: PeerMessage) => void;
+} {
+  return svc as unknown as { handleMessage: (m: PeerMessage) => void };
+}
+
 describe("analytics-consent over peer", () => {
   beforeEach(() => {
     FakePeer.last = null;
@@ -133,9 +145,7 @@ describe("analytics-consent over peer", () => {
     expect(seen).toEqual([false]);
 
     // Drive the dispatcher the way the data channel would.
-    (
-      client as unknown as { handleMessage: (m: PeerMessage) => void }
-    ).handleMessage({ type: "analytics-consent", enabled: true });
+    intake(client).handleMessage({ type: "analytics-consent", enabled: true });
 
     expect(seen).toEqual([false, true]);
     expect(client.getAnalyticsConsent()).toBe(true);

@@ -218,26 +218,25 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Current UT. <see cref="Planetarium.GetUniversalTime"/> already
-        /// falls back to <c>HighLogic.CurrentGame.UniversalTime</c> when
-        /// <c>Planetarium.fetch</c> is null (decompiled and confirmed), but
-        /// this still wraps in try/catch: a FixedUpdate-driven caller must
-        /// never throw, and the fallback path itself touches
-        /// <c>HighLogic.CurrentGame</c>, which can be null before any save
-        /// is loaded.
+        /// Current UT, or a throw when there is none to read.
+        ///
+        /// <see cref="Planetarium.GetUniversalTime"/> already falls back to
+        /// <c>HighLogic.CurrentGame.UniversalTime</c> when
+        /// <c>Planetarium.fetch</c> is null (decompiled and confirmed), and
+        /// that fallback path itself touches <c>HighLogic.CurrentGame</c>,
+        /// which is null before any save is loaded. There is no UT in that
+        /// state, and the refusal propagates rather than being turned into
+        /// one: 0 is a real instant, and
+        /// <c>ChannelEngine.ProcessTick</c> reads a tick below the clock as a
+        /// backward jump and resets the whole timeline for it.
+        ///
+        /// Every caller is already guarded and skips the work it was about to
+        /// do: the addon's FixedUpdate drops the sample, <see cref="Sample"/>
+        /// is only reached through it, and <c>Emit</c> drops the lifecycle
+        /// event. <c>Recorder</c>'s constructor is the one caller that cannot
+        /// refuse, and it says so at its own call site.
         /// </summary>
-        public double NowUt()
-        {
-            try
-            {
-                return Planetarium.GetUniversalTime();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] NowUt() failed, returning 0: " + ex);
-                return 0;
-            }
-        }
+        public double NowUt() => Planetarium.GetUniversalTime();
 
         /// <summary>
         /// Primitives-only snapshot of every celestial body FlightGlobals
@@ -2015,7 +2014,7 @@ namespace Gonogo.KSP
                 if (conn != null)
                 {
                     connected = conn.IsConnected;
-                    controlSource = MapRosterControlSource(conn.GetControlLevel());
+                    controlSource = RosterControlSource.For(conn.GetControlLevel());
                 }
             }
             catch (Exception ex)
@@ -2027,27 +2026,6 @@ namespace Gonogo.KSP
 
             entry["commsConnected"] = connected;
             entry["commsControlSource"] = controlSource;
-        }
-
-        /// <summary>
-        /// <c>Vessel.ControlLevel</c> -&gt; the roster's raw control-source
-        /// string (mirrors <c>CommNetBackend.MapControlSource</c>'s
-        /// none/partial/full tiering exactly, kept as an independent copy
-        /// here since the roster read is deliberately NOT part of that
-        /// backend -- see <see cref="AddRosterCommsFields"/>).
-        /// </summary>
-        private static string MapRosterControlSource(Vessel.ControlLevel level)
-        {
-            switch (level)
-            {
-                case Vessel.ControlLevel.FULL:
-                    return "Full";
-                case Vessel.ControlLevel.PARTIAL_MANNED:
-                case Vessel.ControlLevel.PARTIAL_UNMANNED:
-                    return "Partial";
-                default:
-                    return "None";
-            }
         }
 
         /// <summary>

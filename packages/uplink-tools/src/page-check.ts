@@ -63,9 +63,13 @@ export interface PageCheckResult {
  * one that cut one.
  */
 function withoutIntegrity(json: string): string {
-  const parsed = JSON.parse(json) as Record<string, unknown>;
-  delete parsed.integrity;
-  return JSON.stringify(parsed, null, 2);
+  const parsed: unknown = JSON.parse(json);
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("gonogo-uplink: the manifest does not hold a JSON object.");
+  }
+  const manifest: Record<string, unknown> = parsed as Record<string, unknown>;
+  delete manifest.integrity;
+  return JSON.stringify(manifest, null, 2);
 }
 
 export function checkUplinkPage(

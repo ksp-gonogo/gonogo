@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "notes": "Mid-career save. Mix of T1, T2, and T3 buildings. Pad occupied with a vessel named 'Mun Shot III'. Reasonable funds, some upgrades affordable, some not. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "scenario": "mid-career-mixed-stopped-arriving"
+  },
+  "career.funds": 78400,
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.scene",
+      "spaceCenter.partsAvailable",
+      "spaceCenter.launchSites",
+      "career.facilities"
+    ],
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.partsAvailable",
+        "value": {
+          "count": 183
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Mun Shot III"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 78400,
+            "reputation": null,
+            "science": null
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "career.facilities",
+        "value": {
+          "facilities": {
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 150000
+            },
+            "Runway": {
+              "facilityOrdinal": 5,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 30000
+            },
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "SpaceplaneHangar": {
+              "facilityOrdinal": 7,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 175000
+            },
+            "MissionControl": {
+              "facilityOrdinal": 3,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "TrackingStation": {
+              "facilityOrdinal": 6,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 115000
+            },
+            "Administration": {
+              "facilityOrdinal": 0,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 55000
+            },
+            "ResearchAndDevelopment": {
+              "facilityOrdinal": 4,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 225000
+            },
+            "AstronautComplex": {
+              "facilityOrdinal": 1,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 65000
+            }
+          }
+        }
+      }
+    ],
+    "pinnedUt": 10,
+    "stopsArriving": true
+  }
+}

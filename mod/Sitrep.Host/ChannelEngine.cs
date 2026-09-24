@@ -2414,6 +2414,27 @@ namespace Sitrep.Host
             _activeCentreIds.Contains(centreId);
 
         /// <summary>
+        /// Whether <paramref name="centreId"/> is an active command centre, or
+        /// NULL while no command centre is known at all.
+        ///
+        /// <para>The null is the point, and it is why this is not
+        /// <see cref="IsSelectableVantage"/> made public. The selectable set is
+        /// empty until the first tick and at the main menu, where no game is
+        /// loaded, so a bare false there says "that is not a place" when what is
+        /// true is "no place is known yet". A caller that refuses on the
+        /// difference would be refusing on ignorance.</para>
+        ///
+        /// <para>ANY-THREAD read, for the reason <see cref="IsSelectableVantage"/>
+        /// gives: it consults only the <see cref="_activeCentreIds"/> snapshot,
+        /// one sample stale.</para>
+        /// </summary>
+        public bool? IsVantageSelectable(string centreId)
+        {
+            var active = _activeCentreIds;
+            return active.Count == 0 ? (bool?)null : active.Contains(centreId);
+        }
+
+        /// <summary>
         /// MAIN-THREAD capture: enumerate the active command centres and publish their
         /// ids to <see cref="_activeCentreIds"/>, ask the elected home-command claimant
         /// for <see cref="CurrentHomeCommand"/>, then settle where a connection that has
@@ -4098,6 +4119,36 @@ namespace Sitrep.Host
         /// independently of (and does not block on) the Courier thread, so it
         /// keeps draining this queue while the Courier waits.
         /// </summary>
+        /// <summary>
+        /// Run <paramref name="action"/> on the Unity main thread and wait for
+        /// it, for a Courier-side decision whose EFFECT is a scene call.
+        ///
+        /// <para>The wait is the point. A decision reached on the Courier that
+        /// was queued for the next capture would land one snapshot cadence late,
+        /// and under warp a cadence is thousands of seconds of game time, which
+        /// is the precision the decision was made for. Parking the Courier for
+        /// one frame is the cheaper side of that trade, and it is what
+        /// <see cref="PlanForVantage"/> already does.</para>
+        ///
+        /// <para>Swallows nothing: a throw from the main thread comes back here,
+        /// and a shutdown in flight raises rather than blocking until the
+        /// timeout. Callers on the Courier are already inside a fail-soft.</para>
+        /// </summary>
+        public void RunOnMainThreadAndWait(Action action)
+        {
+            if (action == null)
+            {
+                return;
+            }
+            RunOnMainThread(
+                _ =>
+                {
+                    action();
+                    return null;
+                },
+                null);
+        }
+
         private object? RunOnMainThread(Func<object?, object?> handler, object? args)
         {
             // F2-fix (shutdown gate): once Stop() has begun, the main-thread

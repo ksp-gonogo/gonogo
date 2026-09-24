@@ -42,10 +42,12 @@ export interface WidgetRenderConfig {
   modes: SizeMode[];
 }
 
-// Same three auto-appended size modes `@ksp-gonogo/components`'s widgets.ts
-// adds to every entry (mobile/portrait/landscape), kept identical so the
-// moved `__snapshots__/*.snap` files (carried over unchanged with the
-// widgets) keep matching without a snapshot regeneration.
+/*
+ * Same three auto-appended size modes `@ksp-gonogo/components`'s widgets.ts
+ * adds to every entry (mobile/portrait/landscape), kept identical so the moved
+ * `__snapshots__/*.snap` files (carried over unchanged with the widgets) keep
+ * matching without a snapshot regeneration.
+ */
 const AUTO_MODES: readonly SizeMode[] = [
   { name: "mobile-9x8", w: 9, h: 8 },
   { name: "portrait-5x18", w: 5, h: 18 },
@@ -88,9 +90,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "RoboticsConsole/__fixtures__",
     outPath: "renders/robotics-console-widget",
     modes: [
-      // Minimum size: readout + Target stepper only; the motor/lock toggles
-      // and the joint list both hide below h=6 so neither clips the stepper
-      // (see the showToggles/showServoList gates in RoboticsConsole/index.tsx).
+      /*
+       * Minimum size: readout + Target stepper only; the motor/lock toggles and
+       * the joint list both hide below h=6 so neither clips the stepper (see the
+       * showToggles/showServoList gates in RoboticsConsole/index.tsx).
+       */
       { name: "min-4x4", w: 4, h: 4 },
       // Default registered size: readout + controls + joint list.
       { name: "default-5x8", w: 5, h: 8 },

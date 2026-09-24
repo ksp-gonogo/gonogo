@@ -329,7 +329,7 @@ public class KerbalismCaptureTests
         var rules = (List<object>)kerbal["rules"]!;
         var radiation = (Dictionary<string, object?>)rules[0];
         Assert.Equal("radiation", radiation["name"]);
-        Assert.Equal(0.00014101834111076338, (double)radiation["value"]!, 12);
+        Assert.Equal(0.00014101834111076338, (double)radiation["problem"]!, 12);
         // degen comes from Profile.rules, NOT the accumulator
         Assert.Equal(1.0e-05, (double)radiation["degenPerSec"]!, 12);
         Assert.Equal(1.0, (double)radiation["fatalThreshold"]!, 6);
@@ -356,12 +356,12 @@ public class KerbalismCaptureTests
     {
         var ls = KerbalismCapture.BuildLifeSupport(
             new KerbalismSnapshot(), new List<ProcessRaw>(), asOfUt: 12_340.5);
-        Assert.Equal(12_340.5, (double)ls["asOfUt"]!, 6);
+        Assert.Equal(12_340.5, (double)ls["asOfKerbalismUt"]!, 6);
 
         // Unknown stays unknown: never the read time standing in for a
         // freshness nobody measured.
         var unstamped = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), new List<ProcessRaw>());
-        Assert.Null(unstamped["asOfUt"]);
+        Assert.Null(unstamped["asOfKerbalismUt"]);
     }
 
     [Fact]
@@ -426,11 +426,11 @@ public class KerbalismCaptureTests
         };
         var built = KerbalismCapture.BuildCrew(crew, new Dictionary<string, RuleConstants>(), asOfUt: 8_800.25);
         var kerbal = (Dictionary<string, object?>)built[0];
-        Assert.Equal(8_800.25, (double)kerbal["asOfUt"]!, 6);
+        Assert.Equal(8_800.25, (double)kerbal["rulesAsOfKerbalismUt"]!, 6);
 
         var unstamped = (Dictionary<string, object?>)KerbalismCapture.BuildCrew(
             crew, new Dictionary<string, RuleConstants>())[0];
-        Assert.Null(unstamped["asOfUt"]);
+        Assert.Null(unstamped["rulesAsOfKerbalismUt"]);
     }
 }
 

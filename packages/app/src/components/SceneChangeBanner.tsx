@@ -136,7 +136,7 @@ const Banner = styled.div`
   background: rgba(0, 0, 0, 0.88);
   border: 1px solid var(--color-accent-fg);
   border-radius: var(--radius-pill);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.06em;
   color: var(--color-text-primary);
   pointer-events: none;
@@ -174,10 +174,10 @@ const BannerScene = styled.span<{ $emphasis?: boolean }>`
     p.$emphasis ? "var(--color-accent-fg)" : "var(--color-text-muted)"};
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
 `;
 
 const Arrow = styled.span`
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;

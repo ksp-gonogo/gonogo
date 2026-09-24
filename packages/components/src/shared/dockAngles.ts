@@ -133,6 +133,8 @@ export function targetKindLabel(
   kind: TargetKind | undefined,
 ): string | undefined {
   switch (kind) {
+    case undefined:
+      return undefined;
     case TargetKind.Vessel:
       return "Vessel";
     case TargetKind.Body:
@@ -144,6 +146,17 @@ export function targetKindLabel(
     case TargetKind.Other:
       return "Other";
     default:
-      return undefined;
+      return unnamedTargetKind(kind);
   }
+}
+
+/**
+ * Where a `TargetKind` with no label lands. With every member cased above,
+ * `kind` is `never` here, so a member appended to the contract without a label
+ * is a type error rather than a silently missing one. An ordinal from a newer
+ * mod that this build has never heard of still arrives at runtime, and has no
+ * name to give.
+ */
+function unnamedTargetKind(_kind: never): undefined {
+  return undefined;
 }

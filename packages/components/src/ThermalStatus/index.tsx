@@ -11,11 +11,10 @@ import {
   Panel,
   type ReadoutTone,
   Section,
+  Stack,
   StatusPill,
-  Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
 import { magnitudeOr } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
@@ -305,36 +304,29 @@ function ThermalStatusComponent({
             <EmptyState>{absence}</EmptyState>
           </Section>
         ),
-        absence === null && thermalNotCurrent && (
-          <Section key="dated" full>
-            {/* Names which half is dated: the figures below are real readings
-                held from the last delivery, while the bands and the pill have
-                gone to unknown because a judgement cannot be dated. */}
-            <Text tone="warn" size="xs" role="status" aria-live="polite">
-              Thermal readings no longer current: the temperatures are the last
-              reported, and the bands are unknown until they resume.
-            </Text>
-          </Section>
-        ),
         absence === null && (
           <Section key="state" full>
-            <PillRow
+            <div
+              style={PILL_ROW_STYLE}
               role={anyCritical ? "alert" : "status"}
               aria-live={anyCritical ? "assertive" : "polite"}
             >
-              <CompactStatusPill $tone={BAND_TONE[worstBand]}>
+              <StatusPill
+                $tone={BAND_TONE[worstBand]}
+                style={COMPACT_PILL_STYLE}
+              >
                 {BAND_LABEL[worstBand]}
-              </CompactStatusPill>
+              </StatusPill>
               {showInlineAlert && (
-                <CriticalNote>
+                <span style={CRITICAL_NOTE_STYLE}>
                   {engineOverheat
                     ? "Engine overheating (>90% max)"
                     : anyCritical
                       ? "Part at max temperature"
                       : "Part approaching max temperature"}
-                </CriticalNote>
+                </span>
               )}
-            </PillRow>
+            </div>
           </Section>
         ),
         /* No `ScrollArea` around the rows. Panel's body IS the scroller and
@@ -343,88 +335,94 @@ function ThermalStatusComponent({
         absence === null &&
           (showHottestRow || showEngineRow || showShieldRow) && (
             <Section key="rows" full>
-              {showHottestRow && (
-                <ReadoutGroup>
-                  <RowHeader>
-                    <RowLabel>Hottest part</RowLabel>
-                    <BandTag $band={hottestBand}>
-                      {BAND_LABEL[hottestBand]}
-                    </BandTag>
-                  </RowHeader>
-                  <RowBody>
-                    <PartName>{hottestName ?? NULL_DISPLAY}</PartName>
-                    <TempMeter>
-                      <TempBar
-                        style={{
-                          width: `${clampPct(magnitudeOr(hottestRatio, 0) * 100)}%`,
-                          background: BAND_COLOR[hottestBand],
-                        }}
-                      />
-                    </TempMeter>
-                    <TempReadout>
-                      <TempValue>
-                        {<Temp kelvin={hottestTempK?.magnitude} />}
-                      </TempValue>
-                      {hottestMaxK !== undefined && (
-                        <MaxTag>
-                          / {<Temp kelvin={hottestMaxK.magnitude} />} max
-                        </MaxTag>
-                      )}
-                    </TempReadout>
-                  </RowBody>
-                </ReadoutGroup>
-              )}
+              <Stack style={READOUT_GROUPS_STYLE}>
+                {showHottestRow && (
+                  <Section>
+                    <div style={ROW_HEADER_STYLE}>
+                      <div style={ROW_LABEL_STYLE}>Hottest part</div>
+                      <span style={bandTagStyle(hottestBand)}>
+                        {BAND_LABEL[hottestBand]}
+                      </span>
+                    </div>
+                    <div style={ROW_BODY_STYLE}>
+                      <div style={PART_NAME_STYLE}>
+                        {hottestName ?? NULL_DISPLAY}
+                      </div>
+                      <div style={TEMP_METER_STYLE}>
+                        <div
+                          style={{
+                            ...TEMP_BAR_STYLE,
+                            width: `${clampPct(magnitudeOr(hottestRatio, 0) * 100)}%`,
+                            background: BAND_COLOR[hottestBand],
+                          }}
+                        />
+                      </div>
+                      <div style={TEMP_READOUT_STYLE}>
+                        <span style={TEMP_VALUE_STYLE}>
+                          {<Temp kelvin={hottestTempK?.magnitude} />}
+                        </span>
+                        {hottestMaxK !== undefined && (
+                          <span style={MAX_TAG_STYLE}>
+                            / {<Temp kelvin={hottestMaxK.magnitude} />} max
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Section>
+                )}
 
-              {showEngineRow && (
-                <ReadoutGroup>
-                  <RowHeader>
-                    <RowLabel>Hottest engine</RowLabel>
-                    <BandTag $band={engineBand}>
-                      {BAND_LABEL[engineBand]}
-                    </BandTag>
-                  </RowHeader>
-                  <RowBody>
-                    <TempMeter>
-                      <TempBar
-                        style={{
-                          width: `${clampPct(magnitudeOr(engineRatio, 0) * 100)}%`,
-                          background: BAND_COLOR[engineBand],
-                        }}
-                      />
-                    </TempMeter>
-                    <TempReadout>
-                      <TempValue>
-                        {<Temp kelvin={engineTempK?.magnitude} />}
-                      </TempValue>
-                      {/* `!= null`: `maxK` is a `double?` and the wire keeps
+                {showEngineRow && (
+                  <Section>
+                    <div style={ROW_HEADER_STYLE}>
+                      <div style={ROW_LABEL_STYLE}>Hottest engine</div>
+                      <span style={bandTagStyle(engineBand)}>
+                        {BAND_LABEL[engineBand]}
+                      </span>
+                    </div>
+                    <div style={ROW_BODY_STYLE}>
+                      <div style={TEMP_METER_STYLE}>
+                        <div
+                          style={{
+                            ...TEMP_BAR_STYLE,
+                            width: `${clampPct(magnitudeOr(engineRatio, 0) * 100)}%`,
+                            background: BAND_COLOR[engineBand],
+                          }}
+                        />
+                      </div>
+                      <div style={TEMP_READOUT_STYLE}>
+                        <span style={TEMP_VALUE_STYLE}>
+                          {<Temp kelvin={engineTempK?.magnitude} />}
+                        </span>
+                        {/* `!= null`: `maxK` is a `double?` and the wire keeps
                           the key, so a part with no rated maximum arrives as an
                           explicit null and the strict form reached
                           `.magnitude` on it. */}
-                      {engineMaxK != null && (
-                        <MaxTag>
-                          / {<Temp kelvin={engineMaxK.magnitude} />} max
-                        </MaxTag>
-                      )}
-                    </TempReadout>
-                  </RowBody>
-                </ReadoutGroup>
-              )}
+                        {engineMaxK != null && (
+                          <span style={MAX_TAG_STYLE}>
+                            / {<Temp kelvin={engineMaxK.magnitude} />} max
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Section>
+                )}
 
-              {showShieldRow && (
-                <ReadoutGroup>
-                  <RowLabel>Heat shield</RowLabel>
-                  <RowBody>
-                    <TempReadout>
-                      <TempValue>
-                        {<Temp kelvin={shieldTempK?.magnitude} />}
-                      </TempValue>
-                      <MaxTag>
-                        · flux {<Flux kw={shieldFluxKw?.magnitude} />}
-                      </MaxTag>
-                    </TempReadout>
-                  </RowBody>
-                </ReadoutGroup>
-              )}
+                {showShieldRow && (
+                  <Section>
+                    <div style={ROW_LABEL_STYLE}>Heat shield</div>
+                    <div style={ROW_BODY_STYLE}>
+                      <div style={TEMP_READOUT_STYLE}>
+                        <span style={TEMP_VALUE_STYLE}>
+                          {<Temp kelvin={shieldTempK?.magnitude} />}
+                        </span>
+                        <span style={MAX_TAG_STYLE}>
+                          · flux {<Flux kw={shieldFluxKw?.magnitude} />}
+                        </span>
+                      </div>
+                    </div>
+                  </Section>
+                )}
+              </Stack>
             </Section>
           ),
       ]}
@@ -438,134 +436,138 @@ const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const PillRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--gap-related);
-`;
+const PILL_ROW_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+} as const;
 
-// The shared StatusPill sizes itself to its label at a fixed padding,
-// fine everywhere it's used except this widget's narrowest "pill-only"
-// mode (minSize is 3 cols wide), where "CRITICAL" does not fit and overflows
-// past the panel's right edge under Panel's overflow:hidden.
-// min-width: 0 lets the flex item shrink below its intrinsic content
-// width (the flexbox default is min-width: auto, which blocks exactly
-// that); the tighter padding/letter-spacing buys back room so common
-// labels ("nominal", "critical") still render whole, and the ellipsis
-// is a legible fallback if a future label is even longer.
-const CompactStatusPill = styled(StatusPill)`
-  min-width: 0;
-  max-width: 100%;
-  /* Off the spacing ladder: the only meaning these two numbers carry is
-     their delta from the base StatusPill in ui-kit, which the token
-     migration moved from 6px 14px to var(--space-6) var(--space-12), i.e.
-     6px 12px. So this override now tightens the base by 1px vertically and
-     pulls back 2px horizontally, a smaller delta than it was written for.
-     The nearest rungs (6, and 10 or 12) either erase the tightening or
-     erase the delta outright, so the pair stays literal until it is retuned
-     against the base in one edit across both packages. */
-  padding: 5px 10px;
-  letter-spacing: 0.06em;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-`;
+/*
+ * The shared StatusPill sizes itself to its label at a fixed padding, fine
+ * everywhere it is used except this widget's narrowest pill-only mode (minSize
+ * is 3 columns wide), where "CRITICAL" does not fit and overflows past the
+ * panel's right edge under Panel's overflow:hidden. `minWidth: 0` lets the flex
+ * item shrink below its intrinsic content width, which the flexbox default of
+ * `auto` blocks; the tighter padding and letter-spacing buy back room so common
+ * labels still render whole, and the ellipsis is a legible fallback.
+ *
+ * The padding pair is off the spacing ladder: the only meaning those numbers
+ * carry is their delta from the base StatusPill, whose own padding is
+ * var(--space-6) var(--space-12). The nearest rungs either erase the tightening
+ * or erase the delta outright, so the pair stays literal until it is retuned
+ * against the base in one edit across both packages.
+ */
+const COMPACT_PILL_STYLE = {
+  minWidth: 0,
+  maxWidth: "100%",
+  padding: "5px 10px",
+  letterSpacing: "0.06em",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+} as const;
 
-const CriticalNote = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-status-nogo-fg);
-  letter-spacing: 0.04em;
-`;
+const CRITICAL_NOTE_STYLE = {
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-status-nogo-fg)",
+  letterSpacing: "0.04em",
+} as const;
 
-// The column and its 2px gap are the kit's Section; only the spacing
-// BETWEEN consecutive readouts is this widget's. 6px snaps to the scale.
-const ReadoutGroup = styled(Section)`
-  & + & {
-    margin-top: var(--space-8);
-  }
-`;
+/*
+ * The space between consecutive readout groups, owned by the parent so a group
+ * that does not render leaves no gap behind it.
+ *
+ * 10px rather than the 8px it reads as: each group is a `Section`, and the
+ * `Section` around them contributes its own 2px on top. The two numbers were
+ * never added up while the spacing lived on the groups themselves.
+ */
+const READOUT_GROUPS_STYLE = { gap: "var(--space-10)" } as const;
 
-// Label + band badge share the row's top line so the band reads as a
-// top-right badge and the value readout below stays short, at the
-// narrowest sizes the readout no longer wraps the band tag onto a second
-// line that then gets clipped.
-const RowHeader = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gap-related);
-`;
+/*
+ * Label and band badge share the row's top line so the band reads as a
+ * top-right badge and the value readout below stays short. At the narrowest
+ * sizes the readout no longer wraps the band tag onto a second line that then
+ * gets clipped.
+ */
+const ROW_HEADER_STYLE = {
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: "var(--gap-related)",
+} as const;
 
-const RowLabel = styled.div`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
+const ROW_LABEL_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: "var(--color-text-dim)",
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
 
-const RowBody = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
+const ROW_BODY_STYLE = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-related)",
+} as const;
 
-const PartName = styled.div`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
+const PART_NAME_STYLE = {
+  fontSize: "var(--font-size-value)",
+  color: "var(--color-text-primary)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+} as const;
 
-const TempMeter = styled.div`
-  height: 8px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  overflow: hidden;
-`;
+const TEMP_METER_STYLE = {
+  height: "8px",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+  overflow: "hidden",
+} as const;
 
-const TempBar = styled.div`
-  height: 100%;
-  /* linear is load-bearing, not stylistic: the bar is driven by telemetry
-     samples and an eased fill reads as the value stalling between them. */
+/*
+ * `linear` is load-bearing, not stylistic: the bar is driven by telemetry
+ * samples and an eased fill reads as the value stalling between them.
+ */
+const TEMP_BAR_STYLE = {
+  height: "100%",
   transition:
-    width var(--duration-base) var(--ease-linear),
-    background var(--duration-base) var(--ease-linear);
-`;
+    "width var(--duration-base) var(--ease-linear), background var(--duration-base) var(--ease-linear)",
+} as const;
 
-const TempReadout = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-6);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-`;
+const TEMP_READOUT_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "baseline",
+  gap: "var(--space-2) var(--space-6)",
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-primary)",
+} as const;
 
-// Temp value stays intact rather than breaking "287.5°C" mid-token.
-const TempValue = styled.span`
-  white-space: nowrap;
-`;
+/** Temp value stays intact rather than breaking "287.5°C" mid-token. */
+const TEMP_VALUE_STYLE = { whiteSpace: "nowrap" } as const;
 
-const MaxTag = styled.span`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-`;
+const MAX_TAG_STYLE = {
+  color: "var(--color-text-faint)",
+  fontSize: "var(--font-size-compact)",
+  whiteSpace: "nowrap",
+} as const;
 
-const BandTag = styled.span<{ $band: Band }>`
-  flex-shrink: 0;
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: ${({ $band }) => BAND_COLOR[$band]};
-`;
+/** The band badge takes its colour from the band it reports. */
+function bandTagStyle(band: Band) {
+  return {
+    flexShrink: 0,
+    fontSize: "var(--font-size-caption)",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+    color: BAND_COLOR[band],
+  } as const;
+}
 
 // ── Registration ──────────────────────────────────────────────────────────────
 

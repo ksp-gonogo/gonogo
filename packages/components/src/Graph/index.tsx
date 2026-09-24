@@ -1167,7 +1167,7 @@ const READOUT_BODY: CSSProperties = {
 };
 
 const READOUT_LABEL: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.04em",
   flex: "0 0 auto",
@@ -1181,7 +1181,7 @@ const EMPTY_STATE_OVERLAY: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   pointerEvents: "none",
 };
@@ -1190,11 +1190,11 @@ const AXIS_WARNING: CSSProperties = {
   position: "absolute",
   bottom: "4px",
   right: "8px",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-status-warning-bg)",
   background: "rgba(0, 0, 0, 0.7)",
   padding: "var(--inset-chip)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
 };
 
@@ -1226,7 +1226,7 @@ const ADD_BUTTON: CSSProperties = {
   borderStyle: "dashed",
   borderColor: "var(--color-text-faint)",
   color: "var(--color-text-muted)",
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-compact)",
   fontWeight: 400,
   letterSpacing: "normal",
   textTransform: "none",

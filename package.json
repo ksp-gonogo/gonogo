@@ -20,6 +20,7 @@
     "visual-preview": "scripts/visual-preview.sh",
     "coverage": "vitest run --coverage",
     "lint": "biome check --write .",
+    "lint:ci": "biome ci .",
     "release:patch": "node scripts/release.mjs patch",
     "release:minor": "node scripts/release.mjs minor",
     "release:major": "node scripts/release.mjs major",

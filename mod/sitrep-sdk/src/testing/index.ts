@@ -120,4 +120,21 @@ export {
   type WireOf,
   wrapWire,
 } from "./stub-transport";
+
+import type { CommandArgs, CommandId } from "../commands";
+
 export { harnessTheme } from "./theme";
+
+/**
+ * A dispatch's args at the type the contract declares for that command.
+ *
+ * A transport's command handler is typed `(command: string, args: unknown)`,
+ * because it carries every Uplink's commands and cannot know whose it holds.
+ * This is the one step from there to the declared shape, so a test asserting on
+ * an arg field stops compiling when the contract renames it.
+ */
+export function commandArgs<C extends CommandId>(
+  args: unknown,
+): CommandArgs<C> {
+  return args as CommandArgs<C>;
+}

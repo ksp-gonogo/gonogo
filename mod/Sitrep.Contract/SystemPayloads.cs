@@ -393,9 +393,16 @@ public class SystemVessels
 [SitrepContract]
 public enum RosterCommsControlSource
 {
+    /// <summary>A measurement: the vessel has no control source.</summary>
     None,
     Partial,
     Full,
+    /// <summary>
+    /// The game reported a control level this build does not name. Not
+    /// <see cref="None"/>: nothing was measured to be absent, the level simply
+    /// has no tier here yet.
+    /// </summary>
+    Unknown,
 }
 
 /// <summary>
