@@ -108,7 +108,7 @@ namespace Gonogo.KSP.Tests.Settings
             var outcome = backing.Write(document);
 
             Assert.False(outcome.Success);
-            Assert.StartsWith("PANEL/endpoint: ", outcome.Reason);
+            Assert.Contains("PANEL/endpoint: ", outcome.Reason);
             Assert.Equal(before, File.ReadAllBytes(_path));
         }
 

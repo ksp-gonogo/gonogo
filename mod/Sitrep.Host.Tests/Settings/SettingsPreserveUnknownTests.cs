@@ -234,6 +234,8 @@ namespace Sitrep.Host.Tests.Settings
 
             public string Path => _inner.Path;
 
+            public SettingsReadSource LastReadFrom => _inner.LastReadFrom;
+
             public SettingsDocument Read() => _inner.Read();
 
             public SettingsDocument? ReadIfChangedElsewhere() => _inner.ReadIfChangedElsewhere();

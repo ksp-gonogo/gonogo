@@ -195,6 +195,60 @@ namespace Sitrep.Host.Settings
         public bool IsEmpty => Root.Values.Count == 0 && Root.Blocks.Count == 0;
 
         /// <summary>
+        /// Where this document first differs from <paramref name="other"/>, in
+        /// names, values, order or nesting, or null when the two say the same
+        /// thing entry for entry.
+        /// </summary>
+        public string? FirstDifferenceFrom(SettingsDocument other) =>
+            FirstDifference(Root, other?.Root ?? new SettingsBlock(string.Empty), string.Empty);
+
+        private static string? FirstDifference(SettingsBlock a, SettingsBlock b, string prefix)
+        {
+            var values = Math.Max(a.Values.Count, b.Values.Count);
+            for (var i = 0; i < values; i++)
+            {
+                if (i >= a.Values.Count || i >= b.Values.Count)
+                {
+                    var extra = i < a.Values.Count ? a.Values[i] : b.Values[i];
+                    return prefix + extra.Name + ": present on one side only";
+                }
+
+                if (!string.Equals(a.Values[i].Name, b.Values[i].Name, StringComparison.Ordinal))
+                {
+                    return prefix + a.Values[i].Name + ": the row at this position is " + b.Values[i].Name;
+                }
+
+                if (!string.Equals(a.Values[i].Text, b.Values[i].Text, StringComparison.Ordinal))
+                {
+                    return prefix + a.Values[i].Name + ": " + a.Values[i].Text + " became " + b.Values[i].Text;
+                }
+            }
+
+            var blocks = Math.Max(a.Blocks.Count, b.Blocks.Count);
+            for (var i = 0; i < blocks; i++)
+            {
+                if (i >= a.Blocks.Count || i >= b.Blocks.Count)
+                {
+                    var extra = i < a.Blocks.Count ? a.Blocks[i] : b.Blocks[i];
+                    return prefix + extra.Name + ": present on one side only";
+                }
+
+                if (!string.Equals(a.Blocks[i].Name, b.Blocks[i].Name, StringComparison.Ordinal))
+                {
+                    return prefix + a.Blocks[i].Name + ": the block at this position is " + b.Blocks[i].Name;
+                }
+
+                var inner = FirstDifference(a.Blocks[i], b.Blocks[i], prefix + a.Blocks[i].Name + "/");
+                if (inner != null)
+                {
+                    return inner;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// The first row or block anywhere in the document that KSP's format
         /// would change on the way to disk or back, as its path and the reason,
         /// or null when every name and value survives a round trip.
