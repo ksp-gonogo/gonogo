@@ -140,6 +140,10 @@ export const SNAPSHOT = {
     meanAnomalyAtEpoch: 9.03577798875298,
     epoch: 75469.652520361,
     mu: KERBIN_MU,
+    // A stock on-rails coast: the elements are a closed-form conic and nothing
+    // bounds how far they answer for. Without this the conic refuses outright
+    // ("NO HORIZON STATED") and every figure solved from it renders as a dash.
+    horizon: { kind: 1, untilUt: null, trajectoryKind: 1 },
     patches: [],
     meta: payloadMeta,
   },
