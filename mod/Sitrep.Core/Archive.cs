@@ -158,6 +158,31 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Move <paramref name="vantage"/>'s cursor on <paramref name="topic"/>
+        /// forward to <paramref name="sceneUt"/> without reading anything: the
+        /// cursor half of <see cref="ReadAtInstant"/> alone. Never moves it back.
+        ///
+        /// <para>C#-ONLY, like <see cref="ResetTimeline"/>. It is for a delivery
+        /// that forwards a sample it captured at record time instead of reading
+        /// the archive when it lands (<see cref="Courier"/>'s ordered lane). The
+        /// vantage has still been told about that scene, and the cursor is the
+        /// retention watermark <see cref="PruneToVantageCursors"/> prunes to, so a
+        /// lane that never moved it would hold its topic's whole history for as
+        /// long as anybody stayed subscribed.</para>
+        /// </summary>
+        public void NoteRead(string topic, string vantage, double sceneUt)
+        {
+            if (!_cursors.TryGetValue(topic, out var byVantage))
+            {
+                byVantage = new Dictionary<string, double>();
+                _cursors[topic] = byVantage;
+            }
+            byVantage[vantage] = byVantage.TryGetValue(vantage, out var lastScene)
+                ? Math.Max(sceneUt, lastScene)
+                : sceneUt;
+        }
+
+        /// <summary>
         /// Read <paramref name="topic"/> as of a scene instant the caller
         /// already knows exactly, WITHOUT reading
         /// <paramref name="vantage"/>'s cursor. Returns the latest sample with
@@ -186,14 +211,7 @@ namespace Sitrep.Core
         /// </summary>
         public ArchiveSample? ReadAtInstant(string topic, string vantage, double sceneUt)
         {
-            if (!_cursors.TryGetValue(topic, out var byVantage))
-            {
-                byVantage = new Dictionary<string, double>();
-                _cursors[topic] = byVantage;
-            }
-            byVantage[vantage] = byVantage.TryGetValue(vantage, out var lastScene)
-                ? Math.Max(sceneUt, lastScene)
-                : sceneUt;
+            NoteRead(topic, vantage, sceneUt);
 
             if (!_samplesByTopic.TryGetValue(topic, out var list) || list.Count == 0)
             {

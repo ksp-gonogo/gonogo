@@ -129,6 +129,48 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.Equal(new[] { ("ground:gs1", "G", 3.0) }, host.AuthorityDelays);
         }
 
+        /// <summary>
+        /// The readout a client times its clock and header by is the same set the
+        /// ledger was just handed: home and an unrouted centre stay absent rather
+        /// than reading zero, and the craft's own centre is its explicit zero.
+        /// </summary>
+        [Fact]
+        public void EachCentresOwnDelayToTheActiveCraftIsPublishedAsTheLedgerHoldsIt()
+        {
+            var host = new RecordingUplinkHost();
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+            uplink.Register(host);
+
+            uplink.ApplyLedgerOnCourier(Capture(
+                ("vessel:G", ChannelEngine.NodeId, 0.0),
+                ("ground:gs1", ChannelEngine.NodeId, 3.0),
+                ("ground:gs1", AuthorityMatrixPass.FleetNode("G"), 3.0)));
+            uplink.ApplyLedgerOnCourier(Capture());
+
+            var published = host.Published
+                .Where(p => p.Topic == CommandCentreDelayUplink.ActiveVesselDelayTopic)
+                .Select(p => Assert.IsType<CommandCentreActiveVesselDelay>(p.Payload))
+                .ToList();
+            Assert.Equal(2, published.Count);
+            Assert.Equal(
+                new[] { ("ground:gs1", 3.0), ("vessel:G", 0.0) },
+                published[0].Centres.Select(c => (c.Id, c.OneWaySeconds)));
+            Assert.Empty(published[1].Centres);
+        }
+
+        [Fact]
+        public void TheActiveCraftDelayReadoutIsDelayedAndNeverRecorded()
+        {
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+
+            var readout = Assert.Single(
+                uplink.Manifest.Channels.Where(c => c.Topic == CommandCentreDelayUplink.ActiveVesselDelayTopic));
+
+            Assert.Equal(DelayRole.Delayed, readout.Delay);
+            Assert.False(readout.HeldAtHome);
+            Assert.False(readout.Recordable);
+        }
+
         private static CommandCentreDelayUplink.LedgerCapture Capture(params (string Vantage, string Node, double Seconds)[] rows) =>
             new CommandCentreDelayUplink.LedgerCapture
             {
@@ -156,7 +198,9 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes) =>
                 SampledSources.Add((captureOnMainThread, handleOnCourier, subscriptionTopicPrefixes));
 
-            public IChannelPublisher Publisher(string topic) => new NullPublisher();
+            public List<(string Topic, object? Payload)> Published { get; } = new List<(string, object?)>();
+
+            public IChannelPublisher Publisher(string topic) => new RecordingPublisher(this, topic);
 
             public Kernel Kernel { get; } = new Kernel();
 
@@ -187,11 +231,18 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void ForceKeyframe(string topic) => throw new NotSupportedException();
             public void ResetChannelBirth(IEnumerable<string> topics) => throw new NotSupportedException();
 
-            private sealed class NullPublisher : IChannelPublisher
+            private sealed class RecordingPublisher : IChannelPublisher
             {
-                public void Publish(object? payload, double ut)
+                private readonly RecordingUplinkHost _host;
+                private readonly string _topic;
+
+                public RecordingPublisher(RecordingUplinkHost host, string topic)
                 {
+                    _host = host;
+                    _topic = topic;
                 }
+
+                public void Publish(object? payload, double ut) => _host.Published.Add((_topic, payload));
             }
         }
     }

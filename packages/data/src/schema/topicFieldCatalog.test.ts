@@ -102,11 +102,12 @@ describe("getTopicFieldCatalog()", () => {
   });
 
   it("is far larger than the hand-written catalogue it replaces", () => {
-    // The retired table listed 145 live keys; this enumerates 558. A floor on
-    // the VOCABULARY, so a walk that quietly stopped resolving fails here
+    // The retired table listed 145 live keys; this enumerates 436, counting
+    // only keys a read can fill, so nothing under a collection Topic. A floor
+    // on the VOCABULARY, so a walk that quietly stopped resolving fails here
     // rather than reporting a shorter list. Never lower this to make it pass:
     // teach the walk instead.
-    expect(getTopicFieldCatalog().length).toBeGreaterThan(500);
+    expect(getTopicFieldCatalog().length).toBeGreaterThan(400);
   });
 });
 

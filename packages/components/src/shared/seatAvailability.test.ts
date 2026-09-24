@@ -80,6 +80,36 @@ describe("availableAtSeat", () => {
     ).toBe(false);
   });
 
+  it("lets the command-centre roster and separation aboard", () => {
+    /*
+     * Where the command centres are and how far away each one is: a crew
+     * addressing the ground needs both, so neither makes a widget a ground
+     * instrument.
+     */
+    expect(
+      availableAtSeat(
+        {
+          channels: ["commandCentre.roster", "commandCentre.separation"],
+        },
+        "pilot",
+      ),
+    ).toBe(true);
+  });
+
+  it("still counts the rest of the command-centre domain as ground", () => {
+    expect(
+      availableAtSeat(
+        {
+          channels: [
+            "commandCentre.roster",
+            "commandCentre.activeVesselDelay" as never,
+          ],
+        },
+        "pilot",
+      ),
+    ).toBe(false);
+  });
+
   it("lets a widget that declares no topic at all aboard", () => {
     // Notes, Perf Budgets, the serial controls: chrome with no telemetry of
     // its own has no domain to judge and no reason to be refused.
@@ -88,12 +118,20 @@ describe("availableAtSeat", () => {
 });
 
 describe("the built-in catalogue, derived", () => {
-  let excluded: Array<{ id: string; domains: readonly string[] }>;
+  let excluded: Array<{
+    id: string;
+    domains: readonly string[];
+    declared?: readonly string[];
+  }>;
 
   beforeAll(() => {
     excluded = getComponents()
       .filter((def) => !availableAtSeat(def, "pilot"))
-      .map((def) => ({ id: def.id, domains: groundDomainsOf(def) }))
+      .map((def) => ({
+        id: def.id,
+        domains: groundDomainsOf(def),
+        ...(def.seats ? { declared: def.seats } : {}),
+      }))
       .sort((a, b) => a.id.localeCompare(b.id));
   });
 
@@ -143,9 +181,10 @@ describe("the built-in catalogue, derived", () => {
           "id": "contract-manager",
         },
         {
-          "domains": [
-            "commandCentre",
+          "declared": [
+            "mission-control",
           ],
+          "domains": [],
           "id": "fleet-roster",
         },
         {
@@ -193,7 +232,7 @@ describe("the built-in catalogue, derived", () => {
 
   it("names a reason for every exclusion", () => {
     for (const e of excluded) {
-      expect(e.domains.length).toBeGreaterThan(0);
+      expect(e.domains.length + (e.declared?.length ?? 0)).toBeGreaterThan(0);
     }
   });
 

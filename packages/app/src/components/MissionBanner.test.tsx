@@ -1,3 +1,4 @@
+import { ScreenProvider } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -18,6 +19,8 @@ import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
+import { PeerClientProvider } from "../peer/PeerClientContext";
+import { PeerClientService } from "../peer/PeerClientService";
 import { MissionBanner } from "./MissionBanner";
 
 const KSC = "ground:Kerbal Space Center";
@@ -238,6 +241,7 @@ function setupDelayedStream() {
         client={client}
         carriedChannels={[
           "commandCentre.roster",
+          "commandCentre.activeVesselDelay",
           "comms.link",
           "comms.delay",
           "spaceCenter.scene",
@@ -466,6 +470,280 @@ describe("MissionBanner signal delay", () => {
 
     await waitFor(() => {
       expect(delayValue()?.innerHTML).toContain(atZero);
+    });
+  });
+});
+
+const CENTRE_DELAYS = {
+  centres: [
+    { id: GS1, oneWaySeconds: 42.5 },
+    { id: CRAFT, oneWaySeconds: 0 },
+  ],
+};
+
+/**
+ * Each centre's own delays, published the way the mod does: every tick, so the
+ * reading is current at the view clock's confirmed edge rather than held.
+ */
+function centreDelaysAt(
+  fixture: ReturnType<typeof setupDelayedStream>,
+  vantage: string,
+  ut: number,
+  seconds: number,
+) {
+  fixture.emit("commandCentre.activeVesselDelay", CENTRE_DELAYS, vantage, ut);
+  fixture.emit(
+    "commandCentre.activeVesselDelay",
+    CENTRE_DELAYS,
+    vantage,
+    ut + 2 * seconds,
+  );
+}
+
+describe("MissionBanner signal delay at a centre other than home", () => {
+  it("shows that centre's own delay, the one its view clock runs on", async () => {
+    const atOwn = unitMarkup(42.5);
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.client.setVantage(GS1);
+    });
+    await fixture.flyAt(187.4, GS1);
+    centreDelaysAt(fixture, GS1, 0, 42.5);
+
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(atOwn);
+    });
+    expect(delayValue()?.innerHTML).not.toContain(unitMarkup(187.4));
+  });
+
+  it("reads home's delay, marked as via home, for a centre with no route of its own", async () => {
+    const atHome = unitMarkup(187.4);
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.client.setVantage("ground:unrouted");
+    });
+    await fixture.flyAt(187.4, "ground:unrouted");
+    centreDelaysAt(fixture, "ground:unrouted", 0, 187.4);
+
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("via home");
+    });
+    expect(delayValue()?.innerHTML).toContain(atHome);
+    expect(delayValue()?.textContent).not.toContain("disconnected");
+  });
+
+  it("still says disconnected at a centre with no route of its own once the link is down", async () => {
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.client.setVantage("ground:unrouted");
+    });
+    await fixture.flyAt(187.4, "ground:unrouted");
+    centreDelaysAt(fixture, "ground:unrouted", 0, 187.4);
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("via home");
+    });
+
+    fixture.linkAt(false, 1000, 187.4, "ground:unrouted");
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
+    });
+  });
+});
+
+/** A peer link that says only where mission control stands, when told to. */
+class PeerAt extends PeerClientService {
+  private centre: string | null = null;
+  private readonly centreListeners = new Set<
+    (centreId: string | null) => void
+  >();
+
+  override getHostCommandCentre(): string | null {
+    return this.centre;
+  }
+
+  override onHostCommandCentreChange(
+    cb: (centreId: string | null) => void,
+  ): () => void {
+    this.centreListeners.add(cb);
+    cb(this.centre);
+    return () => this.centreListeners.delete(cb);
+  }
+
+  tell(centreId: string | null): void {
+    this.centre = centreId;
+    for (const cb of this.centreListeners) cb(centreId);
+  }
+}
+
+/**
+ * A pilot's header over a real client and store, told where mission control
+ * stands. The pilot's own clock runs aboard at zero, so the store is handed a
+ * plain clock rather than the auto-built one; the header reads the delay
+ * figures off the wire itself. The message that tells a real peer link is
+ * covered where the service is (`host-command-centre-peer`).
+ */
+function renderPilot() {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock();
+  const store = new TimelineStore(clock);
+  const peer = new PeerAt();
+  const tell = (centreId: string | null) =>
+    act(() => {
+      peer.tell(centreId);
+    });
+  const emit = (topic: string, payload: unknown, validAt = 400) =>
+    act(() => {
+      transport.emit(topic, payload, {
+        vantage: CRAFT,
+        validAt,
+        deliveredAt: validAt,
+      });
+    });
+  const view = render(
+    <PeerClientProvider client={peer}>
+      <ScreenProvider value="pilot">
+        <TelemetryProvider
+          client={client}
+          store={store}
+          carriedChannels={[
+            "commandCentre.roster",
+            "commandCentre.activeVesselDelay",
+            "comms.link",
+            "comms.delay",
+            "spaceCenter.scene",
+          ]}
+        >
+          <MissionBanner />
+        </TelemetryProvider>
+      </ScreenProvider>
+    </PeerClientProvider>,
+  );
+  act(() => {
+    client.setVantage(CRAFT);
+  });
+
+  /** Aboard a craft in flight, 187.4 s from home, with the link as given. */
+  const fly = async (connected: boolean) => {
+    act(() => {
+      clock.observeSample(400, 400);
+    });
+    emit("commandCentre.roster", MULTI_ROSTER);
+    emit("spaceCenter.scene", { scene: "Flight" });
+    await screen.findByText("Delay");
+    /*
+     * A `StubTransport` emit is subscription-gated, and the field that reads
+     * the link and both delays subscribes in an effect after the caption is
+     * on screen.
+     */
+    await waitFor(() => {
+      expect(transport.isSubscribed("comms.link")).toBe(true);
+      expect(transport.isSubscribed("comms.delay")).toBe(true);
+      expect(transport.isSubscribed("commandCentre.activeVesselDelay")).toBe(
+        true,
+      );
+    });
+    emit("comms.delay", {
+      oneWaySeconds: 187.4,
+      source: CommsDelaySource.SignalDelay,
+    });
+    emit("commandCentre.activeVesselDelay", CENTRE_DELAYS);
+    emit("comms.link", { connected });
+  };
+  return { ...view, tell, fly };
+}
+
+describe("MissionBanner signal delay aboard the craft", () => {
+  it("shows the delay to mission control's home centre, not zero", async () => {
+    const expected = unitMarkup(187.4);
+    const { tell, fly, container } = renderPilot();
+    tell(KSC);
+    await fly(true);
+
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(expected);
+    });
+    await expectNoA11yViolations(container);
+  });
+
+  it("follows mission control to a centre with its own route", async () => {
+    const expected = unitMarkup(42.5);
+    const { tell, fly } = renderPilot();
+    tell(KSC);
+    await fly(true);
+
+    tell(GS1);
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(expected);
+    });
+  });
+
+  it("reads home's delay, marked as via home, when mission control's centre has no route of its own", async () => {
+    const atHome = unitMarkup(187.4);
+    const { tell, fly } = renderPilot();
+    tell("ground:unrouted");
+    await fly(true);
+
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("via home");
+    });
+    expect(delayValue()?.innerHTML).toContain(atHome);
+  });
+
+  it("says disconnected at mission control's unrouted centre once the link is down", async () => {
+    const { tell, fly } = renderPilot();
+    tell("ground:unrouted");
+    await fly(false);
+
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
+    });
+  });
+
+  it("says disconnected in a blackout, however close the craft was", async () => {
+    const { tell, fly } = renderPilot();
+    tell(GS1);
+    await fly(false);
+
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
+    });
+  });
+
+  it("reads zero when mission control stands aboard this same craft", async () => {
+    const expected = unitMarkup(0);
+    const { tell, fly } = renderPilot();
+    tell(CRAFT);
+    await fly(false);
+
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(expected);
+    });
+  });
+
+  it("gives no number before mission control has said where it stands", async () => {
+    const { fly } = renderPilot();
+    await fly(true);
+
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain(
+        "Signal delay to mission control unknown",
+      );
     });
   });
 });

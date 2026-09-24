@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Xunit;
 
@@ -300,6 +301,38 @@ namespace Sitrep.Core.Tests
 
             // far's scene is 300 - 250 = 50. The sample valid at 50 was pruned, so
             // the honest answer is the birth value rather than a mid one.
+            Assert.NotEmpty(far);
+            Assert.Equal("v0", far[0]);
+        }
+
+        [Fact]
+        public void TheCourierPrunesAReliableOrderedTopicAsItsSubscribersAreServed()
+        {
+            // The same observation as the test above, on the ordered lane. That lane
+            // forwards the sample it captured at record time rather than re-reading
+            // the archive when it lands, so unless a delivery also moves the
+            // vantage's cursor, nothing on the topic ever does and retention holds
+            // its whole history for as long as anybody is subscribed. At a radio's
+            // frame rate that is a leak measured in minutes.
+            var clock = new ManualClock();
+            var network = new StubNetwork();
+            var courier = new Courier(clock, network);
+            network.SetDelay("far", "n", 250);
+
+            var near = new List<object?>();
+            courier.SubscribeStream("n", "t", "near", data => near.Add(data.Payload));
+
+            for (var ut = 0; ut <= 300; ut += 10)
+            {
+                courier.Record("n", "t", "v" + ut, ut, Delivery.ReliableOrdered);
+                clock.AdvanceTo(ut);
+            }
+
+            Assert.Equal("v300", near[near.Count - 1]);
+
+            var far = new List<object?>();
+            courier.SubscribeStream("n", "t", "far", data => far.Add(data.Payload));
+
             Assert.NotEmpty(far);
             Assert.Equal("v0", far[0]);
         }

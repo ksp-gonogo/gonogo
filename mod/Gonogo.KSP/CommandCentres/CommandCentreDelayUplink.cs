@@ -29,6 +29,7 @@ namespace Gonogo.KSP.CommandCentres
     {
         public const string RosterTopic = "commandCentre.roster";
         public const string SeparationTopic = "commandCentre.separation";
+        public const string ActiveVesselDelayTopic = "commandCentre.activeVesselDelay";
 
         /// <summary>
         /// Soft cap on separation PAIRS published per second. The matrix is
@@ -58,6 +59,7 @@ namespace Gonogo.KSP.CommandCentres
         private IUplinkHost? _host;
         private IChannelPublisher? _rosterPublisher;
         private IChannelPublisher? _separationPublisher;
+        private IChannelPublisher? _activeVesselDelayPublisher;
 
         /// <param name="registry">The same registry the engine enumerates for set-vantage validation.</param>
         /// <param name="home">
@@ -139,6 +141,20 @@ namespace Gonogo.KSP.CommandCentres
                     Recordable = false,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
+                new ChannelDeclaration
+                {
+                    Topic = ActiveVesselDelayTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // A readout off the same rows the ledger is written from,
+                    // delayed like comms.delay: a centre learns how far the
+                    // craft is from it one of its own light-times later, and a
+                    // pilot aboard learns it at once.
+                    Delay = DelayRole.Delayed,
+                    // Solved on the ground over the whole node list, so never
+                    // aboard the craft and nothing to replay on reacquisition.
+                    Recordable = false,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
             },
         };
 
@@ -173,6 +189,7 @@ namespace Gonogo.KSP.CommandCentres
             _host = host;
             _rosterPublisher = host.Publisher(RosterTopic);
             _separationPublisher = host.Publisher(SeparationTopic);
+            _activeVesselDelayPublisher = host.Publisher(ActiveVesselDelayTopic);
             host.AddSampledSource(CaptureLedgerOnMain, ApplyLedgerOnCourier);
             host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, RosterTopic);
         }
@@ -291,6 +308,26 @@ namespace Gonogo.KSP.CommandCentres
             _host?.SetActiveVesselDelays(activeVesselRows);
 
             PublishSeparation(cap);
+            PublishActiveVesselDelay(activeVesselRows, cap.Ut);
+        }
+
+        /// <summary>
+        /// Publishes the rows just handed to the ledger as
+        /// <see cref="ActiveVesselDelayTopic"/>, in ordinal centre order so an
+        /// unchanged set reads the same on every pass.
+        /// </summary>
+        private void PublishActiveVesselDelay(IReadOnlyDictionary<string, double> rows, double ut)
+        {
+            if (_activeVesselDelayPublisher == null)
+            {
+                return;
+            }
+
+            var centres = rows
+                .OrderBy(r => r.Key, StringComparer.Ordinal)
+                .Select(r => new CentreDelayEntry { Id = r.Key, OneWaySeconds = r.Value })
+                .ToList();
+            _activeVesselDelayPublisher.Publish(new CommandCentreActiveVesselDelay { Centres = centres }, ut);
         }
 
         /// <summary>

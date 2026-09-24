@@ -134,9 +134,10 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   /**
    * Which seats this widget may be placed at. OMIT for the derived default:
    * available everywhere unless the widget declares a topic in a GROUND
-   * domain (`spaceCenter.*`, `career.*`, `commandCentre.*`, `recovery.*`),
-   * because a topic's domain already says where the thing it describes
-   * physically lives and a pilot four light-minutes out cannot act on the VAB.
+   * domain (`spaceCenter.*`, `career.*`, `recovery.*`, and `commandCentre.*`
+   * other than its roster and separation), because a topic's domain already
+   * says where the thing it describes physically lives and a pilot four
+   * light-minutes out cannot act on the VAB.
    *
    * That default fails CLOSED for known ground domains and OPEN for every
    * other, including every domain an Uplink invents: a third-party widget

@@ -32,6 +32,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { DescribedFromLastKnown } from "../shared/DescribedFromLastKnown";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -307,6 +308,12 @@ function CurrentOrbitComponent({
           {noApsidesHere && controlFrameLabel(controlFrame) !== undefined && (
             <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
           )}
+          {/* Says why the rows below read as blanks, and on the model-carried arm
+            that the elements still shown rest on an observation that has
+            stopped arriving. */}
+          <DescribedFromLastKnown
+            readings={orbitReading.state === "stale" ? ["orbit"] : []}
+          />
           {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
             real measured element: ui-kit's layout primitives don't forward
             refs, and this is the one node in the widget that genuinely needs

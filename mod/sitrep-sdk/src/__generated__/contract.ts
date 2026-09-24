@@ -861,6 +861,41 @@ export interface CommandCentreSeparation
 	pairs: CentreSeparationEntry[];
 }
 /**
+* One command centre's own one-way delay to the active craft, in the
+* `commandCentre.activeVesselDelay` channel.
+*/
+export interface CentreDelayEntry
+{
+	/** The centre, as a roster `Id`. */
+	id: string;
+	/** One-way signal time along the centre's own routed path to the active craft. */
+	oneWaySeconds: Value<"s">;
+}
+/**
+* How far each command centre is from the active craft, one-way, along its own
+* routed path: the delay every ordinary channel reaches that centre at, and
+* the delay a command from it takes to arrive.
+*
+* **Sparse, and that is the contract.** A centre is listed only when it has a
+* delay of its own. The home centre is never listed: its delay is
+* `comms.delay`, which also carries the hold through a loss of signal. A
+* centre other than home that is not listed has no route to the craft. Neither
+* absence is a zero, and a reader that finds a centre missing must not quote
+* one for it.
+*
+* The crewed centre that IS the active craft is listed at an explicit zero: a
+* craft is no distance from itself.
+*
+* DELAYED, on the same reasoning as `comms.delay`: each centre learns the
+* figures one of its own light-times after they held, so a centre's own entry
+* is the delay it was under when the frame left.
+*/
+export interface CommandCentreActiveVesselDelay
+{
+	/** Every centre with a delay of its own to the active craft. */
+	centres: CentreDelayEntry[];
+}
+/**
 * One gated command and what its gate says RIGHT NOW, evaluated with no
 * arguments at all.
 *

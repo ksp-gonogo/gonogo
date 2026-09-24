@@ -152,9 +152,12 @@ export {
   warnDeadRead,
 } from "./dead-read-warning";
 export {
+  CENTRE_DELAY_TOPIC,
   COMMS_DELAY_TOPIC,
   DelayAuthority,
   type DelaySubscribable,
+  readCentreDelays,
+  readOneWaySeconds,
 } from "./delay-authority";
 export {
   type BudgetProvenance,

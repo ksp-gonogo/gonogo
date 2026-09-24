@@ -517,7 +517,7 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     });
   });
 
-  it("routes a carried command through TelemetryClient.dispatch, and settles without rejecting", async () => {
+  it("routes a command no carried set names through TelemetryClient.dispatch, and settles without rejecting", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     let receivedCommand: string | undefined;
@@ -527,16 +527,13 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     });
 
     const { unmount } = render(
-      <TelemetryProvider
-        client={client}
-        carriedChannels={["vessel.control.stage"]}
-      >
+      <TelemetryProvider client={client} carriedChannels={[]}>
         <div />
       </TelemetryProvider>,
     );
 
     expect(getActiveTelemetryClient()).toBe(client);
-    expect(getActiveCarriedChannels()?.has("vessel.control.stage")).toBe(true);
+    expect(getActiveCarriedChannels()?.has("vessel.control.stage")).toBe(false);
 
     const outcome = dispatchActiveCommandTopic("vessel.control.stage", null);
     expect(outcome.routed).toBe(true);

@@ -141,6 +141,11 @@ export type PeerMessage =
   // the host. Privacy-first: a station defaults to disabled until this
   // arrives.
   | { type: "analytics-consent"; enabled: boolean }
+  // Host -> peer: the command centre the main screen is standing at, sent on
+  // connect and whenever it moves. A pilot on a session of its own never sees
+  // the host's frames, so this is the only way it learns which centre its
+  // words are timed against. `null` until the host's session has been placed.
+  | { type: "host-command-centre"; centreId: string | null }
   // Host → station, fired once per connection right after schema. Carries
   // every coverage mask the host has stored so a station's map starts populated
   // with whatever the operator has already explored. Stations keep their

@@ -15,7 +15,6 @@ import {
   GraphView,
   type ReferenceCurve,
 } from "../Graph";
-import { formatDensity } from "../shared/formatDensity";
 import { magnitudeOf } from "../shared/magnitude";
 import type { StreamBody } from "../shared/streamBody";
 import { useStreamBody } from "../shared/useStreamBody";
@@ -303,7 +302,9 @@ function AtmosphereProfileComponent({
         <div role="status" aria-live="polite" style={LIVE_CHIP_STYLE}>
           <div style={CHIP_ROW_STYLE}>
             <span style={CHIP_LABEL_STYLE}>ρ</span>
-            <span style={CHIP_VALUE_STYLE}>{formatDensity(liveDensity)}</span>
+            <span style={CHIP_VALUE_STYLE}>
+              <Unit value={flightReading.atmDensity} decimals={3} />
+            </span>
           </div>
           {liveAirTemp !== null && (
             <div style={CHIP_ROW_STYLE}>

@@ -375,6 +375,11 @@ public static class RtConfig
                 // words take to reach a human at another
                 typeof(CommandCentreSeparation),
                 typeof(CentreSeparationEntry),
+                // commandCentre.activeVesselDelay: each centre's own delay to
+                // the active craft, the number that centre's telemetry and
+                // commands are timed by
+                typeof(CommandCentreActiveVesselDelay),
+                typeof(CentreDelayEntry),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),
@@ -1286,6 +1291,10 @@ public static class RtConfig
     /// into <c>./contract.ts</c> by the registrations above, so the map's imports
     /// always resolve.
     ///
+    /// <para><c>GENERATED_COLLECTION_TOPIC_IDS</c> lists the <c>IsArray</c>
+    /// channels again as runtime data, for a client that has to know a Topic's
+    /// payload is a collection before any sample of it arrives.</para>
+    ///
     /// <para>It also runs <see cref="CheckReservedFieldNames"/>, because this is
     /// the one leg every assembly that declares a Topic already goes through.
     /// </para>
@@ -1313,6 +1322,7 @@ public static class RtConfig
 
         var entries = new List<KeyValuePair<string, string>>();
         var typeNames = new SortedSet<string>(StringComparer.Ordinal);
+        var collectionTopics = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var type in (assembly ?? typeof(RtConfig).Assembly).GetTypes())
         {
             var attr = type.GetCustomAttribute<SitrepTopicAttribute>();
@@ -1325,6 +1335,10 @@ public static class RtConfig
                 attr.TopicId,
                 type.Name + (attr.IsArray ? "[]" : "")));
             typeNames.Add(type.Name);
+            if (attr.IsArray)
+            {
+                collectionTopics.Add(attr.TopicId);
+            }
         }
 
         entries.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
@@ -1381,6 +1395,20 @@ public static class RtConfig
         foreach (var entry in entries)
         {
             sb.Append("  \"").Append(entry.Key).Append("\",\n");
+        }
+        sb.Append("] as const;\n\n");
+
+        sb.Append("// The Topics whose payload is a bare JSON array of the element type, so a\n");
+        sb.Append("// field path under one names a field of an element and not of the Topic.\n");
+        sb.Append("// The `[]` above says the same to the type system, and a type is erased.\n");
+        sb.Append("export const GENERATED_COLLECTION_TOPIC_IDS = [");
+        if (collectionTopics.Count > 0)
+        {
+            sb.Append("\n");
+            foreach (var topic in collectionTopics)
+            {
+                sb.Append("  \"").Append(topic).Append("\",\n");
+            }
         }
         sb.Append("] as const;\n");
 

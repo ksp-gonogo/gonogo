@@ -78,6 +78,7 @@ import {
 } from "../missionProfiles";
 import { createNotesHost } from "../notes/createNotesHost";
 import { NotesHostProvider } from "../notes/NotesHostContext";
+import { HostCommandCentreAnnouncer } from "../peer/HostCommandCentreAnnouncer";
 import { peerHostService } from "../peer/PeerHostService";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
@@ -368,6 +369,9 @@ export function MainScreen({
        * invariant does not depend on that staying true.
        */}
       {hostsThePeerMesh && <SitrepVantageSessions peerHost={peerHostService} />}
+      {hostsThePeerMesh && (
+        <HostCommandCentreAnnouncer host={peerHostService} />
+      )}
       <AugmentAvailabilityFeeder />
       {/*
        * A pilot is aboard, so their session observes from the craft rather

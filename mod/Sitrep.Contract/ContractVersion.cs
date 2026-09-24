@@ -1776,7 +1776,20 @@ namespace Sitrep.Contract
         /// <para><b>Reset to 0 alongside the Major 16 -&gt; 17 bump</b> (see
         /// <see cref="Major"/>). The Minor history above belongs to the Major-16 line
         /// and is retained for provenance.</para>
+        ///
+        /// <para><b>Major-17 line, Bumped 0 -&gt; 1: each centre's own delay to the
+        /// active craft is on the wire.</b> The <c>commandCentre.activeVesselDelay</c>
+        /// channel (<see cref="CommandCentreActiveVesselDelay"/>,
+        /// <see cref="CentreDelayEntry"/>). Additive, nothing removed or retyped, so an
+        /// Uplink built against 17.0 is unaffected and the frozen Major-17 floor is NOT
+        /// re-frozen.</para>
+        ///
+        /// <para>The ledger already timed every centre by its own route, but the only
+        /// delay a client could read was <c>comms.delay</c>, the home centre's. A
+        /// client observing from anywhere else sized its view clock by home's
+        /// light-time over frames that were arriving at a different one, and could not
+        /// say how far its own centre was from the craft at all.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }
