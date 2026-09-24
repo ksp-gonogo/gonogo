@@ -197,6 +197,54 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Whether a vessel's route ends at a ground station, any ground station:
+        /// every one carries the home command's ledger, so this is what reaching it
+        /// means. Null when it cannot be read.
+        ///
+        /// <para>Not <c>IsConnected</c>. Stock sets that for a path to ANY control
+        /// source, and a crewed craft with a probe control point is one, so a
+        /// vessel relaying only through another ship reads connected while nothing
+        /// it sends reaches the ground. The path's own last hop is asked instead,
+        /// which is also the elected backend's route rather than stock's flag.</para>
+        ///
+        /// <para>A save with no comms model reaches everything, as in
+        /// <see cref="ReadVessel"/>.</para>
+        /// </summary>
+        internal static bool? ReachesGround(Vessel vessel, SignalDelayConfig? config)
+        {
+            try
+            {
+                if (vessel == null)
+                {
+                    return null;
+                }
+                if (config != null && config.CutForNoCommsModel)
+                {
+                    return true;
+                }
+                var conn = vessel.connection;
+                if (conn == null || !conn.IsConnected || conn.ControlPath == null)
+                {
+                    return false;
+                }
+                CommLink? last = null;
+                foreach (var link in conn.ControlPath)
+                {
+                    if (link?.a != null && link.b != null)
+                    {
+                        last = link;
+                    }
+                }
+                return last != null && (last.a.isHome || last.b.isHome);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] FleetCommsReader.ReachesGround failed (treating as unknown): " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Routed one-way light-time between two arbitrary comms nodes, or null
         /// when the ELECTED BACKEND does not route between them. Unlike
         /// <see cref="ReadVessel"/>, which can only ever answer "how far is this
