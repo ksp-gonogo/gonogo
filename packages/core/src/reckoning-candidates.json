@@ -129,7 +129,7 @@
   },
   "KerbalismCrewRule.value": {
     "rates": ["degenPerSec"],
-    "reason": "Claimed, and NOT by integrating the sibling the rule offered. `degenPerSec` is a config constant off `Profile.rules[].degeneration` that applies only once the rule\u0027s input resource is gone, so integrating it would advance a supplied kerbal towards their fatal threshold on schedule. GonogoKerbalismUplink\u0027s `reckonCrewAccumulators` fits the OBSERVED slope over a declared window instead, against each entry\u0027s own `asOfUt`, and a flat pair is positive evidence the rule is not degenerating at all. So the pairing is real, the offered rate is the wrong one, and the window is what made the honest version possible.",
+    "reason": "Claimed, and NOT by integrating the sibling the rule offered. `degenPerSec` is a config constant off `Profile.rules[].degeneration` that applies only once the rule's input resource is gone, so integrating it would advance a supplied kerbal towards their fatal threshold on schedule. GonogoKerbalismUplink's `reckonCrewAccumulators` fits the OBSERVED slope over a declared window instead, against each entry's own `asOfUt`, and a flat pair is positive evidence the rule is not degenerating at all. So the pairing is real, the offered rate is the wrong one, and the window is what made the honest version possible.",
     "verdict": "modelled"
   },
   "KerbalismLifeSupport.asOfUt": {
@@ -337,6 +337,16 @@
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
     "verdict": "real-but-unmodelled"
   },
+  "WarpState.keyframeFloorSec": {
+    "rates": ["warpRate", "warpRates"],
+    "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of a keyframe floor. The floor is a fixed constant of the mod's emitter, published so a client can multiply it BY the warp rate; nothing about it changes over time to integrate.",
+    "verdict": "coincidence"
+  },
+  "WarpState.observationQuantumUt": {
+    "rates": ["warpRate", "warpRates"],
+    "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of an observation quantum. The quantum is the UT between two of the mod's samples at the current rate, a figure that changes only when the rate is set; nothing about it changes over time to integrate.",
+    "verdict": "coincidence"
+  },
   "dv.stages.burnTime": {
     "rates": ["twrActual", "twrAsl", "twrVac"],
     "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
@@ -398,6 +408,16 @@
       "stupidity"
     ],
     "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "time.warp.keyframeFloorSec": {
+    "rates": ["warpRate", "warpRates"],
+    "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of a keyframe floor. The floor is a fixed constant of the mod's emitter, published so a client can multiply it BY the warp rate; nothing about it changes over time to integrate.",
+    "verdict": "coincidence"
+  },
+  "time.warp.observationQuantumUt": {
+    "rates": ["warpRate", "warpRates"],
+    "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of an observation quantum. The quantum is the UT between two of the mod's samples at the current rate, a figure that changes only when the rate is set; nothing about it changes over time to integrate.",
     "verdict": "coincidence"
   },
   "vessel.dock.distance": {

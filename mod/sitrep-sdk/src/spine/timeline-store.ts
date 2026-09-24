@@ -6,6 +6,7 @@ import {
   delayLaneOf,
   readDeclaredDelayRoles,
 } from "../delay-roles";
+import { magnitudeOr, type Quantityish } from "../magnitude";
 import { PerfBudget } from "../perf/PerfBudget";
 import { splitRawFieldSubtopic } from "../raw-field-split";
 import type {
@@ -279,6 +280,34 @@ export interface ReckonedSample<T> {
  * so nothing here can promise the end agrees with it.
  */
 export type ReckonedBound<T> = T extends Value<infer U> ? Value<U> : Value;
+
+/**
+ * What a topic's own model says happened across the part of a gap between two
+ * samples that nothing observed. See {@link TimelineStore.gapModel}.
+ *
+ * `carried: false` is a model that claimed the plotted path at the earlier
+ * sample and withdrew before the span ended, so nothing can say what the value
+ * did there. `carried: true` holds the model's answers at instants strictly
+ * inside the span, for a chart to hold its own chord against: this type says
+ * what the model claims, and only the chart knows whether a difference is one it
+ * can draw.
+ */
+export type GapModel =
+  | { readonly carried: false }
+  | {
+      readonly carried: true;
+      readonly basis: ReckoningBasis;
+      readonly t: readonly number[];
+      /** The model's answers at `t`, wrapped exactly as a reckoned tail's are. */
+      readonly v: readonly unknown[];
+    };
+
+/**
+ * How many instants inside one unobserved span the model is asked about. Enough
+ * to draw one full swing of an orbit smoothly, which is the most a single span
+ * can hide before the samples themselves start to alias it.
+ */
+const GAP_MODEL_SAMPLES = 24;
 
 /**
  * The most instants one reckoned tail may be sampled at.
@@ -757,6 +786,15 @@ export class TimelineStore {
    * NOT the frame cache, which is keyed on a token that changes every ingest
    * tick: see `sampleReading` for why that distinction is load-bearing.
    */
+  /**
+   * One judgement per plotted topic per later sample of a gap, with everything
+   * it was judged from. Weak, so a sample that leaves the buffer takes its
+   * judgements with it.
+   */
+  private readonly gapModels = new WeakMap<
+    TimelinePoint<unknown>,
+    Map<string, { readonly key: string; readonly answer: GapModel | undefined }>
+  >();
   private readonly readings = new Map<
     string,
     {
@@ -1570,6 +1608,143 @@ export class TimelineStore {
       if (at >= toUt) break;
     }
     return out;
+  }
+
+  /**
+   * What `topic`'s own model says happened across the part of the gap between
+   * two consecutive samples that no observation covers, or `undefined` where
+   * nothing covers it and nothing claims to.
+   *
+   * ## Only the span the sampling missed is asked about
+   *
+   * `time.warp.observationQuantumUt` is how far apart the mod's samples of the
+   * game were, read off the `time.warp` sample in force at the later point. A
+   * gap wider than that is a quiet channel: the mod looked once a quantum and
+   * found nothing worth sending. So the unobserved span is the LAST quantum of
+   * the gap, or the whole gap where it is shorter, which at 1x is one second
+   * and under high warp is one physics tick of thousands.
+   *
+   * ## The model is asked from the start of that span, as a held reading
+   *
+   * The earlier sample's record, re-stamped at the instant the span opens,
+   * because the mod confirmed it unchanged at every look until then: a quiet
+   * channel that moves at the end of forty seconds was last known one second
+   * before the move, not forty. At that instant first: a model that makes no
+   * claim on the plotted path there (no reckoner, a field it copies rather
+   * than moves, a decline on the record's own terms) says nothing about the
+   * span either, and the answer is `undefined`. Then at instants across the
+   * span and at its end: a model
+   * that withdraws at any of them did not carry it (`carried: false`), and one
+   * that answers at all of them hands back its path. A conic on rails carries
+   * any gap it does not leave the patch or enter air during; a first-order dead
+   * reckoning does not carry two thousand seconds.
+   *
+   * Declared inputs resolve at the current frame, as they do for the reckoned
+   * tail. They are part of the cache key, so an input that arrives later is
+   * asked again rather than latched.
+   */
+  gapModel(
+    topic: string,
+    before: TimelinePoint<unknown>,
+    after: TimelinePoint<unknown>,
+  ): GapModel | undefined {
+    const gap = after.validAt - before.validAt;
+    if (!(gap > 0)) return undefined;
+    const warp = this.sampleRange<{
+      observationQuantumUt?: Quantityish | null;
+    }>("time.warp", Number.NEGATIVE_INFINITY, after.validAt)?.at(-1)?.payload;
+    const quantum = magnitudeOr(warp?.observationQuantumUt, Number.NaN);
+    if (!(quantum > 0)) return undefined;
+    const span = Math.min(gap, quantum);
+
+    const parsed = this.resolveRawFieldSubtopic(topic);
+    const rawTopic = parsed?.rawTopic ?? topic;
+    const token = this.currentToken;
+    if (!getReckoner(rawTopic)) return undefined;
+    const inputs = this.reckonerDepTopics(rawTopic)
+      .map(
+        (dep) => `${dep}@${this.sample<unknown>(dep, token)?.validAt ?? "-"}`,
+      )
+      .join(",");
+    const key = `${before.validAt}\0${span}\0${inputs}\0${this.clock.getEpoch()}`;
+    /*
+     * Keyed on the RECORD's point, not the one handed in: a field read's range
+     * is minted fresh on every call, so a judgement keyed on it would never be
+     * found again.
+     */
+    const record = parsed
+      ? this.sampleRange<unknown>(rawTopic, after.validAt, after.validAt)?.find(
+          (point) => point.validAt === after.validAt,
+        )
+      : after;
+    if (!record) return undefined;
+    let byTopic = this.gapModels.get(record);
+    if (!byTopic) {
+      byTopic = new Map();
+      this.gapModels.set(record, byTopic);
+    }
+    const cached = byTopic.get(topic);
+    if (cached?.key === key) return cached.answer;
+    const answer = this.computeGapModel(topic, before, after, span);
+    byTopic.set(topic, { key, answer });
+    return answer;
+  }
+
+  private computeGapModel(
+    topic: string,
+    before: TimelinePoint<unknown>,
+    after: TimelinePoint<unknown>,
+    span: number,
+  ): GapModel | undefined {
+    const parsed = this.resolveRawFieldSubtopic(topic);
+    const rawTopic = parsed?.rawTopic ?? topic;
+    const fieldPath = parsed?.fieldPath ?? [];
+    const reckoner = this.registeredReckonerFn<unknown>(
+      rawTopic,
+      this.currentToken,
+    );
+    if (!reckoner) return undefined;
+    const held = parsed
+      ? this.sampleRange<unknown>(
+          rawTopic,
+          before.validAt,
+          before.validAt,
+        )?.find((point) => point.validAt === before.validAt)
+      : before;
+    if (!held || held.payload === null) return undefined;
+    const from = after.validAt - span;
+    const anchor: TimelinePoint<unknown> = { ...held, validAt: from };
+    /*
+     * A path the model MOVES. The root entry every model carries only says the
+     * record is under its claim, and a field copied verbatim beside a moved one
+     * is the last observation, which says nothing about the span.
+     */
+    const answerAt = (at: number) => {
+      const model = reckoner(anchor, "held-stale", at);
+      const moved = model?.modelled.find((entry) =>
+        fieldPath.length === 0
+          ? entry.path === ""
+          : entry.path !== "" && coversPath(entry.path, fieldPath),
+      );
+      if (!model || !moved) return undefined;
+      return {
+        basis: moved.basis,
+        value: walkFieldPath(model.reckon(at), fieldPath),
+      };
+    };
+    const opening = answerAt(from);
+    if (!opening) return undefined;
+    const t: number[] = [];
+    const v: unknown[] = [];
+    for (let k = 1; k <= GAP_MODEL_SAMPLES; k++) {
+      const at = from + (span * k) / (GAP_MODEL_SAMPLES + 1);
+      const answer = answerAt(at);
+      if (!answer) return { carried: false };
+      t.push(at);
+      v.push(answer.value);
+    }
+    if (!answerAt(after.validAt)) return { carried: false };
+    return { carried: true, basis: opening.basis, t, v };
   }
 
   /**
@@ -2599,7 +2774,7 @@ export class TimelineStore {
       return { points: [], truncatedAtBreak: false };
     }
     if (!window) return { points: [anchor], truncatedAtBreak: false };
-    const key = `reckon-window:${topic}:${window.spanUt}:${window.maxSamples}`;
+    const key = `reckon-window:${topic}:${anchor.validAt}:${window.spanUt}:${window.maxSamples}`;
     return this.memoize(token, key, () => {
       const raw = this.sampleRange<T>(
         topic,
@@ -2990,9 +3165,27 @@ export class TimelineStore {
       topic,
       this.clock.certaintyHorizonUt(),
       this.clock.confidence(),
+      this.keyframeFloorGapUt(token),
     )
       ? "held-stale"
       : "live";
+  }
+
+  /**
+   * The least UT the mod leaves between two keyframes right now: its
+   * real-time keyframe floor times the warp rate, both off the latest
+   * `time.warp` sample so the two are from the same instant. Zero without
+   * one, which widens nothing and is right at 1x.
+   */
+  private keyframeFloorGapUt(token: FrameToken): number {
+    const warp = this.sample<{
+      warpRate?: Quantityish;
+      keyframeFloorSec?: Quantityish;
+    }>("time.warp", token)?.payload;
+    if (!warp) return 0;
+    const gap =
+      magnitudeOr(warp.warpRate, 0) * magnitudeOr(warp.keyframeFloorSec, 0);
+    return Number.isFinite(gap) && gap > 0 ? gap : 0;
   }
 
   /**

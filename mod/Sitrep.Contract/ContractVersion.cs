@@ -1805,7 +1805,17 @@ namespace Sitrep.Contract
         /// Reusing an existing arm would have told the operator the flight was not
         /// clear or the craft was wrong, when what is wrong is where they are
         /// standing.</para>
+        ///
+        /// <para><b>Major-17 line, Bumped 2 -&gt; 3:</b> <see cref="WarpState.KeyframeFloorSec"/>, the
+        /// real-time floor on periodic keyframes, so a client inferring staleness from
+        /// keyframe cadence can widen its expected gap under warp. Additive, nothing
+        /// removed or retyped.</para>
+        ///
+        /// <para><b>Major-17 line, Bumped 3 -&gt; 4:</b> <see cref="WarpState.ObservationQuantumUt"/>, how far
+        /// apart the mod's samples of the game are at the current warp, so a client can
+        /// tell a span no observation covers from a channel that did not change.
+        /// Additive, nothing removed or retyped.</para>
         /// </remarks>
-        public const int Minor = 2;
+        public const int Minor = 4;
     }
 }

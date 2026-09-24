@@ -444,3 +444,61 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
     });
   });
 });
+
+/**
+ * A warp step-up must not make a quiet channel read stale.
+ *
+ * The mod floors keyframes in real time, so under warp the UT gap between two
+ * keyframes of a channel that is not changing grows by the warp rate, and a
+ * cadence the client learned at 1x is far too short. The floor rides on
+ * `time.warp` beside the warp rate; the store widens the expected gap by their
+ * product.
+ */
+describe("TimelineStore.sampleStatus across a warp step-up", () => {
+  function quietChannelThenWarp(
+    warp: { warpRate: number; keyframeFloorSec: number } | null,
+    horizonAfterUt: number,
+  ) {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+    // A keyframe every 30 UT at 1x: the cadence the client learns.
+    for (const ut of [0, 30, 60, 90]) store.ingest("quiet.topic", point(ut, 1));
+    if (warp !== null) {
+      store.ingest("time.warp", {
+        validAt: 90,
+        epoch: 0,
+        meta: makeMeta({
+          validAt: 90,
+          deliveredAt: 90,
+          staleness: Staleness.Fresh,
+        }),
+        payload: {
+          warpRate: value("1", warp.warpRate),
+          keyframeFloorSec: value("s", warp.keyframeFloorSec),
+        },
+      });
+    }
+    // A channel that IS changing keeps arriving, which is what moves the
+    // certainty horizon on under warp.
+    store.ingest("busy.topic", point(90 + horizonAfterUt, 1));
+    store.beginFrame();
+    return store.sampleStatus("quiet.topic");
+  }
+
+  it("stays live while the gap is inside the mod's floor at this warp", () => {
+    expect(
+      quietChannelThenWarp({ warpRate: 100_000, keyframeFloorSec: 1 }, 60_000),
+    ).toBe("live");
+  });
+
+  it("reads stale on the same gap with no warp state to widen it", () => {
+    // The control, and the behaviour before the floor was published.
+    expect(quietChannelThenWarp(null, 60_000)).toBe("held-stale");
+  });
+
+  it("still goes stale once the gap passes even the widened window", () => {
+    expect(
+      quietChannelThenWarp({ warpRate: 100_000, keyframeFloorSec: 1 }, 250_000),
+    ).toBe("held-stale");
+  });
+});

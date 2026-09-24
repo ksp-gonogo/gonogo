@@ -57,6 +57,17 @@ namespace Sitrep.Core.Tests
     /// </summary>
     public class KeyframeCaptureWindowTests
     {
+
+        /// <summary>
+        /// A real clock that is never the binding constraint: each read is a long
+        /// time after the last. These tests are about the UT cadence, so the
+        /// real-time keyframe floor must not be what decides them.
+        /// </summary>
+        private static System.Func<double> RealTimeNeverBinding()
+        {
+            var now = 0.0;
+            return () => now += 1000.0;
+        }
         private const double KeyframeIntervalUt = 30;
 
         /// <summary>
@@ -104,7 +115,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void Decide_UnchangingChannel_EmitsOnlyKeyframesOnTheCadence()
         {
-            var emitter = new ChannelEmitter(VesselPolicy());
+            var emitter = new ChannelEmitter(VesselPolicy(), RealTimeNeverBinding());
             var emissions = new List<EmissionDecision>();
 
             // 121 ticks at 1 Hz, 1x warp: 120 UT of capture, four keyframe
@@ -135,7 +146,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void Decide_PayloadMovesEveryTick_EmitsOnEveryTick()
         {
-            var emitter = new ChannelEmitter(VesselPolicy());
+            var emitter = new ChannelEmitter(VesselPolicy(), RealTimeNeverBinding());
             var emissions = new List<EmissionDecision>();
 
             for (var ut = 0; ut <= 120; ut++)
@@ -196,7 +207,7 @@ namespace Sitrep.Core.Tests
             const double TickSpacingUt = 1.02;
             const double CaptureUt = 130;
 
-            var emitter = new ChannelEmitter(VesselPolicy());
+            var emitter = new ChannelEmitter(VesselPolicy(), RealTimeNeverBinding());
             var emissions = new List<EmissionDecision>();
 
             // `Epoch + (spacing * tick)`, never an accumulating `ut += spacing`:
@@ -260,7 +271,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void Decide_CaptureShorterThanTheInterval_ContainsNoFrame()
         {
-            var emitter = new ChannelEmitter(VesselPolicy());
+            var emitter = new ChannelEmitter(VesselPolicy(), RealTimeNeverBinding());
 
             // Establish the subscriber: the joining keyframe at ut 0, then run
             // on to the next one so the capture below opens on a fresh cadence
@@ -307,7 +318,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NotifySubscribed_ShortCaptureWindow_ForcesAKeyframeAnyway()
         {
-            var emitter = new ChannelEmitter(VesselPolicy());
+            var emitter = new ChannelEmitter(VesselPolicy(), RealTimeNeverBinding());
 
             for (var ut = 0; ut <= 100; ut++)
             {

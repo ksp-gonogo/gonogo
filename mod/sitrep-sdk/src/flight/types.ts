@@ -155,6 +155,28 @@ export interface SeriesReckonedSpan {
 }
 
 /**
+ * What a value's own model says happened across the part of one gap between
+ * two samples that nothing observed: its answers at instants strictly inside
+ * that span, in the same clock as `t` and the same units as `v`.
+ *
+ * `to` is the index of the LATER sample, the currency `breaks` uses. The chord a
+ * chart draws from `to - 1` to `to` is a claim about this span, and these are
+ * what the model claims instead. Only the chart knows its own scale, so only
+ * the chart can tell whether the two part by more than it can draw; where they
+ * do, the chord asserts a path the model contradicts, and the chart must break
+ * there or draw the model's path in its place. A gap the model could not carry
+ * at all is a `breaks` index, not one of these.
+ *
+ * Presentation-time, like a reckoned run: nothing stores one.
+ */
+export interface SeriesBridge {
+  to: number;
+  t: readonly number[];
+  v: readonly number[];
+  basis: ReckoningBasis;
+}
+
+/**
  * Columnar series slice. `t` and `v` have identical length. Used as the
  * return shape for `queryRange` + `getLatest` because the graph widget
  * consumes parallel arrays and it's cheaper to stream over PeerJS later.
@@ -208,6 +230,13 @@ export interface SeriesRange<V = unknown> {
    * this and a later read can never mistake one for an observation.
    */
   reckoned?: SeriesReckonedSpan[];
+
+  /**
+   * One entry per gap the sampling missed and the value's own model carried,
+   * ascending by `to`. Absent or empty means no chord in the slice crosses a
+   * span a model has something to say about. See {@link SeriesBridge}.
+   */
+  bridges?: SeriesBridge[];
 
   /**
    * The instant the window was asked FOR, in `basis`, when the producer knows

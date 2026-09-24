@@ -60,10 +60,10 @@ describe("buildPath", () => {
     expect(buildPath([], [], s, s)).toBe("");
   });
 
-  it("returns M-only for a single point", () => {
+  it("draws a single point as a zero-length segment, which the round cap shows", () => {
     const sx = makeScale(0, 100, 0, 100);
     const sy = makeScale(0, 100, 100, 0);
-    expect(buildPath([50], [50], sx, sy)).toBe("M50.00,50.00");
+    expect(buildPath([50], [50], sx, sy)).toBe("M50.00,50.00 L50.00,50.00");
   });
 
   it("returns M+L for two points", () => {
@@ -173,6 +173,87 @@ const strokedPaths = (
   Array.from(
     container.querySelectorAll<SVGPathElement>(`path[stroke='${color}']`),
   );
+
+/**
+ * A chord across a gap nothing observed, against what the value's model says
+ * happened there. The flat chord between two equal samples is contradicted by a
+ * model that swung between them, so the chart draws the model's path instead,
+ * reckoned, and marks the two samples it joins; the rising one beside it agrees
+ * with its model and stays.
+ */
+describe("LineChart bridges", () => {
+  const swung = (to: number, lo: number, hi: number) => ({
+    to,
+    t: [lo + (hi - lo) / 3, lo + (2 * (hi - lo)) / 3],
+    v: [300, 300],
+    basis: "kepler-propagation" as const,
+  });
+  const series = (bridges: ChartSeries["data"]["bridges"]): ChartSeries[] => [
+    {
+      id: "alt",
+      label: "Altitude",
+      axis: "primary",
+      color: "#00ff88",
+      data: {
+        x: [0, 1000, 2000],
+        y: [0, 0, 400],
+        bridges,
+      },
+    },
+  ];
+  const measured = (container: HTMLElement) =>
+    strokedPaths(container, "#00ff88").filter(
+      (p) => p.getAttribute("data-reckoning-basis") === null,
+    );
+  const subpaths = (container: HTMLElement) =>
+    measured(container)
+      .map((p) => (p.getAttribute("d") ?? "").match(/M/g)?.length ?? 0)
+      .reduce((a, b) => a + b, 0);
+
+  it("draws the model's path for a chord it contradicts, and marks what was measured", () => {
+    const { container } = render(
+      <LineChart
+        series={series([swung(1, 0, 1000)])}
+        xDomain={[0, 2000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(subpaths(container)).toBe(2);
+    const reckoned = strokedPaths(container, "#00ff88").filter(
+      (p) => p.getAttribute("data-reckoning-basis") === "kepler-propagation",
+    );
+    expect(reckoned).toHaveLength(1);
+    expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
+    expect(
+      container.querySelectorAll("circle[data-observed-sample]"),
+    ).toHaveLength(2);
+    expect(chartName(container)).toMatch(
+      /Altitude: part of this trace is reckoned/,
+    );
+  });
+
+  it("keeps a chord its model agrees with", () => {
+    const agreeing = {
+      to: 2,
+      t: [1500],
+      v: [200],
+      basis: "kepler-propagation" as const,
+    };
+    const { container } = render(
+      <LineChart
+        series={series([agreeing])}
+        xDomain={[0, 2000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(subpaths(container)).toBe(1);
+    expect(
+      container.querySelectorAll("circle[data-observed-sample]"),
+    ).toHaveLength(0);
+  });
+});
 
 describe("LineChart provenance", () => {
   const observed: ChartSeries[] = [
