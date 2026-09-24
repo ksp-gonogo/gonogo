@@ -169,14 +169,12 @@ namespace Sitrep.Host.IntegrationTests
         /// control as live AND the dispatch that is supposed to re-check it lets
         /// the command through.</para>
         ///
-        /// <para><b>This asserts the DEFECT, not the requirement.</b> It is
-        /// green on today's tree and goes red the moment the coalesce is
-        /// corrected, which is deliberate: the <c>mod</c> CI job is a hard gate
-        /// with no exemption mechanism, so a plain red test would break the
-        /// build for everyone until the operator has ruled on the fix. When the
-        /// coalesce answers Unknown, this test wants the assertions its sibling
-        /// below already makes: a null <c>result</c>, and a <c>refusal</c>
-        /// naming the gate kind that returned nothing. Rename it then.</para>
+        /// <para><b>This asserts the DEFECT, not the requirement.</b> It passes
+        /// while the coalesce reads a null verdict as a pass, and fails once the
+        /// coalesce answers Unknown. From then on this test wants the assertions
+        /// its sibling below already makes: a null <c>result</c>, and a
+        /// <c>refusal</c> naming the gate kind that returned nothing, under a
+        /// name that says so.</para>
         /// </summary>
         [Fact]
         public void AnEvaluatorThatAnswersNothingStillAuthorisesTheCommand()
