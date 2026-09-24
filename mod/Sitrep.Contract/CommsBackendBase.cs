@@ -402,20 +402,22 @@ public abstract class CommsBackendBase : ICommsBackend
     /// The wire's three-state collapse of <see cref="CommsControlGrade"/>.
     /// Partial is partial whether or not there is a crew; the crew shows up in
     /// <see cref="CommsConnectivity.HasLocalControl"/> instead.
+    ///
+    /// <para>No discard arm, deliberately: <c>CommsControlGrade</c> is declared
+    /// in this assembly, so every member is enumerated by name and a member
+    /// added without a matching arm here is CS8509, elevated to a build error
+    /// by <c>Sitrep.Contract.csproj</c>. That is the opposite of the runtime
+    /// default this replaced, which mapped an unrecognised grade to
+    /// <see cref="CommsControlSource.None"/> even though <c>None</c> is itself
+    /// a real measured "no control source" fact.</para>
     /// </summary>
-    private static CommsControlSource SourceOf(CommsControlGrade grade)
+    private static CommsControlSource SourceOf(CommsControlGrade grade) => grade switch
     {
-        switch (grade)
-        {
-            case CommsControlGrade.Full:
-                return CommsControlSource.Full;
-            case CommsControlGrade.PartialManned:
-            case CommsControlGrade.PartialUnmanned:
-                return CommsControlSource.Partial;
-            default:
-                return CommsControlSource.None;
-        }
-    }
+        CommsControlGrade.None => CommsControlSource.None,
+        CommsControlGrade.PartialUnmanned => CommsControlSource.Partial,
+        CommsControlGrade.PartialManned => CommsControlSource.Partial,
+        CommsControlGrade.Full => CommsControlSource.Full,
+    };
 
     /// <summary>The same collapse in <c>comms.control</c>'s own vocabulary.</summary>
     private static CommsControlStateKind KindOf(CommsControlGrade grade)
