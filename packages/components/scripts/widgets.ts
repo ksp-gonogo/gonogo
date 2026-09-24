@@ -1432,6 +1432,125 @@ const WIDGETS: WidgetRenderConfig[] = [
     })(),
   },
   {
+    // WARP BREAKS: what a chart draws between two samples no observation
+    // covers. Four scenes, one per entry because the window is per mode: a
+    // dead-reckoned distance at 1x and at 100,000x, and an on-rails conic
+    // altitude at 1000x and at 100,000x. Only the warped distance may break.
+    widgetId: "graph",
+    label: "graph/warp-dock-1x",
+    fixturesPath: "Graph/__render_warp_dock_1x__",
+    outPath: "renders/warp-breaks/warp-dock-1x",
+    modes: (() => {
+      const config = {
+        windowSec: 600,
+        variant: "chart",
+        yUnit: "m",
+        series: [
+          {
+            id: "s",
+            key: "vessel.dock.distance",
+            label: "Target distance",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "default-12x9", w: 12, h: 9, config },
+        { name: "landscape-18x5", w: 18, h: 5, config },
+        { name: "mobile-9x8", w: 9, h: 8, config },
+        { name: "portrait-5x18", w: 5, h: 18, config },
+      ];
+    })(),
+  },
+  {
+    // See graph/warp-dock-1x.
+    widgetId: "graph",
+    label: "graph/warp-dock-fast",
+    fixturesPath: "Graph/__render_warp_dock_fast__",
+    outPath: "renders/warp-breaks/warp-dock-fast",
+    modes: (() => {
+      const config = {
+        windowSec: 40000,
+        variant: "chart",
+        yUnit: "m",
+        series: [
+          {
+            id: "s",
+            key: "vessel.dock.distance",
+            label: "Target distance",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "default-12x9", w: 12, h: 9, config },
+        { name: "landscape-18x5", w: 18, h: 5, config },
+        { name: "mobile-9x8", w: 9, h: 8, config },
+        { name: "portrait-5x18", w: 5, h: 18, config },
+      ];
+    })(),
+  },
+  {
+    // See graph/warp-dock-1x.
+    widgetId: "graph",
+    label: "graph/warp-conic-1000x",
+    fixturesPath: "Graph/__render_warp_conic_1000x__",
+    outPath: "renders/warp-breaks/warp-conic-1000x",
+    modes: (() => {
+      const config = {
+        windowSec: 4000,
+        variant: "chart",
+        yUnit: "m",
+        series: [
+          {
+            id: "s",
+            key: "vessel.flight.altitudeAsl",
+            label: "Altitude",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "default-12x9", w: 12, h: 9, config },
+        { name: "landscape-18x5", w: 18, h: 5, config },
+        { name: "mobile-9x8", w: 9, h: 8, config },
+        { name: "portrait-5x18", w: 5, h: 18, config },
+      ];
+    })(),
+  },
+  {
+    // See graph/warp-dock-1x.
+    widgetId: "graph",
+    label: "graph/warp-conic-fast",
+    fixturesPath: "Graph/__render_warp_conic_fast__",
+    outPath: "renders/warp-breaks/warp-conic-fast",
+    modes: (() => {
+      const config = {
+        windowSec: 40000,
+        variant: "chart",
+        yUnit: "m",
+        series: [
+          {
+            id: "s",
+            key: "vessel.flight.altitudeAsl",
+            label: "Altitude",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "default-12x9", w: 12, h: 9, config },
+        { name: "landscape-18x5", w: 18, h: 5, config },
+        { name: "mobile-9x8", w: 9, h: 8, config },
+        { name: "portrait-5x18", w: 5, h: 18, config },
+      ];
+    })(),
+  },
+  {
     widgetId: "orbital-ascent",
     fixturesPath: "OrbitalAscent/__fixtures__",
     outPath: "renders/orbital-ascent-widget",

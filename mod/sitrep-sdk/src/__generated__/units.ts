@@ -1457,6 +1457,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxSkinTempRatio: "ratio",
   },
   "WarpState": {
+    keyframeFloorSec: "s",
+    observationQuantumUt: "s",
     paused: "flag",
     warpMode: "enum",
     warpRate: "1",
@@ -1857,6 +1859,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     yearSeconds: "s",
   },
   "time.warp": {
+    keyframeFloorSec: "s",
+    observationQuantumUt: "s",
     paused: "flag",
     warpMode: "enum",
     warpRate: "1",

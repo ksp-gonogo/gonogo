@@ -225,6 +225,7 @@ export type {
   FlightRecoveryOutcome,
   MissionMeta,
   Sample,
+  SeriesBridge,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,

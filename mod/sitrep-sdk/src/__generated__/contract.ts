@@ -8703,6 +8703,37 @@ export interface WarpState
 	* to avoid.
 	*/
 	warpRates?: Value<"1">[] | null;
+	/**
+	* The shortest real time the mod leaves between two periodic keyframes on one
+	* channel, in seconds.
+	*
+	* Keyframe cadences are declared in UT, and under warp UT can pass a cadence
+	* on every tick, so the mod also waits at least this long in real time. The
+	* gap a client sees between two keyframes of a quiet channel is therefore at
+	* least `keyframeFloorSec × warpRate` UT. A client that infers staleness from
+	* keyframe cadence has to allow for that, or every quiet channel reads stale
+	* just after a warp step-up.
+	*
+	* On this topic because its only use is that product, and both halves then
+	* arrive in the same sample.
+	*/
+	keyframeFloorSec: Value<"s">;
+	/**
+	* The UT that actually passes between two samples at the current warp rate, in
+	* seconds, or `null` where the host did not report its physics step.
+	*
+	* One second while a physics tick advances the game by less than that, and one
+	* tick from then on, which under high warp is thousands. Nothing between two
+	* consecutive samples was observed, so a line drawn between two samples that
+	* differ asserts a path across this span that only a model of the value can
+	* stand behind. Two samples further apart than this are a channel that did not
+	* change in between.
+	*
+	* On this topic beside `WarpState.keyframeFloorSec` because it is the other
+	* thing warp does to cadence, and it changes only when the rate does. A client
+	* judging a gap reads the quantum in force when the later sample was taken.
+	*/
+	observationQuantumUt?: Value<"s"> | null;
 	meta: PayloadMeta;
 }
 /**

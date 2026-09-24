@@ -483,7 +483,8 @@ export function GraphView({
      * would name the wrong part of the curve. The reckoned run is dropped there
      * for a sharper reason than the status one: it CHANGES how the curve is
      * stroked, so landing on the wrong part of it would mark measured samples
-     * as never observed.
+     * as never observed. Bridges go with them, for the reason reckoned runs do:
+     * a chord on a re-paired axis joins different samples.
      */
     const baseData = xIsTime
       ? {
@@ -492,6 +493,7 @@ export function GraphView({
           breaks: raw.breaks,
           spans: raw.spans,
           reckoned: raw.reckoned,
+          bridges: raw.bridges,
         }
       : alignXY(raw as SeriesRange<number>, xData);
 

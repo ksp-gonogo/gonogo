@@ -1445,6 +1445,10 @@ namespace Sitrep.Host
                 WarpRate = warpRate.Value,
                 WarpRateIndex = warpRateIndex.Value,
                 WarpRates = GetDoubleArray(time, "warpRates"),
+                KeyframeFloorSec = Sitrep.Core.ChannelEmitter.KeyframeFloorRealSec,
+                ObservationQuantumUt = GetDouble(time, "tickUt") is { } tickUt
+                    ? SampleCadence.ObservationQuantumUt(SampleCadence.IntervalUt, tickUt)
+                    : null,
                 WarpMode = ParseWarpMode(GetString(time, "warpMode")),
                 Paused = paused.Value,
                 Meta = BuildGameMeta(),
@@ -2064,6 +2068,8 @@ namespace Sitrep.Host
             ["warpRate"] = warp.WarpRate,
             ["warpRateIndex"] = warp.WarpRateIndex,
             ["warpRates"] = warp.WarpRates,
+            ["keyframeFloorSec"] = warp.KeyframeFloorSec,
+            ["observationQuantumUt"] = warp.ObservationQuantumUt,
             ["warpMode"] = (int)warp.WarpMode,
             ["paused"] = warp.Paused,
             ["meta"] = ToWire(warp.Meta),

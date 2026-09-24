@@ -2907,6 +2907,10 @@ namespace Gonogo.KSP
                 ["warpRates"] = ReadWarpRates(),
                 ["warpMode"] = TimeWarp.WarpMode.ToString(),
                 ["paused"] = FlightDriver.Pause,
+                // The UT one FixedUpdate advances the game: the physics step,
+                // scaled by the rate under rails warp. It is what bounds how
+                // often the sample gate can be asked at all.
+                ["tickUt"] = (double)TimeWarp.fixedDeltaTime,
                 ["minuteSeconds"] = (double)calendar.Minute,
                 ["hourSeconds"] = (double)calendar.Hour,
                 ["daySeconds"] = (double)calendar.Day,

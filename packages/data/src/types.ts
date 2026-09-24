@@ -13,6 +13,7 @@ export type {
   FlightRecord,
   FlightRecoveryOutcome,
   Sample,
+  SeriesBridge,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,

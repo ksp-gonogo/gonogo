@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Host;
 using Xunit;
 
@@ -79,6 +80,33 @@ namespace Sitrep.Host.Tests
 
             Assert.False(SampleCadence.ShouldSample(ut: 50.5, last, IntervalUt));
             Assert.True(SampleCadence.ShouldSample(ut: 51.0, last, IntervalUt));
+        }
+
+        [Theory]
+        [InlineData(0.02, 1.0)] // 1x
+        [InlineData(1.0, 1.0)] // 50x: one tick is exactly the interval
+        [InlineData(2.0, 2.0)] // 100x: every tick is sampled
+        [InlineData(2000.0, 2000.0)] // 100,000x
+        public void QuantumIsTheIntervalUntilOneTickOutrunsIt(double tickUt, double expected)
+        {
+            Assert.Equal(expected, SampleCadence.ObservationQuantumUt(IntervalUt, tickUt));
+        }
+
+        [Fact]
+        public void QuantumMatchesWhatTheGateActuallyLets()
+        {
+            // The gate is asked once per tick, so the gap it produces is the
+            // quantum claimed, measured rather than restated.
+            const double tickUt = 2000.0;
+            double? last = null;
+            var sampled = new List<double>();
+            for (var ut = 0.0; ut <= 10_000.0; ut += tickUt)
+            {
+                if (!SampleCadence.ShouldSample(ut, last, IntervalUt)) continue;
+                if (last.HasValue) sampled.Add(ut - last.Value);
+                last = ut;
+            }
+            Assert.All(sampled, gap => Assert.Equal(SampleCadence.ObservationQuantumUt(IntervalUt, tickUt), gap));
         }
     }
 }

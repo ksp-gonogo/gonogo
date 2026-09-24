@@ -25,6 +25,27 @@ namespace Sitrep.Host
     public static class SampleCadence
     {
         /// <summary>
+        /// The UT the mod leaves between two samples of the game while one
+        /// physics tick advances less than this.
+        /// </summary>
+        public const double IntervalUt = 1.0;
+
+        /// <summary>
+        /// The UT that actually passes between two samples when one physics
+        /// tick advances the game by <paramref name="tickUt"/>: the interval
+        /// at which anyone is looking.
+        ///
+        /// <para>The gate is only asked once per tick, so once a single tick
+        /// outruns <paramref name="intervalUt"/> every tick is sampled and the
+        /// quantum is the tick itself. Rounding the interval up to a whole
+        /// number of ticks below that point is deliberately left out: it is
+        /// finer than the interval, and a figure that moved with every sub-step
+        /// rate would resend the topic carrying it for nothing.</para>
+        /// </summary>
+        public static double ObservationQuantumUt(double intervalUt, double tickUt) =>
+            tickUt > intervalUt ? tickUt : intervalUt;
+
+        /// <summary>
         /// True when the caller should call <c>Sample()</c> now: first-ever
         /// sample (<paramref name="lastSampledUt"/> is null), a backward UT
         /// jump, or enough forward UT has elapsed.

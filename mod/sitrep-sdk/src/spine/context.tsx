@@ -412,6 +412,13 @@ export function TelemetryProvider({
    * only while something happens to be drawing Uplink health.
    */
   useEffect(() => client.subscribe("system.uplinks", () => {}), [client]);
+  /*
+   * Staleness is inferred from keyframe cadence, and under warp the mod floors
+   * that cadence in real time: the gap a client must allow is published on
+   * `time.warp`. Held for the provider's life so a dashboard that draws no warp
+   * readout still judges every other channel's staleness against it.
+   */
+  useEffect(() => client.subscribe("time.warp", () => {}), [client]);
   useEffect(() => {
     // Coalesce to (at most) one `beginFrame()` per animation-frame tick,
     // instead of one per `stream-data` message: see

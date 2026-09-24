@@ -3,6 +3,7 @@ import {
   getDataSource,
   useDataSourceSubscription,
 } from "@ksp-gonogo/core";
+import type { GapModel } from "@ksp-gonogo/sitrep-client";
 import {
   classifyDeadRead,
   DEAD_READ_SETTLE_MS,
@@ -22,6 +23,7 @@ import type {
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import type {
+  SeriesBridge,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,
@@ -90,6 +92,44 @@ function buildSpans(
     spans.push(open);
   }
   return spans;
+}
+
+/**
+ * The plotted form of one carried gap, made once per judgement. The store hands
+ * back the same judgement until something it was judged from moves, so keying
+ * on it keeps a bridge's arrays stable across frames and lets the snapshot
+ * compare them by identity.
+ */
+const plottedGaps = new WeakMap<
+  Extract<GapModel, { carried: true }>,
+  Omit<SeriesBridge, "to">
+>();
+
+function plottedGap(
+  gap: Extract<GapModel, { carried: true }>,
+): Omit<SeriesBridge, "to"> {
+  const known = plottedGaps.get(gap);
+  if (known) return known;
+  const plotted = {
+    t: gap.t,
+    v: gap.v.map((answer) => {
+      const n = plotValue(answer);
+      return typeof n === "number" ? n : Number.NaN;
+    }),
+    basis: gap.basis,
+  };
+  plottedGaps.set(gap, plotted);
+  return plotted;
+}
+
+function bridgesEqual(
+  a: readonly SeriesBridge[],
+  b: readonly SeriesBridge[],
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every((bridge, i) => bridge.to === b[i].to && bridge.v === b[i].v)
+  );
 }
 
 function spansEqual(
@@ -405,12 +445,33 @@ export function useDataSeries(
     // the store and stopped: `SeriesRange` was `{t, v}`, so every chart in the
     // tree joined across an outage it had no readings for. Index rather than UT
     // because a chart splits its path by position, not by time.
+    // Magnitudes: a series feeds a sparkline and a graph axis, which plot
+    // numbers. A declared quantity arrives wrapped from the decode, so
+    // without this every stream-backed chart drew nothing.
+    const nextV = observed.map((p) => plotValue(p.payload));
     const nextBreaks: number[] = [];
+    const nextBridges: SeriesBridge[] = [];
     for (let i = 0; i < observed.length; i++) {
       // The FIRST point cannot open a break in the drawn series: there is no
       // segment before it to break. The hole is real, and it is off the left
       // edge of the window, where a chart already draws nothing.
-      if (i > 0 && observed[i].meta.gapSinceUt != null) nextBreaks.push(i);
+      if (i === 0) continue;
+      if (observed[i].meta.gapSinceUt != null) {
+        nextBreaks.push(i);
+        continue;
+      }
+      /*
+       * A value that did not move is left joined: the emitter only withholds a
+       * sample that compares equal, so a flat segment is what every unsent
+       * observation between the two said. One that moved across a span the
+       * sampling missed is a line nothing measured: a break where the topic's
+       * own model will not carry the span, and the model's path beside the
+       * chord where it will, for the chart to hold one against the other.
+       */
+      if (Object.is(nextV[i], nextV[i - 1])) continue;
+      const gap = store.gapModel(topic, observed[i - 1], observed[i]);
+      if (gap?.carried === false) nextBreaks.push(i);
+      else if (gap?.carried) nextBridges.push({ to: i, ...plottedGap(gap) });
     }
     /*
      * Which runs of the window came off the craft's own recorder rather than
@@ -420,10 +481,6 @@ export function useDataSeries(
      * exists to make.
      */
     const nextSpans = buildSpans(observed);
-    // Magnitudes: a series feeds a sparkline and a graph axis, which plot
-    // numbers. A declared quantity arrives wrapped from the decode, so
-    // without this every stream-backed chart drew nothing.
-    const nextV = observed.map((p) => plotValue(p.payload));
     /*
      * The tail lands AFTER every observation and never among them: it starts at
      * the newest one and runs to the frame's view time, so appending is what
@@ -523,6 +580,7 @@ export function useDataSeries(
       prev.v.every((v, i) => Object.is(v, nextV[i])) &&
       prevBreaks.length === nextBreaks.length &&
       prevBreaks.every((b, i) => b === nextBreaks[i]) &&
+      bridgesEqual(prev.bridges ?? [], nextBridges) &&
       spansEqual(prev.spans ?? [], nextSpans) &&
       reckonedEqual(prev.reckoned ?? [], nextReckoned) &&
       /*
@@ -541,6 +599,7 @@ export function useDataSeries(
       // rather than left for the consumer to guess: see `SeriesTimeBasis`.
       basis: "ut-seconds",
       breaks: nextBreaks,
+      bridges: nextBridges,
       spans: nextSpans,
       reckoned: nextReckoned,
       /*

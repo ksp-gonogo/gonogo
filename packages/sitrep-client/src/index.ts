@@ -419,6 +419,7 @@ export type {
   DerivedChannelDefinition,
   DerivedGet,
   FrameToken,
+  GapModel,
   ReckonedBound,
   ReckonedSample,
   TimelineStoreOptions,

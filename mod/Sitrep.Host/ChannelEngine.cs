@@ -1449,15 +1449,16 @@ namespace Sitrep.Host
             {
                 Topic = ChannelsTopic,
                 Delivery = Delivery.LossyLatest,
-                // MinSampleIntervalUt matters more than the keyframe floor here.
-                // The mapper's own throttle already decides how often the report
-                // CHANGES, but without a cadence gate the emitter would still
-                // structurally compare a roster of a few hundred rows against
-                // its predecessor on every tick to conclude nothing moved. The
-                // gate is checked before that compare, so it is what keeps a
-                // diagnostic channel off the hot path. Five UT seconds pairs it
-                // with ChannelCounterIntervalSec at 1x time; under warp the gate
-                // opens sooner and finds the cached report unchanged.
+                /*
+                 * The mapper's own throttle decides how often the report CHANGES;
+                 * this decides how often it is looked at. At 1x the five-UT
+                 * sample gate, which pairs with ChannelCounterIntervalSec, spares
+                 * the structural compare of a few hundred rows on most ticks.
+                 * Under warp it does not: UT outruns it, so the report is compared
+                 * on every tick. What bounds the SEND under warp is the emitter's
+                 * real-time keyframe floor, without which the 30 UT keyframe was
+                 * due on every tick and resent the whole roster unconditionally.
+                 */
                 Emission = new EmissionPolicy(
                     keyframeIntervalUt: 30,
                     quantum: EmissionQuantum.Absolute(0),
