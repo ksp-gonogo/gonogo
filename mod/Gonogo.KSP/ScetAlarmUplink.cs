@@ -422,6 +422,14 @@ namespace Gonogo.KSP
                     "no SCET threshold can be read from '" + (condition.Topic ?? "") + "'");
             }
 
+            if (condition != null
+                && condition.Kind == ScetAlarmConditionKind.ContractParameter
+                && (string.IsNullOrEmpty(condition.ContractId) || string.IsNullOrEmpty(condition.ParameterTitle)))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Range, "a contract-parameter alarm names a contract and one of its objectives");
+            }
+
             var actionRefusal = ScetAlarmActions.RefusalFor(args);
             if (actionRefusal != null)
             {

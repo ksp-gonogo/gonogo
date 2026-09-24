@@ -56,6 +56,24 @@ namespace Sitrep.Host.Alarms
         /// another reading, so keeping its Topic recorded would pin a history
         /// nothing is going to read.</para>
         /// </summary>
+        /// <summary>
+        /// The Topic a condition is read from, or null for one that reads none:
+        /// a threshold names its own, a contract parameter reads the career, and
+        /// a time condition needs only the clock.
+        /// </summary>
+        private static string? TopicOf(ScetAlarmCondition? condition)
+        {
+            switch (condition?.Kind)
+            {
+                case ScetAlarmConditionKind.Threshold:
+                    return condition.Topic;
+                case ScetAlarmConditionKind.ContractParameter:
+                    return CareerViewProvider.Topic;
+                default:
+                    return null;
+            }
+        }
+
         public void Reconcile(IEnumerable<ScetAlarm>? roster)
         {
             var wanted = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -67,14 +85,12 @@ namespace Sitrep.Host.Alarms
                     {
                         continue;
                     }
-                    var condition = alarm.Condition;
-                    if (condition == null
-                        || condition.Kind != ScetAlarmConditionKind.Threshold
-                        || string.IsNullOrEmpty(condition.Topic))
+                    var topic = TopicOf(alarm.Condition);
+                    if (string.IsNullOrEmpty(topic))
                     {
                         continue;
                     }
-                    wanted[alarm.Id!] = condition.Topic!;
+                    wanted[alarm.Id!] = topic!;
                 }
             }
 

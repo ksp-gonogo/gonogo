@@ -29,6 +29,8 @@ namespace Sitrep.Host.Tests
             /// <summary>Every (subject, topic, path) the roster asked for, in order.</summary>
             public readonly List<string> Asked = new List<string>();
 
+            public IDictionary<string, object?>? ReadPayload(string subject, string topic) => null;
+
             public ScetReading Read(string subject, string topic, string fieldPath)
             {
                 Asked.Add(subject + "|" + topic + "|" + fieldPath);

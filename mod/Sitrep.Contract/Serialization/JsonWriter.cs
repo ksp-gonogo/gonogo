@@ -1807,7 +1807,8 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// A SCET alarm's condition as <c>{ kind, ut, leadSeconds, topic,
-        /// fieldPath, op, threshold, sustainSeconds }</c>.
+        /// fieldPath, op, threshold, sustainSeconds, contractId, parameterTitle,
+        /// targetState }</c>.
         /// </summary>
         ///
         /// <remarks>
@@ -1853,6 +1854,18 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "sustainSeconds");
             sb.Append(':');
             AppendNumber(sb, c.SustainSeconds);
+            sb.Append(',');
+            AppendString(sb, "contractId");
+            sb.Append(':');
+            AppendString(sb, c.ContractId ?? "");
+            sb.Append(',');
+            AppendString(sb, "parameterTitle");
+            sb.Append(':');
+            AppendString(sb, c.ParameterTitle ?? "");
+            sb.Append(',');
+            AppendString(sb, "targetState");
+            sb.Append(':');
+            AppendInteger(sb, (int)c.TargetState);
             sb.Append('}');
         }
 

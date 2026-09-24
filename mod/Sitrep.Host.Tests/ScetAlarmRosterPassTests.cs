@@ -25,6 +25,8 @@ namespace Sitrep.Host.Tests
             public ScetReading Next = ScetReading.NotObservable;
             public readonly List<string> Asked = new List<string>();
 
+            public IDictionary<string, object?>? ReadPayload(string subject, string topic) => null;
+
             public ScetReading Read(string subject, string topic, string fieldPath)
             {
                 Asked.Add(subject + "|" + topic + "|" + fieldPath);

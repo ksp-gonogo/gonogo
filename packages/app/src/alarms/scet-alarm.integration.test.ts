@@ -52,6 +52,13 @@ const DT = 20;
 type ArmedCondition =
   | { kind: "time"; ut: number; leadSeconds: number }
   | {
+      kind: "contract-parameter";
+      contractId: string;
+      parameterTitle: string;
+      targetState: number;
+      sustainSeconds: number;
+    }
+  | {
       kind: "threshold";
       topic: string;
       fieldPath: string;
@@ -198,6 +205,7 @@ function startSession(owlt: number): ModStandIn {
       armAttemptCounts.set(id, (armAttemptCounts.get(id) ?? 0) + 1);
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
+      const contractParameter = Number(condition.kind ?? 0) === 2;
       if (!centresKnown && String(bag.vantage ?? "") !== "") {
         /* The engine has not been told what places exist: the main menu, and
            the ticks before the first capture. NotClearToProceed rather than
@@ -234,20 +242,28 @@ function startSession(owlt: number): ModStandIn {
            read at its own subject, which is where every alarm was read before
            the field existed. */
         vantage: String(bag.vantage ?? "") || subject,
-        condition: threshold
+        condition: contractParameter
           ? {
-              kind: "threshold",
-              topic: String(condition.topic ?? ""),
-              fieldPath: String(condition.fieldPath ?? ""),
-              op: Number(condition.op ?? 0),
-              threshold: Number(condition.threshold ?? 0),
+              kind: "contract-parameter",
+              contractId: String(condition.contractId ?? ""),
+              parameterTitle: String(condition.parameterTitle ?? ""),
+              targetState: Number(condition.targetState ?? 0),
               sustainSeconds: Number(condition.sustainSeconds ?? 0),
             }
-          : {
-              kind: "time",
-              ut: Number(condition.ut ?? 0),
-              leadSeconds: Number(condition.leadSeconds ?? 0),
-            },
+          : threshold
+            ? {
+                kind: "threshold",
+                topic: String(condition.topic ?? ""),
+                fieldPath: String(condition.fieldPath ?? ""),
+                op: Number(condition.op ?? 0),
+                threshold: Number(condition.threshold ?? 0),
+                sustainSeconds: Number(condition.sustainSeconds ?? 0),
+              }
+            : {
+                kind: "time",
+                ut: Number(condition.ut ?? 0),
+                leadSeconds: Number(condition.leadSeconds ?? 0),
+              },
       });
       steppedDown.delete(id);
       fired.delete(id);
@@ -292,14 +308,22 @@ function startSession(owlt: number): ModStandIn {
               ut: arm.condition.ut,
               leadSeconds: arm.condition.leadSeconds,
             }
-          : {
-              kind: 1,
-              topic: arm.condition.topic,
-              fieldPath: arm.condition.fieldPath,
-              op: arm.condition.op,
-              threshold: arm.condition.threshold,
-              sustainSeconds: arm.condition.sustainSeconds,
-            },
+          : arm.condition.kind === "contract-parameter"
+            ? {
+                kind: 2,
+                contractId: arm.condition.contractId,
+                parameterTitle: arm.condition.parameterTitle,
+                targetState: arm.condition.targetState,
+                sustainSeconds: arm.condition.sustainSeconds,
+              }
+            : {
+                kind: 1,
+                topic: arm.condition.topic,
+                fieldPath: arm.condition.fieldPath,
+                op: arm.condition.op,
+                threshold: arm.condition.threshold,
+                sustainSeconds: arm.condition.sustainSeconds,
+              },
       state: unreachable.has(id) ? 2 : fired.has(id) ? 1 : 0,
       firedAtUt: null,
       onFire: arm.onFire,
@@ -445,6 +469,9 @@ function startSession(owlt: number): ModStandIn {
             warpIndex = 0;
           }
           if (ut < c.ut) continue;
+        } else if (c.kind === "contract-parameter") {
+          // The career is not modelled here; the verdict comes from `fireForVantage`.
+          continue;
         } else {
           /* The reading is the world's TRUE value, which is the whole claim:
              nothing the client can see is consulted. Warp stops at the first
@@ -1107,6 +1134,45 @@ describe("SCET alarms", () => {
 
     expect(before).toBeUndefined();
     expect(after).toEqual([alarm.id]);
+  });
+
+  /**
+   * A contract objective is shadowed like a command-vantage threshold: the
+   * simulation judges it against what this place has been told of the career,
+   * and the client stays the one that latches.
+   */
+  it("arms a contract objective for the simulation to shadow", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Mun orbit done",
+      trigger: {
+        kind: "contract-parameter",
+        contractId: 42,
+        parameterTitle: "Orbit the Mun",
+        targetState: "Failed",
+        sustainSeconds: 3,
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    svc.dispose();
+
+    const armed = session.armOf(alarm.id);
+    expect(armed?.vantage).toBe(HOME);
+    expect(armed?.subject).toBe("game");
+    expect(armed?.condition).toEqual({
+      kind: "contract-parameter",
+      contractId: "42",
+      parameterTitle: "Orbit the Mun",
+      targetState: 2,
+      sustainSeconds: 3,
+    });
   });
 
   it("says why an unreadable Topic was refused instead of sitting pending", async () => {

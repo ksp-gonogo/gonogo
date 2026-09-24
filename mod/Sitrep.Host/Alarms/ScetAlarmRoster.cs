@@ -384,6 +384,14 @@ namespace Sitrep.Host.Alarms
                             state.Tick,
                             readerFor == null ? null : readerFor(entry.Alarm));
                         break;
+                    case ScetAlarmConditionKind.ContractParameter:
+                        EvaluateContractParameter(
+                            entry,
+                            condition,
+                            state.NowUt,
+                            state.Tick,
+                            readerFor == null ? null : readerFor(entry.Alarm));
+                        break;
                 }
             }
         }
@@ -451,7 +459,48 @@ namespace Sitrep.Host.Alarms
                 return;
             }
 
-            if (!Matches(reading.Value, condition.Op, condition.Threshold))
+            Held(entry, condition, Matches(reading.Value, condition.Op, condition.Threshold), nowUt, tick);
+        }
+
+        /// <summary>
+        /// One contract objective against the career the reader hands over, the
+        /// same two instants as a threshold: the warp stops on the first tick the
+        /// objective is in its target state, and the alarm fires once it has
+        /// stayed there for the sustain window.
+        ///
+        /// <para>Career bookkeeping belongs to the save rather than to a craft, so
+        /// it is read at the <c>"game"</c> subject whatever the alarm names, and
+        /// a craft being lost says nothing about it: there is no
+        /// <see cref="ScetAlarmState.Unreachable"/> here.</para>
+        /// </summary>
+        private static void EvaluateContractParameter(
+            Entry entry,
+            ScetAlarmCondition condition,
+            double nowUt,
+            ScetAlarmTick tick,
+            IScetStateReader? state)
+        {
+            if (state?.ReadPayload("game", CareerViewProvider.Topic) is not { } career)
+            {
+                return;
+            }
+            var matched = ScetPayload.MatchContractParameter(
+                career, condition.ContractId ?? "", condition.ParameterTitle ?? "", condition.TargetState);
+            if (matched is { } holds)
+            {
+                Held(entry, condition, holds, nowUt, tick);
+            }
+        }
+
+        /// <summary>
+        /// A condition read as holding or not this tick: stop the warp on its
+        /// first match, start or clear the sustain window, and fire once it has
+        /// held for the whole window.
+        /// </summary>
+        private static void Held(
+            Entry entry, ScetAlarmCondition condition, bool holds, double nowUt, ScetAlarmTick tick)
+        {
+            if (!holds)
             {
                 entry.MatchSinceUt = null;
                 return;
@@ -591,6 +640,9 @@ namespace Sitrep.Host.Alarms
                 && held.Condition.Op == incoming.Condition.Op
                 && held.Condition.Threshold == incoming.Condition.Threshold
                 && held.Condition.SustainSeconds == incoming.Condition.SustainSeconds
+                && string.Equals(held.Condition.ContractId, incoming.Condition.ContractId, StringComparison.Ordinal)
+                && string.Equals(held.Condition.ParameterTitle, incoming.Condition.ParameterTitle, StringComparison.Ordinal)
+                && held.Condition.TargetState == incoming.Condition.TargetState
                 && string.Equals(held.ActsOn, incoming.ActsOn, StringComparison.Ordinal)
                 && SameActions(held.OnFire, incoming.OnFire);
         }
@@ -651,6 +703,9 @@ namespace Sitrep.Host.Alarms
                 Op = c.Op,
                 Threshold = c.Threshold,
                 SustainSeconds = c.SustainSeconds,
+                ContractId = c.ContractId ?? "",
+                ParameterTitle = c.ParameterTitle ?? "",
+                TargetState = c.TargetState,
             };
         }
     }

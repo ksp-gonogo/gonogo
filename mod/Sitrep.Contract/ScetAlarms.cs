@@ -8,10 +8,10 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Which kind of condition a SCET alarm watches for.
 ///
-/// <para>Every alarm has a vantage, so a kind is only about WHAT is watched.
-/// A contract parameter has no member here yet because it reads a list-shaped
-/// Topic and a dotted path cannot index a list, so it needs a matcher of its
-/// own rather than a threshold's.</para>
+/// <para>Every alarm has a vantage, so a kind is only about WHAT is watched,
+/// and each kind names its own matcher: a threshold walks a dotted path to a
+/// number, and a contract parameter, which lives in a list no path can index,
+/// finds its contract and objective by identity.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -33,6 +33,18 @@ public enum ScetAlarmConditionKind
     /// longer the answer to "is it above 100 km NOW".</para>
     /// </summary>
     Threshold,
+
+    /// <summary>
+    /// One objective of one active contract reaching a state the operator
+    /// chose, as <c>career.status.contracts.active</c> reports it.
+    ///
+    /// <para>Level rather than edge, like the threshold: an objective already
+    /// in its target state when the alarm is armed is a condition that holds.
+    /// A contract no longer active leaves the condition unmet for ever, which
+    /// is the fail-safe answer for a contract that was completed, failed or
+    /// withdrawn by some other route.</para>
+    /// </summary>
+    ContractParameter,
 }
 
 /// <summary>
@@ -115,7 +127,10 @@ public enum ScetAlarmState
 /// <see cref="Ut"/> and <see cref="LeadSeconds"/>; for
 /// <see cref="ScetAlarmConditionKind.Threshold"/> it is <see cref="Topic"/>,
 /// <see cref="FieldPath"/>, <see cref="Op"/>, <see cref="Threshold"/> and
-/// <see cref="SustainSeconds"/>.</para>
+/// <see cref="SustainSeconds"/>; for
+/// <see cref="ScetAlarmConditionKind.ContractParameter"/> it is
+/// <see cref="ContractId"/>, <see cref="ParameterTitle"/>,
+/// <see cref="TargetState"/> and <see cref="SustainSeconds"/>.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -191,8 +206,9 @@ public class ScetAlarmCondition
     public double Threshold { get; set; }
 
     /// <summary>
-    /// Threshold only: how long the condition must hold, in seconds, before the
-    /// alarm fires. Zero fires on the first reading that matches.
+    /// Threshold and contract parameter: how long the condition must hold, in
+    /// seconds, before the alarm fires. Zero fires on the first reading that
+    /// matches.
     ///
     /// <para><b>Warp is stopped at the first match, not at the fire.</b> A
     /// sustain window is a span of the craft's time, and under warp one tick
@@ -205,6 +221,24 @@ public class ScetAlarmCondition
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double SustainSeconds { get; set; }
+
+    /// <summary>
+    /// Contract parameter only: the contract's id, as
+    /// <c>career.status.contracts.active</c> carries it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ContractId { get; set; } = "";
+
+    /// <summary>
+    /// Contract parameter only: the objective's title within that contract,
+    /// matched exactly. The first objective with the title answers.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string ParameterTitle { get; set; } = "";
+
+    /// <summary>Contract parameter only: the state the objective must reach.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspParameterState TargetState { get; set; } = KspParameterState.Complete;
 }
 
 /// <summary>
