@@ -2414,6 +2414,35 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildWarpStatesTheSampleSpacingTheTickAllows()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 100000.0, ["warpRateIndex"] = 7, ["warpMode"] = "HIGH", ["paused"] = false, ["tickUt"] = 2000.0 });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Equal(2000.0, warp!.ObservationQuantumUt);
+        }
+
+        [Fact]
+        public void BuildWarpLeavesTheSpacingNullWhereNoTickWasReported()
+        {
+            // A recording made before the host reported its step. The sampling
+            // interval is not a stand-in: it would claim one-second sampling
+            // for a span that may have been warped.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "HIGH", ["paused"] = false });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Null(warp!.ObservationQuantumUt);
+        }
+
+        [Fact]
         public void BuildWarpMapsPausedOrthogonallyFromWarpMode()
         {
             var snapshot = SnapshotWith(

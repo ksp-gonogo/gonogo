@@ -13,6 +13,18 @@ namespace Sitrep.Core.Tests
     /// </summary>
     public class ChannelEmitterTests
     {
+
+        /// <summary>
+        /// A real clock that is never the binding constraint: each read is a long
+        /// time after the last. These tests are about the UT cadence, so the
+        /// real-time keyframe floor must not be what decides them.
+        /// </summary>
+        private static System.Func<double> RealTimeNeverBinding()
+        {
+            var now = 0.0;
+            return () => now += 1000.0;
+        }
+
         private static EmissionPolicy Policy(
             double keyframeIntervalUt,
             EmissionQuantum quantum,
@@ -25,7 +37,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void StaticValueEmitsExactlyOneKeyframeAndNoChangeEmissions()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100, quantum: EmissionQuantum.Absolute(1)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100, quantum: EmissionQuantum.Absolute(1)), RealTimeNeverBinding());
 
             var first = emitter.Decide("v.altitude", 1000.0, 0);
             Assert.True(first.ShouldEmit);
@@ -47,7 +59,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void SubQuantumChangeIsSuppressed()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 0); // keyframe
 
@@ -58,7 +70,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void CrossingQuantumEmitsAsChange()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 0); // keyframe
 
@@ -71,7 +83,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void KeyframeFiresOnKeyframeIntervalEvenWithoutChange()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 50, quantum: EmissionQuantum.Absolute(5)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 50, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 0); // keyframe #1
 
@@ -87,7 +99,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void NotifySubscribedForcesAnImmediateOutOfCadenceKeyframe()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 0); // keyframe #1, arms cadence out to ut=1000
 
@@ -103,7 +115,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void ResetForcesKeyframeOnEveryKnownChannelRegardlessOfCadence()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 20);
             emitter.Decide("v.velocity", 50.0, 20);
@@ -127,7 +139,7 @@ namespace Sitrep.Core.Tests
             // SubscriptionRegistry.IsSubscribed guards every call site that
             // would otherwise reach ChannelEmitter.Decide.
             var registry = new SubscriptionRegistry();
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 10, quantum: EmissionQuantum.Absolute(1)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 10, quantum: EmissionQuantum.Absolute(1)), RealTimeNeverBinding());
 
             var emittedCount = 0;
             for (double ut = 0; ut <= 100; ut += 5)
@@ -156,7 +168,7 @@ namespace Sitrep.Core.Tests
                 keyframeIntervalUt: 1000, // never due within this test's window
                 quantum: EmissionQuantum.Absolute(0.01), // trivially cleared by every step
                 minSampleIntervalUt: 0,
-                maxRateIntervalUt: 1.0));
+                maxRateIntervalUt: 1.0), RealTimeNeverBinding());
 
             emitter.Decide("v.rapid", 0.0, 0); // keyframe @ ut=0
 
@@ -187,7 +199,7 @@ namespace Sitrep.Core.Tests
         {
             var percentEmitter = new ChannelEmitter(Policy(
                 keyframeIntervalUt: 1000,
-                quantum: EmissionQuantum.PercentOfRange(0.05, rangeMin: 0, rangeMax: 100))); // 5% of 100 = 5
+                quantum: EmissionQuantum.PercentOfRange(0.05, rangeMin: 0, rangeMax: 100)), RealTimeNeverBinding()); // 5% of 100 = 5
 
             percentEmitter.Decide("v.percent", 50.0, 0); // keyframe
             Assert.False(percentEmitter.Decide("v.percent", 54.0, 1).ShouldEmit); // Δ=4 < 5
@@ -195,7 +207,7 @@ namespace Sitrep.Core.Tests
 
             var absoluteEmitter = new ChannelEmitter(Policy(
                 keyframeIntervalUt: 1000,
-                quantum: EmissionQuantum.Absolute(5)));
+                quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
 
             absoluteEmitter.Decide("v.absolute", 50.0, 0); // keyframe
             Assert.False(absoluteEmitter.Decide("v.absolute", 54.0, 1).ShouldEmit); // Δ=4 < 5
@@ -205,7 +217,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void DiscreteStructuredValueEmitsOnNotEqualIgnoringQuantum()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(9999)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(9999)), RealTimeNeverBinding());
 
             emitter.Decide("f.sas", "Off", 0); // keyframe
 
@@ -228,7 +240,7 @@ namespace Sitrep.Core.Tests
             var emitter = new ChannelEmitter(Policy(
                 keyframeIntervalUt: 50,
                 quantum: EmissionQuantum.Absolute(9999), // value never changes anyway
-                minSampleIntervalUt: 100));
+                minSampleIntervalUt: 100), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 0); // keyframe #1
 
@@ -252,7 +264,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void HugeUtJumpUnderTimeWarpEmitsExactlyOneCatchUpKeyframeWithoutStalling()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 50, quantum: EmissionQuantum.Absolute(1)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 50, quantum: EmissionQuantum.Absolute(1)), RealTimeNeverBinding());
 
             emitter.Decide("v.altitude", 1000.0, 0); // keyframe #1
 
@@ -277,21 +289,21 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void ByteAndUintChannelsGoThroughDeadbandQuantum()
         {
-            var byteEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var byteEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
             byteEmitter.Decide("v.byte", (byte)100, 0); // keyframe
             Assert.False(byteEmitter.Decide("v.byte", (byte)103, 1).ShouldEmit); // |Δ|=3 < 5
             Assert.True(byteEmitter.Decide("v.byte", (byte)110, 2).ShouldEmit); // |Δ|=10 > 5
 
-            var uintEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var uintEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
             uintEmitter.Decide("v.uint", 1000u, 0); // keyframe
             Assert.False(uintEmitter.Decide("v.uint", 1003u, 1).ShouldEmit); // |Δ|=3 < 5
             Assert.True(uintEmitter.Decide("v.uint", 1010u, 2).ShouldEmit); // |Δ|=10 > 5
 
-            var sbyteEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var sbyteEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
             sbyteEmitter.Decide("v.sbyte", (sbyte)-10, 0); // keyframe
             Assert.False(sbyteEmitter.Decide("v.sbyte", (sbyte)-8, 1).ShouldEmit); // |Δ|=2 < 5
 
-            var ulongEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)));
+            var ulongEmitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(5)), RealTimeNeverBinding());
             ulongEmitter.Decide("v.ulong", 1000ul, 0); // keyframe
             Assert.False(ulongEmitter.Decide("v.ulong", 1003ul, 1).ShouldEmit); // |Δ|=3 < 5
             Assert.True(ulongEmitter.Decide("v.ulong", 1010ul, 2).ShouldEmit); // |Δ|=10 > 5
@@ -303,7 +315,7 @@ namespace Sitrep.Core.Tests
             var emitter = new ChannelEmitter(Policy(
                 keyframeIntervalUt: 1000,
                 quantum: EmissionQuantum.Absolute(0.0001),
-                minSampleIntervalUt: 1.0));
+                minSampleIntervalUt: 1.0), RealTimeNeverBinding());
 
             var first = emitter.Decide("v.altitude", 1000.0, 5);
             Assert.True(first.ShouldEmit);
@@ -362,7 +374,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void StructurallyIdenticalStructuredPayloadIsSuppressed()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
             var first = emitter.Decide("system.bodies", BuildBodiesPayload(), 0);
             Assert.True(first.ShouldEmit);
@@ -386,7 +398,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void StructuredPayloadStillEmitsWhenAnyLeafMoves()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
             emitter.Decide("system.bodies", BuildBodiesPayload(), 0); // keyframe
 
@@ -403,7 +415,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void SuppressedStructuredPayloadStillGetsItsKeyframe()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
             emitter.Decide("system.bodies", BuildBodiesPayload(), 0); // keyframe #1
 
@@ -427,7 +439,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void HandingBackTheSameInstanceWasNeverTheProblem()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
             var payload = BuildBodiesPayload();
 
             emitter.Decide("system.bodies", payload, 0); // keyframe
@@ -497,7 +509,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void AValueThatChangesEveryTickStopsBeingCompared()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
             emitter.Decide("vessel.flight", new CountingPayload(0), 0); // keyframe
             CountingPayload.Reads = 0;
@@ -520,7 +532,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void AValueThatGoesQuietIsPickedBackUp()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
             emitter.Decide("vessel.flight", new CountingPayload(0), 0); // keyframe
 
@@ -557,7 +569,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void TimelineResetDropsTheChurnObservation()
         {
-            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)));
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
             emitter.Decide("vessel.flight", new CountingPayload(0), 0);
             for (var ut = 1; ut <= 100; ut++)
@@ -574,6 +586,84 @@ namespace Sitrep.Core.Tests
             Assert.Equal(EmissionReason.Keyframe, keyframe.Reason);
 
             Assert.False(emitter.Decide("vessel.flight", new CountingPayload(7), 1).ShouldEmit);
+        }
+        /// <summary>
+        /// The flood under warp: at 100,000x UT runs about 2,000 per tick, so a
+        /// 30 UT keyframe interval is satisfied on every tick. The real-time
+        /// floor holds a quiet channel to one keyframe a second instead.
+        /// </summary>
+        [Fact]
+        public void UnderHighWarpAQuietChannelKeyframesAtTheFloorRateNotEveryTick()
+        {
+            var real = 0.0;
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), () => real);
+
+            var keyframes = 0;
+            for (var tick = 0; tick < 90; tick++)
+            {
+                real = tick / 30.0;
+                if (emitter.Decide("vessel.thing", 1.0, tick * 2000.0).ShouldEmit) keyframes++;
+            }
+
+            // Three real seconds: the first keyframe plus one per elapsed second.
+            Assert.InRange(keyframes, 3, 4);
+        }
+
+        /// <summary>
+        /// At 1x a UT second is a real one, and every declared interval is at
+        /// least a second, so the floor never binds and the cadence is exactly
+        /// the policy's.
+        /// </summary>
+        [Fact]
+        public void At1xTheCadenceIsThePolicysExactly()
+        {
+            var real = 0.0;
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1, quantum: EmissionQuantum.Absolute(0)), () => real);
+
+            var keyframes = 0;
+            for (var ut = 0; ut < 10; ut++)
+            {
+                real = ut;
+                if (emitter.Decide("vessel.thing", 1.0, ut).ShouldEmit) keyframes++;
+            }
+
+            Assert.Equal(10, keyframes);
+        }
+
+        /// <summary>
+        /// A new subscriber's keyframe is the resync it needs now, so the floor
+        /// does not delay it.
+        /// </summary>
+        [Fact]
+        public void ANewSubscribersKeyframeIsNotHeldByTheFloor()
+        {
+            var real = 0.0;
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), () => real);
+            emitter.Decide("vessel.thing", 1.0, 0);
+
+            emitter.NotifySubscribed("vessel.thing");
+            var decision = emitter.Decide("vessel.thing", 1.0, 2000);
+
+            Assert.True(decision.ShouldEmit);
+            Assert.Equal(EmissionReason.Keyframe, decision.Reason);
+        }
+
+        /// <summary>
+        /// Holding the periodic keyframe holds only the unconditional resend: a
+        /// value that moved still goes out as a change.
+        /// </summary>
+        [Fact]
+        public void AChangeStillEmitsWhileTheKeyframeIsHeld()
+        {
+            var real = 0.0;
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0.5)), () => real);
+            emitter.Decide("vessel.thing", 1.0, 0);
+
+            real = 0.1;
+            var decision = emitter.Decide("vessel.thing", 5.0, 2000);
+
+            Assert.True(decision.ShouldEmit);
+            Assert.Equal(EmissionReason.Change, decision.Reason);
         }
     }
 }
