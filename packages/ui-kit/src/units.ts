@@ -304,7 +304,7 @@ export const LADDERS = {
     { from: 1e3, symbol: "kN", per: 1e3 },
     { from: 1e6, symbol: "MN", per: 1e6 },
   ],
-  // Descends below the base unit, which the others have no need to. Upper
+  // Descends below the base unit, as density does. Upper
   // atmosphere runs to fractions of a pascal, and AtmosphereProfile's
   // hand-rolled version already carried an mPa rung for exactly that; the
   // shared ladder has to cover it or migrating that widget would lose a real
@@ -372,6 +372,12 @@ export const LADDERS = {
   // `<Unit value={someRadPerSecond} />` render "X rad/h" directly, with no
   // per-call-site conversion.
   doseRate: [{ from: 0, symbol: "rad/h", per: 1 / 3600 }],
+  // Based in kg/m³ with a gram rung beneath it: sea-level air is about one
+  // kilogram per cubic metre, and the upper atmosphere is read in grams.
+  density: [
+    { from: 0, symbol: "g/m³", per: 1e-3 },
+    { from: 1, symbol: "kg/m³", per: 1 },
+  ],
 } satisfies Record<string, readonly Rung[]>;
 
 /**
@@ -799,6 +805,7 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   dB: "decibels",
   "rad/s": "radians per second",
   "W/m\u00B2": "watts per square metre",
+  "g/m\u00B3": "grams per cubic metre",
   "kg/m\u00B3": "kilograms per cubic metre",
   "m\u00B3/s\u00B2": "cubic metres per second squared",
   "m\u00B2": "square metres",
@@ -1376,8 +1383,34 @@ export function formatQuantity(
     }
   }
 
+  const scaled = base / chosen.per;
+
+  /*
+   * The lowest rung has no rung beneath it to climb down to, so a reading too
+   * small for its decimals would round to zero: a thinning atmosphere reads as
+   * vacuum, a trickle of pressure as none. A nonzero reading must never render
+   * as zero, so it goes to scientific notation on that same rung instead, with
+   * the significant figures the scientific kinds use. An exact zero stays fixed.
+   */
+  if (
+    scaled !== 0 &&
+    chosen === ladder[0] &&
+    Math.abs(scaled) * 10 ** decimals < 0.5
+  ) {
+    return {
+      value: toScientific(
+        scaled,
+        opts.decimals === undefined
+          ? SCIENTIFIC_SIGNIFICANT
+          : opts.decimals + 1,
+      ),
+      symbol: chosen.symbol,
+      rung: chosen.symbol,
+    };
+  }
+
   return {
-    value: fixed(base / chosen.per, decimals),
+    value: fixed(scaled, decimals),
     symbol: chosen.symbol,
     rung: chosen.symbol,
   };

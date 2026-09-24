@@ -117,19 +117,8 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
   "N·m",
   "m²",
   "Pa",
-  /*
-   * `kg/m³` and `g/m³` are deliberately NOT here yet, and this is a held
-   * position rather than an oversight.
-   *
-   * Adding them turns this gate red on `components/src/shared/formatDensity.ts`
-   * (3 lines), which is a real violation and is already recorded as a local
-   * formatter whose stated fix is to move its kg/m³ to g/m³ ladder into
-   * `units.ts`. There is nowhere honest to park it meanwhile: this gate's
-   * BASELINE is empty on purpose and says a new entry is a regression rather
-   * than a backlog item, so listing it would be writing down the exact excuse
-   * the gate exists to refuse. They join this list in the commit that converts
-   * that file and declares the `g/m³` rung.
-   */
+  "kg/m³",
+  "g/m³",
 ];
 
 /**

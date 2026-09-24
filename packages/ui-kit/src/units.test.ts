@@ -8,6 +8,7 @@ import {
   formatGroupKey,
   formatQuantity,
   kindOfUnit,
+  LADDERS,
   ladderPosition,
   pinGroupKey,
   quantityScale,
@@ -761,6 +762,47 @@ describe("formatQuantity, null handling", () => {
     expect(formatQuantity(undefined, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(Number.NaN, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(null, "m").value).toBe(NULL_DISPLAY);
+  });
+});
+
+describe("a reading below a ladder's lowest rung", () => {
+  /*
+   * Walks LADDERS rather than naming ladders, so a ladder added later is held
+   * to this without anyone remembering to extend the list. The planted value is
+   * far enough under the lowest rung that no kind's decimals could show it.
+   */
+  const lowest = Object.entries(LADDERS).map(
+    ([name, rungs]) => [name, rungs[0].symbol] as const,
+  );
+
+  it.each(
+    lowest,
+  )("the %s ladder writes it scientifically instead of rounding it to zero", (_name, symbol) => {
+    for (const planted of [3e-12, -3e-12]) {
+      const out = formatQuantity(planted, symbol);
+      expect(out.value).toContain("×10⁻");
+      expect(out.value).not.toMatch(/^-?0([.,]0*)?$/);
+      expect(out.symbol).toBe(symbol);
+    }
+  });
+
+  it.each(
+    lowest,
+  )("the %s ladder still writes an exact zero as zero", (_n, s) => {
+    expect(formatQuantity(0, s).value).toMatch(/^0([.,]0*)?$/);
+  });
+
+  it("keeps a reading the lowest rung can show in fixed notation", () => {
+    expect(formatQuantity(0.3, "m").value).toBe("0.3");
+    expect(formatQuantity(0.004, "mPa").value).toBe("4.000×10⁻³");
+    expect(formatQuantity(0.006, "mPa").value).toBe("0.01");
+  });
+
+  it("follows the caller's decimals for its significant figures", () => {
+    expect(formatQuantity(2e-9, "kg/m³", { decimals: 3 })).toMatchObject({
+      value: "2.000×10⁻⁶",
+      symbol: "g/m³",
+    });
   });
 });
 
