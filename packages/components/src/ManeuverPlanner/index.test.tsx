@@ -8,13 +8,12 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
@@ -46,13 +45,7 @@ const maneuverPlannerDef = getComponent("maneuver-planner");
 // migration) instead of the legacy `DataSource`: every test below still
 // emits `t.universalTime` (now a dead, harmless emit) so this constant
 // mirrors that same value via a minimal pinned `TelemetryProvider`. Nothing
-// is carried, so every other read/command stays on the legacy source
-// exactly as before: the two trigger-fire tests below mount their OWN
-// `<TelemetryProvider>` (same client/store, wider carriedChannels) instead
-// of `utFixture.Provider`, so widening the carry set for the trigger's
-// `vessel.maneuver.add` dispatch doesn't leak into every other test's
-// `execute("data", ...)` calls (which also ride the carried-gated
-// `useCommand`/`useExecuteAction` shim).
+// is carried, so every other read stays on the legacy source.
 const UT_FIXTURE_VALUE = 1_000_000;
 const utFixture = setupStreamFixture({
   carriedChannels: [],
@@ -89,26 +82,6 @@ function formatManeuverAddCommand(args: unknown): string {
   return `o.addManeuverNode[${a?.ut},${a?.radialOut},${a?.normal},${a?.prograde}]`;
 }
 
-/**
- * Reuses `utFixture`'s client/store but with a WIDER carriedChannels set,
- * for the two trigger-fire tests below, which need `vessel.maneuver.add`
- * carried so `LocalManeuverTriggerService.fire()`'s `dispatchActiveCommand`
- * actually routes, without widening the SHARED module-level `utFixture`
- * every other test in this file also mounts (that would also route the
- * regular "Add Node" button's `execute("data", ...)`: the same carried-gated
- * `useCommand` shim: off its legacy `onExecute` capture).
- */
-function TriggerCarriedProvider({ children }: { children: ReactNode }) {
-  return (
-    <TelemetryProvider
-      client={utFixture.client}
-      store={utFixture.store}
-      carriedChannels={["vessel.maneuver.add"]}
-    >
-      {children}
-    </TelemetryProvider>
-  );
-}
 // `StubTransport.emit` only delivers a topic once something has actually
 // subscribed (the realistic "proves ref-counted subscribe happened" gate,
 // see its own doc comment). No widget in THIS test reads `vessel.orbit`/
@@ -563,9 +536,9 @@ describe("ManeuverPlannerComponent", () => {
     });
 
     render(
-      <TriggerCarriedProvider>
+      <utFixture.Provider>
         <ManeuverPlannerComponent id="mnv" config={{}} />
-      </TriggerCarriedProvider>,
+      </utFixture.Provider>,
     );
     act(() => {
       emitFullOrbit(source);
@@ -642,9 +615,9 @@ describe("ManeuverPlannerComponent", () => {
     });
 
     render(
-      <TriggerCarriedProvider>
+      <utFixture.Provider>
         <ManeuverPlannerComponent id="mnv" config={{}} />
-      </TriggerCarriedProvider>,
+      </utFixture.Provider>,
     );
     act(() => {
       emitFullOrbit(source);
