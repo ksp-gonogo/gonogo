@@ -86,6 +86,7 @@ export {
   getWarpState,
   onActiveTimelineFrame,
   PRODUCTION_DERIVED_CHANNELS,
+  sampleActiveReading,
   sampleActiveTopic,
   setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,

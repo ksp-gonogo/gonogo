@@ -704,6 +704,18 @@ export function AlarmsModal({
                         {snapshot.scetArmRefusals[a.id]}
                       </RowMeta>
                     )}
+                    {/* The alarm fired and the action it was set to take did
+                        not go. Nothing else on the row moves for that, so
+                        without this the operator reads `fired` and watches the
+                        vessel do nothing. */}
+                    {snapshot.onFireRefusals?.[a.id] !== undefined && (
+                      <RowMeta role="status">
+                        <Badge severity="warning" size="sm">
+                          ACTION NOT SENT
+                        </Badge>{" "}
+                        {snapshot.onFireRefusals[a.id]}
+                      </RowMeta>
+                    )}
                   </RowInfo>
                   <RowActions>
                     {pendingDelete ? (
