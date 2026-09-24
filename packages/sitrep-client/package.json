@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "node ../../scripts/gen-version.mjs CLIENT_VERSION && rm -rf dist && tsc -p tsconfig.build.json",
+    "build": "node ../../scripts/gen-version.mjs CLIENT_VERSION && tsc -p tsconfig.build.json && node ../../scripts/prune-dist.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
