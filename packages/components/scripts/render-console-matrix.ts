@@ -537,12 +537,6 @@ async function main(): Promise<void> {
   console.log(`\nWrote ${SCENARIOS.length} renders to ${OUT_DIR}`);
 }
 
-declare global {
-  interface Window {
-    __renderConsoleMatrix: (payload: unknown) => Promise<void>;
-  }
-}
-
 main().catch((err) => {
   console.error(err);
   process.exit(1);

@@ -79,17 +79,17 @@ function BannerHarness({ snapshot }: { snapshot: AlarmSnapshot }) {
   useEffect(() => {
     (host as unknown as { snap: AlarmSnapshot }).snap = snapshot;
   }, [host, snapshot]);
-  return createElement(
-    AlarmHostProvider,
-    { service: host as unknown as AlarmHostService },
-    createElement(
-      BannerStack,
-      null,
-      createElement(AlarmBanner, null),
-      createElement(SafetyMarginPill, null),
-      createElement(FiredAlarmPills, null),
-      createElement(UnscheduledWarpPill, null),
-    ),
+  return (
+    <AlarmHostProvider service={host as unknown as AlarmHostService}>
+      {createElement(
+        BannerStack,
+        null,
+        createElement(AlarmBanner, null),
+        createElement(SafetyMarginPill, null),
+        createElement(FiredAlarmPills, null),
+        createElement(UnscheduledWarpPill, null),
+      )}
+    </AlarmHostProvider>
   );
 }
 
