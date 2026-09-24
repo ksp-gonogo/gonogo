@@ -77,14 +77,15 @@ namespace Sitrep.Host.Comms
             var handles = new Dictionary<string, object>();
             foreach (var hop in route)
             {
-                var id = hop.ToHandle != null ? nameOf(hop.ToHandle) : null;
-                if (string.IsNullOrEmpty(id))
+                var node = hop.ToHandle;
+                var id = node != null ? nameOf(node) : null;
+                if (node == null || id == null || id.Length == 0)
                 {
                     _subjects.Remove(vesselId);
                     return null;
                 }
                 hops.Add(new CommsHop { To = id, DistanceMeters = hop.DistanceMeters });
-                handles[id!] = hop.ToHandle!;
+                handles[id] = node;
             }
 
             if (!_subjects.TryGetValue(vesselId, out var subject) || ut < subject.Ut)
