@@ -84,6 +84,13 @@ function trackedModTsRoots(): string[] {
 }
 const SITES = SCANS.flatMap((scan) => scan.sites);
 
+/** The key a site is recorded under in the debt list: its file and its named place. */
+const pointOf = (site: { file: string; within: string }): string =>
+  `${site.file} :: ${site.within}`;
+
+/** The file half of a debt key. */
+const fileOf = (point: string): string => point.split(" :: ")[0] ?? point;
+
 /** Run the scanner over hand-written files, through the real walk. */
 function scanPlanted(files: Record<string, string>): RootScan {
   const dir = mkdtempSync(join(tmpdir(), "unknown-cast-"));
@@ -206,6 +213,51 @@ describe("the gate can see a planted assertion", () => {
   it("tells `any` apart from `unknown`", () => {
     expect(lineOf("loose as Receipt")[0]?.kind).toBe("any");
     expect(lineOf("wire as Receipt")[0]?.kind).toBe("unknown");
+  });
+});
+
+describe("each site is named by the place it sits in", () => {
+  /*
+   * The debt list is keyed on the place, so a place that resolved to the same
+   * name as its neighbour would let one assertion be traded for another, and
+   * one that resolved to nothing stable would read as new debt on every edit.
+   */
+  const named = scanPlanted({
+    "places.ts": `
+      interface Receipt { outcome: number }
+      declare const wire: unknown;
+      declare function it(title: string, run: () => void): void;
+
+      export const atModule = wire as Receipt;
+      export function readReceipt() {
+        return [wire].map((w) => w as Receipt)[0];
+      }
+      export const viaArrow = () => wire as Receipt;
+      export class Reader {
+        read() { return wire as Receipt; }
+        field = wire as Receipt;
+      }
+      export const shaped = { build: () => wire as Receipt };
+      it("reads a receipt", () => { void (wire as Receipt); });
+    `,
+  }).sites;
+
+  it("names the function, method, variable, property or test around each", () => {
+    expect(named.map((site) => site.within).sort()).toEqual(
+      [
+        "atModule",
+        "readReceipt",
+        "viaArrow",
+        "Reader.read",
+        "Reader.field",
+        "build",
+        'it("reads a receipt")',
+      ].sort(),
+    );
+  });
+
+  it("keeps two places in one file apart", () => {
+    expect(new Set(named.map(pointOf)).size).toBe(named.length);
   });
 });
 
@@ -387,11 +439,12 @@ describe("the walk covered what it claims to have covered", () => {
 });
 
 describe("no new assertion escapes unknown", () => {
-  /** Offending sites per file, the same shape the debt list is written in. */
-  const perFile = (predicate: (site: (typeof SITES)[number]) => boolean) => {
+  /** Offending sites per named point, the same key the debt list is written in. */
+  const perPoint = (predicate: (site: (typeof SITES)[number]) => boolean) => {
     const out = new Map<string, number>();
     for (const site of SITES)
-      if (predicate(site)) out.set(site.file, (out.get(site.file) ?? 0) + 1);
+      if (predicate(site))
+        out.set(pointOf(site), (out.get(pointOf(site)) ?? 0) + 1);
     return out;
   };
 
@@ -413,53 +466,55 @@ describe("no new assertion escapes unknown", () => {
     "already existed: adding to it fails against the base ref.",
   ].join("\n");
 
-  it("no file carries more than its ceiling", () => {
+  it("no named point carries more than its ceiling", () => {
     const over: string[] = [];
-    for (const [file, count] of perFile(() => true)) {
-      const ceiling = UNKNOWN_CAST_DEBT[file] ?? 0;
+    for (const [point, count] of perPoint(() => true)) {
+      const ceiling = UNKNOWN_CAST_DEBT[point] ?? 0;
       if (count <= ceiling) continue;
-      const examples = SITES.filter((site) => site.file === file)
+      const examples = SITES.filter((site) => pointOf(site) === point)
         .slice(0, 4)
-        .map((site) => `      ${file}:${site.line}  ${site.text}`);
+        .map((site) => `      ${site.file}:${site.line}  ${site.text}`);
       over.push(
-        `  ${file}: ${count} assertions out of unknown/any, ceiling ${ceiling}\n${examples.join("\n")}`,
+        `  ${point}: ${count} assertions out of unknown/any, ceiling ${ceiling}\n${examples.join("\n")}`,
       );
     }
     expect(over.join("\n"), REMEDY).toBe("");
   });
 
-  it("no file carries more `as unknown as` than its own ceiling", () => {
-    // A second, tighter list on purpose. A file with headroom under the count
+  it("no named point carries more `as unknown as` than its own ceiling", () => {
+    // A second, tighter list on purpose. A place with headroom under the count
     // above must still not gain a double: the double exists only because the
     // compiler already refused the conversion once, and refusing it was the
     // compiler being right.
     const over: string[] = [];
-    for (const [file, count] of perFile((site) => site.double)) {
-      const ceiling = DOUBLE_ASSERTION_DEBT[file] ?? 0;
+    for (const [point, count] of perPoint((site) => site.double)) {
+      const ceiling = DOUBLE_ASSERTION_DEBT[point] ?? 0;
       if (count <= ceiling) continue;
-      const examples = SITES.filter((site) => site.file === file && site.double)
+      const examples = SITES.filter(
+        (site) => pointOf(site) === point && site.double,
+      )
         .slice(0, 4)
-        .map((site) => `      ${file}:${site.line}  ${site.text}`);
+        .map((site) => `      ${site.file}:${site.line}  ${site.text}`);
       over.push(
-        `  ${file}: ${count} \`as unknown as\`, ceiling ${ceiling}\n${examples.join("\n")}`,
+        `  ${point}: ${count} \`as unknown as\`, ceiling ${ceiling}\n${examples.join("\n")}`,
       );
     }
     expect(over.join("\n"), REMEDY).toBe("");
   });
 
   it("has no stale debt entry", () => {
-    const live = perFile(() => true);
+    const live = perPoint(() => true);
     const stale = Object.entries(UNKNOWN_CAST_DEBT)
-      .filter(([file, ceiling]) => (live.get(file) ?? 0) < ceiling)
+      .filter(([point, ceiling]) => (live.get(point) ?? 0) < ceiling)
       .map(
-        ([file, ceiling]) =>
-          `  ${file}: ${live.get(file) ?? 0} left, listed at ${ceiling}`,
+        ([point, ceiling]) =>
+          `  ${point}: ${live.get(point) ?? 0} left, listed at ${ceiling}`,
       );
     expect(
       stale.join("\n"),
       [
         "These entries are higher than what is left, so they are carrying",
-        "headroom nobody asked for: a file listed at 7 with 3 left can regain 4",
+        "headroom nobody asked for: a place listed at 7 with 3 left can regain 4",
         "without the gate saying anything.",
         "",
         "Regenerate in the same commit as the fix:",
@@ -472,9 +527,10 @@ describe("no new assertion escapes unknown", () => {
     const known = new Set(
       SCANS.flatMap((scan) => scan.sites).map((s) => s.file),
     );
-    const vanished = Object.keys(UNKNOWN_CAST_DEBT).filter(
-      (file) => !known.has(file) && !existsSync(join(REPO_ROOT, file)),
-    );
+    const vanished = Object.keys(UNKNOWN_CAST_DEBT).filter((point) => {
+      const file = fileOf(point);
+      return !known.has(file) && !existsSync(join(REPO_ROOT, file));
+    });
     expect(
       vanished,
       "These debt entries name a file that no longer exists. Delete them; a list nobody has to prune becomes archaeology.",
@@ -486,11 +542,11 @@ describe("no new assertion escapes unknown", () => {
     // both, with the double count no higher. Two lists that can disagree are
     // two lists where the looser one silently wins.
     const inconsistent = Object.entries(DOUBLE_ASSERTION_DEBT)
-      .filter(([file, doubles]) => (UNKNOWN_CAST_DEBT[file] ?? 0) < doubles)
-      .map(([file]) => file);
+      .filter(([point, doubles]) => (UNKNOWN_CAST_DEBT[point] ?? 0) < doubles)
+      .map(([point]) => point);
     expect(
       inconsistent,
-      "A file's `as unknown as` ceiling is higher than its total ceiling, which cannot be true of any real tree.",
+      "A point's `as unknown as` ceiling is higher than its total ceiling, which cannot be true of any real tree.",
     ).toEqual([]);
   });
 });
@@ -590,7 +646,7 @@ describe("the debt list only ever shrinks", () => {
     expect(
       raised.join("\n"),
       [
-        `A listed file gained ${what} debt, vs ${ref}. An entry may only fall.`,
+        `A listed point gained ${what} debt, vs ${ref}. An entry may only fall.`,
         "",
         "Narrow the value instead. See the failure message on the ceiling check",
         "for the three ways out.",
@@ -603,8 +659,8 @@ describe("the debt list only ever shrinks", () => {
         `New ${what} entries raised the repo-wide total, vs ${ref}:`,
         `  ${totalBefore} -> ${totalNow}`,
         "",
-        "A new entry is only allowed when the total holds, which is what a file",
-        "MOVE looks like. A rising total means an assertion was written rather",
+        "A new entry is only allowed when the total holds, which is what a MOVE",
+        "looks like: a file renamed, or a function. A rising total means an assertion was written rather",
         "than carried, and that is the regression this gate exists to stop.",
       ].join("\n"),
     ).toBe("");
