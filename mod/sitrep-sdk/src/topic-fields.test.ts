@@ -168,12 +168,11 @@ describe("enumerateTopicFields on a client-derived channel", () => {
 
 describe("isKnownFieldPath on a registered topic", () => {
   it("accepts a derived channel's field that no legacy table ever named", () => {
-    // `vessel.state.basis` has no entry in the retiring migration table, so the
-    // only thing that can vouch for it is the field metadata the channel
+    // `vessel.state.subjectId` has no entry in the retiring migration table, so
+    // the only thing that can vouch for it is the field metadata the channel
     // registers for itself. A judgement that read the generated maps directly
     // would be blind to that, and to every Uplink-registered Topic with it.
     void vesselStateChannel;
-    expect(isKnownFieldPath("vessel.state.basis")).toBe(true);
     expect(isKnownFieldPath("vessel.state.subjectId")).toBe(true);
   });
 

@@ -4,7 +4,6 @@ import {
   Quality,
   SasMode,
   Situation,
-  TargetKind,
 } from "../__generated__/contract";
 import { namesOf } from "../enum-names";
 import { magnitudeOr, type Quantityish } from "../magnitude";
@@ -16,7 +15,7 @@ import {
 } from "../units";
 import type { Value } from "../value";
 import type { ModelledField } from "./client-reading";
-import type { OrbitElements, PropagationHorizonLike, Vector3 } from "./kepler";
+import type { OrbitElements, PropagationHorizonLike } from "./kepler";
 import {
   buildElements,
   keplerAdmissibility,
@@ -213,10 +212,6 @@ export interface VesselControlPayload {
    * `ActionGroups: ActionGroupState[]?`. `null`/absent when action-group data
    * wasn't available this tick (never a partial list).
    *
-   * Source of the derived `vessel.state.actionGroups` keyed map, the
-   * `vessel.state.actionGroupsNamed` list (which drives the client's
-   * ACTION_GROUPS registry), and the per-index `vessel.state.actionGroup{n}`
-   * booleans.
    */
   actionGroups?: ActionGroupStatePayload[] | null;
 }
@@ -235,35 +230,6 @@ export interface VesselPropulsionPayload {
   dryMass: number;
   currentThrust: number;
   availableThrust: number;
-}
-
-/**
- * The `vessel.target` channel payload: hand-mirrored subset relevant to the
- * `targetKind` display map (mirrors `mod/Sitrep.Contract/VesselTarget.cs`).
- * `kind` is the raw `Sitrep.Contract.TargetKind` enum ORDINAL on the wire
- * (`(int)target.Kind`). The WHOLE channel is absent (no point) when nothing is
- * targeted, the common case, never a sentinel record.
- *
- * `relativePosition`/`relativeVelocity` are the canonical `Vec3` fields
- * (metres / m/s, self-relative), each individually `null` when the transform
- * data needed to compute it wasn't available this tick. They're the
- * source of `vessel.state.targetRelativeSpeed`, the signed range-rate.
- */
-export interface VesselTargetPayload {
-  kind: number;
-  relativePosition?: Vec3 | null;
-  relativeVelocity?: Vec3 | null;
-  /**
-   * The target's own orbit: the SAME `VesselOrbit` shape as the self vessel
-   * (`mod/Sitrep.Contract/VesselTarget.cs`'s `Orbit` deliberately reuses
-   * `VesselOrbit` so the SDK can propagate a target through the identical code
-   * path). The source of `vessel.state.targetPeriapsisAlt`/`targetPeriod`/
-   * `targetTrueAnomaly`. `null` when the target has no orbit (landed, or its
-   * orbit couldn't be resolved this tick: the C# field's own null case);
-   * optional here because older recordings / the reference fixture may not
-   * carry it yet (treated identically to `null`).
-   */
-  orbit?: VesselOrbitPayload | null;
 }
 
 /**
@@ -322,34 +288,19 @@ export interface SystemBodiesPayload {
  * authoritative kinematics path per sample rather than leaving that choice
  * to each widget, avoiding the dual-altitude ambiguity that creates.
  *
- * Scope note: an earlier cut derived ONLY from `vessel.orbit` +
- * `vessel.flight` (no `system.bodies`/`vessel.identity` inputs), so fields
- * needing body geometry or the launch clock were out of scope. Seven fields
- * below ARE derivable from already-served data,
- * `met`/`period`/`trueAnomaly`/`apoapsisAlt`/`periapsisAlt`/`timeToAp`/
- * `timeToPe`: reading `vessel.identity` (for `met`'s `launchUt`) and
- * `system.bodies` (for the apsides' reference-body radius) alongside the
- * original two inputs. `altitude-from-propagated-position`/`lat-long-from-
- * rotation` still need more than these seven do and remain deferred.
- * `altitudeAsl`/`verticalSpeed`/`surfaceSpeed` are populated only in the
- * "measured" (Loaded) basis, straight off `vessel.flight`: see
- * `deriveVesselState`'s doc for why the "propagated" (OnRails) basis leaves
- * them `null` rather than fabricating a body-less approximation. The seven
- * new fields below take the OPPOSITE split, orbital-elements-derived, so
- * they're OnRails-only and `null` in the "measured" basis, same reasoning
- * (Loaded-basis orbital elements are osculating garbage, not a trajectory
- * worth deriving a period/apsis/anomaly from: this file's own doc on the
- * OnRails/Loaded branches explains the "osculating garbage" call).
+ * The fields split two ways by basis. `horizontalSpeed` and the impact
+ * prediction are surface-frame measurements straight off `vessel.flight`, so
+ * they are live in the "measured" (Loaded) basis and `null` in the
+ * "propagated" (OnRails) one rather than fabricating a body-less
+ * approximation. The orbital-elements-derived fields
+ * (`period`/`trueAnomaly`/`apoapsisAlt`/`periapsisAlt`/`timeToAp`/`timeToPe`
+ * and the apsis radii) take the opposite split, because Loaded-basis orbital
+ * elements are osculating garbage rather than a trajectory worth deriving a
+ * period or an apsis from.
  */
 export interface VesselState {
-  /** Parent-body-relative, metres. `null` in the "measured" basis, `vessel.flight` carries no position vector (needs `system.bodies` to reconstruct one; deferred). */
-  position: Vector3 | null;
-  /** Parent-body-relative, m/s. `null` in the "measured" basis, same reason as `position`. */
-  velocity: Vector3 | null;
   /** Metres above sea level. `null` in the "propagated" basis (needs `system.bodies` radius; deferred); always sourced from `vessel.flight.altitudeAsl` in the "measured" basis. */
   altitudeAsl: number | null;
-  verticalSpeed: number | null;
-  surfaceSpeed: number | null;
   /** m/s. Populated in BOTH bases: propagated from `|velocity|` when on-rails, taken straight from `vessel.flight.orbitalSpeed` when loaded. */
   orbitalSpeed: number | null;
   /**
@@ -477,18 +428,6 @@ export interface VesselState {
    */
   encounterUt: number | null | undefined;
   /**
-   * Signed target closing/opening rate, m/s: the range-rate
-   * `dot(relativePosition, relativeVelocity) / |relativePosition|` derived from
-   * `vessel.target`'s two Vec3 fields. Sign follows the standard KSP convention
-   * Targeting/TargetPicker were written against: POSITIVE = opening
-   * (gap growing), NEGATIVE = closing (the widgets' `< 0` = closing check).
-   * Populated in BOTH bases (self-relative kinematics, not orbital-elements
-   * derived). `undefined` when `vessel.target` hasn't arrived, either vector
-   * isn't available this tick, or `|relativePosition|` is ~0 (no line of sight
-   * to project onto: never divides by zero); `null` on a confirmed tombstone.
-   */
-  targetRelativeSpeed: number | null | undefined;
-  /**
    * Apoapsis RADIUS (distance from the reference body's CENTER, metres),
    * `sma·(1+ecc)`, read as a plain number by everything that draws an orbit.
    * Derived straight from the orbit elements, so: unlike `apoapsisAlt`, which
@@ -526,52 +465,13 @@ export interface VesselState {
   timeToNextApsis: number | null;
   /**
    * Horizontal (surface-tangent) speed, m/s: `sqrt(surfaceSpeed² -
-   * verticalSpeed²)`, the surface-frame Pythagorean split of the measured
-   * surface velocity (OrbitalAscent's ascent read). MEASURED basis only, sourced straight from `vessel.flight`,
-   * exactly like `surfaceSpeed`/`verticalSpeed` themselves (both `null` in the
-   * "propagated" basis, so this is too). Clamped at 0 before the sqrt so
+   * verticalSpeed²)` over `vessel.flight`'s two surface-frame rates, the
+   * Pythagorean split of the measured surface velocity (OrbitalAscent's
+   * ascent read). MEASURED basis only. Clamped at 0 before the sqrt so
    * floating-point `surfaceSpeed < verticalSpeed` noise never yields NaN.
    * `null` in the "propagated" basis or on a non-finite result.
    */
   horizontalSpeed: number | null;
-  /**
-   * Scalar range to the current target, metres, `|vessel.target.
-   * relativePosition|` (Targeting/TargetPicker). Populated in BOTH
-   * bases (self-relative kinematics).
-   * `undefined` when `vessel.target` hasn't arrived or `relativePosition`
-   * isn't available this tick; `null` on a confirmed tombstone. A genuine
-   * zero range is a DEFINED `0`, not `undefined` (contrast
-   * `targetRelativeSpeed`, which is `undefined` at zero range because it can't
-   * form a line-of-sight unit vector: a distance needs no such vector).
-   */
-  targetDistance: number | null | undefined;
-  /**
-   * Target periapsis ALTITUDE above its reference body's mean radius, metres,
-   * `sma·(1-ecc) - bodyRadius` off `vessel.target.orbit` (read by
-   * `tar.o.PeA`, ManeuverPlanner). Populated in BOTH bases (the target's own
-   * orbit is valid regardless of the self vessel's basis). `undefined` when
-   * `vessel.target` hasn't arrived, the target has no orbit, or `system.bodies`
-   * doesn't (yet) carry the target's reference-body radius; `null` on a
-   * confirmed `vessel.target` tombstone. Same `undefined`-vs-`null` discipline
-   * as `apoapsisAlt`.
-   */
-  targetPeriapsisAlt: number | null | undefined;
-  /**
-   * Target orbital period, seconds: `2π·sqrt(sma³/mu)` off
-   * `vessel.target.orbit`. Populated in BOTH
-   * bases; needs no body table. `undefined` when `vessel.target` hasn't
-   * arrived or the target has no orbit; `null` on a confirmed tombstone or a
-   * non-finite result.
-   */
-  targetPeriod: number | null | undefined;
-  /**
-   * Target true anomaly at `viewUt`, DEGREES wrapped to [0, 360), off
-   * `vessel.target.orbit`, propagated to the SAME frozen `viewUt` as the self
-   * vessel (ManeuverPlanner). Populated in
-   * BOTH bases. `undefined` when `vessel.target` hasn't arrived or the target
-   * has no orbit; `null` on a confirmed tombstone or a non-finite result.
-   */
-  targetTrueAnomaly: number | null | undefined;
   /**
    * Situation NAME: the display-map resolution of `vessel.identity.situation`
    * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
@@ -598,23 +498,6 @@ export interface VesselState {
    * the same benign outcome as the legacy path).
    */
   sasModeName: SasModeName | null | undefined;
-  /**
-   * Target KIND NAME: the display-map resolution of `vessel.target.kind` (a
-   * numeric `Sitrep.Contract.TargetKind` enum ordinal) to its enum name.
-   *
-   * This is a LABEL. Nothing branches on it, and nothing should: the ordinal is
-   * on the wire beside it and every gate reads that instead, `Targeting`'s
-   * dockable test being `tarKind !== TargetKind.Body`. Nothing here normalizes a
-   * kind to a different spelling for a caller's benefit: a gate that
-   * string-compares against this label is reading the wrong field.
-   *
-   * Coarse by construction. `TargetKind` has no arm for the specific VesselType
-   * of a vessel target, so there is no "Station" to report here, only
-   * "Vessel". `undefined` when `vessel.target` is absent (nothing
-   * targeted, the common case) or the ordinal is out of range; `null` on a
-   * confirmed tombstone.
-   */
-  targetKind: TargetKindName | null | undefined;
   /**
    * Comms control-state NAME: the display-map resolution of
    * `vessel.comms.controlState` (a numeric `Sitrep.Contract.ControlState` enum
@@ -671,116 +554,21 @@ export interface VesselState {
    */
   isSplashed: boolean | null | undefined;
   /**
-   * Dynamic action-group state as a keyed map `{ "1": bool, ... }` (group id →
-   * engaged) off `vessel.control.actionGroups`: supports Action Groups
-   * Extended's variable count. Keys are
-   * 1-based group ids as strings. Populated in BOTH bases. `undefined` while
-   * `vessel.control` hasn't arrived or the array is absent this tick; `null`
-   * on a confirmed tombstone.
-   *
-   * A single entry's VALUE is `null` when the backend reported that group but
-   * could not read it (`ActionGroupStatePayload.state`). That is a third
-   * answer, not a falsy second one: `false` here means the operator can rely
-   * on the group being disengaged.
-   */
-  actionGroups: Record<string, boolean | null> | null | undefined;
-  /**
-   * The NAMED custom action groups as reported by whichever backend the mod
-   * elected: `{ index, name, state }[]`, straight off
-   * `vessel.control.actionGroups`. This is what lets the client's
-   * ACTION_GROUPS registry derive its custom half (INCLUDING each group's
-   * label) from telemetry instead of hardcoding "AG1".."AG10", and is
-   * therefore the field an AGX backend flows its player-chosen names through.
-   * Same discipline as `actionGroups`: `undefined` while `vessel.control`
-   * hasn't arrived or the list is absent this tick; `null` on a confirmed
-   * tombstone.
-   */
-  actionGroupsNamed: ActionGroupStatePayload[] | null | undefined;
-  /**
-   * Action group 1 engaged: the entry whose `index` is 1 (old `v.ag1Value`).
-   * Same discipline as `actionGroups`, and `null` carries the same widened
-   * meaning: a confirmed tombstone, OR the backend reported this group and
-   * could not read it. Either way nobody knows, which is the answer a reader
-   * acts on; `undefined` still means no such group in the list.
-   */
-  actionGroup1: boolean | null | undefined;
-  /** Action group 2 engaged (old `v.ag2Value`). */
-  actionGroup2: boolean | null | undefined;
-  /** Action group 3 engaged (old `v.ag3Value`). */
-  actionGroup3: boolean | null | undefined;
-  /** Action group 4 engaged (old `v.ag4Value`). */
-  actionGroup4: boolean | null | undefined;
-  /** Action group 5 engaged (old `v.ag5Value`). */
-  actionGroup5: boolean | null | undefined;
-  /** Action group 6 engaged (old `v.ag6Value`). */
-  actionGroup6: boolean | null | undefined;
-  /** Action group 7 engaged (old `v.ag7Value`). */
-  actionGroup7: boolean | null | undefined;
-  /** Action group 8 engaged (old `v.ag8Value`). */
-  actionGroup8: boolean | null | undefined;
-  /** Action group 9 engaged (old `v.ag9Value`). */
-  actionGroup9: boolean | null | undefined;
-  /** Action group 10 engaged (old `v.ag10Value`). */
-  actionGroup10: boolean | null | undefined;
-  /**
-   * Seconds until a no-burn ballistic vacuum fall reaches the terrain below,
-   * the positive root of `altitudeTerrain = vDown·t + ½·g·t²` (behind
-   * `land.timeToImpact`, LandingStatus). `g = mu/(radius+altitudeAsl)²` off
-   * `vessel.orbit.mu` + the `system.bodies` radius; `vDown = -verticalSpeed`.
-   * A vacuum approximation: ignores atmospheric drag, so on an atmospheric
-   * body it's an upper bound. MEASURED basis only (reads `vessel.flight`);
-   * `null` in the propagated basis, when not descending (`verticalSpeed ≥ 0`),
-   * at or below the terrain (`altitudeTerrain ≤ 0`), or when a required input
-   * (`system.bodies` radius, a finite `mu`) is missing.
-   */
-  landingTimeToImpact: number | null;
-  /**
-   * Speed at terrain impact with no burn, m/s, `√(surfaceSpeed² + 2·g·h)`,
-   * the current surface speed with the potential energy of the remaining drop
-   * added as kinetic energy (read by
-   * LandingStatus). Uses the full `surfaceSpeed` magnitude, not just the
-   * vertical component. Same vacuum approximation, inputs, basis and `null`
-   * discipline as `landingTimeToImpact`.
-   */
-  landingSpeedAtImpact: number | null;
-  /**
-   * Residual speed at impact if a full-thrust retro burn starts NOW and runs
-   * out of altitude before nulling velocity, m/s (behind
-   * `land.bestSpeedAtImpact`, LandingStatus). `0` when the burn distance
-   * `d = vDown²/(2·aNet)` fits within `altitudeTerrain` (a perfect landing is
-   * reachable), else `√(vDown² − 2·aNet·h)`, with `aNet = availableThrust/
-   * totalMass − g` the net deceleration. Uses the vertical descent component
-   * `vDown` (vacuum-vertical model, matching `landingSuicideBurnCountdown`).
-   * `null` when thrust can't overcome gravity (`aMax ≤ g`, TWR ≤ 1) plus the
-   * same basis/input/`null` discipline as `landingTimeToImpact`.
-   */
-  landingBestSpeedAtImpact: number | null;
-  /**
-   * Seconds until the latest-possible full-thrust suicide burn must ignite to
-   * null out velocity exactly at the terrain (behind
-   * `land.suicideBurnCountdown`, LandingStatus). Solves the ballistic fall to
-   * the ignition altitude `altitudeTerrain − d`, where `d = vDown²/(2·aNet)`
-   * is the burn distance and `aNet = availableThrust/totalMass − g`. `0`
-   * ("IGNITE") when already at or past that altitude; `null` when thrust can't
-   * overcome gravity (`aMax ≤ g`, TWR ≤ 1). Uses the vertical descent
-   * component `vDown` (vacuum-vertical model). Same basis/input/`null`
-   * discipline as `landingTimeToImpact`.
-   */
-  landingSuicideBurnCountdown: number | null;
-  /**
    * Predicted surface-impact latitude, degrees (behind
    * `land.predictedLat`, LandingStatus): the last pre-surface
    * sample of a vacuum-ballistic walk over `orbitPatches` (`findImpactPoint`
-   * in `orbit-patches.ts`), horizon-bounded by `landingTimeToImpact` so the
-   * walk only ever runs while an impact is actually imminent. Same MEASURED
-   * basis/`null` discipline as `landingTimeToImpact`: additionally `null`
-   * when `landingTimeToImpact` itself is null, nothing reports the body's
-   * rotation period (the stream does not carry one and the stock
-   * `ROTATION_PERIOD_SECONDS` fallback does not know the body), or the walk
-   * never finds an impact within its bounded horizon. Vacuum-exact; on an
-   * atmospheric body this ignores drag: the WIDGET (which already knows
-   * whether the body has an atmosphere via `getBody()`) is responsible for
-   * an honest "approximate" treatment, not this field.
+   * in `orbit-patches.ts`), horizon-bounded by the closed-form ballistic fall
+   * time so the walk only ever runs while an impact is actually imminent.
+   * MEASURED basis only (reads `vessel.flight`); `null` in the propagated
+   * basis, when not descending (`verticalSpeed ≥ 0`), at or below the terrain
+   * (`altitudeTerrain ≤ 0`), when a required input (`system.bodies` radius, a
+   * finite `mu`) is missing, when nothing reports the body's rotation period
+   * (the stream does not carry one and the stock `ROTATION_PERIOD_SECONDS`
+   * fallback does not know the body), or when the walk never finds an impact
+   * within its bounded horizon. Vacuum-exact; on an atmospheric body this
+   * ignores drag: the WIDGET (which already knows whether the body has an
+   * atmosphere via `getBody()`) is responsible for an honest "approximate"
+   * treatment, not this field.
    */
   landingPredictedLat: number | null;
   /** Predicted surface-impact longitude, degrees. Same discipline as `landingPredictedLat`; always defined together. */
@@ -795,8 +583,6 @@ export interface VesselState {
    * transition on the current trajectory).
    */
   orbitPatches: LegacyOrbitPatch[];
-  /** Which path produced this record's kinematics: never a widget's choice (this avoids the dual-altitude ambiguity bug). */
-  basis: "propagated" | "measured";
   /** `vessel:<guid>`: subject provenance, from the orbit PAYLOAD's own `meta.source`; empty when the sample carries none. */
   subjectId: string;
 }
@@ -920,32 +706,8 @@ function deriveEncounter(
 }
 
 /**
- * Signed target range-rate (`vessel.state.targetRelativeSpeed`, old
- * `tar.o.relativeVelocity`) = `dot(relPos, relVel) / |relPos|`: POSITIVE when
- * the target is receding (opening), NEGATIVE when closing, matching the
- * widgets' `< 0` = closing convention. Same channel-presence discipline as
- * `resolveEnumName`: `undefined` when `vessel.target` hasn't arrived, either
- * Vec3 isn't available this tick, `|relPos|` is ~0 (no unit vector to project
- * onto: never divides by zero), or the result is non-finite; `null` on a
- * confirmed tombstone.
- */
-function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
-  const point = get<VesselTargetPayload>("vessel.target");
-  if (!point) return undefined;
-  if (point.payload === null) return null;
-  const { relativePosition: p, relativeVelocity: v } = point.payload;
-  if (p == null || v == null) return undefined;
-  const distance = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-  if (distance === 0) return undefined;
-  const dot = p.x * v.x + p.y * v.y + p.z * v.z;
-  const rangeRate = dot / distance;
-  return Number.isFinite(rangeRate) ? rangeRate : undefined;
-}
-
-/**
  * Resolve a body INDEX to its mean radius (metres) via `system.bodies`, the
- * radius half of `deriveApsides`'s lookup, factored out for the target-orbit
- * periapsis-altitude derivation (`targetPeriapsisAlt`). Same
+ * radius half of `deriveApsides`'s lookup. Same
  * `undefined`-vs-`null` discipline as `resolveBodyName`: `undefined` when
  * there's no index, `system.bodies` hasn't arrived, or the body / its radius
  * isn't in it yet; `null` only on a `system.bodies` tombstone.
@@ -996,119 +758,6 @@ function resolveBodyRotationPeriod(
 }
 
 /**
- * Scalar range to the current target (`vessel.state.targetDistance`, old
- * `tar.distance`) = `|vessel.target.relativePosition|`. `undefined` when
- * `vessel.target` hasn't arrived or the vector isn't available this tick;
- * `null` on a confirmed tombstone. A genuine zero range is a DEFINED `0` (a
- * distance needs no unit vector, contrast `deriveTargetRelativeSpeed`, which
- * is `undefined` at zero range). Never throws.
- */
-function deriveTargetDistance(get: DerivedGet): number | null | undefined {
-  const point = get<VesselTargetPayload>("vessel.target");
-  if (!point) return undefined;
-  if (point.payload === null) return null;
-  const p = point.payload.relativePosition;
-  if (p == null) return undefined;
-  const distance = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-  return Number.isFinite(distance) ? distance : undefined;
-}
-
-/**
- * The target's orbit-derived scalars (`vessel.state.targetPeriapsisAlt`/
- * `targetPeriod`/`targetTrueAnomaly`, old `tar.o.PeA`/`tar.o.period`/
- * `tar.o.trueAnomaly`) off `vessel.target.orbit`: the SAME `VesselOrbit`
- * shape as the self vessel, propagated to the same frozen `viewUt` through
- * `buildElements` + `kepler.solveAnomalies` (never a bespoke second solve).
- * The target's own orbit is valid regardless of the SELF vessel's basis, so
- * these are populated in both. `undefined` (all three) when `vessel.target`
- * hasn't arrived or the target has no orbit; `null` (all three) on a confirmed
- * tombstone. `targetPeriapsisAlt` additionally needs `system.bodies` for the
- * reference-body radius: `undefined` (only it) until that's whole, `null`
- * (only it) on a `system.bodies` tombstone: same `deriveApsides` discipline;
- * `targetPeriod`/`targetTrueAnomaly` need no body table. Never throws.
- *
- * ## Still deliberately outside the modelled-path list, and still for its own
- * reason
- *
- * `KEPLER_MODELLED_FIELDS` names this function as one of its three deliberate
- * absences, and that argument was re-read against the reckoning work that has
- * landed since. It holds, unchanged: every withdrawal condition
- * `deriveVesselStateReckoning` asks is asked of the SELF craft's patch, so
- * naming a `target*` path there would put the target's arc under a horizon
- * computed from somebody else's orbit. A target crossing its own SOI would go
- * on being drawn, and a self craft crossing its own would stop drawing a target
- * arc that was perfectly good. Both are wrong, and they are wrong in opposite
- * directions, which is why a second horizon is a decision to take on its own
- * rather than a line to add to that list.
- *
- * Nothing has made that decision cheaper. The horizon a target would need is
- * its own `orbit.encounter.transitionUt` and its own atmosphere floor, off its
- * own reference body, which is a second `keplerAdmissibility` call against a
- * second element set rather than a reuse of this frame's answer. That is a
- * model worth writing when something asks for a dashed target trace; nothing
- * does yet.
- *
- * Being absent from the list costs only the reckoned TAIL, and that is the cost
- * it is meant to cost: the three scalars still appear on the record at the view
- * time in both bases, because a whole-topic read borrows the root entry. What
- * cannot happen is a chart growing a dashed `targetPeriod` run attributed to a
- * model that never looked at the target's own bounds.
- * `vessel-state-prediction-paths.test.ts` pins both halves.
- */
-function deriveTargetOrbit(
-  get: DerivedGet,
-  viewUt: number,
-): {
-  targetPeriapsisAlt: number | null | undefined;
-  targetPeriod: number | null | undefined;
-  targetTrueAnomaly: number | null | undefined;
-} {
-  const point = get<VesselTargetPayload>("vessel.target");
-  if (!point) {
-    return {
-      targetPeriapsisAlt: undefined,
-      targetPeriod: undefined,
-      targetTrueAnomaly: undefined,
-    };
-  }
-  if (point.payload === null) {
-    return {
-      targetPeriapsisAlt: null,
-      targetPeriod: null,
-      targetTrueAnomaly: null,
-    };
-  }
-  const orbit = point.payload.orbit;
-  if (orbit == null) {
-    return {
-      targetPeriapsisAlt: undefined,
-      targetPeriod: undefined,
-      targetTrueAnomaly: undefined,
-    };
-  }
-
-  /*
-   * The SAME solve the craft's own orbit goes through, which is the point:
-   * this used to re-derive the period, the true anomaly and the periapsis
-   * altitude that `deriveVesselState` had already derived a few lines above,
-   * from the same elements at the same instant. A hyperbolic target (ecc >= 1)
-   * is real, an escaping or flyby vessel or body, and degrades to `null` in
-   * step rather than throwing; see `solveOrbit`'s own doc.
-   */
-  const solved = solveOrbit(
-    orbit,
-    viewUt,
-    resolveBodyRadius(get, orbit.referenceBodyIndex),
-  );
-
-  return {
-    targetPeriapsisAlt: solved.periapsisAlt,
-    targetPeriod: solved.period,
-    targetTrueAnomaly: solved.trueAnomaly,
-  };
-}
-
-/**
  * The closed set of names each of these display maps can produce, DERIVED from
  * the generated enum rather than written out.
  *
@@ -1127,7 +776,6 @@ function deriveTargetOrbit(
  */
 export type SituationName = keyof typeof Situation;
 export type SasModeName = keyof typeof SasMode;
-export type TargetKindName = keyof typeof TargetKind;
 export type ControlStateName = keyof typeof ControlState;
 
 /** `Sitrep.Contract.Situation`, behind `vessel.state.situationName`. */
@@ -1139,9 +787,6 @@ const SITUATION_NAMES = namesOf(Situation);
  * with `Unknown` the graceful fallback not present in `SAS_MODES`.
  */
 const SAS_MODE_NAMES = namesOf(SasMode);
-
-/** `Sitrep.Contract.TargetKind`, behind `vessel.state.targetKind`. */
-const TARGET_KIND_NAMES = namesOf(TargetKind);
 
 /** `Sitrep.Contract.ControlState`, behind `vessel.state.commsControlStateName`. */
 const CONTROL_STATE_NAMES = namesOf(ControlState);
@@ -1159,7 +804,6 @@ export const ENUM_NAME_TABLES: ReadonlyArray<{
 }> = [
   { label: "SITUATION_NAMES", members: Situation, names: SITUATION_NAMES },
   { label: "SAS_MODE_NAMES", members: SasMode, names: SAS_MODE_NAMES },
-  { label: "TARGET_KIND_NAMES", members: TargetKind, names: TARGET_KIND_NAMES },
   {
     label: "CONTROL_STATE_NAMES",
     members: ControlState,
@@ -1246,18 +890,17 @@ function resolveCommsControlStateOrdinal(
 }
 
 /**
- * All five enum-ordinal display maps carried on `vessel.state`,
- * `v.situationString`/`f.sasMode`/`tar.type`/`comm.controlStateName`
- * + numeric `comm.controlState`. Bundled so both quality branches of
+ * All four enum-ordinal display maps carried on `vessel.state`,
+ * `v.situationString`/`f.sasMode`/`comm.controlStateName` + numeric
+ * `comm.controlState`. Bundled so both quality branches of
  * `deriveVesselState` populate them identically: each needs only its source
- * channel (`vessel.identity`/`vessel.control`/`vessel.target`/`vessel.comms`),
- * no orbital propagation, so they're live in the Loaded (measured) basis too,
- * same as the body-name display maps.
+ * channel (`vessel.identity`/`vessel.control`/`vessel.comms`), no orbital
+ * propagation, so they're live in the Loaded (measured) basis too, same as the
+ * body-name display maps.
  */
 function deriveEnumDisplayMaps(get: DerivedGet): {
   situationName: SituationName | null | undefined;
   sasModeName: SasModeName | null | undefined;
-  targetKind: TargetKindName | null | undefined;
   commsControlStateName: ControlStateName | null | undefined;
   commsControlStateOrdinal: number | null | undefined;
 } {
@@ -1273,12 +916,6 @@ function deriveEnumDisplayMaps(get: DerivedGet): {
       "vessel.control",
       (p) => p.sasMode,
       SAS_MODE_NAMES,
-    ),
-    targetKind: resolveEnumName<VesselTargetPayload, TargetKindName>(
-      get,
-      "vessel.target",
-      (p) => p.kind,
-      TARGET_KIND_NAMES,
     ),
     commsControlStateName: resolveEnumName<
       VesselCommsPayload,
@@ -1351,84 +988,6 @@ function deriveIdentityFlags(get: DerivedGet): {
 }
 
 /**
- * The dynamic action-group derivation off
- * `vessel.control.actionGroups` (a fixed-order `[ag1..ag10]` bool array,
- * Action Groups Extended appends more): a keyed `{ [groupId]: bool }` map
- * (`vessel.state.actionGroups`, supports the variable count) PLUS the ten
- * fixed per-index `actionGroup{n}` booleans each existing ActionGroup widget
- * instance reads as its own bool (`vessel.state.actionGroup{n}`, old
- * `v.ag{n}Value`). All keys are ALWAYS present on the returned object (values
- * `undefined`/`null` when unavailable) so the phantom-field guard
- * (`vessel-state-mapping.coverage.test.ts`) sees every mapped field produced.
- * `undefined` (all) while `vessel.control` hasn't arrived or the array is
- * absent this tick; `null` (all) on a confirmed tombstone.
- */
-function deriveActionGroups(get: DerivedGet): {
-  actionGroups: Record<string, boolean | null> | null | undefined;
-  actionGroupsNamed: ActionGroupStatePayload[] | null | undefined;
-  actionGroup1: boolean | null | undefined;
-  actionGroup2: boolean | null | undefined;
-  actionGroup3: boolean | null | undefined;
-  actionGroup4: boolean | null | undefined;
-  actionGroup5: boolean | null | undefined;
-  actionGroup6: boolean | null | undefined;
-  actionGroup7: boolean | null | undefined;
-  actionGroup8: boolean | null | undefined;
-  actionGroup9: boolean | null | undefined;
-  actionGroup10: boolean | null | undefined;
-} {
-  // `v` is the value every per-index field takes, and the `actionGroups` map
-  // and `actionGroupsNamed` list share its nullity, so one argument drives all
-  // of them. Undefined means not arrived yet, null a tombstone.
-  const fill = (v: boolean | null | undefined) => ({
-    actionGroups: v === null ? null : undefined,
-    actionGroupsNamed: v === null ? null : undefined,
-    actionGroup1: v,
-    actionGroup2: v,
-    actionGroup3: v,
-    actionGroup4: v,
-    actionGroup5: v,
-    actionGroup6: v,
-    actionGroup7: v,
-    actionGroup8: v,
-    actionGroup9: v,
-    actionGroup10: v,
-  });
-
-  const point = get<VesselControlPayload>("vessel.control");
-  if (!point) return fill(undefined);
-  if (point.payload === null) return fill(null);
-  const arr = point.payload.actionGroups;
-  if (arr == null) return fill(undefined);
-
-  // Key by each entry's OWN `index`, never by array position, position stopped
-  // carrying identity when the wire shape became a named list, and an AGX
-  // backend may report a sparse/unsorted range (e.g. 3, 42, 250).
-  // An entry's own `state` is three-valued, so it is carried across rather
-  // than coerced: `!!group.state` used to turn "the backend could not read
-  // this group" into "this group is off", which is the exact substitution the
-  // nullable state exists to stop. Null in, null out; a reader branches.
-  const map: Record<string, boolean | null> = {};
-  for (const group of arr) map[String(group.index)] = group.state ?? null;
-  const at = (n: number): boolean | null | undefined => map[String(n)];
-  return {
-    actionGroups: map,
-    // The named list, passed through verbatim so the client's ACTION_GROUPS registry can derive its custom half (labels included) straight from telemetry rather than hardcoding "AG1".."AG10".
-    actionGroupsNamed: arr,
-    actionGroup1: at(1),
-    actionGroup2: at(2),
-    actionGroup3: at(3),
-    actionGroup4: at(4),
-    actionGroup5: at(5),
-    actionGroup6: at(6),
-    actionGroup7: at(7),
-    actionGroup8: at(8),
-    actionGroup9: at(9),
-    actionGroup10: at(10),
-  };
-}
-
-/**
  * The `vessel.state` derivation. Reads `vessel.orbit`
  * + `vessel.flight` at the SAME frozen `viewUt` (the `get` closure enforces
  * this structurally: see `TimelineStore`) and quality-picks per
@@ -1451,15 +1010,14 @@ function deriveActionGroups(get: DerivedGet): {
  *   read `system.bodies` for the reference body's radius (`deriveApsides`).
  *   Both are now declared in `vesselStateChannel.inputs` (see that const's
  *   own doc comment for why growing that array is a real, deliberate,
- *   repo-wide change and not a free extra input to add lightly). `basis:
- *   "propagated"`.
+ *   repo-wide change and not a free extra input to add lightly).
  * - **Loaded** (powered/atmospheric): elements are osculating garbage for
  *   surface quantities, so altitude/vertical/surface speed come off
  *   `vessel.flight` at `viewUt` via `getInterpolated`: a straight-line lerp
  *   between the two buffered `vessel.flight` samples straddling `viewUt`
  *   (`ClientTimeline.straddle` is the seam).
  *   Falls back to hold-last itself when there's nothing to straddle (e.g.
- *   only one `vessel.flight` sample so far). `basis: "measured"`.
+ *   only one `vessel.flight` sample so far).
  *
  * **`undefined` vs `null`, never conflated**: no `vessel.orbit` point
  * at-or-before `viewUt` yet means the input isn't whole yet (cold start, or
@@ -1473,30 +1031,22 @@ function deriveActionGroups(get: DerivedGet): {
  * `vessel.flight` is `null`. Never a fabricated zero-valued record either
  * way.
  */
-/** The six `null`-when-not-derivable landing scalars `deriveLanding` produces. */
+/** The `null`-when-not-derivable impact coordinates `deriveLanding` produces. */
 interface LandingDerivations {
-  landingTimeToImpact: number | null;
-  landingSpeedAtImpact: number | null;
-  landingBestSpeedAtImpact: number | null;
-  landingSuicideBurnCountdown: number | null;
   landingPredictedLat: number | null;
   landingPredictedLon: number | null;
 }
 
-/** All six landing scalars `null`: the propagated basis and the not-derivable measured case. */
+/** Both coordinates `null`: the propagated basis and the not-derivable measured case. */
 const LANDING_NONE: LandingDerivations = {
-  landingTimeToImpact: null,
-  landingSpeedAtImpact: null,
-  landingBestSpeedAtImpact: null,
-  landingSuicideBurnCountdown: null,
   landingPredictedLat: null,
   landingPredictedLon: null,
 };
 
 /**
  * Horizon multiplier + cap on `findImpactPoint`'s walk (see
- * `deriveLanding`'s doc comment): 1.5× the closed-form `landingTimeToImpact`
- * estimate gives the patch-walk enough margin to actually cross the surface
+ * `deriveLanding`'s doc comment): 1.5× the closed-form ballistic fall time
+ * gives the patch-walk enough margin to actually cross the surface
  * (the closed-form model and the patch walk use different bases, vertical
  * vDown-only vs. full 3D propagation: so they don't reach zero altitude at
  * EXACTLY the same instant), capped at 20 minutes so a bad closed-form
@@ -1508,41 +1058,34 @@ const IMPACT_WALK_MAX_HORIZON_SEC = 1200;
 const IMPACT_WALK_MIN_STEPS = 60;
 
 /**
- * The four client-derived ballistic landing scalars (`vessel.state.landing*`,
- * the landing scalars `timeToImpact`/`speedAtImpact`/`bestSpeedAtImpact`/
- * `suicideBurnCountdown`), MEASURED basis only. Every input is already on the
- * wire and carried: no terrain asset, no drag model, no mod-side channel:
+ * The client-derived ballistic impact point (`vessel.state.landingPredicted*`),
+ * MEASURED basis only. Every input is already on the wire and carried: no
+ * terrain asset, no drag model, no mod-side channel:
  *
  * - `g = mu/(radius+altitudeAsl)²`, gravitational acceleration at the current
  *   radius. `mu` is the parent body's GM off `vessel.orbit.mu` (a physical
  *   body constant, valid even in the Loaded basis where the orbital ELEMENTS
  *   are osculating garbage); `radius` is the reference body's mean radius from
  *   `system.bodies` (same lookup as `deriveApsides`).
- * - `h = altitudeTerrain` (height above terrain), `vDown = -verticalSpeed`
- *   (positive downward), `vSurf = surfaceSpeed`: all off `vessel.flight`.
- * - `aMax = availableThrust/totalMass` (kN/t = m/s²) off `vessel.propulsion`.
+ * - `h = altitudeTerrain` (height above terrain) and `vDown = -verticalSpeed`
+ *   (positive downward), both off `vessel.flight`.
  *
- * All four are `null` unless the vessel is descending toward terrain that's
+ * The pair is `null` unless the vessel is descending toward terrain that is
  * still below it (`verticalSpeed < 0` and `h > 0`) and `g` resolves finite and
- * positive; the two burn-dependent fields are additionally `null` when thrust
- * can't overcome gravity (`aMax ≤ g`). The impact-energy field (`speedAtImpact`)
- * uses the full surface-speed magnitude; the two burn fields use the vertical
- * component `vDown` (a vacuum-vertical descent model). Vacuum throughout,
- * ignores atmospheric drag, so on an atmospheric body these are upper bounds
- * (the widget already labels that case "treat as upper bound").
+ * positive. Vacuum throughout, ignoring atmospheric drag, so on an atmospheric
+ * body the bounding fall time is an upper bound (the widget already labels that
+ * case "treat as upper bound").
  *
  * ## It predicts a future EVENT, and that is not what a reckoner does
  *
  * This is the distinction worth holding, because the word "prediction" covers
  * both and the mechanism only covers one. A reckoner carries a topic's OWN
  * value forward past the last observation of it, and every field it moves is
- * that field at the view time. These six are a different claim: they are
+ * that field at the view time. These two are a different claim: they are
  * quantities ABOUT an event that has not happened, computed from measurements
- * at the view time. `landingTimeToImpact` is not an impact time carried
- * forward, it is an answer derived from the altitude and vertical speed of this
- * instant, and it is stale in exactly the way its inputs are stale.
+ * at the view time, and they are stale in exactly the way their inputs are.
  *
- * So the honest label for the set is the one it already has. The reading says
+ * So the honest label for the pair is the one it already has. The reading says
  * `measured` and, past the last sample, `stale`, which is the truthful account
  * of a number solved from an observation that has stopped arriving. Reckoning
  * it would mean claiming the descent continued the way the arithmetic says, and
@@ -1553,7 +1096,7 @@ const IMPACT_WALK_MIN_STEPS = 60;
  * The two never overlap, and the code says so rather than the comment:
  * `keplerAdmissibility` withdraws for a craft under physics, which is every
  * frame this function produces a number on, so `deriveVesselStateReckoning`
- * returns `undefined` on precisely those frames. The set is also absent from
+ * returns `undefined` on precisely those frames. The pair is also absent from
  * `KEPLER_MODELLED_FIELDS` for the plainer reason that it does not exist on
  * that branch at all (`LANDING_NONE` there), so it is not an omission from that
  * list the way the three the list names are. Both facts are pinned in
@@ -1563,7 +1106,7 @@ const IMPACT_WALK_MIN_STEPS = 60;
  * for it exists and IS registered: `vessel.flight`'s `rate-integration` arm,
  * which advances the measured vertical speed by its own observed rate of change
  * rather than by a drag model it would have to invent. The right shape would be
- * to feed a reckoned flight state, never to stamp a basis on these six.
+ * to feed a reckoned flight state, never to stamp a basis on these two.
  */
 function deriveLanding(
   get: DerivedGet,
@@ -1586,15 +1129,12 @@ function deriveLanding(
   if (!(g > 0) || !Number.isFinite(g)) return LANDING_NONE;
 
   // Ballistic no-burn fall to terrain: positive root of ½g·t² + vDown·t − h = 0.
+  // It bounds the walk below rather than being published itself.
   const timeToImpact = finiteOrNull(
     (-vDown + Math.sqrt(vDown * vDown + 2 * g * h)) / g,
   );
-  // Impact speed with no burn: full surface speed plus the drop's added energy.
-  const speedAtImpact = finiteOrNull(
-    Math.sqrt(mag(flight.surfaceSpeed) * mag(flight.surfaceSpeed) + 2 * g * h),
-  );
 
-  const { landingPredictedLat, landingPredictedLon } = derivePredictedImpact(
+  return derivePredictedImpact(
     orbitPatches,
     radius,
     resolveBodyRotationPeriod(get, orbit.referenceBodyIndex),
@@ -1602,47 +1142,6 @@ function deriveLanding(
     viewUt,
     timeToImpact,
   );
-
-  const aMax = deriveMaxAccel(get);
-  // A suicide burn needs net deceleration, thrust must beat gravity (TWR > 1).
-  if (aMax == null || !(aMax > g)) {
-    return {
-      landingTimeToImpact: timeToImpact,
-      landingSpeedAtImpact: speedAtImpact,
-      landingBestSpeedAtImpact: null,
-      landingSuicideBurnCountdown: null,
-      landingPredictedLat,
-      landingPredictedLon,
-    };
-  }
-
-  const aNet = aMax - g;
-  // Distance to null out the vertical descent at full thrust.
-  const burnDistance = (vDown * vDown) / (2 * aNet);
-  // Best (minimum) impact speed if the burn starts now: 0 when the burn fits,
-  // else the residual after decelerating across all remaining altitude.
-  const bestSpeedAtImpact =
-    burnDistance <= h
-      ? 0
-      : finiteOrNull(Math.sqrt(Math.max(0, vDown * vDown - 2 * aNet * h)));
-  // Countdown to the latest ignition: ballistic fall to the ignition altitude
-  // (h − burnDistance). 0 ("IGNITE") once already at or past it.
-  const ignitionHeight = h - burnDistance;
-  const suicideBurnCountdown =
-    ignitionHeight <= 0
-      ? 0
-      : finiteOrNull(
-          (-vDown + Math.sqrt(vDown * vDown + 2 * g * ignitionHeight)) / g,
-        );
-
-  return {
-    landingTimeToImpact: timeToImpact,
-    landingSpeedAtImpact: speedAtImpact,
-    landingBestSpeedAtImpact: bestSpeedAtImpact,
-    landingSuicideBurnCountdown: suicideBurnCountdown,
-    landingPredictedLat,
-    landingPredictedLon,
-  };
 }
 
 /**
@@ -1704,19 +1203,6 @@ function derivePredictedImpact(
   };
 }
 
-/**
- * Max achievable acceleration `availableThrust/totalMass` (kN/t = m/s²) off
- * `vessel.propulsion`: the ceiling a suicide burn can pull. `null` when
- * `vessel.propulsion` hasn't arrived, is a tombstone, or `totalMass ≤ 0`.
- */
-function deriveMaxAccel(get: DerivedGet): number | null {
-  const point = get<VesselPropulsionPayload>("vessel.propulsion");
-  if (!point || point.payload === null) return null;
-  const { availableThrust, totalMass } = point.payload;
-  if (!(totalMass > 0)) return null;
-  return finiteOrNull(availableThrust / totalMass);
-}
-
 export function deriveVesselState(
   get: DerivedGet,
   viewUt: number,
@@ -1749,19 +1235,15 @@ export function deriveVesselState(
     const elements: OrbitElements = buildElements(orbit);
     // A hyperbolic orbit (ecc >= 1, real on a fast escape/flyby while
     // time-warping) can't go through kepler's elliptical-only solver, so
-    // `trySolve` degrades to null instead of throwing and the position and
-    // velocity below degrade with it. The orbital scalars take the same
-    // degradation inside `solveOrbit`, which is where that reasoning now
-    // lives in full.
-    const solved = trySolve(elements, viewUt);
-    const position = solved?.position ?? null;
-    const velocity = solved?.velocity ?? null;
+    // `trySolve` degrades to null instead of throwing and the velocity below
+    // degrades with it. The orbital scalars take the same degradation inside
+    // `solveOrbit`, which is where that reasoning now lives in full.
+    const velocity = trySolve(elements, viewUt)?.velocity ?? null;
 
     /*
-     * One solve, shared with the target's orbit a few functions down
-     * (`deriveTargetOrbit`). The body radius is resolved here rather than in
-     * there because the three-way discipline over `system.bodies` belongs to
-     * this channel; the mathematics does not need to know about it.
+     * The body radius is resolved here rather than inside the solve because
+     * the three-way discipline over `system.bodies` belongs to this channel;
+     * the mathematics does not need to know about it.
      */
     const orbitals = solveOrbit(
       orbit,
@@ -1797,17 +1279,11 @@ export function deriveVesselState(
     const orbitalRadius = orbitals.orbitalRadius;
 
     return {
-      position,
-      velocity,
       /*
        * The solved radius less the reference body's, which is what an altitude
-       * ASL is. This field's own doc called it "deferred, needs system.bodies",
-       * and that stopped being true when `system.bodies` became an input for
-       * the apsis ALTITUDES: `deriveApsides` subtracts the same radius from the
-       * same elements, so leaving the instantaneous one null was a note that
-       * had outlived its reason. `verticalSpeed`/`surfaceSpeed` below stay null
-       * on this basis and are a different case: they are surface-frame rates
-       * that need the body's rotation, not a subtraction.
+       * ASL is. `horizontalSpeed` below stays null on this basis and is a
+       * different case: it is a surface-frame rate that needs the body's
+       * rotation, not a subtraction.
        */
       altitudeAsl:
         orbitalRadius == null
@@ -1818,8 +1294,6 @@ export function deriveVesselState(
                 ? null
                 : finiteOrNull(orbitalRadius - magnitudeOr(radius, Number.NaN));
             })(),
-      verticalSpeed: null,
-      surfaceSpeed: null,
       orbitalSpeed: velocity == null ? null : magnitude(velocity),
       met,
       period,
@@ -1833,33 +1307,27 @@ export function deriveVesselState(
       parentBodyRadius,
       referenceBodyRadius,
       ...deriveEncounter(get, orbit),
-      targetRelativeSpeed: deriveTargetRelativeSpeed(get),
       apoapsisRadius: orbitals.apoapsisRadius,
       periapsisRadius: orbitals.periapsisRadius,
       orbitalRadius,
       nextApsisType: orbitals.nextApsisType,
       timeToNextApsis: orbitals.timeToNextApsis,
       // Surface-frame horizontal speed is a MEASURED quantity, null in the
-      // propagated basis, exactly like surfaceSpeed/verticalSpeed above.
+      // propagated basis.
       horizontalSpeed: null,
-      targetDistance: deriveTargetDistance(get),
-      ...deriveTargetOrbit(get, viewUt),
       ...deriveEnumDisplayMaps(get),
       twr: deriveTwr(get),
       isControllable: deriveIsControllable(get),
       ...deriveIdentityFlags(get),
-      ...deriveActionGroups(get),
-      // Landing scalars are surface-frame MEASURED quantities off vessel.flight, so they are null in the propagated basis, like altitudeAsl/verticalSpeed/surfaceSpeed/horizontalSpeed above.
+      // The impact prediction is a surface-frame MEASURED quantity off vessel.flight, so it is null in the propagated basis, like altitudeAsl/horizontalSpeed above.
       ...LANDING_NONE,
       orbitPatches: orbitPatchesLegacy,
-      basis: "propagated",
       subjectId,
     };
   }
 
-  // Loaded: orbital elements are osculating garbage here, the same reasoning
-  // that leaves position and velocity unpropagated in this basis. All seven
-  // orbital-derived fields stay null rather than deriving anything from them.
+  // Loaded: orbital elements are osculating garbage here, so every
+  // orbital-derived field stays null rather than deriving anything from them.
   const flightPoint = getInterpolated<VesselFlightPayload>("vessel.flight");
   if (!flightPoint) return undefined; // not whole yet, no point at all
   if (flightPoint.payload === null) return null; // tombstone, vessel confirmed absent
@@ -1873,18 +1341,16 @@ export function deriveVesselState(
       : null;
 
   return {
-    position: null,
-    velocity: null,
-    // `finiteOrNull`, like every other derived scalar in this file. These four
-    // come STRAIGHT off the wire rather than out of a computation, which is why
-    // they were the four that skipped it, and `mag` answers NaN for an absent
-    // field (see its own doc for why that is the right answer THERE). NaN is
-    // neither of the two answers these fields declare, and a consumer's `??`
-    // does not catch it: the readout still renders as absent, but every
-    // threshold compared against it silently stops firing.
+    /*
+     * `finiteOrNull`, like every other derived scalar in this file. These two
+     * come STRAIGHT off the wire rather than out of a computation, and `mag`
+     * answers NaN for an absent field (see its own doc for why that is the
+     * right answer THERE). NaN is neither of the two answers these fields
+     * declare, and a consumer's `??` does not catch it: the readout still
+     * renders as absent, but every threshold compared against it silently
+     * stops firing.
+     */
     altitudeAsl: finiteOrNull(mag(flight.altitudeAsl)),
-    verticalSpeed: finiteOrNull(mag(flight.verticalSpeed)),
-    surfaceSpeed: finiteOrNull(mag(flight.surfaceSpeed)),
     orbitalSpeed: finiteOrNull(mag(flight.orbitalSpeed)),
     met: null,
     period: null,
@@ -1898,7 +1364,6 @@ export function deriveVesselState(
     parentBodyRadius: resolveBodyRadius(get, parentBodyIndex),
     referenceBodyRadius: resolveBodyRadius(get, orbit.referenceBodyIndex),
     ...deriveEncounter(get, orbit),
-    targetRelativeSpeed: deriveTargetRelativeSpeed(get),
     // Orbital-radius/next-apsis are OnRails-only (osculating garbage here),
     // same null posture as apoapsisAlt/timeToAp above.
     apoapsisRadius: null,
@@ -1918,21 +1383,15 @@ export function deriveVesselState(
         ),
       ),
     ),
-    // The target's own kinematics/orbit are independent of the SELF basis, so
-    // they're derived identically here.
-    targetDistance: deriveTargetDistance(get),
-    ...deriveTargetOrbit(get, viewUt),
     ...deriveEnumDisplayMaps(get),
     // Self-relative flags/derivations: independent of the kinematic basis.
     twr: deriveTwr(get),
     isControllable: deriveIsControllable(get),
     ...deriveIdentityFlags(get),
-    ...deriveActionGroups(get),
-    // Ballistic landing scalars: LIVE here (measured basis), off vessel.flight
-    // + vessel.orbit.mu + the system.bodies radius + vessel.propulsion.
+    // The ballistic impact prediction: LIVE here (measured basis), off
+    // vessel.flight + vessel.orbit.mu + the system.bodies radius.
     ...deriveLanding(get, orbit, flight, orbitPatchesLegacy, viewUt),
     orbitPatches: orbitPatchesLegacy,
-    basis: "measured",
     subjectId,
   };
 }
@@ -1976,12 +1435,12 @@ export function deriveVesselStateStatus(
 /**
  * Whether this record is forward-modelled, and on what.
  *
- * The OnRails basis solves position, velocity, anomalies and both time-to-apsis
- * figures from the orbital elements at the frame's view time
+ * The OnRails basis solves the state vector, the anomalies and both
+ * time-to-apsis figures from the orbital elements at the frame's view time
  * (`trySolve(elements, viewUt)`), and does so whether or not anything has
  * arrived recently, because the elements are a CAUSE valid until superseded.
  * That is the right derivation and always was; what it lacked was a way to say
- * it. Without this, a craft twenty minutes dark served a propagated position on
+ * it. Without this, a craft twenty minutes dark served a propagated altitude on
  * the `stale` arm, whose own doc promises "the last REAL observation, never a
  * modelled value".
  *
@@ -2102,7 +1561,7 @@ export function deriveVesselStateReckoning(
  * The list is what `trySolve`/`trySolveAnomalies` and their dependents produce
  * from `viewUt`, read off the OnRails branch of `deriveVesselState` directly.
  *
- * Three deliberate absences:
+ * Two deliberate absences:
  *
  * - `period`, both apsis ALTITUDES and both apsis RADII are constants OF the
  *   conic. They are true for the whole propagation and no part of them is a
@@ -2111,16 +1570,9 @@ export function deriveVesselStateReckoning(
  * - `met` advances at exactly one second per second whether or not anybody is
  *   listening. It is a clock, not a model, and stamping `kepler-propagation` on
  *   elapsed time misdescribes what produced it
- * - the TARGET's orbit (`deriveTargetOrbit`) is propagated the same way and is
- *   deliberately absent, because the horizon above is the SELF craft's patch. A
- *   target crossing its own SOI would go on being modelled off a bound that
- *   says nothing about it, and a second horizon is a decision to take on its
- *   own rather than a line to add here
  */
 const KEPLER_MODELLED_FIELDS: readonly ModelledField[] = [
   { path: "", basis: "kepler-propagation" },
-  { path: "position", basis: "kepler-propagation" },
-  { path: "velocity", basis: "kepler-propagation" },
   { path: "orbitalSpeed", basis: "kepler-propagation" },
   { path: "orbitalRadius", basis: "kepler-propagation" },
   { path: "altitudeAsl", basis: "kepler-propagation" },
@@ -2137,59 +1589,35 @@ const KEPLER_MODELLED_FIELDS: readonly ModelledField[] = [
  * `vessel.state.altitudeAsl`) reading off this one memoized record, per
  * `TimelineStore`'s field-subtopic mechanism.
  *
- * `inputs` grew to four, adding
- * `vessel.identity`/`system.bodies`, for `met`/`apoapsisAlt`/`periapsisAlt`;
- * see `deriveVesselState`'s doc. This array is NOT just documentation: the
- * carried-channels gate (`carried-channels.ts`'s `isTopicCarried`, via
+ * `inputs` is NOT just documentation: the carried-channels gate
+ * (`carried-channels.ts`'s `isTopicCarried`, via
  * `TimelineStore.resolveSubscriptionTopics`) is PARENT-CHANNEL-scoped, not
- * per-field: a consumer of ANY `vessel.state.*` field (including the
- * already-shipped `altitudeAsl`/`orbitalSpeed`) is only "carried" once ALL
- * FOUR inputs are in its `carriedChannels` allowlist, not just the ones the
- * particular field it reads actually consults. Every existing
- * `carriedChannels` allowlist that lists `vessel.orbit`/`vessel.flight` for
- * a `vessel.state.*` read was updated alongside this change to also list
- * `vessel.identity`/`system.bodies` (harmless additions: a topic never
- * emitted on a given test's transport simply never arrives, same as any
- * other declared-but-quiet input). The alternative: leaving this array at
- * two and reading the new inputs via `get()` without declaring them, was
- * tried and rejected: it left `met`/`apoapsisAlt`/`periapsisAlt` "carried"
- * (since the gate only checks the declared two) but their extra inputs never
- * actually subscribed, so they'd read as a PERMANENT stuck `undefined`
- * instead of falling back to the still-working legacy `DataSource` read,
- * exactly the "big-bang blank-out" class of bug the carried-channels gate
- * exists to prevent (`carried-channels.ts`'s own doc comment).
+ * per-field, so a consumer of ANY `vessel.state.*` field is "carried" only
+ * once EVERY input listed here is in its `carriedChannels` allowlist, not
+ * just the ones the particular field it reads actually consults. An input
+ * consulted through `get()` without being declared here reads as "carried"
+ * while never actually subscribing, which is a PERMANENT stuck `undefined`:
+ * the "big-bang blank-out" class of bug the gate exists to prevent (see
+ * `carried-channels.ts`'s own doc comment). A declared-but-quiet input costs
+ * nothing, so the list errs towards declaring.
  */
 export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   topic: "vessel.state",
-  // Grew from four to SEVEN with the enum-ordinal→name display maps:
-  // `situationName`/`sasModeName`/`targetKind`/`commsControlState*`. The three
-  // additions, `vessel.control`/`vessel.target`/`vessel.comms`, are the
-  // source channels of the new display maps. Per this array's contract (above):
-  // adding an input makes EVERY `vessel.state.*` field "carried" only once ALL
-  // SEVEN inputs are, so every `carriedChannels` allowlist that reads any
-  // `vessel.state.*` field was extended to list these three too (the runtime
-  // default `DEFAULT_SITREP_CARRIED_TOPICS` already carries all three). The
-  // display maps consult only their own single source channel, so an absent
-  // one nulls just that ONE field (never the whole record) and never drags
-  // `deriveVesselStateStatus` (still orbit/flight-only: those three are not
-  // status-bearing kinematic inputs).
-  // Grew to EIGHT to include `vessel.propulsion`, the source of the
-  // client-derived `vessel.state.twr` (old
-  // `dv.currentTWR`). Per this array's contract (above), adding it makes
-  // EVERY `vessel.state.*` field "carried" only once `vessel.propulsion` is
-  // too: so `DEFAULT_SITREP_CARRIED_TOPICS` and every test `carriedChannels`
-  // allowlist that reads any `vessel.state.*` field was extended to list it.
-  // The other flag/derivation additions (`isControllable`/`isEVA`/
-  // `isSplashed`/`actionGroup*`) read only channels
-  // ALREADY declared here (`vessel.comms`/`vessel.identity`/`vessel.control`/
-  // `vessel.target`), so they added no new input.
+  /*
+   * `vessel.orbit` and `vessel.flight` are the kinematic pair the record is
+   * built on, and the only two `deriveVesselStateStatus` reads. The rest each
+   * feed a single field or a small group of them (`system.bodies` the body
+   * names and radii, `vessel.identity` MET and the identity flags,
+   * `vessel.control` the SAS-mode name, `vessel.comms` the control state,
+   * `vessel.propulsion` TWR), and an absent one nulls just those, never the
+   * whole record and never the status.
+   */
   inputs: [
     "vessel.orbit",
     "vessel.flight",
     "vessel.identity",
     "system.bodies",
     "vessel.control",
-    "vessel.target",
     "vessel.comms",
     "vessel.propulsion",
   ],
@@ -2236,7 +1664,6 @@ export const VESSEL_STATE_FIELDS: Readonly<
   altitudeAsl: { unit: "m" },
   apoapsisAlt: { unit: "m" },
   apoapsisRadius: { unit: "m" },
-  basis: { unit: "text" },
   commsControlStateName: { unit: "text" },
   commsControlStateOrdinal: { unit: "enum" },
   encounterBody: { unit: "text" },
@@ -2249,14 +1676,9 @@ export const VESSEL_STATE_FIELDS: Readonly<
   isControllable: { unit: "flag" },
   isEVA: { unit: "flag" },
   isSplashed: { unit: "flag" },
-  landingBestSpeedAtImpact: { unit: "m/s" },
   landingPredictedLat: { unit: "°" },
   landingPredictedLon: { unit: "°" },
-  landingSpeedAtImpact: { unit: "m/s" },
-  landingSuicideBurnCountdown: { unit: "s" },
-  landingTimeToImpact: { unit: "s" },
   met: { unit: "s" },
-  surfaceSpeed: { unit: "m/s" },
   nextApsisType: { unit: "enum" },
   orbitalRadius: { unit: "m" },
   orbitalSpeed: { unit: "m/s" },
@@ -2264,19 +1686,12 @@ export const VESSEL_STATE_FIELDS: Readonly<
   periapsisAlt: { unit: "m" },
   periapsisRadius: { unit: "m" },
   period: { unit: "s" },
-  position: { vector: "m" },
   referenceBodyName: { unit: "text" },
   parentBodyRadius: { unit: "m" },
   referenceBodyRadius: { unit: "m" },
   sasModeName: { unit: "text" },
   situationName: { unit: "text" },
   subjectId: { unit: "id" },
-  targetDistance: { unit: "m" },
-  targetKind: { unit: "text" },
-  targetPeriapsisAlt: { unit: "m" },
-  targetPeriod: { unit: "s" },
-  targetRelativeSpeed: { unit: "m/s" },
-  targetTrueAnomaly: { unit: "°" },
   timeToAp: { unit: "s" },
   timeToNextApsis: { unit: "s" },
   timeToPe: { unit: "s" },
@@ -2284,26 +1699,6 @@ export const VESSEL_STATE_FIELDS: Readonly<
   // A thrust-to-weight ratio is dimensionless, which is not the same as having
   // no unit: the explicit token says so.
   twr: { unit: "1" },
-  velocity: { vector: "m/s" },
-  verticalSpeed: { unit: "m/s" },
-  // The element name on a collection is documentation: a plural entry is never
-  // dereferenced, and declaring these at all is what keeps an enumeration from
-  // missing the field rather than reporting it as a leaf it cannot read.
-  // The ten per-index flags sit beside the map and the named list: a widget
-  // reading one group does not want the whole collection, and a picker can
-  // offer a single group where it cannot offer a dictionary.
-  actionGroup1: { unit: "flag" },
-  actionGroup2: { unit: "flag" },
-  actionGroup3: { unit: "flag" },
-  actionGroup4: { unit: "flag" },
-  actionGroup5: { unit: "flag" },
-  actionGroup6: { unit: "flag" },
-  actionGroup7: { unit: "flag" },
-  actionGroup8: { unit: "flag" },
-  actionGroup9: { unit: "flag" },
-  actionGroup10: { unit: "flag" },
-  actionGroups: { collection: "*flag" },
-  actionGroupsNamed: { collection: "ActionGroupState[]" },
   orbitPatches: { collection: "OrbitPatch[]" },
 };
 

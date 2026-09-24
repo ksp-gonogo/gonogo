@@ -2,6 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -65,6 +66,10 @@ function setup() {
       meanAnomalyAtEpoch: 0,
       epoch: UT,
       mu: 3.5316e12,
+      // The reach and shape a live sample states. Without them nothing vouches
+      // for these elements being a conic, the model over them withdraws, and
+      // the CURRENT apsides the projected ones are compared against are gone.
+      horizon: ANALYTIC_UNBOUNDED_HORIZON,
     });
     fixture.emit("system.bodies", {
       bodies: [

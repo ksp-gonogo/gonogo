@@ -1,5 +1,6 @@
 export type { AxisScale, SeriesType } from "@ksp-gonogo/ui";
 
+import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
 import type { AxisScale, SeriesType } from "@ksp-gonogo/ui";
 
 /** Sentinel `xKey` value meaning "plot against wall-clock time". */
@@ -27,6 +28,15 @@ export interface GraphSeriesConfig {
    * it through a default.
    */
   axis?: "primary" | "secondary" | "auto";
+}
+
+/**
+ * A series a widget computed itself, handed to `GraphView` in place of a key
+ * the chart would fetch. `meta.key` is the key its `GraphSeriesConfig` names.
+ */
+export interface ComputedSeries {
+  meta: DataKeyMeta;
+  data: SeriesRange<number>;
 }
 
 /**

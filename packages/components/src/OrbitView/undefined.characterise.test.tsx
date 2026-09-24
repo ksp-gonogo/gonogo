@@ -96,23 +96,20 @@ describe("OrbitView: absence gates on the augment slots", () => {
 });
 
 describe("OrbitView: null (tombstone) versus undefined (nothing yet)", () => {
-  it("renders a DIFFERENT sentence when the apsis radii are null in the measured basis", async () => {
-    // Quality.Loaded makes `deriveVesselState` take its measured branch: the
-    // orbit exists and `vessel.state` HAS arrived, but both apsis radii are
-    // null (no osculating elements to solve). `hasOrbit` uses `!= null`, so
-    // the tombstone gates the diagram exactly like nothing-arrived does, and
-    // only `basis` tells the two apart in the copy.
+  it("draws a loaded craft's orbit and names its body", async () => {
+    // Under physics the conic will not ADVANCE the elements, but the apsides
+    // need no advancing, so a current reading still has an orbit to draw.
     const { container } = renderOrbitViewStream(
       { w: 9, h: 18 },
       { ...LKO, quality: Quality.Loaded },
     );
 
     await waitFor(() => {
-      if (!visibleText(container).includes("No osculating orbit (packed)")) {
-        throw new Error("measured-basis empty state has not resolved yet");
+      if (container.querySelector("svg") === null) {
+        throw new Error("diagram has not rendered yet");
       }
     });
-    expect(container.querySelector("svg")).toBeNull();
+    expect(visibleText(container)).not.toContain("No osculating orbit");
     // The body name still resolves: the caption is gated on `bodyName`, not
     // on the orbit, so this branch is not the nothing-arrived render.
     expect(visibleText(container)).toContain("Kerbin");

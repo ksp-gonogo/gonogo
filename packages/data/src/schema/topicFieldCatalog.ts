@@ -5,7 +5,6 @@
 import {
   isTopicCarried,
   PRODUCTION_DERIVED_CHANNELS,
-  redirectKinematicSubtopic,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
@@ -99,6 +98,24 @@ function readLandsOnTopic(
   return split?.rawTopic === topic;
 }
 
+/**
+ * The two altitudes and the two orbital speeds are one quantity each, and the
+ * picker offers the wire spelling.
+ *
+ * `vessel.flight` carries both on the wire with a reckoner apiece, so a key
+ * picked there is observed, dated, and banded where the model has an interval
+ * to give. `vessel.state`'s copies are the same number with none of that, and
+ * the derived channel still enumerates them, so without this the picker shows
+ * two names for one altitude: the dual-altitude wart in front of the operator.
+ *
+ * Named here rather than derived, because the table it used to be derived from
+ * described a redirect that no longer exists. It goes when the channel does.
+ */
+const SUPERSEDED_DERIVED_KINEMATICS: ReadonlySet<string> = new Set([
+  "vessel.state.altitudeAsl",
+  "vessel.state.orbitalSpeed",
+]);
+
 function entryFor(topic: string, field: TopicField): TopicFieldKey {
   return {
     key: `${topic}.${field.path}`,
@@ -189,13 +206,7 @@ function buildTopicFieldCatalog(
     }
     for (const field of fields) {
       const key = `${topic}.${field.path}`;
-      // A kinematic field that reads from somewhere else is not offered under
-      // both names. `vessel.flight.altitudeAsl` exists on the wire and resolves
-      // perfectly well, and offering it beside `vessel.state.altitudeAsl` puts
-      // two names for one altitude in front of the operator, which is the
-      // dual-altitude wart the redirect exists to contain. The canonical name is
-      // in the catalogue already, on the Topic the redirect points at.
-      if (redirectKinematicSubtopic(key) !== key) continue;
+      if (SUPERSEDED_DERIVED_KINEMATICS.has(key)) continue;
       keys.push(entryFor(topic, field));
     }
   }

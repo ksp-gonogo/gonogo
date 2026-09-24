@@ -1,12 +1,11 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { emitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * Producer↔consumer disagreements O2/O3/O4: hyperbolic orbits and the
- * `vessel.state.basis` contract.
+ * Producer↔consumer disagreements O2/O3/O4: hyperbolic orbits and the packed
+ * (under physics) case.
  *
  * - **O2**: `hasOrbit` must not require apoapsis. Apoapsis is `null` by
  *   design on a hyperbolic orbit (`ecc >= 1`, no apoapsis exists), the gate
@@ -17,7 +16,7 @@ import { emitScenario, renderOrbitViewStream } from "./streamHarness";
  *   computation (finite but GARBAGE-negative for a hyperbolic orbit, since
  *   sma<0 there), that garbage must never reach `overlayContext.scale` or
  *   any augment slot prop.
- * - **O4**: in the "measured" (Loaded/packed) basis, the derived orbital
+ * - **O4**: while the craft is under physics (Loaded/packed), the derived orbital
  *   elements are null-by-design even though raw `vessel.orbit.sma`/`ecc`
  *   are present. The widget must not draw a diagram from those osculating
  *   elements, and must show a distinct "packed" empty state rather than the
@@ -92,8 +91,8 @@ describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scal
   });
 });
 
-describe("OrbitView: O4: 'measured' basis suppresses the diagram with a distinct empty state", () => {
-  it("shows the packed empty state (not the diagram, not the generic empty state) in the measured basis", async () => {
+describe("OrbitView: O4: a craft under physics still has an orbit to draw", () => {
+  it("draws a loaded craft's current orbit rather than refusing it", async () => {
     const { container, fixture } = renderOrbitViewStream({ w: 9, h: 18 });
 
     emitScenario(fixture, {
@@ -104,14 +103,15 @@ describe("OrbitView: O4: 'measured' basis suppresses the diagram with a distinct
       quality: Quality.Loaded,
     });
 
+    // The apsides are algebra on the elements as they stand, so being under
+    // physics withholds nothing this diagram draws.
     await waitFor(() => {
-      if (!visibleText(container).includes("packed")) {
-        throw new Error("packed empty state has not resolved yet");
+      if (container.querySelector("svg") === null) {
+        throw new Error("diagram has not rendered yet");
       }
     });
-    expect(visibleText(container)).toContain("No osculating orbit (packed)");
+    expect(container.textContent).not.toContain("No osculating orbit");
     expect(container.textContent).not.toContain("No orbital data");
-    expect(container.querySelector("svg")).toBeNull();
   });
 
   it("still renders the diagram for a normal orbit in the 'propagated' basis", async () => {

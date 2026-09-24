@@ -70,7 +70,11 @@ interface WireFlight {
 interface Fixture {
   _stream?: {
     pinnedUt?: number;
-    emits?: Array<{ channel?: string; value?: Record<string, unknown> }>;
+    emits?: Array<{
+      channel?: string;
+      value?: Record<string, unknown>;
+      meta?: { validAt?: number };
+    }>;
   };
 }
 
@@ -103,9 +107,22 @@ for (const [path, mod] of Object.entries(MODULES)) {
   const orbit = emits.find((e) => e.channel === "vessel.orbit")?.value as
     | WireOrbit
     | undefined;
-  const flight = emits.find((e) => e.channel === "vessel.flight")?.value as
-    | WireFlight
-    | undefined;
+  /*
+   * The NEWEST flight sample, and the instant IT was taken.
+   *
+   * A scene whose link is down lays down several samples and pins the view
+   * past the last of them, so `pinnedUt` is where the operator is looking and
+   * not where the craft was measured. Propagating the conic to the view
+   * instant and comparing it against a sample taken seconds earlier calls a
+   * coherent scene incoherent: at 210 m/s the two are hundreds of metres
+   * apart. The sample and the instant have to come from the same emit.
+   */
+  const flightEmit = [...emits]
+    .filter((e) => e.channel === "vessel.flight")
+    .sort((a, b) => (a.meta?.validAt ?? ut) - (b.meta?.validAt ?? ut))
+    .at(-1);
+  const flight = flightEmit?.value as WireFlight | undefined;
+  const flightUt = flightEmit?.meta?.validAt ?? ut;
   const bodies = emits.find((e) => e.channel === "system.bodies")?.value as
     | { bodies?: Array<{ name: string; radius: number }> }
     | undefined;
@@ -113,7 +130,7 @@ for (const [path, mod] of Object.entries(MODULES)) {
   if (!orbit || !flight || !first) continue;
   scenes.push({
     slug: path.replace("./__fixtures__/", "").replace(/\.json$/, ""),
-    ut,
+    ut: flightUt,
     orbit,
     patches: orbit.patches ?? [],
     flight,
@@ -223,11 +240,12 @@ describe("MapView fixtures describe scenes that can exist", () => {
       "kerbin-lko-equator",
       "kerbin-plane-change-node",
       "kerbin-reentry",
+      "kerbin-reentry-held",
       "mun-polar-orbit",
     ]);
   });
 
-  it("gives each scenario its own scene, so five names are five pictures", () => {
+  it("gives each scenario its own scene, so a name is a picture", () => {
     const byFingerprint = new Map<string, string[]>();
     for (const s of scenes) {
       const key = elementFingerprint(s);

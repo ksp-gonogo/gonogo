@@ -197,11 +197,12 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
     expect(store.currentFrame().viewUt).toBe(175);
     expect(store.currentFrame().certainty).toBe("confirmed");
 
+    /* Only the measured path carries an altitude here (the propagated one leaves
+       it null without body geometry), so the interpolated figure is also the
+       proof of which path ran. */
     const state = store.sample<{
       altitudeAsl: number | null;
-      basis: string;
     }>("vessel.state");
-    expect(state?.payload?.basis).toBe("measured");
     expect(state?.payload?.altitudeAsl).toBeCloseTo(1750); // interpolated, not hold-last (1000)
   });
 });
@@ -236,7 +237,6 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     const state = store.sample<{
       position: readonly [number, number, number] | null;
       velocity: readonly [number, number, number] | null;
-      basis: string;
     }>("vessel.state");
 
     // Off the WIRE fixture, which is bare numbers: the solver's own contract.
@@ -252,7 +252,6 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     };
     const expected = solve(elements, 150);
 
-    expect(state?.payload?.basis).toBe("propagated");
     expect(state?.payload?.position).toEqual(expected.position);
     expect(state?.payload?.velocity).toEqual(expected.velocity);
   });
@@ -411,11 +410,11 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
     const token = store.currentFrame();
 
     const first = store.sample<{
-      position: readonly [number, number, number] | null;
-      basis: string;
+      trueAnomaly: number | null;
     }>("vessel.state", token);
-    // Sanity: genuinely propagating off the live orbit before the bump.
-    expect(first?.payload?.basis).toBe("propagated");
+    // Sanity: genuinely propagating off the live orbit before the bump. Only
+    // the propagated path solves an anomaly; the measured one leaves it null.
+    expect(typeof first?.payload?.trueAnomaly).toBe("number");
 
     // Mid-token quickload rewind via an UNRELATED topic, vessel.orbit
     // hasn't re-sampled, so it's swept to the new epoch with no points.
@@ -431,8 +430,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
     // off the dead epoch-0 orbit and stamps the result with the NEW epoch,
     // a ghost `vessel.state` masquerading as post-rewind truth.
     const second = store.sample<{
-      position: readonly [number, number, number] | null;
-      basis: string;
+      trueAnomaly: number | null;
     }>("vessel.state", token);
     expect(second).toBeUndefined(); // must NOT be a ghost propagated off the dead orbit
   });

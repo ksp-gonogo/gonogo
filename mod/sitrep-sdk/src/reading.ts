@@ -309,6 +309,18 @@ export interface TopicModel<T, R = T> {
  * `@vessel.orbit`, `@vessel.orbit#mu`), so the string a widget shows and the
  * string the contract carries are the same string.
  *
+ * `"under-physics"` means the subject is being stepped by the full simulation
+ * rather than coasting, so a closed-form model of its motion does not apply:
+ * a craft whose elements are osculating because something is pushing it. It is
+ * its own member rather than a kind of `"model-inapplicable"` because a
+ * consumer has a different thing to say about it (the orbit exists and the
+ * craft is loaded) and must not have to infer that from `input` or `note`.
+ *
+ * **Every condition a consumer can branch on is a `reason`.** `input` names the
+ * responsible input and several conditions share one; `note` is prose. Neither
+ * says which condition fired, so a consumer that needs to know gets a member
+ * here rather than a pattern to match.
+ *
  * `"insufficient-history"` is the one the STORE raises on the reckoner's behalf
  * without consulting it, and the only rejection {@link ReckonerWindow} has: the
  * declared window held fewer than `minSamples` points of the reckoner's own
@@ -322,11 +334,15 @@ export interface ReckoningDecline {
     | "input-absent"
     | "beyond-horizon"
     | "model-inapplicable"
+    | "under-physics"
     | "contested"
     | "insufficient-history";
   /** The declared input responsible, where the reason has one. */
   readonly input?: string;
-  /** One sentence for an operator. Never a stack, never a code. */
+  /**
+   * One sentence for an operator. Never a stack, never a code, and never read
+   * by a program: a branch on its text is a branch on wording that can change.
+   */
   readonly note?: string;
 }
 
@@ -608,14 +624,14 @@ export type TopicCurrency<P, Rk = unknown> =
  * ## Built from the topic's own model, never from a second read
  *
  * The obvious implementation is to have `flight.altitudeAsl` go and sample the
- * subtopic of that name, and it is wrong in a way nothing would notice.
- * `redirectKinematicSubtopic` rewrites `vessel.flight.altitudeAsl` onto the
- * DERIVED `vessel.state.altitudeAsl`, and a derived channel's reckoner claims
- * the root with no `bandAt` at all, so the delegating version would hand back a
- * modelled altitude with the band silently gone. The field reading is therefore
- * projected out of the reading that already exists: its basis from the
- * {@link ModelledField} covering the path, its value from the modelled payload,
- * its band from {@link TopicReckoningAvailable.bands} at that same path.
+ * subtopic of that name, and it is wrong in a way nothing would notice: a
+ * second read resolves whatever channel happens to answer to that name, and a
+ * channel whose reckoner claims the root carries no `bandAt`, so the
+ * delegating version hands back a modelled altitude with the band silently
+ * gone. The field reading is therefore projected out of the reading that
+ * already exists: its basis from the {@link ModelledField} covering the path,
+ * its value from the modelled payload, its band from
+ * {@link TopicReckoningAvailable.bands} at that same path.
  *
  * ## Reserved names lose
  *
@@ -1184,14 +1200,13 @@ function walkField(payload: unknown, path: string): unknown {
  * One path's {@link Reckoning}, projected out of the topic's own model.
  *
  * This is the whole reason a field property exists, and the reason it must not
- * be built by reading the subtopic of the same name instead.
- * `redirectKinematicSubtopic` sends `vessel.flight.altitudeAsl` to the DERIVED
- * `vessel.state.altitudeAsl`, whose reckoner claims the root and offers no
- * `bandAt` at all, so a delegating field property would answer with a modelled
- * altitude and no band and nothing would notice the band had gone. Projecting
- * instead keeps the band the topic's own model produced, because it is read out
- * of {@link TopicReckoningAvailable.bands} at this path and never fetched a
- * second time.
+ * be built by reading the subtopic of the same name instead. A second read
+ * resolves to whichever channel answers to that name, and a reckoner that
+ * claims the root offers no `bandAt` at all, so a delegating field property
+ * would answer with a modelled value and no band and nothing would notice the
+ * band had gone. Projecting instead keeps the band the topic's own model
+ * produced, because it is read out of {@link TopicReckoningAvailable.bands} at
+ * this path and never fetched a second time.
  *
  * A path no {@link ModelledField} covers reckons `"none"`, which is the honest
  * answer: the value sitting at that path in the modelled payload is a verbatim

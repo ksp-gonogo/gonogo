@@ -1,18 +1,11 @@
 /**
  * How a widget-facing key resolves to the stream Topic it reads from.
  *
- * Two independent concerns live here.
- *
- * 1. **`redirectKinematicSubtopic`**: a narrow, sourceId-agnostic safety net
- *    that redirects a handful of raw topic strings onto the derived
- *    `vessel.state.*` surface, so nothing that already speaks the topic
- *    namespace can reintroduce the dual-altitude wart. Identity fallback, so it
- *    is safe to call on any topic string.
- * 2. **`isKnownFieldPath` / `resolveValueTopic`**: whether a dotted path names
- *    a field the contract declares, and which Topic a caller should sample for
- *    it. Both read the contract's own generated metadata through
- *    `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a derived
- *    channel registered at module load resolves alongside a first-party one.
+ * `isKnownFieldPath` / `resolveValueTopic` answer whether a dotted path names a
+ * field the contract declares, and which Topic a caller should sample for it.
+ * Both read the contract's own generated metadata through
+ * `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a derived channel
+ * registered at module load resolves alongside a first-party one.
  *
  * `mapTopic` survives for `sourceId === "kos"` alone. The mod publishes native
  * `kos.processors` push telemetry plus the dynamic `kos.compute.<id>.<field>`
@@ -29,78 +22,6 @@ import {
   unitsForTopic,
   unitsForType,
 } from "../units";
-
-/** Kinematics → `vessel.state.*` routing: `mapTopic` points kinematics at
- * `vessel.state.*` derived subtopics from the first migrated widget. Two
- * input shapes are handled:
- * - **Short semantic keys** (`"altitude"`, `"velocity"`, `"position"`,
- *   `"orbitalSpeed"`): forward-compatible shorthand some SDK-native callers
- *   may use.
- * - **Raw topic strings a widget might reach for directly**,
- *   `"vessel.flight.altitudeAsl"` is redirected to `"vessel.state.altitudeAsl"`
- *   even though the raw field genuinely exists on the wire, because binding a
- *   widget straight to it reproduces the dual-altitude wart `vessel.state`
- *   exists to kill. Same story for `"vessel.flight.orbitalSpeed"` →
- *   `"vessel.state.orbitalSpeed"`: `vessel.flight` carries `orbitalSpeed` on
- *   the wire; `vessel.orbit` is elements-only and has no such field, so a
- *   redirect keyed on that topic would never fire.
- *   Non-kinematic keys (surface-frame-only measurements with no
- *   elements-derived twin, e.g. `vessel.flight.mach`,
- *   `vessel.flight.dynamicPressureKPa`) are deliberately NOT redirected,
- *   those stay raw; there's no dual representation to collapse.
- */
-const KINEMATIC_REDIRECTS: Readonly<Record<string, string>> = {
-  position: "vessel.state.position",
-  velocity: "vessel.state.velocity",
-  altitude: "vessel.state.altitudeAsl",
-  altitudeAsl: "vessel.state.altitudeAsl",
-  orbitalSpeed: "vessel.state.orbitalSpeed",
-  "vessel.flight.altitudeAsl": "vessel.state.altitudeAsl",
-  "vessel.flight.orbitalSpeed": "vessel.state.orbitalSpeed",
-};
-
-/**
- * Resolve a *new-SDK* topic string to the topic it should actually be read
- * from. Kinematics (position/velocity/altitude/orbital speed) always
- * resolve to `vessel.state.*`; everything else passes through unchanged.
- * Identity fallback: safe to call on every topic, not just kinematic ones.
- */
-export function redirectKinematicSubtopic(topic: string): string {
-  return KINEMATIC_REDIRECTS[topic] ?? topic;
-}
-
-/**
- * The WIRE address a redirected reading was pointed away from: the Topic the
- * mod publishes and the path into its payload, or null for a key that was never
- * redirected or whose source is a short semantic alias.
- *
- * The redirect exists so nothing binds to two names for one altitude, and for a
- * widget that is the whole story. It stops being the whole story the moment
- * something outside this client has to be told WHICH reading is meant: the
- * simulation holds Topics and it has never heard of `vessel.state`, which is a
- * channel this client computes. A SCET alarm armed on the derived name could
- * not be read at all, and the case it would lose is the altitude threshold the
- * feature was asked for.
- *
- * Derived from the redirect table rather than written beside it, so the two
- * cannot disagree. The split at the last dot is a guess until the contract
- * confirms it: a Topic that does not declare the field is not the address, and
- * is skipped rather than returned.
- */
-export function wireAddressBehindRedirect(
-  key: string,
-): { topic: string; fieldPath: string } | null {
-  for (const [from, to] of Object.entries(KINEMATIC_REDIRECTS)) {
-    if (to !== key) continue;
-    const cut = from.lastIndexOf(".");
-    if (cut <= 0) continue;
-    const topic = from.slice(0, cut);
-    const fieldPath = from.slice(cut + 1);
-    if (unitsForTopic(topic as never)[fieldPath] === undefined) continue;
-    return { topic, fieldPath };
-  }
-  return null;
-}
 
 /**
  * `kos.compute.<id>.<field>`: the dynamic centralised-compute namespace.

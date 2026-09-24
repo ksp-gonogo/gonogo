@@ -350,7 +350,7 @@ export function keplerAdmissibility(
   if (orbitPoint.meta.quality !== Quality.OnRails) {
     return {
       declined: {
-        reason: "model-inapplicable",
+        reason: "under-physics",
         input: "@vessel.orbit",
         note: "the craft is under physics, so its elements are not a coast a conic can advance",
       },

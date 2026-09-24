@@ -43,7 +43,7 @@ describe("useValueKeys", () => {
     );
 
     expect(captured.length).toBeGreaterThan(0);
-    expect(captured.some((k) => k.key === "vessel.state.altitudeAsl")).toBe(
+    expect(captured.some((k) => k.key === "vessel.flight.altitudeAsl")).toBe(
       true,
     );
   });

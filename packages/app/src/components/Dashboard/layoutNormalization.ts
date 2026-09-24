@@ -1,5 +1,6 @@
 import { getComponent } from "@ksp-gonogo/core";
 import type { Layouts } from "react-grid-layout";
+import { migrateValueKey } from "../../telemetry/renamedValueKeys";
 import type { DashboardItem } from "./index";
 
 export const COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6 };
@@ -34,18 +35,65 @@ export function migrateComponentId(id: string): string {
 }
 
 /**
- * Apply id renames to a persisted item list. Returns the same array reference
- * when nothing changed so callers can cheaply skip re-renders.
+ * Apply id and value-key renames to a persisted item list. Returns the same
+ * array reference when nothing changed so callers can cheaply skip re-renders.
  */
 export function migrateDashboardItems(items: DashboardItem[]): DashboardItem[] {
   let changed = false;
   const next = items.map((it) => {
-    const migrated = migrateComponentId(it.componentId);
-    if (migrated === it.componentId) return it;
+    const componentId = migrateComponentId(it.componentId);
+    const config = migratePlottedKeys(it.config);
+    if (componentId === it.componentId && config === it.config) return it;
     changed = true;
-    return { ...it, componentId: migrated };
+    return { ...it, componentId, config };
   });
   return changed ? next : items;
+}
+
+/** A plain object, so a series entry's fields can be read without a cast. */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Move a saved plot's axes onto the keys the picker still offers.
+ *
+ * The two places a `Graph` instance stores one: `xKey`, and the `key` of each
+ * entry in `series`. Reached structurally rather than by walking the whole
+ * config, because a value key and an arbitrary string that happens to look like
+ * one are not the same thing, and rewriting the second would corrupt a config
+ * this knows nothing about.
+ *
+ * Same reference back when nothing moved, so the item is not rebuilt.
+ */
+function migratePlottedKeys(
+  config: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!config) return config;
+  let changed = false;
+  const next = { ...config };
+
+  if (typeof config.xKey === "string") {
+    const migrated = migrateValueKey(config.xKey);
+    if (migrated !== config.xKey) {
+      next.xKey = migrated;
+      changed = true;
+    }
+  }
+
+  if (Array.isArray(config.series)) {
+    const series = config.series.map((entry: unknown) => {
+      if (!isRecord(entry)) return entry;
+      if (typeof entry.key !== "string") return entry;
+      const migrated = migrateValueKey(entry.key);
+      if (migrated === entry.key) return entry;
+      changed = true;
+      return { ...entry, key: migrated };
+    });
+    if (changed) next.series = series;
+  }
+
+  return changed ? next : config;
 }
 
 /**

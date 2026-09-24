@@ -4,6 +4,7 @@ import {
   defineTopicManifest,
   registerComponent,
   useActionInput,
+  useOrbitSolve,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -14,7 +15,11 @@ import {
   useTelemetryStoreOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
+import {
+  apsidesExist,
+  type ControlFrame,
+  type ReckoningDecline,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
@@ -33,20 +38,18 @@ import { useStreamBody } from "../shared/useStreamBody";
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.state", "system.bodies"],
   /*
-   * The diagram is drawn from apsis RADII, never the altitudes. Body geometry
-   * comes off `system.bodies`, which is why that channel is carried: the pole
-   * marker's own orientation still uses the static table, for the texture
-   * correction no wire field replaces. Naming the fields drawn, rather than
-   * the whole of `vessel.state` this mounts on, is what keeps their alarms off
-   * a widget that does not draw them.
+   * The diagram is drawn from apsis RADII, never the altitudes, and those are
+   * solved from the elements named here rather than being a field of anything.
+   * Body geometry comes off `system.bodies`, which is why that channel is
+   * carried: the pole marker's own orientation still uses the static table, for
+   * the texture correction no wire field replaces. Naming the fields drawn,
+   * rather than the whole of `vessel.state` this mounts on, is what keeps their
+   * alarms off a widget that does not draw them.
    */
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
     "vessel.orbit.argPe",
-    "vessel.state.apoapsisRadius",
-    "vessel.state.periapsisRadius",
-    "vessel.state.trueAnomaly",
     "vessel.state.parentBodyName",
   ],
 });
@@ -205,9 +208,8 @@ function OrbitViewComponent({
   //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
   //  - `vessel.state` (client-side derived channel) carries
   //    `trueAnomaly` (propagated at view-UT), `parentBodyName` (identity
-  //    index → `system.bodies` name), `basis` ("propagated" | "measured"),
-  //    and the apsis RADII. It isn't a wire `TopicId`, so it reads through
-  //    the provider-optional `useStreamOptional`.
+  //    index → `system.bodies` name) and the apsis RADII. It isn't a wire
+  //    `TopicId`, so it reads through the provider-optional `useStreamOptional`.
   //  - The apsis radii are read from `vessel.state.apoapsisRadius`/
   //    `periapsisRadius` rather than computed here (`sma·(1±ecc)`), that
   //    formula is meaningless for apoapsis on a hyperbolic orbit (sma<0
@@ -249,15 +251,22 @@ function OrbitViewComponent({
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe ?? undefined;
-  const trueAnomaly = vesselState?.trueAnomaly ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
-  const basis = vesselState?.basis;
-  // `null` on a hyperbolic orbit (no apoapsis exists) or in the "measured"
-  // basis (both apsides): see `VesselState.apoapsisRadius`'s doc comment.
-  const apoapsisR = vesselState?.apoapsisRadius;
-  // `null` only in the "measured" basis: always real whenever there's a
-  // resolvable orbit, hyperbolic or not.
-  const periapsisR = vesselState?.periapsisRadius;
+  const declined =
+    orbitReading.reckoning.status === "declined"
+      ? orbitReading.reckoning.declined
+      : undefined;
+  /*
+   * Solved from the elements above, so the whole group is absent together
+   * wherever a conic through them would be wrong. `apoapsisRadius` is also
+   * `null` on a hyperbolic orbit, which has no apoapsis; `periapsisRadius` is
+   * real on any orbit there is a solve for at all, which is what makes it the
+   * `hasOrbit` signal below.
+   */
+  const solve = useOrbitSolve();
+  const trueAnomaly = solve?.trueAnomaly ?? undefined;
+  const apoapsisR = solve?.apoapsisRadius;
+  const periapsisR = solve?.periapsisRadius;
 
   // What the trajectory IS, asked of the propagation seam rather than decided
   // here. The widget holds `sma` and `ecc` and could draw an ellipse from them
@@ -491,16 +500,14 @@ function OrbitViewComponent({
           centreBodyIndex={orbit?.referenceBodyIndex}
         />
       )}
-      {!hasOrbit ? (
-        <NoData>
-          {/* "measured" (Loaded/packed) basis: there IS an orbit, just no
-              osculating elements to derive a diagram from, distinct from
-              the genuine no-data case (basis undefined, nothing has
-              arrived yet). */}
-          {basis === "measured"
-            ? "No osculating orbit (packed)"
-            : "No orbital data"}
-        </NoData>
+      {/* A REFUSAL outranks the no-data sentence, and only when there is one.
+          When the provider declines to authorise a curve the solve behind
+          `hasOrbit` goes with it, so without this the panel would answer "no
+          orbital data" to a craft whose elements arrived perfectly well and
+          whose path nobody would vouch for: the wrong sentence, with the
+          wrong remedy, in place of the one that says what happened. */}
+      {!hasOrbit && withheld === null ? (
+        <NoData>{noOrbitSentence(declined)}</NoData>
       ) : !showDiagram ? (
         // Tiny mode, and the refusal does NOT displace the pill here. The pill
         // reports the craft's state at this instant, which is a fact the
@@ -545,6 +552,35 @@ registerComponent<OrbitViewConfig>({
 });
 
 export { OrbitViewComponent };
+
+/**
+ * What the empty state says, from WHY the conic withdrew.
+ *
+ * Every reason is named, so a new one is a compile error here rather than a
+ * silent default: the defect this closes is a widget inferring a specific cause
+ * from a general code, and an exhaustive switch is what makes a new cause a
+ * decision instead of a guess.
+ */
+function noOrbitSentence(declined: ReckoningDecline | undefined): string {
+  if (declined === undefined) return "No orbital data";
+  const reason = declined.reason;
+  switch (reason) {
+    case "under-physics":
+      // The orbit exists; the craft is loaded, so its elements are osculating
+      // and there is no coast to draw.
+      return "No osculating orbit (packed)";
+    case "input-absent":
+    case "beyond-horizon":
+    case "model-inapplicable":
+    case "contested":
+    case "insufficient-history":
+      return "No orbital data";
+    default: {
+      const unnamed: never = reason;
+      return unnamed;
+    }
+  }
+}
 
 const NoData = styled.div`
   font-size: var(--font-size-xs);

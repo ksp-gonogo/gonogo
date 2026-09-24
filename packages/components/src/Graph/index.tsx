@@ -55,6 +55,7 @@ import { alignXY } from "./align";
 import { GraphSeries } from "./GraphSeries";
 import { paletteColor } from "./palette";
 import type {
+  ComputedSeries,
   GraphConfig,
   GraphSeriesConfig,
   GraphThresholdConfig,
@@ -270,6 +271,14 @@ interface GraphViewProps {
    */
   layers?: readonly PlotLayer[];
   /**
+   * Series the WIDGET computed rather than ones a key names on the wire, each
+   * with the metadata a schema entry would have given it. A series whose `key`
+   * appears here is drawn from `data` and never fetched, which is how a
+   * quantity the wire does not carry reaches the chart without an address on a
+   * derived channel standing in for it. See `useComputedSeries`.
+   */
+  computedSeries?: readonly ComputedSeries[];
+  /**
    * Drop the panel chrome and render the framed chart alone, for a plot
    * composed inside another widget's own layout. The title and header actions
    * are then that widget's business rather than this one's.
@@ -294,6 +303,7 @@ export function GraphView({
   emptyState = "Configure series to begin graphing.",
   headerActions,
   layers: ownLayers,
+  computedSeries,
   chrome = "panel",
   ariaLabel,
   w,
@@ -317,10 +327,11 @@ export function GraphView({
   // (Graph re-renders on each child's onData callback ≈ 4 Hz) was
   // ~600 hash inserts/sec for no reason. Memo against the schema array
   // identity (stable thanks to useDataSchema's own memo).
-  const metaMap = useMemo(
-    () => new Map(schema.map((k) => [k.key, k])),
-    [schema],
-  );
+  const metaMap = useMemo(() => {
+    const map = new Map(schema.map((k) => [k.key, k]));
+    for (const c of computedSeries ?? []) map.set(c.meta.key, c.meta);
+    return map;
+  }, [schema, computedSeries]);
   const xMeta = xIsTime || xPinned ? null : (metaMap.get(xKey) ?? null);
 
   /**
@@ -419,9 +430,19 @@ export function GraphView({
   // Contains Y-series data keyed by their data-key. When xKey is a data key
   // (not time), xData is fetched in parallel and held separately so we can
   // re-pair samples at render time.
-  const [seriesData, setSeriesData] = useState<
+  const [fetchedData, setSeriesData] = useState<
     Map<string, SeriesRange<number>>
   >(new Map());
+  const seriesData = useMemo(() => {
+    if (!computedSeries?.length) return fetchedData;
+    const merged = new Map(fetchedData);
+    for (const c of computedSeries) merged.set(c.meta.key, c.data);
+    return merged;
+  }, [fetchedData, computedSeries]);
+  const computedKeys = useMemo(
+    () => new Set((computedSeries ?? []).map((c) => c.meta.key)),
+    [computedSeries],
+  );
   const [xData, setXData] = useState<SeriesRange<number>>({ t: [], v: [] });
 
   // Clear stale X buffer when the X key changes; otherwise the first frame
@@ -643,12 +664,14 @@ export function GraphView({
             </div>
             {/* Reuse the standard fetcher so live samples and queryRange backfill
                 stay consistent with the chart variant. */}
-            <GraphSeries
-              key={cfg.id}
-              dataKey={cfg.key}
-              windowSec={windowSec}
-              onData={handleData}
-            />
+            {!computedKeys.has(cfg.key) && (
+              <GraphSeries
+                key={cfg.id}
+                dataKey={cfg.key}
+                windowSec={windowSec}
+                onData={handleData}
+              />
+            )}
           </Section>
         }
       />
@@ -693,14 +716,16 @@ export function GraphView({
         </div>
       </FramedDisplay>
       {/* Invisible data-fetcher components, one per series + one for X when non-time */}
-      {series.map((cfg) => (
-        <GraphSeries
-          key={cfg.id}
-          dataKey={cfg.key}
-          windowSec={windowSec}
-          onData={handleData}
-        />
-      ))}
+      {series
+        .filter((cfg) => !computedKeys.has(cfg.key))
+        .map((cfg) => (
+          <GraphSeries
+            key={cfg.id}
+            dataKey={cfg.key}
+            windowSec={windowSec}
+            onData={handleData}
+          />
+        ))}
       {extraFetchKeys.map((k) => (
         <GraphSeries
           key={`extra-${k}`}
@@ -1241,6 +1266,7 @@ registerComponent<GraphConfig>({
 });
 
 export type {
+  ComputedSeries,
   GraphConfig,
   GraphSeriesConfig,
   GraphThresholdConfig,

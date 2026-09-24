@@ -1,53 +1,99 @@
 {
   "_meta": {
     "scenario": "standard-launch-ok",
-    "notes": "Standard rocket at lift-off, TWR 1.82, well into the green zone. Sparkline shows mass-burn climb from 1.32 \u2192 1.82 across the last minute as the engine burns through propellant."
+    "notes": "Standard rocket at lift-off, TWR 1.82, well into the green zone. Sparkline shows mass-burn climb from 1.32 → 1.82 across the last minute as the engine burns through propellant. Seeded as the stream's own thrust held constant and the mass falling, so thrust/(mass*g) climbs through the same TWR values."
   },
   "_series": {
-    "vessel.state.twr": [
+    "vessel.propulsion.currentThrust": [
       {
         "t": -60000,
-        "v": 1.32
+        "v": 178.48102999999998
       },
       {
         "t": -54000,
-        "v": 1.38
+        "v": 178.48102999999998
       },
       {
         "t": -48000,
-        "v": 1.43
+        "v": 178.48102999999998
       },
       {
         "t": -42000,
-        "v": 1.49
+        "v": 178.48102999999998
       },
       {
         "t": -36000,
-        "v": 1.55
+        "v": 178.48102999999998
       },
       {
         "t": -30000,
-        "v": 1.6
+        "v": 178.48102999999998
       },
       {
         "t": -24000,
-        "v": 1.66
+        "v": 178.48102999999998
       },
       {
         "t": -18000,
-        "v": 1.71
+        "v": 178.48102999999998
       },
       {
         "t": -12000,
-        "v": 1.77
+        "v": 178.48102999999998
       },
       {
         "t": -6000,
-        "v": 1.8
+        "v": 178.48102999999998
       },
       {
         "t": 0,
-        "v": 1.82
+        "v": 178.48102999999998
+      }
+    ],
+    "vessel.propulsion.totalMass": [
+      {
+        "t": -60000,
+        "v": 13.787878787878787
+      },
+      {
+        "t": -54000,
+        "v": 13.18840579710145
+      },
+      {
+        "t": -48000,
+        "v": 12.727272727272727
+      },
+      {
+        "t": -42000,
+        "v": 12.21476510067114
+      },
+      {
+        "t": -36000,
+        "v": 11.741935483870966
+      },
+      {
+        "t": -30000,
+        "v": 11.374999999999998
+      },
+      {
+        "t": -24000,
+        "v": 10.963855421686747
+      },
+      {
+        "t": -18000,
+        "v": 10.643274853801168
+      },
+      {
+        "t": -12000,
+        "v": 10.282485875706213
+      },
+      {
+        "t": -6000,
+        "v": 10.11111111111111
+      },
+      {
+        "t": 0,
+        "v": 10.0
       }
     ]
   },

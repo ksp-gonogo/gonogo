@@ -1,8 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent } from "@ksp-gonogo/core";
-import { useDataSeries } from "@ksp-gonogo/data";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { STANDARD_GRAVITY, value } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
@@ -15,10 +13,21 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { magnitudeOf } from "../shared/magnitude";
+import { useComputedSeries } from "../shared/useComputedSeries";
 
 type TwrConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 60;
+
+/**
+ * Thrust over weight at standard gravity: kilonewtons over tonnes is newtons
+ * over kilograms, so the ratio needs no conversion. `null` without a positive
+ * mass.
+ */
+function twrOf(thrust: number, mass: number): number | null {
+  return mass > 0 ? thrust / (mass * STANDARD_GRAVITY) : null;
+}
 
 // Dial range in TWR units. Most rockets sit between 1.5 and 2.5 at lift-off;
 // 3 is a comfortable upper bound. Anything beyond reads as pinned-max, fine
@@ -58,17 +67,29 @@ function toneFor(twr: number): Tone {
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
-  // `dv.currentTWR` is MAPPED (`map-topic.ts`) to the derived
-  // `vessel.state.twr` field: TWR = currentThrust/(totalMass·g), computed
-  // client-side off `vessel.propulsion`. Once that channel is carried the
-  // headline value reads straight off the stream; no legacy read remains
-  // for this widget's live value.
-  const twr = useStream<VesselState>("vessel.state")?.twr ?? undefined;
-  // The sparkline history reads the same derived field the headline does.
-  // A derived topic has a live value but no buffered history of its own, so
-  // `useDataSeries` replays the channel's `derive()` across the window off the
-  // buffered history of its RAW inputs; see that hook's doc comment.
-  const series = useDataSeries("data", "vessel.state.twr", SPARK_WINDOW_SEC);
+  // The wire carries thrust and mass, not their ratio, so the headline is the
+  // same arithmetic as the sparkline on the latest reading. A stale reading
+  // still draws: thrust and mass hold until an event changes them.
+  const propulsionReading = useTelemetry("vessel.propulsion");
+  const propulsion =
+    propulsionReading.state === "observed" ||
+    propulsionReading.state === "stale"
+      ? propulsionReading.value
+      : undefined;
+  const thrust = magnitudeOf(propulsion?.currentThrust);
+  const mass = magnitudeOf(propulsion?.totalMass);
+  const twr =
+    thrust === null || mass === null
+      ? undefined
+      : (twrOf(thrust, mass) ?? undefined);
+  // The sparkline history is computed here off `vessel.propulsion`'s own
+  // history: the wire carries thrust and mass, not their ratio.
+  const series = useComputedSeries(
+    "vessel.propulsion.currentThrust",
+    "vessel.propulsion.totalMass",
+    SPARK_WINDOW_SEC,
+    twrOf,
+  );
   const sparkValues = series.v as number[];
 
   // Three layouts driven by widget size:
@@ -256,7 +277,10 @@ registerComponent<TwrConfig>({
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 2, h: 2 },
   component: TwrComponent,
-  dataRequirements: ["vessel.state.twr"],
+  dataRequirements: [
+    "vessel.propulsion.currentThrust",
+    "vessel.propulsion.totalMass",
+  ],
   defaultConfig: {},
   actions: [],
   pushable: true,

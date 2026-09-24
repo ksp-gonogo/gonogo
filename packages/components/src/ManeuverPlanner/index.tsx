@@ -3,7 +3,7 @@ import {
   type ComponentProps,
   type CurrentOrbit,
   registerComponent,
-  useOrbitElements,
+  useOrbitSolve,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
@@ -37,6 +37,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
+import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { BurnConformanceRow } from "./BurnConformanceRow";
@@ -234,25 +235,38 @@ function ManeuverPlannerComponent({
   const currentTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
   const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
-  const {
-    apoapsisRadius: ApR,
-    periapsisRadius: PeR,
-    timeToApoapsis: timeToAp,
-    timeToPeriapsis: timeToPe,
-    status: apsidesStatus,
-  } = useOrbitElements();
+  /*
+   * The craft's own orbit solved for the view instant, the same call the target
+   * orbit goes through below. It answers nothing at all wherever a conic
+   * through these elements would be wrong, which is what withholds the plan.
+   */
+  const solve = useOrbitSolve();
+  const ApR = solve?.apoapsisRadius ?? undefined;
+  const PeR = solve?.periapsisRadius ?? undefined;
+  const timeToAp = solve?.timeToAp ?? undefined;
+  const timeToPe = solve?.timeToPe ?? undefined;
   const argPe = magnitudeOf(orbit?.argPe) ?? undefined;
-  const trueAnomaly =
-    useStream<VesselState>("vessel.state")?.trueAnomaly ?? undefined;
+  const trueAnomaly = solve?.trueAnomaly ?? undefined;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   // `.magnitude` at the read: this widget threads the view time through geometry and
   // solver code typed on plain numbers, and the instant type earns nothing there.
   const currentUT = useViewUt()?.magnitude;
+  /*
+   * Off `vessel.flight`'s own field reading. It feeds `computeMu`, which only
+   * wants a number that is true of the craft NOW, so the modelled speed is
+   * taken where a model is on offer and the observation otherwise.
+   */
+  const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   const orbitalSpeed =
-    useStream<VesselState>("vessel.state")?.orbitalSpeed ?? undefined;
-  const radius =
-    useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
+    magnitudeOf(
+      orbitalSpeedReading.reckoning.status === "available"
+        ? orbitalSpeedReading.reckoning.modelled
+        : orbitalSpeedReading.state === "observed"
+          ? orbitalSpeedReading.value
+          : undefined,
+    ) ?? undefined;
+  const radius = solve?.orbitalRadius ?? undefined;
   const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const parentBodyRadius =
@@ -285,7 +299,7 @@ function ManeuverPlannerComponent({
   const targetPeriod = targetSolved?.period ?? undefined;
   const lan = orbit?.lan;
 
-  const period = useStream<VesselState>("vessel.state")?.period ?? undefined;
+  const period = solve?.period ?? undefined;
 
   const nodes = useManeuverNodes();
   /**
@@ -643,24 +657,25 @@ function ManeuverPlannerComponent({
   // or NaN mid-scene-load, so this is a positive check rather than a
   // `!== undefined` one.
   /*
-   * The plan is WITHHELD when the channel its inputs ride stops arriving.
+   * The plan is WITHHELD wherever the four apsis figures are absent, and that
+   * is one condition rather than several: they are solved together off
+   * `vessel.orbit`, and the solve refuses as a whole.
    *
-   * The four apsis figures come off derived `vessel.state`, which carries no
-   * `Reading`, so the channel's own currency is the only thing that can tell a
-   * current figure from one that has stopped arriving; without it the solver
-   * takes them either way.
+   * It is withheld on a STALE reading too, which is stricter than this widget's
+   * neighbours are and deliberately so. Elsewhere a conic that moves the phase
+   * makes a stale orbit current enough to draw. A burn is the one thing the
+   * conic states it cannot bound: a craft out of contact is exactly one whose
+   * burns nobody saw, so elements carried across the gap may be describing an
+   * orbit the craft has already left. Reading them is fine; committing a burn
+   * against them is not, and `waiting` is honest and recoverable.
    *
-   * A plan built on inputs that stopped arriving is WRONG rather than stale,
-   * and it does not look wrong: it renders as a confident burn for a position
-   * the craft has left. `waiting` is honest and recoverable.
-   *
-   * Gating governs this ADDITIONAL reasoning only: it must not reach the
+   * The refusal governs this ADDITIONAL reasoning only: it must not reach the
    * diagram's own reckoning of basic motion, and it does not.
    * `currentTrajectory` is `useOrbitTrajectory(orbit)`, fed from the
    * `vessel.orbit` READING rather than from any of these.
    */
   const planReady =
-    apsidesStatus === "live" &&
+    orbitReading.state === "observed" &&
     isFiniteNumber(sma) &&
     isFiniteNumber(ecc) &&
     isFiniteNumber(ApR) &&
@@ -859,6 +874,20 @@ function ManeuverPlannerComponent({
   }
 
   function renderWaitingPanel() {
+    /*
+     * A REFUSAL is a different sentence with a different remedy. The elements
+     * arrived and nobody would vouch for a conic through them, so there is no
+     * orbit to plan against and "awaiting telemetry" would send an operator
+     * looking at their link when the answer is about their propagation
+     * provider. Same distinction OrbitView draws between its two empty states.
+     */
+    if (currentTrajectory !== null && currentTrajectory.shape === "withheld") {
+      return (
+        <WaitingPanel>
+          <TrajectoryWithheldNote withheld={currentTrajectory} />
+        </WaitingPanel>
+      );
+    }
     // An ordinary empty state rather than a per-field checklist of the wire
     // keys being waited on: no other widget exposes its plumbing that way, and
     // a named key is a thing an operator can be sent looking for and cannot
@@ -1017,9 +1046,13 @@ registerComponent<ManeuverPlannerConfig>({
   component: ManeuverPlannerComponent,
   // A body `sections` slot for alternate-transfer-strategy comparisons, empty until an augment binds.
   augmentSlots: ["maneuver-planner.sections"],
-  // The target's quantities are SOLVED here, from the elements on
-  // `vessel.target` at the frame's view time (`solveOrbit`), so there is no
-  // derived `vessel.state.target*` field to declare any more.
+  // The craft's own apsides, countdowns, true anomaly, radius and period are
+  // SOLVED here too, from the `vessel.orbit` elements already named below at
+  // the frame's view time, so none of them is a field to declare either.
+  //
+  // The target's quantities are SOLVED the same way, from the elements on
+  // `vessel.target`, so there is no derived `vessel.state.target*` field to
+  // declare any more.
   //
   // The raw target-orbit field subtopics are deliberately not named. Nothing
   // targeted is the common case, and the wire tombstones the whole
@@ -1034,13 +1067,7 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.orbit.inc",
     "vessel.orbit.lan",
     "vessel.orbit.argPe",
-    "vessel.state.apoapsisRadius",
-    "vessel.state.periapsisRadius",
-    "vessel.state.timeToAp",
-    "vessel.state.timeToPe",
-    "vessel.state.trueAnomaly",
-    "vessel.state.orbitalSpeed",
-    "vessel.state.orbitalRadius",
+    "vessel.flight.orbitalSpeed",
     "vessel.state.referenceBodyName",
     "vessel.state.parentBodyName",
     "vessel.maneuver.nodes",
