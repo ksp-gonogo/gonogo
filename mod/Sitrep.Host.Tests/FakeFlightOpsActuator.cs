@@ -69,5 +69,24 @@ namespace Sitrep.Host.Tests
             LastLaunchCrew = crew;
             return LaunchResult;
         }
+
+        public int ReachOfCallCount;
+        public string? LastReachVantage;
+
+        /// <summary>Defaults to a centre in the pad's own system.</summary>
+        public LaunchReach Reach = new LaunchReach
+        {
+            CentreName = "Kerbal Space Center",
+            SiteName = "Launch Pad",
+            CentreSystem = new SystemRoot(1, "Kerbin", isStar: false),
+            SiteSystem = new SystemRoot(1, "Kerbin", isStar: false),
+        };
+
+        public LaunchReach ReachOf(string vantage, string site)
+        {
+            ReachOfCallCount++;
+            LastReachVantage = vantage;
+            return Reach;
+        }
     }
 }

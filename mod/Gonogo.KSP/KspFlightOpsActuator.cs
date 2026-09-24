@@ -455,6 +455,82 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Both ends of a launch and the planetary system each sits in: the
+        /// centre's body as its source reported it (a crewed vessel's is its
+        /// current sphere of influence, landed or not), and the site's host body.
+        ///
+        /// <para>The KSC pad and runway are <c>SpaceCenterFacility</c> entries and
+        /// every other site is a <c>LaunchSite</c>, so both are asked, in the order
+        /// <c>PSystemSetup.GetLaunchSiteDisplayName</c> asks them.</para>
+        /// </summary>
+        public LaunchReach ReachOf(string vantage, string site)
+        {
+            var reach = new LaunchReach();
+
+            var registry = CommsCoreUplink.CommandCentres;
+            if (registry != null)
+            {
+                foreach (var centre in registry.EnumerateActive())
+                {
+                    if (centre.Id == vantage)
+                    {
+                        reach.CentreName = centre.DisplayName;
+                        reach.CentreSystem = SystemOf(BodyAt(centre.BodyIndex));
+                        break;
+                    }
+                }
+            }
+
+            var setup = PSystemSetup.Instance;
+            if (setup == null || string.IsNullOrEmpty(site))
+            {
+                return reach;
+            }
+
+            CelestialBody? body;
+            var facility = setup.GetSpaceCenterFacility(site);
+            if (facility != null)
+            {
+                body = facility.hostBody;
+            }
+            else
+            {
+                var launchSite = setup.GetLaunchSite(site);
+                if (launchSite == null)
+                {
+                    return reach;
+                }
+                body = launchSite.Body;
+            }
+            reach.SiteName = setup.GetLaunchSiteDisplayName(site) ?? site;
+            reach.SiteSystem = SystemOf(body);
+            return reach;
+        }
+
+        private static CelestialBody? BodyAt(int? index)
+        {
+            var bodies = FlightGlobals.Bodies;
+            return index is int i && bodies != null && i >= 0 && i < bodies.Count ? bodies[i] : null;
+        }
+
+        private static SystemRoot? SystemOf(CelestialBody? body)
+        {
+            if (body == null)
+            {
+                return null;
+            }
+
+            var root = LaunchAuthority.SystemRootOf(body, b => b.referenceBody, b => b.isStar);
+            if (root == null)
+            {
+                return null;
+            }
+
+            var index = FlightGlobals.Bodies.IndexOf(root);
+            return index >= 0 ? new SystemRoot(index, root.bodyName, root.isStar) : null;
+        }
+
+        /// <summary>
         /// Seats <paramref name="crewNames"/> into the craft's free seats, in
         /// order: probing each part manifest's seats and skipping occupied
         /// ones. Kerbals that aren't in the roster or aren't

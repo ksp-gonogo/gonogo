@@ -9939,19 +9939,22 @@ components:
             nothing to tell the operator about their vehicle here, because nothing was
             learned about it; offering the command again is the only honest next move.
         - const: 24
-          title: NotAtSite
+          title: OutOfReach
           description: |-
-            The vantage the command was sent from is not at the place the command acts
-            on: a launch ordered from further from its launch site than a launch may be
-            commanded, or from a vantage that is no place at all.
+            The command acts at a PLACE, and the command centre it was sent from has no
+            authority there: a launch from a pad in another planet's system.
 
-            Not a delay. A launch is instant for every vantage, so distance cannot be
-            expressed by holding it; it is expressed by refusing it. Moving the order to
-            a centre beside the site is the operator's next move, and nothing about the
-            craft or the site stands in the way.
+            Authority, never delay. The command itself is still instant; what this
+            refuses is the sender, not the moment, so no amount of waiting makes it
+            succeed. Sending from a centre in the place's own system does.
 
-            `CommandResult.detail` names both ends by their display names and, when both
-            could be placed, the one-way light-time between them.
+            `CommandResult.detail` names the centre and the place, and the system each
+            is in, so an operator learns which seat to move to rather than seeing a
+            control that simply does nothing.
+
+            Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
+            carry the command. A centre may be perfectly linked to the place and still
+            have no authority over it.
     CommandRequest:
       type: object
       description: |-

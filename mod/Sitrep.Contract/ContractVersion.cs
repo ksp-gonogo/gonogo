@@ -1814,21 +1814,22 @@ namespace Sitrep.Contract
         /// light-time over frames that were arriving at a different one, and could not
         /// say how far its own centre was from the craft at all.</para>
         ///
-        /// <para><b>Major-17 line, Bumped 1 -&gt; 2: a launch is held to where it was
-        /// ordered from.</b> <see cref="CommandErrorCode"/> gains
-        /// <see cref="CommandErrorCode.NotAtSite"/>, appended to a wire enum that
+        /// <para><b>Major-17 line, Bumped 1 -&gt; 2: a launch is held to the centre it
+        /// was ordered from.</b> <see cref="CommandErrorCode"/> gains
+        /// <see cref="CommandErrorCode.OutOfReach"/> (code 24), appended to a wire enum that
         /// already declares <see cref="CommandErrorCode.Unknown"/> as the
         /// forward-compat fallback, so a consumer that has not heard of it reads an
         /// unrecognised refusal rather than the wrong one. Nothing removed, renamed or
         /// renumbered, so an Uplink built against 17.0 is unaffected and the frozen
         /// Major-17 floor is NOT re-frozen.</para>
         ///
-        /// <para>A launch is instant for every vantage, so the distance between the
-        /// vantage and the pad cannot be expressed as a delay, and without a refusal
-        /// any vantage could launch from any pad, including one on another world.
-        /// Reusing an existing arm would have told the operator the flight was not
-        /// clear or the craft was wrong, when what is wrong is where they are
-        /// standing.</para>
+        /// <para>A launch is instant for every vantage, so where the sender stands
+        /// cannot be expressed as a delay, and without a refusal any centre could
+        /// launch from any pad, including one on another world. The rule is the
+        /// planetary system rather than a distance: a centre anywhere in the pad's own
+        /// system may launch, and one outside it is refused. Reusing an existing arm
+        /// would have told the operator the flight was not clear or the craft was
+        /// wrong, when what is wrong is which centre sent it.</para>
         ///
         /// <para><b>Major-17 line, Bumped 2 -&gt; 3:</b> <see cref="WarpState.KeyframeFloorSec"/>, the
         /// real-time floor on periodic keyframes, so a client inferring staleness from

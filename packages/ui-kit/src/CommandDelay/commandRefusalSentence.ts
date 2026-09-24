@@ -118,7 +118,6 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   [CommandErrorCode.NoConnection]: "there is no usable link",
   [CommandErrorCode.NotUnlocked]: "it has not been unlocked yet",
   [CommandErrorCode.SiteOccupied]: "another vessel is on the launch site",
-  [CommandErrorCode.NotAtSite]: "it was sent from too far from the launch site",
   // Deliberately not "a limit has been reached": under a career overhaul the
   // vehicle is not over anything, it has simply not been built and rolled out
   // yet, and the two want opposite responses from an operator.
@@ -136,6 +135,8 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   // it", and it earns that by having been told so. Distinct from
   // `ModeUnavailable` above, which is missing a REASON for an answer it got.
   [CommandErrorCode.Unreadable]: "the game would not answer",
+  [CommandErrorCode.OutOfReach]:
+    "this command centre has no authority over that place",
 };
 
 /**
