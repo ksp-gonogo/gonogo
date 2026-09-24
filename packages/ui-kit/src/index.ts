@@ -590,7 +590,6 @@ export {
 export { Switch } from "./Switch";
 export type { PanelStatusDotProps } from "./status/PanelStatusDot";
 export {
-  createPanelStatusStore,
   type PanelStatusStore,
   PanelStatusStoreProvider,
   type StatusBreakdownEntry,
@@ -610,9 +609,6 @@ export { severityDotColor } from "./status/severityDotColor";
 export { useStatusBreakdown } from "./status/useStatusBreakdown";
 export { useStatusContribution } from "./status/useStatusContribution";
 export { useStatusSummary } from "./status/useStatusSummary";
-// ── Store factory (generic off-tree store + per-panel context wrapper) ────────
-export { createPanelStore, type PanelStore } from "./store/createPanelStore";
-export { createStore, type Store } from "./store/createStore";
 export {
   shouldExpandTabs,
   TABS_PANEL_MIN_WIDTH,

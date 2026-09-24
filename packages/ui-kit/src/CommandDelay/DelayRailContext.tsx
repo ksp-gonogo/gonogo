@@ -17,9 +17,8 @@ export interface CommandHandle extends CommandDelayHandle {
 }
 
 /**
- * A per-panel, off-tree registry of active command handles, the generic
- * `createStore` renamed to the rail's vocabulary (`getActiveHandles` is its
- * snapshot). `update` keeps a registered handle current in place, so
+ * A per-panel, off-tree registry of active command handles, whose snapshot is
+ * `getActiveHandles`. `update` keeps a registered handle current in place, so
  * `usePanelDelay` never has to deregister/re-register on a value change.
  *
  * HARD RULE from the design applies verbatim: the live handle data lives in the
