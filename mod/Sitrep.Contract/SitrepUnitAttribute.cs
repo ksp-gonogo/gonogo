@@ -20,9 +20,8 @@ namespace Sitrep.Contract
     /// which is exactly the set it can see.</para>
     ///
     /// <para>Spellings are the OPERATOR-FACING symbols already used by the
-    /// client's existing presentation code (<c>kg/m³</c> per
-    /// <c>packages/components/src/shared/formatDensity.ts</c>, <c>°</c>/<c>g</c>
-    /// per <c>packages/data/src/schema/legacyKeyMeta.ts</c>) rather than a new
+    /// client's existing presentation code (<c>kg/m³</c>, <c>°</c>, <c>g</c>)
+    /// rather than a new
     /// abstract identifier, so a formatter that has no special rule for a unit
     /// can fall back to appending the token verbatim and still be correct.</para>
     ///
