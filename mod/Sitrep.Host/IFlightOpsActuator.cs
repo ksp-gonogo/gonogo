@@ -65,5 +65,13 @@ namespace Sitrep.Host
         /// file is missing.
         /// </summary>
         CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew);
+
+        /// <summary>
+        /// Reads both ends of a launch: the active command centre
+        /// <paramref name="vantage"/> names, the launch site
+        /// <paramref name="site"/> names, and the planetary system each is in.
+        /// Reads only; <see cref="LaunchAuthority"/> decides.
+        /// </summary>
+        LaunchReach ReachOf(string vantage, string site);
     }
 }
