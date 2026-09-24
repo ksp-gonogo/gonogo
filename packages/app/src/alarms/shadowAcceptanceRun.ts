@@ -18,6 +18,7 @@ import { AlarmHostService } from "./AlarmHostService";
 import {
   classifyShadowRun,
   DELAY_FORMAT,
+  neverArmedByThisRun,
   type ShadowRunVerdict,
 } from "./shadowAcceptance";
 
@@ -435,6 +436,7 @@ export async function runShadowAcceptance(
               alarms: SHADOW_ACCEPTANCE_ALARMS.map((a) => a.name),
               alarmOf: (fire) => nameOf.get(fire.id) ?? fire.id,
             },
+      exclusions: [neverArmedByThisRun((id) => nameOf.has(id))],
     });
     return {
       verdict,
