@@ -282,6 +282,34 @@ export interface ReckonedSample<T> {
 export type ReckonedBound<T> = T extends Value<infer U> ? Value<U> : Value;
 
 /**
+ * What a topic's own model says happened across the part of a gap between two
+ * samples that nothing observed. See {@link TimelineStore.gapModel}.
+ *
+ * `carried: false` is a model that claimed the plotted path at the earlier
+ * sample and withdrew before the span ended, so nothing can say what the value
+ * did there. `carried: true` holds the model's answers at instants strictly
+ * inside the span, for a chart to hold its own chord against: this type says
+ * what the model claims, and only the chart knows whether a difference is one it
+ * can draw.
+ */
+export type GapModel =
+  | { readonly carried: false }
+  | {
+      readonly carried: true;
+      readonly basis: ReckoningBasis;
+      readonly t: readonly number[];
+      /** The model's answers at `t`, wrapped exactly as a reckoned tail's are. */
+      readonly v: readonly unknown[];
+    };
+
+/**
+ * How many instants inside one unobserved span the model is asked about. Enough
+ * to draw one full swing of an orbit smoothly, which is the most a single span
+ * can hide before the samples themselves start to alias it.
+ */
+const GAP_MODEL_SAMPLES = 24;
+
+/**
  * The most instants one reckoned tail may be sampled at.
  *
  * A RESOLUTION cap, never a horizon: exceeding it widens the stride so the tail
@@ -758,6 +786,15 @@ export class TimelineStore {
    * NOT the frame cache, which is keyed on a token that changes every ingest
    * tick: see `sampleReading` for why that distinction is load-bearing.
    */
+  /**
+   * One judgement per plotted topic per later sample of a gap, with everything
+   * it was judged from. Weak, so a sample that leaves the buffer takes its
+   * judgements with it.
+   */
+  private readonly gapModels = new WeakMap<
+    TimelinePoint<unknown>,
+    Map<string, { readonly key: string; readonly answer: GapModel | undefined }>
+  >();
   private readonly readings = new Map<
     string,
     {
@@ -1574,50 +1611,91 @@ export class TimelineStore {
   }
 
   /**
-   * Whether a line drawn between two consecutive samples of `topic` crosses a
-   * span that no observation covers and the topic's own model will not carry
-   * the earlier sample across.
+   * What `topic`'s own model says happened across the part of the gap between
+   * two consecutive samples that no observation covers, or `undefined` where
+   * nothing covers it and nothing claims to.
    *
    * ## Only the span the sampling missed is asked about
    *
    * `time.warp.observationQuantumUt` is how far apart the mod's samples of the
    * game were, read off the `time.warp` sample in force at the later point. A
    * gap wider than that is a quiet channel: the mod looked once a quantum and
-   * found nothing worth sending. So the unobserved span is the smaller of the
-   * gap and the quantum, which at 1x is one second and under high warp is one
-   * physics tick of thousands.
+   * found nothing worth sending. So the unobserved span is the LAST quantum of
+   * the gap, or the whole gap where it is shorter, which at 1x is one second
+   * and under high warp is one physics tick of thousands.
    *
-   * ## The model's own answer is the threshold
+   * ## The model is asked from the start of that span, as a held reading
    *
-   * The model is asked twice from the earlier sample, both times as a held
-   * reading: at the sample itself, then at the far end of the unobserved span.
-   * A model that makes no claim on the plotted path even at the sample (no
-   * reckoner, a field it copies rather than moves, a decline on the sample's
-   * own terms) says nothing about the span either, and the line is left
-   * alone. One that
-   * claims the path at the sample and withdraws before the span ends is the
-   * case this exists for: a conic on rails carries any gap it has not left the
-   * patch or entered air during, a first-order dead reckoning does not carry
-   * two thousand seconds.
+   * The earlier sample's record, re-stamped at the instant the span opens,
+   * because the mod confirmed it unchanged at every look until then: a quiet
+   * channel that moves at the end of forty seconds was last known one second
+   * before the move, not forty. At that instant first: a model that makes no
+   * claim on the plotted path there (no reckoner, a field it copies rather
+   * than moves, a decline on the record's own terms) says nothing about the
+   * span either, and the answer is `undefined`. Then at instants across the
+   * span and at its end: a model
+   * that withdraws at any of them did not carry it (`carried: false`), and one
+   * that answers at all of them hands back its path. A conic on rails carries
+   * any gap it does not leave the patch or enter air during; a first-order dead
+   * reckoning does not carry two thousand seconds.
    *
    * Declared inputs resolve at the current frame, as they do for the reckoned
-   * tail. Every input a shipped model declares is a fact that does not move
-   * between two samples of a warp.
+   * tail. They are part of the cache key, so an input that arrives later is
+   * asked again rather than latched.
    */
-  gapOutrunsModel(
+  gapModel(
     topic: string,
     before: TimelinePoint<unknown>,
     after: TimelinePoint<unknown>,
-  ): boolean {
+  ): GapModel | undefined {
     const gap = after.validAt - before.validAt;
-    if (!(gap > 0)) return false;
+    if (!(gap > 0)) return undefined;
     const warp = this.sampleRange<{
       observationQuantumUt?: Quantityish | null;
     }>("time.warp", Number.NEGATIVE_INFINITY, after.validAt)?.at(-1)?.payload;
     const quantum = magnitudeOr(warp?.observationQuantumUt, Number.NaN);
-    if (!(quantum > 0)) return false;
+    if (!(quantum > 0)) return undefined;
     const span = Math.min(gap, quantum);
 
+    const parsed = this.resolveRawFieldSubtopic(topic);
+    const rawTopic = parsed?.rawTopic ?? topic;
+    const token = this.currentToken;
+    if (!getReckoner(rawTopic)) return undefined;
+    const inputs = this.reckonerDepTopics(rawTopic)
+      .map(
+        (dep) => `${dep}@${this.sample<unknown>(dep, token)?.validAt ?? "-"}`,
+      )
+      .join(",");
+    const key = `${before.validAt}\0${span}\0${inputs}\0${this.clock.getEpoch()}`;
+    /*
+     * Keyed on the RECORD's point, not the one handed in: a field read's range
+     * is minted fresh on every call, so a judgement keyed on it would never be
+     * found again.
+     */
+    const record = parsed
+      ? this.sampleRange<unknown>(rawTopic, after.validAt, after.validAt)?.find(
+          (point) => point.validAt === after.validAt,
+        )
+      : after;
+    if (!record) return undefined;
+    let byTopic = this.gapModels.get(record);
+    if (!byTopic) {
+      byTopic = new Map();
+      this.gapModels.set(record, byTopic);
+    }
+    const cached = byTopic.get(topic);
+    if (cached?.key === key) return cached.answer;
+    const answer = this.computeGapModel(topic, before, after, span);
+    byTopic.set(topic, { key, answer });
+    return answer;
+  }
+
+  private computeGapModel(
+    topic: string,
+    before: TimelinePoint<unknown>,
+    after: TimelinePoint<unknown>,
+    span: number,
+  ): GapModel | undefined {
     const parsed = this.resolveRawFieldSubtopic(topic);
     const rawTopic = parsed?.rawTopic ?? topic;
     const fieldPath = parsed?.fieldPath ?? [];
@@ -1625,27 +1703,48 @@ export class TimelineStore {
       rawTopic,
       this.currentToken,
     );
-    if (!reckoner) return false;
-    const anchor = parsed
+    if (!reckoner) return undefined;
+    const held = parsed
       ? this.sampleRange<unknown>(
           rawTopic,
           before.validAt,
           before.validAt,
         )?.find((point) => point.validAt === before.validAt)
       : before;
-    if (!anchor || anchor.payload === null) return false;
+    if (!held || held.payload === null) return undefined;
+    const from = after.validAt - span;
+    const anchor: TimelinePoint<unknown> = { ...held, validAt: from };
     /*
      * A path the model MOVES. The root entry every model carries only says the
      * record is under its claim, and a field copied verbatim beside a moved one
      * is the last observation, which says nothing about the span.
      */
-    const claims = (at: number): boolean =>
-      reckoner(anchor, "held-stale", at)?.modelled.some((entry) =>
+    const answerAt = (at: number) => {
+      const model = reckoner(anchor, "held-stale", at);
+      const moved = model?.modelled.find((entry) =>
         fieldPath.length === 0
           ? entry.path === ""
           : entry.path !== "" && coversPath(entry.path, fieldPath),
-      ) === true;
-    return claims(before.validAt) && !claims(before.validAt + span);
+      );
+      if (!model || !moved) return undefined;
+      return {
+        basis: moved.basis,
+        value: walkFieldPath(model.reckon(at), fieldPath),
+      };
+    };
+    const opening = answerAt(from);
+    if (!opening) return undefined;
+    const t: number[] = [];
+    const v: unknown[] = [];
+    for (let k = 1; k <= GAP_MODEL_SAMPLES; k++) {
+      const at = from + (span * k) / (GAP_MODEL_SAMPLES + 1);
+      const answer = answerAt(at);
+      if (!answer) return { carried: false };
+      t.push(at);
+      v.push(answer.value);
+    }
+    if (!answerAt(after.validAt)) return { carried: false };
+    return { carried: true, basis: opening.basis, t, v };
   }
 
   /**
