@@ -17,6 +17,7 @@ namespace Sitrep.Host.Settings
     public sealed class InMemorySettingsStore : ISettingsBackingStore
     {
         private SettingsDocument _stored;
+        private bool _changedElsewhere;
 
         public InMemorySettingsStore()
             : this(new SettingsDocument())
@@ -36,7 +37,11 @@ namespace Sitrep.Host.Settings
         /// <summary>How many times a document has been written, which is how a test sees one write per SAVE press rather than one per row.</summary>
         public int Writes { get; private set; }
 
-        public SettingsDocument Read() => _stored.Copy();
+        public SettingsDocument Read()
+        {
+            _changedElsewhere = false;
+            return _stored.Copy();
+        }
 
         public WriteOutcome Write(SettingsDocument document)
         {
@@ -46,8 +51,29 @@ namespace Sitrep.Host.Settings
             }
 
             _stored = document?.Copy() ?? new SettingsDocument();
+            _changedElsewhere = false;
             Writes++;
             return WriteOutcome.Written(Path);
+        }
+
+        public SettingsDocument? ReadIfChangedElsewhere()
+        {
+            if (!_changedElsewhere || _stored.IsEmpty)
+            {
+                return null;
+            }
+
+            return Read();
+        }
+
+        /// <summary>
+        /// Replace what the medium holds as another process would, such as an
+        /// operator editing the file while the game runs.
+        /// </summary>
+        public void EditElsewhere(SettingsDocument document)
+        {
+            _stored = document?.Copy() ?? new SettingsDocument();
+            _changedElsewhere = true;
         }
     }
 }

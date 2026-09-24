@@ -31,7 +31,10 @@ namespace Sitrep.Host.Settings
     /// came off disk and went back unchanged keeps the operator's layout.</para>
     ///
     /// <para>A repeated name resolves to the FIRST occurrence, matching what
-    /// KSP's own parser does with a duplicate node.</para>
+    /// KSP's own parser does with a duplicate node, and every occurrence is
+    /// kept. A repeated value name is how the format spells a list, and a
+    /// repeated block is someone's data; a document that dropped either would
+    /// delete it from the file at the next save.</para>
     /// </summary>
     public sealed class SettingsBlock
     {
@@ -102,6 +105,18 @@ namespace Sitrep.Host.Settings
             }
 
             _values.Add(new SettingsEntry(name, text ?? string.Empty));
+        }
+
+        /// <summary>Add a row after any of the same name, for a reader carrying a file through as it stands.</summary>
+        public void AppendValue(string name, string text) =>
+            _values.Add(new SettingsEntry(name, text ?? string.Empty));
+
+        /// <summary>Add a block after any of the same name, for a reader carrying a file through as it stands.</summary>
+        public SettingsBlock AppendBlock(string name)
+        {
+            var added = new SettingsBlock(name);
+            _blocks.Add(added);
+            return added;
         }
 
         public SettingsBlock Copy()
@@ -175,6 +190,9 @@ namespace Sitrep.Host.Settings
         }
 
         public SettingsDocument Copy() => new SettingsDocument(Root.Copy());
+
+        /// <summary>Whether the document holds no row and no block at all, which is what an emptied or truncated file reads as.</summary>
+        public bool IsEmpty => Root.Values.Count == 0 && Root.Blocks.Count == 0;
 
         /// <summary>
         /// The first row or block anywhere in the document that KSP's format
