@@ -2,6 +2,7 @@ import type {
   BandKind,
   PlotLayer,
   ReckoningBasis,
+  SeriesBridge,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
 import { bandClaim } from "@ksp-gonogo/ui-kit";
@@ -12,6 +13,7 @@ import {
   buildSegmentedPath,
   buildStepPath,
   buildUncertaintyRegions,
+  chordDeparts,
   formatTimeLabel,
   makeLogScale,
   makeScale,
@@ -70,7 +72,20 @@ export interface ChartSeriesData {
   breaks?: number[];
   spans?: readonly SeriesStatusSpan[];
   reckoned?: readonly SeriesReckonedSpan[];
+  /**
+   * What the value's model says happened inside a gap nothing observed. Where
+   * the chord into `to` departs from it by more than a pixel the chord is not
+   * drawn: see {@link CONTRADICTED_CHORD} for what is drawn instead.
+   */
+  bridges?: readonly SeriesBridge[];
 }
+
+/**
+ * What a chord the value's own model contradicts becomes. `"break"` draws
+ * nothing across the span, the way a known hole is drawn. `"model"` draws the
+ * model's own path across it, muted and dashed like any other reckoned run.
+ */
+const CONTRADICTED_CHORD: "break" | "model" = "break";
 
 /**
  * Render type for a single series.
@@ -609,6 +624,15 @@ export function LineChart({
           };
         }
         const builder = type === "step" ? buildStepPath : buildPath;
+        const contradicted = (s.data.bridges ?? []).filter((bridge) =>
+          chordDeparts(s.data.x, s.data.y, bridge, scaleX, scaleY),
+        );
+        const breaks = [
+          ...new Set([
+            ...(s.data.breaks ?? []),
+            ...contradicted.map((bridge) => bridge.to),
+          ]),
+        ].sort((a, b) => a - b);
         return {
           id: s.id,
           kind: "stroked" as const,
@@ -626,10 +650,22 @@ export function LineChart({
             scaleX,
             scaleY,
             builder,
-            s.data.breaks,
+            breaks,
             s.data.spans,
             s.data.reckoned,
           ),
+          modelled:
+            CONTRADICTED_CHORD === "model"
+              ? contradicted.map((bridge) => ({
+                  basis: bridge.basis,
+                  d: buildPath(
+                    [s.data.x[bridge.to - 1], ...bridge.t, s.data.x[bridge.to]],
+                    [s.data.y[bridge.to - 1], ...bridge.v, s.data.y[bridge.to]],
+                    scaleX,
+                    scaleY,
+                  ),
+                }))
+              : [],
         };
       });
   }, [series, scaleX, scaleYPrimary, scaleYSecondary]);
@@ -665,9 +701,12 @@ export function LineChart({
   // can have either without the other, and the shaded region is a mark a
   // sighted reader sees separately from the dash.
   const reckonedClauses = series.flatMap((s) => {
-    const runs = s.data.reckoned;
-    if (!runs || runs.length === 0) return [];
-    const bases = new Set(runs.map((run) => run.basis));
+    const drawn = drawables.find((d) => d.id === s.id);
+    const modelled =
+      drawn?.kind === "stroked" ? drawn.modelled.map((path) => path.basis) : [];
+    const runs = s.data.reckoned ?? [];
+    if (runs.length === 0 && modelled.length === 0) return [];
+    const bases = new Set([...runs.map((run) => run.basis), ...modelled]);
     const clauses = [...bases].map(
       (basis) =>
         `${s.label}: part of this trace is reckoned, ${RECKONING_BASIS_PHRASE[basis]}, not measured`,
@@ -975,6 +1014,30 @@ export function LineChart({
                     ? "4 3"
                     : undefined
               }
+            />
+          )),
+        )}
+
+      {/* A model's path where the chord it contradicts was withheld. */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.modelled.map((path, i) => (
+            <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: a bridged gap has no identity beyond its position in the series
+              key={`${d.id}-modelled-${i}`}
+              d={path.d}
+              data-reckoning-basis={path.basis}
+              stroke={d.color}
+              strokeWidth={1.5}
+              fill="none"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeOpacity={RECKONED_STROKE_OPACITY}
+              strokeDasharray={RECKONED_DASHARRAY}
             />
           )),
         )}

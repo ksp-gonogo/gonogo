@@ -50,6 +50,24 @@ function Probe({ dataKey, windowSec }: { dataKey: string; windowSec: number }) {
   );
 }
 
+function BridgeProbe({
+  dataKey,
+  windowSec,
+}: {
+  dataKey: string;
+  windowSec: number;
+}) {
+  const range = useDataSeries("data", dataKey, windowSec);
+  return (
+    <div data-testid="bridges">
+      breaks:{(range.breaks ?? []).join(",")}|bridges:
+      {(range.bridges ?? [])
+        .map((b) => `${b.to}/${b.basis}/${b.v.length}`)
+        .join(",")}
+    </div>
+  );
+}
+
 function readProbe(): string {
   return screen.getByTestId("range").textContent ?? "";
 }
@@ -270,6 +288,49 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
     await waitFor(() =>
       expect(readProbe()).toBe(
         "t:0,2000,4000,6000|v:100,100,1100,2100|breaks:2,3",
+      ),
+    );
+  });
+});
+
+describe("useDataSeries shim: bridges", () => {
+  /**
+   * At 1x a moving distance is carried across every one-second gap, so each
+   * chord goes to the chart beside the model's own path for the chart to judge,
+   * rather than being broken or passed over.
+   */
+  it("hands the chart the model's path across each gap it carries", async () => {
+    const fixture = buildStreamFixture({
+      carriedChannels: ["vessel.dock", "time.warp"],
+      pinnedUt: 2,
+    });
+    await buildLegacySource("vessel.dock.distance");
+
+    render(
+      <fixture.Provider>
+        <BridgeProbe dataKey="vessel.dock.distance" windowSec={10} />
+      </fixture.Provider>,
+    );
+
+    const dock = (distance: number) => ({
+      relativePosition: { x: distance, y: 0, z: 0 },
+      relativeVelocity: { x: 0.5, y: 0, z: 0 },
+      distance,
+    });
+    act(() => {
+      fixture.transport.emit(
+        "time.warp",
+        { warpRate: 1, observationQuantumUt: 1 },
+        { validAt: 0 },
+      );
+      fixture.transport.emit("vessel.dock", dock(100), { validAt: 0 });
+      fixture.transport.emit("vessel.dock", dock(100.5), { validAt: 1 });
+      fixture.transport.emit("vessel.dock", dock(101), { validAt: 2 });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("bridges").textContent).toBe(
+        "breaks:|bridges:1/linear-dead-reckoning/24,2/linear-dead-reckoning/24",
       ),
     );
   });

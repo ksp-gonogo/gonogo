@@ -6,6 +6,7 @@ import {
   buildSegmentedPath,
   buildStepPath,
   buildUncertaintyRegions,
+  chordDeparts,
   makeLogScale,
   makeScale,
   niceLogTicks,
@@ -64,6 +65,16 @@ describe("buildPath", () => {
     );
   });
 
+  /**
+   * A run of one sample is still a reading. A bare `M` strokes nothing, so a
+   * series broken at every index would draw an empty chart over data it has.
+   */
+  it("draws a sample between two breaks as a dot", () => {
+    expect(buildPath([0, 1, 2], [0, 10, 20], id, id, [1, 2])).toBe(
+      "M0.00,0.00 L0.00,0.00 M1.00,10.00 L1.00,10.00 M2.00,20.00 L2.00,20.00",
+    );
+  });
+
   it("ignores an empty or absent break list", () => {
     const joined = "M0.00,0.00 L1.00,10.00";
     expect(buildPath([0, 1], [0, 10], id, id, [])).toBe(joined);
@@ -95,7 +106,13 @@ describe("buildStepPath", () => {
    */
   it("starts a new subpath at a break index instead of holding across it", () => {
     expect(buildStepPath([0, 1, 2], [0, 5, 2], id, id, [2])).toBe(
-      "M0.00,0.00 H1.00 V5.00 M2.00,2.00",
+      "M0.00,0.00 H1.00 V5.00 M2.00,2.00 L2.00,2.00",
+    );
+  });
+
+  it("draws a sample between two breaks as a dot", () => {
+    expect(buildStepPath([0, 1, 2], [0, 5, 2], id, id, [1, 2])).toBe(
+      "M0.00,0.00 L0.00,0.00 M1.00,5.00 L1.00,5.00 M2.00,2.00 L2.00,2.00",
     );
   });
 });
@@ -367,5 +384,32 @@ describe("buildUncertaintyRegions", () => {
         id,
       ),
     ).toEqual([]);
+  });
+});
+
+describe("chordDeparts", () => {
+  const bridge = (v: number[]) => ({
+    to: 1,
+    t: v.map((_, k) => (k + 1) / (v.length + 1)),
+    v,
+    basis: "kepler-propagation" as const,
+  });
+
+  it("finds a chord the model's own path swings away from", () => {
+    // Samples at 0 and 1, both at 0: the chord is flat and the model is not.
+    expect(chordDeparts([0, 1], [0, 0], bridge([5, 10, 5]), id, id)).toBe(true);
+  });
+
+  it("leaves a chord the model agrees with", () => {
+    expect(chordDeparts([0, 1], [0, 4], bridge([1, 2, 3]), id, id)).toBe(false);
+  });
+
+  /** In the chart's pixels: the same departure is invisible on a wider axis. */
+  it("forgives a departure smaller than a pixel", () => {
+    const squeezed = (v: number) => v / 10;
+    expect(chordDeparts([0, 1], [0, 0], bridge([5, 5, 5]), id, id)).toBe(true);
+    expect(chordDeparts([0, 1], [0, 0], bridge([5, 5, 5]), id, squeezed)).toBe(
+      false,
+    );
   });
 });
