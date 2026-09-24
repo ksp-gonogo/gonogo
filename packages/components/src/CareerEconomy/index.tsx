@@ -172,6 +172,21 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
             </p>
           ) : (
             <div style={RATES_STYLE}>
+              {/* The conclusion first, so it is never the row a small tile
+                  hides: the rates it sums follow it. */}
+              {net !== null && (
+                <div style={RATE_TOTAL_STYLE}>
+                  {/* Named rather than signed: a leading minus on a rate beside
+                    two positive ones is read as a formatting artefact about as
+                    often as it is read as a direction. */}
+                  <span style={RATE_LABEL_STYLE}>
+                    {net < 0 ? "Net drain" : "Net gain"}
+                  </span>
+                  <span style={RATE_VALUE_STYLE}>
+                    <Unit value={netSize} />
+                  </span>
+                </div>
+              )}
               {decay !== null && decay !== 0 && (
                 <div style={RATE_STYLE}>
                   <span style={RATE_LABEL_STYLE}>Reputation decay</span>
@@ -199,19 +214,6 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                   <span style={RATE_LABEL_STYLE}>Upkeep</span>
                   <span style={RATE_VALUE_STYLE}>
                     <Unit value={economyReading.upkeepPerDay} />
-                  </span>
-                </div>
-              )}
-              {net !== null && (
-                <div style={RATE_TOTAL_STYLE}>
-                  {/* Named rather than signed: a leading minus on a rate beside
-                    two positive ones is read as a formatting artefact about as
-                    often as it is read as a direction. */}
-                  <span style={RATE_LABEL_STYLE}>
-                    {net < 0 ? "Net drain" : "Net gain"}
-                  </span>
-                  <span style={RATE_VALUE_STYLE}>
-                    <Unit value={netSize} />
                   </span>
                 </div>
               )}
@@ -301,12 +303,12 @@ const RATE_STYLE = {
   fontVariantNumeric: "tabular-nums",
 } as const;
 
-/** The net line, ruled off from the rates it sums. */
+/** The net line, ruled off from the rates below it that it sums. */
 const RATE_TOTAL_STYLE = {
   ...RATE_STYLE,
-  borderTop: "1px solid currentColor",
-  paddingTop: "0.25rem",
-  marginTop: "0.15rem",
+  borderBottom: "1px solid currentColor",
+  paddingBottom: "0.25rem",
+  marginBottom: "0.15rem",
 } as const;
 
 const RATE_LABEL_STYLE = {
