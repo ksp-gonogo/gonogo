@@ -22,6 +22,15 @@ import styled from "styled-components";
  * room the visual gets, because only the caller knows whether the diagram or
  * the numbers beside it should win when space is short.
  *
+ * Every in-tree call sizes it with `flex: 1`, and that works only while its
+ * flex siblings stay short: a flex item's share of the row is whatever is
+ * left after siblings claim theirs, so a tall sibling collapses the frame
+ * instead of yielding to it. That collapse is a symptom of a control being a
+ * competing SIBLING in the same flex row. Once a control OVERLAYS the frame
+ * instead, drawn as a layer on top of it rather than a box beside it, there
+ * is no sibling to compete with, and no aspect-ratio or fixed-height
+ * workaround is needed.
+ *
  * The visual fills the frame to its rounded edge by default: a FramedDisplay
  * only ever wraps a visual, and a visual wants the whole box. Most SVGs carry
  * their own viewBox margin, so an inner gutter reads as a double border. The

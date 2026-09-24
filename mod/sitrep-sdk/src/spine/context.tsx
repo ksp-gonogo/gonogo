@@ -330,7 +330,7 @@ export function TelemetryProvider({
   // `activeTimelineStore`'s doc comment.
   useEffect(() => {
     activeViewClock = store.clock;
-    activeTimelineStore = store;
+    setActiveTimelineStore(store);
     // Same store, same lifecycle: point the Processor evaluator (Phase 3) at
     // this provider's frame source so useProcessor / contribution Processor
     // deps evaluate against it. Cleared on unmount so a torn-down provider
@@ -338,7 +338,7 @@ export function TelemetryProvider({
     setProcessorEvaluatorStore(store);
     return () => {
       if (activeViewClock === store.clock) activeViewClock = undefined;
-      if (activeTimelineStore === store) activeTimelineStore = undefined;
+      if (activeTimelineStore === store) setActiveTimelineStore(undefined);
       setProcessorEvaluatorStore(undefined);
     };
   }, [store]);
@@ -832,6 +832,56 @@ type ActiveTimelineStore = Pick<
 let activeTimelineStore: ActiveTimelineStore | undefined;
 
 /**
+ * Every `onActiveTimelineFrame` caller, held independently of whichever store
+ * is currently active so that a caller's subscription outlives a provider
+ * mount and does not depend on one existing when it subscribes.
+ */
+const timelineFrameListeners = new Set<() => void>();
+
+/**
+ * The single `subscribeFrame` registration standing in for all of
+ * `timelineFrameListeners`, and the store it is against, so that a store
+ * arriving, swapping or going away moves every listener with it.
+ */
+let timelineFrameBridge: (() => void) | undefined;
+let bridgedTimelineStore:
+  | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
+  | undefined;
+
+/**
+ * Points the bridge at the active store, or tears it down when there is no
+ * store or nothing listening. Called on both edges: a listener arriving or
+ * leaving, and the active store changing.
+ */
+function syncTimelineFrameBridge(): void {
+  const target =
+    timelineFrameListeners.size > 0 ? activeTimelineStore : undefined;
+  if (target === bridgedTimelineStore) return;
+  timelineFrameBridge?.();
+  timelineFrameBridge = undefined;
+  bridgedTimelineStore = target;
+  if (!target) return;
+  timelineFrameBridge = target.subscribeFrame(() => {
+    // Copied: a listener is free to unsubscribe itself from inside the
+    // callback, which would otherwise mutate the set mid-iteration.
+    for (const listener of [...timelineFrameListeners]) listener();
+  });
+}
+
+/**
+ * The one way `activeTimelineStore` changes, so that the frame bridge is
+ * never left pointing at a store that is no longer the active one.
+ */
+function setActiveTimelineStore(
+  store:
+    | Pick<TimelineStore, "sample" | "currentFrame" | "subscribeFrame">
+    | undefined,
+): void {
+  activeTimelineStore = store;
+  syncTimelineFrameBridge();
+}
+
+/**
  * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, tracked
  * outside React for the same non-hook callers `activeViewClock`/
  * `activeTimelineStore` serve: the plain-class equivalent of
@@ -1221,7 +1271,7 @@ export function dispatchActiveCommandTopic(
 export function setActiveTimelineStoreForTests(
   store: ActiveTimelineStore | undefined,
 ): void {
-  activeTimelineStore = store;
+  setActiveTimelineStore(store);
 }
 
 /**
@@ -1267,15 +1317,26 @@ export function setActiveCarriedChannelsForTests(
  * frame, the same "vessel/orbit data changed" signal a widget's
  * `useTelemetry` re-render would ride. Unlike `getViewUt()`/the sample
  * accessors above (pure point-in-time reads), this one DOES need a live
- * subscription: a plain class has no render loop to poll on. No-op
- * (returns a no-op unsubscribe) when no provider is mounted at call time,
- * same "read at construction, no retroactive mount" limitation `getViewUt()`
- * already has; a caller constructed before any provider mounts stays on its
- * fallback behaviour for its whole lifetime.
+ * subscription: a plain class has no render loop to poll on.
+ *
+ * The subscription is against whichever store is active at each frame rather
+ * than the one active at call time, so it may be taken out before any
+ * provider is mounted and it follows a provider that unmounts and remounts.
+ * This is what lets a caller own its own lifetime: a service built once for
+ * the app's lifetime keeps its frames across a provider rebuild, and one built
+ * in a `useState` initialiser, which React runs before any effect in the tree,
+ * starts receiving frames when the provider's registration effect runs.
+ *
+ * Unlike `getViewUt()` and the sample accessors above, therefore, there is no
+ * "read at construction" limitation here.
  */
 export function onActiveTimelineFrame(cb: () => void): () => void {
-  if (!activeTimelineStore) return () => {};
-  return activeTimelineStore.subscribeFrame(cb);
+  timelineFrameListeners.add(cb);
+  syncTimelineFrameBridge();
+  return () => {
+    timelineFrameListeners.delete(cb);
+    syncTimelineFrameBridge();
+  };
 }
 
 /**

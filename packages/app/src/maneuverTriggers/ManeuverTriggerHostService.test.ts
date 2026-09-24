@@ -202,13 +202,35 @@ function seedKerbinOrbit(pinnedUt = 1_000_000) {
   return storeFixture;
 }
 
+/**
+ * Every id the service is still guarding against a second fire whose trigger
+ * is no longer listed.
+ *
+ * Reaches into `fired` on purpose. The guard only has an observable effect
+ * while its trigger is still listed, so a set that has been accumulating ids
+ * all session behaves exactly like a pruned one from outside, and nothing but
+ * the set itself can tell them apart.
+ */
+function strandedFiredIds(svc: ManeuverTriggerHostService): string[] {
+  const listed = svc.snapshot().triggers.map((t) => t.id);
+  // biome-ignore lint/complexity/useLiteralKeys: `fired` is private, so dot access does not compile
+  return [...svc["fired"]].filter((id) => !listed.includes(id));
+}
+
 describe("ManeuverTriggerHostService", () => {
   let storage: Storage;
+  /**
+   * A service's frame subscription outlives whichever store is registered, so
+   * one left undisposed would go on evaluating against the next test's store.
+   */
+  let built: ManeuverTriggerHostService[];
   beforeEach(() => {
     vi.useFakeTimers();
     storage = memoryStorage();
+    built = [];
   });
   afterEach(() => {
+    for (const svc of built) svc.dispose();
     vi.useRealTimers();
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
@@ -216,15 +238,17 @@ describe("ManeuverTriggerHostService", () => {
   });
 
   function makeService() {
-    return new ManeuverTriggerHostService(null, {
+    const svc = new ManeuverTriggerHostService(null, {
       nowMs: () => 1_700_000_000_000,
       storage,
     });
+    built.push(svc);
+    return svc;
   }
 
   it("adds an armed trigger and surfaces it in the snapshot", () => {
-    seedKerbinOrbit();
     const svc = makeService();
+    seedKerbinOrbit();
     // 707_000 (baseline apoapsisRadius) stays below 800_000: pending, not fired.
     svc.arm({
       dataKey: "vessel.state.apoapsisRadius",
@@ -239,8 +263,8 @@ describe("ManeuverTriggerHostService", () => {
   });
 
   it("fires immediately when the condition is already true at arm time", () => {
-    seedKerbinOrbit();
     const svc = makeService();
+    seedKerbinOrbit();
     // 707_000 (baseline apoapsisRadius) already clears 700_000.
     svc.arm({
       dataKey: "vessel.state.apoapsisRadius",
@@ -252,8 +276,8 @@ describe("ManeuverTriggerHostService", () => {
   });
 
   it("plans a transfer around a body the stock table has never heard of", async () => {
-    const storeFixture = seedRenamedBodyOrbit();
     const svc = makeService();
+    const storeFixture = seedRenamedBodyOrbit();
     // apoapsisRadius is 6_771_000 · 1.01, so this is already true and the
     // trigger fires at arm time, the same path the tests above use.
     svc.arm({
@@ -275,8 +299,8 @@ describe("ManeuverTriggerHostService", () => {
   });
 
   it("fires when the watched value crosses the threshold after arming", async () => {
-    const storeFixture = seedKerbinOrbit();
     const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
     // 707_000 stays below 750_000: pending until the orbit changes.
     svc.arm({
       dataKey: "vessel.state.apoapsisRadius",
@@ -296,9 +320,35 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
-  it("auto-clears triggers when the active vessel changes", () => {
-    const storeFixture = seedKerbinOrbit();
+  it("fires a trigger armed while its condition is false, once the condition becomes true", async () => {
     const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+
+    // 707_000 stays below 750_000, so this arms pending and reads as armed
+    // against the live vessel.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 750_000,
+      inputs: FROZEN,
+    });
+    expect(svc.snapshot().triggers).toHaveLength(1);
+    expect(svc.snapshot().triggers[0].vesselName).toBe("Test Vessel");
+    expect(storeFixture.calls).toEqual([]);
+
+    // 707_000 -> 1_010_000, clearing the 750_000 threshold.
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(storeFixture.calls.length).toBe(1);
+    expect(storeFixture.calls[0].command).toBe("vessel.maneuver.add");
+    expect(svc.snapshot().triggers).toHaveLength(0);
+  });
+
+  it("auto-clears triggers when the active vessel changes", () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
     svc.arm({
       dataKey: "vessel.state.apoapsisRadius",
       op: ">=",
@@ -315,9 +365,47 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
+  /**
+   * `fired` is the guard that stops a listed trigger firing twice, so it only
+   * ever needs ids that are still listed. An id left in it after its trigger
+   * has gone cannot suppress anything, ids being minted per arm and never
+   * reused, but it is held for the service's lifetime, which is the app's.
+   */
+  it("holds no fired id for a trigger that is no longer listed", () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+
+    // Stays pending: 707_000 is below 800_000.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 800_000,
+      inputs: FROZEN,
+    });
+    // Already true at 707_000, so this one fires as it is armed and leaves the list immediately, putting its id in `fired`.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 700_000,
+      inputs: FROZEN,
+    });
+    expect(svc.snapshot().triggers).toHaveLength(1);
+    expect(strandedFiredIds(svc)).toEqual([]);
+
+    // The vessel swap drops the pending one, leaving nothing listed at all.
+    storeFixture.emitIdentity({
+      vesselId: "different-vessel",
+      name: "Different Vessel",
+      vesselType: 0,
+      situation: 0,
+    });
+    expect(svc.snapshot().triggers).toHaveLength(0);
+    expect(strandedFiredIds(svc)).toEqual([]);
+  });
+
   it("persists triggers across construction and restores them on load", () => {
-    seedKerbinOrbit();
     const svc1 = makeService();
+    seedKerbinOrbit();
     svc1.arm({
       dataKey: "vessel.state.apoapsisRadius",
       op: ">=",
@@ -326,8 +414,6 @@ describe("ManeuverTriggerHostService", () => {
     });
     expect(svc1.snapshot().triggers).toHaveLength(1);
     svc1.dispose();
-    // New service over the same storage: same vessel name (still seeded)
-    // so the persisted trigger isn't auto-cleared on load.
     const svc2 = makeService();
     expect(svc2.snapshot().triggers).toHaveLength(1);
     expect(svc2.snapshot().triggers[0].dataKey).toBe(
@@ -335,9 +421,43 @@ describe("ManeuverTriggerHostService", () => {
     );
   });
 
+  /**
+   * A reload, which is the case the test above cannot reach: the service is
+   * rebuilt with nothing registered yet, exactly as `MainScreen` rebuilds it
+   * on a refresh. A trigger armed against a named vessel has to survive that
+   * gap, because the constructor evaluates before any vessel identity has
+   * arrived and an unknown vessel is not a different one.
+   */
+  it("keeps a trigger armed against a named vessel across a reload with no store", () => {
+    const svc1 = makeService();
+    seedKerbinOrbit();
+    svc1.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 999_999,
+      inputs: FROZEN,
+    });
+    expect(svc1.snapshot().triggers[0].vesselName).toBe("Test Vessel");
+    svc1.dispose();
+
+    // The reload: everything the provider registered is gone before the
+    // service is rebuilt.
+    setActiveTimelineStoreForTests(undefined);
+    setActiveViewClockForTests(undefined);
+    const svc2 = makeService();
+
+    expect(svc2.snapshot().triggers).toHaveLength(1);
+    expect(svc2.snapshot().triggers[0].vesselName).toBe("Test Vessel");
+    // Storage keeps it too: a drop here rewrites the list and loses it for
+    // every later reload as well.
+    expect(
+      JSON.parse(storage.getItem("gonogo.maneuverTriggers.list") ?? "[]"),
+    ).toHaveLength(1);
+  });
+
   it("cancel() removes a pending trigger and emits a snapshot", () => {
-    const storeFixture = seedKerbinOrbit();
     const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
     svc.arm({
       dataKey: "vessel.state.apoapsisRadius",
       op: ">=",
