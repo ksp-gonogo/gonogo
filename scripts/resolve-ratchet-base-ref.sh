@@ -37,6 +37,7 @@ set -euo pipefail
 ZERO_SHA="0000000000000000000000000000000000000000"
 EVENT_NAME="${GITHUB_EVENT_NAME:-${EVENT_NAME:-local}}"
 PUSH_BEFORE="${PUSH_BEFORE:-}"
+PUSH_BRANCH="${PUSH_BRANCH:-${GITHUB_REF_NAME:-}}"
 PR_BASE_REF="${PR_BASE_REF:-${GITHUB_BASE_REF:-}}"
 
 log() { echo "resolve-ratchet-base-ref: $*" >&2; }
@@ -65,7 +66,23 @@ case "$EVENT_NAME" in
     ;;
 
   push)
-    if [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$ZERO_SHA" ] &&
+    if [ "$PUSH_BRANCH" = "ci-dev" ]; then
+      # ci-dev is the fold lane. Each batch is rebuilt on staging and pushed here
+      # for the full matrix, so the branch's own previous tip is an unrelated
+      # earlier batch, and batch 1's was the tip of an abandoned experiment
+      # carried "as ancestry only, none of their content". github.event.before is
+      # therefore an ancestor of HEAD while not being an ancestor of staging, so
+      # an is-ancestor guard would not catch it, and the debt lists get graded
+      # against a state nothing here descends from. That fails PERMISSIVELY: the
+      # lists have been shrinking on staging, so almost any comparison against a
+      # stale base reads as a shrink and passes.
+      #
+      # The state already graded is staging's tip, which is what a green ci-dev
+      # run fast-forwards, so that is the base.
+      log "push to the ci-dev fold lane, using the merge base with origin/staging"
+      git fetch --no-tags --quiet origin staging || true
+      base="$(git merge-base "$head_sha" FETCH_HEAD 2>/dev/null || true)"
+    elif [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$ZERO_SHA" ] &&
       git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
       log "push, using the tip before it: $PUSH_BEFORE"
       base="$PUSH_BEFORE"
