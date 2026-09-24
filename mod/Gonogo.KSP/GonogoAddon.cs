@@ -178,7 +178,7 @@ namespace Gonogo.KSP
                 // The dev-capture recorder's own row. Off unless the file says
                 // otherwise, unlike signal delay: recording costs disk and log
                 // on every launch and is wanted only while capturing a fixture.
-                settings.Declare(SettingsRow.Bool(RecordingEnabledRow, false));
+                settings.Declare(SettingsRow.Bool(RecordingEnabledRow, false, "Record a development capture of this session, which costs disk and log"));
                 settings.OnChanged(
                     RecordingEnabledRow,
                     _ => _recordingEnabled = settings.Bool(RecordingEnabledRow));

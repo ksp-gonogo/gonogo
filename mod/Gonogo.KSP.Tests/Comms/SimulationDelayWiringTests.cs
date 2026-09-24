@@ -179,11 +179,13 @@ namespace Gonogo.KSP.Tests.Comms
                         Assert.True(applied.Success);
                         Assert.True(System.IO.File.Exists(path), path + " was never written");
                         Assert.Equal(
-                            "SIGNAL_DELAY\n"
+                            "// " + Gonogo.KSP.Settings.ConfigNodeSettingsStore.Header + "\n"
+                            + "\n"
+                            + "SIGNAL_DELAY\n"
                             + "{\n"
-                            + "\tenabled = True\n"
-                            + "\tlightSpeedScale = 1\n"
-                            + "\tdelayInSimulation = True\n"
+                            + "\tenabled = True // Apply light-time delay to commands and telemetry. True or False, default True\n"
+                            + "\tlightSpeedScale = 1 // One-way light time as a fraction of c, where 1 is real light speed. A number, default 1\n"
+                            + "\tdelayInSimulation = True // Apply the delay during a simulation as well as a real flight. True or False, default False\n"
                             + "}\n",
                             System.IO.File.ReadAllText(path).Replace("\r\n", "\n"));
                     },

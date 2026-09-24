@@ -184,9 +184,9 @@ namespace Gonogo.KSP
             // player who never opened the settings still flies under the rule
             // the mod exists to enforce. Delaying a SIMULATION is the one that
             // defaults off, because a rehearsal has no craft to be distant from.
-            store.Declare(SettingsRow.Bool(DelayEnabledRow, true));
-            store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0));
-            store.Declare(SettingsRow.Bool(DelayInSimulationRow, false));
+            store.Declare(SettingsRow.Bool(DelayEnabledRow, true, "Apply light-time delay to commands and telemetry"));
+            store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0, "One-way light time as a fraction of c, where 1 is real light speed"));
+            store.Declare(SettingsRow.Bool(DelayInSimulationRow, false, "Apply the delay during a simulation as well as a real flight"));
 
             store.OnChanged(SignalDelayBlock, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
             return store;

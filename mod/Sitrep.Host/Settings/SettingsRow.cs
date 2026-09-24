@@ -22,7 +22,7 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public sealed class SettingsRow
     {
-        public SettingsRow(string path, SettingsRowKind kind, string defaultText)
+        public SettingsRow(string path, SettingsRowKind kind, string defaultText, string? label = null)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -33,6 +33,7 @@ namespace Sitrep.Host.Settings
             Path = path;
             Kind = kind;
             DefaultText = defaultText ?? string.Empty;
+            Label = label ?? string.Empty;
             var refusal = SettingsText.RefusalOf(DefaultText);
             if (refusal != null)
             {
@@ -46,20 +47,61 @@ namespace Sitrep.Host.Settings
             }
         }
 
-        public static SettingsRow Bool(string path, bool defaultValue) =>
-            new SettingsRow(path, SettingsRowKind.Bool, SettingsText.FromBool(defaultValue));
+        public static SettingsRow Bool(string path, bool defaultValue, string? label = null) =>
+            new SettingsRow(path, SettingsRowKind.Bool, SettingsText.FromBool(defaultValue), label);
 
-        public static SettingsRow Number(string path, double defaultValue) =>
-            new SettingsRow(path, SettingsRowKind.Number, SettingsText.FromNumber(defaultValue));
+        public static SettingsRow Number(string path, double defaultValue, string? label = null) =>
+            new SettingsRow(path, SettingsRowKind.Number, SettingsText.FromNumber(defaultValue), label);
 
-        public static SettingsRow Text(string path, string defaultValue) =>
-            new SettingsRow(path, SettingsRowKind.Text, defaultValue);
+        public static SettingsRow Text(string path, string defaultValue, string? label = null) =>
+            new SettingsRow(path, SettingsRowKind.Text, defaultValue, label);
 
         public string Path { get; }
 
         public SettingsRowKind Kind { get; }
 
         public string DefaultText { get; }
+
+        /// <summary>What an operator reads beside the control, and the start of the comment written beside the row.</summary>
+        public string Label { get; }
+
+        /// <summary>
+        /// The comment written beside the row: its label, what it may hold, and
+        /// its default. One line, since a line break would end the comment and
+        /// start a row nobody wrote. Empty for an unlabelled text row, which has
+        /// nothing to say beyond its value.
+        /// </summary>
+        public string Comment
+        {
+            get
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                if (Label.Length > 0)
+                {
+                    parts.Add(Label);
+                }
+
+                switch (Kind)
+                {
+                    case SettingsRowKind.Bool:
+                        parts.Add("True or False, default " + DefaultText);
+                        break;
+                    case SettingsRowKind.Number:
+                        parts.Add("A number, default " + DefaultText);
+                        break;
+                    case SettingsRowKind.Text:
+                        if (parts.Count > 0 && DefaultText.Length > 0)
+                        {
+                            parts.Add("Default " + DefaultText);
+                        }
+
+                        break;
+                }
+
+                var comment = string.Join(". ", parts).Replace("\r", " ").Replace("\n", " ");
+                return comment.Length == 0 ? comment : char.ToUpperInvariant(comment[0]) + comment.Substring(1);
+            }
+        }
 
         /// <summary>Whether <paramref name="text"/> is a value this row could hold.</summary>
         public bool Accepts(string text)
