@@ -3,6 +3,12 @@
 #
 #   scripts/uplink-docs.sh            write README.md, gonogo-uplink.json, docs/assets/
 #   scripts/uplink-docs.sh --check    regenerate in memory and fail on any difference
+#   scripts/uplink-docs.sh --no-assets  write README.md and gonogo-uplink.json only
+#
+# `--no-assets` is the one to reach for when a change moves the prose (a scene
+# added, a field renamed) on a machine whose renders must not be committed. It
+# still renders, because the README is built from what the renders found, but
+# into a scratch directory, so docs/assets/ stays byte-for-byte as committed.
 #
 # ## Why the check exists alongside the regenerate-on-main workflow
 #
@@ -31,9 +37,15 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 mode="${1:-}"
-if [ -n "$mode" ] && [ "$mode" != "--check" ]; then
-  echo "usage: scripts/uplink-docs.sh [--check]" >&2
+if [ -n "$mode" ] && [ "$mode" != "--check" ] && [ "$mode" != "--no-assets" ]; then
+  echo "usage: scripts/uplink-docs.sh [--check | --no-assets]" >&2
   exit 2
+fi
+checking=""
+verb="generated"
+if [ "$mode" = "--check" ]; then
+  checking=1
+  verb="checked"
 fi
 
 # A `while read` rather than `mapfile`, which bash 3.2 does not have: the runner
@@ -52,7 +64,7 @@ done < <(node -e '
 # keeps meeting. The floor lives in uplink-matrix.mjs too, and is repeated here
 # because a filter typo above would empty the list without the matrix noticing.
 if [ "${#packages[@]}" -eq 0 ]; then
-  echo "✖ discovered no client-bearing Uplink, so this ${mode:+checked}${mode:-generated} nothing and"
+  echo "✖ discovered no client-bearing Uplink, so this ${verb} nothing and"
   echo "  would have exited clean. Discovery is broken rather than the repo being empty."
   exit 1
 fi
@@ -68,14 +80,14 @@ done
 
 if [ "${#failed[@]}" -gt 0 ]; then
   echo
-  if [ -n "$mode" ]; then
+  if [ -n "$checking" ]; then
     echo "✖ ${#failed[@]} of ${#packages[@]} Uplink page(s) no longer describe the code:"
     for pkg in "${failed[@]}"; do
       echo "    $pkg"
     done
     echo
     echo "  Regenerate and commit the result. The page is derived, so the fix is never to edit it:"
-    echo "    pnpm uplink-docs"
+    echo "    pnpm uplink-docs --no-assets   the prose only; uplink-docs.yml renders the images on Linux"
   else
     echo "✖ ${#failed[@]} of ${#packages[@]} Uplink page(s) could not be generated:"
     for pkg in "${failed[@]}"; do
@@ -86,7 +98,7 @@ if [ "${#failed[@]}" -gt 0 ]; then
 fi
 
 echo
-if [ -n "$mode" ]; then
+if [ -n "$checking" ]; then
   echo "all ${#packages[@]} Uplink page(s) match the code."
 else
   echo "all ${#packages[@]} Uplink page(s) regenerated."

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { display, resolveRenderModule, resolveUplinkPackage } from "./context";
@@ -28,6 +28,7 @@ import {
  *   gonogo-uplink render --scene <name>
  *   gonogo-uplink docs                      README.md + gonogo-uplink.json + assets
  *   gonogo-uplink docs --check              CI gate: fail on drift
+ *   gonogo-uplink docs --no-assets          README.md + gonogo-uplink.json only
  *
  * Zero required `package.json` script lines. An Uplink that wants
  * `pnpm ... render` adds one alias.
@@ -47,6 +48,7 @@ interface Args {
   bundle?: string;
   frames: boolean;
   check: boolean;
+  noAssets: boolean;
   withModules: string[];
 }
 
@@ -58,6 +60,7 @@ function parseArgs(argv: readonly string[]): Args {
     assetDir: "docs/assets",
     frames: false,
     check: false,
+    noAssets: false,
     withModules: [],
   };
   for (let i = 1; i < argv.length; i++) {
@@ -113,11 +116,35 @@ function parseArgs(argv: readonly string[]): Args {
       case "--check":
         args.check = true;
         break;
+      case "--no-assets":
+        args.noAssets = true;
+        break;
       default:
         throw new Error(`unknown flag "${flag}"`);
     }
   }
+  if (args.noAssets && args.verb !== "docs") {
+    throw new Error("--no-assets only applies to docs");
+  }
+  if (args.noAssets && args.check) {
+    throw new Error(
+      "--no-assets and --check do not combine: --check writes nothing, so there is no asset write to leave out",
+    );
+  }
   return args;
+}
+
+/**
+ * Where a docs run's renders land. Only a plain `docs` writes them into the
+ * package: `--check` compares against the committed set, and `--no-assets`
+ * regenerates the prose while leaving the committed images exactly as they
+ * are, so both render into a scratch directory instead.
+ */
+export function rendersIntoPackage(args: {
+  check: boolean;
+  noAssets: boolean;
+}): boolean {
+  return !args.check && !args.noAssets;
 }
 
 const USAGE = `gonogo-uplink <render|docs> [options]
@@ -125,6 +152,9 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   render                 render every fixture to ./renders/
   docs                   write README.md, gonogo-uplink.json and docs/assets/
   docs --check           regenerate in memory and fail on any difference
+  docs --no-assets       write README.md and gonogo-uplink.json only, leaving
+                         docs/assets/ as it is. For a change that moves the
+                         prose, on a machine whose renders must not be committed
 
   --root <dir>           the Uplink client package (default: cwd)
   --entry <file>         the client entry to bundle (default: src/index.ts)
@@ -188,9 +218,9 @@ async function main(argv: readonly string[]): Promise<void> {
     throw new Error(`unknown verb "${args.verb}"\n\n${USAGE}`);
   }
 
-  const assetOut = args.check
-    ? await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"))
-    : resolve(pkg.dir, args.assetDir);
+  const assetOut = rendersIntoPackage(args)
+    ? resolve(pkg.dir, args.assetDir)
+    : await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"));
   const result = await renderUplink(pkg, {
     engine: args.engine,
     outDir: assetOut,
@@ -228,6 +258,17 @@ async function main(argv: readonly string[]): Promise<void> {
   const shapes = new Map<string, AssetShape>(
     result.assets.map((asset) => [asset.file, asset.shape]),
   );
+
+  if (args.noAssets) {
+    await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
+    await writeFile(readmePath, readme, "utf8");
+    await writeFile(manifestPath, manifestJson, "utf8");
+    await rm(assetOut, { recursive: true, force: true });
+    console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
+    console.log(`wrote ${display(pkg.dir, manifestPath)}`);
+    console.log(`left ${args.assetDir}/ as it is`);
+    return;
+  }
 
   if (!args.check) {
     await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
