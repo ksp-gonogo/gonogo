@@ -199,6 +199,14 @@ namespace Gonogo.KSP
                 _engine.RegisterDiscoveredUplinks(
                     UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
 
+                // Only a session with RP-1 running has a simulation to delay, so
+                // only such a session is offered the choice.
+                if (_engine.IsUplinkRunning(CommsCoreUplink.Rp1UplinkId))
+                {
+                    CommsCoreUplink.DeclareSimulationDelaySetting(settings);
+                    _engine.RefreshSettings();
+                }
+
                 // Plan 3 command centres (agent-6): the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster
