@@ -86,6 +86,7 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
 
 const STORAGE_KEY = "gonogo.alarms.list";
 const WARP_MARGIN_STORAGE_KEY = "gonogo.alarms.warpSafetyMargin";
+const SCET_ARMED_STORAGE_KEY = "gonogo.alarms.scetArmed";
 
 type SnapshotListener = (snapshot: AlarmSnapshot) => void;
 type FireListener = (alarm: Alarm) => void;
@@ -351,6 +352,11 @@ export class AlarmHostService {
       onArmAccepted: (id) => {
         if (this.scetArmRefusals.delete(id)) this.emit();
       },
+      armedIds: new LocalStorageStore<readonly string[]>({
+        key: SCET_ARMED_STORAGE_KEY,
+        defaults: [],
+        storage: this.storage,
+      }),
       nowMs: () => this.opts.nowMs(),
     });
     /* Bound only once assigned: a replayed fire notice ticks the host, and the
