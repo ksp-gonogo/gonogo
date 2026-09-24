@@ -170,7 +170,7 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(CommsControlStateKind.Full, backend.ControlState().Level);
             Assert.InRange(backend.SignalStrength().Strength, 0.0, 1.0);
 
-            var path = backend.Path();
+            var path = backend.Path(null);
             var hop = Assert.Single(path.Hops);
             Assert.Equal(HopDistanceMeters, hop.DistanceMeters);
 

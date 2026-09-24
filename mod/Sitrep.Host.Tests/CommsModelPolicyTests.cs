@@ -200,9 +200,9 @@ namespace Sitrep.Host.Tests
         {
             var wrapped = Wrap(new StubBackend(connected: false), CommsControlSource.Full);
 
-            Assert.Empty(wrapped.Path().Hops);
-            Assert.Empty(wrapped.Network().Nodes);
-            Assert.Empty(wrapped.Network().Edges);
+            Assert.Empty(wrapped.Path(null).Hops);
+            Assert.Empty(wrapped.Network(null).Nodes);
+            Assert.Empty(wrapped.Network(null).Edges);
         }
 
         /// <summary>
@@ -297,7 +297,7 @@ namespace Sitrep.Host.Tests
         private sealed class StubBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             private readonly bool _connected;
             private readonly ICommsOcclusionModel _occlusion = CommsOcclusionModels.Unknown;
 
@@ -321,9 +321,9 @@ namespace Sitrep.Host.Tests
                 Reason = _connected ? null : "no connection to a command source",
             };
 
-            public CommsPath Path() => new CommsPath { Hops = new List<CommsHop>() };
+            public CommsPath Path(object? vessel) => new CommsPath { Hops = new List<CommsHop>() };
 
-            public CommsNetwork Network() => new CommsNetwork();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
 
             public ICommsOcclusionModel OcclusionModel() => _occlusion;
 
@@ -344,7 +344,7 @@ namespace Sitrep.Host.Tests
             public ICommsDegradeModel DegradeModel() =>
                 new RatedDegradeModel("stub-grading", "Stub", 0.75);
 
-            public object? ControlPathTerminus() => null;
+            public object? ControlPathTerminus(object? vessel) => null;
         }
     }
 }

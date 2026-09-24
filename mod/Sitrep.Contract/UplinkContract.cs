@@ -1222,8 +1222,11 @@ namespace Sitrep.Contract
         void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread);
 
         /// <summary>
-        /// Advertise a BREAK in the subject's route home: the drop event, the
-        /// third and last thing the reveal gate's delay authority can say.
+        /// Advertise every BREAK this tick in any watched subject's route home:
+        /// the drop event, the third and last thing the reveal gate's delay
+        /// authority can say. Each break names its own node, so a relay dying
+        /// under a craft that is not on screen stops that craft's telemetry and
+        /// no one else's.
         /// Evaluated on the SAME thread and cadence as
         /// <see cref="SetSignalDelaySource"/> and
         /// <see cref="SetConnectivitySource"/>, with the tick's UT, so it may
@@ -1251,12 +1254,12 @@ namespace Sitrep.Contract
         /// the wire, and a client sees only the silence it produces.</para>
         ///
         /// <para>Fail-soft, mirroring the two sources above: a throwing source
-        /// takes only its owning uplink inert, a <c>null</c> result is the
-        /// ordinary "no break this tick", and registering no source at all keeps
+        /// takes only its owning uplink inert, a <c>null</c> or empty result is
+        /// the ordinary "no break this tick", and registering no source at all keeps
         /// today's behaviour, which is that every recorded sample is delivered
         /// at its own light-time whatever became of the route.</para>
         /// </summary>
-        void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread);
+        void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread);
 
         /// <summary>The C# port of <c>mod/sitrep-kernel</c>'s capability/provider registry (see <see cref="Kernel"/>).</summary>
         Kernel Kernel { get; }

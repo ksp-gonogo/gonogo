@@ -216,14 +216,14 @@ namespace Sitrep.Host.Comms
         /// which reports it as a known zero; an empty path on its own would
         /// report it as an unmeasurable absence, which is the opposite claim.
         /// </summary>
-        public CommsPath Path() => new CommsPath
+        public CommsPath Path(object? vessel) => new CommsPath
         {
             Hops = new List<CommsHop>(),
             Meta = Meta(),
         };
 
         /// <summary>Empty, for the same reason <see cref="Path"/> is.</summary>
-        public CommsNetwork Network() => new CommsNetwork
+        public CommsNetwork Network(object? vessel) => new CommsNetwork
         {
             Nodes = new List<CommsNetworkNode>(),
             Edges = new List<CommsNetworkEdge>(),
@@ -262,7 +262,7 @@ namespace Sitrep.Host.Comms
         /// stays silent for the whole save. True rather than null because this
         /// is a positive fact about the save and not an absence of opinion.
         /// </summary>
-        public bool? StillCarriesTo(string nodeId) => true;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => true;
 
         /// <summary>
         /// NO MAXIMUM, and deliberately not <see cref="CommsReachModels.Unknown"/>.
@@ -310,7 +310,7 @@ namespace Sitrep.Host.Comms
         /// Null. A centre is where a control PATH terminates and there are no
         /// paths, so there is no node to name.
         /// </summary>
-        public object? ControlPathTerminus() => null;
+        public object? ControlPathTerminus(object? vessel) => null;
 
         /// <summary>
         /// The craft's own control tier, fail-soft to

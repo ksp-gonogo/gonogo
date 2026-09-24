@@ -213,8 +213,8 @@ public readonly struct CommsLinkState
 }
 
 /// <summary>
-/// One observed break in a subject's route home: when it happened, and how far
-/// out along the route it sat.
+/// One observed break in a subject's route home: whose route it was, when it
+/// happened, and how far out along the route it sat.
 ///
 /// <para>Backend-facing, like every other view in this file, and deliberately
 /// NOT a contract type: a break never reaches the wire. It is raised on the
@@ -224,11 +224,19 @@ public readonly struct CommsLinkState
 /// </summary>
 public readonly struct PathBreak
 {
-    public PathBreak(double atUt, double lightSecondsOut)
+    public PathBreak(string node, double atUt, double lightSecondsOut)
     {
+        Node = node ?? "";
         AtUt = atUt;
         LightSecondsOut = lightSecondsOut;
     }
+
+    /// <summary>
+    /// The engine node whose route broke, in the engine's own naming: the
+    /// active craft's node or a <c>fleet.&lt;id&gt;</c> one. Samples sent from
+    /// that node, and only that node, are the ones the break can catch.
+    /// </summary>
+    public string Node { get; }
 
     /// <summary>The UT the break was observed.</summary>
     public double AtUt { get; }
