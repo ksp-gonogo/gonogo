@@ -8,10 +8,12 @@ import {
   readingFrom,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
+  setActiveViewClockForTests,
   TelemetryClient,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { Situation } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
@@ -97,10 +99,13 @@ class FakeHost {
   }
 }
 
+const VIEW_UT = 1_000;
+
 /**
  * Stands in for the store a mounted `TelemetryProvider` registers, so launch
- * state is driven the way the app drives it: `vessel.state.met` sampled off an
- * ingested frame.
+ * state is driven the way the app drives it: `vessel.identity` sampled off an
+ * ingested frame, its `launchUt` measured against the view clock `VIEW_UT`
+ * registers and its `situation` saying whether the craft is on the pad.
  *
  * There is deliberately no `DataSource` behind this. The service's legacy
  * fallback asks for the id `"data"`, and the app registers no source under
@@ -108,20 +113,27 @@ class FakeHost {
  */
 class FakeTimelineStore {
   private met: number | null = null;
+  private onPad = false;
   private frameListeners = new Set<() => void>();
 
   sample<T>(topic: string): TimelinePoint<T> | undefined {
-    if (topic !== "vessel.state") return undefined;
+    if (topic !== "vessel.identity") return undefined;
     return {
       validAt: 0,
       epoch: 0,
       meta: {} as TimelinePoint<T>["meta"],
-      payload: { met: this.met } as T,
+      payload: {
+        situation: this.onPad ? Situation.PreLaunch : Situation.Flying,
+        launchUt:
+          this.onPad || this.met === null
+            ? null
+            : { magnitude: VIEW_UT - this.met },
+      } as T,
     };
   }
   /*
    * Built from this store's OWN `sample` through the real `readingFrom`, so the
-   * two reads cannot disagree: `vessel.state` carries the MET it just emitted
+   * two reads cannot disagree: `vessel.identity` carries what it just emitted
    * and reads live, and every other topic is pending because nothing has
    * arrived on it. Hand-writing the union here would let the fake answer a
    * currency question this store has no way to know.
@@ -141,9 +153,20 @@ class FakeTimelineStore {
     };
   }
 
-  /** Driver: a newly ingested frame carrying this MET. */
+  /** Driver: a newly ingested frame whose liftoff puts the view clock this far past it. */
   emitMet(met: number | null): void {
     this.met = met;
+    this.onPad = false;
+    this.emit();
+  }
+
+  /** Driver: a newly ingested frame with the craft back on the pad, which carries no launch clock. */
+  emitOnPad(): void {
+    this.onPad = true;
+    this.emit();
+  }
+
+  private emit(): void {
     for (const cb of [...this.frameListeners]) cb();
   }
 }
@@ -201,6 +224,7 @@ describe("GoNoGoHostService", () => {
     dispatched.filter((d) => d.command === "vessel.control.setAbort");
   let transport: StubTransport;
   let telemetryClient: TelemetryClient | undefined;
+  let store: TimelineStore;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -211,7 +235,7 @@ describe("GoNoGoHostService", () => {
     dispatched = [];
     transport = new StubTransport();
     telemetryClient = new TelemetryClient(transport);
-    const store = new TimelineStore(
+    store = new TimelineStore(
       new ViewClock({
         nowWall: () => 0,
         warpRate: () => 1,
@@ -240,11 +264,13 @@ describe("GoNoGoHostService", () => {
     svc = new GoNoGoHostService(host.asHost());
     timeline = new FakeTimelineStore();
     setActiveTimelineStoreForTests(timeline);
+    setActiveViewClockForTests({ viewUt: () => VIEW_UT });
   });
 
   afterEach(() => {
     setActiveTelemetryClientForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
+    setActiveViewClockForTests(undefined);
     telemetryClient?.dispose();
     svc.dispose();
     unsubSound?.();
@@ -440,5 +466,21 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
     timeline.emitMet(1);
     expect(svc.getSnapshot().countdown).toBeNull();
+  });
+
+  it("reads a craft back on the pad as not launched, which a revert to launch needs", () => {
+    /* The stream sends no launch clock in PreLaunch, so `met` is null on the pad
+       rather than 0, and the situation is the only thing left that says so. */
+    host.fireConnect("peer-1");
+    timeline.emitMet(10);
+    host.fireAbort("peer-1");
+    expect(svc.getSnapshot().launched).toBe(true);
+
+    timeline.emitOnPad();
+
+    expect(svc.getSnapshot().launched).toBe(false);
+    expect(svc.getSnapshot().abort).toBeNull();
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
   });
 });
