@@ -11,7 +11,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Field,
   FieldLabel,
@@ -79,20 +79,19 @@ function GoNoGoComponent({
 
 function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
-  // Elapsed mission time is the view clock measured from liftoff, so it runs
-  // against the same clock this screen reads everything else against. Absent
-  // before the clamps release, `launchUt` being null until then.
+  // Launched once the view clock is past liftoff, so it runs against the same
+  // clock this screen reads everything else against. Never before the clamps
+  // release, `launchUt` being null until then.
   const identity = useTelemetry("vessel.identity");
   const launchUt =
     identity.state === "observed" || identity.state === "stale"
       ? identity.value.launchUt
       : undefined;
   const viewUt = useViewUt();
-  const missionTime =
-    launchUt == null || viewUt === undefined
-      ? undefined
-      : (magnitudeOf(viewUt.minus(launchUt)) ?? undefined);
-  const launched = typeof missionTime === "number" && missionTime > 0;
+  const launched =
+    launchUt != null &&
+    viewUt !== undefined &&
+    viewUt.minus(launchUt).greaterThan(0);
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   const [countdown, setCountdown] = useState<{ t0Ms: number } | null>(null);
   const [abortNotice, setAbortNotice] = useState<{
