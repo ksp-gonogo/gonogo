@@ -224,7 +224,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddGateEvaluator(ICommandGateEvaluator evaluator) => throw new NotSupportedException();
             public void AddCommandRequirement(string command, CommandRequirement requirement) => throw new NotSupportedException();
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
-            public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) => throw new NotSupportedException();
+            public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();

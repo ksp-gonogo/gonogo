@@ -821,7 +821,7 @@ namespace Sitrep.Host
         // CapturePathBreakOnMain, carried on the TickJob and spent Courier-side
         // in ApplyPathBreak on INetwork.DropPath, BEFORE the clock advances so a
         // break is on the books before any delivery it dooms can fire.
-        private Func<KspSnapshot?, double, PathBreak?>? _pathBreakSource;
+        private Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?>? _pathBreakSource;
         private string _pathBreakSourceOwnerId = "";
         private volatile bool _pathBreakSourceDisabled;
 
@@ -2252,7 +2252,7 @@ namespace Sitrep.Host
         // uplink: a break is a statement about the route the delay authority is
         // already measuring, so a second opinion on it would be a second delay
         // model. See IUplinkHost.SetPathBreakSource.
-        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread)
+        public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread)
         {
             _pathBreakSource = computeOnMainThread;
             _pathBreakSourceOwnerId = _currentRegisteringUplinkId ?? "";
@@ -4728,8 +4728,9 @@ namespace Sitrep.Host
         /// <see cref="IUplinkHost.SetPathBreakSource"/>) on the CURRENT
         /// (main-loop) thread with this tick's UT, so it may read the elected
         /// comms backend's hop geometry and ask its router whether a hop that
-        /// left the route is still carrying. Only the resulting two doubles
-        /// cross to the Courier thread; no live handle does.
+        /// left the route is still carrying. Only the resulting breaks, a node
+        /// id and two doubles each, cross to the Courier thread; no live handle
+        /// does.
         /// </summary>
         private PathBreakCapture CapturePathBreakOnMain(KspSnapshot? snapshot, double ut)
         {
@@ -5386,12 +5387,10 @@ namespace Sitrep.Host
         /// subject's re-target as well as splitting the tail (see
         /// <see cref="IUplinkHost.SetPathBreakSource"/>).
         ///
-        /// <para>Scoped to <see cref="NodeId"/>, the active vessel's own node,
-        /// and that is where the hop identity a break needs actually exists: the
-        /// per-vessel fleet delays are routed light-times with no node ids on
-        /// them, and the command-centre matrix's route hops structurally carry
-        /// none. A fleet subject going dark is still handled the way it always
-        /// was, by the reveal gate freezing it.</para>
+        /// <para>Each break is recorded against the node it names, the active
+        /// craft's or a fleet vessel's, and the Courier asks every sample about
+        /// its OWN node, so a relay dying under a craft off screen stops that
+        /// craft's telemetry and leaves every other subject's alone.</para>
         ///
         /// <para>Fail-soft in the safe direction: a source that threw raises
         /// nothing, because a break that cannot be established must behave
@@ -5409,7 +5408,16 @@ namespace Sitrep.Host
             {
                 return;
             }
-            _network.DropPath(NodeId, found.Value.AtUt, found.Value.LightSecondsOut);
+            foreach (var broken in found)
+            {
+                if (string.IsNullOrEmpty(broken.Node))
+                {
+                    // A break that names no node cannot be placed, and one placed
+                    // on the wrong node deletes telemetry that arrived.
+                    continue;
+                }
+                _network.DropPath(broken.Node, broken.AtUt, broken.LightSecondsOut);
+            }
         }
 
         /// <summary>
@@ -7432,9 +7440,9 @@ namespace Sitrep.Host
 
         private readonly struct PathBreakCapture
         {
-            public readonly PathBreak? Value;
+            public readonly IReadOnlyList<PathBreak>? Value;
             public readonly Exception? Error;
-            public PathBreakCapture(PathBreak? value, Exception? error)
+            public PathBreakCapture(IReadOnlyList<PathBreak>? value, Exception? error)
             {
                 Value = value;
                 Error = error;

@@ -632,7 +632,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 return null;
             }
-            var path = backend.Path();
+            var path = backend.Path(null);
             return SignalDelay.Compute(
                 _config,
                 path,
@@ -658,7 +658,7 @@ namespace Sitrep.Host.IntegrationTests
         internal sealed class FakeCommsBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             private readonly double? _hopDistanceMeters;
 
             public FakeCommsBackend(string id, double? hopDistanceMeters)
@@ -689,7 +689,7 @@ namespace Sitrep.Host.IntegrationTests
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
-            public CommsPath Path() => new CommsPath
+            public CommsPath Path(object? vessel) => new CommsPath
             {
                 Hops = new List<CommsHop>
                 {
@@ -704,7 +704,7 @@ namespace Sitrep.Host.IntegrationTests
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
-            public CommsNetwork Network() => new CommsNetwork
+            public CommsNetwork Network(object? vessel) => new CommsNetwork
             {
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
@@ -720,7 +720,7 @@ namespace Sitrep.Host.IntegrationTests
             // requires every backend to name its geometry.
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
 
-            public object? ControlPathTerminus() => null;
+            public object? ControlPathTerminus(object? vessel) => null;
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
@@ -1175,14 +1175,17 @@ namespace Sitrep.Host.IntegrationTests
         /// <c>PathBreakWatchTests</c>' job, and putting it here too would give a
         /// wire test two unrelated reasons to fail.</para>
         /// </summary>
-        private static PathBreak? ComputeBreak(KspSnapshot? snapshot, double ut)
+        private static IReadOnlyList<PathBreak>? ComputeBreak(KspSnapshot? snapshot, double ut)
         {
             var raw = Read(snapshot, "breakOut");
             if (raw == null)
             {
                 return null;
             }
-            return new PathBreak(ut, Convert.ToDouble(raw));
+            // The active craft's node unless the snapshot names another, so a
+            // fixture can break a fleet vessel's route and leave the rest alone.
+            var node = Read(snapshot, "breakNode") as string ?? ChannelEngine.NodeId;
+            return new[] { new PathBreak(node, ut, Convert.ToDouble(raw)) };
         }
 
         private static object? MapLink(KspSnapshot? snapshot)

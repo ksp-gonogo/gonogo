@@ -146,7 +146,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
         private sealed class RecordingUplinkHost : IUplinkHost
         {
 
-        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
+        public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
             public List<(Func<KspSnapshot?, object?> Capture, Action<object?> Handle, string[] Prefixes)> SampledSources { get; }
                 = new List<(Func<KspSnapshot?, object?>, Action<object?>, string[])>();
 

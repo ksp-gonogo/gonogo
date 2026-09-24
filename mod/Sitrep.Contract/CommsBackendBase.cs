@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Sitrep.Contract;
 
@@ -109,8 +110,10 @@ public abstract class CommsBackendBase : ICommsBackend
     protected abstract CommsLinkState? LinkState();
 
     /// <summary>
-    /// The links of the control path from the craft toward home, in order, or
-    /// null when there is no path.
+    /// The links of <paramref name="vessel"/>'s control path toward home, in
+    /// order, or null when it has no path. <paramref name="vessel"/> is the
+    /// opaque handle every route accessor on <see cref="ICommsBackend"/> takes,
+    /// and a handle this backend does not recognise has no path.
     ///
     /// <para>The PATH is the backend's: which route the game solved, under whose
     /// gates, is the question <c>RaRouting</c> exists for. What the shared code
@@ -118,7 +121,7 @@ public abstract class CommsBackendBase : ICommsBackend
     /// graph de-duplication and the terminus are derived once from whatever the
     /// winner solved.</para>
     /// </summary>
-    protected abstract IReadOnlyList<CommsLinkView>? ControlPath();
+    protected abstract IReadOnlyList<CommsLinkView>? ControlPath(object? vessel);
 
     /// <summary>
     /// This backend's per-hop extras, under its own provider namespace, or null
@@ -205,14 +208,14 @@ public abstract class CommsBackendBase : ICommsBackend
     /// not a modelling choice, and a backend that could shorten a hop could
     /// shorten a delay.</para>
     /// </summary>
-    public CommsPath Path()
+    public CommsPath Path(object? vessel)
     {
         var hops = new List<CommsHop>();
-        var path = ControlPath();
+        var path = ControlPath(vessel);
         // Every tick's ordinary path read is what keeps StillCarriesTo able to
         // reach a node the route has since dropped: once it is off the route
         // there is nowhere else to get a handle for it.
-        Remember(path);
+        Remember(vessel, path);
         if (path != null)
         {
             foreach (var link in path)
@@ -245,29 +248,42 @@ public abstract class CommsBackendBase : ICommsBackend
     /// already the one that would carry it.</para>
     /// </summary>
     /*
-     * The node views seen on the control path most recently, by id, plus the
-     * subject end of it. Retained so StillCarriesTo can still reach a node the
-     * route has since stopped using: its handle is what RouteBetween needs, and
-     * once the node is off the route there is nowhere else to get one.
+     * Per vessel: the node views seen on its control path most recently, by id,
+     * plus the vessel's own end of it. Retained so StillCarriesTo can still
+     * reach a node the route has since stopped using: its handle is what
+     * RouteBetween needs, and once the node is off the route there is nowhere
+     * else to get one.
+     *
+     * Keyed by the vessel handle ITSELF, compared by reference and held weakly,
+     * so one vessel's route can never answer for another's, and a destroyed
+     * vessel's memory goes when the vessel does. A hash of the handle is never
+     * the key: two handles can share one, and a route memory handed to the
+     * wrong vessel names a break that did not happen.
      *
      * Handles are held across ticks and never dereferenced here. A stale one is
      * safe by RouteBetween's own contract, which answers null for a missing
      * handle, and that answer is exactly the one a destroyed relay should give.
      */
-    private readonly Dictionary<string, CommsNodeView> _lastSeenNodes =
-        new Dictionary<string, CommsNodeView>();
-    private CommsNodeView? _lastSubject;
+    private sealed class RouteMemory
+    {
+        public readonly Dictionary<string, CommsNodeView> Seen =
+            new Dictionary<string, CommsNodeView>();
+        public CommsNodeView? Origin;
+    }
+
+    private readonly ConditionalWeakTable<object, RouteMemory> _routes =
+        new ConditionalWeakTable<object, RouteMemory>();
 
     /// <inheritdoc cref="ICommsBackend.StillCarriesTo" path="/summary"/>
-    public bool? StillCarriesTo(string nodeId)
+    public bool? StillCarriesTo(object? vessel, string nodeId)
     {
-        if (string.IsNullOrEmpty(nodeId))
+        if (vessel == null || string.IsNullOrEmpty(nodeId))
         {
             return null;
         }
 
-        var path = ControlPath();
-        Remember(path);
+        var path = ControlPath(vessel);
+        Remember(vessel, path);
 
         if (path != null)
         {
@@ -282,46 +298,53 @@ public abstract class CommsBackendBase : ICommsBackend
             }
         }
 
+        if (!_routes.TryGetValue(vessel, out var memory) || memory.Origin == null)
+        {
+            // Never seen this vessel on a route, so there is nothing to have lost.
+            return null;
+        }
+
         // The craft's own transmitter. RouteBetween answers null for the same
         // node at both ends, which would read as a break at zero light-seconds
         // and doom every sample ever sent.
-        if (_lastSubject != null && _lastSubject.Value.Id == nodeId)
+        if (memory.Origin.Value.Id == nodeId)
         {
             return true;
         }
 
-        if (_lastSubject == null || !_lastSeenNodes.TryGetValue(nodeId, out var node))
+        if (!memory.Seen.TryGetValue(nodeId, out var node))
         {
-            // Never seen it on a route, so there is nothing to have lost.
+            // Never on this vessel's route, so there is nothing for it to have lost.
             return null;
         }
 
         // Null is "will not route between them": a missing handle, or an end it
         // cannot reach. Both mean the same thing here. An EMPTY list is routed
         // with nothing to measure, which is still carrying.
-        return RouteBetween(_lastSubject.Value.Handle, node.Handle) != null;
+        return RouteBetween(memory.Origin.Value.Handle, node.Handle) != null;
     }
 
-    private void Remember(IReadOnlyList<CommsLinkView>? path)
+    private void Remember(object? vessel, IReadOnlyList<CommsLinkView>? path)
     {
-        if (path == null || path.Count == 0)
+        if (vessel == null || path == null || path.Count == 0)
         {
             return;
         }
-        _lastSubject = path[0].A;
+        var memory = _routes.GetOrCreateValue(vessel);
+        memory.Origin = path[0].A;
         foreach (var link in path)
         {
-            _lastSeenNodes[link.A.Id] = link.A;
-            _lastSeenNodes[link.B.Id] = link.B;
+            memory.Seen[link.A.Id] = link.A;
+            memory.Seen[link.B.Id] = link.B;
         }
     }
 
-    public CommsNetwork Network()
+    public CommsNetwork Network(object? vessel)
     {
         var nodes = new List<CommsNetworkNode>();
         var edges = new List<CommsNetworkEdge>();
         var seen = new HashSet<string>();
-        var path = ControlPath();
+        var path = ControlPath(vessel);
         if (path != null)
         {
             foreach (var link in path)
@@ -348,9 +371,9 @@ public abstract class CommsBackendBase : ICommsBackend
     /// consequence was <c>comms.commandCentre</c> going all-null forever on a
     /// RealAntennas install.</para>
     /// </summary>
-    public object? ControlPathTerminus()
+    public object? ControlPathTerminus(object? vessel)
     {
-        var path = ControlPath();
+        var path = ControlPath(vessel);
         if (path == null || path.Count == 0)
         {
             return null;
