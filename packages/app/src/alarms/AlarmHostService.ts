@@ -269,7 +269,8 @@ export class AlarmHostService {
     this.loadAlarms();
     this.scetBridge = new ScetAlarmBridge({
       getAlarms: () => this.alarms,
-      onFired: (id, firedAtUt) => this.onScetFired(id, firedAtUt),
+      onFired: (id, firedAtUt, actionsWithheld) =>
+        this.onScetFired(id, firedAtUt, actionsWithheld),
       onShadowFired: (id, firedAtUt, vantage) =>
         this.onShadowFired(id, firedAtUt, vantage),
       onArmRefused: (id, reason) => {
@@ -437,15 +438,15 @@ export class AlarmHostService {
       // A refusal, and a mod verdict, describe the condition that was replaced.
       this.scetArmRefusals.delete(id);
       this.shadowVerdicts.delete(id);
-      /* Owed an arm whatever state the edit left it in, since the mod already
-         holds this id: the diff against its roster sees it as armed, and the
-         simulation would go on watching the condition that was replaced. An
-         alarm that had already fired before the edit is not live any more and
-         is left alone. */
-      if (reset || !hasFired(prev.state)) {
-        this.scetBridge.owe(next);
-        this.scetBridge.reconcile();
-      }
+    }
+    /* Owed an arm whatever state the edit left it in, since the mod already
+       holds this id: the diff against its roster sees it as armed, and the
+       simulation would go on with the condition, or the onboard actions, that
+       were replaced. An alarm that had already fired before the edit is not
+       live any more and is left alone. */
+    if ((patch.trigger || patch.onFire) && (reset || !hasFired(prev.state))) {
+      this.scetBridge.owe(next);
+      this.scetBridge.reconcile();
     }
     this.persist();
     this.emit();
@@ -554,10 +555,15 @@ export class AlarmHostService {
    * reconnects after the fire: an alarm that is not still pending has already
    * been told.
    */
-  private onScetFired(id: string, firedAtUt: number): void {
+  private onScetFired(
+    id: string,
+    firedAtUt: number,
+    actionsWithheld: boolean,
+  ): void {
     const alarm = this.alarms.find((a) => a.id === id);
     if (!alarm || !modOwnsLatch(alarm.trigger)) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) return;
+    if (actionsWithheld) alarm.actionsWithheld = true;
     // The reveal UT, which is this client's own now: the banner window runs on
     // the clock the operator is watching, while the instant it NAMES is the
     // craft's. Read live rather than off `observedUT`, which is as of the last
@@ -801,7 +807,13 @@ export class AlarmHostService {
   private notifyFire(alarm: Alarm, runActions: boolean): void {
     for (const cb of this.fireListeners) cb(alarm);
     this.peerBridge.broadcastFire(alarm, this.observedUT);
-    if (runActions && alarm.onFire && alarm.onFire.length > 0) {
+    // Actions the mod holds ran aboard in the fire's own frame, or were withheld there, and sending them from here too would act on the craft a second time a light-time later.
+    if (
+      runActions &&
+      !this.scetBridge.actsAboard(alarm.id) &&
+      alarm.onFire &&
+      alarm.onFire.length > 0
+    ) {
       void this.dispatchOnFire(alarm);
     }
   }

@@ -175,6 +175,28 @@ export function thresholdAddress(
   return { topic, fieldPath };
 }
 
+/**
+ * Whether this alarm's `onFire` actions are meant to run ABOARD: held by the
+ * mod and run in the frame the alarm fires, with no delay. Otherwise this
+ * screen sends them when it learns of the fire, and they reach the craft one
+ * light-time later.
+ *
+ * Aboard only where the craft itself could have judged the condition in that
+ * frame: a time, which a sequencer aboard keeps, or a SCET threshold on a
+ * reading of the craft. A threshold judged against what the command centre
+ * has been told fires a light-time after the craft passed it, and one on the
+ * game's own state (a career's funds) is not aboard any craft, so acting on
+ * the craft in the same frame as either would carry the decision there
+ * faster than light.
+ */
+export function actionsRunAboard(trigger: AlarmTrigger): boolean {
+  if (trigger.kind === "time") return true;
+  if (trigger.kind !== "threshold" || !isAtSubjectVantage(trigger)) {
+    return false;
+  }
+  return thresholdAddress(trigger)?.topic.startsWith("vessel.") ?? false;
+}
+
 export type ContractParameterTargetState = "Complete" | "Failed";
 
 /**

@@ -1800,7 +1800,23 @@ namespace Sitrep.Contract
         /// <para><b>Reset to 0 alongside the Major 17 -&gt; 18 bump</b> (see
         /// <see cref="Major"/>). The Minor history above belongs to the earlier Major
         /// lines and is retained for provenance.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 0 -&gt; 1: a SCET alarm can act on the
+        /// craft in the frame it fires.</b> One new enum,
+        /// <see cref="ScetAlarmActionKind"/>, one new type,
+        /// <see cref="ScetAlarmAction"/>, and new members on three existing types:
+        /// <see cref="ScetAlarmArmArgs.OnFire"/> and
+        /// <see cref="ScetAlarmArmArgs.ActsOn"/>, the same two on
+        /// <see cref="ScetAlarm"/>, and <see cref="ScetAlarmFired.ActionsWithheld"/>.
+        /// Every one defaults to "no actions", which is what every alarm already
+        /// was, so an Uplink built against 18.0 is unaffected.</para>
+        ///
+        /// <para>An action named by the client and dispatched after the notice
+        /// reached it landed on the craft a light-time after the alarm fired.
+        /// Held by the simulation it runs in the fire's own frame, which is only
+        /// honest where the craft itself could have judged the condition, so an
+        /// arm carrying actions anywhere else is refused.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

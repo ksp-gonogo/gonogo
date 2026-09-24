@@ -325,13 +325,16 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal("a", notice.Id);
             Assert.Equal(1000, notice.FiredAtUt);
-            // Three fields, and the third is admissible for the reason the other
-            // two are: NONE of them is a reading. The vantage is the place the
-            // operator named when they armed it, so it tells a client something it
-            // wrote down itself. What must never appear here is the value that
-            // matched, or anything derived from it.
+            // Four fields, and each is admissible for the same reason: NONE of
+            // them is a reading. The vantage is the place the operator named when
+            // they armed it, so it tells a client something it wrote down itself.
+            // ActionsWithheld says whether the craft being flown was the one the
+            // actions were for, which is the player's choice of vessel rather
+            // than anything measured aboard. What must never appear here is the
+            // value that matched, anything derived from it, or how the craft
+            // answered an action.
             Assert.Equal(
-                new[] { "FiredAtUt", "Id", "Vantage" },
+                new[] { "ActionsWithheld", "FiredAtUt", "Id", "Vantage" },
                 typeof(ScetAlarmFired).GetProperties().Select(p => p.Name).OrderBy(n => n).ToArray());
         }
 
