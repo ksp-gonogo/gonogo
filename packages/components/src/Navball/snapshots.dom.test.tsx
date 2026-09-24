@@ -8,6 +8,7 @@ import launchpad from "./__fixtures__/launchpad-vertical.json";
 import maneuver from "./__fixtures__/maneuver-burn.json";
 import north from "./__fixtures__/north-level.json";
 import progradeLevel from "./__fixtures__/prograde-east-level.json";
+import sasWireOnly from "./__fixtures__/sas-wire-only.json";
 import steepDive from "./__fixtures__/steep-dive-west.json";
 import uncontrollable from "./__fixtures__/uncontrollable-drift.json";
 import { NavballComponent } from "./index";
@@ -37,6 +38,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "maneuver-burn": maneuver,
   "uncontrollable-drift": uncontrollable,
   "north-level": north,
+  "sas-wire-only": sasWireOnly,
 };
 
 const config = getWidget("navball");
