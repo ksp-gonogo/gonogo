@@ -277,8 +277,10 @@ const DV_STAGES = [
     thrustAsl: 166.2,
     thrustActual: 195,
     resources: {
-      LiquidFuel: { current: 539.797302768469, max: 1980 },
-      Oxidizer: { current: 659.752174156984, max: 2420 },
+      // `active` is always true on the wire: StageDeltaVViewProvider writes it
+      // for every resource it lists.
+      LiquidFuel: { current: 539.797302768469, max: 1980, active: true },
+      Oxidizer: { current: 659.752174156984, max: 2420, active: true },
     },
   },
   {

@@ -116,6 +116,8 @@ export const SNAPSHOT = {
         index: KERBIN_INDEX,
         parentIndex: 0,
         radius: KERBIN_RADIUS,
+        // Stock rails, as the mod's SystemViewProvider states it for every body.
+        horizon: { kind: 1, untilUt: null, trajectoryKind: 1 },
       },
     ],
   },
@@ -144,6 +146,7 @@ export const SNAPSHOT = {
     // bounds how far they answer for. Without this the conic refuses outright
     // ("NO HORIZON STATED") and every figure solved from it renders as a dash.
     horizon: { kind: 1, untilUt: null, trajectoryKind: 1 },
+    arcRefusal: 0, // TrajectoryRefusal.NotAttempted: a closed-form provider seeks no arc
     patches: [],
     meta: payloadMeta,
   },
@@ -299,6 +302,8 @@ export const SNAPSHOT = {
     warpRateIndex: 0,
     warpMode: 0, // WarpMode.High
     paused: false,
+    // ChannelEmitter.KeyframeFloorRealSec, which the mod sends on every sample.
+    keyframeFloorSec: 1,
     meta: payloadMeta,
   },
 
@@ -314,6 +319,13 @@ export const SNAPSHOT = {
       {
         id: "kos",
         version: "1.0.0",
+        // No provenance and no client bundle to load here, which the engine
+        // sends as explicit nulls rather than leaving the keys out.
+        name: null,
+        author: null,
+        repo: null,
+        expectedClientHash: null,
+        clientSource: null,
         available: true,
         reason: null,
         // `facts` empty rather than absent, matching what the engine emits for
