@@ -31,6 +31,8 @@ namespace Sitrep.Host.Settings
 
         public string Path => "(memory)";
 
+        public SettingsReadSource LastReadFrom => SettingsReadSource.File;
+
         /// <summary>Set to make the next write fail with this reason, so a consumer's failure arm can be exercised.</summary>
         public string? FailWith { get; set; }
 

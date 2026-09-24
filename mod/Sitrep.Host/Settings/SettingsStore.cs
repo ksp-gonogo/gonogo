@@ -72,9 +72,13 @@ namespace Sitrep.Host.Settings
         {
             _backing = backing ?? throw new ArgumentNullException(nameof(backing));
             Document = _backing.Read() ?? new SettingsDocument();
+            LoadedFrom = _backing.LastReadFrom;
         }
 
         public SettingsDocument Document { get; private set; }
+
+        /// <summary>Which copy of the file this launch's document came from: the file, its backup, or neither.</summary>
+        public SettingsReadSource LoadedFrom { get; }
 
         /// <summary>Where the document persists, for reporting to an operator.</summary>
         public string Path => _backing.Path;

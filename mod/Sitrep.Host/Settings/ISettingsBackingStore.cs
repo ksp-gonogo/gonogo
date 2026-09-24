@@ -41,6 +41,9 @@ namespace Sitrep.Host.Settings
         /// <summary>Where this store reads and writes, for reporting to an operator.</summary>
         string Path { get; }
 
+        /// <summary>Which copy the last <see cref="Read"/> took its document from, so a recovery or a reset to defaults can be told to the operator.</summary>
+        SettingsReadSource LastReadFrom { get; }
+
         /// <summary>
         /// The document as it stands on the medium. An absent or unreadable
         /// medium yields an EMPTY document rather than throwing, so a first run
