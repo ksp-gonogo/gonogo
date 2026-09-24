@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Sitrep.Contract;
 
 namespace Sitrep.Host
@@ -28,6 +30,15 @@ namespace Sitrep.Host
         public const string SwitchVesselCommand = "ksp.switchVessel";
         public const string RecoverCommand = "ksp.recover";
         public const string LaunchCommand = "ksp.launch";
+
+        /// <summary>
+        /// How far, in one-way light-seconds, a vantage may be from a launch site
+        /// and still launch from it. A launch is instant, because a scene change is
+        /// a fact about the one simulation every vantage shares, so it cannot be
+        /// held for light-time; what stops a vantage launching from a pad on
+        /// another world is being refused, not being delayed.
+        /// </summary>
+        public const double LaunchProximitySeconds = 10.0;
 
         public static CommandResult HandleRevertToLaunch(IFlightOpsActuator actuator, object? _) =>
             actuator.RevertToLaunch();
@@ -85,7 +96,24 @@ namespace Sitrep.Host
         /// <see cref="ParseEditorFacility"/> helper <see cref="HandleRevertToEditor"/>
         /// uses. A null crew list is normalised to empty (launch unmanned).
         /// </summary>
-        public static CommandResult HandleLaunch(IFlightOpsActuator actuator, LaunchArgs args)
+        public static CommandResult HandleLaunch(IFlightOpsActuator actuator, LaunchArgs args) =>
+            HandleLaunch(actuator, args, "", (_, _) => null);
+
+        /// <summary>
+        /// The same launch, refused when the sending vantage is further than
+        /// <see cref="LaunchProximitySeconds"/> from the site it names.
+        ///
+        /// <para><paramref name="secondsToSite"/> answers the one-way light-time
+        /// from a vantage to a site, or null when either cannot be placed, and a
+        /// launch it cannot measure goes ahead: there is nothing to say the vantage
+        /// is far away. Asked only after the arguments have passed, so a malformed
+        /// launch is refused for being malformed.</para>
+        /// </summary>
+        public static CommandResult HandleLaunch(
+            IFlightOpsActuator actuator,
+            LaunchArgs args,
+            string vantage,
+            Func<string, string, double?> secondsToSite)
         {
             if (args == null || string.IsNullOrEmpty(args.ShipName))
             {
@@ -95,6 +123,15 @@ namespace Sitrep.Host
             if (facility == EditorFacilityKind.Unknown)
             {
                 return CommandResult.Fail(CommandErrorCode.Range);
+            }
+            var seconds = secondsToSite(vantage, args.Site);
+            if (seconds > LaunchProximitySeconds)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    vantage + " is "
+                        + seconds.Value.ToString("0.#", CultureInfo.InvariantCulture)
+                        + " light-seconds from " + args.Site);
             }
             return actuator.Launch(args.ShipName, facility, args.Site, args.Crew ?? new List<string>());
         }
