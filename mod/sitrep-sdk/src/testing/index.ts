@@ -111,6 +111,7 @@ export {
   type StreamFixture,
   type StreamFixtureOptions,
   setupStreamFixture,
+  stopArriving,
 } from "./stream-fixture";
 export {
   makeMeta,

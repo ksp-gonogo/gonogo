@@ -141,3 +141,19 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
       transport.emit(topic, payload, metaOverrides),
   };
 }
+
+/**
+ * Stage the link dropping out of a scene: the transport disconnects and a
+ * frame is minted, so every reading the scene drew is held rather than
+ * current. What a fixture's `"_stream": { "stopsArriving": true }` asks for.
+ *
+ * The drop rather than a clock advance, because it is what a widget's own
+ * stale tests do (`store.setTransportConnected(false)`), so a fixture and the
+ * test asserting on it stage the same thing. Call it after the scene's emits:
+ * that is the order an operator meets it, and a drop first would leave the
+ * emits nowhere to land.
+ */
+export function stopArriving(stream: StreamFixture): void {
+  stream.store.setTransportConnected(false);
+  stream.store.beginFrame();
+}

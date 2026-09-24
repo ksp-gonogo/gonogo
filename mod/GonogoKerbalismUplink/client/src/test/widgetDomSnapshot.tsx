@@ -7,7 +7,11 @@
  * widgetDomSnapshot.tsx` with the SpaceWeather move, minus everything that
  * serves the legacy `MockDataSource` fixtures this package has none of.
  */
-import { act, type StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  type StreamFixture,
+  stopArriving,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 
 /**
@@ -22,6 +26,8 @@ export interface StreamFixtureBlock {
   pinnedUt?: number;
   /** Fixed network/display delay in seconds. */
   delaySeconds?: number;
+  /** Stage the link dropping once the emits have landed: see `stopArriving`. */
+  stopsArriving?: boolean;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ topic: string; payload: unknown }>;
 }
@@ -71,6 +77,7 @@ export async function replayStreamBlock(
         requestAnimationFrame(() => resolve());
       });
     }
+    if (block.stopsArriving === true) stopArriving(stream);
   });
 }
 

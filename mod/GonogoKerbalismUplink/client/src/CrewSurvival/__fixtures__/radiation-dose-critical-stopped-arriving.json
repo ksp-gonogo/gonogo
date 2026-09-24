@@ -7,7 +7,7 @@
   "_scene": {
     "contribution": "kerbalism:crew-survival-meters",
     "hostWidget": "crew-status",
-    "caption": "Per-kerbal survival meters contributed into Crew Status: one kerbal near a fatal radiation dose, one on a death clock, one healthy",
+    "caption": "The same crew once the link drops: every survival badge says it is held",
     "modes": ["default"],
     "size": {
       "w": 8,

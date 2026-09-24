@@ -1,6 +1,7 @@
-import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  combineReadings,
   registerComponent,
   useProcessor,
   useTelemetry,
@@ -23,6 +24,7 @@ import {
   Notice,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Section,
   type Severity,
   Stack,
@@ -31,7 +33,7 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type {
   KerbalismGreenhouseEntry,
   KerbalismHabitat,
@@ -164,19 +166,29 @@ function rowValueLabel(row: ResourceRow): string {
  *  duration path, `formatQuantity` → `formatDuration`) instead of the
  *  hand-rolled `speakQuantity` string that function returns. */
 function RowValueDisplay({ row }: { row: ResourceRow }) {
+  const ledger = useContext(LedgerReadingContext);
   if (row.capacity <= 0) return <>not fitted</>;
   const sec = row.secondsToEmpty;
+  const left = value("s", Math.max(0, sec ?? 0));
   return (
     <>
       {fmtAmt(row.amount)} / {fmtAmt(row.capacity)} ·{" "}
       {sec == null || !Number.isFinite(sec) ? (
         "steady"
       ) : (
-        <Unit value={value("s", Math.max(0, sec))} />
+        <Unit value={ledger ? combineReadings([ledger], () => left) : left} />
       )}
     </>
   );
 }
+
+/**
+ * The reading the resource ledger was derived from, so a figure drawn deep in
+ * a row says how current it is without every row between being handed it.
+ */
+const LedgerReadingContext = createContext<Reading<unknown> | undefined>(
+  undefined,
+);
 
 /** Same resting-tone rule as `toneForRow`: wear is always slowly draining by
  *  nature, so the countdown does the alarming and the fraction only warns at
@@ -333,7 +345,20 @@ function ShipSystemsComponent(
     );
   }
 
-  return <ShipSystemsBody ship={ship} weather={weather} utNow={utNow} />;
+  return (
+    <LedgerReadingContext.Provider value={shipReading}>
+      <ShipSystemsBody
+        ship={ship}
+        weather={weather}
+        utNow={utNow}
+        heldAsOfUt={
+          shipReading?.state === "stale"
+            ? magnitudeOr(shipReading.asOfUt, Number.NaN)
+            : undefined
+        }
+      />
+    </LedgerReadingContext.Provider>
+  );
 }
 
 /**
@@ -360,11 +385,19 @@ function ShipSystemsBody({
   ship,
   weather,
   utNow,
+  heldAsOfUt,
 }: {
   ship: ShipSystems;
   weather: KerbalismSpaceWeather | undefined;
   utNow: number | undefined;
+  /** When the ledger was last current, or `undefined` while it still is. */
+  heldAsOfUt: number | undefined;
 }) {
+  const held = heldAsOfUt !== undefined;
+  const heldFor =
+    held && utNow !== undefined && Number.isFinite(heldAsOfUt)
+      ? Math.max(0, utNow - heldAsOfUt)
+      : undefined;
   const { summary } = ship;
   // The "Limiting factors" banner names a cause's ROOT resource but the
   // sentence's subject is the resource it explains (see `LimitedByMessage`),
@@ -446,7 +479,7 @@ function ShipSystemsBody({
           aria-live="polite"
           severity={severityFromBadgeEntryTone(status.tone)}
         >
-          {status.label}
+          {held ? `${status.label} · held` : status.label}
         </Badge>
       }
       panelFooter={
@@ -471,6 +504,23 @@ function ShipSystemsBody({
         )
       }
       sections={[
+        /* The caveat sits over the figures it qualifies rather than only in
+           the header, where a badge beside confident numbers is what an
+           operator reads past. */
+        held && (
+          <Section key="held" full>
+            <ReadoutCaption role="status">
+              at last contact
+              {heldFor !== undefined && (
+                <>
+                  {", "}
+                  <Unit value={value("s", heldFor)} />
+                  {" ago"}
+                </>
+              )}
+            </ReadoutCaption>
+          </Section>
+        ),
         /* Radiation leads the widget: the operator's own call, it is the
            attractive visual (the sparkline trend), so it earns the top
            slot rather than sitting below the resource ledger, and it spans
@@ -619,8 +669,16 @@ function ShipSystemsBody({
         <Section key="processes">
           <SectionHead
             label="Processes"
-            value={processSummary}
-            tone={brokenCount > 0 ? "nogo" : unknownCount > 0 ? "warn" : "go"}
+            value={held ? "run state held" : processSummary}
+            tone={
+              held
+                ? undefined
+                : brokenCount > 0
+                  ? "nogo"
+                  : unknownCount > 0
+                    ? "warn"
+                    : "go"
+            }
           />
           <Stack>
             {processes.map((p) => (
@@ -628,9 +686,17 @@ function ShipSystemsBody({
                 <Text tone="default" size="xs">
                   {p.name}
                 </Text>
-                <Badge severity={processSeverity(p.state)} size="sm">
-                  {p.state}
-                </Badge>
+                {/* The heading above says whose state is held; the badge only
+                    has the width of the one it replaces. */}
+                {held ? (
+                  <Badge severity="info" size="sm">
+                    held
+                  </Badge>
+                ) : (
+                  <Badge severity={processSeverity(p.state)} size="sm">
+                    {p.state}
+                  </Badge>
+                )}
               </Cluster>
             ))}
           </Stack>
