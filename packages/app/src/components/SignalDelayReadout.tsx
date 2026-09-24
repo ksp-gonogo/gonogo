@@ -18,7 +18,7 @@ import { useActiveCentres } from "./VantageControl";
 /** What the header can truthfully say about the delay in force. */
 type SignalDelayState =
   | { kind: "delay"; seconds: number }
-  | { kind: "via-home"; seconds: number | undefined }
+  | { kind: "via-home"; seconds: number }
   | { kind: "disconnected" }
   | { kind: "unknown"; spoken: string };
 
@@ -40,7 +40,8 @@ const NOT_REPORTED = "Signal delay from this command centre is not reported";
  * because home's delay is `comms.delay`, so `homeSeconds` answers for home. Any
  * other centre the list leaves out has no route of its own, yet its traffic
  * still arrives, timed by the whole-network delay, which is home's: so it reads
- * home's figure marked as borrowed, never "disconnected".
+ * home's figure marked as borrowed, never "disconnected", and never the mark
+ * without the figure.
  *
  * A link reported down wins over every number, because the number held through
  * a blackout is right for the clock and would be a falsehood in a readout. A
@@ -79,9 +80,10 @@ function deriveSignalDelay({
     return { kind: "unknown", spoken: NOT_REPORTED };
   }
   const seconds = centreDelays.get(centreId);
-  return seconds === undefined
-    ? { kind: "via-home", seconds: homeSeconds }
-    : { kind: "delay", seconds };
+  if (seconds !== undefined) return { kind: "delay", seconds };
+  return homeSeconds === undefined
+    ? { kind: "unknown", spoken: NOT_REPORTED }
+    : { kind: "via-home", seconds: homeSeconds };
 }
 
 /**
@@ -235,11 +237,7 @@ function SignalDelayValue({ state }: { state: SignalDelayState }) {
       return (
         <>
           <VisuallyHidden>Signal delay </VisuallyHidden>
-          {state.seconds !== undefined && (
-            <>
-              <Unit value={value("s", state.seconds)} />{" "}
-            </>
-          )}
+          <Unit value={value("s", state.seconds)} />{" "}
           <Text tone="muted" size="xs">
             {VIA_HOME_LABEL}
           </Text>
