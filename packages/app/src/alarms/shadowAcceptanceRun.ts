@@ -57,7 +57,7 @@ function memoryStorage(): Storage {
  * mod shadows: a SCET alarm is already its own, and a time alarm's two
  * evaluators differ only in which clock is right, which is settled.
  */
-const ALARMS = [
+export const SHADOW_ACCEPTANCE_ALARMS = [
   {
     name: "Altitude 200 km",
     dataKey: "vessel.flight.altitudeAsl",
@@ -75,13 +75,10 @@ const ALARMS = [
     value: 300_000,
   },
   {
-    // A 150-350km periapsis/apoapsis orbit peaks around 2,250-2,300 m/s at
-    // periapsis (measured), never 3km/s -- an unreachable threshold makes
-    // the laps verdict permanently INCONCLUSIVE regardless of lap count.
+    /* A 150-350 km periapsis/apoapsis orbit peaks around 2,250-2,300 m/s at
+       periapsis (measured), never 3 km/s, and an unreachable threshold leaves
+       the laps verdict INCONCLUSIVE however many laps are flown. */
     name: "Speed 2 km/s",
-    // The wire field is `orbitalSpeed`, not `speedOrbital` -- confirmed
-    // against a live `vessel.flight` payload. The old name never resolved,
-    // so this alarm was permanently `unread` regardless of orbit.
     dataKey: "vessel.flight.orbitalSpeed",
     topic: "vessel.flight",
     fieldPath: "orbitalSpeed",
@@ -192,12 +189,12 @@ export async function runShadowAcceptance(
   ];
 
   const svc = new AlarmHostService(null, { storage: memoryStorage() });
-  // Every id this run has ever armed, mapped back to its logical alarm name
-  // -- grows across re-arms, so `laps.alarmOf` can resolve a fire from any
-  // generation of an alarm, not just the first.
+  /* Every id this run has ever armed, mapped back to its logical alarm name.
+     It grows across re-arms, so `laps.alarmOf` can resolve a fire from any
+     generation of an alarm, not just the first. */
   const nameOf = new Map<string, string>();
   let rearmCount = 0;
-  const armOne = (a: (typeof ALARMS)[number]): void => {
+  const armOne = (a: (typeof SHADOW_ACCEPTANCE_ALARMS)[number]): void => {
     const armed = svc.addAlarm({
       name: a.name,
       trigger: {
@@ -215,15 +212,11 @@ export async function runShadowAcceptance(
   };
   try {
     /*
-     * ScetAlarmBridge.buildArmArgs names a command-vantage threshold's shadow
-     * arm at `client.selectedVantage ?? client.observedVantage`; with neither
-     * set it returns null and `arm()` never dispatches `alarm.scet.arm` at
-     * all -- no line, not even a refusal, because nothing was sent. Arming
-     * immediately after construction, before the first frame has stamped
-     * `observedVantage`, loses that alarm's shadow arm PERMANENTLY: the
-     * bridge's reconcile loop marks an id `commandedSinceRoster` on its first
-     * attempt regardless of outcome and never retries the same id. So: wait
-     * for a real vantage before arming anything.
+     * A command-vantage threshold's shadow arm names the place this screen
+     * commands from, and until a frame has named one the bridge holds the arm
+     * back and asks again on its ten-second cadence. Waiting here instead puts
+     * the first arms on the wire at once, and puts the vantage they name in
+     * the log.
      */
     const vantageDeadline = Date.now() + 10_000;
     while (
@@ -237,7 +230,9 @@ export async function runShadowAcceptance(
       `observed vantage before arming: ${client.selectedVantage ?? client.observedVantage ?? "(none after 10s)"}`,
     );
 
-    function conditionTrue(a: (typeof ALARMS)[number]): boolean {
+    function conditionTrue(
+      a: (typeof SHADOW_ACCEPTANCE_ALARMS)[number],
+    ): boolean {
       const v = getValue("data", a.dataKey);
       if (v === undefined) return true; // unreadable: do not arm into the unknown
       const op: string = a.op;
@@ -256,26 +251,14 @@ export async function runShadowAcceptance(
     }
 
     /*
-     * `ScetAlarmBridge.arm` is only ever called for an alarm the CLIENT
-     * itself is still watching in `state: "pending"` -- deliberately, per its
-     * own comment: an alarm already fired must not be re-armed after a
-     * timeline reset, since its instant is in the past. A threshold
-     * level-triggers on its first reading, including one already true at arm
-     * time, so an alarm armed while its condition already holds skips
-     * "pending" and goes straight to "firing"/"fired" on the very next tick
-     * -- and the mod is NEVER told to watch it: no `alarm.scet.arm`, no
-     * refusal, nothing, because `arm()` was never called for it at all.
-     *
-     * So every alarm here, first arming included, waits in `pendingRearm`
-     * until its own condition reads false before `armOne` runs -- the same
-     * hysteresis a re-arm needs, now applied uniformly rather than only after
-     * a fire.
+     * Every alarm is armed at once, whatever its condition reads. A threshold
+     * is about a condition holding, so one armed while it already holds fires
+     * on the tick that creates it and the mod is told about it all the same:
+     * that pair is part of what this run measures. An unreadable one is armed
+     * too, so the run can name it as unread.
      */
-    const pendingRearm = new Set<(typeof ALARMS)[number]>();
-    for (const a of ALARMS) {
-      if (conditionTrue(a)) pendingRearm.add(a);
-      else armOne(a);
-    }
+    const pendingRearm = new Set<(typeof SHADOW_ACCEPTANCE_ALARMS)[number]>();
+    for (const a of SHADOW_ACCEPTANCE_ALARMS) armOne(a);
 
     /*
      * A lap scenario re-arms by creating a fresh alarm per crossing:
@@ -287,7 +270,7 @@ export async function runShadowAcceptance(
      * Re-arming the instant a fire is acknowledged, while the vessel is still
      * past the threshold, would fire the fresh alarm again immediately -- a
      * self-refire storm keyed to evaluation jitter rather than a real orbital
-     * crossing, the same problem as the unshadowable-first-arm one above.
+     * crossing, and every one of those a fire each lap would count.
      * `pendingRearm` holds a fired alarm's config until its OWN reading goes
      * back false, so the next arm only happens once the vessel has genuinely
      * left the zone and can cross into it again.
@@ -295,8 +278,7 @@ export async function runShadowAcceptance(
      * The clearing half of this loop (acknowledging a `fired` alarm and
      * queueing it) only runs when `options.laps` is set: a plain single-shot
      * acceptance run has no lap count to re-arm against and should keep
-     * firing each alarm once. The arming half runs unconditionally, since it
-     * also covers the first-arm case seeded above.
+     * firing each alarm once.
      */
     /*
      * The mod's own fired notice for THIS alarm id is the other half of the
@@ -325,7 +307,7 @@ export async function runShadowAcceptance(
           firedSeenAt.delete(alarm.id);
           const name = nameOf.get(alarm.id);
           svc.acknowledgeAlarm(alarm.id);
-          const cfg = ALARMS.find((a) => a.name === name);
+          const cfg = SHADOW_ACCEPTANCE_ALARMS.find((a) => a.name === name);
           if (cfg) pendingRearm.add(cfg);
         }
       }
@@ -365,7 +347,7 @@ export async function runShadowAcceptance(
     );
     const everRead = new Set<string>();
     const sampleReads = () => {
-      for (const a of ALARMS) {
+      for (const a of SHADOW_ACCEPTANCE_ALARMS) {
         if (getValue("data", a.dataKey) !== undefined) everRead.add(a.name);
       }
     };
@@ -379,7 +361,7 @@ export async function runShadowAcceptance(
           .alarms.map((x) => x.state)
           .join(
             ",",
-          )}  pendingRearm=${pendingRearm.size}  read=${ALARMS.filter((a) => everRead.has(a.name)).length}/${ALARMS.length}  rearms=${rearmCount}  warpReapplies=${warpReapplyCount}`,
+          )}  pendingRearm=${pendingRearm.size}  read=${SHADOW_ACCEPTANCE_ALARMS.filter((a) => everRead.has(a.name)).length}/${SHADOW_ACCEPTANCE_ALARMS.length}  rearms=${rearmCount}  warpReapplies=${warpReapplyCount}`,
       );
     }, options.progressEveryMs ?? 30_000);
     await new Promise((r) => setTimeout(r, options.observeMs));
@@ -388,9 +370,9 @@ export async function runShadowAcceptance(
     clearInterval(rearmLoop);
     if (warpReapplyLoop !== undefined) clearInterval(warpReapplyLoop);
     sampleReads();
-    const unread = ALARMS.filter((a) => !everRead.has(a.name)).map(
-      (a) => a.name,
-    );
+    const unread = SHADOW_ACCEPTANCE_ALARMS.filter(
+      (a) => !everRead.has(a.name),
+    ).map((a) => a.name);
     if (unread.length > 0) {
       write(`never read a value for: ${unread.join(", ")}`);
     }
@@ -407,7 +389,7 @@ export async function runShadowAcceptance(
           ? undefined
           : {
               count: options.laps,
-              alarms: ALARMS.map((a) => a.name),
+              alarms: SHADOW_ACCEPTANCE_ALARMS.map((a) => a.name),
               alarmOf: (fire) => nameOf.get(fire.id) ?? fire.id,
             },
     });
