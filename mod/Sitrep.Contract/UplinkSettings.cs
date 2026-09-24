@@ -1,17 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+#if SITREP_CODEGEN
+using Reinforced.Typings.Attributes;
+#endif
 
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// What an Uplink setting may hold.
+    /// What a setting may hold, the mod's own or an Uplink's.
     ///
     /// <para>The set is deliberately small and closed. A setting that needs
     /// more than these is a <see cref="Text"/> row that the Uplink checks when
     /// it reads it.</para>
     /// </summary>
-    public enum UplinkSettingKind
+#if SITREP_CODEGEN
+    [TsEnum]
+#endif
+    [SitrepContract]
+    public enum SettingKind
     {
         /// <summary>A single line of text. Also the fallback for anything the other kinds cannot express.</summary>
         Text = 0,
@@ -110,7 +117,7 @@ namespace Sitrep.Contract
         /// <summary>The name a block stores <see cref="IUplinkSettings.WrittenBy"/> under, reserved for it.</summary>
         public const string WrittenByName = "writtenBy";
 
-        public UplinkSettingRow(string name, UplinkSettingKind kind, string defaultText, string label)
+        public UplinkSettingRow(string name, SettingKind kind, string defaultText, string label)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Kind = kind;
@@ -119,18 +126,18 @@ namespace Sitrep.Contract
         }
 
         public static UplinkSettingRow Bool(string name, bool defaultValue, string label) =>
-            new UplinkSettingRow(name, UplinkSettingKind.Bool, defaultValue ? "True" : "False", label);
+            new UplinkSettingRow(name, SettingKind.Bool, defaultValue ? "True" : "False", label);
 
         public static UplinkSettingRow Number(string name, double defaultValue, string label) =>
             new UplinkSettingRow(
-                name, UplinkSettingKind.Number, defaultValue.ToString("R", CultureInfo.InvariantCulture), label);
+                name, SettingKind.Number, defaultValue.ToString("R", CultureInfo.InvariantCulture), label);
 
         public static UplinkSettingRow Text(string name, string defaultValue, string label) =>
-            new UplinkSettingRow(name, UplinkSettingKind.Text, defaultValue, label);
+            new UplinkSettingRow(name, SettingKind.Text, defaultValue, label);
 
         public string Name { get; }
 
-        public UplinkSettingKind Kind { get; }
+        public SettingKind Kind { get; }
 
         /// <summary>The value in force when the settings file holds none for this row.</summary>
         public string DefaultText { get; }
@@ -188,10 +195,10 @@ namespace Sitrep.Contract
         /// <summary>The value in force for a declared setting: the stored one, or the declared default.</summary>
         string? Text(string name);
 
-        /// <summary>The value in force for a declared <see cref="UplinkSettingKind.Bool"/> setting.</summary>
+        /// <summary>The value in force for a declared <see cref="SettingKind.Bool"/> setting.</summary>
         bool Bool(string name);
 
-        /// <summary>The value in force for a declared <see cref="UplinkSettingKind.Number"/> setting.</summary>
+        /// <summary>The value in force for a declared <see cref="SettingKind.Number"/> setting.</summary>
         double Number(string name);
 
         /// <summary>

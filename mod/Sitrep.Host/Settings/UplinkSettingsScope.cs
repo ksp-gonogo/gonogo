@@ -211,21 +211,11 @@ namespace Sitrep.Host.Settings
 
         private SettingsRow HostRow(UplinkSettingRow row)
         {
-            var path = PathOf(row.Name);
-            switch (row.Kind)
-            {
-                case UplinkSettingKind.Bool:
-                    return new SettingsRow(path, SettingsRowKind.Bool, row.DefaultText, row.Label);
-                case UplinkSettingKind.Number:
-                    return new SettingsRow(path, SettingsRowKind.Number, row.DefaultText, row.Label);
-                case UplinkSettingKind.Text:
-                    return new SettingsRow(path, SettingsRowKind.Text, row.DefaultText, row.Label);
-                default:
-                    // A kind from a newer contract than this host knows. A text row
-                    // is the vocabulary's stated fallback, and the Uplink checks the
-                    // value itself when it reads it.
-                    return new SettingsRow(path, SettingsRowKind.Text, row.DefaultText, row.Label);
-            }
+            // A kind from a newer contract than this host knows becomes a text
+            // row, the vocabulary's stated fallback, and the Uplink checks the
+            // value itself when it reads it.
+            var kind = Enum.IsDefined(typeof(SettingKind), row.Kind) ? row.Kind : SettingKind.Text;
+            return new SettingsRow(PathOf(row.Name), kind, row.DefaultText, row.Label);
         }
 
         private string? DefaultOf(string name)

@@ -1806,7 +1806,13 @@ namespace Sitrep.Contract
         /// been reporting as <see cref="RosterCommsControlSource.None"/>. Additive,
         /// nothing removed or retyped, so an Uplink built against 18.0 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Bumped 1 -&gt; 2:</b> the <c>settings.gonogo</c> channel and the
+        /// <c>settings.save</c> command (<see cref="SettingsModel"/>,
+        /// <see cref="SaveSettingsArgs"/>), with <see cref="SettingKind"/> now on the wire.
+        /// Additive, nothing removed or retyped, so an Uplink built against 18.1 is
+        /// unaffected.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

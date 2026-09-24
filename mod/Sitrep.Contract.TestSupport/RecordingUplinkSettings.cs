@@ -167,15 +167,15 @@ namespace Sitrep.Contract.TestSupport
             }
         }
 
-        internal static bool IsOfKind(UplinkSettingKind kind, string text)
+        internal static bool IsOfKind(SettingKind kind, string text)
         {
             switch (kind)
             {
-                case UplinkSettingKind.Bool:
+                case SettingKind.Bool:
                     return bool.TryParse(text, out _);
-                case UplinkSettingKind.Number:
+                case SettingKind.Number:
                     return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
-                case UplinkSettingKind.Text:
+                case SettingKind.Text:
                     return true;
                 default:
                     // A kind newer than this assembly knows reads as text, the

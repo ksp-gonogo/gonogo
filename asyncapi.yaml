@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.1.0
+  version: 18.2.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
-    channels a client subscribes to, and 54 commands it dispatches, with the payload
+    The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
+    channels a client subscribes to, and 55 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -185,6 +185,8 @@ info:
       description: 2 telemetry channels, 9 commands
     - name: science
       description: 6 telemetry channels, 2 commands
+    - name: settings
+      description: 1 telemetry channel, 1 command
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
@@ -2107,6 +2109,61 @@ channels:
         $ref: "#/components/messages/setVantage"
       error:
         $ref: "#/components/messages/error"
+  settings.gonogo:
+    address: settings.gonogo
+    description: |-
+      Carries a `SettingsModel`.
+
+      The `settings.gonogo` channel payload: every setting the mod and its Uplinks
+      declared, what each holds now, and whether the settings file on the KSP
+      machine holds the same.
+
+      **The whole model on one topic.** A client renders a control per row from
+      the row's own description, so a setting an Uplink adds needs no client code
+      of its own.
+
+      **TrueNow.** A setting configures the system the operator is sitting at, not
+      a craft, so there is no vantage from which it is not yet known.
+
+      **The authority for "did it save".** A save command can time out and still
+      land, so a client reads the outcome of a save here, never from the command's
+      reply.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.settings.gonogo"
+      event:
+        $ref: "#/components/messages/event"
+  settings.save:
+    address: settings.save
+    description: |-
+      Takes `SaveSettingsArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Arguments to `settings.save`: one SAVE press, applied together and written
+      to the settings file once.
+
+      **Safe to send again.** A save sets each row to the value named, so
+      repeating one that already landed changes nothing. That matters because a
+      save that times out may still land.
+
+      Refused, with nothing changed, when any row is not declared or any value is
+      not one its row can hold. A save that changes the values but cannot write
+      the file is NOT refused: the values are in force, and `settings.gonogo`'s
+      `SettingsModel.persistence` says the file was not written.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.settings.save"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.settings.save"
   spaceCenter.astronautComplex:
     address: spaceCenter.astronautComplex
     description: |-
@@ -4054,6 +4111,20 @@ operations:
         $ref: "#/channels/science.experiment.transmit"
       messages:
         - $ref: "#/channels/science.experiment.transmit/messages/commandResponse"
+  dispatch:settings.save:
+    action: send
+    channel:
+      $ref: "#/channels/settings.save"
+    title: Dispatch settings.save
+    tags:
+      - name: settings
+    messages:
+      - $ref: "#/channels/settings.save/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/settings.save"
+      messages:
+        - $ref: "#/channels/settings.save/messages/commandResponse"
   dispatch:system.bodies.statesAt:
     action: send
     channel:
@@ -4888,6 +4959,17 @@ operations:
     messages:
       - $ref: "#/channels/science.sensors/messages/streamData"
       - $ref: "#/channels/science.sensors/messages/event"
+  read:settings.gonogo:
+    action: receive
+    channel:
+      $ref: "#/channels/settings.gonogo"
+    title: Read settings.gonogo
+    description: Delivered only after `subscribe` names `settings.gonogo` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: settings
+    messages:
+      - $ref: "#/channels/settings.gonogo/messages/streamData"
+      - $ref: "#/channels/settings.gonogo/messages/event"
   read:spaceCenter.astronautComplex:
     action: receive
     channel:
@@ -5713,6 +5795,21 @@ components:
                 const: science.experiment.transmit
               args:
                 $ref: "#/components/schemas/ExperimentActionArgs"
+    commandRequest.settings.save:
+      name: command-request
+      title: Dispatch settings.save
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `settings.save`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: settings.save
+              args:
+                $ref: "#/components/schemas/SaveSettingsArgs"
     commandRequest.system.bodies.statesAt:
       name: command-request
       title: Dispatch system.bodies.statesAt
@@ -6460,6 +6557,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `science.experiment.transmit`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.settings.save:
+      name: command-response
+      title: Reply to settings.save
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `settings.save`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -7450,6 +7560,19 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/SensorEntry"
+    streamData.settings.gonogo:
+      name: stream-data
+      title: A frame on settings.gonogo
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `settings.gonogo`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: settings.gonogo
+              payload:
+                $ref: "#/components/schemas/SettingsModel"
     streamData.spaceCenter.astronautComplex:
       name: stream-data
       title: A frame on spaceCenter.astronautComplex
@@ -15275,6 +15398,27 @@ components:
           title: Maneuver
         - const: 10
           title: Unknown
+    SaveSettingsArgs:
+      type: object
+      description: |-
+        Arguments to `settings.save`: one SAVE press, applied together and written
+        to the settings file once.
+
+        **Safe to send again.** A save sets each row to the value named, so
+        repeating one that already landed changes nothing. That matters because a
+        save that times out may still land.
+
+        Refused, with nothing changed, when any row is not declared or any value is
+        not one its row can hold. A save that changes the values but cannot write
+        the file is NOT refused: the values are in force, and `settings.gonogo`'s
+        `SettingsModel.persistence` says the file was not written.
+      required:
+        - changes
+      properties:
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SettingsChange"
     SavedShipEntry:
       type: object
       description: |-
@@ -16336,6 +16480,209 @@ components:
         index:
           type: number
           x-sitrep-unit: id
+    SettingKind:
+      type: integer
+      description: |-
+        What a setting may hold, the mod's own or an Uplink's.
+
+        The set is deliberately small and closed. A setting that needs more than
+        these is a `SettingKind.Text` row that the Uplink checks when it reads it.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Text
+          description: |-
+            A single line of text. Also the fallback for anything the other kinds cannot
+            express.
+        - const: 1
+          title: Bool
+          description: True or false.
+        - const: 2
+          title: Number
+          description: |-
+            A number, written with a full stop for the decimal point whatever the
+            player's locale.
+    SettingsChange:
+      type: object
+      description: One row's new value in a `SaveSettingsArgs`.
+      required:
+        - path
+        - value
+      properties:
+        path:
+          type: string
+          x-sitrep-unit: id
+          description: The row, as `SettingsRowState.path` names it.
+        value:
+          type: string
+          x-sitrep-unit: text
+          description: The new value, spelled as `SettingsRowState.value` is.
+    SettingsDeclarationFailure:
+      type: object
+      description: An Uplink whose settings could not be declared this session.
+      required:
+        - uplinkId
+        - reason
+      properties:
+        uplinkId:
+          type: string
+          x-sitrep-unit: id
+        reason:
+          type: string
+          x-sitrep-unit: text
+          description: Why, for an operator to read.
+    SettingsModel:
+      type: object
+      description: |-
+        The `settings.gonogo` channel payload: every setting the mod and its Uplinks
+        declared, what each holds now, and whether the settings file on the KSP
+        machine holds the same.
+
+        **The whole model on one topic.** A client renders a control per row from
+        the row's own description, so a setting an Uplink adds needs no client code
+        of its own.
+
+        **TrueNow.** A setting configures the system the operator is sitting at, not
+        a craft, so there is no vantage from which it is not yet known.
+
+        **The authority for "did it save".** A save command can time out and still
+        land, so a client reads the outcome of a save here, never from the command's
+        reply.
+      required:
+        - rows
+        - persistence
+        - undeclared
+        - meta
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/SettingsRowState"
+          description: |-
+            Every declared setting, in declaration order: the mod's own first, then each
+            Uplink's.
+        persistence:
+          description: Whether the values here are the ones the settings file holds.
+          allOf:
+            - $ref: "#/components/schemas/SettingsPersistence"
+        undeclared:
+          type: array
+          items:
+            $ref: "#/components/schemas/SettingsDeclarationFailure"
+          description: |-
+            Uplinks that are running but whose settings could not be declared this
+            session. Their settings are at their defaults and are not listed in
+            `SettingsModel.rows`; what the file holds for them is kept as it is.
+        meta:
+          $ref: "#/components/schemas/PayloadMeta"
+    SettingsPersistence:
+      type: object
+      description: Whether the settings file holds what is in force.
+      required:
+        - state
+        - path
+      properties:
+        state:
+          $ref: "#/components/schemas/SettingsPersistenceState"
+          x-sitrep-unit: enum
+        path:
+          type: string
+          x-sitrep-unit: text
+          description: The settings file on the KSP machine.
+        savedAtUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The instant of the last save that wrote the file, or null when none has this
+            session.
+        reason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            Why the file could not be written or read, for an operator to read. Null
+            when nothing went wrong.
+    SettingsPersistenceState:
+      type: integer
+      description: Where the settings in force stand against the settings file.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Saved
+          description: |-
+            The file holds these values: it was read at start-up, or the last save wrote
+            it.
+        - const: 1
+          title: MemoryOnly
+          description: |-
+            The last save could not write the file. The values are in force for this
+            session only and revert when KSP restarts; `SettingsPersistence.reason` says
+            why.
+        - const: 2
+          title: Recovered
+          description: |-
+            The file was missing, empty or damaged at start-up, and its backup was read
+            instead. Anything saved after that backup was taken is lost. Clears at the
+            next successful save.
+        - const: 3
+          title: Defaults
+          description: |-
+            No settings file exists yet: a first run, every setting at its default until
+            the first save.
+        - const: 4
+          title: Unreadable
+          description: |-
+            A settings file exists but neither it nor a backup could be read, so every
+            setting is at its default. Clears at the next successful save, which
+            replaces the unreadable file.
+    SettingsRowState:
+      type: object
+      description: |-
+        One declared setting, described well enough for a client to draw its
+        control.
+      required:
+        - path
+        - owner
+        - kind
+        - label
+        - value
+        - default
+      properties:
+        path:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Where the setting lives, as blocks and a name separated by `/`:
+            `SIGNAL_DELAY/enabled`, or `Uplinks/<id>/<name>` for an Uplink's own. This
+            is the path a save names.
+        owner:
+          type: string
+          x-sitrep-unit: id
+          description: "Who declared it: `\"gonogo\"` for the mod itself, or the Uplink's id."
+        kind:
+          description: What the value may be, and so which control draws it.
+          allOf:
+            - $ref: "#/components/schemas/SettingKind"
+              x-sitrep-unit: enum
+        label:
+          type: string
+          x-sitrep-unit: text
+          description: What an operator reads beside the control. May be empty.
+        value:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            The value in force, as text: `True` or `False` for a `SettingKind.Bool`, a
+            number written with a full stop for a `SettingKind.Number`.
+        default:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            The value in force when the settings file holds none for this row, in the
+            same spelling as `SettingsRowState.value`.
     Situation:
       type: integer
       description: |-

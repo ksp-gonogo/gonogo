@@ -3,14 +3,6 @@ using Sitrep.Contract;
 
 namespace Sitrep.Host.Settings
 {
-    /// <summary>What a row's text is allowed to say.</summary>
-    public enum SettingsRowKind
-    {
-        Text = 0,
-        Bool = 1,
-        Number = 2,
-    }
-
     /// <summary>
     /// A declared settings row: where it lives, what it may hold, and the value
     /// in force when the file does not mention it.
@@ -22,7 +14,7 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public sealed class SettingsRow
     {
-        public SettingsRow(string path, SettingsRowKind kind, string defaultText, string? label = null)
+        public SettingsRow(string path, SettingKind kind, string defaultText, string? label = null)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -48,17 +40,17 @@ namespace Sitrep.Host.Settings
         }
 
         public static SettingsRow Bool(string path, bool defaultValue, string? label = null) =>
-            new SettingsRow(path, SettingsRowKind.Bool, SettingsText.FromBool(defaultValue), label);
+            new SettingsRow(path, SettingKind.Bool, SettingsText.FromBool(defaultValue), label);
 
         public static SettingsRow Number(string path, double defaultValue, string? label = null) =>
-            new SettingsRow(path, SettingsRowKind.Number, SettingsText.FromNumber(defaultValue), label);
+            new SettingsRow(path, SettingKind.Number, SettingsText.FromNumber(defaultValue), label);
 
         public static SettingsRow Text(string path, string defaultValue, string? label = null) =>
-            new SettingsRow(path, SettingsRowKind.Text, defaultValue, label);
+            new SettingsRow(path, SettingKind.Text, defaultValue, label);
 
         public string Path { get; }
 
-        public SettingsRowKind Kind { get; }
+        public SettingKind Kind { get; }
 
         public string DefaultText { get; }
 
@@ -83,13 +75,13 @@ namespace Sitrep.Host.Settings
 
                 switch (Kind)
                 {
-                    case SettingsRowKind.Bool:
+                    case SettingKind.Bool:
                         parts.Add("True or False, default " + DefaultText);
                         break;
-                    case SettingsRowKind.Number:
+                    case SettingKind.Number:
                         parts.Add("A number, default " + DefaultText);
                         break;
-                    case SettingsRowKind.Text:
+                    case SettingKind.Text:
                         if (parts.Count > 0 && DefaultText.Length > 0)
                         {
                             parts.Add("Default " + DefaultText);
@@ -108,9 +100,9 @@ namespace Sitrep.Host.Settings
         {
             switch (Kind)
             {
-                case SettingsRowKind.Bool:
+                case SettingKind.Bool:
                     return SettingsText.ToBool(text) != null;
-                case SettingsRowKind.Number:
+                case SettingKind.Number:
                     return SettingsText.ToNumber(text) != null;
                 default:
                     return text != null;

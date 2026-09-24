@@ -4,6 +4,7 @@
     "trueNow": [
       "comms.dataRate",
       "comms.linkMargin",
+      "settings.gonogo",
       "system.channels",
       "system.units",
       "system.uplink.gates",
