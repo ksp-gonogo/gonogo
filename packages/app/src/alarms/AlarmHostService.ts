@@ -304,7 +304,16 @@ export class AlarmHostService {
         this.scetArmRefusals.size > 0
           ? Object.fromEntries(this.scetArmRefusals)
           : undefined,
+      scetUnreachable: this.unreachableHeld(),
     };
+  }
+
+  /** The alarms of this list the simulation holds as unreachable, or undefined for none. */
+  private unreachableHeld(): string[] | undefined {
+    const ids = this.scetBridge
+      .unreachableIds()
+      .filter((id) => this.alarms.some((a) => a.id === id));
+    return ids.length > 0 ? ids : undefined;
   }
 
   subscribe(cb: SnapshotListener): () => void {

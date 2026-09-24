@@ -10,6 +10,7 @@ import {
   type ScetAlarmAction,
   ScetAlarmActionKind,
   ScetAlarmConditionKind,
+  ScetAlarmState,
   ScetAlarmThresholdOp,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -145,6 +146,8 @@ export class ScetAlarmBridge {
   private rosterIds: readonly string[] = [];
   /** The ids the mod last said it holds onboard actions for. */
   private rosterActing: ReadonlySet<string> = new Set();
+  /** The ids the mod last said can never come due, because their craft is gone. */
+  private rosterUnreachable: ReadonlySet<string> = new Set();
   private rosterSeen = false;
   /**
    * Ids already commanded since the last roster frame, so a reconcile running
@@ -236,6 +239,11 @@ export class ScetAlarmBridge {
    */
   actsAboard(id: string): boolean {
     return this.rosterActing.has(id);
+  }
+
+  /** The ids the mod holds as unreachable, off its roster. */
+  unreachableIds(): readonly string[] {
+    return [...this.rosterUnreachable];
   }
 
   /**
@@ -478,6 +486,7 @@ export class ScetAlarmBridge {
     this.unsubscribeRoster = client.subscribe(SCET_ROSTER_TOPIC, (payload) => {
       this.rosterIds = readRosterIds(payload);
       this.rosterActing = readActingIds(payload);
+      this.rosterUnreachable = readUnreachableIds(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
       this.reconcile();
@@ -509,6 +518,7 @@ export class ScetAlarmBridge {
     this.unsubscribeFired = null;
     this.rosterIds = [];
     this.rosterActing = new Set();
+    this.rosterUnreachable = new Set();
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
     /* A new connection is a new simulation to ask, so every debt is due now. */
@@ -581,6 +591,25 @@ function aboard(
     onFire.push(action);
   }
   return { onFire, actsOn };
+}
+
+/** The ids of the roster rows whose craft is gone, so they can never come due. */
+function readUnreachableIds(payload: unknown): ReadonlySet<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(payload)) return ids;
+  for (const row of payload) {
+    const id = readId(row);
+    if (
+      id !== null &&
+      typeof row === "object" &&
+      row !== null &&
+      "state" in row &&
+      row.state === ScetAlarmState.Unreachable
+    ) {
+      ids.add(id);
+    }
+  }
+  return ids;
 }
 
 /** The ids of the roster rows that hold onboard actions. */
