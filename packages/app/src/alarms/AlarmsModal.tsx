@@ -229,8 +229,7 @@ export function AlarmsModal({
    *
    * A UT alarm fires at the time itself, the same instant at every vantage,
    * and names no craft, so there is no clock to pick between and the control
-   * is greyed out rather than offering a choice that changes nothing. A
-   * threshold is the opposite case: a value crosses at one instant
+   * is not rendered at all. A threshold is the opposite case: a value crosses at one instant
    * aboard the craft and at a later one wherever the news reaches, so which
    * vantage is watching is the whole question.
    */
@@ -425,65 +424,58 @@ export function AlarmsModal({
         {/* The threshold arm's question, and only its own: a value crosses at
             one instant aboard the craft and at a later one wherever the news
             reaches, so which vantage is watching decides when the alarm comes
-            due. A UT alarm has no such gap, so the control is greyed for it. */}
-        <Field>
-          <FieldLabel as="span" id="alarm-vantage-label">
-            Fires on
-          </FieldLabel>
-          <KindRow role="radiogroup" aria-labelledby="alarm-vantage-label">
-            {VANTAGE_OPTIONS.map((option) => (
-              <KindButton
-                key={option.vantage}
-                type="button"
-                role="radio"
-                disabled={!vantageApplies}
-                /* Neither option reads as chosen while the control is
-                   inapplicable. A greyed control still showing a selection
-                   would say the alarm is armed on that clock, and a UT alarm
-                   is armed on no clock but the game's own. */
-                aria-checked={vantageApplies && vantage === option.vantage}
-                tabIndex={vantageApplies && vantage === option.vantage ? 0 : -1}
-                $active={vantageApplies && vantage === option.vantage}
-                onClick={() => setVantage(option.vantage)}
-                onKeyDown={(e) => {
-                  const step =
-                    e.key === "ArrowRight" || e.key === "ArrowDown"
-                      ? 1
-                      : e.key === "ArrowLeft" || e.key === "ArrowUp"
-                        ? -1
-                        : 0;
-                  if (step === 0) return;
-                  e.preventDefault();
-                  const index = VANTAGE_OPTIONS.findIndex(
-                    (o) => o.vantage === vantage,
-                  );
-                  const next =
-                    (index + step + VANTAGE_OPTIONS.length) %
-                    VANTAGE_OPTIONS.length;
-                  setVantage(VANTAGE_OPTIONS[next].vantage);
-                }}
-              >
-                {option.label}
-              </KindButton>
-            ))}
-          </KindRow>
-          <FieldHint>
-            {!vantageApplies
-              ? "A universal time is the same instant everywhere, so a UT alarm fires at the time itself and names no craft."
-              : vantage === "scet"
-                ? "Armed on the craft's clock. The mod stops the warp for everybody when it comes due, and your readings stay a light-time behind."
-                : "Armed on the clock you are reading. The craft passed the moment one light-time earlier."}
-          </FieldHint>
-          {/* The reading, not a ruling: the alarm is for whenever it comes due,
-              and the craft may be much further out by then. */}
-          {vantageApplies && clocksReadAlike && (
+            due. A UT alarm has no such gap, so it gets no control. */}
+        {vantageApplies && (
+          <Field>
+            <FieldLabel as="span" id="alarm-vantage-label">
+              Fires on
+            </FieldLabel>
+            <KindRow role="radiogroup" aria-labelledby="alarm-vantage-label">
+              {VANTAGE_OPTIONS.map((option) => (
+                <KindButton
+                  key={option.vantage}
+                  type="button"
+                  role="radio"
+                  aria-checked={vantage === option.vantage}
+                  tabIndex={vantage === option.vantage ? 0 : -1}
+                  $active={vantage === option.vantage}
+                  onClick={() => setVantage(option.vantage)}
+                  onKeyDown={(e) => {
+                    const step =
+                      e.key === "ArrowRight" || e.key === "ArrowDown"
+                        ? 1
+                        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+                          ? -1
+                          : 0;
+                    if (step === 0) return;
+                    e.preventDefault();
+                    const index = VANTAGE_OPTIONS.findIndex(
+                      (o) => o.vantage === vantage,
+                    );
+                    const next =
+                      (index + step + VANTAGE_OPTIONS.length) %
+                      VANTAGE_OPTIONS.length;
+                    setVantage(VANTAGE_OPTIONS[next].vantage);
+                  }}
+                >
+                  {option.label}
+                </KindButton>
+              ))}
+            </KindRow>
             <FieldHint>
-              Both clocks read the same right now, so either choice arms the
-              same instant today. SCET is the one that stays right as the craft
-              gets further out.
+              Received locally, or as the active vessel receives telemetry.
             </FieldHint>
-          )}
-        </Field>
+            {/* The reading, not a ruling: the alarm is for whenever it comes due,
+              and the craft may be much further out by then. */}
+            {clocksReadAlike && (
+              <FieldHint>
+                Both clocks read the same right now, so either choice arms the
+                same instant today. SCET is the one that stays right as the
+                craft gets further out.
+              </FieldHint>
+            )}
+          </Field>
+        )}
 
         {kind === "time" ? (
           <SideBySide>
@@ -541,11 +533,7 @@ export function AlarmsModal({
                 placeholder="Search telemetry..."
                 clearable
               />
-              <FieldHint>
-                Any telemetry key that returns a number, e.g.{" "}
-                <code>vessel.flight.altitudeAsl</code>,{" "}
-                <code>vessel.flight.verticalSpeed</code>.
-              </FieldHint>
+              <FieldHint>Any telemetry value that returns a number.</FieldHint>
               {vantage === "scet" && trimmedKey !== "" && !scetAddressable && (
                 <FieldHint>
                   <code>{trimmedKey}</code> has no Topic behind it, so there is
@@ -832,7 +820,7 @@ interface PresetSpec {
  * Quick-alarm presets backed only by telemetry the app already subscribes to
  * (`vessel.state.timeToAp` / `timeToPe`, `vessel.maneuver`). Each preset
  * appears only when its data is live and still yields a future trigger;
- * clicking it creates a notify-only time alarm via the same `onAdd` path the
+ * clicking it creates a time alarm with no actions via the same `onAdd` path the
  * manual form uses.
  *
  * They are labelled "Alarm at ...", which is what they do. They said "Warp
@@ -1286,7 +1274,7 @@ function OnFireEditor({
       </PickerRow>
       <FieldHint>
         Each attached action runs in order when the alarm fires. Leave empty for
-        a notify-only alarm.
+        a notify and cancel warp alarm.
       </FieldHint>
       <FieldHint>
         {aboard
@@ -1313,7 +1301,7 @@ const Wrap = styled.div`
  */
 const KIND_OPTIONS: readonly { kind: DraftKind; label: string }[] = [
   { kind: "time", label: "At UT" },
-  { kind: "threshold", label: "When telemetry..." },
+  { kind: "threshold", label: "At telemetry" },
 ];
 
 /**

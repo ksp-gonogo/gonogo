@@ -110,7 +110,7 @@ async function renderAlarms(payload: AlarmsProbePayload): Promise<void> {
     const buttons = Array.from(
       kindRow?.querySelectorAll('[role="radio"]') ?? [],
     ) as HTMLElement[];
-    /* Second option is the threshold arm ("When telemetry..."), matched by
+    /* Second option is the threshold arm ("At telemetry"), matched by
        position rather than by copy so a wording change does not silently render
        the wrong state. */
     buttons[1]?.click();

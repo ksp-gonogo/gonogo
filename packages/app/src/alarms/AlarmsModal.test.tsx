@@ -632,7 +632,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
       />,
     );
 
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(getDataKeyCombobox());
 
     const options = await screen.findAllByRole("option");
@@ -655,7 +655,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
 
     await user.type(screen.getByLabelText(/^name$/i), "Crossed 70 km");
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(getDataKeyCombobox());
     // Names the subject rather than taking the first match on "altitude": the
     // catalogue offers several, and a test that picks whichever sorts first is
@@ -695,7 +695,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
 
     await user.type(screen.getByLabelText(/^name$/i), "Above 100 km");
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(screen.getByRole("radio", { name: /^scet$/i }));
     await user.click(getDataKeyCombobox());
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
@@ -993,28 +993,26 @@ describe("AlarmsModal vantage choice", () => {
          `useTimeContexts` drops every qualifier. */
       0,
     );
+  }
+
+  /** The vantage control, which only the threshold arm renders. */
+  async function thresholdVantage(
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<HTMLElement> {
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     return screen.getByRole("radiogroup", { name: /fires on/i });
   }
 
   /**
    * A universal time is the same instant at every vantage and names no craft,
-   * so a UT alarm has no clock to pick between. The control is greyed rather
-   * than removed, because an operator arriving from the threshold arm needs
-   * to see that the question they just answered does not apply here.
+   * so a UT alarm has no clock to pick between and gets no control for one.
    */
-  it("greys the vantage control out for a UT alarm and shows neither option chosen", () => {
-    const group = renderModal();
-    const [received, scet] = within(group).getAllByRole("radio");
+  it("renders no vantage control for a UT alarm", () => {
+    renderModal();
 
-    expect(received).toBeDisabled();
-    expect(scet).toBeDisabled();
-    // Neither reads as the live choice: a greyed control still showing one
-    // would claim the alarm is armed on that clock.
-    expect(received).toHaveAttribute("aria-checked", "false");
-    expect(scet).toHaveAttribute("aria-checked", "false");
     expect(
-      screen.getByText(/universal time is the same instant everywhere/i),
-    ).toBeInTheDocument();
+      screen.queryByRole("radiogroup", { name: /fires on/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("arms a UT alarm with no vantage at all", async () => {
@@ -1035,12 +1033,30 @@ describe("AlarmsModal vantage choice", () => {
     expect(trigger).not.toHaveProperty("vantage");
   });
 
+  it("says what each control does in the operator's own words", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    expect(
+      screen.getByText(/notify and cancel warp alarm/i),
+    ).toBeInTheDocument();
+    await thresholdVantage(user);
+    expect(
+      screen.getByText(
+        "Received locally, or as the active vessel receives telemetry.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Any telemetry value that returns a number."),
+    ).toBeInTheDocument();
+  });
+
   it("moves the vantage selection with arrow keys and keeps one tab stop", async () => {
     const user = userEvent.setup();
-    const group = renderModal();
+    renderModal();
     // The threshold arm, where the choice means something: a value crosses at
     // one instant aboard the craft and at a later one wherever the news reaches.
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    const group = await thresholdVantage(user);
     const [received, scet] = within(group).getAllByRole("radio");
 
     expect(received).toHaveAttribute("aria-checked", "true");
@@ -1058,8 +1074,9 @@ describe("AlarmsModal vantage choice", () => {
     expect(received).toHaveAttribute("aria-checked", "true");
   });
 
-  it("has no accessibility violations with the vantage radio always rendered", async () => {
-    const group = renderModal();
+  it("has no accessibility violations with the vantage radio rendered", async () => {
+    renderModal();
+    const group = await thresholdVantage(userEvent.setup());
     await expectNoA11yViolations(group.parentElement as HTMLElement);
   });
 });
