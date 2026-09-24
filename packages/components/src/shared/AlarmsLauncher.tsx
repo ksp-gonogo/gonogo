@@ -16,8 +16,11 @@ import { createContext, type ReactNode, useContext } from "react";
 export interface AlarmsLauncherOptions {
   /** Pre-fills the alarm name. Optional. */
   name?: string;
-  /** Legacy action key, e.g. `f.ag1`, `f.stage`, `f.abort`. */
-  action: string;
+  /**
+   * Legacy action key, e.g. `f.ag1`, `f.stage`, `f.abort`. Absent opens the
+   * modal with no on-fire action pre-filled.
+   */
+  action?: string;
 }
 
 export type AlarmsLauncher = (opts: AlarmsLauncherOptions) => void;
@@ -91,10 +94,26 @@ export interface AlarmManagerLookup {
 
 const ManagerContext = createContext<AlarmManagerLookup | null>(null);
 
+/**
+ * An alarm that has yet to fire, as a widget outside the alarm pipeline sees
+ * it: enough to name it and, when it has one, count down to it.
+ */
+export interface PendingAlarmSummary {
+  id: string;
+  name: string;
+  /** The UT a time alarm fires at, or null for a trigger with no instant (a threshold, a contract, an event). */
+  ut: number | null;
+}
+
+const PendingContext = createContext<readonly PendingAlarmSummary[] | null>(
+  null,
+);
+
 export function AlarmsLauncherProvider({
   launcher,
   creator,
   manager,
+  pending,
   children,
 }: {
   launcher: AlarmsLauncher;
@@ -109,13 +128,21 @@ export function AlarmsLauncherProvider({
    * bell state and toggle the alarm off without re-opening the modal.
    */
   manager?: AlarmManagerLookup;
+  /**
+   * Every alarm yet to fire, soonest first, with the ones that have no instant
+   * after every one that does. Omitted means this tree has no alarm pipeline
+   * to ask, which is a different answer from an empty list.
+   */
+  pending?: readonly PendingAlarmSummary[];
   children: ReactNode;
 }) {
   return (
     <Context.Provider value={launcher}>
       <CreatorContext.Provider value={creator ?? null}>
         <ManagerContext.Provider value={manager ?? null}>
-          {children}
+          <PendingContext.Provider value={pending ?? null}>
+            {children}
+          </PendingContext.Provider>
         </ManagerContext.Provider>
       </CreatorContext.Provider>
     </Context.Provider>
@@ -124,6 +151,15 @@ export function AlarmsLauncherProvider({
 
 export function useAlarmManager(): AlarmManagerLookup | null {
   return useContext(ManagerContext);
+}
+
+/**
+ * The alarms yet to fire, soonest first, or `null` when no alarm pipeline is
+ * mounted. An empty list is a positive answer: the pipeline is there and
+ * nothing is set.
+ */
+export function usePendingAlarms(): readonly PendingAlarmSummary[] | null {
+  return useContext(PendingContext);
 }
 
 /**

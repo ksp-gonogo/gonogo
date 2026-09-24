@@ -40,6 +40,7 @@ if (!config) throw new Error("warp-control missing from widgets.ts");
 describe("WarpControl DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {
     for (const mode of config.modes) {
+      if (mode.forFixtures && !mode.forFixtures.includes(name)) continue;
       it(`${name} @ ${mode.name}`, async () => {
         const html = await snapshotWidgetMode({
           Widget: WarpControlComponent,

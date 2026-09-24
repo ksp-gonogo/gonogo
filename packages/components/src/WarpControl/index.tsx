@@ -1,4 +1,8 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  ConfigComponentProps,
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   defineTopicManifest,
@@ -10,18 +14,31 @@ import {
   META_VANTAGE,
   type TopicReading,
   useCommand,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
+import { type CommsDelay, value } from "@ksp-gonogo/sitrep-sdk";
 import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
 import {
+  BellIcon,
+  Button,
+  Cluster,
+  ConfigForm,
+  Countdown,
+  Field,
+  FieldHint,
   NULL_DISPLAY,
   Panel,
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
   Section,
+  Switch,
+  Truncate,
+  Unit,
+  useModalSaveBar,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 /*
  * One block left: `WarpButton` carries a `:focus-visible` ring, which inline
  * style cannot express and which a control must have.
@@ -34,16 +51,23 @@ import { useEffect, useState } from "react";
  * minmax(28px, 1fr) column.
  */
 import styled from "styled-components";
+import {
+  type PendingAlarmSummary,
+  useAlarmsLauncher,
+  usePendingAlarms,
+} from "../shared/AlarmsLauncher";
 import { magnitudeOf } from "../shared/magnitude";
 import { useWarpIntent } from "../shared/WarpIntent";
 
 const topics = defineTopicManifest({
   channels: ["time.warp"],
+  optionalChannels: ["comms.delay"],
   fields: [
     "time.warp.warpRate",
     "time.warp.warpRateIndex",
     "time.warp.warpMode",
     "time.warp.paused",
+    "comms.delay.oneWaySeconds",
   ],
 });
 
@@ -62,7 +86,37 @@ const topics = defineTopicManifest({
  * 8×1 / 4×2 / 2×4 / 1×8 depending on body shape.
  */
 
-type WarpControlConfig = Record<string, never>;
+interface WarpControlConfig {
+  /**
+   * Hold warp at its current rate or below, in flight, while the craft is more
+   * than {@link ALARM_REQUIRED_ABOVE_SECONDS} from its command and no alarm is
+   * set. Absent reads as on.
+   */
+  requireAlarmUnderDelay?: boolean;
+}
+
+/** The command's one-way delay to the craft above which warping up needs an alarm set, seconds. */
+const ALARM_REQUIRED_ABOVE_SECONDS = 5;
+
+/**
+ * Whether the command's delay to the craft is high enough that warping up
+ * needs an alarm set: `"delay"` above the threshold, `"no-path"` for a craft
+ * with no path home, null otherwise.
+ *
+ * No path is the far end of the same condition rather than an exemption from
+ * it: nothing sent from command reaches the craft at all. A delay that has not
+ * arrived answers null, because not knowing the delay is not the same claim as
+ * the delay being high.
+ */
+export function delayRequiringAlarm(
+  delay: Pick<CommsDelay, "oneWaySeconds"> | undefined,
+): "delay" | "no-path" | null {
+  if (delay === undefined) return null;
+  if (delay.oneWaySeconds === null) return "no-path";
+  const seconds = magnitudeOf(delay.oneWaySeconds);
+  if (seconds === null || seconds <= ALARM_REQUIRED_ABOVE_SECONDS) return null;
+  return "delay";
+}
 
 // Declaration-merge this widget's slot ids → props type into core's
 // `SlotRegistry` (Uplink architecture, declaration-merging base). Both
@@ -142,6 +196,7 @@ function stillTrue<T, A>(
 }
 
 function WarpControlComponent({
+  config,
   w,
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
@@ -212,6 +267,23 @@ function WarpControlComponent({
       : null;
   const currentRate = magnitudeOf(rate);
 
+  const pending = usePendingAlarms();
+  const openAlarms = useAlarmsLauncher();
+  const delayReading = topics.useTelemetry("comms.delay");
+  const blockingDelay = delayRequiringAlarm(stillTrue(delayReading, undefined));
+  /*
+   * Only in flight, where there is a craft for command to be delayed to, and
+   * only with an alarm pipeline to satisfy it from: a tree with none has no
+   * way to set the alarm the gate would ask for.
+   */
+  const alarmRequired =
+    config?.requireAlarmUnderDelay !== false &&
+    scene === "Flight" &&
+    pending !== null &&
+    pending.length === 0 &&
+    blockingDelay !== null;
+  const nextAlarm = pending?.[0] ?? null;
+
   const setWarp = (idx: number) => {
     /*
      * Before the command, so the watcher has heard of it by the time the
@@ -235,6 +307,7 @@ function WarpControlComponent({
   useActionInput<WarpControlActions>({
     stepUp: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
+      if (alarmRequired) return undefined;
       const next = Math.min(HIGH_LEVELS.length - 1, (currentIndex ?? 0) + 1);
       setWarp(next);
       return { Warp: HIGH_LEVELS[next]?.label ?? `${next}` };
@@ -350,6 +423,7 @@ function WarpControlComponent({
                         type="button"
                         $active={active}
                         aria-pressed={active}
+                        disabled={alarmRequired && lvl.index > idx}
                         onClick={() => setWarp(lvl.index)}
                       >
                         {lvl.label}
@@ -387,7 +461,7 @@ function WarpControlComponent({
                   <WarpButton
                     type="button"
                     $active={false}
-                    disabled={idx === HIGH_LEVELS.length - 1}
+                    disabled={alarmRequired || idx === HIGH_LEVELS.length - 1}
                     onClick={() => setWarp(upIdx)}
                     aria-label="Warp up"
                   >
@@ -401,11 +475,90 @@ function WarpControlComponent({
               Empty (renders nothing) until an augment binds
               `warp-control.stepper`. */}
               <AugmentSlot name="warp-control.stepper" props={{}} />
+
+              {alarmRequired ? (
+                <Cluster justify="center" wrap style={FOOT_ROW_STYLE}>
+                  <Button type="button" onClick={() => openAlarms?.({})}>
+                    Set alarm to warp
+                  </Button>
+                  <ReadoutCaption>
+                    {blockingDelay === "no-path" ? (
+                      "No path"
+                    ) : (
+                      <>
+                        <Unit value={delayReading.oneWaySeconds} /> delay
+                      </>
+                    )}
+                  </ReadoutCaption>
+                </Cluster>
+              ) : (
+                nextAlarm !== null && <NextAlarm alarm={nextAlarm} />
+              )}
             </div>
           </DimmedOverlay>
         </Section>
       }
     />
+  );
+}
+
+/** The soonest alarm yet to fire, the thing that ends a warp without anyone touching it. */
+function NextAlarm({ alarm }: Readonly<{ alarm: PendingAlarmSummary }>) {
+  const viewUt = useViewUt();
+  const remaining =
+    alarm.ut === null || viewUt === undefined
+      ? null
+      : value("ut", alarm.ut).minus(viewUt);
+  return (
+    <Cluster
+      justify="center"
+      wrap
+      style={FOOT_ROW_STYLE}
+      aria-label="Next alarm"
+    >
+      <Cluster justify="center">
+        <BellIcon size={12} aria-hidden="true" />
+        <Truncate style={ALARM_NAME_STYLE}>{alarm.name}</Truncate>
+      </Cluster>
+      {remaining !== null && (
+        <ReadoutCaption>
+          <Countdown value={remaining} clock />
+        </ReadoutCaption>
+      )}
+    </Cluster>
+  );
+}
+
+function WarpControlConfigComponent({
+  config,
+  onSave,
+}: Readonly<ConfigComponentProps<WarpControlConfig>>) {
+  const [requireAlarm, setRequireAlarm] = useState(
+    config?.requireAlarmUnderDelay !== false,
+  );
+  const candidate = useMemo<WarpControlConfig>(
+    () => ({ requireAlarmUnderDelay: requireAlarm }),
+    [requireAlarm],
+  );
+  useModalSaveBar({
+    onSave: () => onSave(candidate),
+    value: candidate,
+    saved: config ?? {},
+  });
+  return (
+    <ConfigForm>
+      <Field>
+        <Switch
+          checked={requireAlarm}
+          onChange={setRequireAlarm}
+          label="Require an alarm to warp under delay"
+        />
+        <FieldHint>
+          Above <Unit value={value("s", ALARM_REQUIRED_ABOVE_SECONDS)} /> to
+          command
+        </FieldHint>
+      </Field>
+    </ConfigForm>
   );
 }
 
@@ -501,6 +654,18 @@ const STEP_LADDER_STYLE = {
   alignContent: "center",
 } as const;
 
+/* A row of its own under the controls, however wide the body is. */
+const FOOT_ROW_STYLE = {
+  flex: "1 1 100%",
+  minWidth: 0,
+} as const;
+
+/* Sized to the name rather than filling the row, so the countdown sits beside it. */
+const ALARM_NAME_STYLE = {
+  flex: "0 1 auto",
+  fontSize: "var(--font-size-sm)",
+} as const;
+
 const WarpButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) =>
     $active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
@@ -538,9 +703,11 @@ registerComponent<WarpControlConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
+  configComponent: WarpControlConfigComponent,
   channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   fields: topics.fields,
-  defaultConfig: {},
+  defaultConfig: { requireAlarmUnderDelay: true },
   actions: warpActions,
   augmentSlots: ["warp-control.stepper"],
   pushable: true,
