@@ -1043,6 +1043,7 @@ function SystemViewComponent({
           ? derived.timeToNextApsis
           : null
       }
+      orbitCurrency={orbitReading}
     />
   );
   const sidebarContent =
@@ -1124,6 +1125,7 @@ function SystemViewComponent({
                     vessel={vesselOrbit}
                     vesselTrajectory={vesselTrajectory}
                     vesselPlotState={vesselPlotState}
+                    vesselPositionHeld={orbitReading.state === "stale"}
                     phaseAngles={phaseAngles}
                     transferStatuses={transferStatuses}
                     onFocusBodyChange={setFocusedBody}

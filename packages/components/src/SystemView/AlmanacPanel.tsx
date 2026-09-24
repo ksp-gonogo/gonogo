@@ -1,5 +1,12 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { ExpandableText, Grid, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { readingOf, type TopicReading } from "@ksp-gonogo/sitrep-client";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  ExpandableText,
+  Grid,
+  Unit,
+  type UnitValue,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import type { CelestialBody } from "./useCelestialBodies";
 
@@ -43,6 +50,17 @@ export interface AlmanacPanelProps {
   nextApsisType?: -1 | 1 | null;
   /** Seconds to the next apsis. */
   nextApsisTimeSec?: number | null;
+  /**
+   * The `vessel.orbit` read the four vessel-derived rows below were computed
+   * from, so each draws its own currency: held, they keep their number and
+   * gain the staleness mark and the instant it was last a reading of now.
+   *
+   * The body rows above take none, and must not: a radius and a day length come
+   * off the celestial catalogue, which is the shape of the system and does not
+   * decay when a craft stops reporting. Dating them with the craft's silence
+   * would mark a dozen figures that are still exactly true.
+   */
+  orbitCurrency?: TopicReading<unknown>;
 }
 
 interface AlmanacRow {
@@ -60,7 +78,18 @@ function buildRows(
   encounterTimeSec: number | null,
   nextApsisType: -1 | 1 | null,
   nextApsisTimeSec: number | null,
+  orbitCurrency: TopicReading<unknown> | undefined,
 ): AlmanacRow[] {
+  /*
+   * A figure computed from the orbit read, carrying that read's currency.
+   * `readingOf`'s selector ignores the payload because the arithmetic already
+   * happened upstream; what it carries across is the statement about WHEN, which
+   * is the half a bare number throws away.
+   */
+  const asOrbit = <U extends string>(magnitude: Value<U>): UnitValue<U> =>
+    orbitCurrency === undefined
+      ? magnitude
+      : readingOf(orbitCurrency, () => magnitude);
   const rows: AlmanacRow[] = [];
   if (body.radius !== null) {
     rows.push({
@@ -150,7 +179,9 @@ function buildRows(
   ) {
     rows.push({
       label: "Phase angle",
-      value: <Unit value={value("°", normalizeAngle(phaseAngleDeg))} />,
+      value: (
+        <Unit value={asOrbit(value("°", normalizeAngle(phaseAngleDeg)))} />
+      ),
     });
   }
   if (
@@ -180,7 +211,7 @@ function buildRows(
   ) {
     rows.push({
       label: encounterDirection === "escape" ? "Escape in" : "Encounter in",
-      value: <Unit value={value("s", encounterTimeSec)} />,
+      value: <Unit value={asOrbit(value("s", encounterTimeSec))} />,
     });
   }
   if (
@@ -192,7 +223,7 @@ function buildRows(
   ) {
     rows.push({
       label: nextApsisType === -1 ? "Next Pe" : "Next Ap",
-      value: <Unit value={value("s", nextApsisTimeSec)} />,
+      value: <Unit value={asOrbit(value("s", nextApsisTimeSec))} />,
     });
   }
   return rows;
@@ -208,6 +239,7 @@ export function AlmanacPanel({
   encounterTimeSec = null,
   nextApsisType = null,
   nextApsisTimeSec = null,
+  orbitCurrency,
 }: AlmanacPanelProps) {
   if (!body) {
     return (
@@ -229,6 +261,7 @@ export function AlmanacPanel({
     encounterTimeSec,
     nextApsisType,
     nextApsisTimeSec,
+    orbitCurrency,
   );
   return (
     <Wrap>

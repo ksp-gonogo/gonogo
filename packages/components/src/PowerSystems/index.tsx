@@ -10,13 +10,16 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
+import { readingOf, type TopicReading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline, VisuallyHidden } from "@ksp-gonogo/ui";
 import {
+  Badge,
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
+  formatStreamStatus,
   NULL_DISPLAY,
   Panel,
   RowName,
@@ -24,6 +27,7 @@ import {
   Section,
   SectionTitle,
   Select,
+  severityFromStreamStatus,
   speakQuantity,
   Text,
   Unit,
@@ -41,6 +45,7 @@ import { useEffect, useMemo, useState } from "react";
 // re-render per mouse-move to a potentially long list). Both documented.
 // biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector + passive row :hover, no inline/primitive equivalent (see above)
 import styled from "styled-components";
+import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf } from "../shared/magnitude";
 
 /**
@@ -170,6 +175,23 @@ function PowerSystemsComponent({
   const powerReading = useTelemetry("parts.power");
   const streamPower =
     powerReading.state === "observed" ? powerReading.value : undefined;
+  /*
+   * Every figure this widget draws, the totals and all three breakdown
+   * sections, comes off ONE read: `vessel.parts`, through `useTopology` and
+   * `usePartsLive`. So the totals row says it once for the four cells that
+   * share it, and each breakdown row's own efficiency carries the kit's mark.
+   *
+   * In the BODY and not through `panelStatus`: the header aside already holds
+   * the resource picker, and a status pill there squeezes the picker down to a
+   * bare chevron and collapses itself to a dot, which is the statement in a
+   * colour and nothing else.
+   *
+   * The rates and the stored levels are KEPT rather than withheld. A battery
+   * that was draining at 5/s is still the last thing the vessel reported, and a
+   * blank cell would read as a vessel with no load on it.
+   */
+  const partsReading = useTelemetry("vessel.parts");
+  const partsHeld = heldGrade(partsReading);
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);
@@ -511,6 +533,14 @@ function PowerSystemsComponent({
                   {totalConsumed.toFixed(2)}
                 </Text>
               </div>
+              {partsHeld !== undefined && (
+                <div style={TOTALS_CELL}>
+                  <span style={CELL_LABEL}>READ</span>
+                  <Badge severity={severityFromStreamStatus(partsHeld)}>
+                    {formatStreamStatus(partsHeld)}
+                  </Badge>
+                </div>
+              )}
               {storage.maxAmount > 0 && (
                 <div style={TOTALS_CELL}>
                   <span style={CELL_LABEL}>STORED</span>
@@ -575,7 +605,11 @@ function PowerSystemsComponent({
                 ) : (
                   <div style={CONTRIB_LIST}>
                     {producers.map((c) => (
-                      <ContributionRow key={c.flightId} contribution={c} />
+                      <ContributionRow
+                        key={c.flightId}
+                        contribution={c}
+                        currency={partsReading}
+                      />
                     ))}
                   </div>
                 )}
@@ -595,7 +629,11 @@ function PowerSystemsComponent({
                 ) : (
                   <div style={CONTRIB_LIST}>
                     {consumers.map((c) => (
-                      <ContributionRow key={c.flightId} contribution={c} />
+                      <ContributionRow
+                        key={c.flightId}
+                        contribution={c}
+                        currency={partsReading}
+                      />
                     ))}
                   </div>
                 )}
@@ -611,7 +649,11 @@ function PowerSystemsComponent({
                   </SectionTitle>
                   <div style={IDLE_LIST}>
                     {idle.map((c) => (
-                      <ContributionRow key={c.flightId} contribution={c} />
+                      <ContributionRow
+                        key={c.flightId}
+                        contribution={c}
+                        currency={partsReading}
+                      />
                     ))}
                   </div>
                 </Section>
@@ -629,7 +671,14 @@ function PowerSystemsComponent({
   );
 }
 
-function ContributionRow({ contribution }: { contribution: Contribution }) {
+function ContributionRow({
+  contribution,
+  currency,
+}: {
+  contribution: Contribution;
+  /** The `vessel.parts` read this row's numbers came off. */
+  currency: TopicReading<unknown>;
+}) {
   const { partTitle, flow, flowKnown, nominalFlow } = contribution;
   // Three-way sign: a shadowed solar panel produces nothing but is
   // not consuming either; rendering its `+0.00` in green misreads as
@@ -650,7 +699,10 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
           style={ROW_EFF}
           title={`${speakQuantity(value("%", eff * 100), { decimals: 0 })} of nominal`}
         >
-          <Unit value={value("%", eff * 100)} decimals={0} />
+          <Unit
+            value={readingOf(currency, () => value("%", eff * 100))}
+            decimals={0}
+          />
         </span>
       )}
       <Text
