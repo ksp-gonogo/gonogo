@@ -10,12 +10,11 @@
  * pure function can still get wrong in the UI.
  */
 import { clearRegistry } from "@ksp-gonogo/core";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import {
   StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
-import { setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,

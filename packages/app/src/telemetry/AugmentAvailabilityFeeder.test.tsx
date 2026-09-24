@@ -1,10 +1,7 @@
 import { AugmentSlot, clearAugments, registerAugment } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { Quality, type TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, cleanup, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { DomainAvailabilityProvider } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";

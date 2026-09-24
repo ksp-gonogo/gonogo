@@ -18,18 +18,17 @@
 
 import { type Screen, ScreenProvider } from "@ksp-gonogo/core";
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { BannerStack } from "@ksp-gonogo/ui";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { HomeFallbackNotice } from "../../../app/src/components/HomeFallbackNotice";
 import { MissionBanner } from "../../../app/src/components/MissionBanner";
-
 export interface VantageProbePayload {
   /** `commandCentre.roster` fixture to emit once mounted; omit for the
    *  before-any-sample-lands fallback state. */

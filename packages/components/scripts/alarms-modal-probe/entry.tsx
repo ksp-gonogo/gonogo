@@ -18,19 +18,18 @@
  */
 
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { AlarmsModal } from "../../../app/src/alarms/AlarmsModal";
 import type { AlarmSnapshot } from "../../../app/src/alarms/types";
-
 export interface AlarmsProbePayload {
   /** Which trigger kind the draft form is on. Defaults to the modal's own default, `time`. */
   kind?: "time" | "threshold";

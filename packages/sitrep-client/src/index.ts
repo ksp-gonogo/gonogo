@@ -183,8 +183,6 @@ export {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
-export type { FakeWallClock } from "./fake-wall-clock";
-export { createFakeWallClock } from "./fake-wall-clock";
 export {
   type ContactPhase,
   contactPhase,
@@ -415,7 +413,6 @@ export {
 } from "./space-center-state";
 export type { StreamStatusValue } from "./stream-status";
 export { worstStatus } from "./stream-status";
-export { StubTransport, type WireOf } from "./stub-transport";
 export type {
   ReadTopicResolver,
   ReadTopicSubscriber,

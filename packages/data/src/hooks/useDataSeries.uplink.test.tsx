@@ -1,7 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -12,6 +10,10 @@ import {
   registerBarePrimitiveTopic,
   registerTopicUnits,
 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";

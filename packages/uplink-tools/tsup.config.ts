@@ -107,16 +107,7 @@ export default defineConfig([
     platform: "browser",
     clean: false,
     splitting: false,
-    external: [
-      ...PEERS,
-      // Arrives only through `@ksp-gonogo/sitrep-client`'s root barrel, which
-      // re-exports `createFakeWallClock` and `StubTransport` from files whose
-      // only job is to forward `@ksp-gonogo/sitrep-sdk/testing`. A
-      // `export ... from` across an external boundary cannot be tree-shaken, so
-      // the specifier survives into `dist` whether or not a widget ever calls
-      // it. Nothing here uses it.
-      "@testing-library/react",
-    ],
+    external: [...PEERS],
     dts: true,
   },
 ]);

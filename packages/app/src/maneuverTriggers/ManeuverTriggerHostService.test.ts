@@ -1,6 +1,5 @@
 import type { FrozenPlanInputs } from "@ksp-gonogo/components";
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -10,6 +9,7 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerHostService } from "./ManeuverTriggerHostService";
 
