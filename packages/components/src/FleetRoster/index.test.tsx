@@ -292,6 +292,32 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("NONE")).toBeInTheDocument();
   });
 
+  it("shows a control level the producer could not name as unknown, not as no link", async () => {
+    const fixture = newFixture();
+    renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.bodies", BODIES);
+      fixture.emit("system.vessels", {
+        vessels: [
+          {
+            vesselId: "v-unnamed-level",
+            name: "Unnamed Level Probe",
+            vesselType: 0,
+            situation: 3,
+            bodyIndex: 0,
+            crewCount: 0,
+            crewCapacity: 0,
+            commsConnected: true,
+            commsControlSource: RosterCommsControlSource.Unknown,
+          },
+        ],
+      });
+    });
+    expect(await screen.findByText("Unnamed Level Probe")).toBeInTheDocument();
+    expect(screen.queryByText("NONE")).toBeNull();
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
+  });
+
   it("filters non-craft vessel types out of the roster, keeping real craft and one unclassified contact", async () => {
     const fixture = newFixture();
     renderRoster(fixture);

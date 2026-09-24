@@ -1800,7 +1800,13 @@ namespace Sitrep.Contract
         /// <para><b>Reset to 0 alongside the Major 17 -&gt; 18 bump</b> (see
         /// <see cref="Major"/>). The Minor history above belongs to the earlier Major
         /// lines and is retained for provenance.</para>
+        ///
+        /// <para><b>Bumped 0 -&gt; 1:</b> <see cref="RosterCommsControlSource.Unknown"/>,
+        /// appended, for a control level the producer cannot name, which it had
+        /// been reporting as <see cref="RosterCommsControlSource.None"/>. Additive,
+        /// nothing removed or retyped, so an Uplink built against 18.0 is
+        /// unaffected.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

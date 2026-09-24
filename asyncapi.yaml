@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.0.0
+  version: 18.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 77 telemetry
     channels a client subscribes to, and 54 commands it dispatches, with the payload
@@ -15191,10 +15191,17 @@ components:
       oneOf:
         - const: 0
           title: None
+          description: "A measurement: the vessel has no control source."
         - const: 1
           title: Partial
         - const: 2
           title: Full
+        - const: 3
+          title: Unknown
+          description: |-
+            The game reported a control level this build does not name. Not
+            `RosterCommsControlSource.None`: nothing was measured to be absent, the
+            level simply has no tier here yet.
     RotorReverseArgs:
       type: object
       description: |-

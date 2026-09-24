@@ -5789,9 +5789,16 @@ export interface SystemVessels
 * not a shared contract.
 */
 export enum RosterCommsControlSource {
+	/** A measurement: the vessel has no control source. */
 	None = 0,
 	Partial = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name. Not
+	* `RosterCommsControlSource.None`: nothing was measured to be absent, the
+	* level simply has no tier here yet.
+	*/
+	Unknown = 3
 }
 /**
 * One vessel in the `SystemVessels` roster. Mirrors the exact per-vessel dict
