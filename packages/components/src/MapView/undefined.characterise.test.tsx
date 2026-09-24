@@ -167,14 +167,16 @@ describe("MapView: what undefined telemetry means today", () => {
     expect(screen.queryByText("TOO LOW")).toBeNull();
   });
 
-  it("nothing emitted, compact size: undefined lat/lon render as the null dash, and the Alt row is absent", async () => {
+  it("nothing emitted, compact size: undefined lat/lon render as the null dash under a notice, and the Alt row is absent", async () => {
     const { container } = renderMap({}, { w: 4, h: 4 });
     await flushFrames();
 
     // `lat === undefined ? NULL_DISPLAY : <Unit/>`: pending reads as a dash,
-    // the same dash a confirmed-absent value would get.
+    // the same dash a confirmed-absent value would get. The notice underneath
+    // is what separates them, and the compact branch drew it for a HELD
+    // position only until the absence scenes photographed this tile.
     expect(visibleText(container)).toBe(
-      `MAP VIEWLat${NULL_DISPLAY}Lon${NULL_DISPLAY}`,
+      `MAP VIEWLat${NULL_DISPLAY}Lon${NULL_DISPLAY}Waiting for telemetry...`,
     );
     // `altSea !== undefined && rows >= 5` gates the whole row away, so an
     // undefined altitude is NOT a dash here, it is a missing label.
