@@ -37,8 +37,11 @@ import type { PeerHostService } from "../peer/PeerHostService";
  *   - Maintain the canonical trigger list (persisted in localStorage so a
  *     reload doesn't lose armed conditions, including ones armed by a
  *     station, which is the whole point of moving them off the widget).
- *   - Tick at 1 Hz (alarm-style) plus on every stream frame, evaluating each
- *     trigger's condition and firing once when the comparison first holds.
+ *   - Evaluate every trigger's condition on each ingested stream frame, and
+ *     once more at arm time so a condition that already holds fires without
+ *     waiting for the next one. A trigger fires once, when the comparison
+ *     first holds. The stream frame is the only clock here: there is no
+ *     independent timer, so a trigger is only ever as live as the stream.
  *   - On fire: recompute the plan from the trigger's frozen inputs against
  *     the *current* orbit, then dispatch each burn via the stream.
  *   - Auto-clear triggers whose observed vessel identity no longer matches
@@ -195,16 +198,14 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     // frame tick re-evaluates every armed trigger's `dataKey` threshold below
     // (`evaluate()`).
     this.vesselUnsub = onActiveTimelineFrame(() => {
-      // Vessel changed: drop triggers for the old one.
+      // Vessel changed: drop triggers for the old one. A `live` of null is
+      // "no identity read yet", not "a different vessel", so it drops nothing.
       const live = this.readVesselName();
       const before = this.triggers.length;
       this.triggers = this.triggers.filter(
-        (t) => t.vesselName === null || t.vesselName === live,
+        (t) => t.vesselName === null || live === null || t.vesselName === live,
       );
-      const removedIds = this.triggers
-        .filter((t) => !this.triggers.includes(t))
-        .map((t) => t.id);
-      for (const id of removedIds) this.fired.delete(id);
+      this.pruneFired();
       if (this.triggers.length !== before) {
         this.persist();
       }
@@ -214,13 +215,34 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     });
   }
 
+  /**
+   * Drops every `fired` id that no longer names a listed trigger.
+   *
+   * `fired` exists to stop a trigger firing twice while it is still listed,
+   * which is only the case when a dispatch left it there. A trigger removed on
+   * firing, on a vessel swap or by the operator can never be seen again, so
+   * its id is dead weight: ids are minted per arm and never reused.
+   */
+  private pruneFired(): void {
+    if (this.fired.size === 0) return;
+    const listed = new Set(this.triggers.map((t) => t.id));
+    for (const id of this.fired) {
+      if (!listed.has(id)) this.fired.delete(id);
+    }
+  }
+
   private evaluate(): void {
-    if (this.triggers.length === 0) return;
+    if (this.triggers.length === 0) {
+      this.fired.clear();
+      return;
+    }
     const live = this.readVesselName();
     let mutated = false;
     for (const t of [...this.triggers]) {
-      // Vessel mismatch: drop.
-      if (t.vesselName !== null && t.vesselName !== live) {
+      // Vessel mismatch: drop. Only against a vessel identity we actually
+      // have, so a trigger restored from storage before the first frame
+      // survives until there is a live name to disagree with.
+      if (t.vesselName !== null && live !== null && t.vesselName !== live) {
         this.triggers = this.triggers.filter((x) => x.id !== t.id);
         mutated = true;
         continue;
@@ -234,6 +256,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       this.triggers = this.triggers.filter((x) => x.id !== t.id);
       mutated = true;
     }
+    this.pruneFired();
     if (mutated) {
       this.persist();
       this.emit();
