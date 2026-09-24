@@ -176,7 +176,7 @@ export {
   type ProviderExtensions,
 } from "./extensions";
 // The buffered-recording subsystem: wraps a live `DataSource`, persists every
-// sample into a `Store` keyed by inferred flight, and answers columnar range
+// sample into a `FlightStore` keyed by inferred flight, and answers columnar range
 // queries. An Uplink's tests build one to assert what its widgets read, and
 // `data` is `private: true`, so the harness they needed was unbuildable outside
 // this repo. Its transitive imports were this package and itself all along.

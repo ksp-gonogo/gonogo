@@ -134,7 +134,7 @@ interface SampleRow {
 }
 
 /**
- * Wraps a live `DataSource`, persists every sample into a `Store` keyed by
+ * Wraps a live `DataSource`, persists every sample into a `FlightStore` keyed by
  * inferred flight id, and exposes both live subscriptions (matching the
  * DataSource contract) and columnar range queries (the graph widget's
  * primary read path).
