@@ -502,7 +502,7 @@ namespace Gonogo.KSP
                 }
                 body = launchSite.Body;
             }
-            reach.SiteName = setup.GetLaunchSiteDisplayName(site) ?? site;
+            reach.SiteName = GameWords.LaunchSiteName(site);
             reach.SiteSystem = SystemOf(body);
             return reach;
         }
