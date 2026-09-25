@@ -3,92 +3,132 @@
   "engine": "chromium",
   "assets": {
     "a-filter-term-per-process--default.png": {
-      "hash": "01be55ef4b74a67e",
-      "elements": 169,
+      "hash": "b77b4ee89091966c",
+      "elements": 174,
       "text": "f6a1f5a9"
     },
     "binary--default.png": {
-      "hash": "2e9788438cbbb689",
-      "elements": 104,
+      "hash": "b09282827fef5ee0",
+      "elements": 106,
       "text": "52c0d842"
     },
     "dose-band-from-a-fitted-rate--default.png": {
-      "hash": "a32dd64db5697277",
-      "elements": 62,
+      "hash": "a02f8f0c9d14acb3",
+      "elements": 60,
       "text": "d97157a2"
     },
+    "dose-band-reaching-critical--default.png": {
+      "hash": "1ff685ad51446180",
+      "elements": 62,
+      "text": "6a85901a"
+    },
     "dose-band-the-model-declines--default.png": {
-      "hash": "ecc211bbe434200c",
-      "elements": 56,
+      "hash": "a8869b5fb2033c3c",
+      "elements": 54,
       "text": "d97157a2"
     },
     "ec-shortage-limits-water--default.png": {
-      "hash": "d8e0e2c75a7c3a4b",
-      "elements": 171,
+      "hash": "f5e32c709e64a654",
+      "elements": 172,
       "text": "ca2969e0"
     },
     "ec-shortage-limits-water--min.png": {
-      "hash": "3815473dc2ca9f46",
-      "elements": 171,
+      "hash": "9523a2f1ad5a3e8b",
+      "elements": 172,
       "text": "ca2969e0"
     },
+    "ec-shortage-limits-water-stopped-arriving--default.png": {
+      "hash": "f559ebdd53bd4378",
+      "elements": 178,
+      "text": "66433cf9"
+    },
+    "ec-shortage-limits-water-stopped-arriving--min.png": {
+      "hash": "565676dd260aa940",
+      "elements": 178,
+      "text": "66433cf9"
+    },
     "file-and-sample-on-one-subject--default.png": {
-      "hash": "f01ec4e66040f315",
+      "hash": "ee8a4acc80f679a2",
       "elements": 94,
       "text": "1f3d9756"
     },
+    "file-and-sample-on-one-subject-stopped-arriving--default.png": {
+      "hash": "1eeb31d34d2c802c",
+      "elements": 102,
+      "text": "689b9991"
+    },
     "greenhouse-halted-in-the-dark--default.png": {
-      "hash": "53348ba2a2cedfee",
-      "elements": 116,
+      "hash": "e014fa39369130c2",
+      "elements": 117,
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "3d59d6a3fc546bec",
-      "elements": 79,
+      "hash": "727c58164d236ec3",
+      "elements": 80,
       "text": "2e0d06fc"
     },
+    "inner-belt-link-lost--default.png": {
+      "hash": "cab23bf6bfbda332",
+      "elements": 79,
+      "text": "420b115d"
+    },
     "interplanetary--default.png": {
-      "hash": "ed176dcf2e7ae6d3",
-      "elements": 93,
+      "hash": "a43aabf7e569b4e6",
+      "elements": 94,
       "text": "5db7f31e"
     },
     "no-profile-for-this-vessel--default.png": {
-      "hash": "873ba89ffb3731a7",
+      "hash": "7ca0d9e726a871e7",
       "elements": 13,
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "0e61e9cc463325b1",
-      "elements": 78,
+      "hash": "ca1cb1f81dd5a718",
+      "elements": 79,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "affb9cfbb58127f8",
-      "elements": 67,
+      "hash": "7f4419eff98d8fe7",
+      "elements": 68,
       "text": "970d0f26"
     },
     "radiation-dose-critical--default.png": {
-      "hash": "26bd1802d6c208d0",
-      "elements": 116,
+      "hash": "76b32905a5648170",
+      "elements": 113,
       "text": "806f8490"
     },
+    "radiation-dose-critical-stopped-arriving--default.png": {
+      "hash": "30ac69fd32522e50",
+      "elements": 113,
+      "text": "701964bd"
+    },
     "storm-inbound--default.png": {
-      "hash": "79470e0e8093b358",
-      "elements": 93,
+      "hash": "28bed650787c3f73",
+      "elements": 94,
       "text": "e04b2f39"
     },
-    "storm-peak--default.png": {
-      "hash": "cc25af7d5afcf010",
+    "storm-inbound-stopped-arriving--default.png": {
+      "hash": "84fbec7b3d2e51f8",
       "elements": 94,
+      "text": "82d5fe85"
+    },
+    "storm-peak--default.png": {
+      "hash": "823ff78dc67f506f",
+      "elements": 95,
       "text": "78bd6f8c"
     },
     "supply-tank-meters--default.png": {
-      "hash": "de8e175ba25ae66a",
+      "hash": "67006b2acb2233aa",
+      "elements": 36,
+      "text": "50714c7e"
+    },
+    "supply-tank-meters-stopped-arriving--default.png": {
+      "hash": "67006b2acb2233aa",
       "elements": 36,
       "text": "50714c7e"
     },
     "unread-send-and-analyze-flags--default.png": {
-      "hash": "007eddbfd452b3df",
+      "hash": "3a7a37b540205637",
       "elements": 91,
       "text": "c738f880"
     }
