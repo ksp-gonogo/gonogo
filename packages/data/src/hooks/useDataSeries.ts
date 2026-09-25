@@ -465,8 +465,9 @@ export function useDataSeries(
        * sample that compares equal, so a flat segment is what every unsent
        * observation between the two said. One that moved across a span the
        * sampling missed is a line nothing measured: a break where the topic's
-       * own model will not carry the span, and the model's path beside the
-       * chord where it will, for the chart to hold one against the other.
+       * own model will not carry the span, or where no model claims one that
+       * warp thinned, and the model's path beside the chord where it will, for
+       * the chart to hold one against the other.
        */
       if (Object.is(nextV[i], nextV[i - 1])) continue;
       const gap = store.gapModel(topic, observed[i - 1], observed[i]);

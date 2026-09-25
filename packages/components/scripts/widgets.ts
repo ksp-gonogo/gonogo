@@ -1452,9 +1452,11 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     // WARP BREAKS: what a chart draws between two samples no observation
-    // covers. Four scenes, one per entry because the window is per mode: a
-    // dead-reckoned distance at 1x and at 100,000x, and an on-rails conic
-    // altitude at 1000x and at 100,000x. Only the warped distance may break.
+    // covers. Six scenes, one per entry because the window is per mode: a
+    // dead-reckoned distance at 1x and at 100,000x, an on-rails conic
+    // altitude at 1000x and at 100,000x, and an electric charge no model
+    // claims at 1x and at 100,000x. Only the warped distance and the warped
+    // charge may break.
     widgetId: "graph",
     label: "graph/warp-dock-1x",
     fixturesPath: "Graph/__render_warp_dock_1x__",
@@ -1490,7 +1492,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/warp-breaks/warp-dock-fast",
     modes: (() => {
       const config = {
-        windowSec: 40000,
+        windowSec: 200000,
         variant: "chart",
         yUnit: "m",
         series: [
@@ -1548,7 +1550,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/warp-breaks/warp-conic-fast",
     modes: (() => {
       const config = {
-        windowSec: 40000,
+        windowSec: 200000,
         variant: "chart",
         yUnit: "m",
         series: [
@@ -1556,6 +1558,62 @@ const WIDGETS: WidgetRenderConfig[] = [
             id: "s",
             key: "vessel.flight.altitudeAsl",
             label: "Altitude",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "default-12x9", w: 12, h: 9, config },
+        { name: "landscape-18x5", w: 18, h: 5, config },
+        { name: "mobile-9x8", w: 9, h: 8, config },
+        { name: "portrait-5x18", w: 5, h: 18, config },
+      ];
+    })(),
+  },
+  {
+    // See graph/warp-dock-1x.
+    widgetId: "graph",
+    label: "graph/warp-charge-1x",
+    fixturesPath: "Graph/__render_warp_charge_1x__",
+    outPath: "renders/warp-breaks/warp-charge-1x",
+    modes: (() => {
+      const config = {
+        windowSec: 600,
+        variant: "chart",
+        series: [
+          {
+            id: "s",
+            key: "vessel.resources.resources.ElectricCharge.current",
+            label: "Electric charge",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "default-12x9", w: 12, h: 9, config },
+        { name: "landscape-18x5", w: 18, h: 5, config },
+        { name: "mobile-9x8", w: 9, h: 8, config },
+        { name: "portrait-5x18", w: 5, h: 18, config },
+      ];
+    })(),
+  },
+  {
+    // See graph/warp-dock-1x.
+    widgetId: "graph",
+    label: "graph/warp-charge-fast",
+    fixturesPath: "Graph/__render_warp_charge_fast__",
+    outPath: "renders/warp-breaks/warp-charge-fast",
+    modes: (() => {
+      const config = {
+        windowSec: 200000,
+        variant: "chart",
+        series: [
+          {
+            id: "s",
+            key: "vessel.resources.resources.ElectricCharge.current",
+            label: "Electric charge",
             type: "line",
             axis: "primary",
           },

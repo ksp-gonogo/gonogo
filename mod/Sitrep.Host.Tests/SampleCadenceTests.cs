@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Host;
 using Xunit;
@@ -104,10 +105,12 @@ namespace Sitrep.Host.Tests
         [InlineData(0.0, 1.0)]
         [InlineData(double.NaN, 1.0)]
         [InlineData(double.PositiveInfinity, 1.0)]
-        [InlineData(4.0, 4.0)]
-        [InlineData(1_000.0, 1_000.0)]
-        [InlineData(100_000.0, 100_000.0)]
-        public void TheIntervalIsOneUtSecondAt1xAndOneRealSecondOfGameTimeUnderWarp(double warpRate, double expected)
+        [InlineData(4.0, 1.0)]
+        [InlineData(10.0, 1.0)]
+        [InlineData(100.0, 10.0)]
+        [InlineData(1_000.0, 100.0)]
+        [InlineData(100_000.0, 10_000.0)]
+        public void TheIntervalIsOneUtSecondUpTo10xAndATenthOfARealSecondOfGameTimeAboveIt(double warpRate, double expected)
         {
             Assert.Equal(expected, SampleCadence.IntervalUtAt(warpRate));
         }
@@ -116,9 +119,10 @@ namespace Sitrep.Host.Tests
         /// The gate driven the way <c>GonogoAddon.FixedUpdate</c> drives it: a
         /// physics tick of <c>0.02 x rate</c> UT at fifty ticks a real second,
         /// the fastest the game steps it, for forty real seconds. At every rate
-        /// the mod samples at most once a real second, and every gap between two
-        /// samples is the quantum <c>time.warp</c> states for that rate, give or
-        /// take the one tick the gate can overshoot by.
+        /// the mod samples at most ten times a real second, the spacing is at
+        /// most five physics ticks, and every gap between two samples is the
+        /// quantum <c>time.warp</c> states for that rate, give or take the one
+        /// tick the gate can overshoot by.
         /// </summary>
         [Theory]
         [InlineData(1.0)]
@@ -126,7 +130,7 @@ namespace Sitrep.Host.Tests
         [InlineData(1_000.0)]
         [InlineData(10_000.0)]
         [InlineData(100_000.0)]
-        public void WarpLeavesTheSampleRateWhere1xHasItAndTheStatedQuantumTrue(double warpRate)
+        public void WarpBoundsBothTheSampleRateAndTheSpacingAndTheStatedQuantumStaysTrue(double warpRate)
         {
             const double tickHz = 50;
             const double windowRealSec = 40;
@@ -146,9 +150,10 @@ namespace Sitrep.Host.Tests
             }
 
             var perRealSec = samples / windowRealSec;
-            Assert.True(perRealSec <= 1.0 / SampleCadence.FloorRealSec + 1 / windowRealSec, $"{perRealSec}/real s at {warpRate}x");
+            Assert.True(perRealSec <= 10 + 1 / windowRealSec, $"{perRealSec}/real s at {warpRate}x");
             Assert.True(perRealSec >= 0.9, $"only {perRealSec}/real s at {warpRate}x");
             Assert.All(gaps, gap => Assert.InRange(gap, quantum, quantum + tickUt));
+            Assert.All(gaps, gap => Assert.True(gap <= Math.Max(SampleCadence.IntervalUt, 5 * tickUt) + tickUt, $"{gap} UT at {warpRate}x"));
         }
 
         [Fact]

@@ -1915,7 +1915,13 @@ namespace Sitrep.Contract
         /// whether <c>career.strategy.activate</c> can commit with the Administration
         /// Building shut. Additive, nothing removed or retyped, so an Uplink built
         /// against 18.7 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 8 -&gt; 9:</b> <see cref="WarpState.SampleIntervalUt"/>, the
+        /// spacing of the mod's samples while warp is not thinning them, so a client can
+        /// tell the part of a quantum that warp skipped from the resolution every channel
+        /// is sampled at. Additive, nothing removed or retyped, so an Uplink built against
+        /// 18.8 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 8;
+        public const int Minor = 9;
     }
 }

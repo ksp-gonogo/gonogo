@@ -533,8 +533,8 @@ namespace Gonogo.KSP
                 // cadence gate; Sample() is the comparatively expensive call
                 // (walks live KSP/Unity state), so it's only made once the
                 // interval at the current warp rate has elapsed in UT since
-                // the last sample: one UT second at 1x, about one real second
-                // under warp. See SampleCadence.IntervalUtAt.
+                // the last sample: one UT second up to 10x, a tenth of a real
+                // second of game time above it. See SampleCadence.IntervalUtAt.
                 //
                 // SampleCadence.ShouldSample also forces an immediate
                 // resample on a BACKWARD UT jump (F9 quickload): a

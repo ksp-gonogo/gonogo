@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "warp-breaks",
     "synthetic": true,
-    "notes": "SYNTHETIC. The same orbit at 100,000x: samples 2000 UT apart, a little over one period each. The conic carries any such gap, so the ruled criterion leaves the trace joined. The joined trace is a chord between samples almost exactly one orbit apart, which is the stroboscopic drift a straight line across an orbit's worth of motion draws."
+    "notes": "SYNTHETIC. The same orbit at 100,000x: samples 10,000 UT apart, a little over five periods each. The conic carries any such gap, so the chart draws the conic's own path rather than a chord between samples several orbits apart."
   },
   "_stream": {
     "carriedChannels": [
@@ -12,7 +12,7 @@
       "time.warp",
       "vessel.identity"
     ],
-    "pinnedUt": 40000,
+    "pinnedUt": 200000,
     "emits": [
       {
         "channel": "time.warp",
@@ -22,7 +22,8 @@
           "warpMode": 0,
           "paused": false,
           "keyframeFloorSec": 1,
-          "observationQuantumUt": 2000
+          "observationQuantumUt": 10000.0,
+          "sampleIntervalUt": 1
         },
         "meta": {
           "validAt": 0,
@@ -88,108 +89,12 @@
       {
         "channel": "vessel.flight",
         "value": {
-          "altitudeAsl": 86131.3487385338,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 2000.0,
-          "deliveredAt": 2000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 86522.732109398,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 4000.0,
-          "deliveredAt": 4000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 87166.23320843617,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 6000.0,
-          "deliveredAt": 6000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 88048.8925417643,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 8000.0,
-          "deliveredAt": 8000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
           "altitudeAsl": 89153.04937090224,
           "atmDensity": 0
         },
         "meta": {
           "validAt": 10000.0,
           "deliveredAt": 10000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 90456.79727724823,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 12000.0,
-          "deliveredAt": 12000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 91934.53389216855,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 14000.0,
-          "deliveredAt": 14000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 93557.58191446692,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 16000.0,
-          "deliveredAt": 16000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 95294.85737818002,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 18000.0,
-          "deliveredAt": 18000.0,
           "quality": 0
         }
       },
@@ -208,54 +113,6 @@
       {
         "channel": "vessel.flight",
         "value": {
-          "altitudeAsl": 98979.87463843671,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 22000.0,
-          "deliveredAt": 22000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 100859.63216108922,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 24000.0,
-          "deliveredAt": 24000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 102718.96849082527,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 26000.0,
-          "deliveredAt": 26000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 104524.91550670029,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 28000.0,
-          "deliveredAt": 28000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
           "altitudeAsl": 106245.94818362733,
           "atmDensity": 0
         },
@@ -268,60 +125,204 @@
       {
         "channel": "vessel.flight",
         "value": {
-          "altitudeAsl": 107852.47219865234,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 32000.0,
-          "deliveredAt": 32000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 109317.25155550765,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 34000.0,
-          "deliveredAt": 34000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 110615.77653566224,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 36000.0,
-          "deliveredAt": 36000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "altitudeAsl": 111726.57398056053,
-          "atmDensity": 0
-        },
-        "meta": {
-          "validAt": 38000.0,
-          "deliveredAt": 38000.0,
-          "quality": 0
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
           "altitudeAsl": 112631.46300671098,
           "atmDensity": 0
         },
         "meta": {
           "validAt": 40000.0,
           "deliveredAt": 40000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 113683.36690190283,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 50000.0,
+          "deliveredAt": 50000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 108987.27458919608,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 60000.0,
+          "deliveredAt": 60000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 100418.69508053001,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 70000.0,
+          "deliveredAt": 70000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 91573.27102206578,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 80000.0,
+          "deliveredAt": 80000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 86407.76959838334,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 90000.0,
+          "deliveredAt": 90000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 87352.64740289224,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 100000.0,
+          "deliveredAt": 100000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 93956.57075994986,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 110000.0,
+          "deliveredAt": 110000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 103149.15208129806,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 120000.0,
+          "deliveredAt": 120000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 110894.28458926722,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 130000.0,
+          "deliveredAt": 130000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 113997.35158697341,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 140000.0,
+          "deliveredAt": 140000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 111229.36570274842,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 150000.0,
+          "deliveredAt": 150000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 103685.22157569381,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 160000.0,
+          "deliveredAt": 160000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 94466.55737166957,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 170000.0,
+          "deliveredAt": 170000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 87605.47432312253,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 180000.0,
+          "deliveredAt": 180000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 86283.18683887227,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 190000.0,
+          "deliveredAt": 190000.0,
+          "quality": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 91131.01486769866,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 200000.0,
+          "deliveredAt": 200000.0,
           "quality": 0
         }
       }

@@ -91,10 +91,11 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Ten light-minutes at 1x, then 100x on the warped sample cadence of
-        /// one tick per 100 UT. The ordered lane's contract is that every
-        /// sample is delivered, so each tick puts the 100 samples it swept on
-        /// the wire, in order and once each, until the buffer is through.
+        /// Ten light-minutes at 1x, then 100x on the warped sample cadence,
+        /// which is <see cref="SampleCadence.IntervalUtAt"/> of 100 UT per tick.
+        /// The ordered lane's contract is that every sample is delivered, so each
+        /// tick puts the samples it swept on the wire, in order and once each,
+        /// until the buffer is through.
         /// </summary>
         [Fact]
         public async Task TheOrderedLaneDeliversEveryReleasedSampleOnceAndInOrder()
@@ -118,17 +119,17 @@ namespace Sitrep.Host.IntegrationTests
                     .Select(f => f.Meta.ValidAt)
                     .ToList();
 
-                for (var i = 0; i < 8; i++)
+                var step = SampleCadence.IntervalUtAt(100);
+                var sweeps = (int)Math.Ceiling(delay / step) + 1;
+                for (var i = 0; i < sweeps; i++)
                 {
-                    ut += SampleCadence.IntervalUtAt(100);
+                    ut += step;
                     engine.TickAndWait(ut, BurstProbeUplink.Snapshot(ut), Timeout);
-                    var tick = (await DrainAllStreamDataAsync(client, Quiet))
-                        .Where(f => f.Topic == BurstProbeUplink.OrderedTopic)
-                        .Select(f => f.Meta.ValidAt)
-                        .ToList();
-                    _output.WriteLine($"100x tick {i}: {tick.Count} ordered frames");
-                    delivered.AddRange(tick);
                 }
+                delivered.AddRange((await DrainAllStreamDataAsync(client, Quiet))
+                    .Where(f => f.Topic == BurstProbeUplink.OrderedTopic)
+                    .Select(f => f.Meta.ValidAt));
+                _output.WriteLine($"{sweeps} ticks of {step} UT at 100x: {delivered.Count} ordered frames in all");
 
                 var sampled = Enumerable.Range(0, (int)(delay + 101)).Select(t => (double)t).ToList();
                 Assert.Equal(sampled, delivered.Take(sampled.Count).ToList());

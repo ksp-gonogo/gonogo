@@ -29,9 +29,19 @@ function point<T>(validAt: number, payload: T, quality = Quality.OnRails) {
   } as TimelinePoint<T>;
 }
 
-function warp(observationQuantumUt: number | null) {
-  return { warpRate: 1, observationQuantumUt };
+/**
+ * A `time.warp` sample stating `observationQuantumUt`, beside the mod's
+ * one-second `sampleIntervalUt`. 10,000 is the capped quantum at 100,000x, a
+ * tenth of a real second of game time.
+ */
+function warp(
+  observationQuantumUt: number | null,
+  sampleIntervalUt: number | null = 1,
+) {
+  return { warpRate: 1, observationQuantumUt, sampleIntervalUt };
 }
+
+const AT_100000X = 10_000;
 
 function dock(distance: number) {
   return {
@@ -91,9 +101,9 @@ beforeEach(() => {
 describe("TimelineStore.gapModel", () => {
   it("withdraws a dead-reckoned distance across a tick nothing observed", () => {
     const s = store();
-    s.ingest("time.warp", point(0, warp(2000)));
+    s.ingest("time.warp", point(0, warp(AT_100000X)));
     s.ingest("vessel.dock", point(0, dock(100)));
-    s.ingest("vessel.dock", point(2000, dock(1100)));
+    s.ingest("vessel.dock", point(AT_100000X, dock(1100)));
 
     expect(gapAt(s, "vessel.dock.distance")).toEqual({ carried: false });
   });
@@ -152,15 +162,15 @@ describe("TimelineStore.gapModel", () => {
 
   it("withdraws the conic where the patch ends inside the tick", () => {
     const s = store();
-    s.ingest("time.warp", point(0, warp(2000)));
+    s.ingest("time.warp", point(0, warp(AT_100000X)));
     s.ingest("system.bodies", point(0, { bodies: [] }));
     s.ingest(
       "vessel.orbit",
-      point(0, orbit({ encounter: { transitionUt: value("ut", 1000) } })),
+      point(0, orbit({ encounter: { transitionUt: value("ut", 5000) } })),
     );
     s.ingest(
       "vessel.orbit",
-      point(2000, orbit({ meanAnomalyAtEpoch: value("rad", 1) })),
+      point(AT_100000X, orbit({ meanAnomalyAtEpoch: value("rad", 1) })),
     );
 
     expect(gapAt(s, "vessel.orbit.meanAnomalyAtEpoch")).toEqual({
@@ -211,8 +221,9 @@ describe("TimelineStore.gapModel", () => {
    * An input that lands after the first judgement is asked about again. Here
    * the input is the body roster under an altitude: the altitude is measured
    * from the body's radius, which only the roster publishes, so without it the
-   * flight model declines at the sample and makes no claim, and a judgement
-   * kept from then would say so for as long as the sample stays in the window.
+   * flight model declines at the sample and makes no claim, the warped span is
+   * unclaimed, and a judgement kept from then would say so for as long as the
+   * sample stays in the window.
    */
   it("asks again once a declared input arrives", () => {
     const s = store();
@@ -220,11 +231,14 @@ describe("TimelineStore.gapModel", () => {
       altitudeAsl: value("m", altitude),
       atmDensity: 0,
     });
-    s.ingest("time.warp", point(0, warp(2000)));
+    s.ingest("time.warp", point(0, warp(AT_100000X)));
     s.ingest("vessel.orbit", point(0, orbit()));
     s.ingest("vessel.flight", point(0, flight(1_400_000)));
-    s.ingest("vessel.flight", point(2000, flight(1_400_000 + 1)));
-    expect(gapAt(s, "vessel.flight.altitudeAsl")).toBeUndefined();
+    s.ingest("vessel.flight", point(AT_100000X, flight(1_400_000 + 1)));
+    expect(gapAt(s, "vessel.flight.altitudeAsl")).toEqual({
+      carried: false,
+      unclaimed: true,
+    });
 
     s.ingest(
       "system.bodies",
@@ -235,22 +249,77 @@ describe("TimelineStore.gapModel", () => {
     });
   });
 
-  /** The dock model carries `relativeVelocity` verbatim; that is no claim about the gap. */
-  it("makes no claim for a field the model copies rather than moves", () => {
+  /**
+   * The dock model carries `relativeVelocity` verbatim, which is no claim about
+   * the gap, so a warped span across it is unclaimed like any other.
+   */
+  it("leaves a warped span unclaimed for a field the model copies rather than moves", () => {
     const s = store();
-    s.ingest("time.warp", point(0, warp(2000)));
+    s.ingest("time.warp", point(0, warp(AT_100000X)));
     s.ingest("vessel.dock", point(0, dock(100)));
-    s.ingest("vessel.dock", point(2000, dock(1100)));
+    s.ingest("vessel.dock", point(AT_100000X, dock(1100)));
 
-    expect(gapAt(s, "vessel.dock.relativeVelocity")).toBeUndefined();
+    expect(gapAt(s, "vessel.dock.relativeVelocity")).toEqual({
+      carried: false,
+      unclaimed: true,
+    });
   });
 
   it("makes no claim where the host reported no quantum", () => {
     const s = store();
     s.ingest("time.warp", point(0, warp(null)));
     s.ingest("vessel.dock", point(0, dock(100)));
-    s.ingest("vessel.dock", point(2000, dock(1100)));
+    s.ingest("vessel.dock", point(AT_100000X, dock(1100)));
 
     expect(gapAt(s, "vessel.dock.distance")).toBeUndefined();
+  });
+});
+
+describe("TimelineStore.gapModel where no model claims the value", () => {
+  const charge = (current: number) => ({
+    resources: { ElectricCharge: { current, max: 200, active: true } },
+  });
+  const topic = "vessel.resources.resources.ElectricCharge.current";
+
+  /**
+   * Five orbits of charge and discharge fit between these two samples, and
+   * nothing models electric charge, so nothing stands behind a chord.
+   */
+  it("calls a warped span nothing claims unclaimed", () => {
+    const s = store();
+    s.ingest("time.warp", point(0, warp(AT_100000X)));
+    s.ingest("vessel.resources", point(0, charge(40)));
+    s.ingest("vessel.resources", point(AT_100000X, charge(150)));
+
+    expect(gapAt(s, topic)).toEqual({ carried: false, unclaimed: true });
+  });
+
+  /** At 1x the span is the one-second resolution every chart has always drawn. */
+  it("leaves the same value alone at the sampling's own resolution", () => {
+    const s = store();
+    s.ingest("time.warp", point(0, warp(1)));
+    s.ingest("vessel.resources", point(0, charge(40)));
+    s.ingest("vessel.resources", point(1, charge(40.4)));
+
+    expect(gapAt(s, topic)).toBeUndefined();
+  });
+
+  /** A quiet 1x channel was looked at every second; only its last one was missed. */
+  it("leaves a quiet 1x channel alone however long its gap", () => {
+    const s = store();
+    s.ingest("time.warp", point(0, warp(1)));
+    s.ingest("vessel.resources", point(0, charge(40)));
+    s.ingest("vessel.resources", point(40, charge(40.4)));
+
+    expect(gapAt(s, topic)).toBeUndefined();
+  });
+
+  it("makes no claim where the host states no warp-free interval", () => {
+    const s = store();
+    s.ingest("time.warp", point(0, warp(AT_100000X, null)));
+    s.ingest("vessel.resources", point(0, charge(40)));
+    s.ingest("vessel.resources", point(AT_100000X, charge(150)));
+
+    expect(gapAt(s, topic)).toBeUndefined();
   });
 });
