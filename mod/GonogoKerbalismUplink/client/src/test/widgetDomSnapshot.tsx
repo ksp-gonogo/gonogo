@@ -28,8 +28,12 @@ export interface StreamFixtureBlock {
   delaySeconds?: number;
   /** Stage the link dropping once the emits have landed: see `stopArriving`. */
   stopsArriving?: boolean;
-  /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
-  emits: Array<{ topic: string; payload: unknown }>;
+  /**
+   * Replayed in order, one `StubTransport.emit` per entry, post-mount. An entry
+   * naming a `validAt` is stamped with it, which is how a scene carries a
+   * history for a model to fit; one naming none keeps the stub's default.
+   */
+  emits: Array<{ topic: string; payload: unknown; validAt?: number }>;
 }
 
 /** Extracts and narrows the `_stream` block off a fixture. */
@@ -72,7 +76,13 @@ export async function replayStreamBlock(
   await act(async () => {
     for (const e of block.emits) {
       await waitForSubscription(stream.transport, e.topic);
-      stream.emit(e.topic, e.payload);
+      stream.emit(
+        e.topic,
+        e.payload,
+        e.validAt === undefined
+          ? undefined
+          : { validAt: e.validAt, deliveredAt: e.validAt },
+      );
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve());
       });

@@ -4,6 +4,7 @@ import {
   CREW_SURVIVAL,
   CRITICAL_FRACTION,
   type CrewSurvival,
+  criticalCause,
   survivalFrom,
 } from "./processor";
 import { CREW_RULE_READINGS, type RuleReadings } from "./ruleReadings";
@@ -32,24 +33,55 @@ import { CREW_RULE_READINGS, type RuleReadings } from "./ruleReadings";
 
 function survivalBadges(
   survival: CrewSurvival | undefined,
-  held = false,
+  currency: "current" | "held" | "modelled" = "current",
 ): BadgeEntry[] | null {
   if (!survival) return null;
   const critical = survival.kerbals.filter((k) => k.tone === "nogo").length;
   if (critical === 0) return null;
+  if (currency === "current") {
+    return [
+      {
+        id: "crew-survival-status",
+        label: critical === 1 ? "Crew critical" : `${critical} crew critical`,
+        tone: "nogo",
+      },
+    ];
+  }
   /*
-   * The held form drops "crew" to make room for "held": the header is titled
-   * Crew, and a longer label than the live one collapses the header's badges
-   * into bare dots at the default tile, which would hide the mark it carries.
+   * The marked forms are no longer than the live one, because a longer label
+   * collapses the header's badges into bare dots at the default tile and hides
+   * the mark it carries. The header is titled Crew, so "crew" goes first, and
+   * the modelled form shortens "critical" to fit the longer mark.
    */
-  const label = held
-    ? critical === 1
-      ? "Critical · held"
-      : `${critical} critical · held`
-    : critical === 1
-      ? "Crew critical"
-      : `${critical} crew critical`;
+  const label =
+    currency === "modelled"
+      ? critical === 1
+        ? "Crit (modelled)"
+        : `${critical} crit (modelled)`
+      : critical === 1
+        ? "Critical · held"
+        : `${critical} critical · held`;
   return [{ id: "crew-survival-status", label, tone: "nogo" }];
+}
+
+/**
+ * The panel badge for one {@link CREW_SURVIVAL} answer.
+ *
+ * Modelled only when the count itself rests on the model: some kerbal is
+ * critical because a carried rule crossed the line. One critical by a death
+ * clock or an uncarried rule would be counted without the model at all.
+ */
+function survivalBadgesFor(
+  answer: ReturnType<typeof survivalFrom>,
+): BadgeEntry[] | null {
+  if (!answer) return null;
+  const rests = answer.survival.kerbals.some(
+    (k) => criticalCause(k) === "carried-rule",
+  );
+  return survivalBadges(
+    answer.survival,
+    !answer.stale ? "current" : rests ? "modelled" : "held",
+  );
 }
 
 KERBALISM.registerContribution({
@@ -57,10 +89,8 @@ KERBALISM.registerContribution({
   contributes: "crew-status.badges",
   deps: [CREW_SURVIVAL],
   requires: "kerbalism",
-  compute: (topics) => {
-    const answer = survivalFrom(topics[CREW_SURVIVAL.id]);
-    return survivalBadges(answer?.survival, answer?.held);
-  },
+  compute: (topics) =>
+    survivalBadgesFor(survivalFrom(topics[CREW_SURVIVAL.id])),
 });
 
 /**
@@ -127,4 +157,4 @@ KERBALISM.registerContribution({
   },
 });
 
-export { bandBadges, survivalBadges };
+export { bandBadges, survivalBadges, survivalBadgesFor };

@@ -1,5 +1,6 @@
 import type {
   Reading,
+  ReckoningBasis,
   TopicReading,
   Value,
   VesselCrew,
@@ -48,6 +49,8 @@ export interface KerbalRuleState {
   /** Rule name straight off the wire, e.g. "radiation", "stress"; never a fixed allowlist. */
   name: string;
   fraction: number;
+  /** Whether a model carried this accumulator forward rather than the reading giving it. */
+  carried?: boolean;
 }
 
 export type SurvivalTone = "go" | "warn" | "nogo";
@@ -84,6 +87,16 @@ export interface CrewSurvival {
   kerbals: KerbalSurvival[];
   /** Soonest reported death clock across the crew, or null when none is reported. */
   soonestDeathClockSec: number | null;
+  /**
+   * The model that carried the survival accumulators forward, when the crew
+   * reading had stopped arriving and a model answered for it. Absent when the
+   * figures are the reading itself, current or held.
+   *
+   * It covers the accumulators only. A death clock is Kerbalism's own instant,
+   * derived at its last turn and never moved by a model here, so it stays the
+   * held deadline even inside a carried answer.
+   */
+  basis?: ReckoningBasis;
 }
 
 /**
@@ -180,6 +193,7 @@ function toKerbalSurvival(
   trait: string | null | undefined,
   entry: KerbalismCrewEntry | undefined,
   viewUt: number,
+  carried: ReadonlySet<string>,
 ): KerbalSurvival {
   const rules: KerbalRuleState[] = [];
   for (const rule of entry?.rules ?? []) {
@@ -188,7 +202,11 @@ function toKerbalSurvival(
     // tone derived from it would be a claim about a kerbal nobody measured.
     const fraction = ruleFraction(rule);
     if (fraction === null) continue;
-    rules.push({ name: rule.name, fraction });
+    rules.push(
+      carried.has(ruleKey(name, rule.name))
+        ? { name: rule.name, fraction, carried: true }
+        : { name: rule.name, fraction },
+    );
   }
   // Worst (closest to fatal) first: the `.survival` augment shows the most
   // alarming rule first when it has to collapse the rest behind a disclosure.
@@ -222,6 +240,7 @@ export function deriveCrewSurvival(
   crew: VesselCrew | undefined,
   kerbals: KerbalismCrewEntry[] | undefined,
   viewUt: number,
+  carried: ReadonlySet<string> = new Set(),
 ): CrewSurvival {
   const byName = new Map<string, KerbalismCrewEntry>();
   for (const entry of kerbals ?? []) {
@@ -229,7 +248,13 @@ export function deriveCrewSurvival(
   }
   const kerbalsOut = (crew?.crew ?? []).map((member) => {
     const name = member.name ?? "Unknown";
-    return toKerbalSurvival(name, member.trait, byName.get(name), viewUt);
+    return toKerbalSurvival(
+      name,
+      member.trait,
+      byName.get(name),
+      viewUt,
+      carried,
+    );
   });
   const clocks = kerbalsOut
     .map((k) => k.deathClockSec)
@@ -267,30 +292,100 @@ export const CREW_SURVIVAL = KERBALISM.registerProcessor({
     // INSTANT into a remaining duration. Reaching for a wall clock here would
     // let two readouts in one frame disagree about the same deadline.
     frame: { viewUt: number },
-  ): CrewSurvival =>
-    deriveCrewSurvival(
+  ): CrewSurvival => {
+    /*
+     * A reading that has stopped arriving is carried forward where the crew
+     * model answers: a worsening accumulator keeps worsening and an improving
+     * one keeps improving, which a held figure cannot show. The held figure
+     * stays reachable through the reading's own marks. A current reading is
+     * drawn as it is, since the model has nothing to add to an observation.
+     */
+    if (kerbals.state === "stale" && kerbals.reckoning.status === "available") {
+      const projected = kerbals.reckoning.value;
+      return {
+        ...deriveCrewSurvival(
+          crew,
+          projected,
+          frame.viewUt,
+          carriedRules(projected, kerbals.reckoning.modelled),
+        ),
+        basis: kerbals.reckoning.basis,
+      };
+    }
+    return deriveCrewSurvival(
       crew,
       kerbals.state === "observed" || kerbals.state === "stale"
         ? kerbals.value
         : undefined,
       frame.viewUt,
-    ),
+    );
+  },
 });
 
 /**
- * The survival figures a {@link CREW_SURVIVAL} answer carries, and whether
- * they are held rather than current. `undefined` where there are none to draw.
+ * The survival figures a {@link CREW_SURVIVAL} answer carries, and how current
+ * they are. `undefined` where there are none to draw.
  *
- * A held answer is still drawn: it is the last real one, and every display of
- * it says it is held rather than letting it pass for the situation now.
+ * `stale` is true whenever the crew reading has stopped arriving; `basis` then
+ * says whether a model carried the accumulators forward, and its absence that
+ * they are the last reading, held. Neither is ever drawn without saying which.
  */
-export function survivalFrom(
-  reading: Reading<CrewSurvival> | undefined,
-): { survival: CrewSurvival; held: boolean } | undefined {
+export function survivalFrom(reading: Reading<CrewSurvival> | undefined):
+  | {
+      survival: CrewSurvival;
+      stale: boolean;
+      basis: ReckoningBasis | undefined;
+    }
+  | undefined {
   if (reading?.state !== "observed" && reading?.state !== "stale") {
     return undefined;
   }
   const survival = reading.value;
   if (survival === undefined) return undefined;
-  return { survival, held: reading.state === "stale" };
+  return {
+    survival,
+    stale: reading.state === "stale",
+    basis: reading.state === "stale" ? survival.basis : undefined,
+  };
+}
+
+/** One kerbal's rule, keyed by name on both halves, the way a crew roster is joined. */
+function ruleKey(kerbal: string, rule: string): string {
+  return `${kerbal}\0${rule}`;
+}
+
+/**
+ * Which rules the crew model actually moved, off the paths its reckoning names
+ * (`<kerbal>.rules.<rule>.problem`). A rule it did not name is copied verbatim
+ * from the last reading, so a figure derived from it is held, not modelled.
+ */
+function carriedRules(
+  projected: readonly KerbalismCrewEntry[],
+  modelled: readonly { readonly path: string }[],
+): ReadonlySet<string> {
+  const carried = new Set<string>();
+  for (const { path } of modelled) {
+    const match = /^(\d+)\.rules\.(\d+)\.problem$/.exec(path);
+    if (!match) continue;
+    const entry = projected[Number(match[1])];
+    const rule = entry?.rules?.[Number(match[2])];
+    if (entry?.name && rule?.name) carried.add(ruleKey(entry.name, rule.name));
+  }
+  return carried;
+}
+
+/**
+ * Why a kerbal reads critical, or `null` when they do not: the death clock
+ * Kerbalism derived at its last turn, a rule a model carried past it, or a rule
+ * as the reading gave it. A death clock is named first because it forces the
+ * tone on its own, so a kerbal it covers is critical whatever a model says.
+ */
+export function criticalCause(
+  kerbal: KerbalSurvival,
+): "death-clock" | "carried-rule" | "rule" | null {
+  if (kerbal.tone !== "nogo") return null;
+  if (kerbal.deathClockSec !== null && kerbal.deathClockSec < SOON_DEATH_SEC) {
+    return "death-clock";
+  }
+  return kerbal.worstRule?.carried ? "carried-rule" : "rule";
 }

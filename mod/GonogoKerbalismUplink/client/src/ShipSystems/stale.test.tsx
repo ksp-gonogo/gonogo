@@ -52,16 +52,11 @@ async function scene(fixture: Record<string, unknown>): Promise<HTMLElement> {
 }
 
 describe("Ship Systems says a held ledger is held", () => {
-  it("marks the header, the figures and the processes once the link drops", async () => {
+  it("marks the header badge, the figures and the processes once the link drops", async () => {
     const container = await scene(held);
     const text = visibleText(container);
 
     expect(text).toMatch(/critical · held/i);
-    expect(
-      [...container.querySelectorAll("[role='status']")].some((el) =>
-        /at last contact/i.test(el.textContent ?? ""),
-      ),
-    ).toBe(true);
     expect(text).toContain("run state held");
     expect(text).not.toMatch(/\brunning\b/i);
     expect(

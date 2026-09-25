@@ -10,6 +10,7 @@ import { ruleLabel } from "./meters";
 import {
   CREW_SURVIVAL,
   type CrewSurvival,
+  criticalCause,
   type KerbalSurvival,
   survivalFrom,
 } from "./processor";
@@ -84,10 +85,10 @@ function warningFor(
  * Still an augment, unlike the meters: what it draws is a CONSEQUENCE, and it
  * is the one thing here whose rendering the host has no rule for.
  *
- * A held answer is drawn and says so in the label, in the short word a badge
- * has room for; a row of badges clips a long one. The host marks its own
- * figures in the same row, and a death clock left unmarked beside them would
- * read as current on the strength of their marks.
+ * A reading that has stopped arriving is drawn and says so in the label, in
+ * the short words a badge has room for; a row of badges clips a long one.
+ * The host marks its own figures in the same row, and a death clock left
+ * unmarked beside them would read as current on the strength of their marks.
  */
 function CrewSurvivalBadgeAugment({
   crewName,
@@ -99,9 +100,31 @@ function CrewSurvivalBadgeAugment({
   if (!kerbal) return null;
   const warning = warningFor(kerbal);
   if (!warning) return null;
+  /*
+   * A carried answer is preferred to a held one: the held figure stays
+   * reachable through the reading's own marks, and the carried one can still
+   * change. A death clock is never carried, though. It is Kerbalism's own
+   * deadline from its last turn, so it is the held figure even when the rules
+   * beside it were carried forward.
+   */
+  const modelled =
+    answer.stale &&
+    kerbal.deathClockSec === null &&
+    criticalCause(kerbal) === "carried-rule"
+      ? answer.basis
+      : undefined;
+  const label = !answer.stale
+    ? warning.label
+    : modelled
+      ? `${warning.label} (modelled)`
+      : `${warning.label} · held`;
   return (
-    <Badge severity={warning.severity} size="sm">
-      {answer.held ? `${warning.label} · held` : warning.label}
+    <Badge
+      severity={warning.severity}
+      size="sm"
+      data-reckoning-basis={modelled}
+    >
+      {label}
     </Badge>
   );
 }
