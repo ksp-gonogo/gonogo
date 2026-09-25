@@ -11,6 +11,7 @@ import {
   CommandButton,
   type CommandButtonHandle,
   ExpandableText,
+  NULL_DISPLAY,
   Panel,
   Section,
   Unit,
@@ -19,7 +20,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
-import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: ["career.status", "spaceCenter.scene"],
@@ -43,11 +44,17 @@ export interface TechPart {
   purchased: boolean;
 }
 
+/** A price that never arrived sorts after every real one rather than as free. */
+function sortCost(n: { scienceCost: number | null }): number {
+  return n.scienceCost ?? Number.POSITIVE_INFINITY;
+}
+
 export interface TechNode {
   id: string;
   title: string;
   description: string;
-  scienceCost: number;
+  /** `null` when the wire carried no price, which is not a free node. */
+  scienceCost: number | null;
   state: TechNodeState;
   parents: string[];
   parts: TechPart[];
@@ -96,7 +103,7 @@ export function parseTechNodes(raw: unknown): TechNode[] | null {
       title: typeof e.title === "string" ? e.title : id,
       description: typeof e.description === "string" ? e.description : "",
       // Compared against the available science to gate the Unlock button.
-      scienceCost: magnitudeOr(asQuantityish(e.scienceCost), 0),
+      scienceCost: magnitudeOf(asQuantityish(e.scienceCost)),
       state,
       parents: Array.isArray(e.parents)
         ? e.parents.filter((p): p is string => typeof p === "string")
@@ -163,7 +170,8 @@ function computeResearchable(
       (p) => byId.get(p)?.state === "Available",
     );
     if (!parentsUnlocked) continue;
-    if (science !== null && n.scienceCost > science) continue;
+    if (science !== null && n.scienceCost !== null && n.scienceCost > science)
+      continue;
     out.add(n.id);
   }
   return out;
@@ -239,7 +247,7 @@ function layoutGraph(
   // Initial within-column order: by science cost then title (stable, readable).
   for (const col of columns) {
     col.sort(
-      (a, b) => a.scienceCost - b.scienceCost || a.title.localeCompare(b.title),
+      (a, b) => sortCost(a) - sortCost(b) || a.title.localeCompare(b.title),
     );
   }
 
@@ -270,7 +278,7 @@ function layoutGraph(
       col.sort(
         (a, b) =>
           (bary.get(a.id) ?? 0) - (bary.get(b.id) ?? 0) ||
-          a.scienceCost - b.scienceCost,
+          sortCost(a) - sortCost(b),
       );
       col.forEach((n, i) => {
         rowOf.set(n.id, i);
@@ -347,6 +355,13 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // the panel delay rail by usePanelDelay (draws nothing at meta-vantage).
   const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
   usePanelDelay(unlockCmd);
+  /*
+   * Whether money decides this command at all. A career model that refuses
+   * `career.tech.unlock` (RP-1 researches through its own queue) refuses it for a
+   * reason the balance has no part in, so no affordability verdict is drawn: the
+   * price stays a plain figure beside the control.
+   */
+  const unlockBlocked = unlockCmd.gate?.blocked === true;
 
   const allNodes = parseTechNodes(nodesRaw);
 
@@ -440,20 +455,26 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     const isResearchable = researchable.has(n.id);
     // Absent science reads as insufficient science, which is what the comment
     // above `sciAvailable` already claimed this did. Sandbox charges nothing.
-    const canAfford = chargesScience
-      ? sciAvailable !== null && sciAvailable >= n.scienceCost
-      : true;
+    const canAfford =
+      unlockBlocked || !chargesScience
+        ? true
+        : sciAvailable !== null &&
+          n.scienceCost !== null &&
+          sciAvailable >= n.scienceCost;
     const canUnlock = isResearchable && canAfford && upgradesEnabled;
     return {
       isResearchable,
       canAfford,
+      moneyDecides: chargesScience && !unlockBlocked,
       canUnlock,
       affordTooltip: !canAfford
-        ? sciAvailable === null
-          ? careerNotCurrent
-            ? `Need ${writeQuantity(value("science", n.scienceCost))} (the science balance is no longer current)`
-            : `Need ${writeQuantity(value("science", n.scienceCost))} (no science balance has arrived)`
-          : `Need ${writeQuantity(value("science", n.scienceCost))} (have ${sciAvailable})`
+        ? n.scienceCost === null
+          ? "No price reported for this node"
+          : sciAvailable === null
+            ? careerNotCurrent
+              ? `Need ${writeQuantity(value("science", n.scienceCost))} (the science balance is no longer current)`
+              : `Need ${writeQuantity(value("science", n.scienceCost))} (no science balance has arrived)`
+            : `Need ${writeQuantity(value("science", n.scienceCost))} (have ${sciAvailable})`
         : !upgradesEnabled
           ? "Unlock from the Space Center scene"
           : undefined,
@@ -650,6 +671,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
                     unlockCmd={unlockCmd}
                     canUnlock={u.canUnlock}
                     canAfford={u.canAfford}
+                    moneyDecides={u.moneyDecides}
                     affordTooltip={u.affordTooltip}
                   />
                 );
@@ -672,7 +694,7 @@ function sortNodes(nodes: TechNode[], researchable: Set<string>): TechNode[] {
     const ra = rank(a);
     const rb = rank(b);
     if (ra !== rb) return ra - rb;
-    if (a.scienceCost !== b.scienceCost) return a.scienceCost - b.scienceCost;
+    if (sortCost(a) !== sortCost(b)) return sortCost(a) - sortCost(b);
     return a.title.localeCompare(b.title);
   });
 }
@@ -779,7 +801,7 @@ function TechGraph({
               style={{ left: p.x, top: p.y, width: CARD_W, height: CARD_H }}
               onClick={() => onSelect(p.node.id)}
               aria-pressed={selectedId === p.node.id}
-              aria-label={`${p.node.title}, ${ds}, ${p.node.scienceCost} science`}
+              aria-label={`${p.node.title}, ${ds}, ${p.node.scienceCost ?? "unknown"} science`}
             >
               <GraphCardTitle>{p.node.title}</GraphCardTitle>
               <GraphCardMeta>
@@ -787,7 +809,7 @@ function TechGraph({
                   <GraphOwned>✓ owned</GraphOwned>
                 ) : (
                   <GraphCost $ds={ds}>
-                    {p.node.scienceCost}
+                    {p.node.scienceCost ?? NULL_DISPLAY}
                     <Unit>science</Unit>
                   </GraphCost>
                 )}
@@ -846,7 +868,7 @@ function DetailPanel({
       <DetailMeta>
         {node.state !== "Available" && (
           <Cost>
-            {node.scienceCost}
+            {node.scienceCost ?? NULL_DISPLAY}
             <Unit>science</Unit>
           </Cost>
         )}
@@ -896,7 +918,7 @@ function DetailPanel({
             label="Unlock"
             confirmLabel={
               <>
-                Confirm unlock: {node.scienceCost}
+                Confirm unlock: {node.scienceCost ?? NULL_DISPLAY}
                 <Unit>science</Unit>
               </>
             }
@@ -921,6 +943,8 @@ interface NodeRowProps {
   unlockCmd: CommandButtonHandle;
   canUnlock: boolean;
   canAfford: boolean;
+  /** Whether the balance decides this unlock at all; false where the command is refused outright or nothing charges science. */
+  moneyDecides: boolean;
   affordTooltip?: string;
 }
 
@@ -932,6 +956,7 @@ function NodeRow({
   unlockCmd,
   canUnlock,
   canAfford,
+  moneyDecides,
   affordTooltip,
 }: Readonly<NodeRowProps>) {
   const stateBadgeTone =
@@ -963,8 +988,18 @@ function NodeRow({
         </NodeTitle>
         <NodeMeta>
           {display !== "owned" && (
-            <Cost $insufficient={unaffordable}>
-              {node.scienceCost}
+            <Cost
+              $insufficient={unaffordable}
+              // The verdict, reported so it can be asserted: otherwise it is only a colour. Absent where money decides nothing.
+              data-afford={
+                display === "researchable" && moneyDecides
+                  ? canAfford
+                    ? "yes"
+                    : "no"
+                  : undefined
+              }
+            >
+              {node.scienceCost ?? NULL_DISPLAY}
               <Unit>science</Unit>
             </Cost>
           )}
@@ -1023,7 +1058,7 @@ function NodeRow({
                 label="Unlock"
                 confirmLabel={
                   <>
-                    Confirm unlock: {node.scienceCost}
+                    Confirm unlock: {node.scienceCost ?? NULL_DISPLAY}
                     <Unit>science</Unit>
                   </>
                 }
