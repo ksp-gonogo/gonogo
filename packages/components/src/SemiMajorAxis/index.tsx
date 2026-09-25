@@ -92,7 +92,14 @@ function SemiMajorAxisComponent({
   // no room without crowding the readout. At default 4×4 the panel title
   // ("SMA") + value already cover the operator's read-at-a-glance need.
   const showSubtitle = rows >= 5 && cols >= 4;
-  const showSparkline = rows >= 4 && cols >= 3;
+  /* A 3x3 body has room for the figure and nothing under it, so the age gives
+     way there and the figure's own held mark is what says the link went quiet. */
+  const showHeldCaption = smaHeld && rows >= 4;
+  /* At four rows the body holds the figure and one thing under it. While held
+     that is the age, since a trend that has stopped arriving says less than how
+     long ago it stopped. */
+  const showSparkline =
+    rows >= 4 && cols >= 3 && !(showHeldCaption && rows < 5);
 
   // SmaDisplay font scales with available width so the value (e.g.
   // "2.87 Mm", "680.0 km") doesn't wrap onto two lines at narrow column
@@ -179,8 +186,8 @@ function SemiMajorAxisComponent({
           {/* The caveat belongs on the value rather than in the panel chrome: a
             header badge beside a confident-looking number is the thing an
             operator reads past. */}
-          {smaHeld && (
-            <ReadoutCaption>
+          {showHeldCaption && (
+            <ReadoutCaption style={SMA_CAPTION_STYLE}>
               <span role="status">at last contact</span>
               {/* Game-time seconds: the age is one UT minus another, so it
                   belongs on the "s" ladder and not the real-time one. */}
@@ -219,7 +226,7 @@ function SemiMajorAxisComponent({
   );
 }
 
-/** Centres the kit's caption over the reading it introduces. */
+/** Centres the kit's caption on the reading it belongs to. */
 const SMA_CAPTION_STYLE = { textAlign: "center" } as const;
 
 /**
@@ -235,9 +242,21 @@ const SMA_DISPLAY_STYLE = {
   whiteSpace: "nowrap",
 } as const;
 
-/** Reserves the sparkline's height before it measures, so the rows below it
- *  do not jump on the first paint. */
-const SPARK_SLOT_STYLE = { width: "100%", height: "28px" } as const;
+/**
+ * Reserves the sparkline's height before it measures, so the rows below it do
+ * not jump on the first paint.
+ *
+ * `contain: inline-size` keeps the sparkline out of the column's width. The
+ * sparkline is drawn at whatever width its slot measured, so without it the
+ * column is sized by the sparkline's starting width, which is wider than a
+ * three-column tile, the slot then measures that same width back, and the
+ * centred rows spill past both edges of the cell.
+ */
+const SPARK_SLOT_STYLE = {
+  width: "100%",
+  height: "28px",
+  contain: "inline-size",
+} as const;
 
 registerComponent<SemiMajorAxisConfig>({
   id: "semi-major-axis",
