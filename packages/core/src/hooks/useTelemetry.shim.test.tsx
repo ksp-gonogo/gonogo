@@ -29,7 +29,7 @@ import { useLegacyTelemetry } from "../test/legacyTelemetry";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useTelemetry } from "./useTelemetry";
 
-// Minimal in-memory legacy DataSource: same shape as useTelemetry.test.ts's
+// Minimal in-memory legacy DataSource: same shape as useTelemetry.test.tsx's
 // fixture, reused here to drive the "falls back to the legacy path" side of
 // the shim.
 function makeLegacySource(id = "data") {
