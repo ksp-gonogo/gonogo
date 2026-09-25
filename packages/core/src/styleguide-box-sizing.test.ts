@@ -97,14 +97,24 @@ function scan(): Hit[] {
   return hits;
 }
 
+let scanned: Hit[] | undefined;
+const hits = (): Hit[] => {
+  scanned ??= scan();
+  return scanned;
+};
+
 describe("box-sizing is set once, for the whole document", () => {
   it("declares the reset in the theme sheet", () => {
     const css = readFileSync(join(repoRoot(), RESET_FILE), "utf8");
     expect(css).toContain(RESET_SELECTOR);
   });
 
+  it("finds the reset itself, so an empty scan cannot read as a clean one", () => {
+    expect(hits().map((h) => h.file)).toContain(RESET_FILE);
+  });
+
   it("has no other declaration anywhere", () => {
-    const strays = scan().filter(
+    const strays = hits().filter(
       (h) => h.file !== RESET_FILE && !OWN_DOCUMENT.includes(h.file),
     );
     if (strays.length > 0) {

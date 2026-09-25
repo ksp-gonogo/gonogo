@@ -190,10 +190,11 @@ describe("delay-ux: arm-then-confirm has one definition", () => {
   it("still has an owner, so the scan above cannot pass by having nothing to find", () => {
     // Without this, deleting the primitive turns the check above green: an
     // empty offender list reads identically whether the rule is being upheld or
-    // the thing it protects is gone.
-    expect(existsSync(join(root, ARM_TIMEOUT_OWNER))).toBe(true);
-    expect(readFileSync(join(root, ARM_TIMEOUT_OWNER), "utf8")).toContain(
-      "const ARM_TIMEOUT_MS",
+    // the thing it protects is gone. Asked of the search itself rather than of
+    // the owner read by name, so a `git grep` that finds nothing (a wrong cwd, a
+    // pathspec that stopped matching) fails here too.
+    expect(productionFilesReferencing("const ARM_TIMEOUT_MS")).toContain(
+      ARM_TIMEOUT_OWNER,
     );
   });
 });

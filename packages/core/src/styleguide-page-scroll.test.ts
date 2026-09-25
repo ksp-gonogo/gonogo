@@ -128,6 +128,12 @@ function scan(): Hit[] {
 }
 
 describe("no page refuses to scroll", () => {
+  it("reads the app's page and the theme sheet, so a clean scan means it looked", () => {
+    const files = candidates(repoRoot());
+    expect(files).toContain("packages/app/index.html");
+    expect(files).toContain("packages/theme/src/tokens.css");
+  });
+
   it("has no document-level overflow lock in any page or stylesheet", () => {
     const hits = scan();
     if (hits.length > 0) {
