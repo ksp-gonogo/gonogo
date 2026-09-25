@@ -204,6 +204,24 @@ describe("the repair control offers only crew the provider would accept", () => 
     const confirm = screen.getByRole("button", { name: /repair/i });
     expect(confirm).toBeDisabled();
     expect(confirm.getAttribute("title")).toMatch(/Engineer level 2/);
+    // Said in text as well: a disabled button takes no focus and shows no tooltip on touch.
+    expect(screen.getByText(/Engineer level 2/)).toBeVisible();
+    await act(async () => {});
+  });
+
+  it("offers no repair for a part it could not address", async () => {
+    const { fixture } = renderAugment("v-active");
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("vessel.crew", { count: 1, capacity: 3, crew: [ENGINEER] });
+      fixture.emit("reliability.summary", MODELED);
+      fixture.emit("reliability.parts", [
+        { title: "Reaction Wheel", condition: "failed" },
+      ]);
+    });
+
+    expect(await screen.findByText("Reaction Wheel")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /repair/i })).toBeNull();
     await act(async () => {});
   });
 });

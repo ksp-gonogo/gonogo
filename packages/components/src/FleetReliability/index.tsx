@@ -620,6 +620,7 @@ function RepairControl({
             : (member.name ?? "Unknown")}
         </SelectableRow>
       ))}
+      {refusal && <span>{refusal}</span>}
       <CommandButton
         handle={repair}
         args={{ partId, crewName: performer ?? "" }}
@@ -823,9 +824,9 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
             titleRight={<Badge severity={row.severity}>{row.word}</Badge>}
           >
             {row.clause !== undefined && <span>{row.clause}</span>}
-            {actionable(part.condition) && (
+            {actionable(part.condition) && part.partId && (
               <RepairControl
-                partId={part.partId ?? ""}
+                partId={part.partId}
                 condition={part.condition}
                 repairTrait={part.repairTrait}
                 repairLevel={magnitudeOf(part.repairLevel)}
