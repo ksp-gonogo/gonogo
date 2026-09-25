@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // The C#/TS golden fixtures, and the C# silence tracker whose states the
+    // exhaustiveness test mirrors.
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/mod/golden-fixtures/**",
+        "$TURBO_ROOT$/mod/Sitrep.Host/Comms/SilenceTracker.cs"
+      ]
+    }
+  }
+}

@@ -16,12 +16,13 @@
     // silently stopped guarding, which has happened THREE times, so the key
     // stays deliberately broad.
     //
-    // The key is the SCAN, not the source layout. Keying on `**/src/**` said
-    // "TypeScript laid out the way TypeScript is laid out" and could not see
-    // C#: no `src/` segment exists in a C# project path, and three Earth-day
-    // constants in mod/*.cs replayed a cached pass locally while CI ran cold
-    // and failed. Match the scan's own shape; exclude only build output, which
-    // is gitignored and so never read by `git grep`.
+    // The key is the whole tracked tree. Between them the scans read every
+    // package.json and tsconfig, packages/*/scripts, the root configs,
+    // scripts/, tests/, docs/, .github/ and asyncapi.yaml, so a key narrower
+    // than the tree replays a pass when only one of those changed. Ignored
+    // build output and local state stay out, except local_docs, whose
+    // recordings the fixture-gated scans read. turbo-input-coverage.test.ts
+    // fails on a tracked file missing from `inputs` and on an ignored one in it.
     //
     // WHICH tests these are is DERIVED, not listed: packages/core/scan-tests.mjs
     // detects a test that reaches outside the package. A hand-list is what lost
@@ -39,12 +40,43 @@
       "env": ["RATCHET_BASE_REF", "GITHUB_ACTIONS"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/packages/*/src/**",
+        "$TURBO_ROOT$/*",
+        "!$TURBO_ROOT$/.env*",
+        "!$TURBO_ROOT$/.launch.sh",
+        "!$TURBO_ROOT$/.startup-prompt",
+        "!$TURBO_ROOT$/.agent.log",
+        "!$TURBO_ROOT$/.DS_Store",
+        "!$TURBO_ROOT$/asyncapi.yaml.actual",
+        "!$TURBO_ROOT$/*.tgz",
+        "$TURBO_ROOT$/.githooks/**",
+        "$TURBO_ROOT$/.github/**",
+        "$TURBO_ROOT$/.serena/**",
+        "$TURBO_ROOT$/.vscode/**",
+        "$TURBO_ROOT$/docker/**",
+        "$TURBO_ROOT$/docs/**",
+        "!$TURBO_ROOT$/docs/superpowers/**",
+        "$TURBO_ROOT$/local_docs/**",
+        "$TURBO_ROOT$/scripts/**",
+        "$TURBO_ROOT$/test/**",
+        "$TURBO_ROOT$/tests/**",
+        "$TURBO_ROOT$/packages/**",
         "$TURBO_ROOT$/mod/**",
-        "!$TURBO_ROOT$/mod/**/bin/**",
-        "!$TURBO_ROOT$/mod/**/obj/**",
-        "!$TURBO_ROOT$/mod/**/dist/**",
-        "!$TURBO_ROOT$/mod/**/node_modules/**"
+        "!$TURBO_ROOT$/**/node_modules/**",
+        "!$TURBO_ROOT$/**/dist/**",
+        "!$TURBO_ROOT$/**/.turbo/**",
+        "!$TURBO_ROOT$/packages/*/coverage/**",
+        "!$TURBO_ROOT$/mod/*/client/coverage/**",
+        "!$TURBO_ROOT$/mod/*/coverage/**",
+        "!$TURBO_ROOT$/**/test-results/**",
+        "!$TURBO_ROOT$/**/playwright-report/**",
+        "!$TURBO_ROOT$/**/renders/**",
+        "!$TURBO_ROOT$/**/.DS_Store",
+        "!$TURBO_ROOT$/**/*.tsbuildinfo",
+        "!$TURBO_ROOT$/**/tsup.config.bundled_*.mjs",
+        "!$TURBO_ROOT$/packages/app/public/uplinks/**",
+        "!$TURBO_ROOT$/mod/**/bin/Debug/**",
+        "!$TURBO_ROOT$/mod/**/bin/Release/**",
+        "!$TURBO_ROOT$/mod/**/obj/**"
       ]
     }
   }
