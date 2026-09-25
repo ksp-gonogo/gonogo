@@ -99,9 +99,12 @@ namespace Gonogo.KSP
         /// built from a null node would carry an empty id that de-duplicates
         /// against every other broken node in the graph.</para>
         /// </summary>
-        protected override IReadOnlyList<CommsLinkView>? ControlPath()
+        protected override IReadOnlyList<CommsLinkView>? ControlPath(object? vessel)
         {
-            var path = Connection()?.ControlPath;
+            // Loaded or not: CommNet solves every vessel's control path, which
+            // is what the fleet's own light-time already reads, so a craft
+            // parked on rails has a route to watch like the one on screen.
+            var path = (vessel as Vessel)?.connection?.ControlPath;
             if (path == null)
             {
                 return null;

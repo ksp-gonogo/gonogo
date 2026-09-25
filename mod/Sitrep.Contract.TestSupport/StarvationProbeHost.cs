@@ -269,7 +269,7 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
-        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread)
+        public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread)
         {
         }
 

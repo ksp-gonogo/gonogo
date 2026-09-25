@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Gonogo.KSP.CommandCentres;
 using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
+using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Sitrep.Host.Comms;
 using Sitrep.Host.Settings;
@@ -239,6 +240,16 @@ namespace Gonogo.KSP
         internal static void ConfigureCommsModelProbe(Func<bool?>? probe) =>
             _commsModelProbe = probe ?? (() => CommsModelPresence.Present);
 
+        // Which craft is on screen, for every route this uplink asks the backend
+        // about. A delegate for the same reason _commsModelProbe is: the live
+        // read goes through FlightGlobals, which a headless process cannot touch
+        // at all, and without the seam no path through here could be driven.
+        private static Func<Vessel?> _activeVesselProbe = () => ActiveVesselScope.Current;
+
+        /// <summary>Point the active-craft read at a different answer; pass null to put the live read back.</summary>
+        internal static void ConfigureActiveVesselProbe(Func<Vessel?>? probe) =>
+            _activeVesselProbe = probe ?? (() => ActiveVesselScope.Current);
+
         private static bool? CommsModelPresent
         {
             get
@@ -463,6 +474,7 @@ namespace Gonogo.KSP
 
         public void Register(IUplinkHost host)
         {
+            _host = host;
             _kernel = host.Kernel;
             ConfigureSimulationKernel(host.Kernel);
 
@@ -676,7 +688,7 @@ namespace Gonogo.KSP
             // instead leaves the LAST-KNOWN delay untouched and retries next
             // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
-            var path = backend.Path();
+            var path = backend.Path(_activeVesselProbe());
             // The EFFECTIVE config, not the authored one. Reading the authored
             // field here (and in CaptureOnMain below) left the two readers this
             // accessor exists to keep together - the reveal gate and comms.delay
@@ -691,28 +703,34 @@ namespace Gonogo.KSP
         }
 
         /*
-         * The retained route, for the drop event. Per-uplink rather than static:
-         * it is a comparison against the last tick, and two elections or two
-         * saves must not compare against each other's geometry.
+         * The retained routes, one per craft, for the drop event. Per-uplink
+         * rather than static: each is a comparison against the last tick, and two
+         * elections or two saves must not compare against each other's geometry.
          */
-        private readonly PathBreakWatch _pathBreaks = new PathBreakWatch();
+        private readonly PathBreakWatchers _pathBreaks = new PathBreakWatchers();
+
+        private IUplinkHost? _host;
 
         /// <summary>
         /// MAIN-THREAD break observation for the delay ledger (see
-        /// <see cref="IUplinkHost.SetPathBreakSource"/>): the same elected
-        /// backend and the same <see cref="ICommsBackend.Path"/> read
-        /// <see cref="ComputeDelayOnMain"/> makes, put to
-        /// <see cref="PathBreakWatch"/> so the per-hop light-times that
-        /// <see cref="SignalDelay.Compute"/> sums away are seen by something
-        /// before they are lost.
+        /// <see cref="IUplinkHost.SetPathBreakSource"/>): the elected backend's
+        /// route for each watched craft, put to <see cref="PathBreakWatchers"/>
+        /// so the per-hop light-times that <see cref="SignalDelay.Compute"/> sums
+        /// away are seen by something before they are lost.
         ///
-        /// <para>Returns null pre-election, and forgets the retained route
+        /// <para>The craft on screen is always watched. Every other craft is
+        /// watched while anything under <c>fleet.</c> is subscribed, the same
+        /// condition the fleet capture runs on, because a break only retires
+        /// samples someone is receiving and the fleet capture reads every
+        /// vessel's route on those same ticks.</para>
+        ///
+        /// <para>Returns null pre-election, and forgets every retained route
         /// whenever delay is not being applied at all. A route retained across
         /// an off/on cycle would be compared against a situation it does not
         /// belong to, and two unrelated routes differ in every hop, which reads
         /// as a break on the deepest one.</para>
         /// </summary>
-        internal PathBreak? ObservePathBreakOnMain(KspSnapshot? snapshot, double ut)
+        internal IReadOnlyList<PathBreak>? ObservePathBreakOnMain(KspSnapshot? snapshot, double ut)
         {
             var backend = ElectedBackend();
             if (backend == null)
@@ -728,9 +746,51 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            return _pathBreaks.Observe(
-                backend.Path(), config.LightSpeedScale, ut, backend.StillCarriesTo);
+            return _pathBreaks.Observe(WatchedCraft(backend), config.LightSpeedScale, ut);
         }
+
+        /// <summary>
+        /// The craft whose routes are watched this tick, each with every engine
+        /// node its samples leave from: the craft on screen speaks through the
+        /// active node and its own fleet node, every other craft through its
+        /// fleet node alone.
+        /// </summary>
+        private IEnumerable<PathBreakWatchers.Subject> WatchedCraft(ICommsBackend backend)
+        {
+            var active = _activeVesselProbe();
+            if (active != null)
+            {
+                var id = active.id.ToString();
+                yield return Watched(backend, active, id, ChannelEngine.NodeId, ChannelEngine.FleetNodePrefix + id);
+            }
+
+            if (_host == null || !_host.IsAnyTopicSubscribed(ChannelEngine.FleetNodePrefix))
+            {
+                yield break;
+            }
+            var all = FlightGlobals.Vessels;
+            if (all == null)
+            {
+                yield break;
+            }
+            foreach (var vessel in all)
+            {
+                if (vessel == null || ReferenceEquals(vessel, active))
+                {
+                    continue;
+                }
+                var id = vessel.id.ToString();
+                yield return Watched(backend, vessel, id, ChannelEngine.FleetNodePrefix + id);
+            }
+        }
+
+        private static PathBreakWatchers.Subject Watched(
+            ICommsBackend backend, Vessel vessel, string id, params string[] nodes) =>
+            new PathBreakWatchers.Subject(
+                id,
+                nodes,
+                backend.Path(vessel),
+                nodeId => backend.StillCarriesTo(vessel, nodeId));
 
         /// <summary>
         /// MAIN-THREAD capture: resolves the elected backend and reads every
@@ -749,7 +809,8 @@ namespace Gonogo.KSP
 
             try
             {
-                var path = backend.Path();
+                var active = _activeVesselProbe();
+                var path = backend.Path(active);
                 var delay = SignalDelay.Compute(
                     SignalDelayConfig,
                     path,
@@ -798,7 +859,7 @@ namespace Gonogo.KSP
                 // failed. That remains the right answer: a centre is where a
                 // control PATH terminates, and there are no paths.
                 var commandCentre = CommandCentreResolution.Resolve(
-                    backend.ControlPathTerminus(), _commandCentreRegistry, connectivity.Meta);
+                    backend.ControlPathTerminus(active), _commandCentreRegistry, connectivity.Meta);
 
                 return new CommsCapture
                 {
@@ -807,7 +868,7 @@ namespace Gonogo.KSP
                     Signal = backend.SignalStrength(),
                     Control = backend.ControlState(),
                     Path = path,
-                    Network = backend.Network(),
+                    Network = backend.Network(active),
                     Delay = delay,
                     // The backend declares the RULE; the body list it applies to
                     // comes from the snapshot this capture was already handed
