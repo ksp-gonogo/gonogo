@@ -47,6 +47,7 @@
 // ---------------------------------------------------------------------------
 
 import type { Reading } from "../reading";
+import type { ReadFrameChoice } from "../spine/reference-frame";
 import type { Value } from "../unit-system/value";
 import type { StatEntry } from "./types";
 
@@ -190,6 +191,35 @@ export interface SystemEntity {
   meta?: SystemEntityMeta;
   vesselId?: string;
   zHint?: number;
+}
+
+/** Mirrors `SystemViewVesselStatusEntry` (SystemView/vesselStatusContribution.ts). */
+export interface SystemViewVesselStatusEntry {
+  /** The vessel this entry decorates: `vessel.identity`'s `vesselId`. */
+  target: string;
+  severity: "info" | "warning" | "critical";
+  /** Every entry from this contribution is a model's opinion, never a direct observation. */
+  emphasis: "observed" | "reckoned";
+  label: string;
+  tooltip?: string;
+}
+
+/** Mirrors `SystemProjectionExtent` (SystemView/projection.ts). */
+export type SystemProjectionExtent =
+  | { kind: "auto-fit-metres" }
+  | { kind: "fixed-units"; units: number };
+
+/** Mirrors `SystemViewProjection` (SystemView/projection.ts): one frame SystemView draws its whole picture in. */
+export interface SystemViewProjection {
+  /** Stable id. The operator's pinned choice is stored as this. */
+  id: string;
+  /** What an operator calls it. */
+  label: string;
+  /** The frame, for the host to resolve at the instant it is drawing. */
+  choice: ReadFrameChoice;
+  extent: SystemProjectionExtent;
+  /** The body the diagram must be centred on for this projection to be one it can draw. */
+  frameBodyIndex: number;
 }
 
 // `crew-status.row-tone` (packages/components/src/CrewStatus): how alarming
@@ -438,6 +468,14 @@ declare module "./types" {
     "system-view.entities": {
       entry: SystemEntity;
       topics: "system.vessels" | "system.bodies" | "comms.network";
+    };
+    "system-view.vessel-status": {
+      entry: SystemViewVesselStatusEntry;
+      topics: "vessel.identity";
+    };
+    "system-view.projection": {
+      entry: SystemViewProjection;
+      topics: "system.bodies";
     };
     "crew-status.row-tone": {
       entry: CrewRowToneEntry;

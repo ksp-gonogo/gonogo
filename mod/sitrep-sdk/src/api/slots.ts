@@ -198,6 +198,18 @@ export interface CrewAvatarContext {
   crewIndex: number;
 }
 
+// --- AstronautComplex (packages/components/src/AstronautComplex) -----------
+
+/** Mirrors `AstronautComplexCrewContext` (AstronautComplex/index.tsx). */
+export interface AstronautComplexCrewContext {
+  /** `ProtoCrewMember.name`: the join key to the augment's own crew channel. */
+  kerbalName: string;
+  /** `CrewStanding`, or null when the producer sent none. */
+  standing: number | null;
+  /** Whether this row is a hireable candidate rather than owned crew. */
+  isApplicant: boolean;
+}
+
 // --- LaunchDirector (packages/components/src/LaunchDirector) ---------------
 
 /** Mirrors `LaunchDirectorSlotContext` (LaunchDirector/index.tsx). */
@@ -616,6 +628,11 @@ declare module "./types" {
     "crew-status.row-badges": CrewBadgeContext;
     "crew-status.avatar": CrewAvatarContext;
     "crew-status.summary": Record<string, never>;
+
+    "astronaut-complex.crew": AstronautComplexCrewContext;
+    "astronaut-complex.crew-badge": AstronautComplexCrewContext;
+    // A whole tab, which passes nothing.
+    "astronaut-complex.training": Record<string, never>;
 
     "launch-director.preflight": LaunchDirectorSlotContext;
     "launch-director.pad": LaunchDirectorPadContext;
