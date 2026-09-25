@@ -1373,7 +1373,9 @@
       "meanAnomalyAtEpoch": "rad",
       "mu": "m³/s²",
       "referenceBodyIndex": "id",
-      "sma": "m"
+      "sma": "m",
+      "timeToAp": "s",
+      "timeToPe": "s"
     },
     "VesselOrbitTruth": {
       "frameRotating": "flag",
@@ -1977,7 +1979,9 @@
       "meanAnomalyAtEpoch": "rad",
       "mu": "m³/s²",
       "referenceBodyIndex": "id",
-      "sma": "m"
+      "sma": "m",
+      "timeToAp": "s",
+      "timeToPe": "s"
     },
     "vessel.orbit.truth": {
       "frameRotating": "flag",

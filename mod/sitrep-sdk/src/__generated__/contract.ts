@@ -8080,6 +8080,8 @@ export interface VesselManeuver
 * The `vessel.orbit` channel payload: elements are the CAUSE; every kinematic
 * quantity (position/velocity/apsides/anomalies/period) is a consumer-side
 * derivation at view-UT via the propagation capability, never streamed here.
+* The one exception is the pair of apsis countdowns under physics,
+* `VesselOrbit.timeToAp` and `VesselOrbit.timeToPe`: see their own docs.
 * Units: `VesselOrbit.sma` in metres; `VesselOrbit.inc`/`VesselOrbit.lan`/
 * `VesselOrbit.argPe` in DEGREES (KSP-native);
 * `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native): this
@@ -8125,6 +8127,26 @@ export interface VesselOrbit
 	* propagation, no separate body lookup required.
 	*/
 	mu: Value<"m³/s²">;
+	/**
+	* Seconds from this sample's `validAt` until the craft next reaches apoapsis
+	* on the orbit these elements describe, as KSP computes it (`Orbit.timeToAp`).
+	* Carried only while the craft is under physics (`meta.quality` `Loaded`): on
+	* rails the same figure follows exactly from the elements, and the field is
+	* null. Also null on a hyperbolic orbit, which has no apoapsis. Never a
+	* sentinel in place of null.
+	*
+	* True at `validAt`. A reader at a later instant subtracts the elapsed time,
+	* wrapping by the period once the apsis has passed.
+	*/
+	timeToAp?: Value<"s"> | null;
+	/**
+	* Seconds from this sample's `validAt` until the craft next reaches periapsis,
+	* as KSP computes it (`Orbit.timeToPe`). Carried under the same rule as
+	* `VesselOrbit.timeToAp`: only while `meta.quality` is `Loaded`, null on
+	* rails. On a hyperbolic orbit it is null once the periapsis has been passed,
+	* since there is no next one. Never a sentinel in place of null.
+	*/
+	timeToPe?: Value<"s"> | null;
 	/**
 	* Null = no upcoming SOI transition on the current trajectory (the common
 	* case); NEVER a sentinel (kills O-9).

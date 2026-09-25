@@ -298,6 +298,9 @@ namespace Sitrep.Host
             // not been shown.
             var horizon = ElementHorizon(target, snapshot.Ut);
             var arc = ElementArc(target, horizon, snapshot.Ut);
+            var (timeToAp, timeToPe) = quality == Quality.Loaded
+                ? ApsisCountdowns(orbit, ecc.Value)
+                : (null, null);
 
             return new VesselOrbit
             {
@@ -310,6 +313,8 @@ namespace Sitrep.Host
                 MeanAnomalyAtEpoch = maae.Value,
                 Epoch = epoch.Value,
                 Mu = mu.Value,
+                TimeToAp = timeToAp,
+                TimeToPe = timeToPe,
                 Encounter = encounter,
                 Patches = patches,
                 Horizon = horizon,
@@ -317,6 +322,23 @@ namespace Sitrep.Host
                 ArcRefusal = arc.Refusal,
                 Meta = new PayloadMeta { Source = "vessel:" + vesselId, Quality = quality },
             };
+        }
+
+        /// <summary>
+        /// KSP's own apsis countdowns off the raw orbit, each null where KSP has no
+        /// next apsis to count to: no apoapsis on a hyperbolic orbit (KSP says
+        /// +Infinity), and no periapsis once a hyperbolic one has passed (KSP says
+        /// a negative number). A missing or non-finite raw value is null too.
+        /// </summary>
+        internal static (double? TimeToAp, double? TimeToPe) ApsisCountdowns(
+            IDictionary<string, object?> orbit, double ecc)
+        {
+            var hyperbolic = ecc >= 1.0;
+            var timeToAp = hyperbolic ? null : GetDouble(orbit, "timeToAp");
+            var timeToPe = GetDouble(orbit, "timeToPe");
+            return (
+                timeToAp is >= 0 ? timeToAp : null,
+                timeToPe is >= 0 ? timeToPe : null);
         }
 
         /// <summary>
@@ -1693,6 +1715,8 @@ namespace Sitrep.Host
             ["meanAnomalyAtEpoch"] = orbit.MeanAnomalyAtEpoch,
             ["epoch"] = orbit.Epoch,
             ["mu"] = orbit.Mu,
+            ["timeToAp"] = orbit.TimeToAp,
+            ["timeToPe"] = orbit.TimeToPe,
             ["encounter"] = orbit.Encounter != null ? ToWire(orbit.Encounter) : null,
             ["patches"] = orbit.Patches.Select(p => (object?)ToWire(p)).ToList(),
             // Never conditional, unlike `encounter`: the horizon is not nullable

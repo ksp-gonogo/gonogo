@@ -754,6 +754,12 @@ namespace Gonogo.KSP
                 // only safe to call once we know body != null.
                 ["apoapsisAlt"] = body != null ? (double?)orbit.ApA : null,
                 ["periapsisAlt"] = body != null ? (double?)orbit.PeA : null,
+                // KSP's own countdowns off the orbit as it stands this frame.
+                // timeToAp is +Infinity on a hyperbolic orbit and timeToPe goes
+                // negative once a hyperbolic periapsis has passed; the mapper
+                // turns both into null.
+                ["timeToAp"] = orbit.timeToAp,
+                ["timeToPe"] = orbit.timeToPe,
                 ["referenceBody"] = body != null ? body.bodyName : null,
                 ["truthPosition"] = new[] { pos.x, pos.y, pos.z },
                 ["truthVelocity"] = new[] { vel.x, vel.y, vel.z },

@@ -204,7 +204,10 @@ export function solveOrbit(
 
 /** What {@link solveSelfOrbit} reads off a `VesselOrbit`, and nothing else. */
 export type SelfOrbitElements = WireOrbitElements &
-  Pick<VesselOrbit, "referenceBodyIndex">;
+  Pick<VesselOrbit, "referenceBodyIndex"> & {
+    timeToAp?: Quantityish;
+    timeToPe?: Quantityish;
+  };
 
 /**
  * The SELF vessel's solve, or `null` where a caller is not entitled to one.
@@ -227,21 +230,24 @@ export type SelfOrbitElements = WireOrbitElements &
  * `viewUt` is the instant asked about, and its absence is the third `null`: with
  * no frame there is nothing to solve FOR.
  *
- * ## Under physics, what needs no advancing is still answered
+ * ## Under physics, a current reading is answered in full
  *
  * The under-physics refusal is a refusal to ADVANCE: osculating elements are
- * not a coast a conic can carry to the view time. Most of the solve does not
- * advance anything. The apsides, their altitudes and the period are algebra on
- * the elements as they stand, and the craft's anomaly and radius at the
- * elements' own epoch are where it was when they were taken. So a CURRENT
- * observation under physics is solved at its own epoch, and only what counts
- * forward from it (the two countdowns and the next apsis) is withheld. That is
- * what an operator flying the craft sees in stock, which is nearly always
- * under physics.
+ * not a coast a conic can carry to the view time. None of what is drawn needs
+ * that. The apsides, their altitudes and the period are algebra on the elements
+ * as they stand, and the craft's anomaly and radius at the elements' own epoch
+ * are where it was when they were taken, so those are solved at that epoch.
  *
- * `current` says the elements are an observation of now. A stale reading does
- * not qualify here: under thrust the elements are not constants of the orbit,
- * so old ones say nothing about the one the craft is on.
+ * The countdowns are properties of that same instantaneous orbit, and KSP
+ * computes them every frame whatever is pushing the craft. They come from the
+ * sample's own `timeToAp` and `timeToPe`, less the view time elapsed since
+ * `observedAtUt`; see {@link countdownAt}. A sample that carries neither leaves
+ * both, and the next apsis, `null`.
+ *
+ * `observedAtUt` is present only for a CURRENT reading, and is when it was
+ * observed. A stale reading answers nothing under physics: under thrust the
+ * elements are not constants of the orbit, so old ones say nothing about the
+ * one the craft is on. That is where the refusal still bites.
  */
 export function solveSelfOrbit(
   elements: SelfOrbitElements | undefined,
@@ -250,19 +256,54 @@ export function solveSelfOrbit(
     | { readonly status: string },
   bodies: BodyRadiusTable | null | undefined,
   viewUt: number | undefined,
-  current = false,
+  observedAtUt?: Quantityish,
 ): OrbitalSolve | null {
   if (elements === undefined || viewUt === undefined) return null;
   const radius = bodyRadiusOf(bodies, elements.referenceBodyIndex);
   if (reckoning.status === "available") {
     return solveOrbit(elements, viewUt, radius);
   }
-  if (current && declinedUnderPhysics(reckoning)) {
-    return withoutCountdowns(
-      solveOrbit(elements, magnitudeOr(elements.epoch, Number.NaN), radius),
+  if (observedAtUt != null && declinedUnderPhysics(reckoning)) {
+    const solve = solveOrbit(
+      elements,
+      magnitudeOr(elements.epoch, Number.NaN),
+      radius,
     );
+    const elapsed = viewUt - mag(observedAtUt);
+    const hyperbolic = isHyperbolic(mag(elements.ecc));
+    const timeToAp = hyperbolic
+      ? null
+      : countdownAt(mag(elements.timeToAp), elapsed, solve.period);
+    const timeToPe = countdownAt(
+      mag(elements.timeToPe),
+      elapsed,
+      hyperbolic ? null : solve.period,
+    );
+    return { ...solve, timeToAp, timeToPe, ...nextApsis(timeToAp, timeToPe) };
   }
   return null;
+}
+
+/**
+ * A countdown observed `atSample` seconds out, as it stands `elapsed` seconds
+ * later.
+ *
+ * Once the apsis has passed, a closed orbit (`period` finite and positive)
+ * counts to the NEXT one, the same wrap KSP applies to its own figure. An open
+ * orbit has no next one, so a passed apsis is `null`, as is a missing sample
+ * (`NaN`, which is what an absent wire field reads as).
+ */
+function countdownAt(
+  atSample: number,
+  elapsed: number,
+  period: number | null,
+): number | null {
+  if (!Number.isFinite(atSample) || !Number.isFinite(elapsed)) return null;
+  const remaining = atSample - elapsed;
+  if (remaining >= 0) return remaining;
+  if (period === null || !(period > 0)) return null;
+  const wrapped = remaining % period;
+  return wrapped < 0 ? wrapped + period : wrapped;
 }
 
 function declinedUnderPhysics(
@@ -275,17 +316,6 @@ function declinedUnderPhysics(
     "declined" in reckoning &&
     reckoning.declined.reason === "under-physics"
   );
-}
-
-/** The solve with everything that counts forward from its instant removed. */
-function withoutCountdowns(solve: OrbitalSolve): OrbitalSolve {
-  return {
-    ...solve,
-    timeToAp: null,
-    timeToPe: null,
-    nextApsisType: null,
-    timeToNextApsis: null,
-  };
 }
 
 /**
