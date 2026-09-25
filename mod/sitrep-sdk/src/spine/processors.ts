@@ -319,7 +319,7 @@ export function defineProcessor<
  * A contract whose implementation never registers (the mod is not installed,
  * the Uplink did not load) evaluates to nothing and `useProcessor` answers
  * `undefined`, which every consumer already has to handle because that is also
- * what it answers before the first frame. That is deliberately the same
+ * what it answers with no provider mounted. That is deliberately the same
  * graceful-degradation shape a domain-gated widget already has, and it is why
  * this does not need a presence check bolted on.
  *

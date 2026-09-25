@@ -142,11 +142,11 @@ describe("the processor PerfBudgets", () => {
     const unsubscribe = subscribeProcessor(handle.id, () => {});
 
     const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
-    // The first frame is a genuine change (no previous value); the next four
-    // are the ones the guard cannot answer.
+    // Activation is the genuine change (no previous value); all five frames
+    // after it are ones the guard cannot answer.
     for (let i = 0; i < 5; i++) store.beginFrame();
 
-    expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(4);
+    expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(5);
 
     unsubscribe();
     deactivate();

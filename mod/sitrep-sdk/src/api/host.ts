@@ -142,7 +142,7 @@ export interface GonogoHost {
    * named structurally here because the sdk leaf cannot depend on
    * sitrep-client's `ProcessorHandle` (same constraint as
    * `useTelemetryStoreOptional`'s opaque return). Degrades to `undefined` with
-   * no provider mounted, or before the processor's first frame lands.
+   * no provider mounted.
    *
    * A processor whose own deps include a reading answers a `Reading<R>`, one
    * depending only on raw topic ids answers the bare `R`. The handle's own

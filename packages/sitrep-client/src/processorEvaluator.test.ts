@@ -67,10 +67,13 @@ describe("processorEvaluator", () => {
     });
 
     const deactivate = activateProcessor(derived.id);
-    store.beginFrame();
 
     expect(order).toEqual(["base", "derived"]);
     expect(getProcessorValue(derived.id)).toBe(11);
+
+    store.beginFrame();
+
+    expect(order).toEqual(["base", "derived", "base", "derived"]);
 
     deactivate();
   });
@@ -91,14 +94,16 @@ describe("processorEvaluator", () => {
     });
 
     const deactivate = activateProcessor(handle.id);
-    store.beginFrame();
-    getProcessorValue(handle.id);
-    getProcessorValue(handle.id);
     expect(calls).toBe(1);
 
     store.beginFrame();
     getProcessorValue(handle.id);
+    getProcessorValue(handle.id);
     expect(calls).toBe(2);
+
+    store.beginFrame();
+    getProcessorValue(handle.id);
+    expect(calls).toBe(3);
 
     deactivate();
   });
@@ -115,13 +120,14 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
     const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = activateProcessor(handle.id);
 
     store.beginFrame();
     store.beginFrame();
 
-    // Same value both frames: notified once (first evaluation), not twice.
+    // Same value on activation and both frames: notified once (the first
+    // evaluation), not three times.
     expect(cb).toHaveBeenCalledTimes(1);
 
     unsubscribe();
@@ -145,8 +151,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
     const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = activateProcessor(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -171,8 +177,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
     const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = activateProcessor(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -300,15 +306,15 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
     const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = activateProcessor(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
     // Evaluation semantics are untouched: memoised WITHIN a frame, re-run
     // ACROSS frames, because the deps genuinely can move on any of them. Only
-    // the fan-out is gated.
-    expect(computes).toBe(10);
+    // the fan-out is gated. Once on activation, then once per frame.
+    expect(computes).toBe(11);
     expect(cb).toHaveBeenCalledTimes(1);
 
     unsubscribe();
@@ -364,8 +370,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(downstream.id);
     const unsubscribe = subscribeProcessor(downstream.id, cb);
+    const deactivate = activateProcessor(downstream.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -431,8 +437,8 @@ describe("the notify guard's answer set", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
     const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = activateProcessor(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -494,9 +500,9 @@ describe("the notify guard's answer set", () => {
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
-    // Frame 1 is a real change (there was no previous value), frames 2-10 are
-    // the nine the guard could not read.
-    expect(reported).toHaveLength(9);
+    // Activation is a real change (there was no previous value), and the ten
+    // frames after it are the ten the guard could not read.
+    expect(reported).toHaveLength(10);
     expect(reported[0]).toEqual(["core:uncomparable-map", "[object Map]"]);
     // Delivered, every time. `uncomparable` behaves exactly like `different`,
     // so nothing is withheld on a shape this does not understand.
@@ -526,7 +532,7 @@ describe("the notify guard's answer set", () => {
     const deactivate = activateProcessor(handle.id);
     for (let i = 0; i < 3; i++) store.beginFrame();
 
-    expect(reported).toEqual(["function", "function"]);
+    expect(reported).toEqual(["function", "function", "function"]);
 
     setProcessorUncomparableRecorder(undefined);
     deactivate();
@@ -570,7 +576,11 @@ describe("the notify guard's answer set", () => {
     hidden = 3;
     store.beginFrame();
 
-    expect(reported).toEqual(["Hiding instance", "Hiding instance"]);
+    expect(reported).toEqual([
+      "Hiding instance",
+      "Hiding instance",
+      "Hiding instance",
+    ]);
     // Three frames, three deliveries: the moved level reaches the consumer.
     expect(cb).toHaveBeenCalledTimes(3);
 
@@ -631,7 +641,6 @@ describe("the notify guard's answer set", () => {
       compute: () => ({ when: new Date(0) }),
     });
     const deactivate = activateProcessor(handle.id);
-    store.beginFrame();
     store.beginFrame();
 
     expect(reported).toEqual(["[object Date]"]);
