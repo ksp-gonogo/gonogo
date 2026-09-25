@@ -78,16 +78,16 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
     // positive max and render; XenonGas's max === 0 so it's filtered out,
     // exercising the widget's own "resources absent from the vessel are
     // skipped" rule off REAL streamed data, not a fixture shortcut.
-    expect(screen.getByText("RCS")).toBeTruthy();
-    expect(screen.getByText("Power")).toBeTruthy();
-    // formatAmount: <100 -> 2 decimals, >=100 -> 1 decimal.
-    expect(visibleText()).toContain("30.00 / 30.00");
-    expect(visibleText()).toContain("150.0 / 200.0");
-    // LiquidFuel/Oxidizer read the GAPPED stage-scoped keys, with no
-    // legacy source in this file they never arrive, so max stays 0 and
-    // they're filtered out of the resource list exactly like XenonGas.
-    expect(screen.queryByText("Liquid Fuel")).not.toBeInTheDocument();
-    expect(screen.queryByText("Oxidizer")).not.toBeInTheDocument();
+    expect(screen.getByRole("meter", { name: "RCS · vessel" })).toBeTruthy();
+    expect(screen.getByRole("meter", { name: "Power · vessel" })).toBeTruthy();
+    // The meter writes the pair at one rung, with the unit once.
+    expect(visibleText()).toContain("30.0 / 30.0 units");
+    expect(visibleText()).toContain("150.0 / 200.0 units");
+    // LiquidFuel/Oxidizer read the stage-scoped channels, which nothing feeds
+    // in this file, so they're filtered out of the resource list exactly like
+    // XenonGas.
+    expect(screen.queryByRole("meter", { name: /^Liquid Fuel/ })).toBeNull();
+    expect(screen.queryByRole("meter", { name: /^Oxidizer/ })).toBeNull();
   });
 
   it("reads the ΔV totals + per-stage stack off dv.summary/dv.stages using the NEW StageDeltaVEntry wire shape", async () => {

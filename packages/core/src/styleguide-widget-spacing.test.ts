@@ -82,7 +82,7 @@ const DEBT: Record<string, number> = {
   "packages/components/src/CommSignal/index.tsx": 2,
   "packages/components/src/Experiments/index.tsx": 2,
   "packages/components/src/FleetRoster/index.tsx": 2,
-  "packages/components/src/FuelStatus/index.tsx": 2,
+  "packages/components/src/FuelStatus/index.tsx": 1,
   "packages/components/src/LandingStatus/index.tsx": 8,
   "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/Navball/AttitudeIndicator.tsx": 1,

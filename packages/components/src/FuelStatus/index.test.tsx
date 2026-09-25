@@ -124,9 +124,9 @@ function makeStage(stage: number, fuelMass: number): Record<string, number> {
 }
 
 describe("FuelStatusComponent", () => {
-  it("renders a bar for each resource with a non-zero max", async () => {
+  it("renders a meter for each resource with a non-zero max", async () => {
     const fixture = makeFixture();
-    const { container } = renderFuel(fixture);
+    renderFuel(fixture);
 
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 0 });
@@ -140,20 +140,79 @@ describe("FuelStatusComponent", () => {
       ]);
     });
 
-    await waitFor(() =>
-      expect(screen.getByText("Liquid Fuel")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Oxidizer")).not.toBeNull();
-    // RCS / Xenon / Power all have max=0 → rows hidden.
-    expect(screen.queryByText("RCS")).toBeNull();
-    expect(screen.queryByText("Xenon")).toBeNull();
-    expect(screen.queryByText("Power")).toBeNull();
+    // 600/1200 on LF → a half-full meter.
+    const lf = await screen.findByRole("meter", {
+      name: "Liquid Fuel · stage",
+    });
+    expect(lf).toHaveAttribute("aria-valuenow", "50");
+    expect(
+      screen.getByRole("meter", { name: "Oxidizer · stage" }),
+    ).toBeInTheDocument();
+    // RCS / Xenon / Power are not reported at all → rows hidden.
+    expect(screen.queryByRole("meter", { name: /^RCS/ })).toBeNull();
+    expect(screen.queryByRole("meter", { name: /^Xenon/ })).toBeNull();
+    expect(screen.queryByRole("meter", { name: /^Power/ })).toBeNull();
+  });
 
-    // 600/1200 on LF → 50% fill (width: 50%).
-    const fills = Array.from(
-      container.querySelectorAll("div[style*='width']"),
-    ).map((el) => (el as HTMLElement).style.width);
-    expect(fills).toContain("50%");
+  it("holds each resource meter marked not-current once the link stops, rather than dropping the row", async () => {
+    const fixture = makeFixture();
+    renderFuel(fixture);
+
+    act(() => {
+      fixture.emit("vessel.structure", { currentStage: 0 });
+      fixture.emit("vessel.resources", {
+        resources: { MonoPropellant: { current: 60, max: 120 } },
+      });
+      fixture.emit("dv.stages", [
+        stageWithResources(0, { LiquidFuel: { current: 600, max: 1200 } }),
+      ]);
+    });
+    const live = await screen.findByRole("meter", { name: "RCS · vessel" });
+    expect(live.querySelector("[data-fill-not-current]")).toBeNull();
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    for (const name of ["RCS · vessel", "Liquid Fuel · stage"]) {
+      const held = screen.getByRole("meter", { name });
+      expect(held).toHaveAttribute("aria-valuenow", "50");
+      expect(held.querySelector("[data-fill-not-current]")).not.toBeNull();
+    }
+    await act(async () => {});
+  });
+
+  it("holds the stage ΔV meters marked not-current with the budget they are rows of", async () => {
+    const fixture = makeFixture();
+    renderFuel(fixture);
+
+    act(() => {
+      fixture.emit("vessel.structure", { currentStage: 1 });
+      fixture.emit("dv.summary", { stageCount: 2, totalDvActual: 3000 });
+      fixture.emit("dv.stages", [
+        { ...makeStage(1, 4400), dvActual: 2000 },
+        { ...makeStage(0, 1200), dvActual: 1000 },
+      ]);
+    });
+    const live = await screen.findByRole("meter", { name: "S0" });
+    expect(live).toHaveAttribute("aria-valuenow", "50");
+    expect(live.querySelector("[data-fill-not-current]")).toBeNull();
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    for (const name of ["▶ S1", "S0"]) {
+      const held = screen.getByRole("meter", { name });
+      expect(held.querySelector("[data-fill-not-current]")).not.toBeNull();
+    }
+    expect(screen.getByRole("meter", { name: "S0" })).toHaveAttribute(
+      "aria-valuenow",
+      "50",
+    );
+    await act(async () => {});
   });
 
   it("shows RCS (vessel-wide) whenever monoprop max > 0, even with empty stage slot", async () => {
@@ -167,12 +226,14 @@ describe("FuelStatusComponent", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("RCS")).toBeInTheDocument());
+    expect(
+      await screen.findByRole("meter", { name: "RCS · vessel" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the stage stack with the current stage highlighted", async () => {
     const fixture = makeFixture();
-    const { container } = renderFuel(fixture);
+    renderFuel(fixture);
 
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 1 });
@@ -185,10 +246,11 @@ describe("FuelStatusComponent", () => {
     });
 
     await waitFor(() => {
-      const stageTexts = Array.from(container.querySelectorAll("span"))
-        .map((el) => el.textContent ?? "")
-        .filter((t) => /^[▶ ] S\d$/.test(t));
-      expect(stageTexts).toEqual(["  S2", "▶ S1", "  S0"]);
+      const stages = screen
+        .queryAllByRole("meter")
+        .map((el) => el.getAttribute("aria-label"))
+        .filter((name) => name !== null && /S\d$/.test(name));
+      expect(stages).toEqual(["S2", "▶ S1", "S0"]);
     });
   });
 

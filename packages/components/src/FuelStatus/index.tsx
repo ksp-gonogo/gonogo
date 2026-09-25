@@ -1,19 +1,23 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
-  clampSafe,
   getWidgetShape,
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   DELTA_V_BUDGET,
+  type DeltaVBudget,
   type DeltaVStage,
-  observedValue,
   type ResourceAmountMap,
   useProcessor,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Reading,
+  stillTrue,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   Box,
@@ -21,22 +25,23 @@ import {
   Field,
   FieldHint,
   FieldLabel,
-  Grid,
+  Meter,
+  MeterStack,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   Section,
   Select,
   Stack,
+  speakQuantity,
   Text,
-  Truncate,
   Unit,
   useModalSaveBar,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { magnitudeOf } from "../shared/magnitude";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -120,39 +125,61 @@ const RESOURCES: readonly ResourceDef[] = [
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
-function useResourceReading(def: ResourceDef): { value: number; max: number } {
-  // Vessel-total amounts come off `vessel.resources` (the wire topic, a
-  // resource-name-keyed `{ current, max }` map). Stage-scoped amounts come off
-  // the derived `dv.currentStageResource`/`dv.currentStageResourceMax` channels
-  // (`dv-stage-resources.ts`): the active stage's slice of `dv.stages`, keyed
-  // by resource name. All three reads happen unconditionally (Rules of Hooks)
-  // regardless of which scope this resource ultimately uses.
-  /**
-   * Propellant only falls while an engine burns, and every readout here is a gauge
-   * the operator reads as "what is left". A held figure overstates the remaining
-   * fuel, which is the direction that strands a craft.
-   */
-  const resourcesReading = useTelemetry("vessel.resources");
-  const vesselResources =
-    resourcesReading.state === "observed"
-      ? resourcesReading.value.resources
-      : undefined;
-  // The stage's share is the same gauge, so it is withheld on the same terms.
-  const stageCurrent = observedValue(
-    useStream<ResourceAmountMap>("dv.currentStageResource"),
-  );
-  const stageMaxMap = observedValue(
-    useStream<ResourceAmountMap>("dv.currentStageResourceMax"),
-  );
-
-  const vessel = magnitudeOr(vesselResources?.[def.name]?.current, 0);
-  const vesselMax = magnitudeOr(vesselResources?.[def.name]?.max, 0);
-  const stage = magnitudeOr(stageCurrent?.[def.name], 0);
-  const stageMax = magnitudeOr(stageMaxMap?.[def.name], 0);
-
+/**
+ * One resource's amount and capacity, each still carrying the currency of the
+ * reading it came in, so `Meter` can mark a held figure rather than the widget
+ * deciding whether to draw it.
+ *
+ * Vessel totals are fields of `vessel.resources`; a stage's share is a field of
+ * the derived `dv.currentStageResource` / `dv.currentStageResourceMax` pair. All
+ * three reads happen unconditionally (Rules of Hooks) whichever scope this
+ * resource uses.
+ */
+function useResourceReading(def: ResourceDef): {
+  amount: Reading<Value<"units">>;
+  capacity: Reading<Value<"units">>;
+} {
+  const vessel = useTelemetry("vessel.resources").resources[def.name];
+  const stageAmount = useStream<ResourceAmountMap>("dv.currentStageResource")[
+    def.name
+  ];
+  const stageCapacity = useStream<ResourceAmountMap>(
+    "dv.currentStageResourceMax",
+  )[def.name];
   return def.scope === "vessel"
-    ? { value: vessel, max: vesselMax }
-    : { value: stage, max: stageMax };
+    ? { amount: vessel.current, capacity: vessel.max }
+    : { amount: stageAmount, capacity: stageCapacity };
+}
+
+/**
+ * Whether the craft carries this resource at all: a capacity that has been
+ * reported, current or held, and is above zero. A tank's size is a fact of the
+ * craft, so a held one still says the tank is there.
+ */
+function carries(capacity: Reading<Value<"units">>): boolean {
+  if (capacity.state !== "observed" && capacity.state !== "stale") return false;
+  return capacity.value?.isPositive() ?? false;
+}
+
+/**
+ * One stage's ΔV as a reading of its own, dated as the budget it is a row of.
+ *
+ * The figure is part of the budget's observation, so it takes that
+ * observation's arm, instant and grade. The model is dropped rather than
+ * carried: the budget's reckoning speaks about the budget, not about one row.
+ */
+function stageReading(
+  budget: Reading<DeltaVBudget>,
+  figure: Value<"m/s">,
+): Reading<Value<"m/s">> {
+  return {
+    state: budget.state,
+    value: figure,
+    atUt: budget.atUt,
+    asOfUt: budget.asOfUt,
+    grade: budget.grade,
+    reckoning: { status: "none" },
+  };
 }
 
 function pickDeltaV(s: DeltaVStage, mode: DeltaVMode): number {
@@ -189,127 +216,50 @@ function fmtFixed(value: unknown, digits: number): string {
   return value.toFixed(digits);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
-
-/** Units of stock KSP resources aren't kg: this is the raw unit count. */
-function formatAmount(value: number): string {
-  if (value >= 10_000) return value.toFixed(0);
-  if (value >= 100) return value.toFixed(1);
-  return value.toFixed(2);
+/** A resource row: which resource, and its amount and capacity as readings. */
+interface ResourceRow {
+  def: ResourceDef;
+  amount: Reading<Value<"units">>;
+  capacity: Reading<Value<"units">>;
 }
 
-/** Thin resource bar: a hand-scaled fill in a fixed track, not `ProgressBar`
- * (which is a fixed-colour pill) - each row needs its own resource colour and
- * a square, bordered track. */
-function ResourceBar({ pct, color }: { pct: number; color: string }) {
+/** One meter per resource the craft carries: LF/Ox/RCS/Xe/Power. */
+function ResourceListSection({ rows }: { rows: ResourceRow[] }) {
   return (
-    <div
-      style={{
-        height: 8,
-        minWidth: 28,
-        background: "var(--color-surface-panel)",
-        border: "1px solid var(--color-border-subtle)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          height: "100%",
-          transition: "width var(--duration-fast) var(--ease-linear)",
-          width: `${pct}%`,
-          background: color,
-        }}
-      />
-    </div>
-  );
-}
-
-/** The resource bar list: LF/Ox/RCS/Xe/Power rows with a non-zero max. */
-function ResourceListSection({
-  readings,
-}: {
-  readings: { def: ResourceDef; value: number; max: number }[];
-}) {
-  return (
-    <Stack style={{ marginTop: "var(--space-6)" }}>
-      {readings
-        .filter(({ max }) => max > 0)
-        .map(({ def, value: amount, max }) => (
-          <Grid
+    <MeterStack style={{ marginTop: "var(--space-6)" }}>
+      {rows
+        .filter(({ capacity }) => carries(capacity))
+        .map(({ def, amount, capacity }) => (
+          <Meter
             key={def.name}
-            cols="minmax(0, 13em) minmax(28px, 1fr) auto"
-            gap="md"
-            align="center"
-            style={{ fontSize: "var(--font-size-compact)" }}
-          >
-            <Truncate
-              style={{
-                color: "var(--color-text-primary)",
-                letterSpacing: "0.02em",
-              }}
-            >
-              {def.label}
-              {def.scope === "current" && (
-                <span
-                  style={{
-                    color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-caption)",
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {" "}
-                  · stage
-                </span>
-              )}
-              {def.scope === "vessel" && (
-                <span
-                  style={{
-                    color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-caption)",
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {" "}
-                  · vessel
-                </span>
-              )}
-            </Truncate>
-            <ResourceBar
-              pct={clampPct((amount / max) * 100)}
-              color={def.color}
-            />
-            <span
-              style={{
-                color: "var(--color-text-muted)",
-                fontSize: "var(--font-size-compact)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {formatAmount(amount)} / {formatAmount(max)}
-            </span>
-          </Grid>
+            label={`${def.label} · ${def.scope === "current" ? "stage" : "vessel"}`}
+            value={amount}
+            capacity={capacity}
+            fillColor={def.color}
+            layout="row"
+          />
         ))}
-    </Stack>
+    </MeterStack>
   );
 }
 
-/** Per-stage ΔV/burn/TWR stack, current stage highlighted. */
+/**
+ * Per-stage ΔV, burn and TWR, current stage highlighted. Each bar is the stage's
+ * ΔV against the largest stage's, and carries the budget reading's currency, so
+ * a held budget draws held bars.
+ */
 function StageStackSection({
+  budgetReading,
   stages,
   mode,
   currentStage,
   maxStageDv,
-  compactStageMeta,
 }: {
+  budgetReading: Reading<DeltaVBudget>;
   stages: DeltaVStage[];
   mode: DeltaVMode;
   currentStage: number | undefined;
-  maxStageDv: number;
-  compactStageMeta: boolean;
+  maxStageDv: Value<"m/s">;
 }) {
   return (
     <Stack
@@ -328,95 +278,58 @@ function StageStackSection({
       >
         Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
       </ReadoutCaption>
-      {stages.map((s) => {
-        const dv = pickDeltaV(s, mode);
-        const twr = pickTWR(s, mode);
-        const active = s.stage === currentStage;
-        // NaN is a burn time the wire did not carry, not a stage that burns for no time.
-        const burn = !Number.isFinite(s.burnTime) ? (
-          NULL_DISPLAY
-        ) : s.burnTime > 0 ? (
-          <Unit value={value("s", s.burnTime)} />
-        ) : (
-          "0s"
-        );
-        return (
-          <Grid
-            key={s.stage}
-            cols="3.5em minmax(28px, 1fr) auto"
-            gap="md"
-            align="center"
-            style={{
-              fontSize: "var(--font-size-compact)",
-              color: active
-                ? "var(--color-status-nogo-fg)"
-                : "var(--color-text-muted)",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "var(--font-size-caption)",
-                letterSpacing: "0.02em",
-              }}
-            >
-              {active ? "▶ " : "  "}S{s.stage}
-            </span>
-            <ResourceBar
-              pct={clampPct(
-                ((Number.isFinite(dv) ? dv : 0) / maxStageDv) * 100,
-              )}
-              color={
-                active
-                  ? "var(--color-status-warning-bg)"
-                  : "var(--color-text-faint)"
-              }
-            />
-            <div
-              style={{
-                fontSize: "var(--font-size-compact)",
-                whiteSpace: "nowrap",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                lineHeight: "var(--line-height-tight)",
-              }}
-            >
-              <span>
-                <Unit value={value("m/s", dv)} decimals={0} />
-              </span>
-              {compactStageMeta ? (
-                <>
-                  <span
-                    style={{
-                      color: "var(--color-text-faint)",
-                      fontSize: "var(--font-size-compact)",
-                    }}
-                  >
-                    {burn}
-                  </span>
-                  <span
-                    style={{
-                      color: "var(--color-text-faint)",
-                      fontSize: "var(--font-size-compact)",
-                    }}
-                  >
-                    TWR {fmtFixed(twr, 2)}
-                  </span>
-                </>
-              ) : (
-                <span
-                  style={{
-                    color: "var(--color-text-faint)",
-                    fontSize: "var(--font-size-compact)",
-                  }}
-                >
-                  {burn} · TWR {fmtFixed(twr, 2)}
-                </span>
-              )}
-            </div>
-          </Grid>
-        );
-      })}
+      <MeterStack>
+        {stages.map((s) => {
+          const figure = pickDeltaV(s, mode);
+          // NaN is a stage the wire carried no ΔV for, which the meter draws as absent rather than empty.
+          const dv = Number.isFinite(figure)
+            ? stageReading(budgetReading, value("m/s", figure))
+            : null;
+          const twr = pickTWR(s, mode);
+          const active = s.stage === currentStage;
+          // NaN is a burn time the wire did not carry, not a stage that burns for no time.
+          const burn = !Number.isFinite(s.burnTime) ? (
+            NULL_DISPLAY
+          ) : s.burnTime > 0 ? (
+            <Unit value={value("s", s.burnTime)} />
+          ) : (
+            "0s"
+          );
+          return (
+            <Stack key={s.stage} gap="xs">
+              <Meter
+                label={`${active ? "▶ " : ""}S${s.stage}`}
+                value={dv}
+                capacity={maxStageDv}
+                layout="row"
+                fillColor={
+                  active
+                    ? "var(--color-status-warning-bg)"
+                    : "var(--color-text-faint)"
+                }
+                valueLabel={
+                  dv === null ? undefined : speakQuantity(value("m/s", figure))
+                }
+                valueLabelNode={
+                  dv === null ? undefined : <Unit value={dv} decimals={0} />
+                }
+              />
+              <Text
+                size="xs"
+                style={{
+                  alignSelf: "flex-end",
+                  whiteSpace: "nowrap",
+                  color: active
+                    ? "var(--color-status-nogo-fg)"
+                    : "var(--color-text-faint)",
+                }}
+              >
+                {burn} · TWR {fmtFixed(twr, 2)}
+              </Text>
+            </Stack>
+          );
+        })}
+      </MeterStack>
     </Stack>
   );
 }
@@ -490,7 +403,7 @@ function FuelStatusComponent({
   const rcs = useResourceReading(RESOURCES[2]);
   const xe = useResourceReading(RESOURCES[3]);
   const ec = useResourceReading(RESOURCES[4]);
-  const readings = [
+  const readings: ResourceRow[] = [
     { def: RESOURCES[0], ...lf },
     { def: RESOURCES[1], ...ox },
     { def: RESOURCES[2], ...rcs },
@@ -502,14 +415,14 @@ function FuelStatusComponent({
   // stack-top-down render order, with either wire's field names already
   // reconciled by the processor.
   const stages = budget?.stages ?? NO_STAGES;
-  // Filter to finite values before Math.max: a single NaN/undefined entry
-  // would propagate NaN through every BarFill width and render a row of
-  // invisible bars.
+  /* The scale every stage bar is drawn against: the largest finite stage ΔV.
+     Filtered before Math.max, because one NaN entry would make the whole scale
+     NaN. A floor above zero keeps a stack of spent stages a stack of empty bars
+     rather than a stack with no axis. */
   const finiteDvs = stages
     .map((s) => pickDeltaV(s, mode))
     .filter((v): v is number => Number.isFinite(v));
-  const maxStageDv =
-    finiteDvs.length > 0 ? Math.max(...finiteDvs, 0.001) : 0.001;
+  const maxStageDv = value("m/s", Math.max(...finiteDvs, 0.001));
 
   const totalDv =
     mode === "vac" ? totalDVVac : mode === "asl" ? totalDVASL : totalDVActual;
@@ -534,13 +447,6 @@ function FuelStatusComponent({
   const showResourceList = cols >= 5 && (rows >= 7 || isLandscape);
   const showStageStack = cols >= 5 && (rows >= 10 || isLandscape);
   const showHeroDv = !showTotals && totalDv !== undefined;
-  // At the narrowest width the stage stack ever renders at (cols === 5,
-  // portrait-5x18), "<burn> · TWR <n>" doesn't fit next to the ΔV bar even
-  // with the bar's 28px floor honoured: the row overflows past the panel
-  // edge and gets clipped. Splitting burn time and TWR onto their own lines
-  // shortens the longest line enough to fit; there's always vertical room
-  // to spare here since the stage stack only shows once rows >= 10.
-  const compactStageMeta = cols < 7;
 
   /* The breakdown columns, keyed by name rather than index, which is both what
      the biome noArrayIndexKey rule wants and what keeps a column's identity
@@ -555,19 +461,19 @@ function FuelStatusComponent({
   if (showResourceList) {
     columns.push({
       key: "resources",
-      node: <ResourceListSection readings={readings} />,
+      node: <ResourceListSection rows={readings} />,
     });
   }
-  if (showStageStack && stages.length > 0) {
+  if (showStageStack && budgetReading !== undefined && stages.length > 0) {
     columns.push({
       key: "stages",
       node: (
         <StageStackSection
+          budgetReading={budgetReading}
           stages={stages}
           mode={mode}
           currentStage={currentStage}
           maxStageDv={maxStageDv}
-          compactStageMeta={compactStageMeta}
         />
       ),
     });
