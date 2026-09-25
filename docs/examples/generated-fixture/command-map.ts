@@ -22,6 +22,10 @@ export interface GeneratedCommandReplyMap {
   "example.setOutput": CommandResult;
 }
 
+export const GENERATED_COMMAND_REPLY_TYPES = {
+  "example.setOutput": "CommandResult",
+} as const satisfies Record<string, string>;
+
 export interface GeneratedCommandRail {
   readonly replies: boolean;
   readonly delayed: boolean;
