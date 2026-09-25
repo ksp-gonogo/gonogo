@@ -358,7 +358,10 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
               the frame agnostic of which sources exist; see the sibling rule on
               `Sections`. */}
           <EmptyFallbackWrap>
-            <EmptyState role="status">No active objectives</EmptyState>
+            {/* The body already insets this section, so the empty state's own vertical padding would inset it twice, which at the 4x3 minimum pushes the line under the scroll glow. */}
+            <EmptyState role="status" style={{ paddingBlock: 0 }}>
+              No active objectives
+            </EmptyState>
           </EmptyFallbackWrap>
         </Section>
       }
