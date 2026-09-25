@@ -41,6 +41,17 @@ describe("pendingAlarmSummaries", () => {
     expect(list.map((a) => a.id)).toEqual(["left"]);
   });
 
+  it("leaves out an alarm the simulation refused, which can never end a warp", () => {
+    const list = pendingAlarmSummaries(
+      [
+        alarm("refused", "pending", at(100)),
+        alarm("armed", "pending", at(200)),
+      ],
+      { refused: "no SCET threshold can be read from 'vessel.state'" },
+    );
+    expect(list.map((a) => a.id)).toEqual(["armed"]);
+  });
+
   it("keeps an alarm with no instant, after every one that has one", () => {
     const list = pendingAlarmSummaries([
       alarm("altitude", "pending", threshold),
