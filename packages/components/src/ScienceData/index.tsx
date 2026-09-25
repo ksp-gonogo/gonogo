@@ -31,7 +31,6 @@ import {
 
 const topics = defineTopicManifest({
   channels: [
-    "vessel.state",
     "vessel.identity",
     "system.bodies",
     "vessel.surface",
