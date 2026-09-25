@@ -8,13 +8,11 @@ import {
   defineTopicManifest,
   registerComponent,
   useContributions,
+  useOrbitSolve,
 } from "@ksp-gonogo/core";
 import {
   CELESTIAL_FACTS,
-  canPropagate,
-  type OrbitElements,
   type OrbitTrajectory,
-  solveAnomalies,
   useFleetVesselSilence,
   useLatestValue,
   useOrbitTrajectory,
@@ -22,7 +20,7 @@ import {
   useUtNow,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { PendingUplinkQueue, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -203,117 +201,9 @@ function frameNameMatches(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/*
- * ── Client-side orbit derivations ───────────────────────────────────────────────
- * Mirror `@ksp-gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
- * widget reconstructs its orbital scalars (trueAnomaly / next-apsis /
- * encounter) directly from the streamed
- * `vessel.orbit` elements + the SDK view-UT, derived client-side.
- * `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
- * `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
- * normalised (meanAnomalyAtEpoch is already radians, the documented KSP quirk).
- */
-
 /** `Sitrep.Contract.TransitionType` ordinals the encounter chip surfaces. */
 const TRANSITION_TYPE_ENCOUNTER = 2;
 const TRANSITION_TYPE_ESCAPE = 3;
-
-function degToRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
-
-function radToDeg(rad: number): number {
-  return (rad * 180) / Math.PI;
-}
-
-function wrapDegrees360(deg: number): number {
-  const wrapped = deg % 360;
-  return wrapped < 0 ? wrapped + 360 : wrapped;
-}
-
-function finiteOrNull(x: number): number | null {
-  return Number.isFinite(x) ? x : null;
-}
-
-/**
- * The subset of `vessel.orbit` the solver needs, as it arrives on the wire.
- *
- * Structural rather than the contract type so the shape stays visible at a
- * glance: this is the six elements plus mu, and nothing else on `VesselOrbit`
- * has any business reaching `solveAnomalies`.
- */
-interface WireOrbit {
-  sma: Value<"m">;
-  ecc: Value<"1">;
-  inc: Value<"°">;
-  /* `| null` as well as optional: both are `double?` on the contract and the
-     wire keeps the key, so a circular or equatorial orbit whose node is
-     undefined arrives as an explicit null. `buildElements` already tests
-     `== null` for it. */
-  lan?: Value<"°"> | null;
-  argPe?: Value<"°"> | null;
-  meanAnomalyAtEpoch: Value<"rad">;
-  /** An INSTANT the elements are stated at, not a duration. */
-  epoch: Value<"ut">;
-  mu: Value<"m³/s²">;
-}
-
-/**
- * Where the elements stop being quantities and start being solver inputs.
- *
- * `OrbitElements` is radians throughout, which is the conversion this function
- * has always existed to do. The magnitudes come off in the same step, so the
- * solver keeps its one plain-number contract and the degrees-to-radians turn
- * still happens in exactly one place.
- */
-function buildElements(o: WireOrbit): OrbitElements {
-  return {
-    sma: o.sma.magnitude,
-    ecc: o.ecc.magnitude,
-    inc: degToRad(o.inc.magnitude),
-    lan: o.lan == null ? 0 : degToRad(o.lan.magnitude),
-    argPe: o.argPe == null ? 0 : degToRad(o.argPe.magnitude),
-    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch.magnitude,
-    epoch: o.epoch.magnitude,
-    mu: o.mu.magnitude,
-  };
-}
-
-/**
- * Seconds from `meanAnomaly` (rad) until it next reaches `target` (rad), wrapped
- * forward to `[0, period)`. `null` for a non-positive/non-finite mean motion.
- */
-function timeToMeanAnomaly(
-  meanAnomaly: number,
-  target: number,
-  meanMotion: number,
-): number | null {
-  if (
-    !Number.isFinite(meanAnomaly) ||
-    !Number.isFinite(meanMotion) ||
-    meanMotion <= 0
-  ) {
-    return null;
-  }
-  const twoPi = 2 * Math.PI;
-  let delta = (target - meanAnomaly) % twoPi;
-  if (delta < 0) delta += twoPi;
-  return delta / meanMotion;
-}
-
-/** Whichever of `timeToAp`/`timeToPe` is the smaller non-null countdown. */
-function nextApsisOf(
-  timeToAp: number | null,
-  timeToPe: number | null,
-): { nextApsisType: number | null; timeToNextApsis: number | null } {
-  if (timeToAp != null && (timeToPe == null || timeToAp <= timeToPe)) {
-    return { nextApsisType: 1, timeToNextApsis: timeToAp };
-  }
-  if (timeToPe != null) {
-    return { nextApsisType: -1, timeToNextApsis: timeToPe };
-  }
-  return { nextApsisType: null, timeToNextApsis: null };
-}
 
 /**
  * What the diagram is telling the operator about a craft it cannot see,
@@ -639,54 +529,14 @@ function SystemViewComponent({
       ? (nameByIndex.get(identity.parentBodyIndex) ?? null)
       : null;
 
-  // Client-derived orbital scalars at view-UT (mirrors deriveVesselState:
-  // trueAnomaly for the vessel dot, period, and the next-apsis countdown).
-  const derived = useMemo(() => {
-    if (!orbit || universalTime == null || !Number.isFinite(universalTime)) {
-      return null;
-    }
-    // `solveAnomalies` throws a RangeError for parabolic/hyperbolic orbits
-    // (ecc outside `[0, 1)`: escape/flyby trajectories, a routine state for a
-    // system-wide diagram during interplanetary transfers). Degrade the
-    // orbital scalars to null rather than crashing the whole widget mid-render
-    // (there's no error boundary inside it, and every other read here is a
-    // plain wire scalar that cannot throw). Guard
-    // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
-    // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
-    if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) {
-      return null;
-    }
-    // Ask the provider before extrapolating. The window is the VIEW instant on
-    // both ends, deliberately: the horizon is an absolute UT bound, so "can you
-    // answer for this instant" is the whole question, and building a window from
-    // `orbit.epoch` would be wrong in a way no type could catch (`epoch` is the
-    // mean-anomaly reference, not when the sample was taken).
-    //
-    // Permits everything while the elected provider is the analytic solver. It
-    // starts refusing when one that integrates is elected; see `canPropagate`.
-    if (
-      !canPropagate(orbit.horizon, universalTime, universalTime).propagatable
-    ) {
-      return null;
-    }
-    const elements = buildElements(orbit);
-    const anomalies = solveAnomalies(elements, universalTime);
-    const trueAnomaly = finiteOrNull(
-      wrapDegrees360(radToDeg(anomalies.trueAnomaly)),
-    );
-    const period = finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
-    const timeToAp = timeToMeanAnomaly(
-      anomalies.meanAnomaly,
-      Math.PI,
-      anomalies.meanMotion,
-    );
-    const timeToPe = timeToMeanAnomaly(
-      anomalies.meanAnomaly,
-      0,
-      anomalies.meanMotion,
-    );
-    return { trueAnomaly, period, ...nextApsisOf(timeToAp, timeToPe) };
-  }, [orbit, universalTime]);
+  /*
+   * The self vessel's solve at the viewed instant, through the same seam every
+   * other widget reads, so a craft the orbit model refuses to advance (under
+   * physics, past an SOI transition, below the atmosphere interface, past the
+   * provider's reach, or with no provider vouching for a conic) is refused here
+   * too rather than drawn from elements nothing is propagating.
+   */
+  const derived = useOrbitSolve();
 
   // Next SOI transition, from the streamed `vessel.orbit.encounter` record.
   const encounter = orbit?.encounter ?? null;
@@ -773,8 +623,9 @@ function SystemViewComponent({
   // from the derived `encounter*` scalars above (subtitle + almanac).
   //
   // Fabricated only on the CONIC answer, and the shape gate is load-bearing on
-  // its own. The `derived` scalars this leans on are already gated on reach, so
-  // an out-of-horizon sample cannot arrive here, but reach says nothing about
+  // its own. The `derived` scalars this leans on come from the orbit model,
+  // which refuses past the provider's reach, so an out-of-horizon sample cannot
+  // arrive here, but reach says nothing about
   // SHAPE: without the gate a provider that integrates would be handed a
   // confident one-period conic prediction plus, where an encounter is on the
   // wire, an SOI crossing predicted by maths it does not use. On the arc answer
