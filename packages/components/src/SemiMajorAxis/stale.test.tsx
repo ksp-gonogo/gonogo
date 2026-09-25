@@ -152,6 +152,24 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     expect(visibleText(container)).not.toContain("at last contact");
   });
 
+  it("keeps the streaming figure and the ticking age out of every live region", async () => {
+    // A live region re-announces on every change, and both of these change every frame: only the transition to held is an event worth speaking.
+    const fixture = newFixture();
+    const container = mount(fixture, "sma-stale-live-regions");
+    emitOrbit(fixture);
+    await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
+    expect(screen.queryAllByRole("status")).toHaveLength(0);
+    expect(container.querySelector("[aria-live]")).toBeNull();
+
+    goStale(fixture);
+
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("at last contact"),
+    );
+    const regions = screen.getAllByRole("status");
+    expect(regions.map((el) => el.textContent)).toEqual(["at last contact"]);
+  });
+
   it("does not caption a confirmed tombstone, which is a claim about the craft", async () => {
     // `absent` is the subject saying there is no orbit, not a link that went
     // quiet, so the empty state stands on its own with no staleness caveat

@@ -172,8 +172,6 @@ function SemiMajorAxisComponent({
             </ReadoutCaption>
           )}
           <div
-            role="status"
-            aria-live="polite"
             style={{
               ...SMA_DISPLAY_STYLE,
               fontSize: `${readoutFontPx}px`,
@@ -193,8 +191,8 @@ function SemiMajorAxisComponent({
             header badge beside a confident-looking number is the thing an
             operator reads past. */}
           {smaHeld && (
-            <ReadoutCaption role="status">
-              at last contact
+            <ReadoutCaption>
+              <span role="status">at last contact</span>
               {/* Game-time seconds: the age is one UT minus another, so it
                   belongs on the "s" ladder and not the real-time one. */}
               {smaAgeSec !== undefined && (
