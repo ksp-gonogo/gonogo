@@ -83,20 +83,20 @@ namespace Gonogo.KSP.Tests.Comms
         private sealed class ForeignBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             private readonly CommNode _terminus;
 
             public ForeignBackend(CommNode terminus) => _terminus = terminus;
 
             public string ProviderId => "test-foreign";
 
-            public object? ControlPathTerminus() => _terminus;
+            public object? ControlPathTerminus(object? vessel) => _terminus;
 
             public CommsConnectivity Connectivity() => new CommsConnectivity { Connected = true };
             public CommsSignal SignalStrength() => new CommsSignal();
             public CommsControl ControlState() => new CommsControl();
-            public CommsPath Path() => new CommsPath();
-            public CommsNetwork Network() => new CommsNetwork();
+            public CommsPath Path(object? vessel) => new CommsPath();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
@@ -117,7 +117,7 @@ namespace Gonogo.KSP.Tests.Comms
             var backend = new ForeignBackend(home);
 
             var centre = CommandCentreResolution.Resolve(
-                backend.ControlPathTerminus(), RegistryNaming(home), new PayloadMeta());
+                backend.ControlPathTerminus(null), RegistryNaming(home), new PayloadMeta());
 
             Assert.Equal(KourouId, centre.Id);
             Assert.Equal("Kourou", centre.DisplayName);

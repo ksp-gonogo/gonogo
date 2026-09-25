@@ -108,7 +108,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 return null;
             }
-            var path = backend.Path();
+            var path = backend.Path(null);
             return SignalDelay.Compute(Config(), path, path.Meta?.Source ?? "", path.Meta?.Quality ?? Quality.OnRails);
         }
 
@@ -133,7 +133,7 @@ namespace Sitrep.Host.IntegrationTests
         internal sealed class DeadGraphBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public string ProviderId => "commnet";
 
             public CommsConnectivity Connectivity() => new CommsConnectivity
@@ -157,13 +157,13 @@ namespace Sitrep.Host.IntegrationTests
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
-            public CommsPath Path() => new CommsPath
+            public CommsPath Path(object? vessel) => new CommsPath
             {
                 Hops = new List<CommsHop>(),
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
-            public CommsNetwork Network() => new CommsNetwork
+            public CommsNetwork Network(object? vessel) => new CommsNetwork
             {
                 Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
@@ -179,7 +179,7 @@ namespace Sitrep.Host.IntegrationTests
 
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
 
-            public object? ControlPathTerminus() => null;
+            public object? ControlPathTerminus(object? vessel) => null;
         }
     }
 }

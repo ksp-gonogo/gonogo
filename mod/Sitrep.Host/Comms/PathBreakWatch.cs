@@ -68,7 +68,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// Compare <paramref name="path"/> against the route retained from the
-        /// last call and return the break it reveals, or null.
+        /// last call and return the break it reveals, or null. The break is
+        /// placed on <paramref name="node"/>, the engine node of the craft this
+        /// route belongs to.
         ///
         /// <para><paramref name="stillCarries"/> is asked only about hops that
         /// have LEFT the route, and only its explicit <c>false</c> counts:
@@ -81,6 +83,7 @@ namespace Sitrep.Host.Comms
         /// drop at that position is the whole partition.</para>
         /// </summary>
         public PathBreak? Observe(
+            string node,
             CommsPath? path,
             double lightSpeedScale,
             double ut,
@@ -157,7 +160,7 @@ namespace Sitrep.Host.Comms
             }
 
             return deepest > double.NegativeInfinity
-                ? new PathBreak(ut, deepest)
+                ? new PathBreak(node, ut, deepest)
                 : (PathBreak?)null;
         }
 

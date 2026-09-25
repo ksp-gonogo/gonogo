@@ -99,7 +99,7 @@ namespace Sitrep.Contract.TestSupport
 
         public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread) { }
 
-        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
+        public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
 
         public void ForceKeyframe(string topic) { }
 
