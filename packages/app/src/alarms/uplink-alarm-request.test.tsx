@@ -19,6 +19,7 @@ import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
+import { firingAlarm } from "../test/firingAlarm";
 import { AlarmHostService } from "./AlarmHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmsLauncherBridge } from "./AlarmsLauncherBridge";
@@ -97,9 +98,10 @@ function RequestingWidget({
 
 /**
  * The stream seams `AlarmHostService` reads through. It needs a live clock and
- * store to tick at all; nothing in this file asserts on telemetry.
+ * store to tick at all; nothing in this file asserts on telemetry. Returns a
+ * publisher that lands one Topic record on the stream, for making an alarm due.
  */
-function installStream(): void {
+function installStream(): (topic: string, record: unknown) => void {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const store = new TimelineStore(
@@ -113,6 +115,11 @@ function installStream(): void {
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
   setActiveViewClockForTests({ viewUt: () => 1000 });
+  return (topic, record) => {
+    client.subscribe(topic, () => {});
+    transport.emit(topic, record);
+    store.beginFrame();
+  };
 }
 
 describe("an Uplink's alarm request", () => {
@@ -452,8 +459,9 @@ describe("an Uplink's alarm request", () => {
  * app's, so nothing about it depends on the Uplink still being loaded.
  */
 describe("an Uplink's alarm after the Uplink is gone", () => {
+  let publish: (topic: string, record: unknown) => void;
   beforeEach(() => {
-    installStream();
+    publish = installStream();
     vi.useFakeTimers();
   });
   afterEach(() => {
@@ -470,9 +478,10 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
       storage: memoryStorage(),
       getOwltSeconds: () => 0,
     });
+    const firing = firingAlarm();
     const alarm = svc.addAlarm({
       name: "Launch pad upgrade complete",
-      trigger: { kind: "time", ut: 1100, leadSeconds: 10 },
+      trigger: firing.trigger,
       requestedBy: {
         uplinkId: "gone-uplink",
         uplinkName: "Removed Uplink",
@@ -481,12 +490,9 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
     });
 
     /* Nothing is loaded for `gone-uplink`: no client handle, no registration,
-       no bundle. The alarm is unaffected, which is the whole rule here.
-
-       It does not FIRE, and that is nothing to do with the Uplink: a time alarm
-       is the mod's to latch, and there is no mod on this fixture. What the
-       Uplink's absence must not do is remove the alarm or blank its row. */
-    setActiveViewClockForTests({ viewUt: () => 1200 });
+       no bundle. The alarm comes due and is unaffected, which is the whole rule
+       here: the Uplink's absence must not remove the alarm or blank its row. */
+    publish(firing.due.topic, firing.due.record);
     vi.advanceTimersByTime(1000);
 
     const after = svc.snapshot().alarms.find((a) => a.id === alarm.id);

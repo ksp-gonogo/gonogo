@@ -14,6 +14,7 @@ import { KspParameterState, WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
+import { type FiringAlarm, firingAlarm } from "../test/firingAlarm";
 import { AlarmHostService } from "./AlarmHostService";
 
 interface FakeTelemetry {
@@ -281,23 +282,12 @@ function makeHost(): {
   return { host, captured };
 }
 
-/**
- * An alarm whose only job is to fire, for a test about what a fire DOES rather
- * than about any trigger kind. The kind is named here and nowhere else: it has
- * to be one this side still evaluates, so when ownership moves, this changes and
- * no test that uses it does.
- */
-const FIRES_ON_DEMAND = {
-  kind: "threshold",
-  dataKey: "vessel.state.altitudeAsl",
-  op: ">=",
-  value: 70_000,
-  sustainSeconds: 0,
-} as const;
+/** An alarm whose only job is to fire; see `firingAlarm` for how its kind is chosen. */
+const FIRING = firingAlarm();
 
-/** Makes every `FIRES_ON_DEMAND` alarm due, from the next tick on. */
-function satisfyOnDemand(telemetry: FakeTelemetry): void {
-  telemetry.set("vessel.state.altitudeAsl", 70_500);
+/** Makes `alarm` due, from the next tick on. */
+function makeDue(telemetry: FakeTelemetry, alarm: FiringAlarm): void {
+  telemetry.publishTopic(alarm.due.topic, alarm.due.record);
 }
 
 describe("AlarmHostService", () => {
@@ -308,6 +298,9 @@ describe("AlarmHostService", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+    // A case that fails before its own `mockRestore` would otherwise hand its
+    // recorded calls to the next case that spies on the same method.
+    vi.restoreAllMocks();
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
@@ -664,13 +657,13 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Stage at 70km",
-        trigger: FIRES_ON_DEMAND,
+        trigger: FIRING.trigger,
         onFire: [
           { kind: "action-group", action: "AG1" },
           { kind: "action-group", action: "Stage" },
         ],
       });
-      satisfyOnDemand(telemetry);
+      makeDue(telemetry, FIRING);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain the dispatch microtasks (telemetry.execute is awaited).
@@ -695,9 +688,9 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Just notify",
-        trigger: FIRES_ON_DEMAND,
+        trigger: FIRING.trigger,
       });
-      satisfyOnDemand(telemetry);
+      makeDue(telemetry, FIRING);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain microtasks (telemetry.execute is async). Don't use
@@ -1502,9 +1495,9 @@ describe("AlarmHostService", () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
       svc.addAlarm({
         name: "Apoapsis",
-        trigger: FIRES_ON_DEMAND,
+        trigger: FIRING.trigger,
       });
-      satisfyOnDemand(telemetry);
+      makeDue(telemetry, FIRING);
       await vi.advanceTimersByTimeAsync(1100);
       const types = captured.broadcasts.map((m) => m.type);
       expect(types).toContain("alarm-snapshot");
@@ -1515,11 +1508,11 @@ describe("AlarmHostService", () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
       const a = svc.addAlarm({
         name: "Apoapsis",
-        trigger: FIRES_ON_DEMAND,
+        trigger: FIRING.trigger,
       });
       // Drive the state machine through firing → fired so the alarm is in the
       // only state acknowledgeAlarm accepts.
-      satisfyOnDemand(telemetry);
+      makeDue(telemetry, FIRING);
       await vi.advanceTimersByTimeAsync(1100);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
@@ -1533,10 +1526,10 @@ describe("AlarmHostService", () => {
     it("carries onFire through alarm-add and dispatches when the alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
       // Already satisfied, so the tick inside addAlarm fires it straight away.
-      satisfyOnDemand(telemetry);
+      makeDue(telemetry, FIRING);
       captured.addCb?.("station-1", {
         name: "Stage at 70km",
-        trigger: FIRES_ON_DEMAND,
+        trigger: FIRING.trigger,
         onFire: [{ kind: "action-group", action: "AG1" }],
       });
       await Promise.resolve();
@@ -1596,11 +1589,11 @@ describe("AlarmHostService", () => {
       const { svc, telemetry } = makeService();
       svc.addAlarm({
         name: "Burn",
-        trigger: FIRES_ON_DEMAND,
+        trigger: FIRING.trigger,
       });
       // Cross the threshold: within the 2s firing window.
       telemetry.set("t.universalTime", 1500);
-      satisfyOnDemand(telemetry);
+      makeDue(telemetry, FIRING);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
       // Still within the window a second later.
@@ -1622,16 +1615,9 @@ describe("AlarmHostService", () => {
    * told anyone.
    */
   describe("a fire is a fact, whatever route delivers it", () => {
-    // No Topic address, so this side evaluates it: these cases are about the
-    // routes a client-evaluated fire takes.
-    const HELD_ALTITUDE = {
-      kind: "threshold",
-      dataKey: "vessel.state.altitudeAsl",
-      op: ">=",
-      value: 70_000,
-      sustainSeconds: 60,
-      vantage: "command",
-    } as const;
+    // These cases are about the routes a client-evaluated fire takes, and a
+    // sustain is what lets a fire be jumped over, discovered or edited into.
+    const HELD = firingAlarm({ sustainSeconds: 60 });
     const STAGE = [{ kind: "action-group", action: "AG1" }] as const;
 
     function warpingTelemetry(ut: number): FakeTelemetry {
@@ -1639,7 +1625,7 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", ut);
       telemetry.set("t.currentRateIndex", 7);
       telemetry.set("t.currentRate", 10000);
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
+      makeDue(telemetry, HELD);
       return telemetry;
     }
 
@@ -1713,7 +1699,7 @@ describe("AlarmHostService", () => {
       });
       const alarm = svc.addAlarm({
         name: "Held above 70 km",
-        trigger: { ...HELD_ALTITUDE },
+        trigger: { ...HELD.trigger },
         onFire: [...STAGE],
       });
       expect(svc.snapshot().alarms[0].state).toBe("pending");
@@ -1748,7 +1734,7 @@ describe("AlarmHostService", () => {
             createdBy: "main",
             createdAt: 1_700_000_000_000,
             matchSinceUT: 900,
-            trigger: { ...HELD_ALTITUDE },
+            trigger: { ...HELD.trigger },
             onFire: [...STAGE],
           },
         ]),
@@ -1855,7 +1841,7 @@ describe("AlarmHostService", () => {
       });
       const alarm = svc.addAlarm({
         name: "Held above 70 km",
-        trigger: { ...HELD_ALTITUDE, sustainSeconds: 600 },
+        trigger: { ...HELD.trigger, sustainSeconds: 600 },
         onFire: [...STAGE],
       });
       telemetry.set("t.universalTime", 1100);
@@ -1863,7 +1849,7 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().alarms[0].state).toBe("pending");
 
       svc.updateAlarm(alarm.id, {
-        trigger: { ...HELD_ALTITUDE, sustainSeconds: 10 },
+        trigger: { ...HELD.trigger, sustainSeconds: 10 },
       });
       telemetry.set("t.universalTime", 1101);
       await vi.advanceTimersByTimeAsync(1100);
