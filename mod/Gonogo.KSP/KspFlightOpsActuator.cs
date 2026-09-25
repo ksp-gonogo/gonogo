@@ -33,9 +33,23 @@ namespace Gonogo.KSP
         /// button (see <c>Sitrep.Contract.RevertAvailability</c>'s field
         /// mapping). Unavailable → <see cref="CommandErrorCode.NotClearToProceed"/>
         /// rather than firing a revert KSP itself would refuse.
+        ///
+        /// <para>Refuses outside the flight scene
+        /// (<see cref="CommandErrorCode.WrongScene"/>) before it reads any
+        /// <c>FlightDriver</c> state. Leaving flight never clears the revert
+        /// flags or the saved states behind them, so from the space centre they
+        /// can still read as available for the previous flight, and the revert
+        /// would then dereference a <c>FlightStateCache</c> that may be null or
+        /// restore a stale save over the current one.</para>
         /// </summary>
         public CommandResult RevertToLaunch()
         {
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
+
             if (!FlightDriver.CanRevertToPostInit)
             {
                 return CommandResult.Fail(
@@ -57,9 +71,23 @@ namespace Gonogo.KSP
         /// <c>Sitrep.Contract.RevertAvailability</c>). The KSP-free
         /// <see cref="EditorFacilityKind"/> maps straight onto
         /// <c>EditorFacility.VAB</c>/<c>SPH</c> (matching ordinals).
+        ///
+        /// <para>Refuses outside the flight scene
+        /// (<see cref="CommandErrorCode.WrongScene"/>) before it reads any
+        /// <c>FlightDriver</c> state. Leaving flight never clears the revert
+        /// flags or the saved states behind them, so from the space centre they
+        /// can still read as available for the previous flight, and the revert
+        /// would then dereference a <c>FlightStateCache</c> that may be null or
+        /// restore a stale save over the current one.</para>
         /// </summary>
         public CommandResult RevertToEditor(EditorFacilityKind facility)
         {
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
+
             if (!FlightDriver.CanRevertToPrelaunch)
             {
                 return CommandResult.Fail(
