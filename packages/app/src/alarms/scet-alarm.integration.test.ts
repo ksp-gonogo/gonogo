@@ -131,10 +131,14 @@ interface ModStandIn {
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
   /**
-   * Publish the mod's SHADOW verdict on a command-vantage alarm: the notice it
-   * would send having judged the condition against what that place has been told.
+   * Publish the mod's verdict on a command-vantage alarm: the notice it would
+   * send having judged the condition against what that place has been told.
+   * `stopWarp` also drops the game's warp on that tick, as the mod's handle does
+   * when the verdict carries a stop.
    */
-  fireForVantage(id: string): void;
+  fireForVantage(id: string, opts?: { stopWarp?: boolean }): void;
+  /** This screen chooses the command centre it commands from. */
+  selectVantage(centreId: string): void;
   /**
    * Drive the TRUE value every armed threshold is compared against, which only
    * the stand-in can see.
@@ -404,7 +408,8 @@ function startSession(owlt: number): ModStandIn {
     learnCommandCentres() {
       centresKnown = true;
     },
-    fireForVantage(id) {
+    fireForVantage(id, opts) {
+      if (opts?.stopWarp) warpIndex = 0;
       transport.emit(
         "alarm.scet.fired",
         {
@@ -414,6 +419,9 @@ function startSession(owlt: number): ModStandIn {
         },
         { validAt: trueUt, deliveredAt: trueUt, vantage: HOME },
       );
+    },
+    selectVantage(centreId) {
+      client.setVantage(centreId);
     },
     setReading(value) {
       reading = value;
@@ -1545,11 +1553,11 @@ describe("SCET alarms", () => {
      * SCET trigger locally whatever the delay, and the mod fires on its own
      * clock, which at zero delay is the operator's clock too.
      *
-     * RP-1's `FundTarget` asks for `vantage: "scet"` unconditionally, and so
-     * can the operator: the modal's "Fires on" radio is always offered, since
-     * an alarm is armed for whenever it comes due and the craft may be much
-     * further out by then. See "AlarmsModal vantage choice" in
-     * `AlarmsModal.test.tsx` for the modal's half of this.
+     * An Uplink may ask for `vantage: "scet"` at any delay, and so can the
+     * operator: the modal's "Fires on" radio is always offered, since an alarm
+     * is armed for whenever it comes due and the craft may be much further out
+     * by then. See "AlarmsModal vantage choice" in `AlarmsModal.test.tsx` for
+     * the modal's half of this.
      */
     // The precondition, asserted rather than assumed: this really is the screen
     // with no qualifier to put on either clock.
@@ -1564,9 +1572,9 @@ describe("SCET alarms", () => {
       getOwltSeconds: () => 0,
     });
 
-    /* RP-1's `FundTarget` request as `useAlarmRequest` hands it on: the joined
-       `dataKey` derived from the address, the sustain defaulted, and the
-       vantage carried through untouched. */
+    /* A SCET request on the career balance as `useAlarmRequest` hands it on:
+       the joined `dataKey` derived from the address, the sustain defaulted, and
+       the vantage carried through untouched. */
     const alarm = svc.addAlarm({
       name: "Balance reaches 250,000 funds",
       trigger: {
@@ -1579,7 +1587,11 @@ describe("SCET alarms", () => {
         sustainSeconds: 0,
         vantage: "scet",
       },
-      requestedBy: { uplinkId: "rp1", uplinkName: "RP-1", key: "fund-target" },
+      requestedBy: {
+        uplinkId: "example",
+        uplinkName: "Example",
+        key: "balance",
+      },
     });
 
     const step = async (from: number, to: number) => {
@@ -1947,6 +1959,65 @@ describe("SCET alarms", () => {
 
       expect(row?.state).not.toBe("pending");
       expect(row?.eventUT).toBe(UT_START + 4 * DT);
+    });
+
+    /**
+     * RP-1's fund target, as `useAlarmRequest` hands it on. Career bookkeeping
+     * reaches a command centre without a light-time, so the alarm is armed at
+     * the centre this screen commands from, and the mod stops the warp on the
+     * tick that centre learns the balance. Nothing is sent from here: a warp
+     * command would be a round trip arriving after the stop.
+     */
+    it("arms RP-1's fund target at the active command centre, and stops the warp there", async () => {
+      const ACTIVE_CENTRE = "ground:Tracking Station North";
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.selectVantage(ACTIVE_CENTRE);
+      session.setGameWarp(5);
+      const svc = host();
+      const alarm = svc.addAlarm({
+        name: "Balance reaches 250,000 funds",
+        trigger: {
+          kind: "threshold",
+          dataKey: "career.status.economy.funds",
+          topic: "career.status",
+          fieldPath: "economy.funds",
+          op: ">=",
+          value: 250_000,
+          sustainSeconds: 0,
+          vantage: "command",
+        },
+        requestedBy: {
+          uplinkId: "rp1",
+          uplinkName: "RP-1",
+          key: "fund-target",
+        },
+      });
+      await run(session, UT_START + 4 * DT);
+
+      expect(session.armed()).toEqual([alarm.id]);
+      expect(session.armOf(alarm.id)?.vantage).toBe(ACTIVE_CENTRE);
+      expect(session.armOf(alarm.id)?.condition).toEqual({
+        kind: "threshold",
+        topic: "career.status",
+        fieldPath: "economy.funds",
+        op: 1,
+        threshold: 250_000,
+        sustainSeconds: 0,
+      });
+      expect(svc.snapshot().scetArmRefusals).toBeUndefined();
+      expect(session.gameIndex()).toBe(5);
+
+      const learnedAt = UT_START + 4 * DT;
+      session.fireForVantage(alarm.id, { stopWarp: true });
+      await runFrom(session, learnedAt, learnedAt + 2 * DT);
+      const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      svc.dispose();
+
+      expect(row?.state).not.toBe("pending");
+      expect(row?.eventUT).toBe(learnedAt);
+      expect(session.gameIndex()).toBe(0);
+      expect(session.warpDispatchedAt).toEqual([]);
     });
 
     it("does not latch from this side's own reading of it", async () => {

@@ -28,8 +28,11 @@ import type { UplinkClientHandle } from "./types";
 /**
  * Which clock a THRESHOLD's condition is judged on.
  *
- * - `"command"`: the operator's own view, one light-time behind the craft. The
- *   app evaluates it, the way every alarm always has
+ * - `"command"`: the command centre this screen commands from, judged against
+ *   what that centre has been told. A craft reading reaches it one light-time
+ *   behind the craft; the career balance reaches a ground centre as it changes.
+ *   The simulation evaluates it, and the warp stops on the tick that centre
+ *   learns the condition holds
  * - `"scet"`: the craft's own clock. The simulation evaluates it, and the warp
  *   stops on the tick that clock reaches the condition
  *
@@ -41,7 +44,8 @@ import type { UplinkClientHandle } from "./types";
  * A `"scet"` threshold can be refused: what the simulation is able to read
  * pre-reveal is a table inside the mod, and it is not published anywhere a
  * caller could consult first. A refusal is not silent, the operator's row says
- * NOT ARMED and carries the mod's reason.
+ * NOT ARMED and carries the mod's reason. A `"command"` threshold the simulation
+ * refuses is judged by the app instead, on its own once-a-second tick.
  */
 export type UplinkAlarmVantage = "command" | "scet";
 
