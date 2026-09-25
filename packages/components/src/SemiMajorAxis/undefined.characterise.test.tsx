@@ -62,14 +62,13 @@ describe("SemiMajorAxis: what undefined means today", () => {
   it("renders the empty state and NONE of the readout furniture before anything arrives", async () => {
     // The nothing-has-arrived case in full. Asserted by naming the elements
     // that are gone rather than by an empty container: the whole `Body`
-    // subtree is behind the gate, so the live-region readout, the sparkline
+    // subtree is behind the gate, so the readout, the sparkline
     // and the caption all vanish together.
     const fixture = makeFixture();
     const { container } = renderSma(fixture);
 
     expect(await screen.findByText("No orbit data")).toBeInTheDocument();
-    // SmaDisplay carries role=status aria-live=polite: no readout element
-    // exists at all, so a screen reader is told nothing rather than "unknown".
+    // No readout element exists at all, so a screen reader is told nothing rather than "unknown".
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(container.querySelector("svg[aria-label='SMA trend']")).toBeNull();
     expect(screen.queryByText(/Semi-major axis/)).not.toBeInTheDocument();
