@@ -1,22 +1,18 @@
-import { useSyncExternalStore } from "react";
+import { DashboardItemContext } from "@ksp-gonogo/core";
+import { useCallback, useContext, useSyncExternalStore } from "react";
 
 /**
- * Shared state between the two halves of ONE coordinated augment
- * (`SystemView/index.tsx`'s own doc comment: "the `.actions` + `.overlay`
- * pair is designed to be driven by ONE coordinated augment ... sharing state
- * through the augment's OWN context: no cross-Uplink coupling"). The host
- * renders `system-view.actions` (the header toggle row) and
- * `system-view.overlay` (the diagram layer) as two SEPARATE, independently
- * mounted `<AugmentSlot>` trees: neither is a descendant of the other, so a
- * React context provided by one can't reach the other. A tiny module-scoped
- * external store (the same `useSyncExternalStore` idiom this codebase
- * already uses throughout `@ksp-gonogo/sitrep-client`'s stream hooks) is the
- * simplest thing that actually reaches across that gap.
+ * The Commlinks and Traffic toggles, one pair per SystemView instance.
  *
- * First-party, dashboard-instance-wide (not per-widget-instance): there is
- * only ever one active vessel / one system diagram on screen at a time, so a
- * single module-level toggle pair is the right scope; a future multi-instance
- * SystemView would need to key this by instance id, not attempted here.
+ * The controls are drawn by the `system-view.actions` augment and read by
+ * `SystemView/index.tsx`, which gates its connection-line entities and
+ * command-traffic pulses on them. The augment is mounted in the panel chrome
+ * rather than under anything SystemView provides, so a React context from one
+ * cannot reach the other and the state sits in this external store instead.
+ *
+ * Both sides mount inside the same `DashboardItemContext`, so its instance id
+ * is the key: two SystemView tiles on one dashboard each keep their own pair.
+ * A tree with no dashboard item (a bare widget render) shares one pair.
  */
 export interface FleetCommsToggles {
   /** Draw the active vessel's comms-path highlight + connectivity styling. */
@@ -30,19 +26,21 @@ const DEFAULT_TOGGLES: FleetCommsToggles = {
   showCommandTraffic: true,
 };
 
-let toggles: FleetCommsToggles = DEFAULT_TOGGLES;
+const NO_INSTANCE = "";
+
+const togglesByInstance = new Map<string, FleetCommsToggles>();
 const listeners = new Set<() => void>();
 
 function notify(): void {
   for (const listener of listeners) listener();
 }
 
-/** Current toggle state: referentially stable between changes, required by `useSyncExternalStore`. */
-export function getFleetCommsToggles(): FleetCommsToggles {
-  return toggles;
+/** One instance's toggle state: referentially stable between changes, required by `useSyncExternalStore`. */
+export function getFleetCommsToggles(instanceId: string): FleetCommsToggles {
+  return togglesByInstance.get(instanceId) ?? DEFAULT_TOGGLES;
 }
 
-/** Subscribe to toggle changes. Returns an unsubscribe function. */
+/** Subscribe to toggle changes on any instance. Returns an unsubscribe function. */
 export function subscribeFleetCommsToggles(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
@@ -50,29 +48,47 @@ export function subscribeFleetCommsToggles(listener: () => void): () => void {
   };
 }
 
-export function setShowCommlinks(value: boolean): void {
-  if (toggles.showCommlinks === value) return;
-  toggles = { ...toggles, showCommlinks: value };
+function update(instanceId: string, patch: Partial<FleetCommsToggles>): void {
+  const current = getFleetCommsToggles(instanceId);
+  const next = { ...current, ...patch };
+  if (
+    next.showCommlinks === current.showCommlinks &&
+    next.showCommandTraffic === current.showCommandTraffic
+  ) {
+    return;
+  }
+  togglesByInstance.set(instanceId, next);
   notify();
 }
 
-export function setShowCommandTraffic(value: boolean): void {
-  if (toggles.showCommandTraffic === value) return;
-  toggles = { ...toggles, showCommandTraffic: value };
-  notify();
+export function setShowCommlinks(instanceId: string, value: boolean): void {
+  update(instanceId, { showCommlinks: value });
 }
 
-/** React binding: both the overlay and the actions augment read the SAME live snapshot. */
+export function setShowCommandTraffic(
+  instanceId: string,
+  value: boolean,
+): void {
+  update(instanceId, { showCommandTraffic: value });
+}
+
+/** The key the calling component's toggles are stored under. */
+export function useFleetCommsInstanceId(): string {
+  return useContext(DashboardItemContext)?.instanceId ?? NO_INSTANCE;
+}
+
+/** React binding: the actions augment and SystemView read the same instance's live snapshot. */
 export function useFleetCommsToggles(): FleetCommsToggles {
-  return useSyncExternalStore(
-    subscribeFleetCommsToggles,
-    getFleetCommsToggles,
-    getFleetCommsToggles,
+  const instanceId = useFleetCommsInstanceId();
+  const snapshot = useCallback(
+    () => getFleetCommsToggles(instanceId),
+    [instanceId],
   );
+  return useSyncExternalStore(subscribeFleetCommsToggles, snapshot, snapshot);
 }
 
 /** Test-only: resets the module-scoped store between tests (mirrors `clearRegistry`/`clearAugments`). */
 export function __resetFleetCommsTogglesForTests(): void {
-  toggles = DEFAULT_TOGGLES;
+  togglesByInstance.clear();
   listeners.clear();
 }

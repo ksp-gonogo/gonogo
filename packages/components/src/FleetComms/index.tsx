@@ -8,6 +8,7 @@ import "./badge";
 import {
   setShowCommandTraffic,
   setShowCommlinks,
+  useFleetCommsInstanceId,
   useFleetCommsToggles,
 } from "./toggles";
 
@@ -33,6 +34,7 @@ import {
  * draws.
  */
 function FleetCommsActions() {
+  const instanceId = useFleetCommsInstanceId();
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
   return (
     <Cluster justify="start">
@@ -41,7 +43,7 @@ function FleetCommsActions() {
         size="sm"
         active={showCommlinks}
         title="Show commlinks"
-        onClick={() => setShowCommlinks(!showCommlinks)}
+        onClick={() => setShowCommlinks(instanceId, !showCommlinks)}
       >
         Commlinks
       </ToggleButton>
@@ -50,7 +52,7 @@ function FleetCommsActions() {
         size="sm"
         active={showCommandTraffic}
         title="Show command traffic"
-        onClick={() => setShowCommandTraffic(!showCommandTraffic)}
+        onClick={() => setShowCommandTraffic(instanceId, !showCommandTraffic)}
       >
         Traffic
       </ToggleButton>
