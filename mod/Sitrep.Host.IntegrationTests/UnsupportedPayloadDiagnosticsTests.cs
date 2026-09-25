@@ -51,7 +51,7 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Equal("subscribed", (await SubscribeAsync(client, ThirdPartyPayloadUplink.Topic, Timeout)).Name);
 
-                engine.TickAndWait(0.0, ThirdPartyPayloadUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, ThirdPartyPayloadUplink.Snapshot(), TestBudgets.Op);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("payload-serialization-error", error.Code);
@@ -94,7 +94,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await SubscribeAsync(client, ThirdPartyPayloadUplink.Topic, Timeout);
-                engine.TickAndWait(0.0, ThirdPartyPayloadUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, ThirdPartyPayloadUplink.Snapshot(), TestBudgets.Op);
                 await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
 
                 var lines = diagnostics.ToArray();

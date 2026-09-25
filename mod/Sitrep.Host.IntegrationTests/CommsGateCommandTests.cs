@@ -40,7 +40,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "vantage-1",
                     _ => { resolved = true; },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 // Advance well past the full round trip (2 * 5s). Honest silence:
                 // the command is dropped at dispatch, it never reaches the CPU

@@ -24,8 +24,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class RevealBurstOnWarpUpTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(300);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         private readonly ITestOutputHelper _output;
 
