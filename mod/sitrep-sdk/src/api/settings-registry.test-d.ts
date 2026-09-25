@@ -70,6 +70,15 @@ interface PredictionSettings {
   declutter: boolean;
 }
 
+/* The example Topic these rows read. A stream-backed row names a Topic the
+   contract carries, so a row pointing at one nothing publishes does not
+   compile rather than rendering nothing forever. */
+declare module "../topics" {
+  interface TopicPayloadMap {
+    "example.settings": PredictionSettings;
+  }
+}
+
 registerSetting({
   id: "example.tolerance",
   backing: "stream-backed",
@@ -77,7 +86,7 @@ registerSetting({
   topic: "example.settings",
   // A `Value`, not a bare number, so the row renders "1 m" and announces
   // "metres" rather than showing a naked 1.
-  select: (p) => value("m", (p as PredictionSettings).tolerance),
+  select: (p) => value("m", p.tolerance),
   label: "Prediction tolerance",
   category: "Example",
   group: "Prediction",
@@ -88,7 +97,7 @@ registerSetting({
   backing: "stream-backed",
   type: "number",
   topic: "example.settings",
-  select: (p) => (p as PredictionSettings).maxSteps,
+  select: (p) => p.maxSteps,
   label: "Max steps",
   category: "Example",
   group: "Prediction",
@@ -99,7 +108,7 @@ registerSetting({
   backing: "stream-backed",
   type: "text",
   topic: "example.settings",
-  select: (p) => (p as PredictionSettings).frameName,
+  select: (p) => p.frameName,
   label: "Plotting frame",
   category: "Example",
   group: "Plotting frame",
@@ -110,7 +119,7 @@ registerSetting({
   backing: "stream-backed",
   type: "boolean",
   topic: "example.settings",
-  select: (p) => (p as PredictionSettings).declutter,
+  select: (p) => p.declutter,
   label: "Declutter",
   category: "Example",
   group: "Drawing",
@@ -192,13 +201,22 @@ registerSetting({
 // the moment they share an array, and the generic form cannot take that back
 // (a source-backed row's `write` is contravariant in the row's own type), so
 // the forwarding overload is what makes the loop compile.
+/* The erased row's `select` takes the payload unqualified, because a list has
+   no topic literal left for the precise overload to read. Narrowing here is
+   what the forwarding overload costs an author who wants one. */
+function predictionSettings(p: unknown): PredictionSettings | undefined {
+  return typeof p === "object" && p !== null
+    ? (p as PredictionSettings)
+    : undefined;
+}
+
 const rows: SettingDefinition[] = [
   {
     id: "list.frame",
     backing: "stream-backed",
     type: "text",
     topic: "example.settings",
-    select: (p) => (p as PredictionSettings).frameName,
+    select: (p) => predictionSettings(p)?.frameName,
     label: "Frame",
     category: "Example",
   },
@@ -207,7 +225,7 @@ const rows: SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: "example.settings",
-    select: (p) => (p as PredictionSettings).tolerance,
+    select: (p) => predictionSettings(p)?.tolerance,
     label: "Tolerance",
     category: "Example",
   },

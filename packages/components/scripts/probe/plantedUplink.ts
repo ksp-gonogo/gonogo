@@ -77,8 +77,8 @@ PLANTED_UPLINK.registerContribution({
           partId: String(part.id),
           resource,
           displayName: resource,
-          amount,
-          capacity,
+          amount: value("units", amount),
+          capacity: value("units", capacity),
           status:
             ratio < 0.05
               ? ("critical" as const)
@@ -148,7 +148,7 @@ PLANTED_UPLINK.registerContribution({
       rules.map(([label, fraction]) => ({
         id: `${name}:${label}`,
         label,
-        value: fraction,
+        value: value("ratio", fraction),
         tone: toneFor(fraction),
         valueLabel: writeQuantity(value("%", fraction * 100), { decimals: 0 }),
         row: name,

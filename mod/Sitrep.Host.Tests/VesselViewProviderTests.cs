@@ -17,6 +17,7 @@ namespace Sitrep.Host.Tests
     /// provenance (<c>meta.source</c>), and the wire-adapter's real
     /// serialization path.
     /// </summary>
+    [Collection("VesselViewProviderStatics")]
     public class VesselViewProviderTests
     {
         private const string VesselGuid = "11111111-2222-3333-4444-555555555555";
@@ -95,6 +96,57 @@ namespace Sitrep.Host.Tests
             // NOTE: no ValidAt assertion here (Fix C) -- PayloadMeta no
             // longer carries it at all; see the dedicated "payload meta is
             // slim" tests below for the positive/negative proof.
+        }
+
+        [Fact]
+        public void BuildIdentityPrefersTheVesselsOwnLaunchTimeOverSampleUtMinusMissionTime()
+        {
+            // The two halves of Ut - missionTime are captured at different moments, so under
+            // warp their difference wanders by seconds between samples; launchTime does not.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?>
+                {
+                    ["id"] = VesselGuid,
+                    ["name"] = "commsat",
+                    ["vesselType"] = "Relay",
+                    ["situation"] = "ORBITING",
+                    ["launchTime"] = 100.0,
+                },
+                flight: new Dictionary<string, object?> { ["missionTime"] = 38.0 },
+                bodies: null);
+            snapshot.Ut = 140.0;
+
+            var identity = VesselViewProvider.BuildIdentity(snapshot);
+
+            Assert.Equal(100.0, identity!.LaunchUt);
+        }
+
+        [Fact]
+        public void BuildIdentitySendsNoLaunchUtForACraftStillOnThePad()
+        {
+            /*
+             * KSP re-stamps launchTime to the current UT on every update in PRELAUNCH,
+             * so either input would name "now". A launchUt that moves with the clock
+             * makes viewUt - launchUt a positive mission time on the pad, which a
+             * consumer reads as a launch.
+             */
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?>
+                {
+                    ["id"] = VesselGuid,
+                    ["name"] = "Muna 1",
+                    ["vesselType"] = "Probe",
+                    ["situation"] = "PRELAUNCH",
+                    ["launchTime"] = 140.0,
+                },
+                flight: new Dictionary<string, object?> { ["missionTime"] = 0.0 },
+                bodies: null);
+            snapshot.Ut = 140.0;
+
+            var identity = VesselViewProvider.BuildIdentity(snapshot);
+
+            Assert.Equal(Situation.PreLaunch, identity!.Situation);
+            Assert.Null(identity.LaunchUt);
         }
 
         [Fact]
@@ -2864,16 +2916,15 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void PayloadMetaHasNoValidAtEvenAtTheNowUtSentinelZero()
+        public void PayloadMetaHasNoValidAtAtUtZero()
         {
-            // KspHost.NowUt() returns 0 as a fallback sentinel when
-            // Planetarium.GetUniversalTime() throws -- e.g. at the main
-            // menu, before any save is loaded (KspHost.cs:79-83). Before
-            // Fix C that 0 leaked onto EVERY payload's own meta as a
-            // fabricated "validAt":0; PayloadMeta doesn't carry the field
-            // at all now, so there's nothing left for the sentinel to leak
-            // into. Uses time.warp (BuildWarp), the one channel that
-            // legitimately emits with snapshot.Ut == 0 and no active vessel.
+            // UT 0 is reachable: a recording whose host had no clock yet
+            // stamps its start there, and ManualClock begins there. Before
+            // Fix C a 0 UT leaked onto EVERY payload's own meta as a
+            // fabricated "validAt":0; PayloadMeta doesn't carry the field at
+            // all now, so there is nothing left for it to leak into. Uses
+            // time.warp (BuildWarp), the one channel that legitimately emits
+            // with snapshot.Ut == 0 and no active vessel.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,

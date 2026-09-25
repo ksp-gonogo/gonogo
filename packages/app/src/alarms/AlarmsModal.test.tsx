@@ -4,8 +4,6 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -18,7 +16,11 @@ import {
   TrajectoryKind,
   wrapTypePayload,
 } from "@ksp-gonogo/sitrep-sdk";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  createFakeWallClock,
+  MockDataSource,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -457,14 +459,17 @@ describe("AlarmsModal recommended presets", () => {
   });
 
   /*
-   * The defect this pair exists for. `timeToAp` is read off a Delayed channel
-   * at the view UT, so the sum is the true SCET of apoapsis, and the alarm
-   * pipeline then fires when the VIEW clock reaches it: one light-time after
-   * the craft went past. Invisible on LAN and four to twenty minutes wrong at
-   * Duna. The trigger now lands one light-time earlier, so the alarm goes off
-   * while the event is still ahead of the operator.
+   * The defect this pair exists for, and the second half of its history.
+   * `timeToAp` is read off a Delayed channel at the view UT, so the sum is the
+   * TRUE SCET of apoapsis. The alarm used to be evaluated on this side against
+   * the view clock, which reaches that instant one light-time late, so the
+   * trigger had a light-time subtracted from it to compensate.
+   *
+   * The mod compares against the game's own universal time now, which is the
+   * clock the SCET is already on, so the subtraction became the error it was
+   * invented to cancel. The alarm carries the apsis instant as it stands.
    */
-  it("fires an apsis alarm AT the event on a delayed craft, not a light-time late", async () => {
+  it("arms an apsis alarm at the event's own instant, with no light-time subtracted", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
     const owlt = 240;
@@ -488,10 +493,7 @@ describe("AlarmsModal recommended presets", () => {
       await screen.findByRole("button", { name: /alarm at apoapsis/i }),
     );
 
-    expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(
-      1000 + TIME_TO_AP - owlt,
-      3,
-    );
+    expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(1000 + TIME_TO_AP, 3);
   });
 
   /* The SCET is what the button states, and it says which clock it is on: the
@@ -648,7 +650,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
       />,
     );
 
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(getDataKeyCombobox());
 
     const options = await screen.findAllByRole("option");
@@ -671,7 +673,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
 
     await user.type(screen.getByLabelText(/^name$/i), "Crossed 70 km");
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(getDataKeyCombobox());
     // Names the subject rather than taking the first match on "altitude": the
     // catalogue offers several, and a test that picks whichever sorts first is
@@ -711,7 +713,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
 
     await user.type(screen.getByLabelText(/^name$/i), "Above 100 km");
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(screen.getByRole("radio", { name: /^scet$/i }));
     await user.click(getDataKeyCombobox());
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
@@ -851,6 +853,173 @@ describe("AlarmsModal provenance", () => {
 });
 
 /**
+ * A fire discovered after the fact runs no actions, and a row that still read
+ * "FIRES 1 ACTION" would claim the opposite of what happened.
+ */
+describe("AlarmsModal withheld actions", () => {
+  function firedAlarm(actionsWithheld?: true): Alarm {
+    return {
+      id: "a-stage",
+      name: "Stage at 70 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.state.altitudeAsl",
+        op: ">=",
+        value: 70_000,
+        sustainSeconds: 0,
+        vantage: "command",
+      },
+      state: "fired",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+      onFire: [{ kind: "action-group", action: "AG1" }],
+      actionsWithheld,
+    };
+  }
+
+  it("says the actions did not run", async () => {
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot([firedAlarm(true)])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Stage at 70 km");
+    expect(screen.getByText("ACTIONS NOT RUN")).toBeInTheDocument();
+    expect(screen.queryByText(/1 ACTION /)).not.toBeInTheDocument();
+  });
+
+  it("names the actions it carries when they ran", async () => {
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot([firedAlarm()])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Stage at 70 km");
+    expect(screen.getByText(/1 ACTION /)).toBeInTheDocument();
+    expect(screen.queryByText("ACTIONS NOT RUN")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * An action run aboard in the moment and one sent from the ground that lands a
+ * light-time late are two different promises, and the row must not show one as
+ * the other.
+ */
+describe("AlarmsModal unreachable", () => {
+  it("says an alarm whose craft is gone can never fire", async () => {
+    const alarm: Alarm = {
+      id: "a-gone",
+      name: "Debris below 70 km",
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+    };
+    render(
+      <AlarmsModal
+        useSnapshot={() => ({
+          ...makeSnapshot([alarm]),
+          scetUnreachable: ["a-gone"],
+        })}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Debris below 70 km");
+    expect(screen.getByText("UNREACHABLE")).toBeInTheDocument();
+    expect(
+      screen.getByText(/the craft this alarm reads no longer exists/i),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("AlarmsModal where actions run", () => {
+  function staging(trigger: Alarm["trigger"]): Alarm {
+    return {
+      id: "a-where",
+      name: "Separate the booster",
+      trigger,
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+      onFire: [{ kind: "action-group", action: "Stage" }],
+    };
+  }
+  const threshold = (vantage: "scet" | "command", topic: string) =>
+    ({
+      kind: "threshold",
+      dataKey: `${topic}.value`,
+      op: ">=",
+      value: 1,
+      sustainSeconds: 0,
+      vantage,
+      topic,
+      fieldPath: "value",
+    }) as const;
+
+  async function badgeFor(
+    alarm: Alarm,
+    refusals?: Record<string, string>,
+  ): Promise<string | null> {
+    render(
+      <AlarmsModal
+        useSnapshot={() => ({
+          ...makeSnapshot([alarm]),
+          scetArmRefusals: refusals,
+        })}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    await screen.findByText("Separate the booster");
+    return screen.getByText(/1 ACTION/).textContent;
+  }
+
+  it("says a time alarm's actions run aboard", async () => {
+    expect(
+      await badgeFor(staging({ kind: "time", ut: 5000, leadSeconds: 10 })),
+    ).toBe("FIRES 1 ACTION ABOARD");
+  });
+
+  it("says a SCET threshold on the craft runs its actions aboard", async () => {
+    expect(await badgeFor(staging(threshold("scet", "vessel.flight")))).toBe(
+      "FIRES 1 ACTION ABOARD",
+    );
+  });
+
+  it("says a command-vantage alarm's actions are sent from the ground", async () => {
+    expect(await badgeFor(staging(threshold("command", "vessel.flight")))).toBe(
+      "SENDS 1 ACTION FROM GROUND",
+    );
+  });
+
+  it("says a SCET threshold on the game's own state sends its actions from the ground", async () => {
+    expect(await badgeFor(staging(threshold("scet", "career.status")))).toBe(
+      "SENDS 1 ACTION FROM GROUND",
+    );
+  });
+
+  it("says an alarm the mod refused sends its actions from the ground", async () => {
+    expect(
+      await badgeFor(staging(threshold("scet", "vessel.flight")), {
+        "a-where": "no",
+      }),
+    ).toBe("SENDS 1 ACTION FROM GROUND");
+  });
+});
+
+/**
  * An alarm is armed for the FUTURE, so a present-tense reading of the link
  * cannot decide which clock the operator meant. A craft two light-seconds out
  * today may be an hour out by the time the alarm comes due, and the operator
@@ -872,28 +1041,26 @@ describe("AlarmsModal vantage choice", () => {
          `useTimeContexts` drops every qualifier. */
       0,
     );
+  }
+
+  /** The vantage control, which only the threshold arm renders. */
+  async function thresholdVantage(
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<HTMLElement> {
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     return screen.getByRole("radiogroup", { name: /fires on/i });
   }
 
   /**
    * A universal time is the same instant at every vantage and names no craft,
-   * so a UT alarm has no clock to pick between. The control is greyed rather
-   * than removed, because an operator arriving from the threshold arm needs
-   * to see that the question they just answered does not apply here.
+   * so a UT alarm has no clock to pick between and gets no control for one.
    */
-  it("greys the vantage control out for a UT alarm and shows neither option chosen", () => {
-    const group = renderModal();
-    const [received, scet] = within(group).getAllByRole("radio");
+  it("renders no vantage control for a UT alarm", () => {
+    renderModal();
 
-    expect(received).toBeDisabled();
-    expect(scet).toBeDisabled();
-    // Neither reads as the live choice: a greyed control still showing one
-    // would claim the alarm is armed on that clock.
-    expect(received).toHaveAttribute("aria-checked", "false");
-    expect(scet).toHaveAttribute("aria-checked", "false");
     expect(
-      screen.getByText(/universal time is the same instant everywhere/i),
-    ).toBeInTheDocument();
+      screen.queryByRole("radiogroup", { name: /fires on/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("arms a UT alarm with no vantage at all", async () => {
@@ -914,12 +1081,30 @@ describe("AlarmsModal vantage choice", () => {
     expect(trigger).not.toHaveProperty("vantage");
   });
 
+  it("says what each control does in the operator's own words", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    expect(
+      screen.getByText(/notify and cancel warp alarm/i),
+    ).toBeInTheDocument();
+    await thresholdVantage(user);
+    expect(
+      screen.getByText(
+        "Received locally, or as the active vessel receives telemetry.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Any telemetry value that returns a number."),
+    ).toBeInTheDocument();
+  });
+
   it("moves the vantage selection with arrow keys and keeps one tab stop", async () => {
     const user = userEvent.setup();
-    const group = renderModal();
+    renderModal();
     // The threshold arm, where the choice means something: a value crosses at
     // one instant aboard the craft and at a later one wherever the news reaches.
-    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    const group = await thresholdVantage(user);
     const [received, scet] = within(group).getAllByRole("radio");
 
     expect(received).toHaveAttribute("aria-checked", "true");
@@ -937,8 +1122,9 @@ describe("AlarmsModal vantage choice", () => {
     expect(received).toHaveAttribute("aria-checked", "true");
   });
 
-  it("has no accessibility violations with the vantage radio always rendered", async () => {
-    const group = renderModal();
+  it("has no accessibility violations with the vantage radio rendered", async () => {
+    renderModal();
+    const group = await thresholdVantage(userEvent.setup());
     await expectNoA11yViolations(group.parentElement as HTMLElement);
   });
 });

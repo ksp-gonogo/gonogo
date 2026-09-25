@@ -92,11 +92,7 @@ function stubRegistryFetch(index: RegistryIndex): void {
     "fetch",
     vi.fn(async (url: string) => {
       if (String(url).includes("registry.local.json")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => index,
-        } as unknown as Response;
+        return Response.json(index);
       }
       throw new Error(`unexpected fetch: ${url}`);
     }),

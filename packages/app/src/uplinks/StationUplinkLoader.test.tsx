@@ -24,16 +24,14 @@
  */
 
 import { clearRegistry } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
+import { asClientService } from "../test/peerFakes";
 import { setConsentPrompt } from "./consent";
 import { hostCompat } from "./hostCompat";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
@@ -101,11 +99,7 @@ function stubFetch(index: RegistryIndex): string[] {
     "fetch",
     vi.fn(async (url: string) => {
       if (String(url).includes("registry.local.json")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => index,
-        } as unknown as Response;
+        return Response.json(index);
       }
       directBundleFetches.push(String(url));
       throw new Error(
@@ -131,6 +125,17 @@ afterEach(() => {
   window.localStorage.clear();
   setConsentPrompt(async () => false);
 });
+
+/**
+ * A bundle conduit as the client the loader takes. One erasure, here: the real
+ * `PeerClientService` opens a broker socket in its constructor, and the loader
+ * calls only `sendBundleFetch` on it.
+ */
+function asPeerClient(fake: {
+  sendBundleFetch: PeerClientService["sendBundleFetch"];
+}): PeerClientService {
+  return asClientService(fake);
+}
 
 describe("runStationUplinkLoad", () => {
   it("with no roster sample (timeout), attempts nothing and never makes a direct bundle fetch", async () => {
@@ -269,7 +274,7 @@ describe("StationUplinkLoader", () => {
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
-    const peerClient = { sendBundleFetch } as unknown as PeerClientService;
+    const peerClient = asPeerClient({ sendBundleFetch });
 
     render(<Harness client={client} peerClient={peerClient} />);
 
@@ -291,7 +296,7 @@ describe("StationUplinkLoader", () => {
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
-    const peerClient = { sendBundleFetch } as unknown as PeerClientService;
+    const peerClient = asPeerClient({ sendBundleFetch });
 
     render(
       <StrictMode>

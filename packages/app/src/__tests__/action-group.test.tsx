@@ -4,12 +4,12 @@ import {
 } from "@ksp-gonogo/components";
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";

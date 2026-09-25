@@ -59,9 +59,6 @@ const KSP_DAY = STOCK_KERBIN_CALENDAR.day;
  */
 const TOPIC = "planted.settings";
 
-/** A quantity as it arrives off the wire, already wrapped. */
-const q = (unit: string, magnitude: number) => ({ magnitude, unit });
-
 /** A planted session mid-flight: every row carries a value. */
 const PLANTED_LIVE = {
   status: "Reading",
@@ -69,11 +66,11 @@ const PLANTED_LIVE = {
   frameName: "Kerbin-centred inertial",
   frameCentre: "Kerbin",
   frameHasApsides: true,
-  toleranceMetres: q("m", 1),
-  maxSteps: q("count", 1_000_000),
-  windowSeconds: q("s", 28 * KSP_DAY),
-  historySeconds: q("s", 3 * 3600),
-  markersHidden: q("count", 2),
+  toleranceMetres: 1,
+  maxSteps: 1_000_000,
+  windowSeconds: 28 * KSP_DAY,
+  historySeconds: 3 * 3600,
+  markersHidden: 2,
   logThreshold: "ERROR",
   journaling: false,
 };

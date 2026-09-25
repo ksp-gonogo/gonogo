@@ -60,6 +60,13 @@ const parsed = (
   overrides: Record<string, unknown> = {},
 ) => strategy(id, department, overrides) as never;
 
+/** A strategy row's `isActive`, and `undefined` when the row does not carry one. */
+function activeFlag(row: unknown): boolean | undefined {
+  if (typeof row !== "object" || row === null) return undefined;
+  const flag: unknown = Reflect.get(row, "isActive");
+  return typeof flag === "boolean" ? flag : undefined;
+}
+
 describe("resolveScreens", () => {
   it("draws no screens at all when nobody contributes one", () => {
     expect(resolveScreens([], [parsed("a", "Programs")])).toEqual([]);
@@ -187,7 +194,7 @@ function emitCareer(
     facilities: null,
     contracts: null,
     strategies: {
-      active: all.filter((s) => (s as { isActive?: boolean }).isActive),
+      active: all.filter((s) => activeFlag(s) === true),
       all,
       activeCount: 0,
     },

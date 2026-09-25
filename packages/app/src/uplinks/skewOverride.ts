@@ -42,7 +42,10 @@ export function skewOverrideKey(
 function readGranted(): Set<string> {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    if (!raw) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((id) => typeof id === "string"));
   } catch {
     return new Set();
   }

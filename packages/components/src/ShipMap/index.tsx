@@ -478,7 +478,7 @@ const PLACEHOLDER: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   color: "var(--color-text-dim)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   padding: "var(--space-12)",
   textAlign: "center",
 };
@@ -490,7 +490,7 @@ const META: CSSProperties = {
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   borderBottom: "1px solid var(--color-surface-raised)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-muted)",
 };
 

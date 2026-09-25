@@ -13,6 +13,7 @@ import {
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  Block,
   CommandButton,
   type CommandButtonHandle,
   Divider,
@@ -40,6 +41,7 @@ import {
   reportsFundsDrain,
 } from "../shared/FundsDrain";
 import {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,
@@ -131,7 +133,8 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: Strategy[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const id = typeof e.id === "string" ? e.id : null;
@@ -147,21 +150,21 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
             ? e.department
             : "",
       isActive: e.isActive === true,
-      factor: magnitudeOr(e.factor as Quantityish, 0),
-      dateActivated: magnitudeOr(e.dateActivated as Quantityish, 0),
-      requiredReputation: magnitudeOr(e.requiredReputation as Quantityish, 0),
-      initialCostFunds: magnitudeOr(e.initialCostFunds as Quantityish, 0),
-      initialCostScience: magnitudeOr(e.initialCostScience as Quantityish, 0),
+      factor: magnitudeOr(asQuantityish(e.factor), 0),
+      dateActivated: magnitudeOr(asQuantityish(e.dateActivated), 0),
+      requiredReputation: magnitudeOr(asQuantityish(e.requiredReputation), 0),
+      initialCostFunds: magnitudeOr(asQuantityish(e.initialCostFunds), 0),
+      initialCostScience: magnitudeOr(asQuantityish(e.initialCostScience), 0),
       initialCostReputation: magnitudeOr(
-        e.initialCostReputation as Quantityish,
+        asQuantityish(e.initialCostReputation),
         0,
       ),
       effectiveCostReputation:
-        magnitudeOf(e.effectiveCostReputation as Quantityish) ??
-        magnitudeOr(e.initialCostReputation as Quantityish, 0),
+        magnitudeOf(asQuantityish(e.effectiveCostReputation)) ??
+        magnitudeOr(asQuantityish(e.initialCostReputation), 0),
       hasFactorSlider: e.hasFactorSlider === true,
-      factorSliderDefault: magnitudeOr(e.factorSliderDefault as Quantityish, 0),
-      factorSliderSteps: magnitudeOr(e.factorSliderSteps as Quantityish, 1),
+      factorSliderDefault: magnitudeOr(asQuantityish(e.factorSliderDefault), 0),
+      factorSliderSteps: magnitudeOr(asQuantityish(e.factorSliderSteps), 1),
       /* Three states, and only a real boolean is an answer. An absent field and
          an explicit null both mean the question went unasked. */
       canActivate: typeof e.canActivate === "boolean" ? e.canActivate : null,
@@ -459,48 +462,53 @@ function StrategiesComponent({
 
   // ── Tiny mode ─────────────────────────────────────────────────────────
   if (bucket === "tiny") {
+    const tinyFundsTitle = balancesNotCurrent
+      ? "The funds balance is no longer current, so affordability is not being checked"
+      : funds != null
+        ? speakQuantity(funds, { decimals: 0 })
+        : "No funds balance has arrived";
     return (
       <Panel
         panelTitle="Strategies"
         compactTitle={["ADMIN", "ADM"]}
-        panelAside={
-          <Tally $overCap={overCap}>
-            {active.length} active
-            {overCap && ` / ${inferredCap}`}
-          </Tally>
-        }
         sections={
           <Section full>
             {/* Strategies spends career funds (activate cost), so the balance
-            must stay visible even in the tiny bucket (CLAUDE.md "spending
-            funds: always show the balance"). A dedicated row below the
-            header rather than inlined into the Header's own flex-wrap
-            group: Panel has no scroll area in tiny mode, so competing for
-            space inside Header's wrap could push the figure below the
-            visible panel bounds (it did, in an earlier version of this
-            fix: the balance wrapped clean off the bottom of a 3x3 box).
-            Compact k/M formatting plus nowrap+ellipsis keeps this to one
-            line that always fits. */}
-            {balancesNotCurrent ? (
-              /* Withheld, and said so in the operator's own words. "funds unknown"
-             below would accuse the link of never having delivered a balance it
-             did deliver, and a bare dash would leave the refusal unexplained. */
-              <TinyFundsRow title="The funds balance is no longer current, so affordability is not being checked">
-                funds not current
-              </TinyFundsRow>
-            ) : funds != null ? (
-              <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
-                {formatCompactNumber(funds.magnitude, 0)}
-                <Unit>funds</Unit>
-              </TinyFundsRow>
-            ) : (
-              /* An absent balance is the state that rule exists for: it is when the
-             activate buttons refuse, so the row has to say so rather than
-             vanish and leave the refusal unexplained. */
-              <TinyFundsRow title="No funds balance has arrived">
-                funds unknown
-              </TinyFundsRow>
-            )}
+                must stay visible even in the tiny bucket (CLAUDE.md "spending
+                funds: always show the balance"). The active count rides at the
+                END of the same row rather than in the panel aside: an aside that
+                does not fit beside the title folds into a chevron row of its
+                own, and in a 3x3 dashboard cell that row is the one the balance
+                needed. Funds first, so an ellipsis cuts the count, never the
+                balance. Compact k/M formatting plus nowrap keeps it to one line. */}
+            <TinyFundsRow data-balance-row="" title={tinyFundsTitle}>
+              <TinyFundsFigure>
+                {balancesNotCurrent ? (
+                  /* Withheld, and said so in the operator's own words. "funds
+                   unknown" would accuse the link of never having delivered a
+                   balance it did deliver, and a bare dash would leave the
+                   refusal unexplained. */
+                  "funds not current"
+                ) : funds != null ? (
+                  <>
+                    {formatCompactNumber(funds.magnitude, 0)}
+                    <Unit>funds</Unit>
+                  </>
+                ) : (
+                  /* An absent balance is the state that rule exists for: it is
+                   when the activate buttons refuse, so the row has to say so
+                   rather than vanish and leave the refusal unexplained. */
+                  "funds unknown"
+                )}
+              </TinyFundsFigure>
+              <TinyTally>
+                <Sep>·</Sep>{" "}
+                <Tally $overCap={overCap}>
+                  {active.length} active
+                  {overCap && ` / ${inferredCap}`}
+                </Tally>
+              </TinyTally>
+            </TinyFundsRow>
             {/* Its own row rather than appended to the balance above: that row is
             nowrap + ellipsis by construction, so anything added to it is the
             part that gets cut. */}
@@ -523,58 +531,60 @@ function StrategiesComponent({
     <Panel
       panelTitle="Admin Building"
       compactTitle={["ADMIN", "ADM"]}
-      /* The tallies wrap to a second row at narrow widths, which Panel.Header
-         now does for any aside rather than each widget arranging its own.
-         Funds must stay visible at every width: Strategies spends career funds
-         on activate (CLAUDE.md "spending funds: always show the balance").
-         Rep/sci are supplementary and still drop below cols 6, where even a
-         wrapped row cannot hold them. */
       panelAside={
-        <HeaderMeta>
-          <Tally $overCap={overCap}>
-            {active.length} active
-            {overCap && ` / ${inferredCap}`}
-          </Tally>
-          <Sep>·</Sep>
-          {balancesNotCurrent ? (
-            /* One statement replaces all three figures. Three dashes would read
-               as a career with nothing in it, and dashes are already what an
-               absent economy renders, so the rail has to name the link instead
-               of showing the operator the same nothing twice over. */
-            <NotCurrentTally title="The career balances are no longer current, so affordability is not being checked">
-              balances not current
-            </NotCurrentTally>
-          ) : (
-            <>
-              <Tally>
-                <Balance balance={funds} unit="funds" />
-              </Tally>
-              {reportsFundsDrain(netFunds) && (
-                <>
-                  <Sep>·</Sep>
-                  <FundsDrain funds={magnitudeOf(funds)} netPerDay={netFunds} />
-                </>
-              )}
-              {(w ?? 9) >= 6 && (
-                <>
-                  <Sep>·</Sep>
-                  <Tally>
-                    <Balance balance={reputation} unit="rep" />
-                  </Tally>
-                  <Sep>·</Sep>
-                  <Tally>
-                    <Balance balance={science} unit="science" />
-                  </Tally>
-                </>
-              )}
-            </>
-          )}
-        </HeaderMeta>
+        <Tally $overCap={overCap}>
+          {active.length} active
+          {overCap && ` / ${inferredCap}`}
+        </Tally>
       }
       /* ONE section: the body is a screen switch, and a tab strip beside
          anything reads as two widgets rather than as one panel. */
       sections={
         <Section full>
+          {/* Strategies spends career funds, so the balances live in the body,
+              which keeps them at every width. The panel aside folds behind a
+              chevron at the default size, which would hide a balance exactly
+              where the operator is deciding to spend it. Funds always, rep and
+              science where the row can hold them, or one statement in place of
+              all three once they stop being current. */}
+          <BalanceRow data-balance-row="">
+            {balancesNotCurrent ? (
+              /* One statement replaces all three figures. Three dashes would
+                 read as a career with nothing in it, and dashes are already what
+                 an absent economy renders, so the row has to name the link
+                 instead of showing the operator the same nothing twice over. */
+              <NotCurrentTally title="The career balances are no longer current, so affordability is not being checked">
+                balances not current
+              </NotCurrentTally>
+            ) : (
+              <>
+                <Tally>
+                  <Balance balance={funds} unit="funds" />
+                </Tally>
+                {reportsFundsDrain(netFunds) && (
+                  <>
+                    <Sep>·</Sep>
+                    <FundsDrain
+                      funds={magnitudeOf(funds)}
+                      netPerDay={netFunds}
+                    />
+                  </>
+                )}
+                {(w ?? 9) >= 6 && (
+                  <>
+                    <Sep>·</Sep>
+                    <Tally>
+                      <Balance balance={reputation} unit="rep" />
+                    </Tally>
+                    <Sep>·</Sep>
+                    <Tally>
+                      <Balance balance={science} unit="science" />
+                    </Tally>
+                  </>
+                )}
+              </>
+            )}
+          </BalanceRow>
           {screens.length === 0 ? (
             <ScreenSections {...sectionProps} strategies={strategies} />
           ) : (
@@ -682,11 +692,40 @@ function ScreenSections({
               <Empty>No active strategies.</Empty>
             ) : (
               active.map((s) => (
-                <StrategyCard key={s.id} $active>
-                  <CardHeader>
-                    <CardTitle>{s.title}</CardTitle>
-                    {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-                  </CardHeader>
+                <StrategyCard
+                  key={s.id}
+                  $active
+                  title={s.title}
+                  titleRight={
+                    showDepartment ? (
+                      <CardDept>{s.departmentName}</CardDept>
+                    ) : undefined
+                  }
+                  footer={
+                    <>
+                      <FactorTag>
+                        factor{" "}
+                        <Unit value={value("%", s.factor * 100)} decimals={0} />
+                      </FactorTag>
+                      <CommandButton
+                        handle={deactivateCmd}
+                        args={{ strategyId: s.id }}
+                        commandLabel={`Deactivate ${s.title}`}
+                        label="Deactivate"
+                        confirmLabel="Confirm deactivate"
+                        pendingLabel="Deactivating..."
+                        active
+                        tone="go"
+                        disabled={!s.canDeactivate}
+                        title={
+                          s.canDeactivate
+                            ? "Deactivate this strategy"
+                            : s.deactivateBlockedReason || "Cannot deactivate"
+                        }
+                      />
+                    </>
+                  }
+                >
                   <StrategyDescription of={s} />
                   <EffectList>
                     {parseEffectLines(s.effect).map((line, i) => (
@@ -696,28 +735,6 @@ function ScreenSections({
                       <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
                     ))}
                   </EffectList>
-                  <CardFooter>
-                    <FactorTag>
-                      factor{" "}
-                      <Unit value={value("%", s.factor * 100)} decimals={0} />
-                    </FactorTag>
-                    <CommandButton
-                      handle={deactivateCmd}
-                      args={{ strategyId: s.id }}
-                      commandLabel={`Deactivate ${s.title}`}
-                      label="Deactivate"
-                      confirmLabel="Confirm deactivate"
-                      pendingLabel="Deactivating..."
-                      active
-                      tone="go"
-                      disabled={!s.canDeactivate}
-                      title={
-                        s.canDeactivate
-                          ? "Deactivate this strategy"
-                          : s.deactivateBlockedReason || "Cannot deactivate"
-                      }
-                    />
-                  </CardFooter>
                 </StrategyCard>
               ))
             )}
@@ -735,13 +752,15 @@ function ScreenSections({
               <>
                 {available.map((s) => strategyRow(s))}
                 {softBlocked.map((s) => (
-                  <StrategyCard key={s.id}>
-                    <CardHeader>
-                      <CardTitle>{s.title}</CardTitle>
-                      {showDepartment && (
+                  <StrategyCard
+                    key={s.id}
+                    title={s.title}
+                    titleRight={
+                      showDepartment ? (
                         <CardDept>{s.departmentName}</CardDept>
-                      )}
-                    </CardHeader>
+                      ) : undefined
+                    }
+                  >
                     <BlockedNote>
                       Deactivate the running strategy first to enable this one.
                     </BlockedNote>
@@ -754,11 +773,15 @@ function ScreenSections({
           {ineligible.length > 0 && (
             <Section as="section" aria-label="Locked" title="Locked" gap="md">
               {ineligible.map((s) => (
-                <StrategyCard key={s.id}>
-                  <CardHeader>
-                    <CardTitle>{s.title}</CardTitle>
-                    {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-                  </CardHeader>
+                <StrategyCard
+                  key={s.id}
+                  title={s.title}
+                  titleRight={
+                    showDepartment ? (
+                      <CardDept>{s.departmentName}</CardDept>
+                    ) : undefined
+                  }
+                >
                   <BlockedNote>{s.activateBlockedReason}</BlockedNote>
                 </StrategyCard>
               ))}
@@ -946,17 +969,63 @@ function AvailableRow({
     (s.initialCostReputation > 0 && overBudget(scaledRep, reputation));
 
   return (
-    <StrategyCard>
-      <CardHeader>
+    <StrategyCard
+      /* The one interactive title in the tree. It stays a `title`: the prop
+         takes a node, so the disclosure button IS the title's content and the
+         heading type lands on it unchanged. A layout primitive does not need an
+         `expandable` concept to express this. */
+      title={
         <ExpandToggle
           type="button"
           onClick={onToggleExpanded}
           aria-expanded={expanded}
         >
-          <CardTitle>{s.title}</CardTitle>
+          {s.title}
         </ExpandToggle>
-        {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-      </CardHeader>
+      }
+      titleRight={
+        showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
+      }
+      footer={
+        <CommandButton
+          handle={activateCmd}
+          args={{ strategyId: s.id, factor }}
+          commandLabel={`Activate ${s.title}`}
+          label="Activate"
+          confirmLabel="Confirm activate"
+          pendingLabel="Activating..."
+          /* Two ways to arm, and neither is a derived verdict. A screened yes
+             is the game's own answer. A row with NO verdict arms only where
+             the command commits one itself: it puts every check again when it
+             runs and refuses in the game's words, so the control offers to try
+             rather than claiming the answer is yes. Where another mod owns
+             activation the command would refuse, and a control that arms only
+             to refuse is worse than a dark one.
+
+             A derived false never arms. Nor does a derived true: our career
+             model cannot produce one, but the published type admits the pair
+             and an Uplink could send it, and a yes nobody screened is not an
+             answer. */
+          disabled={
+            !(
+              (s.canActivate === true &&
+                s.activateVerdictSource === "screened") ||
+              (s.canActivate === null && commitsUnanswered)
+            ) || cantAfford
+          }
+          /* A stale balance and a short one both refuse, and the operator does
+             something different about each: top up the treasury, or find out
+             why the link stopped. So the refusal names which it is rather than
+             calling a career it cannot see insufficient. */
+          title={activateTitle(
+            s,
+            commitsUnanswered,
+            balancesNotCurrent,
+            cantAfford,
+          )}
+        />
+      }
+    >
       {/* The description stands without expanding the card, so the operator
           can pick a strategy from the list; expanding the card is what
           reveals the full effect breakdown. */}
@@ -1033,45 +1102,6 @@ function AvailableRow({
           </FactorValue>
         </FactorRow>
       )}
-      <CardFooter>
-        <CommandButton
-          handle={activateCmd}
-          args={{ strategyId: s.id, factor }}
-          commandLabel={`Activate ${s.title}`}
-          label="Activate"
-          confirmLabel="Confirm activate"
-          pendingLabel="Activating..."
-          /* Two ways to arm, and neither is a derived verdict. A screened yes
-             is the game's own answer. A row with NO verdict arms only where
-             the command commits one itself: it puts every check again when it
-             runs and refuses in the game's words, so the control offers to try
-             rather than claiming the answer is yes. Where another mod owns
-             activation the command would refuse, and a control that arms only
-             to refuse is worse than a dark one.
-
-             A derived false never arms. Nor does a derived true: our career
-             model cannot produce one, but the published type admits the pair
-             and an Uplink could send it, and a yes nobody screened is not an
-             answer. */
-          disabled={
-            !(
-              (s.canActivate === true &&
-                s.activateVerdictSource === "screened") ||
-              (s.canActivate === null && commitsUnanswered)
-            ) || cantAfford
-          }
-          /* A stale balance and a short one both refuse, and the operator does
-             something different about each: top up the treasury, or find out
-             why the link stopped. So the refusal names which it is rather than
-             calling a career it cannot see insufficient. */
-          title={activateTitle(
-            s,
-            commitsUnanswered,
-            balancesNotCurrent,
-            cantAfford,
-          )}
-        />
-      </CardFooter>
     </StrategyCard>
   );
 }
@@ -1107,14 +1137,13 @@ function Balance<U extends string>({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const HeaderMeta = styled.div`
+const BalanceRow = styled.div`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: var(--gap-related);
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
-  flex-wrap: wrap;
+  font-size: var(--font-size-compact);
 `;
 
 const Tally = styled.span<{ $overCap?: boolean }>`
@@ -1136,18 +1165,30 @@ const Sep = styled.span`
 `;
 
 const TinyFundsRow = styled.div`
+  display: flex;
+  gap: var(--gap-related);
   padding: 0 var(--space-12) var(--space-6);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+`;
+
+/** The balance never gives up width: the tally beside it does. */
+const TinyFundsFigure = styled.span`
+  flex: none;
+`;
+
+const TinyTally = styled.span`
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const TinyDrainRow = styled.div`
   padding: 0 var(--space-12) var(--space-6);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -1185,46 +1226,47 @@ const Empty = styled.p`
   margin: 0;
   color: var(--color-text-dim);
   font-style: italic;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
-const StrategyCard = styled.article<{ $active?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
+/**
+ * A strategy on its own surface: the kit's arrangement, this widget's box.
+ *
+ * `Block` rather than `Card` because the surface here is not the kit's sunken
+ * record. An active strategy is signalled by a green border and a tint under
+ * it, and a card's own ground would sit between the two.
+ *
+ * Its title, department, body and footer bar are the arrangement's, so the type
+ * and the spacing are the kit's and only the border and the ground are this
+ * file's.
+ */
+const StrategyCard = styled(Block).attrs({
+  /* `forwardedAs`, not `as`: styled-components claims `as` for its own
+     polymorphism and would swap Block out for a bare article, losing the
+     anatomy. `forwardedAs` hands the tag to Block, which is what renders it. */
+  forwardedAs: "article" as const,
+})<{ $active?: boolean }>`
   padding: var(--inset-surface);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-md);
-  /* An active card is signalled by the green border above, not by a fill.
-     This read var(--color-status-go-muted), a token that has never been
-     declared, so the whole declaration was invalid and the background has
-     always resolved to transparent: what is written here now is what has
-     actually rendered all along. Restoring the intended tint needs a
-     go-tone dark added to the palette, which currently carries muted
-     variants for nogo and warning only, and every candidate green drops
-     this card's --color-text-dim text from its present 4.92:1 to below the
-     4.5:1 AA floor. That makes it a design call rather than a rename. */
-  background: transparent;
-`;
+  border-radius: var(--radius-regular);
+  /* The tint an active card has never actually had: this read
+     var(--color-status-go-muted) against a token nobody declared, so the
+     declaration was invalid and the ground resolved to transparent.
 
-const CardHeader = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gap-related);
-`;
-
-const CardTitle = styled.div`
-  color: var(--color-text-primary);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
+     The token exists now, and it is very dark for a reason tokens.css states
+     at length: the card's own --color-text-dim body text has half a ratio
+     point of headroom over the 4.5:1 floor, so a green readable as green would
+     take the text under it. The border carries the green; this carries the
+     fact that the row is different. */
+  background: ${({ $active }) =>
+    $active ? "var(--color-status-go-muted)" : "transparent"};
 `;
 
 const CardDept = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Truncate gracefully at narrow card widths instead of clipping
@@ -1252,7 +1294,7 @@ const ExpandToggle = styled.button`
 const Description = styled.p`
   margin: var(--space-2) 0 var(--space-4);
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
 `;
 
@@ -1267,7 +1309,7 @@ const EffectList = styled.ul`
 
 const EffectLine = styled.li`
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   &::before {
     content: "·";
@@ -1284,7 +1326,7 @@ const CostRow = styled.div`
 `;
 
 const CostChip = styled.span<{ $insufficient?: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
@@ -1378,14 +1420,14 @@ const Slider = styled.input`
 `;
 
 const FactorLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-dim);
 `;
 
 const FactorTag = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
 `;
@@ -1393,22 +1435,9 @@ const FactorTag = styled.span`
 const FactorValue = styled.span`
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   min-width: 3em;
   text-align: right;
-`;
-
-const CardFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-related);
-  margin-top: var(--space-4);
-  /* At very narrow widths (portrait-5x18) the FactorTag + action button
-     can't sit side by side, wrap the button onto its own line instead of
-     letting it overflow the card's right edge (was clipping "DEACTIVATE"
-     to "DEACTIVAT"). */
-  flex-wrap: wrap;
 `;
 
 /*
@@ -1423,14 +1452,14 @@ const LockedScreen = styled.p`
   margin: 0;
   padding: var(--space-16);
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   text-align: center;
 `;
 
 const BlockedNote = styled.p`
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-style: italic;
 `;
 

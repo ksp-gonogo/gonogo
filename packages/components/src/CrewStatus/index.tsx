@@ -6,18 +6,16 @@ import {
   registerComponent,
   useContributions,
 } from "@ksp-gonogo/core";
-import {
-  type TopicReading,
-  useStream,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import type { Reading, Value, VesselResources } from "@ksp-gonogo/sitrep-sdk";
+import { VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
   Card,
   Cluster,
   EmptyState,
+  FramedDisplay,
   Inline,
   NULL_DISPLAY,
   Panel,
@@ -25,7 +23,6 @@ import {
   type ReadoutTone,
   Section,
   Stack,
-  Text,
   Truncate,
   Unit,
   useElementSize,
@@ -39,13 +36,13 @@ import { type ReactNode, useMemo } from "react";
 import "./badge";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.crew", "vessel.state"],
+  channels: ["vessel.crew", "vessel.identity"],
   optionalChannels: ["vessel.resources"],
   fields: [
     "vessel.crew.crew",
     "vessel.crew.count",
     "vessel.crew.capacity",
-    "vessel.state.isEVA",
+    "vessel.identity.vesselType",
   ],
 });
 
@@ -432,11 +429,12 @@ declare module "@ksp-gonogo/core" {
  */
 function toCrewNames(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
+  const entries: unknown[] = raw;
   const out: string[] = [];
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (typeof entry === "string" && entry.trim().length > 0) out.push(entry);
-    else if (entry && typeof entry === "object" && "name" in entry) {
-      const name = (entry as { name: unknown }).name;
+    else if (typeof entry === "object" && entry !== null) {
+      const name: unknown = Reflect.get(entry, "name");
       if (typeof name === "string" && name.trim().length > 0) out.push(name);
     }
   }
@@ -459,9 +457,11 @@ function CrewStatusComponent({
   const crewRaw = crew?.crew;
   const crewCount = crew?.count;
   const crewCapacity = crew?.capacity;
-  // `v.isEVA` -> `vessel.state.isEVA`, a derived field on the `vessel.state`
-  // channel (map-topic.ts), read via `useStream` like the other derived reads.
-  const isEVA = useStream<VesselState>("vessel.state")?.isEVA;
+  // Whether the crew is outside is a fact about the craft, so it holds while
+  // the link is quiet exactly as the roster beside it does.
+  const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
+  const isEVA =
+    identity === undefined ? undefined : identity.vesselType === VesselType.EVA;
 
   // Connectivity indicator (mirroring the WarpControl pilot): count, roster,
   // and capacity all land on the same `vessel.crew` wire channel, so
@@ -722,22 +722,20 @@ function renderBody({
             // to reach an accessibility tree that has no other text naming
             // which kerbal this row is about.
             aria-label={suppressName ? name : undefined}
-          >
-            {/* A leading avatar COLUMN (when bound) beside a right-hand
-                column carrying the WHOLE rest of the row (name + wrapping
-                badge + survival section), not just the name. `align="start"`
-                top-aligns the fixed-size avatar square against the top of
-                that column rather than centring it against the row as a
-                whole, so a tall column (badge wrapped, survival meters
-                present) doesn't float the avatar down into its middle. */}
-            <Cluster justify="start" align="start">
-              {/* Leading per-crew avatar column: a square cell where an
-                  Uplink's avatar augment composes, spanning the whole row
-                  block (name + badge + survival), not just the name line.
-                  Only rendered while an Uplink actually binds this slot;
-                  with none bound there is no column at all, see
-                  `avatarAugmentPresent` above. */}
-              {avatarAugmentPresent && (
+            /* The avatar is a VISUAL, so it goes in a frame, and the frame
+               goes in the block's left aside. The kerbal is not itself a
+               framed display: they are a record that happens to contain one.
+
+               The frame's corner is not stated here. It writes
+               --radius-display-frame and the aside answers with a value
+               proportioned to the ~40px square it is handing over, so this
+               site never has to know that a map's frame and an avatar's frame
+               want different corners.
+
+               Only rendered while an Uplink actually binds the slot; with none
+               bound there is no aside at all, see `avatarAugmentPresent`. */
+            left={
+              avatarAugmentPresent ? (
                 <CrewAvatarCell
                   sizePx={avatarSizePx}
                   slot={
@@ -755,51 +753,50 @@ function renderBody({
                     </div>
                   }
                 />
+              ) : undefined
+            }
+          >
+            {/* The title row is hand-composed INSIDE the body rather than
+                passed as `title`, because the avatar spans the whole rest of
+                the row (name, badge and survival section), not just the name
+                line. A `title` prop draws its row above the asides, which would
+                put the name over the avatar instead of beside it.
+
+                `flex: 1 1 auto` (not the shared `Truncate`'s default `flex: 1`
+                = `1 1 0%`, overridden via inline `style` since that wins over
+                the class-based rule without a bespoke styled wrapper): the name
+                commands its own natural width in the row's wrap decision, so a
+                trailing badge wraps onto its own line instead of shrinking the
+                name into an ellipsis. Still truncates in the rare case the
+                panel itself is too narrow for the name alone. Omitted when
+                `suppressName`: the EVA header above already carries it, and
+                the Card's own `aria-label` keeps it reachable for a screen
+                reader.
+
+                The badges slot renders nothing until an Uplink (e.g. a
+                habitation or radiation backend) binds; the props carry this
+                row's kerbal identity so the augment badges the right one. */}
+            <Card.TitleRow
+              right={
+                <Inline>
+                  <AugmentSlot
+                    name="crew-status.row-badges"
+                    props={{ crewName: name, crewIndex: index }}
+                  />
+                </Inline>
+              }
+            >
+              {!suppressName && (
+                <Card.Title>
+                  <Truncate style={NAME_FLEX_STYLE}>{name}</Truncate>
+                </Card.Title>
               )}
-              {/* Right-hand column: name, wrapping badge, and the survival
-                  section all stack here, to the right of the avatar (or
-                  full-width when no avatar is bound). `flex: 1 1 auto` +
-                  `minWidth: 0` (CREW_INFO_STYLE) so it fills the remaining
-                  row width and its own `Truncate` child can still shrink to
-                  ellipsis rather than overflow. */}
-              <Stack style={CREW_INFO_STYLE}>
-                <Cluster justify="start" wrap>
-                  {/* `flex: 1 1 auto` (not the shared `Truncate`'s default
-                      `flex: 1` = `1 1 0%`, overridden via inline `style`
-                      since that wins over the class-based rule without a
-                      bespoke wrapper): the name commands its own
-                      natural width in the wrap decision below, so a trailing
-                      badge wraps onto its own line instead of shrinking the
-                      name into an ellipsis. Still truncates in the rare case
-                      the panel itself is too narrow for the name alone.
-                      Omitted when `suppressName`: the EVA header above
-                      already carries it, and the Card's own `aria-label`
-                      (above) keeps it reachable for a screen reader. */}
-                  {!suppressName && (
-                    <Truncate style={NAME_FLEX_STYLE}>{name}</Truncate>
-                  )}
-                  {/* Per-crew inline badges slot. Renders nothing until an
-                      Uplink (e.g. a habitation or radiation backend) binds,
-                      the props carry this row's kerbal identity so the augment
-                      badges the right one. `wrap` on the Cluster above lets
-                      this drop to its own line under the name rather than
-                      squeeze it; the name's own flex-grow already pushes the
-                      badge to the trailing edge when both fit on one line,
-                      so no `marginLeft: auto` is needed here. */}
-                  <Inline>
-                    <AugmentSlot
-                      name="crew-status.row-badges"
-                      props={{ crewName: name, crewIndex: index }}
-                    />
-                  </Inline>
-                </Cluster>
-                {/* This kerbal's contributed survival meters (e.g. an
-                    Uplink's per-rule dose/stress bars). Renders
-                    nothing at all when nothing is contributed, so the roster
-                    degrades exactly as it did with an unbound slot. */}
-                <WidgetMeters row={name} style={CREW_METERS_STYLE} />
-              </Stack>
-            </Cluster>
+            </Card.TitleRow>
+            {/* This kerbal's contributed survival meters (e.g. an Uplink's
+                per-rule dose/stress bars). Renders nothing at all when nothing
+                is contributed, so the roster degrades exactly as it did with an
+                unbound slot. */}
+            <WidgetMeters row={name} style={CREW_METERS_STYLE} />
           </Card>
         );
       })}
@@ -827,17 +824,6 @@ const AVATAR_LAYER_STYLE = {
  */
 const NAME_FLEX_STYLE = { flex: "1 1 auto" } as const;
 
-/**
- * The right-hand column beside the leading avatar: name, wrapping badge, and
- * survival section all stack here. `flex: 1 1 auto` fills the remaining row
- * width once the avatar column (sized via `avatarCellSizePx`) takes its
- * share; `minWidth: 0` is the standard flex-child fix that lets its own
- * `Truncate` child actually shrink to ellipsis instead of forcing the row
- * wider. With no avatar bound this column is the row's only flex child, so
- * it still spans the full width, same as before this column existed.
- */
-const CREW_INFO_STYLE = { flex: "1 1 auto", minWidth: 0 } as const;
-
 /** Indents a row's contributed meters under the kerbal's name, and keeps a gap
  *  before the next roster row. Carried on the stack itself rather than on a
  *  wrapper here, so a kerbal with no meters leaves no padding behind. */
@@ -847,19 +833,19 @@ const CREW_METERS_STYLE = {
 } as const;
 
 /**
- * Leading per-crew avatar cell: a square that reserves room for an avatar-face
- * augment, sized in JS pixels via `sizePx` (`avatarCellSizePx`, computed once
- * per render off the roster's measured width, see that helper's own doc
- * comment). `position: relative` so the augment slot layer fills the box.
- * Only rendered while `avatarAugmentPresent` (`renderBody`, above) is true,
- * so this component never has to fall back to placeholder content.
+ * Leading per-crew avatar cell: a framed square that reserves room for an
+ * avatar-face augment, sized in JS pixels via `sizePx` (`avatarCellSizePx`,
+ * computed once per render off the roster's measured width, see that helper's
+ * own doc comment). `position: relative` so the augment slot layer fills the
+ * box. Only rendered while `avatarAugmentPresent` (`renderBody`, above) is
+ * true, so this component never has to fall back to placeholder content.
  */
 function CrewAvatarCell({
   slot,
   sizePx,
 }: Readonly<{ slot: ReactNode; sizePx: number }>) {
   return (
-    <div
+    <FramedDisplay
       data-testid="crew-avatar-cell"
       style={{
         position: "relative",
@@ -869,7 +855,7 @@ function CrewAvatarCell({
       }}
     >
       {slot}
-    </div>
+    </FramedDisplay>
   );
 }
 

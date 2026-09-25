@@ -1,15 +1,13 @@
 import { PerfBudget } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { asHostService } from "../test/peerFakes";
 import { SitrepPeerRelay } from "./SitrepPeerRelay";
 
 /**
@@ -72,7 +70,7 @@ function renderRelay(host: ReturnType<typeof makeFakeHost>) {
   const client = new TelemetryClient(transport);
   const view = render(
     <TelemetryProvider client={client}>
-      <SitrepPeerRelay peerHost={host as unknown as PeerHostService} />
+      <SitrepPeerRelay peerHost={asHostService(host)} />
     </TelemetryProvider>,
   );
   act(() => {
@@ -87,6 +85,16 @@ function relayedTopics(host: ReturnType<typeof makeFakeHost>): string[] {
       ? [msg.message.topic]
       : [],
   );
+}
+
+/**
+ * The host's live connection set, which this case populates directly.
+ *
+ * `connections` is private and nothing public adds to it without a broker
+ * handshake, which is the thing the budget assertion below has to skip.
+ */
+function connectionsOf(host: PeerHostService): Set<unknown> {
+  return (host as unknown as { connections: Set<unknown> }).connections;
 }
 
 describe("the relay's own subscriptions", () => {
@@ -166,7 +174,7 @@ describe("relayed frames are counted per recipient", () => {
     // Two stand-in connections, so a single broadcast must count two.
     const conns = [{ send: () => {} }, { send: () => {} }];
     for (const conn of conns) {
-      (host as unknown as { connections: Set<unknown> }).connections.add(conn);
+      connectionsOf(host).add(conn);
     }
 
     host.broadcast({

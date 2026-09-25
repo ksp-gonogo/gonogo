@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { discoverPublicIp } from "../discoverPublicIp.js";
+import { discoverPublicIp, type LookupFetch } from "../discoverPublicIp.js";
 
 function fakeFetch(
   responses: Record<string, { status: number; body: string; delayMs?: number }>,
-): typeof fetch {
-  return ((url: RequestInfo | URL) => {
+): LookupFetch {
+  return (url) => {
     const u = String(url);
     const r = responses[u];
     if (!r) return Promise.reject(new Error(`unmocked ${u}`));
@@ -24,16 +24,16 @@ function fakeFetch(
       if (r.delayMs) setTimeout(fire, r.delayMs);
       else fire();
     });
-  }) as typeof fetch;
+  };
 }
 
 describe("discoverPublicIp", () => {
   it("returns the override when set, no lookups", async () => {
     let called = false;
-    const fetchImpl = (() => {
+    const fetchImpl: LookupFetch = () => {
       called = true;
       return Promise.reject(new Error("should not fetch"));
-    }) as unknown as typeof fetch;
+    };
     expect(await discoverPublicIp({ override: "203.0.113.7", fetchImpl })).toBe(
       "203.0.113.7",
     );
@@ -41,8 +41,8 @@ describe("discoverPublicIp", () => {
   });
 
   it("trims whitespace from the override", async () => {
-    const fetchImpl = (() =>
-      Promise.reject(new Error("should not fetch"))) as unknown as typeof fetch;
+    const fetchImpl: LookupFetch = () =>
+      Promise.reject(new Error("should not fetch"));
     expect(
       await discoverPublicIp({ override: "  203.0.113.7\n", fetchImpl }),
     ).toBe("203.0.113.7");

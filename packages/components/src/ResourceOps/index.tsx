@@ -130,7 +130,7 @@ const RIGHT_ALIGN = { textAlign: "right" } as const;
  * fix on its own name column).
  */
 const RESOURCE_NAME_STYLE = {
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-value)",
   color: "var(--color-text-primary)",
 } as const;
 
@@ -277,15 +277,12 @@ function DrillCard({
       // A `go` card is read as "extracting, right now". Held-back run state gets
       // the neutral tone instead of the last green one.
       tone={!drillNotCurrent && drill.running ? "go" : "default"}
-      categoryColor={drill.resource ? resourceColor(drill.resource) : undefined}
-    >
-      <Stack>
-        {/* Wraps rather than clips: a no-wrap Cluster cut badges off at the
-            default tile width. */}
-        <Cluster justify="start" wrap>
-          <Text size="sm" tone="default" weight="semibold">
-            {drill.partTitle ?? drill.partId ?? "Drill"}
-          </Text>
+      identityColor={drill.resource ? resourceColor(drill.resource) : undefined}
+      title={drill.partTitle ?? drill.partId ?? "Drill"}
+      titleRight={
+        /* Wraps rather than clips: an unbreakable run cut badges off at the
+           default tile width, and the deployed chip is conditional. */
+        <Inline wrap>
           {/* Deployed is genuinely absent on a harvester with no deploy
               animation, so the chip is omitted rather than shown as a false
               "retracted". */}
@@ -302,8 +299,11 @@ function DrillCard({
           ) : (
             <RunStateBadge running={drill.running} />
           )}
-        </Cluster>
-        <Grid cols={RESOURCE_TABLE_COLS} gap="sm" rowGap="xs" align="baseline">
+        </Inline>
+      }
+    >
+      <Stack>
+        <Grid cols={RESOURCE_TABLE_COLS} rowGap="xs" align="baseline">
           <ResourceCells
             flow={{ resource: drill.resource, rate: drill.rate }}
             direction="extract"
@@ -384,29 +384,29 @@ function ConverterCard({
             ? "go"
             : "default"
       }
-      categoryColor={
+      identityColor={
         primaryResource ? resourceColor(primaryResource) : undefined
       }
-    >
-      <Stack>
-        <Cluster justify="start" wrap>
-          <Text size="sm" tone="default" weight="semibold">
-            {converter.partTitle ?? converter.partId ?? "Converter"}
-          </Text>
+      title={converter.partTitle ?? converter.partId ?? "Converter"}
+      titleRight={
+        <Inline wrap>
           {converterNotCurrent ? (
             <Badge severity="info">run state held</Badge>
           ) : (
             <RunStateBadge running={converter.running} />
           )}
           {starved && <Badge severity="warning">no output</Badge>}
-        </Cluster>
+        </Inline>
+      }
+    >
+      <Stack>
         {/* The recipe table is the card's core content: every input then every
             output, one row each, columns aligned by the shared Grid template
             rather than the old wrapping inline runs. Either side can be
             genuinely empty (a scrubber has no output; a hypothetical pure
             generator would have no input), and reads as that fact via a
             "none" row rather than a blank gap in the table. */}
-        <Grid cols={RESOURCE_TABLE_COLS} gap="sm" rowGap="xs" align="baseline">
+        <Grid cols={RESOURCE_TABLE_COLS} rowGap="xs" align="baseline">
           {converter.inputs.length > 0 ? (
             converter.inputs.map((flow, index) => (
               <ResourceCells

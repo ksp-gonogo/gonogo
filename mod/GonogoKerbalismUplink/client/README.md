@@ -9,7 +9,7 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 | --- | --- |
 | Uplink id | `kerbalism` |
 | Version | `0.0.1` |
-| Built against | contract 17.5, api 2.1.0, ui-kit 0.1.0 |
+| Built against | contract 18.5, api 3.0.0, ui-kit 0.1.0 |
 
 ## Wire
 
@@ -23,7 +23,7 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 
 | Payload | Fields |
 | --- | --- |
-| `KerbalismCrewRule` | `degenPerSec` units/s, `fatalThreshold` units, `name` text, `value` units |
+| `KerbalismCrewRule` | `degenPerSec` units/s, `fatalThreshold` units, `name` text, `problem` units |
 | `KerbalismGreenhouseEntry` | `active` flag, `artificial` W/m², `cropResource` text, `ecRateMaxPerSec` units/s, `foodRatePerSec` units/s, `issue` text, `lampEcDrawPerSec` units/s, `lightToleranceWm2` W/m², `natural` W/m², `pressureTolerance` ratio, `radiationToleranceRadPerSec` rad/s |
 | `KerbalismHabitat` | `comfort` ratio, `livingSpace` ratio, `poisoning` ratio, `pressure` ratio, `shielding` ratio, `surface` m², `volume` m³ |
 | `KerbalismIsruConverterExtension` | `broken` flag, `capacity` units, `processToken` text, `title` text, `valveIndex` count |
@@ -88,11 +88,9 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | Uses if present | `vessel.flight` |
 | Only while present | `flight` |
 | Default size | 8 × 11 |
-| Scenes | 7 |
+| Scenes | 6 |
 
 ![Two stars, one quiet and one with an inbound CME, each on its own activity diagram](docs/assets/binary--default.png)
-
-![The same vessel after the link drops: dose, shielding and CMEs held and dated, the belt position and the verdict withheld](docs/assets/inner-belt-link-lost--default.png)
 
 ![The craft inside the inner radiation belt, dose an order of magnitude up and the belt ring lit](docs/assets/inner-belt--default.png)
 

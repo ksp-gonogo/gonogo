@@ -27,7 +27,6 @@ import "./styledComponentsTheme";
 // degrade to inherited text and are left bare, matching what shipped before.
 export {
   DefaultThemeProvider,
-  type DefaultThemeProviderProps,
   defaultDarkTheme,
   type ThemeBorders,
   type ThemeColors,
@@ -96,6 +95,19 @@ export {
 // the width of a mean orbital element is the number that says whether the orbit
 // is stable.
 export { Band, type BandProps } from "./Band";
+/**
+ * `Block` is the arrangement of a record and `Card` is that same arrangement on
+ * a sunken surface. Both are compound, and their parts are ONE set of objects:
+ * `Card.Title === Block.Title`, because `Card` is assembled from `BLOCK_PARTS`
+ * rather than declaring parts of its own. `Notice` composes the same set.
+ *
+ * Only the compounds are published. `renderBlockAnatomy`, `Block__Root` and
+ * `BLOCK_PARTS` are how the three surfaces share one implementation inside this
+ * package, and a bare part on the barrel would freeze a DOM structure as API to
+ * every Uplink, which is the failure `styleguide-panel-parts.test.ts` already
+ * records for `Panel`.
+ */
+export { Block, type BlockProps, type BlockTitleRowProps } from "./Block";
 export {
   Box,
   type BoxPad,
@@ -226,21 +238,12 @@ export {
   useCountdown,
 } from "./CommandDelay/InFlightList";
 export {
-  allRailTags,
   type RailContinuity,
   type RailDelivery,
   type RailDirection,
-  type RailRenderer,
-  type RailTagKey,
   type RailTags,
   railDrawsReturnLeg,
-  railFlow,
-  railMark,
-  railRendererFor,
   railTagKey,
-  railToneToken,
-  reportUnrepresentedRail,
-  unrepresentedRailTags,
 } from "./CommandDelay/railTags";
 export {
   type InFlightCommandLike,
@@ -431,6 +434,12 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
+// A reading's currency in the form an SVG instrument can draw, where a span
+// cannot go: what the reading says about how current it is, the dot that marks
+// a figure, and the words its accessible name carries. The hue, shape and
+// wording are `<Unit>`'s, so a chart drawn outside this package marks a held
+// figure the same way a readout inside it does.
+export { InstrumentHeldMark, sayHeld } from "./instrumentCurrency";
 export {
   JOG_WHEEL_MIN_TARGET_PX,
   JogWheel,
@@ -502,6 +511,7 @@ export {
   useModalSaveBar,
 } from "./ModalSaveBar";
 export {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,
@@ -509,6 +519,7 @@ export {
 // ── Null-display token ──────────────────────────────────────────────────────
 // The one sanctioned em dash in the codebase; see NullValue.tsx's own header
 // comment for the full rationale and the ratchet that enforces it.
+export { Notice, type NoticeProps } from "./Notice";
 export { NULL_DISPLAY, NullValue } from "./NullValue";
 /**
  * `Panel` is a compound component, and it is the ONLY door to its parts:
@@ -553,6 +564,7 @@ export {
   StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
+export { resolveCurrency } from "./readingCurrency";
 export { resourceColor } from "./resourceColor";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {
@@ -585,10 +597,8 @@ export {
   type SubjectHeadingProps,
 } from "./SubjectHeading";
 export { Switch } from "./Switch";
-export { STAT_TONE_COLOR, type StatTone } from "./statTone";
 export type { PanelStatusDotProps } from "./status/PanelStatusDot";
 export {
-  createPanelStatusStore,
   type PanelStatusStore,
   PanelStatusStoreProvider,
   type StatusBreakdownEntry,
@@ -608,9 +618,6 @@ export { severityDotColor } from "./status/severityDotColor";
 export { useStatusBreakdown } from "./status/useStatusBreakdown";
 export { useStatusContribution } from "./status/useStatusContribution";
 export { useStatusSummary } from "./status/useStatusSummary";
-// ── Store factory (generic off-tree store + per-panel context wrapper) ────────
-export { createPanelStore, type PanelStore } from "./store/createPanelStore";
-export { createStore, type Store } from "./store/createStore";
 export {
   shouldExpandTabs,
   TABS_PANEL_MIN_WIDTH,

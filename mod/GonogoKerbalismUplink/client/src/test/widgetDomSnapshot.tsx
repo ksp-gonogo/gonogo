@@ -7,7 +7,12 @@
  * widgetDomSnapshot.tsx` with the SpaceWeather move, minus everything that
  * serves the legacy `MockDataSource` fixtures this package has none of.
  */
-import { act, type StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  type StreamFixture,
+  stopArriving,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 
 /**
  * A fixture's own declaration of what it puts on the wire, and the only
@@ -21,6 +26,8 @@ export interface StreamFixtureBlock {
   pinnedUt?: number;
   /** Fixed network/display delay in seconds. */
   delaySeconds?: number;
+  /** Stage the link dropping once the emits have landed: see `stopArriving`. */
+  stopsArriving?: boolean;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ topic: string; payload: unknown }>;
 }
@@ -29,9 +36,11 @@ export interface StreamFixtureBlock {
 export function resolveStreamBlock(
   fixture: Record<string, unknown>,
 ): StreamFixtureBlock | undefined {
-  const raw = fixture._stream as StreamFixtureBlock | undefined;
-  if (!raw || typeof raw !== "object") return undefined;
-  return Array.isArray(raw.emits) ? raw : undefined;
+  const raw = fixture._stream;
+  if (typeof raw !== "object" || raw === null) return undefined;
+  return Array.isArray(Reflect.get(raw, "emits"))
+    ? (raw as StreamFixtureBlock)
+    : undefined;
 }
 
 /**
@@ -68,6 +77,7 @@ export async function replayStreamBlock(
         requestAnimationFrame(() => resolve());
       });
     }
+    if (block.stopsArriving === true) stopArriving(stream);
   });
 }
 
@@ -104,44 +114,13 @@ export function installSizedResizeObserver(size: {
   w: number;
   h: number;
 }): () => void {
-  const previous = globalThis.ResizeObserver;
-  class SizedResizeObserver {
-    private readonly callback: ResizeObserverCallback;
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-    }
-    observe(target: Element): void {
-      // Asynchronous, like the real one: a synchronous callback would run
-      // inside the observing effect and set state during render.
-      setTimeout(() => {
-        this.callback(
-          [
-            {
-              target,
-              contentRect: {
-                width: size.w,
-                height: size.h,
-                x: 0,
-                y: 0,
-                top: 0,
-                left: 0,
-                right: size.w,
-                bottom: size.h,
-              } as DOMRectReadOnly,
-            } as ResizeObserverEntry,
-          ],
-          this as unknown as ResizeObserver,
-        );
-      }, 0);
-    }
-    unobserve(): void {}
-    disconnect(): void {}
-  }
-  globalThis.ResizeObserver =
-    SizedResizeObserver as unknown as typeof ResizeObserver;
-  return () => {
-    globalThis.ResizeObserver = previous;
-  };
+  // Asynchronous, like the real one: a synchronous callback would run inside
+  // the observing effect and set state during render.
+  return installFixedSizeResizeObserver({
+    width: size.w,
+    height: size.h,
+    deliver: "macrotask",
+  });
 }
 
 /**

@@ -77,6 +77,16 @@ namespace Gonogo.KSP.Settings
                 return WriteOutcome.Failed(Path, "no document given");
             }
 
+            // KSP's writer and reader would change such a value without an
+            // error, so the file would say something other than what was
+            // meant. Refusing leaves the file as it was.
+            var violation = document.FirstEncodingViolation();
+            if (violation != null)
+            {
+                Warn("did not write " + Path + ": " + violation);
+                return WriteOutcome.Failed(Path, violation);
+            }
+
             try
             {
                 var directory = System.IO.Path.GetDirectoryName(Path);
@@ -98,16 +108,24 @@ namespace Gonogo.KSP.Settings
             }
         }
 
+        /// <summary>
+        /// KSP's reader keeps a tab inside a hand-edited name or value, and its
+        /// writer turns that tab into a space. Reading it as the space makes
+        /// the document what the next save will write, so a hand edit can never
+        /// leave the file in a state no save is allowed to reproduce.
+        /// </summary>
+        private static string AsWritten(string? text) => (text ?? string.Empty).Replace('\t', ' ');
+
         private static void ReadInto(ConfigNode source, SettingsBlock target)
         {
             foreach (ConfigNode.Value value in source.values)
             {
-                target.SetValue(value.name, value.value ?? string.Empty);
+                target.SetValue(AsWritten(value.name), AsWritten(value.value));
             }
 
             foreach (ConfigNode child in source.nodes)
             {
-                ReadInto(child, target.BlockOrAdd(child.name));
+                ReadInto(child, target.BlockOrAdd(AsWritten(child.name)));
             }
         }
 

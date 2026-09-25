@@ -403,34 +403,29 @@ public abstract class CommsBackendBase : ICommsBackend
     /// Partial is partial whether or not there is a crew; the crew shows up in
     /// <see cref="CommsConnectivity.HasLocalControl"/> instead.
     ///
-    /// <para>No discard arm, deliberately: <c>CommsControlGrade</c> is declared
-    /// in this assembly, so every member is enumerated by name and a member
-    /// added without a matching arm here is CS8509, elevated to a build error
-    /// by <c>Sitrep.Contract.csproj</c>. That is the opposite of the runtime
-    /// default this replaced, which mapped an unrecognised grade to
-    /// <see cref="CommsControlSource.None"/> even though <c>None</c> is itself
-    /// a real measured "no control source" fact.</para>
+    /// <para>Both collapses name every grade and have no discard, so a grade
+    /// added to the enum is a compile error (CS8509 is an error across the mod)
+    /// until someone decides what it means on the wire. A value cast
+    /// from an integer the enum does not declare throws, which is this seam's
+    /// failed read: the tick is dropped and last-known stands, where any member
+    /// returned instead would be a reading nobody took.</para>
     /// </summary>
+#pragma warning disable CS8524
     private static CommsControlSource SourceOf(CommsControlGrade grade) => grade switch
     {
         CommsControlGrade.None => CommsControlSource.None,
-        CommsControlGrade.PartialUnmanned => CommsControlSource.Partial,
-        CommsControlGrade.PartialManned => CommsControlSource.Partial,
+        CommsControlGrade.PartialUnmanned or CommsControlGrade.PartialManned => CommsControlSource.Partial,
         CommsControlGrade.Full => CommsControlSource.Full,
+        CommsControlGrade.Unknown => CommsControlSource.Unknown,
     };
 
     /// <summary>The same collapse in <c>comms.control</c>'s own vocabulary.</summary>
-    private static CommsControlStateKind KindOf(CommsControlGrade grade)
+    private static CommsControlStateKind KindOf(CommsControlGrade grade) => grade switch
     {
-        switch (grade)
-        {
-            case CommsControlGrade.Full:
-                return CommsControlStateKind.Full;
-            case CommsControlGrade.PartialManned:
-            case CommsControlGrade.PartialUnmanned:
-                return CommsControlStateKind.PartialManoeuvre;
-            default:
-                return CommsControlStateKind.None;
-        }
-    }
+        CommsControlGrade.None => CommsControlStateKind.None,
+        CommsControlGrade.PartialUnmanned or CommsControlGrade.PartialManned => CommsControlStateKind.PartialManoeuvre,
+        CommsControlGrade.Full => CommsControlStateKind.Full,
+        CommsControlGrade.Unknown => CommsControlStateKind.Unknown,
+    };
+#pragma warning restore CS8524
 }

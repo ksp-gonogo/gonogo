@@ -22,12 +22,11 @@ describe("MockGamepadAPI", () => {
   });
 
   it("dispatches a real gamepadconnected window event carrying the pad", () => {
-    const spy = vi.fn();
+    const spy = vi.fn<(event: GamepadEvent) => void>();
     window.addEventListener("gamepadconnected", spy);
     mock.connectPad(0, { id: "Pad A" });
     expect(spy).toHaveBeenCalledTimes(1);
-    const evt = spy.mock.calls[0][0] as Event & { gamepad: Gamepad };
-    expect(evt.gamepad.id).toBe("Pad A");
+    expect(spy.mock.calls[0][0].gamepad.id).toBe("Pad A");
     window.removeEventListener("gamepadconnected", spy);
   });
 

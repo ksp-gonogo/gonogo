@@ -83,10 +83,6 @@ namespace Gonogo.DevTools
     {
         private const string LogPrefix = "[GonogoDevKerbalismScience] ";
 
-        /// <summary>Process-wide last-applied request id, so writing the same file twice (or a
-        /// scene reload re-reading it) never re-retrieves.</summary>
-        private static string? _lastAppliedId;
-
         private const float PollIntervalSeconds = 1f;
         private const double DefaultWatchSeconds = 0.0;
         private const double DefaultWatchIntervalSeconds = 5.0;
@@ -102,6 +98,7 @@ namespace Gonogo.DevTools
         private float _sinceLastPoll;
         private string? _requestPath;
         private string? _resultPath;
+        private DevRequestLedger? _ledger;
         private WatchState? _watch;
 
         private sealed class WatchState
@@ -269,6 +266,7 @@ namespace Gonogo.DevTools
                 var pluginData = Path.Combine(assemblyDir, "PluginData");
                 _requestPath = Path.Combine(pluginData, "kerbalism-science-request.cfg");
                 _resultPath = Path.Combine(pluginData, "kerbalism-science-result.cfg");
+                _ledger = new DevRequestLedger(Path.Combine(pluginData, "kerbalism-science-applied.cfg"));
             }
             catch (Exception ex)
             {
@@ -353,8 +351,21 @@ namespace Gonogo.DevTools
                 return;
             }
 
-            if (string.Equals(id, _lastAppliedId, StringComparison.Ordinal))
+            var decision = _ledger!.Admit(id!, File.GetLastWriteTimeUtc(_requestPath), out var stampFailure);
+            if (stampFailure != null)
             {
+                Debug.LogWarning(LogPrefix + "could not stamp id=" + id
+                    + " as applied, so a restart may apply it again: " + stampFailure);
+            }
+
+            if (decision == DevRequestDecision.AlreadyApplied)
+            {
+                return;
+            }
+
+            if (decision == DevRequestDecision.PredatesSession)
+            {
+                Finish(new WatchState { Id = id! }, ok: false, DevRequestLedger.PredatesSessionMessage);
                 return;
             }
 
@@ -363,10 +374,6 @@ namespace Gonogo.DevTools
 
         private void ApplyRequest(string id, ConfigNode node)
         {
-            // Claim the id up-front: a request that throws must not be retried every second,
-            // and a retrieve advances real career subject progress.
-            _lastAppliedId = id;
-
             var watch = new WatchState { Id = id };
             _watch = null;
 

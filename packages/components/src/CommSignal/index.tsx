@@ -6,8 +6,17 @@ import {
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import {
+  CONTROL_STATE_NAMES,
+  type CommsHop,
+  type ControlStateName,
+  collapseControlStateLevel,
+  enumNameOf,
+  type Value,
+  type VesselComms,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   Countdown,
@@ -33,12 +42,11 @@ import {
 } from "./commsRoute";
 
 const topics = defineTopicManifest({
-  channels: ["comms.link", "vessel.comms", "vessel.state", "comms.delay"],
+  channels: ["comms.link", "vessel.comms", "comms.delay"],
   fields: [
     "comms.link.connected",
     "vessel.comms.signalStrength",
-    "vessel.state.commsControlStateOrdinal",
-    "vessel.state.commsControlStateName",
+    "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
   ],
 });
@@ -170,12 +178,21 @@ function CommSignalComponent({
    * declared at `ratio: 0.01`, so the conversion is the unit system's and
    * nothing here unwraps a magnitude to do it.
    */
-  const vesselState = useStream<VesselState>("vessel.state");
-  // Collapse the derived channel's `null` (comms unknown this tick) to
-  // `undefined` so the empty-state + `describeControl` semantics match the
-  // old single-value legacy read exactly.
-  const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
-  const controlStateName = vesselState?.commsControlStateName ?? undefined;
+  /*
+   * The control state is read off the sticky last payload rather than off the
+   * reading above, because the pill it draws has no absence to show: the
+   * empty state below is what a screen with no comms at all renders, and a
+   * pill that blanked between frames would read as a control loss.
+   */
+  const commsStream = useStream<VesselComms>("vessel.comms");
+  const controlState =
+    commsStream == null
+      ? undefined
+      : collapseControlStateLevel(commsStream.controlState);
+  const controlStateName = enumNameOf<ControlStateName>(
+    CONTROL_STATE_NAMES,
+    commsStream?.controlState,
+  );
   const delayReading = useTelemetry("comms.delay");
   const delay =
     delayReading.state === "observed"
@@ -398,7 +415,7 @@ function CommSignalComponent({
           {showSubtitle && (
             <span
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-caption)",
                 color:
                   connected === false
                     ? "var(--color-status-nogo-fg)"
@@ -408,12 +425,19 @@ function CommSignalComponent({
             >
               {/*
                 "Signal to <centre>" ASSERTS a signal, so it cannot stand for a
-                link that has stopped reporting: the caption nulls with every
+                link this widget cannot vouch for: the caption nulls with every
                 other line and the badge carries the reason. The
                 `connected === false` wording is untouched, because a CONFIRMED
                 disconnection is an observation rather than an absence.
+
+                Both ways of not being able to vouch, not just the one. The rule
+                above was written for a link that HAD reported and stopped, and
+                a link that has never reported at all passed straight through it
+                on `connected === undefined`: the strength beside it comes off
+                its own topic and keeps arriving, so the panel asserted a signal
+                to KSC on the strength of a verdict nothing had given.
               */}
-              {noSignal
+              {noSignal || connected === undefined
                 ? NULL_DISPLAY
                 : connected === false
                   ? "No signal"
@@ -784,7 +808,7 @@ function SignalBars({
               background: color,
               border: `1px solid ${color}`,
               // Off-scale on purpose: optical corner softening at the pixel
-              // limit on a 6px-wide bar. --radius-xs (2px) rounds this into
+              // limit on a 6px-wide bar. --radius-regular (2px) rounds this into
               // a lozenge.
               borderRadius: 1,
               height: `${BAR_HEIGHT_PCT[i - 1]}%`,

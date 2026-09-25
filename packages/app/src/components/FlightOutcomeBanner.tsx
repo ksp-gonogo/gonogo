@@ -508,7 +508,7 @@ const bannerBase = `
   background: rgba(0, 0, 0, 0.88);
   border-radius: var(--radius-pill);
   font-family: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
   cursor: pointer;
   animation: flightOutcomeBannerIn var(--duration-entrance) var(--ease-entrance)
@@ -561,7 +561,7 @@ const CrashBanner = styled.button`
 `;
 
 const BannerLabel = styled.span<{ $variant: "recovered" | "crashed" }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   color: ${({ $variant }) =>
     $variant === "crashed"
@@ -591,7 +591,7 @@ const BannerStat = styled.span`
 
 const BannerHint = styled.span`
   color: var(--color-text-faint);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
 `;
 
@@ -615,12 +615,12 @@ const DetailHeader = styled.div`
 
 const DetailTitle = styled.h2`
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
 `;
 
 const DetailMeta = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 
@@ -630,7 +630,7 @@ const Totals = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const TotalRow = styled.div`
@@ -652,7 +652,7 @@ const TotalsHeader = styled.div`
 `;
 
 const TotalsHeadCell = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -664,28 +664,28 @@ const TotalsRow = styled.div`
 `;
 
 const TotalLabel = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 `;
 
 const TotalGained = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-figure);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   text-align: right;
 `;
 
 const TotalAbsolute = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-figure);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   text-align: right;
 `;
 
 const TotalValue = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-figure);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 `;
@@ -702,7 +702,7 @@ const DetailRow = styled.div`
   align-items: baseline;
   gap: var(--gap-related);
   padding: var(--space-4) 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const DetailRowTitle = styled.span`

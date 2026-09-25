@@ -4,7 +4,7 @@ import {
   registerDataSource,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { StubTransport } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   probeText,

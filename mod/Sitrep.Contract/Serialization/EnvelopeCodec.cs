@@ -529,7 +529,8 @@ namespace Sitrep.Contract.Serialization
                     "command-response" => ParseCommandResponse(json),
                     "command-accepted" => ParseCommandAccepted(json),
                     "error" => ParseErrorMsg(json),
-                    _ => throw new UnknownEnvelopeTypeException($"unknown server envelope type: {type}"),
+                    _ => throw new UnknownEnvelopeTypeException(
+                        $"unknown server envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };
             }
             catch (FormatException ex) when (!(ex is UnknownEnvelopeTypeException))
@@ -563,7 +564,8 @@ namespace Sitrep.Contract.Serialization
                     "unsubscribe" => ParseUnsubscribe(json),
                     "set-vantage" => ParseSetVantage(json),
                     "command-request" => ParseCommandRequest(json),
-                    _ => throw new UnknownEnvelopeTypeException($"unknown client envelope type: {type}"),
+                    _ => throw new UnknownEnvelopeTypeException(
+                        $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };
             }
             catch (FormatException ex) when (!(ex is UnknownEnvelopeTypeException))
@@ -597,11 +599,16 @@ namespace Sitrep.Contract.Serialization
         /// failure mode reads as "no id" instead of throwing a second time on
         /// top of the first.
         /// </summary>
-        private static string? PeekRequestId(string json)
+        private static string? PeekRequestId(string json) => PeekString(json, "requestId");
+
+        /// <summary>Best-effort <c>topic</c>, on the same terms as <see cref="PeekRequestId"/>.</summary>
+        private static string? PeekTopic(string json) => PeekString(json, "topic");
+
+        private static string? PeekString(string json, string field)
         {
             try
             {
-                return TryGetString(ExpectObject(JsonReader.Parse(json)), "requestId");
+                return TryGetString(ExpectObject(JsonReader.Parse(json)), field);
             }
             catch (FormatException)
             {

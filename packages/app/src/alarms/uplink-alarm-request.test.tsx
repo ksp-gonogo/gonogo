@@ -1,6 +1,5 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -14,6 +13,7 @@ import {
   type UplinkClientHandle,
   useAlarmRequest,
 } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
@@ -463,7 +463,7 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
     setActiveTelemetryClientForTests(undefined);
   });
 
-  it("keeps firing, and keeps naming the Uplink that asked for it", () => {
+  it("survives the Uplink's removal, and keeps naming the one that asked", () => {
     const svc = new AlarmHostService(null, {
       nowMs: () => 1_700_000_000_000,
       tickIntervalMs: 1000,
@@ -480,14 +480,17 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
       },
     });
 
-    // Nothing is loaded for `gone-uplink`: no client handle, no registration,
-    // no bundle. The trigger is a time, which the app evaluates on its own
-    // clock, so the alarm is unaffected.
+    /* Nothing is loaded for `gone-uplink`: no client handle, no registration,
+       no bundle. The alarm is unaffected, which is the whole rule here.
+
+       It does not FIRE, and that is nothing to do with the Uplink: a time alarm
+       is the mod's to latch, and there is no mod on this fixture. What the
+       Uplink's absence must not do is remove the alarm or blank its row. */
     setActiveViewClockForTests({ viewUt: () => 1200 });
     vi.advanceTimersByTime(1000);
 
     const after = svc.snapshot().alarms.find((a) => a.id === alarm.id);
-    expect(after?.state).not.toBe("pending");
+    expect(after).toBeDefined();
     // The name was captured at request time rather than looked up, so the row
     // still reads. A lookup would go blank at exactly this moment.
     expect(after?.requestedBy?.uplinkName).toBe("Removed Uplink");

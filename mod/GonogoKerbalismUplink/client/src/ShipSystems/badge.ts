@@ -48,5 +48,17 @@ KERBALISM.registerContribution({
   contributes: "ship-systems.badges",
   deps: [SHIP_SYSTEMS],
   requires: "flight",
-  compute: (topics) => statusBadges(topics[SHIP_SYSTEMS.id]),
+  /*
+   * The processor answers with currency, so its answer is unwrapped here. Both
+   * value-bearing arms: a badge drawn from a held summary is still the last
+   * real verdict, and the panel says separately that its figures are dated.
+   */
+  compute: (topics) => {
+    const reading = topics[SHIP_SYSTEMS.id];
+    return statusBadges(
+      reading?.state === "observed" || reading?.state === "stale"
+        ? reading.value
+        : undefined,
+    );
+  },
 });

@@ -73,12 +73,13 @@ describe("sitrep-sdk author-facing barrel: logger shim", () => {
     // ConsoleLogger has them), but they're exactly the shape of method that
     // an unbound `this` would silently no-op: the write lands on the
     // proxy's dead `{}` target instead of `real`.
-    const unsafeLogger = logger as unknown as {
-      setEnabled(value: boolean): void;
-    };
+    const setEnabled: unknown = Reflect.get(logger, "setEnabled");
+    if (typeof setEnabled !== "function") {
+      throw new Error("the proxied logger exposes no setEnabled()");
+    }
 
     expect(real.isEnabled()).toBe(true);
-    unsafeLogger.setEnabled(false);
+    setEnabled(false);
     expect(real.isEnabled()).toBe(false);
   });
 });

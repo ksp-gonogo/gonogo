@@ -8,14 +8,15 @@ function converter(
   partTitle: string,
   ext?: { title?: string; processToken?: string },
 ): IsruConverterEntry {
-  return {
+  const entry: IsruConverterEntry = {
     partId: partTitle,
     partTitle,
     running: true,
     inputs: [],
     outputs: [],
     ...(ext ? { extensions: { kerbalism: ext } } : {}),
-  } as unknown as IsruConverterEntry;
+  };
+  return entry;
 }
 
 describe("computeKerbalismProcessTerms", () => {

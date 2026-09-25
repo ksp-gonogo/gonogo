@@ -1,5 +1,3 @@
-import { css } from "styled-components";
-
 /**
  * Categorical data palette: 24 vivid, distinct colours intended for
  * series in charts, telemetry rows, body markers, peer chips, and any
@@ -11,17 +9,9 @@ import { css } from "styled-components";
  * Tag colours communicate meaning; data colours only communicate
  * "different category from that one".
  *
- * Two ways to consume:
- *
- *   1. `dataColor(i)`: index-based, JSX-side. Stable across reorderings
- *      if your index is data-keyed (preferred for charts, telemetry rows,
- *      anything where colour identity should follow the *data*).
- *
- *   2. `dataPaletteCycle()`: styled-components mixin that generates
- *      `:nth-child(24n+k)` rules. Apply to a list container to auto-
- *      colour direct children by DOM order. Order = colour, so reordering
- *      reassigns colours; only use when the list is purely positional
- *      (e.g. legend chips that always render in array order).
+ * Consumed through `dataColor(i)`, index-based and JSX-side. Colour
+ * identity follows the DATA, so a data-keyed index survives a reordering
+ * where a DOM-order rule would reassign every colour.
  */
 
 export const DATA_PALETTE = [
@@ -53,34 +43,4 @@ export const DATA_PALETTE = [
 
 export function dataColor(index: number): string {
   return DATA_PALETTE[index % DATA_PALETTE.length];
-}
-
-/**
- * styled-components mixin: cycle the data palette across direct children
- * via `:nth-child(24n+k)` rules.
- *
- *   const Legend = styled.ul`
- *     ${dataPaletteCycle("color")}
- *   `;
- *
- * Each `<li>` (or whatever the direct child is) gets its `color` set to
- * `var(--color-data-1)`, `var(--color-data-2)`, ... cycling at 24.
- *
- * @param property the CSS property to cycle, `color`, `background`,
- *   `border-color`, etc. Pass a CSS variable name (e.g. `--data-color`)
- *   to set a custom property the children can consume themselves.
- * @param childSelector defaults to `> *`; override if the cycle should
- *   target a specific tag (e.g. `> .chip`).
- */
-export function dataPaletteCycle(property = "color", childSelector = "> *") {
-  // Generated as a single template chunk so styled-components emits one
-  // styled-component class with all 24 rules: cheaper than 24 separate
-  // mixin invocations.
-  const rules = DATA_PALETTE.map(
-    (colour, i) =>
-      `${childSelector}:nth-child(${DATA_PALETTE.length}n+${i + 1}) { ${property}: ${colour}; }`,
-  ).join("\n");
-  return css`
-    ${rules}
-  `;
 }

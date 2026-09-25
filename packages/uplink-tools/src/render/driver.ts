@@ -107,7 +107,7 @@ async function pinTheClock(page: Page): Promise<void> {
     PinnedDate.now = () => fixed;
     PinnedDate.parse = RealDate.parse;
     PinnedDate.UTC = RealDate.UTC;
-    (globalThis as unknown as { Date: unknown }).Date = PinnedDate;
+    Object.defineProperty(globalThis, "Date", { value: PinnedDate });
     performance.now = () => 0;
     let seed = 0x2545f491;
     Math.random = () => {
@@ -164,8 +164,6 @@ export interface RenderResult extends UplinkScenes {
   assets: RenderedAsset[];
 }
 
-type ProbeWindow = Record<typeof RENDER_PROBE_GLOBAL, RenderProbeApi>;
-
 /** What a probe page knows before any scene is mounted. */
 export interface UplinkScenes {
   inventory: UplinkInventory;
@@ -177,6 +175,15 @@ export interface UplinkScenes {
 }
 
 type ProbeOptions = Pick<RenderOptions, "engine" | "uplinkId" | "withModules">;
+
+/*
+ * The probe's handle, declared on `globalThis` so the `tab.evaluate` bodies
+ * below reach it by name. They are compiled here and run in the page, where
+ * `installRenderProbe` has already put it there.
+ */
+declare global {
+  var __gonogoRenderProbe: RenderProbeApi;
+}
 
 /**
  * Load the Uplink into a probe page, read what it registers, and hand the open
@@ -226,9 +233,9 @@ async function withProbe<T>(
 
     const inventory = await tab.evaluate(
       ([key, uplinkId]) =>
-        (globalThis as unknown as ProbeWindow)[
-          key as typeof RENDER_PROBE_GLOBAL
-        ].readInventory(uplinkId as string | undefined),
+        globalThis[key as typeof RENDER_PROBE_GLOBAL].readInventory(
+          uplinkId as string | undefined,
+        ),
       [RENDER_PROBE_GLOBAL, opts.uplinkId] as const,
     );
 
@@ -440,10 +447,7 @@ async function captureShape(tab: Page): Promise<ShapeCapture> {
  */
 async function reportFit(tab: Page, scene: Scene, mode: string): Promise<void> {
   const findings = await tab.evaluate(
-    (key) =>
-      (globalThis as unknown as ProbeWindow)[
-        key as typeof RENDER_PROBE_GLOBAL
-      ].auditMinFit(),
+    (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].auditMinFit(),
     RENDER_PROBE_GLOBAL,
   );
   if (findings.length === 0) return;
@@ -492,9 +496,9 @@ function payloadFor(
 async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
   const report = await tab.evaluate(
     ([key, scene]) =>
-      (globalThis as unknown as ProbeWindow)[
-        key as typeof RENDER_PROBE_GLOBAL
-      ].renderScene(scene as ScenePayload),
+      globalThis[key as typeof RENDER_PROBE_GLOBAL].renderScene(
+        scene as ScenePayload,
+      ),
     [RENDER_PROBE_GLOBAL, payload] as const,
   );
   return report;
@@ -504,10 +508,7 @@ async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
  *  unread. See the probe's `refeedScene`. */
 function refeed(tab: Page): Promise<UnreadTopics> {
   return tab.evaluate(
-    (key) =>
-      (globalThis as unknown as ProbeWindow)[
-        key as typeof RENDER_PROBE_GLOBAL
-      ].refeedScene(),
+    (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].refeedScene(),
     RENDER_PROBE_GLOBAL,
   );
 }
@@ -931,9 +932,10 @@ async function captureMotion(
           : { frames: 1, waitMs: wait };
       await tab.evaluate(
         ([key, s, d]) =>
-          (globalThis as unknown as ProbeWindow)[
-            key as typeof RENDER_PROBE_GLOBAL
-          ].stepScene(s as SceneStep, d as number),
+          globalThis[key as typeof RENDER_PROBE_GLOBAL].stepScene(
+            s as SceneStep,
+            d as number,
+          ),
         [RENDER_PROBE_GLOBAL, perFrame, delta] as const,
       );
       frames.push(await shootFrame(tab, opts, framesDir, frames.length));

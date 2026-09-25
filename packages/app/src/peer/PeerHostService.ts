@@ -1,3 +1,4 @@
+import type { DataKey } from "@ksp-gonogo/core";
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import type {
   DataKeyMeta,
@@ -22,6 +23,7 @@ import { fetchHostIceServers } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
+import { asPeerMessage } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { TypedListeners } from "./typedListeners";
 
@@ -78,6 +80,12 @@ function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
   );
 }
 
+/** One schema key as the richer form a wrapped source answers with, and the
+ *  bare key when it does not. */
+function asKeyMeta(key: DataKey): DataKeyMeta {
+  return key as DataKeyMeta;
+}
+
 /**
  * Pull whatever extra, uplink-defined classification a thrown error carries
  * (e.g. a script-author-fault flag) into the wire's `errorMeta` bag. The
@@ -89,7 +97,7 @@ function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
 function extractErrorMeta(error: Error): Record<string, unknown> | undefined {
   const extra: Record<string, unknown> = {};
   for (const key of Object.keys(error)) {
-    extra[key] = (error as unknown as Record<string, unknown>)[key];
+    extra[key] = Reflect.get(error, key);
   }
   return Object.keys(extra).length > 0 ? extra : undefined;
 }
@@ -746,7 +754,10 @@ export class PeerHostService {
         void this.attachFlightListChangeBroadcaster();
         this.events.emit("peerConnect", conn.peer);
       });
-      conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
+      conn.on("data", (raw) => {
+        const msg = asPeerMessage(raw);
+        if (msg) this.handleIncoming(msg, conn);
+      });
       conn.on("close", () => this.dropConnection(conn, "closed"));
       conn.on("error", (err) => {
         logger.error(`[PeerHost] connection error: peer=${conn.peer}`, err);
@@ -867,13 +878,9 @@ export class PeerHostService {
    */
   private applyTurnToLivePeer(): void {
     if (!this.peer || this.iceServers.length === 0) return;
-    const opts = (
-      this.peer as unknown as {
-        _options?: { config?: { iceServers: RTCIceServer[] } };
-      }
-    )._options;
-    if (opts) {
-      opts.config = { iceServers: this.iceServers };
+    const opts: unknown = Reflect.get(this.peer, "_options");
+    if (typeof opts === "object" && opts !== null) {
+      Reflect.set(opts, "config", { iceServers: this.iceServers });
     }
   }
 
@@ -1539,11 +1546,11 @@ export class PeerHostService {
       const sources = getDataSources().map((s) => ({
         id: s.id,
         name: s.name,
-        // The DataSource interface declares `schema(): DataKey[]` but the
-        // BufferedDataSource wrappers that front every live source return
-        // `DataKeyMeta[]`. Cast locally so station-side pickers get label /
-        // unit / group without a wider type change across core.
-        keys: s.schema() as unknown as DataKeyMeta[],
+        // The DataSource interface declares `schema(): DataKey[]` while the
+        // BufferedDataSource wrappers that front every live source answer with
+        // the richer `DataKeyMeta[]`. Read per key so a station-side picker
+        // gets label / unit / group where the source supplies them.
+        keys: s.schema().map(asKeyMeta),
       }));
       const msg: PeerMessage = { type: "schema", sources };
       conn.send(msg);
@@ -2186,7 +2193,15 @@ export class PeerHostService {
         } satisfies PeerMessage);
         return;
       }
-      const { code, message } = err as { code?: string; message?: string };
+      /* A refusal may arrive as an `Error` or as a plain bag, and both carry
+         the two fields this frame reports. */
+      const failure: unknown = err;
+      const named =
+        typeof failure === "object" && failure !== null ? failure : {};
+      const rawCode: unknown = Reflect.get(named, "code");
+      const rawMessage: unknown = Reflect.get(named, "message");
+      const code = typeof rawCode === "string" ? rawCode : undefined;
+      const message = typeof rawMessage === "string" ? rawMessage : undefined;
       logger.warn(
         `[PeerHost] sitrep command RPC failed (${msg.command}): ${message ?? String(err)}`,
       );
@@ -2396,6 +2411,5 @@ export const peerHostService = new PeerHostService();
 // component hierarchy walk. Harmless in production: only adds a single
 // reference to an already-singleton service.
 if (typeof window !== "undefined") {
-  (window as unknown as { peerHostService?: PeerHostService }).peerHostService =
-    peerHostService;
+  Reflect.set(window, "peerHostService", peerHostService);
 }

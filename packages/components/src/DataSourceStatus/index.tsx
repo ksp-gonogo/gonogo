@@ -35,7 +35,7 @@ import { useEffect, useState } from "react";
 /** Full-row source-name label: the font-size/colour worn over `Truncate`'s
  *  flex/ellipsis behaviour. */
 const SOURCE_NAME_STYLE = {
-  fontSize: "var(--font-size-sm)",
+  fontSize: "var(--font-size-value)",
   color: "var(--color-text-primary)",
 } as const;
 
@@ -213,7 +213,7 @@ function DataSourceStatusComponent({
                             color: isConfiguring
                               ? "var(--color-text-primary)"
                               : "var(--color-text-faint)",
-                            fontSize: "var(--font-size-sm)",
+                            fontSize: "var(--font-size-value)",
                             padding: "0 var(--space-2)",
                           }}
                         >
@@ -230,7 +230,7 @@ function DataSourceStatusComponent({
                           <Box
                             surface="sunken"
                             bordered
-                            radius="sm"
+                            radius="regular"
                             style={SETUP_INSTRUCTIONS_STYLE}
                           >
                             {instructions}
@@ -339,7 +339,7 @@ function statusPulse(status: DataSourceStatus): "slow" | "fast" | undefined {
 }
 
 const RETRY_BUTTON_STYLE = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   letterSpacing: "0.05em",
   whiteSpace: "nowrap",
   padding: "var(--inset-control)",
@@ -347,7 +347,7 @@ const RETRY_BUTTON_STYLE = {
 
 const SETUP_INSTRUCTIONS_STYLE = {
   padding: "var(--inset-surface)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-prose)",
   color: "var(--color-text-faint)",
   whiteSpace: "pre-wrap",
   lineHeight: "var(--line-height-prose)",

@@ -23,7 +23,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class CrashEndToEndTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         private static Dictionary<string, object?> SampleCrash(string vesselId, string eventKind, double ut)
         {
@@ -127,7 +127,7 @@ namespace Sitrep.Host.IntegrationTests
                 uplink.LastCrash!.Publish(SampleCrash("vessel-b", "Destroyed", 101.0), 101.0);
                 engine.TickAndWait(101.0, null, Timeout);
 
-                var frames = await DrainAllStreamDataAsync(client, TimeSpan.FromMilliseconds(500));
+                var frames = await DrainAllStreamDataAsync(client, TestBudgets.Quiet);
                 var crashes = frames.FindAll(f => f.Topic == CrashTopics.LastCrashTopic);
                 Assert.Equal(2, crashes.Count);
 

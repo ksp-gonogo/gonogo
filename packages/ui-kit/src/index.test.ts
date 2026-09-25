@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   ArrowLeftIcon,
@@ -42,8 +45,33 @@ describe("ui-kit foundation", () => {
     // this package can assert them through a public export.
     expect(SPACE_VAR.md).toBe("var(--space-8)");
     expect(SPACE_VAR.xs).toBe("var(--space-2)");
-    expect(RADIUS_VAR.xs).toBe("var(--radius-xs)");
+    expect(RADIUS_VAR.regular).toBe("var(--radius-regular)");
     expect(RADIUS_VAR.pill).toBe("var(--radius-pill)");
+  });
+
+  it("points every size handle at a token the stylesheet declares", () => {
+    /*
+     * The mapping above is a string, and a string still matches after its
+     * token is renamed or deleted. A `var()` naming nothing makes the whole
+     * declaration invalid at computed-value time, so the gap or the corner
+     * silently falls back to nothing and no render throws.
+     */
+    const tokens = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../theme/src/tokens.css",
+      ),
+      "utf8",
+    );
+    const declared = new Set(
+      [...tokens.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]),
+    );
+    const handles = { ...SPACE_VAR, ...RADIUS_VAR };
+    const undeclared = Object.entries(handles).filter(([, handle]) => {
+      const name = /^var\((--[a-z0-9-]+)\)$/.exec(handle)?.[1];
+      return name === undefined || !declared.has(name);
+    });
+    expect(undeclared).toEqual([]);
   });
 
   it("exports the form-primitive + icon surface moved from @ksp-gonogo/ui", () => {

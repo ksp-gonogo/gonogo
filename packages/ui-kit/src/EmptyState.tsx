@@ -54,7 +54,7 @@ const LAYOUT_STYLES = {
 
 const EmptyState__Body = styled.div<{ $layout: EmptyStateLayout }>`
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
 
   ${({ $layout }) => LAYOUT_STYLES[$layout]}

@@ -13,6 +13,7 @@ import {
   getProcessorValue,
   onContributionsChange,
   type ProcessorHandle,
+  runContributionCompute,
   subscribeTopicRead,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -159,6 +160,26 @@ function entriesUnchanged(
   return true;
 }
 
+function shallowEqualValues(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => Object.hasOwn(b, k) && Object.is(a[k], b[k]));
+}
+
+/** The topics a contribution declared, which it may read through any seam unreported. */
+function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
+  const topics = new Set<string>();
+  for (const d of def.deps ?? []) {
+    if (typeof d === "string") topics.add(d);
+    else if ("reading" in d) topics.add(d.reading);
+  }
+  if (def.requires) topics.add(`${def.requires}.available`);
+  return topics;
+}
+
 /**
  * One slot's aggregation pipeline: bulk-reads the union of every gated-in
  * contribution's `deps` once per Sitrep frame, calls each contribution's
@@ -279,6 +300,9 @@ function SlotAggregator({
 
   const getSnapshot = useCallback((): Record<string, unknown> => {
     if (!telemetryStore) return EMPTY_TOPIC_VALUES;
+    if (unionDeps.topics.length === 0 && unionDeps.processors.length === 0) {
+      return EMPTY_TOPIC_VALUES;
+    }
     const token = telemetryStore.currentFrame();
     const cached = topicCacheRef.current;
     if (cached && cached.token === token) return cached.values;
@@ -290,8 +314,22 @@ function SlotAggregator({
     for (const p of unionDeps.processors) {
       values[p.id] = getProcessorValue(p.id);
     }
-    topicCacheRef.current = { token, values };
-    return values;
+    /*
+     * A frame arrives on every animation tick whether or not anything moved.
+     * Handing React a fresh object for unchanged inputs re-renders the slot and
+     * re-runs every contribution each tick, so the previous object is kept
+     * while its contents are the same ones: the rule the processor evaluator
+     * applies to a processor's result one layer down (`processorEvaluator.ts`),
+     * applied here to the values a slot hands its contributions. Work that must
+     * advance with the clock belongs in a processor, which is evaluated every
+     * frame and still only notifies when its answer changes.
+     */
+    const next =
+      cached && shallowEqualValues(cached.values, values)
+        ? cached.values
+        : values;
+    topicCacheRef.current = { token, values: next };
+    return next;
   }, [telemetryStore, unionDeps]);
 
   const topicValues = useSyncExternalStore(subscribe, getSnapshot);
@@ -307,7 +345,11 @@ function SlotAggregator({
         continue; // Domain absent: this contribution does not run.
       }
       try {
-        const result = def.compute(topicValues as never);
+        const result = runContributionCompute(
+          def.id,
+          declaredTopicsOf(def),
+          () => def.compute(topicValues as never),
+        );
         if (result) {
           for (const entry of result) {
             if (entry !== null && typeof entry === "object") {

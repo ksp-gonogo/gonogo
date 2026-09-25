@@ -111,6 +111,11 @@ registerComponent({
   defaultConfig: { marker: "from-registry" },
 });
 
+/** Fails inside the harness's render, where its restore path used to be skipped. */
+function ThrowsOnRender(): never {
+  throw new Error("planted render failure");
+}
+
 /**
  * Carries a `_stream` block and NO flat legacy keys, so none of the harness's
  * legacy-key reshapes can rescue it: the only route from this object to the
@@ -245,6 +250,24 @@ describe("widget DOM harness feeds the widget", () => {
    * than the hang, which is what a timing test could only observe by being slow
    * on a fast machine.
    */
+  it("releases the sized ResizeObserver when a live render throws", async () => {
+    await expect(
+      renderWidgetMode({
+        Widget: ThrowsOnRender,
+        fixture: STREAM_ONLY_FIXTURE,
+        mode: MODE,
+      }),
+    ).rejects.toThrow();
+    // The next render installs its own observer; one still held by the failed
+    // render would refuse it, and every later scene would fail for that reason.
+    const { teardown } = await renderWidgetMode({
+      Widget: FrameCountProbe,
+      fixture: STREAM_ONLY_FIXTURE,
+      mode: MODE,
+    });
+    teardown();
+  });
+
   it("leaves no frame loop running behind a mounted widget", async () => {
     const { container, teardown } = await renderWidgetMode({
       Widget: FrameCountProbe,

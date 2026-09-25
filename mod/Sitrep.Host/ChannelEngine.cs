@@ -2432,6 +2432,27 @@ namespace Sitrep.Host
             _activeCentreIds.Contains(centreId);
 
         /// <summary>
+        /// Whether <paramref name="centreId"/> is an active command centre, or
+        /// NULL while no command centre is known at all.
+        ///
+        /// <para>The null is the point, and it is why this is not
+        /// <see cref="IsSelectableVantage"/> made public. The selectable set is
+        /// empty until the first tick and at the main menu, where no game is
+        /// loaded, so a bare false there says "that is not a place" when what is
+        /// true is "no place is known yet". A caller that refuses on the
+        /// difference would be refusing on ignorance.</para>
+        ///
+        /// <para>ANY-THREAD read, for the reason <see cref="IsSelectableVantage"/>
+        /// gives: it consults only the <see cref="_activeCentreIds"/> snapshot,
+        /// one sample stale.</para>
+        /// </summary>
+        public bool? IsVantageSelectable(string centreId)
+        {
+            var active = _activeCentreIds;
+            return active.Count == 0 ? (bool?)null : active.Contains(centreId);
+        }
+
+        /// <summary>
         /// MAIN-THREAD capture: enumerate the active command centres and publish their
         /// ids to <see cref="_activeCentreIds"/>, ask the elected home-command claimant
         /// for <see cref="CurrentHomeCommand"/>, then settle where a connection that has
@@ -2915,7 +2936,8 @@ namespace Sitrep.Host
                 GateVerdict verdict;
                 try
                 {
-                    verdict = evaluator.Evaluate(requirement, arguments) ?? GateVerdict.Pass();
+                    verdict = evaluator.Evaluate(requirement, arguments)
+                        ?? GateVerdict.Unknown($"gate kind \"{requirement.Kind}\" returned nothing");
                 }
                 catch (Exception ex)
                 {
@@ -4116,6 +4138,36 @@ namespace Sitrep.Host
         /// independently of (and does not block on) the Courier thread, so it
         /// keeps draining this queue while the Courier waits.
         /// </summary>
+        /// <summary>
+        /// Run <paramref name="action"/> on the Unity main thread and wait for
+        /// it, for a Courier-side decision whose EFFECT is a scene call.
+        ///
+        /// <para>The wait is the point. A decision reached on the Courier that
+        /// was queued for the next capture would land one snapshot cadence late,
+        /// and under warp a cadence is thousands of seconds of game time, which
+        /// is the precision the decision was made for. Parking the Courier for
+        /// one frame is the cheaper side of that trade, and it is what
+        /// <see cref="PlanForVantage"/> already does.</para>
+        ///
+        /// <para>Swallows nothing: a throw from the main thread comes back here,
+        /// and a shutdown in flight raises rather than blocking until the
+        /// timeout. Callers on the Courier are already inside a fail-soft.</para>
+        /// </summary>
+        public void RunOnMainThreadAndWait(Action action)
+        {
+            if (action == null)
+            {
+                return;
+            }
+            RunOnMainThread(
+                _ =>
+                {
+                    action();
+                    return null;
+                },
+                null);
+        }
+
         private object? RunOnMainThread(Func<object?, object?> handler, object? args)
         {
             // F2-fix (shutdown gate): once Stop() has begun, the main-thread
@@ -4433,6 +4485,59 @@ namespace Sitrep.Host
             catch (Exception publishEx)
             {
                 LogHost("could not deliver the invalid-envelope refusal: " + SafeExceptionMessage(publishEx));
+            }
+        }
+
+        /// <summary>
+        /// Refuse a frame that names an envelope type this build does not
+        /// support, by that name.
+        ///
+        /// <para>An echo of it is byte-identical to what the client sent, so
+        /// from that side it cannot be told from a frame that was accepted and
+        /// did nothing. The <c>requestId</c> and <c>topic</c> salvaged off the
+        /// frame go on the refusal because the SDK's correlator drops an error
+        /// carrying neither, and a caller would wait out its loss timer having
+        /// been answered.</para>
+        /// </summary>
+        private void RefuseUnknownEnvelopeType(ClientSession session, UnknownEnvelopeTypeException ex)
+        {
+            PublishRefusal(session, new ErrorMsg
+            {
+                RequestId = ex.RequestId,
+                Topic = ex.Topic,
+                Code = "unknown-envelope-type",
+                Message = $"this build does not recognise type '{ex.EnvelopeType}'",
+            });
+        }
+
+        /// <summary>
+        /// Refuse a frame that parsed as a type this dispatch has no case for,
+        /// correlated by whatever <c>RequestId</c> or <c>Topic</c> the parsed
+        /// envelope carries: nothing can know that type's shape in advance.
+        /// </summary>
+        private void RefuseUnhandledEnvelope(ClientSession session, object msg)
+        {
+            PublishRefusal(session, new ErrorMsg
+            {
+                RequestId = StringPropertyOf(msg, "RequestId"),
+                Topic = StringPropertyOf(msg, "Topic"),
+                Code = "unhandled-envelope",
+                Message = $"this build parsed a {msg.GetType().Name} and has nothing to do with it",
+            });
+        }
+
+        private static string? StringPropertyOf(object value, string name) =>
+            value.GetType().GetProperty(name)?.GetValue(value) as string;
+
+        private void PublishRefusal(ClientSession session, ErrorMsg error)
+        {
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }
+            catch (Exception publishEx)
+            {
+                LogHost("could not deliver the " + error.Code + " refusal: " + SafeExceptionMessage(publishEx));
             }
         }
 
@@ -7212,6 +7317,13 @@ namespace Sitrep.Host
                     case SetVantage sv:
                         HandleSetVantage(session, sv);
                         break;
+                    default:
+                        /* Unreachable while ParseClientMessage returns only the
+                           four handled types. A fifth one added without a case
+                           here would otherwise be accepted and do nothing, with
+                           nothing on the wire to say so. */
+                        RefuseUnhandledEnvelope(session, msg);
+                        break;
                     case CommandRequest<object?> req:
                         // Per-call vantage override (delay-UX): a command may pin its
                         // own dispatch vantage (e.g. "meta" for program-meta acts that
@@ -7359,12 +7471,15 @@ namespace Sitrep.Host
                         break;
                 }
             }
+            catch (UnknownEnvelopeTypeException ex) when (ex.EnvelopeType != null)
+            {
+                RefuseUnknownEnvelopeType(session, ex);
+            }
             catch (UnknownEnvelopeTypeException)
             {
-                // Not a recognized envelope: echo back unchanged, matching
-                // GonogoBodiesServer's diagnostic behavior for a stray message.
-                // Nothing more useful can be said about a frame whose type this
-                // build has never heard of.
+                /* No readable type at all: echoed back unchanged. It is the
+                   documented "is anything listening" probe, and a frame that
+                   names nothing gives a refusal nothing to name. */
                 session.Connection.TrySend(payload, SendClass.Response);
             }
             catch (InvalidEnvelopeException ex)

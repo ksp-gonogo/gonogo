@@ -91,27 +91,6 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Whether a request id should be applied, given what this process has already
-        /// applied and what the on-disk stamp from earlier processes says.
-        ///
-        /// <para>The stamp is the half that was missing. A request cfg persists, and the
-        /// process-scoped guard resets with the process, so every KSP start silently
-        /// re-awarded whatever request was still on disk, fabricating a ledger row and
-        /// polluting a before/after pair twice, and the fabricated row was the one
-        /// <c>firstPending</c> then reported.</para>
-        /// </summary>
-        internal static bool ShouldApply(string? requestId, string? processLastApplied, string? diskLastApplied)
-        {
-            if (string.IsNullOrEmpty(requestId))
-            {
-                return false;
-            }
-
-            return !string.Equals(requestId, processLastApplied, System.StringComparison.Ordinal)
-                && !string.Equals(requestId, diskLastApplied, System.StringComparison.Ordinal);
-        }
-
-        /// <summary>
         /// What one currency's balance movement means, read together with how many
         /// ledger rows of that same currency this run put in flight.
         ///

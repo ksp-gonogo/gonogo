@@ -308,6 +308,15 @@ export interface FrameDelayStream {
 }
 
 /**
+ * The whole of `MediaStream` this reads. Narrower than the DOM type on purpose:
+ * a `MediaStream` cannot be constructed outside a browser, so a test standing in
+ * for one would otherwise have to be minted through an assertion.
+ */
+export interface VideoTrackSource {
+  getVideoTracks(): MediaStreamTrack[];
+}
+
+/**
  * Browser-facing wrapper: builds a real `MediaStreamTrackProcessor` →
  * `runFrameDelayPipeline` → `MediaStreamTrackGenerator` chain for `raw`'s
  * first video track. Returns `null` (never throws) when per-frame delay
@@ -318,7 +327,7 @@ export interface FrameDelayStream {
  * black feed or an escaped exception.
  */
 export function createFrameDelayStream(
-  raw: MediaStream,
+  raw: VideoTrackSource,
   opts: CreateFrameDelayStreamOptions,
 ): FrameDelayStream | null {
   if (!isFrameDelaySupported()) return null;

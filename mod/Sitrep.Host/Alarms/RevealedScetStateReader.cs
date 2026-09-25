@@ -61,11 +61,41 @@ namespace Sitrep.Host.Alarms
             _nowUt = nowUt;
         }
 
+        public IDictionary<string, object?>? ReadPayload(string subject, string topic) =>
+            Arrived(topic) is { } root
+                && ScetPayload.ReadSource(root) is { } source
+                && string.Equals(source, subject, StringComparison.Ordinal)
+                    ? root
+                    : null;
+
         public ScetReading Read(string subject, string topic, string fieldPath)
         {
-            if (string.IsNullOrEmpty(topic) || string.IsNullOrEmpty(fieldPath) || _vantage.Length == 0)
+            if (string.IsNullOrEmpty(fieldPath) || Arrived(topic) is not { } root)
             {
                 return ScetReading.NotObservable;
+            }
+
+            // The same provenance rule the snapshot reader applies, and it
+            // matters MORE here: the arrived payload is whatever was true when
+            // it left, so an alarm armed against one craft must not answer off a
+            // frame another craft sent.
+            if (ScetPayload.ReadSource(root) is not { } source
+                || !string.Equals(source, subject, StringComparison.Ordinal))
+            {
+                return ScetReading.NotObservable;
+            }
+
+            return ScetPayload.ReadNumber(root, fieldPath) is { } value
+                ? ScetReading.Observed(value)
+                : ScetReading.NotObservable;
+        }
+
+        /// <summary>What has arrived at this vantage on <paramref name="topic"/>, read once per tick, or null for nothing.</summary>
+        private IDictionary<string, object?>? Arrived(string topic)
+        {
+            if (string.IsNullOrEmpty(topic) || _vantage.Length == 0)
+            {
+                return null;
             }
 
             if (!_payloads.TryGetValue(topic, out var payload))
@@ -84,25 +114,7 @@ namespace Sitrep.Host.Alarms
                 }
                 _payloads[topic] = payload;
             }
-
-            if (payload is not IDictionary<string, object?> root)
-            {
-                return ScetReading.NotObservable;
-            }
-
-            // The same provenance rule the snapshot reader applies, and it
-            // matters MORE here: the arrived payload is whatever was true when
-            // it left, so an alarm armed against one craft must not answer off a
-            // frame another craft sent.
-            if (ScetPayload.ReadSource(root) is not { } source
-                || !string.Equals(source, subject, StringComparison.Ordinal))
-            {
-                return ScetReading.NotObservable;
-            }
-
-            return ScetPayload.ReadNumber(root, fieldPath) is { } value
-                ? ScetReading.Observed(value)
-                : ScetReading.NotObservable;
+            return payload as IDictionary<string, object?>;
         }
     }
 }

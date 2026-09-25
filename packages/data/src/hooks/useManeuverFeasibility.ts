@@ -50,10 +50,20 @@ const EMPTY: ManeuverFeasibility = {
  */
 export function useManeuverFeasibility(): ManeuverFeasibility {
   const nodes = useManeuverNodes();
-  // The one shared budget: the game's own vessel total, carried and dated
-  // rather than blanked when it goes stale. A blanked budget reads as "no
-  // opinion", and `allOk` is what a commit gate consults.
-  const budget = useProcessor(DELTA_V_BUDGET)?.totalVac;
+  /*
+   * The one shared budget: the game's own vessel total, carried and dated
+   * rather than blanked when it goes stale. A blanked budget reads as "no
+   * opinion", and `allOk` is what a commit gate consults.
+   *
+   * So BOTH value-bearing states are taken. Reading `observed` alone would drop
+   * a figure that is still the best knowledge available and turn every verdict
+   * below into `ok: null` the moment the link went quiet.
+   */
+  const reading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    reading?.state === "observed" || reading?.state === "stale"
+      ? reading.value?.totalVac
+      : undefined;
   const available =
     budget === null || budget === undefined ? null : budget.magnitude;
 

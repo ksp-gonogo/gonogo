@@ -1,4 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
+import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -28,9 +29,7 @@ function emitCareer(
   all: unknown[],
   economy: { funds: number; reputation: number; science: number },
 ) {
-  const active = all.filter(
-    (s) => (s as { isActive?: boolean }).isActive === true,
-  );
+  const active = all.filter((s) => activeFlag(s) === true);
   fixture.emit("career.status", {
     economy,
     facilities: null,
@@ -113,6 +112,13 @@ const SAMPLE_LOCKED = {
   deactivateBlockedReason: "Strategy is not active",
   effect: "",
 };
+
+/** A strategy row's `isActive`, and `undefined` when the row does not carry one. */
+function activeFlag(row: unknown): boolean | undefined {
+  if (typeof row !== "object" || row === null) return undefined;
+  const flag: unknown = Reflect.get(row, "isActive");
+  return typeof flag === "boolean" ? flag : undefined;
+}
 
 describe("parseEffectLines", () => {
   it("strips KSP rich-text tags and emits bullet lines", () => {
@@ -275,7 +281,7 @@ describe("StrategiesComponent", () => {
       );
       expect(sent?.command).toBe("career.strategy.activate");
       expect(sent?.vantage).toBe("meta");
-      const args = sent?.args as { strategyId: string; factor: number };
+      const args = commandArgs<"career.strategy.activate">(sent?.args);
       expect(args.strategyId).toBe("FundraisingCampaignCfg");
       expect(args.factor).toBeCloseTo(0.05, 2);
     });

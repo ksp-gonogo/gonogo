@@ -149,11 +149,11 @@ describe("crew-status.meters contribution", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+        rules: [{ name: "radiation", problem: 45, fatalThreshold: 50 }],
       },
       {
         name: "Bill Kerman",
-        rules: [{ name: "stress", value: 0.05, fatalThreshold: 1 }],
+        rules: [{ name: "stress", problem: 0.05, fatalThreshold: 1 }],
       },
     ]);
 
@@ -178,8 +178,8 @@ describe("crew-status.meters contribution", () => {
       {
         name: "Jebediah Kerman",
         rules: [
-          { name: "radiation", value: 45, fatalThreshold: 50 },
-          { name: "stress", value: 0.2, fatalThreshold: 1 },
+          { name: "radiation", problem: 45, fatalThreshold: 50 },
+          { name: "stress", problem: 0.2, fatalThreshold: 1 },
         ],
       },
     ]);
@@ -203,13 +203,13 @@ describe("crew-status.meters contribution", () => {
       {
         name: "Jebediah Kerman",
         rules: [
-          { name: "radiation", value: 45, fatalThreshold: 50 },
-          { name: "stress", value: 0.6, fatalThreshold: 1 },
-          { name: "co2 poisoning", value: 0.3, fatalThreshold: 1 },
-          { name: "eating", value: 0.2, fatalThreshold: 1 },
-          { name: "drinking", value: 0.15, fatalThreshold: 1 },
-          { name: "breathing", value: 0.1, fatalThreshold: 1 },
-          { name: "climatization", value: 0.05, fatalThreshold: 1 },
+          { name: "radiation", problem: 45, fatalThreshold: 50 },
+          { name: "stress", problem: 0.6, fatalThreshold: 1 },
+          { name: "co2 poisoning", problem: 0.3, fatalThreshold: 1 },
+          { name: "eating", problem: 0.2, fatalThreshold: 1 },
+          { name: "drinking", problem: 0.15, fatalThreshold: 1 },
+          { name: "breathing", problem: 0.1, fatalThreshold: 1 },
+          { name: "climatization", problem: 0.05, fatalThreshold: 1 },
         ],
       },
     ]);
@@ -258,7 +258,7 @@ describe("crew-status.meters contribution", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+        rules: [{ name: "radiation", problem: 45, fatalThreshold: 50 }],
       },
       // Bill has no entry at all.
     ]);
@@ -280,7 +280,7 @@ describe("crew-status.meters contribution", () => {
     emit(fixture, CREW, [
       {
         name: "Bill Kerman",
-        rules: [{ name: "stress", value: 0.9, fatalThreshold: 1 }],
+        rules: [{ name: "stress", problem: 0.9, fatalThreshold: 1 }],
       },
     ]);
     expect(
@@ -294,7 +294,7 @@ describe("crew-status.meters contribution", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+        rules: [{ name: "radiation", problem: 45, fatalThreshold: 50 }],
       },
     ]);
     await screen.findByRole("meter", { name: "Radiation dose" });
@@ -311,7 +311,7 @@ describe("CrewSurvivalBadgeAugment", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "stress", value: 0.1, fatalThreshold: 1 }],
+        rules: [{ name: "stress", problem: 0.1, fatalThreshold: 1 }],
       },
     ]);
     // The meter (from `.survival`) is the proof the Processor evaluated;
@@ -328,7 +328,7 @@ describe("CrewSurvivalBadgeAugment", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "stress", value: 0.6, fatalThreshold: 1 }],
+        rules: [{ name: "stress", problem: 0.6, fatalThreshold: 1 }],
       },
     ]);
     // The meter (from `.survival`) is the proof the Processor evaluated;
@@ -345,7 +345,7 @@ describe("CrewSurvivalBadgeAugment", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+        rules: [{ name: "radiation", problem: 45, fatalThreshold: 50 }],
       },
     ]);
     expect(
@@ -376,7 +376,7 @@ describe("CrewSurvivalBadgeAugment", () => {
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
-        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+        rules: [{ name: "radiation", problem: 45, fatalThreshold: 50 }],
       },
     ]);
     await screen.findByText("Radiation dose critical");

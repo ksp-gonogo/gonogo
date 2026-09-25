@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { FlightRpcOp } from "../peer/protocol";
+import { asClientService } from "../test/peerFakes";
 
 interface FakeClient {
   emitData: (sourceId: string, key: string, value: unknown, t: number) => void;
@@ -59,6 +60,8 @@ function makeFakeClient(
     }),
     sendFlightRpc: vi.fn(async (op: FlightRpcOp) => {
       flightOps.push(op);
+      /* `sendFlightRpc` is generic in its CALLER, so no implementation can
+         satisfy every `T`: the fake answers the one shape each case asked for. */
       return (flightRpcImpl ? await flightRpcImpl(op) : null) as never;
     }),
     getCurrentFlight: () => currentFlight,
@@ -73,7 +76,7 @@ function makeFakeClient(
     lastQuery: null,
   };
   return {
-    service: fake as unknown as PeerClientService,
+    service: asClientService(fake),
     emitData: (sourceId, key, value, t) => dataCb?.(sourceId, key, value, t),
     emitStatus: (sourceId, status) => statusCb?.(sourceId, status),
     emitFlightChange: (flight) => {

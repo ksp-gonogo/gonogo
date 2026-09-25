@@ -1,9 +1,6 @@
 import type { ActionGroupStatePayload } from "@ksp-gonogo/sitrep-client";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -50,6 +47,20 @@ function mountedWrapper(transport: StubTransport) {
 }
 
 beforeEach(() => clearRegistry());
+
+/**
+ * Entries as the wire really sends them, with fields the contract declares
+ * that a given frame did not carry.
+ *
+ * That omission is the whole subject here: the type says the field is present
+ * and the mod sometimes leaves it out, so a fixture reproducing it has to say
+ * something the type forbids. Named once rather than at each case.
+ */
+function asReported(
+  entries: readonly Partial<ActionGroupStatePayload>[],
+): ActionGroupStatePayload[] {
+  return entries as ActionGroupStatePayload[];
+}
 
 describe("useActionGroups characterisation: nothing has arrived at all", () => {
   it("yields exactly the eight stock groups with no provider mounted", () => {
@@ -139,9 +150,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
    * arrive. So an AGX group with a dropped name reads as a stock AG pill.
    */
   it("invents an AG{index} label for a custom entry whose name field is undefined", () => {
-    const partial = [
-      { index: 4, state: false },
-    ] as unknown as ActionGroupStatePayload[];
+    const partial = asReported([{ index: 4, state: false }]);
     const { result } = renderHook(() =>
       useActionGroupsFrom({ actionGroups: partial }),
     );
@@ -161,9 +170,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
    * listed and inert rather than fabricated into a command.
    */
   it("lists an entry with no index as inert instead of fabricating f.agundefined", () => {
-    const partial = [
-      { name: undefined, state: true },
-    ] as unknown as ActionGroupStatePayload[];
+    const partial = asReported([{ name: undefined, state: true }]);
     const { result } = renderHook(() =>
       useActionGroupsFrom({ actionGroups: partial }),
     );
@@ -183,9 +190,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
 
   /** A named entry with no index keeps its name and is still inert. */
   it("keeps a named entry's name when its index did not arrive", () => {
-    const partial = [
-      { name: "Solar Panels", state: true },
-    ] as unknown as ActionGroupStatePayload[];
+    const partial = asReported([{ name: "Solar Panels", state: true }]);
     const { result } = renderHook(() =>
       useActionGroupsFrom({ actionGroups: partial }),
     );

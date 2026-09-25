@@ -2,7 +2,12 @@ import type { MeterEntry } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
-import { CREW_SURVIVAL, type CrewSurvival, toneFor } from "./processor";
+import {
+  CREW_SURVIVAL,
+  type CrewSurvival,
+  survivalFrom,
+  toneFor,
+} from "./processor";
 import { CREW_RULE_READINGS, type RuleReadings, ruleKey } from "./ruleReadings";
 
 // ---------------------------------------------------------------------------
@@ -106,6 +111,18 @@ KERBALISM.registerContribution({
   contributes: "crew-status.meters",
   deps: [CREW_SURVIVAL, CREW_RULE_READINGS],
   requires: "kerbalism",
-  compute: (topics) =>
-    survivalMeters(topics[CREW_SURVIVAL.id], topics[CREW_RULE_READINGS.id]),
+  /*
+   * Both answer with currency and are unwrapped here. A meter's own currency is
+   * its rule's reading, which `Meter` marks itself; `CREW_SURVIVAL` supplies
+   * only which kerbals there are and the order they sit in.
+   */
+  compute: (topics) => {
+    const rules = topics[CREW_RULE_READINGS.id];
+    return survivalMeters(
+      survivalFrom(topics[CREW_SURVIVAL.id])?.survival,
+      rules?.state === "observed" || rules?.state === "stale"
+        ? rules.value
+        : undefined,
+    );
+  },
 });

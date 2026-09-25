@@ -26,8 +26,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class VantageReadInstantClassTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         /// <summary>
         /// The vantage a command centre observes from. Any id with no explicit

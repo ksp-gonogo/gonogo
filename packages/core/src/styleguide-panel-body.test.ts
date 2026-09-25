@@ -13,7 +13,12 @@ import {
   scanPanelBodies,
   stripComments,
 } from "./panel-body.scan";
-import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
+import {
+  baseCounts,
+  baseNumberFields,
+  ratchetBaseRef,
+  sourceAtRatchetBase,
+} from "./ratchetBaseRef";
 
 /**
  * Panel-body ratchet.
@@ -241,9 +246,7 @@ describe("panel bodies", () => {
     it("PANEL_BODY_DEBT", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const before = at.lists.PANEL_BODY_DEBT as
-        | Record<string, number>
-        | undefined;
+      const before = baseCounts(at.lists, "PANEL_BODY_DEBT");
       if (!before) return;
 
       const sum = (list: Record<string, number>): number =>
@@ -286,9 +289,10 @@ describe("panel bodies", () => {
     it("SCAN_FLOORS", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const before = at.lists.SCAN_FLOORS as
-        | { files: number; tags: number }
-        | undefined;
+      const before = baseNumberFields(at.lists, "SCAN_FLOORS", [
+        "files",
+        "tags",
+      ]);
       if (!before) return;
       const lowered: string[] = [];
       for (const key of ["files", "tags"] as const) {

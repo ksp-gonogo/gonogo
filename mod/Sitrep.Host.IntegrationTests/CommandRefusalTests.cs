@@ -32,8 +32,8 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class CommandRefusalTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan SettleWindow = TimeSpan.FromMilliseconds(300);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
+        private static readonly TimeSpan SettleWindow = TestBudgets.Quiet;
 
         [Fact]
         public void UnknownCommandIsRefusedRatherThanDroppedSilently()
@@ -157,27 +157,17 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// An evaluator that answers NOTHING is read as an evaluator that said
-        /// yes, so the gate it was declared to hold authorises its command.
+        /// An evaluator that answers nothing is refused under its own gate kind,
+        /// as a throwing, abstaining or missing evaluator is.
         ///
-        /// <para><c>ChannelEngine.EvaluateGatesHere</c> coalesces a null verdict
-        /// with <c>GateVerdict.Pass()</c>. Every neighbouring arm of the same
-        /// method coalesces the identical null the opposite way, and the method
-        /// states the rule in its own words a few lines above: an unevaluable
-        /// gate must not read as no gate. Both surfaces that ask a gate anything
-        /// run through this one method, so the advisory sampler publishes the
-        /// control as live AND the dispatch that is supposed to re-check it lets
-        /// the command through.</para>
-        ///
-        /// <para><b>This asserts the DEFECT, not the requirement.</b> It passes
-        /// while the coalesce reads a null verdict as a pass, and fails once the
-        /// coalesce answers Unknown. From then on this test wants the assertions
-        /// its sibling below already makes: a null <c>result</c>, and a
-        /// <c>refusal</c> naming the gate kind that returned nothing, under a
-        /// name that says so.</para>
+        /// <para><c>ChannelEngine.EvaluateGatesHere</c> reads a null verdict as
+        /// Unknown. Both surfaces that ask a gate anything run through that one
+        /// method, so the advisory sampler and the dispatch that re-checks it
+        /// agree, and the refusal says which of a command's gates went silent
+        /// rather than only that one did.</para>
         /// </summary>
         [Fact]
-        public void AnEvaluatorThatAnswersNothingStillAuthorisesTheCommand()
+        public void AnEvaluatorThatAnswersNothingIsRefusedNamingItsGateKind()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new GatedTestUplink(answersNothing: true));
@@ -192,12 +182,9 @@ namespace Sitrep.Host.IntegrationTests
                     SettleWindow,
                     onRefused: reason => refusal = reason);
 
-                Assert.True(
-                    result is string,
-                    "the gate no longer authorises a command whose evaluator answered nothing, so the "
-                        + "defect this test pins is fixed: invert it to assert the refusal and rename it");
-                Assert.Null(refusal);
-                Assert.Equal("lifted:x", result);
+                Assert.Null(result);
+                Assert.NotNull(refusal);
+                Assert.Contains(GatedTestUplink.GateKind, refusal);
             }
             finally { engine.Stop(); }
         }
@@ -227,6 +214,35 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Null(result);
                 Assert.NotNull(refusal);
                 Assert.Contains("the scales are down", refusal);
+            }
+            finally { engine.Stop(); }
+        }
+
+        /// <summary>
+        /// An evaluator that hands back no verdict has not said yes. The command
+        /// is held and the refusal says the gate returned nothing, the same answer
+        /// the main-thread path gives, rather than the handler running as though
+        /// the gate had passed.
+        /// </summary>
+        [Fact]
+        public void AGateThatAnswersNothingHoldsTheCommand()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new GatedTestUplink(answersNothing: true));
+            engine.Start();
+            try
+            {
+                object? result = null;
+                string? refusal = null;
+                engine.DispatchCommandAndWait(
+                    GatedTestUplink.Command, "x", "vantage-1",
+                    r => result = r,
+                    SettleWindow,
+                    onRefused: reason => refusal = reason);
+
+                Assert.Null(result);
+                Assert.NotNull(refusal);
+                Assert.Contains("returned nothing", refusal);
             }
             finally { engine.Stop(); }
         }

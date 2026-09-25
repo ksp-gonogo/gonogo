@@ -710,7 +710,10 @@ describe("TelemetryClient command refusals", () => {
       args: { applicantName: "Valentina Kerman" },
       label: "Hire Valentina Kerman",
     });
-    expect((err as Error).message).toContain("career.crew.hire");
+    if (!(err instanceof Error)) {
+      throw new Error(`expected a refusal Error, got: ${String(err)}`);
+    }
+    expect(err.message).toContain("career.crew.hire");
     expect(client.getCommand(requestId)).toMatchObject({
       phase: "refused",
       command: "career.crew.hire",
@@ -746,7 +749,7 @@ describe("TelemetryClient command refusals", () => {
       () => null,
       (e: unknown) => e,
     );
-    expect((err as { breach?: unknown }).breach).toBeUndefined();
+    expect(Reflect.get(err ?? {}, "breach")).toBeUndefined();
   });
 
   it("keeps a refusal distinct from a malfunction: the phase says which happened", async () => {

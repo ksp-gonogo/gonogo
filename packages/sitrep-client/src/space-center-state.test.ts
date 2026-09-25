@@ -1,5 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import { deriveSpaceCenterState } from "./space-center-state";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -28,10 +29,7 @@ function launchSitesPoint(
 function fakeGet(
   point: TimelinePoint<LaunchSiteWireEntry[]> | undefined,
 ): DerivedGet {
-  return (<T>(topic: string) =>
-    topic === "spaceCenter.launchSites"
-      ? (point as unknown as TimelinePoint<T> | undefined)
-      : undefined) as DerivedGet;
+  return derivedGetOf({ "spaceCenter.launchSites": point });
 }
 
 describe("deriveSpaceCenterState: pad occupancy off the raw spaceCenter.launchSites array", () => {

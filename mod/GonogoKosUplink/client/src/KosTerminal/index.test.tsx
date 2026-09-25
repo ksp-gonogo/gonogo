@@ -11,12 +11,14 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   expectNoA11yViolations,
+  installFixedSizeResizeObserver,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { KosProcessorInfo } from "../__generated__/contract";
 import { kosSource } from "../dataSource/kos";
+import { sentCommand, sentCommands } from "../test/recordedCommands";
 import { KosTerminalComponent } from "./index";
 
 // xterm.js needs a canvas-capable DOM jsdom doesn't provide. Mock it at the
@@ -25,10 +27,11 @@ import { KosTerminalComponent } from "./index";
 const termSpies = vi.hoisted(() => ({
   loadAddon: vi.fn(),
   open: vi.fn(),
-  write: vi.fn(),
-  writeln: vi.fn(),
-  onData: vi.fn(),
-  onResize: vi.fn(),
+  write: vi.fn<(data: string) => void>(),
+  writeln: vi.fn<(data: string) => void>(),
+  onData: vi.fn<(handler: (data: string) => void) => void>(),
+  onResize:
+    vi.fn<(handler: (size: { cols: number; rows: number }) => void) => void>(),
   dispose: vi.fn(),
   // Real xterm has one, and the Send button calls it: a click lands on the
   // button, so without handing focus back the next thing typed goes nowhere.
@@ -61,28 +64,8 @@ vi.mock("@xterm/addon-fit", () => ({
 
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
-// jsdom has no ResizeObserver; the terminal waits for a sized container, so
-// simulate a layout-complete entry on observe().
-class MockResizeObserver {
-  private cb: ResizeObserverCallback;
-  constructor(cb: ResizeObserverCallback) {
-    this.cb = cb;
-  }
-  observe(target: Element) {
-    this.cb(
-      [
-        {
-          target,
-          contentRect: { width: 800, height: 400 } as DOMRectReadOnly,
-        } as ResizeObserverEntry,
-      ],
-      this as unknown as ResizeObserver,
-    );
-  }
-  unobserve() {}
-  disconnect() {}
-}
-global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+// jsdom has no ResizeObserver; the terminal waits for a sized container.
+installFixedSizeResizeObserver({ width: 800, height: 400 });
 
 const ONE_CPU: KosProcessorInfo[] = [
   {
@@ -135,7 +118,7 @@ function terminalFixture(opts?: { pinnedUt?: number }) {
 }
 
 function getOnData(): (data: string) => void {
-  return vi.mocked(termSpies.onData).mock.calls[0][0] as (d: string) => void;
+  return termSpies.onData.mock.calls[0][0];
 }
 
 /**
@@ -269,12 +252,10 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     act(() => fixture.emit("kos.processors", ONE_CPU));
 
     await waitFor(() => {
-      const open = fixture.commands.find(
-        (c) => c.command === "kos.terminal.open",
-      );
+      const open = sentCommand(fixture.commands, "kos.terminal.open");
       expect(open).toBeDefined();
-      expect((open?.args as { coreId: number }).coreId).toBe(7);
-      expect((open?.args as { leaseToken: string }).leaseToken).toBeTruthy();
+      expect(open?.args.coreId).toBe(7);
+      expect(open?.args.leaseToken).toBeTruthy();
     });
   });
 
@@ -291,10 +272,10 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     act(() => getOnData()('PRINT "hi".\r'));
 
     await waitFor(() => {
-      const key = fixture.commands.find((c) => c.command === "kos.keystroke");
+      const key = sentCommand(fixture.commands, "kos.keystroke");
       expect(key).toBeDefined();
-      expect((key?.args as { chars: string }).chars).toBe('PRINT "hi".\r');
-      expect((key?.args as { coreId: number }).coreId).toBe(7);
+      expect(key?.args.chars).toBe('PRINT "hi".\r');
+      expect(key?.args.coreId).toBe(7);
     });
   });
 
@@ -478,11 +459,9 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     });
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
-      expect((keys[0].args as { chars: string }).chars).toBe("list.\r");
+      expect(keys[0].args.chars).toBe("list.\r");
     });
   });
 
@@ -510,11 +489,9 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
-      expect((keys[0].args as { chars: string }).chars).toBe("list.\r");
+      expect(keys[0].args.chars).toBe("list.\r");
     });
     // The click took focus off the emulator; without this the next keystroke
     // would go to the button and be lost.
@@ -542,9 +519,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Send" })).toBeDisabled(),
     );
-    expect(
-      fixture.commands.filter((c) => c.command === "kos.keystroke"),
-    ).toHaveLength(0);
+    expect(sentCommands(fixture.commands, "kos.keystroke")).toHaveLength(0);
     // Still in the box, ready for when the path returns.
     expect(screen.getByLabelText("Line-mode input").textContent).toContain(
       "list.",
@@ -568,9 +543,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     });
 
     await waitFor(() => {
-      const key = fixture.transport.sentCommands.find(
-        (c) => c.command === "kos.keystroke",
-      );
+      const key = sentCommand(fixture.transport.sentCommands, "kos.keystroke");
       expect(key).toBeDefined();
       expect(key?.label).toBe("run.");
       expect(key?.topic).toBe("kos/7");
@@ -590,9 +563,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     act(() => getOnData()("a"));
 
     await waitFor(() => {
-      const key = fixture.transport.sentCommands.find(
-        (c) => c.command === "kos.keystroke",
-      );
+      const key = sentCommand(fixture.transport.sentCommands, "kos.keystroke");
       expect(key).toBeDefined();
       expect(key?.label).toBe("");
       expect(key?.topic).toBe("");
@@ -628,7 +599,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
 
     await waitFor(() => {
-      const writes = termSpies.write.mock.calls.map((c) => c[0] as string);
+      const writes = termSpies.write.mock.calls.map((c) => c[0]);
       const committed = replayCommittedLines(writes);
       /*
        * The server's echo must be the ONLY copy that ends up committed to
@@ -684,7 +655,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
 
     await waitFor(() => {
-      const writes = termSpies.write.mock.calls.map((c) => c[0] as string);
+      const writes = termSpies.write.mock.calls.map((c) => c[0]);
       const committed = replayCommittedLines(writes);
       expect(committed).toEqual(["list."]);
     });
@@ -749,9 +720,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     // Exactly one resize command, carrying that fixed size, the CPU is set
     // once, never streamed a per-fit resize.
     await waitFor(() => {
-      const resizes = fixture.commands.filter(
-        (c) => c.command === "kos.terminal.resize",
-      );
+      const resizes = sentCommands(fixture.commands, "kos.terminal.resize");
       expect(resizes).toHaveLength(1);
       expect(resizes[0].args).toMatchObject({ cols: 80, rows: 24, coreId: 7 });
     });
@@ -1406,13 +1375,9 @@ describe("KosTerminal: blocks a send with no comms path", () => {
      * under test rather than asserting on the raw envelope count.
      */
     await Promise.resolve();
+    expect(sentCommands(fixture.commands, "kos.keystroke")).toHaveLength(0);
     expect(
-      fixture.commands.filter((c) => c.command === "kos.keystroke"),
-    ).toHaveLength(0);
-    expect(
-      fixture.transport.sentCommands.filter(
-        (c) => c.command === "kos.keystroke",
-      ),
+      sentCommands(fixture.transport.sentCommands, "kos.keystroke"),
     ).toHaveLength(0);
   });
 
@@ -1435,11 +1400,9 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     });
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
-      expect((keys[0].args as { chars: string }).chars).toBe("run.\r");
+      expect(keys[0].args.chars).toBe("run.\r");
     });
     expect(
       screen.queryByText(/No path: commands are not being sent/),
@@ -1467,9 +1430,7 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     });
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
     });
   });
@@ -1494,9 +1455,7 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     act(() => getOnData()("a"));
     await Promise.resolve();
 
-    expect(
-      fixture.commands.filter((c) => c.command === "kos.keystroke"),
-    ).toHaveLength(0);
+    expect(sentCommands(fixture.commands, "kos.keystroke")).toHaveLength(0);
   });
 });
 
@@ -1617,19 +1576,15 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     });
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
-      expect((keys[0].args as { chars: string }).chars).toBe(
+      expect(keys[0].args.chars).toBe(
         'RUNPATH("0:/widget_scripts/gravityturn.ks", 5, 10).\r',
       );
     });
     // Same label convention as an ordinary composed line, trimmed of the
     // trailing wire CR, carried on the terminal's own topic.
-    const key = fixture.transport.sentCommands.find(
-      (c) => c.command === "kos.keystroke",
-    );
+    const key = sentCommand(fixture.transport.sentCommands, "kos.keystroke");
     expect(key?.label).toBe(
       'RUNPATH("0:/widget_scripts/gravityturn.ks", 5, 10).',
     );
@@ -1666,11 +1621,9 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     act(() => onData("\r")); // no args: send immediately
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
-      expect((keys[0].args as { chars: string }).chars).toBe(
+      expect(keys[0].args.chars).toBe(
         'RUNPATH("0:/widget_scripts/deorbit.ks").\r',
       );
     });
@@ -1826,11 +1779,10 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
   }
 
   function kosRunRequestId(
-    commands: Array<{ command: string; args: unknown }>,
+    commands: readonly { command: string; args: unknown }[],
     index: number,
   ): string {
-    const runs = commands.filter((c) => c.command === "kos.run");
-    return (runs[index].args as { requestId: string }).requestId;
+    return sentCommands(commands, "kos.run")[index].args.requestId;
   }
 
   it("dispatches the resurrected KOS_FILES_SCRIPT via executeScript for each volume and populates the picker once resolved, filtering to *.ks/*.ksm files", async () => {
@@ -1860,9 +1812,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
      * time, so the second doesn't appear until the first is answered.
      */
     await waitFor(() => {
-      expect(
-        fixture.commands.filter((c) => c.command === "kos.run"),
-      ).toHaveLength(1);
+      expect(sentCommands(fixture.commands, "kos.run")).toHaveLength(1);
     });
     act(() => {
       fixture.emit("kos.run.7", {
@@ -1881,9 +1831,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     });
 
     await waitFor(() => {
-      expect(
-        fixture.commands.filter((c) => c.command === "kos.run"),
-      ).toHaveLength(2);
+      expect(sentCommands(fixture.commands, "kos.run")).toHaveLength(2);
     });
     act(() => {
       fixture.emit("kos.run.7", {
@@ -1922,9 +1870,9 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     for (const volume of ["0:", "1:"]) {
       const index = volume === "0:" ? 0 : 1;
       await waitFor(() => {
-        expect(
-          fixture.commands.filter((c) => c.command === "kos.run"),
-        ).toHaveLength(index + 1);
+        expect(sentCommands(fixture.commands, "kos.run")).toHaveLength(
+          index + 1,
+        );
       });
       act(() => {
         fixture.emit("kos.run.7", {
@@ -1972,9 +1920,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
       expect(screen.getByRole("listbox")).toHaveTextContent(/no tagname/i);
     });
     // The tag check short-circuits before ever calling executeScript.
-    expect(
-      fixture.commands.filter((c) => c.command === "kos.run"),
-    ).toHaveLength(0);
+    expect(sentCommands(fixture.commands, "kos.run")).toHaveLength(0);
   });
 
   it("a configured scriptPaths list wins over the live listing, no executeScript dispatch happens at all", async () => {
@@ -1997,9 +1943,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
 
     expect(screen.getByText("0:/manual.ks")).toBeInTheDocument();
     await Promise.resolve();
-    expect(
-      fixture.commands.filter((c) => c.command === "kos.run"),
-    ).toHaveLength(0);
+    expect(sentCommands(fixture.commands, "kos.run")).toHaveLength(0);
   });
 
   it("Ctrl+L toggles 'copy local & run'; the send prefixes COPYPATH before RUNPATH, targeting the local (1:) copy", async () => {
@@ -2030,11 +1974,9 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     });
 
     await waitFor(() => {
-      const keys = fixture.commands.filter(
-        (c) => c.command === "kos.keystroke",
-      );
+      const keys = sentCommands(fixture.commands, "kos.keystroke");
       expect(keys).toHaveLength(1);
-      expect((keys[0].args as { chars: string }).chars).toBe(
+      expect(keys[0].args.chars).toBe(
         'COPYPATH("0:/widget_scripts/gravityturn.ks", "1:/gravityturn.ks"). RUNPATH("1:/gravityturn.ks", 5).\r',
       );
     });

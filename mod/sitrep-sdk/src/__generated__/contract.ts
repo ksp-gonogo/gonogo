@@ -1163,6 +1163,12 @@ export enum CommandErrorCode {
 	* and the `GameParameters` flags for leaving to the space center and to the
 	* tracking station. The arm rides on `CommandResult.detail`.
 	*
+	* Also the SCET alarm arm, for a vantage it cannot check because no command
+	* centre is known to the simulation yet: the main menu, and the ticks before
+	* the first capture. A vantage that is known and inactive is
+	* `CommandErrorCode.Range` instead, because that one does not resolve by
+	* waiting.
+	*
 	* Distinct from `CommandErrorCode.WrongState`, which is about the entity and
 	* does not resolve by waiting.
 	*/
@@ -1289,19 +1295,22 @@ export enum CommandErrorCode {
 	*/
 	Unreadable = 23,
 	/**
-	* The vantage the command was sent from is not at the place the command acts
-	* on: a launch ordered from further from its launch site than a launch may be
-	* commanded, or from a vantage that is no place at all.
+	* The command acts at a PLACE, and the command centre it was sent from has no
+	* authority there: a launch from a pad in another planet's system.
 	*
-	* Not a delay. A launch is instant for every vantage, so distance cannot be
-	* expressed by holding it; it is expressed by refusing it. Moving the order to
-	* a centre beside the site is the operator's next move, and nothing about the
-	* craft or the site stands in the way.
+	* Authority, never delay. The command itself is still instant; what this
+	* refuses is the sender, not the moment, so no amount of waiting makes it
+	* succeed. Sending from a centre in the place's own system does.
 	*
-	* `CommandResult.detail` names both ends by their display names and, when both
-	* could be placed, the one-way light-time between them.
+	* `CommandResult.detail` names the centre and the place, and the system each
+	* is in, so an operator learns which seat to move to rather than seeing a
+	* control that simply does nothing.
+	*
+	* Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
+	* carry the command. A centre may be perfectly linked to the place and still
+	* have no authority over it.
 	*/
-	NotAtSite = 24
+	OutOfReach = 24
 }
 /**
 * The ONE result shape every command returns. `CommandResult.success` false
@@ -1377,9 +1386,17 @@ export interface CommandResultOf<T> extends CommandResult
 * partial/full distinction without leaking a KSP enum onto the wire.
 */
 export enum CommsControlSource {
+	/** A measurement: the craft has no control source. */
 	None = 0,
 	Partial = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name. Not
+	* `CommsControlSource.None`: nothing was measured to be absent, the level
+	* simply has no tier here yet. `CommsConnectivity.hasLocalControl` is false
+	* alongside it and says nothing.
+	*/
+	Unknown = 3
 }
 /**
 * The `comms.connectivity` payload: always-present, sourced from the elected
@@ -1411,9 +1428,15 @@ export interface CommsSignal
 }
 /** Control-state kind for `CommsControl`. */
 export enum CommsControlStateKind {
+	/** A measurement: the craft cannot be commanded. */
 	None = 0,
 	PartialManoeuvre = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name, so whether the
+	* craft can be commanded is not known. Not `CommsControlStateKind.None`.
+	*/
+	Unknown = 3
 }
 /**
 * The `comms.control` payload: always-present, elected backend.
@@ -4222,10 +4245,10 @@ export interface RotorReverseArgs
 /**
 * Which kind of condition a SCET alarm watches for.
 *
-* A SCET vantage is meaningful exactly where the craft's TRUE state and the
-* state the ground has been told differ, which is why there is no member here
-* for a contract parameter: career bookkeeping is known to the command centre
-* without any link, so there is no gap for a vantage to straddle.
+* Every alarm has a vantage, so a kind is only about WHAT is watched, and each
+* kind names its own matcher: a threshold walks a dotted path to a number, and
+* a contract parameter, which lives in a list no path can index, finds its
+* contract and objective by identity.
 */
 export enum ScetAlarmConditionKind {
 	/** An instant on the craft's own clock, as a universal time. */
@@ -4240,7 +4263,18 @@ export enum ScetAlarmConditionKind {
 	* which reaches the ground a light-time late and by then is no longer the
 	* answer to "is it above 100 km NOW".
 	*/
-	Threshold = 1
+	Threshold = 1,
+	/**
+	* One objective of one active contract reaching a state the operator chose, as
+	* `career.status.contracts.active` reports it.
+	*
+	* Level rather than edge, like the threshold: an objective already in its
+	* target state when the alarm is armed is a condition that holds. A contract
+	* no longer active leaves the condition unmet for ever, which is the fail-safe
+	* answer for a contract that was completed, failed or withdrawn by some other
+	* route.
+	*/
+	ContractParameter = 2
 }
 /**
 * How a threshold condition compares the reading to the operator's number.
@@ -4304,7 +4338,10 @@ export enum ScetAlarmState {
 * `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
 * `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
 * `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`.
+* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+* `ScetAlarmConditionKind.ContractParameter` it is
+* `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
+* `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
 */
 export interface ScetAlarmCondition
 {
@@ -4364,8 +4401,9 @@ export interface ScetAlarmCondition
 	*/
 	threshold: number;
 	/**
-	* Threshold only: how long the condition must hold, in seconds, before the
-	* alarm fires. Zero fires on the first reading that matches.
+	* Threshold and contract parameter: how long the condition must hold, in
+	* seconds, before the alarm fires. Zero fires on the first reading that
+	* matches.
 	*
 	* **Warp is stopped at the first match, not at the fire.** A sustain window is
 	* a span of the craft's time, and under warp one tick covers thousands of
@@ -4377,6 +4415,69 @@ export interface ScetAlarmCondition
 	* only the time they were skipping.
 	*/
 	sustainSeconds: Value<"s">;
+	/**
+	* Contract parameter only: the contract's id, as
+	* `career.status.contracts.active` carries it.
+	*/
+	contractId: string;
+	/**
+	* Contract parameter only: the objective's title within that contract, matched
+	* exactly. The first objective with the title answers.
+	*/
+	parameterTitle: string;
+	/** Contract parameter only: the state the objective must reach. */
+	targetState: KspParameterState;
+}
+/**
+* What a SCET alarm's onboard action does to the craft when the alarm fires.
+*
+* A typed member for each stock singleton and one for every custom group, so
+* no name ever crosses the wire. A player may call a custom group "Stage", and
+* two custom groups may share a name, so a name is not an identity: a custom
+* group is addressed by its index in `ScetAlarmAction.group`, and cannot be
+* read as the stage command however it is labelled.
+*/
+export enum ScetAlarmActionKind {
+	/** Toggle the custom action group whose index is `ScetAlarmAction.group`. */
+	ActionGroup = 0,
+	/** Activate the next stage. */
+	Stage = 1,
+	/** Toggle SAS. */
+	Sas = 2,
+	/** Toggle RCS. */
+	Rcs = 3,
+	/** Toggle the lights. */
+	Lights = 4,
+	/** Toggle the landing gear. */
+	Gear = 5,
+	/** Toggle the brakes. */
+	Brakes = 6,
+	/** Toggle the abort action group. */
+	Abort = 7
+}
+/**
+* One thing the craft does in the frame its alarm fires, as a flight computer
+* would: evaluated aboard, fired aboard, acted aboard.
+*
+* Held only by an alarm read at its own subject's vantage. An alarm judged
+* against what a command centre has been told comes due a light-time after the
+* craft passed the condition, and acting on the craft in that same frame would
+* carry the ground's decision to the craft faster than light, so such an arm
+* is refused. A ground-side alarm's action travels as an ordinary command
+* instead.
+*
+* Every kind but `ScetAlarmActionKind.Stage` TOGGLES, against the state the
+* craft reports at the moment of the fire, which is what pressing the group's
+* key does.
+*/
+export interface ScetAlarmAction
+{
+	kind: ScetAlarmActionKind;
+	/**
+	* `ScetAlarmActionKind.ActionGroup` only: the custom group's 1-based index, as
+	* `vessel.control.setActionGroup` takes it. Zero for every other kind.
+	*/
+	group: number;
 }
 /**
 * One armed SCET alarm as the simulation host holds it: the `alarm.scet`
@@ -4405,30 +4506,35 @@ export interface ScetAlarm
 	* The command centre the arm command was sent from, as a
 	* `commandCentre.roster` id.
 	*
-	* Provenance only: a SCET alarm stops the warp for everybody, because warp is
-	* a property of the simulation rather than of any one vantage. This says who
-	* asked for it, never who it applies to.
+	* Who ASKED for the alarm, never where it is read. That is
+	* `ScetAlarm.vantage`, and the two are separate jobs: this is also the one
+	* field a screen at a different vantage may render, because the condition and
+	* the target would tell it something about a craft faster than the light
+	* carrying it.
 	*/
 	armedBy: string;
 	/**
-	* Whose ledger the condition is read against, and therefore who the fire
-	* notice is for. Empty is the simulation itself; anything else is a place,
-	* spelled as a `commandCentre.roster` id (`"ground:<name>"`,
-	* `"vessel:<guid>"`).
+	* The place whose knowledge the condition is read against, and therefore the
+	* place that decides WHEN this alarm comes due. A `commandCentre.roster` id
+	* (`"ground:<name>"`, `"vessel:<guid>"`), or empty, which is read as the
+	* alarm's own `ScetAlarm.subject`.
+	*
+	* A vantage that IS the subject reads the craft's true state, so the alarm
+	* comes due at the instant the condition is met. Any other vantage reads what
+	* that place has been told, which is a light-time old and different
+	* everywhere, so the same condition comes due there when the light carrying it
+	* lands. The vantage decides when, never whether.
 	*
 	* **Distinct from `ScetAlarm.armedBy`, which is provenance.** That says where
-	* the arm command came from and nothing else. This says which body of
-	* knowledge the condition is compared against: empty means the craft's TRUE
-	* state, upstream of the reveal gate, and the warp stop that follows is
-	* universal because warp belongs to the simulation. A named place means what
-	* THAT place has been told, which is a light-time old and different at every
-	* vantage, so the answer is that place's alone and stops nothing.
+	* the arm command came from and nothing else. An operator at one centre may
+	* legitimately ask when ANOTHER centre will know, and where the command
+	* entered cannot express that.
 	*
 	* A place, never a connection. Two operators sharing a command centre share
-	* its ledger and its answer, and a browser reconnecting is the same place it
-	* was before, so the simulation never learns that clients exist.
+	* its knowledge and its answer, and a browser reconnecting is the same place
+	* it was before, so the simulation never learns that clients exist.
 	*/
-	audience: string;
+	vantage: string;
 	/**
 	* What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
 	* something the whole simulation shares. The same vocabulary `meta.source`
@@ -4455,6 +4561,21 @@ export interface ScetAlarm
 	* the craft's clock, like `ScetAlarmCondition.ut`.
 	*/
 	firedAtUt?: Value<"ut"> | null;
+	/**
+	* What the craft does when this alarm fires, in order. Empty for an alarm that
+	* only stops the warp and says so. See `ScetAlarmAction`.
+	*/
+	onFire: ScetAlarmAction[];
+	/**
+	* The craft `ScetAlarm.onFire` acts on, as `"vessel:<guid>"`, or empty while
+	* there are no actions.
+	*
+	* The actions run only if this craft is the one being flown when the alarm
+	* fires, and are withheld otherwise: a time condition belongs to the game
+	* rather than to any craft, so after a vessel switch its actions would
+	* otherwise land on whatever happened to be active.
+	*/
+	actsOn: string;
 }
 /**
 * The notice that a SCET alarm has fired and the warp has been stopped.
@@ -4466,11 +4587,13 @@ export interface ScetAlarm
 * and this payload carries nothing that would close that gap early. Whatever
 * the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
 *
-* The two fields are the honest minimum. The id is the operator's own handle,
-* which tells them nothing they did not already write down. The instant is
-* inseparable from the stop: without it a warp that halted at one universal
-* time is indistinguishable from one that halted at another, and the operator
-* cannot tell which of two armed alarms stopped them.
+* The id and the instant are the honest minimum. The id is the operator's own
+* handle, which tells them nothing they did not already write down. The
+* instant is inseparable from the stop: without it a warp that halted at one
+* universal time is indistinguishable from one that halted at another, and the
+* operator cannot tell which of two armed alarms stopped them. The other
+* fields say where it was learned and whether its actions were withheld for
+* want of the right craft, and neither is a reading of the craft.
 */
 export interface ScetAlarmFired
 {
@@ -4479,17 +4602,26 @@ export interface ScetAlarmFired
 	/** The universal time it fired at, on the craft's clock. */
 	firedAtUt: Value<"ut">;
 	/**
-	* Whose answer this is, echoing the `ScetAlarm.audience` it was armed under.
-	* Empty is the simulation's own verdict, and the one that stopped the warp.
+	* The place that learned it, echoing the `ScetAlarm.vantage` it was armed at.
 	*
-	* Carried rather than left to the client to look up, because the two kinds of
-	* notice mean different things and a reader that has to consult the roster
-	* first is a reader that will act on the wrong one. A simulation notice is a
-	* fact about the craft and the warp is already stopped; an audience notice is
-	* a statement about what one place has been told, true only there, and nothing
-	* in the game moved because of it.
+	* Carried rather than left to the client to look up, because a reader that has
+	* to consult the roster first is a reader that will act on the wrong notice. A
+	* notice at the subject's own vantage is a fact about the craft at the instant
+	* it happened; a notice at anywhere else is a statement about what that place
+	* has been told, true only there.
 	*/
-	audience: string;
+	vantage: string;
+	/**
+	* Whether the alarm held onboard actions and they were withheld because the
+	* craft named by `ScetAlarm.actsOn` was not the one being flown. False for an
+	* alarm with no actions.
+	*
+	* Says nothing about how the craft answered an action that WAS sent. That is a
+	* fact aboard the craft, and it reaches the ground the way every other one
+	* does, a light-time later in the craft's own telemetry: this notice travels
+	* at once and must not carry it.
+	*/
+	actionsWithheld: boolean;
 }
 /**
 * `alarm.scet.arm`'s args: register an alarm with the simulation host, or
@@ -4508,14 +4640,27 @@ export interface ScetAlarmArmArgs
 	id: string;
 	name: string;
 	/**
-	* See `ScetAlarm.audience`. Empty arms against the simulation, which is what
-	* every alarm did before this field existed, so an older client's arm keeps
-	* the behaviour it had.
+	* See `ScetAlarm.vantage`. Empty is accepted and resolved at arm time to
+	* `ScetAlarmArmArgs.subject`, which is the behaviour every alarm already had,
+	* so a client that names no vantage keeps it.
 	*/
-	audience: string;
+	vantage: string;
 	/** See `ScetAlarm.subject`. Empty is read as `"game"`. */
 	subject: string;
 	condition: ScetAlarmCondition;
+	/**
+	* See `ScetAlarm.onFire`. Non-empty only where the alarm is read at its own
+	* subject's vantage and that subject is a craft, or the condition is a time on
+	* the game's clock; any other arm carrying actions is refused rather than
+	* accepted with them dropped.
+	*/
+	onFire: ScetAlarmAction[];
+	/**
+	* See `ScetAlarm.actsOn`. A time condition carrying actions must name the
+	* craft the operator means them for. A threshold on a craft acts on that
+	* craft, so empty resolves to its subject and any other craft is refused.
+	*/
+	actsOn: string;
 }
 /**
 * `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
@@ -5872,9 +6017,16 @@ export interface SystemVessels
 * not a shared contract.
 */
 export enum RosterCommsControlSource {
+	/** A measurement: the vessel has no control source. */
 	None = 0,
 	Partial = 1,
-	Full = 2
+	Full = 2,
+	/**
+	* The game reported a control level this build does not name. Not
+	* `RosterCommsControlSource.None`: nothing was measured to be absent, the
+	* level simply has no tier here yet.
+	*/
+	Unknown = 3
 }
 /**
 * One vessel in the `SystemVessels` roster. Mirrors the exact per-vessel dict
@@ -7220,10 +7372,9 @@ export interface VesselFlight
 * The `vessel.identity` channel payload: kills V-13 (one typed
 * `VesselIdentity.situation` enum replaces the v.situation/v.situationString/
 * v.landedAt triplet) and moves `missionTime` off the wire entirely:
-* `VesselIdentity.launchUt` is static after liftoff (sampleUt - missionTime),
-* so MET (mission elapsed time) is a consumer-side derivation (viewUt -
-* launchUt) rather than a tick-rate field that would force this whole record
-* to re-emit every tick.
+* `VesselIdentity.launchUt` is static after liftoff, so MET (mission elapsed
+* time) is a consumer-side derivation (viewUt - launchUt) rather than a
+* tick-rate field that would force this whole record to re-emit every tick.
 */
 export interface VesselIdentity
 {
@@ -7242,8 +7393,9 @@ export interface VesselIdentity
 	*/
 	parentBodyIndex?: number | null;
 	/**
-	* sampleUt - missionTime; null before the vessel's launch clock has started.
-	* See the class doc comment.
+	* The UT the vessel's mission clock started from, fixed from liftoff. `null`
+	* while the vessel is in `PreLaunch` and whenever the clock is unknown, never
+	* the current UT. See the class doc comment.
 	*/
 	launchUt?: Value<"ut"> | null;
 	meta: PayloadMeta;

@@ -11,7 +11,6 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import styled from "styled-components";
 import { KerbalInfoPopover } from "./KerbalInfoPopover";
 
 // ---------------------------------------------------------------------------
@@ -146,16 +145,27 @@ function RatioChip({
 }) {
   if (typeof reading !== "number") {
     return (
-      <Level title={`${name} unknown`} aria-label={`${name} unknown`}>
-        <StatSymbol>{symbol}</StatSymbol> {NULL_DISPLAY}
-      </Level>
+      <span
+        style={LEVEL_STYLE}
+        role="img"
+        title={`${name} unknown`}
+        aria-label={`${name} unknown`}
+      >
+        <span style={STAT_SYMBOL_STYLE}>{symbol}</span> {NULL_DISPLAY}
+      </span>
     );
   }
   const spoken = speakQuantity(value("ratio", reading));
   return (
-    <Level title={`${name}: ${spoken}`} aria-label={`${name} ${spoken}`}>
-      <StatSymbol>{symbol}</StatSymbol> <Unit value={value("ratio", reading)} />
-    </Level>
+    <span
+      style={LEVEL_STYLE}
+      role="img"
+      title={`${name}: ${spoken}`}
+      aria-label={`${name} ${spoken}`}
+    >
+      <span style={STAT_SYMBOL_STYLE}>{symbol}</span>{" "}
+      <Unit value={value("ratio", reading)} />
+    </span>
   );
 }
 
@@ -197,26 +207,33 @@ export function KerbalStats({
     rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
   return (
     <>
-      <KerbalStats__Name>{kerbal.name || NULL_DISPLAY}</KerbalStats__Name>
-      <KerbalStats__Meta>
-        <TraitTag title={`Trait: ${kerbal.trait || "Unknown"}`}>
+      <span style={NAME_STYLE}>{kerbal.name || NULL_DISPLAY}</span>
+      <span style={META_STYLE}>
+        <span
+          style={TRAIT_TAG_STYLE}
+          title={`Trait: ${kerbal.trait || "Unknown"}`}
+        >
           {kerbal.trait || NULL_DISPLAY}
-        </TraitTag>
+        </span>
         {showRank &&
           (rankKnown ? (
-            <Level
+            <span
+              style={LEVEL_STYLE}
+              role="img"
               title={`Experience level ${kerbal.experienceLevel}`}
               aria-label={`Experience level ${kerbal.experienceLevel}`}
             >
               L{kerbal.experienceLevel}
-            </Level>
+            </span>
           ) : (
-            <Level
+            <span
+              style={LEVEL_STYLE}
+              role="img"
               title="Experience level unknown"
               aria-label="Experience level unknown"
             >
               L{NULL_DISPLAY}
-            </Level>
+            </span>
           ))}
         {showTraits && (
           <RatioChip symbol="C" name="Courage" reading={kerbal.courage} />
@@ -226,9 +243,14 @@ export function KerbalStats({
         )}
         {showExperienceProgress &&
           (atMaxRank ? (
-            <Level title="Max rank" aria-label="Max rank">
+            <span
+              style={LEVEL_STYLE}
+              role="img"
+              title="Max rank"
+              aria-label="Max rank"
+            >
               MAX
-            </Level>
+            </span>
           ) : (
             <RatioChip
               symbol="XP"
@@ -289,20 +311,20 @@ export function KerbalStats({
           />
         )}
         {children}
-      </KerbalStats__Meta>
+      </span>
     </>
   );
 }
 
-const KerbalStats__Name = styled.span`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
+const NAME_STYLE = {
+  fontSize: "var(--font-size-value)",
+  fontWeight: 600,
+  color: "var(--color-text-primary)",
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
 
 /**
  * The row a reader takes a kerbal in from, so it is spaced to be read at a
@@ -314,31 +336,29 @@ const KerbalStats__Name = styled.span`
  * to 6, so this row is 2px tighter than the 8 it was widened to and still 2px
  * clear of the 4 that failed.
  */
-const KerbalStats__Meta = styled.span`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-related);
-  align-items: center;
-`;
+const META_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--gap-related)",
+  alignItems: "center",
+} as const;
 
 /**
  * The letter naming a stat, held back from the figure beside it. Both were the
  * accent colour, so the eye had nothing to catch on and every chip read at the
  * same weight as its value.
  */
-const StatSymbol = styled.span`
-  color: var(--color-text-muted);
-`;
+const STAT_SYMBOL_STYLE = { color: "var(--color-text-muted)" } as const;
 
-const TraitTag = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-`;
+const TRAIT_TAG_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.06em",
+  color: "var(--color-text-muted)",
+  textTransform: "uppercase",
+} as const;
 
-const Level = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-accent-fg);
-  font-variant-numeric: tabular-nums;
-`;
+const LEVEL_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-accent-fg)",
+  fontVariantNumeric: "tabular-nums",
+} as const;

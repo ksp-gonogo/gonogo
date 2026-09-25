@@ -174,6 +174,12 @@ public enum CommandErrorCode
     /// the tracking station. The arm rides on
     /// <see cref="CommandResult.Detail"/>.</para>
     ///
+    /// <para>Also the SCET alarm arm, for a vantage it cannot check because no
+    /// command centre is known to the simulation yet: the main menu, and the
+    /// ticks before the first capture. A vantage that is known and inactive is
+    /// <see cref="Range"/> instead, because that one does not resolve by
+    /// waiting.</para>
+    ///
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
     /// and does not resolve by waiting.
     /// <internal>
@@ -347,20 +353,22 @@ public enum CommandErrorCode
     Unreadable = 23,
 
     /// <summary>
-    /// The vantage the command was sent from is not at the place the command
-    /// acts on: a launch ordered from further from its launch site than a launch
-    /// may be commanded, or from a vantage that is no place at all.
+    /// The command acts at a PLACE, and the command centre it was sent from has
+    /// no authority there: a launch from a pad in another planet's system.
     ///
-    /// <para>Not a delay. A launch is instant for every vantage, so distance
-    /// cannot be expressed by holding it; it is expressed by refusing it. Moving
-    /// the order to a centre beside the site is the operator's next move, and
-    /// nothing about the craft or the site stands in the way.</para>
+    /// <para>Authority, never delay. The command itself is still instant; what
+    /// this refuses is the sender, not the moment, so no amount of waiting makes
+    /// it succeed. Sending from a centre in the place's own system does.</para>
     ///
-    /// <para><see cref="CommandResult.Detail"/> names both ends by their display
-    /// names and, when both could be placed, the one-way light-time between
-    /// them.</para>
+    /// <para><see cref="CommandResult.Detail"/> names the centre and the place,
+    /// and the system each is in, so an operator learns which seat to move to
+    /// rather than seeing a control that simply does nothing.</para>
+    ///
+    /// <para>Distinct from <see cref="NoConnection"/>, which is a link that
+    /// cannot carry the command. A centre may be perfectly linked to the place
+    /// and still have no authority over it.</para>
     /// </summary>
-    NotAtSite = 24,
+    OutOfReach = 24,
 }
 
 /// <summary>

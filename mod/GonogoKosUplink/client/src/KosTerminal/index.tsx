@@ -1578,7 +1578,7 @@ const ScriptComposerOptions = styled.div`
   display: flex;
   align-items: center;
   padding: var(--space-2) var(--space-4) 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 // Line-mode input bar: the operator's in-progress composition, kept OFF the
@@ -1656,7 +1656,7 @@ const CpuPicker__Button = styled(GhostButton)`
    * point of the override, so the floor name would undo it.
    */
   padding: var(--inset-control-prominent);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-compact);
 `;
 
 // Steady-state warning while `comms.link.connected === false`: a confirmed
@@ -1684,12 +1684,12 @@ const NoPathBadge = styled.div`
   z-index: 1;
   padding: var(--inset-chip);
   font-family: monospace;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: bold;
   color: var(--color-status-nogo-on-bg);
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-on-bg);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   max-width: 50%;
   overflow: hidden;
   white-space: nowrap;
@@ -1712,5 +1712,5 @@ const ChangeCpuButton = styled(GhostButton)`
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;

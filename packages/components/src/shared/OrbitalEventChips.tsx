@@ -1,12 +1,9 @@
 import { useOrbitSolve, useTelemetry } from "@ksp-gonogo/core";
-import {
-  CELESTIAL_FACTS,
-  useProcessor,
-  useViewUt,
-} from "@ksp-gonogo/sitrep-client";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { useBodyName } from "./useBodyName";
 
 /**
  * Vessel-wide orbital event chips: an SOI encounter / escape and the next
@@ -40,7 +37,6 @@ export function OrbitalEventChips() {
   const orbit = reading.state === "observed" ? reading.value : undefined;
   const solve = useOrbitSolve();
   const viewUt = useViewUt();
-  const facts = useProcessor(CELESTIAL_FACTS);
   const encounter = orbit?.encounter ?? null;
 
   const encounterKind: "encounter" | "escape" | null =
@@ -51,10 +47,7 @@ export function OrbitalEventChips() {
         : null;
   /* The index is how every other Topic names a body, so the name comes from
      the catalogue that owns that lookup rather than from a second table. */
-  const encBody =
-    encounter?.bodyIndex == null
-      ? undefined
-      : facts?.nameByIndex[encounter.bodyIndex];
+  const encBody = useBodyName(encounter?.bodyIndex);
   const encIn =
     encounter?.transitionUt.isFinite() === true && viewUt !== undefined
       ? encounter.transitionUt.minus(viewUt).magnitude
@@ -135,7 +128,7 @@ function Chip({
   return (
     <Box
       pad={["xs", "md"]}
-      radius="xs"
+      radius="regular"
       style={{
         display: "inline-flex",
         alignItems: "baseline",

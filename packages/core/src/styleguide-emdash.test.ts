@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * Design-system guard: the em dash is banned everywhere in the repo
@@ -73,7 +74,7 @@ function sourceFilesWithEmdash(root: string): string[] {
     );
   } catch (err) {
     // git grep exits 1 when there are no matches at all anywhere.
-    if ((err as { status?: number }).status === 1) return [];
+    if (exitStatus(err) === 1) return [];
     throw err;
   }
   return out

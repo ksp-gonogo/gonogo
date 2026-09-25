@@ -21,7 +21,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp src/tokens.css dist/tokens.css",
+    "build": "tsc -p tsconfig.json && node ../../scripts/prune-dist.mjs && cp src/tokens.css dist/tokens.css",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"

@@ -7,7 +7,7 @@ interface SampleRow {
 }
 
 /**
- * In-memory implementation of `Store`. Used in tests (where IndexedDB is
+ * In-memory implementation of `FlightStore`. Used in tests (where IndexedDB is
  * available via fake-indexeddb but often clearer without) and as a
  * non-persistent fallback if IndexedDB is unavailable.
  *

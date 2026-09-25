@@ -128,7 +128,7 @@ const Accept = styled.button`
   background: transparent;
   color: var(--color-status-info-fg);
   font-family: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 0 var(--space-12);

@@ -401,15 +401,15 @@ const DiscoveredRow = styled.div`
   align-items: center;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   padding: var(--inset-surface);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const DiscoveredKind = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   flex: 0 0 52px;
 `;
@@ -421,7 +421,7 @@ const DiscoveredId = styled.span`
 
 const DiscoveredRange = styled.span`
   color: var(--color-status-info-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const InputsHeader = styled.div`
@@ -437,7 +437,7 @@ const InputRow = styled.div`
   align-items: flex-end;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   padding: var(--inset-surface);
 `;
 

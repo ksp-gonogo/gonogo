@@ -83,7 +83,7 @@ const Wrap = styled.div`
 
 const Body = styled.p`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-prose);
   line-height: var(--line-height-prose);
   color: var(--color-text-primary);
 `;

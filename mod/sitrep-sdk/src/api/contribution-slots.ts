@@ -46,6 +46,8 @@
 // colour rather than an identity.
 // ---------------------------------------------------------------------------
 
+import type { Reading } from "../reading";
+import type { Value } from "../unit-system/value";
 import type { StatEntry } from "./types";
 
 /** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */
@@ -56,8 +58,26 @@ export interface ShipMapPartMeterEntry {
   partId: string;
   resource: string;
   displayName: string;
-  amount: number;
-  capacity: number;
+  /**
+   * Current stored amount, as a quantity or the whole {@link Reading} of one.
+   *
+   * A `Reading` is how a contributed meter says more than where the bar is.
+   * The host's `Meter` draws the figure the same either way; what the reading
+   * adds is whether it is a reading of NOW, and the band, which it draws as one
+   * mark per bound on the bar's own track. That lookup belongs to the
+   * primitive and never to the contributor, which is what keeps one visual
+   * language across every Uplink filling this slot.
+   */
+  amount: Value<"units"> | Reading<Value<"units">>;
+  /**
+   * Max storage capacity, same terms as {@link ShipMapPartMeterEntry.amount}.
+   * A renderer drops any entry whose capacity is not positive: nothing to fill.
+   *
+   * A capacity carries currency too, because a tank's size is read off the
+   * craft like anything else, and a meter marks the TRACK rather than the fill
+   * when it is the axis that has aged.
+   */
+  capacity: Value<"units"> | Reading<Value<"units">>;
   status?: "low" | "critical" | null;
 }
 

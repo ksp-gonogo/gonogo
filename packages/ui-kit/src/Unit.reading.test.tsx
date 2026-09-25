@@ -310,6 +310,33 @@ describe("Unit: when the reading was last valid", () => {
     expect(quantity(container).getAttribute("title")).toMatch(/Y\d+ D\d+/);
   });
 
+  it("never draws a silent mark: a held reading naming no grade still speaks", () => {
+    /*
+     * Not a corner case: a derived reading is stale when any input is, and
+     * takes its grade from whichever input speaks for the oldest instant, so
+     * an observed input that happens to be the oldest produces exactly this.
+     * The word is grade-neutral on purpose: STALE, BLACKOUT and RECORDED ask
+     * the operator for different moves, and any one of them here would assert
+     * a reason nobody reported.
+     */
+    const { container } = render(
+      <Unit
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: metres(12_400),
+          asOfUt: AT,
+        }}
+      />,
+    );
+    expect(quantity(container).getAttribute("title")).toBe(
+      `HELD, as of ${AT_DATE}`,
+    );
+    const said = container.querySelectorAll("[data-unit-currency]");
+    expect(said).toHaveLength(1);
+    expect(said[0]?.textContent).toBe(`, HELD, as of ${AT_DATE}`);
+  });
+
   it("falls back to the grade alone when the instant is unreadable", () => {
     // A malformed `asOfUt` must not turn the hover into an "as of" followed by
     // the null token.

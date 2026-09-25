@@ -222,7 +222,7 @@ const Backdrop = styled.div`
 const OverlaySurface = styled(Box).attrs({
   surface: "sunken" as const,
   bordered: true,
-  radius: "lg" as const,
+  radius: "floating" as const,
 })`
   pointer-events: auto;
   width: 100%;
@@ -248,14 +248,14 @@ const Header = styled.div`
 `;
 
 const Title = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--color-text-muted);
 `;
 
 const Count = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -272,7 +272,7 @@ const ItemFrame = styled.div`
   position: absolute;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   /* Grid (not flex) so the body row has a definite height. Widgets whose
      root is @ksp-gonogo/ui's Panel use height: 100% and need a concrete
      percentage reference: flex: 1 + min-height: 0 doesn't reliably
@@ -293,7 +293,7 @@ const ItemHeader = styled.div`
 `;
 
 const StationChip = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-status-info-fg);
@@ -308,7 +308,6 @@ const DismissBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   cursor: pointer;
@@ -326,7 +325,7 @@ const ItemBody = styled.div`
 
 const MissingComponent = styled.div`
   padding: var(--space-12);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   text-align: center;
 `;

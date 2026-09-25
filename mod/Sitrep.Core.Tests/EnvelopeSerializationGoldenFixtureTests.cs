@@ -161,6 +161,22 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
+        /// Of those, only a frame that named a type says which, and that name is
+        /// what lets a server refuse it by name while still echoing the frames
+        /// that named nothing.
+        /// </summary>
+        [Theory]
+        [InlineData("not json at all", null)]
+        [InlineData("[1,2,3]", null)]
+        [InlineData("{\"topic\":\"a\"}", null)]
+        [InlineData("{\"type\":\"teleport\"}", "teleport")]
+        public void OnlyAFrameThatNamedATypeCarriesIt(string json, string? named)
+        {
+            var ex = Assert.Throws<UnknownEnvelopeTypeException>(() => EnvelopeCodec.ParseClientMessage(json));
+            Assert.Equal(named, ex.EnvelopeType);
+        }
+
+        /// <summary>
         /// A recognised type with a broken field is the other half, and it
         /// carries what a refusal needs to say: which envelope, which field,
         /// and the requestId to correlate on where the frame still had one.

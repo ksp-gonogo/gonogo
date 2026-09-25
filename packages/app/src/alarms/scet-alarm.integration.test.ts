@@ -1,7 +1,7 @@
 import { deriveTimeContexts } from "@ksp-gonogo/core";
 import { memoryStorage } from "@ksp-gonogo/core/test";
+import { logger } from "@ksp-gonogo/logger";
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -10,6 +10,7 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmHostService } from "./AlarmHostService";
 
@@ -51,6 +52,13 @@ const DT = 20;
 type ArmedCondition =
   | { kind: "time"; ut: number; leadSeconds: number }
   | {
+      kind: "contract-parameter";
+      contractId: string;
+      parameterTitle: string;
+      targetState: number;
+      sustainSeconds: number;
+    }
+  | {
       kind: "threshold";
       topic: string;
       fieldPath: string;
@@ -63,8 +71,11 @@ type ArmedCondition =
 interface ArmedAlarm {
   condition: ArmedCondition;
   subject: string;
-  /** Whose ledger the mod would judge it against. Empty is the simulation's own. */
-  audience: string;
+  /** The onboard actions, as `{kind, group}` ordinals, and the craft they act on. */
+  onFire: { kind: number; group: number }[];
+  actsOn: string;
+  /** Where the mod reads it. Resolved from the arm, so it is never empty. */
+  vantage: string;
 }
 
 /**
@@ -100,13 +111,30 @@ interface ModStandIn {
    * hears about it.
    */
   armForeign(id: string): void;
+  /** Every `alarm.scet.arm` this id was the subject of, accepted or refused. */
+  armAttempts(id: string): number;
+  /**
+   * Lose the next `count` arms in transit: each is counted as an attempt and
+   * then answered with the loss a command gets when no confirmation came back,
+   * which is no answer at all rather than a refusal.
+   */
+  loseArms(count: number): void;
+  /**
+   * Stamp frames with the meta vantage rather than a place, so the client has
+   * observed no command centre yet: the window before the first ordinary frame.
+   */
+  withholdVantage(withheld: boolean): void;
+  /** Take the engine back to knowing no command centres, as the main menu does. */
+  forgetCommandCentres(): void;
+  /** The centre set populates, which is what a save loading looks like. */
+  learnCommandCentres(): void;
   /** One arm as the stand-in received it, for asserting on what crossed the wire. */
   armOf(id: string): ArmedAlarm | undefined;
   /**
-   * Publish the mod's SHADOW verdict on an audience alarm: the notice it would
-   * send having judged the condition against what that place has been told.
+   * Publish the mod's SHADOW verdict on a command-vantage alarm: the notice it
+   * would send having judged the condition against what that place has been told.
    */
-  fireForAudience(id: string): void;
+  fireForVantage(id: string): void;
   /**
    * Drive the TRUE value every armed threshold is compared against, which only
    * the stand-in can see.
@@ -116,6 +144,16 @@ interface ModStandIn {
    * keyed by Topic would only be a second, poorer copy of the mod's field walk.
    */
   setReading(value: number): void;
+  /** The operator changes warp at the game itself, which no command of the client's asked for. */
+  setGameWarp(index: number): void;
+  /** Every command the client dispatched, by name, in order. */
+  commands: readonly string[];
+  /** The next fire notice says its onboard actions were withheld, as a switch to another craft would. */
+  withholdNextActions(): void;
+  /** The craft this alarm reads is gone, as the mod decides when the known-vessel roster no longer lists it. */
+  markUnreachable(id: string): void;
+  /** Tell the CLIENT an altitude, stamped now, so its own threshold evaluator has a reading to cross on. */
+  showClientAltitude(altitudeAsl: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
   attach(): void;
   /** The true UT at which the stand-in mod fired each alarm. */
@@ -134,18 +172,32 @@ function startSession(owlt: number): ModStandIn {
   let warpIndex = 0;
   const warpDispatchedAt: number[] = [];
   const conditions = new Map<string, ArmedAlarm>();
+  const armAttemptCounts = new Map<string, number>();
+  const commands: string[] = [];
+  let withholdActions = false;
+  let armsToLose = 0;
+  let centresKnown = true;
+  let stampedVantage = HOME;
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
+  const unreachable = new Set<string>();
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
-  let lastFired: { id: string; firedAtUt: number } | null = null;
+  let lastPublishedJson: string | null = null;
+  let rosterAnswered = false;
+  let lastFired: {
+    id: string;
+    firedAtUt: number;
+    actionsWithheld?: boolean;
+  } | null = null;
   const firedAtTrueUt: { id: string; ut: number }[] = [];
 
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   client.setDelaySource(() => owlt);
   transport.setCommandHandler((command, args) => {
+    commands.push(command);
     const bag = (args ?? {}) as Record<string, unknown>;
     if (command === "time.setWarpIndex") {
       const index = bag.index;
@@ -157,36 +209,75 @@ function startSession(owlt: number): ModStandIn {
     }
     if (command === "alarm.scet.arm") {
       const id = String(bag.id ?? "");
+      armAttemptCounts.set(id, (armAttemptCounts.get(id) ?? 0) + 1);
+      if (armsToLose > 0) {
+        armsToLose -= 1;
+        throw {
+          code: "E_LOST",
+          message: "command lost: no confirmation received by predicted ETA",
+        };
+      }
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
-      if (threshold && !ADDRESSABLE.has(String(condition.topic ?? ""))) {
-        /* The real uplink's refusal, verbatim in shape: a Range failure whose
-           message names the Topic. It is the ONLY way a client finds out, and
-           what this fixture exists to let the client be tested against. */
-        throw Object.assign(
-          new Error(
-            `no SCET threshold can be read from '${String(condition.topic ?? "")}'`,
-          ),
-          { code: "E_RANGE" },
-        );
+      const contractParameter = Number(condition.kind ?? 0) === 2;
+      if (!centresKnown && String(bag.vantage ?? "") !== "") {
+        /* The engine has not been told what places exist: the main menu, and
+           the ticks before the first capture. NotClearToProceed rather than
+           Range, because this one resolves by waiting. */
+        return {
+          success: false,
+          errorCode: 15,
+          detail: `no command centre is known yet, so '${String(bag.vantage ?? "")}' cannot be checked`,
+        };
       }
+      if (threshold && !ADDRESSABLE.has(String(condition.topic ?? ""))) {
+        /* The real uplink's refusal, in the shape the mod actually sends: a
+           CommandResult whose ErrorCode is the typed reason and whose Detail
+           quotes the game. Throwing here instead would model a TRANSPORT
+           error, which carries no contract code and puts the mod's words where
+           a real refusal never puts them. */
+        return {
+          success: false,
+          errorCode: 4,
+          detail: `no SCET threshold can be read from '${String(condition.topic ?? "")}'`,
+        };
+      }
+      const subject = String(bag.subject ?? "");
       conditions.set(id, {
-        subject: String(bag.subject ?? ""),
-        audience: String(bag.audience ?? ""),
-        condition: threshold
+        subject,
+        onFire: Array.isArray(bag.onFire)
+          ? bag.onFire.map((a: { kind?: unknown; group?: unknown }) => ({
+              kind: Number(a.kind ?? 0),
+              group: Number(a.group ?? 0),
+            }))
+          : [],
+        actsOn: String(bag.actsOn ?? ""),
+        /* Resolved here as the mod resolves it: an arm naming no vantage is
+           read at its own subject, which is where every alarm was read before
+           the field existed. */
+        vantage: String(bag.vantage ?? "") || subject,
+        condition: contractParameter
           ? {
-              kind: "threshold",
-              topic: String(condition.topic ?? ""),
-              fieldPath: String(condition.fieldPath ?? ""),
-              op: Number(condition.op ?? 0),
-              threshold: Number(condition.threshold ?? 0),
+              kind: "contract-parameter",
+              contractId: String(condition.contractId ?? ""),
+              parameterTitle: String(condition.parameterTitle ?? ""),
+              targetState: Number(condition.targetState ?? 0),
               sustainSeconds: Number(condition.sustainSeconds ?? 0),
             }
-          : {
-              kind: "time",
-              ut: Number(condition.ut ?? 0),
-              leadSeconds: Number(condition.leadSeconds ?? 0),
-            },
+          : threshold
+            ? {
+                kind: "threshold",
+                topic: String(condition.topic ?? ""),
+                fieldPath: String(condition.fieldPath ?? ""),
+                op: Number(condition.op ?? 0),
+                threshold: Number(condition.threshold ?? 0),
+                sustainSeconds: Number(condition.sustainSeconds ?? 0),
+              }
+            : {
+                kind: "time",
+                ut: Number(condition.ut ?? 0),
+                leadSeconds: Number(condition.leadSeconds ?? 0),
+              },
       });
       steppedDown.delete(id);
       fired.delete(id);
@@ -222,7 +313,7 @@ function startSession(owlt: number): ModStandIn {
       id,
       name: id,
       armedBy: HOME,
-      audience: arm.audience,
+      vantage: arm.vantage,
       subject: arm.subject,
       condition:
         arm.condition.kind === "time"
@@ -231,21 +322,47 @@ function startSession(owlt: number): ModStandIn {
               ut: arm.condition.ut,
               leadSeconds: arm.condition.leadSeconds,
             }
-          : {
-              kind: 1,
-              topic: arm.condition.topic,
-              fieldPath: arm.condition.fieldPath,
-              op: arm.condition.op,
-              threshold: arm.condition.threshold,
-              sustainSeconds: arm.condition.sustainSeconds,
-            },
-      state: fired.has(id) ? 1 : 0,
+          : arm.condition.kind === "contract-parameter"
+            ? {
+                kind: 2,
+                contractId: arm.condition.contractId,
+                parameterTitle: arm.condition.parameterTitle,
+                targetState: arm.condition.targetState,
+                sustainSeconds: arm.condition.sustainSeconds,
+              }
+            : {
+                kind: 1,
+                topic: arm.condition.topic,
+                fieldPath: arm.condition.fieldPath,
+                op: arm.condition.op,
+                threshold: arm.condition.threshold,
+                sustainSeconds: arm.condition.sustainSeconds,
+              },
+      state: unreachable.has(id) ? 2 : fired.has(id) ? 1 : 0,
       firedAtUt: null,
+      onFire: arm.onFire,
+      actsOn: arm.actsOn,
     }));
+    /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
+       is subscribed, one frame to an audience that has not been answered (the
+       keyframe-on-subscribe a real client gets), and after that only when the
+       roster moves.
+
+       Publishing every tick instead would clear the bridge's already-commanded
+       set every tick, which makes a refused arm retry for ever here and never
+       in a game. */
+    const json = JSON.stringify(lastRoster);
+    if (!transport.isSubscribed("alarm.scet")) {
+      rosterAnswered = false;
+      return;
+    }
+    if (rosterAnswered && json === lastPublishedJson) return;
+    rosterAnswered = true;
+    lastPublishedJson = json;
     transport.emit("alarm.scet", lastRoster, {
       validAt: trueUt,
       deliveredAt: trueUt,
-      vantage: HOME,
+      vantage: stampedVantage,
     });
   }
 
@@ -258,7 +375,9 @@ function startSession(owlt: number): ModStandIn {
     armForeign(id) {
       conditions.set(id, {
         subject: "game",
-        audience: "",
+        vantage: "game",
+        onFire: [],
+        actsOn: "",
         condition: {
           kind: "threshold",
           topic: "career.status",
@@ -270,19 +389,50 @@ function startSession(owlt: number): ModStandIn {
       });
     },
     armOf: (id) => conditions.get(id),
-    fireForAudience(id) {
+    armAttempts: (id) => armAttemptCounts.get(id) ?? 0,
+    loseArms: (count) => {
+      armsToLose = count;
+    },
+    withholdVantage(withheld) {
+      stampedVantage = withheld ? "meta" : HOME;
+    },
+    forgetCommandCentres() {
+      centresKnown = false;
+    },
+    learnCommandCentres() {
+      centresKnown = true;
+    },
+    fireForVantage(id) {
       transport.emit(
         "alarm.scet.fired",
         {
           id,
           firedAtUt: trueUt,
-          audience: conditions.get(id)?.audience ?? HOME,
+          vantage: conditions.get(id)?.vantage ?? HOME,
         },
         { validAt: trueUt, deliveredAt: trueUt, vantage: HOME },
       );
     },
     setReading(value) {
       reading = value;
+    },
+    setGameWarp(index) {
+      warpIndex = index;
+    },
+    commands,
+    withholdNextActions() {
+      withholdActions = true;
+    },
+    markUnreachable(id) {
+      unreachable.add(id);
+    },
+    showClientAltitude(altitudeAsl) {
+      client.subscribe("vessel.flight", () => {});
+      transport.emit(
+        "vessel.flight",
+        { altitudeAsl },
+        { validAt: trueUt, deliveredAt: trueUt },
+      );
     },
     reconnect() {
       /* What a client sees when it comes back: the reliable lane replays the
@@ -316,19 +466,19 @@ function startSession(owlt: number): ModStandIn {
       transport.emit(
         "vessel.identity",
         { name: "Probe", vesselId: VESSEL_ID },
-        { validAt: ut - owlt, deliveredAt: ut, vantage: HOME },
+        { validAt: ut - owlt, deliveredAt: ut, vantage: stampedVantage },
       );
 
       // The mod's pass, on the game's OWN clock: this is the whole point of the
       // arm, and it runs whatever the client can currently see.
       for (const [id, arm] of conditions) {
         if (fired.has(id)) continue;
-        /* An AUDIENCE alarm is judged against what one PLACE has been told,
-           out of the Courier's archive, which this fixture does not model and
-           should not: that is the mod's own reveal and it has its own suite.
-           `fireForAudience` stands in for the verdict so the client's handling
-           of one can be exercised. */
-        if (arm.audience !== "") continue;
+        /* An alarm at any vantage but its own subject's is judged against what
+           that PLACE has been told, out of the Courier's archive, which this
+           fixture does not model and should not: that is the mod's own reveal and
+           it has its own suite. `fireForVantage` stands in for the verdict so the
+           client's handling of one can be exercised. */
+        if (arm.vantage !== arm.subject) continue;
         const c = arm.condition;
         if (c.kind === "time") {
           if (!steppedDown.has(id) && ut >= c.ut - c.leadSeconds) {
@@ -336,6 +486,9 @@ function startSession(owlt: number): ModStandIn {
             warpIndex = 0;
           }
           if (ut < c.ut) continue;
+        } else if (c.kind === "contract-parameter") {
+          // The career is not modelled here; the verdict comes from `fireForVantage`.
+          continue;
         } else {
           /* The reading is the world's TRUE value, which is the whole claim:
              nothing the client can see is consulted. Warp stops at the first
@@ -355,7 +508,12 @@ function startSession(owlt: number): ModStandIn {
         }
         fired.add(id);
         warpIndex = 0;
-        lastFired = { id, firedAtUt: ut };
+        lastFired = {
+          id,
+          firedAtUt: ut,
+          ...(withholdActions ? { actionsWithheld: true } : {}),
+        };
+        withholdActions = false;
         firedAtTrueUt.push({ id, ut });
         transport.emit("alarm.scet.fired", lastFired, {
           validAt: ut,
@@ -379,7 +537,7 @@ function startSession(owlt: number): ModStandIn {
         },
         // `time.warp` is TrueNow on the mod, so the frame is stamped at the
         // instant it was captured rather than a light-time back.
-        { validAt: ut, deliveredAt: ut },
+        { validAt: ut, deliveredAt: ut, vantage: stampedVantage },
       );
       /* Every tick, where the real channel change-gates and leans on
          keyframe-on-subscribe to catch a late subscriber up. A stub transport
@@ -448,7 +606,7 @@ describe("SCET alarms", () => {
 
     const alarm = svc.addAlarm({
       name: "Apoapsis",
-      trigger: { kind: "time", ut: 90_000, leadSeconds: 10, vantage: "scet" },
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
     });
     await run(session, UT_START + 4 * DT);
     expect(session.armed()).toEqual([alarm.id]);
@@ -509,7 +667,7 @@ describe("SCET alarms", () => {
 
     const alarm = svc.addAlarm({
       name: "Launch pad upgrade complete",
-      trigger: { kind: "time", ut: 90_000, leadSeconds: 10, vantage: "scet" },
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
       requestedBy: {
         uplinkId: "rp1",
         uplinkName: "RP-1",
@@ -526,7 +684,7 @@ describe("SCET alarms", () => {
     svc.dispose();
   });
 
-  it("does not arm a command-vantage alarm on the mod", async () => {
+  it("arms a time alarm on the mod whatever clock it was saved against", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
     const svc = new AlarmHostService(null, {
@@ -536,16 +694,20 @@ describe("SCET alarms", () => {
       getOwltSeconds: () => OWLT,
     });
 
-    svc.addAlarm({
+    const alarm = svc.addAlarm({
       name: "Ordinary",
       trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
     });
     await run(session, UT_START + 4 * DT);
-    expect(session.armed()).toEqual([]);
+    /* A universal time is the same instant wherever it is watched from, so a
+       time alarm names no vantage and there is no second opinion for this side
+       to hold: every one of them goes to the mod. */
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(session.armOf(alarm.id)?.subject).toBe("game");
     svc.dispose();
   });
 
-  it("fires the two vantages one light-time apart, and the SCET one when the craft is there", async () => {
+  it("comes due at the same instant however the operator asked for it", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
     const svc = new AlarmHostService(null, {
@@ -555,17 +717,20 @@ describe("SCET alarms", () => {
       getOwltSeconds: () => OWLT,
     });
 
-    /* The same instant, asked for two ways. The SCET alarm fires when the GAME
-       reaches it; the command-vantage one when the operator's own clock does,
-       which is a light-time later in true time, by which point the craft has
-       been past the moment for four minutes. That gap IS the feature. */
+    /* The same instant, asked for twice. A universal time is the same instant
+       wherever it is watched from, so there is no clock to choose between and
+       both come due together, when the GAME reaches it.
+
+       This used to assert the opposite: the two carried a vantage each and
+       fired a light-time apart. That gap was never a fact about a UT, it was
+       the client evaluating one of them against its own delayed clock. */
     const target = UT_START + 200;
-    const scet = svc.addAlarm({
-      name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+    const first = svc.addAlarm({
+      name: "First",
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
-    const command = svc.addAlarm({
-      name: "Command",
+    const second = svc.addAlarm({
+      name: "Second",
       trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
 
@@ -584,8 +749,8 @@ describe("SCET alarms", () => {
     }
     svc.dispose();
 
-    expect(firedAt.get(scet.id)).toBe(target);
-    expect(firedAt.get(command.id)).toBe(target + OWLT);
+    expect(firedAt.get(first.id)).toBe(target);
+    expect(firedAt.get(second.id)).toBe(target);
   });
 
   it("records the instant on the craft's clock, not the one it was told at", async () => {
@@ -601,7 +766,7 @@ describe("SCET alarms", () => {
     const target = UT_START + 100;
     const alarm = svc.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     await run(session, target + 4 * DT);
 
@@ -630,7 +795,7 @@ describe("SCET alarms", () => {
     const target = UT_START + 3000;
     svc.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     // Give the arm a tick to reach the mod before the ladder starts.
     await run(session, UT_START + 2 * DT);
@@ -674,7 +839,7 @@ describe("SCET alarms", () => {
     });
     const alarm = first.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     await run(session, UT_START + 4 * DT);
     // Gone across the fire, the way a browser tab is when it is closed or a
@@ -799,6 +964,234 @@ describe("SCET alarms", () => {
     expect(session.gameIndex()).toBe(0);
   });
 
+  /**
+   * An alarm the craft could judge for itself hands its actions to the mod,
+   * which runs them in the frame it fires. This screen sending them as well
+   * would act on the craft a second time, a light-time later, and nothing about
+   * that would look wrong from here: it is silent and additive.
+   */
+  describe("onboard actions", () => {
+    const STAGE_AND_AG7 = [
+      { kind: "action-group", action: "Stage" },
+      { kind: "action-group", action: "AG7" },
+    ] as const;
+
+    function service(): AlarmHostService {
+      return new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+    }
+
+    async function step(session: ModStandIn, from: number, to: number) {
+      for (let ut = from; ut <= to; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+    }
+
+    const sentFromHere = (session: ModStandIn) =>
+      session.commands.filter((c) => c.startsWith("vessel.control."));
+
+    it("hands a craft-vantage alarm's actions to the mod, and sends none itself", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = service();
+      const alarm = svc.addAlarm({
+        name: "Stage at 100 km",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.altitudeAsl",
+          op: ">=",
+          value: 100_000,
+          sustainSeconds: 0,
+          vantage: "scet",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+        },
+        onFire: [...STAGE_AND_AG7],
+      });
+      await step(session, UT_START + DT, UT_START + 4 * DT);
+      const armed = session.armOf(alarm.id);
+
+      session.setReading(101_000);
+      await step(session, UT_START + 5 * DT, UT_START + 8 * DT);
+      const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      svc.dispose();
+
+      expect(armed?.onFire).toEqual([
+        { kind: 1, group: 0 },
+        { kind: 0, group: 7 },
+      ]);
+      expect(armed?.actsOn).toBe(`vessel:${VESSEL_ID}`);
+      expect(row?.state).not.toBe("pending");
+      expect(sentFromHere(session)).toEqual([]);
+    });
+
+    it("names the craft a time alarm's actions are for", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = service();
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 90_000, leadSeconds: 0 },
+        onFire: [{ kind: "action-group", action: "Stage" }],
+      });
+      await step(session, UT_START + DT, UT_START + 4 * DT);
+      svc.dispose();
+
+      expect(session.armOf(alarm.id)?.onFire).toEqual([{ kind: 1, group: 0 }]);
+      expect(session.armOf(alarm.id)?.actsOn).toBe(`vessel:${VESSEL_ID}`);
+    });
+
+    it("re-arms the mod when only the actions are edited", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = service();
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 90_000, leadSeconds: 0 },
+        onFire: [{ kind: "action-group", action: "Stage" }],
+      });
+      await step(session, UT_START + DT, UT_START + 4 * DT);
+
+      svc.updateAlarm(alarm.id, {
+        onFire: [{ kind: "action-group", action: "AG3" }],
+      });
+      await step(session, UT_START + 5 * DT, UT_START + 8 * DT);
+      svc.dispose();
+
+      expect(session.armOf(alarm.id)?.onFire).toEqual([{ kind: 0, group: 3 }]);
+    });
+
+    it("keeps a command-vantage alarm's actions on this screen", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = service();
+      const alarm = svc.addAlarm({
+        name: "Stage at 100 km",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.altitudeAsl",
+          op: ">=",
+          value: 100_000,
+          sustainSeconds: 0,
+          vantage: "command",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+        },
+        onFire: [...STAGE_AND_AG7],
+      });
+      await step(session, UT_START + DT, UT_START + 4 * DT);
+      svc.dispose();
+
+      expect(session.armOf(alarm.id)).toBeDefined();
+      expect(session.armOf(alarm.id)?.onFire).toEqual([]);
+    });
+
+    it("shows the operator actions the mod withheld, and sends them from nowhere", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = service();
+      const target = UT_START + 6 * DT;
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: target, leadSeconds: 0 },
+        onFire: [{ kind: "action-group", action: "Stage" }],
+      });
+      await step(session, UT_START + DT, UT_START + 4 * DT);
+
+      session.withholdNextActions();
+      await step(session, UT_START + 5 * DT, target + 2 * DT);
+      const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      svc.dispose();
+
+      expect(row?.state).not.toBe("pending");
+      expect(row?.actionsWithheld).toBe(true);
+      expect(sentFromHere(session)).toEqual([]);
+    });
+  });
+
+  /**
+   * Only the simulation knows a craft is gone, and without saying so the row
+   * reads `pending` for ever, exactly like a condition not yet come due.
+   */
+  it("says an alarm whose craft is gone can never fire", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.flight.altitudeAsl",
+        op: ">=",
+        value: 100_000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "vessel.flight",
+        fieldPath: "altitudeAsl",
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    const before = svc.snapshot().scetUnreachable;
+
+    session.markUnreachable(alarm.id);
+    await run(session, UT_START + 6 * DT);
+    const after = svc.snapshot().scetUnreachable;
+    svc.dispose();
+
+    expect(before).toBeUndefined();
+    expect(after).toEqual([alarm.id]);
+  });
+
+  /**
+   * A contract objective is shadowed like a command-vantage threshold: the
+   * simulation judges it against what this place has been told of the career,
+   * and the client stays the one that latches.
+   */
+  it("arms a contract objective for the simulation to shadow", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Mun orbit done",
+      trigger: {
+        kind: "contract-parameter",
+        contractId: 42,
+        parameterTitle: "Orbit the Mun",
+        targetState: "Failed",
+        sustainSeconds: 3,
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    svc.dispose();
+
+    const armed = session.armOf(alarm.id);
+    expect(armed?.vantage).toBe(HOME);
+    expect(armed?.subject).toBe("game");
+    expect(armed?.condition).toEqual({
+      kind: "contract-parameter",
+      contractId: "42",
+      parameterTitle: "Orbit the Mun",
+      targetState: 2,
+      sustainSeconds: 3,
+    });
+  });
+
   it("says why an unreadable Topic was refused instead of sitting pending", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
@@ -835,6 +1228,121 @@ describe("SCET alarms", () => {
     expect(snap.scetArmRefusals?.[alarm.id]).toContain("career.economy");
   });
 
+  /** A SCET altitude threshold the simulation can read, for the arm outcomes below. */
+  const SCET_ALTITUDE = {
+    kind: "threshold",
+    dataKey: "vessel.flight.altitudeAsl",
+    op: ">=",
+    value: 100_000,
+    sustainSeconds: 0,
+    vantage: "scet",
+    topic: "vessel.flight",
+    fieldPath: "altitudeAsl",
+  } as const;
+
+  /**
+   * A lost arm is no answer, not a refusal: nothing about the alarm was
+   * wrong, so it is asked again and the operator is not told it was refused.
+   * No roster frame follows a lost arm, so only the arm's own outcome can
+   * decide the retry.
+   */
+  it("asks again about an arm that was lost, and does not call it refused", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    session.loseArms(2);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: { ...SCET_ALTITUDE },
+    });
+
+    await run(session, UT_START + 8 * DT);
+    const snap = svc.snapshot();
+    svc.dispose();
+
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(session.armAttempts(alarm.id)).toBe(3);
+    expect(snap.scetArmRefusals?.[alarm.id]).toBeUndefined();
+  });
+
+  /**
+   * And not for ever. An arm that is never answered is given up on after a
+   * bounded number of tries, and the operator is told, because an alarm only
+   * the simulation can fire will otherwise sit looking watched and never fire.
+   */
+  it("stops asking about an arm that is never answered, and says so", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    session.loseArms(Number.POSITIVE_INFINITY);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: { ...SCET_ALTITUDE },
+    });
+
+    await run(session, UT_START + 20 * DT);
+    const snap = svc.snapshot();
+    svc.dispose();
+
+    expect(session.armAttempts(alarm.id)).toBe(5);
+    expect(snap.scetArmRefusals?.[alarm.id]).toContain("never answered");
+  });
+
+  /**
+   * A refusal that cannot change is not asked again when some other alarm moves
+   * the roster. A roster frame clears the in-flight guard for every id, and
+   * the refused alarm is still pending and still not held, so without a record
+   * of the answer it would be re-sent on every frame that followed.
+   */
+  it("does not re-send a settled refusal when another alarm moves the roster", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const refused = svc.addAlarm({
+      name: "Funds",
+      trigger: {
+        kind: "threshold",
+        dataKey: "career.economy.funds",
+        op: "<",
+        value: 1000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "career.economy",
+        fieldPath: "funds",
+      },
+    });
+    await run(session, UT_START + 2 * DT);
+
+    const other = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: { ...SCET_ALTITUDE },
+    });
+    for (let ut = UT_START + 3 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+      session.emitAt(ut);
+      nowMs += DT * 1000;
+      await vi.advanceTimersByTimeAsync(DT * 1000);
+    }
+    svc.dispose();
+
+    expect(session.armed()).toEqual([other.id]);
+    expect(session.armAttempts(refused.id)).toBe(1);
+  });
+
   it("fires both vantages on the same tick when there is no delay to tell them apart", async () => {
     const session = startSession(0);
     session.emitAt(UT_START);
@@ -848,7 +1356,7 @@ describe("SCET alarms", () => {
     const target = UT_START + 100;
     const scet = svc.addAlarm({
       name: "SCET",
-      trigger: { kind: "time", ut: target, leadSeconds: 0, vantage: "scet" },
+      trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     const command = svc.addAlarm({
       name: "Command",
@@ -965,12 +1473,63 @@ describe("SCET alarms", () => {
   });
 
   /**
+   * WHO stops the warp, and the answer is the mod's roster rather than the
+   * trigger's kind.
+   *
+   * The ruling is that the warp stops because the alarm came due on the back
+   * end, never because the client saw a notice and sent a command back. So for
+   * an alarm the mod HOLDS this side issues none. But "the mod evaluates time
+   * and threshold" is not the same set as "the mod holds this alarm": a
+   * command-vantage TIME alarm is a kind the mod evaluates and is deliberately
+   * never armed there, so a rule reading the kind would take its stop away and
+   * give it nothing. The second case is the one that would have caught that.
+   */
+  describe("who stops the warp", () => {
+    it("issues no warp command for an alarm the mod holds", async () => {
+      const session = startSession(0);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => 0,
+      });
+
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.flight.altitudeAsl",
+          op: ">",
+          value: 100_000,
+          sustainSeconds: 0,
+          vantage: "scet",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+        },
+      });
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([alarm.id]);
+
+      session.setReading(101_000);
+      await run(session, UT_START + 8 * DT);
+      svc.dispose();
+
+      // The mod stopped it, on the tick it decided. Nothing came back the other
+      // way: a command from here would be the round trip the arm removes, and
+      // it would arrive after the fact.
+      expect(session.gameIndex()).toBe(0);
+      expect(session.warpDispatchedAt).toEqual([]);
+    });
+  });
+
+  /**
    * The shadow arm. A COMMAND-vantage threshold is still this side's to
    * evaluate; it is also sent to the mod, naming the place this screen commands
    * from, so the same alarm gets a second verdict that can be compared.
    */
   describe("command-vantage shadow", () => {
-    it("arms a command-vantage threshold naming the vantage as its audience", async () => {
+    it("arms a command-vantage threshold naming the vantage it is read at", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = new AlarmHostService(null, {
@@ -997,8 +1556,355 @@ describe("SCET alarms", () => {
       svc.dispose();
 
       expect(session.armed()).toEqual([alarm.id]);
-      // This screen chose no vantage, so the audience is the one the mod stamps its frames with: a PLACE, never a connection, which is the whole vocabulary the mod is given.
-      expect(session.armOf(alarm.id)?.audience).toBe(HOME);
+      // This screen chose no vantage, so it names the one the mod stamps its frames with: a PLACE, never a connection, which is the whole vocabulary the mod is given.
+      expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
+    });
+
+    const COMMAND_VANTAGE_ALTITUDE = {
+      kind: "threshold",
+      dataKey: "vessel.flight.altitudeAsl",
+      op: ">",
+      value: 100_000,
+      sustainSeconds: 0,
+      vantage: "command",
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
+    } as const;
+
+    /**
+     * A refused arm never reaches the mod's roster, so the roster does not move,
+     * so no frame arrives and the already-commanded set is never cleared. The
+     * retry has to come from the refusal itself; nothing else will ever ask
+     * again.
+     */
+    it("asks again about a vantage it could not check yet, once it can", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.forgetCommandCentres();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([]);
+      const refused = session.armAttempts(alarm.id);
+      expect(refused).toBeGreaterThan(0);
+
+      session.learnCommandCentres();
+      for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+      svc.dispose();
+
+      expect(session.armed()).toEqual([alarm.id]);
+      expect(session.armAttempts(alarm.id)).toBeGreaterThan(refused);
+    });
+
+    /**
+     * Level, not edge: the client fires this on the tick that creates it, so it
+     * never sits in `pending`, which is the only state the roster diff arms
+     * from. The mod must be told anyway, and told once.
+     */
+    it("arms an alarm whose condition already holds when it is created", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.showClientAltitude(150_000);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      // Long enough for the reading to reach this screen's delayed view.
+      const revealed = UT_START + OWLT + DT;
+      await run(session, revealed);
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+      const state = svc.snapshot().alarms[0].state;
+      await vi.advanceTimersByTimeAsync(0);
+      const vantage = session.armOf(alarm.id)?.vantage;
+      await run(session, revealed + 6 * DT);
+      svc.dispose();
+
+      expect(state).toBe("firing");
+      expect(vantage).toBe(HOME);
+      expect(session.armAttempts(alarm.id)).toBe(1);
+    });
+
+    /**
+     * An arm that could not be BUILT never leaves, so there is no refusal to
+     * retry from and no roster change to clear the already-commanded set. Only
+     * the reconcile can notice, and only if it does not record the attempt.
+     */
+    it("arms once a vantage is known when it was armed before any frame named one", async () => {
+      const session = startSession(OWLT);
+      session.withholdVantage(true);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+
+      await run(session, UT_START + 4 * DT);
+      expect(session.armAttempts(alarm.id)).toBe(0);
+
+      session.withholdVantage(false);
+      for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+      svc.dispose();
+
+      expect(session.armed()).toEqual([alarm.id]);
+      expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
+    });
+
+    /**
+     * The other half, and the reason the retry keys on the code rather than on
+     * refusal as such: a Topic the simulation cannot read is a settled answer,
+     * and asking it again every tick for ever is noise.
+     */
+    it("does not ask again about a refusal whose answer cannot change", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Funds",
+        trigger: {
+          kind: "threshold",
+          dataKey: "career.economy.funds",
+          op: "<",
+          value: 1000,
+          sustainSeconds: 0,
+          vantage: "command",
+          topic: "career.economy",
+          fieldPath: "funds",
+        },
+      });
+
+      await run(session, UT_START + 8 * DT);
+      svc.dispose();
+
+      expect(session.armed()).toEqual([]);
+      expect(session.armAttempts(alarm.id)).toBe(1);
+    });
+
+    /**
+     * The shadow log has to be able to record BOTH disagreements, because the
+     * decision it feeds is whether the mod may be trusted with the latch. A log
+     * that can only see the mod firing cannot see the mod FAILING to fire, and
+     * silence would read as agreement.
+     *
+     * This is the half that can be driven here. The other direction needs the
+     * CLIENT to fire, and this fixture deliberately never publishes the craft's
+     * reading to it, so that half is proved in `AlarmHostService.test.ts`
+     * instead. Both are driven rather than read off the source, because a path
+     * that exists and cannot be reached records nothing while looking correct.
+     */
+    it("records the mod firing while the client is still pending", async () => {
+      const warn = vi.spyOn(logger, "warn");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([alarm.id]);
+
+      // The mod reaches its verdict; the client's own reading is nowhere near.
+      session.fireForVantage(alarm.id);
+      await run(session, UT_START + 5 * DT);
+      svc.dispose();
+
+      expect(svc.snapshot().alarms.find((a) => a.id === alarm.id)?.state).toBe(
+        "pending",
+      );
+      expect(
+        warn.mock.calls.some(([m]) =>
+          String(m).includes("mod fired first, client still pending"),
+        ),
+      ).toBe(true);
+      warn.mockRestore();
+    });
+
+    /**
+     * The shadow record has to say whether a fire happened under warp, since
+     * that is where the two clocks part furthest. The same mod-first fire is
+     * run at 1x and at 1000x and must read differently, and the figure is the
+     * rate the game reported rather than the rung it was set to.
+     */
+    it.each([
+      { label: "at 1x", gameIndex: 0, expected: 1 },
+      { label: "under warp", gameIndex: 5, expected: 1000 },
+    ])("records the game's warp rate on a shadow fire $label", async ({
+      gameIndex,
+      expected,
+    }) => {
+      const warn = vi.spyOn(logger, "warn");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      await run(session, UT_START + 4 * DT);
+      session.setGameWarp(gameIndex);
+      await run(session, UT_START + 4 * DT + OWLT + 2 * DT);
+
+      session.fireForVantage(alarm.id);
+      await run(session, UT_START + 4 * DT + 2 * OWLT + 4 * DT);
+      svc.dispose();
+
+      const line = warn.mock.calls.find(([m]) =>
+        String(m).includes("mod fired first, client still pending"),
+      );
+      expect(line?.[1]).toMatchObject({ id: alarm.id, warpRate: expected });
+      warn.mockRestore();
+    });
+
+    it("records the warp rate on the client's own fire under warp", async () => {
+      const info = vi.spyOn(logger, "info");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      await run(session, UT_START + 4 * DT);
+      session.setGameWarp(5);
+      session.fireForVantage(alarm.id);
+      await run(session, UT_START + 4 * DT + OWLT + 2 * DT);
+
+      session.showClientAltitude(1_100_000);
+      await run(session, UT_START + 4 * DT + 2 * OWLT + 4 * DT);
+      svc.dispose();
+
+      const line = info.mock.calls.find(([m]) =>
+        String(m).includes("client fired, mod had already agreed"),
+      );
+      expect(line?.[1]).toMatchObject({ id: alarm.id, warpRate: 1000 });
+      info.mockRestore();
+    });
+
+    it("does not let an edited alarm inherit the verdict on the condition it replaced", async () => {
+      const info = vi.spyOn(logger, "info");
+      const warn = vi.spyOn(logger, "warn");
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_000_000 },
+      });
+      let ut = UT_START + 4 * DT;
+      await run(session, ut);
+      session.fireForVantage(alarm.id);
+      ut += OWLT + 2 * DT;
+      await run(session, ut);
+
+      svc.updateAlarm(alarm.id, {
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE, value: 1_200_000 },
+      });
+      session.showClientAltitude(1_300_000);
+      ut += OWLT + 4 * DT;
+      await run(session, ut);
+      svc.dispose();
+
+      const logged = (spy: typeof info, message: string) =>
+        spy.mock.calls.filter(
+          ([m, ctx]) =>
+            m === message &&
+            (ctx as { id?: string } | undefined)?.id === alarm.id,
+        ).length;
+      expect(
+        logged(info, "alarm-shadow: client fired, mod had already agreed"),
+      ).toBe(0);
+      expect(logged(warn, "alarm-shadow: client fired, mod has not")).toBe(1);
+      info.mockRestore();
+      warn.mockRestore();
+    });
+
+    /**
+     * The window this waits out is the main menu, which lasts as long as the
+     * operator leaves it there, so the retry is a cadence rather than a tick.
+     */
+    it("asks again on a cadence rather than on every tick", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      session.forgetCommandCentres();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Altitude",
+        trigger: { ...COMMAND_VANTAGE_ALTITUDE },
+      });
+
+      session.emitAt(UT_START + DT);
+      nowMs += DT * 1000;
+      await vi.advanceTimersByTimeAsync(DT * 1000);
+      const before = session.armAttempts(alarm.id);
+
+      // Thirty seconds of ticks, one a second, with nothing else changing.
+      for (let i = 0; i < 30; i += 1) {
+        nowMs += 1000;
+        await vi.advanceTimersByTimeAsync(1000);
+      }
+      svc.dispose();
+
+      const asked = session.armAttempts(alarm.id) - before;
+      expect(asked).toBeGreaterThan(0);
+      expect(asked).toBeLessThanOrEqual(4);
     });
 
     /**
@@ -1007,7 +1913,7 @@ describe("SCET alarms", () => {
      * authorities for it would clear each other's: until there is evidence they
      * agree, a command-vantage alarm is the client's alone.
      */
-    it("does not latch from the mod's verdict on an audience alarm", async () => {
+    it("does not latch from the mod's verdict on a command-vantage alarm", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = new AlarmHostService(null, {
@@ -1031,9 +1937,9 @@ describe("SCET alarms", () => {
         },
       });
       await run(session, UT_START + 4 * DT);
-      expect(session.armOf(alarm.id)?.audience).toBe(HOME);
+      expect(session.armOf(alarm.id)?.vantage).toBe(HOME);
 
-      session.fireForAudience(alarm.id);
+      session.fireForVantage(alarm.id);
       await run(session, UT_START + 6 * DT);
       const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
       svc.dispose();

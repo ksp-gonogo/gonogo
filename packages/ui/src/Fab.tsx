@@ -81,10 +81,10 @@ const FabLabel = styled.span<{ $visible: boolean }>`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-floating);
   padding: var(--inset-surface);
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-tight);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};

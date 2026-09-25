@@ -87,8 +87,8 @@ async function loadBitmap(file: File): Promise<DrawSource> {
 
 function releaseBitmap(source: DrawSource): void {
   // ImageBitmap.close() releases GPU memory eagerly; HTMLImageElement is GC'd.
-  const maybeBitmap = source as unknown as { close?: () => void };
-  if (typeof maybeBitmap.close === "function") maybeBitmap.close();
+  const close: unknown = Reflect.get(source, "close");
+  if (typeof close === "function") close.call(source);
 }
 
 function drawScaled(

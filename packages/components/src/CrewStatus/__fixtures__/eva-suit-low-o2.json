@@ -24,7 +24,12 @@
         "value": {
           "count": 1,
           "capacity": 1,
-          "crew": [{ "name": "Jebediah Kerman", "trait": "Pilot" }]
+          "crew": [
+            {
+              "name": "Jebediah Kerman",
+              "trait": "Pilot"
+            }
+          ]
         }
       },
       {
@@ -44,13 +49,41 @@
             "name": "Jebediah Kerman",
             "trait": "Pilot",
             "rules": [
-              { "name": "radiation", "value": 1.0, "fatalThreshold": 50.0 },
-              { "name": "stress", "value": 0.05, "fatalThreshold": 1.0 },
-              { "name": "eating", "value": 0.02, "fatalThreshold": 1.0 },
-              { "name": "drinking", "value": 0.02, "fatalThreshold": 1.0 },
-              { "name": "breathing", "value": 0.85, "fatalThreshold": 1.0 },
-              { "name": "climatization", "value": 0.03, "fatalThreshold": 1.0 },
-              { "name": "co2 poisoning", "value": 0.0, "fatalThreshold": 1.0 }
+              {
+                "name": "radiation",
+                "fatalThreshold": 50.0,
+                "problem": 1.0
+              },
+              {
+                "name": "stress",
+                "fatalThreshold": 1.0,
+                "problem": 0.05
+              },
+              {
+                "name": "eating",
+                "fatalThreshold": 1.0,
+                "problem": 0.02
+              },
+              {
+                "name": "drinking",
+                "fatalThreshold": 1.0,
+                "problem": 0.02
+              },
+              {
+                "name": "breathing",
+                "fatalThreshold": 1.0,
+                "problem": 0.85
+              },
+              {
+                "name": "climatization",
+                "fatalThreshold": 1.0,
+                "problem": 0.03
+              },
+              {
+                "name": "co2 poisoning",
+                "fatalThreshold": 1.0,
+                "problem": 0.0
+              }
             ]
           }
         ]
@@ -59,8 +92,16 @@
         "channel": "vessel.resources",
         "value": {
           "resources": {
-            "Oxygen": { "current": 1.9, "max": 12.5, "active": true },
-            "ElectricCharge": { "current": 6.1, "max": 33.0, "active": true }
+            "Oxygen": {
+              "current": 1.9,
+              "max": 12.5,
+              "active": true
+            },
+            "ElectricCharge": {
+              "current": 6.1,
+              "max": 33.0,
+              "active": true
+            }
           }
         }
       },
@@ -72,7 +113,7 @@
           "ecc": 0.001,
           "inc": 0,
           "argPe": 0,
-          "mu": 3.5316e12,
+          "mu": 3531600000000.0,
           "meanAnomalyAtEpoch": 0,
           "epoch": 0,
           "horizon": {

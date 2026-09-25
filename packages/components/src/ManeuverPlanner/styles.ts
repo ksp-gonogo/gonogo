@@ -7,7 +7,7 @@ import styled from "styled-components";
  */
 
 export const FeasibilityChip = styled.span<{ $ok: boolean }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
   padding: var(--inset-chip);
   /* A stadium, not a corner: --radius-pill rather than a fixed px, so the
@@ -38,18 +38,18 @@ export const FeasibilityBanner = styled.div`
   padding: var(--space-6) var(--space-10);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   color: var(--color-status-nogo-fg);
 `;
 
 export const FeasibilityBannerTitle = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 `;
 
 export const FeasibilityBannerBody = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
 `;

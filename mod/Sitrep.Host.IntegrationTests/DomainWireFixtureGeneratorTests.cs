@@ -58,9 +58,9 @@ namespace Sitrep.Host.IntegrationTests
         private const string LabRecording = "reference-lab-2026-07-08.json";
         private const string PartsRecording = "reference-science-parts-2026-07-08.json";
 
-        private static readonly TimeSpan TickTimeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan ReaderPollTimeout = TimeSpan.FromSeconds(2);
-        private static readonly TimeSpan FinalDrainDelay = TimeSpan.FromMilliseconds(750);
+        private static readonly TimeSpan TickTimeout = TestBudgets.Op;
+        private static readonly TimeSpan ReaderPollTimeout = TestBudgets.ReaderPoll;
+        private static readonly TimeSpan FinalDrainDelay = TestBudgets.FinalDrain;
 
         private static string RecordingsDir([CallerFilePath] string sourceFilePath = "")
         {

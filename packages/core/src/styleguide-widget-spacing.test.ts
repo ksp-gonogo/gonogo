@@ -70,22 +70,11 @@ function debtKey(file: string): string {
 }
 
 /**
- * Per-file ceilings, seeded 2026-09-16 at 317 sites across 78 files: 109 in
- * `packages/components` over 43 files, and 208 across the Uplinks in the one
- * `mod/` bucket.
- *
- * Lower an entry (or delete the key) in the same commit as the cleanup; a drop
- * warns rather than fails, so a cleanup lands green.
- *
- * Re-measured 2026-09-20 at 145 sites across 39 files, and the `mod/` bucket
- * fell 208 -> 38 without a single site being migrated. The Uplinks DEPARTED to
- * `gonogo-uplinks` and took their widgets with them, leaving 170 sites of
- * headroom a new violation could have landed in unnoticed. A departure is not
- * a cleanup, so nothing prompted anyone to lower the number, and the drop hint
- * below is a `console.warn` that the default vitest reporter suppresses for a
- * PASSING test: the slack was reported on every run and displayed on none.
- * Re-measure this bucket whenever an Uplink leaves, with
- * `--reporter=verbose` to see the hint at all.
+ * Per-file ceilings, and every one is exact: a count below its ceiling FAILS,
+ * like a count above it. Slack is standing permission for that many new
+ * violations, and it opens without anyone cleaning anything, as it did when
+ * Uplinks left the repo with their widgets. Lower the entry, or delete the key,
+ * in the same commit as whatever removed the sites; the failure names both.
  */
 const DEBT: Record<string, number> = {
   "mod/": 6,
@@ -98,7 +87,7 @@ const DEBT: Record<string, number> = {
   "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/Navball/AttitudeIndicator.tsx": 1,
   "packages/components/src/PowerSystems/index.tsx": 1,
-  "packages/components/src/ResourceOps/index.tsx": 4,
+  "packages/components/src/ResourceOps/index.tsx": 2,
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 5,
@@ -253,9 +242,12 @@ describe("design-system: widgets do not pass a t-shirt spacing size", () => {
       }
     }
     if (cleaned.length > 0) {
-      console.warn(
-        `[styleguide] widget spacing debt can be lowered in ` +
-          `packages/core/src/styleguide-widget-spacing.test.ts:\n${cleaned.join("\n")}`,
+      throw new Error(
+        `Widget spacing debt sits above what the tree carries:\n${cleaned.join("\n")}\n` +
+          `That slack is permission for the same number of new t-shirt sizes, which ` +
+          `is why this fails instead of warning. Lower each entry to the count shown, ` +
+          `or delete the key, in DEBT in ` +
+          `packages/core/src/styleguide-widget-spacing.test.ts.`,
       );
     }
 

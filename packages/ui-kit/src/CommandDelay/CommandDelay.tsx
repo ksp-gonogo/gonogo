@@ -51,8 +51,8 @@ export interface CommandDelayHandle {
   inFlight: InFlightCommandLike[];
   /**
    * What this entry IS on the rail's three axes, in full. Which renderer draws
-   * it follows from these (`railRendererFor`), so nothing here says WHICH
-   * display to use and no consumer branches on what kind of command this is.
+   * it follows from these, so nothing here says WHICH display to use and no
+   * consumer branches on what kind of command this is.
    *
    * A command handle gets them from `useCommand`, which reads what the owning
    * assembly declared; a producer that is not a command (an open microphone)

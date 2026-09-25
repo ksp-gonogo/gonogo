@@ -226,6 +226,7 @@ public static class RtConfig
                 // exist.
                 typeof(ScetAlarm),
                 typeof(ScetAlarmCondition),
+                typeof(ScetAlarmAction),
                 typeof(ScetAlarmFired),
                 typeof(ScetAlarmArmArgs),
                 typeof(ScetAlarmDisarmArgs),
@@ -2160,6 +2161,23 @@ public static class RtConfig
             sb.Append("  \"").Append(row.Id).Append("\": ").Append(row.Reply).Append(";\n");
         }
         sb.Append("}\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * The same mapping as a RUNTIME value: command id -> the NAME of the type\n");
+        sb.Append(" * its dispatch resolves with, spelled exactly as the interface above spells\n");
+        sb.Append(" * it, `CommandResultOf<T>` envelope included.\n");
+        sb.Append(" *\n");
+        sb.Append(" * An interface is erased before a client runs, and a command reply arrives\n");
+        sb.Append(" * carrying a requestId and nothing else, so the command that was dispatched\n");
+        sb.Append(" * is the only route back to a type. Anything that has to treat a reply by\n");
+        sb.Append(" * its declared shape, unit hydration first among them, reads this.\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_COMMAND_REPLY_TYPES = {\n");
+        foreach (var row in rows)
+        {
+            sb.Append("  \"").Append(row.Id).Append("\": \"").Append(row.Reply).Append("\",\n");
+        }
+        sb.Append("} as const satisfies Record<string, string>;\n\n");
 
         sb.Append("/**\n");
         sb.Append(" * What the delay rail needs to know about a command, as DATA: a client asks\n");

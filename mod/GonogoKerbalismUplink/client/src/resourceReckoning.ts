@@ -221,7 +221,7 @@ export function resourceBoundaryCrossings(
   if (observed == null || lifeSupport == null) return [];
   const rates = lifeSupport.rates;
   if (rates == null) return [];
-  const asOfUt = magnitudeOf(lifeSupport.asOfUt);
+  const asOfUt = magnitudeOf(lifeSupport.asOfKerbalismUt);
   if (asOfUt === null) return [];
   return movingLevels(observed, rates, asOfUt).map(
     ({ name, boundary, crossesAtUt }) => ({
@@ -315,7 +315,7 @@ export function reckonResourceLevels(
       },
     };
   }
-  const asOfUt = magnitudeOf(lifeSupport.asOfUt);
+  const asOfUt = magnitudeOf(lifeSupport.asOfKerbalismUt);
   if (asOfUt === null) {
     return {
       declined: {

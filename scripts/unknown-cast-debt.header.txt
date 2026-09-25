@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries __TOTAL__ of them
- * across __FILES__ files.
+ * Assertions that escape `unknown`, per named erasure point. The tree carries
+ * __TOTAL__ of them at __POINTS__ points across __FILES__ files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -61,14 +61,19 @@
  *
  * ## Reading an entry
  *
- * The count is a CEILING per file. Each entry sits under its root's group
- * header, whose numbers are measured on every regeneration, and its "why" is the
- * category above that its sites belong to. There is deliberately no hand-written
- * sentence per entry: at __FILES__ files those would be __FILES__ sentences
- * written in one sitting by someone who had not read the sites, which is
+ * An entry is `"<file> :: <place>"`, where the place is the function, method,
+ * variable or test the assertions sit in, and the count is how many that place
+ * holds. Naming the place rather than counting the file is what stops one
+ * assertion being traded for another: a file whose total holds while an escape
+ * moves from one function to another reads as the same number, and here it reads
+ * as one point gone and a new one arrived.
+ *
+ * The reason for a point lives above the place itself, in the code, where the
+ * next reader of the assertion finds it. There is deliberately no sentence per
+ * entry here: a list of __POINTS__ reasons written away from the sites is
  * archaeology on the day it lands. What makes an entry actionable is that it
- * names a file and a number, and that `--update` removes it the moment the file
- * is clean.
+ * names a place and a number, and that `--update` removes it the moment the
+ * place is clean.
  *
  * See `unknown-cast.test.ts` for the gate and `unknown-cast.scan.ts` for the
  * rule itself.

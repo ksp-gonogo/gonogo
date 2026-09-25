@@ -1,4 +1,4 @@
-import type { CommandResponse, StreamData } from "@ksp-gonogo/sitrep-sdk";
+import type { StreamData } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { ManualClock } from "./clock";
 import { Courier } from "./courier";
@@ -212,7 +212,7 @@ describe("Courier", () => {
       const handler = vi.fn((command: string) => ({ ok: command }));
       courier.setCommandHandler(handler);
 
-      const onResponse = vi.fn();
+      const onResponse = vi.fn<Parameters<Courier["dispatchCommand"]>[5]>();
       courier.dispatchCommand(
         "vessel",
         "r1",
@@ -232,7 +232,7 @@ describe("Courier", () => {
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect(onResponse).toHaveBeenCalledTimes(1);
-      const response = onResponse.mock.calls[0][0] as CommandResponse<unknown>;
+      const response = onResponse.mock.calls[0][0];
       expect(response.meta.validAt).toBe(0);
       expect(response.meta.deliveredAt).toBe(0);
     });

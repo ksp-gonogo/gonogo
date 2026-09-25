@@ -439,7 +439,7 @@ const ALARM_BELL: CSSProperties = {
   cursor: "pointer",
 };
 
-const TITLE: CSSProperties = { fontSize: "var(--font-size-xs)" };
+const TITLE: CSSProperties = { fontSize: "var(--font-size-value)" };
 
 const OPTIONAL: CSSProperties = {
   color: "var(--color-text-muted)",
@@ -447,13 +447,13 @@ const OPTIONAL: CSSProperties = {
 };
 
 const SOURCED: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
   letterSpacing: "0.03em",
 };
 
 const DESC: CSSProperties = {
-  fontSize: "var(--font-size-2xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-muted)",
 };
 

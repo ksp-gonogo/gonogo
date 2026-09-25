@@ -2,8 +2,13 @@ import type {
   SettingDefinition,
   SettingDefinitionOf,
   SettingType,
+  TopicId,
 } from "@ksp-gonogo/sitrep-sdk";
-import { registerSetting } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerSetting,
+  type SitrepUnit,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * A planted Uplink's settings rows, standing in for a real Uplink's so the
@@ -18,7 +23,7 @@ import { registerSetting } from "@ksp-gonogo/sitrep-sdk";
  * Side-effect module, imported dynamically by the probe after the host is
  * installed: `registerSetting` resolves through that host.
  */
-export const PLANTED_SETTINGS_TOPIC = "planted.settings";
+export const PLANTED_SETTINGS_TOPIC = "planted.settings" as const;
 
 const CATEGORY = "Planted Uplink";
 
@@ -29,28 +34,43 @@ const GROUP = {
   diagnostics: "Diagnostics",
 } as const;
 
-/** The payload the scenes emit, or `undefined` while the Topic is silent. */
+/** The payload the scenes emit. */
 interface PlantedSettings {
   status?: string;
   build?: string;
   frameName?: string;
   frameCentre?: string;
   frameHasApsides?: boolean;
-  toleranceMetres?: { magnitude: number; unit: string };
-  maxSteps?: { magnitude: number; unit: string };
-  windowSeconds?: { magnitude: number; unit: string };
-  historySeconds?: { magnitude: number; unit: string };
-  markersHidden?: { magnitude: number; unit: string };
+  toleranceMetres?: number;
+  maxSteps?: number;
+  windowSeconds?: number;
+  historySeconds?: number;
+  markersHidden?: number;
   logThreshold?: string;
   journaling?: boolean;
 }
 
-function settings(payload: unknown): PlantedSettings | undefined {
-  return (payload ?? undefined) as PlantedSettings | undefined;
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    /** `undefined` while the Topic is silent, which a scene uses to show every placeholder. */
+    "planted.settings": PlantedSettings | undefined;
+  }
 }
 
-const row = <T extends SettingType = "boolean">(
-  def: SettingDefinitionOf<T>,
+/**
+ * A bare number off the wire as a `Value` in `unit`. The quantities arrive as
+ * the mod sends them, unwrapped, because no unit table covers a planted Topic,
+ * so each row names its own unit.
+ */
+function asValue(unit: SitrepUnit, magnitude: number | undefined) {
+  return magnitude === undefined ? undefined : value(unit, magnitude);
+}
+
+const row = <
+  T extends SettingType = "boolean",
+  Topic extends TopicId = TopicId,
+>(
+  def: SettingDefinitionOf<T, Topic>,
 ): SettingDefinition => def as SettingDefinition;
 
 const ROWS: readonly SettingDefinition[] = [
@@ -59,7 +79,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.status,
+    select: (p) => p?.status,
     category: CATEGORY,
     label: "Status",
     description: "Whether the planted Uplink is reporting at all.",
@@ -70,7 +90,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.build,
+    select: (p) => p?.build,
     category: CATEGORY,
     label: "Build",
     screens: ["main"],
@@ -80,7 +100,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.frameName,
+    select: (p) => p?.frameName,
     category: CATEGORY,
     group: GROUP.frame,
     label: "Frame",
@@ -92,7 +112,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.frameCentre,
+    select: (p) => p?.frameCentre,
     category: CATEGORY,
     group: GROUP.frame,
     label: "Centre body",
@@ -103,7 +123,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "boolean",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.frameHasApsides,
+    select: (p) => p?.frameHasApsides,
     category: CATEGORY,
     group: GROUP.frame,
     label: "Apsides exist in this frame",
@@ -114,7 +134,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.toleranceMetres,
+    select: (p) => asValue("m", p?.toleranceMetres),
     category: CATEGORY,
     group: GROUP.prediction,
     label: "Prediction tolerance",
@@ -126,7 +146,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.maxSteps,
+    select: (p) => asValue("count", p?.maxSteps),
     category: CATEGORY,
     group: GROUP.prediction,
     label: "Prediction step limit",
@@ -138,7 +158,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.windowSeconds,
+    select: (p) => asValue("s", p?.windowSeconds),
     category: CATEGORY,
     group: GROUP.prediction,
     label: "Analysis window",
@@ -149,7 +169,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.historySeconds,
+    select: (p) => asValue("s", p?.historySeconds),
     category: CATEGORY,
     group: GROUP.history,
     label: "History length",
@@ -160,7 +180,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "number",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.markersHidden,
+    select: (p) => asValue("count", p?.markersHidden),
     category: CATEGORY,
     group: GROUP.history,
     label: "Frames hiding markers",
@@ -171,7 +191,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.logThreshold,
+    select: (p) => p?.logThreshold,
     category: CATEGORY,
     group: GROUP.diagnostics,
     label: "Log threshold",
@@ -183,7 +203,7 @@ const ROWS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "boolean",
     topic: PLANTED_SETTINGS_TOPIC,
-    select: (p) => settings(p)?.journaling,
+    select: (p) => p?.journaling,
     category: CATEGORY,
     group: GROUP.diagnostics,
     label: "Journal recording now",

@@ -24,8 +24,31 @@ import {
   readShapeRecord,
   SHAPE_RECORD_FILE,
   SHAPE_RECORD_VERSION,
+  type ShapeVerdict,
   writeShapeRecord,
 } from "./shape";
+
+/**
+ * What to do about a stale page, and it is not the obvious thing.
+ *
+ * The line here used to read "Run `gonogo-uplink docs` and commit the result",
+ * which is wrong twice on a developer's machine. It re-rasterises every picture
+ * locally, and a picture rendered on the wrong OS is the same mistake as a
+ * locally-rendered visual baseline. And `docs` empties the asset directory BEFORE
+ * it renders, so a run that throws part-way leaves the committed pictures deleted
+ * and the shape record intact, which then reads as missing assets.
+ *
+ * The prose half has no such hazard and needs no browser at all, so it is named
+ * first and separately: most stale pages are stale in their text.
+ */
+const REGENERATE_REMEDY =
+  "The prose is browserless and safe to regenerate anywhere:\n" +
+  "    pnpm uplink-pages\n\n" +
+  "  The PICTURES are regenerated on Linux, by the workflow that commits them:\n" +
+  "    gh workflow run uplink-docs.yml --ref <branch>\n\n" +
+  "  `gonogo-uplink docs` also regenerates both, on THIS machine's rasteriser, " +
+  "and it\n  empties docs/assets before it renders: a run that throws leaves the " +
+  "committed\n  pictures deleted. Recover with `git checkout -- docs/assets`.";
 
 /**
  * `gonogo-uplink`: the author's whole interface.
@@ -129,6 +152,18 @@ function parseArgs(argv: readonly string[]): Args {
         throw new Error(`unknown flag "${flag}"`);
     }
   }
+  if (args.noAssets && args.verb !== "docs") {
+    throw new Error(
+      "--no-assets only applies to docs: render writes only images",
+    );
+  }
+  if (args.noAssets && args.check) {
+    throw new Error(
+      "--no-assets and --check do not combine: the prose half of the check " +
+        "is `expectUplinkPageCurrent` in the Uplink's own test suite, and " +
+        "`docs --check` exists for the pictures.",
+    );
+  }
   return args;
 }
 
@@ -186,11 +221,6 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 
   if (args.verb === "render") {
-    if (args.noAssets) {
-      throw new Error(
-        "--no-assets is a docs option: render writes only images",
-      );
-    }
     const outDir = resolve(pkg.dir, args.out ?? "renders");
     const result = await renderUplink(pkg, {
       engine: args.engine,
@@ -210,13 +240,6 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 
   if (args.noAssets) {
-    if (args.check) {
-      throw new Error(
-        "--no-assets and --check do not combine: the prose half of the check " +
-          "is `expectUplinkPageCurrent` in the Uplink's own test suite, and " +
-          "`docs --check` exists for the pictures.",
-      );
-    }
     await writeProseOnly(pkg, args);
     return;
   }
@@ -331,7 +354,7 @@ async function main(argv: readonly string[]): Promise<void> {
     assetOut,
     differences,
   );
-  compareCommittedShapes(
+  const wholePage = compareCommittedShapes(
     resolve(pkg.dir, args.assetDir),
     shapes,
     args.engine,
@@ -342,7 +365,8 @@ async function main(argv: readonly string[]): Promise<void> {
       `gonogo-uplink docs --check: ${differences.length} difference(s) ` +
         `between the committed page and what the code says today:\n  ` +
         `${differences.join("\n  ")}\n\n` +
-        "Run `gonogo-uplink docs` and commit the result.",
+        (wholePage ? `${wholePage}\n\n` : "") +
+        REGENERATE_REMEDY,
     );
   }
   console.log("\ndocs --check: the committed page matches the code.");
@@ -417,14 +441,18 @@ interface DocsExempt {
 }
 
 async function readDocsExempt(dir: string): Promise<DocsExempt> {
+  const file = join(dir, "docs-exempt.json");
+  let parsed: unknown;
   try {
-    return JSON.parse(
-      await readFile(join(dir, "docs-exempt.json"), "utf8"),
-    ) as DocsExempt;
+    parsed = JSON.parse(await readFile(file, "utf8"));
   } catch {
     // Absent is the normal case and means "every augment must render".
     return {};
   }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${file} does not hold a JSON object.`);
+  }
+  return parsed as DocsExempt;
 }
 
 /**
@@ -495,8 +523,13 @@ async function compareText(
  * fixture deleted and its picture left behind. Rasterisation is per-engine and
  * per-OS, so byte-comparing a PNG here would fail on any machine but the one
  * that generated it, which is a gate that cries wolf and then gets turned off.
+ *
+ * Exported for the guard in `render.test.ts`. The rule was written here and read
+ * back out of the repo twice as its opposite, once in a finding that a whole
+ * Uplink's check was a coin flip on PNG bytes. A rule that only exists as prose
+ * is one the next change can reverse with nothing to say so.
  */
-async function compareAssetNames(
+export async function compareAssetNames(
   committed: string,
   generated: string,
   out: string[],
@@ -541,7 +574,7 @@ function compareCommittedShapes(
   rendered: ReadonlyMap<string, AssetShape>,
   engine: string,
   out: string[],
-): void {
+): string | undefined {
   let record: ReturnType<typeof readShapeRecord>;
   try {
     record = readShapeRecord(assetDir);
@@ -549,12 +582,12 @@ function compareCommittedShapes(
     out.push(
       `${SHAPE_RECORD_FILE}: ${err instanceof Error ? err.message : err}`,
     );
-    return;
+    return undefined;
   }
   const verdict = compareShapes(record, rendered, engine);
   if (verdict.incomparable) {
     console.warn(`\n  warning: ${SHAPE_RECORD_FILE} ${verdict.incomparable}`);
-    return;
+    return undefined;
   }
   for (const entry of verdict.stale) out.push(describeStale(entry));
   if (verdict.unrecorded.length > 0) {
@@ -564,6 +597,47 @@ function compareCommittedShapes(
         `Run \`pnpm uplink-docs\` to record them: ${verdict.unrecorded.join(", ")}`,
     );
   }
+  return wholePageRestyle(verdict, rendered.size);
+}
+
+/**
+ * Say when the whole page moved for the same reason, because that reads very
+ * differently from one widget moving.
+ *
+ * A theme token reaches every element: `tokens.css` is injected into every render
+ * page and `getComputedStyle` resolves `var()` to the final value, so one edit
+ * changes every recorded hash in every Uplink while leaving every element count
+ * and every visible string alone. The per-asset lines are each individually true
+ * and, read as a list, say nothing about which of the two happened.
+ *
+ * This is a statement about the findings rather than a diagnosis. It fires only
+ * when EVERY recorded asset is stale and NOT ONE of them moved in its tree or its
+ * text, which no widget edit produces and no kit edit fails to.
+ *
+ * Exported so `render.test.ts` can show it firing and, more to the point,
+ * NOT firing: a note that appears under every red is a note nobody reads.
+ */
+export function wholePageRestyle(
+  verdict: ShapeVerdict,
+  renderedCount: number,
+): string | undefined {
+  const recorded = renderedCount - verdict.unrecorded.length;
+  if (verdict.stale.length === 0 || verdict.stale.length !== recorded) {
+    return undefined;
+  }
+  const restyled = verdict.stale.every(
+    (entry) =>
+      entry.was.elements === entry.now.elements &&
+      entry.was.text === entry.now.text,
+  );
+  if (!restyled) return undefined;
+  return (
+    `All ${recorded} recorded asset(s) moved, and not one moved in its tree or ` +
+    "its text. That is what a kit or theme change looks like from here, not a\n" +
+    "  change to any one widget: a token reaches every element of every page at " +
+    "once. Expect it after a `packages/theme` or `packages/ui-kit` edit, and " +
+    "expect\n  the scheduled regeneration to clear it."
+  );
 }
 
 export async function run(argv: readonly string[]): Promise<number> {

@@ -331,7 +331,7 @@ const LineGraph__ThresholdMarker = styled.div`
   align-items: center;
   gap: var(--space-4, 4px);
   pointer-events: none;
-  font-size: var(--font-size-2xs, 10px);
+  font-size: var(--font-size-caption, 10px);
   font-variant-numeric: tabular-nums;
   /* Single-glyph chrome text centring against a 2px tick: the flush rung. */
   line-height: var(--line-height-flush, 1);

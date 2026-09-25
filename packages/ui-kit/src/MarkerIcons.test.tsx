@@ -47,7 +47,7 @@ describe("MarkerIcons", () => {
     expect(svg).not.toHaveAttribute("aria-hidden");
   });
 
-  it("draws at the kit's 20px default and honours size", () => {
+  it("draws at the kit's default icon size and honours size", () => {
     const { container } = render(
       <>
         <NormalIcon />
@@ -55,7 +55,10 @@ describe("MarkerIcons", () => {
       </>,
     );
     const [small] = container.querySelectorAll("svg");
-    expect(small).toHaveAttribute("width", "20");
+    /* The token rather than its 20px, so the glyph takes the coarse-pointer
+       step with the control around it. jsdom does not resolve it; that a
+       browser does is measured in iconSizeTokens.test.ts. */
+    expect(small).toHaveAttribute("width", "var(--icon-size-standalone)");
     expect(small).toHaveAttribute("viewBox", "0 0 24 24");
     expect(screen.getByTestId("big")).toHaveAttribute("height", "48");
   });

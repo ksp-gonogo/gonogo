@@ -86,7 +86,7 @@ const Wrap = styled.div`
 `;
 
 const Label = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-dim);
@@ -97,7 +97,7 @@ const Track = styled.div`
   height: 24px;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   touch-action: none;
 `;

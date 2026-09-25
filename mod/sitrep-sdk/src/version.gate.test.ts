@@ -14,9 +14,12 @@ import { SDK_VERSION } from "./index";
  */
 describe("sitrep-sdk version marker", () => {
   it("matches the package.json version (no drift)", () => {
-    const pkg = JSON.parse(
+    const pkg: unknown = JSON.parse(
       readFileSync(resolve(process.cwd(), "package.json"), "utf8"),
-    ) as { version: string };
-    expect(SDK_VERSION).toBe(pkg.version);
+    );
+    if (typeof pkg !== "object" || pkg === null) {
+      throw new Error("package.json does not hold a JSON object");
+    }
+    expect(SDK_VERSION).toBe(Reflect.get(pkg, "version"));
   });
 });

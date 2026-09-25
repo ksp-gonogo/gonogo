@@ -363,7 +363,7 @@ const Item = styled.div`
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
 `;
 
 const ReorderColumn = styled.div`
@@ -404,7 +404,7 @@ const ReorderBtn = styled.button`
 
 const Body = styled.div`
   min-width: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   color: var(--color-text-primary);
   word-wrap: break-word;
@@ -463,7 +463,7 @@ const AddRow = styled.div`
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   /* The tighter inset, and it is load-bearing at the minimum. The body scroller
      there is 105px and holds 8px of its own inset, the 35px sticky title unit,
      this box, and 12px more inset. At a 12px-a-side inset the box would be

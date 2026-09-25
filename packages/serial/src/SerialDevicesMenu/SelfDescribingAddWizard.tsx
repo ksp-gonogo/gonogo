@@ -414,13 +414,13 @@ const Wrap = styled.div`
   gap: var(--gap-section);
   padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;
 
 const Header = styled.h4`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
@@ -430,7 +430,7 @@ const Status = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-status-info-fg);
 `;
 
@@ -463,17 +463,17 @@ const PulseDot = styled.span`
 
 const ErrorBox = styled.div`
   background: var(--color-status-nogo-fg);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--space-8);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-bg);
 `;
 
 const ConflictBox = styled.div`
   background: var(--color-status-warning-bg);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--space-8);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
 `;
 

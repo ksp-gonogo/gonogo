@@ -9,6 +9,7 @@ import {
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type React from "react";
 import { Fragment } from "react";
 import { applyInstallProfile, getInstallProfile } from "./installProfile";
@@ -572,8 +573,8 @@ async function flushProviderFrame(
  */
 function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
   if (opts.defaultConfig !== undefined) return opts.defaultConfig;
-  const registered = getComponents().find(
-    (def) => (def.component as unknown as object) === opts.Widget,
+  const registered = getComponents().find((def) =>
+    Object.is(def.component, opts.Widget),
   )?.defaultConfig;
   return (registered as Cfg | undefined) ?? ({} as Cfg);
 }
@@ -629,44 +630,13 @@ export function installSizedResizeObserver(size: {
   w: number;
   h: number;
 }): () => void {
-  const previous = globalThis.ResizeObserver;
-  class SizedResizeObserver {
-    private readonly callback: ResizeObserverCallback;
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-    }
-    observe(target: Element): void {
-      // Asynchronous, like the real one: a synchronous callback would run
-      // inside the observing effect and set state during render.
-      setTimeout(() => {
-        this.callback(
-          [
-            {
-              target,
-              contentRect: {
-                width: size.w,
-                height: size.h,
-                x: 0,
-                y: 0,
-                top: 0,
-                left: 0,
-                right: size.w,
-                bottom: size.h,
-              } as DOMRectReadOnly,
-            } as ResizeObserverEntry,
-          ],
-          this as unknown as ResizeObserver,
-        );
-      }, 0);
-    }
-    unobserve(): void {}
-    disconnect(): void {}
-  }
-  globalThis.ResizeObserver =
-    SizedResizeObserver as unknown as typeof ResizeObserver;
-  return () => {
-    globalThis.ResizeObserver = previous;
-  };
+  // Asynchronous, like the real one: a synchronous callback would run inside
+  // the observing effect and set state during render.
+  return installFixedSizeResizeObserver({
+    width: size.w,
+    height: size.h,
+    deliver: "macrotask",
+  });
 }
 
 /**
@@ -841,69 +811,75 @@ export async function renderWidgetMode<
     fixture.pendingQueries,
   );
 
-  const config: Cfg = {
-    ...baselineConfig(opts),
-    ...((opts.mode.config ?? {}) as Cfg),
-  };
-  const instanceId = opts.instanceId ?? "snap";
-  const {
-    Wrap,
-    providerMounted,
-    emitVesselParts,
-    emitVesselControl,
-    replayStreamBlock,
-    dropTransport,
-    emitFrame,
-  } = buildStreamWrap(opts.fixture, opts.profile);
-  beginPhase("render");
-  const { container } = render(
-    <Wrap>
-      <DashboardItemContext.Provider value={{ instanceId }}>
-        <WidgetContributions Widget={opts.Widget}>
-          <opts.Widget
-            config={config}
-            id={instanceId}
-            w={opts.mode.w}
-            h={opts.mode.h}
-          />
-        </WidgetContributions>
-      </DashboardItemContext.Provider>
-    </Wrap>,
-  );
+  try {
+    const config: Cfg = {
+      ...baselineConfig(opts),
+      ...((opts.mode.config ?? {}) as Cfg),
+    };
+    const instanceId = opts.instanceId ?? "snap";
+    const {
+      Wrap,
+      providerMounted,
+      emitVesselParts,
+      emitVesselControl,
+      replayStreamBlock,
+      dropTransport,
+      emitFrame,
+    } = buildStreamWrap(opts.fixture, opts.profile);
+    beginPhase("render");
+    const { container } = render(
+      <Wrap>
+        <DashboardItemContext.Provider value={{ instanceId }}>
+          <WidgetContributions Widget={opts.Widget}>
+            <opts.Widget
+              config={config}
+              id={instanceId}
+              w={opts.mode.w}
+              h={opts.mode.h}
+            />
+          </WidgetContributions>
+        </DashboardItemContext.Provider>
+      </Wrap>,
+    );
 
-  beginPhase("seed-emits");
-  act(() => {
-    if (!fixtureEmitsMuted()) {
-      for (const key of fixtureKeys) {
-        source.emit(key, opts.fixture[key]);
+    beginPhase("seed-emits");
+    act(() => {
+      if (!fixtureEmitsMuted()) {
+        for (const key of fixtureKeys) {
+          source.emit(key, opts.fixture[key]);
+        }
       }
-    }
-    emitVesselParts();
-    emitVesselControl();
-  });
-  beginPhase("replay-stream");
-  await act(async () => {
-    await replayStreamBlock();
-  });
-  beginPhase("provider-frame");
-  await flushProviderFrame(providerMounted, emitFrame);
+      emitVesselParts();
+      emitVesselControl();
+    });
+    beginPhase("replay-stream");
+    await act(async () => {
+      await replayStreamBlock();
+    });
+    beginPhase("provider-frame");
+    await flushProviderFrame(providerMounted, emitFrame);
 
-  // Drain the async useDataSeries backfill the testing-library way (see
-  // snapshotWidgetMode) so a11y assertions run against a settled tree.
-  beginPhase("backfill-wait");
-  await waitFor(() => {
-    if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
-  });
-  beginPhase("flush-resize-observers");
-  await flushResizeObservers();
-  beginPhase("stops-arriving");
-  dropTransport();
-  await flushProviderFrame(providerMounted, emitFrame);
-  beginPhase("done");
-  disarm();
-  restoreResizeObserver();
-
-  return { container, teardown: () => teardownMockDataSource(fixture) };
+    // Drain the async useDataSeries backfill the testing-library way (see
+    // snapshotWidgetMode) so a11y assertions run against a settled tree.
+    beginPhase("backfill-wait");
+    await waitFor(() => {
+      if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
+    });
+    beginPhase("flush-resize-observers");
+    await flushResizeObservers();
+    beginPhase("stops-arriving");
+    dropTransport();
+    await flushProviderFrame(providerMounted, emitFrame);
+    beginPhase("done");
+    return { container, teardown: () => teardownMockDataSource(fixture) };
+  } catch (err) {
+    // A caller that never receives the teardown cannot run it.
+    teardownMockDataSource(fixture);
+    throw err;
+  } finally {
+    disarm();
+    restoreResizeObserver();
+  }
 }
 
 /**

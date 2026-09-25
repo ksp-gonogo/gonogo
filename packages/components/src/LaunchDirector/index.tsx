@@ -11,7 +11,6 @@ import {
   useCommand,
   useStream,
   useViewUt,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
   KSP_EDITOR_FACILITY_NAMES,
@@ -40,11 +39,7 @@ import {
   netFundsPerDay,
   reportsFundsDrain,
 } from "../shared/FundsDrain";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 type LaunchDirectorConfig = Record<string, never>;
 
@@ -330,7 +325,8 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: LaunchSiteEntry[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
@@ -396,19 +392,20 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: SavedShip[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
     if (!name) continue;
     out.push({
       name,
-      partCount: magnitudeOr(e.partCount as Quantityish, 0),
-      totalMass: magnitudeOr(e.totalMass as Quantityish, 0),
+      partCount: magnitudeOr(asQuantityish(e.partCount), 0),
+      totalMass: magnitudeOr(asQuantityish(e.totalMass), 0),
       facility: typeof e.facility === "string" ? e.facility : "",
       facilityOrdinal:
         typeof e.facilityOrdinal === "number" ? e.facilityOrdinal : null,
-      requiresFunds: magnitudeOr(e.requiresFunds as Quantityish, 0),
+      requiresFunds: magnitudeOr(asQuantityish(e.requiresFunds), 0),
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
         : [],
@@ -421,7 +418,8 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: CrewMember[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
@@ -429,7 +427,7 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
     out.push({
       name,
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOr(e.experienceLevel as Quantityish, 0),
+      experienceLevel: magnitudeOr(asQuantityish(e.experienceLevel), 0),
       available: typeof e.available === "boolean" ? e.available : null,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
@@ -529,11 +527,8 @@ function LaunchDirectorComponent({
   // In-flight context: populated when scene === "Flight".
   // The craft's name is set in the editor and changes nowhere else, so the last
   // one received still names the vessel that is flying.
-  const vesselName = stillTrue(
-    useTelemetry("vessel.identity"),
-    undefined,
-  )?.name;
-  const missionTime = useStream<VesselState>("vessel.state")?.met;
+  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const vesselName = identity?.name;
   /*
    * The pad readout's altitude, off `vessel.flight`'s own field reading. The
    * derived copy it used to read went `null` on rails, so a craft that made
@@ -589,6 +584,12 @@ function LaunchDirectorComponent({
   // guard tested it with `typeof === "number"`, which answers NO for a wrapped
   // value and would have silently stopped recognising a post-dated snapshot.
   const viewUt = useViewUt();
+  // Elapsed mission time is the view clock measured from liftoff, absent until
+  // the clamps release: `launchUt` is null until then.
+  const missionTime =
+    identity?.launchUt == null || viewUt === undefined
+      ? undefined
+      : (magnitudeOf(viewUt.minus(identity.launchUt)) ?? undefined);
   // `target.available` ships the switcher's real roster: the producer
   // (TargetProvider) already excludes the active vessel itself, so no extra
   // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
@@ -710,7 +711,7 @@ function LaunchDirectorComponent({
               <div
                 role="status"
                 style={{
-                  fontSize: "var(--font-size-xs)",
+                  fontSize: "var(--font-size-compact)",
                   color: "var(--color-text-faint)",
                 }}
               >
@@ -760,7 +761,7 @@ function LaunchDirectorComponent({
               role="status"
               aria-live="polite"
               style={{
-                fontSize: "var(--font-size-xs)",
+                fontSize: "var(--font-size-compact)",
                 color: "var(--color-text-faint)",
               }}
             >
@@ -1589,7 +1590,7 @@ function ArmedButton({
 }
 
 const SectionLabel = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
@@ -1619,7 +1620,7 @@ const PadRowButton = styled.button<{ $selected: boolean }>`
   border: 1px solid
     ${(p) =>
       p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
@@ -1638,20 +1639,20 @@ const PadMeta = styled.span`
 `;
 
 const PadName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const PadDetails = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
 /* Occupied reads as the live state, unreported as a caution: an operator who
    skims the colour must not read silence as an empty pad. */
 const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   flex-shrink: 0;
   text-align: right;
   color: ${(p) =>
@@ -1666,7 +1667,7 @@ const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
    step down in size, so a space centre with six pads still reads as a list. */
 const PadAside = styled.div`
   padding-left: var(--space-8);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   &:empty {
     display: none;
   }
@@ -1707,7 +1708,7 @@ const PadColumn = styled.div`
 `;
 
 const EmptyNote = styled.div`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
@@ -1737,7 +1738,7 @@ const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
   border: 1px solid
     ${(p) =>
       p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: ${(p) => (p.$blocked ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$blocked ? 0.55 : 1)};
   text-align: left;
@@ -1753,13 +1754,13 @@ const ShipMeta = styled.span`
 `;
 
 const ShipName = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
 `;
 
 const ShipDetails = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -1770,13 +1771,13 @@ const ShipCost = styled.span`
 `;
 
 const CostTag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
 
 const BlockedTag = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-nogo-fg);
   font-variant-numeric: tabular-nums;
 `;
@@ -1832,7 +1833,7 @@ const CrewChip = styled.button<{
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
   text-align: left;
@@ -1840,12 +1841,12 @@ const CrewChip = styled.button<{
 `;
 
 const CrewName = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 600;
 `;
 
 const CrewTrait = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: inherit;
   opacity: 0.7;
   letter-spacing: 0.04em;
@@ -1886,12 +1887,12 @@ const FlightStatRow = styled.div`
      clipping the digits off the edge. */
   flex-wrap: wrap;
   padding: var(--inset-surface);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-panel);
 `;
 
 const StatLabel = styled.dt`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -1914,9 +1915,9 @@ const StatValue = styled.dd`
 const CrashChip = styled.div`
   background: var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-chip);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   letter-spacing: 0.04em;
 `;
 
@@ -1937,11 +1938,11 @@ const DrainReadout = styled.span`
 `;
 
 const armButtonBase = `
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--inset-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   font-family: inherit;
   border: 1px solid var(--color-surface-raised);
@@ -2003,7 +2004,7 @@ const VesselSwitchPanel = styled.div`
   max-height: 180px;
   overflow-y: auto;
   border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-app);
   padding: var(--space-2);
 `;
@@ -2017,11 +2018,11 @@ const VesselSwitchRow = styled.button`
   background: transparent;
   color: var(--color-text-primary);
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 
   &:hover {
     background: var(--color-surface-panel);
@@ -2049,7 +2050,7 @@ const VesselSwitchName = styled.span`
 `;
 
 const VesselSwitchMeta = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   color: currentColor;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -2057,7 +2058,7 @@ const VesselSwitchMeta = styled.span`
 `;
 
 const VesselSwitchDistance = styled.span`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   margin-right: var(--space-4);
@@ -2065,7 +2066,7 @@ const VesselSwitchDistance = styled.span`
 
 const VesselSwitchHint = styled.div`
   padding: var(--inset-surface);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
@@ -2075,7 +2076,7 @@ const VesselSwitchHint = styled.div`
 const SpaceObjectToggle = styled.button`
   align-self: flex-start;
   margin: var(--space-2) var(--space-2) var(--space-4);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);
@@ -2151,7 +2152,7 @@ registerComponent<LaunchDirectorConfig>({
     "career.status.economy.subsidyPerDay",
     "career.status.economy.upkeepPerDay",
     "vessel.identity.name",
-    "vessel.state.met",
+    "vessel.identity.launchUt",
     "vessel.flight.altitudeAsl",
     "ksp.revertAvailability.canRevertToLaunch",
     "ksp.revertAvailability.canRevertToEditor",

@@ -15,6 +15,15 @@ function frame(
   return { kind, targetFrameSelected } as ControlFrame;
 }
 
+/**
+ * A frame as a mod AHEAD of this client reports it: a kind no
+ * `ControlFrameKind` names, which the compiler is right to refuse and which is
+ * the only way such a frame reaches the label.
+ */
+function asReportedFrame(frame: { kind: number }): ControlFrame {
+  return frame as ControlFrame;
+}
+
 describe("what the frame in force does to a readout", () => {
   it("keeps a length a length in the centred frames", () => {
     expect(lengthsAreLengths(frame(ControlFrameKind.BodyCentredInertial))).toBe(
@@ -141,12 +150,7 @@ describe("naming the frame in force", () => {
   it("renders an unnamed kind as the kind rather than the nearest neighbour", () => {
     // A wrong frame name is a wrong claim about what every coordinate on the
     // board means, so an unknown one reads as obviously incomplete.
-    // Through `unknown`, because no `ControlFrameKind` is 99 and the compiler
-    // is right about that: the value models a mod that is ahead of this client,
-    // which is the only way such a frame reaches the label.
-    expect(controlFrameLabel({ kind: 99 } as unknown as ControlFrame)).toBe(
-      "Frame 99",
-    );
+    expect(controlFrameLabel(asReportedFrame({ kind: 99 }))).toBe("Frame 99");
   });
 
   it("names nothing when no frame has been reported", () => {

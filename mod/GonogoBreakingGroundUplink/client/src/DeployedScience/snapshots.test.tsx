@@ -90,9 +90,11 @@ const SCENARIOS: Record<string, Scenario> = {
         scienceCompletedPercentage: 50,
         scienceValue: 20,
         scienceLimit: 40,
-        // "NoPower" was here, a string KSP has never emitted; the scenario's own
-        // comment says this base is meant to be unpowered, and under the old
-        // string comparison it rendered as a brownout instead.
+        /*
+         * "NoPower" was here, a string KSP has never emitted; the scenario's own
+         * comment says this base is meant to be unpowered, and under the old
+         * string comparison it rendered as a brownout instead.
+         */
         powerState: "Unpowered",
         power: DeployedPowerState.Unpowered,
         // A genuine shortfall, which is what unpowered looks like on the

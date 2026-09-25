@@ -25,7 +25,7 @@ function cliKey(w: { widgetId: string; label?: string }): string {
 
 function usage(): never {
   console.error(
-    "Usage: render-widget <widget-id> | --all | --list [--engine chromium|firefox|webkit] [--profile <install-id>]\n" +
+    "Usage: render-widget <widget-id> | --all | --list [--engine chromium|firefox|webkit] [--profile <install-id>] [--fixture <scene>] [--tile]\n" +
       "       render-widget --screen <screen-id> | --screens\n" +
       "       Known widget ids: " +
       listWidgets().map(cliKey).join(", ") +
@@ -54,14 +54,28 @@ async function main(): Promise<void> {
   const profileFlag = args.indexOf("--profile");
   const profile = profileFlag !== -1 ? args[profileFlag + 1] : undefined;
   if (profileFlag !== -1 && !profile) usage();
+  const tile = args.includes("--tile");
+  const fixtureFlag = args.indexOf("--fixture");
+  const fixture = fixtureFlag !== -1 ? args[fixtureFlag + 1] : undefined;
+  if (fixtureFlag !== -1 && !fixture) usage();
   const renderOpts = {
     engine,
     profile,
-    outSuffix: engine === "chromium" ? "" : `--${engine}`,
-    // Review renders show the WHOLE widget, uncropped, grow past the tile
-    // height so nothing is hidden below the fold. Harness-wide (every widget),
-    // distinct from the visual gate which keeps its per-tile crops.
-    fullContent: true,
+    fixture,
+    outSuffix: tile
+      ? `--tile${engine === "chromium" ? "" : `--${engine}`}`
+      : engine === "chromium"
+        ? ""
+        : `--${engine}`,
+    /*
+     * Review renders show the WHOLE widget, grown past the tile height so
+     * nothing below the fold is lost. That same growth hides what a real grid
+     * cell cuts off, so `--tile` renders at the tile's own size instead: the
+     * crop the operator actually sees, and the only one that can show content
+     * escaping the tile.
+     */
+    fullContent: !tile,
+    gridCell: tile,
   };
 
   if (args.includes("--list")) {

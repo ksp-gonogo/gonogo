@@ -783,7 +783,7 @@ const SettingReadOnlyLine = styled.div<{ $indented?: boolean }>`
    heading order a screen reader walks matches the nesting it is shown. */
 const GroupTitle = styled.h4`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -803,18 +803,18 @@ const RowText = styled.div`
 
 const RowLabel = styled.span`
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
 `;
 
 const RowDesc = styled.span`
   color: var(--color-text-dim);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   max-width: 32em;
 `;
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-16);
   text-align: center;
 `;
@@ -853,7 +853,7 @@ const UplinkItem = styled.li`
 `;
 
 const UplinkVersion = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   white-space: nowrap;
 `;
@@ -873,14 +873,14 @@ const HealthIndicator = styled.span<{ $state: UplinkHealthStateName }>`
 `;
 
 const HealthLabel = styled.span<{ $state: UplinkHealthStateName }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: ${({ $state }) => uplinkHealthColor[$state]};
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
 
 const UplinkDetail = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   margin-left: var(--space-16);
   /* A rich self-reported detail can be long or multi-line (an uplink that offers
@@ -898,7 +898,7 @@ const UplinkFacts = styled.dl`
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-2) var(--space-8);
   margin: 0 0 0 var(--space-16);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
 `;
 
 const UplinkFactLabel = styled.dt`
@@ -931,7 +931,7 @@ const LoaderIndicator = styled.span<{ $status: UplinkLoadStatus }>`
 `;
 
 const LoaderLabel = styled.span<{ $status: UplinkLoadStatus }>`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: ${({ $status }) => loaderStatusColor[$status]};
   text-transform: uppercase;
   letter-spacing: 0.05em;

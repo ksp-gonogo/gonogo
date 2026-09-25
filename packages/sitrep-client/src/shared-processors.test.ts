@@ -1,3 +1,4 @@
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   CELESTIAL_FACTS,
   type CelestialFacts,
@@ -22,6 +23,20 @@ import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
+
+/**
+ * The payload a processor computed, off the {@link Reading} it answers with.
+ *
+ * A processor whose deps are readings answers with a reading of its own, so the
+ * derived record sits one level in. Every assertion below is about WHAT was
+ * derived rather than about how current it is, and the currency has its own
+ * tests, so this reaches the value on whichever arm carries one.
+ */
+function derived<R>(id: string): R | undefined {
+  const reading = getProcessorValue<Reading<R>>(id);
+  if (reading === undefined) return undefined;
+  return "value" in reading ? reading.value : undefined;
+}
 
 /**
  * The two shared Processors the SDK publishes, exercised against the REAL
@@ -235,7 +250,7 @@ describe("CELESTIAL_FACTS", () => {
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
 
-    const facts = getProcessorValue<CelestialFacts>(CELESTIAL_FACTS.id);
+    const facts = derived<CelestialFacts>(CELESTIAL_FACTS.id);
     expect(facts?.bodies).toHaveLength(3);
     const kerbin = facts?.bodies[1];
     expect(kerbin?.referenceBody).toBe("Kerbol");
@@ -272,8 +287,7 @@ describe("CELESTIAL_FACTS", () => {
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
 
-    const kerbol = getProcessorValue<CelestialFacts>(CELESTIAL_FACTS.id)
-      ?.bodies[0];
+    const kerbol = derived<CelestialFacts>(CELESTIAL_FACTS.id)?.bodies[0];
     expect(kerbol?.name).toBe("Kerbol");
     expect(kerbol?.hillSphere).toBeNull();
     expect(kerbol?.mass).toBeNull();
@@ -335,7 +349,7 @@ describe("CELESTIAL_FACTS", () => {
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
 
-    const facts = getProcessorValue<CelestialFacts>(CELESTIAL_FACTS.id);
+    const facts = derived<CelestialFacts>(CELESTIAL_FACTS.id);
     expect(facts?.nameByIndex).toEqual({ 0: "Kerbol", 1: "Kerbin", 2: "Mun" });
     expect(facts?.indexByName).toEqual({ Kerbol: 0, Kerbin: 1, Mun: 2 });
 
@@ -349,9 +363,7 @@ describe("CELESTIAL_FACTS", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(
-      getProcessorValue<CelestialFacts>(CELESTIAL_FACTS.id)?.bodies,
-    ).toHaveLength(3);
+    expect(derived<CelestialFacts>(CELESTIAL_FACTS.id)?.bodies).toHaveLength(3);
 
     off();
   });
@@ -360,7 +372,7 @@ describe("CELESTIAL_FACTS", () => {
     const off = activateProcessor(CELESTIAL_FACTS.id);
     store.beginFrame();
 
-    const facts = getProcessorValue<CelestialFacts>(CELESTIAL_FACTS.id);
+    const facts = derived<CelestialFacts>(CELESTIAL_FACTS.id);
     expect(facts?.bodies).toEqual([]);
     expect(facts?.nameByIndex).toEqual({});
 
@@ -433,7 +445,7 @@ describe("DELTA_V_BUDGET", () => {
     ingestCraft();
     store.beginFrame();
 
-    const budget = getProcessorValue<DeltaVBudget>(DELTA_V_BUDGET.id);
+    const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
     // The rows sum to 3500 here only because the fixture is consistent; what
     // matters is WHICH number is reported. `dv.stages` is OperatingStageInfo and
     // `dv.summary` is accumulated over WorkingStageInfo, so in flight the two
@@ -451,9 +463,9 @@ describe("DELTA_V_BUDGET", () => {
     ingestCraft();
     store.beginFrame();
 
-    const decouplerOnly = getProcessorValue<DeltaVBudget>(
-      DELTA_V_BUDGET.id,
-    )?.stages.find((s) => s.stage === 0);
+    const decouplerOnly = derived<DeltaVBudget>(DELTA_V_BUDGET.id)?.stages.find(
+      (s) => s.stage === 0,
+    );
     for (const figure of [
       decouplerOnly?.deltaVVac,
       decouplerOnly?.deltaVASL,
@@ -475,7 +487,7 @@ describe("DELTA_V_BUDGET", () => {
     ingestCraft();
     store.beginFrame();
 
-    const budget = getProcessorValue<DeltaVBudget>(DELTA_V_BUDGET.id);
+    const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
     expect(budget?.activeStage?.stage).toBe(1);
     expect(budget?.activeStage?.deltaVActual).toBe(1600);
 
@@ -489,7 +501,7 @@ describe("DELTA_V_BUDGET", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const budget = getProcessorValue<DeltaVBudget>(DELTA_V_BUDGET.id);
+    const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
     // Carried, never withheld: a number that only falls by burning is still the
     // number, and blanking it is what re-enabled ManeuverPlanner's commit.
     expect(budget?.totalVac).toEqual(value("m/s", 3500));
@@ -504,7 +516,7 @@ describe("DELTA_V_BUDGET", () => {
     const off = activateProcessor(DELTA_V_BUDGET.id);
     store.beginFrame();
 
-    const budget = getProcessorValue<DeltaVBudget>(DELTA_V_BUDGET.id);
+    const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
     expect(budget?.totalVac).toBeNull();
     expect(budget?.stages).toEqual([]);
     expect(budget?.activeStage).toBeNull();
@@ -519,7 +531,7 @@ describe("DELTA_V_BUDGET", () => {
     store.ingest("dv.summary", point(0, null));
     store.beginFrame();
 
-    const budget = getProcessorValue<DeltaVBudget>(DELTA_V_BUDGET.id);
+    const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
     expect(budget?.budget.state).toBe("absent");
     expect(budget?.budget.confirmedAbsent).toBe(true);
     expect(budget?.totalVac).toBeNull();

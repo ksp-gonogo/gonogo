@@ -91,6 +91,11 @@ export {
   CONTRACT_MINOR,
   EXTENSION_API_VERSION,
 } from "./compat-versions";
+// The contract's own enums as value-to-name tables and closed name unions,
+// the sibling of `ksp-enum-names` below. A widget resolving an ordinal it read
+// off the wire needs them, and a table it typed itself is how a name no build
+// emits comes to compile.
+export * from "./contract-enum-names";
 export {
   type ControlChannelHandle,
   type ControlChannelId,
@@ -124,8 +129,6 @@ export {
   type DeclaredDelayRoles,
   type DelayLane,
   delayLaneOf,
-  type GeneratedHeldAtHomeTopic,
-  type GeneratedTrueNowTopic,
   type HeldAtHomeTopic,
   isHeldAtHomeTopic,
   isTrueNowTopic,
@@ -173,7 +176,7 @@ export {
   type ProviderExtensions,
 } from "./extensions";
 // The buffered-recording subsystem: wraps a live `DataSource`, persists every
-// sample into a `Store` keyed by inferred flight, and answers columnar range
+// sample into a `FlightStore` keyed by inferred flight, and answers columnar range
 // queries. An Uplink's tests build one to assert what its widgets read, and
 // `data` is `private: true`, so the harness they needed was unbuildable outside
 // this repo. Its transitive imports were this package and itself all along.
@@ -236,6 +239,7 @@ export * from "./ksp-enum-names";
 // The magnitude unwrap, beside `Value` because that is what it unwraps.
 // ui-kit re-exports these three, so no call site moved.
 export {
+  asQuantityish,
   magnitudeOf,
   magnitudeOr,
   type Quantityish,
@@ -287,7 +291,6 @@ export * from "./reading";
 export {
   type GeneratedReckonableInput,
   type GeneratedReckonableValue,
-  type GeneratedReckoningBasis,
   isReckonableTopic,
   type ReckonableFields,
   type ReckonableTopic,
@@ -514,9 +517,7 @@ export {
   vectorMagnitude,
 } from "./unit-system";
 export {
-  isPluralShape,
   type KnownSitrepUnit,
-  providerExtensionShapes,
   registerProviderExtensionShape,
   registerTopicUnits,
   registerTypeUnits,
@@ -524,7 +525,6 @@ export {
   type SitrepUnit,
   shapesForTopic,
   shapesForType,
-  shapeTypeName,
   type UnitsByField,
   unitOf,
   unitOfTypeField,

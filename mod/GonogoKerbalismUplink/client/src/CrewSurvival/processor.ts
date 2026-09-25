@@ -1,4 +1,9 @@
-import type { Value, VesselCrew } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Reading,
+  TopicReading,
+  Value,
+  VesselCrew,
+} from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";
 import type {
   KerbalismCrewEntry,
@@ -150,7 +155,7 @@ export function ruleFraction(rule: KerbalismCrewRule): number | null {
   // Null rather than 0 on either half. A rule whose accumulator or whose
   // fatal threshold never arrived has no position on the toward-fatal scale,
   // and 0 on that scale is the reading that says the crew is fine.
-  const accumulated = rule.value;
+  const accumulated = rule.problem;
   const threshold = rule.fatalThreshold;
   // `== null`: both are `double?` on the contract and the wire keeps the key,
   // so "never arrived" reaches here as an explicit null rather than as absence.
@@ -238,10 +243,15 @@ export function deriveCrewSurvival(
 /**
  * `kerbalism:crew-survival`. The owner-stamped Processor handle. Import it
  * to consume the derivation, never re-declare it.
+ *
+ * `kerbalism.crew` is taken as a READING, so the derivation answers with its
+ * currency and a display can say when a death clock is a held one. Every
+ * figure here comes off that one Topic; `vessel.crew` supplies only names and
+ * order, so its currency is not the answer's and it stays a bare dep.
  */
 export const CREW_SURVIVAL = KERBALISM.registerProcessor({
   id: "crew-survival",
-  deps: ["vessel.crew", "kerbalism.crew"] as const,
+  deps: ["vessel.crew", { reading: "kerbalism.crew" }] as const,
   // Explicitly typed (rather than relying on inference through the sdk
   // facade's intentionally loose `compute: (values: any) => R` leaf
   // signature, see registerProcessor's own doc comment): an `any`-typed
@@ -251,11 +261,36 @@ export const CREW_SURVIVAL = KERBALISM.registerProcessor({
   compute: (
     [crew, kerbals]: readonly [
       VesselCrew | undefined,
-      KerbalismCrewEntry[] | undefined,
+      TopicReading<KerbalismCrewEntry[]>,
     ],
     // The frame's frozen view time, which is what turns the wire's death-clock
     // INSTANT into a remaining duration. Reaching for a wall clock here would
     // let two readouts in one frame disagree about the same deadline.
     frame: { viewUt: number },
-  ): CrewSurvival => deriveCrewSurvival(crew, kerbals, frame.viewUt),
+  ): CrewSurvival =>
+    deriveCrewSurvival(
+      crew,
+      kerbals.state === "observed" || kerbals.state === "stale"
+        ? kerbals.value
+        : undefined,
+      frame.viewUt,
+    ),
 });
+
+/**
+ * The survival figures a {@link CREW_SURVIVAL} answer carries, and whether
+ * they are held rather than current. `undefined` where there are none to draw.
+ *
+ * A held answer is still drawn: it is the last real one, and every display of
+ * it says it is held rather than letting it pass for the situation now.
+ */
+export function survivalFrom(
+  reading: Reading<CrewSurvival> | undefined,
+): { survival: CrewSurvival; held: boolean } | undefined {
+  if (reading?.state !== "observed" && reading?.state !== "stale") {
+    return undefined;
+  }
+  const survival = reading.value;
+  if (survival === undefined) return undefined;
+  return { survival, held: reading.state === "stale" };
+}

@@ -289,8 +289,13 @@ export function ShipDiagram({
             <Meter
               key={`meter-${m.resource}`}
               label={m.displayName}
-              value={value("units", m.amount)}
-              capacity={m.capacity > 0 ? value("units", m.capacity) : null}
+              /* Handed over as they arrived. A contributor may send the whole
+                 reading, and `Meter` is what marks a held figure and places a
+                 band; minting a bare quantity here would strip both. A
+                 non-positive capacity is the primitive's own case too: it
+                 draws the absent form rather than a full bar. */
+              value={m.amount}
+              capacity={m.capacity}
               fillColor={resourceColor(m.resource)}
               style={
                 m.status
@@ -396,12 +401,12 @@ const RESET_BUTTON: CSSProperties = {
   // Off the app z-index ladder: local ordering inside Root, paired with the
   // Tooltip's 20 below. Only the relative order matters.
   zIndex: 10,
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   padding: "var(--inset-control)",
   background: "var(--color-surface-raised)",
   color: "var(--color-status-go-fg)",
   border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   textDecoration: "none",
 };
 
@@ -413,9 +418,8 @@ const MENU_HOST: CSSProperties = {
   // the menu: `position: fixed` makes this host its own stacking context, so a
   // rung declared inside it is trapped there, and any widget's own local
   // `z-index` (the ship diagram's svg carries 1) then paints over the menu.
-  // Held as the token rather than its value so the ladder stays stated once;
-  // `zIndex` is typed as a number, hence the assertion to pass the var through.
-  zIndex: "var(--z-dropdown, 200)" as unknown as CSSProperties["zIndex"],
+  // Held as the token rather than its value so the ladder stays stated once.
+  zIndex: "var(--z-dropdown, 200)",
 };
 
 // Positioning is the host's job now, and so is the rung. Static rather than the
@@ -427,10 +431,10 @@ const TOOLTIP: CSSProperties = {
   position: "absolute",
   background: "var(--color-surface-sunken)",
   color: "var(--color-text-primary)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   padding: "var(--inset-surface)",
   border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-xs)",
+  borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   minWidth: "140px",
   // Off the app z-index ladder: the upper half of the local pair with

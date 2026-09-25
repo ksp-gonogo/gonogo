@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -121,16 +122,16 @@ describe("ShipDiagram", () => {
             partId: "2",
             resource: "LiquidFuel",
             displayName: "LiquidFuel",
-            amount: 90,
-            capacity: 180,
+            amount: value("units", 90),
+            capacity: value("units", 180),
             status: null,
           },
           {
             partId: "2",
             resource: "Oxidizer",
             displayName: "Oxidizer",
-            amount: 100,
-            capacity: 220,
+            amount: value("units", 100),
+            capacity: value("units", 220),
             status: "low" as const,
           },
         ],
@@ -177,8 +178,8 @@ describe("ShipDiagram", () => {
             partId: "2",
             resource: "LiquidFuel",
             displayName: "LiquidFuel",
-            amount: 90,
-            capacity: 180,
+            amount: value("units", 90),
+            capacity: value("units", 180),
             status: null,
           },
         ],

@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { focusRing } from "../focusRing";
 import { type RailTags, railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
@@ -150,7 +151,7 @@ const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   gap: var(--space-8, 8px);
   padding: var(--space-6, 6px) var(--space-8, 8px);
   border: 1px solid ${({ $tone }) => toneBg($tone)};
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-regular, 4px);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 18%, var(--color-surface-raised))`};
   color: var(--color-text-primary);
@@ -170,7 +171,7 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   font-weight: 700;
   color: ${({ $tone }) => toneFg($tone)};
   border: 1px solid ${({ $tone }) => toneBg($tone)};
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
 `;
@@ -180,7 +181,7 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
 const CommandOutcomeList__Label = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   align-self: center;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   font-weight: 700;
   color: ${({ $tone }) => toneFg($tone)};
 `;
@@ -188,7 +189,7 @@ const CommandOutcomeList__Label = styled.span<{ $tone: OutcomeTone }>`
 const CommandOutcomeList__Text = styled.span`
   flex: 1 1 auto;
   min-width: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   /* Wraps, never truncates: the numbers are at the end of the sentence. */
   overflow-wrap: anywhere;
@@ -209,8 +210,5 @@ const CommandOutcomeList__Dismiss = styled.button`
   &:focus-visible {
     color: var(--color-text-primary);
   }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;

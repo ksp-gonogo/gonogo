@@ -22,6 +22,10 @@ import {
   scanBanners,
 } from "./banner-comments.matcher";
 import {
+  type BaseExports,
+  baseCounts,
+  baseNumber,
+  baseNumberFields,
   ratchetBaseRef,
   ratchetRepoRoot,
   sourceAtRatchetBase,
@@ -58,6 +62,13 @@ const RESULT = scanBanners();
 
 /** Rule characters assembled at runtime, so no literal below is itself a banner. */
 const RULE = "-".repeat(3);
+
+/** The base's `SECTIONED_CEILINGS`, when it carried both counts. */
+function baseSectionedCeilings(
+  lists: BaseExports,
+): { files: number; banners: number } | undefined {
+  return baseNumberFields(lists, "SECTIONED_CEILINGS", ["files", "banners"]);
+}
 
 describe("banner comments", () => {
   /**
@@ -401,7 +412,7 @@ describe("banner comments", () => {
       sha: string;
       lists: Record<string, unknown>;
     }): { declared: false } | { declared: true; before: number } {
-      const was = base.lists.MATCHER_REVISION as number | undefined;
+      const was = baseNumber(base.lists, "MATCHER_REVISION");
       if (was === MATCHER_REVISION) return { declared: false };
       // An allowlist predating the constant is revision 1 by definition.
       const before = was ?? 1;
@@ -447,9 +458,9 @@ describe("banner comments", () => {
       // the matcher's new vision and to nothing a contributor wrote.
       const offenders = regrade(
         old.bannersIn as typeof bannersIn,
-        (base.lists.BANNER_COMMENT_DEBT as Record<string, number>) ?? {},
-        (base.lists.SCHEME_MIN as number) ?? SCHEME_MIN,
-        base.lists.SECTIONED_CEILINGS as { files: number; banners: number },
+        baseCounts(base.lists, "BANNER_COMMENT_DEBT") ?? {},
+        baseNumber(base.lists, "SCHEME_MIN") ?? SCHEME_MIN,
+        baseSectionedCeilings(base.lists) ?? SECTIONED_CEILINGS,
       );
       expect(
         offenders,
@@ -527,9 +538,7 @@ describe("banner comments", () => {
       const at = baseAllowlist();
       if (!at) return;
       if (reseed(at).declared) return;
-      const before = at.lists.BANNER_COMMENT_DEBT as
-        | Record<string, number>
-        | undefined;
+      const before = baseCounts(at.lists, "BANNER_COMMENT_DEBT");
       if (!before) return;
       expect(
         additions(BANNER_COMMENT_DEBT, before),
@@ -546,9 +555,7 @@ describe("banner comments", () => {
       const at = baseAllowlist();
       if (!at) return;
       if (reseed(at).declared) return;
-      const before = at.lists.SECTIONED_CEILINGS as
-        | { files: number; banners: number }
-        | undefined;
+      const before = baseSectionedCeilings(at.lists);
       if (!before) return;
       const raised: string[] = [];
       if (SECTIONED_CEILINGS.files > before.files) {

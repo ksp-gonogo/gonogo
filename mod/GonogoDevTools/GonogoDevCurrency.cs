@@ -141,40 +141,14 @@ namespace Gonogo.DevTools
     /// production default), this addon does nothing at all.</para>
     ///
     /// <c>once: false</c> re-instantiates this every time the flight scene
-    /// loads. <see cref="_lastAppliedId"/> is <b>static</b> so a request is
-    /// applied once per KSP process even across scene reloads, and
-    /// <see cref="_stampPath"/> carries the same id ACROSS processes so a request
-    /// cfg left on disk does not silently re-award on the next KSP start.
+    /// loads. <see cref="DevRequestLedger"/> applies a request once across scene
+    /// reloads AND restarts, so a request cfg left on disk does not silently re-award
+    /// on the next KSP start, and refuses one written before the running session.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Flight, once: false)]
     public sealed class GonogoDevCurrency : MonoBehaviour
     {
         private const string LogPrefix = "[GonogoDevCurrency] ";
-
-        /// <summary>Process-wide last-applied request id. Requests whose id
-        /// matches this are ignored, so writing the same file twice (or a scene
-        /// reload re-reading it) never re-awards.</summary>
-        private static string? _lastAppliedId;
-
-        /// <summary>
-        /// The last-applied id as last STAMPED to disk, so the guard above survives
-        /// the process it was set in.
-        ///
-        /// <para><b>The replay this closes.</b> A request cfg persists and the guard
-        /// above did not, so every KSP start re-read whatever request was still on
-        /// disk and awarded it again, fabricating a ledger row twice and polluting
-        /// two before/after pairs, and the fabricated row was then the one the probe
-        /// reported, because the probe named the OLDEST row rather than the one the
-        /// run had just made.</para>
-        ///
-        /// <para><b>Why a stamp rather than consuming the request.</b> The request
-        /// file is the operator's, written over SSH or through syncthing; deleting or
-        /// rewriting it takes their input away and races the sync. A separate stamp
-        /// this addon owns changes nothing on their side, and re-running the same
-        /// request stays a deliberate act: bump the id, which is what the id is
-        /// for.</para>
-        /// </summary>
-        private string? _stampPath;
 
         /// <summary>The force-comms request cfg, read here for REPORTING only. The
         /// override itself is applied by <c>Gonogo.KSP.DevCommsOverride</c>, which
@@ -197,6 +171,7 @@ namespace Gonogo.DevTools
 
         private string? _requestPath;
         private string? _resultPath;
+        private DevRequestLedger? _ledger;
 
         /// <summary>The request currently being watched, held so every sample
         /// rewrites one coherent result file rather than appending to a stale
@@ -711,68 +686,13 @@ namespace Gonogo.DevTools
                 var pluginData = Path.Combine(assemblyDir, "PluginData");
                 _requestPath = Path.Combine(pluginData, "currency-request.cfg");
                 _resultPath = Path.Combine(pluginData, "currency-result.cfg");
-                _stampPath = Path.Combine(pluginData, "currency-applied.cfg");
+                _ledger = new DevRequestLedger(Path.Combine(pluginData, "currency-applied.cfg"));
                 _forceCommsRequestPath = Path.Combine(pluginData, "force-comms-request.cfg");
             }
             catch (Exception ex)
             {
                 Debug.LogError(LogPrefix + "Start failed: " + ex.Message);
                 enabled = false;
-            }
-        }
-
-        /// <summary>The id the last process to apply a request stamped, or null when
-        /// nothing has been stamped. An unreadable stamp reads as null, which retries
-        /// the request rather than silently swallowing it: a probe that cannot tell
-        /// "nothing applied" from "cannot say" would go quiet on a filesystem
-        /// hiccup.</summary>
-        private string? ReadStampedId()
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(_stampPath) || !File.Exists(_stampPath))
-                {
-                    return null;
-                }
-                var root = ConfigNode.Load(_stampPath);
-                return root?.GetNode("APPLIED")?.GetValue("id");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning(LogPrefix + "could not read the applied stamp (treating as nothing applied): " + ex.Message);
-                return null;
-            }
-        }
-
-        private void WriteStamp(string id)
-        {
-            if (string.IsNullOrEmpty(_stampPath))
-            {
-                return;
-            }
-
-            try
-            {
-                var dir = Path.GetDirectoryName(_stampPath);
-                if (!string.IsNullOrEmpty(dir))
-                {
-                    Directory.CreateDirectory(dir!);
-                }
-
-                var sb = new StringBuilder();
-                sb.AppendLine("APPLIED");
-                sb.AppendLine("{");
-                sb.AppendLine("\tid = " + id);
-                sb.AppendLine("\ttime = " + DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-                sb.AppendLine("\tnote = delete this file to let the request with this id fire again");
-                sb.AppendLine("}");
-                File.WriteAllText(_stampPath, sb.ToString());
-            }
-            catch (Exception ex)
-            {
-                // A failed stamp costs a duplicate award on the NEXT start, not this
-                // one, so it is a warning rather than a refusal to proceed.
-                Debug.LogWarning(LogPrefix + "failed writing the applied stamp (a restart may re-award id=" + id + "): " + ex.Message);
             }
         }
 
@@ -854,11 +774,20 @@ namespace Gonogo.DevTools
                 return;
             }
 
-            // Already applied - by this process, or by an earlier one that left a
-            // stamp. The second half is what stops a request cfg still on disk from
-            // silently re-awarding on every KSP start.
-            if (!CurrencyProbeVerdicts.ShouldApply(id, _lastAppliedId, ReadStampedId()))
+            var decision = _ledger!.Admit(id!, File.GetLastWriteTimeUtc(_requestPath), out var stampFailure);
+            if (stampFailure != null)
             {
+                Debug.LogWarning(LogPrefix + "failed writing the applied stamp (a restart may re-award id=" + id + "): " + stampFailure);
+            }
+
+            if (decision == DevRequestDecision.AlreadyApplied)
+            {
+                return;
+            }
+
+            if (decision == DevRequestDecision.PredatesSession)
+            {
+                Finish(new WatchState { Id = id! }, ok: false, DevRequestLedger.PredatesSessionMessage);
                 return;
             }
 
@@ -867,12 +796,6 @@ namespace Gonogo.DevTools
 
         private void ApplyRequest(string id, ConfigNode node)
         {
-            // Claim the id up-front, in the process AND on disk: a request that throws
-            // must not be retried every second, and a currency award is not something
-            // to retry - across a restart least of all.
-            _lastAppliedId = id;
-            WriteStamp(id);
-
             var watch = new WatchState { Id = id };
             _watch = null;
 

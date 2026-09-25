@@ -1,5 +1,6 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
+import { focusRingInset } from "./focusRing";
 
 export interface RowProps extends HTMLAttributes<HTMLElement> {
   /** Rendered tag. Defaults to `li` (a `Row` typically sits in a plain `<ul>`). */
@@ -130,7 +131,7 @@ const Row__Root = styled.li<{
   justify-content: space-between;
   align-items: center;
   gap: var(--space-8, 8px);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-2, 2px) 0;
   ${({ $nested }) => ($nested ? `padding-left: var(--space-12, 12px);` : "")}
   ${({ $wrap }) =>
@@ -152,7 +153,7 @@ const Row__Root = styled.li<{
   background: transparent;
   color: var(--color-text-primary);
   padding: var(--space-4, 4px) var(--space-6, 6px);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
@@ -161,10 +162,7 @@ const Row__Root = styled.li<{
     background: var(--color-surface-panel);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
+  ${focusRingInset}
 `
       : ""}
   ${({ $interactive, $selected }) =>

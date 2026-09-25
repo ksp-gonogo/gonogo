@@ -946,26 +946,35 @@
       "totalMass": "t"
     },
     "ScetAlarm": {
+      "actsOn": "id",
       "armedBy": "id",
-      "audience": "id",
       "firedAtUt": "ut",
       "id": "id",
       "name": "text",
       "state": "enum",
-      "subject": "id"
+      "subject": "id",
+      "vantage": "id"
+    },
+    "ScetAlarmAction": {
+      "group": "id",
+      "kind": "enum"
     },
     "ScetAlarmArmArgs": {
-      "audience": "id",
+      "actsOn": "id",
       "id": "id",
       "name": "text",
-      "subject": "id"
+      "subject": "id",
+      "vantage": "id"
     },
     "ScetAlarmCondition": {
+      "contractId": "id",
       "fieldPath": "id",
       "kind": "enum",
       "leadSeconds": "s",
       "op": "enum",
+      "parameterTitle": "text",
       "sustainSeconds": "s",
+      "targetState": "enum",
       "threshold": "n/a",
       "topic": "id",
       "ut": "ut"
@@ -974,9 +983,10 @@
       "id": "id"
     },
     "ScetAlarmFired": {
-      "audience": "id",
+      "actionsWithheld": "flag",
       "firedAtUt": "ut",
-      "id": "id"
+      "id": "id",
+      "vantage": "id"
     },
     "ScienceCreditEvent": {
       "amount": "science",
@@ -1436,18 +1446,20 @@
   },
   "topics": {
     "alarm.scet": {
+      "actsOn": "id",
       "armedBy": "id",
-      "audience": "id",
       "firedAtUt": "ut",
       "id": "id",
       "name": "text",
       "state": "enum",
-      "subject": "id"
+      "subject": "id",
+      "vantage": "id"
     },
     "alarm.scet.fired": {
-      "audience": "id",
+      "actionsWithheld": "flag",
       "firedAtUt": "ut",
-      "id": "id"
+      "id": "id",
+      "vantage": "id"
     },
     "career.mode": {
       "mode": "enum"
@@ -2209,10 +2221,12 @@
       "notices": "ResolutionNotice[]"
     },
     "ScetAlarm": {
-      "condition": "ScetAlarmCondition"
+      "condition": "ScetAlarmCondition",
+      "onFire": "ScetAlarmAction[]"
     },
     "ScetAlarmArmArgs": {
-      "condition": "ScetAlarmCondition"
+      "condition": "ScetAlarmCondition",
+      "onFire": "ScetAlarmAction[]"
     },
     "SeededTrajectory": {
       "arc": "TrajectoryArc"
@@ -2345,7 +2359,8 @@
   },
   "topicShapes": {
     "alarm.scet": {
-      "condition": "ScetAlarmCondition"
+      "condition": "ScetAlarmCondition",
+      "onFire": "ScetAlarmAction[]"
     },
     "career.facilities": {
       "facilities": "*CareerFacility"

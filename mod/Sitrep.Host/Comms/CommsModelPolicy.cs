@@ -158,7 +158,7 @@ namespace Sitrep.Host.Comms
                 Connected = true,
                 ControlSource = control,
                 // Every control source is local when no link mediates it.
-                HasLocalControl = control != CommsControlSource.None,
+                HasLocalControl = control is CommsControlSource.Partial or CommsControlSource.Full,
                 Meta = Meta(),
             };
         }
@@ -197,12 +197,7 @@ namespace Sitrep.Host.Comms
             var control = LocalControl();
             return new CommsControl
             {
-                Level = control switch
-                {
-                    CommsControlSource.Full => CommsControlStateKind.Full,
-                    CommsControlSource.Partial => CommsControlStateKind.PartialManoeuvre,
-                    _ => CommsControlStateKind.None,
-                },
+                Level = KindOf(control),
                 Reason = control == CommsControlSource.None ? "no command source aboard" : null,
                 Meta = Meta(),
             };
@@ -313,10 +308,27 @@ namespace Sitrep.Host.Comms
         public object? ControlPathTerminus() => null;
 
         /// <summary>
+        /// <c>comms.control</c>'s level for a control tier. Names every tier and
+        /// has no discard, so a tier added to the contract is a compile error
+        /// here rather than a silent <see cref="CommsControlStateKind.None"/>.
+        /// </summary>
+#pragma warning disable CS8524
+        private static CommsControlStateKind KindOf(CommsControlSource control) => control switch
+        {
+            CommsControlSource.None => CommsControlStateKind.None,
+            CommsControlSource.Partial => CommsControlStateKind.PartialManoeuvre,
+            CommsControlSource.Full => CommsControlStateKind.Full,
+            CommsControlSource.Unknown => CommsControlStateKind.Unknown,
+        };
+#pragma warning restore CS8524
+
+        /// <summary>
         /// The craft's own control tier, fail-soft to
-        /// <see cref="CommsControlSource.None"/>: the probe reads live KSP, and
-        /// a throw on a scene-settle tick must not be allowed to escape onto
-        /// the capture path.
+        /// <see cref="CommsControlSource.Unknown"/>: the probe reads live KSP,
+        /// and a throw on a scene-settle tick must not be allowed to escape onto
+        /// the capture path. Not <see cref="CommsControlSource.None"/>, which
+        /// would report a craft nobody read as one with nothing aboard to
+        /// command it.
         /// </summary>
         private CommsControlSource LocalControl()
         {
@@ -326,7 +338,7 @@ namespace Sitrep.Host.Comms
             }
             catch (Exception)
             {
-                return CommsControlSource.None;
+                return CommsControlSource.Unknown;
             }
         }
 

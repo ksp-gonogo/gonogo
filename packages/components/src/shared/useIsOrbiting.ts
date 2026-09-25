@@ -1,6 +1,8 @@
 import { useOrbitSolve } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
+import { useBodyName } from "./useBodyName";
 import { useStreamBody } from "./useStreamBody";
 
 type OrbitInfo = {
@@ -18,12 +20,10 @@ export function useIsOrbiting(): OrbitInfo {
   // below already returns for an absent apsis. `apoapsisAlt` is also absent on
   // a hyperbolic/escape orbit, which has no apoapsis, and that case reaches the
   // same guard.
-  //
-  // `parentBodyName` is an index → `system.bodies` name resolution and needs no
-  // conic, so it keeps its own read.
   const solve = useOrbitSolve();
-  const bodyName =
-    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   const PeA = solve?.periapsisAlt ?? undefined;
   const ApA = solve?.apoapsisAlt ?? undefined;
 

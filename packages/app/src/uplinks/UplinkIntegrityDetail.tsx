@@ -10,7 +10,7 @@ import { readIntegrityFailure, type UplinkIntegrityFailure } from "./integrity";
  */
 const HashLine = styled.span`
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 `;

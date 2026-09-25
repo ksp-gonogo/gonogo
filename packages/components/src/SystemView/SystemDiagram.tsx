@@ -1522,13 +1522,13 @@ const EMPTY: CSSProperties = {
   justifyContent: "center",
   gap: "var(--gap-related)",
   color: "var(--color-text-dim)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   padding: "var(--space-16)",
   textAlign: "center",
 };
 
 const HINT: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   maxWidth: "320px",
 };
@@ -1538,9 +1538,9 @@ const TOOLTIP: CSSProperties = {
   pointerEvents: "none",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-border-subtle)",
-  borderRadius: "var(--radius-sm)",
+  borderRadius: "var(--radius-regular)",
   padding: "var(--inset-surface)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-primary)",
   minWidth: "140px",
   maxWidth: "240px",
@@ -1573,9 +1573,9 @@ const RESET_BUTTON: CSSProperties = {
   right: "8px",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-border-subtle)",
-  borderRadius: "var(--radius-sm)",
+  borderRadius: "var(--radius-regular)",
   padding: "var(--inset-control)",
-  fontSize: "var(--font-size-xs)",
+  fontSize: "var(--font-size-compact)",
   color: "var(--color-text-muted)",
   textDecoration: "none",
 };

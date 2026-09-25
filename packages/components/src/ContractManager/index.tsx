@@ -16,6 +16,7 @@ import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   BellIcon,
+  Block,
   CommandButton,
   formatStreamStatus,
   Panel,
@@ -26,14 +27,20 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+/*
+ * One block left: `ParameterAlarmButton` carries a `:focus-visible` ring, which
+ * inline style cannot express and which a control must have.
+ *
+ * Not exempt the way the SVG focus rings are: it is waiting on a kit primitive
+ * giving the ring and the disabled treatment at caller-chosen geometry. It is a
+ * chrome-less icon button at control padding, and the kit has no such thing:
+ * `IconButton` is tighter and has no ring of its own, `TextButton` is
+ * underlined link styling.
+ */
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 import { heldGrade } from "../shared/heldGrade";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: ["career.status", "vessel.flight"],
@@ -190,7 +197,8 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: ContractEntry[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     // Accept string (current) OR number (legacy DLL). KSP contract IDs
@@ -212,21 +220,21 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
           ? e.agent
           : "";
     const repCompletion =
-      magnitudeOf(e.repCompletion as Quantityish) ??
-      magnitudeOf(e.reputationCompletion as Quantityish) ??
+      magnitudeOf(asQuantityish(e.repCompletion)) ??
+      magnitudeOf(asQuantityish(e.reputationCompletion)) ??
       0;
     const deadlineUt =
-      magnitudeOf(e.deadlineUt as Quantityish) ??
-      magnitudeOf(e.dateDeadline as Quantityish) ??
+      magnitudeOf(asQuantityish(e.deadlineUt)) ??
+      magnitudeOf(asQuantityish(e.dateDeadline)) ??
       0;
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
       agency,
       state: typeof e.state === "string" ? e.state : "",
-      fundsAdvance: magnitudeOr(e.fundsAdvance as Quantityish, 0),
-      fundsCompletion: magnitudeOr(e.fundsCompletion as Quantityish, 0),
-      scienceCompletion: magnitudeOr(e.scienceCompletion as Quantityish, 0),
+      fundsAdvance: magnitudeOr(asQuantityish(e.fundsAdvance), 0),
+      fundsCompletion: magnitudeOr(asQuantityish(e.fundsCompletion), 0),
+      scienceCompletion: magnitudeOr(asQuantityish(e.scienceCompletion), 0),
       repCompletion,
       deadlineUt,
       parameters: parseParameters(e.parameters),
@@ -238,7 +246,8 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
 function parseParameters(raw: unknown): ContractParameter[] {
   if (!Array.isArray(raw)) return [];
   const out: ContractParameter[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
@@ -248,8 +257,8 @@ function parseParameters(raw: unknown): ContractParameter[] {
       optional: e.optional === true,
       parameterType:
         typeof e.parameterType === "string" ? e.parameterType : undefined,
-      minAltitude: magnitudeOf(e.minAltitude as Quantityish) ?? undefined,
-      maxAltitude: magnitudeOf(e.maxAltitude as Quantityish) ?? undefined,
+      minAltitude: magnitudeOf(asQuantityish(e.minAltitude)) ?? undefined,
+      maxAltitude: magnitudeOf(asQuantityish(e.maxAltitude)) ?? undefined,
       body: typeof e.body === "string" ? e.body : undefined,
       situation: typeof e.situation === "string" ? e.situation : undefined,
       partName: typeof e.partName === "string" ? e.partName : undefined,
@@ -395,7 +404,9 @@ function ContractManagerComponent({
         compactTitle={["CONTRACTS"]}
         sections={
           <Section>
-            {showSubtitle && <Empty>Awaiting contract telemetry</Empty>}
+            {showSubtitle && (
+              <div style={EMPTY_STYLE}>Awaiting contract telemetry</div>
+            )}
           </Section>
         }
       />
@@ -413,71 +424,82 @@ function ContractManagerComponent({
       sections={
         <Section>
           {showSubtitle && (
-            <Summary role="status" aria-live="polite">
+            <div style={SUMMARY_STYLE} role="status" aria-live="polite">
               {activeCount} active · {offeredCount} offered · {recentCount}{" "}
               recent
-            </Summary>
+            </div>
           )}
           {activeCount === 0 && offeredCount === 0 && (
-            <Empty>No active contracts. Pick one up in Mission Control.</Empty>
+            <div style={EMPTY_STYLE}>
+              No active contracts. Pick one up in Mission Control.
+            </div>
           )}
-          {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
-          <CardList $multiColumn={multiColumn}>
+          {activeCount > 0 && <div style={SECTION_LABEL_STYLE}>Active</div>}
+          <div style={cardListStyle(multiColumn)}>
             {active.map((c) => (
-              <ContractCard key={c.id}>
-                <ContractHeader>
-                  <ContractTitle>{c.title}</ContractTitle>
-                  <ContractDeadline>
-                    {formatDeadline(
-                      c.deadlineUt,
-                      universalTime?.magnitude ?? 0,
+              <ContractCard
+                key={c.id}
+                title={c.title}
+                titleRight={
+                  <>
+                    <span style={DEADLINE_STYLE}>
+                      {formatDeadline(
+                        c.deadlineUt,
+                        universalTime?.magnitude ?? 0,
+                      )}
+                    </span>
+                    {boardHeld !== undefined && (
+                      /* On the card, not once above the list: an operator reads
+                         one card at a time and decides about that contract, and
+                         a statement out of their eyeline while they look at a
+                         Cancel button is a statement they do not get. */
+                      <Badge
+                        severity={severityFromStreamStatus(boardHeld)}
+                        size="sm"
+                        title="Contract board is no longer current"
+                      >
+                        {formatStreamStatus(boardHeld)}
+                      </Badge>
                     )}
-                  </ContractDeadline>
-                  {boardHeld !== undefined && (
-                    /* On the card, not once above the list: an operator reads
-                       one card at a time and decides about that contract, and
-                       a statement out of their eyeline while they look at a
-                       Cancel button is a statement they do not get. */
-                    <Badge
-                      severity={severityFromStreamStatus(boardHeld)}
-                      size="sm"
-                      title="Contract board is no longer current"
-                    >
-                      {formatStreamStatus(boardHeld)}
-                    </Badge>
-                  )}
-                </ContractHeader>
-                {c.agency && <Agency>{c.agency}</Agency>}
-                <Rewards>
+                  </>
+                }
+              >
+                {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+                <div style={REWARDS_STYLE}>
                   {c.fundsCompletion > 0 && (
-                    <Reward>
-                      <RewardLabel>FUNDS</RewardLabel>
-                      <RewardValue>
+                    <div style={REWARD_STYLE}>
+                      <span style={REWARD_LABEL_STYLE}>FUNDS</span>
+                      <span style={REWARD_VALUE_STYLE}>
                         {formatCompactCurrency(c.fundsCompletion)}
-                      </RewardValue>
-                    </Reward>
+                      </span>
+                    </div>
                   )}
                   {c.scienceCompletion > 0 && (
-                    <Reward>
-                      <RewardLabel>SCI</RewardLabel>
-                      <RewardValue>
+                    <div style={REWARD_STYLE}>
+                      <span style={REWARD_LABEL_STYLE}>SCI</span>
+                      <span style={REWARD_VALUE_STYLE}>
                         {c.scienceCompletion.toFixed(1)}
-                      </RewardValue>
-                    </Reward>
+                      </span>
+                    </div>
                   )}
                   {c.repCompletion > 0 && (
-                    <Reward>
-                      <RewardLabel>REP</RewardLabel>
-                      <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                    </Reward>
+                    <div style={REWARD_STYLE}>
+                      <span style={REWARD_LABEL_STYLE}>REP</span>
+                      <span style={REWARD_VALUE_STYLE}>
+                        {c.repCompletion.toFixed(1)}
+                      </span>
+                    </div>
                   )}
-                </Rewards>
+                </div>
                 {c.parameters.length > 0 && (
-                  <Parameters>
+                  <ul style={PARAMETERS_STYLE}>
                     {c.parameters.map((p) => (
-                      <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
-                        <ParameterMark
-                          $state={p.state}
+                      <li
+                        key={`${c.id}-${p.title}`}
+                        style={parameterStyle(p.state)}
+                      >
+                        <span
+                          style={parameterMarkStyle(p.state)}
                           // Only on the Unknown arm: the ✓/✕/○ marks already say
                           // what they are, and the "?" is the one that needs to
                           // report the game's own word for a state we cannot place.
@@ -494,10 +516,12 @@ function ContractManagerComponent({
                               : p.state === "Unknown"
                                 ? "?"
                                 : "○"}
-                        </ParameterMark>
-                        <ParameterTitle>
+                        </span>
+                        <span style={PARAMETER_TITLE_STYLE}>
                           {p.title}
-                          {p.optional && <Optional> (optional)</Optional>}
+                          {p.optional && (
+                            <span style={OPTIONAL_STYLE}> (optional)</span>
+                          )}
                           {p.state === "Incomplete" &&
                             p.parameterType === "ReachAltitudeEnvelope" &&
                             p.minAltitude !== undefined &&
@@ -509,7 +533,7 @@ function ContractManagerComponent({
                                 current={vAltitude}
                               />
                             )}
-                        </ParameterTitle>
+                        </span>
                         {p.state === "Incomplete" &&
                           createAlarm &&
                           contractIdToSafeNumber(c.id) !== null &&
@@ -585,11 +609,11 @@ function ContractManagerComponent({
                               <BellIcon size={12} />
                             </ParameterAlarmButton>
                           )}
-                      </Parameter>
+                      </li>
                     ))}
-                  </Parameters>
+                  </ul>
                 )}
-                <ActiveActions>
+                <div style={ACTIVE_ACTIONS_STYLE}>
                   <CommandButton
                     handle={cancelCmd}
                     args={{ contractId: c.id }}
@@ -609,62 +633,68 @@ function ContractManagerComponent({
                         : "Contract board is no longer current: cancelling would forfeit a contract whose state cannot be read"
                     }
                   />
-                </ActiveActions>
+                </div>
               </ContractCard>
             ))}
-          </CardList>
-          {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
-          <CardList $multiColumn={multiColumn}>
+          </div>
+          {offeredCount > 0 && <div style={SECTION_LABEL_STYLE}>Offered</div>}
+          <div style={cardListStyle(multiColumn)}>
             {offered?.map((c) => (
-              <ContractCard key={c.id}>
-                <ContractHeader>
-                  <ContractTitle>{c.title}</ContractTitle>
-                  <ContractDeadline>
-                    {formatDeadline(
-                      c.deadlineUt,
-                      universalTime?.magnitude ?? 0,
+              <ContractCard
+                key={c.id}
+                title={c.title}
+                titleRight={
+                  <>
+                    <span style={DEADLINE_STYLE}>
+                      {formatDeadline(
+                        c.deadlineUt,
+                        universalTime?.magnitude ?? 0,
+                      )}
+                    </span>
+                    {boardHeld !== undefined && (
+                      /* On the card, not once above the list: an operator reads
+                         one card at a time and decides about that contract, and
+                         a statement out of their eyeline while they look at a
+                         Cancel button is a statement they do not get. */
+                      <Badge
+                        severity={severityFromStreamStatus(boardHeld)}
+                        size="sm"
+                        title="Contract board is no longer current"
+                      >
+                        {formatStreamStatus(boardHeld)}
+                      </Badge>
                     )}
-                  </ContractDeadline>
-                  {boardHeld !== undefined && (
-                    /* On the card, not once above the list: an operator reads
-                       one card at a time and decides about that contract, and
-                       a statement out of their eyeline while they look at a
-                       Cancel button is a statement they do not get. */
-                    <Badge
-                      severity={severityFromStreamStatus(boardHeld)}
-                      size="sm"
-                      title="Contract board is no longer current"
-                    >
-                      {formatStreamStatus(boardHeld)}
-                    </Badge>
-                  )}
-                </ContractHeader>
-                {c.agency && <Agency>{c.agency}</Agency>}
-                <Rewards>
+                  </>
+                }
+              >
+                {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+                <div style={REWARDS_STYLE}>
                   {c.fundsCompletion > 0 && (
-                    <Reward>
-                      <RewardLabel>FUNDS</RewardLabel>
-                      <RewardValue>
+                    <div style={REWARD_STYLE}>
+                      <span style={REWARD_LABEL_STYLE}>FUNDS</span>
+                      <span style={REWARD_VALUE_STYLE}>
                         {formatCompactCurrency(c.fundsCompletion)}
-                      </RewardValue>
-                    </Reward>
+                      </span>
+                    </div>
                   )}
                   {c.scienceCompletion > 0 && (
-                    <Reward>
-                      <RewardLabel>SCI</RewardLabel>
-                      <RewardValue>
+                    <div style={REWARD_STYLE}>
+                      <span style={REWARD_LABEL_STYLE}>SCI</span>
+                      <span style={REWARD_VALUE_STYLE}>
                         {c.scienceCompletion.toFixed(1)}
-                      </RewardValue>
-                    </Reward>
+                      </span>
+                    </div>
                   )}
                   {c.repCompletion > 0 && (
-                    <Reward>
-                      <RewardLabel>REP</RewardLabel>
-                      <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                    </Reward>
+                    <div style={REWARD_STYLE}>
+                      <span style={REWARD_LABEL_STYLE}>REP</span>
+                      <span style={REWARD_VALUE_STYLE}>
+                        {c.repCompletion.toFixed(1)}
+                      </span>
+                    </div>
                   )}
-                </Rewards>
-                <OfferedActions>
+                </div>
+                <div style={OFFERED_ACTIONS_STYLE}>
                   <CommandButton
                     handle={acceptCmd}
                     args={{ contractId: c.id }}
@@ -696,196 +726,174 @@ function ContractManagerComponent({
                         : "Contract board is no longer current: this offer may already be gone"
                     }
                   />
-                </OfferedActions>
+                </div>
               </ContractCard>
             ))}
-          </CardList>
+          </div>
         </Section>
       }
     />
   );
 }
 
-const Empty = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
-  padding: var(--space-8) 0;
-`;
+const EMPTY_STYLE = {
+  color: "var(--color-text-faint)",
+  fontSize: "var(--font-size-compact)",
+  padding: "var(--space-8) 0",
+} as const;
 
-const Summary = styled.div`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;
+const SUMMARY_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.06em",
+  color: "var(--color-text-muted)",
+  fontVariantNumeric: "tabular-nums",
+} as const;
 
-// Single column by default (portrait / square). In landscape we switch to a
-// width-following grid: `auto-fill` + a min card width derives the column count
-// from the available width rather than hardcoding a fixed "2 columns", so the
-// same rule fills an 18-wide box with several columns and would scale up if the
-// widget were dropped wider. `align-content: start` keeps short lists from
-// stretching, and the 8px gap is the same card spacing the single-column
-// layout uses. Each Active / Offered section is its own CardList so the
-// section labels stay full-width and the grouping holds. Both branches carry
-// the same --gap-related, which is what makes them one layout rather than two.
 const CARD_MIN_WIDTH = "240px";
-const CardList = styled.div<{ $multiColumn: boolean }>`
-  ${({ $multiColumn }) =>
-    $multiColumn
-      ? `display: grid;
-         grid-template-columns: repeat(auto-fill, minmax(${CARD_MIN_WIDTH}, 1fr));
-         align-content: start;
-         gap: var(--gap-related);`
-      : `display: flex;
-         flex-direction: column;
-         gap: var(--gap-related);`}
-`;
 
-const SectionLabel = styled.div`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-  margin-top: var(--space-4);
-`;
+/**
+ * Single column by default (portrait / square). In landscape it becomes a
+ * width-following grid: `auto-fill` plus a min card width derives the column
+ * count from the available width rather than hardcoding two columns, so the
+ * same rule fills an 18-wide box with several columns and scales up if the
+ * widget is dropped wider. `alignContent: start` keeps short lists from
+ * stretching. Each Active / Offered section is its own list so the section
+ * labels stay full-width and the grouping holds.
+ *
+ * Section rather than related: with no box around a contract, the space
+ * between two of them is the only thing saying where one ends. At the same rung
+ * as a block's own rows they ran together into one paragraph. Both branches
+ * carry the same gap, which is what makes them one layout rather than two.
+ */
+function cardListStyle(multiColumn: boolean) {
+  return multiColumn
+    ? ({
+        display: "grid",
+        gridTemplateColumns: `repeat(auto-fill, minmax(${CARD_MIN_WIDTH}, 1fr))`,
+        alignContent: "start",
+        gap: "var(--gap-section)",
+      } as const)
+    : ({
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--gap-section)",
+      } as const);
+}
 
-const OfferedActions = styled.div`
-  display: flex;
-  gap: var(--gap-related);
-  margin-top: var(--space-4);
-`;
+const SECTION_LABEL_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--color-text-faint)",
+  marginTop: "var(--space-4)",
+} as const;
 
-const ActiveActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--gap-related);
-  margin-top: var(--space-4);
-`;
+const OFFERED_ACTIONS_STYLE = {
+  display: "flex",
+  gap: "var(--gap-related)",
+  marginTop: "var(--space-4)",
+} as const;
 
-const ContractCard = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  padding: var(--space-8);
-  background: var(--color-surface-panel);
-  border-radius: var(--radius-xs);
-`;
+const ACTIVE_ACTIONS_STYLE = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "var(--gap-related)",
+  marginTop: "var(--space-4)",
+} as const;
 
-const ContractHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--gap-related);
-  /* At very narrow widths (compact-4x5) the title (flex:1, wrapping text)
-     and the fixed-width deadline label had no room to both sit on one row:
-     the deadline text (flex-shrink:0) claimed its full width regardless,
-     squeezing the title's flex-basis down to its longest unbreakable word
-     with no room left for the gap, so the two ran together with zero
-     space between them ("Buildno deadline"). Let the deadline wrap to its
-     own line instead of collapsing the gap. */
-  flex-wrap: wrap;
-`;
+/**
+ * A contract as a grouping rather than a box. `Block`, not `Card`: this widget
+ * lists many contracts in a panel that is already a surface, and a sunken
+ * record inside it read as a second box for no gain. Nothing is drawn here.
+ * The separation is the list gap and the title's own weight.
+ */
+const ContractCard = Block;
 
-const ContractTitle = styled.span`
-  color: var(--color-text-primary);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  flex: 1;
-  /* A flex-basis:0 item (what plain "flex: 1" gives) always "fits" its
-     flex line at its pre-grow hypothetical size of zero, so ContractHeader's
-     flex-wrap never triggered even when there wasn't room: the title's box
-     shrank to near-nothing while ContractDeadline (flex-shrink:0) claimed
-     its full width, and the title's own unbreakable first word then
-     overflowed that near-zero box straight into the deadline text with no
-     gap at all ("Buildno deadline" at compact-4x5). A real min-width gives
-     the title enough box to hold at least one full word, so when the
-     deadline label can't fit alongside it, flex-wrap actually pushes the
-     deadline onto its own line instead of the two colliding. */
-  min-width: 90px;
-`;
+const DEADLINE_STYLE = {
+  color: "var(--color-text-faint)",
+  fontSize: "var(--font-size-compact)",
+  fontVariantNumeric: "tabular-nums",
+  flexShrink: 0,
+} as const;
 
-const ContractDeadline = styled.span`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-2xs);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-`;
+const AGENCY_STYLE = {
+  color: "var(--color-text-muted)",
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.06em",
+} as const;
 
-const Agency = styled.div`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-`;
+/*
+ * The row gap is kept tight so a wrapped third reward (FUNDS/SCI/REP at narrow
+ * widths, e.g. portrait-5x18) sits close under the first line instead of
+ * overflowing and clipping the panel edge.
+ */
+const REWARDS_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--space-2) var(--space-12)",
+} as const;
 
-const Rewards = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  /* row-gap kept tight so a wrapped third reward (FUNDS/SCI/REP at narrow
-     widths, e.g. portrait-5x18) sits close under the first line instead of
-     overflowing and clipping the panel edge. */
-  gap: var(--space-2) var(--space-12);
-`;
+const REWARD_STYLE = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "var(--gap-related)",
+} as const;
 
-const Reward = styled.div`
-  display: flex;
-  align-items: baseline;
-  gap: var(--gap-related);
-`;
+const REWARD_LABEL_STYLE = {
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.1em",
+  color: "var(--color-text-faint)",
+} as const;
 
-const RewardLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.1em;
-  color: var(--color-text-faint);
-`;
+const REWARD_VALUE_STYLE = {
+  fontSize: "var(--font-size-value)",
+  fontWeight: 600,
+  color: "var(--color-accent-fg)",
+  fontVariantNumeric: "tabular-nums",
+} as const;
 
-const RewardValue = styled.span`
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-accent-fg);
-  font-variant-numeric: tabular-nums;
-`;
+const PARAMETERS_STYLE = {
+  listStyle: "none",
+  margin: "var(--space-4) 0 0",
+  padding: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-related)",
+} as const;
 
-const Parameters = styled.ul`
-  list-style: none;
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
+/** A completed objective is struck through and stood down to muted. */
+function parameterStyle(state: ContractParameterState) {
+  return {
+    display: "flex",
+    alignItems: "baseline",
+    gap: "var(--gap-related)",
+    fontSize: "var(--font-size-compact)",
+    color:
+      state === "Complete"
+        ? "var(--color-text-muted)"
+        : state === "Failed"
+          ? "var(--color-status-nogo-fg)"
+          : "var(--color-text-primary)",
+    textDecoration: state === "Complete" ? "line-through" : "none",
+  } as const;
+}
 
-const Parameter = styled.li<{ $state: ContractParameterState }>`
-  display: flex;
-  align-items: baseline;
-  gap: var(--gap-related);
-  font-size: var(--font-size-xs);
-  color: ${(p) =>
-    p.$state === "Complete"
-      ? "var(--color-text-muted)"
-      : p.$state === "Failed"
-        ? "var(--color-status-nogo-fg)"
-        : "var(--color-text-primary)"};
-  text-decoration: ${(p) =>
-    p.$state === "Complete" ? "line-through" : "none"};
-`;
+/** The fixed-width column the tick, cross, question mark or ring sits in. */
+function parameterMarkStyle(state: ContractParameterState) {
+  return {
+    fontFamily: "monospace",
+    width: "10px",
+    textAlign: "center",
+    color:
+      state === "Complete"
+        ? "var(--color-status-go-fg)"
+        : state === "Failed"
+          ? "var(--color-status-nogo-fg)"
+          : "var(--color-text-faint)",
+  } as const;
+}
 
-const ParameterMark = styled.span<{ $state: ContractParameterState }>`
-  font-family: monospace;
-  width: 10px;
-  text-align: center;
-  color: ${(p) =>
-    p.$state === "Complete"
-      ? "var(--color-status-go-fg)"
-      : p.$state === "Failed"
-        ? "var(--color-status-nogo-fg)"
-        : "var(--color-text-faint)"};
-`;
-
-const ParameterTitle = styled.span`
-  flex: 1;
-  min-width: 0;
-`;
-
+const PARAMETER_TITLE_STYLE = { flex: 1, minWidth: 0 } as const;
 /**
  * Inline progress indicator for ReachAltitudeEnvelope parameters. Renders
  * a thin bar showing where the current altitude sits between min and max.
@@ -929,12 +937,12 @@ function AltitudeProgress({
     );
   }
   return (
-    <AltitudeBarRow>
-      <AltitudeBarTrack>
-        <AltitudeBarFill $frac={fillFrac} $inBand={inBand} />
-      </AltitudeBarTrack>
-      <AltitudeBarLabel $inBand={inBand}>{label}</AltitudeBarLabel>
-    </AltitudeBarRow>
+    <span style={ALT_ROW_STYLE}>
+      <span style={ALT_TRACK_STYLE}>
+        <span style={altFillStyle(fillFrac, inBand)} />
+      </span>
+      <span style={altLabelStyle(inBand)}>{label}</span>
+    </span>
   );
 }
 
@@ -946,44 +954,44 @@ function AltitudeShort({ m }: { m: number }) {
   return <Unit value={value("m", m)} decimals={Math.abs(m) < 10_000 ? 1 : 0} />;
 }
 
-const AltitudeBarRow = styled.span`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  margin-top: var(--space-2);
-`;
+const ALT_ROW_STYLE = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+  marginTop: "var(--space-2)",
+} as const;
 
-const AltitudeBarTrack = styled.span`
-  display: inline-block;
-  width: 60px;
-  height: 4px;
-  background: var(--color-border-subtle);
-  /* A stadium, not a corner: the radius is exactly half the track height.
-     --radius-pill clamps to half the shorter side, so it renders
-     identically today and keeps tracking the height if that changes,
-     which --radius-xs (the value this 2px maps to) would not. */
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-`;
+/*
+ * A stadium, not a corner: --radius-pill clamps to half the shorter side, so it
+ * tracks the track height, which --radius-regular (the value this 2px maps to)
+ * would not.
+ */
+const ALT_TRACK_STYLE = {
+  display: "inline-block",
+  width: "60px",
+  height: "4px",
+  background: "var(--color-border-subtle)",
+  borderRadius: "var(--radius-pill)",
+  overflow: "hidden",
+} as const;
 
-const AltitudeBarFill = styled.span.attrs<{ $frac: number; $inBand: boolean }>(
-  (p) => ({
-    style: { width: `${Math.max(0, Math.min(1, p.$frac)) * 100}%` },
-  }),
-)<{ $frac: number; $inBand: boolean }>`
-  display: block;
-  height: 100%;
-  background: ${(p) =>
-    p.$inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)"};
-  transition: width var(--duration-slow) var(--ease-standard);
-`;
+function altFillStyle(frac: number, inBand: boolean) {
+  return {
+    display: "block",
+    height: "100%",
+    width: `${Math.max(0, Math.min(1, frac)) * 100}%`,
+    background: inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)",
+    transition: "width var(--duration-slow) var(--ease-standard)",
+  } as const;
+}
 
-const AltitudeBarLabel = styled.span<{ $inBand: boolean }>`
-  font-size: var(--font-size-2xs);
-  font-variant-numeric: tabular-nums;
-  color: ${(p) =>
-    p.$inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
-`;
+function altLabelStyle(inBand: boolean) {
+  return {
+    fontSize: "var(--font-size-compact)",
+    fontVariantNumeric: "tabular-nums",
+    color: inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)",
+  } as const;
+}
 
 const ParameterAlarmButton = styled.button<{ $set?: boolean }>`
   flex-shrink: 0;
@@ -1011,10 +1019,10 @@ const ParameterAlarmButton = styled.button<{ $set?: boolean }>`
   }
 `;
 
-const Optional = styled.span`
-  color: var(--color-text-faint);
-  font-style: italic;
-`;
+const OPTIONAL_STYLE = {
+  color: "var(--color-text-faint)",
+  fontStyle: "italic",
+} as const;
 
 registerComponent<ContractManagerConfig>({
   id: "contract-manager",

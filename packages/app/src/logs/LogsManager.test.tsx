@@ -36,6 +36,29 @@ async function openReportForm() {
   return user;
 }
 
+/** The `bug_report` block a logged entry carries, or a failure saying it had none. */
+function bugReport(entry: { context?: Record<string, unknown> }): {
+  kind: string;
+  timeWindowMinutes: number | null;
+  recentLogsCount: number;
+  recentLogs: unknown[];
+  screenshot: unknown;
+  reportedAt: string;
+} {
+  const payload = entry.context?.bug_report;
+  if (typeof payload !== "object" || payload === null) {
+    throw new Error("the entry carries no bug_report block");
+  }
+  return payload as {
+    kind: string;
+    timeWindowMinutes: number | null;
+    recentLogsCount: number;
+    recentLogs: unknown[];
+    screenshot: unknown;
+    reportedAt: string;
+  };
+}
+
 describe("LogsManager: Feedback", () => {
   it("emits a bug-report tagged entry with the description and recent-logs slice on submit", async () => {
     // Fake timers (shouldAdvanceTime so userEvent's internal delays still
@@ -71,14 +94,7 @@ describe("LogsManager: Feedback", () => {
     expect(entry.level).toBe("error");
     expect(entry.message).toBe("[bug-report] Altitude gauge froze");
 
-    const payload = entry.context?.bug_report as {
-      kind: string;
-      timeWindowMinutes: number | null;
-      recentLogsCount: number;
-      recentLogs: unknown[];
-      screenshot: unknown;
-      reportedAt: string;
-    };
+    const payload = bugReport(entry);
     expect(payload.kind).toBe("bug");
     expect(payload.timeWindowMinutes).toBe(5);
     expect(payload.recentLogsCount).toBeGreaterThanOrEqual(1);
@@ -109,7 +125,7 @@ describe("LogsManager: Feedback", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].level).toBe("info");
     expect(entries[0].message).toBe("[feedback] Add a delta-v readout");
-    const payload = entries[0].context?.bug_report as { kind: string };
+    const payload = bugReport(entries[0]);
     expect(payload.kind).toBe("feedback");
   });
 

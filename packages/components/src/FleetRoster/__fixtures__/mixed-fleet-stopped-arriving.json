@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "scenario": "mixed-fleet-stopped-arriving",
+    "source": "SYNTHESISED to the real system.vessels/system.bodies wire shape (Gonogo.KSP/KspHost.cs BuildVesselRosterEntry -> Sitrep.Host/SystemViewProvider.cs BuildSystemVessels), values checked against Assembly-CSharp.dll (ilspycmd decompile, KSP_Data/Managed): Vessel.GetCrewCount/GetCrewCapacity, ProtoVessel.GetVesselCrew, ProtoPartSnapshot.partPrefab.CrewCapacity, CommNet.CommNetVessel.OnStart/GetControlLevel. Five vessels covering the roster states an operator actually sees for real craft: a crewed station with a direct link, an uncrewed relay probe with a relay link, a crewed lander with a relay link, a crewed orbiter with a real no-link reading (CommNet resolved and reports None, a genuine ops fact), and one genuinely-unresolved contact (every field but name/situation omitted -- the producer's own transient 'nothing to read this tick' case: a scene-transition race or a vessel whose protoVessel/connection hasn't settled yet). Debris and asteroid entries were removed here (FleetRoster now filters system.vessels down to actual craft client-side -- see isRosterCraft in index.tsx -- since VesselType.Debris/SpaceObject structurally never get a CommNetVessel attached and are not fleet vessels an operator means by 'Fleet'). There is no reliability/health signal behind any entry - this widget does not compute a per-vessel status.",
+    "notes": "Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+  },
+  "_stream": {
+    "carriedChannels": ["system.vessels", "system.bodies"],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbin"
+            },
+            {
+              "index": 1,
+              "name": "Mun"
+            },
+            {
+              "index": 2,
+              "name": "Duna"
+            },
+            {
+              "index": 3,
+              "name": "Eve"
+            }
+          ]
+        }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-station-1",
+              "name": "Kerbin Station Alpha",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 6,
+              "crewCapacity": 6,
+              "commsConnected": true,
+              "commsControlSource": 2
+            },
+            {
+              "vesselId": "v-probe-mun",
+              "name": "Munar Relay Probe",
+              "vesselType": 3,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 1
+            },
+            {
+              "vesselId": "v-lander-duna",
+              "name": "Duna Lander Bravo",
+              "vesselType": 2,
+              "situation": 0,
+              "bodyIndex": 2,
+              "crewCount": 2,
+              "crewCapacity": 3,
+              "commsConnected": true,
+              "commsControlSource": 1
+            },
+            {
+              "vesselId": "v-orbiter-eve",
+              "name": "Eve Orbiter Charlie",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 3,
+              "crewCount": 1,
+              "crewCapacity": 1,
+              "commsConnected": false,
+              "commsControlSource": 0
+            },
+            {
+              "vesselId": "v-unresolved-1",
+              "name": "New Contact",
+              "vesselType": 14,
+              "situation": 2
+            }
+          ]
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}

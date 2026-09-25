@@ -198,7 +198,7 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
   right: 0;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   max-height: 280px;
   overflow-y: auto;
   /* Named rather than renumbered. Every caller so far mounts this inside a
@@ -212,7 +212,7 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
 const DropdownGroup = styled.div``;
 
 const GroupHeader = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

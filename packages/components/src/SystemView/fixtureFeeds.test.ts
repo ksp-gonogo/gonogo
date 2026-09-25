@@ -26,10 +26,18 @@ describe("SystemView probe fixtures", () => {
   });
 
   it.each(files)("%s carries every channel it emits", (file) => {
-    const fixture = JSON.parse(readFileSync(join(dir, file), "utf8")) as {
-      _stream?: { carriedChannels?: string[]; emits?: { channel: string }[] };
-    };
-    const stream = fixture._stream;
+    const parsed: unknown = JSON.parse(readFileSync(join(dir, file), "utf8"));
+    const block: unknown =
+      typeof parsed === "object" && parsed !== null
+        ? Reflect.get(parsed, "_stream")
+        : undefined;
+    const stream =
+      typeof block === "object" && block !== null
+        ? (block as {
+            carriedChannels?: string[];
+            emits?: { channel: string }[];
+          })
+        : undefined;
     if (!stream?.emits) return;
 
     const carried = stream.carriedChannels ?? [];

@@ -18,19 +18,18 @@
  */
 
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { AlarmsModal } from "../../../app/src/alarms/AlarmsModal";
 import type { AlarmSnapshot } from "../../../app/src/alarms/types";
-
 export interface AlarmsProbePayload {
   /** Which trigger kind the draft form is on. Defaults to the modal's own default, `time`. */
   kind?: "time" | "threshold";
@@ -85,20 +84,18 @@ async function renderAlarms(payload: AlarmsProbePayload): Promise<void> {
     createElement(
       ThemeProvider,
       { theme: defaultDarkTheme },
-      createElement(
-        TelemetryProvider,
-        {
-          client,
-          store,
-          carriedChannels: new Set(["vessel.control", "commandCentre.roster"]),
-        },
-        createElement(AlarmsModal, {
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={new Set(["vessel.control", "commandCentre.roster"])}
+      >
+        {createElement(AlarmsModal, {
           useSnapshot: () => SNAPSHOT,
           onAdd: () => {},
           onUpdate: () => {},
           onDelete: () => {},
-        }),
-      ),
+        })}
+      </TelemetryProvider>,
     ),
   );
 
@@ -110,7 +107,7 @@ async function renderAlarms(payload: AlarmsProbePayload): Promise<void> {
     const buttons = Array.from(
       kindRow?.querySelectorAll('[role="radio"]') ?? [],
     ) as HTMLElement[];
-    /* Second option is the threshold arm ("When telemetry..."), matched by
+    /* Second option is the threshold arm ("At telemetry"), matched by
        position rather than by copy so a wording change does not silently render
        the wrong state. */
     buttons[1]?.click();

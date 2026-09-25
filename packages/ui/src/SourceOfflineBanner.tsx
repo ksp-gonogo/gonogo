@@ -69,7 +69,7 @@ const Wrap = styled.div`
   border: 1px solid var(--color-status-nogo-bg);
   border-radius: var(--radius-pill);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   letter-spacing: 0.08em;
   white-space: nowrap;
   max-width: 100%;
@@ -151,7 +151,7 @@ const EntryName = styled.span`
 const EntryStatus = styled.span`
   color: var(--color-status-nogo-fg);
   text-transform: uppercase;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
 `;
 
 const EntryTime = styled.span`

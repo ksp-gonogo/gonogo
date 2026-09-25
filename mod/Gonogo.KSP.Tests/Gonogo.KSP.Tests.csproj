@@ -173,6 +173,7 @@
   <ItemGroup>
     <Compile Include="..\GonogoDevTools\CurrencyProbeVerdicts.cs" />
     <Compile Include="..\GonogoDevTools\AntennaProbeVerdicts.cs" />
+    <Compile Include="..\GonogoDevTools\DevRequestLedger.cs" />
   </ItemGroup>
 
   <!-- StockCurrencyDecision.cs mirrors TransactionReasons as its own plain
@@ -225,6 +226,11 @@
          local_docs reference sets may not. -->
     <PhysicsModuleDll>$(KspManaged)\UnityEngine.PhysicsModule.dll</PhysicsModuleDll>
     <ServoModulesAvailable Condition="'$(KspManagedAvailable)' == 'true' And Exists('$(PhysicsModuleDll)')">true</ServoModulesAvailable>
+    <!-- Compiled into KspReferenceCoverage.cs as a skipped test per dropped
+         suite, so a degraded run says so in the same summary line as Passed!
+         rather than only in a build warning above it. -->
+    <DefineConstants Condition="'$(KspManagedAvailable)' != 'true'">$(DefineConstants);KSP_MANAGED_ABSENT</DefineConstants>
+    <DefineConstants Condition="'$(ServoModulesAvailable)' != 'true'">$(DefineConstants);KSP_PHYSICS_ABSENT</DefineConstants>
   </PropertyGroup>
 
   <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/**,
@@ -348,6 +354,7 @@
          DevCommsOverride. All CommNet/CommNode-level types, the same headless
          reference-DLL contract FleetCommsReader.cs above already relies on. -->
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
+    <Compile Include="..\Gonogo.KSP\ControlLevelGrade.cs" />
     <!-- CommsModelPresence.cs is the three live reads behind the no-comms-model
          rule (the CommNet difficulty option, the craft's own control tier, the
          payload meta). CommsCoreUplink.cs calls it, so it has to resolve here;
@@ -413,6 +420,7 @@
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommNetHomeAccess.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
+    <Compile Include="..\Gonogo.KSP\RosterControlSource.cs" />
     <!-- The career refusal RULES, carved out of KspCareerActuator so a headless
          test can enter them at all: the actuator's own bodies reach Funding /
          ScenarioUpgradeableFacilities / ContractSystem, every one a MonoBehaviour
@@ -508,6 +516,10 @@
 
   <Target Name="WarnIfHarmonyMissing" BeforeTargets="Build" Condition="'$(HarmonyAvailable)' != 'true'">
     <Warning Text="0Harmony.dll not found at $(HarmonyDll): HarmonyPatchProbeMirrorTests SKIPPED, so nothing is checking the Harmony names the off-screen strategy activation reads to refuse a patched career." />
+  </Target>
+
+  <Target Name="RefuseMissingRequestedKspManaged" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true' And '$(_KspManagedDefaulted)' != 'true'">
+    <Error Text="KspManaged=$(KspManaged) was passed, but it holds no Assembly-CSharp.dll. A path given on purpose that resolves to nothing is a mistake, not a machine without KSP: a relative path from a git worktree, where local_docs does not exist, is the usual cause. Pass the directory that holds Assembly-CSharp.dll, or leave KspManaged unset to run without the KSP-linked suites." />
   </Target>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">

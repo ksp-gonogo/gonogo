@@ -37,6 +37,7 @@
 import type { KeyboardEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * What displacement MEANS.
@@ -347,7 +348,7 @@ const JogWheel__Root = styled.div<{
   padding: ${(p) =>
     p.$compact ? "var(--space-2, 2px)" : "var(--space-4, 4px)"};
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius-regular, 2px);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   cursor: ${(p) =>
@@ -360,10 +361,7 @@ const JogWheel__Root = styled.div<{
   user-select: none;
   opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
 
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 `;
 
 const JogWheel__Tape = styled.div<{ $orientation: "horizontal" | "vertical" }>`
@@ -393,7 +391,7 @@ const JogWheel__Label = styled.span`
      order in the same stacking context, so no z-index is needed. */
   position: relative;
   font-family: var(--font-family-mono, ui-monospace, monospace);
-  font-size: var(--font-size-sm, 12px);
+  font-size: var(--font-size-compact);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
   padding: 0 var(--space-2, 2px);

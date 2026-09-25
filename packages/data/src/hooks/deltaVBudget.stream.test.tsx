@@ -1,11 +1,12 @@
 import {
   DELTA_V_BUDGET,
   type DeltaVBudget,
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 
@@ -17,7 +18,11 @@ import { describe, expect, it } from "vitest";
  * and stage rows alone do not produce one.
  */
 
-function Probe({ onRender }: { onRender: (v?: DeltaVBudget) => void }) {
+function Probe({
+  onRender,
+}: {
+  onRender: (r?: Reading<DeltaVBudget>) => void;
+}) {
   onRender(useProcessor(DELTA_V_BUDGET));
   return null;
 }
@@ -26,12 +31,18 @@ function renderProbe() {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const renders: Array<DeltaVBudget | undefined> = [];
+  const readings: Array<Reading<DeltaVBudget> | undefined> = [];
   render(
     <TelemetryProvider client={client}>
-      <Probe onRender={(v) => renders.push(v)} />
+      <Probe
+        onRender={(r) => {
+          readings.push(r);
+          renders.push(r?.value);
+        }}
+      />
     </TelemetryProvider>,
   );
-  return { transport, renders };
+  return { transport, renders, readings };
 }
 
 describe("DELTA_V_BUDGET over a live stream", () => {

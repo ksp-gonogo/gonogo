@@ -186,7 +186,11 @@ export function readWireSurface(pkgDir: string): WireSurface {
   const topicMapPath = join(dir, "topic-map.ts");
   if (!existsSync(unitsPath)) return EMPTY;
 
-  const units = JSON.parse(readFileSync(unitsPath, "utf8")) as UnitsJson;
+  const parsedUnits: unknown = JSON.parse(readFileSync(unitsPath, "utf8"));
+  if (typeof parsedUnits !== "object" || parsedUnits === null) {
+    throw new Error(`${unitsPath} does not hold a JSON object.`);
+  }
+  const units: UnitsJson = parsedUnits as UnitsJson;
 
   const mapped = new Map<string, { payload: string; array: boolean }>();
   if (existsSync(topicMapPath)) {

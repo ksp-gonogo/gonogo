@@ -80,8 +80,9 @@ function pickMostRecentFlightByName(
 
 function parseCrewNames(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
+  const entries: unknown[] = raw;
   const names: string[] = [];
-  for (const entry of raw) {
+  for (const entry of entries) {
     if (entry && typeof entry === "object" && !Array.isArray(entry)) {
       const e = entry as Record<string, unknown>;
       if (typeof e.name === "string") names.push(e.name);
@@ -133,7 +134,7 @@ interface SampleRow {
 }
 
 /**
- * Wraps a live `DataSource`, persists every sample into a `Store` keyed by
+ * Wraps a live `DataSource`, persists every sample into a `FlightStore` keyed by
  * inferred flight id, and exposes both live subscriptions (matching the
  * DataSource contract) and columnar range queries (the graph widget's
  * primary read path).
@@ -785,11 +786,15 @@ export class BufferedDataSource extends DataSourceWrapper {
     // Run the detector off v.missionTime as the driver. It ticks every frame
     // with a numeric value, and by the time it arrives in a given WS message
     // v.name has already been processed.
-    if (key === "v.missionTime" && this.latestName !== null) {
+    if (
+      key === "v.missionTime" &&
+      this.latestName !== null &&
+      typeof value === "number"
+    ) {
       const before = this.detector.getCurrent();
       const decision = this.detector.observe({
         vesselName: this.latestName,
-        missionTime: value as number,
+        missionTime: value,
         now: t,
       });
       void this.store.upsertFlight(decision.flight);

@@ -131,9 +131,10 @@ export class NotesHostService {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as Note[];
+      const parsed: unknown = JSON.parse(raw);
       if (!Array.isArray(parsed)) return null;
-      return parsed.filter(
+      const rows: Note[] = parsed;
+      return rows.filter(
         (n) =>
           n &&
           typeof n.id === "string" &&

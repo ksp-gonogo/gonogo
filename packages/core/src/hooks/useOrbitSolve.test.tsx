@@ -1,9 +1,7 @@
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   type VesselOrbitPayload,
-  type WireOf,
 } from "@ksp-gonogo/sitrep-client";
 import {
   PropagationHorizonKind,
@@ -11,6 +9,7 @@ import {
   type SystemBodies,
   TrajectoryKind,
 } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport, type WireOf } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";

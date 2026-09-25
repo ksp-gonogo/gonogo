@@ -1,4 +1,4 @@
-import type { VesselParts } from "@ksp-gonogo/sitrep-sdk";
+import { type VesselParts, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { computeBuiltinPartMeters } from "./partMetersContribution";
 
@@ -61,16 +61,16 @@ describe("computeBuiltinPartMeters", () => {
       partId: "1",
       resource: "LiquidFuel",
       displayName: "LiquidFuel",
-      amount: 90,
-      capacity: 180,
+      amount: value("units", 90),
+      capacity: value("units", 180),
       status: null,
     });
     expect(entries).toContainEqual({
       partId: "1",
       resource: "Oxidizer",
       displayName: "Oxidizer",
-      amount: 100,
-      capacity: 220,
+      amount: value("units", 100),
+      capacity: value("units", 220),
       status: null,
     });
   });
@@ -83,8 +83,8 @@ describe("computeBuiltinPartMeters", () => {
       partId: "1",
       resource: "LiquidFuel",
       displayName: "LiquidFuel",
-      amount: 20,
-      capacity: 180,
+      amount: value("units", 20),
+      capacity: value("units", 180),
       status: "low",
     });
   });
@@ -97,8 +97,8 @@ describe("computeBuiltinPartMeters", () => {
       partId: "1",
       resource: "LiquidFuel",
       displayName: "LiquidFuel",
-      amount: 5,
-      capacity: 180,
+      amount: value("units", 5),
+      capacity: value("units", 180),
       status: "critical",
     });
   });

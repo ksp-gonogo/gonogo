@@ -77,6 +77,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
+import { mountGridCell } from "./gridCell";
 // Side-effect import: the planted Uplink's contributions into built-in
 // widgets, for a fixture whose subject is a built-in widget WITH an Uplink's
 // contributions. Each requires the planted Domain, so only a fixture emitting
@@ -238,6 +239,12 @@ export interface ProbePayload {
   h: number;
   pxW: number;
   pxH: number;
+  /**
+   * Mount inside the dashboard's own cell: `#root` becomes the cell, with the
+   * drag header across its top and the widget in the clipping wrapper below
+   * it. See `renderWidgets`' `gridCell`.
+   */
+  gridCell?: boolean;
   config?: Record<string, unknown>;
   instanceId?: string;
   /**
@@ -542,6 +549,15 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   if (!def) {
     throw new Error(`Probe: widget "${payload.widgetId}" not registered`);
   }
+  /* The dashboard never gives a widget less than its minSize, so a render
+     there pictures a screen no operator can reach, and anything it finds is a
+     finding about nothing. */
+  const min = def.minSize;
+  if (min && (payload.w < min.w || payload.h < min.h)) {
+    throw new Error(
+      `Probe: "${payload.widgetId}" at ${payload.w}x${payload.h} is below its minSize ${min.w}x${min.h}, a size the dashboard never gives it`,
+    );
+  }
   const WidgetComponent = def.component as React.ComponentType<{
     config: Record<string, unknown>;
     id: string;
@@ -557,7 +573,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   const instanceId = payload.instanceId ?? "probe";
 
   // The widget tree proper: shared by both provider-wrap branches below.
-  function buildWidgetTree(): React.ReactNode {
+  const buildWidgetTree = (): React.ReactNode => {
     // Wrap with a no-op AlarmsLauncherProvider so widgets that opt into
     // alarm chrome (`useAlarmsLauncher` / `useAlarmCreator` /
     // `useAlarmManager`) get a real launcher reference and render their
@@ -599,14 +615,12 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
         createElement(
           ContributionsProvider,
           null,
-          createElement(
-            AlarmsLauncherProvider,
-            {
-              launcher: () => {},
-              creator: () => {},
-              manager: { find: () => null, remove: () => {} },
-            },
-            createElement(
+          <AlarmsLauncherProvider
+            launcher={() => {}}
+            creator={() => {}}
+            manager={{ find: () => null, remove: () => {} }}
+          >
+            {createElement(
               DashboardItemContext.Provider,
               { value: { instanceId } },
               createElement(WidgetComponent, {
@@ -615,8 +629,8 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
                 w: payload.w,
                 h: payload.h,
               }),
-            ),
-          ),
+            )}
+          </AlarmsLauncherProvider>,
         ),
       ),
     );
@@ -637,9 +651,16 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     const badges = payload.fixture._badges as readonly BadgeEntry[] | undefined;
     if (!badges || badges.length === 0) return tree;
     return createElement(PanelBadgesProvider, { badges }, tree);
-  }
+  };
 
-  activeRoot = createRoot(root);
+  if (!payload.gridCell) {
+    // A cell left by an earlier render on this page would still be laying the
+    // widget out.
+    root.replaceChildren();
+    root.style.display = "";
+    root.style.flexDirection = "";
+  }
+  activeRoot = createRoot(payload.gridCell ? mountGridCell(root) : root);
   activeRoot.render(
     // ui-kit-composed widgets read design tokens off the styled-components
     // theme (e.g. `theme.space.md` in Stack): without a ThemeProvider the
