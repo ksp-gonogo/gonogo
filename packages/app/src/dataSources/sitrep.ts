@@ -15,8 +15,7 @@ import {
 
 /**
  * A thin `DataSource`-shaped FRONT for the Sitrep telemetry stream, so it
- * shows up in the existing "Data Sources" settings panel
- * (`@ksp-gonogo/components`'s `DataSourceStatusComponent`) with the same
+ * shows up in the Settings modal's Data Sources panel with the same
  * connected/disconnected pill, Reconnect button and host/port config form
  * every other source gets, no bespoke settings UI needed.
  *
