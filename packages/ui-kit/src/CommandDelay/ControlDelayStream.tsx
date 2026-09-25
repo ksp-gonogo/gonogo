@@ -34,7 +34,8 @@ export interface ControlStreamDatum {
   oneWaySeconds: number | null;
   inTransit: ControlStreamSample[];
   echo: ControlStreamSample[];
-  current: number;
+  /** `null` while nothing has been commanded on the axis. */
+  current: number | null;
   /**
    * What this entry IS on the three axes, in full, and NOT optional.
    *

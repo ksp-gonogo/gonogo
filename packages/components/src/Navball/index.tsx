@@ -443,13 +443,10 @@ function NavballComponent({
    * in-transit plus confirmed-readback buffer `<ControlDelayStream>` draws.
    *
    * The state tracks the live readback until the operator first touches a
-   * throttle control (`throttleTouchedRef`), so simply opening the control
-   * surface never silently commands the engine back to a stale default, the
-   * write half dispatching unconditionally on its first tick notwithstanding.
-   * The benign consequence is that on open, before the operator has touched
-   * anything, that first tick re-commands the just-seeded value straight back
-   * at the engine: the live readback it was already at, never a stale 0, so a
-   * no-op in effect.
+   * throttle control (`throttleTouchedRef`), so the slider shows where the
+   * engine is. Until then the stream is handed `null` and commands nothing:
+   * neither the 0 an unread readback would seed nor, under delay, a readback a
+   * round trip old sent back at a pilot who has since moved the throttle.
    *
    * The `vesselId`-keyed effect below resets `throttleTouchedRef` on a vessel
    * switch, so a freshly-switched craft re-seeds from its own live throttle
@@ -457,11 +454,14 @@ function NavballComponent({
    */
   const [throttleCmd, setThrottleCmdState] = useState(throttle);
   const throttleTouchedRef = useRef(false);
+  // State as well as the ref: a first touch that sets the value it already held (ZERO on an unread throttle) changes no other state, and the stream only learns of the intent through a render.
+  const [throttleTouched, setThrottleTouched] = useState(false);
   useEffect(() => {
     if (!throttleTouchedRef.current) setThrottleCmdState(throttle);
   }, [throttle]);
   const setThrottleCmd = (next: number | ((v: number) => number)) => {
     throttleTouchedRef.current = true;
+    setThrottleTouched(true);
     setThrottleCmdState(next);
   };
   /**
@@ -481,6 +481,7 @@ function NavballComponent({
     if (activeVesselId !== prevVesselIdRef.current) {
       prevVesselIdRef.current = activeVesselId;
       throttleTouchedRef.current = false;
+      setThrottleTouched(false);
       // Re-seed immediately rather than waiting on the `throttle` effect's
       // own dependency to fire: the new vessel's live value may already be
       // sitting in `throttle` this render (the two topics often update in
@@ -491,7 +492,7 @@ function NavballComponent({
   }, [activeVesselId, throttle]);
   const throttleStream: ControlStream = useControlStream(
     "vessel.control.throttle",
-    throttleCmd,
+    throttleTouched ? throttleCmd : null,
     {
       label: "Throttle",
       range: "unit",
@@ -512,12 +513,12 @@ function NavballComponent({
    * (`vessel.control.{pitch,yaw,roll,translationX/Y/Z}`, published by
    * `KspHost.BuildControl`).
    */
-  const [pitchCmd, setPitchCmd] = useState(0);
-  const [yawCmd, setYawCmd] = useState(0);
-  const [rollCmd, setRollCmd] = useState(0);
-  const [translateXCmd, setTranslateXCmd] = useState(0);
-  const [translateYCmd, setTranslateYCmd] = useState(0);
-  const [translateZCmd, setTranslateZCmd] = useState(0);
+  const [pitchCmd, setPitchCmd] = useState<number | null>(null);
+  const [yawCmd, setYawCmd] = useState<number | null>(null);
+  const [rollCmd, setRollCmd] = useState<number | null>(null);
+  const [translateXCmd, setTranslateXCmd] = useState<number | null>(null);
+  const [translateYCmd, setTranslateYCmd] = useState<number | null>(null);
+  const [translateZCmd, setTranslateZCmd] = useState<number | null>(null);
   const axisStreamOpts = (label: string) => ({
     label,
     range: "signed" as const,
@@ -590,7 +591,7 @@ function NavballComponent({
     field: "pitchTrim" | "yawTrim" | "rollTrim",
     raw: number,
   ) => {
-    void trimCmd.send({ [field]: clamp(raw, -1, 1) });
+    void trimCmd.send({ [field]: raw });
   };
 
   // Uncoerced, and they reach the buttons that way: inverting an unresolved
@@ -726,8 +727,8 @@ function NavballComponent({
     "sas-anti-target": (p) => isButtonPress(p) && setSasMode("AntiTarget"),
     "sas-maneuver": (p) => isButtonPress(p) && setSasMode("Maneuver"),
     "set-throttle": (p) => {
-      if (p.kind !== "analog") return;
-      setThrottleCmd(clamp(p.value as number, 0, 1));
+      const v = analogValue(p, 0, 1);
+      if (v !== null) setThrottleCmd(v);
     },
     "throttle-up": (p) =>
       isButtonPress(p) && setThrottleCmd((v) => clamp(v + 0.1, 0, 1)),
@@ -740,40 +741,40 @@ function NavballComponent({
     // per-axis translate binding sets its own component; the other axes hold
     // their last-commanded value.
     "set-pitch": (p) => {
-      if (p.kind !== "analog") return;
-      setPitchCmd(clamp(p.value as number, -1, 1));
+      const v = analogValue(p, -1, 1);
+      if (v !== null) setPitchCmd(v);
     },
     "set-yaw": (p) => {
-      if (p.kind !== "analog") return;
-      setYawCmd(clamp(p.value as number, -1, 1));
+      const v = analogValue(p, -1, 1);
+      if (v !== null) setYawCmd(v);
     },
     "set-roll": (p) => {
-      if (p.kind !== "analog") return;
-      setRollCmd(clamp(p.value as number, -1, 1));
+      const v = analogValue(p, -1, 1);
+      if (v !== null) setRollCmd(v);
     },
     "translate-x": (p) => {
-      if (p.kind !== "analog") return;
-      setTranslateXCmd(clamp(p.value as number, -1, 1));
+      const v = analogValue(p, -1, 1);
+      if (v !== null) setTranslateXCmd(v);
     },
     "translate-y": (p) => {
-      if (p.kind !== "analog") return;
-      setTranslateYCmd(clamp(p.value as number, -1, 1));
+      const v = analogValue(p, -1, 1);
+      if (v !== null) setTranslateYCmd(v);
     },
     "translate-z": (p) => {
-      if (p.kind !== "analog") return;
-      setTranslateZCmd(clamp(p.value as number, -1, 1));
+      const v = analogValue(p, -1, 1);
+      if (v !== null) setTranslateZCmd(v);
     },
     "set-pitch-trim": (p) => {
-      if (p.kind !== "analog") return;
-      sendTrim("pitchTrim", p.value as number);
+      const v = analogValue(p, -1, 1);
+      if (v !== null) sendTrim("pitchTrim", v);
     },
     "set-yaw-trim": (p) => {
-      if (p.kind !== "analog") return;
-      sendTrim("yawTrim", p.value as number);
+      const v = analogValue(p, -1, 1);
+      if (v !== null) sendTrim("yawTrim", v);
     },
     "set-roll-trim": (p) => {
-      if (p.kind !== "analog") return;
-      sendTrim("rollTrim", p.value as number);
+      const v = analogValue(p, -1, 1);
+      if (v !== null) sendTrim("rollTrim", v);
     },
   });
 
@@ -1025,7 +1026,7 @@ function NavballComponent({
             <ControlSurface
               disabled={!isControllable}
               sasMode={sasMode ?? null}
-              throttleCmd={throttleStream.current}
+              throttleCmd={throttleCmd}
               onSetThrottleCmd={setThrottleCmd}
               throttleStream={throttleStream}
               axisStreams={axisStreams}
@@ -1455,12 +1456,26 @@ function badgeSasMode(mode: SasModeName): string {
   return mode === "Unknown" ? mode : modeShort(mode);
 }
 
+/**
+ * An analog input's value clamped to the axis, or `null` for one that is not a
+ * finite number. A device reporting NaN has commanded nothing, and read as 0 on
+ * the throttle it would cut the engine.
+ */
+function analogValue(
+  p: { kind: string; value: unknown },
+  lo: number,
+  hi: number,
+): number | null {
+  if (p.kind !== "analog") return null;
+  if (typeof p.value !== "number" || !Number.isFinite(p.value)) return null;
+  return clamp(p.value, lo, hi);
+}
+
 function isButtonPress(p: { kind: string; value: unknown }): boolean {
   return p.kind === "button" && p.value === true;
 }
 
 function clamp(v: number, lo: number, hi: number): number {
-  if (!Number.isFinite(v)) return 0;
   if (v < lo) return lo;
   if (v > hi) return hi;
   return v;
