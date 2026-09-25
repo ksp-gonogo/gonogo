@@ -178,14 +178,14 @@ describe("the carried ASL altitude reaches the operator", () => {
     expect(interval.lo).not.toBe(interval.hi);
   });
 
-  it("says what a one-sigma interval claims, rather than leaving it assumed", () => {
+  it("says what the interval claims, rather than leaving it assumed", () => {
     expect(
       readoutText(
         mount(
           withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
         ),
       ),
-    ).toMatch(/about two thirds of the time/);
+    ).toMatch(/the carried altitude is inside that interval/);
   });
 
   /**

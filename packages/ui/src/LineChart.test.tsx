@@ -498,7 +498,6 @@ describe("LineChart uncertainty band", () => {
     );
     const name = chartName(container);
     expect(name).toMatch(/the value is inside/i);
-    expect(name).toMatch(/about two thirds of the time/i);
   });
 
   /*
@@ -520,7 +519,7 @@ describe("LineChart uncertainty band", () => {
     );
   });
 
-  it("says a hard bound is a range the value is inside, which is a different claim", () => {
+  it("says a hard bound is a range the value is inside", () => {
     const { container } = render(
       <LineChart
         series={banded("bound")}
@@ -531,7 +530,27 @@ describe("LineChart uncertainty band", () => {
     );
     const name = chartName(container);
     expect(name).toMatch(/the value is inside/i);
-    expect(name).not.toMatch(/two thirds of the time/i);
+    expect(name).not.toMatch(/could be|two thirds|the time/i);
+  });
+
+  it("reads a one-sigma region and a hard bound the same way", () => {
+    const { container: sigma1 } = render(
+      <LineChart
+        series={banded("sigma1")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const { container: bound } = render(
+      <LineChart
+        series={banded("bound")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(chartName(sigma1)).toBe(chartName(bound));
   });
 });
 
