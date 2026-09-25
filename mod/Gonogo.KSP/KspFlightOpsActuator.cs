@@ -200,9 +200,23 @@ namespace Gonogo.KSP
         /// refusal for a vessel that is not <c>DiscoveryLevels.Owned</c>. A
         /// <c>false</c> return discards which of the six it was, so the arm is
         /// read back here to name it.</para>
+        ///
+        /// <para>Refuses outside the flight scene
+        /// (<see cref="CommandErrorCode.WrongScene"/>), before anything is
+        /// touched. <c>SetActiveVessel</c> is a flight-scene call: from the space
+        /// centre it throws partway through, after it has already begun moving
+        /// the craft, and leaves it in a state the game never produces (landed,
+        /// yet moving over the ground at speed and not rotating with the
+        /// body).</para>
         /// </summary>
         public CommandResult SwitchVessel(string vesselId)
         {
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
+
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
             {
