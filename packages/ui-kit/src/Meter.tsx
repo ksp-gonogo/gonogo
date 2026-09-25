@@ -21,6 +21,21 @@ import {
 export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
 
 /**
+ * How a meter's three parts are arranged.
+ *
+ * - `stacked`: the label and the figure on a line, the bar beneath them. The
+ *   default, for a meter that is a readout in its own right
+ * - `row`: label, bar and figure on ONE line, for a dense list of meters read
+ *   down a column (a craft's tanks, a stack of stages). Where the line runs out
+ *   of room the figure, then the bar, wraps to a line of its own rather than
+ *   being clipped, so the figure and its not-current mark are never cut off
+ *
+ * The bar is the same in both: one track height, the same fill, the same held
+ * treatment and the same band marks. Only where the words sit changes.
+ */
+export type MeterLayout = "stacked" | "row";
+
+/**
  * What either half of a meter may be handed: the quantity on its own, or the
  * whole {@link Reading} it arrived in.
  *
@@ -68,6 +83,8 @@ interface MeterCommonProps
    * accessibility tree.
    */
   valueLabelNode?: ReactNode;
+  /** Where the label and figure sit relative to the bar. See {@link MeterLayout}. */
+  layout?: MeterLayout;
 }
 
 /**
@@ -198,6 +215,7 @@ export function Meter<U extends string = string>({
   fillColor,
   valueLabel,
   valueLabelNode,
+  layout = "stacked",
   ...rest
 }: MeterProps<U>) {
   // Unpacked first, so each half's figure and the statements about it go
@@ -210,17 +228,16 @@ export function Meter<U extends string = string>({
   );
   if (fraction === null) {
     return (
-      <Meter__Root {...rest}>
-        <Meter__Head>
-          <Meter__Label>{label}</Meter__Label>
-          <Meter__Value>
-            <NullValue />
-          </Meter__Value>
-        </Meter__Head>
+      <MeterFrame
+        layout={layout}
+        label={label}
+        display={<NullValue />}
+        {...rest}
+      >
         {/* Decorative: the track carries no reading, so the label and the
             placeholder beside it are the whole accessible content. */}
         <Meter__Track $notCurrent={false} aria-hidden="true" />
-      </Meter__Root>
+      </MeterFrame>
     );
   }
   const clamped = Number.isFinite(fraction)
@@ -228,6 +245,7 @@ export function Meter<U extends string = string>({
     : 0;
   const bar = {
     label,
+    layout,
     pct: Math.round(clamped * 100),
     tone,
     fillColor,
@@ -524,6 +542,7 @@ function markAt(fraction: number): {
 interface MeterBarProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   label: string;
+  layout: MeterLayout;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
   pct: number;
   tone: MeterTone;
@@ -558,6 +577,7 @@ interface MeterBarProps
  */
 function MeterBar({
   label,
+  layout,
   pct,
   tone,
   fillColor,
@@ -570,50 +590,83 @@ function MeterBar({
   ...rest
 }: MeterBarProps) {
   return (
-    <Meter__Root {...rest}>
-      <Meter__Head>
-        <Meter__Label>{label}</Meter__Label>
-        <Meter__Value>{display}</Meter__Value>
-      </Meter__Head>
-      <Meter__Bar>
-        <Meter__Track
-          $notCurrent={trackNotCurrent}
-          data-track-not-current={trackNotCurrent ? "" : undefined}
-          role="meter"
-          aria-label={label}
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuetext={spoken}
-        >
-          <Meter__Fill
-            $tone={tone}
-            $fillColor={fillColor}
-            $notCurrent={notCurrent}
-            data-fill-not-current={notCurrent ? "" : undefined}
-            style={{ width: `${pct}%` }}
-          />
-        </Meter__Track>
-        {/* Decorative, and deliberately so: what the marks say is already in
+    <MeterFrame layout={layout} label={label} display={display} {...rest}>
+      <Meter__Track
+        $notCurrent={trackNotCurrent}
+        data-track-not-current={trackNotCurrent ? "" : undefined}
+        role="meter"
+        aria-label={label}
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuetext={spoken}
+      >
+        <Meter__Fill
+          $tone={tone}
+          $fillColor={fillColor}
+          $notCurrent={notCurrent}
+          data-fill-not-current={notCurrent ? "" : undefined}
+          style={{ width: `${pct}%` }}
+        />
+      </Meter__Track>
+      {/* Decorative, and deliberately so: what the marks say is already in
             `aria-valuetext` above, in words, because a 2px line has no reading
             of its own and four of them announced separately would be noise. */}
-        {(bounds !== null || endBounds !== null) && (
-          <Meter__Marks aria-hidden="true">
-            {bounds !== null && (
-              <>
-                <Meter__Bound data-bound="lo" {...markAt(bounds.lo)} />
-                <Meter__Bound data-bound="hi" {...markAt(bounds.hi)} />
-              </>
-            )}
-            {endBounds !== null && (
-              <>
-                <Meter__Bound data-end-bound="lo" {...markAt(endBounds.lo)} />
-                <Meter__Bound data-end-bound="hi" {...markAt(endBounds.hi)} />
-              </>
-            )}
-          </Meter__Marks>
-        )}
-      </Meter__Bar>
+      {(bounds !== null || endBounds !== null) && (
+        <Meter__Marks aria-hidden="true">
+          {bounds !== null && (
+            <>
+              <Meter__Bound data-bound="lo" {...markAt(bounds.lo)} />
+              <Meter__Bound data-bound="hi" {...markAt(bounds.hi)} />
+            </>
+          )}
+          {endBounds !== null && (
+            <>
+              <Meter__Bound data-end-bound="lo" {...markAt(endBounds.lo)} />
+              <Meter__Bound data-end-bound="hi" {...markAt(endBounds.hi)} />
+            </>
+          )}
+        </Meter__Marks>
+      )}
+    </MeterFrame>
+  );
+}
+
+/**
+ * The label, the figure and the bar, placed by `layout`.
+ *
+ * `children` is what goes in the bar: the track, and the marks over it. In the
+ * stacked form the label and figure share a head line above it; in the row form
+ * all three are siblings on one line, the bar between the two words.
+ */
+function MeterFrame({
+  layout,
+  label,
+  display,
+  children,
+  ...rest
+}: Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
+  layout: MeterLayout;
+  label: string;
+  display: ReactNode;
+  children: ReactNode;
+}) {
+  if (layout === "row") {
+    return (
+      <Meter__Root $row {...rest}>
+        <Meter__Label>{label}</Meter__Label>
+        <Meter__Bar $row>{children}</Meter__Bar>
+        <Meter__Value $row>{display}</Meter__Value>
+      </Meter__Root>
+    );
+  }
+  return (
+    <Meter__Root $row={false} {...rest}>
+      <Meter__Head>
+        <Meter__Label>{label}</Meter__Label>
+        <Meter__Value $row={false}>{display}</Meter__Value>
+      </Meter__Head>
+      <Meter__Bar $row={false}>{children}</Meter__Bar>
     </Meter__Root>
   );
 }
@@ -667,9 +720,14 @@ function MeterPairBar<U extends string = string>({
   // One group, so both halves hear the same answer; either serves, and on the
   // first pass neither has one yet.
   const shared = fromValue ?? fromCapacity ?? {};
+  /*
+   * A row has one line to spend, so there the symbol is written once, after the
+   * capacity: `960 / 1,000 units` rather than the unit twice. The group's rung
+   * is still settled by both halves.
+   */
   const display = valueLabelNode ?? valueLabel ?? (
     <>
-      <Unit value={value} />
+      <Unit value={value} hideUnitInGroup={bar.layout === "row"} />
       {" / "}
       <Unit value={capacity} />
     </>
@@ -746,12 +804,26 @@ const TONE_FILL = {
 const TRACK_HEIGHT = "8px";
 const MARK_INSET = "1px";
 
-const Meter__Root = styled.div`
+/* In the row form the three parts WRAP rather than shrink: the label keeps its
+   whole name, the bar keeps a floor, and the figure drops to a line of its own
+   at the trailing edge when the line cannot hold all three. */
+const Meter__Root = styled.div<{ $row: boolean }>`
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
   width: 100%;
   min-width: 0;
+  ${({ $row }) =>
+    $row
+      ? css`
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+          column-gap: var(--space-8);
+          row-gap: var(--space-2);
+        `
+      : css`
+          flex-direction: column;
+          gap: var(--space-2);
+        `}
 `;
 
 const Meter__Head = styled.div`
@@ -784,8 +856,11 @@ const Meter__Label = styled.span`
   max-width: 100%;
 `;
 
-const Meter__Value = styled.span`
-  font-size: var(--font-size-value);
+/* The row form writes its figure a step smaller, at the label's line height,
+   so a dense list keeps one line per meter. */
+const Meter__Value = styled.span<{ $row: boolean }>`
+  font-size: ${({ $row }) =>
+    $row ? "var(--font-size-compact)" : "var(--font-size-value)"};
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -874,8 +949,15 @@ const Meter__Marks = styled.div`
 
 /* The bar: the track and the marks over it, in one box the marks can be
    positioned against. */
-const Meter__Bar = styled.div`
+const Meter__Bar = styled.div<{ $row: boolean }>`
   position: relative;
+  ${({ $row }) =>
+    $row
+      ? css`
+          flex: 1 1 28px;
+          min-width: 28px;
+        `
+      : ""}
 `;
 
 const Meter__Bound = styled.div`

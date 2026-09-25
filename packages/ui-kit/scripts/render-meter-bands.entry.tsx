@@ -77,7 +77,7 @@ function bandOf(
   };
 }
 
-function Case({ c }: { c: MeterCase }) {
+function Case({ c, layout }: { c: MeterCase; layout: MeterSheet["layout"] }) {
   const tank = tankOf(c);
   return (
     <figure style={{ margin: 0, display: "grid", gap: 4 }}>
@@ -92,6 +92,7 @@ function Case({ c }: { c: MeterCase }) {
           capacity={tank.capacity}
           tone={c.tone}
           fillColor={c.fillColor}
+          layout={layout}
         />
       ) : (
         <Meter
@@ -103,6 +104,7 @@ function Case({ c }: { c: MeterCase }) {
           )}
           tone={c.tone}
           fillColor={c.fillColor}
+          layout={layout}
         />
       )}
       <figcaption
@@ -154,7 +156,7 @@ function Sheet({ sheet }: { sheet: MeterSheet }) {
       </p>
       <MeterStack style={{ gap: 14 }}>
         {sheet.cases.map((c) => (
-          <Case key={c.label} c={c} />
+          <Case key={c.label} c={c} layout={sheet.layout} />
         ))}
       </MeterStack>
     </div>

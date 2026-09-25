@@ -481,6 +481,7 @@ export {
 } from "./MarkerIcons";
 export {
   Meter,
+  type MeterLayout,
   type MeterProps,
   MeterStack,
   type MeterTone,
