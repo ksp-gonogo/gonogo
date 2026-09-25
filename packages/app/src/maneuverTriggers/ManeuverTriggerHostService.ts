@@ -3,7 +3,6 @@ import {
   type ArmTriggerInput,
   buildCurrentOrbit,
   compareThreshold,
-  computeMu,
   computePlan,
   EMPTY_TRIGGER_SNAPSHOT,
   type FrozenPlanInputs,
@@ -22,7 +21,6 @@ import {
   getValue,
   getVesselIdentity,
   getVesselOrbit,
-  getVesselState,
   getVesselTarget,
   getViewUt,
   onActiveTimelineFrame,
@@ -53,9 +51,9 @@ import type { PeerHostService } from "../peer/PeerHostService";
  *
  * `readLiveOrbit()`/`readVesselName()` read the vessel's own orbit, the
  * current target's orbit, and vessel identity off the non-hook
- * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
- * `getVesselState()` accessors (`@ksp-gonogo/sitrep-client`): the same
- * `TimelineStore` a mounted widget's `useTelemetry` would read. An armed
+ * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()` accessors
+ * (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a mounted widget's
+ * `useTelemetry` would read. An armed
  * TRIGGER's own `dataKey` is operator-picked but never arbitrary: the widget's
  * `DataKeyPicker` only offers keys `@ksp-gonogo/data`'s `useValueKeys`
  * resolves, the Value-restricted, stream-mapped set, so the threshold read
@@ -295,7 +293,6 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private readLiveOrbit() {
     const orbit = getVesselOrbit();
     const bodies = getSystemBodies();
-    const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
     /*
@@ -323,13 +320,9 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
      * against.
      */
     const solve = getOrbitSolve();
-    const sma = solverInput(orbit?.sma);
-    const orbitalSpeed = state?.orbitalSpeed ?? undefined;
-    const radius = solve?.orbitalRadius ?? undefined;
-    const period = solve?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
-        sma,
+        sma: solverInput(orbit?.sma),
         ecc: solverInput(orbit?.ecc),
         ApR: solve?.apoapsisRadius ?? undefined,
         PeR: solve?.periapsisRadius ?? undefined,
@@ -340,7 +333,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       // SDK's own view time, read via the non-hook `getViewUt` accessor rather
       // than the legacy telemetry reader.
       currentUT,
-      mu: computeMu(orbitalSpeed, radius, sma, period),
+      // The parent body's GM as the orbit carries it; 0 is the planner's own "no mu" and plans nothing.
+      mu: solverInput(orbit?.mu) ?? 0,
       trueAnomaly: solve?.trueAnomaly ?? undefined,
       argPe: solverInput(orbit?.argPe),
       inclination: solverInput(orbit?.inc),

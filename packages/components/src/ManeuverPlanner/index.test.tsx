@@ -42,14 +42,15 @@ function unmountAll() {
 // module-load `registerComponent`, so the augment-slot metadata is intact.
 const maneuverPlannerDef = getComponent("maneuver-planner");
 
-// currentUT now reads off `useViewUt()` (the `t.universalTime` client
-// migration) instead of the legacy `DataSource`: every test below still
-// emits `t.universalTime` (now a dead, harmless emit) so this constant
-// mirrors that same value via a minimal pinned `TelemetryProvider`. Nothing
-// is carried, so every other read stays on the legacy source.
+/*
+ * currentUT reads off `useViewUt()`, so this pins a minimal
+ * `TelemetryProvider` at the same UT the tests' `t.universalTime` emits carry.
+ * `vessel.orbit` is carried so the trigger editor's key picker offers its
+ * fields, which the trigger tests threshold on.
+ */
 const UT_FIXTURE_VALUE = 1_000_000;
 const utFixture = setupStreamFixture({
-  carriedChannels: [],
+  carriedChannels: ["vessel.orbit"],
   pinnedUt: UT_FIXTURE_VALUE,
   /*
    * Every test here drives the widget through `userEvent`, and each keystroke is
@@ -85,9 +86,8 @@ function formatManeuverAddCommand(args: unknown): string {
 // non-hook accessors sample the store directly, with no subscription of
 // their own: see `sampleActiveTopic`'s doc comment in `sitrep-client`), so
 // this stands in for "some other live widget already has it subscribed",
-// the same assumption production relies on. `system.bodies` feeds the
-// derived `vessel.state.apoapsisAlt`/`periapsisAlt` reference-body radius:
-// the trigger tests below arm on `o.ApA`, which only resolves once it's fed.
+// the same assumption production relies on. `system.bodies` feeds the conic
+// the trigger service plans against, so a fired trigger needs it.
 utFixture.client.subscribe("vessel.orbit", () => {});
 utFixture.client.subscribe("vessel.identity", () => {});
 utFixture.client.subscribe("system.bodies", () => {});
@@ -154,8 +154,7 @@ const KEYS: DataKey[] = [
  * `LocalManeuverTriggerService` (the trigger-editor's fallback service,
  * since this test never supplies a `providedTriggerService`) now reads its
  * OWN orbit/target/vessel-identity fields off the stream
- * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
- * `getVesselState()`) instead of the legacy `o.*`/`tar.o.*`/`v.name` keys,
+ * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`) instead of the legacy `o.*`/`tar.o.*`/`v.name` keys,
  * see that file's own doc comment. The widget's own DISPLAYED numbers still
  * come from the legacy `o.*` emits above (unmigrated `useDataValue` reads),
  * so the two don't need to match exactly; this just needs to be a
@@ -250,12 +249,12 @@ function emitFullOrbit(source: MockDataSource, bodyName = "Kerbin"): void {
   source.emit("o.orbitalSpeed", 2300);
   source.emit("o.radius", 700000);
   source.emit("t.universalTime", 1_000_000);
-  // Stream leg: see the doc comment above. Kerbin's radius (600_000m) is
-  // what turns the fixture's apoapsisRADIUS (707_000, sma·1.01) into the
-  // apoapsisALT (107_000) the legacy `o.ApA` emit above already carries,
-  // `LocalManeuverTriggerService`'s trigger `dataKey` reads (`getValue`)
-  // resolve `o.ApA` to the derived `vessel.state.apoapsisAlt`, which needs
-  // `system.bodies` for that subtraction.
+  /*
+   * Stream leg: see the doc comment above. The trigger tests threshold on this
+   * orbit's `sma` (700_000), read by `LocalManeuverTriggerService` through
+   * `getValue`, and plan against the conic over it, which needs
+   * `system.bodies` for Kerbin's radius.
+   */
   utFixture.emit("vessel.orbit", VESSEL_ORBIT_STREAM_FIXTURE);
   utFixture.emit("vessel.identity", VESSEL_IDENTITY_STREAM_FIXTURE);
   utFixture.emit("system.bodies", {
@@ -556,29 +555,30 @@ describe("ManeuverPlannerComponent", () => {
     // Open the trigger editor.
     await user.click(screen.getByRole("button", { name: /add node when/i }));
 
-    // Pick the apoapsis-altitude key via the data-key search input. The
-    // picker offers the path the trigger reads from, not a flat alias for it.
+    // Pick the semi-major axis key via the data-key search input. The picker
+    // offers the path the trigger reads from, not a flat alias for it.
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
-    await user.type(picker, "vessel.state.apoapsisAlt{Enter}");
+    await user.type(picker, "vessel.orbit.sma{Enter}");
 
-    // Set threshold above current ApA (107000) so it doesn't fire on arm.
+    // Set threshold above the current sma (700000) so it doesn't fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
     await user.clear(valueInput);
-    await user.type(valueInput, "200000");
+    await user.type(valueInput, "800000");
 
     await user.click(screen.getByRole("button", { name: /^arm$/i }));
 
     // Armed row visible, no burn dispatched yet.
-    expect(visibleText()).toMatch(/vessel\.state\.apoapsisAlt >= 200000/);
+    expect(visibleText()).toMatch(/vessel\.orbit\.sma >= 800000/);
     expect(calls).toHaveLength(0);
 
-    // Apoapsis climbs past the threshold: trigger fires and the burn is
-    // dispatched with the frozen circularize-apo preset. The trigger's
-    // `dataKey` read (`getValue`) samples the derived
-    // `vessel.state.apoapsisAlt` off the STREAM, so the crossing has to come from a new
-    // `vessel.orbit` emit (sma 900_000 -> apoapsisAlt 309_000), not the
-    // legacy `source.emit` alone.
+    /*
+     * The orbit grows past the threshold: trigger fires and the burn is
+     * dispatched with the frozen circularize-apo preset. The trigger's
+     * `dataKey` read (`getValue`) samples `vessel.orbit.sma` off the STREAM,
+     * so the crossing has to come from a new `vessel.orbit` emit (sma
+     * 900_000), not the legacy `source.emit` alone.
+     */
     await act(async () => {
       source.emit("o.ApA", 250000);
       utFixture.emit("vessel.orbit", {
@@ -586,16 +586,14 @@ describe("ManeuverPlannerComponent", () => {
         sma: 900_000,
       });
     });
-    // Let the provider's scheduled `store.beginFrame()` run so the derived
-    // channel recomputes and the trigger's frame-tick re-evaluation fires.
+    // Let the provider's scheduled `store.beginFrame()` run so the trigger's
+    // frame-tick re-evaluation fires.
     await flushViewUt();
 
     expect(calls.length).toBe(1);
     expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
     // Armed row removed after firing.
-    expect(
-      screen.queryByText(/vessel\.state\.apoapsisAlt >= 200000/),
-    ).toBeNull();
+    expect(screen.queryByText(/vessel\.orbit\.sma >= 800000/)).toBeNull();
   });
 
   it("fires immediately when the trigger condition is already true at arm time", async () => {
@@ -635,11 +633,11 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(screen.getByRole("button", { name: /add node when/i }));
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
-    await user.type(picker, "vessel.state.apoapsisAlt{Enter}");
-    // Threshold below current ApA (107000): should fire on arm.
+    await user.type(picker, "vessel.orbit.sma{Enter}");
+    // Threshold below the current sma (700000): should fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
     await user.clear(valueInput);
-    await user.type(valueInput, "50000");
+    await user.type(valueInput, "600000");
 
     await user.click(screen.getByRole("button", { name: /^arm$/i }));
 

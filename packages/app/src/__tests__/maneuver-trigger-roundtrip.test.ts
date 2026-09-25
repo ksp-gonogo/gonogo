@@ -21,7 +21,6 @@ import {
   TelemetryClient,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -63,7 +62,7 @@ function memoryStorage(): Storage {
 /**
  * `readLiveOrbit()`/`readVesselName()`'s stream leg: see
  * `ManeuverTriggerHostService.test.ts`'s identical fixture for the full
- * reasoning (real `TimelineStore` + `vesselStateChannel`, fed directly via
+ * reasoning (real `TimelineStore`, fed directly via
  * `StubTransport.emit`, no React/`TelemetryProvider` needed). Also the
  * trigger `dataKey` read (`getValue`) and maneuver-node fire's
  * command-dispatch (`dispatchActiveCommand`) leg:
@@ -82,7 +81,6 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   });
   clock.scrubTo(pinnedUt);
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   client.attachStore(store);
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
@@ -115,10 +113,8 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 }
 
 /**
- * `sma`/`ecc` drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
- * body-radius-independent: see `vessel-state.ts`), which is what this
- * file's `dataKey: "vessel.state.apoapsisRadius"` triggers threshold against: 700_000 · 1.01 =
- * 707_000 at the defaults below.
+ * `sma` is what this file's `dataKey: "vessel.orbit.sma"` triggers threshold
+ * against, 700_000 at the default below.
  */
 function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
   return {
@@ -254,10 +250,10 @@ describe("Maneuver trigger peer roundtrip", () => {
     });
     const clientSvc = new ManeuverTriggerClientService(asClientService(client));
 
-    // Station arms via its peer-client surface. Baseline apoapsisRadius
-    // (707_000) stays below 750_000: pending until the orbit changes.
+    // Station arms via its peer-client surface. Baseline sma (700_000) stays
+    // below 750_000: pending until the orbit changes.
     clientSvc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 750_000,
       inputs: FROZEN,
@@ -273,8 +269,7 @@ describe("Maneuver trigger peer roundtrip", () => {
     expect(clientSvc.snapshot().triggers[0].createdBy).toBe("station-1");
     expect(orbitStore.calls).toEqual([]);
 
-    // Telemetry crosses the threshold (bump sma so apoapsisRadius clears
-    // 750_000): host fires + dispatches burn.
+    // Telemetry crosses the threshold (bump sma so it clears 750_000): host fires + dispatches burn.
     orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
     // The command dispatch settles on a microtask, drain it before
     // asserting (see `ManeuverTriggerHostService.test.ts`'s identical note).
@@ -300,7 +295,7 @@ describe("Maneuver trigger peer roundtrip", () => {
     const clientSvc = new ManeuverTriggerClientService(asClientService(client));
 
     clientSvc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 999_999,
       inputs: FROZEN,

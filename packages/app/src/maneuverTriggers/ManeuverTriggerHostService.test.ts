@@ -6,7 +6,6 @@ import {
   TelemetryClient,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import {
   PropagationHorizonKind,
@@ -35,8 +34,7 @@ function memoryStorage(): Storage {
 
 /**
  * `readLiveOrbit()`/`readVesselName()`'s stream leg: real `TimelineStore`
- * (with `vesselStateChannel` registered, matching `TelemetryProvider`'s own
- * default) fed directly via `TimelineStore.ingest`/`StubTransport.emit`,
+ * fed directly via `TimelineStore.ingest`/`StubTransport.emit`,
  * registered as the accessors' source via `setActiveTimelineStoreForTests`.
  * No React/`TelemetryProvider` needed: this is a plain-class unit test.
  *
@@ -65,7 +63,6 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   });
   clock.scrubTo(pinnedUt);
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   client.attachStore(store);
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
@@ -139,10 +136,8 @@ function seedRenamedBodyOrbit(pinnedUt = 1_000_000) {
 /**
  * Self-consistent Kerbin-like orbit. `meanAnomalyAtEpoch: 0` + `epoch:
  * pinnedUt` puts the vessel at periapsis exactly at the pinned view-UT.
- * `sma`/`ecc` also drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
- * body-radius-independent: see `vessel-state.ts`), which is what this
- * file's `dataKey: "vessel.state.apoapsisRadius"` triggers threshold against: 700_000 · 1.01 =
- * 707_000 at the defaults below.
+ * `sma` is also what this file's `dataKey: "vessel.orbit.sma"` triggers
+ * threshold against, 700_000 at the default below.
  */
 function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
   return {
@@ -249,25 +244,25 @@ describe("ManeuverTriggerHostService", () => {
   it("adds an armed trigger and surfaces it in the snapshot", () => {
     const svc = makeService();
     seedKerbinOrbit();
-    // 707_000 (baseline apoapsisRadius) stays below 800_000: pending, not fired.
+    // 700_000 (baseline sma) stays below 800_000: pending, not fired.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 800_000,
       inputs: FROZEN,
     });
     const snap = svc.snapshot();
     expect(snap.triggers).toHaveLength(1);
-    expect(snap.triggers[0].dataKey).toBe("vessel.state.apoapsisRadius");
+    expect(snap.triggers[0].dataKey).toBe("vessel.orbit.sma");
     expect(snap.triggers[0].vesselName).toBe("Test Vessel");
   });
 
   it("fires immediately when the condition is already true at arm time", () => {
     const svc = makeService();
     seedKerbinOrbit();
-    // 707_000 (baseline apoapsisRadius) already clears 700_000.
+    // 700_000 (baseline sma) already meets >= 700_000.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 700_000,
       inputs: FROZEN,
@@ -278,10 +273,10 @@ describe("ManeuverTriggerHostService", () => {
   it("plans a transfer around a body the stock table has never heard of", async () => {
     const svc = makeService();
     const storeFixture = seedRenamedBodyOrbit();
-    // apoapsisRadius is 6_771_000 · 1.01, so this is already true and the
-    // trigger fires at arm time, the same path the tests above use.
+    // sma is 6_771_000, so this is already true and the trigger fires at arm
+    // time, the same path the tests above use.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 6_000_000,
       inputs: {
@@ -301,15 +296,15 @@ describe("ManeuverTriggerHostService", () => {
   it("fires when the watched value crosses the threshold after arming", async () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
-    // 707_000 stays below 750_000: pending until the orbit changes.
+    // 700_000 stays below 750_000: pending until the orbit changes.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 750_000,
       inputs: FROZEN,
     });
     expect(storeFixture.calls).toEqual([]);
-    // Bump sma so apoapsisRadius (sma·1.01) clears 750_000.
+    // Bump sma so it clears 750_000.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
     // The command dispatch settles on a microtask (StubTransport answers
     // `command-request` via `queueMicrotask`): drain it before asserting.
@@ -324,10 +319,10 @@ describe("ManeuverTriggerHostService", () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
 
-    // 707_000 stays below 750_000, so this arms pending and reads as armed
+    // 700_000 stays below 750_000, so this arms pending and reads as armed
     // against the live vessel.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 750_000,
       inputs: FROZEN,
@@ -336,7 +331,7 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers[0].vesselName).toBe("Test Vessel");
     expect(storeFixture.calls).toEqual([]);
 
-    // 707_000 -> 1_010_000, clearing the 750_000 threshold.
+    // 700_000 -> 800_000, clearing the 750_000 threshold.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
     await Promise.resolve();
     await Promise.resolve();
@@ -350,7 +345,7 @@ describe("ManeuverTriggerHostService", () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 800_000,
       inputs: FROZEN,
@@ -375,16 +370,16 @@ describe("ManeuverTriggerHostService", () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
 
-    // Stays pending: 707_000 is below 800_000.
+    // Stays pending: 700_000 is below 800_000.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 800_000,
       inputs: FROZEN,
     });
-    // Already true at 707_000, so this one fires as it is armed and leaves the list immediately, putting its id in `fired`.
+    // Already true at 700_000, so this one fires as it is armed and leaves the list immediately, putting its id in `fired`.
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 700_000,
       inputs: FROZEN,
@@ -407,7 +402,7 @@ describe("ManeuverTriggerHostService", () => {
     const svc1 = makeService();
     seedKerbinOrbit();
     svc1.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 999_999,
       inputs: FROZEN,
@@ -416,9 +411,7 @@ describe("ManeuverTriggerHostService", () => {
     svc1.dispose();
     const svc2 = makeService();
     expect(svc2.snapshot().triggers).toHaveLength(1);
-    expect(svc2.snapshot().triggers[0].dataKey).toBe(
-      "vessel.state.apoapsisRadius",
-    );
+    expect(svc2.snapshot().triggers[0].dataKey).toBe("vessel.orbit.sma");
   });
 
   /**
@@ -432,7 +425,7 @@ describe("ManeuverTriggerHostService", () => {
     const svc1 = makeService();
     seedKerbinOrbit();
     svc1.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 999_999,
       inputs: FROZEN,
@@ -459,7 +452,7 @@ describe("ManeuverTriggerHostService", () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
     svc.arm({
-      dataKey: "vessel.state.apoapsisRadius",
+      dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 999_999,
       inputs: FROZEN,
