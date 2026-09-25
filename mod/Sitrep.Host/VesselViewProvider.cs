@@ -137,7 +137,7 @@ namespace Sitrep.Host
                 Situation = situation,
                 ParentBodyIndex = parentBodyIndex,
                 LaunchUt = ResolveLaunchUt(snapshot!, vessel, identity, situation),
-                Meta = BuildMeta(vesselId!),
+                Meta = BuildMeta(vessel, vesselId!),
             };
         }
 
@@ -200,7 +200,7 @@ namespace Sitrep.Host
                 return null;
             }
 
-            return MapOrbit(orbit, vesselId, snapshot!);
+            return MapOrbit(orbit, vesselId, snapshot!, QualityOf(vessel));
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace Sitrep.Host
         /// <c>null</c> on any missing required field, same rules as
         /// <see cref="BuildOrbit"/>.
         /// </summary>
-        private static VesselOrbit? MapOrbit(IDictionary<string, object?> orbit, string vesselId, KspSnapshot snapshot)
+        private static VesselOrbit? MapOrbit(IDictionary<string, object?> orbit, string vesselId, KspSnapshot snapshot, Quality quality)
         {
             var sma = GetDouble(orbit, "sma");
             var ecc = GetDouble(orbit, "ecc");
@@ -315,7 +315,7 @@ namespace Sitrep.Host
                 Horizon = horizon,
                 Arc = arc.Arc,
                 ArcRefusal = arc.Refusal,
-                Meta = BuildMeta(vesselId),
+                Meta = new PayloadMeta { Source = "vessel:" + vesselId, Quality = quality },
             };
         }
 
@@ -587,7 +587,7 @@ namespace Sitrep.Host
                 Position = position,
                 Velocity = velocity,
                 FrameRotating = frameRotating.Value,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -645,7 +645,7 @@ namespace Sitrep.Host
                 AtmDensity = atmDensity.Value,
                 ExternalTemperature = externalTemperature.Value,
                 AtmosphericTemperature = atmosphericTemperature.Value,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -686,7 +686,7 @@ namespace Sitrep.Host
                 PitchRootFrame = pitchRootFrame.Value,
                 HeadingRootFrame = headingRootFrame.Value,
                 RollRootFrame = rollRootFrame.Value,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -735,7 +735,7 @@ namespace Sitrep.Host
             return new VesselResources
             {
                 Resources = map,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -788,7 +788,7 @@ namespace Sitrep.Host
                 HottestEngineMaxTemp = GetDouble(thermal, "hottestEngineMaxTemp"),
                 HottestEngineTempRatio = GetDouble(thermal, "hottestEngineTempRatio"),
                 AnyEnginesOverheating = GetBool(thermal, "anyEnginesOverheating"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -886,7 +886,7 @@ namespace Sitrep.Host
                 TranslationY = GetDouble(control, "translationY"),
                 TranslationZ = GetDouble(control, "translationZ"),
                 ActionGroups = actionGroups,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -917,7 +917,7 @@ namespace Sitrep.Host
             return new VesselPhysicsMode
             {
                 Mode = ParsePhysicsMode(GetString(physics, "mode")),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -949,7 +949,7 @@ namespace Sitrep.Host
                 Connected = connected.Value,
                 SignalStrength = signalStrength.Value,
                 ControlState = ParseControlState(GetString(comms, "controlState")),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -987,7 +987,7 @@ namespace Sitrep.Host
                 AvailableThrust = availableThrust.Value,
                 ThrustStartedUt = GetDouble(propulsion, "thrustStartedUt"),
                 LastThrustEndUt = GetDouble(propulsion, "lastThrustEndUt"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -1070,7 +1070,7 @@ namespace Sitrep.Host
                 // Absent means no planner exists for this craft, which the
                 // empty Nodes list above cannot say on its own.
                 Planner = GetString(vessel, "maneuverPlanner"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -1098,7 +1098,7 @@ namespace Sitrep.Host
             VesselOrbit? orbit = null;
             if (TryGetGroup(target, "orbit", out var rawOrbit))
             {
-                orbit = MapOrbit(rawOrbit, vesselId, snapshot!);
+                orbit = MapOrbit(rawOrbit, vesselId, snapshot!, Quality.OnRails);
             }
 
             // Mod-side closest approach (the elected IPropagationProvider's
@@ -1157,7 +1157,7 @@ namespace Sitrep.Host
                 RelativeVelocity = relativeVelocity,
                 Orbit = orbit,
                 ClosestApproach = closestApproach,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -1192,7 +1192,7 @@ namespace Sitrep.Host
                 RelativeVelocity = relativeVelocity,
                 Distance = distance.Value,
                 ForwardDot = GetDouble(dock, "forwardDot"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -1215,7 +1215,7 @@ namespace Sitrep.Host
                 Biome = GetString(surface, "biome"),
                 LandedAt = GetString(surface, "landedAt"),
                 HeightFromTerrain = GetDouble(surface, "heightFromTerrain"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -1256,7 +1256,7 @@ namespace Sitrep.Host
                 DescentRegime = GetString(landing, "descentRegime"),
                 DragToWeightRatio = GetDouble(landing, "dragToWeightRatio"),
                 ParachuteState = GetString(landing, "parachuteState"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -1282,7 +1282,7 @@ namespace Sitrep.Host
             var result = new VesselCrew
             {
                 Count = count.Value,
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
 
             // Roster + capacity (G-13 additive growth). Optional group: absent
@@ -1445,7 +1445,7 @@ namespace Sitrep.Host
                 // never -1 or 0 masquerading as a real stage/part count.
                 StageCount = GetInt(misc, "stageCount"),
                 PartCount = GetInt(misc, "partCount"),
-                Meta = BuildMeta(vesselId),
+                Meta = BuildMeta(vessel, vesselId),
             };
         }
 
@@ -2142,20 +2142,32 @@ namespace Sitrep.Host
         // Shared helpers
         // ----------------------------------------------------------------
 
-        private static PayloadMeta BuildMeta(string vesselId)
+        private static PayloadMeta BuildMeta(IDictionary<string, object?> vessel, string vesselId)
         {
             return new PayloadMeta
             {
                 Source = "vessel:" + vesselId,
-                // Quality defaults to OnRails -- KspHost doesn't yet capture
-                // the vessel's packed/loaded (on-rails vs off-rails) state
-                // (a future capture addition), so this is a documented,
-                // deliberate simplification for M1 Task 1, not a silent
-                // "always trust conics" claim. Off-rails detection is scoped
-                // to whichever future task wires up physicsMode/packed
-                // capture.
-                Quality = Quality.OnRails,
+                Quality = QualityOf(vessel),
             };
+        }
+
+        /// <summary>
+        /// <see cref="Quality.Loaded"/> exactly when KSP is simulating the craft: loaded
+        /// AND unpacked, which is when its orbit driver tracks the rigidbody and the
+        /// elements are osculating rather than a coast. Everything else is
+        /// <see cref="Quality.OnRails"/>.
+        ///
+        /// <para>That includes a craft that is loaded but packed and LANDED, whose orbit
+        /// driver is idle: its elements are not a coast either, but the enum has two
+        /// members and a third state gets a deliberate new member or none, not a
+        /// stretched meaning of one of these.</para>
+        /// </summary>
+        internal static Quality QualityOf(IDictionary<string, object?> vessel)
+        {
+            return TryGetGroup(vessel, "physics", out var physics)
+                && ParsePhysicsMode(GetString(physics, "mode")) == PhysicsMode.Unpacked
+                    ? Quality.Loaded
+                    : Quality.OnRails;
         }
 
         /// <summary>

@@ -9,6 +9,7 @@ import {
   type SituationName,
 } from "../contract-enum-names";
 import { magnitudeOr, type Quantityish } from "../magnitude";
+import type { TimelinePoint } from "../timeline";
 import {
   registerTopicUnits,
   type ShapesByField,
@@ -307,8 +308,8 @@ export interface VesselState {
   orbitalSpeed: number | null;
   /**
    * Mission elapsed time, seconds: `viewUt - vessel.identity.launchUt`.
-   * OnRails basis only (see class doc); `null` in the "measured" basis,
-   * before launch (`launchUt` still `null` on `vessel.identity`), while
+   * Populated in BOTH bases, because it reads no orbit. `null` before
+   * launch (`launchUt` still `null` on `vessel.identity`), while
    * `vessel.identity` hasn't arrived yet (a secondary input, its absence
    * nulls this ONE field, not the whole record), or on a non-finite result.
    */
@@ -1116,6 +1117,22 @@ function derivePredictedImpact(
   };
 }
 
+/**
+ * `viewUt - launchUt`, or `null` while the identity names no launch clock. The
+ * same in both bases: a craft under physics has the same mission clock as one on
+ * rails, and a launch is exactly when a craft is under physics.
+ */
+function missionElapsed(
+  identityPoint: TimelinePoint<VesselIdentityPayload> | undefined,
+  viewUt: number,
+): number | null {
+  const launchUt =
+    identityPoint && identityPoint.payload !== null
+      ? identityPoint.payload.launchUt
+      : null;
+  return launchUt == null ? null : finiteOrNull(viewUt - launchUt);
+}
+
 export function deriveVesselState(
   get: DerivedGet,
   viewUt: number,
@@ -1169,11 +1186,7 @@ export function deriveVesselState(
     // record. Contrast `vessel.orbit` and `vessel.flight` above, whose absence
     // is a whole-record `undefined` or `null`; see `VesselState.met`'s doc.
     const identityPoint = get<VesselIdentityPayload>("vessel.identity");
-    const launchUt =
-      identityPoint && identityPoint.payload !== null
-        ? identityPoint.payload.launchUt
-        : null;
-    const met = launchUt == null ? null : finiteOrNull(viewUt - launchUt);
+    const met = missionElapsed(identityPoint, viewUt);
 
     const { apoapsisAlt, periapsisAlt } = orbitals;
 
@@ -1265,7 +1278,7 @@ export function deriveVesselState(
      */
     altitudeAsl: finiteOrNull(mag(flight.altitudeAsl)),
     orbitalSpeed: finiteOrNull(mag(flight.orbitalSpeed)),
-    met: null,
+    met: missionElapsed(identityPoint, viewUt),
     period: null,
     trueAnomaly: null,
     apoapsisAlt: null,

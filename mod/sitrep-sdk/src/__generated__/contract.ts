@@ -3259,6 +3259,13 @@ export interface Meta
 	* the connection is at no command centre because none is active.
 	*/
 	vantage: string;
+	/**
+	* Whether the payload's subject is under physics: `Quality.Loaded` while KSP
+	* simulates the craft, when its orbital elements are osculating rather than a
+	* coast a conic may advance, and `Quality.OnRails` otherwise, including for a
+	* payload that describes no craft. The payload's own `meta.quality`, carried
+	* onto the envelope.
+	*/
 	quality: Quality;
 	active: boolean;
 	staleness: Staleness;

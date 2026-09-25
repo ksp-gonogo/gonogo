@@ -92,6 +92,14 @@ public class Meta
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
+
+    /// <summary>
+    /// Whether the payload's subject is under physics: <see cref="Quality.Loaded"/>
+    /// while KSP simulates the craft, when its orbital elements are osculating
+    /// rather than a coast a conic may advance, and <see cref="Quality.OnRails"/>
+    /// otherwise, including for a payload that describes no craft. The payload's
+    /// own <c>meta.quality</c>, carried onto the envelope.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public Quality Quality { get; set; }
     [SitrepUnit(Units.Flag)]

@@ -1141,6 +1141,30 @@ namespace Sitrep.Host.Tests
             Assert.Equal("vessel:" + VesselGuid, physics.Meta.Source);
         }
 
+        /// <summary>
+        /// A payload's quality is the craft's own: Loaded only while KSP simulates it
+        /// (loaded and unpacked), when its elements are osculating rather than a coast.
+        /// A loaded but packed craft, including a landed one whose orbit driver is idle,
+        /// and a craft that is not loaded at all, are on rails.
+        /// </summary>
+        [Theory]
+        [InlineData("Unpacked", Quality.Loaded)]
+        [InlineData("Packed", Quality.OnRails)]
+        [InlineData("OnRails", Quality.OnRails)]
+        [InlineData(null, Quality.OnRails)]
+        public void EveryPayloadCarriesTheCraftsOwnQuality(string? mode, Quality expected)
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid, ["situation"] = "FLYING" },
+                physics: mode == null ? null : new Dictionary<string, object?> { ["mode"] = mode });
+
+            Assert.Equal(expected, VesselViewProvider.BuildIdentity(snapshot)!.Meta.Quality);
+            if (mode != null)
+            {
+                Assert.Equal(expected, VesselViewProvider.BuildPhysicsMode(snapshot)!.Meta.Quality);
+            }
+        }
+
         [Fact]
         public void BuildPhysicsModeFallsBackToUnknownForUnrecognizedRawValue()
         {

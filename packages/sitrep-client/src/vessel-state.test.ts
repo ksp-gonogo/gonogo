@@ -986,8 +986,8 @@ describe("derivable orbital fields: met/period/trueAnomaly/apoapsisAlt/periapsis
     });
   });
 
-  describe("Loaded: all seven fields are null (measured basis leaves them null, same as position/velocity)", () => {
-    it("every new field is null, not undefined, in the measured basis", () => {
+  describe("Loaded: the six orbit-derived fields are null, and met is not", () => {
+    it("every orbit-derived field is null, not undefined, in the measured basis, while met still counts from launch", () => {
       const { get } = fakeGet({
         "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.Loaded }),
         "vessel.flight": flightPoint(MEASURED_FLIGHT),
@@ -1004,7 +1004,8 @@ describe("derivable orbital fields: met/period/trueAnomaly/apoapsisAlt/periapsis
 
       const state = deriveVesselState(get, 700);
 
-      expect(state?.met).toBeNull();
+      // A craft under physics after liftoff is the case a launch is made of.
+      expect(state?.met).toBe(700);
       expect(state?.period).toBeNull();
       expect(state?.trueAnomaly).toBeNull();
       expect(state?.apoapsisAlt).toBeNull();

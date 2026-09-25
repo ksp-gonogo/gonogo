@@ -989,8 +989,31 @@ namespace Sitrep.Core
             {
                 Topic = topic,
                 Payload = sample.Value,
-                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness, gapSinceUt),
+                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness, gapSinceUt, QualityOf(sample.Value)),
             };
+        }
+
+        /// <summary>
+        /// The quality a payload states for its own subject (its <c>meta.quality</c>),
+        /// carried onto the envelope, because the envelope is the one a client reads.
+        /// <see cref="Quality.OnRails"/> for a payload that states none.
+        /// </summary>
+        internal static Quality QualityOf(object? payload)
+        {
+            if (payload is IDictionary<string, object?> fields
+                && fields.TryGetValue("meta", out var meta)
+                && meta is IDictionary<string, object?> metaFields
+                && metaFields.TryGetValue("quality", out var quality))
+            {
+                switch (quality)
+                {
+                    case Quality typed:
+                        return typed;
+                    case int raw when Enum.IsDefined(typeof(Quality), raw):
+                        return (Quality)raw;
+                }
+            }
+            return Quality.OnRails;
         }
 
         /// <summary>
@@ -1054,7 +1077,8 @@ namespace Sitrep.Core
             double deliveredAt,
             int epoch,
             Staleness staleness,
-            double? gapSinceUt = null)
+            double? gapSinceUt = null,
+            Quality quality = Quality.OnRails)
         {
             return new Meta
             {
@@ -1064,7 +1088,7 @@ namespace Sitrep.Core
                 Seq = NextSeq(),
                 DeliveredAt = deliveredAt,
                 Vantage = vantage,
-                Quality = Quality.OnRails,
+                Quality = quality,
                 Active = true,
                 Staleness = staleness,
                 TimelineEpoch = epoch,
