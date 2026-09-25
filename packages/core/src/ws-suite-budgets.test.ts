@@ -33,6 +33,11 @@ import { describe, expect, it } from "vitest";
  * That is the failure this asks about, so it asks in two directions. A literal
  * budget is forbidden, AND the budgets must be REACHED: a suite that deleted
  * its deadlines entirely would satisfy the first on its own.
+ *
+ * A literal is forbidden in both of the places a deadline is written: bound to
+ * a field, and passed inline as an argument. A rule that reads only field
+ * declarations cannot see a deadline written straight into the call it bounds,
+ * which is where most of them are written.
  */
 
 const SUITE = "mod/Sitrep.Host.IntegrationTests";
@@ -54,7 +59,9 @@ const SUGGESTED: Record<string, string> = {
   Timeout: "TestBudgets.Op",
   TickTimeout: "TestBudgets.Op",
   Quiet: "TestBudgets.Quiet",
-  SettleWindow: "TestBudgets.Quiet",
+  // CommandRefusalTests' window: every refusal exit sets Done before the call
+  // returns, so it bounds a dispatch completing, not a stretch of silence.
+  SettleWindow: "TestBudgets.Op",
   ReaderPollTimeout: "TestBudgets.ReaderPoll",
   FinalDrainDelay: "TestBudgets.FinalDrain",
 };
@@ -64,6 +71,28 @@ const BUDGET_MEMBERS = /public static readonly TimeSpan (\w+)\s*=/g;
 
 /** A `TimeSpan` field sized by a literal instead of bound to a budget. */
 const LITERAL_BUDGET = /readonly TimeSpan (\w+)\s*=\s*TimeSpan\.From/g;
+
+/** A `TimeSpan` built from a numeric literal, wherever it is written. */
+const INLINE_LITERAL =
+  /TimeSpan\.From(?:Milliseconds|Seconds|Minutes|Hours|Ticks)\(\s*[\d_.]+\s*\)/;
+
+/**
+ * Call shapes whose literal is an ABSENCE window rather than a deadline.
+ *
+ * Each asserts that nothing happens within the window. Starvation can only make
+ * such a window see less, which weakens the assertion toward a pass and never
+ * fails it, so the literal is not load-sensitive the way a deadline is. Matched
+ * on the whole call as written on one line, so the same literal passed to any
+ * other call, or split across lines, is still reported.
+ */
+const ABSENCE_WINDOWS: RegExp[] = [
+  // No text frame arrives on the socket within the window
+  /\.AssertNoMessageArrivesAsync\(TimeSpan\.From\w+\([\d_.]+\)\)/,
+  // No binary-lane frame arrives within the window
+  /\.AssertNoBinaryFrameArrivesAsync\(TimeSpan\.From\w+\([\d_.]+\)\)/,
+  // An event is shown still unset once the window has passed
+  /Assert\.False\(\w+\.Wait\(TimeSpan\.From\w+\([\d_.]+\)\)/,
+];
 
 /** The file that declares the budgets, which is allowed to compute them. */
 const DECLARATION = `${SUITE}/TestBudgets.cs`;
@@ -87,6 +116,25 @@ const ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
  */
 function literalBudgets(text: string): string[] {
   return [...text.matchAll(LITERAL_BUDGET)].map((m) => m[1]);
+}
+
+/**
+ * The lines of one source that pass a literal `TimeSpan` inline, as 1-based
+ * line numbers with their text.
+ *
+ * A field declaration is left to {@link literalBudgets}, which names the field,
+ * and an {@link ABSENCE_WINDOWS} call is not a deadline.
+ */
+function inlineLiterals(text: string): { line: number; text: string }[] {
+  return text
+    .split("\n")
+    .map((line, i) => ({ line: i + 1, text: line.trim() }))
+    .filter(
+      ({ text: line }) =>
+        INLINE_LITERAL.test(line) &&
+        !new RegExp(LITERAL_BUDGET.source).test(line) &&
+        !ABSENCE_WINDOWS.some((shape) => shape.test(line)),
+    );
 }
 
 /** The suite's tracked C# sources, as git lists them. */
@@ -157,6 +205,31 @@ describe("the WS integration suite takes its deadlines from TestBudgets", () => 
     ).toEqual([]);
   });
 
+  it("passes no deadline a literal inline", () => {
+    const offenders: string[] = [];
+    for (const source of sources) {
+      if (source.path === DECLARATION) continue;
+      for (const { line, text } of inlineLiterals(source.text)) {
+        offenders.push(`${source.path}:${line}: ${text}`);
+      }
+    }
+    expect(
+      offenders,
+      [
+        "A test in the WS suite passed a literal TimeSpan inline.",
+        "",
+        "A deadline written into the call is the same load-sensitive literal as",
+        "one bound to a field, only harder to see. Pass the budget it means",
+        "(TestBudgets.Op for anything waited on to complete). If the value is",
+        "an absence window, which asserts that nothing happens, use one of the",
+        "call shapes in ABSENCE_WINDOWS or add the new shape there with a",
+        "comment saying why its literal cannot fail under load:",
+        "",
+        ...offenders.map((o) => `  ${o}`),
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
   it("actually reaches TestBudgets from the suite's own tests", () => {
     // The direction that was missed. Forbidding literals says nothing about
     // whether anything reads the budgets, and for three weeks nothing did.
@@ -197,5 +270,39 @@ describe("the WS integration suite takes its deadlines from TestBudgets", () => 
         "private static readonly TimeSpan SomeNewWindow = TimeSpan.FromMilliseconds(250);",
       ),
     ).toEqual(["SomeNewWindow"]);
+
+    /*
+     * Every inline spelling a deadline is written in. The bare
+     * `TimeSpan.FromMilliseconds(300));` line is the tail of a multi-line call,
+     * and stands equally for an absence helper whose argument was split onto
+     * its own line, which is not the one-line shape the allowlist names.
+     */
+    const inlineDeadlines = [
+      "engine.TickAndWait(0.0, Uplink.Snapshot(), TimeSpan.FromMilliseconds(500));",
+      "TimeSpan.FromMilliseconds(300));",
+      "TimeSpan.FromMilliseconds(300),",
+      "var ack = await SubscribeAsync(client, topic, TimeSpan.FromSeconds(2));",
+      "var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);",
+      "Assert.True(stopped.Wait(TimeSpan.FromSeconds(15)),",
+    ];
+    for (const line of inlineDeadlines) {
+      expect(
+        inlineLiterals(line).map((hit) => hit.text),
+        `the guard no longer catches ${line}`,
+      ).toEqual([line]);
+    }
+
+    // The forms it asks for, and the absence windows it names, survive
+    const permitted = [
+      "engine.TickAndWait(0.0, Uplink.Snapshot(), TestBudgets.Op);",
+      "await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));",
+      "await client.AssertNoBinaryFrameArrivesAsync(TimeSpan.FromMilliseconds(300));",
+      "Assert.False(resolved.Wait(TimeSpan.FromMilliseconds(300)),",
+      // A field is reported once, by the field rule, which can name it
+      "private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(300);",
+    ];
+    for (const line of permitted) {
+      expect(inlineLiterals(line), `the guard now rejects ${line}`).toEqual([]);
+    }
   });
 });
