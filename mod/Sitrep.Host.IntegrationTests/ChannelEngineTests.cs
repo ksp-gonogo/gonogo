@@ -541,7 +541,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     DelayFlagTestUplink.InfraCommand, "x", "vantage-1",
                     result => { infraResolved = true; infraResult = result; },
-                    TimeSpan.FromMilliseconds(500));
+                    TestBudgets.Op);
 
                 // Ground-infrastructure command: resolves on the SAME
                 // job-processing step, no Tick/clock-advance needed at all -
@@ -554,7 +554,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     DelayFlagTestUplink.VesselCommand, "y", "vantage-1",
                     result => { vesselResolved = true; vesselResult = result; },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 // Still pending: a normal (delayed:true) command rides the
                 // Courier's uplink+downlink delay (2 * 5s = 10s of UT), and
@@ -611,7 +611,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     VesselCommandProvider.SetSasCommand, new SetEnabledArgs { Enabled = true }, "vantage-1",
                     result => { sasResolved = true; sasResult = (CommandResult)result!; },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 Assert.False(sasResolved, "delayed vessel.control.setSas must not resolve before the Courier's scheduled UT");
                 Assert.Null(actuator.LastSetSasEnabled);
@@ -629,7 +629,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     VesselCommandProvider.TargetClearCommand, null, "vantage-1",
                     _ => { clearResolved = true; },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 Assert.False(clearResolved, "vessel.target.clear rides the delay: nothing about it changes the scene");
                 Assert.Equal(0, actuator.ClearTargetCallCount);
@@ -640,7 +640,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     VesselCommandProvider.SetPausedCommand, new SetPausedArgs { Paused = true }, "vantage-1",
                     result => { pauseResolved = true; pauseResult = (CommandResult)result!; },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 Assert.True(pauseResolved, "time.setPaused should resolve without any further clock advance");
                 Assert.True(pauseResult!.Success);
@@ -677,7 +677,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     VesselCommandProvider.SetAbortCommand, new SetEnabledArgs { Enabled = true }, "vantage-1",
                     r => { resolved = true; result = (CommandResult)r!; },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 Assert.False(resolved, "delayed:true vessel.control.setAbort must not resolve before the Courier's scheduled UT");
                 Assert.Null(actuator.LastSetAbortEnabled);

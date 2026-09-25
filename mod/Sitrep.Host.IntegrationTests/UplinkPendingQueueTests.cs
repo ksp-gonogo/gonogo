@@ -55,7 +55,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300),
+                    TestBudgets.Op,
                     label: "run.");
 
                 // A tick past the dispatch (but well short of the round trip)
@@ -129,7 +129,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300),
+                    TestBudgets.Op,
                     label: "run.");
 
                 engine.TickAndWait(
@@ -179,7 +179,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300),
+                    TestBudgets.Op,
                     label: "run.",
                     topic: "kos/7");
 
@@ -241,7 +241,7 @@ namespace Sitrep.Host.IntegrationTests
                     new Dictionary<string, object> { ["value"] = 0.65 },
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 engine.TickAndWait(
                     1.0,
@@ -291,7 +291,7 @@ namespace Sitrep.Host.IntegrationTests
                     new Dictionary<string, object> { ["enabled"] = true },
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 engine.TickAndWait(
                     1.0,
@@ -340,7 +340,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 engine.TickAndWait(
                     1.0,
@@ -392,7 +392,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300),
+                    TestBudgets.Op,
                     label: "run.");
 
                 engine.TickAndWait(
@@ -446,7 +446,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300),
+                    TestBudgets.Op,
                     onAccepted: seconds => accepted.Add(seconds));
 
                 Assert.Equal(new[] { signalDelay }, accepted);
@@ -481,7 +481,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "KSC",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300),
+                    TestBudgets.Op,
                     onAccepted: seconds => accepted.Add(seconds));
 
                 Assert.Empty(accepted);

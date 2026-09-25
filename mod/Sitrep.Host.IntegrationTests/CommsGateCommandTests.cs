@@ -77,7 +77,7 @@ namespace Sitrep.Host.IntegrationTests
                     "x",
                     "vantage-1",
                     _ => { },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 // Not yet: a delayed command rides the Courier's uplink delay.
                 Assert.Equal(0, uplink.HandledCount);
@@ -116,7 +116,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 engine.DispatchCommandAndWait(
                     CommsGateTestUplink.Command, "x", "vantage-1", _ => { },
-                    TimeSpan.FromMilliseconds(300));
+                    TestBudgets.Op);
 
                 // At UT 2 (< the 5s signal delay) the command must NOT have
                 // reached the craft yet: it rides the signal-delay uplink, not

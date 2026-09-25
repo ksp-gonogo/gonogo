@@ -16,7 +16,6 @@ namespace Sitrep.Host.IntegrationTests
     public class HomeCommandDispatchTests
     {
         private static readonly TimeSpan Timeout = TestBudgets.Op;
-        private static readonly TimeSpan Settle = TestBudgets.Quiet;
 
         private const string Vessel = "vessel:G";
         private const double ActiveVesselDelay = 240.0;
@@ -46,7 +45,7 @@ namespace Sitrep.Host.IntegrationTests
                     "funds",
                     Vessel,
                     _ => resolved = true,
-                    Settle,
+                    TestBudgets.Op,
                     onAccepted: seconds => flightTime = seconds);
 
                 Tick(engine, 100.0);
@@ -81,7 +80,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.SetOffTheGroundNetwork(Array.Empty<string>());
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay), Timeout);
 
-                engine.DispatchCommandAndWait(HomeSpendTestUplink.Command, "funds", Vessel, _ => { }, Settle);
+                engine.DispatchCommandAndWait(HomeSpendTestUplink.Command, "funds", Vessel, _ => { }, TestBudgets.Op);
                 Tick(engine, 3.0);
 
                 Assert.Equal(1, uplink.HandledCount);
@@ -109,7 +108,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.SetOffTheGroundNetwork(new[] { Vessel });
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: 0.0), Timeout);
 
-                engine.DispatchCommandAndWait(HomeSpendTestUplink.CraftCommand, "x", Vessel, _ => { }, Settle);
+                engine.DispatchCommandAndWait(HomeSpendTestUplink.CraftCommand, "x", Vessel, _ => { }, TestBudgets.Op);
                 engine.TickAndWait(1.0, HomeLedgerTestUplink.Snapshot(1.0, ledger: 10.0, delay: 0.0), Timeout);
 
                 Assert.Equal(1, uplink.CraftHandledCount);
