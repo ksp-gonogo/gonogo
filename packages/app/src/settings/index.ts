@@ -1,7 +1,7 @@
 export {
-  initCalendarSettings,
-  REAL_CALENDAR_DATES_SETTING,
-} from "./calendarSettings";
+  applyConsoleSettings,
+  ConsoleSettingsFromHost,
+} from "./consoleSettings";
 export {
   MISSION_HISTORY_ENABLED_SETTING,
   MISSION_RECORD_ALL_TOPICS_SETTING,

@@ -211,4 +211,42 @@ const ROWS: readonly SettingDefinition[] = [
   }),
 ];
 
-for (const def of ROWS) registerSetting(def);
+/** The `dependsOn` parent the render switches on and off. */
+export const PLANTED_PARENT_SETTING = "planted.settings.parent";
+
+/**
+ * A writable parent and two children that depend on it, for the `dependsOn`
+ * render: the children go inert while the parent is off.
+ */
+const DEPENDENT_ROWS: readonly SettingDefinition[] = [
+  row({
+    id: PLANTED_PARENT_SETTING,
+    type: "boolean",
+    category: "Planted Dependency",
+    label: "Record",
+    description: "The parent both rows below depend on.",
+    defaultValue: true,
+    screens: ["main"],
+  }),
+  row({
+    id: "planted.settings.childAll",
+    type: "boolean",
+    category: "Planted Dependency",
+    label: "Record everything",
+    description: "Has no effect while Record is off.",
+    defaultValue: false,
+    screens: ["main"],
+    dependsOn: PLANTED_PARENT_SETTING,
+  }),
+  row({
+    id: "planted.settings.childVideo",
+    type: "boolean",
+    category: "Planted Dependency",
+    label: "Record video",
+    defaultValue: false,
+    screens: ["main"],
+    dependsOn: PLANTED_PARENT_SETTING,
+  }),
+];
+
+for (const def of [...DEPENDENT_ROWS, ...ROWS]) registerSetting(def);

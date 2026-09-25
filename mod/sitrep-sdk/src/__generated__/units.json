@@ -732,6 +732,12 @@
       "validAt": "ut",
       "vantage": "id"
     },
+    "ModSettingState": {
+      "label": "text",
+      "name": "id",
+      "owner": "id",
+      "value": "text"
+    },
     "OrbitEncounter": {
       "bodyIndex": "id",
       "transitionType": "enum",
@@ -1093,6 +1099,29 @@
     },
     "SetWarpIndexArgs": {
       "index": "id"
+    },
+    "SettingsChange": {
+      "path": "id",
+      "value": "text"
+    },
+    "SettingsDeclarationFailure": {
+      "reason": "text",
+      "uplinkId": "id"
+    },
+    "SettingsPersistence": {
+      "path": "text",
+      "reason": "text",
+      "savedAtUt": "ut",
+      "state": "enum"
+    },
+    "SettingsRowState": {
+      "default": "text",
+      "description": "text",
+      "kind": "enum",
+      "label": "text",
+      "owner": "id",
+      "path": "id",
+      "value": "text"
     },
     "SolarPanelEntry": {
       "chargeRate": "units/s",
@@ -2220,6 +2249,9 @@
     "ResolveResult": {
       "notices": "ResolutionNotice[]"
     },
+    "SaveSettingsArgs": {
+      "changes": "SettingsChange[]"
+    },
     "ScetAlarm": {
       "condition": "ScetAlarmCondition",
       "onFire": "ScetAlarmAction[]"
@@ -2233,6 +2265,13 @@
     },
     "SendManeuverPlanArgs": {
       "burns": "ComposedBurn[]"
+    },
+    "SettingsModel": {
+      "meta": "PayloadMeta",
+      "modSettings": "ModSettingState[]",
+      "persistence": "SettingsPersistence",
+      "rows": "SettingsRowState[]",
+      "undeclared": "SettingsDeclarationFailure[]"
     },
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"
@@ -2448,6 +2487,13 @@
     "reliability.parts": {
       "budgets": "ReliabilityBudget[]",
       "repairCost": "RepairCostItem[]"
+    },
+    "settings.gonogo": {
+      "meta": "PayloadMeta",
+      "modSettings": "ModSettingState[]",
+      "persistence": "SettingsPersistence",
+      "rows": "SettingsRowState[]",
+      "undeclared": "SettingsDeclarationFailure[]"
     },
     "spaceCenter.astronautComplex": {
       "applicants": "CrewRosterEntry[]"

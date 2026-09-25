@@ -65,7 +65,7 @@ import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { PushClientProvider } from "../pushToMain/PushClientContext";
 import {
-  initCalendarSettings,
+  ConsoleSettingsFromHost,
   SettingsFab,
   SettingsProvider,
   SettingsService,
@@ -164,10 +164,6 @@ export function StationScreen() {
     alarmClient.snapshot(),
   );
   useEffect(() => alarmClient.subscribe(setAlarmSnapshot), [alarmClient]);
-  // Prime the kit's date-notation flag from this station's own persisted
-  // setting: a station renders the same mission dates the main screen does,
-  // and its settings are its own.
-  useEffect(() => initCalendarSettings(settingsService), [settingsService]);
   // Stable hook the AlarmsFab/Modal can call from inside its own render
   // tree to subscribe to live alarm snapshots. Capturing a snapshot at
   // open() time made the second alarm in a session anchor to a stale UT.
@@ -418,6 +414,7 @@ export function StationScreen() {
                 carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
               >
                 <AugmentAvailabilityFeeder />
+                <ConsoleSettingsFromHost service={settingsService} />
                 <ManeuverTriggerProvider service={maneuverTriggerClient}>
                   <PushClientProvider>
                     <CoverageMaskCacheProvider store={coverageMaskStore}>

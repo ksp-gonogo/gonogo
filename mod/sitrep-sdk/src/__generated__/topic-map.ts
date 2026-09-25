@@ -77,6 +77,7 @@ import type {
   ScetAlarmFired,
   SensorEntry,
   ServoEntry,
+  SettingsModel,
   SpaceCenterPartsAvailable,
   SpaceCenterPoiEntry,
   SpaceCenterScene,
@@ -154,6 +155,7 @@ export interface GeneratedTopicPayloadMap {
   "science.instruments": InstrumentEntry[];
   "science.lab": LabEntry[];
   "science.sensors": SensorEntry[];
+  "settings.gonogo": SettingsModel;
   "spaceCenter.astronautComplex": AstronautComplexInfo;
   "spaceCenter.crewRoster": CrewRosterEntry[];
   "spaceCenter.launchSites": LaunchSiteEntry[];
@@ -235,6 +237,7 @@ export const GENERATED_TOPIC_IDS = [
   "science.instruments",
   "science.lab",
   "science.sensors",
+  "settings.gonogo",
   "spaceCenter.astronautComplex",
   "spaceCenter.crewRoster",
   "spaceCenter.launchSites",

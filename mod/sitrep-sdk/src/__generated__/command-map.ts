@@ -71,6 +71,7 @@ import type {
   RevertToEditorArgs,
   RotorReverseArgs,
   RotorSetValueArgs,
+  SaveSettingsArgs,
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
   SendManeuverPlanArgs,
@@ -125,6 +126,7 @@ export interface GeneratedCommandArgsMap {
   "robotics.servo.setTarget": ServoSetTargetArgs;
   "science.experiment.deploy": ExperimentActionArgs;
   "science.experiment.transmit": ExperimentActionArgs;
+  "settings.save": SaveSettingsArgs;
   "system.bodies.statesAt": BodyStatesRequest;
   "system.frame.set": SetControlFrameArgs;
   "time.setPaused": SetPausedArgs;
@@ -182,6 +184,7 @@ export interface GeneratedCommandReplyMap {
   "robotics.servo.setTarget": CommandResult;
   "science.experiment.deploy": CommandResult;
   "science.experiment.transmit": CommandResult;
+  "settings.save": CommandResult;
   "system.bodies.statesAt": BodyStatesReply;
   "system.frame.set": CommandResult;
   "time.setPaused": CommandResult;
@@ -249,6 +252,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "robotics.servo.setTarget": "CommandResult",
   "science.experiment.deploy": "CommandResult",
   "science.experiment.transmit": "CommandResult",
+  "settings.save": "CommandResult",
   "system.bodies.statesAt": "BodyStatesReply",
   "system.frame.set": "CommandResult",
   "time.setPaused": "CommandResult",
@@ -337,6 +341,7 @@ export const GENERATED_COMMAND_RAIL = {
   "robotics.servo.setTarget": { replies: true, delayed: true },
   "science.experiment.deploy": { replies: true, delayed: true },
   "science.experiment.transmit": { replies: true, delayed: true },
+  "settings.save": { replies: true, delayed: false },
   "system.bodies.statesAt": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
   "time.setPaused": { replies: true, delayed: false },
@@ -394,6 +399,7 @@ export const GENERATED_COMMAND_IDS = [
   "robotics.servo.setTarget",
   "science.experiment.deploy",
   "science.experiment.transmit",
+  "settings.save",
   "system.bodies.statesAt",
   "system.frame.set",
   "time.setPaused",

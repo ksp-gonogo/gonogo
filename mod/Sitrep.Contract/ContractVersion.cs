@@ -1885,12 +1885,27 @@ namespace Sitrep.Contract
         /// had been reporting as <c>None</c>. Additive, nothing removed or retyped, so
         /// an Uplink built against 18.3 is unaffected.</para>
         ///
-        /// <para><b>Major-18 line, Bumped 4 -&gt; 5:</b> <see cref="CareerStrategies.ActivationPatched"/>,
+        /// <para><b>Major-18 line, Bumped 4 -&gt; 5:</b> the <c>settings.gonogo</c> channel and the
+        /// <c>settings.save</c> command (<see cref="SettingsModel"/>,
+        /// <see cref="SaveSettingsArgs"/>), with <see cref="SettingKind"/> now on the wire.
+        /// Additive, nothing removed or retyped, so an Uplink built against 18.4 is
+        /// unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 5 -&gt; 6:</b> <see cref="SettingsModel.ModSettings"/>, a host
+        /// mod's own settings as its Uplink reads them, shown read-only
+        /// (<see cref="ModSettingState"/>). Additive, nothing removed or retyped, so an
+        /// Uplink built against 18.5 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 6 -&gt; 7:</b> <see cref="SettingsRowState.Description"/>, so a
+        /// setting can say what it needs as well as what it is. Additive, nothing removed
+        /// or retyped, so an Uplink built against 18.6 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 7 -&gt; 8:</b> <see cref="CareerStrategies.ActivationPatched"/>,
         /// whether another mod alters KSP's own strategy activation, which decides
         /// whether <c>career.strategy.activate</c> can commit with the Administration
         /// Building shut. Additive, nothing removed or retyped, so an Uplink built
-        /// against 18.4 is unaffected.</para>
+        /// against 18.7 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 5;
+        public const int Minor = 8;
     }
 }

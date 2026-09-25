@@ -41,6 +41,9 @@ namespace Sitrep.Host.Settings
         /// <summary>Where this store reads and writes, for reporting to an operator.</summary>
         string Path { get; }
 
+        /// <summary>Which copy the last <see cref="Read"/> took its document from, so a recovery or a reset to defaults can be told to the operator.</summary>
+        SettingsReadSource LastReadFrom { get; }
+
         /// <summary>
         /// The document as it stands on the medium. An absent or unreadable
         /// medium yields an EMPTY document rather than throwing, so a first run
@@ -54,5 +57,17 @@ namespace Sitrep.Host.Settings
         /// is reported rather than raised.
         /// </summary>
         WriteOutcome Write(SettingsDocument document);
+
+        /// <summary>
+        /// The document as the medium now holds it, when something other than
+        /// this store has changed the medium since this store last read or
+        /// wrote it; otherwise null.
+        ///
+        /// <para>Also null when the medium is now absent, unreadable or empty.
+        /// None of those says what the settings are, only that the file cannot
+        /// currently say, and a save that took one as the new content would
+        /// delete every block it could not see.</para>
+        /// </summary>
+        SettingsDocument? ReadIfChangedElsewhere();
     }
 }

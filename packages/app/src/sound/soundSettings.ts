@@ -1,5 +1,4 @@
 import type { SettingsService } from "../settings";
-import { registerSetting } from "../settings";
 import { getSharedAudioContext, pulse } from "./audio";
 
 /**
@@ -9,26 +8,17 @@ import { getSharedAudioContext, pulse } from "./audio";
  * banner) so audio is never the sole signal (a11y). Stations stay silent
  * to avoid a multi-tab cacophony.
  *
- * The setting registers as a boolean (default ON). A module-scoped flag
- * mirrors the persisted value so non-React call sites (`playAlarmTone`,
- * the countdown/abort tones) can gate cheaply without a hook. The flag is
- * primed + kept in sync by `initSoundSettings`, called once from MainScreen.
+ * The setting is the game's, kept in KSP's settings file as
+ * `CONSOLE/sound.enabled` (default ON) and copied into this screen's
+ * settings by `ConsoleSettingsFromHost`. A module-scoped flag mirrors that
+ * copy so non-React call sites (`playAlarmTone`, the countdown/abort tones)
+ * can gate cheaply without a hook. The flag is primed + kept in sync by
+ * `initSoundSettings`, called once from MainScreen.
  */
 
 export const SOUND_ENABLED_SETTING = "sound.enabled";
 
-registerSetting({
-  id: SOUND_ENABLED_SETTING,
-  type: "boolean",
-  label: "Sound effects",
-  description:
-    "Play the alarm chime, per-second launch countdown tones, and the abort alert on this main screen. Station screens stay silent regardless.",
-  category: "Audio",
-  defaultValue: true,
-  screens: ["main"],
-});
-
-// Default ON, matching the setting's defaultValue. Before MainScreen primes
+// Default ON, matching the mod's declared default. Before MainScreen primes
 // this via initSoundSettings, the flag already reflects the intended default
 // so a tone firing during early startup behaves correctly.
 let soundEnabled = true;

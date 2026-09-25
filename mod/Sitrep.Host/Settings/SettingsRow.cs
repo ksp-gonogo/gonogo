@@ -1,15 +1,8 @@
 using System;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Settings
 {
-    /// <summary>What a row's text is allowed to say.</summary>
-    public enum SettingsRowKind
-    {
-        Text = 0,
-        Bool = 1,
-        Number = 2,
-    }
-
     /// <summary>
     /// A declared settings row: where it lives, what it may hold, and the value
     /// in force when the file does not mention it.
@@ -21,7 +14,7 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public sealed class SettingsRow
     {
-        public SettingsRow(string path, SettingsRowKind kind, string defaultText)
+        public SettingsRow(string path, SettingKind kind, string defaultText, string? label = null, string? description = null)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -32,6 +25,8 @@ namespace Sitrep.Host.Settings
             Path = path;
             Kind = kind;
             DefaultText = defaultText ?? string.Empty;
+            Label = label ?? string.Empty;
+            Description = description ?? string.Empty;
             var refusal = SettingsText.RefusalOf(DefaultText);
             if (refusal != null)
             {
@@ -45,29 +40,73 @@ namespace Sitrep.Host.Settings
             }
         }
 
-        public static SettingsRow Bool(string path, bool defaultValue) =>
-            new SettingsRow(path, SettingsRowKind.Bool, SettingsText.FromBool(defaultValue));
+        public static SettingsRow Bool(string path, bool defaultValue, string? label = null, string? description = null) =>
+            new SettingsRow(path, SettingKind.Bool, SettingsText.FromBool(defaultValue), label, description);
 
-        public static SettingsRow Number(string path, double defaultValue) =>
-            new SettingsRow(path, SettingsRowKind.Number, SettingsText.FromNumber(defaultValue));
+        public static SettingsRow Number(string path, double defaultValue, string? label = null, string? description = null) =>
+            new SettingsRow(path, SettingKind.Number, SettingsText.FromNumber(defaultValue), label, description);
 
-        public static SettingsRow Text(string path, string defaultValue) =>
-            new SettingsRow(path, SettingsRowKind.Text, defaultValue);
+        public static SettingsRow Text(string path, string defaultValue, string? label = null, string? description = null) =>
+            new SettingsRow(path, SettingKind.Text, defaultValue, label, description);
 
         public string Path { get; }
 
-        public SettingsRowKind Kind { get; }
+        public SettingKind Kind { get; }
 
         public string DefaultText { get; }
+
+        /// <summary>What an operator reads beside the control, and the start of the comment written beside the row.</summary>
+        public string Label { get; }
+
+        /// <summary>Why the row matters or what it needs, read under its label. Empty when the label says enough.</summary>
+        public string Description { get; }
+
+        /// <summary>
+        /// The comment written beside the row: its label, what it may hold, and
+        /// its default. One line, since a line break would end the comment and
+        /// start a row nobody wrote. Empty for an unlabelled text row, which has
+        /// nothing to say beyond its value.
+        /// </summary>
+        public string Comment
+        {
+            get
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                if (Label.Length > 0)
+                {
+                    parts.Add(Label);
+                }
+
+                switch (Kind)
+                {
+                    case SettingKind.Bool:
+                        parts.Add("True or False, default " + DefaultText);
+                        break;
+                    case SettingKind.Number:
+                        parts.Add("A number, default " + DefaultText);
+                        break;
+                    case SettingKind.Text:
+                        if (parts.Count > 0 && DefaultText.Length > 0)
+                        {
+                            parts.Add("Default " + DefaultText);
+                        }
+
+                        break;
+                }
+
+                var comment = string.Join(". ", parts).Replace("\r", " ").Replace("\n", " ");
+                return comment.Length == 0 ? comment : char.ToUpperInvariant(comment[0]) + comment.Substring(1);
+            }
+        }
 
         /// <summary>Whether <paramref name="text"/> is a value this row could hold.</summary>
         public bool Accepts(string text)
         {
             switch (Kind)
             {
-                case SettingsRowKind.Bool:
+                case SettingKind.Bool:
                     return SettingsText.ToBool(text) != null;
-                case SettingsRowKind.Number:
+                case SettingKind.Number:
                     return SettingsText.ToNumber(text) != null;
                 default:
                     return text != null;
@@ -85,79 +124,11 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public static class SettingsText
     {
-        /// <summary>
-        /// Why <paramref name="text"/> cannot be stored as a settings value, or
-        /// null when it can.
-        ///
-        /// <para>A value is a single line with no <c>//</c>, no brace, no tab
-        /// and no leading or trailing whitespace. Each of those is changed by
-        /// KSP's own parser or writer without an error: <c>//</c> is read back
-        /// as the start of a comment and the rest of the value is lost, a brace
-        /// is rewritten to a bracket on the way out, a tab becomes a space, edge
-        /// whitespace is trimmed on the way in, and a line break reaching
-        /// <c>ConfigNode.SetValue</c> is written literally and breaks the file's
-        /// structure. There is no escape in the format, so a value that needs
-        /// any of them is split into several rows rather than encoded.</para>
-        ///
-        /// <para><c>=</c>, <c>:</c> and an empty value are all safe.</para>
-        /// </summary>
-        public static string? RefusalOf(string? text) => HazardIn(text, "value");
+        /// <summary>Why <paramref name="text"/> cannot be stored as a settings value, or null when it can: <see cref="SettingsEncoding.RefusalOf"/>.</summary>
+        public static string? RefusalOf(string? text) => SettingsEncoding.RefusalOf(text);
 
-        /// <summary>
-        /// Why <paramref name="name"/> cannot name a settings row or block, or
-        /// null when it can: everything a value refuses, plus emptiness and
-        /// <c>=</c>, which KSP's reader takes as the end of the name.
-        /// </summary>
-        public static string? RefusalOfName(string? name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                return "a settings name cannot be empty";
-            }
-
-            if (name!.IndexOf('=') >= 0)
-            {
-                return "a settings name cannot contain =, which KSP reads as the end of the name";
-            }
-
-            return HazardIn(name, "name");
-        }
-
-        private static string? HazardIn(string? text, string what)
-        {
-            if (text == null)
-            {
-                return "a settings " + what + " cannot be null";
-            }
-
-            if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)
-            {
-                return "a settings " + what + " is a single line, and this one spans several";
-            }
-
-            if (text.IndexOf("//", StringComparison.Ordinal) >= 0)
-            {
-                return "a settings " + what
-                    + " cannot contain //, which KSP reads back as the start of a comment and truncates";
-            }
-
-            if (text.IndexOf('{') >= 0 || text.IndexOf('}') >= 0)
-            {
-                return "a settings " + what + " cannot contain a brace, which KSP rewrites to a bracket when it saves";
-            }
-
-            if (text.IndexOf('\t') >= 0)
-            {
-                return "a settings " + what + " cannot contain a tab, which KSP writes as a space";
-            }
-
-            if (text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1])))
-            {
-                return "a settings " + what + " cannot start or end with whitespace, which KSP trims when it reads";
-            }
-
-            return null;
-        }
+        /// <summary>Why <paramref name="name"/> cannot name a settings row or block, or null when it can: <see cref="SettingsEncoding.RefusalOfName"/>.</summary>
+        public static string? RefusalOfName(string? name) => SettingsEncoding.RefusalOfName(name);
 
         public static string FromBool(bool value) => value ? "True" : "False";
 

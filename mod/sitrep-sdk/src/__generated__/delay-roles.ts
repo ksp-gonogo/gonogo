@@ -27,6 +27,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "flight.simulation",
   "game.dlc",
   "ksp.revertAvailability",
+  "settings.gonogo",
   "spaceCenter.scene",
   "system.bodies",
   "system.channels",

@@ -243,8 +243,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // never left the mod. Holding a diagnostic behind the light-time horizon
   // would be perverse: the operator asking why a channel is silent is asking
   // about the mod in front of them, and the answer would arrive a light-time
-  // after the question). 5 explicit declarations.
-  "mod/Sitrep.Host/ChannelEngine.cs": 5,
+  // after the question) + settings.gonogo (every declared setting and whether
+  // the settings file holds it: configuration of the system the operator sits
+  // at, not a reading about a craft, so there is no vantage from which it is
+  // not yet known. The setting that configures the delay model is among them,
+  // and one late by the delay it sets could not be used). 6 explicit
+  // declarations.
+  "mod/Sitrep.Host/ChannelEngine.cs": 6,
 };
 
 function findRepoRoot(start: string): string {
