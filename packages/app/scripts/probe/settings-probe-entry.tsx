@@ -1,4 +1,9 @@
-import { ScreenProvider } from "@ksp-gonogo/core";
+import {
+  type DataSource,
+  type DataSourceStatus,
+  registerDataSource,
+  ScreenProvider,
+} from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import {
   harnessTheme,
@@ -29,8 +34,7 @@ import { SettingsService } from "../../src/settings/SettingsService";
  * that would render its null placeholder in the app renders it here: the whole
  * point of a render is to see the state a reviewer would actually meet.
  *
- * The Uplink rows are a planted Uplink's (`plantedSettings.ts`), not a real
- * one's. `SettingsModal` is in a package an Uplink may not import, so no
+ * The rows are a planted Uplink's (`plantedSettings.ts`), not a real one's. `SettingsModal` is in a package an Uplink may not import, so no
  * Uplink's own harness can render its settings rows, and the app depends on no
  * Uplink it could import for them instead.
  */
@@ -54,15 +58,7 @@ setQuantityLocale("en-GB");
  * statement in this file, so `registerSetting` would run against an
  * uninstalled host and throw.
  */
-const registered = Promise.all([
-  // The app's own rows, for the `dependsOn` pair: mission history's two
-  // children go inert when the parent is off, which no Uplink row can show
-  // because no Uplink row is writable.
-  import("../../src/settings/missionHistorySettings"),
-  // A planted Uplink's read-only rows. No Uplink in this repo is the app's to
-  // import for a render, so the stream-backed axis is shown on a stand-in.
-  import("./plantedSettings"),
-]);
+const registered = import("./plantedSettings");
 
 /** What one shot asks for. */
 interface Scene {
@@ -72,6 +68,33 @@ interface Scene {
   prefs?: Record<string, unknown>;
   pxW: number;
   pxH: number;
+  /** The tab to open on. The General tab when unset. */
+  tab?: string;
+  /** The screen the modal is drawn for. The main screen when unset. */
+  screen?: "main" | "station";
+  /** Whether KSP reads as connected, which is what lets a KSP setting be changed. */
+  connected?: boolean;
+}
+
+/**
+ * The Sitrep stream's connection, as the modal asks after it: only its status
+ * is read, so nothing else here does anything.
+ */
+function sitrepSource(status: DataSourceStatus): DataSource {
+  return {
+    id: "sitrep",
+    name: "Sitrep Stream",
+    status,
+    connect: async () => {},
+    disconnect: () => {},
+    schema: () => [],
+    subscribe: () => () => {},
+    execute: async () => {},
+    configSchema: () => [],
+    getConfig: () => ({}),
+    configure: () => {},
+    onStatusChange: () => () => {},
+  };
 }
 
 let root: Root | undefined;
@@ -114,6 +137,10 @@ async function renderScene(scene: Scene): Promise<void> {
     pinnedUt: 1_000_000,
   });
 
+  registerDataSource(
+    sitrepSource(scene.connected ? "connected" : "disconnected"),
+  );
+
   const service = new SettingsService(memoryStorage());
   for (const [id, v] of Object.entries(scene.prefs ?? {})) {
     service.set(id, v);
@@ -122,13 +149,13 @@ async function renderScene(scene: Scene): Promise<void> {
   root = createRoot(host);
   root.render(
     <ThemeProvider theme={harnessTheme}>
-      <ScreenProvider value="main">
+      <ScreenProvider value={scene.screen ?? "main"}>
         <SettingsProvider service={service}>
           <SerialDeviceProvider
             service={new SerialDeviceService({ screenKey: "render-probe" })}
           >
             <fixture.Provider>
-              <SettingsModal initialTabId="general" />
+              <SettingsModal initialTabId={scene.tab ?? "general"} />
             </fixture.Provider>
           </SerialDeviceProvider>
         </SettingsProvider>

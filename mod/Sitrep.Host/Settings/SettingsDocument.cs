@@ -15,6 +15,13 @@ namespace Sitrep.Host.Settings
         public string Name { get; }
 
         public string Text { get; internal set; }
+
+        /// <summary>
+        /// A comment to write beside the row, generated from its declaration.
+        /// Never read back: KSP's reader drops comments, so a comment says what
+        /// a row is, never what its value is.
+        /// </summary>
+        public string? Comment { get; set; }
     }
 
     /// <summary>
@@ -31,7 +38,10 @@ namespace Sitrep.Host.Settings
     /// came off disk and went back unchanged keeps the operator's layout.</para>
     ///
     /// <para>A repeated name resolves to the FIRST occurrence, matching what
-    /// KSP's own parser does with a duplicate node.</para>
+    /// KSP's own parser does with a duplicate node, and every occurrence is
+    /// kept. A repeated value name is how the format spells a list, and a
+    /// repeated block is someone's data; a document that dropped either would
+    /// delete it from the file at the next save.</para>
     /// </summary>
     public sealed class SettingsBlock
     {
@@ -75,20 +85,23 @@ namespace Sitrep.Host.Settings
             return added;
         }
 
-        public string? Value(string name)
+        public string? Value(string name) => Entry(name)?.Text;
+
+        public bool HasValue(string name) => Value(name) != null;
+
+        /// <summary>The first row named <paramref name="name"/>, or null.</summary>
+        public SettingsEntry? Entry(string name)
         {
             for (var i = 0; i < _values.Count; i++)
             {
                 if (string.Equals(_values[i].Name, name, StringComparison.Ordinal))
                 {
-                    return _values[i].Text;
+                    return _values[i];
                 }
             }
 
             return null;
         }
-
-        public bool HasValue(string name) => Value(name) != null;
 
         public void SetValue(string name, string text)
         {
@@ -104,12 +117,24 @@ namespace Sitrep.Host.Settings
             _values.Add(new SettingsEntry(name, text ?? string.Empty));
         }
 
+        /// <summary>Add a row after any of the same name, for a reader carrying a file through as it stands.</summary>
+        public void AppendValue(string name, string text) =>
+            _values.Add(new SettingsEntry(name, text ?? string.Empty));
+
+        /// <summary>Add a block after any of the same name, for a reader carrying a file through as it stands.</summary>
+        public SettingsBlock AppendBlock(string name)
+        {
+            var added = new SettingsBlock(name);
+            _blocks.Add(added);
+            return added;
+        }
+
         public SettingsBlock Copy()
         {
             var copy = new SettingsBlock(Name);
             for (var i = 0; i < _values.Count; i++)
             {
-                copy._values.Add(new SettingsEntry(_values[i].Name, _values[i].Text));
+                copy._values.Add(new SettingsEntry(_values[i].Name, _values[i].Text) { Comment = _values[i].Comment });
             }
 
             for (var i = 0; i < _blocks.Count; i++)
@@ -141,7 +166,12 @@ namespace Sitrep.Host.Settings
         public SettingsBlock Root { get; }
 
         /// <summary>The text at <paramref name="path"/>, or null when no such row exists.</summary>
-        public string? Text(string path)
+        public string? Text(string path) => Entry(path)?.Text;
+
+        public bool Has(string path) => Text(path) != null;
+
+        /// <summary>The row at <paramref name="path"/>, or null when no such row exists.</summary>
+        public SettingsEntry? Entry(string path)
         {
             var segments = Split(path);
             var block = Root;
@@ -156,10 +186,8 @@ namespace Sitrep.Host.Settings
                 block = child;
             }
 
-            return block.Value(segments[segments.Length - 1]);
+            return block.Entry(segments[segments.Length - 1]);
         }
-
-        public bool Has(string path) => Text(path) != null;
 
         /// <summary>Write <paramref name="text"/> at <paramref name="path"/>, creating any block above it that is missing.</summary>
         public void Set(string path, string text)
@@ -175,6 +203,63 @@ namespace Sitrep.Host.Settings
         }
 
         public SettingsDocument Copy() => new SettingsDocument(Root.Copy());
+
+        /// <summary>Whether the document holds no row and no block at all, which is what an emptied or truncated file reads as.</summary>
+        public bool IsEmpty => Root.Values.Count == 0 && Root.Blocks.Count == 0;
+
+        /// <summary>
+        /// Where this document first differs from <paramref name="other"/>, in
+        /// names, values, order or nesting, or null when the two say the same
+        /// thing entry for entry.
+        /// </summary>
+        public string? FirstDifferenceFrom(SettingsDocument other) =>
+            FirstDifference(Root, other?.Root ?? new SettingsBlock(string.Empty), string.Empty);
+
+        private static string? FirstDifference(SettingsBlock a, SettingsBlock b, string prefix)
+        {
+            var values = Math.Max(a.Values.Count, b.Values.Count);
+            for (var i = 0; i < values; i++)
+            {
+                if (i >= a.Values.Count || i >= b.Values.Count)
+                {
+                    var extra = i < a.Values.Count ? a.Values[i] : b.Values[i];
+                    return prefix + extra.Name + ": present on one side only";
+                }
+
+                if (!string.Equals(a.Values[i].Name, b.Values[i].Name, StringComparison.Ordinal))
+                {
+                    return prefix + a.Values[i].Name + ": the row at this position is " + b.Values[i].Name;
+                }
+
+                if (!string.Equals(a.Values[i].Text, b.Values[i].Text, StringComparison.Ordinal))
+                {
+                    return prefix + a.Values[i].Name + ": " + a.Values[i].Text + " became " + b.Values[i].Text;
+                }
+            }
+
+            var blocks = Math.Max(a.Blocks.Count, b.Blocks.Count);
+            for (var i = 0; i < blocks; i++)
+            {
+                if (i >= a.Blocks.Count || i >= b.Blocks.Count)
+                {
+                    var extra = i < a.Blocks.Count ? a.Blocks[i] : b.Blocks[i];
+                    return prefix + extra.Name + ": present on one side only";
+                }
+
+                if (!string.Equals(a.Blocks[i].Name, b.Blocks[i].Name, StringComparison.Ordinal))
+                {
+                    return prefix + a.Blocks[i].Name + ": the block at this position is " + b.Blocks[i].Name;
+                }
+
+                var inner = FirstDifference(a.Blocks[i], b.Blocks[i], prefix + a.Blocks[i].Name + "/");
+                if (inner != null)
+                {
+                    return inner;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// The first row or block anywhere in the document that KSP's format

@@ -163,6 +163,7 @@ namespace Gonogo.KSP
                     DiagnosticLog = msg => Debug.LogWarning("[Gonogo] " + msg),
                 };
                 _settings = settings;
+                _engine.Settings = settings;
 
                 // Bind the light-time delay capability BEFORE discovery, so the
                 // comms uplink's SignalDelay source is configured at Register
@@ -177,11 +178,12 @@ namespace Gonogo.KSP
                 // The dev-capture recorder's own row. Off unless the file says
                 // otherwise, unlike signal delay: recording costs disk and log
                 // on every launch and is wanted only while capturing a fixture.
-                settings.Declare(SettingsRow.Bool(RecordingEnabledRow, false));
+                settings.Declare(SettingsRow.Bool(RecordingEnabledRow, false, "Record a development capture of this session, which costs disk and log"));
                 settings.OnChanged(
                     RecordingEnabledRow,
                     _ => _recordingEnabled = settings.Bool(RecordingEnabledRow));
                 Debug.Log("[Gonogo] Recording enabled=" + _recordingEnabled);
+                Sitrep.Host.Settings.ConsoleSettings.Declare(settings);
                 // The fleet.<guid>.* namespace: core vessel-network-presence
                 // facts, unconditional and independent of whether any comms
                 // backend is ever elected (see FleetChannels's own doc
@@ -197,6 +199,14 @@ namespace Gonogo.KSP
                 // exactly like one that loaded and had not published yet.
                 _engine.RegisterDiscoveredUplinks(
                     UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
+
+                // Only a session with RP-1 running has a simulation to delay, so
+                // only such a session is offered the choice.
+                if (_engine.IsUplinkRunning(CommsCoreUplink.Rp1UplinkId))
+                {
+                    CommsCoreUplink.DeclareSimulationDelaySetting(settings);
+                    _engine.RefreshSettings();
+                }
 
                 // Plan 3 command centres (agent-6): the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own

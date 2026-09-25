@@ -173,17 +173,26 @@ namespace Gonogo.KSP.Tests.Comms
                 WithDelayOn(
                     () =>
                     {
+                        CommsCoreUplink.DeclareSimulationDelaySetting(CommsCoreUplink.DelaySettings);
                         var applied = CommsCoreUplink.SetSimulationDelayPolicy(
                             new SetSimulationDelayPolicyArgs { ApplyDuringSimulation = true });
 
                         Assert.True(applied.Success);
                         Assert.True(System.IO.File.Exists(path), path + " was never written");
                         Assert.Equal(
-                            "SIGNAL_DELAY\n"
+                            "// " + Gonogo.KSP.Settings.ConfigNodeSettingsStore.Header + "\n"
+                            + "\n"
+                            + "SIGNAL_DELAY\n"
                             + "{\n"
-                            + "\tenabled = True\n"
-                            + "\tlightSpeedScale = 1\n"
-                            + "\tdelayInSimulation = True\n"
+                            + "\tenabled = True // Apply light-time delay to commands and telemetry. True or False, default True\n"
+                            + "\tlightSpeedScale = 1 // One-way light time as a fraction of c, where 1 is real light speed. A number, default 1\n"
+                            + "}\n"
+                            + "Uplinks\n"
+                            + "{\n"
+                            + "\trp1\n"
+                            + "\t{\n"
+                            + "\t\tdelayInSimulation = True // Apply the delay during a simulation as well as a real flight. True or False, default False\n"
+                            + "\t}\n"
                             + "}\n",
                             System.IO.File.ReadAllText(path).Replace("\r\n", "\n"));
                     },
@@ -215,6 +224,73 @@ namespace Gonogo.KSP.Tests.Comms
         /// that location; otherwise it gets an in-memory one, which applies
         /// every change and remembers none of it.</para>
         /// </summary>
+        /// <summary>
+        /// A save that kept the choice at its old top-level place has it carried
+        /// into RP-1's block, so moving the setting does not reset it, and the
+        /// old row is left in the file rather than deleted.
+        /// </summary>
+        [Fact]
+        public void AChoiceSavedAtTheOldPlaceIsCarriedIntoRp1sBlock()
+        {
+            var seed = new SettingsDocument();
+            seed.Set(CommsCoreUplink.LegacyDelayInSimulationRow, "True");
+            WithStore(seed, store =>
+            {
+                CommsCoreUplink.DeclareSimulationDelaySetting(store);
+
+                Assert.Equal("True", store.Text(CommsCoreUplink.DelayInSimulationRow));
+                Assert.True(CommsCoreUplink.AuthoredSignalDelayConfig.DelayInSimulation);
+                Assert.Equal("True", store.Text(CommsCoreUplink.LegacyDelayInSimulationRow));
+            });
+        }
+
+        [Fact]
+        public void AChoiceAlreadyInRp1sBlockIsNotOverwrittenByTheOldOne()
+        {
+            var seed = new SettingsDocument();
+            seed.Set(CommsCoreUplink.LegacyDelayInSimulationRow, "True");
+            seed.Set(CommsCoreUplink.DelayInSimulationRow, "False");
+            WithStore(seed, store =>
+            {
+                CommsCoreUplink.DeclareSimulationDelaySetting(store);
+
+                Assert.Equal("False", store.Text(CommsCoreUplink.DelayInSimulationRow));
+                Assert.False(CommsCoreUplink.AuthoredSignalDelayConfig.DelayInSimulation);
+            });
+        }
+
+        /// <summary>
+        /// Without RP-1 there is no simulation to delay, so the choice is not
+        /// offered: binding the delay settings declares no such row.
+        /// </summary>
+        [Fact]
+        public void TheChoiceIsNotDeclaredUntilRp1IsRunning()
+        {
+            WithStore(new SettingsDocument(), store =>
+            {
+                Assert.DoesNotContain(
+                    store.DeclaredRows,
+                    row => row.Path == CommsCoreUplink.DelayInSimulationRow
+                        || row.Path == CommsCoreUplink.LegacyDelayInSimulationRow);
+            });
+        }
+
+        private static void WithStore(SettingsDocument seed, System.Action<SettingsStore> body)
+        {
+            var authored = CommsCoreUplink.AuthoredSignalDelayConfig;
+            try
+            {
+                var store = new SettingsStore(new InMemorySettingsStore(seed));
+                CommsCoreUplink.BindSettings(store);
+                body(store);
+            }
+            finally
+            {
+                CommsCoreUplink.BindSettings(new SettingsStore(new InMemorySettingsStore()));
+                CommsCoreUplink.ConfigureSignalDelay(authored);
+            }
+        }
+
         private static void WithDelayOn(System.Action body, string? settingsPath = null)
         {
             var authored = CommsCoreUplink.AuthoredSignalDelayConfig;

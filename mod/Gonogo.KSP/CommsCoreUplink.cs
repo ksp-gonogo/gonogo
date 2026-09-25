@@ -146,7 +146,18 @@ namespace Gonogo.KSP
 
         internal const string DelayEnabledRow = SignalDelayBlock + "/enabled";
         internal const string LightSpeedScaleRow = SignalDelayBlock + "/lightSpeedScale";
-        internal const string DelayInSimulationRow = SignalDelayBlock + "/delayInSimulation";
+        /// <summary>RP-1's Uplink id, whose block the simulation-delay choice is kept in.</summary>
+        internal const string Rp1UplinkId = "rp1";
+
+        /// <summary>
+        /// Whether a simulation is delayed too. The mod's own setting, enforced by
+        /// this uplink's policy, and kept in RP-1's block because only RP-1 has
+        /// simulations to delay.
+        /// </summary>
+        internal const string DelayInSimulationRow = "Uplinks/" + Rp1UplinkId + "/delayInSimulation";
+
+        /// <summary>Where the same choice was kept before it moved, read once to carry a save's value across.</summary>
+        internal const string LegacyDelayInSimulationRow = SignalDelayBlock + "/delayInSimulation";
 
         private static SettingsStore? _settings;
 
@@ -184,11 +195,10 @@ namespace Gonogo.KSP
             // player who never opened the settings still flies under the rule
             // the mod exists to enforce. Delaying a SIMULATION is the one that
             // defaults off, because a rehearsal has no craft to be distant from.
-            store.Declare(SettingsRow.Bool(DelayEnabledRow, true));
-            store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0));
-            store.Declare(SettingsRow.Bool(DelayInSimulationRow, false));
-
+            store.Declare(SettingsRow.Bool(DelayEnabledRow, true, "Apply light-time delay to commands and telemetry"));
+            store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0, "One-way light time as a fraction of c, where 1 is real light speed"));
             store.OnChanged(SignalDelayBlock, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
+            store.OnChanged(DelayInSimulationRow, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
             return store;
         }
 
@@ -204,6 +214,35 @@ namespace Gonogo.KSP
                 LightSpeedScale = scale > 0.0 ? scale : 1.0,
                 DelayInSimulation = store.Bool(DelayInSimulationRow),
             };
+        }
+
+        /// <summary>
+        /// Declare the simulation-delay row, for a session in which RP-1 is
+        /// running. Only then is there a simulation to delay, so only then is
+        /// the choice offered; the value is kept in the file either way.
+        ///
+        /// <para>A save that still carries the choice at its old top-level place
+        /// has it carried into RP-1's block, so moving the setting does not reset
+        /// it. The old row stays in the file, as every unowned row does.</para>
+        /// </summary>
+        public static void DeclareSimulationDelaySetting(SettingsStore store)
+        {
+            if (store == null)
+            {
+                throw new ArgumentNullException(nameof(store));
+            }
+
+            var carried = store.Text(LegacyDelayInSimulationRow);
+            if (!store.Document.Has(DelayInSimulationRow) && SettingsText.ToBool(carried) != null)
+            {
+                store.Seed(DelayInSimulationRow, carried!);
+            }
+
+            store.Declare(SettingsRow.Bool(
+                DelayInSimulationRow, false, "Apply the delay during a simulation as well as a real flight"));
+
+            // A carried value is in force from here, not from the next save.
+            ConfigureSignalDelay(ReadSignalDelay(store));
         }
 
         /// <summary>Apply a SignalDelay config directly, which is what a settings commit does.</summary>

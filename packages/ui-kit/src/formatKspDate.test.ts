@@ -1,9 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  formatKspDate,
-  realDatesWanted,
-  setRealDatesPreferred,
-} from "./formatKspDate";
+import { afterEach, describe, expect, it } from "vitest";
+import { formatKspDate } from "./formatKspDate";
 import { kspCalendar, setKspCalendar } from "./kspTime";
 import { NULL_DISPLAY } from "./NullValue";
 
@@ -61,13 +57,8 @@ describe("formatKspDate with an epoch", () => {
     epochMs: Date.UTC(1951, 0, 1),
   };
 
-  beforeEach(() => {
-    setRealDatesPreferred(true);
-  });
-
   afterEach(() => {
     setKspCalendar();
-    setRealDatesPreferred(false);
   });
 
   it("renders UT 0 as the anchor itself", () => {
@@ -120,26 +111,13 @@ describe("formatKspDate with an epoch", () => {
   });
 
   /**
-   * The setting is a CHOICE, not a detection. An anchor arriving on the wire
-   * must not restyle every date on the board by itself: an operator who never
-   * asked keeps the readout they had.
+   * The anchor alone decides. Real dates are what having a real calendar
+   * means, so an anchor on the wire restyles every date without being asked.
    */
-  it("keeps the offset form until the operator asks for real dates", () => {
-    setRealDatesPreferred(false);
-    setKspCalendar(RSS);
-    expect(formatKspDate(0)).toBe("Y1 D1 00:00:00");
-    expect(realDatesWanted()).toBe(false);
-  });
-
-  /** Asked for, but nothing to anchor against: still the offset form. */
-  it("reports real dates unwanted when the game carries no anchor", () => {
+  it("renders a real date as soon as the game reports an anchor", () => {
     setKspCalendar({ minute: 60, hour: 3600, day: 86_400, year: 365 * 86_400 });
-    expect(realDatesWanted()).toBe(false);
     expect(formatKspDate(0)).toBe("Y1 D1 00:00:00");
-  });
-
-  it("reports real dates wanted only when asked AND anchored", () => {
     setKspCalendar(RSS);
-    expect(realDatesWanted()).toBe(true);
+    expect(formatKspDate(0)).toBe("1 Jan 1951 00:00:00");
   });
 });

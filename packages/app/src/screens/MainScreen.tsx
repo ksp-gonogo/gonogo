@@ -84,7 +84,7 @@ import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
 import {
-  initCalendarSettings,
+  ConsoleSettingsFromHost,
   SettingsFab,
   SettingsProvider,
   SettingsService,
@@ -305,10 +305,6 @@ export function MainScreen({
   // tones stay structurally impossible. Default ON.
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
 
-  // Prime the kit's date-notation flag the same way. NOT main-only, unlike the
-  // sound flag above: a station renders the same dates and calls this too.
-  useEffect(() => initCalendarSettings(settingsService), [settingsService]);
-
   useEffect(() => {
     const dispatcher = new InputDispatcher({
       service: serialService,
@@ -387,6 +383,7 @@ export function MainScreen({
               peerHost={peerHostService}
             />
             <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
+            <ConsoleSettingsFromHost service={settingsService} />
             <AutoRecordControllerWithMissionHistory scene={scene} />
             <AlarmHostProvider service={alarmHost}>
               {/*

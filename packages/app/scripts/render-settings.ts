@@ -75,6 +75,87 @@ const PLANTED_LIVE = {
   journaling: false,
 };
 
+/** The mod's settings Topic, and its enums as the wire carries them: ordinals. */
+const KSP_TOPIC = "settings.gonogo";
+const BOOL = 1;
+const NUMBER = 2;
+const SAVED = 0;
+const MEMORY_ONLY = 1;
+const RECOVERED = 2;
+
+/**
+ * What the mod publishes with RP-1 running: its own three rows, and two in
+ * RP-1's block, one of them the mod's own choice about delaying a simulation.
+ */
+function kspSettings(
+  state: number,
+  reason: string | null = null,
+  modSettings: {
+    owner: string;
+    name: string;
+    label: string;
+    value: string;
+  }[] = [],
+) {
+  return {
+    modSettings,
+    rows: [
+      {
+        path: "SIGNAL_DELAY/enabled",
+        owner: "gonogo",
+        kind: BOOL,
+        label: "Apply light-time delay to commands and telemetry",
+        description:
+          "Holds each command and each reading for the light time between the craft and the command centre.",
+        value: "True",
+        default: "True",
+      },
+      {
+        path: "SIGNAL_DELAY/lightSpeedScale",
+        owner: "gonogo",
+        kind: NUMBER,
+        label:
+          "One-way light time as a fraction of c, where 1 is real light speed",
+        value: "0.1",
+        default: "1",
+      },
+      {
+        path: "RECORDING/enabled",
+        owner: "gonogo",
+        kind: BOOL,
+        label:
+          "Record a development capture of this session, which costs disk and log",
+        value: "False",
+        default: "False",
+      },
+      {
+        path: "Uplinks/rp1/delayInSimulation",
+        owner: "rp1",
+        kind: BOOL,
+        label: "Apply the delay during a simulation as well as a real flight",
+        value: "False",
+        default: "False",
+      },
+      {
+        path: "Uplinks/rp1/upgradeSlipWarningDays",
+        owner: "rp1",
+        kind: NUMBER,
+        label:
+          "Warn before a facility upgrade whose finish date slips past this many days",
+        value: "30",
+        default: "30",
+      },
+    ],
+    persistence: {
+      state,
+      path: "GameData/Gonogo/PluginData/gonogo.cfg",
+      savedAtUt: null,
+      reason,
+    },
+    undeclared: [],
+  };
+}
+
 interface Scene {
   name: string;
   emit?: Record<string, unknown>;
@@ -89,6 +170,14 @@ interface Scene {
    * gains a line.
    */
   scrollToLabel?: string;
+  /** The tab to open on. The General tab when unset. */
+  tab?: string;
+  /** The screen the modal is drawn for. The main screen when unset. */
+  screen?: "main" | "station";
+  /** Whether KSP reads as connected, which is what lets a KSP setting be changed. */
+  connected?: boolean;
+  /** Open every collapsed section before the shot, to show what it holds. */
+  openDisclosures?: boolean;
 }
 
 const SCENES: Scene[] = [
@@ -122,7 +211,7 @@ const SCENES: Scene[] = [
     // `dependsOn`, both ways. The parent is on: the two children are live
     // switches an operator can reach.
     name: "dependson-parent-on",
-    prefs: { "mission.historyEnabled": true },
+    prefs: { "planted.settings.parent": true },
     pxW: 900,
     pxH: 460,
   },
@@ -131,9 +220,93 @@ const SCENES: Scene[] = [
     // the consuming hook AND-combines them and a switch that would change
     // nothing must not look like one that would.
     name: "dependson-parent-off",
-    prefs: { "mission.historyEnabled": false },
+    prefs: { "planted.settings.parent": false },
     pxW: 900,
     pxH: 460,
+  },
+  {
+    // The KSP tab, connected: every row drawn from the wire, grouped by who
+    // declared it, and SAVE waiting for a change.
+    name: "ksp-connected",
+    tab: "ksp",
+    connected: true,
+    emit: { [KSP_TOPIC]: kspSettings(SAVED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // The last save could not write the file: in force for this session only,
+    // and the standing line says so and why.
+    name: "ksp-memory-only",
+    tab: "ksp",
+    connected: true,
+    emit: {
+      [KSP_TOPIC]: kspSettings(MEMORY_ONLY, "Access to the path is denied"),
+    },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // The file was damaged at start-up and its backup was read.
+    name: "ksp-recovered",
+    tab: "ksp",
+    connected: true,
+    emit: { [KSP_TOPIC]: kspSettings(RECOVERED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // KSP is not connected: the last values stay readable, and nothing can be
+    // changed, which the footer says.
+    name: "ksp-disconnected",
+    tab: "ksp",
+    connected: false,
+    emit: { [KSP_TOPIC]: kspSettings(SAVED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // A station reads the settings and has no SAVE.
+    name: "ksp-station",
+    tab: "ksp",
+    screen: "station",
+    emit: { [KSP_TOPIC]: kspSettings(SAVED) },
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // RP-1's mod settings as its Uplink reads them, opened to show what the
+    // collapsed section holds: read-only, beside the settings gonogo owns.
+    name: "ksp-mod-settings",
+    tab: "ksp",
+    connected: true,
+    openDisclosures: true,
+    emit: {
+      [KSP_TOPIC]: kspSettings(SAVED, null, [
+        {
+          owner: "rp1",
+          name: "difficulty",
+          label: "Career difficulty",
+          value: "Hard",
+        },
+        {
+          owner: "rp1",
+          name: "startingFunds",
+          label: "Starting funds",
+          value: "40000",
+        },
+      ]),
+    },
+    pxW: 900,
+    pxH: 760,
+  },
+  {
+    // Connected, and the mod has not reported its settings yet.
+    name: "ksp-waiting",
+    tab: "ksp",
+    connected: true,
+    pxW: 900,
+    pxH: 300,
   },
 ];
 
@@ -228,7 +401,18 @@ async function main(): Promise<void> {
       { timeout: 15_000 },
     );
 
-    for (const { name, emit, prefs, pxW, pxH, scrollToLabel } of SCENES) {
+    for (const {
+      name,
+      emit,
+      prefs,
+      pxW,
+      pxH,
+      scrollToLabel,
+      tab,
+      screen,
+      connected,
+      openDisclosures,
+    } of SCENES) {
       await page.evaluate(
         (s) =>
           (
@@ -236,8 +420,14 @@ async function main(): Promise<void> {
               __renderSettings: (p: unknown) => Promise<void>;
             }
           ).__renderSettings(s),
-        { emit, prefs, pxW, pxH },
+        { emit, prefs, pxW, pxH, tab, screen, connected },
       );
+      if (openDisclosures) {
+        await page.$$eval("details", (all) => {
+          for (const details of all)
+            (details as HTMLDetailsElement).open = true;
+        });
+      }
       if (scrollToLabel !== undefined) {
         await page
           .getByText(scrollToLabel, { exact: true })

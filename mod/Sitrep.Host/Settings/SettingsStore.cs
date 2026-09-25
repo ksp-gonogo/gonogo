@@ -13,10 +13,27 @@ namespace Sitrep.Host.Settings
     /// the file did not contain and then read its effective value while it
     /// registers.</para>
     ///
-    /// <para><b>Nothing re-reads after that.</b> The in-memory document is the
-    /// authority for the process lifetime. A file edited while the game runs is
-    /// not honoured; every consumer would otherwise have to tolerate a setting
-    /// changing under it at an arbitrary frame.</para>
+    /// <para><b>Nothing re-reads for its values after that.</b> The in-memory
+    /// document is the authority for every row this store OWNS, meaning one
+    /// declared or committed this session, for the process lifetime; every
+    /// consumer would otherwise have to tolerate a setting changing under it at
+    /// an arbitrary frame.</para>
+    ///
+    /// <para><b>Every other row is preserved, never rewritten from a
+    /// model.</b> A save is load-modify-save over the whole document read from
+    /// the file, so a block whose declarer did not run this launch (an Uplink
+    /// that is uninstalled, refused, or failed to start) goes back to disk as it
+    /// came off it. When the file has been changed elsewhere since this store
+    /// last touched it, a commit takes every row it does not own from the file
+    /// as it now stands, so a hand edit made while the game runs survives the
+    /// next save instead of being overwritten from memory.</para>
+    ///
+    /// <para><b>Nothing is ever deleted as a side effect.</b> A row whose
+    /// declaration a later version drops stays in the file as an unowned row,
+    /// for good; removing one is an explicit act, not something a save infers
+    /// from a declaration that is missing. An unowned row the operator deletes
+    /// by hand stays deleted. An OWNED row deleted by hand is written back at
+    /// the next save, since memory is its authority.</para>
     ///
     /// <para><b>A failed persist is not a failed change.</b> <see cref="Commit"/>
     /// applies to the document first and reports what became of the write, so a
@@ -49,14 +66,20 @@ namespace Sitrep.Host.Settings
         private readonly Dictionary<string, string> _staged =
             new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<Watch> _watches = new List<Watch>();
+        private readonly HashSet<string> _owned = new HashSet<string>(StringComparer.Ordinal);
+        private readonly List<SettingsRow> _declared = new List<SettingsRow>();
 
         public SettingsStore(ISettingsBackingStore backing)
         {
             _backing = backing ?? throw new ArgumentNullException(nameof(backing));
             Document = _backing.Read() ?? new SettingsDocument();
+            LoadedFrom = _backing.LastReadFrom;
         }
 
-        public SettingsDocument Document { get; }
+        public SettingsDocument Document { get; private set; }
+
+        /// <summary>Which copy of the file this launch's document came from: the file, its backup, or neither.</summary>
+        public SettingsReadSource LoadedFrom { get; }
 
         /// <summary>Where the document persists, for reporting to an operator.</summary>
         public string Path => _backing.Path;
@@ -83,11 +106,74 @@ namespace Sitrep.Host.Settings
                 throw new ArgumentNullException(nameof(row));
             }
 
+            if (!_rows.ContainsKey(row.Path))
+            {
+                _declared.Add(row);
+            }
+            else
+            {
+                _declared[_declared.FindIndex(r => r.Path == row.Path)] = row;
+            }
+
             _rows[row.Path] = row;
+            _owned.Add(row.Path);
             if (!Document.Has(row.Path))
             {
                 Document.Set(row.Path, row.DefaultText);
             }
+        }
+
+        /// <summary>
+        /// Put a value into the document as a row this store owns, without
+        /// persisting it or telling a watcher: it reaches the file with the next
+        /// <see cref="Commit"/>. For a value decided at start-up rather than by
+        /// the operator, such as a migration or the version stamped beside a
+        /// block.
+        /// </summary>
+        public void Seed(string path, string text)
+        {
+            SettingsDocument.Split(path);
+            var refusal = SettingsText.RefusalOf(text);
+            if (refusal != null)
+            {
+                throw new ArgumentException(path + ": " + refusal, nameof(text));
+            }
+
+            _owned.Add(path);
+            Document.Set(path, text);
+        }
+
+        /// <summary>Every declared row, in the order it was first declared.</summary>
+        public IReadOnlyList<SettingsRow> DeclaredRows => _declared;
+
+        /// <summary>
+        /// Runs after every <see cref="Commit"/>, whatever changed and whether or
+        /// not the file was written, so a publisher can say what the file now
+        /// holds. A throw is reported to <see cref="DiagnosticLog"/> and ignored.
+        /// </summary>
+        public Action? Committed { get; set; }
+
+        /// <summary>
+        /// Why <paramref name="text"/> cannot be saved at <paramref name="path"/>,
+        /// or null when it can: the path must name a declared row, and the text
+        /// must obey the encoding and be a value of the row's kind. Only a
+        /// declared row can be saved from outside the mod, since an undeclared
+        /// one has nobody to say what it means.
+        /// </summary>
+        public string? RefusalToSave(string path, string text)
+        {
+            if (string.IsNullOrEmpty(path) || !_rows.TryGetValue(path, out var row))
+            {
+                return "no setting is declared at " + (path ?? "(none)");
+            }
+
+            var refusal = SettingsText.RefusalOf(text);
+            if (refusal != null)
+            {
+                return path + ": " + refusal;
+            }
+
+            return row.Accepts(text) ? null : path + " holds a " + row.Kind + " value, not " + text;
         }
 
         public string? Text(string path) => Document.Text(path);
@@ -162,6 +248,12 @@ namespace Sitrep.Host.Settings
         /// </summary>
         public WriteOutcome Commit()
         {
+            var elsewhere = _backing.ReadIfChangedElsewhere();
+            if (elsewhere != null)
+            {
+                Document = TakeUnownedRowsFrom(elsewhere);
+            }
+
             var changed = new List<string>();
             foreach (var staged in _staged)
             {
@@ -172,7 +264,21 @@ namespace Sitrep.Host.Settings
                 }
             }
 
+            foreach (var path in _staged.Keys)
+            {
+                _owned.Add(path);
+            }
+
             _staged.Clear();
+            foreach (var row in _rows.Values)
+            {
+                var entry = Document.Entry(row.Path);
+                if (entry != null)
+                {
+                    entry.Comment = row.Comment.Length > 0 ? row.Comment : null;
+                }
+            }
+
             LastWrite = _backing.Write(Document) ?? WriteOutcome.Failed(Path, "the backing store reported nothing");
 
             // After the write, so a watcher that reports on persistence reads
@@ -190,7 +296,42 @@ namespace Sitrep.Host.Settings
                 }
             }
 
+            try
+            {
+                Committed?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    DiagnosticLog?.Invoke("a settings commit hook threw and was ignored: " + ex.Message);
+                }
+                catch (Exception)
+                {
+                    // Never take down a settings change over a failed log message.
+                }
+            }
+
             return LastWrite;
+        }
+
+        /// <summary>
+        /// The file as it now stands, with every row this store owns put back
+        /// to what memory holds for it.
+        /// </summary>
+        private SettingsDocument TakeUnownedRowsFrom(SettingsDocument onDisk)
+        {
+            var merged = onDisk.Copy();
+            foreach (var path in _owned)
+            {
+                var text = Document.Text(path);
+                if (text != null)
+                {
+                    merged.Set(path, text);
+                }
+            }
+
+            return merged;
         }
 
         private string DefaultTextAt(string path) =>

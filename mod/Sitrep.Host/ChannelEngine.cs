@@ -10,6 +10,7 @@ using Sitrep.Propagation;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Contract.Serialization;
+using Sitrep.Host.Settings;
 using Sitrep.Transport;
 
 using StreamData = Sitrep.Contract.StreamData<object?>;
@@ -654,6 +655,12 @@ namespace Sitrep.Host
         // uplinks' availability rather than having any of its own.
         internal const string UplinksTopic = "system.uplinks";
 
+        /// <summary>Every declared setting and whether the settings file holds it; see <see cref="SettingsModel"/>.</summary>
+        internal const string SettingsTopic = "settings.gonogo";
+
+        /// <summary>One SAVE press; see <see cref="SaveSettingsArgs"/>.</summary>
+        internal const string SaveSettingsCommand = "settings.save";
+
         /// <summary>
         /// Ask where a craft goes, FROM THIS COMMAND CENTRE'S POINT OF VIEW.
         ///
@@ -1039,7 +1046,15 @@ namespace Sitrep.Host
         private readonly List<PendingUplink> _pending = new List<PendingUplink>();
 
         private readonly Dictionary<string, ChannelDeclaration> _channelDeclarations = new Dictionary<string, ChannelDeclaration>();
+
+        /// <summary>The declaration <paramref name="topic"/> was registered with, or null when it was not.</summary>
+        internal ChannelDeclaration? DeclarationOf(string topic) =>
+            _channelDeclarations.TryGetValue(topic, out var declaration) ? declaration : null;
         private readonly Dictionary<string, Func<KspSnapshot?, object?>> _channelSources = new Dictionary<string, Func<KspSnapshot?, object?>>();
+
+        /// <summary>What <paramref name="topic"/>'s source produces now, with no snapshot, or null when it has no source.</summary>
+        internal object? PayloadOf(string topic) =>
+            _channelSources.TryGetValue(topic, out var source) ? source(null) : null;
 
         // Dynamic namespaces (see IUplinkHost.RegisterDynamicNamespace):
         // prefix -> (template declaration, owning uplink id). A concrete
@@ -1370,6 +1385,26 @@ namespace Sitrep.Host
             };
             _vantageCommandHandlers[BodyStatesAtCommand] =
                 (args, _) => BodyStatesAt(args);
+
+            // The settings model and its one write path. Declared here rather
+            // than by an uplink because settings belong to the mod as a whole
+            // and to every uplink in it. TrueNow: configuration of the system
+            // the operator sits at, not a reading about a craft.
+            _channelDeclarations[SettingsTopic] = new ChannelDeclaration
+            {
+                Topic = SettingsTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.TrueNow,
+            };
+            _channelSources[SettingsTopic] = _ => _settingsPublisher?.Snapshot;
+            _commandDeclarations[SaveSettingsCommand] = new CommandDeclaration
+            {
+                Command = SaveSettingsCommand,
+            };
+            _vantageCommandHandlers[SaveSettingsCommand] = (args, _) => _settingsPublisher == null
+                ? CommandResult.Fail(CommandErrorCode.ModeUnavailable, "the mod has no settings store")
+                : _settingsPublisher.Save(BindCommandArgs(args, typeof(SaveSettingsArgs)) as SaveSettingsArgs);
 
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
@@ -2039,7 +2074,9 @@ namespace Sitrep.Host
                 return;
             }
 
+            DeclareUplinkSettings(uplink);
             RegisterUplink(uplink);
+            _settingsPublisher?.Rebuild();
         }
 
         /// <summary>
@@ -2088,6 +2125,17 @@ namespace Sitrep.Host
                 DeclareUplinkCapabilities(uplink);
             }
 
+            // Between the passes: each uplink's settings, so Register can read
+            // them. Fail-soft on its own terms: a throw here costs the settings,
+            // never the uplink.
+            foreach (var uplink in accepted)
+            {
+                if (IsUplinkAvailable(uplink.Manifest.Id))
+                {
+                    DeclareUplinkSettings(uplink);
+                }
+            }
+
             // Pass B: run Register (providers/channels/samplers). Skip any
             // uplink whose Pass-A declaration already failed it.
             foreach (var uplink in accepted)
@@ -2097,6 +2145,106 @@ namespace Sitrep.Host
                     continue;
                 }
                 RegisterUplink(uplink);
+            }
+
+            _settingsPublisher?.Rebuild();
+        }
+
+        /// <summary>
+        /// The settings document uplinks declare into, published on
+        /// <see cref="SettingsTopic"/> and written by <see cref="SaveSettingsCommand"/>.
+        /// Set before discovery; while it is null, an uplink's settings are not
+        /// asked for, its stored block is left as it is, and nothing is published.
+        /// </summary>
+        public SettingsStore? Settings
+        {
+            get => _settings;
+            set
+            {
+                _settings = value;
+                _settingsPublisher = value == null
+                    ? null
+                    : new SettingsPublisher(value, () => _settingsFailures, () => _clock.Now());
+            }
+        }
+
+        private SettingsStore? _settings;
+        private SettingsPublisher? _settingsPublisher;
+
+        /// <summary>Republish <see cref="SettingsTopic"/> after a row was declared outside discovery.</summary>
+        public void RefreshSettings() => _settingsPublisher?.Rebuild();
+
+        /// <summary>Whether an uplink registered this session and is available, so it is actually running.</summary>
+        public bool IsUplinkRunning(string uplinkId) =>
+            _registeredUplinks.ContainsKey(uplinkId) && IsUplinkAvailable(uplinkId);
+
+        /// <summary>
+        /// Why an uplink's settings could not be declared, keyed by uplink id.
+        /// The uplink itself registered and publishes; only its settings are at
+        /// their defaults for the session.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> SettingsDeclarationFailures => _settingsFailures;
+
+        private readonly Dictionary<string, string> _settingsFailures =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// One uplink's <see cref="IUplinkSettingsDeclarer.DeclareSettings"/>,
+        /// run into a scope that holds everything back until it returns.
+        ///
+        /// <para>Deliberately NOT inside <see cref="DeclareUplinkCapabilities"/>'s
+        /// pass: a throw there marks the whole uplink unavailable and skips its
+        /// Register, so one mistyped settings row would silence every channel the
+        /// uplink publishes. Here a throw is recorded, the uplink stays
+        /// available, and nothing it declared before the throw reaches the
+        /// document, so its stored block goes back to disk untouched.</para>
+        /// </summary>
+        private void DeclareUplinkSettings(ISitrepUplink uplink)
+        {
+            if (uplink is not IUplinkSettingsDeclarer declarer || Settings == null)
+            {
+                return;
+            }
+
+            var id = uplink.Manifest.Id;
+            UplinkSettingsScope scope;
+            try
+            {
+                scope = new UplinkSettingsScope(
+                    Settings,
+                    id,
+                    uplink.Manifest.Version,
+                    (name, label, value) => _settingsPublisher?.ShowModSetting(id, name, label, value));
+            }
+            catch (Exception ex)
+            {
+                RecordSettingsFailure(id, SafeExceptionMessage(ex));
+                return;
+            }
+
+            try
+            {
+                declarer.DeclareSettings(scope);
+                scope.Apply();
+            }
+            catch (Exception ex)
+            {
+                scope.Abandon();
+                RecordSettingsFailure(id, "settings declaration threw: " + SafeExceptionMessage(ex));
+            }
+        }
+
+        private void RecordSettingsFailure(string id, string reason)
+        {
+            _settingsFailures[id] = reason;
+            try
+            {
+                _diagnosticLog?.Invoke("uplink " + id + ": " + reason
+                    + ". Its settings are at their defaults for this session and its stored block is kept as it was.");
+            }
+            catch (Exception)
+            {
+                // Never take down registration over a failed log message.
             }
         }
 
@@ -4072,7 +4220,7 @@ namespace Sitrep.Host
                 KeplerProvider.StateFrom(elements, orbit.Epoch), orbit.ReferenceBodyIndex);
         }
 
-        private object? InvokeCommandHandler(string command, object? args, string vantage)
+        internal object? InvokeCommandHandler(string command, object? args, string vantage)
         {
             if (!IsCommandAvailable(command))
             {

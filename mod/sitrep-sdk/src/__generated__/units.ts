@@ -766,6 +766,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     validAt: "ut",
     vantage: "id",
   },
+  "ModSettingState": {
+    label: "text",
+    name: "id",
+    owner: "id",
+    value: "text",
+  },
   "OrbitEncounter": {
     bodyIndex: "id",
     transitionType: "enum",
@@ -1127,6 +1133,29 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "SetWarpIndexArgs": {
     index: "id",
+  },
+  "SettingsChange": {
+    path: "id",
+    value: "text",
+  },
+  "SettingsDeclarationFailure": {
+    reason: "text",
+    uplinkId: "id",
+  },
+  "SettingsPersistence": {
+    path: "text",
+    reason: "text",
+    savedAtUt: "ut",
+    state: "enum",
+  },
+  "SettingsRowState": {
+    default: "text",
+    description: "text",
+    kind: "enum",
+    label: "text",
+    owner: "id",
+    path: "id",
+    value: "text",
   },
   "SolarPanelEntry": {
     chargeRate: "units/s",
@@ -2284,6 +2313,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ResolveResult": {
     notices: "ResolutionNotice[]",
   },
+  "SaveSettingsArgs": {
+    changes: "SettingsChange[]",
+  },
   "ScetAlarm": {
     condition: "ScetAlarmCondition",
     onFire: "ScetAlarmAction[]",
@@ -2297,6 +2329,13 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "SendManeuverPlanArgs": {
     burns: "ComposedBurn[]",
+  },
+  "SettingsModel": {
+    meta: "PayloadMeta",
+    modSettings: "ModSettingState[]",
+    persistence: "SettingsPersistence",
+    rows: "SettingsRowState[]",
+    undeclared: "SettingsDeclarationFailure[]",
   },
   "StageDeltaVEntry": {
     resources: "*ResourceAmount",
@@ -2514,6 +2553,13 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "reliability.parts": {
     budgets: "ReliabilityBudget[]",
     repairCost: "RepairCostItem[]",
+  },
+  "settings.gonogo": {
+    meta: "PayloadMeta",
+    modSettings: "ModSettingState[]",
+    persistence: "SettingsPersistence",
+    rows: "SettingsRowState[]",
+    undeclared: "SettingsDeclarationFailure[]",
   },
   "spaceCenter.astronautComplex": {
     applicants: "CrewRosterEntry[]",

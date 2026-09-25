@@ -61,11 +61,13 @@ namespace Gonogo.KSP.Tests.Settings
             Assert.True(outcome.Success, outcome.Reason);
             Assert.True(File.Exists(_path), _path + " was never written");
             Assert.Equal(
-                "SIGNAL_DELAY\n"
+                "// " + ConfigNodeSettingsStore.Header + "\n"
+                + "\n"
+                + "SIGNAL_DELAY\n"
                 + "{\n"
-                + "\tenabled = True\n"
-                + "\tlightSpeedScale = 0.1\n"
-                + "\tdelayInSimulation = True\n"
+                + "\tenabled = True // True or False, default True\n"
+                + "\tlightSpeedScale = 0.1 // A number, default 1\n"
+                + "\tdelayInSimulation = True // True or False, default False\n"
                 + "}\n",
                 File.ReadAllText(_path).Replace("\r\n", "\n"));
         }
@@ -111,6 +113,51 @@ namespace Gonogo.KSP.Tests.Settings
             var written = File.ReadAllText(_path).Replace("\r\n", "\n");
             Assert.Contains("someSetting = 12", written);
             Assert.Contains("writtenBy = 0.2.0", written);
+        }
+
+        /// <summary>
+        /// A second save leaves the previous file beside the new one as a
+        /// backup, and nothing pending behind it.
+        /// </summary>
+        [Fact]
+        public void ASaveLeavesTheFileAndABackupAndNothingPending()
+        {
+            var store = new SettingsStore(new ConfigNodeSettingsStore(_path, _ => { }));
+            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/enabled", true));
+            store.Stage("SIGNAL_DELAY/enabled", false);
+            store.Commit();
+
+            store.Stage("SIGNAL_DELAY/enabled", true);
+            var outcome = store.Commit();
+
+            Assert.True(outcome.Success, outcome.Reason);
+            Assert.Equal("True", ConfigNode.Load(_path)?.GetNode("SIGNAL_DELAY")?.GetValue("enabled"));
+            Assert.Equal("False", ConfigNode.Load(_path + ".bak")?.GetNode("SIGNAL_DELAY")?.GetValue("enabled"));
+            Assert.False(File.Exists(_path + ".new"), "a pending file was left behind");
+        }
+
+        /// <summary>
+        /// A file truncated to nothing, which is what a crash inside KSP's own
+        /// writer used to leave, is read from its backup, and the launch knows
+        /// it did so rather than starting every setting at its default.
+        /// </summary>
+        [Fact]
+        public void ATruncatedFileIsReadFromItsBackup()
+        {
+            var first = new SettingsStore(new ConfigNodeSettingsStore(_path, _ => { }));
+            first.Declare(SettingsRow.Number("SIGNAL_DELAY/lightSpeedScale", 1.0));
+            first.Stage("SIGNAL_DELAY/lightSpeedScale", 0.1);
+            first.Commit();
+            first.Stage("SIGNAL_DELAY/lightSpeedScale", 0.2);
+            first.Commit();
+
+            File.WriteAllText(_path, string.Empty);
+            var logged = new System.Collections.Generic.List<string>();
+            var next = new SettingsStore(new ConfigNodeSettingsStore(_path, logged.Add));
+
+            Assert.Equal(SettingsReadSource.Backup, next.LoadedFrom);
+            Assert.Equal(0.1, next.Number("SIGNAL_DELAY/lightSpeedScale"));
+            Assert.Contains(logged, line => line.Contains(".bak"));
         }
 
         [Fact]

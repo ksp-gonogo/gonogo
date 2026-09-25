@@ -149,6 +149,14 @@ public static class RtConfig
                 // has no such distinction to report
                 typeof(FlightSimulation),
                 typeof(SetSimulationDelayPolicyArgs),
+                // settings.gonogo, and the one command that writes it
+                typeof(SettingsModel),
+                typeof(SettingsRowState),
+                typeof(SettingsPersistence),
+                typeof(SettingsDeclarationFailure),
+                typeof(ModSettingState),
+                typeof(SaveSettingsArgs),
+                typeof(SettingsChange),
                 // comms.* channels
                 typeof(CommsConnectivity),
                 typeof(CommsSignal),
@@ -488,6 +496,8 @@ public static class RtConfig
                 typeof(FlightEndReason),
                 typeof(RosterCommsControlSource),
                 typeof(DeployedPowerState),
+                typeof(SettingKind),
+                typeof(SettingsPersistenceState),
                 // A kerbal's standing (CrewStanding.cs). Sitrep's OWN
                 // vocabulary, so it sits above the mirrors rather than among
                 // them: it deliberately does not share KSP's numbering, and it
