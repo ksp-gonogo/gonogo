@@ -50,6 +50,12 @@ on:
     branches: [main, staging]
   workflow_dispatch:
 
+# One run per trigger per commit: a push GitHub delivers twice starts two runs,
+# and the later cancels the earlier. See the same group in ci.yml.
+concurrency:
+  group: uplinks-${{ github.event_name }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   packages: read

@@ -8,6 +8,18 @@ name: Forward ci-dev to staging
 # `chore: regenerate Uplink pages` push does this), the forward is refused and
 # reported rather than forced, because the commit CI validated is then no longer
 # the commit `staging` would become.
+#
+# One run going green is not enough: a commit can have more than one CI run (a
+# duplicated push trigger, a manual dispatch), and forwarding on whichever passed
+# gives a flaky test as many chances as there are runs. So every CI run of the
+# commit is read back, and the forward is refused while any is unfinished or has
+# failed. Each run's completion triggers this workflow, so the last one to finish
+# is the one that forwards. The rule is `scripts/ci-dev-forward-verdict.sh`, read
+# from the commit under test.
+#
+# A `workflow_run` workflow runs the copy of this file on the repository's
+# DEFAULT branch, which is `main`, not `staging`. An edit here does nothing until
+# it reaches `main`.
 
 on:
   workflow_run:
@@ -17,6 +29,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: forward-ci-dev-to-staging
@@ -32,6 +45,28 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+
+      - name: Every CI run of the commit passed, or refuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if ! verdict="$(bash scripts/ci-dev-forward-verdict.sh "$GITHUB_REPOSITORY" "$VALIDATED")"; then
+            echo "$verdict"
+            {
+              echo "### Forward refused"
+              echo
+              echo "Not every CI run of $VALIDATED passed. Forwarding on the green one"
+              echo "would let a failing or unfinished run be outvoted."
+              echo
+              echo '```'
+              echo "$verdict"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "$verdict"
 
       - name: Fast-forward staging, or refuse and say why
         env:
