@@ -140,7 +140,7 @@ namespace Gonogo.KSP
         /// <para>The KSC pad and runway are asked by their facility, because
         /// <c>PSystemSetup.GetLaunchSiteDisplayName</c> answers those from the
         /// facility's own display-name field, which holds the bare id: it returns
-        /// <c>LaunchPad</c>, never <c>Launch Pad</c>. The game's own label for a
+        /// <c>LaunchPad</c>, never the label. The game's own label for a
         /// facility is <c>ScenarioUpgradeableFacilities.GetFacilityName</c>, the
         /// one its space-centre screens show. Every other site is asked through
         /// <c>GetLaunchSiteDisplayName</c>, which resolves a <c>LaunchSite</c>'s

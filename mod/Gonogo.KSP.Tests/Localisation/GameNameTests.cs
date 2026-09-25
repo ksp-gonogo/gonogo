@@ -82,9 +82,9 @@ namespace Gonogo.KSP.Tests.Localisation
         public void TheKscPadIsNamedAsTheGameLabelsItAndNotByItsId()
         {
             var tag = FacilityTag(SpaceCenterFacility.LaunchPad);
-            using var _ = new InstalledLocalizer(new Dictionary<string, string> { [tag] = "Launch Pad" });
+            using var _ = new InstalledLocalizer(new Dictionary<string, string> { [tag] = "Launchpad" });
 
-            Assert.Equal("Launch Pad", GameWords.LaunchSiteName("LaunchPad"));
+            Assert.Equal("Launchpad", GameWords.LaunchSiteName("LaunchPad"));
         }
 
         [Fact]
