@@ -1,9 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -139,6 +141,10 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/1234 SCI/)).toBeInTheDocument(),
     );
+    // In the body, where a narrow tile cannot fold it away behind the header's expand box.
+    expect(
+      screen.getByText(/1234 SCI/).closest("[data-panel-header]"),
+    ).toBeNull();
 
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
@@ -315,16 +321,12 @@ describe("ScienceDataComponent", () => {
       emitSituation(fixture, { situation: 0, landedAt: "Highlands" });
       fixture.emit("science.archive", []);
     });
-    let results: Awaited<ReturnType<typeof axe>> | undefined;
-    await act(async () => {
-      results = await axe(container);
-    });
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 
 describe("parseExperiments", () => {
-  it("reads partName or part and pulls the magnitude off a unit-wrapped dataAmount", () => {
+  it("pulls the magnitude off a unit-wrapped dataAmount", () => {
     const parsed = parseExperiments([
       {
         subjectId: "a",
@@ -332,11 +334,11 @@ describe("parseExperiments", () => {
         partName: "Goo",
         dataAmount: { magnitude: 3, unit: "Mit" },
       },
-      { subjectId: "b", title: "B", part: "Thermometer", dataAmount: 2 },
+      { subjectId: "b", title: "B", partName: "Thermometer", dataAmount: 2 },
     ]);
     expect(parsed).toEqual([
-      { subjectId: "a", title: "A", part: "Goo", dataAmount: 3 },
-      { subjectId: "b", title: "B", part: "Thermometer", dataAmount: 2 },
+      { subjectId: "a", title: "A", dataAmount: 3 },
+      { subjectId: "b", title: "B", dataAmount: 2 },
     ]);
   });
 
@@ -397,9 +399,7 @@ describe("groupArchiveByExperiment", () => {
         biome: "KSC",
         title: "t",
         science: 1,
-        scienceCap: 2,
         remainingPotential: 1,
-        subjectValue: 1,
       },
       {
         subjectId: "mysteryGoo@MunSrfLandedMidlands",
@@ -410,9 +410,7 @@ describe("groupArchiveByExperiment", () => {
         biome: "Midlands",
         title: "t",
         science: 1,
-        scienceCap: 5,
         remainingPotential: 4,
-        subjectValue: 1,
       },
     ];
     const groups = groupArchiveByExperiment(entries);
