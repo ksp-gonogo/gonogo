@@ -34,12 +34,16 @@ body {
    * source of truth; styled-components read the same value via the
    * theme (`theme.typography.family.mono`).
    *
+   * The size is the app's working size, compact, so text that sets none
+   * reads the way a widget would have set it. Running sentences opt into
+   * prose where they occur.
+   *
    * Color is intentionally not set here, every panel/component owns its
    * own foreground via the theme. Setting it globally would force a
    * second source-of-truth and complicate Phase 2 token migration.
    */
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-compact);
 }
 
 /*
