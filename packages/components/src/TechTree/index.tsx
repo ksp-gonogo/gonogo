@@ -455,17 +455,17 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     const isResearchable = researchable.has(n.id);
     // Absent science reads as insufficient science, which is what the comment
     // above `sciAvailable` already claimed this did. Sandbox charges nothing.
+    const moneyDecides = chargesScience && !unlockBlocked;
     const canAfford =
-      unlockBlocked || !chargesScience
-        ? true
-        : sciAvailable !== null &&
-          n.scienceCost !== null &&
-          sciAvailable >= n.scienceCost;
+      !moneyDecides ||
+      (sciAvailable !== null &&
+        n.scienceCost !== null &&
+        sciAvailable >= n.scienceCost);
     const canUnlock = isResearchable && canAfford && upgradesEnabled;
     return {
       isResearchable,
       canAfford,
-      moneyDecides: chargesScience && !unlockBlocked,
+      moneyDecides,
       canUnlock,
       affordTooltip: !canAfford
         ? n.scienceCost === null
