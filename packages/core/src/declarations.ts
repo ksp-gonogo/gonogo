@@ -28,20 +28,14 @@ export type RequirementKind =
   /** A derived channel registered in `PRODUCTION_DERIVED_CHANNELS`, named by
    *  a widget that reads the whole payload (`useStream("vessel.state")`). */
   | "derived-channel"
-  /** A field path inside one of the above. Trusted because it is a TARGET of
-   *  the migration table, and every target is independently proved to resolve:
-   *  `vessel-state-mapping.coverage.test.ts` invokes the real
-   *  `deriveVesselState` for the derived ones, and
-   *  `map-topic.rawFieldRoots.coverage.test.ts` checks the wire root of the
-   *  raw ones. This clause borrows those proofs rather than inventing a third
-   *  mechanism.
-   *
-   *  Sourced from the contract's own generated field metadata plus each
-   *  derived channel's declared field set, so it stands on its own now that the
-   *  migration table has gone: the walk behind it reads through
-   *  `unitsForTopic`/`shapesForTopic` rather than the generated maps directly,
-   *  which is what lets it see a Topic an Uplink or a derived channel
-   *  registered at module load. */
+  /** A field path inside one of the above, which `isKnownFieldPath` accepts
+   *  only where the contract's own generated field metadata declares it under
+   *  a known Topic. The walk reads through `unitsForTopic`/`shapesForTopic`
+   *  rather than the generated maps directly, which is what lets it see a
+   *  Topic an Uplink or a derived channel registered at module load. For the
+   *  derived channels, `vessel-state-mapping.coverage.test.ts` invokes the
+   *  real `deriveVesselState` to prove each declared field is one it
+   *  produces. */
   | "field-path";
 
 const DERIVED_CHANNEL_TOPICS: ReadonlySet<string> = new Set(
