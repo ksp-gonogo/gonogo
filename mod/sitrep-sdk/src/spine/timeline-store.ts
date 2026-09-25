@@ -50,6 +50,7 @@ import {
   getReckoner,
   getReckonerConflicts,
 } from "./reckoners";
+import { shareEqual } from "./share-equal";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { Certainty, ViewClock } from "./view-clock";
@@ -788,6 +789,18 @@ export class TimelineStore {
    * building their own per-frame cache.
    */
   private readonly frameCache = new WeakMap<FrameToken, Map<string, unknown>>();
+
+  /**
+   * What each derived channel answered last, and the point served for each of
+   * its field subtopics. A frame whose `derive` comes out structurally equal
+   * hands back these same objects, so a reader comparing by reference sees a
+   * change only when the record really moved. Keyed by definition, so a
+   * channel re-registered under the same topic starts clean.
+   */
+  private readonly derivedCarry = new WeakMap<
+    DerivedChannelDefinition<unknown>,
+    { value: unknown; points: Map<string, TimelinePoint<unknown>> }
+  >();
 
   /**
    * Last `Reading` per topic, with the inputs it was built from, so a reading's
@@ -3449,8 +3462,11 @@ export class TimelineStore {
           note(this.sampleInLane(inputTopic, token, lane));
         const getInterpolated: DerivedGet = (inputTopic) =>
           note(this.sampleInterpolated(inputTopic, token, lane));
+        const derived = def.derive(get, viewUt, getInterpolated);
+        const carry = this.carryFor(def);
+        carry.value = shareEqual(carry.value, derived);
         return {
-          value: def.derive(get, viewUt, getInterpolated),
+          value: carry.value,
           // Nothing read (a channel deriving from constants) is as current as
           // the frame; nothing can be older than the moment being asked about.
           observedAt: Number.isFinite(oldest)
@@ -3471,12 +3487,7 @@ export class TimelineStore {
 
     if (value === null) {
       // Confirmed absence, a required input tombstoned or the channel itself returning null: a real point carrying `payload: null`, per the tombstone model.
-      return {
-        validAt: observedAt,
-        payload: null as T,
-        meta: derivedMeta(observedAt, epoch),
-        epoch,
-      };
+      return this.carryPoint(def, field, null as T, observedAt, epoch);
     }
 
     if (field && !(field in (value as object))) return undefined; // unknown field name, nothing to serve
@@ -3485,12 +3496,48 @@ export class TimelineStore {
       ? (Reflect.get(value as object, field) as T)
       : (value as T);
 
-    return {
+    return this.carryPoint(def, field, payload, observedAt, epoch);
+  }
+
+  private carryFor(def: DerivedChannelDefinition<unknown>): {
+    value: unknown;
+    points: Map<string, TimelinePoint<unknown>>;
+  } {
+    let carry = this.derivedCarry.get(def);
+    if (!carry) {
+      carry = { value: undefined, points: new Map() };
+      this.derivedCarry.set(def, carry);
+    }
+    return carry;
+  }
+
+  /** The point last served for this field when it describes the same thing, else a new one. */
+  private carryPoint<T>(
+    def: DerivedChannelDefinition<unknown>,
+    field: string | undefined,
+    payload: T,
+    observedAt: number,
+    epoch: number,
+  ): TimelinePoint<T> {
+    const points = this.carryFor(def).points;
+    const key = field ?? "";
+    const previous = points.get(key) as TimelinePoint<T> | undefined;
+    if (
+      previous !== undefined &&
+      previous.payload === payload &&
+      previous.validAt === observedAt &&
+      previous.epoch === epoch
+    ) {
+      return previous;
+    }
+    const point: TimelinePoint<T> = {
       validAt: observedAt,
       payload,
       meta: derivedMeta(observedAt, epoch),
       epoch,
     };
+    points.set(key, point as TimelinePoint<unknown>);
+    return point;
   }
 
   /**
