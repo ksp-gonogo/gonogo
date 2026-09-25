@@ -855,52 +855,6 @@ build_gonogoscansatuplink() {
   ls -la "$install_dir"
 }
 
-build_gonogokosuplink() {
-  local proj="$ROOT/mod/GonogoKosUplink/GonogoKosUplink.csproj"
-  local out_dir="$ROOT/mod/GonogoKosUplink/bin/Release"
-  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoKosUplink/Plugins"
-  if [ ! -f "$proj" ]; then
-    echo "GonogoKosUplink csproj not found at $proj"
-    return 3
-  fi
-  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
-    return 3
-  fi
-  echo "=== building GonogoKosUplink ==="
-  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
-    dotnet build "$proj" -c Release --nologo -v minimal
-  if [ ! -f "$out_dir/GonogoKosUplink.dll" ]; then
-    echo "GonogoKosUplink.dll not produced (missing at $out_dir/GonogoKosUplink.dll)"
-    return 4
-  fi
-  mkdir -p "$install_dir"
-  # GonogoKosUplink.dll AND GonogoKosUplink.Contract.dll: the
-  # uplink-types-out-of-core plan split the eleven kOS payload/command-arg types
-  # into their own contract-slice project (Private="true", the default, so
-  # `dotnet build` DOES copy it into $out_dir, unlike the references below).
-  # Sitrep.*.dll (provided by GonogoCore) and kOS.dll/kOS.Safe.dll/0Harmony.dll
-  # (provided by the user's kOS + Harmony installs) stay reference-only
-  # (Private="false") and must NOT be copied here - see
-  # .superpowers/sdd/uplink-packaging-pattern.md. This is the same deploy-script
-  # lesson the earlier relocations' build functions record: a single-DLL copy
-  # here would silently drop the Contract.dll from the deployed GameData folder
-  # and break the mod at KSP load, with nothing in the build going red.
-  cp "$out_dir/GonogoKosUplink.dll" "$install_dir/"
-  if [ ! -f "$out_dir/GonogoKosUplink.Contract.dll" ]; then
-    echo "GonogoKosUplink.Contract.dll not produced (missing at $out_dir/GonogoKosUplink.Contract.dll)"
-    return 4
-  fi
-  cp "$out_dir/GonogoKosUplink.Contract.dll" "$install_dir/"
-  {
-    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
-    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  } > "$install_dir/build-info.txt"
-  echo "=== deployed to $install_dir ==="
-  ls -la "$install_dir"
-}
-
 build_gonogokerbalismuplink() {
   local proj="$ROOT/mod/GonogoKerbalismUplink/GonogoKerbalismUplink.csproj"
   local out_dir="$ROOT/mod/GonogoKerbalismUplink/bin/Release"
@@ -1009,12 +963,11 @@ case "${1:-help}" in
       kerbcast) build_kerbcast ;;
       gonogo) build_gonogo ;;
       gonogoscansatuplink) build_gonogoscansatuplink ;;
-      gonogokosuplink) build_gonogokosuplink ;;
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogokosuplink, gonogokerbalismuplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogokerbalismuplink, devtools"
         exit 2
         ;;
     esac

@@ -80,15 +80,15 @@ That includes playing with someone who isn't on your network: they don't need th
 
 An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half.
 
-Each plugin builds the same way as the Gonogo mod, with one extra argument pointing at your `GameData/` so it can link against the mod it extends:
+Both Uplinks live in the [gonogo-uplinks](https://github.com/ksp-gonogo/gonogo-uplinks) repository, whose [building guide](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/docs/building.md) covers the reference set a build needs. From a checkout of it, each plugin builds the same way as the Gonogo mod, with one extra argument pointing at your `GameData/` so it can link against the mod it extends:
 
 ```bash
-dotnet build mod/GonogoKosUplink/GonogoKosUplink.csproj -c Release \
+dotnet build uplinks/kos/mod/GonogoKosUplink.csproj -c Release \
   -p:KspManaged="/path/to/KSP_x64_Data/Managed" \
   -p:KspGameData="/path/to/Kerbal Space Program/GameData"
 ```
 
-Then copy every `.dll` from `mod/GonogoKosUplink/bin/Release/` into `GameData/GonogoKosUplink/Plugins/`. SCANsat is identical with `GonogoScansatUplink` in place of `GonogoKosUplink` everywhere. Install kOS (or SCANsat) itself first: the build links against it and fails without it.
+Then copy every `.dll` from `uplinks/kos/mod/bin/Release/` into `GameData/GonogoKosUplink/Plugins/`. SCANsat is identical with `uplinks/scansat/mod/GonogoScansatUplink.csproj` and `GameData/GonogoScansatUplink/Plugins/`. Install kOS (or SCANsat) itself first: the build links against it and fails without it.
 
 Uplinks are optional and independent. A missing one costs you its widgets and nothing else.
 

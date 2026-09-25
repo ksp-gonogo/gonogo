@@ -13,7 +13,7 @@
  *
  * That bake was written, unit-tested, documented to Uplink authors and invoked
  * by nothing until 2026-09-01, so every `ExpectedClientHash.g.cs` in the tree
- * read `""`. It runs now, and Kos and MechJeb are armed.
+ * read `""`.
  *
  * The remaining eight have no scaffold at all: their manifest reports null, the
  * loader degrades to the two-way index==bytes check and records the mod arm as
@@ -58,7 +58,7 @@ const required = process.argv.includes("--require")
   : undefined;
 if (process.argv.includes("--require") && !required) {
   console.error(
-    "✖ --require needs an Uplink id, e.g. --require GonogoKosUplink",
+    "✖ --require needs an Uplink id, e.g. --require GonogoKerbalismUplink",
   );
   process.exit(1);
 }
@@ -67,10 +67,9 @@ if (process.argv.includes("--require") && !required) {
  * Uplinks whose DLL does not yet vouch for its client bundle. SHRINK ONLY.
  *
  * Seeded 2026-08-28 at NINE, which was every client-bearing Uplink in the repo,
- * because nothing had ever baked a hash. Down to EIGHT on 2026-09-01: Kos and
- * MechJeb, the two that carried the `ExpectedClientHash` scaffold, are armed
- * from the same bundler the app ships (`packages/app/uplink-bundle.ts`) and
- * held current by `bakedClientHash.test.ts`.
+ * because nothing had ever baked a hash. An Uplink carrying the `ExpectedClientHash`
+ * scaffold is armed from the same bundler the app ships
+ * (`packages/app/uplink-bundle.ts`) and held current by `bakedClientHash.test.ts`.
  *
  * The remaining eight have no scaffold at all: their `UplinkManifest` names no
  * `ExpectedClientHash`, so baking a file for one would compile a const nothing

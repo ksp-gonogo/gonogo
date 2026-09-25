@@ -247,7 +247,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/uplink-tools": 20,
   "mod/GonogoBreakingGroundUplink/client": 26,
   "mod/GonogoKerbalismUplink/client": 67,
-  "mod/GonogoKosUplink/client": 39,
   "mod/sitrep-kernel": 12,
   "mod/sitrep-sdk": 256,
   "mod/sitrep-server": 10,

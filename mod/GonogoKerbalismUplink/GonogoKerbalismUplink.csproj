@@ -28,8 +28,8 @@
   <PropertyGroup>
     <!-- KspGameData: root of an installed GameData tree, for 0Harmony.dll below (that reference
          DLL lives in an installed mod's own GameData folder, not the portable KspManaged set) -
-         same property GonogoKosUplink.csproj / Gonogo.KSP.csproj already use for the identical
-         Harmony reference. -->
+         same property Gonogo.KSP.csproj already uses for the identical Harmony
+         reference. -->
     <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
     <!--
       A git worktree has no local_docs of its own (it is gitignored), so the
@@ -60,8 +60,7 @@
 
   <!-- Harmony (0Harmony.dll), used ONLY by KerbalismScienceHook.cs's presence-gated postfix on
        KERBALISM.SubjectData.RetrieveScience. Private="false": KSP's own 000_Harmony/0Harmony.dll
-       satisfies the load at runtime; referenced here from the installed copy, same as
-       GonogoKosUplink's own observe-only postfix. -->
+       satisfies the load at runtime; referenced here from the installed copy. -->
   <ItemGroup>
     <Reference Include="0Harmony" Private="false">
       <HintPath>$(KspGameData)\000_Harmony\0Harmony.dll</HintPath>

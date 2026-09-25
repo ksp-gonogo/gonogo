@@ -11,20 +11,10 @@
  * fixture key. A second animation frame lets ResizeObserver and the
  * widget's internal layout settle before the driver screenshots.
  *
- * kOS feed widgets (kos-processors, ...) read from a separate `"kos"` source
- * and pull topic status via `useKosScriptStatus` → `getTopicStatus` /
- * `onTopicStatusChange`. The probe registers a `ProbeKosDataSource` (a
- * MockDataSource subclass that adds those two methods, returning a static
- * healthy status) under `id: "kos"` and routes any fixture key prefixed
- * `kos.` to it. It is registered *unbuffered*, buffer-wrapping would hide
- * the topic-status methods so `useKosScriptStatus` would silently fall back
- * to the empty status.
- *
  * A different family of widget: mod-client widgets riding the Sitrep
  * WEBSOCKET STREAM directly (`useStream`/`useStreamEvent` from
- * `@ksp-gonogo/sitrep-client`, e.g. the kOS terminal): never touches the
- * `"data"`/`"kos"` `DataSource` registry at all, so neither of the above
- * paths can drive it. A fixture for one of these widgets carries a
+ * `@ksp-gonogo/sitrep-client`): never touches the `"data"` `DataSource`
+ * registry at all, so the path above cannot drive it. A fixture for one of these widgets carries a
  * top-level `_stream` block (see `StreamFixtureBlock` below) instead of
  * (or alongside) plain data keys. When present, the probe builds a real
  * `setupStreamFixture`: the same test-adapter the widgets' own headless
@@ -93,59 +83,6 @@ import "./plantedUplink";
 // "unknown body" degraded state. Run once at module load, the registry
 // is idempotent and shared across all probe calls.
 registerStockBodies();
-
-/**
- * MockDataSource that also speaks the centralised kOS compute topic-status
- * surface (`getTopicStatus` / `onTopicStatusChange`) that `useKosScriptStatus`
- * sniffs for. Returns a static healthy status for any topic so the
- * KosScriptFrame chrome renders "last good" recent + not paused + not
- * erroring. The fixture payload itself drives the body (the processors
- * list); the status only governs the frame chrome. Kept probe-local so the
- * shared `@ksp-gonogo/core` MockDataSource stays untouched.
- */
-class ProbeKosDataSource extends MockDataSource {
-  // Sticky last-value cache. The base MockDataSource.emit only pushes to
-  // CURRENT subscribers, so a value emitted before a subscriber's passive
-  // effect lands is lost forever. The `"data"` source dodges this because
-  // it's wrapped in BufferedDataSource, which replays last-value on
-  // subscribe: the unbuffered `"kos"` source is the lone outlier. Mirror
-  // the real KosDataSource contract ("late subscribers get the most recent
-  // value immediately") by caching emits and replaying on subscribe. Makes
-  // the render deterministic regardless of subscribe/emit ordering.
-  private readonly lastValues = new Map<string, unknown>();
-
-  emit(key: string, value: unknown): void {
-    this.lastValues.set(key, value);
-    super.emit(key, value);
-  }
-
-  subscribe(key: string, cb: (v: unknown) => void): () => void {
-    const unsub = super.subscribe(key, cb);
-    // Synchronous replay is safe, subscribe runs in a passive effect, not
-    // during render, and is more deterministic for screenshots than
-    // deferring to a microtask.
-    if (this.lastValues.has(key)) cb(this.lastValues.get(key));
-    return unsub;
-  }
-
-  // Healthy, recent, idle. `running:false` so a payload-less render shows the
-  // run prompt rather than a perpetual "Scanning..."; with a payload present
-  // the widget renders the list regardless.
-  getTopicStatus() {
-    return {
-      lastGoodAt: Date.now(),
-      scriptError: null,
-      parseError: null,
-      paused: false,
-      running: false,
-    };
-  }
-
-  // No status transitions in the static probe, return a no-op unsubscribe.
-  onTopicStatusChange(): () => void {
-    return () => {};
-  }
-}
 
 export interface ProbeSeriesSample {
   t: number;
@@ -385,9 +322,6 @@ let activeRoot: Root | null = null;
 let activeSource: MockDataSource | null = null;
 let activeBuffered: BufferedDataSource | null = null;
 let activeStore: MemoryStore | null = null;
-// Unbuffered `kos` source for kOS-feed widgets. Registered directly so its
-// topic-status methods stay visible to `useKosScriptStatus`.
-let activeKos: ProbeKosDataSource | null = null;
 
 async function renderProbe(payload: ProbePayload): Promise<void> {
   const root = document.getElementById("root");
@@ -401,11 +335,6 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     activeBuffered.disconnect();
     unregisterDataSource(activeBuffered.id);
     activeBuffered = null;
-  }
-  if (activeKos) {
-    activeKos.disconnect();
-    unregisterDataSource(activeKos.id);
-    activeKos = null;
   }
   activeSource = null;
   activeStore = null;
@@ -425,7 +354,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // byte-identical until this reset was added.
   clearProcessorRuntime();
 
-  // Stream-driven mod-client widgets (kOS terminal, ...) carry their fixture
+  // Stream-driven mod-client widgets carry their fixture
   // data in `_stream` rather than plain data keys; see this file's top doc
   // comment and `StreamFixtureBlock`. Resolved once up-front so both the
   // provider-wrap choice below and the post-mount emit loop share it.
@@ -441,12 +370,6 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   const fixtureKeys = Object.keys(payload.fixture).filter(
     (k) => !k.startsWith("_"),
   );
-  // kOS-feed widgets read from a separate `"kos"` source. Route any key
-  // prefixed `kos.` there; everything else stays on
-  // the `"data"` source.
-  const isKosKey = (k: string) => k.startsWith("kos.");
-  const kosKeys = fixtureKeys.filter(isKosKey);
-  const dataFixtureKeys = fixtureKeys.filter((k) => !isKosKey(k));
   const seriesKeys = payload.series ? Object.keys(payload.series) : [];
   // When series is provided we also need `v.name` + `v.missionTime` in
   // the source schema so the flight detector can mint a current flight
@@ -454,7 +377,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // samples are invisible to `useDataSeries`).
   const detectorKeys = payload.series ? ["v.name", "v.missionTime"] : [];
   const allKeys = Array.from(
-    new Set([...dataFixtureKeys, ...seriesKeys, ...detectorKeys]),
+    new Set([...fixtureKeys, ...seriesKeys, ...detectorKeys]),
   );
   activeSource = new MockDataSource({
     id: "data",
@@ -467,19 +390,6 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   });
   registerDataSource(activeBuffered);
   await activeBuffered.connect();
-
-  // Register the unbuffered `kos` source whenever the fixture carries any
-  // `kos.` key. Connect it so `status` reads "connected"; its topic-status
-  // methods (live on the instance, not behind a buffer wrapper) feed
-  // `useKosScriptStatus`.
-  if (kosKeys.length > 0) {
-    activeKos = new ProbeKosDataSource({
-      id: "kos",
-      keys: kosKeys.map((k) => ({ key: k })),
-    });
-    registerDataSource(activeKos);
-    await activeKos.connect();
-  }
 
   // Seed the MemoryStore with backfill samples for any keys widgets
   // will call `useDataSeries(key, windowSec)` against. Has to happen
@@ -701,13 +611,8 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // subscribe) before we start emitting values.
   await rafTick();
 
-  for (const key of dataFixtureKeys) {
+  for (const key of fixtureKeys) {
     activeSource.emit(key, payload.fixture[key]);
-  }
-  if (activeKos) {
-    for (const key of kosKeys) {
-      activeKos.emit(key, payload.fixture[key]);
-    }
   }
   if (streamFixture && streamBlock) {
     // `StubTransport.emit` is subscription-gated (silently DROPS a sample for
@@ -719,15 +624,15 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     // ordering, so whether the subscribe has landed when we emit is a
     // per-run/per-engine coin-flip. When it loses, the sample is dropped and
     // the widget stays in its empty/initial state, a different capture than a
-    // run where it won. That is exactly the launch-director / kOS-terminal
-    // visual-gate flake: two renders of the SAME fixture disagree run-to-run,
+    // run where it won. That is exactly the launch-director visual-gate
+    // flake: two renders of the SAME fixture disagree run-to-run,
     // so no baseline regeneration can ever converge.
     //
     // Fix: gate each emit on its topic actually being subscribed. Polling
     // `isSubscribed(topic)` with `rafTick`s deterministically waits out the
     // passive-effect subscription wave regardless of scheduler ordering, and
-    // also covers the causal chain (e.g. the kOS terminal only subscribes to
-    // `kos.terminal.<coreId>` once a `kos.processors` emit resolves `coreId`)
+    // also covers the causal chain (a widget that subscribes to a per-subject
+    // topic only once an earlier emit names the subject)
     // because each prior emit's re-render, and the subscription it triggers:
     // has landed before we wait for the next channel. A topic the widget never
     // reads simply times out and is emitted-then-dropped, exactly as before.
@@ -813,7 +718,7 @@ function rafTick(): Promise<void> {
  * unsubscribed topic, and the widget subscribes inside React passive effects
  * that a single `rafTick` can't be relied on to have flushed, so replaying a
  * `_stream` emit before its subscription lands is the source of the
- * launch-director / kOS-terminal visual-gate flake. Polling here makes the
+ * launch-director visual-gate flake. Polling here makes the
  * replay deterministic. A topic the widget never reads never subscribes; the
  * bounded loop then returns and the caller emits-then-drops it (harmless,
  * matches the prior behaviour for ignored channels). The bound is generous,

@@ -292,15 +292,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * it.
    */
   zIndex: {
-    // 6th: a mod terminal widget's "change CPU" overlay button, local sibling
-    // ordering inside its own frame's stacking context (same as that frame's
-    // other badge overlays), commented at the call site. Not app-global chrome,
-    // so no named z rung.
-    //
-    // 7 -> 6: the terminal's delay badge stopped pinning itself and took
-    // `ConsoleFrame`'s corner slot, which carries that literal now (below), so
-    // both consoles hang the reading in one place.
-    "mod/": 2,
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/AtmosphereProfile/index.tsx": 1,
     "packages/components/src/MapView/MapPoiLayer.tsx": 1,
@@ -365,7 +356,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * what it is timed against at the call site and raise its entry.
    */
   motion: {
-    "mod/": 2,
     "packages/app/src/styles/global.css": 2,
     "packages/components/src/LaunchDirector/index.tsx": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,

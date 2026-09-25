@@ -176,8 +176,8 @@ jobs:
 
           # Ship EVERY dll MSBuild copied into bin/Release, not a hand-written
           # subset. What lands there is precisely the runtime closure: a
-          # reference-only dependency carries Private="false" (kOS, SCANsat,
-          # MechJeb2, Harmony, Sitrep.Contract, the KSP/Unity set) and never
+          # reference-only dependency carries Private="false" (the wrapped mod,
+          # Harmony, Sitrep.Contract, the KSP/Unity set) and never
           # copies, while a dependency the assembly needs at load time does.
           #
           # The hand-written list was wrong in both directions and neither
@@ -218,12 +218,11 @@ jobs:
           fi
 
           # And the LICENSE beside it, when the project directory carries one.
-          # Three Uplinks are GPL-3.0-only by linking a copyleft mod (Kos,
-          # Scansat, MechJeb) and each keeps the full GPLv3 text next to its
-          # csproj. GPLv3 requires conveying that text WITH the work, and each
-          # Uplink ships as its own standalone CKAN package, so the zip is the
-          # work: a NOTICE that says "the licence travels with this folder" is
-          # only true if the licence is in the folder.
+          # An Uplink that links a copyleft mod is GPL-3.0-only and keeps the
+          # full GPLv3 text next to its csproj. GPLv3 requires conveying that text
+          # WITH the work, and each Uplink ships as its own standalone CKAN
+          # package, so the zip is the work: a NOTICE that says "the licence
+          # travels with this folder" is only true if the licence is in the folder.
           #
           # Derived from the csproj path rather than added as a matrix input,
           # because a per-leg input is a second place to forget: an Uplink that

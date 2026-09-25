@@ -82,15 +82,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * funds-per-unit Value and has to join those as a number to be summed with them.
    * Every figure a READER sees goes back out through `<Unit>`.
    */
-  /*
-   * ONE, where the delay reading leaves the contract for the design system.
-   * `signalDelayPresentation` decides which of the two delay readings a console
-   * draws, and it lives in `ui-kit`, which is props-driven and carries no
-   * contract types: `InFlightList` beside it takes plain seconds for the same
-   * reason. So the terminal unwraps once, here, and the figure a READER sees
-   * goes back out through `<Unit>` inside the badge.
-   */
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
