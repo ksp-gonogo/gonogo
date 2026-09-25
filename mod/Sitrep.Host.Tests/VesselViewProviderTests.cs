@@ -184,6 +184,101 @@ namespace Sitrep.Host.Tests
         // vessel.orbit
         // ----------------------------------------------------------------
 
+        private static Dictionary<string, object?> RawOrbit(double ecc, object? timeToAp, object? timeToPe) =>
+            new Dictionary<string, object?>
+            {
+                ["sma"] = ecc < 1.0 ? 700_000.0 : -700_000.0,
+                ["ecc"] = ecc,
+                ["inc"] = 5.0,
+                ["lan"] = 10.0,
+                ["argPe"] = 20.0,
+                ["meanAnomalyAtEpoch"] = 1.2,
+                ["epoch"] = 90.0,
+                ["mu"] = 3.5316e12,
+                ["referenceBody"] = "Kerbin",
+                ["timeToAp"] = timeToAp,
+                ["timeToPe"] = timeToPe,
+            };
+
+        private static VesselOrbit OrbitUnder(string physicsMode, Dictionary<string, object?> raw)
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: raw,
+                physics: new Dictionary<string, object?> { ["mode"] = physicsMode },
+                bodies: KerbinAndMun());
+            return VesselViewProvider.BuildOrbit(snapshot)!;
+        }
+
+        /// <summary>
+        /// Under physics the orbit carries KSP's own apsis countdowns, exactly as KSP
+        /// computed them, and the wire carries them too.
+        /// </summary>
+        [Fact]
+        public void UnderPhysicsTheOrbitCarriesKspsOwnApsisCountdowns()
+        {
+            var orbit = OrbitUnder("Unpacked", RawOrbit(0.01, 1234.5, 2345.6));
+
+            Assert.Equal(Quality.Loaded, orbit.Meta.Quality);
+            Assert.Equal(1234.5, orbit.TimeToAp);
+            Assert.Equal(2345.6, orbit.TimeToPe);
+
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: RawOrbit(0.01, 1234.5, 2345.6),
+                physics: new Dictionary<string, object?> { ["mode"] = "Unpacked" },
+                bodies: KerbinAndMun());
+            var wire = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildOrbitWire(snapshot));
+            Assert.Equal(1234.5, wire["timeToAp"]);
+            Assert.Equal(2345.6, wire["timeToPe"]);
+        }
+
+        /// <summary>
+        /// On rails the conic answers the same figures exactly, and a countdown would
+        /// change every tick and defeat the channel's change gate, so neither is sent.
+        /// </summary>
+        [Theory]
+        [InlineData("Packed")]
+        [InlineData("OnRails")]
+        public void OnRailsTheOrbitCarriesNoApsisCountdowns(string physicsMode)
+        {
+            var orbit = OrbitUnder(physicsMode, RawOrbit(0.01, 1234.5, 2345.6));
+
+            Assert.Null(orbit.TimeToAp);
+            Assert.Null(orbit.TimeToPe);
+        }
+
+        /// <summary>
+        /// Where KSP has no next apsis the countdown is null, never 0: a hyperbolic
+        /// orbit has no apoapsis (KSP says +Infinity) and, once its periapsis has
+        /// passed, no periapsis either (KSP says a negative number).
+        /// </summary>
+        [Fact]
+        public void AnApsisKspCannotCountToIsNullNotZero()
+        {
+            var approaching = OrbitUnder("Unpacked", RawOrbit(1.4, double.PositiveInfinity, 300.0));
+            Assert.Null(approaching.TimeToAp);
+            Assert.Equal(300.0, approaching.TimeToPe);
+
+            var departing = OrbitUnder("Unpacked", RawOrbit(1.4, double.PositiveInfinity, -300.0));
+            Assert.Null(departing.TimeToAp);
+            Assert.Null(departing.TimeToPe);
+
+            var unreported = OrbitUnder("Unpacked", RawOrbit(0.01, null, double.NaN));
+            Assert.Null(unreported.TimeToAp);
+            Assert.Null(unreported.TimeToPe);
+        }
+
+        /// <summary>At the apsis itself KSP says 0, and 0 is carried as the real figure it is.</summary>
+        [Fact]
+        public void ACraftAtAnApsisCountsZeroToIt()
+        {
+            var orbit = OrbitUnder("Unpacked", RawOrbit(0.01, 900.0, 0.0));
+
+            Assert.Equal(0.0, orbit.TimeToPe);
+            Assert.Equal(900.0, orbit.TimeToAp);
+        }
+
         [Fact]
         public void BuildOrbitMapsRawElementsWithNoEccentricAnomalyFieldAndNullEncounterByDefault()
         {

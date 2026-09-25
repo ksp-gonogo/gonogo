@@ -1408,6 +1408,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     mu: "m³/s²",
     referenceBodyIndex: "id",
     sma: "m",
+    timeToAp: "s",
+    timeToPe: "s",
   },
   "VesselOrbitTruth": {
     frameRotating: "flag",
@@ -2017,6 +2019,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     mu: "m³/s²",
     referenceBodyIndex: "id",
     sma: "m",
+    timeToAp: "s",
+    timeToPe: "s",
   },
   "vessel.orbit.truth": {
     frameRotating: "flag",

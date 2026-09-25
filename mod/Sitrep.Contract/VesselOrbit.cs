@@ -9,7 +9,9 @@ namespace Sitrep.Contract;
 /// The <c>vessel.orbit</c> channel payload: elements are the CAUSE; every
 /// kinematic quantity (position/velocity/apsides/anomalies/period) is a
 /// consumer-side derivation at view-UT via the propagation capability, never
-/// streamed here.
+/// streamed here. The one exception is the pair of apsis countdowns under
+/// physics, <see cref="TimeToAp"/> and <see cref="TimeToPe"/>: see their own
+/// docs.
 ///
 /// Units: <see cref="Sma"/> in metres; <see cref="Inc"/>/<see cref="Lan"/>/
 /// <see cref="ArgPe"/> in DEGREES (KSP-native); <see cref="MeanAnomalyAtEpoch"/>
@@ -84,6 +86,39 @@ public class VesselOrbit
     /// <summary>Parent body's standard gravitational parameter (GM): self-sufficient propagation, no separate body lookup required.</summary>
     [SitrepUnit(Units.CubicMetresPerSecondSquared)]
     public double Mu { get; set; }
+
+    /// <summary>
+    /// Seconds from this sample's <c>validAt</c> until the craft next reaches
+    /// apoapsis on the orbit these elements describe, as KSP computes it
+    /// (<c>Orbit.timeToAp</c>). Carried only while the craft is under physics
+    /// (<c>meta.quality</c> <c>Loaded</c>): on rails the same figure follows
+    /// exactly from the elements, and the field is null. Also null on a
+    /// hyperbolic orbit, which has no apoapsis. Never a sentinel in place of
+    /// null.
+    ///
+    /// <para>True at <c>validAt</c>. A reader at a later instant subtracts the
+    /// elapsed time, wrapping by the period once the apsis has passed.</para>
+    /// <internal>
+    /// Under physics the elements are osculating and change every sample, so the
+    /// client's conic reckoner declines to advance them. KSP's countdown is a
+    /// property of the same instantaneous orbit as the apsides and needs no
+    /// advancing. On rails it would change every tick and defeat the channel's
+    /// value-equality change gate, which is why it is withheld there.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? TimeToAp { get; set; }
+
+    /// <summary>
+    /// Seconds from this sample's <c>validAt</c> until the craft next reaches
+    /// periapsis, as KSP computes it (<c>Orbit.timeToPe</c>). Carried under the
+    /// same rule as <see cref="TimeToAp"/>: only while <c>meta.quality</c> is
+    /// <c>Loaded</c>, null on rails. On a hyperbolic orbit it is null once the
+    /// periapsis has been passed, since there is no next one. Never a sentinel in
+    /// place of null.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? TimeToPe { get; set; }
 
     /// <summary>Null = no upcoming SOI transition on the current trajectory (the common case); NEVER a sentinel (kills O-9).</summary>
     public OrbitEncounter? Encounter { get; set; }

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "loaded-under-physics",
-    "notes": "The same near-circular low Kerbin orbit as circular-lko, sampled while the craft is LOADED (meta.quality 1). Its elements are osculating, so the conic withdraws: Ap, Pe, t-Ap, t-Pe and T are absent and eccentricity, inclination and the diagram still draw. Pair this with circular-lko, which is the identical orbit on rails, to see which figures the gate governs."
+    "notes": "The same near-circular low Kerbin orbit as circular-lko, sampled while the craft is LOADED (meta.quality 1), at periapsis, carrying KSP's own countdowns as the mod sends them under physics (timeToAp half a period, timeToPe 0). Its elements are osculating, so the conic declines to advance them, but every figure is still answered: the apsides and period from the elements as they stand, the countdowns from KSP's own. Pair this with circular-lko, the identical orbit on rails, which should read the same."
   },
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
@@ -25,13 +25,16 @@
           "meanAnomalyAtEpoch": 0,
           "epoch": 10,
           "mu": 3531600000000,
+          "timeToAp": 942.58,
+          "timeToPe": 0,
           "horizon": {
             "kind": 1,
             "trajectoryKind": 1
           }
         },
         "meta": {
-          "quality": 1
+          "quality": 1,
+          "validAt": 10
         }
       },
       {

@@ -1921,7 +1921,14 @@ namespace Sitrep.Contract
         /// tell the part of a quantum that warp skipped from the resolution every channel
         /// is sampled at. Additive, nothing removed or retyped, so an Uplink built against
         /// 18.8 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 9 -&gt; 10: a craft under physics carries
+        /// KSP's own apsis countdowns.</b> Two new optional members,
+        /// <see cref="VesselOrbit.TimeToAp"/> and <see cref="VesselOrbit.TimeToPe"/>,
+        /// filled only while the payload's quality is <c>Loaded</c>. Additive,
+        /// nothing removed or retyped, so an Uplink built against 18.9 is
+        /// unaffected.</para>
         /// </remarks>
-        public const int Minor = 9;
+        public const int Minor = 10;
     }
 }

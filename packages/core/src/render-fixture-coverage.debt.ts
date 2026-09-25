@@ -57,6 +57,14 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/TransferWindow#z",
   // `ctx.arc(...)`, the canvas API
   "packages/components/src/MapView#arc",
+  /*
+   * `const timeToAp = solve?.timeToAp ?? undefined;` and its `timeToPe` twin:
+   * the orbital SOLVE's countdowns out of `useOrbitSolve`, not a read of
+   * `vessel.orbit`'s own fields of the same names. The widget never
+   * dereferences the payload's.
+   */
+  "packages/components/src/ManeuverPlanner#timeToAp",
+  "packages/components/src/ManeuverPlanner#timeToPe",
   // `const { x, y } = project(poi.lat, poi.lon)`, screen coordinates
   "packages/components/src/MapView#x",
   "packages/components/src/MapView#y",

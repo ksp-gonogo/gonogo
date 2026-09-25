@@ -307,6 +307,16 @@
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
     "verdict": "coincidence"
   },
+  "VesselOrbit.timeToAp": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "VesselOrbit.timeToPe": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
   "VesselOrbitTruth.position.x": {
     "rates": ["velocity.x", "velocity.y", "velocity.z"],
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
@@ -516,6 +526,16 @@
     "verdict": "coincidence"
   },
   "vessel.orbit.epoch": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "vessel.orbit.timeToAp": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "vessel.orbit.timeToPe": {
     "rates": ["ecc"],
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
     "verdict": "coincidence"

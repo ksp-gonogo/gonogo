@@ -157,13 +157,13 @@ describe("bodyRadiusOf", () => {
 });
 
 /**
- * Which of the solve survives a reckoning that declines, split by whether a
- * field has to ADVANCE the elements to the view time.
+ * Which of the solve survives a reckoning that declines under physics.
  *
- * Under physics the elements are osculating: a conic cannot be carried forward
- * from them, but the apsides and the period are algebra on them as they stand,
- * and the craft's anomaly at their own epoch is where it was when they were
- * taken. Only what counts forward (the countdowns, the next apsis) goes.
+ * The elements are osculating, so a conic cannot be carried forward from them,
+ * but nothing drawn needs that: the apsides and the period are algebra on them
+ * as they stand, the craft's anomaly at their own epoch is where it was when
+ * they were taken, and the countdowns are the game's own, run down by the view
+ * time since the sample.
  */
 describe("solveSelfOrbit under a declining reckoning", () => {
   const ELEMENTS = { ...circular(SMA, 0.2), referenceBodyIndex: 1 };
@@ -172,9 +172,15 @@ describe("solveSelfOrbit under a declining reckoning", () => {
     status: "declined" as const,
     declined: { reason: "under-physics" as const, input: "@vessel.orbit" },
   };
+  /** At periapsis at UT 0, so KSP would say half a period to apoapsis and none to periapsis. */
+  const WITH_KSP_COUNTDOWNS = {
+    ...ELEMENTS,
+    timeToAp: { magnitude: PERIOD / 2 },
+    timeToPe: { magnitude: 0 },
+  };
 
   it("answers the apsides, period and anomaly of a CURRENT reading under physics", () => {
-    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, true);
+    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, 0);
 
     expect(s?.apoapsisRadius).toBeCloseTo(SMA * 1.2, 6);
     expect(s?.periapsisRadius).toBeCloseTo(SMA * 0.8, 6);
@@ -185,8 +191,67 @@ describe("solveSelfOrbit under a declining reckoning", () => {
     expect(s?.orbitalRadius).toBeCloseTo(SMA * 0.8, 6);
   });
 
-  it("withholds everything that counts forward from that instant", () => {
-    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, true);
+  it("answers the countdowns from the game's own, at the sample instant", () => {
+    const s = solveSelfOrbit(WITH_KSP_COUNTDOWNS, UNDER_PHYSICS, BODIES, 0, 0);
+
+    expect(s?.timeToAp).toBeCloseTo(PERIOD / 2, 6);
+    expect(s?.timeToPe).toBe(0);
+  });
+
+  it("runs them down by the view time elapsed since the sample", () => {
+    const s = solveSelfOrbit(
+      WITH_KSP_COUNTDOWNS,
+      UNDER_PHYSICS,
+      BODIES,
+      1500,
+      1000,
+    );
+
+    // 500 s after the sample: the apoapsis is 500 s nearer.
+    expect(s?.timeToAp).toBeCloseTo(PERIOD / 2 - 500, 6);
+    // The periapsis was reached at the sample, so the next one is a period on.
+    expect(s?.timeToPe).toBeCloseTo(PERIOD - 500, 6);
+    expect(s?.nextApsisType).toBe(1);
+    expect(s?.timeToNextApsis).toBeCloseTo(PERIOD / 2 - 500, 6);
+  });
+
+  it("counts to the NEXT apoapsis once the view time has passed this one", () => {
+    const s = solveSelfOrbit(
+      WITH_KSP_COUNTDOWNS,
+      UNDER_PHYSICS,
+      BODIES,
+      PERIOD / 2 + 100,
+      0,
+    );
+
+    expect(s?.timeToAp).toBeCloseTo(PERIOD - 100, 6);
+    expect(s?.timeToPe).toBeCloseTo(PERIOD / 2 - 100, 6);
+    expect(s?.nextApsisType).toBe(-1);
+    expect(s?.timeToNextApsis).toBeCloseTo(PERIOD / 2 - 100, 6);
+  });
+
+  it("gives a hyperbolic orbit no apoapsis, and no periapsis once it has passed", () => {
+    const flyby = {
+      ...circular(-SMA, 1.5),
+      referenceBodyIndex: 1,
+      timeToAp: { magnitude: 1234 },
+      timeToPe: { magnitude: 300 },
+    };
+
+    const before = solveSelfOrbit(flyby, UNDER_PHYSICS, BODIES, 100, 0);
+    expect(before?.timeToAp).toBeNull();
+    expect(before?.timeToPe).toBeCloseTo(200, 6);
+    expect(before?.nextApsisType).toBe(-1);
+
+    const after = solveSelfOrbit(flyby, UNDER_PHYSICS, BODIES, 400, 0);
+    expect(after?.timeToAp).toBeNull();
+    expect(after?.timeToPe).toBeNull();
+    expect(after?.nextApsisType).toBeNull();
+    expect(after?.timeToNextApsis).toBeNull();
+  });
+
+  it("answers no countdown for a sample that carries none", () => {
+    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, 0);
 
     expect(s?.timeToAp).toBeNull();
     expect(s?.timeToPe).toBeNull();
@@ -196,7 +261,7 @@ describe("solveSelfOrbit under a declining reckoning", () => {
 
   it("answers nothing for a STALE reading under physics: under thrust old elements describe no current orbit", () => {
     expect(
-      solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, false),
+      solveSelfOrbit(WITH_KSP_COUNTDOWNS, UNDER_PHYSICS, BODIES, 500),
     ).toBeNull();
   });
 
@@ -210,11 +275,11 @@ describe("solveSelfOrbit under a declining reckoning", () => {
     ] as const) {
       expect(
         solveSelfOrbit(
-          ELEMENTS,
+          WITH_KSP_COUNTDOWNS,
           { status: "declined", declined: { reason } },
           BODIES,
           500,
-          true,
+          0,
         ),
       ).toBeNull();
     }
@@ -227,7 +292,7 @@ describe("solveSelfOrbit under a declining reckoning", () => {
       { status: "available" },
       BODIES,
       PERIOD / 4,
-      true,
+      0,
     );
 
     expect(s?.trueAnomaly).toBeGreaterThan(0);
