@@ -19,6 +19,8 @@ namespace Sitrep.Host.Tests.Comms
     {
         private const double C = SignalDelay.SpeedOfLightMetersPerSecond;
 
+        private const string Node = "fleet.far";
+
         /// <summary>A route of hops each one light-second long, ending at "home".</summary>
         private static CommsPath Route(params string[] toNodeIds)
         {
@@ -48,13 +50,29 @@ namespace Sitrep.Host.Tests.Comms
         public void RaisesABreakAtTheDestroyedRelaysOwnPosition()
         {
             var watch = new PathBreakWatch();
-            Assert.Null(watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead()));
+            Assert.Null(watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead()));
 
-            var found = watch.Observe(Route("relay-c", "home"), 1.0, 11.0, Dead("relay-b"));
+            var found = watch.Observe(Node, Route("relay-c", "home"), 1.0, 11.0, Dead("relay-b"));
 
             Assert.NotNull(found);
             Assert.Equal(11.0, found!.Value.AtUt);
             Assert.Equal(2.0, found.Value.LightSecondsOut, 9);
+        }
+
+        /// <summary>
+        /// The break lands on the node it was observed for and no other: the
+        /// engine retires only the samples that node sent, so a break placed on
+        /// the wrong node deletes telemetry that arrived.
+        /// </summary>
+        [Fact]
+        public void TheBreakNamesTheNodeWhoseRouteItWas()
+        {
+            var watch = new PathBreakWatch();
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+
+            var found = watch.Observe(Node, Route("relay-c", "home"), 1.0, 11.0, Dead("relay-b"));
+
+            Assert.Equal(Node, found!.Value.Node);
         }
 
         /// <summary>
@@ -68,9 +86,9 @@ namespace Sitrep.Host.Tests.Comms
         public void AnOrdinaryRerouteOffLiveRelaysIsNotABreak()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
-            Assert.Null(watch.Observe(Route("relay-c", "home"), 1.0, 11.0, Dead()));
+            Assert.Null(watch.Observe(Node, Route("relay-c", "home"), 1.0, 11.0, Dead()));
         }
 
         /// <summary>
@@ -83,9 +101,9 @@ namespace Sitrep.Host.Tests.Comms
         public void ABackendThatCannotSayRaisesNothing()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
-            Assert.Null(watch.Observe(Route("relay-c", "home"), 1.0, 11.0, _ => null));
+            Assert.Null(watch.Observe(Node, Route("relay-c", "home"), 1.0, 11.0, _ => null));
         }
 
         /// <summary>
@@ -98,9 +116,9 @@ namespace Sitrep.Host.Tests.Comms
         public void LosingTheRouteHomeEntirelyRaisesTheBreak()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
-            var found = watch.Observe(
+            var found = watch.Observe(Node, 
                 new CommsPath(), 1.0, 11.0, Dead("relay-a", "relay-b", "home"));
 
             Assert.NotNull(found);
@@ -117,9 +135,9 @@ namespace Sitrep.Host.Tests.Comms
         public void TheDeepestOfSeveralSimultaneousBreaksIsTheOneRaised()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "relay-c", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "relay-c", "home"), 1.0, 10.0, Dead());
 
-            var found = watch.Observe(
+            var found = watch.Observe(Node, 
                 new CommsPath(), 1.0, 11.0, Dead("relay-a", "relay-c"));
 
             Assert.NotNull(found);
@@ -136,9 +154,9 @@ namespace Sitrep.Host.Tests.Comms
         public void ThePositionCarriesTheLightSpeedScale()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 2.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 2.0, 10.0, Dead());
 
-            var found = watch.Observe(new CommsPath(), 2.0, 11.0, Dead("relay-b"));
+            var found = watch.Observe(Node, new CommsPath(), 2.0, 11.0, Dead("relay-b"));
 
             Assert.NotNull(found);
             Assert.Equal(1.0, found!.Value.LightSecondsOut, 9);
@@ -154,7 +172,7 @@ namespace Sitrep.Host.Tests.Comms
         public void IncompleteHopGeometryRaisesNothing()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
             var blind = new CommsPath
             {
@@ -163,12 +181,12 @@ namespace Sitrep.Host.Tests.Comms
                     new CommsHop { From = "craft", To = "relay-c", DistanceMeters = null },
                 },
             };
-            Assert.Null(watch.Observe(blind, 1.0, 11.0, Dead("relay-b")));
+            Assert.Null(watch.Observe(Node, blind, 1.0, 11.0, Dead("relay-b")));
 
             // And the retained route is forgotten with it, so the next
             // observation compares against nothing rather than against geometry
             // separated from it by an unmeasured gap.
-            Assert.Null(watch.Observe(new CommsPath(), 1.0, 12.0, Dead("relay-b")));
+            Assert.Null(watch.Observe(Node, new CommsPath(), 1.0, 12.0, Dead("relay-b")));
         }
 
         /// <summary>
@@ -182,10 +200,10 @@ namespace Sitrep.Host.Tests.Comms
         public void ATickLongerThanTheWholeLightTimeRaisesNothing()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
             // Three light-seconds of route, four seconds of UT in one tick.
-            Assert.Null(watch.Observe(new CommsPath(), 1.0, 14.0, Dead("relay-b")));
+            Assert.Null(watch.Observe(Node, new CommsPath(), 1.0, 14.0, Dead("relay-b")));
         }
 
         /// <summary>
@@ -197,11 +215,11 @@ namespace Sitrep.Host.Tests.Comms
         public void ABreakIsRaisedOnceAndNotOnEveryTickThatFollows()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "home"), 1.0, 10.0, Dead());
-            Assert.NotNull(watch.Observe(new CommsPath(), 1.0, 11.0, Dead("relay-a")));
+            watch.Observe(Node, Route("relay-a", "home"), 1.0, 10.0, Dead());
+            Assert.NotNull(watch.Observe(Node, new CommsPath(), 1.0, 11.0, Dead("relay-a")));
 
-            Assert.Null(watch.Observe(new CommsPath(), 1.0, 12.0, Dead("relay-a")));
-            Assert.Null(watch.Observe(new CommsPath(), 1.0, 13.0, Dead("relay-a")));
+            Assert.Null(watch.Observe(Node, new CommsPath(), 1.0, 12.0, Dead("relay-a")));
+            Assert.Null(watch.Observe(Node, new CommsPath(), 1.0, 13.0, Dead("relay-a")));
         }
 
         /// <summary>
@@ -213,10 +231,10 @@ namespace Sitrep.Host.Tests.Comms
         public void ReacquiringARouteRaisesNothing()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "home"), 1.0, 10.0, Dead());
-            watch.Observe(new CommsPath(), 1.0, 11.0, Dead("relay-a"));
+            watch.Observe(Node, Route("relay-a", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, new CommsPath(), 1.0, 11.0, Dead("relay-a"));
 
-            Assert.Null(watch.Observe(Route("relay-d", "home"), 1.0, 12.0, Dead("relay-a")));
+            Assert.Null(watch.Observe(Node, Route("relay-d", "home"), 1.0, 12.0, Dead("relay-a")));
         }
 
         /// <summary>
@@ -230,11 +248,11 @@ namespace Sitrep.Host.Tests.Comms
         public void ForgettingTheRouteDropsTheComparison()
         {
             var watch = new PathBreakWatch();
-            watch.Observe(Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
+            watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
             watch.Forget();
 
-            Assert.Null(watch.Observe(new CommsPath(), 1.0, 11.0, Dead("relay-a", "relay-b")));
+            Assert.Null(watch.Observe(Node, new CommsPath(), 1.0, 11.0, Dead("relay-a", "relay-b")));
         }
     }
 }

@@ -144,7 +144,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
         private sealed class CapturingUplinkHost : IUplinkHost
         {
 
-        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
+        public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
             public RecordingPublisher RosterPublisher { get; } = new RecordingPublisher();
 
             public IChannelPublisher Publisher(string topic) =>

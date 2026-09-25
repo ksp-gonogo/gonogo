@@ -20,7 +20,7 @@ namespace Sitrep.Host.Tests
         private sealed class FakeBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             private readonly ICommsOcclusionModel _occlusion;
 
             public FakeBackend(string id, ICommsOcclusionModel? occlusion = null)
@@ -33,12 +33,12 @@ namespace Sitrep.Host.Tests
             public CommsConnectivity Connectivity() => new CommsConnectivity();
             public CommsSignal SignalStrength() => new CommsSignal();
             public CommsControl ControlState() => new CommsControl();
-            public CommsPath Path() => new CommsPath();
-            public CommsNetwork Network() => new CommsNetwork();
+            public CommsPath Path(object? vessel) => new CommsPath();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
             /// <summary>Nothing here routes: this fake exists for the election itself.</summary>
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
-            public object? ControlPathTerminus() => null;
+            public object? ControlPathTerminus(object? vessel) => null;
             public ICommsOcclusionModel OcclusionModel() => _occlusion;
 
             public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
@@ -181,8 +181,8 @@ namespace Sitrep.Host.Tests
             Assert.NotNull(backend.Connectivity());
             Assert.NotNull(backend.SignalStrength());
             Assert.NotNull(backend.ControlState());
-            Assert.NotNull(backend.Path());
-            Assert.NotNull(backend.Network());
+            Assert.NotNull(backend.Path(null));
+            Assert.NotNull(backend.Network(null));
         }
     }
 }

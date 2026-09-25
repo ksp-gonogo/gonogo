@@ -41,7 +41,7 @@ namespace Sitrep.Host.Tests
         private sealed class StubBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             private readonly Func<object?, object?, ICommsReachModel> _reach;
 
             public StubBackend(string id, Func<object?, object?, ICommsReachModel> reach)
@@ -54,11 +54,11 @@ namespace Sitrep.Host.Tests
             public CommsConnectivity Connectivity() => new CommsConnectivity();
             public CommsSignal SignalStrength() => new CommsSignal();
             public CommsControl ControlState() => new CommsControl();
-            public CommsPath Path() => new CommsPath();
-            public CommsNetwork Network() => new CommsNetwork();
+            public CommsPath Path(object? vessel) => new CommsPath();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
             public ICommsReachModel ReachModel(object? from, object? to) => _reach(from, to);
-            public object? ControlPathTerminus() => null;
+            public object? ControlPathTerminus(object? vessel) => null;
             /// <summary>Nothing here occludes: this stub exists for the reach read.</summary>
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 

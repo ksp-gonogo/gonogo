@@ -301,7 +301,7 @@ namespace Gonogo.KSP.Tests.Comms
         private sealed class DeadGraphBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public string ProviderId => "commnet";
 
             public CommsConnectivity Connectivity() => new CommsConnectivity
@@ -320,9 +320,9 @@ namespace Gonogo.KSP.Tests.Comms
                 Reason = "no connection to a command source",
             };
 
-            public CommsPath Path() => new CommsPath { Hops = new List<CommsHop>() };
+            public CommsPath Path(object? vessel) => new CommsPath { Hops = new List<CommsHop>() };
 
-            public CommsNetwork Network() => new CommsNetwork();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
@@ -336,7 +336,7 @@ namespace Gonogo.KSP.Tests.Comms
 
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
 
-            public object? ControlPathTerminus() => null;
+            public object? ControlPathTerminus(object? vessel) => null;
         }
 
         /// <summary>
@@ -349,7 +349,7 @@ namespace Gonogo.KSP.Tests.Comms
         private sealed class NoOpUplinkHost : IUplinkHost
         {
 
-        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
+        public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
             internal NoOpUplinkHost(Kernel kernel) => Kernel = kernel;
 
             public Kernel Kernel { get; }
@@ -522,6 +522,8 @@ namespace Gonogo.KSP.Tests.Comms
                     Enabled = true,
                     LightSpeedScale = 1.0,
                 });
+                // No game in a test host, so no craft on screen to ask about.
+                CommsCoreUplink.ConfigureActiveVesselProbe(() => null);
                 body();
             }
             finally
@@ -529,6 +531,7 @@ namespace Gonogo.KSP.Tests.Comms
                 CommsCoreUplink.ConfigureCommsModelProbe(null);
                 CommsCoreUplink.ConfigureSimulationKernel(null);
                 CommsCoreUplink.ConfigureSignalDelay(authored);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
             }
         }
     }
