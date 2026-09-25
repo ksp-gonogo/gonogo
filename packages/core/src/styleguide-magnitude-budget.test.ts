@@ -354,14 +354,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // both has to accept either. Not arithmetic: the number is handed to the
   // caller and never computed with here.
   "packages/sitrep-client/src/wire-magnitude.ts": 1,
-  // The `alarm.scet.fired` notice, read straight off a raw arrival frame rather
-  // than through the store: the whole point of that channel is reaching the
-  // client with the warp stop rather than a light-time later, and the store
-  // samples at the frozen view time. So the payload is `unknown` off the wire
-  // and the instant arrives wrapped or bare depending on how the unit wrap
-  // keyed the topic, exactly the boundary `wire-magnitude.ts` above documents.
-  // Not arithmetic: the number is latched onto the alarm and never computed
-  // with here.
+  // `readWireUt`, the one read of a universal time off a raw `alarm.scet` or
+  // `alarm.scet.fired` frame, taken straight off the arrival rather than
+  // through the store: the fired notice has to reach the client with the warp
+  // stop rather than a light-time later, and the store samples at the frozen
+  // view time. So the payload is `unknown` off the wire and the instant arrives
+  // wrapped or bare depending on how the unit wrap keyed the topic, exactly the
+  // boundary `wire-magnitude.ts` above documents. Not arithmetic: the number is
+  // latched onto the alarm, or onto another screen's roster row for display,
+  // and never computed with here.
   "packages/app/src/alarms/ScetAlarmBridge.ts": 1,
   // `canPropagate` accepts a horizon UT either wrapped (as the wire delivers it)
   // or already unwrapped, so one read normalises the two. Not arithmetic: the
@@ -427,7 +428,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   /*
-   * TWO, and both are the seam `units.ts` spends its three on: `formatQuantity`
+   * TWO, and both are the seam `units.ts` spends its one on: `formatQuantity`
    * takes the magnitude and the unit as two plain arguments, so a quantity
    * cannot be handed over whole. One is the single writer every end of the band
    * goes through, and the other is the figure itself.
@@ -458,14 +459,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/ui-kit/src/Meter.tsx": 1,
   /*
-   * 3. Each is the SAME unwrap in the same place: the
-   * seam where a quantity object meets `formatQuantity`, which takes the
-   * magnitude and the unit as two arguments. `speakQuantity` and
-   * `writeQuantity` have each spent one there since they existed; `quantityScale`
-   * is the third and spends it identically. Nothing downstream of the seam sees
-   * a bare number, and no arithmetic happens on any of the three.
+   * ONE: the seam where a quantity object meets `formatQuantity`, which takes
+   * the magnitude and the unit as two arguments. `speakQuantity`,
+   * `writeQuantity`, `quantityScale` and `readsAsOneFigure` all hand their
+   * quantity over through `formatWhole`, which is this unwrap. Nothing
+   * downstream of the seam sees a bare number, and no arithmetic happens on it.
    */
-  "packages/ui-kit/src/units.ts": 3,
+  "packages/ui-kit/src/units.ts": 1,
 };
 
 /**
@@ -528,12 +528,10 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is `gapModel` comparing a bare `validAt` span against the wire's `time.warp.sampleIntervalUt`.
   "mod/sitrep-sdk": 30,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
-  // Two are `ScetAlarmBridge` reading another screen's alarm off the raw `alarm.scet` roster frame, the same wrapped-or-bare boundary as its fired notice, latched for display and never computed with.
-  "packages/app": 11,
+  "packages/app": 9,
   "packages/components": 160,
   "packages/data": 5,
-  // Two are `<Unit>` handing a band's ends to `readsAsOneFigure`, the formatter's own plain-number entry, to ask whether they print as one figure.
-  "packages/ui-kit": 10,
+  "packages/ui-kit": 8,
 };
 
 /**

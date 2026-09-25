@@ -834,6 +834,18 @@ export function wordForSymbol(symbol: string): string | undefined {
 }
 
 /**
+ * A whole quantity through `formatQuantity`, which takes the magnitude and the
+ * unit as two plain arguments. Every function here that formats a quantity
+ * object hands it over through this one unwrap.
+ */
+function formatWhole(
+  quantity: { magnitude: number; unit: string } | null | undefined,
+  opts: FormatQuantityOptions,
+): FormattedQuantity {
+  return formatQuantity(quantity?.magnitude, quantity?.unit, opts);
+}
+
+/**
  * A quantity as a screen reader should hear it: the value followed by the
  * unit's WORD rather than its symbol.
  *
@@ -854,11 +866,7 @@ export function speakQuantity(
   quantity: { magnitude: number; unit: string } | null | undefined,
   opts: FormatQuantityOptions = {},
 ): string {
-  const { value: text, symbol } = formatQuantity(
-    quantity?.magnitude,
-    quantity?.unit,
-    opts,
-  );
+  const { value: text, symbol } = formatWhole(quantity, opts);
   if (symbol === "") return text;
   return `${text} ${wordForSymbol(symbol) ?? symbol}`;
 }
@@ -911,11 +919,7 @@ export function writeQuantity(
   quantity: { magnitude: number; unit: string } | null | undefined,
   opts: FormatQuantityOptions = {},
 ): string {
-  const { value: text, symbol } = formatQuantity(
-    quantity?.magnitude,
-    quantity?.unit,
-    opts,
-  );
+  const { value: text, symbol } = formatWhole(quantity, opts);
   if (symbol === "") return text;
   return ATTACHED_SYMBOLS.has(symbol)
     ? `${text}${symbol}`
@@ -1475,7 +1479,7 @@ export function quantityScale(
   reference: { magnitude: number; unit: string } | null | undefined,
   opts: FormatQuantityOptions = {},
 ): QuantityScale {
-  const head = formatQuantity(reference?.magnitude, reference?.unit, opts);
+  const head = formatWhole(reference, opts);
   const unit = reference?.unit;
   return {
     rung: head.rung,
@@ -1775,16 +1779,21 @@ export function separatingDecimals(
  * <p>Asked with the SETTLED options, after the ladder has run: the figures it
  * compares have to be the ones that will be drawn, or it is answering about a
  * rendering nobody sees.</p>
+ *
+ * <p>A member is either a group's plain reading or a quantity handed over
+ * whole, such as a band's two ends.</p>
  */
 export function readsAsOneFigure(
-  members: readonly FormatMember[],
+  members: readonly (FormatMember | { magnitude: number; unit: string })[],
   opts: { format?: string; as?: string; decimals?: number } = {},
 ): boolean {
   if (members.length < 2) {
     return false;
   }
   const shown = members.map((member) =>
-    formatQuantity(member.reading, member.unit, opts),
+    "reading" in member
+      ? formatQuantity(member.reading, member.unit, opts)
+      : formatWhole(member, opts),
   );
   const first = shown[0];
   return shown.every(
