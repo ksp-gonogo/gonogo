@@ -244,11 +244,8 @@ describe("FuelStatus: what undefined means today", () => {
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 
-  it("shows a confident '0s' burn and an em-dash TWR for a stage row whose fields never arrived", async () => {
-    // `normaliseStage` returns NaN for a field the wire did not carry, and the
-    // two consumers then disagree about what that NaN means: TWR renders the
-    // honest placeholder, while burn time renders "0s", a claim that the stage
-    // has a known zero burn. Both come from the same absence.
+  it("shows an em-dash burn and TWR for a stage row whose fields never arrived", async () => {
+    // `normaliseStage` returns NaN for a field the wire did not carry. A "0s" burn here would claim the stage has a known zero burn, from the same absence the TWR placeholder admits to.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
@@ -259,9 +256,11 @@ describe("FuelStatus: what undefined means today", () => {
 
     await waitFor(() => expect(visibleText(container)).toContain("1900 m/s"));
     expect(
-      screen.getByText(new RegExp(`TWR\\s+${NULL_DISPLAY}`)),
+      screen.getByText(
+        new RegExp(`^${NULL_DISPLAY} · TWR\\s+${NULL_DISPLAY}$`),
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/0s/)).toBeInTheDocument();
+    expect(visibleText(container)).not.toMatch(/\b0s\b/);
   });
 
   it("gives no stage row for undefined or null, the same as an empty array", () => {
