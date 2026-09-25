@@ -1,7 +1,7 @@
 import { useGameContext } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { SignalDelayReadout } from "./SignalDelayReadout";
 import { VantageControl } from "./VantageControl";
@@ -34,12 +34,10 @@ import { VantageControl } from "./VantageControl";
  * while a craft is flying.
  */
 export function MissionBanner() {
-  const ut = useViewUt();
-
   return (
     <Banner role="group" aria-label="Mission status">
       <BannerField label="UT">
-        <MissionDate value={ut} />
+        <BannerDate />
       </BannerField>
       <BannerField label="CC">
         <VantageControl />
@@ -47,6 +45,40 @@ export function MissionBanner() {
       <SignalDelayField />
     </Banner>
   );
+}
+
+/** The view time at the one-second resolution the date shows, re-rendering only when that second changes. */
+function BannerDate() {
+  return <MissionDate value={useViewSecond()} />;
+}
+
+function wholeSecond(ut: number | undefined): number | undefined {
+  return ut !== undefined && Number.isFinite(ut) ? Math.floor(ut) : undefined;
+}
+
+/**
+ * The view clock's per-frame UT floored to a whole second before it reaches
+ * state, so a frame that moves the view by a fraction of a second costs no
+ * render at all.
+ */
+function useViewSecond(): number | undefined {
+  const clock = useViewClockOptional();
+  const [second, setSecond] = useState(() => wholeSecond(clock?.viewUt()));
+  const lastDelivered = useRef(second);
+  useEffect(() => {
+    if (!clock) {
+      lastDelivered.current = undefined;
+      setSecond(undefined);
+      return;
+    }
+    return clock.onFrame((ut) => {
+      const next = wholeSecond(ut);
+      if (next === lastDelivered.current) return;
+      lastDelivered.current = next;
+      setSecond(next);
+    });
+  }, [clock]);
+  return second;
 }
 
 function BannerField({
