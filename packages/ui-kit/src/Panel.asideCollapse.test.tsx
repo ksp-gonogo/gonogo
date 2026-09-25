@@ -181,6 +181,27 @@ describe("Panel header aside expand box", () => {
     expect(expandBox().open).toBe(false);
   });
 
+  it("goes back inline once a badge that made it collapse has gone, with no resize", () => {
+    const panel = (badges: string[]) => (
+      <Panel
+        panelTitle="CREW"
+        panelAside={badges.map((label) => <Badge key={label}>{label}</Badge>)}
+      >
+        body
+      </Panel>
+    );
+    // Three badges need 240 of a 230 row: collapsed.
+    withHeaderMeasurements(230, 120);
+    const { rerender } = render(panel(["3/4 aboard", "2 crit", "in range"]));
+    expect(expandBox().open).toBe(false);
+
+    // The third badge goes: 220 of the same 230, inside the re-expand margin.
+    // Same room, different content, so it is decided afresh and fits.
+    withHeaderMeasurements(230, 110);
+    rerender(panel(["3/4 aboard", "2 crit"]));
+    expect(expandBox().open).toBe(true);
+  });
+
   it("has no aside box at all when the widget passes no aside", () => {
     render(<Panel panelTitle="BARE">body</Panel>);
     expect(header().querySelector("[data-panel-aside-expand]")).toBeNull();

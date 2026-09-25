@@ -44,14 +44,26 @@ const REEXPAND_MARGIN_PX = 24;
  * (jsdom, first paint before layout, or a `ResizeObserver` that has not fired
  * once), and `full` is the safe default every existing widget test already
  * renders.
+ *
+ * `previousNeededWidth` is what the content needed on the last measurement.
+ * The dead band guards against the ROOM moving under unchanged content; once
+ * the content itself is a different width it is a new question, answered with
+ * no margin. Otherwise an aside that collapsed for a badge that has since gone
+ * stays collapsed, beside room it now fits in, until something resizes the
+ * panel.
  */
 export function nextAsideCollapsed(
   prevCollapsed: boolean,
   availableWidth: number,
   neededWidth: number,
+  previousNeededWidth?: number,
 ): boolean {
   if (availableWidth <= 0 || neededWidth <= 0) return prevCollapsed;
-  return prevCollapsed
+  const contentChanged =
+    previousNeededWidth !== undefined &&
+    previousNeededWidth > 0 &&
+    previousNeededWidth !== neededWidth;
+  return prevCollapsed && !contentChanged
     ? !(availableWidth > neededWidth + REEXPAND_MARGIN_PX)
     : neededWidth > availableWidth;
 }
@@ -131,6 +143,7 @@ export function useHeaderAsideFit(
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(collapsed);
   collapsedRef.current = collapsed;
+  const neededRef = useRef<number | undefined>(undefined);
 
   const recompute = useCallback(() => {
     const row = rowRef.current;
@@ -139,7 +152,13 @@ export function useHeaderAsideFit(
     const needed =
       measureNaturalElementWidth(titleRef.current) +
       measureNaturalElementWidth(asideRef.current);
-    const next = nextAsideCollapsed(collapsedRef.current, available, needed);
+    const next = nextAsideCollapsed(
+      collapsedRef.current,
+      available,
+      needed,
+      neededRef.current,
+    );
+    if (needed > 0) neededRef.current = needed;
     if (next !== collapsedRef.current) {
       collapsedRef.current = next;
       setCollapsed(next);
