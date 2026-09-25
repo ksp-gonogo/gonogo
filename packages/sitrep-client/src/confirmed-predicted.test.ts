@@ -243,7 +243,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     const token = store.currentFrame();
     expect(token.viewUt).toBe(150);
     expect(token.certainty).toBe("predicted");
-    expect(store.sampleCertainty()).toBe("predicted");
+    expect(store.sampleCertainty("vessel.orbit")).toBe("predicted");
     // The horizon itself did not move, only the estimate ran ahead of it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
@@ -500,7 +500,9 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
 
     expect(store.sample("never-seen")).toBeUndefined();
     expect(store.sampleStatus("never-seen")).toBe("resyncing");
-    expect(["confirmed", "predicted"]).toContain(store.sampleCertainty());
+    expect(["confirmed", "predicted"]).toContain(
+      store.sampleCertainty("never-seen"),
+    );
   });
 
   it("a tombstoned topic: null payload, absent status, certainty unaffected", () => {

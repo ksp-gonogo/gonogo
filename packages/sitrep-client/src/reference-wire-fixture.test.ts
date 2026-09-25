@@ -517,11 +517,15 @@ describe.skipIf(!fixtureExists)(
         expect(Number.isFinite(maxValidAtInEpoch)).toBe(true);
         clock.scrubTo(maxValidAtInEpoch - 50);
         const confirmedToken = store.beginFrame();
-        expect(store.sampleCertainty(confirmedToken)).toBe("confirmed");
+        expect(store.sampleCertainty("vessel.orbit", confirmedToken)).toBe(
+          "confirmed",
+        );
 
         clock.scrubTo(maxValidAtInEpoch + 100_000);
         const predictedToken = store.beginFrame();
-        expect(store.sampleCertainty(predictedToken)).toBe("predicted");
+        expect(store.sampleCertainty("vessel.orbit", predictedToken)).toBe(
+          "predicted",
+        );
 
         clock.scrubTo(null);
 

@@ -104,6 +104,23 @@ describe("a channel's declared delay role", () => {
     expect(frame.trueNowCertainty).toBe("confirmed");
   });
 
+  /**
+   * The two lanes can disagree about the same frame: here the true-now channel
+   * has reported up to the moment it is read at, and the delayed one has not.
+   * A read's certainty is its own lane's, so asking without saying which topic
+   * could only ever answer for one of them.
+   */
+  it("answers a topic's certainty for that topic's own lane", () => {
+    const { clock, store, advance } = startStore();
+    clock.setMode("predicted");
+    advance(50);
+    store.ingest(TRUE_NOW_TOPIC, point(UT_NOW + 50, { funds: 43 }));
+    store.beginFrame();
+
+    expect(store.sampleCertainty(TRUE_NOW_TOPIC)).toBe("confirmed");
+    expect(store.sampleCertainty(DELAYED_TOPIC)).toBe("predicted");
+  });
+
   it("keeps a derived channel mixing roles on the delayed lane", () => {
     const { store } = startStore();
     /* `system.bodies` is TrueNow and `vessel.flight` is not, which is the shape
