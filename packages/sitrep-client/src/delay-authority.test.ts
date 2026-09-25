@@ -1,4 +1,5 @@
 import { CommsDelaySource, Quality, value } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
@@ -13,7 +14,6 @@ import {
 } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import type { VesselOrbitPayload } from "./vessel-state";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 

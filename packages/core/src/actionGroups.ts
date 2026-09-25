@@ -1,5 +1,5 @@
-import type { ActionGroupStatePayload } from "@ksp-gonogo/sitrep-client";
 import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
+import type { ActionGroupStatePayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useMemo } from "react";
 import { useTelemetry } from "./hooks/useTelemetry";
 import type { ActionGroup } from "./types";

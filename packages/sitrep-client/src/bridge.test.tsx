@@ -1,4 +1,8 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  VesselFlightPayload,
+  VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
@@ -6,7 +10,6 @@ import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
 import { StubTransport, type WireOf } from "./stub-transport";
 import { useStream } from "./use-stream";
-import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
 
 /**
  * The core proof that `TelemetryProvider` bridges the client into a live

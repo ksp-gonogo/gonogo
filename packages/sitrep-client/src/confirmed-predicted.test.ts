@@ -1,11 +1,14 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  VesselFlightPayload,
+  VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import type { OrbitElements } from "./kepler";
 import { solveAnomalies } from "./kepler";
 import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 

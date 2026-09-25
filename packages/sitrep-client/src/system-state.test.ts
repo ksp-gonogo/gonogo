@@ -1,11 +1,11 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import type { SystemBodiesPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta } from "./stub-transport";
 import { deriveSystemState } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
-import type { SystemBodiesPayload } from "./vessel-state";
 
 function bodiesPoint(
   payload: SystemBodiesPayload | null,

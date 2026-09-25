@@ -2,9 +2,9 @@ import {
   observedValue,
   TelemetryClient,
   TelemetryProvider,
-  type VesselOrbitPayload,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { StubTransport, type WireOf } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,

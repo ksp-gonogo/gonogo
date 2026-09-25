@@ -1,17 +1,16 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  SystemBodiesPayload,
+  VesselFlightPayload,
+  VesselOrbitPayload,
+  VesselPropulsionPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
-import {
-  deriveVesselState,
-  deriveVesselStateReckoning,
-  type SystemBodiesPayload,
-  type VesselFlightPayload,
-  type VesselOrbitPayload,
-  type VesselPropulsionPayload,
-} from "./vessel-state";
+import { deriveVesselState, deriveVesselStateReckoning } from "./vessel-state";
 
 /**
  * The three forward models inside `vessel.state`, held to what their doc

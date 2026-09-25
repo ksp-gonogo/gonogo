@@ -44,6 +44,7 @@ import {
   TrajectoryKindLike,
   type Vector3,
 } from "./kepler";
+import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import { orbitalPeriod } from "./propagation";
 import {
   frameInstantAt,
@@ -54,7 +55,6 @@ import {
   type TrajectoryScaleConvention,
   toFrame,
 } from "./reference-frame";
-import { buildElements, type WireOrbitElements } from "./vessel-state";
 
 /**
  * A point on a drawable trajectory: where, and when.

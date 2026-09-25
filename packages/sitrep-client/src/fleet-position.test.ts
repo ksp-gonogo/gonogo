@@ -1,8 +1,11 @@
+import {
+  buildElements,
+  type VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { propagateVesselOrbit } from "./fleet-position";
 import { solve } from "./kepler";
 import { type WireOf, wrapWire } from "./stub-transport";
-import { buildElements, type VesselOrbitPayload } from "./vessel-state";
 
 // `wrapWire` turns bare wire numbers into the `{ magnitude }` Value shape
 // production hands the client (what `parseServerMessage` / `useStream` deliver),

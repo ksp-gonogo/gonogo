@@ -123,3 +123,4 @@ export * from "./use-telemetry";
 export * from "./use-vantage-trajectory";
 export * from "./vessel-state";
 export * from "./view-clock";
+export * from "./wire-payloads";

@@ -1,14 +1,13 @@
 import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  VesselFlightPayload,
+  VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
-import {
-  deriveVesselState,
-  VESSEL_STATE_FIELDS,
-  type VesselFlightPayload,
-  type VesselOrbitPayload,
-} from "./vessel-state";
+import { deriveVesselState, VESSEL_STATE_FIELDS } from "./vessel-state";
 
 /**
  * Guards against the exact class of bug the red-team
