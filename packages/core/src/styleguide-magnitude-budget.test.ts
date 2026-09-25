@@ -528,10 +528,12 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is `gapModel` comparing a bare `validAt` span against the wire's `time.warp.sampleIntervalUt`.
   "mod/sitrep-sdk": 30,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
-  "packages/app": 9,
+  // Two are `ScetAlarmBridge` reading another screen's alarm off the raw `alarm.scet` roster frame, the same wrapped-or-bare boundary as its fired notice, latched for display and never computed with.
+  "packages/app": 11,
   "packages/components": 160,
   "packages/data": 5,
-  "packages/ui-kit": 8,
+  // Two are `<Unit>` handing a band's ends to `readsAsOneFigure`, the formatter's own plain-number entry, to ask whether they print as one figure.
+  "packages/ui-kit": 10,
 };
 
 /**
