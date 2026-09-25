@@ -1096,6 +1096,13 @@ namespace Sitrep.Host
         private readonly Dictionary<string, Func<object?, string, object?>> _vantageCommandHandlers =
             new Dictionary<string, Func<object?, string, object?>>();
 
+        /// <summary>
+        /// The args type each command's handler binds its wire args to, so a
+        /// dispatch whose args cannot bind is refused as malformed before any
+        /// handler runs (see <see cref="UnbindableArgsReason"/>).
+        /// </summary>
+        private readonly Dictionary<string, Type> _commandArgTypes = new Dictionary<string, Type>();
+
         // Owner travels WITH each sampler (rather than a parallel dictionary
         // keyed by the sampler instance) because a sampler has no natural
         // string key the way a channel/command topic does. Populated in
@@ -1402,6 +1409,7 @@ namespace Sitrep.Host
             };
             _vantageCommandHandlers[PlanForVantageCommand] =
                 (args, vantage) => PlanForVantage(args, vantage);
+            _commandArgTypes[PlanForVantageCommand] = typeof(VantagePlanRequest);
 
             _commandDeclarations[BodyStatesAtCommand] = new CommandDeclaration
             {
@@ -1409,6 +1417,7 @@ namespace Sitrep.Host
             };
             _vantageCommandHandlers[BodyStatesAtCommand] =
                 (args, _) => BodyStatesAt(args);
+            _commandArgTypes[BodyStatesAtCommand] = typeof(BodyStatesRequest);
 
             // The settings model and its one write path. Declared here rather
             // than by an uplink because settings belong to the mod as a whole
@@ -1429,6 +1438,7 @@ namespace Sitrep.Host
             _vantageCommandHandlers[SaveSettingsCommand] = (args, _) => _settingsPublisher == null
                 ? CommandResult.Fail(CommandErrorCode.ModeUnavailable, "the mod has no settings store")
                 : _settingsPublisher.Save(BindCommandArgs(args, typeof(SaveSettingsArgs)) as SaveSettingsArgs);
+            _commandArgTypes[SaveSettingsCommand] = typeof(SaveSettingsArgs);
 
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
@@ -3377,11 +3387,11 @@ namespace Sitrep.Host
             // converts the generic shape into the declared TArgs by reflection
             // (case-insensitive property match + primitive/enum conversion),
             // and passes already-typed args (in-process callers/tests) straight
-            // through. A genuinely unconvertible value still throws, caught one
-            // layer up in InvokeCommandHandler (the SOLE call site for every
-            // registered command handler), which refuses just this command
-            // instead of crashing the Courier thread.
+            // through. A genuinely unconvertible value is refused as malformed
+            // at dispatch, before this runs (see UnbindableArgsReason), so a bad
+            // call never counts as a handler failure.
             _commandHandlers[command] = args => handler((TArgs)BindCommandArgs(args, typeof(TArgs))!);
+            _commandArgTypes[command] = typeof(TArgs);
         }
 
         /// <summary>
@@ -3403,6 +3413,35 @@ namespace Sitrep.Host
             }
             _vantageCommandHandlers[command] =
                 (args, vantage) => handler((TArgs)BindCommandArgs(args, typeof(TArgs))!, vantage);
+            _commandArgTypes[command] = typeof(TArgs);
+        }
+
+        /// <summary>
+        /// Why <paramref name="args"/> cannot bind to the args type
+        /// <paramref name="command"/>'s handler declares, or null when they bind
+        /// (or the command declares no type).
+        ///
+        /// <para>Checked at dispatch, before gates or the Courier. A call whose
+        /// args do not fit is the caller's mistake rather than the handler's, so
+        /// it is refused for that call alone and the command stays available to
+        /// the next well-formed one. Binding is a pure function of the args, so
+        /// a call that passes here binds identically inside the handler.</para>
+        /// </summary>
+        private string? UnbindableArgsReason(string command, object? args)
+        {
+            if (!_commandArgTypes.TryGetValue(command, out var argsType))
+            {
+                return null;
+            }
+            try
+            {
+                BindCommandArgs(args, argsType);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return $"args of \"{command}\" do not bind to {argsType.Name}: {SafeExceptionMessage(ex)}";
+            }
         }
 
         /// <summary>
@@ -3426,8 +3465,9 @@ namespace Sitrep.Host
         /// stays null, never defaulted to 0); an enum binds from a NUMERIC
         /// ordinal (the wire form) as well as a string name; a genuinely
         /// incompatible value (e.g. a number against a <c>string</c> property,
-        /// or an object bag against a scalar) throws, and the throw is
-        /// fail-softed by <see cref="InvokeCommandHandler"/>.</para>
+        /// or an object bag against a scalar) throws, which
+        /// <see cref="UnbindableArgsReason"/> turns into a refusal of that one
+        /// call.</para>
         /// </summary>
         internal static object? BindCommandArgs(object? value, Type targetType)
         {
@@ -4253,8 +4293,8 @@ namespace Sitrep.Host
         /// The sole call site that invokes a registered command handler, shared by
         /// the undelayed dispatch and the Courier's delayed execute callback.
         ///
-        /// <para>A handler that throws (a wire argument its <c>TArgs</c> cannot
-        /// bind, or any bug in the handler) is caught here rather than unwinding
+        /// <para>A handler that throws (any bug in the handler; args that cannot
+        /// bind were already refused at dispatch) is caught here rather than unwinding
         /// onto the Courier thread. That command alone is refused from then on,
         /// and this call answers with a <see cref="HandlerFault"/> naming it, so
         /// the caller is refused rather than told it worked. A command that became
@@ -5196,8 +5236,8 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null) =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null) =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed));
 
         /// <summary>
         /// Test-only deterministic variant of <see cref="DispatchCommand"/>: blocks
@@ -5206,10 +5246,10 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed));
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -6870,6 +6910,14 @@ namespace Sitrep.Host
                 return;
             }
 
+            var unbindable = UnbindableArgsReason(job.Command, job.Args);
+            if (unbindable != null)
+            {
+                (job.OnMalformed ?? job.OnRefused)?.Invoke(unbindable);
+                job.Done?.Set();
+                return;
+            }
+
             // Declared gates, evaluated before the handler runs and before the
             // Courier is involved, from the declaration alone. No actuator
             // performs a facility check: an actuator that did would be a second
@@ -7680,6 +7728,19 @@ namespace Sitrep.Host
                                 OneWaySeconds = oneWaySeconds,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(accepted)));
+                        }, onMalformed: reason =>
+                        {
+                            // The request was carried but its args do not fit
+                            // the command, so it is refused as an unreadable
+                            // request rather than as an unavailable command:
+                            // nothing is wrong with the command itself.
+                            var error = new ErrorMsg
+                            {
+                                RequestId = req.RequestId,
+                                Code = "invalid-envelope",
+                                Message = "command-request envelope could not be read: " + reason,
+                            };
+                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
                         });
                         break;
                 }
@@ -7963,9 +8024,17 @@ namespace Sitrep.Host
             /// command addressed anywhere else.</para>
             /// </summary>
             public readonly Action<double>? OnAccepted;
+            /// <summary>
+            /// Called instead of <see cref="OnResult"/> when the dispatch's args
+            /// cannot bind to the command's declared args type, carrying the
+            /// sentence naming the mismatch. The command stays available. When
+            /// null the sentence goes to <see cref="OnRefused"/> instead.
+            /// </summary>
+            public readonly Action<string>? OnMalformed;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null)
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
             {
+                OnMalformed = onMalformed;
                 Command = command;
                 Args = args;
                 Vantage = vantage;
