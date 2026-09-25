@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- An Uplink that exists only to be probed: nuget-extraction-probe.mjs copies
+       it out of the repo and builds it against the packed contract. It is shaped
+       like a real one on purpose, a net48 plugin linking KSP beside its own
+       contract slice, so a package that could not build a real Uplink cannot
+       build this one either. Nothing builds it in place and nothing ships it. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoProbeUplink</AssemblyName>
+    <RootNamespace>GonogoProbeUplink</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\mod\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\GonogoProbeUplink.Contract\GonogoProbeUplink.Contract.csproj" />
+  </ItemGroup>
+</Project>

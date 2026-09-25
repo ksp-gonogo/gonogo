@@ -766,9 +766,10 @@ jobs:
           retention-days: 7
 
       # Whether an Uplink's C# half builds from the PACKAGE rather than the
-      # source tree, which every other build here uses. Blocking for the Uplink
-      # known to leave cleanly, and for the planted gap, which must fail or the
-      # probe could not see a real one. The script's header has the reasoning.
+      # source tree, which every other build here uses. Blocking for
+      # GonogoProbeUplink, the subject kept here so the probe never runs out of
+      # one, and for the planted gap, which must fail or the probe could not see
+      # a real one. The script's header has the reasoning.
       - name: An Uplink builds against the packed contract
         env:
           KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
@@ -779,8 +780,8 @@ jobs:
             echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
             exit 0
           fi
-          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --uplink GonogoKosUplink
-          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --plant --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --uplink GonogoProbeUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --plant --uplink GonogoProbeUplink
 
       # Every Uplink, reported rather than gated: one that reaches a repo path no
       # package carries is a finding about that Uplink, and this step names it.

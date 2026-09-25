@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The probe Uplink's own wire types. net48 ships beside the plugin and
+       netstandard2.0 is what the net10.0 Tests project references, the same two
+       targets every Uplink's slice carries. -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>GonogoProbeUplink.Contract</AssemblyName>
+    <RootNamespace>GonogoProbeUplink</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\mod\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

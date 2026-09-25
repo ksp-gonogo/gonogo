@@ -426,8 +426,8 @@ jobs:
       - name: An Uplink builds against the packed file, and the probe can see a gap
         run: |
           set -euo pipefail
-          node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --uplink GonogoKosUplink
-          node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --plant --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --uplink GonogoProbeUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --plant --uplink GonogoProbeUplink
 
       # NuGet refuses a republish of an existing version, so an unchanged version
       # is skipped with a notice rather than failing the release. Only a 404 means

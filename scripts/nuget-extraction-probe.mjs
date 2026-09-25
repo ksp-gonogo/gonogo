@@ -31,6 +31,15 @@
  * `--nupkg <file>` probes that package instead of packing one, so a release can
  * prove the very file it is about to push.
  *
+ * ## The subject that never leaves
+ *
+ * Uplinks move out of this repo, so a probe that tested only the ones under
+ * `mod/` would run out of subjects and report success having built nothing.
+ * `nuget-probe-uplink/` beside this script is `GonogoProbeUplink`, an Uplink
+ * that exists to be probed: a net48 plugin linking KSP, its own contract slice,
+ * and a Tests project reaching all three packaged projects. CI's blocking run
+ * names it, and a run that selects no Uplink at all fails.
+ *
  * Usage:
  *   node scripts/nuget-extraction-probe.mjs [--uplink <GonogoXUplink>] [--plant] [--nupkg <file>]
  *
@@ -53,6 +62,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MOD = join(ROOT, "mod");
+const PROBE_UPLINK_ROOT = join(ROOT, "scripts", "nuget-probe-uplink");
 const PACKAGE_ID = "KspGonogo.Sitrep.Contract";
 
 /** The shared projects the package carries, so a reference to one becomes the package. */
@@ -105,13 +115,27 @@ function errorsIn(out) {
   ];
 }
 
-/** Every Uplink with a plugin project, discovered rather than listed. */
+/** Every Uplink with a plugin project, discovered rather than listed, with the directory holding it. */
 function uplinks() {
-  return readdirSync(MOD)
-    .filter((d) => /^Gonogo[A-Za-z]+Uplink$/.test(d))
-    .filter((d) => existsSync(join(MOD, d, `${d}.csproj`)))
-    .filter((d) => onlyUplink === null || d === onlyUplink)
-    .sort();
+  return [MOD, PROBE_UPLINK_ROOT]
+    .flatMap((root) =>
+      readdirSync(root)
+        .filter((d) => /^Gonogo[A-Za-z]+Uplink$/.test(d))
+        .filter((d) => existsSync(join(root, d, `${d}.csproj`)))
+        .map((name) => ({ name, root })),
+    )
+    .filter(({ name }) => onlyUplink === null || name === onlyUplink)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const selected = uplinks();
+if (selected.length === 0) {
+  console.error(
+    onlyUplink === null
+      ? "nuget extraction probe: found no Uplink with a plugin project, so there is nothing to probe"
+      : `nuget extraction probe: no Uplink named ${onlyUplink} has a plugin project`,
+  );
+  process.exit(1);
 }
 
 const work = mkdtempSync(join(tmpdir(), "nuget-extraction-"));
@@ -194,13 +218,13 @@ function rewrite(csproj, copied) {
 }
 
 let failed = 0;
-for (const uplink of uplinks()) {
+for (const { name: uplink, root } of selected) {
   const dest = join(work, uplink);
   const parts = [uplink, `${uplink}.Contract`, `${uplink}.Tests`].filter((p) =>
-    existsSync(join(MOD, p)),
+    existsSync(join(root, p)),
   );
   for (const part of parts) {
-    cpSync(join(MOD, part), join(dest, part), {
+    cpSync(join(root, part), join(dest, part), {
       recursive: true,
       filter: (src) => !/[\\/](bin|obj)$/.test(src),
     });
