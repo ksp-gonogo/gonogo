@@ -19,7 +19,8 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type TopicReading, useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 
 // Re-exported: these moved to core beside the registry they key into, and this
 // widget was where they were written.
@@ -114,22 +115,6 @@ declare module "@ksp-gonogo/core" {
 // ---------------------------------------------------------------------------
 // Value resolution
 // ---------------------------------------------------------------------------
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 /**
  * Sentinel: the current value isn't a boolean yet (unknown, or a numeric Stage

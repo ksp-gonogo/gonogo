@@ -12,12 +12,11 @@ import {
   META_VANTAGE,
   observedAt,
   type SpaceCenterState,
-  type TopicReading,
   useCommand,
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AutoEmptyState,
   CheckIcon,
@@ -90,22 +89,6 @@ declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
   }
-}
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
 }
 
 function SpaceCenterStatusComponent({

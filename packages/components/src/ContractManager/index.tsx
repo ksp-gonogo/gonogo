@@ -6,13 +6,8 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  META_VANTAGE,
-  type TopicReading,
-  useCommand,
-  useViewUt,
-} from "@ksp-gonogo/sitrep-client";
-import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
+import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { KspParameterState, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   BellIcon,
@@ -149,22 +144,6 @@ const PARAM_STATE_BY_ORDINAL: ReadonlyMap<number, ContractParameterState> =
     [KspParameterState.Complete, "Complete"],
     [KspParameterState.Failed, "Failed"],
   ]);
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 /**
  * What an objective's state actually is. An ordinal outside KSP's own members,

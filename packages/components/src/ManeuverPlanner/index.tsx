@@ -14,7 +14,6 @@ import {
   type OrbitTrajectory,
   type ReckonableReading,
   solveOrbit,
-  type TopicReading,
   useCommand,
   useOrbitTrajectory,
   useProcessor,
@@ -22,6 +21,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
   Panel,
@@ -125,22 +125,6 @@ function dateableReckonable<T, K extends keyof T>(
   if (reading.state === "stale")
     return { value: reading.value, needsDating: true };
   return { value: undefined, needsDating: false };
-}
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
 }
 
 function ManeuverPlannerComponent({

@@ -3,11 +3,12 @@ import {
   type SlotProps,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type TopicReading, useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { CrewMember, RepairCostItem } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ReliabilityBudget,
   type ReliabilityPartEntry,
+  stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -98,22 +99,6 @@ import {
  * (occlusion, a burn, a link outage) where reliability is being read at all.
  */
 type UpdatesProps = SlotProps<"fleet-roster.updates">;
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 const seconds = (magnitude: number) => value("s", magnitude);
 const count = (magnitude: number) => value("count", magnitude);

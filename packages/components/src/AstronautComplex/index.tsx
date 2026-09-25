@@ -5,17 +5,14 @@ import {
   registerComponent,
   useActionInput,
 } from "@ksp-gonogo/core";
-import {
-  META_VANTAGE,
-  type TopicReading,
-  useCommand,
-} from "@ksp-gonogo/sitrep-client";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   CREW_STANDING_ORDER,
   CrewStanding,
   canBeSacked,
   crewStandingFromRosterStatus,
   crewStandingLabel,
+  stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -241,21 +238,6 @@ interface Applicant {
  *  books, so they take their safe zero and those badges never render. Rank
  *  is retained on the model (astronauts keep experience when dismissed and
  *  rehired) but withheld from display via `showRank={false}`. */
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 function applicantStats(a: Applicant): KerbalStatFields {
   return {

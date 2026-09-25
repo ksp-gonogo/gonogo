@@ -4,13 +4,13 @@ import {
   registerComponent,
   useActionInput,
 } from "@ksp-gonogo/core";
-import type { TopicReading } from "@ksp-gonogo/sitrep-client";
+
 import type {
   IsruConverterEntry,
   IsruDrillEntry,
   IsruResourceFlow,
 } from "@ksp-gonogo/sitrep-sdk";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
@@ -133,22 +133,6 @@ const RESOURCE_NAME_STYLE = {
   fontSize: "var(--font-size-value)",
   color: "var(--color-text-primary)",
 } as const;
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 /**
  * Enough decimal places to show a rate as nonzero: `base` for an ordinary

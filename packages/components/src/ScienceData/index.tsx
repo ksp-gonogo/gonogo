@@ -6,11 +6,12 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type TopicReading, useStream } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
 import {
   enumNameOf,
   SITUATION_NAMES,
   type SituationName,
+  stillTrue,
   type VesselIdentity,
 } from "@ksp-gonogo/sitrep-sdk";
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
@@ -52,22 +53,6 @@ const topics = defineTopicManifest({
 });
 
 type ScienceDataConfig = Record<string, never>;
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 function ScienceDataComponent({
   w,

@@ -8,7 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import type { Reading, Value, VesselResources } from "@ksp-gonogo/sitrep-sdk";
-import { VesselType } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
@@ -102,22 +102,6 @@ const AVATAR_CELL_WIDTH_FRACTION = 0.2;
  *  harness's grid formula, so the very first paint already lands mid-range
  *  rather than pinned to the floor). */
 const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 /** Pure size calc, unit-testable with no DOM: clamps a fraction of the measured roster width between the cell's min and max bounds. */
 function avatarCellSizePx(containerWidthPx: number): number {

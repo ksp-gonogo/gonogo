@@ -1089,6 +1089,30 @@ export function observedValue<T>(reading: TopicCurrency<T>): T | undefined {
 }
 
 /**
+ * The value of a FACT: something that stays true until an event changes it, and
+ * no event can reach us down a link that is not delivering. So a `stale` reading
+ * still stands for now and is returned as observed, where
+ * {@link observedValue} would withhold it.
+ *
+ * `whenConfirmedNothing` is what an `absent` tombstone means for the caller,
+ * which is a different answer from `pending` (and `unowned`), both of which
+ * return `undefined` and must not collapse into it.
+ *
+ * Only for a fact. A measurement that drifts on its own (a position, a
+ * propellant level, a temperature) is not still true once the link has gone
+ * quiet, and belongs to {@link observedValue} or to a dated read instead.
+ */
+export function stillTrue<T, A>(
+  reading: TopicCurrency<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
+/**
  * One PART of a payload, still carrying the whole reading's currency: the
  * narrowing to write when a primitive draws a single field and has to know
  * whether that field is current.
