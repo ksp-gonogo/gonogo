@@ -455,13 +455,16 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
     });
 
     /**
-     * `orbit-patches.ts` advances elements to a UT, so it has to reach for the
-     * kernel. `propagation.ts` derives closed-form scalars off elements it is
-     * handed and propagates nothing, so it has nothing to reach for. Neither
-     * may grow a solver of its own, which is the half that matters for both.
+     * `impact-point.ts` advances patch elements to a UT, so it has to reach for
+     * the kernel. `orbit-patches.ts` only reshapes the chain and
+     * `propagation.ts` derives closed-form scalars off elements it is handed,
+     * so neither propagates anything or has anything to reach for. None of the
+     * three may grow a solver of its own, which is the half that matters for
+     * all of them.
      */
     const KERNEL_NEIGHBOURS = [
-      { file: "orbit-patches.ts", propagates: true },
+      { file: "impact-point.ts", propagates: true },
+      { file: "orbit-patches.ts", propagates: false },
       { file: "propagation.ts", propagates: false },
     ];
 

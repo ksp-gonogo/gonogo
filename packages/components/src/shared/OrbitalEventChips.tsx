@@ -1,8 +1,8 @@
 import { useOrbitSolve, useTelemetry } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { encounterKindOf } from "./encounterKind";
 import { useBodyName } from "./useBodyName";
 
 /**
@@ -39,12 +39,7 @@ export function OrbitalEventChips() {
   const viewUt = useViewUt();
   const encounter = orbit?.encounter ?? null;
 
-  const encounterKind: "encounter" | "escape" | null =
-    encounter?.transitionType === TransitionType.Encounter
-      ? "encounter"
-      : encounter?.transitionType === TransitionType.Escape
-        ? "escape"
-        : null;
+  const encounterKind = encounterKindOf(encounter);
   /* The index is how every other Topic names a body, so the name comes from
      the catalogue that owns that lookup rather than from a second table. */
   const encBody = useBodyName(encounter?.bodyIndex);

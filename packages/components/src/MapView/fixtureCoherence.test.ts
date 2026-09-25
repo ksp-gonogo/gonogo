@@ -245,6 +245,7 @@ describe("MapView fixtures describe scenes that can exist", () => {
     expect(scenes.map((s) => s.slug).sort()).toEqual([
       "kerbin-launchpad",
       "kerbin-lko-equator",
+      "kerbin-mun-encounter",
       "kerbin-plane-change-node",
       "kerbin-reentry",
       "kerbin-reentry-held",
