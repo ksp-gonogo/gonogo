@@ -116,6 +116,11 @@ describe("Navball never draws an attitude it does not have", () => {
     // and holding the last one there is indistinguishable from a live reading.
     await waitFor(() => expect(dial()).toBeNull());
     expect(visibleText()).toMatch(/last contact/i);
+    // The age beside the caption ticks every frame, so only the words announcing the loss are in the live region.
+    const caption = screen
+      .getAllByRole("status")
+      .find((el) => /last contact/i.test(el.textContent ?? ""));
+    expect(caption?.textContent).not.toMatch(/ago/);
   });
 
   it("still reports the last observed angles as numbers when the link drops", async () => {

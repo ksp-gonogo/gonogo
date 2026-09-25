@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Cluster, Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useId } from "react";
 
 export interface AttitudeIndicatorProps {
   heading: number | null;
@@ -30,6 +30,8 @@ export function AttitudeIndicator({
   size,
 }: AttitudeIndicatorProps) {
   const ready = heading !== null && pitch !== null && roll !== null;
+  // Per instance: two dials of one size on a dashboard would otherwise share an id, and `url(#...)` resolves to whichever mounted first.
+  const clipId = `navball-clip-${useId().replace(/:/g, "")}`;
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 2;
@@ -68,12 +70,12 @@ export function AttitudeIndicator({
           aria-label="Attitude indicator"
         >
           <defs>
-            <clipPath id={`navball-clip-${size}`}>
+            <clipPath id={clipId}>
               <circle cx={cx} cy={cy} r={r} />
             </clipPath>
           </defs>
 
-          <g clipPath={`url(#navball-clip-${size})`}>
+          <g clipPath={`url(#${clipId})`}>
             <g transform={`rotate(${safeRoll} ${cx} ${cy})`}>
               <g transform={`translate(0 ${horizonOffset})`}>
                 {/* Sky */}
@@ -104,7 +106,7 @@ export function AttitudeIndicator({
                   strokeWidth={1.2}
                 />
                 {/* Pitch ladder: every 10°, ± 60°. */}
-                {pitchTicks(45).map((deg) => {
+                {pitchTicks(60).map((deg) => {
                   const y = cy - deg * pitchScale;
                   const w = deg % 30 === 0 ? r * 0.45 : r * 0.25;
                   return (
@@ -183,7 +185,11 @@ export function AttitudeIndicator({
               style={{ ...HEADING_TICK, left: `${deg * headingPxPerDeg}px` }}
             >
               <div style={HEADING_TICK_MARK} />
-              {deg % 30 === 0 && <div style={HEADING_TICK_LABEL}>{deg}</div>}
+              {deg % 30 === 0 && (
+                <div style={HEADING_TICK_LABEL} data-heading-label>
+                  {bearingOf(deg)}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -233,7 +239,7 @@ export function AttitudeIndicator({
 
 function pitchTicks(extent: number): number[] {
   const out: number[] = [];
-  for (let d = -extent; d <= extent; d += 10) {
+  for (let d = -Math.floor(extent / 10) * 10; d <= extent; d += 10) {
     if (d === 0) continue;
     out.push(d);
   }
@@ -242,9 +248,13 @@ function pitchTicks(extent: number): number[] {
 
 function headingMarkers(every: number): number[] {
   const out: number[] = [];
-  // Render two laps so the ticker can wrap visually without seams.
-  for (let d = 0; d < 720; d += every) out.push(d);
+  // Half a lap either side of 0-360, so whatever the heading there are ticks on both sides of the pointer.
+  for (let d = -180; d < 540; d += every) out.push(d);
   return out;
+}
+
+function bearingOf(deg: number): number {
+  return ((deg % 360) + 360) % 360;
 }
 
 // Structural inline styles (CSS-var tokens): a bespoke attitude readout, no

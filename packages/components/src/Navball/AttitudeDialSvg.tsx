@@ -85,7 +85,7 @@ export function AttitudeDialSvg({
               stroke="var(--color-text-primary)"
               strokeWidth={1.2}
             />
-            {pitchTicks(45).map((deg) => {
+            {pitchTicks(60).map((deg) => {
               const y = cy - deg * pitchScale;
               const w = deg % 30 === 0 ? r * 0.45 : r * 0.25;
               return (
@@ -149,7 +149,7 @@ export function AttitudeDialSvg({
 
 function pitchTicks(extent: number): number[] {
   const out: number[] = [];
-  for (let d = -extent; d <= extent; d += 10) {
+  for (let d = -Math.floor(extent / 10) * 10; d <= extent; d += 10) {
     if (d === 0) continue;
     out.push(d);
   }
