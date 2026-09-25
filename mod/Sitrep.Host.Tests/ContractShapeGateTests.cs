@@ -51,9 +51,9 @@ namespace Sitrep.Host.Tests
     /// rewrite.</item>
     /// <item><see cref="EveryMajorBumpDeclaresExactlyWhatItBroke"/>: a Major
     /// must show its work: its declared <c>Breaks</c> must equal the computed
-    /// diff from the previous Major's shape, and be non-empty. A Major that
-    /// breaks nothing is not a Major, and a Major cannot claim a break it did
-    /// not make (nor omit one it did).</item>
+    /// diff from the previous Major's shape. A Major that breaks nothing, on
+    /// the wire or on a declared C# seam, is not a Major, and a Major cannot
+    /// claim a wire break it did not make (nor omit one it did).</item>
     /// </list>
     ///
     /// <para>Note what is deliberately NOT enforced: this gate never decides
@@ -93,7 +93,28 @@ namespace Sitrep.Host.Tests
             /// </summary>
             public string[] Breaks { get; set; } = Array.Empty<string>();
 
+            /// <summary>
+            /// Breaks on a shipped C# seam rather than on the wire: an interface
+            /// or abstract member an Uplink implements. The shape is reflected
+            /// from wire types only, so nothing here can be computed and each one
+            /// is DECLARED, with the members it changed and why.
+            /// </summary>
+            public SeamBreak[] SeamBreaks { get; set; } = Array.Empty<SeamBreak>();
+
             public Shape Shape { get; set; } = new();
+        }
+
+        /// <summary>One declared break on a shipped C# seam.</summary>
+        private sealed class SeamBreak
+        {
+            /// <summary>The type an Uplink implements, by full name.</summary>
+            public string Seam { get; set; } = string.Empty;
+
+            /// <summary>Each member whose signature an existing implementer no longer compiles against.</summary>
+            public string[] Members { get; set; } = Array.Empty<string>();
+
+            /// <summary>Why the break was worth taking.</summary>
+            public string Reason { get; set; } = string.Empty;
         }
 
         /// <summary>
@@ -225,10 +246,16 @@ namespace Sitrep.Host.Tests
         /// A Major bump is the sanctioned way to break the wire, but it is no
         /// longer a blanket amnesty. Each Major's declared <c>Breaks</c> must
         /// EXACTLY equal the diff computed from the previous recorded Major's
-        /// shape: non-empty (a Major that breaks nothing is not a Major), with
-        /// nothing claimed that did not happen and nothing omitted that did.
-        /// So "Major" names a specific, enumerated, verified shape change
-        /// rather than a free pass.
+        /// shape, with nothing claimed that did not happen and nothing omitted
+        /// that did. So "Major" names a specific, enumerated, verified shape
+        /// change rather than a free pass.
+        ///
+        /// <para>A Major must break SOMETHING: a computed wire break, or a
+        /// declared <see cref="MajorEntry.SeamBreaks"/> entry for a shipped C#
+        /// seam, which the wire shape cannot see. A seam break is trusted as
+        /// declared, so it must name the seam, the members and the reason; it
+        /// never excuses a wire break, which still has to be declared in
+        /// <c>Breaks</c> and match the computed diff.</para>
         /// </summary>
         [Fact]
         public void EveryMajorBumpDeclaresExactlyWhatItBroke()
@@ -247,31 +274,62 @@ namespace Sitrep.Host.Tests
                     continue;
                 }
 
-                var actual = ComputeRemovals(previous.Shape, entry.Shape);
-                var declared = (entry.Breaks ?? Array.Empty<string>()).OrderBy(x => x, StringComparer.Ordinal).ToList();
+                var failures = MajorBreakFailures(previous, entry);
+                Assert.True(failures.Count == 0, string.Join("\n\n", failures));
+            }
+        }
 
-                Assert.True(
-                    actual.Count > 0,
+        /// <summary>What is wrong with <paramref name="entry"/>'s declared breaks against <paramref name="previous"/>; empty when nothing is.</summary>
+        private static List<string> MajorBreakFailures(MajorEntry previous, MajorEntry entry)
+        {
+            var failures = new List<string>();
+            var actual = ComputeRemovals(previous.Shape, entry.Shape);
+            var declared = (entry.Breaks ?? Array.Empty<string>()).OrderBy(x => x, StringComparer.Ordinal).ToList();
+            var seamBreaks = entry.SeamBreaks ?? Array.Empty<SeamBreak>();
+
+            if (actual.Count == 0 && seamBreaks.Length == 0)
+            {
+                failures.Add(
                     $"Major {entry.Major} breaks nothing relative to Major {previous.Major}, " +
                     "so it should not be a Major. An additive change is a Minor bump.");
+            }
 
-                var undeclared = actual.Except(declared, StringComparer.Ordinal).ToList();
-                var overdeclared = declared.Except(actual, StringComparer.Ordinal).ToList();
+            foreach (var seam in seamBreaks)
+            {
+                if (string.IsNullOrWhiteSpace(seam.Seam)
+                    || seam.Members == null
+                    || seam.Members.Length == 0
+                    || seam.Members.Any(string.IsNullOrWhiteSpace)
+                    || string.IsNullOrWhiteSpace(seam.Reason))
+                {
+                    failures.Add(
+                        $"Major {entry.Major} declares a seam break without its seam, its members or " +
+                        $"its reason (seam \"{seam.Seam}\"). Nothing computes a seam break, so the " +
+                        "declaration is the whole record and has to be complete.");
+                }
+            }
 
-                Assert.True(
-                    undeclared.Count == 0,
+            var undeclared = actual.Except(declared, StringComparer.Ordinal).ToList();
+            if (undeclared.Count > 0)
+            {
+                failures.Add(
                     $"Major {entry.Major} broke something it never declared:\n  " +
                     string.Join("\n  ", undeclared) +
                     $"\n\nAdd these to the Major {entry.Major} entry's Breaks list, a Major must " +
                     "name every shape change it makes.");
+            }
 
-                Assert.True(
-                    overdeclared.Count == 0,
+            var overdeclared = declared.Except(actual, StringComparer.Ordinal).ToList();
+            if (overdeclared.Count > 0)
+            {
+                failures.Add(
                     $"Major {entry.Major} declares breaks that did not happen:\n  " +
                     string.Join("\n  ", overdeclared) +
                     $"\n\nEither the Breaks list is stale, or Major {entry.Major}'s frozen Shape is " +
                     "not what the declaration describes.");
             }
+
+            return failures;
         }
 
         // ---------------------------------------------------------------
@@ -347,6 +405,86 @@ namespace Sitrep.Host.Tests
                 Types = new Dictionary<string, string[]> { ["C"] = new[] { "D:C.DState[]" } },
             };
             Assert.NotEmpty(ComputeRemovals(branchAFloor, branchBCode));
+        }
+
+        /// <summary>
+        /// A Major whose only break is on a shipped C# seam is accepted when the
+        /// seam break is declared in full, and refused when it is not. The wire
+        /// shapes are identical, so the seam declaration is the only thing that
+        /// can make this a Major.
+        /// </summary>
+        [Fact]
+        public void GateSelfTest_ASeamOnlyMajorPassesDeclaredAndFailsIncomplete()
+        {
+            var shape = new Shape
+            {
+                Types = new Dictionary<string, string[]> { ["Widget"] = new[] { "Name:System.String" } },
+            };
+            var previous = new MajorEntry { Major = 1, Shape = shape };
+            var declared = new MajorEntry
+            {
+                Major = 2,
+                Shape = shape,
+                SeamBreaks = new[]
+                {
+                    new SeamBreak
+                    {
+                        Seam = "Sitrep.Contract.IWidgetSource",
+                        Members = new[] { "Read(object?)" },
+                        Reason = "the source reads for a named widget rather than assuming one",
+                    },
+                },
+            };
+            Assert.Empty(MajorBreakFailures(previous, declared));
+
+            var unreasoned = new MajorEntry
+            {
+                Major = 2,
+                Shape = shape,
+                SeamBreaks = new[] { new SeamBreak { Seam = "Sitrep.Contract.IWidgetSource", Members = new[] { "Read(object?)" } } },
+            };
+            Assert.Contains(MajorBreakFailures(previous, unreasoned), f => f.Contains("seam break without"));
+
+            Assert.Contains(
+                MajorBreakFailures(previous, new MajorEntry { Major = 2, Shape = shape }),
+                f => f.Contains("breaks nothing"));
+        }
+
+        /// <summary>
+        /// A declared seam break does not excuse a wire break: the wire half is
+        /// still computed and still has to appear in <c>Breaks</c>.
+        /// </summary>
+        [Fact]
+        public void GateSelfTest_ASeamBreakDoesNotCoverAnUndeclaredWireBreak()
+        {
+            var previous = new MajorEntry
+            {
+                Major = 1,
+                Shape = new Shape
+                {
+                    Types = new Dictionary<string, string[]> { ["Widget"] = new[] { "Name:System.String", "Count:System.Int32" } },
+                },
+            };
+            var entry = new MajorEntry
+            {
+                Major = 2,
+                Shape = new Shape
+                {
+                    Types = new Dictionary<string, string[]> { ["Widget"] = new[] { "Name:System.String" } },
+                },
+                SeamBreaks = new[]
+                {
+                    new SeamBreak
+                    {
+                        Seam = "Sitrep.Contract.IWidgetSource",
+                        Members = new[] { "Read(object?)" },
+                        Reason = "the source reads for a named widget rather than assuming one",
+                    },
+                },
+            };
+
+            var failures = MajorBreakFailures(previous, entry);
+            Assert.Contains(failures, f => f.Contains("never declared") && f.Contains("member-removed:Widget.Count:System.Int32"));
         }
 
         /// <summary>
