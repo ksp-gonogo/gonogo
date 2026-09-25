@@ -10,28 +10,31 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// The facility-upgrade gate asks the question <c>SetLevel</c> asks before it
-    /// will finish an upgrade, read out of the installed build's IL on both
+    /// A facility upgrade fires every event <c>SetLevel</c> would have fired on a
+    /// live, active component, read out of the installed build's IL on both
     /// sides.
     ///
-    /// <para>The defect this guards is a divergence, not a missing check: the gate
-    /// tested "not destroyed" while <c>SetLevel</c> tested "active in the
-    /// hierarchy", so a component that existed but was inactive passed the gate
-    /// and took the upgrade in half. Any future divergence, on either side, is
-    /// the same defect.</para>
+    /// <para><c>SetLevel</c> skips <c>OnKSCFacilityUpgraded</c> on an inactive
+    /// component after the tier and model have already changed.
+    /// <see cref="FacilityLiveness.Upgrade"/> fires it in that case, so what it
+    /// tests and what <c>SetLevel</c> tests have to be the same question: a
+    /// divergence either drops the event or fires it twice.</para>
     /// </summary>
     public class FacilityLivenessTests
     {
         private static readonly MethodInfo SetLevel = typeof(UpgradeableFacility).GetMethod(
             "SetLevel", BindingFlags.Public | BindingFlags.Instance, new[] { typeof(int) })!;
 
-        private static readonly MethodInfo CanComplete = typeof(FacilityLiveness).GetMethod(
-            nameof(FacilityLiveness.CanComplete), BindingFlags.Public | BindingFlags.Static)!;
+        private static readonly MethodInfo SetLevelFinishes = typeof(FacilityLiveness).GetMethod(
+            nameof(FacilityLiveness.SetLevelFinishes), BindingFlags.Public | BindingFlags.Static)!;
+
+        private static readonly MethodInfo Upgrade = typeof(FacilityLiveness).GetMethod(
+            nameof(FacilityLiveness.Upgrade), BindingFlags.Public | BindingFlags.Static)!;
 
         /// <summary>
-        /// The shape that makes a half-applied upgrade possible at all: the
-        /// opening event and the tier change come BEFORE the guard, the finishing
-        /// event only through the coroutine after it.
+        /// The shape that makes the skipped event possible at all: the opening
+        /// event and the tier change come BEFORE the guard, the finishing event
+        /// only through the coroutine after it.
         /// </summary>
         [Fact]
         public void SetLevelStillOpensThePairBeforeItsGuard()
@@ -51,9 +54,9 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void TheGateAsksExactlyWhatSetLevelAsks()
+        public void SetLevelFinishesAsksExactlyWhatSetLevelAsks()
         {
-            var ours = Members(IlSteps.Of(CanComplete));
+            var ours = Members(IlSteps.Of(SetLevelFinishes));
 
             // Unity's null overload first, so a destroyed component never reaches
             // gameObject, which would throw on it.
@@ -62,15 +65,36 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The gate being right is worth nothing if the command stops using it.
+        /// The tier is raised first and the finishing event fired only after
+        /// asking, in that order, as <c>SetLevel</c> does.
         /// </summary>
         [Fact]
-        public void TheUpgradeCommandGatesThroughIt()
+        public void UpgradeFiresTheFinishingEventOnlyWhereSetLevelSkipsIt()
+        {
+            Assert.Equal(
+                new[]
+                {
+                    "callvirt UpgradeableObject.SetLevel",
+                    "call FacilityLiveness.SetLevelFinishes",
+                    "ldsfld GameEvents.OnKSCFacilityUpgraded",
+                    "callvirt EventData`2.Fire",
+                },
+                IlSteps.Of(Upgrade));
+        }
+
+        /// <summary>
+        /// A component that exists but is inactive is upgraded, not refused, and
+        /// the upgrade goes through the path that fires every event.
+        /// </summary>
+        [Fact]
+        public void TheUpgradeCommandGatesOnBuiltAndUpgradesThroughIt()
         {
             var body = MethodSource("KspCareerActuator.cs", "public CommandResult UpgradeFacility(");
 
-            Assert.Contains("FacilityLiveness.CanComplete(proto.facilityRefs[0])", body, StringComparison.Ordinal);
-            Assert.DoesNotContain("facilityRefs[0] != null", body, StringComparison.Ordinal);
+            Assert.Contains("FacilityLiveness.IsBuilt(proto.facilityRefs[0])", body, StringComparison.Ordinal);
+            Assert.Contains("FacilityLiveness.Upgrade(live, ", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("SetLevelFinishes", body, StringComparison.Ordinal);
+            Assert.DoesNotContain(".SetLevel(", body, StringComparison.Ordinal);
         }
 
         /// <summary>

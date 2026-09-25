@@ -6,6 +6,7 @@ using System.Reflection;
 using Contracts;
 using Expansions;
 using Expansions.Serenity;
+using Gonogo.KSP.Career;
 using KSP.UI.Screens;
 using ModuleWheels;
 using Sitrep.Host;
@@ -3833,12 +3834,9 @@ namespace Gonogo.KSP
                 var facilityName = facility.ToString();
                 var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
 
-                // Not FacilityLiveness, deliberately: that is the WRITE's question,
-                // whether SetLevel will finish. The tier, the tier count and the
-                // price are fields on the component and stay true while it is
-                // inactive, so withholding them would silence a correct reading.
                 if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
-                    proto?.facilityRefs == null || proto.facilityRefs.Count == 0 || proto.facilityRefs[0] == null)
+                    proto?.facilityRefs == null || proto.facilityRefs.Count == 0 ||
+                    !FacilityLiveness.IsBuilt(proto.facilityRefs[0]))
                 {
                     // Nothing to read from here, so nothing is written. An
                     // absent key says the same thing once, and lets the whole
