@@ -25,7 +25,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class ChannelRosterUnderWarpTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         private const double TickHz = 34;
         private const double WindowRealSec = 40;
