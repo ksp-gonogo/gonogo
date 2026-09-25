@@ -19,6 +19,7 @@ namespace Sitrep.Host.IntegrationTests
 
         private const string Vessel = "vessel:G";
         private const double ActiveVesselDelay = 240.0;
+        private const string GroundCentre = "ground:Goldstone";
 
         /// <summary>
         /// A vessel whose route reaches no ground station cannot reach the ledger,
@@ -119,6 +120,34 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A ground centre stands on the ground network, so the active craft
+        /// losing its link leaves that centre's spend to reach the ledger.
+        /// </summary>
+        [Fact]
+        public void AnActiveCraftBlackoutDoesNotDropAGroundCentresSpend()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HomeSpendTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay, connected: false), Timeout);
+
+                engine.DispatchCommandAndWait(HomeSpendTestUplink.Command, "funds", GroundCentre, _ => { }, TestBudgets.Op);
+                engine.DispatchCommandAndWait(HomeSpendTestUplink.CraftCommand, "x", GroundCentre, _ => { }, TestBudgets.Op);
+                engine.TickAndWait(1.0, HomeLedgerTestUplink.Snapshot(1.0, ledger: 10.0, delay: ActiveVesselDelay, connected: false), Timeout);
+
+                Assert.Equal(1, uplink.HandledCount);
+                Assert.Equal(0, uplink.CraftHandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private static void Tick(ChannelEngine engine, double ut) =>
             engine.TickAndWait(ut, HomeLedgerTestUplink.Snapshot(ut, ledger: 10.0, delay: ActiveVesselDelay), Timeout);
     }
@@ -190,6 +219,8 @@ namespace Sitrep.Host.IntegrationTests
                 snapshot != null && snapshot.Values.TryGetValue("delay", out var value) && value is double seconds
                     ? new CommsDelay { OneWaySeconds = seconds, Source = CommsDelaySource.SignalDelay }
                     : null);
+            host.SetConnectivitySource(snapshot =>
+                snapshot != null && snapshot.Values.TryGetValue("connected", out var value) ? value as bool? : null);
         }
     }
 }
