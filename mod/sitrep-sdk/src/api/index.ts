@@ -973,11 +973,12 @@ export function useReplaySessionActive(): boolean {
  * with nothing on the other end, so the member retires with the shim.
  */
 export function getGameHost(): string {
-  const env: unknown = Reflect.get(import.meta, "env");
-  const configured: unknown =
-    typeof env === "object" && env !== null
-      ? Reflect.get(env, "VITE_SITREP_HOST")
-      : undefined;
+  /* Spelled `import.meta.env` on purpose: Vite substitutes that exact text,
+     and a read it cannot see (`Reflect.get(import.meta, "env")`) is undefined
+     in both the dev server and the bundle. */
+  const configured: unknown = (
+    import.meta as ImportMeta & { env?: Record<string, unknown> }
+  ).env?.VITE_SITREP_HOST;
   const buildDefault =
     typeof configured === "string" && configured ? configured : "localhost";
   return readSetting(GAME_HOST_KEY) ?? buildDefault;

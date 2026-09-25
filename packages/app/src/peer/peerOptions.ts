@@ -30,16 +30,13 @@ declare global {
 export function peerBrokerOptions(): PeerOptions {
   const opts: PeerOptions = { key: "gonogo" };
 
-  const env: unknown = Reflect.get(import.meta, "env");
-  const read = (name: string): string | undefined => {
-    if (typeof env !== "object" || env === null) return undefined;
-    const value: unknown = Reflect.get(env, name);
-    return typeof value === "string" ? value : undefined;
-  };
-  const envHost = read("VITE_PEER_HOST");
-  const envPort = read("VITE_PEER_PORT");
-  const envPath = read("VITE_PEER_PATH");
-  const envSecure = read("VITE_PEER_SECURE");
+  /* Spelled `import.meta.env.X` on purpose: Vite substitutes that exact text,
+     and a read it cannot see (`Reflect.get(import.meta, "env")`) is undefined
+     in both the dev server and the bundle. */
+  const envHost = import.meta.env.VITE_PEER_HOST;
+  const envPort = import.meta.env.VITE_PEER_PORT;
+  const envPath = import.meta.env.VITE_PEER_PATH;
+  const envSecure = import.meta.env.VITE_PEER_SECURE;
   if (envHost) opts.host = envHost;
   if (envPort) {
     const n = Number.parseInt(envPort, 10);
