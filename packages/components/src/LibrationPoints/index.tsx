@@ -1,5 +1,13 @@
-import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
-import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  ConfigComponentProps,
+} from "@ksp-gonogo/core";
+import {
+  defineTopicManifest,
+  registerComponent,
+  useActionInput,
+} from "@ksp-gonogo/core";
 import {
   buildElements,
   CELESTIAL_FACTS,
@@ -90,6 +98,17 @@ interface LibrationPointsConfig {
 }
 
 const AUTO_PAIR = "auto";
+
+const librationPointsActions = [
+  {
+    id: "cyclePair",
+    label: "Cycle Pair",
+    accepts: ["button"],
+    description: "Step to the next body pair, with Auto in the cycle.",
+  },
+] as const satisfies readonly ActionDefinition[];
+
+export type LibrationPointsActions = typeof librationPointsActions;
 
 /** Bucket the view instant so the points recompute about once a second, not once a render. */
 const UT_BUCKET_SECONDS = 1;
@@ -259,6 +278,21 @@ function LibrationPointsComponent({
   const chosenIndex =
     chosen === AUTO_PAIR ? null : (facts?.indexByName[chosen] ?? null);
   const chosenIsMissing = chosen !== AUTO_PAIR && chosenIndex === null;
+
+  useActionInput<LibrationPointsActions>({
+    cyclePair: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return undefined;
+      const order = [
+        AUTO_PAIR,
+        ...candidates.flatMap((pair) =>
+          pair.secondaryName ? [pair.secondaryName] : [],
+        ),
+      ];
+      const next = order[(order.indexOf(chosen) + 1) % order.length];
+      setChosen(next);
+      return { pair: next };
+    },
+  });
 
   const system = useMemo(
     () =>
@@ -565,7 +599,7 @@ registerComponent<LibrationPointsConfig>({
   channels: topics.channels,
   optionalChannels: topics.optionalChannels,
   defaultConfig: { pair: AUTO_PAIR },
-  actions: [],
+  actions: librationPointsActions,
   pushable: true,
 });
 
