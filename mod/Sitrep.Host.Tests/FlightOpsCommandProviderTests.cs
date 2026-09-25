@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -145,7 +144,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = Launch(actuator, new LaunchArgs
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
@@ -167,7 +166,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = Launch(actuator, new LaunchArgs
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
             {
                 ShipName = shipName!,
                 Facility = "VAB",
@@ -186,7 +185,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            var result = Launch(actuator, new LaunchArgs
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = facility,
@@ -204,7 +203,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            Launch(actuator, new LaunchArgs
+            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = facility,
@@ -218,7 +217,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator();
 
-            Launch(actuator, new LaunchArgs
+            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
@@ -234,7 +233,7 @@ namespace Sitrep.Host.Tests
         {
             var actuator = new FakeFlightOpsActuator { LaunchResult = CommandResult.Fail(CommandErrorCode.ModeUnavailable) };
 
-            var result = Launch(actuator, new LaunchArgs
+            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
