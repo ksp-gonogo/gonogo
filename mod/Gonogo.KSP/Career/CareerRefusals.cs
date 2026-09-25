@@ -183,36 +183,32 @@ namespace Gonogo.KSP.Career
         /// <summary>
         /// Which refusal an unresolved facility earns, or null to proceed.
         ///
-        /// <para>Two different facts were reaching an operator as one bare
-        /// <see cref="CommandErrorCode.NotFound"/>. A facility id the game does
-        /// not know IS not-found. A facility the game knows perfectly well but
-        /// cannot upgrade to completion from here is a SCENE fact: the id
+        /// <para>A facility id the game does not know IS not-found. A facility the
+        /// game knows but whose component is not built here is a SCENE fact: the id
         /// resolves against <c>ScenarioUpgradeableFacilities.protoUpgradeables</c>,
         /// which survives a scene change, while the <c>facilityRefs</c> behind it
         /// are the KSC's own <c>UpgradeableFacility</c> components, registered as
-        /// those buildings spawn and destroyed with them, and "not found" is a
-        /// claim about the facility that is simply untrue.</para>
+        /// those buildings spawn and destroyed with them, and "not found" would be
+        /// a claim about the facility that is simply untrue.</para>
         ///
         /// <para>Which scenes carry them is not a fixed list, so the caller asks
-        /// <see cref="FacilityLiveness.CanComplete"/> of the component itself and
-        /// never tests <c>HighLogic.LoadedScene</c>. The scene is passed here only
-        /// to name where the operator is standing.</para>
+        /// <see cref="FacilityLiveness.IsBuilt"/> of the component itself and never
+        /// tests <c>HighLogic.LoadedScene</c>. The scene is passed here only to
+        /// name where the operator is standing.</para>
         ///
-        /// <para>Refusing is not pedantry. <c>SetLevel</c> raises the tier and
-        /// fires <c>OnKSCFacilityUpgrading</c> but then returns before its spawn
-        /// coroutine whenever <c>gameObject.activeInHierarchy</c> is false, so a
-        /// tier raised on a component that is absent OR inactive never fires
-        /// <c>OnKSCFacilityUpgraded</c>, and everything waiting on the finished
-        /// upgrade is left holding the opening half of a pair.</para>
+        /// <para>Refusing is not pedantry: the price is read off that component and
+        /// the new tier's model is spawned by it, so without one there is nothing
+        /// to charge for and nothing to build. A component that exists but is
+        /// inactive is NOT refused; <see cref="FacilityLiveness.Upgrade"/> carries
+        /// that case to completion.</para>
         ///
-        /// <para>The second case is transient and the operator can act on it, so
-        /// it earns <see cref="CommandErrorCode.WrongScene"/> and a detail naming
-        /// the scene they are in. Every other refusal on this path already
-        /// carries its reason; this one did not.</para>
+        /// <para>The refusal is transient and the operator can act on it, so it
+        /// earns <see cref="CommandErrorCode.WrongScene"/> and a detail naming the
+        /// scene they are in.</para>
         /// </summary>
         public static CommandResult? FacilityResolutionRefusal(
             bool facilityKnown,
-            bool canComplete,
+            bool built,
             string facilityName,
             string? sceneName)
         {
@@ -220,15 +216,15 @@ namespace Gonogo.KSP.Career
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            if (canComplete)
+            if (built)
             {
                 return null;
             }
             return CommandResult.Fail(
                 CommandErrorCode.WrongScene,
                 string.IsNullOrEmpty(sceneName)
-                    ? facilityName + " is not active in this scene, so its tier cannot be changed from here. Upgrade it at the space centre."
-                    : facilityName + " is not active in the " + sceneName + " scene, so its tier cannot be changed from here. Upgrade it at the space centre.");
+                    ? facilityName + " is not built in this scene, so its tier cannot be changed from here. Upgrade it at the space centre."
+                    : facilityName + " is not built in the " + sceneName + " scene, so its tier cannot be changed from here. Upgrade it at the space centre.");
         }
 
         /// <summary>

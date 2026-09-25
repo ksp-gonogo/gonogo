@@ -395,10 +395,11 @@ namespace Gonogo.KSP
         /// (<c>ScenarioUpgradeableFacilities.protoUpgradeables[SlashSanitize(id)]</c>
         /// → <c>facilityRefs[0]</c>), guard against already-max, read
         /// <c>GetUpgradeCost()</c> (the cost to the next tier), check funds,
-        /// deduct, then raise the level. <c>SetLevel</c> fires the upgrade
-        /// GameEvents but does NOT deduct, the level increment and the fund
-        /// deduction are separate steps, so an unaffordable request returns
-        /// before any spend.
+        /// deduct, then raise the level through <see cref="FacilityLiveness.Upgrade"/>,
+        /// which fires the finishing GameEvent that <c>SetLevel</c> skips on an
+        /// inactive component. <c>SetLevel</c> does NOT deduct: the level increment
+        /// and the fund deduction are separate steps, so an unaffordable request
+        /// returns before any spend.
         /// </summary>
         public CommandResult UpgradeFacility(string facilityId)
         {
@@ -410,12 +411,12 @@ namespace Gonogo.KSP
             var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityId);
             var known = ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto)
                 && proto != null;
-            var canComplete = known
+            var built = known
                 && proto.facilityRefs != null
                 && proto.facilityRefs.Count > 0
-                && FacilityLiveness.CanComplete(proto.facilityRefs[0]);
+                && FacilityLiveness.IsBuilt(proto.facilityRefs[0]);
             var unresolved = CareerRefusals.FacilityResolutionRefusal(
-                known, canComplete, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
+                known, built, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
             if (unresolved != null)
             {
                 return unresolved;
@@ -455,7 +456,7 @@ namespace Gonogo.KSP
             }
 
             funding.AddFunds(-cost, TransactionReasons.StructureConstruction);
-            live.SetLevel(live.FacilityLevel + 1);
+            FacilityLiveness.Upgrade(live, live.FacilityLevel + 1);
             return CommandResult.Ok();
         }
 
