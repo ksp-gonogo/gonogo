@@ -901,8 +901,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * another Uplink at all: stale twice over, so it ratcheted off.
        */
       "packages/relay/src/bootstrapConfig.ts",
-      "mod/sitrep-sdk/src/spine/timeline-store.ts",
-      "packages/sitrep-client/src/use-certainty.ts",
       "packages/sitrep-client/src/use-stream-status.ts",
       "packages/ui/src/VersionMismatchBanner.tsx",
     ],

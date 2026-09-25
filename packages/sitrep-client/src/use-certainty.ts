@@ -3,37 +3,27 @@ import type { TimelineStore } from "./timeline-store";
 import type { Certainty } from "./view-clock";
 
 /**
- * Whether the current frame's view is `"confirmed"` (at-or-before the
- * certainty horizon) or `"predicted"` (past it). Rides its
- * own channel, read at the SAME `FrameToken` `useTimelineStream`/
- * `useStreamStatus` read for the same topic (the `useKosScriptStatus`
- * pattern: value, staleness/absence, and certainty are three independent
- * channels a widget composes, never nested inside one another).
+ * Whether `topic` is `"confirmed"` (at-or-before its lane's certainty horizon)
+ * or `"predicted"` (past it) in the current frame. Rides its own channel, read
+ * at the SAME `FrameToken` `useTimelineStream`/`useStreamStatus` read for the
+ * same topic: value, staleness/absence and certainty are three independent
+ * channels a widget composes, never nested inside one another.
  *
- * `TopicReading<T>` folded the value and staleness channels together, for the
- * reasons recorded in `stream-status.ts`. **Certainty stays out, and must.**
- * It is a property of the FRAME's `viewUt`, not of any one topic, so every
- * topic read in one frame shares it. Nesting it into a per-topic union would
- * duplicate one fact across every read in a frame and admit the possibility of
- * two of them disagreeing, which is precisely what the single-view-time
- * invariant and `FrameToken` exist to prevent.
- *
- * Certainty is a property of the FRAME's `viewUt`, not of any one topic (the
- * single-view-time invariant): every topic read in the same
- * frame shares the same certainty. `topic` is accepted anyway (rather than a
- * topic-less `useCertainty(store)`) purely so the hook's call shape matches
- * its siblings and a future per-channel certainty override (were one ever
- * needed) wouldn't be a breaking API change.
+ * Per topic because a frame reads two view times a light-time apart, one per
+ * delay lane, and each is judged against its own horizon. It stays out of
+ * `TopicReading<T>` all the same: certainty is shared by every topic on one
+ * lane in one frame, so nesting it per read would duplicate one fact and admit
+ * two reads of it disagreeing.
  */
-export function useCertainty(store: TimelineStore, _topic?: string): Certainty {
+export function useCertainty(store: TimelineStore, topic: string): Certainty {
   const subscribe = useCallback(
     (onStoreChange: () => void) => store.subscribeFrame(onStoreChange),
     [store],
   );
 
   const getSnapshot = useCallback(
-    () => store.sampleCertainty(store.currentFrame()),
-    [store],
+    () => store.sampleCertainty(topic, store.currentFrame()),
+    [store, topic],
   );
 
   return useSyncExternalStore(subscribe, getSnapshot);

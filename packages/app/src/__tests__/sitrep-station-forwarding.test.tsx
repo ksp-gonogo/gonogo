@@ -227,7 +227,7 @@ afterEach(() => {
 function Probe({ testId, topic }: { testId: string; topic: string }) {
   const value = useStream<Record<string, unknown>>(topic);
   const store = useTelemetryStore();
-  const certainty = useCertainty(store);
+  const certainty = useCertainty(store, topic);
   return (
     <div data-testid={testId}>
       {value === undefined ? "blank" : `${JSON.stringify(value)}|${certainty}`}

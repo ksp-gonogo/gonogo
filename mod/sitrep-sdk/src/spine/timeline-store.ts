@@ -1071,20 +1071,28 @@ export class TimelineStore {
   }
 
   /**
-   * The frame's certainty: `"confirmed"` when the token's
-   * `viewUt` sat at-or-before the certainty horizon at the moment it was
-   * minted, `"predicted"` past it. Rides alongside a value/status read for
-   * the same topic and frame, never inside either (the `useKosScriptStatus`
-   * pattern: `sample()` for the value, `sampleStatus()` for staleness/
-   * absence, `sampleCertainty()` for this: three independent channels that
-   * compose freely, e.g. a topic can be simultaneously `"predicted"` and
-   * `"resyncing"`, or `"confirmed"` and `"held-stale"`). Mirrors `sample()`/
-   * `sampleStatus()`'s stale-token fallback.
+   * `topic`'s certainty in this frame: `"confirmed"` when the view time its
+   * delay lane is read at sat at-or-before that lane's certainty horizon when
+   * the token was minted, `"predicted"` past it.
+   *
+   * Per topic because a frame has two view times, a light-time apart, and each
+   * is judged against its own horizon: a true-now channel can have reported up
+   * to the instant it is read at while a delayed one has not. Rides alongside a
+   * value/status read for the same topic and frame, never inside either
+   * (`sample()` for the value, `sampleStatus()` for staleness and absence, this
+   * for certainty), and the three compose freely: a topic can be `"predicted"`
+   * and `"resyncing"` at once, or `"confirmed"` and `"held-stale"`. Mirrors
+   * `sample()`/`sampleStatus()`'s stale-token fallback.
    */
-  sampleCertainty(token: FrameToken = this.currentToken): Certainty {
+  sampleCertainty(
+    topic: string,
+    token: FrameToken = this.currentToken,
+  ): Certainty {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
-    return effectiveToken.certainty;
+    return this.laneForTopic(topic) === "true-now"
+      ? effectiveToken.trueNowCertainty
+      : effectiveToken.certainty;
   }
 
   /** Passthrough to the shared clock's certainty horizon, the first-class SDK value (`sdk.view.certaintyHorizonUt()`). */
