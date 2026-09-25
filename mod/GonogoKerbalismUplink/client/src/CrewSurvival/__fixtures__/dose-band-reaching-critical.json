@@ -54,31 +54,31 @@
           {
             "name": "Jebediah Kerman",
             "trait": "Pilot",
-            "asOfUt": 1000,
             "rules": [
               {
                 "name": "radiation",
-                "value": 35.0,
-                "fatalThreshold": 50
+                "fatalThreshold": 50,
+                "problem": 35
               },
               {
                 "name": "stress",
-                "value": 0.3,
-                "fatalThreshold": 1
+                "fatalThreshold": 1,
+                "problem": 0.3
               }
-            ]
+            ],
+            "rulesAsOfKerbalismUt": 1000
           },
           {
             "name": "Bob Kerman",
             "trait": "Scientist",
-            "asOfUt": 1000,
             "rules": [
               {
                 "name": "stress",
-                "value": 0.08,
-                "fatalThreshold": 1
+                "fatalThreshold": 1,
+                "problem": 0.08
               }
-            ]
+            ],
+            "rulesAsOfKerbalismUt": 1000
           }
         ]
       },
@@ -89,31 +89,31 @@
           {
             "name": "Jebediah Kerman",
             "trait": "Pilot",
-            "asOfUt": 1120,
             "rules": [
               {
                 "name": "radiation",
-                "value": 37.4,
-                "fatalThreshold": 50
+                "fatalThreshold": 50,
+                "problem": 37.4
               },
               {
                 "name": "stress",
-                "value": 0.312,
-                "fatalThreshold": 1
+                "fatalThreshold": 1,
+                "problem": 0.312
               }
-            ]
+            ],
+            "rulesAsOfKerbalismUt": 1120
           },
           {
             "name": "Bob Kerman",
             "trait": "Scientist",
-            "asOfUt": 1120,
             "rules": [
               {
                 "name": "stress",
-                "value": 0.08,
-                "fatalThreshold": 1
+                "fatalThreshold": 1,
+                "problem": 0.08
               }
-            ]
+            ],
+            "rulesAsOfKerbalismUt": 1120
           }
         ]
       },
@@ -124,31 +124,31 @@
           {
             "name": "Jebediah Kerman",
             "trait": "Pilot",
-            "asOfUt": 1240,
             "rules": [
               {
                 "name": "radiation",
-                "value": 38.8,
-                "fatalThreshold": 50
+                "fatalThreshold": 50,
+                "problem": 38.8
               },
               {
                 "name": "stress",
-                "value": 0.322,
-                "fatalThreshold": 1
+                "fatalThreshold": 1,
+                "problem": 0.322
               }
-            ]
+            ],
+            "rulesAsOfKerbalismUt": 1240
           },
           {
             "name": "Bob Kerman",
             "trait": "Scientist",
-            "asOfUt": 1240,
             "rules": [
               {
                 "name": "stress",
-                "value": 0.08,
-                "fatalThreshold": 1
+                "fatalThreshold": 1,
+                "problem": 0.08
               }
-            ]
+            ],
+            "rulesAsOfKerbalismUt": 1240
           }
         ]
       }
