@@ -16,8 +16,7 @@ link directly against its assemblies.
   this repository links or references kOS.
 - **License:** GNU General Public License v3.0 (GPLv3-only)
 - **Source:** https://github.com/KSP-KOS/KOS
-- Full license text: `LICENSE-GPL-3.0.txt`, and beside the Uplink in
-  gonogo-uplinks.
+- Full license text: beside the Uplink in gonogo-uplinks.
 
 ## SCANsat
 
