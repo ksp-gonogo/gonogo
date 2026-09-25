@@ -45,6 +45,7 @@ const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY, PART_LIVE);
 const CARRIED = ["vessel.parts", "vessel.thermal", "vessel.flight"];
 
 const HOTTEST_PART = "liquidEngine2.v2";
+const HOTTEST_PART_ID = "965970713";
 const NOT_CURRENT = /hot: no longer current/;
 
 function ringCount(container: HTMLElement): number {
@@ -71,7 +72,11 @@ describe("ShipMap when the thermal reading is not current", () => {
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
       fixture.emit("vessel.thermal", {
-        hottestPart: { name: HOTTEST_PART, temperature: 900 },
+        hottestPart: {
+          name: HOTTEST_PART,
+          id: HOTTEST_PART_ID,
+          temperature: 900,
+        },
       });
     });
     await waitFor(() =>

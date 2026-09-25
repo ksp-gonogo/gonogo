@@ -38,12 +38,13 @@ const topics = defineTopicManifest({
     "vessel.flight",
     "vessel.control",
   ],
-  // One field off each of the three context channels. ThermalStatus draws the
-  // rest of `vessel.thermal`, so mounting on the whole channel without saying
-  // this would put its alarms on the ship diagram too.
+  // Only what the diagram draws off each context channel. ThermalStatus draws
+  // the rest of `vessel.thermal`, so mounting on the whole channel without
+  // saying this would put its alarms on the ship diagram too.
   fields: [
     "vessel.parts",
     "vessel.thermal.hottestPart.name",
+    "vessel.thermal.hottestPart.id",
     "vessel.flight.externalTemperature",
     "vessel.control.throttle",
   ],
@@ -138,9 +139,9 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
    * disappearing on its own would read as a craft that cooled down.
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
-  const hottestPartName =
+  const hottestPart =
     thermalReading.state === "observed"
-      ? thermalReading.value.hottestPart?.name
+      ? thermalReading.value.hottestPart
       : undefined;
   /*
    * The tag below claims the ring was withheld, which is only true when nothing
@@ -280,8 +281,10 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [invokePartAction],
   );
 
-  const highlight =
-    typeof hottestPartName === "string" ? hottestPartName : null;
+  const hottestName =
+    typeof hottestPart?.name === "string" ? hottestPart.name : null;
+  const hottestPartId =
+    typeof hottestPart?.id === "string" ? hottestPart.id : null;
 
   const ambientTint = useMemo(
     () => externalTempTint(externalTemperature),
@@ -313,7 +316,8 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
       {renderBody(
         topology,
         parts,
-        highlight,
+        hottestName,
+        hottestPartId,
         hottestNotCurrent,
         size,
         setWrapEl,
@@ -387,7 +391,8 @@ function externalTempTint(temperatureK: unknown): string | null {
 function renderBody(
   topology: VesselTopology | undefined,
   parts: ShipMapPart[],
-  highlight: string | null,
+  hottestName: string | null,
+  hottestPartId: string | null,
   hottestNotCurrent: boolean,
   size: { w: number; h: number },
   setWrapEl: (el: HTMLDivElement | null) => void,
@@ -419,7 +424,7 @@ function renderBody(
       <div style={META}>
         {parts.length} part{parts.length === 1 ? "" : "s"}
         <span style={META_TAG}>· seq {topology.topologySeq}</span>
-        {highlight && <span style={META_TAG}>· hot: {highlight}</span>}
+        {hottestName && <span style={META_TAG}>· hot: {hottestName}</span>}
         {/* Only ever one of the two: the observed-only read above has already
             blanked the name on the stale arm. Keeps the tag's slot occupied so
             the missing ring reads as withheld rather than as a craft that
@@ -437,7 +442,7 @@ function renderBody(
         />
         <ShipDiagram
           parts={parts}
-          highlight={highlight}
+          highlightPartId={hottestPartId}
           width={size.w}
           height={size.h}
           throttle={throttle}

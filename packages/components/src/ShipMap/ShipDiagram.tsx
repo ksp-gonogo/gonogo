@@ -32,10 +32,11 @@ const STATUS_OUTLINE: Record<"low" | "critical", string> = {
 interface Props {
   parts: readonly ShipMapPart[];
   /**
-   * Case-insensitive part name or title to highlight (typically
-   * `therm.hottestPartName`). Matched against both `name` and `title`.
+   * `ShipMapPart.flightId`, stringified, of the one part to ring (the hottest
+   * part's id off `vessel.thermal`). An id rather than a name because a
+   * symmetric craft carries several parts under one name.
    */
-  highlight?: string | null;
+  highlightPartId?: string | null;
   highlightColor?: string;
   width: number;
   height: number;
@@ -68,7 +69,7 @@ interface Props {
 
 export function ShipDiagram({
   parts,
-  highlight,
+  highlightPartId,
   highlightColor,
   width,
   height,
@@ -218,7 +219,7 @@ export function ShipDiagram({
         parts={parts}
         width={width}
         height={height}
-        highlight={highlight}
+        highlightPartId={highlightPartId}
         highlightColor={highlightColor}
         cam={cam}
         throttle={throttle}

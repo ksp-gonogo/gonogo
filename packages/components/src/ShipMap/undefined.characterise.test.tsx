@@ -269,8 +269,8 @@ describe("ShipMap: the silent absence gates", () => {
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
 
-    // `typeof hottestPartName === "string" ? ... : null` -> `highlight` null ->
-    // `{highlight && ...}`. Absence renders nothing at all, so the operator sees
+    // `typeof hottestPart?.name === "string" ? ... : null` -> `hottestName` null
+    // -> `{hottestName && ...}`. Absence renders nothing at all, so the operator sees
     // a diagram with no hottest part rather than a diagram with an unknown one.
     expect(screen.queryByText(/hot:/)).toBeNull();
 

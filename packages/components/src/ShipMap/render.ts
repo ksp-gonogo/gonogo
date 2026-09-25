@@ -12,7 +12,8 @@ import type { ShipMapPart } from "./shipTopology";
 export interface RenderShipMapOptions {
   width?: number;
   height?: number;
-  highlight?: string | null;
+  /** `ShipMapPart.flightId`, stringified, of the one part to ring. */
+  highlightPartId?: string | null;
   highlightColor?: string;
   /** Background colour painted behind the diagram. Defaults to the app
    *  surface colour so the SVG looks the same as in the dashboard. */
@@ -46,7 +47,7 @@ export function renderShipMapToSvg(
           parts,
           width,
           height,
-          highlight: opts.highlight ?? null,
+          highlightPartId: opts.highlightPartId ?? null,
           highlightColor: opts.highlightColor,
         }),
       ),

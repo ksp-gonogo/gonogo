@@ -792,6 +792,7 @@ namespace Sitrep.Host
                     SkinTemp = hottestSkin.Value,
                     SkinMaxTemp = hottestSkinMax.Value,
                     Name = GetString(thermal, "hottestPartName") ?? "",
+                    Id = GetString(thermal, "hottestPartId"),
                 };
             }
 
@@ -1896,6 +1897,7 @@ namespace Sitrep.Host
             ["skinTemp"] = part.SkinTemp,
             ["skinMaxTemp"] = part.SkinMaxTemp,
             ["name"] = part.Name,
+            ["id"] = part.Id,
         };
 
         private static Dictionary<string, object?> ToWire(VesselControl control) => new Dictionary<string, object?>

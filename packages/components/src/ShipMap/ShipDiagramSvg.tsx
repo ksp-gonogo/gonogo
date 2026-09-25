@@ -57,9 +57,8 @@ export interface ShipDiagramSvgProps {
   parts: readonly ShipMapPart[];
   width: number;
   height: number;
-  /** Case-insensitive part name or title to highlight. Matched against
-   *  both `name` and `title`. */
-  highlight?: string | null;
+  /** `ShipMapPart.flightId`, stringified, of the one part to ring. */
+  highlightPartId?: string | null;
   highlightColor?: string;
   /** Defaults to identity (zoom=1, pan=0,0): that's what the harness uses. */
   cam?: Camera;
@@ -173,7 +172,7 @@ export function ShipDiagramSvg({
   parts,
   width,
   height,
-  highlight,
+  highlightPartId,
   highlightColor = "var(--color-tag-yellow-fg)",
   cam = IDENTITY,
   onPartHover,
@@ -299,9 +298,7 @@ export function ShipDiagramSvg({
 
         {drawOrder.map((p) => {
           const isHot =
-            !!highlight &&
-            (p.title.toLowerCase() === highlight.toLowerCase() ||
-              p.name.toLowerCase() === highlight.toLowerCase());
+            highlightPartId != null && String(p.flightId) === highlightPartId;
           const fill = colorFor(p.type);
           const tint = heatTintFor(
             p.temperatureK,
@@ -439,6 +436,7 @@ export function ShipDiagramSvg({
               {isHot && (
                 <rect
                   data-role="highlight-ring"
+                  data-part-id={p.flightId}
                   x={box.x - 2}
                   y={box.y - 2}
                   width={box.w + 4}

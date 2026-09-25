@@ -79,11 +79,11 @@ describe("ShipDiagram", () => {
     expect(edges).toHaveLength(2);
   });
 
-  it("adds a highlight ring when the hottest part name matches by title", () => {
+  it("rings the part whose flight id is highlighted", () => {
     const { container } = render(
       <ShipDiagram
         parts={PARTS}
-        highlight="LV-T30 'Reliant' Liquid Fuel Engine"
+        highlightPartId="3"
         width={200}
         height={200}
       />,
@@ -92,20 +92,21 @@ describe("ShipDiagram", () => {
       'rect[data-role="highlight-ring"]',
     );
     expect(rings).toHaveLength(1);
+    expect(rings[0].getAttribute("data-part-id")).toBe("3");
   });
 
-  it("matches highlight against the `name` field too, case-insensitively", () => {
+  it("does not ring a part by its name or title", () => {
     const { container } = render(
       <ShipDiagram
         parts={PARTS}
-        highlight="LIQUIDENGINE3"
+        highlightPartId="LV-T30 'Reliant' Liquid Fuel Engine"
         width={200}
         height={200}
       />,
     );
     expect(
       container.querySelectorAll('rect[data-role="highlight-ring"]'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it("renders fuel-fill bars only inside tanks and boosters, from contributed part-meters", () => {

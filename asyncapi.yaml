@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.10.0
+  version: 18.11.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
     channels a client subscribes to, and 55 commands it dispatches, with the payload
@@ -17785,6 +17785,16 @@ components:
             Display name of the hottest part (`Part.partInfo.title`, falling back to
             `Part.name`, same convention as `VesselPart.title`). Never null when
             `VesselThermal.hottestPart` itself is non-null.
+        id:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            `Part.flightID` stringified, the same join key as `VesselPart.id`, so a
+            client can tell WHICH part is hottest where several share
+            `ThermalHottestPart.name` (a symmetric craft). `null` when the part has no
+            live flight id yet.
     TimeCalendar:
       type: object
       description: |-

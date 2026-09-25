@@ -8993,6 +8993,13 @@ export interface ThermalHottestPart
 	* `VesselThermal.hottestPart` itself is non-null.
 	*/
 	name: string;
+	/**
+	* `Part.flightID` stringified, the same join key as `VesselPart.id`, so a
+	* client can tell WHICH part is hottest where several share
+	* `ThermalHottestPart.name` (a symmetric craft). `null` when the part has no
+	* live flight id yet.
+	*/
+	id?: string | null;
 }
 /**
 * The `vessel.thermal` channel payload: kills P-5 (the int-where-

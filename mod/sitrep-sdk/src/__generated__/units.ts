@@ -1237,6 +1237,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselType: "enum",
   },
   "ThermalHottestPart": {
+    id: "id",
     internalTemp: "K",
     maxTemp: "K",
     name: "text",
