@@ -1129,7 +1129,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * longer exists protects nothing and the gate stays strict for every real id,
  * which is the safe direction to be wrong in.
  */
-const CLIPPED_MARK_DEBT = new Set(["career-economy", "crew-status"]);
+const CLIPPED_MARK_DEBT = new Set(["crew-status"]);
 
 async function findClippedContent(page: Page): Promise<string[]> {
   return page.evaluate((htmlNs) => {
@@ -1184,11 +1184,22 @@ async function findClippedContent(page: Page): Promise<string[]> {
 
       for (let anc = el.parentElement; anc; anc = anc.parentElement) {
         const as = getComputedStyle(anc);
+        /*
+         * A scroll container brings whatever it holds into view, so a mark
+         * inside one is reachable, however far past the fold it sits and
+         * whatever clips the scroller from outside. The walk stops there
+         * rather than climbing on to blame an outer box (a Panel's own
+         * `overflow: hidden` root, around its scrolling body) for content that
+         * is only scrolled away.
+         */
+        const scrolls =
+          /^(auto|scroll)$/.test(as.overflowX) ||
+          /^(auto|scroll)$/.test(as.overflowY);
         if (
           !/^(hidden|clip)$/.test(as.overflowX) &&
           !/^(hidden|clip)$/.test(as.overflowY)
         ) {
-          if (anc === host) break;
+          if (scrolls || anc === host) break;
           continue;
         }
         const clip = anc.getBoundingClientRect();
@@ -1229,7 +1240,7 @@ async function findClippedContent(page: Page): Promise<string[]> {
           );
           break;
         }
-        if (anc === host) break;
+        if (scrolls || anc === host) break;
       }
     }
     return out;
@@ -1258,6 +1269,11 @@ async function findClippedContent(page: Page): Promise<string[]> {
  *
  * - `quiet-scroll`: content past the end of an `overflow: auto` container. The
  *   operator can scroll to it, so it is not out of reach
+ * - `quiet-scroll-mark`: the same for a DECLARED, absolutely positioned mark,
+ *   inside a scroller that an outer `overflow: hidden` box clips, which is a
+ *   Panel's own shape (a clipping root around a scrolling body). `quiet-scroll`
+ *   cannot stand in for it: in-flow and undeclared, it is skipped before the
+ *   walk ever reaches a scroller
  * - `quiet-ellipsis`: a phrase truncated by `overflow: hidden` +
  *   `text-overflow: ellipsis`, which loses pixels by design and stays readable
  * - `quiet-partial`: a child hanging half outside a clipping box. Still visible,
@@ -1297,6 +1313,14 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
       <div style="position:absolute;top:200px;left:0;width:120px;height:20px;overflow:auto">
         <div style="height:40px"></div>
         <div id="quiet-scroll" style="height:20px">reachable</div>
+      </div>
+      <div style="position:absolute;top:600px;left:0;width:120px;height:40px;overflow:hidden">
+        <div style="height:40px;overflow:auto">
+          <div style="height:80px"></div>
+          <span style="position:relative;display:inline-block">v<span
+            id="quiet-scroll-mark" data-not-current-mark=""
+            style="position:absolute;left:100%;top:0;width:6px;height:6px;background:#fa0"></span></span>
+        </div>
       </div>
       <div style="position:absolute;top:300px;left:0;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         <span id="quiet-ellipsis">a phrase far too long for sixty pixels</span>
