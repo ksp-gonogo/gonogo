@@ -340,6 +340,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
+       * The stale-reference ratchet's own inventory: debt keyed by the path of
+       * the file carrying a comment, so it names this Uplink's paths by
+       * construction. A gate placed inside an Uplink is one a third-party
+       * author could not run.
+       */
+      "packages/core/src/stale-references.allowlist.ts",
+      /*
        * -- DYNAMIC-NAMESPACE ROUTING: `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
@@ -647,6 +654,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * inside an Uplink is one a third-party author could not run.
        */
       "packages/core/src/comment-stacks.allowlist.ts",
+      /*
+       * The stale-reference ratchet's own inventory: debt keyed by the path of
+       * the file carrying a comment, so it names this Uplink's paths by
+       * construction. A gate placed inside an Uplink is one a third-party
+       * author could not run.
+       */
+      "packages/core/src/stale-references.allowlist.ts",
       /*
        * -- MAGNITUDE budget ratchet: the per-file `.magnitude`
        * budget is keyed by file path, so it names every Uplink that unwraps a
@@ -2275,6 +2289,9 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
+    // A debt-list KEY: the path of a file whose comment names a test the tree
+    // does not have. A path in an inventory, not code.
+    "packages/core/src/stale-references.allowlist.ts",
     // A budget-map KEY naming this Uplink's terminal, which unwraps the one-way
     // delay so the kit's presentation switch can take a plain number. A path,
     // not code, the same as the four Uplinks already listed for this file.
@@ -2303,6 +2320,9 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
     "packages/app/src/uplinks/loader.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
+    // A debt-list KEY: the path of a file whose comment cites a path the tree
+    // does not have. A path in an inventory, not code.
+    "packages/core/src/stale-references.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",

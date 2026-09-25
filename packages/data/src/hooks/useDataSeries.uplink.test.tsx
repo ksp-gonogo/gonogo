@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useDataSeries } from "./useDataSeries";
 
 /**
- * The plotting half of the same question `uplinkFieldCatalog.test.ts` asks of
+ * The plotting half of the same question `uplinkFieldCatalog.test.tsx` asks of
  * the picker: once an operator has picked an Uplink's field, does a series
  * actually arrive?
  *

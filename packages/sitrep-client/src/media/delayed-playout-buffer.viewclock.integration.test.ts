@@ -1,8 +1,8 @@
 /**
  * Single-delay-authority proof (M2 design §5.1 / §5.5 scenario 2, "headline
  * sync"). `DelayedPlayoutBuffer` is unit-tested against a hand-rolled
- * `manualClock` double in `./DelayedPlayoutBuffer.test.ts`; this file instead
- * drives it with the REAL `ViewClock` from `@ksp-gonogo/sitrep-client`, the same
+ * `manualClock` double in the sdk's `media/delayed-playout-buffer.test.ts`; this
+ * file instead drives it with the REAL `ViewClock` from `@ksp-gonogo/sitrep-client`, the same
  * clock instance telemetry reads its certainty horizon off, to prove the two
  * surfaces cross together off ONE authority, not two clocks that merely agree.
  *
