@@ -171,6 +171,18 @@ describe("TransferWindow widget", () => {
     expect(visibleText()).toMatch(/ideal 44\.3°/);
   });
 
+  it("announces the window verdict and never the streaming phase figure", async () => {
+    setup();
+    await waitFor(() =>
+      expect(screen.getByText("Current phase")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("IDEAL").closest("[aria-live]")).not.toBeNull();
+    expect(screen.getByText("Current phase").closest("[aria-live]")).toBeNull();
+    for (const region of document.querySelectorAll("[aria-live]")) {
+      expect(region.textContent).not.toMatch(/°/);
+    }
+  });
+
   it("lists several upcoming windows to the target", async () => {
     setup();
     await waitFor(() =>

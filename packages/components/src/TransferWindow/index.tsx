@@ -631,7 +631,7 @@ function TransferWindowComponent({
                 {solution ? (
                   <NowRow>
                     <PhaseDial solution={solution} />
-                    <NowFacts role="status" aria-live="polite">
+                    <NowFacts>
                       <NowLabel>Current phase</NowLabel>
                       <NowValue>
                         <Unit
@@ -646,7 +646,8 @@ function TransferWindowComponent({
                           />
                         </Muted>
                       </NowValue>
-                      <Badge severity={STATUS_SEVERITY[solution.status]}>
+                      {/* Only the verdict is announced: the phase above moves every frame, and a live region around it would read it out continuously. */}
+                      <Badge severity={STATUS_SEVERITY[solution.status]} live>
                         {STATUS_LABEL[solution.status]}
                       </Badge>
                     </NowFacts>
