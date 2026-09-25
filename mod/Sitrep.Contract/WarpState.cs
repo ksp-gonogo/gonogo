@@ -111,9 +111,10 @@ public class WarpState
     /// rate, in seconds, or <c>null</c> where the host did not report its
     /// physics step.
     ///
-    /// <para>One second at 1x. Under warp the mod samples about once a real
-    /// second, so this is the rate's worth of UT (100,000 at 100,000x), or one
-    /// physics tick where a tick advances the game further than that.
+    /// <para><see cref="SampleIntervalUt"/> up to 10x. Above that the mod
+    /// samples at most ten times a real second, so this is a tenth of a second
+    /// of game time at the current rate (10,000 at 100,000x), or one physics
+    /// tick where a tick advances the game further than that.
     /// Nothing between two consecutive samples was observed, so a line drawn
     /// between two samples that differ asserts a path across this span that
     /// only a model of the value can stand behind. Two samples further apart
@@ -126,6 +127,20 @@ public class WarpState
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? ObservationQuantumUt { get; set; }
+
+    /// <summary>
+    /// The UT between two samples while warp is not thinning them, in seconds:
+    /// the finest spacing the record ever has, and <see cref="ObservationQuantumUt"/>
+    /// at 1x. Constant for the life of the mod.
+    ///
+    /// <para>The chord between two samples this far apart is the resolution
+    /// every channel is sampled at, and a chart has always drawn it. Where the
+    /// quantum is wider, the span beyond this is one the sampling skipped
+    /// because of warp, and a line across it that no model of the value
+    /// carries asserts a path nothing observed.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double SampleIntervalUt { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();
 }

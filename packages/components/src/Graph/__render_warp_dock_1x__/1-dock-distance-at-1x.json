@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "warp-breaks",
     "synthetic": true,
-    "notes": "SYNTHETIC. Distance to a docking target on a phasing orbit, sampled every UT second at 1x (observationQuantumUt 1). Every gap is one second, which the dead reckoning carries, so the trace is one line."
+    "notes": "SYNTHETIC. Distance to a docking target on a phasing orbit, sampled every UT second at 1x (observationQuantumUt 1, the sampleIntervalUt). Every gap is one second, which the dead reckoning carries, so the trace is one line."
   },
   "_stream": {
     "carriedChannels": ["vessel.dock", "time.warp", "vessel.identity"],
@@ -16,7 +16,8 @@
           "warpMode": 0,
           "paused": false,
           "keyframeFloorSec": 1,
-          "observationQuantumUt": 1
+          "observationQuantumUt": 1.0,
+          "sampleIntervalUt": 1
         },
         "meta": {
           "validAt": 0,
@@ -767,7 +768,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 51721.526292849536,
+            "x": 51721.52629284953,
             "y": 0,
             "z": 0
           },
@@ -776,7 +777,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 51721.526292849536
+          "distance": 51721.52629284953
         },
         "meta": {
           "validAt": 37.0,
@@ -847,7 +848,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 51907.50293110843,
+            "x": 51907.502931108436,
             "y": 0,
             "z": 0
           },
@@ -856,7 +857,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 51907.50293110843
+          "distance": 51907.502931108436
         },
         "meta": {
           "validAt": 41.0,
@@ -1827,7 +1828,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 54181.13853070614,
+            "x": 54181.138530706135,
             "y": 0,
             "z": 0
           },
@@ -1836,7 +1837,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 54181.13853070614
+          "distance": 54181.138530706135
         },
         "meta": {
           "validAt": 90.0,
@@ -2467,7 +2468,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 55659.08721907076,
+            "x": 55659.08721907075,
             "y": 0,
             "z": 0
           },
@@ -2476,7 +2477,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 55659.08721907076
+          "distance": 55659.08721907075
         },
         "meta": {
           "validAt": 122.0,
@@ -2547,7 +2548,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 55843.32114249647,
+            "x": 55843.32114249646,
             "y": 0,
             "z": 0
           },
@@ -2556,7 +2557,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 55843.32114249647
+          "distance": 55843.32114249646
         },
         "meta": {
           "validAt": 126.0,
@@ -3867,7 +3868,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 58861.939904778694,
+            "x": 58861.93990477869,
             "y": 0,
             "z": 0
           },
@@ -3876,7 +3877,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 58861.939904778694
+          "distance": 58861.93990477869
         },
         "meta": {
           "validAt": 192.0,
@@ -3947,7 +3948,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 59043.38531453514,
+            "x": 59043.385314535146,
             "y": 0,
             "z": 0
           },
@@ -3956,7 +3957,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 59043.38531453514
+          "distance": 59043.385314535146
         },
         "meta": {
           "validAt": 196.0,
@@ -4187,7 +4188,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 59586.530475919084,
+            "x": 59586.53047591908,
             "y": 0,
             "z": 0
           },
@@ -4196,7 +4197,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 59586.530475919084
+          "distance": 59586.53047591908
         },
         "meta": {
           "validAt": 208.0,
@@ -4352,7 +4353,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 45.07990730951832,
+            "x": 45.07990730951831,
             "y": 0,
             "z": 0
           },
@@ -4687,7 +4688,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 60711.95793176298,
+            "x": 60711.957931762976,
             "y": 0,
             "z": 0
           },
@@ -4696,7 +4697,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 60711.95793176298
+          "distance": 60711.957931762976
         },
         "meta": {
           "validAt": 233.0,
@@ -4787,7 +4788,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 60935.986157915526,
+            "x": 60935.98615791553,
             "y": 0,
             "z": 0
           },
@@ -4796,7 +4797,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 60935.986157915526
+          "distance": 60935.98615791553
         },
         "meta": {
           "validAt": 238.0,
@@ -4847,7 +4848,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 61070.22590997089,
+            "x": 61070.22590997088,
             "y": 0,
             "z": 0
           },
@@ -4856,7 +4857,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 61070.22590997089
+          "distance": 61070.22590997088
         },
         "meta": {
           "validAt": 241.0,
@@ -5067,7 +5068,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 61561.27187777887,
+            "x": 61561.27187777886,
             "y": 0,
             "z": 0
           },
@@ -5076,7 +5077,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 61561.27187777887
+          "distance": 61561.27187777886
         },
         "meta": {
           "validAt": 252.0,
@@ -5127,16 +5128,16 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 61694.86818890947,
+            "x": 61694.868188909466,
             "y": 0,
             "z": 0
           },
           "relativeVelocity": {
-            "x": 44.50844438409558,
+            "x": 44.50844438409559,
             "y": 0,
             "z": 0
           },
-          "distance": 61694.86818890947
+          "distance": 61694.868188909466
         },
         "meta": {
           "validAt": 255.0,
@@ -5687,7 +5688,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 62934.67813045966,
+            "x": 62934.67813045965,
             "y": 0,
             "z": 0
           },
@@ -5696,7 +5697,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 62934.67813045966
+          "distance": 62934.67813045965
         },
         "meta": {
           "validAt": 283.0,
@@ -5727,7 +5728,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 63022.72617828627,
+            "x": 63022.72617828626,
             "y": 0,
             "z": 0
           },
@@ -5736,7 +5737,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 63022.72617828627
+          "distance": 63022.72617828626
         },
         "meta": {
           "validAt": 285.0,
@@ -5892,7 +5893,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 43.86348121408806,
+            "x": 43.863481214088054,
             "y": 0,
             "z": 0
           },
@@ -6387,7 +6388,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 64464.982803283696,
+            "x": 64464.98280328369,
             "y": 0,
             "z": 0
           },
@@ -6396,7 +6397,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 64464.982803283696
+          "distance": 64464.98280328369
         },
         "meta": {
           "validAt": 318.0,
@@ -6547,7 +6548,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 64811.489683563406,
+            "x": 64811.48968356341,
             "y": 0,
             "z": 0
           },
@@ -6556,7 +6557,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 64811.489683563406
+          "distance": 64811.48968356341
         },
         "meta": {
           "validAt": 326.0,
@@ -6792,7 +6793,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 42.98893672226171,
+            "x": 42.98893672226172,
             "y": 0,
             "z": 0
           },
@@ -6807,7 +6808,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 65371.812906392144,
+            "x": 65371.81290639215,
             "y": 0,
             "z": 0
           },
@@ -6816,7 +6817,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 65371.812906392144
+          "distance": 65371.81290639215
         },
         "meta": {
           "validAt": 339.0,
@@ -6827,7 +6828,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 65414.770645697936,
+            "x": 65414.77064569793,
             "y": 0,
             "z": 0
           },
@@ -6836,7 +6837,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 65414.770645697936
+          "distance": 65414.77064569793
         },
         "meta": {
           "validAt": 340.0,
@@ -7212,7 +7213,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 42.540333987290836,
+            "x": 42.54033398729083,
             "y": 0,
             "z": 0
           },
@@ -7227,7 +7228,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 66269.46572303202,
+            "x": 66269.465723032,
             "y": 0,
             "z": 0
           },
@@ -7236,7 +7237,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 66269.46572303202
+          "distance": 66269.465723032
         },
         "meta": {
           "validAt": 360.0,
@@ -7492,7 +7493,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 42.2271386453181,
+            "x": 42.22713864531811,
             "y": 0,
             "z": 0
           },
@@ -7507,7 +7508,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 66862.53755608125,
+            "x": 66862.53755608124,
             "y": 0,
             "z": 0
           },
@@ -7516,7 +7517,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 66862.53755608125
+          "distance": 66862.53755608124
         },
         "meta": {
           "validAt": 374.0,
@@ -7947,7 +7948,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 67785.4071673971,
+            "x": 67785.40716739709,
             "y": 0,
             "z": 0
           },
@@ -7956,7 +7957,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 67785.4071673971
+          "distance": 67785.40716739709
         },
         "meta": {
           "validAt": 396.0,
@@ -7992,7 +7993,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 41.64004773840012,
+            "x": 41.64004773840013,
             "y": 0,
             "z": 0
           },
@@ -8167,7 +8168,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 68242.50939710806,
+            "x": 68242.50939710805,
             "y": 0,
             "z": 0
           },
@@ -8176,7 +8177,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 68242.50939710806
+          "distance": 68242.50939710805
         },
         "meta": {
           "validAt": 407.0,
@@ -8387,7 +8388,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 68696.62324395578,
+            "x": 68696.62324395576,
             "y": 0,
             "z": 0
           },
@@ -8396,7 +8397,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 68696.62324395578
+          "distance": 68696.62324395576
         },
         "meta": {
           "validAt": 418.0,
@@ -8427,7 +8428,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 68778.86251143564,
+            "x": 68778.86251143563,
             "y": 0,
             "z": 0
           },
@@ -8436,7 +8437,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 68778.86251143564
+          "distance": 68778.86251143563
         },
         "meta": {
           "validAt": 420.0,
@@ -8567,7 +8568,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 69065.89617866698,
+            "x": 69065.89617866697,
             "y": 0,
             "z": 0
           },
@@ -8576,7 +8577,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 69065.89617866698
+          "distance": 69065.89617866697
         },
         "meta": {
           "validAt": 427.0,
@@ -8732,7 +8733,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 40.7066495797627,
+            "x": 40.706649579762704,
             "y": 0,
             "z": 0
           },
@@ -8792,7 +8793,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 40.62763829788408,
+            "x": 40.62763829788409,
             "y": 0,
             "z": 0
           },
@@ -8932,7 +8933,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 40.44135517951162,
+            "x": 40.44135517951161,
             "y": 0,
             "z": 0
           },
@@ -9172,7 +9173,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 40.115777964106044,
+            "x": 40.11577796410605,
             "y": 0,
             "z": 0
           },
@@ -9352,7 +9353,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 39.86645922216525,
+            "x": 39.866459222165254,
             "y": 0,
             "z": 0
           },
@@ -9367,7 +9368,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 70681.25589685535,
+            "x": 70681.25589685536,
             "y": 0,
             "z": 0
           },
@@ -9376,7 +9377,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 70681.25589685535
+          "distance": 70681.25589685536
         },
         "meta": {
           "validAt": 467.0,
@@ -9547,16 +9548,16 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 71038.66175827394,
+            "x": 71038.66175827396,
             "y": 0,
             "z": 0
           },
           "relativeVelocity": {
-            "x": 39.58431217425148,
+            "x": 39.58431217425147,
             "y": 0,
             "z": 0
           },
-          "distance": 71038.66175827394
+          "distance": 71038.66175827396
         },
         "meta": {
           "validAt": 476.0,
@@ -9852,7 +9853,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 39.15105545868259,
+            "x": 39.1510554586826,
             "y": 0,
             "z": 0
           },
@@ -10047,7 +10048,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 72019.22960339983,
+            "x": 72019.22960339981,
             "y": 0,
             "z": 0
           },
@@ -10056,7 +10057,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 72019.22960339983
+          "distance": 72019.22960339981
         },
         "meta": {
           "validAt": 501.0,
@@ -10112,7 +10113,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 38.765914827166576,
+            "x": 38.76591482716658,
             "y": 0,
             "z": 0
           },
@@ -10227,7 +10228,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 72367.71613882988,
+            "x": 72367.71613882987,
             "y": 0,
             "z": 0
           },
@@ -10236,7 +10237,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 72367.71613882988
+          "distance": 72367.71613882987
         },
         "meta": {
           "validAt": 510.0,
@@ -10252,7 +10253,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 38.5548519422286,
+            "x": 38.554851942228595,
             "y": 0,
             "z": 0
           },
@@ -10432,7 +10433,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 38.27972914213769,
+            "x": 38.27972914213768,
             "y": 0,
             "z": 0
           },
@@ -10547,16 +10548,16 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 72981.16698197825,
+            "x": 72981.16698197824,
             "y": 0,
             "z": 0
           },
           "relativeVelocity": {
-            "x": 38.09397994757929,
+            "x": 38.0939799475793,
             "y": 0,
             "z": 0
           },
-          "distance": 72981.16698197825
+          "distance": 72981.16698197824
         },
         "meta": {
           "validAt": 526.0,
@@ -10687,7 +10688,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 73247.05962481293,
+            "x": 73247.05962481294,
             "y": 0,
             "z": 0
           },
@@ -10696,7 +10697,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 73247.05962481293
+          "distance": 73247.05962481294
         },
         "meta": {
           "validAt": 533.0,
@@ -10992,7 +10993,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 37.397084744330016,
+            "x": 37.39708474433002,
             "y": 0,
             "z": 0
           },
@@ -11172,7 +11173,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 37.10490224406317,
+            "x": 37.104902244063176,
             "y": 0,
             "z": 0
           },
@@ -11352,7 +11353,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 36.80865077313101,
+            "x": 36.80865077313102,
             "y": 0,
             "z": 0
           },
@@ -11432,7 +11433,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 36.67568584415754,
+            "x": 36.67568584415755,
             "y": 0,
             "z": 0
           },
@@ -11612,7 +11613,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 36.373614441199784,
+            "x": 36.37361444119979,
             "y": 0,
             "z": 0
           },
@@ -11747,7 +11748,7 @@
         "channel": "vessel.dock",
         "value": {
           "relativePosition": {
-            "x": 75208.96860911626,
+            "x": 75208.96860911627,
             "y": 0,
             "z": 0
           },
@@ -11756,7 +11757,7 @@
             "y": 0,
             "z": 0
           },
-          "distance": 75208.96860911626
+          "distance": 75208.96860911627
         },
         "meta": {
           "validAt": 586.0,
@@ -11792,7 +11793,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 36.06755426152517,
+            "x": 36.067554261525174,
             "y": 0,
             "z": 0
           },
@@ -11872,7 +11873,7 @@
             "z": 0
           },
           "relativeVelocity": {
-            "x": 35.93025592936135,
+            "x": 35.93025592936136,
             "y": 0,
             "z": 0
           },

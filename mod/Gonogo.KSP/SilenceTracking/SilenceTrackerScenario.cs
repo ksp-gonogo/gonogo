@@ -62,7 +62,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <para>Two gates stack. The capture tick lives in
         /// <c>GonogoAddon.FixedUpdate</c> and admits one sample per
         /// <c>SampleCadence.IntervalUtAt</c> of the current rate (one UT second
-        /// at 1x, the rate's worth of UT under warp), and a FixedUpdate itself
+        /// up to 10x, a tenth of a real second of game time above it), and a FixedUpdate itself
         /// covers <c>TimeWarp.fixedDeltaTime</c> of UT. The coarser of the two
         /// is the interval at which anyone is actually looking, so it both
         /// floors the sweep step and sets the largest term in the declare-lost

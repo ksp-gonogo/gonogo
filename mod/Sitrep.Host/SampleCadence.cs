@@ -13,8 +13,9 @@ namespace Sitrep.Host
     /// Forward cadence: skip until <paramref name="intervalUt"/> UT has
     /// elapsed since the last sample, driven by game time, not tick count.
     /// The interval a caller passes is <see cref="IntervalUtAt"/> of the
-    /// current warp rate, so under warp the gate still admits about one
-    /// sample per real second rather than one per physics tick.
+    /// current warp rate, so under warp the gate admits at most one sample
+    /// per <see cref="FloorRealSec"/> of real time rather than one per
+    /// physics tick.
     ///
     /// Backward jump (F9 quickload): KSP's UT can rewind. A forward-only
     /// <c>ut - lastSampledUt &lt; interval</c> gate goes strongly negative
@@ -35,16 +36,34 @@ namespace Sitrep.Host
         public const double IntervalUt = 1.0;
 
         /// <summary>
-        /// The least real time the mod leaves between two samples, in seconds.
+        /// The least real time the mod leaves between two samples, in seconds:
+        /// a cap on how far warp may push the sample rate, and so how coarse it
+        /// may make the spacing.
         ///
         /// <para>A UT interval alone is satisfied on every physics tick once
         /// warp runs a tick past it, so the sample rate, and every channel's
-        /// change rate with it, climbs to the physics rate: thirty-odd samples
-        /// a real second at high warp for a stream sized for one. One second,
-        /// because at 1x a UT second IS a real one, so the floor never binds at
-        /// 1x and warp leaves the wire rate where 1x has it.</para>
+        /// change rate with it, climbs to the physics rate, fifty a real second
+        /// at the nominal step. Flooring it in real time trades wire rate for
+        /// spacing, and the figure is where that trade is set. Chosen, not
+        /// measured: it bounds two ratios, both independent of the warp
+        /// rate.</para>
+        ///
+        /// <para>Wire: at most <c>1 / FloorRealSec</c> = 10 samples a real
+        /// second, ten times the 1x rate. With the fifteen-odd channels the
+        /// client carries all moving on every sample that is about 150 frames a
+        /// second, the steady state the client's stream budget is sized for with
+        /// its fivefold headroom intact; the uncapped physics rate would sit on
+        /// that budget's 750 ceiling.</para>
+        ///
+        /// <para>Spacing: <c>FloorRealSec x rate</c> UT, five physics ticks at
+        /// the nominal 0.02 s step, so warp never makes the record more than
+        /// five times coarser than the game could be sampled at all (10,000 UT
+        /// at 100,000x, against a 2,000 UT tick).</para>
+        ///
+        /// <para>It never binds below 10x, where it is under
+        /// <see cref="IntervalUt"/>, so 1x sampling is untouched.</para>
         /// </summary>
-        public const double FloorRealSec = 1.0;
+        public const double FloorRealSec = 0.1;
 
         /// <summary>
         /// The UT the gate waits between two samples at <paramref name="warpRate"/>:

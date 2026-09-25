@@ -1,0 +1,365 @@
+{
+  "_meta": {
+    "scenario": "warp-breaks",
+    "synthetic": true,
+    "notes": "SYNTHETIC. The same charge at 100,000x: samples 10,000 UT apart, five orbits of charge and discharge between each pair. No model claims the value and the span is wider than the one-second sampleIntervalUt, so a chord across it is a path nothing observed and each sample stands alone."
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.resources", "time.warp", "vessel.identity"],
+    "pinnedUt": 200000,
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 100000,
+          "warpRateIndex": 7,
+          "warpMode": 0,
+          "paused": false,
+          "keyframeFloorSec": 1,
+          "observationQuantumUt": 10000.0,
+          "sampleIntervalUt": 1
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 40.0,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 0.0,
+          "deliveredAt": 0.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 68.51128196243106,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 10000.0,
+          "deliveredAt": 10000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 97.02256392486211,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 20000.0,
+          "deliveredAt": 20000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 125.53384588729317,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 30000.0,
+          "deliveredAt": 30000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 154.04512784972422,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 40000.0,
+          "deliveredAt": 40000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 182.55640981215527,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 50000.0,
+          "deliveredAt": 50000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 183.3984623381205,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 60000.0,
+          "deliveredAt": 60000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 140.63153939447392,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 70000.0,
+          "deliveredAt": 70000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 97.86461645082736,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 80000.0,
+          "deliveredAt": 80000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 55.097693507180736,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 90000.0,
+          "deliveredAt": 90000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 58.446152957643875,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 100000.0,
+          "deliveredAt": 100000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 86.95743492007492,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 110000.0,
+          "deliveredAt": 110000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 115.46871688250599,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 120000.0,
+          "deliveredAt": 120000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 143.97999884493703,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 130000.0,
+          "deliveredAt": 130000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 172.4912808073681,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 140000.0,
+          "deliveredAt": 140000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 198.4961558453013,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 150000.0,
+          "deliveredAt": 150000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 155.72923290165468,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 160000.0,
+          "deliveredAt": 160000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 112.96230995800812,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 170000.0,
+          "deliveredAt": 170000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 70.19538701436156,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 180000.0,
+          "deliveredAt": 180000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 48.381023952856694,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 190000.0,
+          "deliveredAt": 190000.0
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "ElectricCharge": {
+              "current": 76.89230591528775,
+              "max": 200.0,
+              "active": true
+            }
+          }
+        },
+        "meta": {
+          "validAt": 200000.0,
+          "deliveredAt": 200000.0
+        }
+      }
+    ]
+  }
+}

@@ -347,6 +347,11 @@
     "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of an observation quantum. The quantum is the UT between two of the mod's samples at the current rate, a figure that changes only when the rate is set; nothing about it changes over time to integrate.",
     "verdict": "coincidence"
   },
+  "WarpState.sampleIntervalUt": {
+    "rates": ["warpRate", "warpRates"],
+    "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of a sample interval. The interval is a fixed constant of the mod's sample gate, the spacing while warp is not thinning it; nothing about it changes over time to integrate.",
+    "verdict": "coincidence"
+  },
   "dv.stages.burnTime": {
     "rates": ["twrActual", "twrAsl", "twrVac"],
     "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
@@ -418,6 +423,11 @@
   "time.warp.observationQuantumUt": {
     "rates": ["warpRate", "warpRates"],
     "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of an observation quantum. The quantum is the UT between two of the mod's samples at the current rate, a figure that changes only when the rate is set; nothing about it changes over time to integrate.",
+    "verdict": "coincidence"
+  },
+  "time.warp.sampleIntervalUt": {
+    "rates": ["warpRate", "warpRates"],
+    "reason": "Dimensional degeneracy, not a pairing: a dimensionless field is the dimensional rate of every time field beside it, and a warp multiplier is not the rate of a sample interval. The interval is a fixed constant of the mod's sample gate, the spacing while warp is not thinning it; nothing about it changes over time to integrate.",
     "verdict": "coincidence"
   },
   "vessel.dock.distance": {

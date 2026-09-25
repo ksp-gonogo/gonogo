@@ -258,13 +258,13 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
   it("breaks a moved value across a warped tick its model cannot carry, and joins a flat one", async () => {
     const fixture = buildStreamFixture({
       carriedChannels: ["vessel.dock", "time.warp"],
-      pinnedUt: 6000,
+      pinnedUt: 30_000,
     });
     await buildLegacySource("vessel.dock.distance");
 
     render(
       <fixture.Provider>
-        <Probe dataKey="vessel.dock.distance" windowSec={7000} />
+        <Probe dataKey="vessel.dock.distance" windowSec={35_000} />
       </fixture.Provider>,
     );
 
@@ -276,19 +276,74 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
     act(() => {
       fixture.transport.emit(
         "time.warp",
-        { warpRate: 100_000, observationQuantumUt: 2000 },
+        {
+          warpRate: 100_000,
+          observationQuantumUt: 10_000,
+          sampleIntervalUt: 1,
+        },
         { validAt: 0 },
       );
       fixture.transport.emit("vessel.dock", dock(100), { validAt: 0 });
-      fixture.transport.emit("vessel.dock", dock(100), { validAt: 2000 });
-      fixture.transport.emit("vessel.dock", dock(1100), { validAt: 4000 });
-      fixture.transport.emit("vessel.dock", dock(2100), { validAt: 6000 });
+      fixture.transport.emit("vessel.dock", dock(100), { validAt: 10_000 });
+      fixture.transport.emit("vessel.dock", dock(1100), { validAt: 20_000 });
+      fixture.transport.emit("vessel.dock", dock(2100), { validAt: 30_000 });
     });
 
     await waitFor(() =>
       expect(readProbe()).toBe(
-        "t:0,2000,4000,6000|v:100,100,1100,2100|breaks:2,3",
+        "t:0,10000,20000,30000|v:100,100,1100,2100|breaks:2,3",
       ),
+    );
+  });
+
+  /**
+   * Nothing models electric charge. Across the tenth-of-a-real-second spans
+   * 100,000x leaves, every moved sample stands alone; at 1x, where the span is
+   * the one-second resolution every chart has always drawn, the same values
+   * stay joined.
+   */
+  async function chargeAcross(rate: number, quantum: number) {
+    const key = "vessel.resources.resources.ElectricCharge.current";
+    const charge = (current: number) => ({
+      resources: { ElectricCharge: { current, max: 200, active: true } },
+    });
+    const fixture = buildStreamFixture({
+      carriedChannels: ["vessel.resources", "time.warp"],
+      pinnedUt: 2 * quantum,
+    });
+    await buildLegacySource(key);
+    render(
+      <fixture.Provider>
+        <Probe dataKey={key} windowSec={3 * quantum} />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "time.warp",
+        { warpRate: rate, observationQuantumUt: quantum, sampleIntervalUt: 1 },
+        { validAt: 0 },
+      );
+      fixture.transport.emit("vessel.resources", charge(40), { validAt: 0 });
+      fixture.transport.emit("vessel.resources", charge(150), {
+        validAt: quantum,
+      });
+      fixture.transport.emit("vessel.resources", charge(60), {
+        validAt: 2 * quantum,
+      });
+    });
+  }
+
+  it("breaks a moved value no model claims across a warped span", async () => {
+    await chargeAcross(100_000, 10_000);
+    await waitFor(() =>
+      expect(readProbe()).toBe("t:0,10000,20000|v:40,150,60|breaks:1,2"),
+    );
+  });
+
+  it("joins the same value at 1x, across the sampling's own resolution", async () => {
+    await chargeAcross(1, 1);
+    await waitFor(() =>
+      expect(readProbe()).toBe("t:0,1,2|v:40,150,60|breaks:"),
     );
   });
 });

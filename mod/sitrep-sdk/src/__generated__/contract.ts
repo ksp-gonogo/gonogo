@@ -9105,19 +9105,32 @@ export interface WarpState
 	* The UT that actually passes between two samples at the current warp rate, in
 	* seconds, or `null` where the host did not report its physics step.
 	*
-	* One second at 1x. Under warp the mod samples about once a real second, so
-	* this is the rate's worth of UT (100,000 at 100,000x), or one physics tick
-	* where a tick advances the game further than that. Nothing between two
-	* consecutive samples was observed, so a line drawn between two samples that
-	* differ asserts a path across this span that only a model of the value can
-	* stand behind. Two samples further apart than this are a channel that did not
-	* change in between.
+	* `WarpState.sampleIntervalUt` up to 10x. Above that the mod samples at most
+	* ten times a real second, so this is a tenth of a second of game time at the
+	* current rate (10,000 at 100,000x), or one physics tick where a tick advances
+	* the game further than that. Nothing between two consecutive samples was
+	* observed, so a line drawn between two samples that differ asserts a path
+	* across this span that only a model of the value can stand behind. Two
+	* samples further apart than this are a channel that did not change in
+	* between.
 	*
 	* On this topic beside `WarpState.keyframeFloorSec` because it is the other
 	* thing warp does to cadence, and it changes only when the rate does. A client
 	* judging a gap reads the quantum in force when the later sample was taken.
 	*/
 	observationQuantumUt?: Value<"s"> | null;
+	/**
+	* The UT between two samples while warp is not thinning them, in seconds: the
+	* finest spacing the record ever has, and `WarpState.observationQuantumUt` at
+	* 1x. Constant for the life of the mod.
+	*
+	* The chord between two samples this far apart is the resolution every channel
+	* is sampled at, and a chart has always drawn it. Where the quantum is wider,
+	* the span beyond this is one the sampling skipped because of warp, and a line
+	* across it that no model of the value carries asserts a path nothing
+	* observed.
+	*/
+	sampleIntervalUt: Value<"s">;
 	meta: PayloadMeta;
 }
 /**

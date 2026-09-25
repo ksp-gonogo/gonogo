@@ -2467,12 +2467,13 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The spacing the sample gate leaves at the snapshot's own rate: one
-        /// UT second at 1x, and at 100,000x the rate's worth of UT rather than
-        /// the 2000 UT tick, because the gate waits about a real second.
+        /// UT second at 1x, and at 100,000x a tenth of a real second of game
+        /// time, five of its 2000 UT ticks, because that is how long the gate
+        /// waits there.
         /// </summary>
         [Theory]
         [InlineData(1.0, 0.02, 1.0)]
-        [InlineData(100000.0, 2000.0, 100000.0)]
+        [InlineData(100000.0, 2000.0, 10000.0)]
         public void BuildWarpStatesTheSampleSpacingTheRateAndTickAllow(double warpRate, double tickUt, double expected)
         {
             var snapshot = SnapshotWith(
@@ -2483,6 +2484,7 @@ namespace Sitrep.Host.Tests
 
             Assert.NotNull(warp);
             Assert.Equal(expected, warp!.ObservationQuantumUt);
+            Assert.Equal(1.0, warp.SampleIntervalUt);
         }
 
         [Fact]

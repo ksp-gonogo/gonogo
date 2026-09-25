@@ -287,13 +287,18 @@ export type ReckonedBound<T> = T extends Value<infer U> ? Value<U> : Value;
  *
  * `carried: false` is a model that claimed the plotted path at the earlier
  * sample and withdrew before the span ended, so nothing can say what the value
- * did there. `carried: true` holds the model's answers at instants strictly
- * inside the span, for a chart to hold its own chord against: this type says
- * what the model claims, and only the chart knows whether a difference is one it
- * can draw.
+ * did there. `carried: false, unclaimed: true` is the same answer reached with
+ * no model at all: nothing claims the plotted path, and the span is wider than
+ * the mod samples at when warp is not thinning it, so the part beyond that is
+ * one the sampling skipped and a chord across it is a path nothing observed.
+ * `carried: true` holds the model's answers at instants strictly inside the
+ * span, for a chart to hold its own chord against: this type says what the
+ * model claims, and only the chart knows whether a difference is one it can
+ * draw.
  */
 export type GapModel =
   | { readonly carried: false }
+  | { readonly carried: false; readonly unclaimed: true }
   | {
       readonly carried: true;
       readonly basis: ReckoningBasis;
@@ -301,6 +306,9 @@ export type GapModel =
       /** The model's answers at `t`, wrapped exactly as a reckoned tail's are. */
       readonly v: readonly unknown[];
     };
+
+/** The answer for a span wider than warp-free sampling that no model claims. */
+const UNCLAIMED: GapModel = { carried: false, unclaimed: true };
 
 /**
  * How many instants inside one unobserved span the model is asked about. Enough
@@ -1643,6 +1651,16 @@ export class TimelineStore {
    * Declared inputs resolve at the current frame, as they do for the reckoned
    * tail. They are part of the cache key, so an input that arrives later is
    * asked again rather than latched.
+   *
+   * ## Where nothing claims the span
+   *
+   * `time.warp.sampleIntervalUt` is the spacing the mod samples at while warp is
+   * not thinning it, the resolution every chart has always drawn its chords at.
+   * A span no wider than that is left to the chart as it always was, and the
+   * answer is `undefined`. A wider one that no model claims is `unclaimed`: the
+   * sampling skipped the part beyond it, and nothing stands behind a chord
+   * across it. Where the host states no such interval, nothing can tell the two
+   * apart, and the answer stays `undefined`.
    */
   gapModel(
     topic: string,
@@ -1653,21 +1671,26 @@ export class TimelineStore {
     if (!(gap > 0)) return undefined;
     const warp = this.sampleRange<{
       observationQuantumUt?: Quantityish | null;
+      sampleIntervalUt?: Quantityish | null;
     }>("time.warp", Number.NEGATIVE_INFINITY, after.validAt)?.at(-1)?.payload;
     const quantum = magnitudeOr(warp?.observationQuantumUt, Number.NaN);
     if (!(quantum > 0)) return undefined;
     const span = Math.min(gap, quantum);
+    const unclaimed =
+      span > magnitudeOr(warp?.sampleIntervalUt, Number.POSITIVE_INFINITY)
+        ? UNCLAIMED
+        : undefined;
 
     const parsed = this.resolveRawFieldSubtopic(topic);
     const rawTopic = parsed?.rawTopic ?? topic;
     const token = this.currentToken;
-    if (!getReckoner(rawTopic)) return undefined;
+    if (!getReckoner(rawTopic)) return unclaimed;
     const inputs = this.reckonerDepTopics(rawTopic)
       .map(
         (dep) => `${dep}@${this.sample<unknown>(dep, token)?.validAt ?? "-"}`,
       )
       .join(",");
-    const key = `${before.validAt}\0${span}\0${inputs}\0${this.clock.getEpoch()}`;
+    const key = `${before.validAt}\0${span}\0${unclaimed !== undefined}\0${inputs}\0${this.clock.getEpoch()}`;
     /*
      * Keyed on the RECORD's point, not the one handed in: a field read's range
      * is minted fresh on every call, so a judgement keyed on it would never be
@@ -1686,7 +1709,8 @@ export class TimelineStore {
     }
     const cached = byTopic.get(topic);
     if (cached?.key === key) return cached.answer;
-    const answer = this.computeGapModel(topic, before, after, span);
+    const answer =
+      this.computeGapModel(topic, before, after, span) ?? unclaimed;
     byTopic.set(topic, { key, answer });
     return answer;
   }
